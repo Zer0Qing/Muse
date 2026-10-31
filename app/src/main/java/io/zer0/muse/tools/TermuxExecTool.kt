@@ -1,6 +1,7 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.common.Logger
 import io.zer0.muse.terminal.TermuxChannel
 
 /**
@@ -13,9 +14,15 @@ import io.zer0.muse.terminal.TermuxChannel
  *    并按 [TermuxChannel.describe] 的引导完成授权;未就绪时如实返回引导文案。
  *
  * HIGH 风险,走既有审批链。
+ *
+ * 安全边界:[ShellCommandBoundary] 第一档 —— 与 [TerminalExecTool] 共用同一套「绝对不许出现」的
+ * 最小集(删应用私有数据/系统分区、写块设备、格式化、下载即执行、提权与设备级命令等),
+ * TRUSTED 模式与「始终允许本工具」都绕不过。第二档不在这里拦:有破坏力但可能是正常工作的命令
+ * 照旧执行,由 HIGH 风险的逐次审批承担。
  */
 object TermuxExecTool {
     const val NAME = "termux_exec"
+    private const val TAG = "TermuxExec"
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = NAME,
@@ -37,6 +44,8 @@ object TermuxExecTool {
     suspend fun execute(args: Map<String, String>, context: Context): String {
         val command = args["command"]?.trim().orEmpty()
         if (command.isEmpty()) return "Error: command is required."
+        // 硬边界放在取通道之前:命中第一档时连 Termux 侧的进程都不会起。
+        boundaryRejection(command)?.let { return it }
         val timeoutMs = (args["timeout_ms"]?.toLongOrNull() ?: TermuxChannel.DEFAULT_TIMEOUT_MS)
             .coerceIn(1_000L, TermuxChannel.MAX_TIMEOUT_MS)
         val workdir = args["workdir"]?.trim()?.takeIf { it.isNotEmpty() }
@@ -68,5 +77,19 @@ object TermuxExecTool {
                 append(out)
             }
         }
+    }
+
+    /**
+     * 命令硬边界第一档:命中返回给模型的拒绝文案,未命中返回 null。
+     *
+     * `workspaceDir` 传 null:本工具在 Termux 自己的目录树里跑,当前目录还可能被 `workdir` 参数改写,
+     * 应用工作区不是它的作用域,拿应用工作区当基准会把「工作区内」判错。null 时拿不到任何工作区
+     * 豁免:命令碰到的每个绝对路径都按设备落点判(系统分区/应用私有数据/存储卷/设备节点照旧拦)。
+     * 唯一退让是判不出落点的相对路径不参与拦截,那部分由 HIGH 风险的逐次审批卡上的命令原文承担。
+     */
+    internal fun boundaryRejection(command: String): String? {
+        val reason = ShellCommandBoundary.forbidReason(command, workspaceDir = null) ?: return null
+        Logger.w(TAG, "硬边界拒绝:$reason")
+        return "Error: 命令被安全边界拒绝 — $reason。"
     }
 }

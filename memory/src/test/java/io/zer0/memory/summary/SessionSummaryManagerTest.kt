@@ -86,6 +86,8 @@ private class EmptySessionSummaryDao : SessionSummaryDao {
     override suspend fun markProcessed(sessionId: String, now: String) = Unit
     override suspend fun deleteAll() = Unit
     override suspend fun deleteById(sessionId: String) = Unit
+    // 助手被删除时要清掉它名下的摘要；空数据 fake 里没有可删的行。
+    override suspend fun deleteByAssistant(assistantId: String): Int = 0
 }
 
 private class CapturingMemoryLlmClient(
@@ -137,6 +139,12 @@ private class InMemorySessionSummaryDao : SessionSummaryDao {
 
     override suspend fun deleteById(sessionId: String) {
         rows.remove(sessionId)
+    }
+
+    override suspend fun deleteByAssistant(assistantId: String): Int {
+        val victims = rows.filterValues { it.assistantId == assistantId }.keys.toList()
+        victims.forEach { rows.remove(it) }
+        return victims.size
     }
 }
 

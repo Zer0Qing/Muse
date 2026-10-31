@@ -56,7 +56,46 @@ class WeClawReceiver(
     private var job: Job? = null
     private data class PollCursor(val channelId: String = "", val buffer: String = "")
 
+    /**
+     * 启动入口:先按持久化配置判定一次,再跟随后续的渠道变化起停。
+     *
+     * 只有存在启用中的 WECLAW 渠道时才起接收循环 —— 老实现无条件 [restart],没有渠道时
+     * 循环以 30 秒为周期空转,每次都要往调试日志里写一条「无渠道」。
+     *
+     * [ChannelManager.channels] 是 [kotlinx.coroutines.flow.StateFlow],但进程刚起来时
+     * 还没读过持久化配置(值是空列表),所以先 [ChannelManager.refresh] 再判定;
+     * 就在调用方的启动协程里读,不另开线程。
+     */
+    suspend fun startForEnabledChannels() {
+        channelManager.refresh()
+        applyAvailability(weClawChannelAvailable(channelManager.channels.value))
+        appScope.launch {
+            // 渠道增删/启停后跟着起停。StateFlow 只在值真的变化时回调,
+            // 而 pollLoop 每轮 refresh() 出来的列表内容没变就不会触发这里。
+            channelManager.channels.collect { channels ->
+                applyAvailability(weClawChannelAvailable(channels))
+            }
+        }
+    }
+
+    /**
+     * 按「是否存在启用中的 WECLAW 渠道」起停。
+     *
+     * 只在「该跑」与「正在跑」不一致时动手,这就是防自触发的那道判断:[stop] 之后渠道并没有
+     * 变化,同一份值不会把循环重新拉起来。停用再启用依旧收得到消息 —— 渠道变回「有启用渠道」
+     * 就是一次状态转移,会走到 [restart];[pollLoop] 里的 30 秒兜底仍然保留作第二道保险。
+     */
+    @Synchronized
+    private fun applyAvailability(available: Boolean) {
+        when (weClawPollAction(available, job?.isActive == true)) {
+            WeClawPollAction.START -> restart()
+            WeClawPollAction.STOP -> stop()
+            WeClawPollAction.NONE -> Unit
+        }
+    }
+
     /** 启动轮询(幂等;已有循环先停再起)。 */
+    @Synchronized
     fun restart() {
         job?.cancel()
         job = appScope.launch {
@@ -66,6 +105,7 @@ class WeClawReceiver(
     }
 
     /** 停止轮询(App 关闭或渠道被删时)。 */
+    @Synchronized
     fun stop() {
         job?.cancel()
         job = null
@@ -73,13 +113,16 @@ class WeClawReceiver(
 
     private suspend fun pollLoop() {
         var cursor = PollCursor()
+        // 上一轮是否找到可用渠道。只在状态变化时记日志：老实现每 30 秒打一条「无渠道」，
+        // 6 小时能占满半份调试日志，把真正要看的东西埋掉。
+        var lastAvailable: Boolean? = null
         while (currentCoroutineContext().isActive) {
             channelManager.refresh()
-            val config = channelManager.channels.value.firstOrNull {
-                it.enabled && it.platform == ChannelPlatform.WECLAW && it.appSecret.isNotBlank()
-            }
+            val config = channelManager.channels.value.firstOrNull { it.isUsableWeClaw() }
+            val available = config != null
+            channelAvailabilityLog(available, lastAvailable)?.let { Logger.i(TAG, it) }
+            lastAvailable = available
             if (config == null) {
-                Logger.i(TAG, "无启用中的 ClawBot 渠道,接收循环退出")
                 // v2.6.7 fix (AUDIT F17): 不要 return —— 旧实现让整个接收 job 终结且无人重启，
                 // 用户停用再启用渠道后就再也收不到消息，直到重启 App 或再点一次保存。
                 delay(30_000L)
@@ -274,6 +317,33 @@ class WeClawReceiver(
     }
 }
 
+/**
+ * 渠道可用性 + 当前是否在跑 → 该怎么做什么。
+ *
+ * 「两边一致就 NONE」是防自触发的全部秘密:stop 之后渠道没变,同一份值再进来也是 NONE,
+ * 不会把刚停掉的循环重新拉起来;真要重新拉起,只能等渠道配置真的变回「有启用渠道」。
+ */
+internal fun weClawPollAction(available: Boolean, running: Boolean): WeClawPollAction = when {
+    available && !running -> WeClawPollAction.START
+    !available && running -> WeClawPollAction.STOP
+    else -> WeClawPollAction.NONE
+}
+
+/** [weClawPollAction] 的三种结果。 */
+internal enum class WeClawPollAction { START, STOP, NONE }
+
+/** 这条渠道配置能不能撑起 WECLAW 长轮询(enabled + 平台匹配 + 有密钥)。 */
+private fun ChannelConfig.isUsableWeClaw(): Boolean =
+    enabled && platform == ChannelPlatform.WECLAW && appSecret.isNotBlank()
+
+/**
+ * 渠道列表里有没有能跑 WECLAW 长轮询的那一条。
+ *
+ * 抽成纯函数是为了让「启动门禁」可以被单测直接喂假配置,而不是只能靠真机验证:
+ * 空列表、只有停用渠道、密钥为空、平台不是 WECLAW 都不该把接收循环拉起来。
+ */
+internal fun weClawChannelAvailable(channels: List<ChannelConfig>): Boolean = channels.any { it.isUsableWeClaw() }
+
 private fun defaultWeClawMediaFileName(media: WeClawClient.MediaRef, kind: String): String {
     val sanitized = sanitizeWeClawFileName(media.fileName)
     if (sanitized.isNotBlank()) return sanitized
@@ -284,6 +354,26 @@ private fun sanitizeWeClawFileName(raw: String): String = raw.substringAfterLast
     .filter { it.code >= 0x20 && it.code != 0x7F }
     .trim()
     .take(120)
+
+/**
+ * 渠道可用性变化时该记的那一条日志;不需要记就返回 null。
+ *
+ * 接收循环必须每 30 秒重试一次(见 [WeClawReceiver.pollLoop] 里的 v2.6.7 注释),
+ * 所以「无渠道」是个会长期重复的状态,而不是一个事件。把它当事件记一次,
+ * 状态真正变化时才再记 —— 既保留「什么时候开始收不到」这个关键时间点,
+ * 也不会让日志被同一句话刷屏。
+ *
+ * @param hasChannel 本轮是否找到了可用渠道
+ * @param previousHasChannel 上一轮的结果;null 表示这是循环的第一轮
+ * @return 本条日志文本;null 表示状态未变、不该记
+ */
+internal fun channelAvailabilityLog(hasChannel: Boolean, previousHasChannel: Boolean?): String? = when {
+    previousHasChannel == null && hasChannel -> "接收循环启动,当前有可用渠道"
+    previousHasChannel == null -> "无启用中的 ClawBot 渠道,30 秒后重试"
+    previousHasChannel == hasChannel -> null
+    hasChannel -> "渠道恢复,继续接收"
+    else -> "无启用中的 ClawBot 渠道,30 秒后重试"
+}
 
 internal fun weClawBatchEventId(requestBuffer: String, responseBuffer: String, index: Int, message: WeClawClient.InboundMsg): String {
     val media = message.media

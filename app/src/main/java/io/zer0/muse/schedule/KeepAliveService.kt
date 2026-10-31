@@ -47,7 +47,7 @@ import org.koin.core.context.GlobalContext
  *  2. 可选 WakeLock（用户开启时持有，防止 Doze 让 CPU 休眠导致网络挂起）
  *  3. onTaskRemoved 触发重启（用户从最近任务划掉后尝试拉起）
  *  4. START_STICKY（系统内存回收后自动重建）
- *  5. 心跳协程定期检查进程存活 + 补偿错过的调度
+ *  5. 心跳协程定期刷新存活状态（错过的调度由各功能自己的 Worker 与前台补触发负责，不在这里做）
  */
 class KeepAliveService : Service() {
 
@@ -214,7 +214,7 @@ class KeepAliveService : Service() {
     }
 
     /**
-     * 心跳：定期记录存活状态，并顺带触发一次调度补偿。
+     * 心跳：定期记录存活状态。
      *
      * 这里刻意只做「轻量唤醒 + 日志」，不直接跑生成任务——
      * 生成任务由 ScheduledTaskRunner / ProactiveMessageRunner 各自的轮询负责，

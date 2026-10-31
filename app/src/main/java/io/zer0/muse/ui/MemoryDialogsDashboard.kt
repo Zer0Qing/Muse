@@ -68,9 +68,18 @@ import java.time.Instant
 
 /**
  * P2: 通用内容编辑对话框。
+ *
+ * @param statusNote 这条记忆“为什么不在正常使用中”的说明(已合并/已出场/被取代),
+ *   列表徽章点开后要能对上号;普通条目传 null 时不占额外高度。
  */
 @Composable
-internal fun FactEditDialog(title: String, initialContent: String, onDismiss: () -> Unit, onConfirm: (String, (Boolean) -> Unit) -> Unit) {
+internal fun FactEditDialog(
+    title: String,
+    initialContent: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, (Boolean) -> Unit) -> Unit,
+    statusNote: String? = null,
+) {
     var text by remember(initialContent) { mutableStateOf(initialContent) }
     var isSaving by remember(initialContent) { mutableStateOf(false) }
 
@@ -78,14 +87,30 @@ internal fun FactEditDialog(title: String, initialContent: String, onDismiss: ()
         onDismissRequest = onDismiss,
         title = title,
         content = {
-            MuseTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 120.dp, max = 240.dp),
-                placeholder = { Text(stringResource(R.string.memory_screen_input_content)) },
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                statusNote?.takeIf { it.isNotBlank() }?.let { note ->
+                    Surface(
+                        shape = MuseShapes.large,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    ) {
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+                MuseTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 240.dp),
+                    placeholder = { Text(stringResource(R.string.memory_screen_input_content)) },
+                )
+            }
         },
         confirmText = stringResource(R.string.memory_screen_save),
         // MEM-07: 空内容禁用保存按钮,而非点了无反应

@@ -18,7 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 /**
- * v2.2.1 GUI Agent 环(Operit 借鉴):视觉模型看着屏幕,一步步操作设备完成跨 App 任务。
+ * v2.2.1 GUI Agent 环：视觉模型看着屏幕,一步步操作设备完成跨 App 任务。
  *
  * 每步循环:截屏 → 预处理(压缩到预算内) → 视觉模型输出 `do(...)`/`finish(...)`
  * → 解析并执行 → 记入动作史。**历史截图不进入下一轮提示词**(只回填动作史文本)——

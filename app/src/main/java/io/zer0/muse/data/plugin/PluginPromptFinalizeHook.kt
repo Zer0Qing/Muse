@@ -13,9 +13,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 /**
  * v2.x（插件 Hook 体系 MVP）：把插件的 JS 函数接入「提示词定稿」Hook 点。
@@ -35,7 +38,9 @@ import kotlinx.serialization.json.jsonPrimitive
  *  - role 只接受 user/assistant/system/tool；未知 role 的条目按 assistant 处理。
  */
 internal class PluginPromptFinalizeHook(
+    private val context: android.content.Context,
     private val pluginId: String,
+    private val manifest: PluginManifest,
     private val entryCode: String,
     private val configJson: String?,
 ) : PromptFinalizeHook {
@@ -47,7 +52,7 @@ internal class PluginPromptFinalizeHook(
     @Suppress("ReturnCount", "TooGenericExceptionCaught")
     override suspend fun beforeFinalizePrompt(event: PromptFinalizeEvent): PromptFinalizeResult {
         val result =
-            runCatching { WebViewSkillEngine().eval(buildCallScript(event), scopeKey = pluginId, pluginConfigJson = configJson) }
+            runCatching { invokeHook(event) }
                 .getOrElse { e ->
                     if (e is CancellationException) throw e
                     Logger.w(TAG, "插件 prompt_finalize 执行失败(保留原历史): ${e.message}")
@@ -69,6 +74,47 @@ internal class PluginPromptFinalizeHook(
         }
         Logger.d(TAG, "插件 prompt_finalize 应用: ${event.preparedHistory.size} → ${parsed.size} 条")
         return PromptFinalizeResult(parsed)
+    }
+
+    /**
+     * 按运行时调一次 Hook。
+     *
+     * JS 保持原有的「内联事件再调」写法：`buildCallScript` 把事件拼进脚本，
+     * 不经过参数序列化，避开了早前引擎对复杂对象参数的兼容问题。
+     * Python 没有那段历史包袱，直接按参数数组传。
+     */
+    private suspend fun invokeHook(event: PromptFinalizeEvent): SkillEngineResult =
+        if (PluginFunctionInvoker.isPython(manifest)) {
+            PluginFunctionInvoker(context).call(
+                manifest = manifest,
+                entryCode = entryCode,
+                functionName = HOOK_FUNCTION_NAME,
+                argsJson = buildPythonArgs(event),
+                configJson = configJson,
+            )
+        } else {
+            WebViewSkillEngine().eval(
+                buildCallScript(event),
+                scopeKey = pluginId,
+                pluginConfigJson = configJson,
+            )
+        }
+
+    /** Python 版入参：`[{"preparedHistory": [{"role":..., "content":...}]}]`。 */
+    private fun buildPythonArgs(event: PromptFinalizeEvent): String {
+        val history = buildJsonArray {
+            event.preparedHistory.forEach { msg ->
+                add(
+                    buildJsonObject {
+                        put("role", msg.role.wireName())
+                        put("content", msg.content)
+                    },
+                )
+            }
+        }
+        return buildJsonArray {
+            add(buildJsonObject { put("preparedHistory", history) })
+        }.toString()
     }
 
     /** 拼一次 JS 调用：加载入口代码 → 注入事件 → 调 onPromptFinalize → 序列化返回。 */
@@ -121,5 +167,8 @@ internal class PluginPromptFinalizeHook(
 
     private companion object {
         const val TAG = "PluginHook"
+
+        /** 插件入口需要导出的 hook 函数名。 */
+        const val HOOK_FUNCTION_NAME = "onPromptFinalize"
     }
 }

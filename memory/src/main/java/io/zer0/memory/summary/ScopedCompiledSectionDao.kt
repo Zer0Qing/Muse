@@ -34,4 +34,14 @@ interface ScopedCompiledSectionDao {
 
     @Query("DELETE FROM compiled_sections_scoped")
     suspend fun deleteAll()
+
+    /**
+     * 助手被删除时清掉该作用域的全部编译段落(所有 space)。
+     *
+     * 段落是按事实投影出来的产物,事实都删了却留着段落,记忆页与注入内容就会显示已删助手的旧记忆。
+     *
+     * @return 实际删除的行数
+     */
+    @Query("DELETE FROM compiled_sections_scoped WHERE scope = :scope")
+    suspend fun deleteByScope(scope: String): Int
 }

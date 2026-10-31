@@ -80,7 +80,8 @@
 <!-- 前端修复 (i18n-6): stop button a11y label on voice message bar -->
 <string name="voice_stop_recording">Stop recording</string>
     <string name="voice_conversation_cd_idle">Tap to start conversation</string>
-    <string name="voice_conversation_cd_listening">Recording, tap to interrupt</string>
+    <string name="voice_conversation_cd_listening">Recording, tap to finish and send</string>
+    <string name="voice_conversation_cd_listening_waiting">Tap to start speaking</string>
     <string name="voice_conversation_cd_thinking">AI thinking, tap to interrupt</string>
     <string name="voice_conversation_cd_speaking">Speaking, tap to interrupt</string>
 
@@ -237,6 +238,9 @@
     <string name="tool_approval_approve">Approve</string>
     <string name="tool_approval_write_summary">About to write to %1$s (%2$d chars)</string>
     <string name="tool_approval_advanced_details">Advanced details</string>
+    <string name="tool_approval_show_full_args">Show full arguments</string>
+    <string name="tool_approval_hide_full_args">Hide full arguments</string>
+    <string name="tool_approval_args_hidden">%1$d more characters not shown</string>
     <string name="tool_approval_confirm_deny">Confirm deny</string>
     <string name="tool_approval_deny">Deny</string>
     <string name="tool_approval_deny_reason">Reason for denial (optional)</string>
@@ -247,11 +251,14 @@
     <string name="voice_conversation_idle_hint">Tap the button below to start</string>
     <string name="voice_conversation_idle_tap_hint">Speak to auto-recognize and send; replies will be read aloud</string>
     <string name="voice_conversation_listening">Listening...</string>
+    <string name="voice_conversation_listening_finish_hint">Tap the button when you\'re done</string>
+    <string name="voice_conversation_retry_hint">Didn\'t catch that, please say it again</string>
     <string name="voice_conversation_no_voices">No system voice found. Install a TTS engine in system settings first</string>
     <string name="voice_conversation_pick_voice_title">Choose voice</string>
     <string name="voice_conversation_speaking">Speaking...</string>
     <string name="voice_conversation_state_idle">Tap to start</string>
     <string name="voice_conversation_state_listening">Listening</string>
+    <string name="voice_conversation_state_listening_idle">Tap to start</string>
     <string name="voice_conversation_state_speaking">Speaking</string>
     <string name="voice_conversation_state_thinking">Thinking</string>
     <string name="voice_conversation_thinking">Thinking...</string>
@@ -295,17 +302,18 @@
     <string name="settings_proactive_v2_ledger_sub">It is keeping %1$d things in mind</string>
     <string name="settings_proactive_v2_intensity">Proactive level</string>
     <string name="settings_proactive_v2_budget">Can speak %1$d more times today</string>
+    <string name="settings_proactive_v2_budget_unlimited">No limit today</string>
     <string name="settings_proactive_v2_resume">Resume messages</string>
     <string name="settings_proactive_v2_reset">Reset</string>
     <string name="settings_proactive_v2_cooldown">Do not disturb me for a while</string>
     <string name="settings_proactive_v2_cooldown_sub">Quiet for 7 days; it will still remember but stay silent</string>
     <string name="settings_proactive_v2_empty">Nothing on its mind right now</string>
     <string name="settings_proactive_v2_close">OK</string>
-    <string name="proactive_intensity_quiet">Quiet</string>
-    <string name="proactive_intensity_reserved">Reserved</string>
-    <string name="proactive_intensity_standard">Standard</string>
-    <string name="proactive_intensity_active">Active</string>
-    <string name="proactive_intensity_clingy">Clingy</string>
+    <string name="proactive_intensity_quiet">Quiet · up to 3 a day</string>
+    <string name="proactive_intensity_reserved">Reserved · up to 8 a day</string>
+    <string name="proactive_intensity_standard">Standard · up to 15 a day</string>
+    <string name="proactive_intensity_active">Active · up to 30 a day</string>
+    <string name="proactive_intensity_clingy">Clingy · no limit</string>
     <string name="proactive_kind_reminder">Reminder</string>
     <string name="proactive_kind_follow_up">Unfinished</string>
     <string name="proactive_kind_care">Care</string>

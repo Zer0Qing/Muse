@@ -26,6 +26,16 @@ object MoodSkinParser {
     )
 
     /**
+     * 八个内联特效的匹配式，按 [INLINE_EFFECTS] 的顺序预先编译。
+     *
+     * [Regex] 不可变，编译一次可以反复用；此前每次调用都现编八条，
+     * 而这两个函数处在气泡每帧都会经过的路径上。
+     */
+    private val INLINE_EFFECT_REGEXES: Map<String, Regex> = INLINE_EFFECTS.associateWith { effect ->
+        Regex("""\[$effect\]([\s\S]*?)\[/$effect\]""", RegexOption.IGNORE_CASE)
+    }
+
+    /**
      * 从 [content] 提取 `<moodfx>` 并剥离标签。
      *
      * @return (皮肤 id, 剥离后的正文)
@@ -40,15 +50,12 @@ object MoodSkinParser {
     }
 
     /** 判断文本是否包含任何内联特效标签(用于选择富文本渲染路径)。 */
-    fun containsInlineEffect(text: String): Boolean = INLINE_EFFECTS.any { effect ->
-        Regex("""\[$effect\]([\s\S]*?)\[/$effect\]""", RegexOption.IGNORE_CASE).containsMatchIn(text)
-    }
+    fun containsInlineEffect(text: String): Boolean = INLINE_EFFECT_REGEXES.values.any { it.containsMatchIn(text) }
 
     /** 清除所有内联特效标签,保留被包裹的文字。 */
     fun stripInlineEffects(text: String): String {
         var result = text
-        for (effect in INLINE_EFFECTS) {
-            val regex = Regex("""\[$effect\]([\s\S]*?)\[/$effect\]""", RegexOption.IGNORE_CASE)
+        for (regex in INLINE_EFFECT_REGEXES.values) {
             result = regex.replace(result) { it.groupValues[1] }
         }
         return result

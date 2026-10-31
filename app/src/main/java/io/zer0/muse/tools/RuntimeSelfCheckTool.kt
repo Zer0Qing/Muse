@@ -1,8 +1,12 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.common.AppJson
 import io.zer0.muse.runtime.MuseRuntime
 import io.zer0.muse.runtime.PythonRuntime
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 /**
  * v2.x 扩展运行时（P0 打样）：内置 Node 沙盒自检工具。
@@ -78,6 +82,8 @@ object RuntimeSelfCheckTool {
             sb.append("\n- npm: 未就绪")
         }
 
+        sb.append(buildCpuSection(probeCpu(context)))
+
         sb.append("\n- 结论: ").append(
             if (nodeV?.exitCode == 0 && MuseRuntime.isReady(context)) {
                 "运行时就绪 ✓"
@@ -93,7 +99,50 @@ object RuntimeSelfCheckTool {
         return sb.toString()
     }
 
-    /** v2.6.7: 设备控制通道段（无障碍 / Shizuku / Root + 单项运行时权限提示）。 */
+    /**
+     * CPU 探测：内置 Node 的 `os.cpus()` / `os.availableParallelism()` 是否取到核数。
+     *
+     * 沙盒环境确实可能拿不到（libuv 读不到 CPU 列表），所以只报 warn，不参与整体结论。
+     */
+    private suspend fun probeCpu(context: Context): CpuProbe? {
+        val r = runCatching { MuseRuntime.execNode(context, listOf("-e", CPU_PROBE_SCRIPT), timeoutMs = 20_000) }.getOrNull()
+        if (r == null || r.exitCode != 0) return null
+        val line = r.stdout.lineSequence().lastOrNull { it.trim().startsWith("{") }?.trim() ?: return null
+        return runCatching {
+            val obj = AppJson.parseToJsonElement(line) as? JsonObject ?: return@runCatching null
+            CpuProbe(
+                entries = (obj["cpus"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull(),
+                parallelism = (obj["ap"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull(),
+                envCount = (obj["env"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull(),
+            )
+        }.getOrNull()
+    }
+
+    /** 渲染 CPU 探测项（纯函数，便于单测）。取不到值时报 warn，不影响整体结论。 */
+    internal fun buildCpuSection(probe: CpuProbe?): String {
+        val prefix = "\n- CPU 探测: "
+        if (probe == null) return prefix + "warn（探测未执行成功；沙盒里取不到核数不影响整体结论）"
+        val entries = probe.entries ?: 0
+        val parallelism = probe.parallelism ?: 0
+        val detail =
+            "os.cpus().length=$entries, os.availableParallelism()=$parallelism, " +
+                "MUSE_CPU_COUNT=${probe.envCount ?: "未注入"}"
+        return if (entries > 0 && parallelism > 0) {
+            prefix + detail + " ✓"
+        } else {
+            prefix + detail + " warn（取不到核数；依赖 CPU 数的脚本会退化，但不影响整体结论）"
+        }
+    }
+
+    /** 内置 Node 侧 CPU 探测结果（字段缺失时为 null）。 */
+    internal data class CpuProbe(val entries: Int?, val parallelism: Int?, val envCount: Int?)
+
+    private const val CPU_PROBE_SCRIPT =
+        "const os=require('node:os');" +
+            "console.log(JSON.stringify({cpus:os.cpus().length," +
+            "ap:os.availableParallelism(),env:process.env.MUSE_CPU_COUNT||null}))"
+
+    /** 设备控制通道段（无障碍 / Shizuku / Root + 单项运行时权限提示）。 */
     private suspend fun appendChannelSection(automation: io.zer0.muse.automation.core.AutomationManager, sb: StringBuilder) {
         val state = automation.refreshPermissions()
         sb.append("\n\n【设备控制通道自检】")

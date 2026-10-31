@@ -33,12 +33,17 @@ object FactsSectionProjector {
      * 输入应已由调用方过滤墓碑与过期条目（getByScopeAndSpace 已含过期过滤，
      * 墓碑由 MemoryCompiler.filterTombstonedLines 处理）。
      *
+     * v18: 被 supersedes 指向的旧记忆不投影 —— 行仍在库里（记忆页可见、可回退），
+     * 只是不写进上下文，避免模型同时收到两条互斥断言。指向方被删除后，
+     * 本集合自动不再包含它，旧记忆随之回到上下文，无需额外状态。
+     *
      * @return 每行一条事实的纯文本；无内容时返回空串
      */
     fun project(facts: List<FactStore.Fact>, config: Config = Config()): String {
         if (facts.isEmpty()) return ""
+        val supersededIds = facts.mapNotNullTo(mutableSetOf()) { it.supersedesId }
         val sorted = facts
-            .filter { it.fact.isNotBlank() }
+            .filter { it.fact.isNotBlank() && it.id !in supersededIds }
             .sortedWith(
                 compareByDescending<FactStore.Fact> { it.pinnedAt != null }
                     .thenByDescending { it.importance }

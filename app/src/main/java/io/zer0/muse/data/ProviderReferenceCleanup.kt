@@ -2,6 +2,7 @@ package io.zer0.muse.data
 
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.data.routing.UtilityModelBinding
+import io.zer0.muse.rag.RagConfig
 
 /** Provider 删除时需要同步清理的全局和会话级引用。 */
 internal data class ProviderReferenceCleanup(
@@ -18,6 +19,7 @@ internal data class ProviderReferenceCleanup(
     val imageGenConfig: ImageGenConfig,
     val videoGenConfig: VideoGenConfig,
     val taskRoutingConfig: SettingsRepository.TaskRoutingConfig,
+    val ragConfig: RagConfig,
     val sessionModelOverrides: Map<String, String>,
     val sessionProviderOverrides: Map<String, String>,
 )
@@ -45,6 +47,7 @@ internal fun cleanupProviderReferences(
     imageGenConfig: ImageGenConfig = ImageGenConfig(),
     videoGenConfig: VideoGenConfig = VideoGenConfig(),
     taskRoutingConfig: SettingsRepository.TaskRoutingConfig = SettingsRepository.TaskRoutingConfig(),
+    ragConfig: RagConfig = RagConfig(),
     sessionModelOverrides: Map<String, String>,
     sessionProviderOverrides: Map<String, String>,
 ): ProviderReferenceCleanup {
@@ -97,6 +100,8 @@ internal fun cleanupProviderReferences(
         taskRoutingConfig.analysisProviderId.orEmpty(),
         taskRoutingConfig.analysisModelId.orEmpty(),
     )
+    // RAG 云端 embedding:Provider 没了就清空,否则 cloudProviderId 会永久悬空
+    val (ragProvider, ragModel) = cleanProviderModel(ragConfig.cloudProviderId, ragConfig.cloudModel)
 
     return ProviderReferenceCleanup(
         providers = remaining,
@@ -123,7 +128,70 @@ internal fun cleanupProviderReferences(
             analysisProviderId = analysisProvider.ifBlank { null },
             analysisModelId = analysisModel.ifBlank { null },
         ),
+        ragConfig = ragConfig.copy(cloudProviderId = ragProvider, cloudModel = ragModel),
         sessionModelOverrides = cleanedSessionModels,
         sessionProviderOverrides = cleanedSessionProviders,
+    )
+}
+
+/**
+ * 会引用具体模型 ID 的配置集合 —— 删除单个模型时需要清理的部分。
+ *
+ * 与 [ProviderReferenceCleanup] 互补:那个管「整个 Provider 没了」,这个管「Provider 还在但某个模型没了」。
+ */
+internal data class ModelReferences(
+    val imageGenConfig: ImageGenConfig = ImageGenConfig(),
+    val videoGenConfig: VideoGenConfig = VideoGenConfig(),
+    val taskRoutingConfig: SettingsRepository.TaskRoutingConfig = SettingsRepository.TaskRoutingConfig(),
+    val utilityModelBinding: UtilityModelBinding? = null,
+    val utilityLargeModelBinding: UtilityModelBinding? = null,
+    val ragConfig: RagConfig = RagConfig(),
+    val visionModelId: String? = null,
+)
+
+/**
+ * 计算从某个 Provider 删除模型后的引用状态。
+ *
+ * 处理原则:
+ *  - 模型 ID 类字段(图片/视频/任务路由/RAG cloudModel/视觉)指向被删模型时**置空**,
+ *    交给各运行时自带的兜底选默认模型 —— 不自动改指同 Provider 的其他模型,
+ *    避免把用户没选过的模型静默绑上去。
+ *  - 辅助模型绑定带 providerId,语义是「精确命中该渠道的该模型」,命中被删模型时整体置空。
+ *  - 同名模型仍存在于其他 Provider 时保留原值(中转站与官方共用模型 ID 很常见)。
+ */
+internal fun cleanupRemovedModelReferences(
+    providerId: String,
+    removedModelIds: Set<String>,
+    retainedModelIds: Set<String>,
+    references: ModelReferences,
+): ModelReferences {
+    fun clean(modelId: String?): String? =
+        if (modelId != null && modelId in removedModelIds && modelId !in retainedModelIds) null else modelId
+
+    fun cleanBinding(binding: UtilityModelBinding?): UtilityModelBinding? {
+        if (binding == null || binding.providerId != providerId) return binding
+        return if (clean(binding.modelId) == null) null else binding
+    }
+
+    val routing = references.taskRoutingConfig
+    val rag = references.ragConfig
+    return references.copy(
+        imageGenConfig = references.imageGenConfig.copy(
+            modelId = clean(references.imageGenConfig.modelId).orEmpty(),
+        ),
+        videoGenConfig = references.videoGenConfig.copy(
+            modelId = clean(references.videoGenConfig.modelId).orEmpty(),
+        ),
+        taskRoutingConfig = routing.copy(
+            chatModelId = clean(routing.chatModelId),
+            reasoningModelId = clean(routing.reasoningModelId),
+            codeModelId = clean(routing.codeModelId),
+            creativeModelId = clean(routing.creativeModelId),
+            analysisModelId = clean(routing.analysisModelId),
+        ),
+        utilityModelBinding = cleanBinding(references.utilityModelBinding),
+        utilityLargeModelBinding = cleanBinding(references.utilityLargeModelBinding),
+        ragConfig = rag.copy(cloudModel = clean(rag.cloudModel).orEmpty()),
+        visionModelId = clean(references.visionModelId),
     )
 }

@@ -106,16 +106,19 @@ internal fun TimelineEventCard(
     val canExpand = item.content.length > TIMELINE_EXPAND_THRESHOLD || item.content.contains('\n')
     val toggleExpand = { if (canExpand) expanded = !expanded }
 
+    // 整卡只装一套手势。正文 Surface 上再挂一层 clickable 会把长按吃掉：
+    // 手指落在卡片主体上时长按根本到不了这里，只有左侧那串窄节点能触发。
+    // 所以点击(展开/勾选)与长按都收在这一处，覆盖整张卡。
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 8.dp)
             .then(
                 if (onLongPress == null) {
-                    Modifier
+                    Modifier.clickable(enabled = canExpand) { toggleExpand() }
                 } else {
                     Modifier.combinedClickable(
-                        onClick = { if (selectionMode) onToggleSelect?.invoke() },
+                        onClick = { if (selectionMode) onToggleSelect?.invoke() else toggleExpand() },
                         onLongClick = onLongPress,
                     )
                 },
@@ -123,7 +126,7 @@ internal fun TimelineEventCard(
     ) {
         TimelineNode(item, selectionMode, isSelected, onToggleSelect)
         Spacer(Modifier.width(8.dp))
-        TimelineEventCardBody(item, expanded, canExpand, toggleExpand)
+        TimelineEventCardBody(item, expanded, canExpand)
     }
 }
 
@@ -177,13 +180,11 @@ private fun TimelineNode(
 
 /** 时间轴右侧事件卡片主体（标签 + 内容 + 展开 + 时间）。 */
 @Composable
-private fun TimelineEventCardBody(item: TimelineItem, expanded: Boolean, canExpand: Boolean, toggleExpand: () -> Unit) {
+private fun TimelineEventCardBody(item: TimelineItem, expanded: Boolean, canExpand: Boolean) {
     val nodeColor = importanceColor(item.importance)
+    // 点击手势由 [TimelineEventCard] 统一接管（见那里的注释），这里不再挂 clickable。
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            // v2.7: 整卡可点展开/收起（有可展开内容时）
-            .clickable(enabled = canExpand) { toggleExpand() },
+        modifier = Modifier.fillMaxWidth(),
         shape = MuseShapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
     ) {
@@ -294,6 +295,16 @@ data class TimelineItem(
     val importance: Int,
     val createdAt: String?,
     val tags: List<String> = emptyList(),
+    /**
+     * 底层条目的真正 id:Facts 为 fact.id,摘要为其所属 sessionId。
+     *
+     * [id] 是带 source 前缀的展示/动画键(跨分库会撞号),删不掉东西,删除必须回到这个原始 id。
+     */
+    val itemId: String = id,
+    /** 摘要所属会话 id(事实条目带的是来源会话),删除摘要按它落库。 */
+    val sessionId: String? = null,
+    /** 所属助手分库;各分库 fact.id 独立自增,删除必须带 scope 才能删对那一条。 */
+    val scope: String? = null,
 )
 
 /** v2.7: 时间轴卡片"可展开"判定阈值（与列表模式 MemoryFactRow 同口径）。 */

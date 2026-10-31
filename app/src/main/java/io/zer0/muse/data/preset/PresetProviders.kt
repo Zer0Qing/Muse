@@ -472,7 +472,7 @@ class PresetProviders(
     /**
 * v2.x（用户反馈）: OpenAI Codex 预设供应商 —— ChatGPT 订阅账号登录。
 *
-* 对齐参考实现验证过的真实协议（Codex CLI 同款）：
+* 已验证的真实协议（Codex CLI 同款）：
 *  - 推理端点: `https://chatgpt.com/backend-api/codex/responses`（Responses 协议，走订阅额度）；
 *  - 认证: OAuth Authorization Code + PKCE（见 [OAuthConfig.OPENAI_CODEX_PRESET]），
 *    access_token 当 Bearer，另需 `ChatGPT-Account-ID` 头（从 id_token 解析）；

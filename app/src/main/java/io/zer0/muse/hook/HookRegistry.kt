@@ -13,6 +13,9 @@ import kotlin.reflect.KClass
  *  - 优先级排序: 按 priority 降序执行(数值越大越先执行)
  *  - 容错: 单个 Hook 抛异常不阻断链路,捕获并记录后继续
  *  - 类型安全: 按 Hook 类型(KClass)查询,避免类型转换错误
+ *  - 分桶口径: 一律按 **接口** 分桶。注册时按实现类命中的接口逐个入桶,
+ *    查询时按接口取,两侧口径一致;一个实现类可同时实现多个接口
+ *    (如 WorldBookHook 同时是 SystemPromptComposeHook 与 PromptFinalizeHook)。
  *
  * 用法:
  * ```
@@ -32,25 +35,44 @@ class HookRegistry {
 
     private val TAG = "HookRegistry"
 
-    /** 按 Hook 类型分桶存储,同一类型下按 id 去重。 */
+    /** 按 Hook 接口分桶存储,同一类型下按 id 去重。 */
     private val buckets = ConcurrentHashMap<KClass<out SkillHook>, MutableMap<String, SkillHook>>()
 
     /**
-     * 注册 Hook。同 id 的 Hook 会被覆盖。
+     * 全部已注册实例(与分桶并行维护)。
+     *
+     * 分桶依赖 [HOOK_TYPES] 登记,登记漏一行就会让对应接口的派发点永远取到空表且不报错。
+     * 这里保留一份扁平索引,查询时按接口 isInstance 兜底,新增接口忘了登记也不会静默失效。
+     */
+    private val allHooks = ConcurrentHashMap<String, SkillHook>()
+
+    /**
+     * 注册 Hook。同一个实例会按其实现的全部 Hook 接口分别入桶,
+     * 因此按任意一个接口查询都能取到。
      * @param hook 要注册的 Hook 实例
      */
     fun register(hook: SkillHook) {
-        val bucket = buckets.getOrPut(hook::class) { ConcurrentHashMap() }
-        bucket[hook.id] = hook
-        Logger.i(TAG, "registered: ${hook::class.simpleName}#${hook.id} (priority=${hook.priority})")
+        // 先进全量索引:即使它实现的接口没登记在 HOOK_TYPES,查询时也能兜底取到。
+        allHooks[hook.id] = hook
+        val types = hookTypesOf(hook)
+        if (types.isEmpty()) {
+            Logger.w(TAG, "register: ${hook::class.simpleName}#${hook.id} 的接口未登记，走全量兜底")
+            return
+        }
+        types.forEach { type -> buckets.getOrPut(type) { ConcurrentHashMap() }[hook.id] = hook }
+        Logger.i(
+            TAG,
+            "registered: ${hook::class.simpleName}#${hook.id} interfaces=${types.size} (priority=${hook.priority})",
+        )
     }
 
     /**
-     * 注销 Hook。
+     * 注销 Hook。按它实现的全部 Hook 接口逐个摘除。
      * @param hook 要注销的 Hook 实例
      */
     fun unregister(hook: SkillHook) {
-        buckets[hook::class]?.remove(hook.id)
+        allHooks.remove(hook.id)
+        hookTypesOf(hook).forEach { type -> buckets[type]?.remove(hook.id) }
         Logger.i(TAG, "unregistered: ${hook::class.simpleName}#${hook.id}")
     }
 
@@ -66,8 +88,15 @@ class HookRegistry {
      */
     @Suppress("UNCHECKED_CAST")
     fun <T : SkillHook> getHooks(type: KClass<T>): List<T> {
-        val bucket = buckets[type] ?: return emptyList()
-        return bucket.values
+        // 有桶就以桶为准(桶才是「按类型注销」的唯一凭据);
+        // 没桶说明该接口未登记在 HOOK_TYPES,此时扫全量索引兜底。
+        val bucket = buckets[type]
+        val candidates = if (bucket != null) {
+            bucket.values
+        } else {
+            allHooks.values.filter { type.java.isInstance(it) }
+        }
+        return candidates
             .filter { it.enabled }
             .sortedByDescending { it.priority }
             .map { it as T }
@@ -126,9 +155,32 @@ class HookRegistry {
     /** 清除所有注册的 Hook。 */
     fun clear() {
         buckets.clear()
+        allHooks.clear()
         Logger.i(TAG, "all hooks cleared")
     }
 
-    /** 获取已注册的 Hook 总数(调试用)。 */
-    fun size(): Int = buckets.values.sumOf { it.size }
+    /** 获取已注册的 Hook 总数(按实例去重,调试用)。 */
+    fun size(): Int = allHooks.size
+
+    /** 该 Hook 实例对应的接口桶。注册与注销共用一份口径。 */
+    private fun hookTypesOf(hook: SkillHook): List<KClass<out SkillHook>> =
+        HOOK_TYPES.filter { it.java.isInstance(hook) }
+
+    private companion object {
+        /**
+         * 全部 Hook 接口清单。
+         *
+         * 必须与 [SkillHook] 文件里声明的接口保持同步;新增 Hook 接口时在这里加一行,
+         * 否则该接口的派发点会永远取到空表(且不会报错)。
+         */
+        val HOOK_TYPES: List<KClass<out SkillHook>> = listOf(
+            AppLifecycleHook::class,
+            MessageProcessingPlugin::class,
+            SystemPromptComposeHook::class,
+            ToolPromptComposeHook::class,
+            PromptFinalizeHook::class,
+            ToolLifecycleHook::class,
+            SummaryGenerateHook::class,
+        )
+    }
 }

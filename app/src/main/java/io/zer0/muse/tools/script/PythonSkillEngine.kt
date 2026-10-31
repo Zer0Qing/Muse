@@ -49,6 +49,8 @@ class PythonSkillEngine(private val context: Context) : SkillEngine {
                 context,
                 args = listOf(tmp.absolutePath),
                 timeoutMs = timeoutMs,
+                workdir = sandboxDir(scopeKey) ?: PythonRuntime.homeDir(context),
+                env = sandboxEnv(scopeKey),
             )
             interpret(r)
         } catch (e: Exception) {
@@ -57,6 +59,37 @@ class PythonSkillEngine(private val context: Context) : SkillEngine {
         } finally {
             runCatching { tmp.delete() }
         }
+    }
+
+    /**
+     * 插件沙盒目录（`filesDir/workspace/plugins/<pluginId>`）。
+     *
+     * 与 JS 插件的 `fsRoot` 指向同一个目录：两种运行时对「插件的文件应该放哪」
+     * 给出同一个答案，插件作者换语言不用换路径约定。
+     *
+     * 没有 scopeKey（内置脚本、非插件调用）时返回 null，沿用运行时的默认工作目录。
+     */
+    private fun sandboxDir(scopeKey: String?): File? =
+        scopeKey?.takeIf { it.isNotBlank() }?.let { key ->
+            File(context.filesDir, "workspace/plugins/$key").apply { mkdirs() }
+        }
+
+    /**
+     * 沙盒环境变量：把 HOME / TMPDIR 也指到插件目录。
+     *
+     * 只设 cwd 不够 —— Python 的临时文件、`~` 展开、pip 缓存都看这两个变量，
+     * 不一起改的话，插件写出来的东西会散在运行时公共目录里，互相污染。
+     *
+     * 注意：这不能阻止插件写绝对路径（同一 UID 下做不到真正的文件系统隔离），
+     * 它保证的是「默认行为落在自己目录里」。
+     */
+    private fun sandboxEnv(scopeKey: String?): Map<String, String> {
+        val dir = sandboxDir(scopeKey) ?: return emptyMap()
+        val tmp = File(dir, ".tmp").apply { mkdirs() }
+        return mapOf(
+            "HOME" to dir.absolutePath,
+            "TMPDIR" to tmp.absolutePath,
+        )
     }
 
     /** 把子进程执行结果解释为引擎结果（拆出以控制返回语句数量）。 */

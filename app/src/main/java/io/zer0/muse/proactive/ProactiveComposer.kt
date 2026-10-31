@@ -6,6 +6,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.proactive.PendingThoughtEntity
+import io.zer0.muse.data.proactive.ProactiveIntensity
 import io.zer0.muse.data.proactive.ThoughtKind
 import io.zer0.muse.data.proactive.ThoughtUrgency
 
@@ -68,6 +69,14 @@ class ProactiveComposer(
         /** 最近几条主动消息的正文，用来提醒「这些已经说过了」。 */
         val recentProactiveMessages: List<String> = emptyList(),
         val now: Long,
+        /**
+         * 用户选的主动等级。
+         *
+         * 它决定这次开口的口径：「安静」只说具体的事，「偶尔被想到」可以接话但不主动分享，
+         * 标准及以上不额外限制。候选线索的过滤在 [ProactiveCycleRunner] 里做，
+         * 这里只负责把口径写进提示词 —— 两边必须用同一个 enum，不能各写一套判断。
+         */
+        val intensity: ProactiveIntensity = ProactiveIntensity.DEFAULT,
     )
 
     suspend fun compose(
@@ -128,7 +137,7 @@ class ProactiveComposer(
             appendLine()
             appendLine("---")
             appendLine()
-            append(proactiveInstruction())
+            append(proactiveInstruction(input.intensity))
         }
     }
 
@@ -146,14 +155,37 @@ class ProactiveComposer(
     }
 
     /**
-     * 主动消息这一轮的附加约束。
+     * 按主动等级给出不同的「这次能说什么」。
      *
-     * 上面那一大段是聊天时也在用的通用人格，这里只补「主动开口」这个场景特有的东西。
+     * 三个档位不是频次高低，是三种不同的开口理由。
+     * 「安静」档若仍把「从最近对话接话」的指导给它，用户选了安静也照样会收到寒暄 ——
+     * 提示词里的规则比字段上的枚举更有决定性，所以这一段必须按档位换掉，而不是补充。
      */
-    private fun proactiveInstruction(): String = buildString {
-        appendLine("现在的情况：你们有一阵没说话了。你想接着上次的话往下说一句。")
-        appendLine("他不是在问你问题，也没在等你回复——但你有点话想说，或者只是想知道他那件事怎么样了。")
-        appendLine()
+    private fun intensityGuidance(intensity: ProactiveIntensity): String = when (intensity) {
+        ProactiveIntensity.QUIET -> buildString {
+            appendLine("【这次只说什么】")
+            appendLine("你现在被设成「安静」：只有具体的事才开口。")
+            appendLine("「你另外还惦记着的事」里有一条，就说那件事；一条都没有，就 skip。")
+            appendLine("不要寒暄，不要分享你自己的见闻，不要提你们之间的节点。")
+            appendLine()
+        }
+
+        ProactiveIntensity.RESERVED -> buildString {
+            append(findTopicGuidance())
+            appendLine("【这次只说什么】")
+            appendLine("你现在被设成「偶尔被想到」：可以接着聊过的话说，也可以关心他的状态。")
+            appendLine("不要主动分享你自己的事，不要报你们之间的节点。")
+            appendLine()
+        }
+
+        ProactiveIntensity.STANDARD,
+        ProactiveIntensity.ACTIVE,
+        ProactiveIntensity.CLINGY,
+        -> findTopicGuidance()
+    }
+
+    /** 从最近对话里找话头的指导。只有允许「接话」的档位才用它。 */
+    private fun findTopicGuidance(): String = buildString {
         appendLine("【怎么找话说】")
         appendLine("下面的「最近聊的」是你们真实的对话，按时间顺序排。你要从这里找一句能接的话：")
         appendLine()
@@ -163,6 +195,18 @@ class ProactiveComposer(
         appendLine("3. 如果最后是你说的、他没接，就看你那句话还有没有下文；没有就别硬续。")
         appendLine("4. 如果最近这一段已经聊完了、聊干净了，那就不说。这很正常。")
         appendLine()
+    }
+
+    /**
+     * 主动消息这一轮的附加约束。
+     *
+     * 上面那一大段是聊天时也在用的通用人格，这里只补「主动开口」这个场景特有的东西。
+     */
+    private fun proactiveInstruction(intensity: ProactiveIntensity): String = buildString {
+        appendLine("现在的情况：你们有一阵没说话了。你想接着上次的话往下说一句。")
+        appendLine("他不是在问你问题，也没在等你回复——但你有点话想说，或者只是想知道他那件事怎么样了。")
+        appendLine()
+        append(intensityGuidance(intensity))
         appendLine("【最要紧的一条】")
         appendLine("**不要翻旧账。** 真人不会记着一件事，然后隔了两三天突然发消息提起。")
         appendLine("你说的话要和「最近聊的」直接连着，中间不要跨越好几天的话题。")
@@ -182,7 +226,13 @@ class ProactiveComposer(
         appendLine("【输出格式】只返回 JSON，不要 markdown 代码块，不要任何解释：")
         appendLine("""{"skip": true, "reason": "为什么没什么可接的"}""")
         appendLine("或者：")
-        appendLine("""{"skip": false, "content": "你要说的话", "tone": "关心|分享|随口一提"}""")
+        appendLine(
+            """{"skip": false, "content": "你要说的话", "tone": "关心|分享|随口一提", "thought_id": ""}""",
+        )
+        appendLine()
+        appendLine("thought_id 怎么填：")
+        appendLine("只有当你这句话正是在说「你另外还惦记着的事」里的某一条时，才把那条的 id 原样抄进去。")
+        appendLine("其余情况留空字符串，不要自己编一个 id。")
         appendLine()
         appendLine("content 要求：像发微信一样自然，一到三句话为主，不要分段，不要用列表。")
         appendLine("不要出现「提醒」「温馨」「亲」这类客服腔。不要自称「助手」。")
@@ -209,12 +259,21 @@ class ProactiveComposer(
         if (input.candidates.isNotEmpty()) {
             appendLine("## 你另外还惦记着的事（能自然接上就用，接不上就别硬提）")
             input.candidates.take(MAX_CANDIDATES).forEach { thought ->
-                appendLine("- ${describeKind(thought)}｜${describeAge(thought, input.now)}")
+                // id 必须露给模型：这条消息说完之后要靠它回填 thought_id，
+                // 账本才能记下「这件事已经说过了」。不露 id 的话，回填永远是空的，
+                // surfaceCount 恒为 0，「反复念叨同一件事就自动放弃」就永不触发。
+                appendLine("- ${describeKind(thought)}｜${describeAge(thought, input.now)}｜id=${thought.id}")
                 appendLine("  ${thought.seed}")
             }
             appendLine()
         }
-        appendLine("接着「最近聊的」往下说一句，或者 skip。")
+        appendLine(
+            if (input.intensity.onlyWhenNeeded) {
+                "有具体的事就说那件事，没有就 skip。"
+            } else {
+                "接着「最近聊的」往下说一句，或者 skip。"
+            },
+        )
     }
 
     /** 牵挂性质的中文描述，用于让模型理解「这是什么类型的话」。 */

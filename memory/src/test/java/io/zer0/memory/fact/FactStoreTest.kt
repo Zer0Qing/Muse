@@ -2,11 +2,13 @@ package io.zer0.memory.fact
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import io.zer0.memory.compile.FactsSectionProjector
 import io.zer0.memory.ticker.MemoryConfig
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -292,14 +294,14 @@ class FactStoreTest {
     }
 
     // ──────────────────────────────────────────────
-    //  applyDecay: 衰减与永不衰减
+    //  applyDecay: 分数出场(行保留) + 关键事实永不衰减
     // ──────────────────────────────────────────────
 
     @Test
     fun `applyDecay preserves critical facts with importance 2`() = runTest {
         // 直接通过 DAO 插入一条 100 天前的关键事实
         val oldDate = Instant.now().minus(100, ChronoUnit.DAYS).toString()
-        dao.insert(
+        val id = dao.insert(
             FactEntity(
                 fact = "青霉素过敏(关键)",
                 tags = "[]",
@@ -310,18 +312,20 @@ class FactStoreTest {
         )
         store.rebuildFtsIndex()
 
-        val deleted = store.applyDecay(MemoryConfig())
-        assertEquals("不应删除关键事实", 0, deleted)
+        val outOfRecall = store.applyDecay(MemoryConfig())
+        assertEquals("不应让关键事实出场", 0, outOfRecall)
         assertEquals("关键事实应仍存在", 1, store.size())
+        assertNull("关键事实不得被写出场标记", store.getById(id)!!.suppressedAt)
+        assertTrue("关键事实应仍可召回", store.searchRelevantFacts("过敏", limit = 5).any { it.id == id })
     }
 
     @Test
-    fun `applyDecay deletes old non-critical facts beyond cutoff`() = runTest {
-        // 默认 cutoffDays ≈ 40 天,插入 50 天前的普通事实
+    fun `applyDecay takes low score facts out of recall but keeps the row`() = runTest {
+        // 默认阈值 4.5、λ=0.02:50 天前的普通事实 ≈ 10·e^-1 ≈ 3.68 → 低于阈值
         val oldDate = Instant.now().minus(50, ChronoUnit.DAYS).toString()
-        dao.insert(
+        val id = dao.insert(
             FactEntity(
-                fact = "50天前的普通事实",
+                fact = "50天前的咖啡偏好",
                 tags = "[]",
                 createdAt = oldDate,
                 importance = 0,
@@ -330,18 +334,22 @@ class FactStoreTest {
         )
         store.rebuildFtsIndex()
 
-        val deleted = store.applyDecay(MemoryConfig())
-        assertTrue("应至少删除 1 条旧普通事实", deleted >= 1)
-        assertEquals(0, store.size())
+        val outOfRecall = store.applyDecay(MemoryConfig())
+        assertEquals("应至少有 1 条出场", 1, outOfRecall)
+        assertEquals("行必须保留,衰变不再删数据", 1, store.size())
+        assertNotNull("应写入出场时间", store.getById(id)!!.suppressedAt)
+        assertTrue("低分事实不应再被自动召回", store.searchRelevantFacts("咖啡", limit = 5).isEmpty())
+        // 记忆页仍能列出这一条 —— 出场只是不再参与召回
+        assertEquals(1, store.getByScope("main").size)
     }
 
     @Test
-    fun `applyDecay keeps recent facts within cutoff`() = runTest {
-        // 插入 5 天前的普通事实(远小于 40 天 cutoff)
+    fun `applyDecay keeps recent facts in recall`() = runTest {
+        // 插入 5 天前的普通事实(远小于出场所需时间)
         val recentDate = Instant.now().minus(5, ChronoUnit.DAYS).toString()
-        dao.insert(
+        val id = dao.insert(
             FactEntity(
-                fact = "近期普通事实",
+                fact = "近期咖啡偏好",
                 tags = "[]",
                 createdAt = recentDate,
                 importance = 0,
@@ -350,31 +358,51 @@ class FactStoreTest {
         )
         store.rebuildFtsIndex()
 
-        val deleted = store.applyDecay(MemoryConfig())
-        assertEquals("近期事实不应被衰减", 0, deleted)
-        assertEquals(1, store.size())
+        val outOfRecall = store.applyDecay(MemoryConfig())
+        assertEquals("近期事实不应出场", 0, outOfRecall)
+        assertNull(store.getById(id)!!.suppressedAt)
+        assertTrue("分数应落库且高于阈值", store.getById(id)!!.score >= MemoryConfig().compileThreshold)
+        assertTrue(store.searchRelevantFacts("咖啡", limit = 5).any { it.id == id })
     }
 
     @Test
-    fun `applyDecay uses hitBonus to extend retention for hit facts`() = runTest {
-        // 50天前的普通事实,但 lastHitAt 设为 5 天前(命中过)
-        // 默认 hitBonus=5 → cutoff ≈ 60 天,50 < 60 应保留
+    fun `applyDecay uses hitBonus to keep hit facts in recall`() = runTest {
+        // 50天前创建、但 5 天前被命中过 → 时钟从命中时间起算,已经补过命中加成
         val oldCreated = Instant.now().minus(50, ChronoUnit.DAYS).toString()
         val recentHit = Instant.now().minus(5, ChronoUnit.DAYS).toString()
-        dao.insert(
+        val id = dao.insert(
             FactEntity(
-                fact = "50天前创建但5天前命中",
+                fact = "50天前创建但5天前命中的咖啡偏好",
                 tags = "[]",
                 createdAt = oldCreated,
                 importance = 0,
-                lastHitAt = recentHit, // 已命中,按 lastHitAt 判断
+                lastHitAt = recentHit,
             ),
         )
         store.rebuildFtsIndex()
 
-        val deleted = store.applyDecay(MemoryConfig())
-        assertEquals("命中过的事实应享 hitBonus 延长保留", 0, deleted)
-        assertEquals(1, store.size())
+        val outOfRecall = store.applyDecay(MemoryConfig())
+        assertEquals("命中过的事实应享 hitBonus,不应出场", 0, outOfRecall)
+        assertNull(store.getById(id)!!.suppressedAt)
+        assertTrue(store.searchRelevantFacts("咖啡", limit = 5).any { it.id == id })
+    }
+
+    @Test
+    fun `applyDecay persists score so repeated passes do not double decay`() = runTest {
+        val recentDate = Instant.now().minus(10, ChronoUnit.DAYS).toString()
+        val id = dao.insert(
+            FactEntity(fact = "十天前的咖啡偏好", tags = "[]", createdAt = recentDate, importance = 0),
+        )
+        store.rebuildFtsIndex()
+
+        store.applyDecay(MemoryConfig())
+        val first = store.getById(id)!!.score
+        // 期望值:10·e^(-0.02·10) ≈ 8.19
+        assertEquals(8.19f, first, 0.05f)
+
+        store.applyDecay(MemoryConfig())
+        val second = store.getById(id)!!.score
+        assertEquals("第二轮几乎无时间流逝,分数不应被重复打折", first, second, 0.01f)
     }
 
     @Test
@@ -382,9 +410,9 @@ class FactStoreTest {
         val oldDate = Instant.now().minus(50, ChronoUnit.DAYS).toString()
 
         // main scope: 旧普通事实
-        dao.insert(
+        val mainId = dao.insert(
             FactEntity(
-                fact = "main scope 旧事实",
+                fact = "main scope 旧咖啡事实",
                 tags = "[]",
                 createdAt = oldDate,
                 importance = 0,
@@ -393,9 +421,9 @@ class FactStoreTest {
             ),
         )
         // assistant-A scope: 同样旧的普通事实
-        dao.insert(
+        val assistantId = dao.insert(
             FactEntity(
-                fact = "assistant-A scope 旧事实",
+                fact = "assistant-A scope 旧咖啡事实",
                 tags = "[]",
                 createdAt = oldDate,
                 importance = 0,
@@ -406,24 +434,116 @@ class FactStoreTest {
         store.rebuildFtsIndex()
 
         // 仅衰减 main scope
-        val deleted = store.applyDecay(MemoryConfig(), scope = "main")
-        assertEquals("应仅删除 main scope 的 1 条", 1, deleted)
-        assertEquals("assistant-A scope 应仍存在", 1, store.getByScope("assistant-A").size)
-        assertEquals("main scope 应为空", 0, store.getByScope("main").size)
+        val outOfRecall = store.applyDecay(MemoryConfig(), scope = "main")
+        assertEquals("应仅让 main scope 的 1 条出场", 1, outOfRecall)
+        assertNotNull(store.getById(mainId)!!.suppressedAt)
+        assertNull("其他作用域不应被动到", store.getById(assistantId)!!.suppressedAt)
+        assertEquals("两行都应保留", 2, store.size())
     }
 
     @Test
     fun `applyDecay with scope and space only affects specified space`() = runTest {
         val oldDate = Instant.now().minus(50, ChronoUnit.DAYS).toString()
-        dao.insert(FactEntity(fact = "work old", tags = "[]", createdAt = oldDate, scope = "main", spaceId = "work"))
-        dao.insert(FactEntity(fact = "life old", tags = "[]", createdAt = oldDate, scope = "main", spaceId = "life"))
+        val workId = dao.insert(
+            FactEntity(fact = "work 旧咖啡", tags = "[]", createdAt = oldDate, scope = "main", spaceId = "work"),
+        )
+        val lifeId = dao.insert(
+            FactEntity(fact = "life 旧咖啡", tags = "[]", createdAt = oldDate, scope = "main", spaceId = "life"),
+        )
         store.rebuildFtsIndex()
 
-        val deleted = store.applyDecay(MemoryConfig(), scope = "main", spaceId = "work")
+        val outOfRecall = store.applyDecay(MemoryConfig(), scope = "main", spaceId = "work")
 
-        assertEquals(1, deleted)
-        assertEquals(0, store.getByScopeAndSpace("main", "work").size)
-        assertEquals(1, store.getByScopeAndSpace("main", "life").size)
+        assertEquals(1, outOfRecall)
+        assertNotNull(store.getById(workId)!!.suppressedAt)
+        assertNull(store.getById(lifeId)!!.suppressedAt)
+        assertEquals("两行都应保留", 2, store.size())
+    }
+
+    @Test
+    fun `explicit search revives a suppressed fact back into recall`() = runTest {
+        val oldDate = Instant.now().minus(50, ChronoUnit.DAYS).toString()
+        val id = dao.insert(
+            FactEntity(fact = "50天前的咖啡偏好", tags = "[]", createdAt = oldDate, importance = 0),
+        )
+        store.rebuildFtsIndex()
+        store.applyDecay(MemoryConfig())
+        assertNotNull(store.getById(id)!!.suppressedAt)
+
+        // 显式检索(记忆页 / search_memory)仍能命中已出场的行,并把它拉回召回
+        val explicitHits = store.searchFullTextScoped("咖啡", scope = "main", spaceId = "default", limit = 5)
+        assertTrue("显式检索应能看到已出场的记忆", explicitHits.any { it.id == id })
+
+        val revived = store.getById(id)!!
+        assertNull("访问后应清除出场标记", revived.suppressedAt)
+        assertTrue("分数应回升到阈值以上", revived.score >= MemoryConfig().compileThreshold)
+        assertTrue("应重新进入自动召回", store.searchRelevantFacts("咖啡", limit = 5).any { it.id == id })
+    }
+
+    @Test
+    fun `re referenced fact is revived by the next decay pass`() = runTest {
+        val oldDate = Instant.now().minus(50, ChronoUnit.DAYS).toString()
+        val id = dao.insert(
+            FactEntity(fact = "用户喜欢喝美式咖啡", tags = "[]", createdAt = oldDate, importance = 0),
+        )
+        store.rebuildFtsIndex()
+        store.applyDecay(MemoryConfig())
+        assertNotNull(store.getById(id)!!.suppressedAt)
+
+        // 再次提到同一件事:写入侧合并到已有行(记一次命中),下一轮衰减应把它拉回
+        store.add(FactStore.Fact(fact = "用户喜欢喝美式咖啡"))
+        val outOfRecall = store.applyDecay(MemoryConfig())
+
+        assertEquals("没有新事实需要出场", 0, outOfRecall)
+        val revived = store.getById(id)!!
+        assertNull("被重新引用后应回到召回", revived.suppressedAt)
+        assertTrue(store.searchRelevantFacts("咖啡", limit = 5).any { it.id == id })
+    }
+
+    @Test
+    fun `read methods keep suppressed facts by default and hide them on demand`() = runTest {
+        val kept = store.add(FactStore.Fact(fact = "用户喜欢喝美式咖啡"))
+        // v17: 已出场的记忆在列表/去重/UI 里照旧可见,只有注入上下文的召回传 includeSuppressed=false
+        val suppressed = dao.insert(
+            FactEntity(
+                fact = "用户以前喝摩卡",
+                tags = "[]",
+                createdAt = Instant.now().toString(),
+                importance = 0,
+                suppressedAt = Instant.now().toString(),
+            ),
+        )
+
+        val all = store.getByScope("main")
+        assertEquals("默认应包含已出场记忆", setOf(kept, suppressed), all.map { it.id }.toSet())
+
+        val recallable = store.getByScope("main", includeSuppressed = false)
+        assertEquals("includeSuppressed=false 应排除已出场记忆", listOf(kept), recallable.map { it.id })
+
+        assertEquals(2, store.getByScopeAndSpace("main", "default").size)
+        assertEquals(1, store.getByScopeAndSpace("main", "default", includeSuppressed = false).size)
+        assertEquals(2, store.getAll("main").size)
+        assertEquals(1, store.getAll("main", includeSuppressed = false).size)
+        assertEquals(2, store.getBySpace("default").size)
+        assertEquals(1, store.getBySpace("default", includeSuppressed = false).size)
+    }
+
+    @Test
+    fun `explicit cleanup still deletes rows`() = runTest {
+        val oldDate = Instant.now().minus(50, ChronoUnit.DAYS).toString()
+        val suppressed = dao.insert(
+            FactEntity(fact = "已出场的旧咖啡偏好", tags = "[]", createdAt = oldDate, importance = 0),
+        )
+        store.add(FactStore.Fact(fact = "用户喜欢喝美式咖啡"))
+        store.rebuildFtsIndex()
+        store.applyDecay(MemoryConfig())
+        assertNotNull(store.getById(suppressed)!!.suppressedAt)
+
+        // 显式清理入口(清空记忆)仍是真的删除
+        store.clearAll()
+
+        assertEquals(0, store.size())
+        assertNull("清空后不应剩行", store.getById(suppressed))
     }
 
     // ──────────────────────────────────────────────
@@ -779,5 +899,133 @@ class FactStoreTest {
         val text = "用户对青霉素过敏\n用户喜欢跑步\n用户住在北京"
         val filtered = FactStore.filterTombstonedLines(text, listOf("青霉素过敏"))
         assertEquals("用户喜欢跑步\n用户住在北京", filtered)
+    }
+
+    /** v18: 同一实体上相反的明确陈述 —— 新记忆记下它取代了哪条旧记忆。 */
+    @Test
+    fun `contradicting user statement records what it supersedes`() = runTest {
+        val old = store.add(FactStore.Fact(fact = "张三喜欢喝咖啡", source = "user_explicit", entityKey = "张三"))
+        val fresh = store.add(FactStore.Fact(fact = "张三讨厌喝咖啡", source = "user_explicit", entityKey = "张三"))
+
+        assertNotEquals("相反断言不应被当成重复合并", old, fresh)
+        assertEquals("新记忆应记下它取代的旧记忆", old, store.getById(fresh)!!.supersedesId)
+        assertNull("旧记忆自己不再指向别的行", store.getById(old)!!.supersedesId)
+    }
+
+    /**
+     * v18: 被取代的记忆退出上下文(编译段 + 自动召回),但整行仍在库里:
+     * 记忆页可查、显式检索可命中,删掉新记忆就能反悔。
+     */
+    @Test
+    fun `superseded fact leaves context but stays visible and returns when the new one is deleted`() = runTest {
+        val old = store.add(FactStore.Fact(fact = "张三喜欢喝咖啡", source = "user_explicit", entityKey = "张三"))
+        val fresh = store.add(FactStore.Fact(fact = "张三讨厌喝咖啡", source = "user_explicit", entityKey = "张三"))
+        val oldText = store.getById(old)!!.fact
+        val freshText = store.getById(fresh)!!.fact
+
+        // 记忆页/列表照旧两条都在
+        assertEquals(
+            "被取代的记忆仍在库里",
+            setOf(old, fresh),
+            store.getByScopeAndSpace("main", "default").map { it.id }.toSet(),
+        )
+        // 编译产出的 FACTS 段只留新的那条
+        assertEquals(freshText, FactsSectionProjector.project(store.getByScopeAndSpace("main", "default")))
+        // 自动召回(<relevant_memory>)只剩新的
+        assertFalse(
+            "被取代的记忆不该再进自动召回",
+            store.searchRelevantFacts("咖啡", limit = 8).any { it.id == old },
+        )
+        assertTrue(store.searchRelevantFacts("咖啡", limit = 8).any { it.id == fresh })
+        // 显式检索(search_memory 工具/记忆页搜索)仍能查到旧记忆
+        assertTrue(
+            "显式检索应能查到被取代的记忆",
+            store.searchFullTextScoped("喜欢喝咖啡", scope = "main", spaceId = "default", limit = 5).any { it.id == old },
+        )
+
+        // 用户反悔:删掉新记忆,旧记忆自动回到上下文
+        store.delete(fresh)
+        assertTrue(
+            "指向方删除后旧记忆应回到召回",
+            store.searchRelevantFacts("咖啡", limit = 8).any { it.id == old },
+        )
+        assertTrue(FactsSectionProjector.project(store.getByScopeAndSpace("main", "default")).contains(oldText))
+    }
+
+    /** v18: 用户改主意又改回来 —— 最新一条要取代中间那条,不能留着两条互斥断言。 */
+    @Test
+    fun `flip flopping back supersedes the intervening fact`() = runTest {
+        store.add(FactStore.Fact(fact = "张三喜欢喝咖啡", source = "user_explicit", entityKey = "张三"))
+        val dislike = store.add(FactStore.Fact(fact = "张三讨厌喝咖啡", source = "user_explicit", entityKey = "张三"))
+        val likeAgain = store.add(FactStore.Fact(fact = "张三爱喝咖啡", source = "user_explicit", entityKey = "张三"))
+
+        assertEquals("最新表态应取代中间那条", dislike, store.getById(likeAgain)!!.supersedesId)
+        assertEquals(
+            "上下文只留最新表态",
+            store.getById(likeAgain)!!.fact,
+            FactsSectionProjector.project(store.getByScopeAndSpace("main", "default")),
+        )
+        assertEquals("三条都还在库里(可查、可反悔)", 3, store.getByScopeAndSpace("main", "default").size)
+    }
+
+    /** v18: 同一实体但不矛盾的记忆不能被误标取代。 */
+    @Test
+    fun `same entity without contradiction is not marked as superseding`() = runTest {
+        val coffee = store.add(FactStore.Fact(fact = "张三喜欢喝咖啡", source = "user_explicit", entityKey = "张三"))
+        val city = store.add(FactStore.Fact(fact = "张三住在成都", source = "user_explicit", entityKey = "张三"))
+
+        assertNotEquals(coffee, city)
+        assertNull("不矛盾的记忆不应记 supersedes", store.getById(city)!!.supersedesId)
+        assertEquals(
+            "两条都应留在上下文",
+            2,
+            FactsSectionProjector.project(store.getByScopeAndSpace("main", "default")).lines().size,
+        )
+    }
+
+    /** v18: 已仲裁的一对不再进“待确认”清单,未仲裁的照旧上报。 */
+    @Test
+    fun `pending contradiction list reflects arbitration`() = runTest {
+        // 推断来的相反断言不参与仲裁(source 不是 user_explicit),仍应上报
+        store.add(FactStore.Fact(fact = "张三喜欢喝咖啡", source = "user_explicit", entityKey = "张三"))
+        store.add(FactStore.Fact(fact = "张三讨厌喝咖啡", source = "inferred", entityKey = "张三"))
+        assertEquals("未仲裁的矛盾仍应上报", 1, store.detectContradictions("main", "default").size)
+    }
+
+    /** v18: 写入时就仲裁掉的一对,不再要求用户确认。 */
+    @Test
+    fun `arbitrated pair leaves the pending contradiction list`() = runTest {
+        store.add(FactStore.Fact(fact = "张三喜欢喝咖啡", source = "user_explicit", entityKey = "张三"))
+        store.add(FactStore.Fact(fact = "张三讨厌喝咖啡", source = "user_explicit", entityKey = "张三"))
+
+        assertTrue(
+            "已仲裁的一对不应再要求用户确认",
+            store.detectContradictions("main", "default").isEmpty(),
+        )
+    }
+
+    /** v18: 旧状态本身有歧义(两条都矛盾)时只标记不剔除 —— 谁被取代交给人判断。 */
+    @Test
+    fun `ambiguous old state is left alone instead of guessing`() = runTest {
+        store.add(FactStore.Fact(fact = "张三喜欢喝咖啡", source = "user_explicit", entityKey = "张三"))
+        store.add(FactStore.Fact(fact = "张三爱喝拿铁", source = "user_explicit", entityKey = "张三"))
+        val fresh = store.add(FactStore.Fact(fact = "张三讨厌喝咖啡", source = "user_explicit", entityKey = "张三"))
+
+        assertNull("旧记忆不止一条矛盾时不应武断指定取代对象", store.getById(fresh)!!.supersedesId)
+        assertEquals(
+            "三条都留在上下文",
+            3,
+            FactsSectionProjector.project(store.getByScopeAndSpace("main", "default")).lines().size,
+        )
+    }
+
+    /** v18: 非用户明确陈述(推断/导入)不足以推翻已有事实。 */
+    @Test
+    fun `inferred statement never supersedes an explicit fact`() = runTest {
+        val old = store.add(FactStore.Fact(fact = "张三喜欢喝咖啡", source = "user_explicit", entityKey = "张三"))
+        val inferred = store.add(FactStore.Fact(fact = "张三讨厌喝咖啡", source = "inferred", entityKey = "张三"))
+
+        assertNotEquals(old, inferred)
+        assertNull("推断出来的相反断言不取代明确陈述", store.getById(inferred)!!.supersedesId)
     }
 }

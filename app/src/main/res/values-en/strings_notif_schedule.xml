@@ -15,6 +15,7 @@
     <string name="notif_chat_pending_approval_title">MUSE is waiting for your approval</string>
     <string name="notif_chat_pending_approval_text">%1$s needs your confirmation</string>
     <string name="notif_proactive_message_title">%1$s sent a message</string>
+    <string name="notif_proactive_action_dismiss">Not now</string>
     <string name="notif_live_progress_title">Generating · %1$s</string>
     <string name="notif_live_progress_text">%1$d chars</string>
     <string name="notif_web_server_title">muse Web server running</string>

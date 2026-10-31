@@ -122,10 +122,32 @@ class MemoryGraphViewModel(
         }
     }
 
-    fun editNode(factId: Long, newContent: String, scope: String?, spaceId: String) {
+    /**
+     * v2.6.11: 取事实全文。星座节点只带截断标题（[NODE_TITLE_MAX_LENGTH]），
+     * 编辑前必须先拿全文，否则保存会把长事实永久写回成标题那几十个字。
+     */
+    fun loadFactContent(factId: Long, scope: String?, onLoaded: (String?) -> Unit) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { storeForScope(scope).update(factId, newContent, scope) }
-            load(scope, spaceId)
+            val content = withContext(Dispatchers.IO) { storeForScope(scope).getById(factId)?.fact }
+            onLoaded(content)
+        }
+    }
+
+    fun editNode(factId: Long, newContent: String, scope: String?, spaceId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                val store = storeForScope(scope)
+                val current = store.getById(factId)?.fact
+                // v2.6.11: 兜底护栏 —— 传入内容若正好是现存全文的截断标题，说明调用方
+                // 拿的是显示用标题而不是全文，落库会把长事实截断，这里直接拒写。
+                val looksTruncated =
+                    current != null &&
+                        current.length > NODE_TITLE_MAX_LENGTH &&
+                        newContent == current.take(NODE_TITLE_MAX_LENGTH)
+                if (looksTruncated) false else store.update(factId, newContent, scope)
+            }
+            if (saved) load(scope, spaceId)
+            onResult(saved)
         }
     }
 

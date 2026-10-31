@@ -28,6 +28,7 @@ class ToolRegistryJsonToolTest {
                 ),
                 required = setOf("count", "enabled"),
                 category = "mcp",
+                riskLevel = ToolRiskLevel.NORMAL,
                 parameterTypes = mapOf("count" to "integer", "enabled" to "boolean"),
                 rawParametersJsonSchema = schema,
             ),
@@ -60,6 +61,7 @@ class ToolRegistryJsonToolTest {
                 parameters = mapOf("data" to "object payload"),
                 required = setOf("data"),
                 parameterTypes = mapOf("data" to "object"),
+                riskLevel = ToolRiskLevel.SAFE,
             ),
         ) { args ->
             // 工具内部像 render_data 那样把 data 当 JSON 解析，成功即返回解出的 labels 数量。

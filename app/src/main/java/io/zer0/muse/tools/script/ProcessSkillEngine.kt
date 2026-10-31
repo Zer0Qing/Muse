@@ -16,7 +16,7 @@ import java.util.UUID
  * P1-C: 基于内置 Node 运行时的 [SkillEngine] 实现。
  *
  * 与 [WebViewSkillEngine] 的区别：
- *  - WebView 版：轻量沙盒（无网络 / 无文件系统 / 无 Node API），适合纯计算；
+ *  - WebView 版：轻量沙盒（无文件系统 / 无 Node API；网络已放开），适合纯计算；
  *  - 本实现：真实 Node.js 环境（完整能力：fs / 网络 / child_process / npm 模块），
  *    面向「需要真本事」的脚本任务（技能脚本接入 node 的运行时基础）。
  *
@@ -66,6 +66,7 @@ class ProcessSkillEngine(private val context: Context) : SkillEngine {
 
     /**
      * 生成执行包装：
+     *  - 脚本入口装 CPU 兜底（[NodeCpuShim]）：原生 os.cpus() 为空时按 MUSE_CPU_COUNT 合成
      *  - 注入 host.getConfig 桥接（对齐 WebView 沙盒语义）
      *  - 捕获 console.* 日志
      *  - eval 执行用户脚本（Promise 自动 await）
@@ -75,7 +76,8 @@ class ProcessSkillEngine(private val context: Context) : SkillEngine {
         val scriptJson = JsonPrimitive(script).toString()
         val configJson = pluginConfigJson ?: "null"
         val nodeModules = File(MuseRuntime.runtimeDir(context), "node_modules").absolutePath
-        return """
+        val body =
+            """
             |// muse-node-skill-wrapper (auto-generated)
             |globalThis.__musePluginConfig = $configJson;
             |if (typeof globalThis.host === 'undefined') {
@@ -111,6 +113,9 @@ class ProcessSkillEngine(private val context: Context) : SkillEngine {
             |  }
             |})();
         """.trimMargin()
+        // 脚本第一句先装 CPU 兜底：原生 os.cpus() 为空时用 MUSE_CPU_COUNT 合成，
+        // 否则依赖核数的 npm 包在部分设备上会按 0/1 核运行。正常脚本作用域与返回值不受影响。
+        return NodeCpuShim.wrap(body)
     }
 
     private fun parseResult(stdout: String, stderr: String, exitCode: Int, timedOut: Boolean): SkillEngineResult {

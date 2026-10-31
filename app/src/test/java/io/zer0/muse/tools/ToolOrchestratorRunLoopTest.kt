@@ -7,6 +7,7 @@ import io.mockk.mockk
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
+import io.zer0.ai.core.ToolCallSanitizer
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
@@ -116,6 +117,19 @@ class ToolOrchestratorRunLoopTest {
         hasToolCalls = false,
         contentLength = 0,
         firstTokenTime = 0L,
+    )
+
+    /** 参数被输出上限截断的一轮:assistant 带 toolCalls,但那些 arguments 是残缺 JSON。 */
+    private fun truncatedToolRound(toolCalls: List<ToolCall>): StreamRoundResult.Success = StreamRoundResult.Success(
+        assistantMessage = UIMessage(
+            role = MessageRole.ASSISTANT,
+            content = "",
+            toolCalls = toolCalls,
+        ),
+        hasToolCalls = toolCalls.isNotEmpty(),
+        contentLength = 0,
+        firstTokenTime = 0L,
+        toolCallsTruncated = true,
     )
 
     private class FakeToolLoopHost(
@@ -423,5 +437,84 @@ class ToolOrchestratorRunLoopTest {
             1,
             maxActive.get(),
         )
+    }
+
+    @Test
+    fun `truncated tool call arguments are backfilled with an error result instead of executed`() = runBlocking {
+        val executions = AtomicInteger(0)
+        val host = FakeToolLoopHost(
+            ArrayDeque(
+                listOf(
+                    truncatedToolRound(
+                        listOf(
+                            // 半截 JSON:不合法、不解析,更不允许被执行
+                            ToolCall("tc-half", "write_file", """{"path":"a.md","content":"写了一"""),
+                            // 上游连 id 都没发全,回填时必须合成一个能配对的
+                            ToolCall("", "calculator", """{"exp"""),
+                        ),
+                    ),
+                    finalRound(),
+                ),
+            ),
+        )
+        coEvery { registry.executeFromJson(any(), any()) } coAnswers {
+            executions.incrementAndGet()
+            "must not run"
+        }
+
+        val history = mutableListOf<UIMessage>()
+        val result = orchestrator().runLoop(params(), history, host, accessor, coordinator)
+
+        assertTrue(result.success)
+        assertEquals("截断轮不得触碰工具执行", 0, executions.get())
+
+        val assistantToolMsg = history.first { !it.toolCalls.isNullOrEmpty() }
+        val toolMsgs = history.filter { it.role == MessageRole.TOOL }
+        assertEquals(2, toolMsgs.size)
+        // 每条截断调用都有配对的 tool result,且 id 非空(否则下一次请求被 provider 拒)
+        assertEquals(assistantToolMsg.toolCalls!!.map { it.id }, toolMsgs.map { it.toolCallId })
+        assertTrue(toolMsgs.all { !it.toolCallId.isNullOrBlank() })
+        assertTrue(toolMsgs.all { it.content.contains("arguments_truncated_by_output_limit") })
+        // 回传给 provider 的 assistant tool_calls 必须是合法 JSON,残缺参数不会出现在历史里
+        assertTrue(assistantToolMsg.toolCalls!!.all { ToolCallSanitizer.isValidJson(it.arguments) })
+        assertFalse(assistantToolMsg.toolCalls!!.any { it.arguments.contains("a.md") })
+
+        // 错误结果随下一轮请求发出 —— 模型能自己重发;代价是本轮循环多吃一轮
+        assertEquals(2, host.calls.size)
+        assertEquals(2, result.round)
+        assertEquals(
+            2,
+            host.calls[1].history.count {
+                it.role == MessageRole.TOOL && it.content.contains("arguments_truncated_by_output_limit")
+            },
+        )
+    }
+
+    @Test
+    fun `truncated round without any tool name falls back to invalid tool calls exit`() = runBlocking {
+        val executions = AtomicInteger(0)
+        val host = FakeToolLoopHost(
+            ArrayDeque(
+                listOf(
+                    truncatedToolRound(listOf(ToolCall("tc-noname", "", """{"path"""))),
+                ),
+            ),
+        )
+        coEvery { registry.executeFromJson(any(), any()) } coAnswers {
+            executions.incrementAndGet()
+            "must not run"
+        }
+
+        val history = mutableListOf<UIMessage>()
+        val result = orchestrator().runLoop(params(), history, host, accessor, coordinator)
+
+        assertFalse(result.success)
+        assertEquals(0, executions.get())
+        // 连工具名都没收到时无法描述也无从配对,退回“本轮无有效调用”的既有收口路径,
+        // 不会留下没有 tool result 的 assistant tool_call。
+        assertEquals(ToolLoopTerminationReason.INVALID_TOOL_CALLS, result.terminationReason)
+        assertEquals(0, history.count { it.role == MessageRole.TOOL })
+        assertEquals(1, host.calls.size)
+        assertNotNull(result.finalAssistantMessage)
     }
 }

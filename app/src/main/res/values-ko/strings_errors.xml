@@ -125,6 +125,9 @@
     <string name="err_chat_video_generated">생성된 비디오</string>
     <string name="err_chat_video_cancelled">동영상 생성이 취소되었습니다.</string>
     <string name="err_chat_video_gen_failed">비디오 생성 실패: %1$s</string>
+    <string name="err_chat_voice_generated">음성 메시지를 보냈습니다.</string>
+    <string name="err_chat_voice_cancelled">음성 메시지가 취소되었습니다.</string>
+    <string name="err_chat_voice_gen_failed">음성 합성 실패: %1$s</string>
     <string name="err_chat_qr_generated">QR 코드가 생성되었습니다.</string>
     <string name="err_chat_misc_reorder_pinned_failed">고정 순서 저장 실패: %1$s</string>
     <string name="asr_system_unavailable">시스템에서 음성 인식 서비스를 제공하지 않습니다. 설정에서 온라인 음성 인식을 구성하세요.</string>

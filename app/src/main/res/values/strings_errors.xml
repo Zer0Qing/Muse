@@ -128,6 +128,9 @@
     <string name="err_chat_video_generated">已生成视频</string>
     <string name="err_chat_video_cancelled">视频生成已取消</string>
     <string name="err_chat_video_gen_failed">视频生成失败： %1$s</string>
+    <string name="err_chat_voice_generated">已发出语音消息</string>
+    <string name="err_chat_voice_cancelled">语音消息已取消</string>
+    <string name="err_chat_voice_gen_failed">语音合成失败： %1$s</string>
     <string name="err_chat_qr_generated">已生成二维码</string>
     <string name="err_group_chat_rotation_failed">群聊轮转失败，已停止本轮生成</string>
     <string name="err_group_chat_attachment_too_large">附件超过 10MB 上限，无法发送</string>

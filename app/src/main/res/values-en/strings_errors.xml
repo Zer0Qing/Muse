@@ -125,6 +125,9 @@
     <string name="err_chat_video_generated">Video generated</string>
     <string name="err_chat_video_cancelled">Video generation cancelled</string>
     <string name="err_chat_video_gen_failed">Video generation failed: %1$s</string>
+    <string name="err_chat_voice_generated">Voice message sent</string>
+    <string name="err_chat_voice_cancelled">Voice message cancelled</string>
+    <string name="err_chat_voice_gen_failed">Voice synthesis failed: %1$s</string>
     <string name="err_chat_qr_generated">QR code generated</string>
     <string name="err_chat_misc_reorder_pinned_failed">Failed to save pinned order: %1$s</string>
     <string name="err_group_chat_rotation_failed">Group chat rotation failed; this round was stopped</string>

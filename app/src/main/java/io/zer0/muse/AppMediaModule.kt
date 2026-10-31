@@ -24,6 +24,17 @@ val appMediaModule = module {
     single { io.zer0.muse.ui.speech.CloudTtsService(get(named("chat"))) }
     single { io.zer0.muse.ui.speech.TtsManager(androidContext(), get()) }
 
+    // v2.6.16: 语音消息音频存档（filesDir/voice_messages/，与 cacheDir 临时文件分开，避免被系统清理）
+    single {
+        io.zer0.muse.ui.speech.VoiceMessageStore(
+            storageDir = java.io.File(androidContext().filesDir, "voice_messages"),
+        )
+    }
+
+    // v2.6.16: 语音消息共享播放控制器 —— 语音条不各自持有播放器，
+    //   由这一个单例保证「同一时刻只有一条语音在播」。
+    single { io.zer0.muse.ui.speech.VoicePlaybackController() }
+
     // P2-9: 语音克隆 — ElevenLabs Voice Cloning Provider 复用 chat OkHttpClient
     //   (内部用 newBuilder() 覆盖为 30s 三项超时,满足"API 调用必须有超时(30 秒)"约束)
     single { io.zer0.muse.ui.speech.ElevenLabsVoiceCloningProvider(get(named("chat"))) }

@@ -251,6 +251,18 @@
     <string name="settings_asr_provider_system">체계</string>
     <string name="settings_asr_provider_file">파일(실험용)</string>
     <string name="settings_asr_api_key">API 키</string>
+    <!-- ASR: 공급자 설정 따르기 -->
+    <string name="settings_asr_follow_provider">공급자 설정 따르기</string>
+    <string name="settings_asr_follow_provider_subtitle">엔드포인트와 API 키는 공급자 설정을 사용하고 모델은 직접 선택합니다</string>
+    <string name="settings_asr_follow_provider_picker">공급자</string>
+    <string name="settings_asr_follow_model_picker">모델</string>
+    <!-- 따르기 모드 공통 자리표시자 및 대체 안내 -->
+    <string name="settings_speech_follow_unset">선택 안 함</string>
+    <string name="settings_speech_follow_no_models">이 공급자에는 모델이 없습니다</string>
+    <string name="settings_speech_follow_fallback_notice">수동 설정으로 대체했습니다: %1$s</string>
+    <string name="settings_speech_follow_reason_provider_missing">선택한 공급자를 찾을 수 없습니다</string>
+    <string name="settings_speech_follow_reason_provider_disabled">선택한 공급자가 비활성화되었습니다</string>
+    <string name="settings_speech_follow_reason_model_missing">모델이 선택되지 않았습니다</string>
     <string name="settings_asr_hide">숨다</string>
     <string name="settings_asr_show">보여주다</string>
     <string name="settings_asr_model">모델</string>
@@ -293,6 +305,9 @@
     <string name="settings_rag_cloud_api_subtitle">품질 우선, 네트워크 및 API 키 필요</string>
     <string name="settings_rag_local_keyword">지역 키워드(오프라인)</string>
     <string name="settings_rag_local_keyword_subtitle">네트워크가 필요하지 않습니다.</string>
+    <string name="settings_rag_active_backend_section">현재 백엔드</string>
+    <string name="settings_rag_active_backend_label">현재 실제 사용 중</string>
+    <string name="settings_rag_active_backend_degraded_unknown">다른 백엔드로 대체되었습니다(사유가 기록되지 않음)</string>
     <string name="settings_rag_cloud_provider_section">클라우드 제공업체</string>
     <string name="settings_rag_no_provider_hint">아직 구성된 제공업체가 없습니다.</string>
     <string name="settings_rag_baseurl_not_set">baseUrl이 설정되지 않았습니다.</string>
@@ -457,6 +472,12 @@
     <string name="settings_media_tts_cloud_speed">합성 속도</string>
     <string name="settings_media_tts_response_format">오디오 형식</string>
     <string name="settings_media_tts_save_advanced">매개변수 저장</string>
+    <!-- 클라우드 TTS: 공급자 설정 따르기 -->
+    <string name="settings_media_tts_follow_provider">공급자 설정 따르기</string>
+    <string name="settings_media_tts_follow_provider_subtitle">엔드포인트와 API 키는 공급자 설정을 사용하고 모델은 직접 선택합니다</string>
+    <string name="settings_media_tts_follow_provider_picker">공급자</string>
+    <string name="settings_media_tts_follow_model_picker">모델</string>
+    <string name="settings_media_tts_follow_voice_hint">따르기는 엔드포인트와 API 키만 가져옵니다. 음성이 선택한 공급자에서 동작하는지는 직접 확인하세요</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">커스텀 테마</string>
     <string name="settings_theme_custom_add">테마 추가</string>
@@ -494,6 +515,7 @@
     <string name="settings_agent_test_message_subtitle">실제 능동 메시지처럼 하나 보내기(알림 표시)</string>
     <string name="settings_agent_test_generating">생성 중…</string>
     <string name="settings_agent_test_failed">테스트 실패: %1$s</string>
+    <string name="settings_agent_test_already_running">이전 능동 메시지를 아직 생성 중입니다. 잠시 후 다시 시도해 주세요</string>
     <string name="settings_agent_daily_summary_subtitle">매일 09:00, 12:00, 21:00, 00:00에 대화 요약 생성. 스위치는 알림만 제어</string>
     <string name="settings_agent_current_model_hint">전역 기본값(메인 채팅 / Agent 공용)</string>
     <string name="settings_agent_keep_alive_title">백그라운드 실행 유지</string>

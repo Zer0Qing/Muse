@@ -2,12 +2,14 @@ package io.zer0.muse.rag
 
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.zer0.muse.data.knowledge.KnowledgeChunkDao
 import io.zer0.muse.data.knowledge.KnowledgeChunkEntity
 import io.zer0.muse.data.knowledge.KnowledgeChunkFtsDao
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -55,6 +57,8 @@ class RagIndexReliabilityTest {
     ): RagService {
         val embedding = mockk<EmbeddingService>()
         coEvery { embedding.getProvider(any()) } returns provider
+        // RagService 会读后端状态做“当前实际在用哪个 embedding”的诊断，替身要给一个值
+        every { embedding.activeBackend } returns MutableStateFlow(null)
         return RagService(
             chunkDao = chunkDao,
             docDao = docDao,

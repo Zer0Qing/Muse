@@ -12,31 +12,29 @@ import java.security.MessageDigest
 /**
  * v1.0.5 视觉辅助重写:图片预处理器。
  *
- * 按 既有实现 的 `core/model-image-preprocess.ts` 的 `MODEL_IMAGE_INPUT_POLICY`。
- *
  * 职责:
  *  - 对 base64 图片做尺寸压缩(最长边 ≤ [POLICY.maxDimension])和 JPEG 质量压缩
  *  - 通过 magic bytes 嗅探真实 MIME 类型(不信任声明)
  *  - 按图片数量分摊单图预算,超出 [POLICY.totalBase64BudgetBytes] 总预算抛错
  *  - 对非 JPEG/PNG/WebP/GIF 的图片统一转 JPEG
  *
- * 与 既有实现 的差异:
- *  - 既有实现 用 piSdk.resizeModelImageInput(浏览器端 Canvas),Android 端用 [Bitmap.compress]
- *  - 既有实现 单图 4.5MB + 总 24MB,这里保留同样数值,但 Android 端 JPEG 压缩通常比浏览器更紧凑
- *  - 既有实现 解码 base64 校验长度对齐 + canonical,Android 端用 [Base64.decode] 直接校验
+ * 实现要点:
+ *  - 缩放压缩用 [Bitmap.compress],不依赖浏览器 Canvas
+ *  - 单图 4.5MB + 总 24MB,Android 端 JPEG 压缩通常比浏览器更紧凑
+ *  - base64 用 [Base64.decode] 直接校验长度与内容
  */
 object VisionImagePreprocessor {
 
     private const val TAG = "VisionImagePreprocessor"
 
     /**
-     * 图片输入策略,对齐 既有实现 的 MODEL_IMAGE_INPUT_POLICY。
+     * 图片输入策略。
      *
      * 数值含义:
-     *  - [maxDimension] 2000:与 既有实现 一致,最长边 2000px。足够清晰,又控制 base64 体积。
+     *  - [maxDimension] 2000:最长边 2000px。足够清晰,又控制 base64 体积。
      *  - [maxImageBase64Bytes] 4.5MB:单张 base64 上限。超过则继续压缩到该体积内。
      *  - [totalBase64BudgetBytes] 24MB:整个请求 base64 总预算(provider 端 32MB cap 的安全余量)。
-     *  - [jpegQuality] 80:与 既有实现 一致,质量与体积的平衡点。
+     *  - [jpegQuality] 80:质量与体积的平衡点。
      */
     object POLICY {
         const val maxDimension = 2000
@@ -190,9 +188,8 @@ object VisionImagePreprocessor {
     }
 
     /**
-     * 通过 base64 头部字符嗅探 MIME 类型。
+     * 通过 base64 头部字符(magic bytes)嗅探 MIME 类型。
      *
-     * 按 既有实现 的 `sniffImageMimeType`(magic bytes 匹配)。
      * 支持的格式:JPEG / PNG / GIF / WebP,其他回退 image/jpeg。
      */
     fun sniffMimeType(base64: String): String {

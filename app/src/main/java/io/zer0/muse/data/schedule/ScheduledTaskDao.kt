@@ -111,6 +111,8 @@ interface ScheduledTaskDao {
      * @param taskId 任务 id
      * @param nextRunAt 下次执行时间戳;<=0 表示无下次(once/非法 cron),将禁用任务
      * @param lastRunAt 本次执行时间戳(写入 last_run_at)
+     * @param missedExecutions 这次没有补跑、只记录一笔的 missed 历史(锚定推进时算出);
+     *   与执行记录、next_run_at 同事务写入
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExecution(execution: ScheduledTaskExecutionEntity)
@@ -146,7 +148,11 @@ interface ScheduledTaskDao {
         nextRunAt: Long,
         lastRunAt: Long,
         retryCount: Int,
+        missedExecutions: List<ScheduledTaskExecutionEntity> = emptyList(),
     ) {
+        // 错过的轮次先落库:与 next_run_at 推进同事务,保证不会出现「记了 missed 但调度没推进」
+        // 导致下一轮重复计数。
+        missedExecutions.forEach { insertExecution(it) }
         insertExecution(execution)
         if (nextRunAt > 0) {
             updateRunState(taskId, nextRunAt, lastRunAt)

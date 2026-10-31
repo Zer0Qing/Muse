@@ -19,6 +19,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -62,6 +63,14 @@ object JsSandbox {
     fun setCurrentPluginId(pluginId: String?) {
         currentPluginId = pluginId
     }
+
+    /**
+     * 沙盒环境不可用。
+     *
+     * 属于本机环境问题（WebView 未就绪、自检未通过），与调用方传入的代码无关。
+     * 工具层据此给出“不要重试、换条路”的提示，而不是把内部实现名甩给模型。
+     */
+    class JsSandboxUnavailableException(message: String) : IllegalStateException(message)
 
     /**
      * 构造每次执行前的宿主配置注入。
@@ -117,12 +126,15 @@ object JsSandbox {
      * v2.x（沙盒放开）:验证仅检查导航防护生效；网络 API 已放开，不再要求 "必抛错"。
      * 覆盖两类：window.open 被覆盖 + document.write 被禁用。
      */
-    private const val VERIFY_JS = """
+    internal const val VERIFY_JS = """
         (function() {
             var issues = [];
             if (typeof window.open !== 'function') { issues.push('window.open missing'); }
             else { try { var r = window.open('about:blank'); if (r !== null) issues.push('window.open not blocked'); } catch (e) { /* 抛错也视为已阻断 */ } }
-            JSON.stringify({ verified: issues.length === 0, issues: issues });
+            // 必须显式 return：evaluateJavascript 取的是整个表达式的值，
+            // 直接写 JSON.stringify(...) 作为语句时函数返回 undefined，回调收到 "null"，
+            // 会被当成“自检没返回结果”。
+            return JSON.stringify({ verified: issues.length === 0, issues: issues });
         })();
     """
 
@@ -474,29 +486,41 @@ object JsSandbox {
         val raw = suspendCancellableCoroutine<String?> { cont ->
             wv.evaluateJavascript(VERIFY_JS) { result -> if (cont.isActive) cont.resume(result) }
         }
-        val verifiedResult = runCatching {
-            val first = AppJson.parseToJsonElement(raw ?: "null")
-            val elem = if (first is JsonPrimitive && first.isString) {
-                AppJson.parseToJsonElement(first.content)
-            } else {
-                first
-            }
-            val obj = elem as? JsonObject ?: error("invalid verification result")
-            val verified = (obj["verified"] as? JsonPrimitive)?.booleanOrNull == true
-            val issues = (obj["issues"] as? kotlinx.serialization.json.JsonArray)
-                ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
-                ?.filter { it.isNotBlank() } ?: emptyList()
-            verified to issues
-        }.getOrElse { false to listOf("verification parse failed: ${it.message}") }
+        val verifiedResult = parseVerificationResult(raw)
         if (!verifiedResult.first) {
             Logger.w(TAG, "JsSandbox 劫持验证失败: ${verifiedResult.second.joinToString(", ")}")
             wv.destroy()
-            throw IllegalStateException("JsSandbox security verification failed")
+            throw JsSandboxUnavailableException("沙盒环境自检未通过: ${verifiedResult.second.joinToString(", ").ifBlank { "未知原因" }}")
         }
         webViewRef = wv
         Logger.i(TAG, "WebView 沙盒已初始化")
         return wv
     }
+
+    /**
+     * 解析自检返回值。
+     *
+     * [evaluateJavascript] 回调给的是 JSON 编码后的结果：正常是一条被转义的 JSON 字符串，
+     * 自检脚本没返回值时是字面量 `null`。两种都要能分辨，
+     * 否则失败原因会写成“解析失败”，掩盖真正的问题。
+     */
+    internal fun parseVerificationResult(raw: String?): Pair<Boolean, List<String>> = runCatching {
+        if (raw == null || raw.isBlank() || raw == "null") {
+            return@runCatching false to listOf("自检未返回结果")
+        }
+        val first = AppJson.parseToJsonElement(raw)
+        val elem = if (first is JsonPrimitive && first.isString) {
+            AppJson.parseToJsonElement(first.content)
+        } else {
+            first
+        }
+        val obj = elem as? JsonObject ?: error("自检返回格式不是对象")
+        val verified = (obj["verified"] as? JsonPrimitive)?.booleanOrNull == true
+        val issues = (obj["issues"] as? JsonArray)
+            ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+            ?.filter { it.isNotBlank() } ?: emptyList()
+        verified to issues
+    }.getOrElse { false to listOf("自检结果解析失败：${it.message}") }
 
     /**
      * 解析 evaluateJavascript 回调返回的字符串。

@@ -29,7 +29,7 @@ class ToolRegistryDeviceInteractionLockTest {
         val screenToolEntered = CompletableDeferred<Unit>()
 
         registry.register(
-            ToolRegistry.ToolDef("ui_agent", "agent", mapOf("task" to "task"), required = setOf("task")),
+            ToolRegistry.ToolDef("ui_agent", "agent", mapOf("task" to "task"), required = setOf("task"), riskLevel = ToolRiskLevel.HIGH),
         ) {
             agentEntered.complete(Unit)
             releaseAgent.await()
@@ -41,6 +41,7 @@ class ToolRegistryDeviceInteractionLockTest {
                 "tap",
                 mapOf("x" to "x", "y" to "y"),
                 required = setOf("x", "y"),
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) {
             screenToolEntered.complete(Unit)
@@ -80,6 +81,7 @@ class ToolRegistryDeviceInteractionLockTest {
                 name = "virtual_screen",
                 description = "virtual display",
                 parameters = emptyMap(),
+                riskLevel = ToolRiskLevel.HIGH,
                 rawParametersJsonSchema = """{"type":"object","properties":{},"additionalProperties":false}""",
             ),
         ) {
@@ -93,6 +95,7 @@ class ToolRegistryDeviceInteractionLockTest {
                 "tap",
                 mapOf("x" to "x", "y" to "y"),
                 required = setOf("x", "y"),
+                riskLevel = ToolRiskLevel.HIGH,
             ),
         ) {
             screenToolEntered.complete(Unit)
@@ -121,12 +124,28 @@ class ToolRegistryDeviceInteractionLockTest {
         val releaseDevice = CompletableDeferred<Unit>()
         val safeToolEntered = CompletableDeferred<Unit>()
 
-        registry.register(ToolRegistry.ToolDef("ui_agent", "agent", mapOf("task" to "task"), required = setOf("task"))) {
+        registry.register(
+            ToolRegistry.ToolDef(
+                "ui_agent",
+                "agent",
+                mapOf("task" to "task"),
+                required = setOf("task"),
+                riskLevel = ToolRiskLevel.HIGH,
+            ),
+        ) {
             deviceEntered.complete(Unit)
             releaseDevice.await()
             "agent done"
         }
-        registry.register(ToolRegistry.ToolDef("echo_test", "echo", mapOf("value" to "value"), required = setOf("value"))) {
+        registry.register(
+            ToolRegistry.ToolDef(
+                "echo_test",
+                "echo",
+                mapOf("value" to "value"),
+                required = setOf("value"),
+                riskLevel = ToolRiskLevel.SAFE,
+            ),
+        ) {
             safeToolEntered.complete(Unit)
             "safe done"
         }

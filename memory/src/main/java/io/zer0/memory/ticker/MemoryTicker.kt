@@ -238,6 +238,23 @@ class MemoryTicker(
     @Volatile private var _stopped = false
     private var _timerJob: Job? = null
 
+    /**
+     * 计时器生命周期状态。
+     *
+     * 必须把 [TimerPhase.STOPPING] 与 [TimerPhase.STOPPED] 分开:stop() 要等正在跑的后台任务
+     * 收尾(最长 30s),这段时间里计时 job 已经取消、但「停止」还没结束。旧实现只有一个
+     * `_timerJob != null` 判断,把这段窗口误当成「仍在运行」,于是 start() 直接 return,
+     * 随后 stop() 把 job 置空 —— 记忆日检就此永久停摆,日志里一个字都没有。
+     */
+    private enum class TimerPhase { STOPPED, RUNNING, STOPPING }
+
+    /** 保护 [timerPhase] / [_timerJob] / [startQueuedDuringStop] 的转换。 */
+    private val timerLock = Any()
+    private var timerPhase = TimerPhase.STOPPED
+
+    /** stop 等待期间收到过 start:停完必须补起,不能吞掉。 */
+    private var startQueuedDuringStop = false
+
     // ──────────────────────────────────────────────
     //  健康状态
     // ──────────────────────────────────────────────
@@ -1054,21 +1071,64 @@ class MemoryTicker(
      * 启动每小时的 daily check timer(备用触发,不依赖用户对话)。
      * 主触发是 [notifyTurn] 末尾的 [checkDailyJob]。
      *
-     * v1.78: 修复 stop() 后不可重启的 bug — start() 时重置 _stopped=false。
-     * 用户在设置页关闭再打开记忆功能后,Ticker 现在可以正常重启。
+     * v1.78: start() 会重置 stopped 标志,stop 之后可以重启。
+     *
+     * 与 [stop] 之间是「期望状态 + 单一状态机」,不是两个独立开关:
+     *  - [TimerPhase.RUNNING]:幂等返回,不再新建 job;
+     *  - [TimerPhase.STOPPING]:说明 stop 正卡在等后台任务收尾，这次 start **排队**
+     *    ([startQueuedDuringStop]),由 [finishStop] 在停完后补起，而不是静默丢掉;
+     *  - 其余情况立即建 job;
+     *  - 任何一次「要求它跑、实际却没有计时器在跑」都打 WARN，下次能从日志看出来。
      */
     fun start() {
-        // v1.78: 允许重启 — 重置 stopped 标志
-        _stopped = false
-        if (_timerJob != null) return
-        _timerJob = scope.launch(Dispatchers.IO) {
-            while (!_stopped) {
-                delay(DAILY_CHECK_INTERVAL_MS)
-                if (_stopped) break
-                checkDailyJob(model = null, locale = "zh-CN", timeZone = TimeContext.DEFAULT_TIMEZONE)
+        var started = false
+        var queuedBehindStop = false
+        var revivedDeadTimer = false
+        synchronized(timerLock) {
+            // 与旧实现一致:start 意味着流水线该跑
+            _stopped = false
+            when {
+                timerPhase == TimerPhase.STOPPING -> {
+                    startQueuedDuringStop = true
+                    queuedBehindStop = true
+                }
+                timerPhase == TimerPhase.RUNNING && _timerJob?.isActive == true -> Unit
+                else -> {
+                    // 走到这里要么是 STOPPED，要么是 RUNNING 但计时 job 已经死掉
+                    revivedDeadTimer = timerPhase == TimerPhase.RUNNING
+                    timerPhase = TimerPhase.RUNNING
+                    _timerJob = launchDailyCheckTimer()
+                    started = true
+                }
             }
         }
-        Logger.i(TAG, "v3 已启动(turn-based,daily check timer ${DAILY_CHECK_INTERVAL_MS / 60000}min)")
+        when {
+            queuedBehindStop ->
+                Logger.w(TAG, "记忆日检计时器正在停止，start 已排队:停止完成后会自动重启")
+            started && !isTimerRunning() ->
+                Logger.w(TAG, "记忆日检计时器未能启动(scope 已取消或计时 job 已死)，本次 start 丢失")
+            started && revivedDeadTimer ->
+                Logger.w(TAG, "记忆日检计时器此前已停摆(计时 job 不活跃)，本次 start 重建")
+            started -> Logger.i(TAG, "v3 已启动(turn-based,daily check timer ${DAILY_CHECK_INTERVAL_MS / 60000}min)")
+            else -> Logger.d(TAG, "start 忽略:记忆日检计时器已在运行")
+        }
+    }
+
+    /** 计时器此刻是真的在跑(状态为运行且 job 活跃)。停摆诊断与测试都用它。 */
+    internal fun isTimerRunning(): Boolean = synchronized(timerLock) {
+        timerPhase == TimerPhase.RUNNING && _timerJob?.isActive == true
+    }
+
+    /** 计时器生命周期状态名(诊断/测试用)。 */
+    internal val timerPhaseName: String get() = synchronized(timerLock) { timerPhase.name }
+
+    /** 建并启动计时 job。调用方必须持有 [timerLock]。 */
+    private fun launchDailyCheckTimer(): Job = scope.launch(Dispatchers.IO) {
+        while (!_stopped) {
+            delay(DAILY_CHECK_INTERVAL_MS)
+            if (_stopped) break
+            checkDailyJob(model = null, locale = "zh-CN", timeZone = TimeContext.DEFAULT_TIMEZONE)
+        }
     }
 
     /**
@@ -1076,41 +1136,83 @@ class MemoryTicker(
      *
      * v1.78: 加 30s 超时,防止卡住的 LLM 调用导致 stop() 永久阻塞。
      * 超时后强制取消所有未完成 Job。
+     *
+     * 并发两次 stop 是安全的:第一个把状态推入 [TimerPhase.STOPPING],第二个看到同样的
+     * 状态只会等同一个 job 并跳过收尾。
      */
     suspend fun stop() {
-        _stopped = true
-        // v1.0.27 修复: 用 cancelAndJoin 等待 timer job 真正退出,
-        // 原 cancel() 不等待导致测试 advanceUntilIdle 后 job 仍在 children 中。
-        _timerJob?.let { job ->
-            job.cancel()
+        val timer = beginStop()
+        if (timer != null) {
+            timer.cancel()
             try {
-                job.join()
+                timer.join()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
                 // timer job join 失败不阻塞后续清理
             }
         }
-        _timerJob = null
-        // v1.78: 超时等待,避免永久阻塞
+        stopTrackedJobs()
+        finishStop()
+    }
+
+    /** stop 的第一步(同步):标记状态并取回要等的计时 job。 */
+    private fun beginStop(): Job? = synchronized(timerLock) {
+        _stopped = true
+        when (timerPhase) {
+            TimerPhase.STOPPED -> null
+            TimerPhase.RUNNING, TimerPhase.STOPPING -> {
+                timerPhase = TimerPhase.STOPPING
+                _timerJob
+            }
+        }
+    }
+
+    /** 等正在跑的后台任务收尾(带 30s 上限)。 */
+    private suspend fun stopTrackedJobs() {
         val jobs: List<Job> = synchronized(_activeJobsLock) { _activeJobs.toList() }
-        if (jobs.isNotEmpty()) {
-            // v1.0.51: 先 cancel 全部 job 让它们开始退出,再用 joinAll 并行等待,
-            // 替代原 forEach 顺序 join(5 个 job 各 5s → 25s 串行 vs 5s 并行)
-            synchronized(_activeJobsLock) {
-                _activeJobs.forEach { it.cancel() }
+        if (jobs.isEmpty()) return
+        // v1.0.51: 先 cancel 全部 job 让它们开始退出,再用 joinAll 并行等待,
+        // 替代原 forEach 顺序 join(5 个 job 各 5s → 25s 串行 vs 5s 并行)
+        synchronized(_activeJobsLock) {
+            _activeJobs.forEach { it.cancel() }
+        }
+        // v1.78 (H8): join 不用 runCatching(会吞 CancellationException);
+        // cancel 块用 try/finally 必达,即使 withTimeoutOrNull 超时也要执行
+        try {
+            withTimeoutOrNull(30_000L) {
+                jobs.joinAll()
             }
-            // v1.78 (H8): join 不用 runCatching(会吞 CancellationException);
-            // cancel 块用 try/finally 必达,即使 withTimeoutOrNull 超时也要执行
-            try {
-                withTimeoutOrNull(30_000L) {
-                    jobs.joinAll()
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                // joinAll 中单个 Job 异常不阻塞整体退出
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // joinAll 中单个 Job 异常不阻塞整体退出
+        }
+    }
+
+    /** stop 的收尾(同步):清 job、按排队请求决定是否补起。 */
+    private fun finishStop() {
+        var restarted = false
+        synchronized(timerLock) {
+            if (timerPhase != TimerPhase.STOPPING) return
+            _timerJob = null
+            if (startQueuedDuringStop) {
+                // stop 期间有人要它跑:停完直接补起,不把请求丢掉
+                startQueuedDuringStop = false
+                timerPhase = TimerPhase.RUNNING
+                _stopped = false
+                _timerJob = launchDailyCheckTimer()
+                restarted = true
+            } else {
+                timerPhase = TimerPhase.STOPPED
             }
+        }
+        when {
+            restarted && isTimerRunning() ->
+                Logger.i(TAG, "记忆日检计时器已重启(stop 期间收到过 start)")
+            restarted ->
+                Logger.w(TAG, "记忆日检计时器未能重启(scope 已取消)，stop 期间的 start 请求丢失")
+            else -> Logger.i(TAG, "记忆日检计时器已停止")
         }
     }
 

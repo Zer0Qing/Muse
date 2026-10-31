@@ -106,12 +106,17 @@
     <string name="chat_doc_default_name">문서</string>
     <string name="chat_doc_parse_failed">문서 분석 실패: %1$s</string>
     <string name="chat_attachment_workspace_ref">첨부 파일을 작업 공간에 저장했습니다: %1$s(%2$s)</string>
+    <string name="chat_attachment_preview_unavailable">이 파일은 앱에서 열 수 없습니다. 원본은 작업 공간에 있습니다: %1$s</string>
     <string name="chat_attachment_import_failed">첨부 파일 저장 실패: %1$s</string>
     <string name="chat_doc_char_count">%1$d자</string>
     <string name="chat_pasted_doc_name">붙여넣은-텍스트_%1$s.txt</string>
     <string name="chat_thinking_preview">생각 · %1$s</string>
     <string name="chat_voice_playing_cd">음성 재생 중</string>
     <string name="chat_voice_ready_cd">음성 준비됨</string>
+    <!-- v2.6.16: 음성 메시지 바 -->
+    <string name="chat_voice_play_cd">음성 메시지 재생</string>
+    <string name="chat_voice_pause_cd">음성 메시지 일시정지</string>
+    <string name="chat_voice_expired">음성 메시지를 사용할 수 없습니다</string>
     <string name="chat_knowledge_chunk_title">《%1$s》 · 청크 #%2$d</string>
     <string name="chat_knowledge_chunk_score">점수 %1$s · %2$s</string>
     <string name="chat_citation_chip_a11y">인용 [%1$d]: %2$s, %3$s</string>
@@ -467,7 +472,8 @@
     <string name="msg_info_prompt">입력 (prompt)</string>
     <string name="msg_info_completion">출력 (completion)</string>
     <string name="msg_info_reasoning">추론 (reasoning)</string>
-    <string name="msg_info_cached">캐시 적중</string>
+    <string name="msg_info_cached">캐시 읽기</string>
+    <string name="msg_info_cache_write">캐시 쓰기</string>
     <string name="msg_info_total">합계</string>
     <string name="msg_info_measured">실측</string>
     <string name="msg_info_estimated">추정</string>

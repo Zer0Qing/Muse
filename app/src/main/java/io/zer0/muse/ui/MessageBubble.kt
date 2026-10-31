@@ -88,6 +88,7 @@ import io.zer0.muse.ui.chat.QuickAction
 import io.zer0.muse.ui.chat.QuickActionButton
 import io.zer0.muse.ui.chat.StickerAwareMarkdownBody
 import io.zer0.muse.ui.chat.VideoAttachment
+import io.zer0.muse.ui.chat.VoiceMessageBubble
 import io.zer0.muse.ui.chat.buildHighlightedText
 import io.zer0.muse.ui.chat.buildMoodSkinAnnotated
 import io.zer0.muse.ui.chat.parseQuotedContent
@@ -399,6 +400,8 @@ internal fun MessageBubble(
     // v1.60-B: 全屏媒体查看器状态 — 图片列表 + 初始索引
     // mediaPreview 为 Pair 类型,自定义 Saver 过于复杂,保持 remember
     var mediaPreview by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
+    // v2.6.13: 附件预览。附件芯片点开后要拿到原件，所以存整条引用而不是路径。
+    var attachmentPreview by remember { mutableStateOf<io.zer0.ai.core.AttachmentRef?>(null) }
     // v1.48: 删除消息确认对话框
     var showDeleteConfirm by remember { mutableStateOf(false) }
     // v1.0.92: 消息批注对话框(写入/查看/删除)
@@ -467,10 +470,14 @@ internal fun MessageBubble(
     val toolPayloadVisible = showToolCallDetails && msg.toolCallInfo != null
     // v2.6.0: show_card 是内容卡片(非调试信息),不受「显示工具调用详情」开关控制。
     val isShowCardMessage = msg.toolCallInfo?.toolName == SHOW_CARD_TOOL_NAME
+    // v2.6.16: 语音消息 — 有语音引用时用语音条替换正文气泡。
+    //   只换渲染,content 一字不动:模型靠文本理解上下文,界面不能顺手把它清空。
+    val voiceUri = msg.voiceUri?.takeIf { it.isNotBlank() }
     val hasAssistantPayload = body.isNotBlank() ||
         msg.imageUrls.isNotEmpty() ||
         msg.imageBase64List.isNotEmpty() ||
         msg.videoFileUri != null ||
+        voiceUri != null ||
         msg.artifactIds.isNotEmpty() ||
         toolPayloadVisible ||
         isShowCardMessage ||
@@ -483,12 +490,16 @@ internal fun MessageBubble(
     if (!isUser && !hasAssistantPayload) return
 
     // 历史消息可能只有 content 没有 mood 字段，显示层仍把内嵌 mood/mod 恢复成可折叠块。
-    val visibleMood = if (isUser) {
-        null
-    } else {
-        msg.mood?.takeIf { it.isNotBlank() }
-            ?: InternalMarkupSanitizer.extractMood(msg.content)
-            ?: InternalMarkupSanitizer.extractMood(msg.reasoning.orEmpty())
+    // 流式期间 mood 还没落库时，这里每帧都要对正文与思考各做一次全文 findAll；
+    // 结果只由这三个输入决定，按它们缓存。
+    val visibleMood = remember(msg.id, msg.mood, msg.content, msg.reasoning) {
+        if (isUser) {
+            null
+        } else {
+            msg.mood?.takeIf { it.isNotBlank() }
+                ?: InternalMarkupSanitizer.extractMood(msg.content)
+                ?: InternalMarkupSanitizer.extractMood(msg.reasoning.orEmpty())
+        }
     }
     // P2-13: 桌面快捷键总开关(Expanded 窗口 + 物理键盘)— 控制右键菜单是否启用
     val desktopShortcutsEnabled = rememberDesktopShortcutsEnabled()
@@ -1137,8 +1148,23 @@ internal fun MessageBubble(
                                 }
                             }
                         }
-                        val userText = body.ifEmpty { if (hasImages || videoAttachment != null) "" else " " }
-                        if (userText.isNotBlank()) {
+                        val userText = body.ifEmpty { if (hasImages || videoAttachment != null || voiceUri != null) "" else " " }
+                        // v2.6.13: 附件芯片放在正文上方。正文里那行「已存入工作区」是给模型看的引用，
+                        // 对用户来说它只说明有文件、不说明是哪个、多大、能不能打开。
+                        if (msg.attachments.isNotEmpty()) {
+                            MessageAttachmentChips(
+                                attachments = msg.attachments,
+                                onOpen = { attachmentPreview = it },
+                            )
+                        }
+                        if (voiceUri != null) {
+                            // v2.6.16: 语音消息 — 语音条替换正文气泡(内容仍保留在 msg.content 里)
+                            VoiceMessageBubble(
+                                voiceUri = voiceUri,
+                                durationMs = msg.voiceDurationMs,
+                                isFromUser = true,
+                            )
+                        } else if (userText.isNotBlank()) {
                             Text(
                                 text = userText,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -1166,6 +1192,7 @@ internal fun MessageBubble(
                     msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() &&
                     msg.artifactIds.isEmpty() &&
                     msg.toolCallInfo == null &&
+                    voiceUri == null &&
                     msg.reasoning.isNullOrBlank() &&
                     msg.mood.isNullOrBlank() &&
                     msg.reflection.isNullOrBlank()
@@ -1309,6 +1336,14 @@ internal fun MessageBubble(
                             if (isLastAssistant && isStreaming && !isPureToolBubble) {
                                 ThinkingIndicator()
                             }
+                            // v2.6.16: 语音消息条 — 与图片/视频同层分流,不参与正文渲染
+                            voiceUri?.let { uri ->
+                                VoiceMessageBubble(
+                                    voiceUri = uri,
+                                    durationMs = msg.voiceDurationMs,
+                                    isFromUser = false,
+                                )
+                            }
                             // Phase 5-G / Phase 8.6: 渲染生成的图片(URL 或 base64 data URI)
                             // 统一显示源:优先用 imageUrls,避免 Gemini 同时有 imageUrls(data URI) 和 imageBase64List 时重复渲染
                             // v1.95: 同时扫描 content 中的表情包绝对路径(filesDir/stickers/...),由 send_sticker 工具产生
@@ -1323,8 +1358,11 @@ internal fun MessageBubble(
                                 if (isLastAssistant && isStreaming) {
                                     fromUrls
                                 } else {
+                                    // Markdown 图片：解析器会把 ![alt](url) 从正文里抹掉，
+                                    // 不在这里取出来就整行消失。表情包路径同理。
+                                    val markdownImages = extractMarkdownImageUrls(msg.content)
                                     val stickerUris = extractStickerPaths(msg.content).map { "file://$it" }
-                                    if (stickerUris.isEmpty()) fromUrls else fromUrls + stickerUris
+                                    fromUrls + markdownImages + stickerUris
                                 }
                             }
                             if (displayImageUris.size > 1) {
@@ -1525,7 +1563,7 @@ internal fun MessageBubble(
                                 val titleText = if (hasHeading) firstLine else null
                                 val bodyContent = (if (hasHeading) content.substring(firstLineEnd + 1).trimStart() else content)
                                     .replace(ARTIFACT_MARKER_RE, "")
-                                if (content.isNotBlank()) {
+                                if (voiceUri == null && content.isNotBlank()) {
                                     // Markdown 标题行
                                     titleText?.let {
                                         Text(
@@ -1592,6 +1630,13 @@ internal fun MessageBubble(
                                         letterSpacing = chatPrefs.messageLetterSpacingEm.coerceIn(-0.02f, 0.1f).em,
                                     )
                                     val markdownContent = @Composable {
+                                        // 内联特效判定与剥离都在这里每帧跑；两个结果只由 bodyContent 决定，按它缓存。
+                                        val hasInlineEffect = remember(bodyContent) {
+                                            MoodSkinParser.containsInlineEffect(bodyContent)
+                                        }
+                                        val bodyWithoutInlineEffect = remember(bodyContent, hasInlineEffect) {
+                                            if (hasInlineEffect) bodyContent else MoodSkinParser.stripInlineEffects(bodyContent)
+                                        }
                                         // v1.79 (H-B3): 防御性处理 citationUrls,MarkdownText 内部应保证 [N] 不越界
                                         val safeCitationUrls = msg.citationUrls ?: emptyList()
                                         if (highlightText != null && bodyContent.contains(highlightText, ignoreCase = true)) {
@@ -1601,7 +1646,7 @@ internal fun MessageBubble(
                                                 color = bodyTextColor,
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
-                                        } else if (MoodSkinParser.containsInlineEffect(bodyContent)) {
+                                        } else if (hasInlineEffect) {
                                             Text(
                                                 text = buildMoodSkinAnnotated(bodyContent),
                                                 style = bodyStyle,
@@ -1611,7 +1656,7 @@ internal fun MessageBubble(
                                         } else {
                                             // v2.x: 表情包标记 [[sticker:分类]] → 纯图片卡片;无标记时零开销直通原 MarkdownText
                                             StickerAwareMarkdownBody(
-                                                text = MoodSkinParser.stripInlineEffects(bodyContent),
+                                                text = bodyWithoutInlineEffect,
                                                 stickerSeed = msg.id.hashCode().toLong(),
                                                 style = bodyStyle,
                                                 color = bodyTextColor,
@@ -2420,6 +2465,17 @@ internal fun MessageBubble(
                 if (mediaPreview != null && mediaPreview?.first.isNullOrEmpty()) {
                     mediaPreview = null
                 }
+            }
+            // v2.6.13: 附件预览。字节用工作区读取 —— 工作区可能是 SAF 挂载，
+            // 拿不到可共享的 File 路径，所以不能走 FileProvider。
+            attachmentPreview?.let { attachment ->
+                val workspace: io.zer0.muse.workspace.WorkspaceManager? =
+                    org.koin.compose.koinInject()
+                AttachmentPreviewDialog(
+                    attachment = attachment,
+                    loadBytes = { attachment.workspacePath?.let { workspace?.readBytes(it) } },
+                    onDismiss = { attachmentPreview = null },
+                )
             }
             // v1.0.15: 全屏媒体查看器抽取为共享组件(原 v1.60-B 内联实现),供群聊复用
             mediaPreview?.let { (images, initialIndex) ->

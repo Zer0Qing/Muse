@@ -219,7 +219,7 @@ class TavilyProvider(
 /**
  * v1.135: Auto 搜索 Provider — 多引擎 fallback + 低质量结果检测。
  *
- * 按 既有实现 的 web-search.ts 设计:
+ * 设计:
  *  - 按优先级依次尝试多个 provider,遇到空结果/低质量/异常则自动换下一个
  *  - 检测日期计算器、词典/百科释义等低质量结果并跳过
  *  - 最终结果去重、按查询相关性排序
@@ -541,7 +541,7 @@ class CompositeWebSearchService(
                 "Metaso" -> MetasoSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://metaso.cn/api/v1" })
                 "Exa" -> ExaSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.exa.ai" })
                 "Firecrawl" -> FirecrawlProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.firecrawl.dev/v1" })
-                // Perplexity AI 搜索 API(sonar-pro 模型 + citations),既有实现 PerplexityService
+                // Perplexity AI 搜索 API(sonar-pro 模型 + citations)
                 "Perplexity" -> PerplexitySearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.perplexity.ai" })
                 // 默认用 Bing HTTP(免费,无需 API key)
                 else -> BingProvider(client)
@@ -1090,7 +1090,7 @@ class ExaSearchProvider(
 }
 
 /**
- * Firecrawl 搜索 provider(既有实现 Firecrawl 实现版)。
+ * Firecrawl 搜索 provider。
  *
  * 协议: POST {endpoint}/search,请求体为 JSON。
  * 需要 API key。支持网页抓取与搜索。
@@ -1150,7 +1150,7 @@ class FirecrawlProvider(
 }
 
 /**
- * Perplexity Search Provider — Perplexity AI 搜索 API(既有实现 PerplexityService)。
+ * Perplexity Search Provider — Perplexity AI 搜索 API。
  *
  * 协议: POST https://api.perplexity.ai/chat/completions
  *  - 请求头: Authorization: Bearer {apiKey},Content-Type: application/json

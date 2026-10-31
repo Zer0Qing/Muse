@@ -82,8 +82,9 @@ data class SessionEntity(
      * 对话从零开始,不参考任何历史记忆。
      */
     @ColumnInfo(defaultValue = "0") val ignoreMemory: Boolean = false,
-    /** v1.138: 是否为小手机私信空间的会话(AI 主动发起的私信、小手机内新建的对话)。
-     * true = 仅在小手机「消息」Tab 显示;false = 主 App 常规会话。
+    /** v1.138: 历史兼容列——旧小手机私信空间的会话标记。
+     * 旧小手机已整体移除，库内 isMiniPhone = 1 的行在 121→122 迁移中删除；
+     * 本列仅为历史兼容保留，已无写入方，下次结构变更（需重建表）时一并移除。
      */
     @ColumnInfo(defaultValue = "0") val isMiniPhone: Boolean = false,
     /** v2.x 导入预热:会话由外部导入/备份恢复,首轮以全量历史构建上下文一次(成功回复后清除)。 */

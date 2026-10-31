@@ -120,7 +120,7 @@ class AnthropicProvider(
         val producerScope = this
         // 审查修复 (2.0 B-25): callbackFlow → channelFlow — 内部 channel 恒 UNLIMITED,
         // 消除 callbackFlow 固定 64 容量在快速生产/慢消费下的静默丢片(与 OpenAI 同方案)。
-        // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理(对齐 既有实现 normalizeProviderPayload)
+        // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理
         val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
             request.messages,
             request.model,
@@ -379,12 +379,7 @@ class AnthropicProvider(
                             if (deltaUsage != null) {
                                 trySend(
                                     ChatStreamEvent.UsageDelta(
-                                        UsageTokens(
-                                            promptTokens = inputUsage?.input_tokens ?: 0,
-                                            completionTokens = deltaUsage.output_tokens,
-                                            cachedTokens = (inputUsage?.cache_read_input_tokens ?: 0) +
-                                                (inputUsage?.cache_creation_input_tokens ?: 0),
-                                        ),
+                                        anthropicUsageTokens(inputUsage, deltaUsage.output_tokens),
                                     ),
                                 )
                             }
@@ -533,7 +528,7 @@ class AnthropicProvider(
     override suspend fun completeText(request: ChatRequest): ChatCompletion = completeTextImpl(request, 0)
 
     private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion = withContext(Dispatchers.IO) {
-        // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理(对齐 既有实现 normalizeProviderPayload)
+        // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理
         val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
             request.messages,
             request.model,
@@ -626,7 +621,7 @@ class AnthropicProvider(
                     finishReason = parsed.stop_reason,
                     reasoningContent = thinkingText.takeIf { it.isNotBlank() },
                     toolCalls = toolCalls,
-                    usageTokens = parsed.usage?.toUsageTokens(),
+                    usageTokens = anthropicUsageTokens(parsed.usage, parsed.usage?.output_tokens ?: 0),
                 )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -660,7 +655,8 @@ class AnthropicProvider(
      * v1.80 (M-ANT4): v1.121 已完成多轮 thinking 完整回放。
      *  ASSISTANT 消息构建时,若 msg.reasoning 非空且 msg.thinkingSignature 非空,
      *  在 content 数组首位插入 {type:"thinking", thinking, signature} block。
-     *  仅有 reasoning 无 signature 时仍发 thinking block(无 signature 字段)。
+     *  v2.6.14: 缺 signature 的思考块不回放 —— Anthropic 对 thinking 块验签,
+     *  无签名的块无法通过校验,发出去只会换来 400(另见 splitSystem 内的注释)。
      *  signature 由 ChatStreamEvent.ReasoningDelta.signature 累积存入 UIMessage.thinkingSignature。
      */
     private fun splitSystem(messages: List<UIMessage>, model: Model): Pair<List<AnthropicSystemBlock>?, List<AnthropicMessage>> {
@@ -715,21 +711,15 @@ class AnthropicProvider(
                             // M-ANT4: 多轮 thinking 回放 — 如 msg 有 reasoning(思考文本)且 thinkingSignature,
                             // 在 content 数组首位插入 {type:"thinking", thinking, signature} block,
                             // 让服务端可验证前序思考的完整性,避免每次重新生成 thinking。
+                            // v2.6.14: 无签名的思考块不再发送 —— Anthropic 对 thinking 块做签名校验,
+                            // 缺 signature 的块属于不合法载荷(且旧版/其他模型遗留的思考文本本身也无法验签),
+                            // 一律不回放；正文 text 与 tool_use 块照常发出。
                             if (!msg.reasoning.isNullOrBlank() && !msg.thinkingSignature.isNullOrBlank()) {
                                 add(
                                     buildJsonObject {
                                         put("type", "thinking")
                                         put("thinking", msg.reasoning)
                                         put("signature", msg.thinkingSignature)
-                                    },
-                                )
-                            } else if (!msg.reasoning.isNullOrBlank()) {
-                                // 有思考文本但无 signature(如旧版响应),仍发 thinking block 但不带 signature。
-                                // 无 signature 时服务端会重新生成 thinking,但思考文本可供参考。
-                                add(
-                                    buildJsonObject {
-                                        put("type", "thinking")
-                                        put("thinking", msg.reasoning)
                                     },
                                 )
                             }
@@ -841,7 +831,7 @@ class AnthropicProvider(
      * v1.80 (L-ANT8): 支持分页,循环请求直到 has_more==false。
      * v1.80 (L-ANT11): 日志 URL 脱敏(移除 query 参数)。
      *
-     * v1.132 优化(既有实现/既有实现):
+     * v1.132 优化:
      *  - 短超时 client(30s),避免分页请求卡顿占用 chat 长连接
      *  - 按 id 去重 + 字母序排序
      *  - 过滤空 id
@@ -1082,3 +1072,25 @@ class AnthropicProvider(
         const val MAX_IMAGE_BASE64_LEN = 2 * 1024 * 1024
     }
 }
+
+/**
+ * Anthropic usage → [UsageTokens]。
+ *
+ * 缓存读(`cache_read_input_tokens`)与缓存写(`cache_creation_input_tokens`)单价不同,
+ * 分别落到 [UsageTokens.cacheReadTokens] 与 [UsageTokens.cacheWriteTokens];
+ * 不再相加进同一个字段——相加会让计价拿不到写入量,而写入通常按输入价的 1.25 倍计费。
+ *
+ * @param input `message_start` 的 `message.usage`(非流式路径为响应体 `usage`),null 表示未返回
+ * @param outputTokens 输出 token 数(流式取 `message_delta.usage.output_tokens`)
+ */
+internal fun anthropicUsageTokens(input: AnthropicUsage?, outputTokens: Int): UsageTokens =
+    UsageTokens(
+        promptTokens = input?.input_tokens ?: 0,
+        completionTokens = outputTokens,
+        cachedTokens = input?.cache_read_input_tokens ?: 0,
+        // 未发生缓存写入时上游不返回该字段,缺省 0
+        cacheWriteTokens = input?.cache_creation_input_tokens ?: 0,
+        // Anthropic 的 input_tokens 本身就是非缓存输入(不含 cache_read/cache_creation),
+        // 与 OpenAI/Gemini 的 prompt_tokens 口径相反,计价时必须声明,否则会重复相减
+        promptTokensIncludeCache = false,
+    )

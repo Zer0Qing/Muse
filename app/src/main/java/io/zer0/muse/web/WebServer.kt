@@ -5,22 +5,18 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.auth.AuthScheme
-import io.ktor.http.auth.HttpAuthHeader
-import io.ktor.http.auth.parseAuthorizationHeader
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
+import io.ktor.server.cio.CIO
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.origin
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
@@ -51,6 +47,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
+import java.io.File
 import java.security.MessageDigest
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
@@ -80,13 +77,14 @@ import java.util.concurrent.ConcurrentHashMap
  *  - `GET  /api/sessions` — 会话列表(JWT 鉴权)
  *  - `GET  /api/sessions/{id}/messages` — 会话消息列表(JWT 鉴权)
  *  - `GET  /api/settings` — 设置摘要(Provider 名称/模型数,密钥脱敏)(JWT 鉴权)
+ *  - `GET  /api/media/{token}` — 消息图片/语音(JWT 鉴权,只读,只发已登记且仍在允许目录内的文件)
  *
  * 引擎选择:
- *  - Netty(Ktor 原生 sslConnector)— 支持 HTTPS/WSS,用于局域网加密访问
+ *  - CIO(Ktor 原生引擎)— 纯 Kotlin, 无反射依赖, 支持 HTTPS/WSS, 用于局域网加密访问
  *  - 切换前为 CIO(不支持 HTTPS,启动会直接报错);保留 CIO 依赖仅为避免影响面扩大
  *
  * v2.x: 可选 HTTPS(自签证书)
- *  - [WebServerConfig.httpsEnabled] 开启后由 Netty 配 `sslConnector`,WebSocket 同步走 wss
+ *  - [WebServerConfig.httpsEnabled] 开启后由 CIO 配 `sslConnector`,WebSocket 同步走 wss
  *  - 证书由 [WebServerTls] 首次生成并持久化到 filesDir,重启复用
  *  - 启用 HTTPS 时鉴权 Cookie 置 secure=true;证书 SHA-256 指纹经日志与状态暴露
  *
@@ -110,8 +108,56 @@ class WebServer(
     private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository,
     /** v2.0: webhook 验签所需渠道密钥(QQ Bot Secret;懒刷新)。 */
     private val channelManager: io.zer0.muse.channel.ChannelManager,
+    /** 主助手事实库(全局 `facts.db`):记忆只读命令的主记忆池来源。 */
+    private val factStore: io.zer0.memory.fact.FactStore,
+    /** 分库提供者:子助手的记忆在 `facts_<id>.db`,与写入侧同一套路由。 */
+    private val factDbProvider: io.zer0.memory.fact.FactDbProvider,
+    /** 知识库三张表的 DAO(知识只读命令的数据源)。 */
+    private val knowledgeBaseDao: io.zer0.muse.data.knowledge.KnowledgeBaseDao,
+    private val knowledgeDocDao: io.zer0.muse.data.knowledge.KnowledgeDocDao,
+    private val knowledgeChunkDao: io.zer0.muse.data.knowledge.KnowledgeChunkDao,
+    /** embedding 服务:只读它的运行时后端快照(知识库一览的 embeddingBackend)。 */
+    private val embeddingService: io.zer0.muse.rag.EmbeddingService,
+    /** 定时任务两张表的 DAO(自动化只读命令的数据源)。 */
+    private val scheduledTaskDao: io.zer0.muse.data.schedule.ScheduledTaskDao,
+    private val scheduledTaskExecutionDao: io.zer0.muse.data.schedule.ScheduledTaskExecutionDao,
+    /** 系统状态只读命令的数据源(体积 / 备份 / 能力位 / 电量)。 */
+    private val systemStatusSource: HostSystemStatusSource = HostSystemStatusSource.Empty,
 ) {
-    private val hostWebSocketGateway = HostWebSocketGateway(chatViewModel, generationManager, sessionRepo)
+    private val hostMediaStore = HostMediaStore(
+        imageDir = File(context.filesDir, IMAGE_MEDIA_DIR),
+        voiceDir = File(context.filesDir, VOICE_MEDIA_DIR),
+        avatarDir = File(context.filesDir, AVATAR_MEDIA_DIR),
+    )
+
+    private val hostMediaLinks = HostMediaLinks(hostMediaStore)
+
+    /** 记忆只读命令的数据源:与记忆页共用分库路由与全文检索。 */
+    private val hostMemorySource: HostMemorySource = FactHostMemorySource(factStore, factDbProvider)
+
+    /** 知识只读命令的数据源:与 App 知识库页同一批表。 */
+    private val hostKnowledgeSource: HostKnowledgeSource =
+        DaoHostKnowledgeSource(knowledgeBaseDao, knowledgeDocDao, knowledgeChunkDao, embeddingService)
+
+    /** 自动化只读命令的数据源:与 App 定时任务页同一个查询。 */
+    private val hostTaskSource: HostTaskSource = DaoHostTaskSource(scheduledTaskDao, scheduledTaskExecutionDao)
+
+    private val hostWebSocketGateway = HostWebSocketGateway(
+        chatViewModel = chatViewModel,
+        generationManager = generationManager,
+        sessionRepo = sessionRepo,
+        assistantRepo = assistantRepository,
+        settingsRepo = settings,
+        // 设置文案按应用内语言解析:createConfigurationContext 才读得到 values-ja 那类目录。
+        settingsStrings = AndroidHostSettingsStrings(context),
+        mediaLinks = hostMediaLinks,
+        readSources = HostReadSources(
+            memory = hostMemorySource,
+            knowledge = hostKnowledgeSource,
+            tasks = hostTaskSource,
+            system = systemStatusSource,
+        ),
+    )
 
     /** v2.x: A2A 标准协议处理器（Agent Card + JSON-RPC）。与 Host 私有协议并存。 */
     private val a2aHandler = io.zer0.muse.web.a2a.A2aHandler(
@@ -124,6 +170,9 @@ class WebServer(
 
     @Volatile
     private var server: EmbeddedServer<*, *>? = null
+
+    /** 串行化「保存配置 + 启停」，避免界面连续写配置时把服务反复重启、搞断已建立的连接。 */
+    private val applyConfigMutex = Mutex()
     private val lifecycleMutex = Mutex()
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning
@@ -178,14 +227,29 @@ class WebServer(
      * 设置页原先只写入 DataStore，服务必须等到下次真正创建 Application 进程才会读取，
      * 容易出现“页面显示了地址，但 127.0.0.1 仍无法访问”的假运行状态。
      */
-    suspend fun saveAndApplyConfig(config: WebServerConfig): Boolean {
+    suspend fun saveAndApplyConfig(config: WebServerConfig): Boolean = applyConfigMutex.withLock {
+        val previous = settings.webServerConfigFlow.first()
         settings.saveWebServerConfig(config)
+        if (!config.enabled) {
+            stop()
+            return@withLock true
+        }
+        // 只有影响绑定的字段变了才需要重启。改 PIN / 密码 / 其他非绑定项时不重启：
+        // 重启会掐断所有已建立的 WebSocket，网页端当时就会报「无法连接」。
+        val bindingChanged = previous.enabled != config.enabled ||
+            previous.port != config.port ||
+            previous.allowLan != config.allowLan ||
+            previous.httpsEnabled != config.httpsEnabled
+        if (!bindingChanged && server != null) {
+            currentPin = config.pin
+            currentPassword = config.password
+            return@withLock true
+        }
         stop()
-        if (!config.enabled) return true
         check(start()) {
             "WebServer 启动失败: ${lastError.value ?: "未知错误"}"
         }
-        return true
+        return@withLock true
     }
 
     private suspend fun startLocked(): Boolean {
@@ -236,8 +300,8 @@ class WebServer(
             // 双保险:① 升级到 Ktor 3.1.3(官方修复 KTOR-7298);
             //         ② proguard-rules.pro 里 keep 住 ServiceLoader 相关类与 META-INF/services。
             val candidate = embeddedServer(
-                Netty,
-                configure = webServerNettyConfiguration(tls, bindHost, listenPort),
+                CIO,
+                configure = webServerEngineConfiguration(tls, bindHost, listenPort),
             ) {
                 configureSecurity(jwtSecret)
                 install(WebSockets)
@@ -336,38 +400,20 @@ class WebServer(
      *  2. `token` Cookie(PIN/密码登录后由浏览器自动携带)
      *  C-11: 已移除对 `?token=` query param 的读取 — 服务端 Web UI 完全基于 httpOnly Cookie,
      *  `?token=` 残留只会让 JWT 进入浏览器历史/访问日志/Referer,不再作任何兼容读取。
+     *
+     * 用 `bearer` + 手动 HMAC 校验，不用 ktor 的 `jwt()` provider（原因见
+     * [installHostAuthProvider]）：后者取凭证时会去载被排除的 `com.auth0.jwk`，
+     * 把本该 401 的请求变成 500，`/ws` 握手也跟着变成「连不上」。
      */
     private fun Application.configureSecurity(jwtSecret: String) {
         val algorithm = Algorithm.HMAC256(jwtSecret)
         install(Authentication) {
-            jwt(AUTH_JWT_NAME) {
-                realm = REALM
-                verifier(JWT.require(algorithm).build())
-                // 自定义 token 提取: Authorization 头 → Cookie(C-11: 不再读取 query param)
-                authHeader { call ->
-                    val rawAuthHeader = call.request.headers[io.ktor.http.HttpHeaders.Authorization]
-                    if (rawAuthHeader != null) {
-                        // M6: runCatching 改为 resultOf,避免吞没 CancellationException
-                        resultOf { parseAuthorizationHeader(rawAuthHeader) }.getOrNull()
-                    } else {
-                        // C-11: Cookie 是唯一替代通道(httpOnly,由浏览器自动携带)
-                        val token = call.request.cookies[TOKEN_COOKIE_NAME]
-                        if (token != null) {
-                            HttpAuthHeader.Single(AuthScheme.Bearer, token)
-                        } else {
-                            null
-                        }
-                    }
-                }
-                validate { credential ->
-                    val sub = credential.payload.getClaim(CLAIM_SUB).asString()
-                    if (sub == CLAIM_SUB_VALUE) {
-                        JWTPrincipal(credential.payload)
-                    } else {
-                        null
-                    }
-                }
-            }
+            installHostAuthProvider(
+                providerName = AUTH_JWT_NAME,
+                realm = REALM,
+                algorithm = algorithm,
+                cookieName = TOKEN_COOKIE_NAME,
+            )
         }
     }
 
@@ -537,8 +583,18 @@ class WebServer(
             // WebSocket 握手复用 JWT Cookie/Authorization 鉴权，不开放未认证的实时通道。
             authenticate(AUTH_JWT_NAME) {
                 webSocket("/ws") {
+                    // 握手通过鉴权才会走到这；把来源与 Cookie 是否带上一并记下，
+                    // 下次「网页端连不上」时能直接从日志分辨是鉴权失败还是网络不通。
+                    Logger.i(
+                        TAG,
+                        "/ws 已建立: remote=${call.request.origin.remoteHost} " +
+                            "cookie=${if (call.request.cookies[TOKEN_COOKIE_NAME] != null) "有" else "无"}",
+                    )
                     hostWebSocketGateway.serve(this)
                 }
+
+                // 消息媒体(图片/语音):与 /ws 同一鉴权块,只读,token 由下发消息时登记。
+                installHostMediaRoutes(hostMediaStore)
 
                 // 以下 REST 路由需要 JWT 鉴权
                 // 会话列表
@@ -600,6 +656,16 @@ class WebServer(
             }
             get("/icon.svg") {
                 if (!servePackagedAsset(call, "muse-web/icon.svg")) call.respond(HttpStatusCode.NotFound)
+            }
+            // iOS 不认 SVG 图标：PWA 构建会同时产出 PNG，桌面上墙时需要它们可访问，否则会用截图兑。
+            get("/apple-touch-icon.png") {
+                if (!servePackagedAsset(call, "muse-web/apple-touch-icon.png")) call.respond(HttpStatusCode.NotFound)
+            }
+            get("/icon-192.png") {
+                if (!servePackagedAsset(call, "muse-web/icon-192.png")) call.respond(HttpStatusCode.NotFound)
+            }
+            get("/icon-512.png") {
+                if (!servePackagedAsset(call, "muse-web/icon-512.png")) call.respond(HttpStatusCode.NotFound)
             }
             get("/") {
                 // L1: 添加 Referrer-Policy 头,防止 JWT query param 通过 Referer 头泄露到第三方
@@ -879,14 +945,24 @@ class WebServer(
         private const val GRACE_PERIOD_MS = 1000L
         private const val TIMEOUT_PERIOD_MS = 2000L
         private const val AUTH_JWT_NAME = "auth-jwt"
+
+        /** 消息图片落盘目录名,与 [io.zer0.muse.data.session.MessageImageStore] 的存储目录一致。 */
+        private const val IMAGE_MEDIA_DIR = "muse_images"
+
+        /** 语音存档目录名,与 [io.zer0.muse.ui.speech.VoiceMessageStore] 的存储目录一致。 */
+        private const val VOICE_MEDIA_DIR = "voice_messages"
+
+        /** 助手头像目录名,与 [io.zer0.muse.data.AvatarStorage] 的存储目录一致。 */
+        private const val AVATAR_MEDIA_DIR = "avatar"
         private const val REALM = "muse-web"
-        private const val CLAIM_SUB = "sub"
-        private const val CLAIM_SUB_VALUE = "muse-web"
+
+        /** 与 [HOST_AUTH_SUBJECT] 同一个值：签发与校验必须一致。 */
+        private const val CLAIM_SUB_VALUE = HOST_AUTH_SUBJECT
         private const val TOKEN_TTL_MS = 24L * 60 * 60 * 1000 // 24 小时
 
         // P2-13: Web 端 PIN 安全相关
         /** PIN/密码登录后下发的 Cookie 名,Web 端浏览器会自动携带。 */
-        private const val TOKEN_COOKIE_NAME = "token"
+        private const val TOKEN_COOKIE_NAME = HOST_AUTH_COOKIE
 
         /** 6 位数字 PIN 校验正则。 */
         private val PIN_REGEX = Regex("^\\d{6}$")

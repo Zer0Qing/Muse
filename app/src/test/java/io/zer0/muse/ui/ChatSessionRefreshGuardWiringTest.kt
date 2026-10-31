@@ -22,8 +22,8 @@ class ChatSessionRefreshGuardWiringTest {
         assertTrue("未找到 refreshDisplayedSessionFromDatabase", start >= 0)
         val body = src.substring(start, start + 2600)
         assertTrue(
-            "刷新前必须取得 SessionSwitchGuard token",
-            body.contains("SessionSwitchGuard.begin()"),
+            "刷新前必须取得切换 token",
+            body.contains("switchGuard.begin()"),
         )
     }
 
@@ -33,7 +33,7 @@ class ChatSessionRefreshGuardWiringTest {
         val start = src.indexOf("private fun refreshDisplayedSessionFromDatabase()")
         assertTrue("未找到 refreshDisplayedSessionFromDatabase", start >= 0)
         val body = src.substring(start, start + 2600)
-        val staleChecks = body.split("SessionSwitchGuard.isStale(").size - 1
+        val staleChecks = body.split("switchGuard.isStale(").size - 1
         assertTrue(
             "写入 messages 前与提交前都应有过期校验(实测 $staleChecks 处)",
             staleChecks >= 2,

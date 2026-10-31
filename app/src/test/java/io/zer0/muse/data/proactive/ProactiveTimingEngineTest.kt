@@ -92,6 +92,37 @@ class ProactiveTimingEngineTest {
     }
 
     @Test
+    fun `上一轮还在生成时也按太近拦下`() {
+        // 结果账是空的（消息还没落库），但上一轮的开跑时间已经登记。
+        // 这正是生成窗口内的重复发送来源：只看结果账就会以为「上一轮不存在」。
+        val decision = ProactiveTimingEngine.evaluate(
+            input().copy(lastProactiveSentAt = 0L, lastProactiveAttemptAt = baseNow - 5 * 60 * 1000L),
+        )
+        assertEquals(ProactiveTimingEngine.Verdict.TOO_SOON, decision.verdict)
+        assertFalse(decision.shouldSend)
+    }
+
+    @Test
+    fun `上一轮开跑已过去很久就不再拦`() {
+        val decision = ProactiveTimingEngine.evaluate(
+            input().copy(lastProactiveAttemptAt = baseNow - 4 * 3600_000L),
+        )
+        assertEquals(ProactiveTimingEngine.Verdict.OK, decision.verdict)
+    }
+
+    @Test
+    fun `尝试时间不会掩盖更近的发送时间`() {
+        // 两个时间戳同时存在时，谁更近就以谁为准。
+        val decision = ProactiveTimingEngine.evaluate(
+            input().copy(
+                lastProactiveSentAt = baseNow - 10 * 60 * 1000L,
+                lastProactiveAttemptAt = baseNow - 5 * 3600_000L,
+            ),
+        )
+        assertEquals(ProactiveTimingEngine.Verdict.TOO_SOON, decision.verdict)
+    }
+
+    @Test
     fun `账本状态不再影响判定结论`() {
         // 素材来自最近对话，不来自账本。同样的输入只要时机和额度都过，就该放行。
         val decision = ProactiveTimingEngine.evaluate(input())
@@ -108,7 +139,8 @@ class ProactiveTimingEngineTest {
         val decision = ProactiveTimingEngine.evaluate(
             input().copy(
                 relation = relation().copy(
-                    spentToday = 3,
+                    // 标准档每天 15 条，发满之后才是真正的「额度用完」
+                    spentToday = 15,
                     intimacy = 0.15f,
                     intensity = ProactiveIntensity.STANDARD.name,
                 ),
@@ -118,48 +150,62 @@ class ProactiveTimingEngineTest {
     }
 
     @Test
-    fun `新用户在标准档下拿到地板额度`() {
+    fun `标准档发到第 14 条时仍有额度`() {
+        val decision = ProactiveTimingEngine.evaluate(
+            input().copy(
+                relation = relation().copy(
+                    spentToday = 14,
+                    intensity = ProactiveIntensity.STANDARD.name,
+                ),
+            ),
+        )
+        assertEquals(ProactiveTimingEngine.Verdict.OK, decision.verdict)
+    }
+
+    @Test
+    fun `标准档每天拿到 15 条额度`() {
         val relation = relation().copy(intimacy = 0.15f, intensity = ProactiveIntensity.STANDARD.name)
-        // 标准档地板 2，学习值 1 + 0.15*4 = 1.6，取大者 → 2
-        val remaining = ProactiveTimingEngine.remainingBudget(relation)
-        assertEquals(2f, remaining, 0.001f)
+        // 额度只看档位，不再被亲密度打折
+        assertEquals(15f, ProactiveTimingEngine.remainingBudget(relation), 0.001f)
     }
 
     @Test
-    fun `等级地板优先于学习值`() {
-        // 黏人档地板 5，但 intimacy 极低 → 仍然是 5
+    fun `黏人档额度不受亲密度影响`() {
+        // intimacy 为 0 也应该是不限，而不是回到一个很小的地板值
         val relation = relation().copy(intimacy = 0f, intensity = ProactiveIntensity.CLINGY.name)
-        assertEquals(5f, ProactiveTimingEngine.remainingBudget(relation), 0.001f)
+        val remaining = ProactiveTimingEngine.remainingBudget(relation)
+        assertTrue("黏人档应当不限，实际 $remaining", remaining > 1_000_000f)
     }
 
     @Test
-    fun `等级天花板压住学习值`() {
-        // 安静档天花板 3，intimacy 拉满（学习值 5）→ 也只能 3
+    fun `安静档固定 3 条不受亲密度影响`() {
         val relation = relation().copy(intimacy = 1f, intensity = ProactiveIntensity.QUIET.name)
         assertEquals(3f, ProactiveTimingEngine.remainingBudget(relation), 0.001f)
     }
 
     @Test
-    fun `黏人档不设上限`() {
-        // 「不设上限」指的是不截断，不是白送额度：基础值仍是 5，
-        // 但用户互动回补的额度可以一直往上加，不会被天花板截住。
-        val relation =
-            relation().copy(
-                intimacy = 1f,
-                intensity = ProactiveIntensity.CLINGY.name,
-                earnedToday = 200f,
-            )
-        val remaining = ProactiveTimingEngine.remainingBudget(relation)
-        assertTrue("黏人档不应被截断，实际 $remaining", remaining > 200f)
+    fun `剩余额度随今日已发递减`() {
+        val idle = relation().copy(intimacy = 0.5f, intensity = ProactiveIntensity.ACTIVE.name, spentToday = 0)
+        val used = idle.copy(spentToday = 3)
+        assertEquals(30f, ProactiveTimingEngine.remainingBudget(idle), 0.001f)
+        assertEquals(27f, ProactiveTimingEngine.remainingBudget(used), 0.001f)
     }
 
     @Test
-    fun `用户互动能回补额度`() {
-        val base = relation().copy(intimacy = 0.5f, spentToday = 2)
+    fun `发满后额度归零`() {
+        val relation = relation().copy(intensity = ProactiveIntensity.RESERVED.name, spentToday = 8)
+        assertEquals(0f, ProactiveTimingEngine.remainingBudget(relation), 0.001f)
+    }
+
+    @Test
+    fun `互动回补不再改变每日条数`() {
+        val base = relation().copy(intimacy = 0.5f, spentToday = 2, intensity = ProactiveIntensity.STANDARD.name)
         val earned = base.copy(earnedToday = 1f)
-        val before = ProactiveTimingEngine.remainingBudget(base)
-        val after = ProactiveTimingEngine.remainingBudget(earned)
-        assertTrue("回补后剩余额度应增加：$before → $after", after > before)
+        assertEquals(
+            ProactiveTimingEngine.remainingBudget(base),
+            ProactiveTimingEngine.remainingBudget(earned),
+            0.001f,
+        )
     }
 
     @Test

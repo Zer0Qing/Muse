@@ -45,7 +45,7 @@ object CodeExecutionTool {
      */
     fun toolDef() = ToolRegistry.ToolDef(
         name = TOOL_NAME,
-        description = "执行 JavaScript 代码并返回结果。可访问 Math/JSON/Array 等标准库,不可访问网络。超时 10 秒。",
+        description = "执行 JavaScript 代码并返回结果。可用 Math/JSON/Array 等标准库与网络(fetch/XMLHttpRequest/WebSocket),但不能跳转页面或读取本地文件。超时 10 秒。",
         parameters = mapOf(
             "code" to "必填,要执行的 JavaScript 代码(如 '1+2*3' / 'Math.max(1,2,3)' / 'JSON.stringify([1,2,3])')",
             "timeout_ms" to "可选,超时毫秒数,默认 10000(10 秒)",
@@ -102,10 +102,18 @@ object CodeExecutionTool {
             },
             onFailure = { e ->
                 Logger.e("CodeExecutionTool", "JsSandbox 执行失败: ${e.message}", e)
+                // 环境不可用与代码写错要分开报：前者重试一万次也不会好，
+                // 旧文案把内部类名透给模型，会被当成参数错而白白重试。
+                val msg = if (e is JsSandbox.JsSandboxUnavailableException) {
+                    "JS 执行环堷不可用（环境自检未通过：${e.message}）。这不是代码写法的问题，重试同一段代码不会成功；" +
+                        "请改用 execute_node_script，或告知用户本机 JS 沙盒暂时不可用。"
+                } else {
+                    e.message ?: "未知执行错误"
+                }
                 buildResult(
                     result = null,
                     logs = emptyList(),
-                    error = e.message ?: "未知执行错误",
+                    error = msg,
                 )
             },
         )

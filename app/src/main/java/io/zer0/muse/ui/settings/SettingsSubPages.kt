@@ -636,13 +636,13 @@ fun SettingsAssistantResourcesPage(
  * v1.133: 二级页 — 语音识别 ASR(从 SettingsModelPage 拆出)。
  */
 @Composable
-fun SettingsAsrPage(onBack: () -> Unit) {
+fun SettingsAsrPage(onBack: () -> Unit, onOpenProviderSettings: () -> Unit = {}) {
     val settings: SettingsRepository = koinInject()
     val asrConfig by settings.asrConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.asr.AsrConfig(),
     )
     SettingsSubPageScaffold(title = stringResource(R.string.section_asr), onBack = onBack) {
-        item { AsrSection(asrConfig = asrConfig, settings = settings) }
+        item { AsrSection(asrConfig = asrConfig, settings = settings, onOpenProviderSettings = onOpenProviderSettings) }
     }
 }
 

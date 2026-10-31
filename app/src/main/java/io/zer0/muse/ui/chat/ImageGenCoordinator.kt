@@ -33,6 +33,20 @@ import kotlin.uuid.Uuid
 private typealias VideoHandler = io.zer0.muse.ui.chat.VideoAttachmentHandler
 
 /**
+ * 选出真正能出图的模型。
+ *
+ * 优先用调用方指定的模型;它不支持图片输出时,退回该供应商第一个支持图片输出的模型。
+ * 返回 null 表示这个供应商没有可出图模型 —— 调用方应报错,而不是把一个文本模型
+ * 推给图片接口去拿一个看不懂的上游错误。
+ *
+ * @param provider 本次绘图使用的供应商(可能为 null,此时无从兜底)
+ * @param requested 调用方首选模型(设置里的绘图模型或当前选中模型,可能为 null)
+ */
+internal fun resolveImageCapableModel(provider: ProviderConfig?, requested: Model?): Model? =
+    requested?.takeIf { it.supportsImageOutput() }
+        ?: provider?.models?.firstOrNull { it.supportsImageOutput() }
+
+/**
  * v1.105 阶段 1: 从 ChatViewModel 抽离的图片相关 Coordinator。
  *
  * 职责:
@@ -327,15 +341,14 @@ class ImageGenCoordinator(
                 }
 
                 val config = explicitProvider ?: settings.get()
-                val model = if (explicitProvider != null) {
-                    if (imageGenConfig.modelId.isNotBlank()) {
-                        explicitProvider.models.firstOrNull { it.id == imageGenConfig.modelId }
-                            ?: explicitProvider.models.firstOrNull()
-                    } else {
-                        explicitProvider.models.firstOrNull()
-                    }
+                val requestedModel = if (explicitProvider != null) {
+                    explicitProvider.models.firstOrNull { it.id == imageGenConfig.modelId }
                 } else {
                     settings.getSelectedModel()
+                }
+                val model = resolveImageCapableModel(config, requestedModel)
+                if (requestedModel != null && model != null && requestedModel.id != model.id) {
+                    Logger.w(tag, "图片模型 ${requestedModel.id} 不支持图片输出,改用 ${model.id}")
                 }
 
                 if (config == null) {
@@ -368,7 +381,7 @@ class ImageGenCoordinator(
                                         type = ChatErrorType.UNKNOWN,
                                         message =
                                         appContext.getString(
-                                            R.string.err_image_gen_no_model,
+                                            R.string.err_image_gen_model_no_output,
                                         ),
                                     ),
                                 ),

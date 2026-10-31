@@ -124,17 +124,24 @@ object FileTools {
 
         // 审计修复 (1.2): 拒绝绝对路径 — File(workspaceRoot, absolutePath) 会直接返回
         // 绝对路径本身(Java 忽略 parent),绕开下方候选目录白名单,可读应用私有任意文件。
-        val trimmedPath = path.trim()
+        val rawPath = path.trim()
+        // 工具输出回执用的是挂载形式 `tool_outputs:/x.txt`,这里按相对形式同一口处理
+        val trimmedPath = if (rawPath.startsWith("$TOOL_OUTPUTS_DIR:/")) {
+            TOOL_OUTPUTS_DIR + "/" + rawPath.removePrefix("$TOOL_OUTPUTS_DIR:/")
+        } else {
+            rawPath
+        }
         val isAbsolute = trimmedPath.startsWith("/") || trimmedPath.startsWith("\\") ||
             Regex("^[A-Za-z]:[/\\\\]").containsMatchIn(trimmedPath)
         if (isAbsolute) {
             return "[错误] 不支持绝对路径,请使用工作区/私有目录相对路径: $path"
         }
 
-        // 解析候选路径:工作区相对路径 → tool_outputs → filesDir → cacheDir → 外部 Download
+        // 解析候选路径:工作区相对路径 → filesDir → cacheDir → 外部 Download
+        //（工具输出目录就在 filesDir 下，`tool_outputs/x.txt` 由下一条候选命中；
+        //  不再额外拼 `tool_outputs/$path`，那层拼接在路径已带前缀时会变成双前缀，永远撞不上）
         val candidates = listOf(
             File(workspaceRoot, trimmedPath),
-            File(context.filesDir, "tool_outputs/$trimmedPath"),
             File(context.filesDir, trimmedPath),
             File(context.cacheDir, trimmedPath),
             File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), trimmedPath),

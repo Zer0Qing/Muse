@@ -55,4 +55,14 @@ interface SessionSummaryDao {
     /** P2: 删除指定 session 的摘要(用于记忆页 UI 删除 Summary 层条目)。 */
     @Query("DELETE FROM session_summaries WHERE session_id = :sessionId")
     suspend fun deleteById(sessionId: String)
+
+    /**
+     * 助手被删除时清掉它名下的全部会话摘要。
+     *
+     * 会话行本身不在这里删 —— 已属于该助手的对话保留下来,只是失去绑定。
+     *
+     * @return 实际删除的行数
+     */
+    @Query("DELETE FROM session_summaries WHERE assistant_id = :assistantId")
+    suspend fun deleteByAssistant(assistantId: String): Int
 }

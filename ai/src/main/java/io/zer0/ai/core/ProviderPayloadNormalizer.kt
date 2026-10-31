@@ -5,15 +5,15 @@ import io.zer0.common.Logger
 /**
  * v1.0.5: Provider 出口统一兜底层。
  *
- * 按 既有实现 的 core/provider-compat.ts 的 normalizeProviderPayload,
  * 在 Provider 把 [UIMessage] 列表翻译成具体协议请求体之前,做一轮与 Provider 无关的
  * 通用清理,消除"历史消息中残留的孤儿 TOOL / 冗余图片标记"等会导致中转站返回 400 的问题。
  *
- * 职责(对齐 既有实现):
+ * 职责:
  *  1. [stripOrphanToolMessages] — 删除没有前驱 ASSISTANT tool_calls 匹配的孤儿 TOOL 消息
  *  2. [stripNativeMediaAttachmentMarkers] — 当消息携带真实图片/视频时,从 content 中清理
  *     `[attached_image:...]` / `[attached_video:...]` / `[attached_audio:...]` 标记
- *  3. [ToolTraceProjection] — 只在发往模型的投影中压缩旧的、已完成且成功的工具回合；
+ *  3. [stripCrossModelReasoning] — 历史思考块只在产出模型与当前请求模型一致时回放(v2.6.14)
+ *  4. [ToolTraceProjection] — 只在发往模型的投影中压缩旧的、已完成且成功的工具回合；
  *     最近回合、失败回合以及不完整/交错回合保持原样，防止破坏 tool_call/result 配对。
  *
  * 工具轨迹投影是无副作用的：数据库原始历史和 UI 消息列表不会被改写。
@@ -27,7 +27,7 @@ import io.zer0.common.Logger
  *    [ThinkingFormat] 主动注入对应厂商扩展字段(thinking / enable_thinking /
  *    chat_template_kwargs / reasoning),不会产生不兼容字段;ANTHROPIC 格式为 no-op
  *    (AnthropicProvider 走原生 Messages API,不经过 OpenAIProvider 路径)。
- *    故 1muse 当前无需 既有实现 那样的通用 stripIncompatibleThinking 兜底。
+ *    故 1muse 当前无需通用的 stripIncompatibleThinking 兜底。
  *    未来若实现 ProviderSpecificConfig.Custom.requestTemplate 路径(用户自定义请求模板
  *    可能注入 thinking 字段),需在 injectThinkingFormat 之后加 stripIncompatibleThinking
  *    兜底,剥离与 thinkingFormat 不匹配的 thinking 字段。
@@ -38,7 +38,7 @@ import io.zer0.common.Logger
 object ProviderPayloadNormalizer {
     private const val TAG = "ProviderPayloadNormalizer"
 
-    // ── 媒体附件标记正则(对齐 既有实现 的 ATTACHED_MEDIA_MARKER_RE)──
+    // ── 媒体附件标记正则 ──
     // 匹配 [attached_image: 任意字符] + 可选换行,global 替换
     private val ATTACHED_IMAGE_MARKER_RE = Regex("""\[attached_image:\s*[^\]]+\]\n?""")
     private val ATTACHED_VIDEO_MARKER_RE = Regex("""\[attached_video:\s*[^\]]+\]\n?""")
@@ -62,6 +62,8 @@ object ProviderPayloadNormalizer {
         // v2.5.3 (P2-2): 发送前统一剥离 —— 推理/签名是不透明载荷，只应存在于 assistant 消息上；
         // 非 assistant 消息携带这些字段（导入/迁移/异常构造）一律清理，避免泄漏到线上。
         result = stripReasoningFromNonAssistant(result)
+        // v2.6.14: 同模型守卫 —— 历史思考块只在产出模型与当前请求模型一致时回放。
+        result = stripCrossModelReasoning(result, model)
         // 工具轨迹压缩只发生在 Provider 请求投影中；UI/数据库历史保持不变。
         result = ToolTraceProjection.project(result)
         return result
@@ -92,6 +94,59 @@ object ProviderPayloadNormalizer {
             Logger.w(TAG, "stripReasoningFromNonAssistant: 清除了非 assistant 消息上误带的推理/签名字段")
         }
         return if (changed) result else messages
+    }
+
+    /**
+     * v2.6.14: 思考块回放的同模型守卫。
+     *
+     * 背景：推理/签名是不透明载荷，只对产出它的模型有意义。用户在会话中途切换模型后，
+     * 历史里上一模型产出的思考块仍会随回放链路发给新模型：轻则把无关的推理内容塞进
+     * 新模型的上下文（污染回答），重则因签名不属于该模型/该会话而被上游判 400。
+     *
+     * 判定：比较 [UIMessage.modelId]（历史消息的产出模型）与本次请求的目标模型 [Model.id]。
+     *  - 一致：保留，正常回放；
+     *  - 不一致：降级为「丢弃」—— 清空 reasoning / thinkingSignature / thinkingEncryptedContent，
+     *    正文 content 原样保留。
+     *  - 历史未记录产出模型（旧数据、非对话链路写入）：无法证明跨模型，保持原样。
+     *    这里刻意不对未知来源 fail closed：一次性剥掉全部来源未知的思考块，会把仍在使用
+     *    思考回放的存量会话（Anthropic 工具轮的签名 thinking 块）一并清空，反而制造 400。
+     *
+     * 为什么降级成丢弃而不是把思考内容并入正文：思考块是带签名的不透明载荷，签名只对产出
+     * 模型有效；把思考文本并进 assistant 的 content 等于伪造一轮「模型这样说过」，会污染
+     * 历史事实、摘要与后续 prompt cache，且对需要签名校验的协议仍然非法。丢弃是各协议都
+     * 能接受的最小动作（Anthropic 侧另有 400 自愈与无签名不回放兜底）。
+     */
+    private fun stripCrossModelReasoning(messages: List<UIMessage>, model: Model): List<UIMessage> {
+        val target = replayModelKey(model.id)
+        if (target.isEmpty()) return messages
+        var changed = false
+        val result =
+            messages.map { msg ->
+                if (msg.role != MessageRole.ASSISTANT) return@map msg
+                val source = msg.modelId?.takeIf { it.isNotBlank() }?.let(::replayModelKey)
+                if (source.isNullOrEmpty() || source == target) return@map msg
+                if (msg.reasoning == null && msg.thinkingSignature == null && msg.thinkingEncryptedContent == null) {
+                    return@map msg
+                }
+                changed = true
+                Logger.w(
+                    TAG,
+                    "stripCrossModelReasoning: 历史思考块来自模型 ${msg.modelId},与当前模型 ${model.id} 不一致,已剥离",
+                )
+                msg.copy(reasoning = null, thinkingSignature = null, thinkingEncryptedContent = null)
+            }
+        return if (changed) result else messages
+    }
+
+    /**
+     * 同模型判定用的模型 id 归一化：去渠道分组标签、去聚合站前缀、忽略大小写。
+     *
+     * 历史记录与当前选择常来自不同的展示形态（`[ais]gemini-3.8-flash` / `openrouter/x/y` /
+     * 大小写差异），归一后才能判定为同一模型；归一后仍不同则按跨模型处理。
+     */
+    private fun replayModelKey(modelId: String): String {
+        val stripped = stripChannelGroupLabels(modelId).trim().lowercase()
+        return stripped.substringAfterLast('/').ifBlank { stripped }
     }
 
     /**
@@ -148,8 +203,6 @@ object ProviderPayloadNormalizer {
      * OpenAI 兼容协议(尤其严格的中转站)要求每个 `role: tool` 消息都有前驱带匹配
      * `tool_calls` 的 assistant 消息,否则返回 400 invalid_request_error:
      * `An assistant message with 'tool_calls' must be turned before ...`
-     *
-     * 对齐 既有实现 core/provider-compat/tool-pairing.ts 的 stripOrphanToolResults。
      *
      * 实现说明:收集所有 ASSISTANT 消息携带的 tool_calls id,然后保留 toolCallId
      * 在集合中的 TOOL 消息。这等价于"存在匹配"——在正常对话流中,ASSISTANT 的
@@ -209,8 +262,6 @@ object ProviderPayloadNormalizer {
      *  - 如果不清理标记,模型会同时看到标记文本和真实图片,造成混淆
      *
      * 当消息没有真实图片/视频时,保留标记(让模型至少知道有图片引用,即使看不到原图)。
-     *
-     * 对齐 既有实现 core/provider-compat.ts 的 stripNativeMediaAttachmentMarkers。
      */
     private fun stripNativeMediaAttachmentMarkers(messages: List<UIMessage>): List<UIMessage> {
         var changed = false
@@ -238,7 +289,7 @@ object ProviderPayloadNormalizer {
             // 视频场景通常也伴随音频轨道,一并清理
             result = result.replace(ATTACHED_AUDIO_MARKER_RE, "")
         }
-        // 规整 3+ 连续换行为 2 个,并 trim 首尾空白(对齐 既有实现)
+        // 规整 3+ 连续换行为 2 个,并 trim 首尾空白
         result = result.replace(MULTIPLE_BLANK_LINES_RE, "\n\n").trim()
         return result
     }

@@ -42,7 +42,7 @@ private fun Context.findActivity(): Activity? {
 }
 
 /**
- * Muse 主题入口 (v0.22 重写,既有实现 Theme.kt)。
+ * Muse 主题入口 (v0.22 重写)。
  *
  * 设计决策:
  *  - 用 [MaterialExpressiveTheme] 替代 MaterialTheme,启用 [MotionScheme.expressive]

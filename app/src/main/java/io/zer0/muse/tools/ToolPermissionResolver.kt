@@ -27,7 +27,7 @@ object ToolPermissionResolver {
      * execute_shell 调用中只要出现这些可执行文件名,[isUnsafeCommand] 即拒绝执行。
      * 该只读 Shell 沙箱限制独立于用户选择的审批模式。
      *
-     * 收录依据(按 既有实现 行动纪律 + 安全最佳实践):
+     * 收录依据(行动纪律 + 安全最佳实践):
      *  - 文件删除/破坏:rm, rmdir, shred, mkfs
      *  - 权限提升:sudo, su, doas
      *  - 版本控制破坏:git(可 push --force / reset --hard 破坏仓库)
@@ -90,16 +90,24 @@ object ToolPermissionResolver {
      * 作为 shell 类工具(如 [ShellSandboxTool])的第一道防线,在白名单校验之前执行。
      * 返回 true 时调用方必须立即拒绝执行,不进入后续权限/白名单流程。
      *
-     * 设计原则(按 既有实现 行动纪律):
+     * 设计原则(遵循行动纪律):
      *  - 黑名单优先于白名单:先确认不是已知危险命令,再检查是否在白名单
      *  - TRUSTED 模式允许工具直接执行,但 execute_shell 仍受本硬边界保护
      *  - 与 [ShellSandboxTool] 的白名单 + [FORBIDDEN_CHARS] 互补,形成多层防御
+     *
+     * v2.x: 第 0 步先跑 [ShellCommandBoundary.forbidReason] 的第一档 —— 通用 shell 的「绕不过的最小集」。
+     * 它补的是上面两个判据都看不到、但破坏力已足够拦下的那类命令(例如 `dd of=/dev/block/sda`
+     * 既不含禁用的语法字符,`dd` 也不在黑名单里)。这一步只增加拒绝,不放宽已有判据,所以
+     * execute_shell 现有行为不变。通用终端工具 [TerminalExecTool] 只用第一档,不用本函数 ——
+     * 否则管道、重定向、环境变量这些正常工作会被误杀。
      *
      * @param command 待检查的命令字符串
      * @return true 表示命令不安全,必须拒绝;false 表示通过硬边界,可进入后续校验
      */
     fun isUnsafeCommand(command: String): Boolean {
         if (command.isBlank()) return false
+        // 0. 通用 shell 硬边界第一档:按真实破坏力判,不看字符串形状
+        if (ShellCommandBoundary.forbidReason(command) != null) return true
         // 1. 不安全语法字符检查(换行注入/命令替换/管道/重定向/通配符等)
         if (UNSAFE_SHELL_SYNTAX.containsMatchIn(command)) return true
         // 2. 危险可执行文件检查:按空白分割后检查每个 token 的裸命令名
@@ -129,7 +137,10 @@ object ToolPermissionResolver {
         perToolPolicy: ToolApprovalPolicy?,
         args: Map<String, Any?> = emptyMap(),
     ): ToolApprovalState {
-        val effectiveRisk = risk ?: fallbackRiskFor(toolName)
+        // 第三方动态工具不接受「台账里写 SAFE」这一条:注册台账的缺省值就是 SAFE,
+        // 第三方工具一旦漏声明就会被当成免审工具,所以 SAFE 一律回落 NORMAL。
+        // 显式声明 HIGH 仍照旧生效 —— 这里只收紧,不降级。
+        val effectiveRisk = conservativeRisk(toolName, risk ?: fallbackRiskFor(toolName))
         // 1. 用户显式禁用某工具时,任何模式都拒绝
         if (perToolPolicy == ToolApprovalPolicy.ALWAYS_DENY) {
             return ToolApprovalState.Denied("工具 $toolName 已被用户禁用")
@@ -193,8 +204,38 @@ object ToolPermissionResolver {
      * 子代理 / 定时任务等无会话审批链路的过滤**必须**走本函数判定风险等级,
      * 不得直接比较注册台账(ToolDef.riskLevel)的值 —— 注册值与显式表不一致时
      * 以本函数为准,避免注册台账降级导致 HIGH 工具被免审批执行。
+     *
+     * 第三方动态工具(插件 / MCP)不参与名字推断,直接 NORMAL,见 [fallbackRiskFor]。
      */
     fun riskLevelFor(toolName: String): ToolRiskLevel = fallbackRiskFor(toolName)
+
+    /**
+     * 第三方动态注册工具的名字形态。
+     *
+     *  - 插件工具:`plugin_<len>_<pluginId>_<toolName>`(PluginManager.skillId)
+     *  - MCP 工具:`mcp_<serverId>__<toolName>`(McpRegistry.registerTools)
+     *
+     * 两段的**末段**都由第三方自取:`get_diagnostics` 这种「听起来只读」的名字不代表
+     * 无副作用,`send_` / `delete_` 这种「听起来危险」的名字也不代表真危险。前缀由宿主
+     * 固定,所以前缀只是**来源标记**,不能当风险判据用。
+     *
+     * 内置的 `plugin_market_*` / `mcp_mgmt_*` 管理工具不符合这两种形态(前者第二段不是
+     * 长度数字,后者没有 `__` 分隔),仍按各自声明的等级走。
+     */
+    private val THIRD_PARTY_TOOL_NAME: Regex = Regex("^plugin_[0-9]+_.+|^mcp_.+__.+")
+
+    /** 该工具名是否来自第三方动态注册(插件 / MCP server)。 */
+    internal fun isThirdPartyToolName(toolName: String): Boolean = THIRD_PARTY_TOOL_NAME.matches(toolName)
+
+    /** 第三方动态工具的 SAFE 判定一律收敛为 NORMAL;其余等级原样返回。
+     *
+     * 口径分界（故意不一致,不是遗漏）：内置的 `mcp_mgmt_*` 不是第三方工具
+     * （[THIRD_PARTY_TOOL_NAME] 不匹配它),他们继续沿用注册台账里声明的等级;
+     * 对端的 `mcp_<server>__<tool>` 则一律强制 NORMAL。同理 `plugin_market_*` 走台账,
+     * `plugin_<len>_<id>_<tool>` 走 NORMAL。
+     */
+    private fun conservativeRisk(toolName: String, declared: ToolRiskLevel): ToolRiskLevel =
+        if (declared == ToolRiskLevel.SAFE && isThirdPartyToolName(toolName)) ToolRiskLevel.NORMAL else declared
 
     /**
      * P0-3: 显式风险表只读访问(供一致性测试校验注册台账,单一真源)。
@@ -207,9 +248,14 @@ object ToolPermissionResolver {
      * v1.0.20: 改为"显式映射 + 名称前缀推断"双层兜底,覆盖项目内大量按命名规范命名的工具。
      *
      * 优先级:
+     *  0. 第三方动态工具(插件 / MCP):不做名字推断,直接 NORMAL
      *  1. 显式映射表 [EXPLICIT_RISK_OVERRIDES](个别语义与命名前缀不一致的工具,如 open_url 归 HIGH)
      *  2. 名称前缀推断(覆盖 read_/get_/list_/search_ 等只读族,send_/delete_ 等高危族)
      *  3. 默认 NORMAL(未知工具保守按普通风险处理,ASK 模式下会询问)
+     *
+     * 名字推断只对**内置**工具有效:那些名字写死在代码里,工具作者没有控制权。
+     * 插件与 MCP 工具的名字由第三方自取,一旦参与推断就能自己把外发调用命名成
+     * `get_diagnostics` 拿到 SAFE、在 ASK 模式下免审,所以它们的名字一律不参与推断。
      *
      * 命名前缀归类依据:
      *  - SAFE:read_* / get_* / list_* / search_* / ping_* / dns_* / url_* / base64_* / hash_* /
@@ -224,6 +270,11 @@ object ToolPermissionResolver {
      *          不可逆/跨设备/资金或隐私影响
      */
     private fun fallbackRiskFor(toolName: String): ToolRiskLevel {
+        // 0. 第三方动态工具(插件 / MCP)不做任何名字推断,一律保守 NORMAL。
+        //    它们的名字由第三方决定,`get_*` 可能是外发调用,`send_*` 也可能只是本地计算;
+        //    按名字给 SAFE 等于把审批权交给工具作者。判定必须在名字之前拦下。
+        if (isThirdPartyToolName(toolName)) return ToolRiskLevel.NORMAL
+
         // 1. 显式映射优先(覆盖语义与命名前缀不一致的工具)
         EXPLICIT_RISK_OVERRIDES[toolName]?.let { return it }
 
@@ -295,6 +346,7 @@ object ToolPermissionResolver {
         "read_file" to ToolRiskLevel.SAFE,
         "http_get" to ToolRiskLevel.SAFE,
         "current_status" to ToolRiskLevel.SAFE,
+        "get_token_usage" to ToolRiskLevel.SAFE,
         "recall_experience" to ToolRiskLevel.SAFE,
         // v2.0.1: 插件市场检索是只读查询
         "plugin_market_search" to ToolRiskLevel.SAFE,
@@ -319,6 +371,9 @@ object ToolPermissionResolver {
         "channel_read_context" to ToolRiskLevel.NORMAL,
         // enable_skill 只改变本地启用位、可用 disable_skill 回滚,因此标记为 NORMAL。
         "enable_skill" to ToolRiskLevel.NORMAL,
+        // v2.x: 发语音消息 —— 名字是 send_ 前缀(否则会被推成 HIGH),实际只是本地 TTS 合成
+        // 然后挂到自己消息上:不外发、不写用户目录。给 HIGH 会让每次发语音都弹审批卡。
+        "send_voice" to ToolRiskLevel.NORMAL,
 
         // HIGH 族显式(不可逆/跨设备/隐私)
         "install_skill" to ToolRiskLevel.HIGH,
@@ -370,6 +425,8 @@ object ToolPermissionResolver {
         "execute_javascript" to ToolRiskLevel.HIGH,
         "execute_node_script" to ToolRiskLevel.HIGH,
         "workspace_write" to ToolRiskLevel.HIGH,
+        // v2.x: 局部替换同样是写盘，和 workspace_write 同级
+        "workspace_edit" to ToolRiskLevel.HIGH,
         "workspace_delete" to ToolRiskLevel.HIGH,
         "workspace_mkdir" to ToolRiskLevel.HIGH,
         "workspace_move" to ToolRiskLevel.HIGH,

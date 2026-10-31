@@ -36,6 +36,8 @@ internal class ChatSessionController(
     private val browserManagerRegistry: BrowserManagerRegistry?,
     private val bridge: SessionFlowBridge,
     private val sessionDeps: SessionDeps,
+    /** 切换序号守卫。与调用方共用同一个实例，才能把“同一界面上的连续切换”排成一个序。 */
+    private val switchGuard: SessionSwitchGuard = SessionSwitchGuard(),
 ) {
     fun renameSession(sessionId: String, title: String) {
         accessor.coroutineScope.launch {
@@ -358,7 +360,7 @@ internal class ChatSessionController(
     @Suppress("LongMethod", "CyclomaticComplexMethod")
     fun setAgentMode(enabled: Boolean, requestedSessionId: String? = null) {
         // v2.x: 切换序号 — 过期(被更新的切换取代)的异步加载结果在提交前丢弃,防止串会话
-        val switchToken = SessionSwitchGuard.begin()
+        val switchToken = switchGuard.begin()
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         sessionDeps.onStopTts()
         sessionDeps.onDisposeAsr()
@@ -401,7 +403,7 @@ internal class ChatSessionController(
                             sessionDeps.settings.defaultSessionPermissionModeFlow.first(),
                         )
                     val (messages, hasMore) = sessionDeps.messageController.loadMessagesPaged(sessionId)
-                    if (SessionSwitchGuard.isStale(switchToken)) {
+                    if (switchGuard.isStale(switchToken)) {
                         // 已被更新的切换取代:释放本次 acquire,丢弃加载结果
                         sessionDeps.sessionManager.release(sessionId)
                         Logger.i("ChatVM", "setAgentMode(true) 结果过期,丢弃: $sessionId")
@@ -472,7 +474,7 @@ internal class ChatSessionController(
                                 org.koin.core.context.GlobalContext.get()
                                     .get<io.zer0.muse.data.todo.SessionTodoRepository>()
                             val todoList = repo.load(sessionId)
-                            if (!SessionSwitchGuard.isStale(switchToken)) {
+                            if (!switchGuard.isStale(switchToken)) {
                                 io.zer0.muse.tools.TodoTool.syncFromDatabase(sessionId, todoList)
                             }
                         }.onFailure { Logger.w("ChatVM", "预热 Agent 待办失败: ${it.message}") }
@@ -485,7 +487,7 @@ internal class ChatSessionController(
                 } catch (e: kotlin.coroutines.cancellation.CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    if (SessionSwitchGuard.isStale(switchToken)) {
+                    if (switchGuard.isStale(switchToken)) {
                         Logger.i("ChatVM", "setAgentMode(true) 过期失败分支,忽略")
                         return@launch
                     }
@@ -508,7 +510,7 @@ internal class ChatSessionController(
                     }
                 } finally {
                     // 任何路径都不残留"切换中"加载态;过期任务不得清除新切换的加载态
-                    if (!SessionSwitchGuard.isStale(switchToken)) {
+                    if (!switchGuard.isStale(switchToken)) {
                         accessor.update { it.copy(isSwitchingSession = false) }
                     }
                 }
@@ -534,7 +536,7 @@ internal class ChatSessionController(
                 sessionDeps.sessionManager.acquire(sid)
                 accessor.coroutineScope.launch {
                     val (messages, hasMore) = sessionDeps.messageController.loadMessagesPaged(sid)
-                    if (SessionSwitchGuard.isStale(switchToken)) {
+                    if (switchGuard.isStale(switchToken)) {
                         // 已被更新的切换取代:释放本次 acquire,丢弃加载结果
                         sessionDeps.sessionManager.release(sid)
                         Logger.i("ChatVM", "setAgentMode(false) 结果过期,丢弃: $sid")
@@ -603,7 +605,7 @@ internal class ChatSessionController(
     @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth", "ComplexCondition")
     fun switchSession(sessionId: String) {
         // v2.x: 切换序号 — 过期(被更新的切换取代)的异步加载结果在提交前丢弃,防止串会话
-        val switchToken = SessionSwitchGuard.begin()
+        val switchToken = switchGuard.begin()
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         sessionDeps.onStopTts()
         sessionDeps.onDisposeAsr()
@@ -636,7 +638,7 @@ internal class ChatSessionController(
                     org.koin.core.context.GlobalContext.get()
                         .get<io.zer0.muse.data.todo.SessionTodoRepository>()
                 val list = repo.load(sessionId)
-                if (!SessionSwitchGuard.isStale(switchToken)) {
+                if (!switchGuard.isStale(switchToken)) {
                     io.zer0.muse.tools.TodoTool.syncFromDatabase(sessionId, list)
                 }
             }.onFailure { Logger.w("ChatVM", "预热会话待办失败: ${it.message}") }
@@ -659,9 +661,12 @@ internal class ChatSessionController(
             }
         }
         accessor.coroutineScope.launch {
-            // F-15: DeepLink 目标校验 — 会话不存在时回退会话列表
-            val exists = resultOf { sessionRepository.getSessionById(sessionId) }.getOrNull() != null
-            if (SessionSwitchGuard.isStale(switchToken)) {
+            // F-15: DeepLink 目标校验 — 会话不存在时回退会话列表。
+            // 库查不到时再看一眼内存里的会话列表：列表里存在就继续切，
+            // 否则一次瞬时查询失败会把焦点清成 null（用户看到的是「点进去了又弹回来」）。
+            val exists = resultOf { sessionRepository.getSessionById(sessionId) }.getOrNull() != null ||
+                accessor.snapshot.sessions.any { it.id == sessionId }
+            if (switchGuard.isStale(switchToken)) {
                 // 已被更新的切换取代:释放本次 acquire,丢弃加载结果
                 sessionDeps.sessionManager.release(sessionId)
                 Logger.i("ChatVM", "switchSession 结果过期,丢弃: $sessionId")
@@ -679,6 +684,17 @@ internal class ChatSessionController(
                 }
                 sessionDeps.stateStore.messages.value = emptyList()
                 return@launch
+            }
+            // 打开会话即「已读」：把该会话最近一条还在等反应的主动消息记为 OPENED。
+            // 通知深链、小手机、主聊天最终都收敛到这一条切换路径，所以只在这里接一次。
+            // 失败只记日志：阅读这件事比记账重要，不能让旁路拖住页面加载。
+            // 取不到调度器（未启用主动消息 / 单测环境没起 Koin）就直接跳过，
+            // 不要靠异常来控制流程 —— 这里一旦抛出去会把后面的焦点恢复吞掉。
+            runCatching {
+                org.koin.core.context.GlobalContext.get().get<io.zer0.muse.proactive.ProactiveScheduler>()
+            }.getOrNull()?.let { proactive ->
+                resultOf { proactive.onSessionOpened(sessionId) }
+                    .onError { msg, _ -> Logger.w("ChatVM", "标记主动消息已读失败: $msg") }
             }
             val isBackgroundStreaming = sessionDeps.chatGenerationManager.isStreaming(sessionId)
             val cached = if (!isBackgroundStreaming) sessionMemoryCache.get(sessionId) else null

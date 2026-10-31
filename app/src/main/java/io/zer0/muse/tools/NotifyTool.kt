@@ -3,7 +3,7 @@ package io.zer0.muse.tools
 import io.zer0.muse.notification.MuseNotificationManager
 
 /**
- * notify 工具(既有实现 notify-tool.ts 实现版)。
+ * notify 工具。
  *
  * Lets the AI proactively send notifications to the user.
  * Only used when the user explicitly asks for reminders/notifications,

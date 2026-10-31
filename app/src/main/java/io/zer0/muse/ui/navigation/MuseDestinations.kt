@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.navigation
 
+import io.zer0.muse.ui.settings.SettingsGroupKind
 import kotlinx.serialization.Serializable
 
 /**
@@ -55,6 +56,19 @@ data object CoverManagerRoute
 
 @Serializable
 data object SettingsRoute
+
+/**
+ * 设置一级分类页。
+ *
+ * 首页只列 14 个分类，点进来才是该类的条目；分类由 [SettingsGroupKind] 标识，
+ * 页面内容仍从设置清单里取，路由只负责记住「进了哪一类」。
+ *
+ * 分类用 **字符串 id** 而不是枚举：类型安全导航会按类名反查序列化器，
+ * 枚举一旦被 R8 改名，构造路由就会撑 `Cannot find class with name …`（启动即崩）。
+ * 字符串 id 不依赖类名，目标页里再自己映射回枚举。
+ */
+@Serializable
+data class SettingsGroupRoute(val kind: String)
 
 @Serializable
 data object AccountRoute
@@ -184,6 +198,10 @@ data object ArtifactCenterRoute
 @Serializable
 data object ConnectionCenterRoute
 
+/** 网页版访问：地址 / PIN / 二维码一屏给出，从设置 → 连接进入。 */
+@Serializable
+data object SettingsWebAccessRoute
+
 @Serializable
 data object PluginManageRoute
 
@@ -244,23 +262,6 @@ data object HomeRoute
 @Serializable
 data object SearchRoute
 
-@Serializable
-data object MiniPhoneRoute
-
-/** v1.0.74: 小手机内子页 — AI 相册 / 天气 / 日记本。 */
-@Serializable
-data object MiniAlbumRoute
-
-@Serializable
-data object MiniWeatherRoute
-
-@Serializable
-data object MiniDiaryRoute
-
-/** v1.0.74: 小手机设置页(总开关)。 */
-@Serializable
-data object SettingsMiniPhoneRoute
-
 /** v2.6.7（P1-1）: 角色关系设置页。 */
 @Serializable
 data object RelationshipSettingsRoute
@@ -269,9 +270,14 @@ data object RelationshipSettingsRoute
 @Serializable
 data object KeepAliveSettingsRoute
 
-/** v2.6.9: 小手机内角色详情页。 */
+/**
+ * 小手机入口页（受 `FeatureFlags.MINI_PHONE` 控制）。
+ *
+ * 页面内容由 `:miniphone` 模块自绘，主 App 只提供路由与角色/资料；
+ * 该模块自带数据库与聊天链路，不再复用主 App 的会话表。
+ */
 @Serializable
-data class MiniPhoneContactDetailRoute(val assistantId: String)
+data object MiniPhoneRoute
 
 /**
  * v2.6.7（P0-3）: 小手机内聊天页。

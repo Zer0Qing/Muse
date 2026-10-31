@@ -72,8 +72,16 @@ class QqSendErrorMapperTest {
     }
 
     @Test
-    fun `超时类错误允许重试`() {
-        assertFalse(QqSendErrorMapper.isPermanent("HTTP 400: {\"code\":40034128}"))
+    fun `被动窗口过期对这条消息同样是永久失败`() {
+        // 时间只会更晚，重试这条消息没有任何胜算 —— 与「配置类永久」不同的是
+        // 下一条新消息仍然能正常回复，所以只收当前入站，不把渠道判死。
+        assertTrue(QqSendErrorMapper.isPermanent("HTTP 400: {\"code\":40034128}"))
+    }
+
+    @Test
+    fun `无错误码与频控类错误仍可重试`() {
         assertFalse(QqSendErrorMapper.isPermanent(null))
+        assertFalse(QqSendErrorMapper.isPermanent("HTTP 500: gateway timeout"))
+        assertFalse(QqSendErrorMapper.isPermanent("HTTP 400: {\"code\":40034105}"))
     }
 }

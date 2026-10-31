@@ -6,10 +6,13 @@ import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import io.zer0.ai.core.ProviderConfig
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
+import io.zer0.muse.data.ResolvedSpeechEndpoint
+import io.zer0.muse.data.SpeechProviderResolver
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.CompletableDeferred
@@ -37,12 +40,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 设计选择: 用 Android 框架自带的 TextToSpeech 引擎,0 APK 体积,
  * 与现有 [SpeechInput](系统 Intent ASR)对称 — 系统服务负责输入/输出。
  *
- * v1.4 改造(既有实现 SystemTTSProvider + TtsController):
+ * v1.4 改造:
  *  - 不再用 TextToSpeech.speak() 实时播放(无暂停/进度),
  *    改用 synthesizeToFile 写临时 wav 文件 → MediaPlayer 播放
  *  - 用 [TextChunker] 按标点分片,串行合成 + 播放,支持暂停/恢复/快进/速度
  *  - 暴露 [playbackState] StateFlow 给 UI(双圆环进度:片进度 + 片内音频进度)
- *  - 保留单例 TextToSpeech(muse 已有设计,优于 既有实现 每次新建)
+ *  - 保留单例 TextToSpeech(muse 已有设计,避免每次新建)
  *  - 保留 [speakStream] 流式朗读 + [stripMarkdown] + [applyConfig] 媒体配置
  *
  * 调用关系:
@@ -140,6 +143,50 @@ class TtsManager(
     @Volatile
     private var mediaConfig: MediaConfig = MediaConfig()
 
+    /**
+     * 当前供应商列表(由 MuseApp 订阅 providersFlow 后调 [applyProviders] 更新)。
+     *
+     * 仅用于「跟随供应商配置」模式解析 baseUrl / apiKey,开关关闭时完全不参与。
+     */
+    @Volatile
+    private var providerConfigs: List<ProviderConfig> = emptyList()
+
+    /** 上一次已记录的回退原因,避免每次合成都重复打同一条 WARN。 */
+    @Volatile
+    private var lastFallbackReason: String? = null
+
+    /**
+     * 应用供应商列表(供「跟随供应商配置」解析凭据)。
+     *
+     * 由 MuseApp 订阅 [io.zer0.muse.data.SettingsRepository.providersFlow] 后调用。
+     */
+    fun applyProviders(configs: List<ProviderConfig>) {
+        providerConfigs = configs
+    }
+
+    /**
+     * 解析本次云端 TTS 实际生效的 baseUrl / apiKey / model。
+     *
+     * 手动模式原样返回 [mediaConfig] 里的手填值;跟随模式在供应商缺失/停用/未选模型时
+     * 回退手动配置并在此处打一条 WARN(同一原因只打一次,避免逐句合成刷日志)。
+     */
+    private fun resolveCloudEndpoint(): ResolvedSpeechEndpoint {
+        val resolved = SpeechProviderResolver.resolveMedia(mediaConfig, providerConfigs)
+        if (resolved.isProviderFallback) {
+            if (lastFallbackReason != resolved.fallbackReason) {
+                lastFallbackReason = resolved.fallbackReason
+                Logger.w(
+                    "TtsManager",
+                    "TTS 跟随供应商配置失败,回退手动配置: ${resolved.fallbackReason}" +
+                        "(providerId=${mediaConfig.ttsProviderId}, modelId=${mediaConfig.ttsModelId})",
+                )
+            }
+        } else {
+            lastFallbackReason = null
+        }
+        return resolved
+    }
+
     /** 查询系统可用 TTS 声音列表。 */
     fun getAvailableVoices(): List<android.speech.tts.Voice> {
         return if (ready.get()) {
@@ -158,7 +205,8 @@ class TtsManager(
     suspend fun listCloudVoices(): List<VoiceInfo> {
         val engine = mediaConfig.ttsEngine
         val provider = CloudTtsProvider.fromEngine(engine) ?: return emptyList()
-        return cloudTtsService.listVoices(provider, mediaConfig.ttsApiKey, mediaConfig.ttsEndpoint)
+        val resolved = resolveCloudEndpoint()
+        return cloudTtsService.listVoices(provider, resolved.apiKey, resolved.baseUrl)
     }
 
     /**
@@ -166,10 +214,11 @@ class TtsManager(
      *
      * 各引擎按需取用对应字段;留空/默认值由 [CloudTtsService] 各实现兜底。
      */
-    private fun buildCloudConfig(): CloudTtsConfig = CloudTtsConfig(
+    private fun buildCloudConfig(emotionOverride: String? = null): CloudTtsConfig = CloudTtsConfig(
         stability = mediaConfig.ttsStability,
         similarityBoost = mediaConfig.ttsSimilarityBoost,
-        emotion = mediaConfig.ttsEmotion,
+        // 语音消息按参数传情绪：只覆盖本次合成，不改全局（TtsManager 单例，朗读链路可能同时在跑）
+        emotion = emotionOverride?.takeIf { it.isNotBlank() } ?: mediaConfig.ttsEmotion,
         speed = mediaConfig.ttsCloudSpeed,
         responseFormat = mediaConfig.ttsResponseFormat.ifBlank { "mp3" },
     )
@@ -346,6 +395,31 @@ class TtsManager(
     }
 
     /**
+     * 合成文本到指定文件（不走播放）。
+     *
+     * 给需要把语音落成长期文件的调用方用（语音消息）；朗读链路的
+     * `playChunks` / `speakStream` 不受影响，也不经过这里。
+     *
+     * 内部复用同一套合成实现：云端引擎优先，失败回退系统 TTS，单片 30 秒超时兜底。
+     * 合成实现用单个完成回调句柄等结果，**不要并发调用**。
+     *
+     * @param text 待合成的纯文本（不分片，调用方自己决定长度）
+     * @param outputFile 目标文件，父目录不存在时会自动创建
+     * @param emotionOverride 本次合成的情绪（空/空白时用全局配置）；只作用于本次调用
+     * @return 三种结果之一：首选引擎成功 / 回落系统音色成功 / 彻底失败（见 [TtsSynthResult]）
+     */
+    suspend fun synthesizeTo(text: String, outputFile: File, emotionOverride: String? = null): TtsSynthResult {
+        if (text.isBlank()) return TtsSynthResult.Failure("待合成文本为空")
+        outputFile.parentFile?.let { parent ->
+            if (!parent.exists() && !parent.mkdirs()) {
+                Logger.w("TtsManager", "synthesizeTo: 目标目录创建失败 ${parent.absolutePath}")
+                return TtsSynthResult.Failure("目标目录创建失败")
+            }
+        }
+        return synthesizeToFile(text, outputFile, emotionOverride)
+    }
+
+    /**
      * v1.4: 合成单片文本到临时 wav 文件。
      *
      * 用 [TextToSpeech.synthesizeToFile] 异步写入,[UtteranceProgressListener.onDone]
@@ -353,33 +427,49 @@ class TtsManager(
      *
      * @param text 待合成的纯文本(单片,已分片)
      * @param file 目标 wav 文件路径(调用方负责创建/清理)
-     * @return true 合成成功;false 失败或超时
+     * @param emotionOverride 本次合成的情绪覆盖(朗读链路不传,沿用全局配置)
+     * @return 三种结果之一,见 [TtsSynthResult]
      */
-    private suspend fun synthesizeToFile(text: String, file: File): Boolean {
+    private suspend fun synthesizeToFile(text: String, file: File, emotionOverride: String? = null): TtsSynthResult {
         // v1.97: 云端 TTS 引擎走 CloudTtsService 路径
         if (mediaConfig.ttsEngine != "system") {
+            val resolved = resolveCloudEndpoint()
             val cloudOk = cloudTtsService.synthesizeToFile(
                 text = text,
                 engine = mediaConfig.ttsEngine,
-                apiKey = mediaConfig.ttsApiKey,
-                model = mediaConfig.ttsModel,
+                apiKey = resolved.apiKey,
+                model = resolved.model,
                 voice = mediaConfig.ttsVoice,
-                endpoint = mediaConfig.ttsEndpoint,
+                endpoint = resolved.baseUrl,
                 outputFile = file,
-                cloudConfig = buildCloudConfig(),
+                cloudConfig = buildCloudConfig(emotionOverride),
             )
             // v1.104: 云端 TTS 失败时回退到系统 TTS,避免网络断/额度用尽时朗读静默失败
-            if (cloudOk) return true
-            Logger.w("TtsManager", "云端 TTS 失败,回退到系统 TTS")
-            if (!ready.get()) {
-                Logger.w("TtsManager", "系统 TTS 也不可用,放弃合成")
-                return false
-            }
-            return synthesizeWithSystemTts(text, file)
+            val reason = cloudFailureReason(resolved)
+            if (!cloudOk) Logger.w("TtsManager", "云端 TTS 未生效: $reason")
+            return resolveCloudSynthOutcome(
+                cloudOk = cloudOk,
+                failureReason = reason,
+                systemTtsReady = ready.get(),
+            ) { synthesizeWithSystemTts(text, file) }
         }
 
-        return synthesizeWithSystemTts(text, file)
+        return if (synthesizeWithSystemTts(text, file)) {
+            TtsSynthResult.Success
+        } else {
+            TtsSynthResult.Failure("系统 TTS 合成失败")
+        }
     }
+
+    /**
+     * 云端没合成出来时给调用方（以及用户）看的简短原因。
+     *
+     * 优先用解析层的 fallbackReason（跟随供应商配置失败的具体原因）；没有的话，
+     * 空 API Key 是一眼能看出的常见硬伤，单独点出来；最后才是笼统的合成失败。
+     */
+    private fun cloudFailureReason(resolved: ResolvedSpeechEndpoint): String =
+        resolved.fallbackReason
+            ?: if (resolved.apiKey.isBlank()) "API Key 为空" else "云端 TTS 合成失败"
 
     /**
      * v1.104: 系统 TTS 合成(从 synthesizeToFile 抽出,供云端失败回退复用)。
@@ -528,8 +618,9 @@ class TtsManager(
             // 合成到临时 wav 文件
             val file = File(cacheDir, "tts_chunk_${utteranceId}_$index.wav")
             try {
-                val ok = synthesizeToFile(chunk, file)
-                if (!ok) continue
+                val result = synthesizeToFile(chunk, file)
+                // 朗读链路不加用户可感知的变化：回落系统音色照样播，彻底失败跳下一片
+                if (result is TtsSynthResult.Failure) continue
                 // 用 MediaPlayer 播放(暂停时协程挂起在 await completion)
                 playWithMediaPlayer(file)
             } finally {
@@ -700,8 +791,8 @@ class TtsManager(
                 updateState { it.copy(currentChunkIndex = index, positionMs = 0L, durationMs = 0L) }
                 val file = File(cacheDir, "tts_chunk_${utteranceId}_$index.wav")
                 try {
-                    val ok = synthesizeToFile(chunks[index], file)
-                    if (!ok) continue
+                    val outcome = synthesizeToFile(chunks[index], file)
+                    if (outcome is TtsSynthResult.Failure) continue
                     if (!isActive) return@launch
                     playWithMediaPlayer(file)
                 } finally {
@@ -832,13 +923,13 @@ class TtsManager(
                 for (sentence in cloudSynthChannel) {
                     if (!isActive) break
                     val file = File(cacheDir, "tts_stream_${uid}_${System.nanoTime()}.mp3")
-                    val ok = try {
+                    val outcome = try {
                         synthesizeToFile(sentence, file)
                     } catch (e: Exception) {
                         Logger.w("TtsManager", "cloud stream synth failed: ${e.message}")
-                        false
+                        TtsSynthResult.Failure(e.message ?: "云端流式合成异常")
                     }
-                    if (ok) {
+                    if (outcome !is TtsSynthResult.Failure) {
                         cloudPlayChannel.send(file)
                     } else {
                         file.delete()

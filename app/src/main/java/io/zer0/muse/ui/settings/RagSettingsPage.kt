@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.ProviderConfig
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.rag.RagConfig
@@ -47,6 +48,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
 
 /**
@@ -69,6 +71,8 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
     val embeddingService: io.zer0.muse.rag.EmbeddingService = koinInject()
     val config by settings.ragConfigFlow.collectAsStateWithLifecycle(initialValue = RagConfig())
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList<ProviderConfig>())
+    // 当前实际生效的 embedding 后端;null 表示还没跑过检索,此时不渲染状态卡
+    val activeBackend by embeddingService.activeBackend.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     // P2-4: embedding 连通性测试状态
@@ -99,6 +103,17 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 }
             }
         }
+    }
+
+    // 进页面就解析一次实际生效的后端:否则状态卡要等第一次检索才出现,
+    // 而降级原因恰恰是用户刚改完配置时最需要看见的。
+    LaunchedEffect(
+        config.embeddingSource,
+        config.cloudProviderId,
+        config.cloudModel,
+        config.localModelPath,
+    ) {
+        resolveActiveBackendQuietly(embeddingService, config)
     }
 
     // M-RAG1: 临时状态,避免每次 Slider/TextField 变更即写 DataStore,仅在松手(debounce)时保存
@@ -187,12 +202,26 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                     onClick = {
                         scope.launch {
                             settings.saveRagConfig(
-                                config.copy(embeddingSource = RagConfig.EmbeddingSource.LOCAL_KEYWORD),
+                                // 同时清空云端字段:否则历史上配过云端的用户在一次性迁移后会被判回 CLOUD,
+                                // 「本地关键词」永远读不出来。
+                                config.copy(
+                                    embeddingSource = RagConfig.EmbeddingSource.LOCAL_KEYWORD,
+                                    cloudProviderId = "",
+                                    cloudModel = "",
+                                ),
                             )
                         }
                     },
                 )
             }
+        }
+
+        // ── 当前实际生效的 embedding 后端 ──
+        // 云端配置失效时 EmbeddingService 会回落本地关键词(语义检索能力下降),
+        // 这条降级必须显示给用户,不能只留在日志里。
+        if (activeBackend != null) {
+            item { SectionLabel(stringResource(R.string.settings_rag_active_backend_section)) }
+            item { ActiveBackendCard(activeBackend) }
         }
 
         // ── P2-7: 本地 ONNX 模型选择（非 CLOUD 模式显示）──
@@ -775,6 +804,75 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * 主动解析一次当前实际生效的 embedding 后端,让状态卡不必等第一次检索。
+ *
+ * 已经解析过就直接返回,避免每次进页面都重建 Provider 实例(检索路径与设置页共用同一份缓存)。
+ * 解析失败时只记日志,状态卡保持不渲染,不允许把设置页带崩。
+ *
+ * LOCAL(ONNX)模式只建 Provider 实例并做文件是否存在检查,模型与 ONNX session 在首次 embed 时才加载,
+ * 因此这里可以无条件调用。
+ */
+@Suppress("TooGenericExceptionCaught")
+private suspend fun resolveActiveBackendQuietly(
+    embeddingService: io.zer0.muse.rag.EmbeddingService,
+    config: RagConfig,
+) {
+    if (embeddingService.activeBackend.value != null) return
+    try {
+        embeddingService.getProvider(config)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Logger.w(
+            "RagSettingsPage",
+            "解析 embedding 后端失败(source=${config.embeddingSource}): ${e.message ?: e::class.java.simpleName}",
+        )
+    }
+}
+
+/**
+ * 「当前实际在用哪个 embedding 后端」状态卡。
+ *
+ * 主行是后端显示名 + 模型名;降级时追加一行原因(缺原因时用资源里的兜底文案)。
+ * [state] 为 null 时整块不渲染。
+ */
+@Composable
+private fun ActiveBackendCard(state: io.zer0.muse.rag.EmbeddingService.BackendState?) {
+    val summary = resolveActiveBackendSummary(
+        state = state,
+        degradedFallback = stringResource(R.string.settings_rag_active_backend_degraded_unknown),
+    ) ?: return
+    SettingsGroup {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MusePaddings.cardInner),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_rag_active_backend_label),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = summary.primary,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+            val warning = summary.warning
+            if (warning != null) {
+                Text(
+                    text = warning,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
         }
     }

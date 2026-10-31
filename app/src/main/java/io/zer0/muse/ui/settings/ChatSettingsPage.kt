@@ -44,6 +44,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.ChatGradient
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseChip
@@ -78,7 +79,8 @@ import org.koin.compose.koinInject
  * 所有开关打包到 [ChatPreferences] 数据类里一次序列化存储。
  * MessageBubble / ChatScreen / InputBar 读取这些开关决定渲染与交互行为。
  *
- * v1.0.20: 新增"工具调用批准"分组(置顶),含三档会话权限模式 + 单工具策略管理入口。
+ * v1.0.20: 新增"工具调用批准"分组(置顶),含三档会话权限模式。
+ * 单工具级策略仍在工具页配置,本页不提供跳转入口。
  */
 @Composable
 fun ChatSettingsPage(
@@ -111,8 +113,74 @@ fun ChatSettingsPage(
         .collectAsStateWithLifecycle(initialValue = "when_unfocused")
     val toolLoopMaxRounds by settings.toolLoopMaxRoundsFlow
         .collectAsStateWithLifecycle(initialValue = 0)
+    // 全局默认审批策略（工具页与本页共用同一数据源）
+    val permissionMode by settings.defaultSessionPermissionModeFlow
+        .collectAsStateWithLifecycle(initialValue = SessionPermissionMode.ASK)
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_chat_title), onBack = onBack) {
+        // ── 0. 工具调用批准（置顶）──
+        item { SectionLabel(stringResource(R.string.settings_chat_tool_approval_section)) }
+        item {
+            SettingsGroup {
+                val modeOptions =
+                    listOf(
+                        stringResource(R.string.settings_chat_tool_approval_trusted),
+                        stringResource(R.string.settings_chat_tool_approval_ask),
+                        stringResource(R.string.settings_chat_tool_approval_strict),
+                    )
+                val modeIndex =
+                    when (permissionMode) {
+                        SessionPermissionMode.TRUSTED -> 0
+                        SessionPermissionMode.ASK -> 1
+                        SessionPermissionMode.STRICT -> 2
+                    }
+                SettingsSegmentedRow(
+                    icon = MuseIcons.shieldCheck,
+                    title = stringResource(R.string.settings_chat_tool_approval_title),
+                    subtitle = stringResource(R.string.settings_chat_tool_approval_subtitle),
+                    options = modeOptions,
+                    selectedIndex = modeIndex,
+                    onSelectedChange = { idx ->
+                        val newMode =
+                            when (idx) {
+                                0 -> SessionPermissionMode.TRUSTED
+                                2 -> SessionPermissionMode.STRICT
+                                else -> SessionPermissionMode.ASK
+                            }
+                        scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
+                    },
+                )
+                SettingsGroupDivider()
+                // 当前模式说明（随选中档位动态切换）
+                val modeDescRes =
+                    when (permissionMode) {
+                        SessionPermissionMode.TRUSTED -> R.string.settings_chat_tool_approval_trusted_desc
+                        SessionPermissionMode.ASK -> R.string.settings_chat_tool_approval_ask_desc
+                        SessionPermissionMode.STRICT -> R.string.settings_chat_tool_approval_strict_desc
+                    }
+                Row(
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(
+                        imageVector = MuseIcons.lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                    Text(
+                        text = stringResource(modeDescRes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+        }
+
         // ── 1. 消息显示 ──
         // ── v1.0.74: 聊天背景(聊天/Agent/群聊共用) ──
         item { SectionLabel(stringResource(R.string.settings_chat_background_section)) }

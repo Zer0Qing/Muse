@@ -3,7 +3,7 @@ package io.zer0.muse.tools
 import io.zer0.memory.pin.PinnedMemoryStore
 
 /**
- * pin_memory 工具(既有实现 pinned-memory-store.ts 实现)。
+ * pin_memory 工具。
  *
  * 允许 AI 置顶重要信息,使其保留在系统提示词中。
  * 通过 AgentToolsRegistrar 动态注册到 ToolRegistry。

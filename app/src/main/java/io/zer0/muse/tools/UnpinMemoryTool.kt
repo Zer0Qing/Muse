@@ -3,7 +3,7 @@ package io.zer0.muse.tools
 import io.zer0.memory.pin.PinnedMemoryStore
 
 /**
- * unpin_memory 工具(既有实现 pinned-memory-store.ts 实现)。
+ * unpin_memory 工具。
  *
  * 允许 AI 按关键词或 id 移除已置顶的记忆。
  */

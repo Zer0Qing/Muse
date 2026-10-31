@@ -506,6 +506,9 @@ object ModelRegistry {
     /** 注入/替换能力目录(线程安全:volatile 整体替换)。 */
     fun installCatalog(newCatalog: io.zer0.ai.core.ModelCatalog) {
         catalog = newCatalog
+        // 兼容性派生([io.zer0.ai.core.ProviderCompatRules])读同一份目录:
+        // 目录里显式声明的兼容性画像优先于 host 硬编码表。
+        io.zer0.ai.core.ProviderCompatRules.installCatalog(newCatalog)
     }
 
     /**

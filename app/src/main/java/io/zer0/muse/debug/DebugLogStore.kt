@@ -27,8 +27,23 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 object DebugLogStore {
 
-    /** 内存缓冲区上限,超出淘汰最旧。 */
-    private const val MAX_ENTRIES = 1000
+    /**
+     * 内存缓冲区上限,超出淘汰最旧。
+     *
+     * 取 2000 而不是 1000:一份跑满 6 小时的调试日志常在千条量级,1000 条会在导出时
+     * 把最早的现场挤掉,而问题往往就是从最早那段开始的。
+     *
+     * 内存上限估算(按 [DebugLogEntry] 的结构,64 位 + 压缩指针):
+     *  - 单条固定开销约 50B(id / timestamp / 四个引用 + ConcurrentLinkedDeque 节点约 32B);
+     *  - tag 与 level 是常量字符串,基本被复用,几乎不额外占;真正的大头是 message;
+     *  - 普通条目(百字左右中文正文)约 0.3–0.5KB → 2000 条约 1MB;
+     *  - 带 stack trace 的条目按 4KB 堆栈计约 4.5KB → 2000 条全满约 9MB;8KB 堆栈约 17MB。
+     *
+     * 也就是最坏情况(每条都带异常堆栈)在 20MB 量级。淘汰逻辑见 [log]:稳态下每次写入
+     * 只 [ConcurrentLinkedDeque.pollFirst] 一条,缓冲区长度始终贴着上限,不会出现
+     * 「先涨到 2N 再一次性砍半」那种内存尖峰。
+     */
+    private const val MAX_ENTRIES = 2000
 
     /** 日志等级常量(与 Logger.Level 对齐,但用字符串避免跨模块依赖)。 */
     const val LEVEL_DEBUG = "DEBUG"
@@ -88,7 +103,10 @@ object DebugLogStore {
             throwable = throwable?.let { stackTraceToString(it) },
         )
         buffer.addLast(entry)
-        // 超出上限淘汰最旧(ConcurrentLinkedDeque 没有 trim 等原子操作,先 add 再 trim 安全)
+        // 超出上限淘汰最旧(ConcurrentLinkedDeque 没有 trim 等原子操作,先 add 再 trim 安全)。
+        // 注意:size() 是一次 O(n) 遊历而不是常量时间,所以这里每次写日志会趟一遍缓冲区。
+        // 稳态下 add 后只多一条,循环只跑一次、每次淘汰一条 —— 单次开销与缓冲区长度线性,
+        // 2000 条约 4k 次引用读数(微秒级),不是 O(n²),也不会随长度发生内存尖峰。
         while (buffer.size > MAX_ENTRIES) {
             buffer.pollFirst() ?: break
         }

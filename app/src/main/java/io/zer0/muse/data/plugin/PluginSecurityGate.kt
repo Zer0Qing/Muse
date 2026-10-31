@@ -111,6 +111,14 @@ object PluginSecurityGate {
         val author: String,
         val description: String,
         val entry: String,
+        /**
+         * 插件运行时（`js` / `python`）。
+         *
+         * 展示它是因为两者信任模型不同：JS 跑在 WebView 沙盒里，桥接动作有白名单；
+         * Python 是内置解释器的子进程，与应用同 UID，能读写应用数据。
+         * 用户有知情权，而不是只看一句「外部代码将在受限沙盒中运行」。
+         */
+        val runtime: String = "js",
         val trust: String,
         val capabilities: List<String>,
         val permissions: List<String>,
@@ -362,6 +370,7 @@ object PluginSecurityGate {
                 )
             },
             entrySha256 = sha256(entryBytes),
+            runtime = pluginPackage.manifest.runtime.ifBlank { "js" },
             contentSha256 = contentSha256(pluginPackage),
             entryBytes = entryBytes.size,
             extraFileCount = pluginPackage.extraFiles.size,

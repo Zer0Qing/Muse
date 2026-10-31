@@ -77,7 +77,11 @@ object PluginPackageLoader {
                         entry = zis.nextEntry
                         continue
                     }
-                    if (!name.endsWith(".js") && !name.endsWith(".json") && !name.endsWith(".md")) {
+                    // 接受的文件类型。.py 是 v2.7 起支持的插件运行时（内置 CPython 子进程）；
+                    // 这里曾经只收 .js/.json/.md，于是 python 插件的入口文件在解包阶段
+                    // 就被静默丢掉，后续报错却是「缺少入口文件」—— 根本原因在这里。
+                    val lowerName = name.lowercase()
+                    if (ACCEPTED_FILE_EXTENSIONS.none { lowerName.endsWith(it) }) {
                         entry = zis.nextEntry
                         continue
                     }
@@ -130,7 +134,7 @@ object PluginPackageLoader {
             if (PluginSecurityGate.UI_SKIN_CAPABILITY !in manifest.capabilities) {
                 return Result.Err("ui-skin 插件必须声明 ${PluginSecurityGate.UI_SKIN_CAPABILITY} 能力")
             }
-            if (allFiles.keys.any { it.lowercase().endsWith(".js") }) {
+            if (allFiles.keys.any { key -> FORBIDDEN_SKIN_EXTENSIONS.any { key.lowercase().endsWith(it) } }) {
                 return Result.Err("ui-skin 插件不得包含 JS 文件")
             }
             val skinJson = allFiles[UI_SKIN_ENTRY]
@@ -152,8 +156,14 @@ object PluginPackageLoader {
             )
         }
 
-        if (!isSafeRelativePath(manifest.entry) || !manifest.entry.lowercase().endsWith(".js")) {
-            return Result.Err("manifest.json 的入口文件路径非法: ${manifest.entry}")
+        // 入口扩展名按 manifest.runtime 判定：python 运行时要求 .py，其余（默认 js）要求 .js。
+        // 两处必须一致 —— 解包白名单、入口校验、PluginSecurityGate.rejectionReason
+        // 三处对「这个插件能不能跑」给出同一个答案，否则又会出现「能装上但跑不了」。
+        val expectedExt = expectedEntryExtension(manifest)
+        if (!isSafeRelativePath(manifest.entry) || !manifest.entry.lowercase().endsWith(expectedExt)) {
+            return Result.Err(
+                "manifest.json 的入口文件路径非法（runtime=${manifest.runtime} 需要 $expectedExt 入口）: ${manifest.entry}",
+            )
         }
 
         val entryCode = allFiles.remove(manifest.entry)
@@ -182,7 +192,7 @@ object PluginPackageLoader {
         if (manifest.kind != PluginSecurityGate.UI_SKIN_KIND) return null
         if (manifest.tools.isNotEmpty()) return null
         if (PluginSecurityGate.UI_SKIN_CAPABILITY !in manifest.capabilities) return null
-        if (pluginPackage.extraFiles.keys.any { it.lowercase().endsWith(".js") }) return null
+        if (pluginPackage.extraFiles.keys.any { key -> FORBIDDEN_SKIN_EXTENSIONS.any { key.lowercase().endsWith(it) } }) return null
         val skinJson = pluginPackage.extraFiles[UI_SKIN_ENTRY] ?: return null
         return runCatching {
             AppJson.decodeFromString<io.zer0.muse.ui.theme.BubbleSkin>(skinJson)
@@ -200,4 +210,14 @@ object PluginPackageLoader {
     }
 
     private val PLUGIN_ID_REGEX = Regex("^[a-z0-9][a-z0-9_-]*$")
+
+    /** 包内允许的文件类型。 */
+    private val ACCEPTED_FILE_EXTENSIONS = listOf(".js", ".json", ".md", ".py")
+
+    /** ui-skin 是声明式包，不得携带任何可执行代码。 */
+    private val FORBIDDEN_SKIN_EXTENSIONS = listOf(".js", ".py")
+
+    /** 按 manifest.runtime 得出入口文件应有的扩展名。 */
+    private fun expectedEntryExtension(manifest: PluginManifest): String =
+        if (manifest.runtime.equals("python", ignoreCase = true)) ".py" else ".js"
 }

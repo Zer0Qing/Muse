@@ -32,7 +32,7 @@ import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseMotion
 
 /**
- * 卡片按压效果 — 既有实现 触觉交互核心组件。
+ * 卡片按压效果 — 触觉交互核心组件。
  *
  * 按下时:
  *  - 背景颜色渐变 (200ms easeOutCubic): 浅色提亮 55%,深色模式轻微提亮 18%

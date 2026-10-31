@@ -23,15 +23,9 @@ interface SessionDao {
 
     /**
      * v1.28: 观察未归档的任务会话(排除 Agent Tab 会话)。任务列表用。
-     *
-     * v2.6.7（P0-2）: 同时排除小手机私信会话(isMiniPhone = 1)。
-     * 私信会话只属于小手机“消息”Tab，混进主对话列表会让两个空间互相干扰。
-     * 注意：只改这一条，不改 [observeActive]。后者还被
-     * ProactiveMessageRunner / TaskerTriggerReceiver / WebServer / 记忆迁移遍历调用，
-     * 它们需要完整会话集，贸然排除会造成漏发与漏迁移。
      */
     @Query(
-        "SELECT * FROM sessions WHERE archived = 0 AND isAgentSession = 0 AND isMiniPhone = 0 " +
+        "SELECT * FROM sessions WHERE archived = 0 AND isAgentSession = 0 " +
             "AND deletedAt IS NULL ORDER BY pinned DESC, sortOrder ASC, updatedAt DESC",
     )
     fun observeTaskSessions(): Flow<List<SessionEntity>>
@@ -76,6 +70,14 @@ interface SessionDao {
     /** v2.0: 永久删除软删除超过 7 天的会话。 */
     @Query("DELETE FROM sessions WHERE deletedAt IS NOT NULL AND deletedAt < :cutoff")
     suspend fun permanentlyDeleteOldSessions(cutoff: Long)
+
+    /** v2.0: 即将被永久删除的软删会话 id — 记忆清理需要先知道哪些会话没了。 */
+    @Query("SELECT id FROM sessions WHERE deletedAt IS NOT NULL AND deletedAt < :cutoff")
+    suspend fun listIdsDeletedBefore(cutoff: Long): List<String>
+
+    /** 清空全部会话前先取一遍 id,供记忆清理使用。 */
+    @Query("SELECT id FROM sessions")
+    suspend fun listAllIds(): List<String>
 
     /** 切换会话置顶状态(Phase 8.2 L13 配套)。 */
     @Query("UPDATE sessions SET pinned = :pinned WHERE id = :id")
@@ -250,14 +252,6 @@ interface SessionDao {
     @Query("UPDATE sessions SET proactiveNextTriggerAt = :nextTriggerAt WHERE id = :id")
     suspend fun updateProactiveNextTriggerAt(id: String, nextTriggerAt: Long?)
 
-    /** v1.138: 观察小手机私信空间会话(仅 isMiniPhone=true,未软删除),按 updatedAt 倒序。 */
-    @Query("SELECT * FROM sessions WHERE isMiniPhone = 1 AND deletedAt IS NULL ORDER BY updatedAt DESC")
-    fun observeMiniPhoneSessions(): Flow<List<SessionEntity>>
-
-    /** v1.138: 一次性取小手机私信空间会话列表（按 updatedAt 倒序）。 */
-    @Query("SELECT * FROM sessions WHERE isMiniPhone = 1 AND deletedAt IS NULL ORDER BY updatedAt DESC")
-    suspend fun getMiniPhoneSessions(): List<SessionEntity>
-
     /**
      * v2.6.13: 按 folderId 哨兵值取会话（卡片收藏专用会话复用用）。
      *
@@ -267,4 +261,28 @@ interface SessionDao {
      */
     @Query("SELECT * FROM sessions WHERE folderId = :folderId AND deletedAt IS NULL ORDER BY updatedAt DESC LIMIT 1")
     suspend fun getByFolderId(folderId: String): SessionEntity?
+
+    /**
+     * 主动消息落点:该助手最近有用户发言、且写入合法的会话(按最后活动时间倒序取第一条)。
+     *
+     * 排除条件写进 SQL,不靠取回来再在内存里过滤:这里只取一条,内存过滤等于
+     * 「先挑错再补救」,被排除的那条落空后整轮就退化成新建会话,白丢一次判断。
+     *  - deletedAt 非空:已软删除
+     *  - archived = 1:已归档
+     *  - 没有非删除的 USER 消息:用户没在这里说过话,不算「聊完的地方」
+     *
+     * 外层走 idx_sessions_assistantId_updatedAt(assistantId + updatedAt),
+     * EXISTS 子查询走 idx_messages_sessionId_createdAt_role;命中第一条即停,
+     * 不改动主对话列表使用的任何查询或索引。
+     *
+     * 放在接口末尾:本模块 ktlint 基线按行号匹配,中间插入会让后面所有条目漂移。
+     */
+    @Query(
+        "SELECT * FROM sessions s WHERE s.assistantId = :assistantId " +
+            "AND s.deletedAt IS NULL AND s.archived = 0 " +
+            "AND EXISTS (SELECT 1 FROM messages m WHERE m.sessionId = s.id " +
+            "AND m.role = 'USER' AND m.deletedAt IS NULL) " +
+            "ORDER BY s.updatedAt DESC LIMIT 1",
+    )
+    suspend fun getRecentActiveByAssistant(assistantId: String): SessionEntity?
 }

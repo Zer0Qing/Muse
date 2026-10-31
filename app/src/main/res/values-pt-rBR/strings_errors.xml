@@ -125,6 +125,9 @@
     <string name="err_chat_video_generated">Vídeo gerado</string>
     <string name="err_chat_video_cancelled">Geração de vídeo cancelada</string>
     <string name="err_chat_video_gen_failed">Falha na geração de vídeo: %1$s</string>
+    <string name="err_chat_voice_generated">Mensagem de voz enviada</string>
+    <string name="err_chat_voice_cancelled">Mensagem de voz cancelada</string>
+    <string name="err_chat_voice_gen_failed">Falha na síntese de voz: %1$s</string>
     <string name="err_chat_qr_generated">Código QR gerado</string>
     <string name="err_chat_misc_reorder_pinned_failed">Falha ao salvar a ordem fixada: %1$s</string>
     <string name="asr_system_unavailable">O sistema não fornece serviço de reconhecimento de voz. Configure o reconhecimento de voz online nas configurações.</string>

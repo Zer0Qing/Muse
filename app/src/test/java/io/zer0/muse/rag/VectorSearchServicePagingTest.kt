@@ -80,7 +80,7 @@ class VectorSearchServicePagingTest {
         )
         assertFalse(results.any { it.docId != "doc-1" })
 
-        // 与全量载入 + 稳定排序 + take(topK) 的参考实现等价
+        // 与全量载入 + 稳定排序 + take(topK) 的朴素实现等价
         val expected = referenceTopK(scopeChunks, vec(7), topK = 5)
         assertEquals(expected.map { it.first }, results.map { it.chunkId })
         assertScoresClose(expected.map { it.second }, results.map { it.score })
@@ -166,7 +166,7 @@ class VectorSearchServicePagingTest {
         assertTrue("并列分数不得被 threshold 过滤(实际得分=${results.map { it.score }})", results.all { it.score >= 0f })
     }
 
-    /** 参考实现:一次性全量载入 + 打分 + 稳定降序 + take(topK)(threshold=0 时保留非负分数)。 */
+    /** 朴素实现:一次性全量载入 + 打分 + 稳定降序 + take(topK)(threshold=0 时保留非负分数)。 */
     private fun referenceTopK(chunks: List<VectorSearchService.ChunkWithDoc>, query: FloatArray, topK: Int): List<Pair<String, Float>> {
         val queryNorm = kotlin.math.sqrt(query.sumOf { (it * it).toDouble() }).toFloat()
         return chunks.mapNotNull { c ->

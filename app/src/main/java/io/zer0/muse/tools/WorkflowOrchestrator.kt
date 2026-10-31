@@ -8,7 +8,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 
 /**
- * 工作流编排器(既有实现 workflow-tool.ts 实现)。
+ * 工作流编排器。
  *
  * 简化编排:并行 / 流水线 / 顺序,基于 Kotlin 协程。
  */

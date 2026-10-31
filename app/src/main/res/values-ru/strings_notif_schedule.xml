@@ -13,6 +13,7 @@
     <!-- Notification title/content -->
     <string name="notif_chat_completed_title">Ответ завершен · %1$s</string>
     <string name="notif_proactive_message_title">%1$s отправил сообщение</string>
+    <string name="notif_proactive_action_dismiss">Не сейчас</string>
     <string name="notif_live_progress_title">Генерация · %1$s</string>
     <string name="notif_live_progress_text">%1$d символы</string>
     <string name="notif_web_server_title">Веб-сервер Muse работает</string>

@@ -3,7 +3,7 @@ package io.zer0.ai.core
 /**
  * 已知模型元信息词典(离线兜底)。
  *
- * 按 既有实现 项目的 known-models.ts 设计思路:本地维护一份主流模型的元信息表,
+ * 本地维护一份主流模型的元信息表,
  * 让离线场景或上游 /models 接口不返回元信息时也能补全模型能力。
  *
  * 与 [ModelContextWindowRegistry] / [ModelRegistry] 的关系:
@@ -120,6 +120,9 @@ object KnownModels {
         }
         return id
     }
+
+    /** 剥除聚合平台前缀并转小写，用于按模型家族判断（如 Anthropic 的 `claude` 前缀）。 */
+    internal fun normalizeModelIdForFamily(modelId: String): String = stripPrefix(modelId.trim().lowercase())
 
     // ──────────────────────────────────────────────────────────────
     // 四、预置模型词典(均以小写 modelId 为键)
@@ -296,7 +299,7 @@ object KnownModels {
                 description = "OpenAI GPT-5 mini",
             ),
         )
-        // v1.0.6: 新增 GPT-5.1 / Codex(对齐 既有实现 known-models)
+        // v1.0.6: 新增 GPT-5.1 / Codex
         put(
             "gpt-5.1",
             KnownModelInfo(
@@ -427,7 +430,7 @@ object KnownModels {
                 description = "Anthropic Claude Opus 4",
             ),
         )
-        // v1.0.6: 新增 Claude 4.5 / 4.1 系列(对齐 既有实现 known-models)
+        // v1.0.6: 新增 Claude 4.5 / 4.1 系列
         put(
             "claude-sonnet-4-5",
             KnownModelInfo(
@@ -910,7 +913,7 @@ object KnownModels {
                 description = "xAI Grok 4",
             ),
         )
-        // v1.0.6: 新增 Grok 4.5 / 4.3 系列(对齐 既有实现 known-models,主要走 xAI OAuth Responses)
+        // v1.0.6: 新增 Grok 4.5 / 4.3 系列(主要走 xAI OAuth Responses)
         put(
             "grok-4.5",
             KnownModelInfo(
@@ -1197,7 +1200,7 @@ object KnownModels {
  * v2.5.3 (P4-3): Token 用量 + 成本计算。
  *
  * 支持按输入/缓存命中/缓存写入/输出四类分价。单价未知时保守返回 null（不猜价）。
- * 使用饱和加法防溢出（与参考实现同取向）。
+ * 使用饱和加法防溢出。
  */
 object TokenCostCalculator {
     /** 一次用量的分项。 */
@@ -1208,6 +1211,12 @@ object TokenCostCalculator {
         val cacheWriteTokens: Long = 0,
         val completionTokens: Long = 0,
         val reasoningTokens: Long = 0,
+        /**
+         * [promptTokens] 是否包含缓存部分（两家的 prompt 口径不同，必须显式声明）：
+         *  - OpenAI / Gemini 的 `prompt_tokens` 含缓存命中，默认 true → 计价时相减
+         *  - Anthropic 的 `input_tokens` 就是非缓存输入 → 置 false，计价时**不相减**
+         */
+        val promptTokensIncludeCache: Boolean = true,
     ) {
         /** 饱和加法：避免 Long 溢出回绕。 */
         fun plus(other: Usage): Usage =
@@ -1217,6 +1226,8 @@ object TokenCostCalculator {
                 cacheWriteTokens = satAdd(cacheWriteTokens, other.cacheWriteTokens),
                 completionTokens = satAdd(completionTokens, other.completionTokens),
                 reasoningTokens = satAdd(reasoningTokens, other.reasoningTokens),
+                // 累加时口径必须一致，否则相加本身没意义；取更严格的那个（不相减才不丢输入费）
+                promptTokensIncludeCache = promptTokensIncludeCache && other.promptTokensIncludeCache,
             )
 
         companion object {
@@ -1243,8 +1254,14 @@ object TokenCostCalculator {
      *
      * 计价规则：
      *  - 缓存命中输入按 [KnownModelInfo.pricingCachedInputPer1M]（缺失则按普通输入价）
-     *  - 缓存写入按 [KnownModelInfo.pricingCacheWritePer1M]（缺失则不计，OpenAI 不另收）
-     *  - 非缓存输入 = promptTokens - cachedTokens - cacheWriteTokens（夹到 0）
+     *  - 缓存写入按 [KnownModelInfo.pricingCacheWritePer1M]；为 null 时本函数不计写入部分
+     *    （由 [costFor] 按 [CACHE_WRITE_INPUT_MULTIPLIER] 估算后传入，避免这里再猜厂家）
+     *  - **普通输入两种口径，按 [Usage.promptTokensIncludeCache] 分支**：
+     *      * true（OpenAI / Gemini）：非缓存输入 = promptTokens - cachedTokens - cacheWriteTokens（夹到 0）
+     *      * false（Anthropic）：promptTokens 本身就是非缓存输入，**不相减**
+     *      两家 `prompt` 的含义不同：OpenAI/Gemini 的 prompt_tokens 含缓存命中，
+     *      Anthropic 的 input_tokens 不含（缓存读/写单列）。误用相减会让缓存量大时
+     *      普通输入被夹到 0，输入费直接漏算——而高缓存命中正是常态。
      *  - 单价为 null → [Cost.known] = false
      */
     fun cost(usage: Usage, info: KnownModels.KnownModelInfo?): Cost {
@@ -1253,9 +1270,18 @@ object TokenCostCalculator {
         if (inputPrice == null || outputPrice == null) return Cost(0.0, known = false)
         val cachedPrice = info.pricingCachedInputPer1M ?: inputPrice
         val cacheWritePrice = info.pricingCacheWritePer1M
-        val billedCached = usage.cachedTokens.coerceAtMost(usage.promptTokens).coerceAtLeast(0)
         val billedCacheWrite = usage.cacheWriteTokens.coerceAtLeast(0)
-        val plainInput = (usage.promptTokens - billedCached - billedCacheWrite).coerceAtLeast(0)
+        val billedCached: Long
+        val plainInput: Long
+        if (usage.promptTokensIncludeCache) {
+            // OpenAI / Gemini：缓存读/写都是 prompt 的子集，减掉后才是不打折/不打折价的普通输入
+            billedCached = usage.cachedTokens.coerceAtMost(usage.promptTokens).coerceAtLeast(0)
+            plainInput = (usage.promptTokens - billedCached - billedCacheWrite).coerceAtLeast(0)
+        } else {
+            // Anthropic：prompt 已是非缓存输入，缓存读/写各自独立计费，不相减也不夹 0
+            billedCached = usage.cachedTokens.coerceAtLeast(0)
+            plainInput = usage.promptTokens.coerceAtLeast(0)
+        }
         val usd =
             plainInput / 1_000_000.0 * inputPrice +
                 billedCached / 1_000_000.0 * cachedPrice +
@@ -1267,6 +1293,47 @@ object TokenCostCalculator {
     /** 便捷入口：按 provider + modelId 查价后计价。 */
     fun costFor(provider: String, modelId: String, usage: Usage): Cost {
         val info = runCatching { KnownModels.lookupProvider(provider, modelId) }.getOrNull()
-        return cost(usage, info)
+        return cost(usage, info?.let { withEstimatedCacheWritePrice(modelId, it) })
+    }
+
+    /**
+     * 便捷入口：[UsageTokens] 直接计价（缓存读/写分列在 [UsageTokens.cachedTokens] /
+     * [UsageTokens.cacheWriteTokens]，此处按同名分项映射到 [Usage]）。
+     */
+    fun costFor(provider: String, modelId: String, usage: UsageTokens): Cost =
+        costFor(provider, modelId, fromUsageTokens(usage))
+
+    /** [UsageTokens] → 计价分项。缓存读继续占 [Usage.cachedTokens]，缓存写单列，prompt 口径随数据走。 */
+    fun fromUsageTokens(usage: UsageTokens): Usage =
+        Usage(
+            promptTokens = usage.promptTokens.toLong(),
+            cachedTokens = usage.cachedTokens.toLong(),
+            cacheWriteTokens = usage.cacheWriteTokens.toLong(),
+            completionTokens = usage.completionTokens.toLong(),
+            reasoningTokens = usage.reasoningTokens.toLong(),
+            promptTokensIncludeCache = usage.promptTokensIncludeCache,
+        )
+
+    /**
+     * 缓存写入相对基础输入价的倍数。
+     *
+     * 取自 Anthropic prompt caching 公开定价：5 分钟 TTL 的缓存写入按基础输入价的 1.25 倍计费
+     * （1 小时 TTL 为 2 倍，本估算只取 5 分钟档，属偏保守下限）。
+     * 仅用于价格表 [KnownModelInfo.pricingCacheWritePer1M] 缺失的模型；表内有值时以表为准。
+     */
+    const val CACHE_WRITE_INPUT_MULTIPLIER: Double = 1.25
+
+    /**
+     * 价格表未给缓存写入单价时，按 [CACHE_WRITE_INPUT_MULTIPLIER] 从输入价估算。
+     *
+     * 只对 Anthropic 模型家族（modelId 为 `claude` 开头，`anthropic/`、`openrouter/` 等前缀已剥除）
+     * 估算：OpenAI / Gemini 没有缓存写入计费项，给它们编一个写入价会虚增成本。
+     */
+    internal fun withEstimatedCacheWritePrice(modelId: String, info: KnownModels.KnownModelInfo): KnownModels.KnownModelInfo {
+        if (info.pricingCacheWritePer1M != null) return info
+        val inputPrice = info.pricingPromptPer1M ?: return info
+        val family = KnownModels.normalizeModelIdForFamily(modelId)
+        if (!family.startsWith("claude")) return info
+        return info.copy(pricingCacheWritePer1M = inputPrice * CACHE_WRITE_INPUT_MULTIPLIER)
     }
 }

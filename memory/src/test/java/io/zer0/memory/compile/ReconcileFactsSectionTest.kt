@@ -279,4 +279,29 @@ class ReconcileFactsSectionTest {
         assertTrue("表内事实应在", content.contains("用户喜欢喝茶"))
         assertTrue("孤儿行应被吸收保留(不再丢失)", content.contains("用户喜欢摄影"))
     }
+
+    /**
+     * v18: 投影就是注入内容 —— 已出场(分数低于阈值)与已被取代的旧记忆都不写进 FACTS 段,
+     * 但行仍在库里(记忆页可见)。
+     */
+    @Test
+    fun `projection skips facts that left recall`() = runTest {
+        factStore.add(FactStore.Fact(fact = "用户喜欢美式咖啡", source = "user_explicit"))
+        factDb.factDao().insert(
+            io.zer0.memory.fact.FactEntity(
+                fact = "用户以前喝摩卡",
+                tags = "[]",
+                createdAt = java.time.Instant.now().toString(),
+                importance = 0,
+                suppressedAt = java.time.Instant.now().toString(),
+            ),
+        )
+
+        compiler.reconcileFactsSectionWithStore(factStore.getByScopeAndSpace("main", "default"))
+
+        val content = compiler.readSection(MemoryCompiler.Section.FACTS)
+        assertTrue("在场的记忆应投影", content.contains("美式咖啡"))
+        assertTrue("已出场的记忆不该写进上下文", !content.contains("摩卡"))
+        assertEquals("两条都还在库里", 2, factStore.getByScopeAndSpace("main", "default").size)
+    }
 }

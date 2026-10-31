@@ -49,6 +49,26 @@ class MemoryContradictionStore(private val file: File) {
         readAll().entries.firstOrNull { it.key == keyOf(scope, spaceId) }?.pairs ?: emptyList()
     }
 
+    /**
+     * 清掉某 scope 在全部 space 下的矛盾清单(助手删除时用)。
+     *
+     * key 形如 `scope|space`,按 `scope|` 前缀精确匹配 scope 段,不会误删名字前缀相同的其他 scope。
+     *
+     * @return 被移除的条目数
+     */
+    suspend fun clearScope(scope: String): Int = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val key = scope.trim()
+            if (key.isEmpty()) return@withContext 0
+            val all = readAll()
+            val prefix = "$key|"
+            val remaining = all.entries.filterNot { it.key.startsWith(prefix) }
+            val removed = all.entries.size - remaining.size
+            if (removed > 0) write(StoreData(remaining))
+            removed
+        }
+    }
+
     /** 用户确认后清除其中一对矛盾。 */
     suspend fun removePair(scope: String, spaceId: String, pair: ContradictionPair) = mutex.withLock {
         withContext(Dispatchers.IO) {

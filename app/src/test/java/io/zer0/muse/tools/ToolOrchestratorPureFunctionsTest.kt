@@ -27,6 +27,8 @@ import org.junit.Test
  *  - [ToolOrchestrator.parseTaskPlanStepCount] — task_plan arguments 解析容错
  *  - [ToolOrchestrator.countTaskPlanSteps] — 多源(AgentPlan 缓存 / 历史消息)汇总
  *  - [ToolOrchestrator.computeMaxRounds] — 动态轮次计算 + hardCap 兜底
+ *  - [ToolOrchestrator.truncatedToolCallsForBackfill] / [ToolOrchestrator.truncatedArgumentsToolResult]
+ *    — 输出上限截断的工具参数如何构造回填内容
  *
  * 注:仅测纯函数,不涉及 runLoop 的协程流程(后续可单独补 integration test)。
  * runLoop 涉及 ChatViewModel/Provider/ToolRegistry 多个组件,需要 mockk 整条链,
@@ -635,5 +637,43 @@ class ToolOrchestratorPureFunctionsTest {
     @Test
     fun `tool timeout constant is 120 seconds`() {
         assertEquals(120_000L, TOOL_TIMEOUT_MS)
+    }
+
+    // ── truncatedToolCallsForBackfill / truncatedArgumentsToolResult ────
+
+    @Test
+    fun `truncated tool calls keep name and a matchable id and drop partial arguments`() {
+        val calls = orchestrator.truncatedToolCallsForBackfill(
+            listOf(
+                ToolCall("dup", "read_file", """{"path":"a.md"""),
+                // 同 id 重复:第二条必须换一个,否则 tool result 无法一一对应
+                ToolCall("dup", "read_file", """{"path":"b.md"""),
+                // 上游没发 id
+                ToolCall("", "write_file", """{"content":"""),
+                // 连工具名都没收到:无从描述也无从配对,整条丢弃
+                ToolCall("tc-x", "", """{"a"""),
+            ),
+            round = 3,
+        )
+
+        assertEquals(listOf("read_file", "read_file", "write_file"), calls.map { it.name })
+        assertTrue("id 必须非空", calls.all { it.id.isNotBlank() })
+        assertEquals("id 不得重复", calls.size, calls.map { it.id }.distinct().size)
+        assertTrue("残缺参数一律不进回传历史", calls.all { it.arguments == "{}" })
+    }
+
+    @Test
+    fun `truncated tool calls of an empty raw list yield nothing`() {
+        assertEquals(emptyList<ToolCall>(), orchestrator.truncatedToolCallsForBackfill(emptyList(), round = 1))
+    }
+
+    @Test
+    fun `truncated tool result is valid json naming the truncated tool`() {
+        val json = orchestrator.truncatedArgumentsToolResult("show\"card")
+
+        // 能被当作 JSON 解析 = 残缺参数没有被拼回给模型的内容里
+        assertEquals("arguments_truncated_by_output_limit", jsonStringField(json, "error"))
+        assertEquals("show\"card", jsonStringField(json, "tool"))
+        assertTrue(jsonStringField(json, "detail")!!.contains("重新发起"))
     }
 }

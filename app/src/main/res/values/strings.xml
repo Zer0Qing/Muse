@@ -73,7 +73,8 @@
     <!-- 前端修复 (i18n-6): 语音消息条停止按钮无障碍描述 -->
     <string name="voice_stop_recording">停止录音</string>
     <string name="voice_conversation_cd_idle">点击开始对话</string>
-    <string name="voice_conversation_cd_listening">正在录音，点击中断</string>
+    <string name="voice_conversation_cd_listening">正在录音，点一下结束并发送</string>
+    <string name="voice_conversation_cd_listening_waiting">点一下开始说话</string>
     <string name="voice_conversation_cd_thinking">AI 思考中，点击中断</string>
     <string name="voice_conversation_cd_speaking">正在朗读，点击中断</string>
 
@@ -98,10 +99,13 @@
     <string name="voice_conversation_idle_hint">点击下方按钮开始对话</string>
     <string name="voice_conversation_idle_tap_hint">说话时自动识别并发送,AI 回复会自动朗读</string>
     <string name="voice_conversation_listening">正在聆听…</string>
+    <string name="voice_conversation_listening_finish_hint">说完点一下按钮发送</string>
+    <string name="voice_conversation_retry_hint">没听清，再说一次</string>
     <string name="voice_conversation_thinking">思考中…</string>
     <string name="voice_conversation_speaking">正在朗读…</string>
     <string name="voice_conversation_state_idle">点击开始</string>
     <string name="voice_conversation_state_listening">聆听中</string>
+    <string name="voice_conversation_state_listening_idle">点一下开始</string>
     <string name="voice_conversation_state_thinking">思考中</string>
     <string name="voice_conversation_state_speaking">朗读中</string>
     <string name="voice_conversation_pick_voice_title">选择语音</string>
@@ -224,6 +228,9 @@
     <string name="tool_approval_approve">批准</string>
     <string name="tool_approval_write_summary">即将写入 %1$s（%2$d 字符）</string>
     <string name="tool_approval_advanced_details">高级详情</string>
+    <string name="tool_approval_show_full_args">查看完整参数</string>
+    <string name="tool_approval_hide_full_args">收起完整参数</string>
+    <string name="tool_approval_args_hidden">另有 %1$d 字符未显示</string>
     <string name="tool_approval_deny">拒绝</string>
     <string name="tool_approval_confirm_deny">确认拒绝</string>
     <string name="tool_approval_deny_reason">拒绝原因（可选）</string>
@@ -311,17 +318,18 @@
     <string name="settings_proactive_v2_ledger_sub">它最近惦记着 %1$d 件事</string>
     <string name="settings_proactive_v2_intensity">主动等级</string>
     <string name="settings_proactive_v2_budget">今天还能说 %1$d 次</string>
+    <string name="settings_proactive_v2_budget_unlimited">今天不限次数</string>
     <string name="settings_proactive_v2_resume">恢复主动消息</string>
     <string name="settings_proactive_v2_reset">重置</string>
     <string name="settings_proactive_v2_cooldown">最近别烦我</string>
     <string name="settings_proactive_v2_cooldown_sub">安静 7 天，这期间它只记着不说</string>
     <string name="settings_proactive_v2_empty">暂时没什么惦记的事</string>
     <string name="settings_proactive_v2_close">好</string>
-    <string name="proactive_intensity_quiet">安静</string>
-    <string name="proactive_intensity_reserved">克制</string>
-    <string name="proactive_intensity_standard">标准</string>
-    <string name="proactive_intensity_active">主动</string>
-    <string name="proactive_intensity_clingy">黏人</string>
+    <string name="proactive_intensity_quiet">安静 · 每天最多 3 条</string>
+    <string name="proactive_intensity_reserved">克制 · 每天最多 8 条</string>
+    <string name="proactive_intensity_standard">标准 · 每天最多 15 条</string>
+    <string name="proactive_intensity_active">主动 · 每天最多 30 条</string>
+    <string name="proactive_intensity_clingy">黏人 · 不限次数</string>
     <string name="proactive_kind_reminder">提醒</string>
     <string name="proactive_kind_follow_up">没聊完</string>
     <string name="proactive_kind_care">关心</string>

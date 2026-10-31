@@ -11,9 +11,9 @@ import io.zer0.muse.tools.JsSandbox
  * 设计要点：
  *  - 引擎实例不可重入：同一时刻只能执行一个脚本（WebView evaluateJavascript 串行）
  *  - 超时机制由实现层保证（[JsSandbox.execute] 默认 10s）
- *  - 安全限制由实现层保证（禁用 fetch/XHR/WebSocket 等，见 [JsSandbox.INIT_JS]）
+ *  - 安全限制由实现层保证（禁页面跳转与本地文件访问，网络可用；见 [JsSandbox.INIT_JS]）
  *
- * 说明: 既有实现 SkillEngine 接口设计，适配 Muse 的 WebView V8 后端。
+ * 说明: 接口契约面向 Muse 的 WebView V8 后端设计。
  *
  * **生产状态**：本接口为 JS 技能执行契约，生产链路通过 [WebViewSkillEngine]
  * （.muse-plugin / 内置 execute_javascript 工具）执行；`__bridge__` 桥接由

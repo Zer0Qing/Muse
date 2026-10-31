@@ -26,9 +26,11 @@ import java.io.File
  * ```js
  * return { __bridge__: true, action: "http_get", params: { url: "..." } };
  * ```
- * WebView 沙盒禁用了 fetch/XHR（见 [io.zer0.muse.tools.JsSandbox.INIT_JS]），因此
- * Kotlin 侧在脚本执行结果处截获该请求，审计后执行对应的安全实现，再把结果作为技能
- * 返回值返回（request-response 模式，不破坏沙盒——所有 IO 都经过 Kotlin 侧）。
+ * 一次执行只截获一个桥接请求，Kotlin 侧在脚本执行结果处取到它，审计后执行对应的
+ * 安全实现，再把结果作为技能返回值返回（request-response 模式）。
+ *
+ * 注意边界：桥接是「让脚本拿到受控能力」的通道（沙盒文件/剪贴板/通知等），
+ * 不是网络代理——沙盒里直接 fetch 不走这里，因而不受本文件的 SSRF 判据保护。
  *
  * 动作清单与门槛（v2.x 沙盒放开后不再需要逐项声明）：
  *  - `echo`：原样回显（验证通路）

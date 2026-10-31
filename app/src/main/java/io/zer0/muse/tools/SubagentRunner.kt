@@ -10,6 +10,9 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 /**
  * F-20: 子代理取消句柄。
@@ -94,7 +97,7 @@ class SubagentRunner(
     companion object {
         private const val TAG = "SubagentRunner"
 
-        /** 默认最大工具调用次数(按 既有实现 examples/subagent)。 */
+        /** 默认最大工具调用次数。 */
         const val DEFAULT_MAX_TOOL_CALLS = 8
 
         /** 工具调用次数硬上限(防止 LLM 失控跑满配额)。 */
@@ -108,6 +111,9 @@ class SubagentRunner(
 
         /** B-17: 审批等待独立超时(毫秒)——与整体执行超时分离,用户审卡不占满执行超时窗。 */
         const val APPROVAL_TIMEOUT_MS = 30_000L
+
+        /** 审批卡参数预览的展示长度;判定一律用全量参数,预览只给人看。 */
+        private const val ARGS_PREVIEW_CHARS = 200
 
         /** 单轮 LLM 调用的最大 token 数。 */
         const val MAX_TOKENS_PER_ROUND = 1500
@@ -176,6 +182,8 @@ class SubagentRunner(
             "find_tools",
             "proactive_message_wish",
             "search_conversation",
+            // v2.x: 发语音需要宿主会话上下文（回合标识）与可投递的助手消息，子 agent 两样都没有
+            "send_voice",
         )
     }
 
@@ -661,42 +669,9 @@ class SubagentRunner(
                 success = false,
             )
         }
-        // v1.0.53 Phase 4: deny_on_prompt 审批策略
-        // 子 agent 无权请求用户审批(不能弹窗)。遇到需审批(ASK_EVERY_TIME)或被禁用(ALWAYS_DENY)
-        // 的工具直接拒绝并向主 agent 说明原因,让主 agent 改用允许的工具或向用户说明需手动处理。
-        when (toolConfigStore.getPolicy(tc.name)) {
-            ToolApprovalPolicy.ALWAYS_DENY -> return ToolExecOutcome(
-                result = "Error: 工具 '${tc.name}' 已被用户禁用,子 agent 无权调用",
-                success = false,
-            )
-            ToolApprovalPolicy.ASK_EVERY_TIME -> {
-                // B-17: 审批等待单独超时,与整体执行超时窗口隔离 — 用户审卡不应占满整个
-                // 执行超时(默认 120s)。审批超时视为拒绝,让主 agent 改用其他合法工具。
-                val approval = withTimeoutOrNull(APPROVAL_TIMEOUT_MS) {
-                    toolApprovalRouter.request(
-                        toolName = tc.name,
-                        toolCallId = tc.id,
-                        argsPreview = tc.arguments.take(200),
-                    )
-                }
-                when (approval) {
-                    null -> return ToolExecOutcome(
-                        result = "Error: 工具 '${tc.name}' 审批等待超时(${APPROVAL_TIMEOUT_MS / 1000}s),子 agent 已放弃调用",
-                        success = false,
-                    )
-                    is ToolApprovalState.Approved, is ToolApprovalState.Auto -> { /* 继续执行 */ }
-                    is ToolApprovalState.Denied -> return ToolExecOutcome(
-                        result = "Error: 工具 '${tc.name}' 已被用户拒绝,子 agent 无权调用",
-                        success = false,
-                    )
-                    is ToolApprovalState.Pending, is ToolApprovalState.Answered -> return ToolExecOutcome(
-                        result = "Error: 工具 '${tc.name}' 审批状态未确定,子 agent 已放弃调用",
-                        success = false,
-                    )
-                }
-            }
-            ToolApprovalPolicy.ALWAYS_ALLOW -> { /* 继续执行 */ }
-        }
+        // 审批闸门:结论不是「放行」就把拒绝原因交回主 agent,让它改用其他合法工具
+        // 或向用户说明需手动处理。判定入口是 [ToolPermissionResolver],与会话审批链同一条。
+        gateToolCall(tc)?.let { return it }
         return try {
             val result = routeGuard.executeFromJson(tc.name, tc.arguments)
             // P2-22: 成败判定复用生产共享判定器 ToolResultJudge(与任务卡同一实现),
@@ -713,6 +688,120 @@ class SubagentRunner(
 
     /** 缓存允许的工具名集合(同一轮内复用)。 */
     private fun buildAllowedToolNames(): Set<String> = allowedToolNamesForSubagent()
+
+    /**
+     * 工具调用的审批闸门。返回 null 表示放行,非空表示该次调用被拒。
+     *
+     * 判定参数一律用全量 [ToolCall.arguments]（参数化硬拒必须看到完整参数）;
+     * 截断到 [ARGS_PREVIEW_CHARS] 的预览只用于审批卡展示。
+     *
+     * 两条路径:
+     *  1. 审批通道可用（前台会话已把 [ToolApprovalRouter.delegate] 注册为 ChatViewModel）:
+     *     整条调用交给主会话审批链,由 [ToolPermissionResolver] 按**父会话的真实权限模式**判定 ——
+     *     STRICT/ASK 下需要确认的工具会弹审批卡,用户批准才执行,子 agent 的放行范围因此不超过父会话。
+     *  2. 审批通道不可用（后台任务 / 无界面）:本地用同一个解析器判定,兜底偏保守 ——
+     *     风险取不到按 HIGH、只认显式配置的单工具策略、模式取全局默认（取不到按 STRICT）,
+     *     且只有 Auto/Approved 才放行:Pending 在没有卡片可弹时等同于拒绝,绝不静默放行。
+     */
+    private suspend fun gateToolCall(tc: ToolCall): ToolExecOutcome? {
+        val args = parseToolArgs(tc.arguments)
+        return if (toolApprovalRouter.delegate != null) {
+            approvalViaBridge(tc, args)
+        } else {
+            approvalWithoutBridge(tc, args)
+        }
+    }
+
+    /** 有审批通道:把判定交给主会话审批链（模式/策略/全量参数均由它取）。 */
+    private suspend fun approvalViaBridge(tc: ToolCall, args: Map<String, Any?>): ToolExecOutcome? {
+        // B-17: 审批等待单独超时,与整体执行超时窗口隔离 — 用户审卡不应占满整个
+        // 执行超时窗。审批超时视为拒绝,让主 agent 改用其他合法工具。
+        val approval = withTimeoutOrNull(APPROVAL_TIMEOUT_MS) {
+            toolApprovalRouter.request(
+                toolName = tc.name,
+                toolCallId = tc.id,
+                argsPreview = tc.arguments.take(ARGS_PREVIEW_CHARS),
+                args = args,
+            )
+        } ?: ToolApprovalState.Denied("审批等待超时(${APPROVAL_TIMEOUT_MS / 1000}s)")
+        return when (approval) {
+            is ToolApprovalState.Auto, is ToolApprovalState.Approved -> null
+            is ToolApprovalState.Denied ->
+                denyOutcome(tc.name, "未获批准(${approval.reason.ifBlank { "已被拒绝" }}),子 agent 无权调用")
+            is ToolApprovalState.Pending, is ToolApprovalState.Answered ->
+                denyOutcome(tc.name, "审批状态未确定,子 agent 已放弃调用")
+        }
+    }
+
+    /** 无审批通道:本地判定,放行条件比主路径更窄（Pending 不能弹卡,一律拒绝）。 */
+    private suspend fun approvalWithoutBridge(tc: ToolCall, args: Map<String, Any?>): ToolExecOutcome? {
+        val resolved = try {
+            ToolPermissionResolver.resolve(
+                toolName = tc.name,
+                risk = gateRiskLevel(tc.name),
+                mode = localPermissionMode(),
+                perToolPolicy = explicitPolicyOf(tc.name),
+                args = args,
+            )
+        } catch (e: Exception) {
+            // 判定本身出错时按最保守方向处理:拒绝,不放行
+            Logger.w(TAG, "工具审批判定异常,按拒绝处理: tool=${tc.name}", e)
+            ToolApprovalState.Denied("审批判定异常(${e.message ?: e.javaClass.simpleName})")
+        }
+        return when (resolved) {
+            is ToolApprovalState.Auto, is ToolApprovalState.Approved -> null
+            is ToolApprovalState.Denied ->
+                denyOutcome(tc.name, "未获批准(${resolved.reason.ifBlank { "当前权限策略不允许" }}),子 agent 无权调用")
+            is ToolApprovalState.Pending, is ToolApprovalState.Answered ->
+                // 文案要说清「不是权限配错了」:第三方动态工具(插件/MCP)默认 NORMAL,
+                // 而子代理本身没有弹审批卡的通道,所以在这里被拦;主会话里同一个工具是正常的。
+                denyOutcome(tc.name, "需要用户审批,但子代理没有审批通道,子 agent 已放弃调用(在主会话里调用该工具会弹出审批卡)")
+        }
+    }
+
+    /** 拒绝结果:统一文案格式,便于主 agent 识别并改道。 */
+    private fun denyOutcome(toolName: String, reason: String): ToolExecOutcome =
+        ToolExecOutcome(result = "Error: 工具 '$toolName' $reason", success = false)
+
+    /**
+     * 审批判定用的风险等级:以注册台账为源,取不到（未注册 / skill / MCP 工具）或抛异常时按 HIGH。
+     *
+     * 方向固定往保守一侧:不确定的工具宁可多要一次审批,也不默默放行。
+     */
+    private fun gateRiskLevel(toolName: String): ToolRiskLevel = try {
+        toolRegistry.getToolRiskLevel(toolName) ?: ToolRiskLevel.HIGH
+    } catch (e: Exception) {
+        Logger.w(TAG, "风险等级读取异常,按 HIGH 处理: tool=$toolName", e)
+        ToolRiskLevel.HIGH
+    }
+
+    /** 只取用户显式配置的单工具策略;未配置必须是 null（未配置 ≠ 用户放行）。 */
+    private suspend fun explicitPolicyOf(toolName: String): ToolApprovalPolicy? = try {
+        toolConfigStore.getConfiguredPolicy(toolName)
+    } catch (e: Exception) {
+        Logger.w(TAG, "单工具策略读取异常,按未配置处理: tool=$toolName", e)
+        null
+    }
+
+    /** 本地判定用的会话模式:取全局默认;读不到时按 STRICT（最保守）。 */
+    private suspend fun localPermissionMode(): SessionPermissionMode = try {
+        settings?.defaultSessionPermissionModeFlow?.first() ?: SessionPermissionMode.STRICT
+    } catch (e: Exception) {
+        Logger.w(TAG, "会话权限模式读取失败,按 STRICT 处理", e)
+        SessionPermissionMode.STRICT
+    }
+
+    /** 把工具参数 JSON 解析成全量键值表（值归一为字符串,与参数化策略的读法一致）。 */
+    private fun parseToolArgs(arguments: String): Map<String, Any?> = runCatching {
+        val element = io.zer0.common.AppJson.parseToJsonElement(arguments)
+        (element as? JsonObject)?.mapValues { (_, value) ->
+            (value as? JsonPrimitive)?.contentOrNull ?: value.toString()
+        } ?: emptyMap()
+    }.getOrElse {
+        // 解析不了就给空参数:参数化硬拒看不到参数,靠风险等级兜底（未知即 HIGH）
+        Logger.w(TAG, "工具参数解析失败,按空参数判定: ${arguments.take(ARGS_PREVIEW_CHARS)}")
+        emptyMap()
+    }
 
     /**
      * 子代理可用工具的唯一集合：风险等级以 [ToolPermissionResolver] 为单一真源，再叠加两级黑名单。

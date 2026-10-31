@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
 /**
- * v1.0.53: 内置工具分类注册表(既有实现 shared/tool-categories.ts)。
+ * v1.0.53: 内置工具分类注册表。
  *
  * CORE      — 移除会破坏模型能力,用户不可关闭,不显示在工具列表
  * STANDARD  — 常开内置工具,不显示开关(行为稳定)
@@ -64,6 +64,10 @@ object ToolCategories {
             "todo_write",
             "subagent_task",
             "subagent_run",
+            // 发语音：需配置云端 TTS 才有意义，但工具本身恒可见 ——
+            // 之前归 OPTIONAL，要等用户说出「语音 / 朗读 / voice」才装载，
+            // 导致配好 key 与音色后角色仍不会发语音（自定义助手设过工具白名单时更彻底搜不到）。
+            "send_voice",
         )
 
     /** 用户可在设置→工具 开关。 */
@@ -102,6 +106,8 @@ object ToolCategories {
             "skill_manage_list",
             "skill_manage_toggle",
             "assistant_manage_list",
+            // v2.x: token 用量自查 — 只读且低频，命中关键词族或用 find_tools 装载即可见。
+            "get_token_usage",
             "clipboard_write",
             "screen_time",
             "get_location",
@@ -167,6 +173,7 @@ object ToolCategories {
             "generate_image",
             "generate_video",
             "generate_qr_code",
+            // v2.x: 助手发语音消息，已上提为 STANDARD（见上），此处不再列。
             // 记忆 / 经验
             "memory_config_get",
             "memory_config_set",
@@ -194,12 +201,15 @@ object ToolCategories {
             "execute_python_script",
             "execute_shell",
             "workspace_write",
+            "workspace_edit",
             "workspace_list",
             "workspace_read",
             "workspace_grep",
             "workspace_delete",
             "workspace_mkdir",
             "workspace_move",
+            "workspace_copy",
+            "workspace_mounts",
             "browser_navigate",
             "browser_click",
             "browser_type",

@@ -15,7 +15,7 @@ import java.io.ByteArrayOutputStream
  *   bytes payload = 8;
  * }
  * ```
- * 参考实现:@larksuiteoapi/node-sdk(WSClient)的协议行为。
+ * 协议行为:@larksuiteoapi/node-sdk(WSClient)。
  */
 internal object FeishuPbbp2 {
 

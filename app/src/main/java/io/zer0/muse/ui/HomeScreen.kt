@@ -12,7 +12,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -231,15 +230,10 @@ fun HomeScreen(
                 // 原先这里并排挂两颗裸图标(全局搜索 + 小手机),与聊天页的菜单风格不一,
                 // 顶栏看起来一长一短;现在收进同一颗圆按钮的下拉菜单里。
                 // 移动端无物理键盘,Ctrl+K 不可用,搜索入口仍需在首屏可达。
-                // 小手机就是一条入口(图标 + 名字),点了直接进小手机;它是否出现由设置页的开关决定,
-                // 不要在这里再做成开关项——菜单里点一下应该就是「打开」,不是切换状态。
-                val miniPhoneEnabled by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
-                    .miniPhoneEnabledFlow
-                    // initial = false:开关未读出前先不显示入口,避免闪一下再消失
-                    .collectAsState(initial = false)
-                // v2.6.7: 再加一道编译期总闸。小手机本版不对外发布，
-                // 即使旧用户设置里是 true，也不得露出入口。
-                val showMiniPhone = io.zer0.muse.feature.FeatureFlags.MINI_PHONE && miniPhoneEnabled
+                // 小手机就是一条入口(图标 + 名字),点了直接进小手机。
+                // 是否露出只由编译期总闸决定；原先另有一道「设置里开启」的运行时开关，
+                // 它的设置页随旧实现一起删掉了，留着只会让入口永远不出现。
+                val showMiniPhone = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY
                 // v1.0.90: 小手机没开时，右上角直接就是搜索图标本身 —— 只有一项的菜单
                 // 等于多点一层。开了小手机才收起成三点菜单（搜索 + 小手机）。
                 if (showMiniPhone) {

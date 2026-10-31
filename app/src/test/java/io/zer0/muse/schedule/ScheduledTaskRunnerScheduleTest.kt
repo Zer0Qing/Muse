@@ -20,6 +20,41 @@ class ScheduledTaskRunnerScheduleTest {
         assertEquals(0L, ScheduledTaskRunner.computeNextRun("once", "", now))
     }
 
+    // ── once 语义 ─────────────────────────────────────────────────────
+    // 「下一次执行」与「首跑时间」是两个问题,共用同一个间隔实现:
+    //   computeNextRun   = 这次执行完之后还有没有下一次 → once 为 0(无下次)
+    //   initialNextRunAt = 刚建出来/刚改完间隔后什么时候首跑 → once 为 now + 一个轮询周期
+    // 0 不是「马上再跑一次」,ScheduledTaskDao.recordExecutionAndScheduleNext 见 <=0 会
+    // setEnabled(false),所以 once 任务执行完就退出调度,不会被算出第二次执行。
+
+    @Test
+    fun `once has no next run after it executes`() {
+        val now = 1_700_000_000_000L
+        // 带不带 cron 表达式都不影响:once 不看 cron
+        assertEquals("once 无下次执行", 0L, ScheduledTaskRunner.computeNextRun("once", "", now))
+        assertEquals("once 无下次执行", 0L, ScheduledTaskRunner.computeNextRun("once", "0 9 * * *", now))
+        // 未知 interval 与 once 同口径:无下次执行(不再退回「+1 天」或「+1 分钟」)
+        assertEquals(0L, ScheduledTaskRunner.computeNextRun("every-other-day", "", now))
+    }
+
+    @Test
+    fun `once first run waits one poll interval`() {
+        val now = 1_700_000_000_000L
+        // 首跑不能落 0(0 是执行后的禁用标记),也不能落 now —— 落 now 会在下一次扫描
+        // (0–60s,最坏是紧接着的那一跳)就被领取,用户点完「创建」就看到任务已跑完。
+        // 留一个轮询周期作缓冲,与调度器的 POLL_INTERVAL_MS 同源。
+        assertEquals(now + 60_000L, ScheduledTaskRunner.initialNextRunAt("once", "", now))
+        assertTrue("首跑时间必须为正,才能进入 getDueTasks(next_run_at <= now)", ScheduledTaskRunner.initialNextRunAt("once", "", now) > 0)
+    }
+
+    @Test
+    fun `recurring first run keeps the fixed offset`() {
+        val now = 1_700_000_000_000L
+        assertEquals(now + 3_600_000L, ScheduledTaskRunner.initialNextRunAt("hourly", "", now))
+        assertEquals(now + 86_400_000L, ScheduledTaskRunner.initialNextRunAt("daily", "", now))
+        assertEquals(now + 604_800_000L, ScheduledTaskRunner.initialNextRunAt("weekly", "", now))
+    }
+
     @Test
     fun `cron blank or invalid degrades to once`() {
         val now = 1_700_000_000_000L

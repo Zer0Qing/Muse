@@ -69,6 +69,14 @@ data class MessageEntity(
     /** v94: 显式父消息引用；旧 parentGroupId 仍保留。 */
     @ColumnInfo(defaultValue = "NULL") val parentMessageId: String? = null,
     @ColumnInfo(defaultValue = "[]") val imageUrlsJson: String = "[]",
+    /**
+     * 语音消息音频引用（[io.zer0.muse.ui.speech.VoiceMessageStore] 内的 `file://` 路径）。
+     *
+     * NULL = 非语音消息。Provider 发送请求时忽略此列，语音只是消息的呈现形式。
+     */
+    @ColumnInfo(defaultValue = "NULL") val voiceUri: String? = null,
+    /** 语音时长（毫秒）；0 = 未知（旧数据或时长探测失败）。 */
+    @ColumnInfo(defaultValue = "0") val voiceDurationMs: Long = 0,
     @ColumnInfo(defaultValue = "0") val favorite: Boolean = false,
     /**
      * v1.104 U7: 收藏分组标签(用户自定义,如"灵感"/"代码片段")。
@@ -135,13 +143,24 @@ data class MessageEntity(
      * A5: 消息生成元数据(信息展示用,provider 实测优先,缺失时 UI 本地估算)。
      * 由 ChatViewModel 生成结束时回填;旧数据/未回填为 NULL。
      * - [durationMs] 生成总耗时(毫秒,含工具循环)
-     * - [promptTokens]/[completionTokens]/[reasoningTokens]/[cachedTokens] provider 实测用量
+     * - [promptTokens]/[completionTokens]/[reasoningTokens] provider 实测用量
+     * - [cachedTokens] 缓存**读取** token。口径随时间变化：v120 起只装「读」，
+     *   拆分前的旧行装的是「读 + 写」合并值（旧行按「读」解释，不回填、不重算）
+     * - [cacheWriteTokens] 缓存**写入** token（仅 Anthropic）;旧行为 NULL=未知
+     *
+     * 历史分析用 [cachedTokens] 时必先分界，否则两种口径会被当成一种：
+     *  - `cacheWriteTokens IS NULL` = v120 之前的旧口径（[cachedTokens] 含写入），
+     *    v120 之后只要采到了 usage，该列就非 NULL（OpenAI/Gemini 为 0，Anthropic 为实测量），
+     *    所以这一条件比按时间切更准；需要时间界时用 `createdAt` 对 v120 升级时点分界。
+     *  - 想拿「读 + 写」合计（与旧口径可比），用
+     *    `cachedTokens + COALESCE(cacheWriteTokens, 0)`，不要直接用 `cachedTokens`。
      */
     @ColumnInfo(defaultValue = "NULL") val durationMs: Long? = null,
     @ColumnInfo(defaultValue = "NULL") val promptTokens: Int? = null,
     @ColumnInfo(defaultValue = "NULL") val completionTokens: Int? = null,
     @ColumnInfo(defaultValue = "NULL") val reasoningTokens: Int? = null,
     @ColumnInfo(defaultValue = "NULL") val cachedTokens: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val cacheWriteTokens: Int? = null,
     /**
      * H11: 翻译保留原文 — 译文消息指向被翻译的源消息 id(字符串形式),UI 提供原文对照折叠。
      */

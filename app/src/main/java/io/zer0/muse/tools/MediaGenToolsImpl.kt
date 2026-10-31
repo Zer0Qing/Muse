@@ -9,6 +9,9 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.qrcode.QrCodeGenerator
+import io.zer0.muse.ui.speech.TtsSynthResult
+import io.zer0.muse.ui.speech.VoiceMessageArchiver
+import io.zer0.muse.ui.speech.VoiceSynthesizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
@@ -21,18 +24,23 @@ import java.io.File
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
+import kotlin.uuid.Uuid
 
-/** P2-23: 媒体生成类型。 */
-enum class MediaGenKind { IMAGE, VIDEO, QR_CODE }
+/** P2-23: 媒体生成类型（语音消息沿用同一条投递链路）。 */
+enum class MediaGenKind { IMAGE, VIDEO, QR_CODE, VOICE }
 
 /**
  * P2-23: 一次媒体生成的结果(供 [MediaGenSlot] 写入会话消息)。
  */
 sealed interface MediaGenResult {
-    /** 生成成功。[imageUrls] 为原始 URL / data URI;[videoFileUri] 为视频地址。 */
+    /** 生成成功。[imageUrls] 为原始 URL / data URI;[videoFileUri] 为视频地址;[voiceUri] 为语音存档引用。 */
     data class Success(
         val imageUrls: List<String> = emptyList(),
         val videoFileUri: String? = null,
+        /** 语音消息音频引用（`file://` + 绝对路径）；非语音消息为 null。 */
+        val voiceUri: String? = null,
+        /** 语音时长（毫秒）；0 = 未知（探测失败或非语音消息）。 */
+        val voiceDurationMs: Long = 0L,
     ) : MediaGenResult
 
     /** 生成失败;[message] 只含原因,前缀文案由宿主按 [MediaGenKind] 套本地化模板。 */
@@ -117,11 +125,18 @@ class MediaGenToolsImpl(
     private val settings: SettingsRepository,
     private val imageService: ImageService,
     private val videoGenerationService: VideoGenerationService,
+    /** 语音消息合成端口（[io.zer0.muse.ui.speech.TtsManager] 实现；单测注入假实现）。 */
+    private val voiceSynthesizer: VoiceSynthesizer,
+    /** 语音消息存档端口（[io.zer0.muse.ui.speech.VoiceMessageStore] 实现）。 */
+    private val voiceMessageStore: VoiceMessageArchiver,
 ) {
 
     /** UI 投递宿主;无 UI 进程保持 null(结果以文件路径/URL 返回)。 */
     @Volatile
     private var host: MediaGenHost? = null
+
+    /** 本回合语音条数额度（键 = 宿主注入的回合标识）。 */
+    private val voiceQuota = TurnVoiceQuota(limit = VOICE_TURN_LIMIT, trackedTurns = VOICE_TURN_WINDOW)
 
     /** 安装/卸载会话投递宿主(仅 UI 对话进程调用)。 */
     fun installHost(host: MediaGenHost?) {
@@ -350,7 +365,122 @@ class MediaGenToolsImpl(
         }
     }
 
+    /**
+     * 把一段文字合成为语音，作为助手自己的语音消息发出。
+     *
+     * 链路上与生图/生视频同形（[MediaGenHost] 端口 + 代际令牌），差别在产物：
+     * 音频先写 `cacheDir` 临时文件（系统随时可清），再由 [VoiceMessageArchiver]
+     * 搬进持久目录，消息里只存 `file://` 引用。
+     *
+     * 每次调用都自己 [MediaGenHost.begin] 一次，不和其他调用共用一个槽：连续发多条语音时
+     * 每条独立完成「合成 → 存档 → 投递」，槽位句柄互不共享。
+     *
+     * 合成前有两道闸：
+     *  - 正文里没有任何汉字 → 不合成（双语角色的英文旁白用中文音色念很难听，还白花额度）；
+     *  - 本回合语音条数已达 [VOICE_TURN_LIMIT] → 不合成。
+     *
+     * @param args `text`（必填）/ `emotion`（可选，自由文本，provider 不认就当空）
+     * @param turnKey 本回合的固定标识（宿主注入的助手消息 id）；为空时不做条数限制
+     * @return 给模型的文案；**不带 uri** —— 语音已进对话，路径只会白占上下文
+     */
+    suspend fun execSendVoice(args: Map<String, String>, turnKey: String? = null): String {
+        val text = args["text"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: text"
+        voiceBlockReason(text, turnKey)?.let { return it }
+        val emotion = args["emotion"]?.takeIf { it.isNotBlank() }
+        val slot = currentHost()?.begin(MediaGenKind.VOICE)
+        // 临时文件放 cacheDir：持久化由 VoiceMessageStore 负责，中途失败也不会脏 filesDir
+        val tempFile = File(context.cacheDir, "$VOICE_TEMP_PREFIX${Uuid.random()}.wav")
+
+        return try {
+            when (val outcome = voiceSynthesizer.synthesizeTo(text, tempFile, emotion)) {
+                // 云成功 / 系统音色直成：与改造前一样只报「已发出语音消息」
+                TtsSynthResult.Success -> deliverVoice(slot, tempFile, text, emotion, fallbackReason = null)
+                // 回落到系统 TTS：音频能用，但声音不是用户配的，必须说清楚
+                is TtsSynthResult.SystemFallback ->
+                    deliverVoice(slot, tempFile, text, emotion, fallbackReason = outcome.reason)
+                is TtsSynthResult.Failure -> reportFailure(slot, VOICE_SYNTH_FAILED)
+            }
+        } catch (e: CancellationException) {
+            slot.safeReport(MediaGenResult.Cancelled)
+            throw e
+        } catch (e: Exception) {
+            val msg = e.message ?: context.getString(R.string.err_chat_unknown)
+            slot.safeReport(MediaGenResult.Failure(msg))
+            "语音消息发送失败: $msg"
+        } finally {
+            // 成功/失败/取消三条路径都要删临时文件（存档已经是独立副本）
+            tempFile.delete()
+            safeFinish(MediaGenKind.VOICE)
+        }
+    }
+
     // ── 内部工具 ────────────────────────────────────────────────────────
+
+    /**
+     * 合成前的两道闸。
+     *
+     * @return null 表示可以合成;否则是直接回给模型的说明文案
+     */
+    private fun voiceBlockReason(text: String, turnKey: String?): String? {
+        if (!containsChinese(text)) return VOICE_SKIPPED_NO_CHINESE
+        if (!voiceQuota.tryConsume(turnKey)) {
+            return "本轮语音条数已达上限（$VOICE_TURN_LIMIT 条），这条未生成语音"
+        }
+        return null
+    }
+
+    /** 文本里是否含汉字（CJK 统一表意文字及其扩展区 / 兼容区）。 */
+    private fun containsChinese(text: String): Boolean {
+        var index = 0
+        while (index < text.length) {
+            val codePoint = text.codePointAt(index)
+            if (isCjkIdeograph(codePoint)) return true
+            index += Character.charCount(codePoint)
+        }
+        return false
+    }
+
+    private fun isCjkIdeograph(codePoint: Int): Boolean =
+        codePoint in CJK_UNIFIED_RANGE ||
+            codePoint in CJK_EXT_A_RANGE ||
+            codePoint in CJK_COMPAT_RANGE ||
+            codePoint in CJK_EXT_B_RANGE
+
+    /** 语音落盘 + 时长探测 + 投递；返回给模型的文案不带 uri。
+     *
+     * @param fallbackReason 云端没生效的原因；非 null 表示这条语音用的是系统自带音色
+     */
+    private suspend fun deliverVoice(
+        slot: MediaGenSlot?,
+        tempFile: File,
+        text: String,
+        emotion: String?,
+        fallbackReason: String?,
+    ): String {
+        // key 稳定 → 同文本同情绪重复合成命中同一存档文件，不会堆出多份等价音频
+        val voiceUri = voiceMessageStore.persist(tempFile, text + VOICE_KEY_SEPARATOR + (emotion ?: ""))
+            ?: return reportFailure(slot, "语音文件保存失败")
+        // 时长只给 UI 显示用，探测不出来（0）也照常投递
+        val durationMs = voiceMessageStore.probeDurationMs(tempFile)
+        if (slot == null || !slot.isActive()) {
+            // A-13 代际失效 / 无 UI 进程：这条语音不会被任何消息引用，删掉免得留孤儿存档
+            voiceMessageStore.delete(voiceUri)
+            return "语音已合成,但没有可投递的消息,语音消息未发出"
+        }
+        slot.safeReport(MediaGenResult.Success(voiceUri = voiceUri, voiceDurationMs = durationMs))
+        return if (fallbackReason == null) {
+            "已发出语音消息"
+        } else {
+            "已发出语音消息，但当前用的是手机自带音色（云端 TTS 未生效：$fallbackReason）"
+        }
+    }
+
+    /** 失败写进会话消息（如果还有可写的消息），并把原因作为工具结果返回。 */
+    private suspend fun reportFailure(slot: MediaGenSlot?, message: String): String {
+        slot.safeReport(MediaGenResult.Failure(message))
+        return message
+    }
 
     /**
      * 投递结果到会话消息。
@@ -444,5 +574,53 @@ class MediaGenToolsImpl(
 
         /** 视频生成进度刷新间隔(v1.135 行为:每 5 秒一次)。 */
         const val PROGRESS_INTERVAL_MS = 5_000L
+
+        /** 语音消息临时文件前缀（写 cacheDir，播/存之后即删）。 */
+        const val VOICE_TEMP_PREFIX = "voice-message-"
+
+        /** 语音存档 key 的分隔符：`text \u0000 emotion`，避免同文本不同情绪撞车。 */
+        const val VOICE_KEY_SEPARATOR = "\u0000"
+
+        /** 一次助手回合最多发出的语音条数（超出直接拒绝，不合成）。 */
+        const val VOICE_TURN_LIMIT = 5
+
+        /** 条数计数保留的回合数上限，防止长期运行后计数表无界增长。 */
+        const val VOICE_TURN_WINDOW = 16
+
+        /** 正文里没有汉字时的工具结果：说明原因，并提示改用文字。 */
+        const val VOICE_SKIPPED_NO_CHINESE =
+            "这段没有中文，未生成语音（英文等内容请用文字回复，别念出来）"
+
+        /** 云端与系统 TTS 都没合成出来时的工具结果（文案与改造前一致）。 */
+        const val VOICE_SYNTH_FAILED = "语音合成失败"
+
+        /** 汉字码位：CJK 统一表意文字（4E00–9FFF）及其扩展 A / 兼容 / 扩展 B 区。 */
+        val CJK_UNIFIED_RANGE = 0x4E00..0x9FFF
+        val CJK_EXT_A_RANGE = 0x3400..0x4DBF
+        val CJK_COMPAT_RANGE = 0xF900..0xFAFF
+        val CJK_EXT_B_RANGE = 0x20000..0x2FA1F
+    }
+}
+
+/**
+ * 每回合语音条数额度。
+ *
+ * 键是宿主注入的回合标识（回合内固定，下一回合自然换键），因此不需要回合结束回调；
+ * 只保留最近 [trackedTurns] 个回合的计数，新回合挤进来时整体作废旧计数，避免无界增长。
+ * 超限的那次不计数（重试同一句仍会被挡住）。
+ */
+private class TurnVoiceQuota(private val limit: Int, private val trackedTurns: Int) {
+
+    private val counts = HashMap<String, Int>()
+
+    /** 记一次语音消费；超限返回 false。没有回合标识（非对话链路）时不设限。 */
+    @Synchronized
+    fun tryConsume(turnKey: String?): Boolean {
+        val key = turnKey?.takeIf { it.isNotBlank() } ?: return true
+        val used = counts[key] ?: 0
+        if (used >= limit) return false
+        if (used == 0 && counts.size >= trackedTurns) counts.clear()
+        counts[key] = used + 1
+        return true
     }
 }

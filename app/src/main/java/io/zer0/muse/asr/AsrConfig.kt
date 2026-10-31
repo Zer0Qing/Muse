@@ -46,7 +46,8 @@ enum class AsrProviderType {
  * @param provider ASR Provider 类型
  * @param apiKey DashScope/Step/OpenAI API Key(SYSTEM 模式忽略)
  * @param model 模型名(DashScope 默认 paraformer-real-time-v2,Step 默认 step-audio-r1.1,
- *   OPENAI_WHISPER/OPENAI_REALTIME 默认 whisper-1,DASHSCOPE_FILE 默认 paraformer-v2)
+ *   OPENAI_WHISPER 默认 whisper-1,OPENAI_REALTIME 默认 gpt-realtime-whisper,
+ *   DASHSCOPE_FILE 默认 paraformer-v2)
  * @param sampleRate 采样率(DashScope Paraformer v2 支持任意,默认 16000)
  * @param language 语种提示(DashScope: zh/en/ja/yue/ko/de/fr/ru,null=自动识别)
  * @param enablePunctuation 是否启用标点预测(DashScope v2,默认 true)
@@ -63,6 +64,9 @@ enum class AsrProviderType {
  *   OPENAI_REALTIME 走服务端 VAD 不需要本地;DashScope/Whisper/Step 可选启用)
  * @param vadThreshold VAD 能量阈值(归一化 RMS 0-1f,默认 0.05f,低于此值视为静音)
  * @param vadSilenceDurationMs VAD 静音自动停止时长(毫秒,默认 1500ms)
+ * @param followProvider 是否跟随供应商配置(开启后凭据/模型取自 [providerId] + [modelId])
+ * @param providerId 跟随模式下所选供应商 id
+ * @param modelId 跟随模式下所选模型 id
  */
 @Serializable
 data class AsrConfig(
@@ -85,6 +89,17 @@ data class AsrConfig(
     val vadEnabled: Boolean = false,
     val vadThreshold: Float = 0.05f,
     val vadSilenceDurationMs: Long = 1_500L,
+    /**
+     * 是否跟随供应商配置(默认 false)。
+     *
+     * 开启后 apiKey / baseUrl 取自 [providerId] 指向的供应商,模型取自 [modelId];
+     * 关闭时一律使用手动配置([apiKey] / [baseUrl] / [model]),行为与旧版一致。
+     */
+    val followProvider: Boolean = false,
+    /** 跟随模式下所选供应商 id(空串表示未选)。 */
+    val providerId: String = "",
+    /** 跟随模式下所选模型 id(空串表示未选)。 */
+    val modelId: String = "",
 ) {
     /** 是否已配置可用(SYSTEM 总是可用,API 模式需要 apiKey)。 */
     val isConfigured: Boolean
@@ -96,7 +111,7 @@ data class AsrConfig(
         AsrProviderType.STEP -> "step-audio-r1.1"
         AsrProviderType.DASHSCOPE_FILE -> "paraformer-v2"
         AsrProviderType.OPENAI_WHISPER -> "whisper-1"
-        AsrProviderType.OPENAI_REALTIME -> "gpt-4o-realtime-preview"
+        AsrProviderType.OPENAI_REALTIME -> "gpt-realtime-whisper"
         AsrProviderType.AGNES -> "whisper-1"
         AsrProviderType.SYSTEM -> ""
     }

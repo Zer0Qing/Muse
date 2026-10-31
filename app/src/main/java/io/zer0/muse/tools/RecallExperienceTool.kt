@@ -3,7 +3,7 @@ package io.zer0.muse.tools
 import io.zer0.muse.data.experience.ExperienceRepository
 
 /**
- * recall_experience 工具(既有实现 experience.ts 实现)。
+ * recall_experience 工具。
  *
  * 渐进式披露:不带参数时返回分类索引,
  * 带分类名时返回该分类下的具体经验。

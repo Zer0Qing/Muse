@@ -67,7 +67,9 @@ fun ImageGenSection(settings: SettingsRepository = koinInject(), scope: Coroutin
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = null)
 
     val imageProviders = remember(providers) {
-        providers?.filter { it.type == ProviderType.OPENAI || it.type == ProviderType.GEMINI } ?: emptyList()
+        providers?.filter {
+            it.enabled && (it.type == ProviderType.OPENAI || it.type == ProviderType.GEMINI)
+        } ?: emptyList()
     }
     val selectedProvider = remember(localConfig.providerId, imageProviders) {
         imageProviders.firstOrNull { it.id == localConfig.providerId }

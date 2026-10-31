@@ -5,7 +5,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * v1.0.53: 子 agent 线程持久化 Entity(既有实现 SubagentThreadStore)。
+ * v1.0.53: 子 agent 线程持久化 Entity。
  *
  * 替代旧 tools/SubagentThreadStore.kt(内存版)。两条 subagent 路径共享:
  *  - 路径 A: SubagentTool + SkillExecutor.delegateAgent nonBlocking

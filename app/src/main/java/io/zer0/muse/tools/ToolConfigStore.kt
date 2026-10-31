@@ -57,10 +57,11 @@ class ToolConfigStore(private val context: Context) {
     suspend fun getConfiguredPolicy(toolName: String): ToolApprovalPolicy? = policiesFlow.first()[toolName]
 
     /**
-     * 读取生效策略：未配置时回退为 [ToolApprovalPolicy.ALWAYS_ALLOW]。
+     * 兼容访问器：未配置时回退为 [ToolApprovalPolicy.ALWAYS_ALLOW]。
      *
-     * 仅适用于「只关心用户是否显式禁用/要求审批」的场景（如子 agent 的
-     * deny_on_prompt 处理）；审批主路径请使用 [getConfiguredPolicy]。
+     * 这个回落让「未配置」看起来像「用户已放行」，因此它只适合「只关心用户是否显式禁用」
+     * 的调用点；任何要决定「能不能执行」的审批判定必须用 [getConfiguredPolicy] 并把 null
+     * 交给 [ToolPermissionResolver] 按会话模式 + 风险等级判定（子 agent 的工具闸门也是这条规矩）。
      */
     suspend fun getPolicy(toolName: String): ToolApprovalPolicy = getConfiguredPolicy(toolName) ?: ToolApprovalPolicy.ALWAYS_ALLOW
 

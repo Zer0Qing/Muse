@@ -220,6 +220,55 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                             modifier = Modifier.padding(top = 8.dp),
                         )
                     }
+                    // v2.6.13: 自定义技能的一键启停。
+                    // 只作用于非内置、非插件技能：内置工具是这个应用的手脚，插件技能随插件启停。
+                    bulkToggleTargets(skillList, builtInIds).takeIf { it.isNotEmpty() }?.let { targets ->
+                        item {
+                            val enabledCount = targets.count { it.enabled }
+                            val allEnabled = enabledCount == targets.size
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.skill_bulk_summary,
+                                        targets.size,
+                                        enabledCount,
+                                    ),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = stringResource(
+                                        if (allEnabled) {
+                                            R.string.skill_bulk_disable_all
+                                        } else {
+                                            R.string.skill_bulk_enable_all
+                                        },
+                                    ),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .clickable {
+                                            scope.launch {
+                                                val target = !allEnabled
+                                                targets.forEach { skill ->
+                                                    resultOf { skillRepository.setEnabled(skill.id, target) }
+                                                        .onError { msg, _ ->
+                                                            MuseToast.show(
+                                                                context.getString(R.string.skill_operation_failed, msg),
+                                                            )
+                                                        }
+                                                }
+                                            }
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+                    }
                     items(skillList, key = { it.id }) { skill ->
                         SkillRow(
                             skill = skill,
@@ -667,4 +716,21 @@ private fun DetailLine(label: String, value: String) {
             modifier = Modifier.weight(1f),
         )
     }
+}
+
+/**
+ * 「一键启停」的作用集合。
+ *
+ * 排除两类：
+ *  - 内置技能（`SkillExecutor.BUILT_IN_SKILLS`）：它们是这个应用的手脚，
+ *    全关掉等于把模型的所有工具收走，不是用户点「全部停用」时想表达的意思；
+ *  - 插件技能（`plugin:` 路由）：它们的启停跟着插件走，单独改会与插件状态打架。
+ *
+ * 抽成纯函数是因为这段判据决定「一键」到底影响什么，值得单独测。
+ */
+internal fun bulkToggleTargets(
+    skills: List<SkillEntity>,
+    builtInIds: Set<String>,
+): List<SkillEntity> = skills.filterNot { skill ->
+    skill.id in builtInIds || skill.implementationKotlin.startsWith("plugin:")
 }

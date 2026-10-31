@@ -14,12 +14,17 @@
     <string name="chat_doc_default_name">ドキュメント</string>
     <string name="chat_doc_parse_failed">ドキュメント解析に失敗しました: %1$s</string>
     <string name="chat_attachment_workspace_ref">添付ファイルをワークスペースに保存しました：%1$s（%2$s）</string>
+    <string name="chat_attachment_preview_unavailable">このファイルはアプリ内で開けません。元のファイルはワークスペースにあります：%1$s</string>
     <string name="chat_attachment_import_failed">添付ファイルの保存に失敗しました：%1$s</string>
     <string name="chat_doc_char_count">%1$d 文字</string>
     <string name="chat_pasted_doc_name">貼り付けテキスト_%1$s.txt</string>
     <string name="chat_thinking_preview">思考 · %1$s</string>
     <string name="chat_voice_playing_cd">音声再生中</string>
     <string name="chat_voice_ready_cd">音声準備完了</string>
+    <!-- v2.6.16: 音声メッセージバー -->
+    <string name="chat_voice_play_cd">音声メッセージを再生</string>
+    <string name="chat_voice_pause_cd">音声メッセージを一時停止</string>
+    <string name="chat_voice_expired">音声メッセージは利用できません</string>
     <string name="chat_knowledge_chunk_title">《%1$s》 · チャンク #%2$d</string>
     <string name="chat_knowledge_chunk_score">スコア %1$s · %2$s</string>
     <string name="chat_citation_chip_a11y">引用 [%1$d]:%2$s、%3$s</string>
@@ -467,7 +472,8 @@
     <string name="msg_info_prompt">入力 (prompt)</string>
     <string name="msg_info_completion">出力 (completion)</string>
     <string name="msg_info_reasoning">推論 (reasoning)</string>
-    <string name="msg_info_cached">キャッシュヒット</string>
+    <string name="msg_info_cached">キャッシュ読み取り</string>
+    <string name="msg_info_cache_write">キャッシュ書き込み</string>
     <string name="msg_info_total">合計</string>
     <string name="msg_info_measured">実測</string>
     <string name="msg_info_estimated">推定</string>

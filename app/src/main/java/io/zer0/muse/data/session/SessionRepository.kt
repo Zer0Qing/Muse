@@ -17,6 +17,7 @@ import io.zer0.muse.data.chat.rewrite.ConversationProjector
 import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
 import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
 import io.zer0.muse.data.chat.rewrite.MessageCommitResult
+import io.zer0.muse.session.TurnPhase
 import io.zer0.muse.tools.SessionPermissionStore
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.MoodSkinParser
@@ -67,6 +68,14 @@ class SessionRepository(
     private val sessionPermissionStore: SessionPermissionStore? = null,
     /** P2-4: 审计日志记录器(会话删除等用户操作)。 */
     private val auditLogger: AuditLogger? = null,
+    /**
+     * 会话删除后的记忆侧清理(摘要/检查点/事实)。
+     *
+     * 放在仓库层而不是 controller:HostWebSocketGateway、SessionManageTools、
+     * RecentlyDeletedScreen、A2aHandler 都直接调本类的删除方法,下沉到这里所有入口自动覆盖。
+     * null 时跳过(单测/无 DI 环境)。
+     */
+    private val sessionMemoryCleanup: io.zer0.muse.data.memory.SessionMemoryCleanup? = null,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -123,6 +132,15 @@ class SessionRepository(
 
         /** C-23: FTS 内容一致性抽查条数。 */
         private const val FTS_SAMPLE_COUNT = 10
+
+        /**
+         * A9: 悬挂 turn 收敛的保守窗口(毫秒)。
+         *
+         * 只有 `startedAt` 早于启动时刻这个窗口的 open turn 才判定为上一个进程遗留。取 15 分钟:
+         * 一次生成里单条视频工具就能占数分钟,多轮工具 + 审批等待超过 10 分钟并不罕见,窗口再短
+         * 就有误杀正在进行的 turn 的风险。不允许设为 0 —— 那会把本进程刚创建的 turn 一起改掉。
+         */
+        const val STALE_TURN_GRACE_MS = 15 * 60 * 1000L
 
         /** C-23: 内容抽查时每个样本用于构造 MATCH 探测的 token 数量上限。 */
         private const val FTS_PROBE_TOKEN_LIMIT = 3
@@ -274,6 +292,9 @@ class SessionRepository(
                 // 恢复入口会再次检查 deletedAt，只有硬删除事务才由 FK 级联清理。
             }
         }
+        // 记忆侧同样清 —— 用户预期是“删了就没了”:即使 7 天内从“最近删除”里恢复会话,
+        // 摘要与事实也不会回来(恢复只还原消息,不重建记忆)。
+        cleanSessionMemory(listOf(id))
         auditLogger?.log(
             category = "user_action",
             action = "soft_delete_session",
@@ -295,27 +316,32 @@ class SessionRepository(
     /** v2.0: 永久过期清理(7 天前的软删除会话)。 */
     suspend fun purgeOldDeletedSessions() {
         withContext(Dispatchers.IO) {
-            val messageIds = database.withTransaction {
+            val (expiredSessionIds, messageIds) = database.withTransaction {
                 val cutoff = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
+                val sessionIds = sessionDao.listIdsDeletedBefore(cutoff)
                 val deletedMessageIds = messageDao.getMessageIdsForExpiredSessions(cutoff)
                 syncFtsClear()
                 sessionDao.permanentlyDeleteOldSessions(cutoff)
-                deletedMessageIds
+                sessionIds to deletedMessageIds
             }
             deleteMessageImages(messageIds)
+            // 彻底删除后不会再有任何恢复入口,记忆不在这里清就永久成孤儿
+            cleanSessionMemory(expiredSessionIds)
         }
     }
 
     /** v2.0: 清空全部会话(硬删除,替代原 deleteAll 用于数据管理页)。 */
     suspend fun hardDeleteAllSessions() {
         withContext(Dispatchers.IO) {
-            val messageIds = database.withTransaction {
+            val (allSessionIds, messageIds) = database.withTransaction {
+                val sessionIds = sessionDao.listAllIds()
                 val deletedMessageIds = messageDao.getAllMessageIds()
                 syncFtsClear()
                 sessionDao.deleteAll()
-                deletedMessageIds
+                sessionIds to deletedMessageIds
             }
             deleteMessageImages(messageIds)
+            cleanSessionMemory(allSessionIds)
             auditLogger?.log(
                 category = "user_action",
                 action = "delete_all_sessions",
@@ -372,35 +398,16 @@ class SessionRepository(
         return id
     }
 
-    /** v1.138: 创建小手机私信空间会话(仅在小手机「消息」Tab 显示)。 */
-    suspend fun createMiniPhoneSession(assistantId: String): String {
-        val id = Uuid.random().toString()
-        val now = System.currentTimeMillis()
-        sessionDao.insert(
-            SessionEntity(
-                id = id,
-                title = context.getString(R.string.session_repo_default_title),
-                createdAt = now,
-                updatedAt = now,
-                assistantId = assistantId,
-                isMiniPhone = true,
-            ),
-        )
-        return id
-    }
-
-    /** v1.138: 观察小手机私信空间会话流(仅 isMiniPhone=true,未软删除)。 */
-    fun observeMiniPhoneSessions(): Flow<List<SessionEntity>> = sessionDao.observeMiniPhoneSessions()
-
-    /** v1.138: 一次性取小手机私信空间会话列表(按 updatedAt 倒序)。 */
-    suspend fun getMiniPhoneSessions(): List<SessionEntity> = sessionDao.getMiniPhoneSessions()
-
     /** v1.28: 获取最近的 Agent 会话(用于自动恢复)。 */
     suspend fun getLatestAgentSession(): SessionEntity? = sessionDao.getLatestAgentSession()
 
     /** v1.0.54: 按助手查最近 Agent 会话。 */
     suspend fun getRecentAgentByAssistant(assistantId: String, limit: Int): List<SessionEntity> =
         sessionDao.getRecentAgentByAssistant(assistantId, limit)
+
+    /** 主动消息落点:该助手最近有用户发言、且未删除/未归档的会话。 */
+    suspend fun getRecentActiveByAssistant(assistantId: String): SessionEntity? =
+        sessionDao.getRecentActiveByAssistant(assistantId)
 
     /** v1.0.72: 设置会话"不参考记忆"标志。 */
     suspend fun setSessionIgnoreMemory(sessionId: String, ignore: Boolean) {
@@ -518,6 +525,8 @@ class SessionRepository(
                 deletedMessageIds
             }
             deleteMessageImages(messageIds)
+            // 记忆侧同步清理:会话行删了但摘要/事实还在,记忆页的记忆轴就还在显示它的卡片
+            cleanSessionMemory(listOf(id))
             // v1.135-A: 清理该会话的视觉辅助缓存 sidecar,避免孤儿文件
             // i18n 示范改造点 1:原硬编码中文 "清理视觉缓存失败: $id" 改为
             // ErrorMessage.StorageError.IO_ERROR + sessionId 作为日志 metadata。
@@ -548,6 +557,19 @@ class SessionRepository(
                 target = id,
             )
         }
+    }
+
+    /**
+     * 调记忆清理器并吞掉异常。
+     *
+     * 清理是收尾动作:它失败不该让已经把会话/消息删掉的删除流程抛错(那会让 UI 以为删除失败)。
+     * 清理器内部已按步骤隔离失败,这里再包一层只是为了防御装配/取消以外的意外。
+     */
+    private suspend fun cleanSessionMemory(sessionIds: Collection<String>) {
+        val cleanup = sessionMemoryCleanup ?: return
+        if (sessionIds.isEmpty()) return
+        resultOf { cleanup.cleanSessions(sessionIds) }
+            .onError { msg, t -> Logger.w(TAG, "清理会话记忆失败: $msg", t) }
     }
 
     /** 重命名会话。 */
@@ -883,6 +905,11 @@ class SessionRepository(
     /** v1.53-A1: 会话消息总数(分页判断 hasMoreHistory 用)。 */
     suspend fun getMessageCount(sessionId: String): Int = messageDao.countBySession(sessionId)
 
+    /** 单会话实测用量合计(token 消耗自查用;只计有实测 token 的助手消息)。 */
+    suspend fun getUsageTotalsBySession(sessionId: String): SessionUsageAggregate = withContext(Dispatchers.IO) {
+        messageDao.usageTotalsBySession(sessionId)
+    }
+
     /** 持久化一条消息,返回其 id。同时更新会话的 updatedAt + lastMessagePreview + FTS 索引。 */
     suspend fun appendMessage(sessionId: String, message: UIMessage): String {
         // H-SESS1: 跨表(messages + FTS + sessions)用事务包裹,保证一致性
@@ -1103,6 +1130,38 @@ class SessionRepository(
                 finishedAt = System.currentTimeMillis(),
             )
         }
+    }
+
+    /**
+     * A9: 启动时收敛上一个进程留下的悬挂 turn(进程被杀时未来得及盖 `finishedAt`)。
+     *
+     * turn 行只在 [finishConversationTurn] 和 commitConversationMessage 两条收尾路径里写
+     * `finishedAt`。进程被强杀时两条都跑不到,于是留下 `phase = "STREAMING"` 且
+     * `finishedAt IS NULL` 的行:后续生成用新 turnId,不会接管旧行;B5-01 的检查点恢复只读
+     * generation_checkpoints,也不读 turn 行。这些行既不标失败也无人认领,永久悬挂。
+     *
+     * 收敛终态取 [TurnPhase.FAILED]:本表 phase 的取值集合没有「进程被杀 / 被新进程接管」这一档,
+     * `CANCELLED` 在运行时语义里专指用户 stop(本场景不是),`RESUMABLE` 不是终态且没有任何代码
+     * 按 turn 行恢复生成,只有 `FAILED` 表达「异常结束、不会再有结果」,语义最贴近,因此不新增枚举值。
+     *
+     * 只处理 `startedAt` 早于 `now -` [STALE_TURN_GRACE_MS] 的行:定时任务 / 渠道接收器可能与本
+     * sweep 并发起跑生成,新行的 `startedAt` 就是当前时刻,不会落进窗口。
+     *
+     * 幂等:写入条件含 `finishedAt IS NULL`,重复执行第二次返回 0 且不改任何行。
+     *
+     * @param now 收敛时刻(测试可注入固定值,生产用系统时钟)
+     * @return 本次收敛的行数
+     */
+    suspend fun closeStaleOpenTurns(now: Long = System.currentTimeMillis()): Int = withContext(Dispatchers.IO) {
+        val closed = database.conversationTurnDao().closeStaleOpenTurns(
+            phase = TurnPhase.FAILED.name,
+            startedBefore = now - STALE_TURN_GRACE_MS,
+            finishedAt = now,
+        )
+        if (closed > 0) {
+            Logger.i(TAG, "悬挂 turn 收敛: $closed 条 → phase=${TurnPhase.FAILED.name}, 窗口 ${STALE_TURN_GRACE_MS}ms")
+        }
+        closed
     }
 
     /** 写入 outbox（发送前落盘，保证“刚点发送就退出”不丢消息）。 */
@@ -1920,6 +1979,9 @@ class SessionRepository(
             seq = seq,
             commitSeq = commitSeq,
             imageUrls = parseImageUrls(imageUrlsJson),
+            // v2.6.16: 语音消息往返（旧行 voiceUri=NULL / voiceDurationMs=0，即非语音消息）
+            voiceUri = voiceUri,
+            voiceDurationMs = voiceDurationMs,
             favorite = favorite,
             favoriteTag = favoriteTag,
             citationUrls = parseImageUrls(citationUrlsJson),
@@ -1947,11 +2009,15 @@ class SessionRepository(
             promptTokens = promptTokens,
             completionTokens = completionTokens,
             reasoningTokens = reasoningTokens,
+            // 旧行只有合并值:按「读」解释,不回填不重算;cacheWriteTokens 旧行为 NULL=未知
             cachedTokens = cachedTokens,
+            cacheWriteTokens = cacheWriteTokens,
             // H11: 译文消息的源消息 id(原文对照折叠)
             translationSourceId = translationSourceId,
             // v2.4.6: 译文映射往返(语言名 → 译文)
             translations = parseTranslations(translationsJson),
+            // v2.6.13: 附件元数据往返。旧数据的该列为 "[]"，解析为空列表，行为与改动前一致。
+            attachments = parseAttachments(attachmentsJson),
         )
     }
 
@@ -1969,6 +2035,9 @@ class SessionRepository(
         seq = 0L,
         commitSeq = 0L,
         imageUrlsJson = encodeImageUrls(imageUrls),
+        // v2.6.16: 语音消息音频引用 + 时长
+        voiceUri = voiceUri,
+        voiceDurationMs = voiceDurationMs,
         favorite = favorite,
         // v1.104 U7: 收藏分组标签往返(默认 NULL,未分组)
         favoriteTag = favoriteTag,
@@ -2006,10 +2075,14 @@ class SessionRepository(
         completionTokens = completionTokens,
         reasoningTokens = reasoningTokens,
         cachedTokens = cachedTokens,
+        cacheWriteTokens = cacheWriteTokens,
         // H11: 译文消息的源消息 id(原文对照折叠)
         translationSourceId = translationSourceId,
         // v2.4.6: 译文映射持久化
         translationsJson = encodeTranslations(translations),
+        // v2.6.13: 附件元数据往返。此前该列一直写默认值 "[]"，
+        // 于是消息里的附件只剩正文那行「已存入工作区」文本，重启后连文件名都拼不回来。
+        attachmentsJson = encodeAttachments(attachments),
     )
 
     /** v1.0.30: 按 id 获取消息（变体查询用）。 */
@@ -2034,7 +2107,7 @@ class SessionRepository(
     /**
      * 审查修复 (2.0 A-04): 为已落库的消息附加媒体字段 — 切会话后后台生成仍在跑,
      * exec* 的媒体无法写入当前 UI 的 _messages(消息属于原会话),本方法直接对 DB
-     * 中该消息(工具轮占位,已由 persistAssistantToolMsg 落库)合并内容/图片/视频,
+     * 中该消息(工具轮占位,已由 persistAssistantToolMsg 落库)合并内容/图片/视频/语音,
      * 用户切回原会话时从 DB 恢复即可看到。内容幂等合并(已含则不重复拼接)。
      */
     suspend fun attachMediaToMessage(
@@ -2043,6 +2116,8 @@ class SessionRepository(
         content: String,
         imageUrls: List<String>? = null,
         videoFileUri: String? = null,
+        voiceUri: String? = null,
+        voiceDurationMs: Long = 0L,
     ) {
         if (sessionId.isNullOrBlank()) return
         withContext(Dispatchers.IO) {
@@ -2061,6 +2136,10 @@ class SessionRepository(
                         existing.imageUrlsJson
                     },
                     videoFileUri = videoFileUri ?: existing.videoFileUri,
+                    // 语音同理:不传就保留库里已有的引用,传了就覆写引用与时长
+                    // (时长跟引用走:换了语音才换时长,否则单写 0 会把旧时长抹掉)
+                    voiceUri = voiceUri ?: existing.voiceUri,
+                    voiceDurationMs = if (voiceUri != null) voiceDurationMs else existing.voiceDurationMs,
                 )
                 messageDao.upsert(updated)
                 resultOf {
@@ -2097,6 +2176,16 @@ class SessionRepository(
 
     private fun parseRagCitations(s: String): List<RagCitation> =
         runCatching { json.decodeFromString(ragCitationListSerializer, s) }.getOrDefault(emptyList())
+
+    /** v2.6.13: 消息附件元数据序列化。空列表存 "[]"。 */
+    private val attachmentListSerializer: kotlinx.serialization.KSerializer<List<io.zer0.ai.core.AttachmentRef>> =
+        kotlinx.serialization.builtins.ListSerializer(io.zer0.ai.core.AttachmentRef.serializer())
+
+    private fun encodeAttachments(items: List<io.zer0.ai.core.AttachmentRef>): String =
+        if (items.isEmpty()) "[]" else runCatching { json.encodeToString(attachmentListSerializer, items) }.getOrDefault("[]")
+
+    private fun parseAttachments(s: String): List<io.zer0.ai.core.AttachmentRef> =
+        runCatching { json.decodeFromString(attachmentListSerializer, s) }.getOrDefault(emptyList())
 
     /** v2.4.6: 译文映射序列化(语言名 → 译文)。空映射存 "{}"。 */
     private val translationMapSerializer: kotlinx.serialization.KSerializer<Map<String, String>> =

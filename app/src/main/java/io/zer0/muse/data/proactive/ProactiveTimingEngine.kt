@@ -1,7 +1,5 @@
 package io.zer0.muse.data.proactive
 
-import kotlin.math.max
-
 /**
  * 主动消息的时机判定引擎。
  *
@@ -35,13 +33,20 @@ object ProactiveTimingEngine {
     const val USER_ACTIVE_WINDOW_MS = 10 * 60 * 1000L
 
     /**
-     * 两条主动消息之间的最小间隔。
+     * 两条主动消息之间的默认间隔（分钟）。
      *
-     * 这个约束原来藏在评分函数里（刚发过就压低分数，压到阈值下就不发），
-     * 评分删掉后必须独立成一条硬判定 —— 否则「接话」接得太勤，
-     * 用户会觉得自己被一个不停找话题的机器缠住。
+     * 与 [io.zer0.muse.data.ProactiveMessageConfig.intervalMinutes] 的默认值一致：
+     * 老配置里这个字段一直是 240，界面也一直这么写，判定必须按同一个数走。
      */
-    const val MIN_INTERVAL_MS = 3 * 60 * 60 * 1000L
+    const val DEFAULT_INTERVAL_MINUTES = 240
+
+    /** 间隔下限（分钟）。再短就不是「主动」而是刷屏了。 */
+    const val MIN_INTERVAL_MINUTES = 30
+
+    /** 间隔上限（分钟，24 小时）。再长就变成「一年说几次话」。 */
+    const val MAX_INTERVAL_MINUTES = 1440
+
+    private const val MINUTE_MS = 60_000L
 
     /**
      * 一次判定的全部输入。
@@ -61,6 +66,39 @@ object ProactiveTimingEngine {
         val isGenerating: Boolean,
         /** 上一条主动消息的发出时间，0 表示从没有过。 */
         val lastProactiveSentAt: Long,
+        /**
+         * 上一轮巡检进入生成的时间，0 表示进程内还没有过。
+         *
+         * 与 [lastProactiveSentAt] 是两件事，不能互相替代：结果账要等消息真正落库才写，
+         * 而生成那一步最长要几十秒 —— 这段时间里结果账上什么都没有，
+         * 只看结果账的话，**正在生成的那一轮在数据层等于不存在**，
+         * 于是又一轮巡检会认为「距上一条已经够久了」而放行。
+         * 这个时间在调模型之前就登记，正好补上那段空窗。
+         */
+        val lastProactiveAttemptAt: Long = 0L,
+        /**
+         * 节奏参数：间隔、当日抖动与参与抖动的助手 id。
+         *
+         * 这三个是一组：改间隔必然要知道抖动上限和「是谁在发」，
+         * 拆成三个平铺字段会让 [Input] 的构造参数超过可读范围，
+         * 也会让调用方以为它们彼此无关。
+         */
+        val pacing: Pacing = Pacing(),
+    )
+
+    /**
+     * 一组节奏参数。
+     *
+     * 基础间隔来自用户设置（「主动程度」档位或自定义滑块），
+     * 抖动上限同样来自设置，两者叠加后的间隔才是真正的硬闸（见 [effectiveIntervalMinutes]）。
+     */
+    data class Pacing(
+        /** 基础间隔（分钟）。判定时夹到 [MIN_INTERVAL_MINUTES]..[MAX_INTERVAL_MINUTES]。 */
+        val intervalMinutes: Int = DEFAULT_INTERVAL_MINUTES,
+        /** 当日偏移上限（分钟）。0 表示不抖动。 */
+        val randomOffsetMinutes: Int = 0,
+        /** 助手 id，参与「日期 + 助手」哈希，让不同助手的抖动落在不同分钟。 */
+        val assistantId: String = "",
     )
 
     /** 判定结论。 */
@@ -92,6 +130,8 @@ object ProactiveTimingEngine {
         val verdict: Verdict,
         val remainingBudget: Float,
         val hourOfDay: Int,
+        /** 本次判定实际使用的间隔（含当日偏移），排查「为什么还没到点」时先看它。 */
+        val effectiveIntervalMinutes: Int = DEFAULT_INTERVAL_MINUTES,
     ) {
         val shouldSend: Boolean get() = verdict == Verdict.OK
     }
@@ -106,25 +146,34 @@ object ProactiveTimingEngine {
     fun evaluate(input: Input): Decision {
         val hour = hourOfDay(input.now)
         val remaining = remainingBudget(input.relation)
+        val intervalMinutes = effectiveIntervalMinutes(input)
 
         // Q1：时机
-        val timingBlock = checkTiming(input, hour)
+        val timingBlock = checkTiming(input, hour, intervalMinutes * MINUTE_MS)
 
         // Q2：额度。放在时机之后，是因为「现在不能打扰」和「没额度」的排查方向不同。
         val verdict = timingBlock ?: if (remaining < 1f) Verdict.NO_BUDGET else Verdict.OK
 
-        return Decision(verdict = verdict, remainingBudget = remaining, hourOfDay = hour)
+        return Decision(
+            verdict = verdict,
+            remainingBudget = remaining,
+            hourOfDay = hour,
+            effectiveIntervalMinutes = intervalMinutes,
+        )
     }
 
-    /** Q1 的四道闸。返回非空表示被拦下。 */
-    private fun checkTiming(input: Input, hour: Int): Verdict? = when {
+    /** Q1 的硬闸。返回非空表示被拦下。 */
+    private fun checkTiming(input: Input, hour: Int, intervalMs: Long): Verdict? = when {
         !input.allDayAllowed &&
             isInQuietHours(hour, input.allowedHourStart, input.allowedHourEnd) -> Verdict.QUIET_HOUR
 
         input.relation.cooldownUntil > input.now -> Verdict.COOLDOWN
 
-        input.lastProactiveSentAt > 0 &&
-            input.now - input.lastProactiveSentAt < MIN_INTERVAL_MS -> Verdict.TOO_SOON
+        tooSoon(input.now, input.lastProactiveSentAt, intervalMs) -> Verdict.TOO_SOON
+
+        // 上一轮开跑得还不够久，也按「太近」处理。
+        // 这一条才是生成窗口内的护栏：结果账还是空的，但尝试已经登记过了。
+        tooSoon(input.now, input.lastProactiveAttemptAt, intervalMs) -> Verdict.TOO_SOON
 
         input.isGenerating -> Verdict.IN_CONVERSATION
 
@@ -132,6 +181,57 @@ object ProactiveTimingEngine {
             input.now - input.lastUserMessageAt < USER_ACTIVE_WINDOW_MS -> Verdict.USER_ACTIVE
 
         else -> null
+    }
+
+    /** 距 [timestamp] 不足 [intervalMs] 就算太近；0 表示从未发生，不参与判定。 */
+    private fun tooSoon(now: Long, timestamp: Long, intervalMs: Long): Boolean =
+        timestamp > 0 && now - timestamp < intervalMs
+
+    /**
+     * 本次判定真正使用的间隔：用户配的基础间隔 + 当日偏移。
+     *
+     * 基础间隔夹到 [MIN_INTERVAL_MINUTES]..[MAX_INTERVAL_MINUTES]：
+     * 设置页滑块的合法范围更宽，老配置里也可能存着 15 分钟或几天，
+     * 这些值直接拿来判定会让助手变成闹钟或者哑巴。
+     */
+    fun effectiveIntervalMinutes(input: Input): Int {
+        val base = input.pacing.intervalMinutes.coerceIn(MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES)
+        val offset = dailyOffsetMinutes(
+            dayKey(input.now),
+            input.pacing.assistantId,
+            input.pacing.randomOffsetMinutes,
+        )
+        return base + offset
+    }
+
+    /**
+     * 当天的抖动偏移（分钟）。
+     *
+     * 同一「日期 + 助手 id」得到同一个偏移，跨天才会变 —— 不用每次随机，
+     * 是因为每次随机等于把间隔变成一个区间，用户调好的「4 小时」会忽早忽晚；
+     * 按天固定的偏移既保留了「不是整点报时」的自然感，又让同一天内的节奏可预期。
+     * 哈希只依赖字符串本身，不依赖随机源与时区以外的任何状态。
+     */
+    fun dailyOffsetMinutes(dateKey: String, assistantId: String, maxOffsetMinutes: Int): Int {
+        val max = maxOffsetMinutes.coerceIn(0, MAX_INTERVAL_MINUTES)
+        if (max == 0) return 0
+        return "$dateKey|$assistantId".hashCode().mod(max + 1)
+    }
+
+    /** 时间戳所在日期（本地时区，`yyyy-MM-dd`）。跨天换偏移靠的就是它。 */
+    fun dayKey(timestamp: Long): String {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+        val month = cal.get(java.util.Calendar.MONTH) + 1
+        val day = cal.get(java.util.Calendar.DAY_OF_MONTH)
+        return buildString {
+            append(cal.get(java.util.Calendar.YEAR))
+            append('-')
+            if (month < 10) append('0')
+            append(month)
+            append('-')
+            if (day < 10) append('0')
+            append(day)
+        }
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -142,21 +242,22 @@ object ProactiveTimingEngine {
      * 当前剩余额度。
      *
      * ```
-     * base = max(等级地板, 1 + intimacy × 4)
-     * budget = clamp(base + 今日回补 − 今日消耗, 0, 等级天花板)
+     * 每日额度 = 等级上限（黏人档为不限）
+     * budget   = max(0, 每日额度 − 今日已发)
      * ```
      *
-     * 地板和天花板来自用户选的等级（即时意志），中间那段来自 intimacy（长期学习）。
-     * 用户选了「黏人」但关系还没攒够，就停在地板上；关系攒够了自然往上，
-     * 但永远撞不破天花板。
+     * 额度完全由用户选的档位决定：安静 3 / 克制 8 / 标准 15 / 主动 30 / 黏人不限。
+     * 早期版本用「地板 + 亲密度学习值」拼额度，用户选了黏人每天也只能发 5 条，
+     * 与界面承诺不符，已废弃。亲密度仍参与其它时机判定，但不再决定条数。
      */
     fun remainingBudget(relation: ProactiveRelationEntity): Float {
-        val level = relation.intensityEnum()
-        val learned = 1f + relation.intimacy.coerceIn(0f, 1f) * 4f
-        val base = max(level.floor.toFloat(), learned)
-        val raw = base + relation.earnedToday - relation.spentToday
-        return raw.coerceIn(0f, level.cap.toFloat())
+        val allowance = dailyAllowance(relation)
+        return (allowance - relation.spentToday).coerceIn(0f, allowance)
     }
+
+    /** 当天额度总量（黏人档为不限）。 */
+    fun dailyAllowance(relation: ProactiveRelationEntity): Float =
+        relation.intensityEnum().let { if (it.unlimited) Float.MAX_VALUE else it.cap.toFloat() }
 
     /**
      * 跨日重置判定。

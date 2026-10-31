@@ -68,20 +68,6 @@ val appViewModelModule = module {
         )
     }
 
-    // v1.0.72: 朋友圈 ViewModel
-    viewModel {
-        io.zer0.muse.ui.moment.MomentViewModel(
-            application = androidContext() as Application,
-            repository = get(),
-            chatService = get(),
-            factStore = get(),
-            generator = get(),
-            assistantRepository = get(),
-            interactionEngine = get(),
-            sessionRepository = get(),
-        )
-    }
-
     // v0.46: 统计页 ViewModel(注入 MessageDao + SessionDao)
     // SessionDao.count() 用于总会话数(修复旧版 totalSessions 恒为 0 的 bug)
     // v0.47: 注入 SettingsRepository + AssistantRepository 用于反查模型/助手显示名

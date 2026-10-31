@@ -26,6 +26,13 @@ class SkillMediaToolsImpl(
     private val imageService: ImageService?,
     private val imageDrawConfigProvider: suspend () -> Pair<ProviderConfig?, String?> = { null to null },
     private val pluginManager: PluginManager?,
+    /**
+     * 插件总开关（默认开启）。
+     *
+     * 用 lambda 而不是直接依赖 SettingsRepository：这个类被很多地方构造（含测试），
+     * 加一个可选依赖比改全部构造点安全；与 [imageDrawConfigProvider] 同型。
+     */
+    private val pluginsGloballyEnabled: suspend () -> Boolean = { true },
 ) {
 
     suspend fun execListStickers(args: Map<String, String>): String {
@@ -161,6 +168,9 @@ class SkillMediaToolsImpl(
     }
 
     suspend fun execPluginTool(skill: SkillEntity, argumentsJson: String): String {
+        if (!pluginsGloballyEnabled()) {
+            return "插件已被全局停用（设置 → 工具与扩展 → 插件总开关）"
+        }
         val parts = skill.implementationKotlin.split(":")
         if (parts.size < 3) return "插件工具路由格式错误: ${skill.implementationKotlin}"
         val pluginId = parts[1]

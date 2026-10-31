@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +62,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Tool approval card (既有实现 GenerationHandler.kt port).
+ * Tool approval card.
  *
  * Shown when a tool call requires user approval before execution.
  * Displays tool name, argument preview, and approve/deny buttons.
@@ -85,10 +87,19 @@ import kotlinx.coroutines.withContext
  * 替代原三行按钮 + 双复选框的臃肿布局;配色由 tertiaryContainer 改为
  * surface + primary 强调色,视觉更清爽。
  */
+@Suppress("LongMethod", "LongParameterList", "CyclomaticComplexMethod")
 @Composable
 fun ToolApprovalCard(
     toolName: String,
     argumentsPreview: String,
+    /**
+     * 全量参数(审批判定用的同一份)。
+     *
+     * [argumentsPreview] 只有 200 字符,写 4KB 正文时用户看到的只是开头;
+     * 完整参数从这里取,卡片据此提示「还有 N 字符未显示」并支持展开查看。
+     * 为空时退化到只用预览展示。
+     */
+    argumentsFull: Map<String, Any?> = emptyMap(),
     onApprove: () -> Unit,
     onDeny: (reason: String) -> Unit,
     /**
@@ -259,137 +270,132 @@ fun ToolApprovalCard(
                 }
             }
 
-            // v2.0.1: 结构化参数预览 — JSON 解析为「人话」摘要（文件路径 / 字符数 / 内容首段），
-            // 原始 JSON 收入「高级详情」折叠；解析失败回退原文（用户反馈：审批卡只见原始转义 JSON）。
-            val parsedArgs = remember(argumentsPreview) {
-                runCatching { org.json.JSONObject(argumentsPreview) }.getOrNull()
+            // v2.x: 参数展示 — 预览 + 明确的截断提示 + 可展开看全量。
+            // 审批判定用的是全量 args,但卡片过去只拿到 200 字符预览:写 4KB 正文时
+            // 用户只看到开头就点了批准。预览之外必须写清还有多少字符没显示,
+            // 并把完整参数放到展开入口后面(展开后按 key 分行、框内可滚动)。
+            val argumentEntries = remember(argumentsPreview, argumentsFull) {
+                approvalArgumentEntries(argumentsPreview, argumentsFull)
             }
-            val approvalFilePath = parsedArgs?.let { obj ->
-                listOf("path", "file_path", "filepath", "filename", "file")
-                    .firstNotNullOfOrNull { key -> obj.optString(key).takeIf { it.isNotBlank() } }
+            val rawArguments = remember(argumentEntries) {
+                approvalRawJson(argumentEntries) ?: argumentsPreview
             }
-            val approvalContent = parsedArgs?.let { obj ->
-                listOf("content", "text", "data", "message", "query", "url", "command")
-                    .firstNotNullOfOrNull { key -> obj.optString(key).takeIf { it.isNotBlank() } }
+            val approvalFilePath = remember(argumentEntries) { approvalValueOf(argumentEntries, APPROVAL_FILE_KEYS) }
+            val approvalContent = remember(argumentEntries) { approvalValueOf(argumentEntries, APPROVAL_CONTENT_KEYS) }
+            val extraArgs = remember(argumentEntries) { approvalExtraArguments(argumentEntries) }
+            // 结构化摘要(文件/内容)存在时才有「其余参数」与「高级详情」两段。
+            val hasStructuredSummary = approvalFilePath != null || approvalContent != null
+            var showRawDetails by remember(argumentsPreview) { mutableStateOf(false) }
+            var showFullArguments by remember(argumentsPreview) { mutableStateOf(false) }
+            val previewScroll = rememberScrollState()
+            val rawScroll = rememberScrollState()
+
+            // 预览文本和「省略了多少字符」用同一组数字,避免提示和预览各说各话。
+            val previewTotalChars = approvalContent?.length ?: rawArguments.length
+            val previewText = when {
+                approvalContent != null ->
+                    if (showFullArguments) approvalContent else approvalContent.take(APPROVAL_CONTENT_PREVIEW_CHARS)
+                showFullArguments -> rawArguments
+                else -> argumentsPreview
             }
-            var showRawDetails by remember { mutableStateOf(false) }
-            if (parsedArgs != null && (approvalFilePath != null || approvalContent != null)) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (approvalFilePath != null) {
-                        Text(
-                            text = stringResource(
-                                R.string.tool_approval_write_summary,
-                                approvalFilePath.substringAfterLast('/'),
-                                approvalContent?.length ?: 0,
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                    val approvalPreviewText = approvalContent?.let { c ->
-                        if (c.length > 300) c.take(300) + "…" else c
-                    }
-                    if (!approvalPreviewText.isNullOrBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(MuseShapes.small)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                        ) {
-                            Text(
-                                text = approvalPreviewText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 8,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                    // 其余标量参数以 k: v 列出（最多 6 行）
-                    val primaryKeys = setOf(
-                        "path", "file_path", "filepath", "filename", "file",
-                        "content", "text", "data", "message", "query", "url", "command",
+            val hiddenChars = hiddenCharacters(previewTotalChars, previewText.length)
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (approvalFilePath != null) {
+                    Text(
+                        text = stringResource(
+                            R.string.tool_approval_write_summary,
+                            approvalFilePath.substringAfterLast('/'),
+                            approvalContent?.length ?: 0,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
-                    val extraArgs = buildList {
-                        val keys = parsedArgs.keys()
-                        while (keys.hasNext()) {
-                            val k = keys.next()
-                            if (k in primaryKeys) continue
-                            val v = parsedArgs.optString(k)
-                            if (v.isBlank() || v == "null") continue
-                            add(k to (if (v.length > 100) v.take(100) + "…" else v))
-                        }
-                    }
-                    extraArgs.take(6).forEach { (k, v) ->
+                }
+                if (previewText.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MuseShapes.small)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .then(
+                                if (showFullArguments) {
+                                    Modifier.heightIn(max = APPROVAL_EXPANDED_MAX_HEIGHT).verticalScroll(previewScroll)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    ) {
                         Text(
-                            text = "$k: $v",
+                            text = previewText,
                             style = MaterialTheme.typography.bodySmall,
+                            fontFamily = if (approvalContent != null) FontFamily.Default else FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
+                            maxLines = if (showFullArguments) {
+                                Int.MAX_VALUE
+                            } else if (approvalContent != null) {
+                                APPROVAL_CONTENT_PREVIEW_LINES
+                            } else {
+                                APPROVAL_RAW_PREVIEW_LINES
+                            },
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    // 高级详情：原始 JSON 折叠
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showRawDetails = !showRawDetails },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (showRawDetails) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = stringResource(R.string.tool_approval_advanced_details),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                }
+                // 截断提示与展开入口:不告诉用户「这里被截断」,展开入口等于没做。
+                if (hiddenChars > 0) {
+                    ApprovalArgumentsToggle(
+                        label = stringResource(R.string.tool_approval_show_full_args) + " · " +
+                            stringResource(R.string.tool_approval_args_hidden, hiddenChars),
+                        expanded = false,
+                        highlighted = true,
+                        onClick = { showFullArguments = true },
+                    )
+                } else if (showFullArguments) {
+                    ApprovalArgumentsToggle(
+                        label = stringResource(R.string.tool_approval_hide_full_args),
+                        expanded = true,
+                        highlighted = true,
+                        onClick = { showFullArguments = false },
+                    )
+                }
+                // 其余标量参数以 k: v 列出（最多 6 行）
+                extraArgs.forEach { (k, v) ->
+                    Text(
+                        text = "$k: $v",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                // 高级详情:完整原始 JSON(框内可滚动)
+                if (hasStructuredSummary) {
+                    ApprovalArgumentsToggle(
+                        label = stringResource(R.string.tool_approval_advanced_details),
+                        expanded = showRawDetails,
+                        highlighted = false,
+                        onClick = { showRawDetails = !showRawDetails },
+                    )
                     if (showRawDetails) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(MuseShapes.small)
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                .heightIn(max = APPROVAL_EXPANDED_MAX_HEIGHT)
+                                .verticalScroll(rawScroll)
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                         ) {
                             Text(
-                                text = argumentsPreview,
+                                text = rawArguments,
                                 style = MaterialTheme.typography.bodySmall,
                                 fontFamily = FontFamily.Monospace,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 12,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
-                }
-            } else {
-                // 解析失败 / 空参数：沿用原文截断显示
-                val preview = if (argumentsPreview.length > 200) {
-                    argumentsPreview.take(200) + "..."
-                } else {
-                    argumentsPreview
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MuseShapes.small)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        text = preview,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 6,
-                    )
                 }
             }
 
@@ -612,6 +618,7 @@ fun PendingApprovalsSummary(
                 ToolApprovalCard(
                     toolName = approval.toolName,
                     argumentsPreview = approval.argumentsPreview,
+                    argumentsFull = approval.argumentsFull,
                     onApprove = { onApprove(approval) },
                     onDeny = { reason -> onDeny(approval, reason) },
                     onPersistPolicy = { policy -> onPersistPolicy(approval, policy) },
@@ -706,10 +713,110 @@ private fun ReferenceImageSection(referenceImageOverride: String?, isLoading: Bo
 private val REFERENCE_IMAGE_TOOL_NAMES: Set<String> = setOf("generate_image")
 
 /**
- * Must stay in sync with `ChatViewModel.TOOL_APPROVAL_TIMEOUT_MS`. Kept here as a UI default
- * so the card can warn before the VM silently declines the pending call.
+ * 倒计时秒数从审批编排器的超时常量派生(ChatToolApprovalCoordinator.TOOL_APPROVAL_TIMEOUT_MS),
+ * 不在这里另存一份数字: 两份各写各的时候, 界面数到第 31 秒后台早就拒了,
+ * 用户看到的那 30 秒是假的。
  */
-private const val DEFAULT_APPROVAL_COUNTDOWN_SECONDS = 60
+private val DEFAULT_APPROVAL_COUNTDOWN_SECONDS: Int = (ChatToolApprovalCoordinator.TOOL_APPROVAL_TIMEOUT_MS / 1_000L).toInt()
 
-/** 参考图大小上限 5MB(对齐 InputBar.ImageGenParamsPanel 中现有约束)。 */
+/** 参考图大小上限 5MB(InputBar.ImageGenParamsPanel 里用的也是这个值)。 */
 private const val MAX_REF_IMAGE_BYTES = 5L * 1024 * 1024
+
+/** 内容预览字符数:折叠时的上限(200 的 JSON 预览撑不住一段正文,这里单独放宽到这一段)。 */
+private const val APPROVAL_CONTENT_PREVIEW_CHARS = 300
+
+/** 内容预览行数:折叠时的上限。 */
+private const val APPROVAL_CONTENT_PREVIEW_LINES = 8
+
+/** 原始 JSON 预览行数:折叠时的上限。 */
+private const val APPROVAL_RAW_PREVIEW_LINES = 6
+
+/** 展开后的参数框最大高度:超出后在框内滚动,不把整张卡片顶出屏幕。 */
+private val APPROVAL_EXPANDED_MAX_HEIGHT = 320.dp
+
+/** 作为「目标文件」展示的参数 key。 */
+private val APPROVAL_FILE_KEYS = listOf("path", "file_path", "filepath", "filename", "file")
+
+/** 作为「内容正文」展示的参数 key。 */
+private val APPROVAL_CONTENT_KEYS = listOf("content", "text", "data", "message", "query", "url", "command")
+
+/**
+ * 预览之外仍未显示的字符数;<= 0 表示没有截断。
+ *
+ * 提示文案与预览共用同一组数字,不能一边显示前 300 字符、一边声称已经全部展示。
+ */
+internal fun hiddenCharacters(total: Int, shown: Int): Int = (total - shown).coerceAtLeast(0)
+
+/**
+ * 参数条目:优先用全量 args(结构化、不丢层次),缺失时回落到预览 JSON 的解析结果。
+ *
+ * 预览被截断时 JSON 通常已无法解析(尾部缺失),这就是大体积参数过去只能看到
+ * 原始转义字符的原因;全量参数在场时才能给出「文件 + 字符数 + 正文」。
+ */
+internal fun approvalArgumentEntries(preview: String, full: Map<String, Any?>): List<Pair<String, String>> {
+    if (full.isNotEmpty()) {
+        return full.entries.map { (key, value) -> key to (value?.toString() ?: "") }
+    }
+    val obj = runCatching { org.json.JSONObject(preview) }.getOrNull() ?: return emptyList()
+    return obj.keys().asSequence().map { key -> key to obj.optString(key) }.toList()
+}
+
+/** 条目拼成可读 JSON;无条目时返回 null(调用方回落到原始预览)。 */
+internal fun approvalRawJson(entries: List<Pair<String, String>>): String? {
+    if (entries.isEmpty()) return null
+    val obj = org.json.JSONObject()
+    entries.forEach { (key, value) -> runCatching { obj.put(key, value) } }
+    return obj.toString(2)
+}
+
+/** 按 key 优先级取第一个非空值。 */
+internal fun approvalValueOf(entries: List<Pair<String, String>>, keys: List<String>): String? =
+    keys.firstNotNullOfOrNull { key ->
+        entries.firstOrNull { it.first == key }?.second?.takeIf { it.isNotBlank() && it != "null" }
+    }
+
+/** 摘要之外的其余参数(最多 6 条,单值超过 100 字符先截断,完整值看展开视图)。 */
+internal fun approvalExtraArguments(entries: List<Pair<String, String>>): List<Pair<String, String>> {
+    val summaryKeys = (APPROVAL_FILE_KEYS + APPROVAL_CONTENT_KEYS).toSet()
+    return entries
+        .filterNot { it.first in summaryKeys }
+        .filter { it.second.isNotBlank() && it.second != "null" }
+        .take(6)
+        .map { (key, value) -> key to (if (value.length > 100) value.take(100) + "…" else value) }
+}
+
+/**
+ * 审批卡里的展开/收起入口:chevron + 文案,整行可点。
+ *
+ * [highlighted] 用于截断提示与展开入口(primary 色,告诉用户这里还有东西没看到),
+ * 「高级详情」这种次要点用弱色。
+ */
+@Composable
+private fun ApprovalArgumentsToggle(
+    label: String,
+    expanded: Boolean,
+    highlighted: Boolean,
+    onClick: () -> Unit,
+) {
+    val tint = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
+            contentDescription = null,
+            modifier = Modifier.size(MuseIconSizes.iconSmall),
+            tint = tint,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = tint,
+        )
+    }
+}

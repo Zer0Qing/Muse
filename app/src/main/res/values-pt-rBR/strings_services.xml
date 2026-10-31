@@ -310,11 +310,11 @@
 
     <!-- v1.136: Reminder tool strings -->
     <string name="tool_reminder_scheduled">Lembrete agendado (id: %1$s)\nHora: %2$s</string>
-    <string name="tool_reminder_schedule_failed">Falha ao agendar lembrete. Verifique as permissões de alarme/notificação</string>
+    <string name="tool_reminder_schedule_failed">Falha ao criar o lembrete: o sistema recusou o alarme, então ele pode não tocar. Verifique a permissão "Alarmes e lembretes" deste app nas configurações do sistema e tente novamente.</string>
     <string name="tool_reminder_cancelled">Lembrete cancelado: %1$s</string>
     <string name="tool_reminder_not_found">Lembrete não encontrado: %1$s</string>
     <string name="tool_reminder_list_header">Lembretes programados (%1$d total):\n</string>
-    <string name="tool_reminder_list_item">- id: %1$s | horário: %2$s | título: %3$s</string>
+    <string name="tool_reminder_list_item">- id: %1$s | horário: %2$s | título: %3$s | status: %4$s</string>
     <string name="tool_reminder_list_empty">Não há lembretes programados</string>
     <string name="tool_reminder_missing_title">Parâmetro ausente: título</string>
     <string name="tool_reminder_missing_message">Parâmetro ausente: mensagem</string>
@@ -322,6 +322,15 @@
     <string name="tool_reminder_missing_id">Parâmetro ausente: id</string>
     <string name="tool_reminder_invalid_time">Não foi possível analisar o tempo: %1$s, use aaaa-MM-dd HH:mm</string>
     <string name="tool_reminder_past_time">O horário do lembrete não pode estar no passado</string>
+    <string name="tool_reminder_scheduled_inexact">Lembrete agendado (id: %1$s)\nHora: %2$s\nObservação: a permissão "Alarmes e lembretes" está desativada, então este lembrete só tocará de forma aproximada (pode atrasar alguns minutos). Ative essa permissão para este app nas configurações do sistema.</string>
+    <string name="tool_reminder_status_scheduled">Agendado, tocará na hora</string>
+    <string name="tool_reminder_status_inexact">Agendado, mas sem permissão de alarme exato; pode atrasar alguns minutos</string>
+    <string name="tool_reminder_status_unscheduled">O alarme não foi agendado; pode não tocar, configure novamente</string>
+    <string name="tool_reminder_status_lost">Agendamento não confirmado; pode não tocar</string>
+    <string name="tool_reminder_catchup_title">%1$s (atrasado)</string>
+    <string name="reminder_exact_permission_hint">A permissão "Alarmes e lembretes" está desativada, então os lembretes podem tocar com alguns minutos de atraso e fora do horário.</string>
+    <string name="reminder_exact_permission_action">Ativar a permissão "Alarmes e lembretes"</string>
+    <string name="reminder_exact_permission_toast">A permissão "Alarmes e lembretes" está desativada, então os lembretes podem atrasar alguns minutos. As configurações foram abertas; ative-a manualmente.</string>
 
     <!-- v1.136: Resource library tool strings -->
     <string name="tool_resource_added">Recurso salvo\nid: %1$s\ntitle: %2$s</string>

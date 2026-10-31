@@ -31,7 +31,7 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.MuseSurface
 
 /**
- * 经验面板(既有实现 experience UI 实现版)。
+ * 经验面板。
  *
  * 浏览、搜索、新增和删除经验。
  * 通过经验开关与设置页集成。

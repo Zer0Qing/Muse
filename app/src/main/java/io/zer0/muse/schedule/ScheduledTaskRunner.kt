@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolDefinition
@@ -80,28 +81,201 @@ class ScheduledTaskRunner(
 ) {
     private var job: Job? = null
 
+    /**
+     * 定点推进([computeNextRunAnchored])的结果。
+     *
+     * - [nextRunAt]: 下一次执行时间;<=0 表示无下次执行(once / 非法 cron / 未知 interval)
+     * - [missedCount]: 这次不补跑、只记一条 missed 历史的计划轮次数(0 = 没错过)
+     */
+    internal data class ScheduleAdvance(val nextRunAt: Long, val missedCount: Int)
+
     companion object {
         const val CHANNEL_ID = "scheduled_tasks"
         const val NOTIFICATION_ID_BASE = 2000
         private const val TAG = "ScheduledTask"
 
-        /** R-TEST-11: 纯调度逻辑,供单元测试直接调用。 */
-        internal fun computeNextRun(interval: String, cronExpr: String, now: Long): Long = when (interval) {
-            "hourly" -> now + 3_600_000L
-            "daily" -> now + 86_400_000L
-            "weekly" -> now + 604_800_000L
-            "cron" -> {
-                if (cronExpr.isBlank()) {
-                    0L
-                } else {
-                    resultOf { CronExpression.parse(cronExpr).nextRunAfter(now) }
-                        .onError { msg, t -> Logger.w(TAG, "Invalid cron expr: ${t?.message ?: msg}") }
-                        .getOrNull() ?: 0L
-                }
-            }
-            else -> 0L
+        /**
+         * R-TEST-11: 计算 [now] 之后的下次执行时间(纯函数,不操作 DB)。
+         *
+         * 定时任务间隔的唯一实现:工具建/改任务、UI 预览、改间隔后的首跑都调这里
+         * (任务执行完推进调度走 [computeNextRunAnchored]),不在别处重写间隔表,
+         * 避免「同一个 interval 在不同入口算出不同时间」。
+         *
+         * - hourly / daily / weekly: now + 固定间隔
+         * - cron: 用 [CronExpression] 解析;空表达式或解析失败 → 0
+         * - once / 未知 interval: 0
+         *
+         * 返回 <=0 表示「没有下一次执行」,而不是「马上再跑一次」:
+         * [ScheduledTaskDao.recordExecutionAndScheduleNext] 见 <=0 即禁用任务,
+         * 一次性任务因此执行完就退出调度,不会被算出第二次执行。
+         * 建任务时问的是「首跑时间」,那个用 [initialNextRunAt]。
+         *
+         * 注意:这是「从现在算」的口径,只适合还没有历史计划时刻的入口(建任务、改间隔、
+         * UI 预览)。任务执行完后推进调度用 [computeNextRunAnchored],锚定上次计划时刻。
+         */
+        internal fun computeNextRun(interval: String, cronExpr: String, now: Long): Long {
+            if (interval == "cron") return nextCronRunAfter(cronExpr, now)
+            val period = fixedPeriodMillis(interval) ?: return 0L
+            return now + period
         }
+
+        /**
+         * 固定周期 interval 的周期长度(毫秒);cron / once / 未知 interval 返回 null。
+         *
+         * 间隔表只此一份:[computeNextRun] 与 [computeNextRunAnchored] 共用,
+         * 避免「同一 interval 在两个口径下用两套周期」。
+         */
+        private fun fixedPeriodMillis(interval: String): Long? = when (interval) {
+            "hourly" -> 3_600_000L
+            "daily" -> 86_400_000L
+            "weekly" -> 604_800_000L
+            else -> null
+        }
+
+        /**
+         * cron 下一次执行时间(纯函数)。空表达式 / 解析失败 / 无匹配时的取值与原口径一致。
+         */
+        private fun nextCronRunAfter(cronExpr: String, after: Long): Long {
+            if (cronExpr.isBlank()) return 0L
+            return resultOf { CronExpression.parse(cronExpr).nextRunAfter(after) }
+                .onError { msg, t -> Logger.w(TAG, "Invalid cron expr: ${t?.message ?: msg}") }
+                .getOrNull() ?: 0L
+        }
+
+        /**
+         * 锚定上次计划时刻推进调度(纯函数,不操作 DB)。
+         *
+         * 为什么不能一律从 now 算:任务到期后往往晚几十秒到几小时才被执行(轮询抖动、Doze、
+         * 设备关机、进程被杀)。以 now 为基准每次都会把下一次推到「现在 + 一个周期」,错过的那
+         * 一轮被永久跳过且不留痕,而且每次唤醒都再漂一次,墙钟不断往后走。
+         *
+         * 这里改用 [scheduledAt](上次的计划时刻,即执行前的 next_run_at) 作锚点:
+         * 下一次 = scheduledAt + 整数倍周期,仍然是「原计划节奏」上的点。
+         * [missedCount] = 本次没有补跑的计划轮次数 = 锚点之后已经过去的计划时刻个数。
+         *
+         * 补跑策略:只补跑最近一次(本次执行就是那一次),更早的轮次不补跑、只记 missed ——
+         * 一次补跑几十轮网络请求 / 写文件,比漏跑更糟。因为 [nextRunAt] 一定 > now,
+         * 本次执行结束后任务不会在同一秒内被再次领取。
+         *
+         * 兜底口径:
+         * - [scheduledAt] <= 0(旧数据无锚点):退回 [computeNextRun] 的「从现在算」,不计 missed
+         * - [scheduledAt] > now(任务还没到期,典型场景是用户点「立即执行」,也可能是系统时间
+         *   被回拨):下一次就是原定的那个计划时刻,一次也不动 —— 手动多跑一次不能把
+         *   以后每天 09:00 永久改成 12:00
+         * - once / 未知 interval:无下次执行(0),不计 missed,与原语义一致
+         * - 周期数超过 [MAX_MISSED_SCAN]:按 [MAX_MISSED_SCAN] 记上限并从 now 重新起算,
+         *   避免异常时钟(如 1970 年的锚点)把 Long 算溢出或空转上百万次
+         */
+        internal fun computeNextRunAnchored(
+            interval: String,
+            cronExpr: String,
+            scheduledAt: Long,
+            now: Long,
+        ): ScheduleAdvance {
+            val period = fixedPeriodMillis(interval)
+            return when {
+                period != null -> anchoredFixedPeriod(period, scheduledAt, now)
+                interval == "cron" -> advanceCron(cronExpr, scheduledAt, now)
+                else -> ScheduleAdvance(0L, 0)
+            }
+        }
+
+        /** 固定周期(hourly / daily / weekly)的锚定推进:下一次 = 锚点 + 整数倍周期。 */
+        private fun anchoredFixedPeriod(period: Long, scheduledAt: Long, now: Long): ScheduleAdvance {
+            if (scheduledAt <= 0L) return ScheduleAdvance(now + period, 0)
+            // 还没到期(手动「立即执行」/ 时钟回拨):原定计划时刻一次也不动
+            if (scheduledAt > now) return ScheduleAdvance(scheduledAt, 0)
+            val periods = (now - scheduledAt) / period
+            return if (periods > MAX_MISSED_SCAN.toLong()) {
+                ScheduleAdvance(now + period, MAX_MISSED_SCAN)
+            } else {
+                ScheduleAdvance(scheduledAt + (periods + 1) * period, periods.toInt())
+            }
+        }
+
+        /**
+         * cron 的锚定推进:从 [scheduledAt] 逐格前进,数出跳过了几个计划时刻。
+         *
+         * cron 表达式本身已经锚定墙钟(如「每天 9:00」),所以没错过时结果与
+         * [computeNextRun] 一致;这里额外做的是把「跳过了几格」数出来。
+         */
+        private fun advanceCron(cronExpr: String, scheduledAt: Long, now: Long): ScheduleAdvance {
+            if (cronExpr.isBlank()) return ScheduleAdvance(0L, 0)
+            val expr = resultOf { CronExpression.parse(cronExpr) }
+                .onError { msg, t -> Logger.w(TAG, "Invalid cron expr: ${t?.message ?: msg}") }
+                .getOrNull() ?: return ScheduleAdvance(0L, 0)
+            if (scheduledAt <= 0L) return ScheduleAdvance(expr.nextRunAfter(now), 0)
+            return when {
+                // 还没到期(cron 任务的手动立即执行):保持原定的下一格
+                scheduledAt > now -> ScheduleAdvance(scheduledAt, 0)
+                else -> scanSkippedCronSlots(expr, scheduledAt, now)
+            }
+        }
+
+        /** 从锚点逐格前进到 [now] 之后,返回下一次计划时刻与中间被跳过的格数。 */
+        private fun scanSkippedCronSlots(expr: CronExpression, scheduledAt: Long, now: Long): ScheduleAdvance {
+            var cursor = scheduledAt
+            var missed = 0
+            while (missed < MAX_MISSED_SCAN) {
+                val candidate = expr.nextRunAfter(cursor)
+                // 不前进(含 NO_MATCH)或已跨过 now:收敛到这一格
+                if (candidate <= cursor || candidate > now) return ScheduleAdvance(candidate, missed)
+                missed++
+                cursor = candidate
+            }
+            return ScheduleAdvance(expr.nextRunAfter(now), MAX_MISSED_SCAN)
+        }
+
+        /**
+         * 构造一条「这几轮错过了、没有补跑」的执行记录。
+         *
+         * 只写一条而不是每轮一条:一小时级的任务关机三天会产生 70+ 条,把真正执行过的历史
+         * 淡掉。正文由调用方传入(文案走 strings.xml 的 schedule_missed_summary,与
+         * success / failed / skipped 一致),状态用 [STATUS_MISSED],不新增数据库列。
+         *
+         * @param now 本次补跑的时间
+         */
+        internal fun missedExecutionEntity(
+            taskId: String,
+            replySummary: String,
+            now: Long,
+        ): ScheduledTaskExecutionEntity = ScheduledTaskExecutionEntity(
+            id = "exec-${java.util.UUID.randomUUID()}",
+            taskId = taskId,
+            executedAt = now,
+            status = STATUS_MISSED,
+            replySummary = replySummary,
+            errorMessage = "",
+        )
+
+        /**
+         * 新建任务 / 改间隔后的首跑时间(纯函数)。
+         *
+         * 与 [computeNextRun] 只差「没有下一次」这一种情况:[computeNextRun] 返回 0 是
+         * 「不要再有下一次」的禁用标记([ScheduledTaskDao.recordExecutionAndScheduleNext] 见
+         * <=0 就 setEnabled(false)),不能拿去落库;建任务/改间隔时一次性任务还没跑过,应当尽快
+         * 跑一次,所以兜底成 now + [POLL_INTERVAL_MS]。
+         *
+         * 为什么兜底是 60 秒而不是 now:调度靠 [POLL_INTERVAL_MS] 轮询 + getDueTasks(next_run_at <= now),
+         * 落成 now 会让任务在下一次扫描(0–60s,最坏是紧接着的那一跳)就被领取执行——用户点完
+         * 「创建」退出对话框,几十秒内就看到任务已经跑完、执行历史多了一条。留一个轮询周期的缓冲。
+         * 周期类 interval 走 [computeNextRun] 的正值,不受这个兜底影响。
+         */
+        internal fun initialNextRunAt(interval: String, cronExpr: String, now: Long): Long =
+            computeNextRun(interval, cronExpr, now).takeIf { it > 0 } ?: (now + POLL_INTERVAL_MS)
+
         private const val POLL_INTERVAL_MS = 60_000L // 每分钟检查一次
+
+        /**
+         * 锚定推进最多数多少格 missed。
+         *
+         * 正常错过(关机数小时到数天)远达不到这个量级;超过它的只可能是锚点异常
+         * (如时钟被回拨到 1970),此时按上限记数并从 now 重新起算,不逐格空转。
+         */
+        private const val MAX_MISSED_SCAN = 1_000
+
+        /** 执行历史里「这一轮错过了、没有补跑」的状态值(与 success / failed / skipped 并列)。 */
+        internal const val STATUS_MISSED = "missed"
 
         // 执行历史展开后展示正文;限制上限避免异常工具输出无限膨胀数据库。
         private const val EXECUTION_DETAIL_MAX_LEN = 10_000
@@ -383,22 +557,62 @@ class ScheduledTaskRunner(
         )
         // v1.0.17: 重试策略 — 失败时按指数退避重试,成功/达上限时重置 retryCount
         val isFailed = status == "failed"
-        val newRetryCount = when {
-            isFailed && task.retryCount < task.maxRetries -> task.retryCount + 1
-            isFailed -> 0 // 达到最大重试次数,重置
-            else -> 0 // 成功/跳过,重置
-        }
-        val nextRun = if (isFailed && task.retryCount < task.maxRetries) {
+        val willRetry = isFailed && task.retryCount < task.maxRetries
+        val newRetryCount = if (willRetry) task.retryCount + 1 else 0
+        // 错过的轮次补偿(锚点 = 领取前 DB 里的 next_run_at,即本应该跑的那个计划时刻)。
+        // 重试走退避、不参与锚定推进,也不记 missed —— 失败已经有一条 failed 记录。
+        val advance = if (willRetry) {
             // 指数退避: retryCount * 60s,上限 5 分钟
             val backoff = minOf(newRetryCount.toLong() * RETRY_BACKOFF_STEP_MS, RETRY_BACKOFF_MAX_MS)
-            now + backoff
+            ScheduleAdvance(now + backoff, 0)
         } else {
-            computeNextRun(task, now)
+            computeNextRunAnchored(task.interval, task.cronExpr, current.nextRunAt, now)
+        }
+        // 只对启用中的任务记 missed:禁用任务的手动执行不算「漏跑」,那只是用户关掉了调度。
+        val missedExecutions = if (advance.missedCount > 0 && current.enabled) {
+            listOf(buildMissedExecution(task.id, advance.missedCount, current.nextRunAt, execution.executedAt))
+        } else {
+            emptyList()
         }
         if (restoreBlocksScheduledWrites(task.id, "任务执行记录")) return
         resultOf {
-            dao.recordExecutionAndScheduleNext(execution, task.id, nextRun, now, newRetryCount)
+            // 执行记录 + missed 记录 + 推进 next_run_at 在同一个事务内落库:
+            // 要么都在,要么都不在,不会出现「记了 missed 但调度没推进」导致下轮重复计数。
+            dao.recordExecutionAndScheduleNext(
+                execution = execution,
+                taskId = task.id,
+                nextRunAt = advance.nextRunAt,
+                lastRunAt = now,
+                retryCount = newRetryCount,
+                missedExecutions = missedExecutions,
+            )
         }.onError { msg, t -> Logger.w(TAG, "Record execution+scheduleNext failed: ${t?.message ?: msg}") }
+    }
+
+    /**
+     * 构造一条 missed 执行记录,正文走 strings.xml([R.string.schedule_missed_summary])。
+     *
+     * 与 success / failed / skipped 同一条路:执行历史的摘要本来就是 context.getString
+     * 拼出来的([ScheduledTaskExecutionEntity.replySummary] 存的是已本地化的文本),
+     * 所以 missed 也在这里拼,不在代码里写死中文。
+     *
+     * @param scheduledAt 上次的计划时刻(missed 计数的锚点)
+     * @param now 本次补跑的时间
+     */
+    private fun buildMissedExecution(
+        taskId: String,
+        missedCount: Int,
+        scheduledAt: Long,
+        now: Long,
+    ): ScheduledTaskExecutionEntity {
+        val gapHours = ((now - scheduledAt) / 3_600_000L).coerceAtLeast(0L)
+        val plannedAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+            .format(java.util.Date(scheduledAt))
+        return missedExecutionEntity(
+            taskId = taskId,
+            replySummary = context.getString(R.string.schedule_missed_summary, missedCount, plannedAt, gapHours),
+            now = now,
+        )
     }
 
     /**
@@ -440,7 +654,14 @@ class ScheduledTaskRunner(
                 val mustCharging = condition.config["mustCharging"]?.toString()?.toBoolean() ?: true
                 if (mustCharging) {
                     val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-                    val batteryStatus = context.registerReceiver(null, filter)
+                    // 传 null 接收器只是查询系统粘性广播的当前值，没有任何第三方发送者参与，
+                    // 所以固定 NOT_EXPORTED；但标志不能省，ContextCompat 见到 0 会直接抛异常。
+                    val batteryStatus = ContextCompat.registerReceiver(
+                        context,
+                        null,
+                        filter,
+                        ContextCompat.RECEIVER_NOT_EXPORTED,
+                    )
                     val status = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
                     status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
                 } else {
@@ -741,18 +962,6 @@ class ScheduledTaskRunner(
         }
         list.add(UIMessage(role = MessageRole.USER, content = prompt))
         return list
-    }
-
-    /**
-     * 计算下次执行时间(纯函数,不操作 DB)。
-     * - hourly / daily / weekly: now + 固定间隔
-     * - cron: 用 CronExpression 解析;空表达式或解析失败 → 0(降级为不重复)
-     * - once / 未知: 0(不重复)
-     *
-     * 返回 <=0 表示无下次执行,[recordExecutionAndScheduleNext] 会据此禁用任务。
-     */
-    private fun computeNextRun(task: ScheduledTaskEntity, now: Long): Long {
-        return computeNextRun(task.interval, task.cronExpr, now)
     }
 
     fun stop() {

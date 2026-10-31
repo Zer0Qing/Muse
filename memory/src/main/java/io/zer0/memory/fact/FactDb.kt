@@ -35,6 +35,11 @@ import java.time.format.DateTimeFormatter
  *   由反思任务在整理时回填。
  * v13 schema: 新增 fact_revisions 表(关键记忆修订记录),支持审计与回滚。
  * v15 schema: 新增按 scope+space 隔离的持久化事实删除墓碑,与事实删除事务原子提交。
+ * v17 schema: 新增 score / score_updated_at / suppressed_at 三列 —— 衰减分数落库,低分记忆只"出场"不删行。
+ * v18 schema: 新增 supersedes_id 列 —— 新记忆指向它取代的旧记忆(冲突仲裁);旧行保留,
+ *   仅退出编译上下文。历史数据为 NULL,行为与升级前一致。
+ * v19 schema: 新增 merged_into_id 列 —— 本条被合并进了哪条记忆(重复聚合);被指向的新行承载
+ *   整合后的正文,指向方保留可查但不参与召回、不进投影。历史数据为 NULL,行为与升级前一致。
  *
  * FTS4 选型说明:
  *  - 部分国产 ROM(如 OPPO Android 16)的 SQLite 未编译 FTS5 模块,
@@ -46,11 +51,11 @@ import java.time.format.DateTimeFormatter
 /**
  * 当前 facts 库 schema 版本。
  *
- * 必须与 [FactDb] 的 @Database 版本、迁移链末端(当前 MIGRATION_14_15)三者一致;
+ * 必须与 [FactDb] 的 @Database 版本、迁移链末端(当前 MIGRATION_18_19)三者一致;
  * 版本守卫 [FactDb.archiveUnknownVersionDatabase] 也引用本常量。
  * 历史缺陷正是守卫写死旧值(13)导致 v14 真库被误判为"未知高版本"反复归档清空。
  */
-internal const val FACT_DB_VERSION = 16
+internal const val FACT_DB_VERSION = 19
 
 @Database(
     entities = [
@@ -351,6 +356,77 @@ abstract class FactDb : RoomDatabase() {
             }
 
         /**
+         * v16→v17（记忆衰减可回拨）: 新增 score / score_updated_at / suppressed_at 三列。
+         *
+         * - `score`: 持久化的衰减分数。默认 10.0 即 [io.zer0.memory.ticker.MemoryConfig.baseImportance],
+         *   ALTER TABLE 的 DEFAULT 会直接给历史行补上这个值 —— 不能是 0,
+         *   否则升级后所有旧记忆会在第一轮结算里集体出场。旧行的真实年龄由下一轮衰减按
+         *   created_at / last_hit_at 结算,所以 10.0 只是起点而非终值。
+         * - `suppressed_at`: 出场时间,NULL = 仍在召回中。低分记忆只写本列、不删行。
+         * - `score_updated_at`: 上次结算时间,增量衰减的时钟。
+         *
+         * 回退方案(不在代码里执行,只为降级/返工留证):
+         *  1) 两列都是新增列,旧版本 APK 打开 v17 库时会被 [archiveUnknownVersionDatabase]
+         *     整库改名为 `facts.db.pre-destructive.bak`,数据不丢,可人工迁回;
+         *  2) 需要退出该特性时,在备份副本上执行
+         *     `ALTER TABLE facts DROP COLUMN score; ALTER TABLE facts DROP COLUMN score_updated_at;`
+         *     `ALTER TABLE facts DROP COLUMN suppressed_at;`
+         *     并把 user_version 置回 16。
+         */
+        val MIGRATION_16_17 =
+            object : Migration(16, 17) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE facts ADD COLUMN score REAL NOT NULL DEFAULT 10.0")
+                    db.execSQL("ALTER TABLE facts ADD COLUMN score_updated_at TEXT DEFAULT NULL")
+                    db.execSQL("ALTER TABLE facts ADD COLUMN suppressed_at TEXT DEFAULT NULL")
+                }
+            }
+
+        /**
+         * v17→v18（冲突仲裁）: 新增 supersedes_id 列 —— 新记忆记下它取代了哪条旧记忆。
+         *
+         * - 可空列,ALTER TABLE ADD COLUMN 是 O(1) 元数据操作,不重写表;
+         *   历史行全部为 NULL = "不取代任何记忆",编译/召回行为与升级前完全一致。
+         * - 不加索引: 唯一的读取方是 FACTS 段投影,它本来就在内存里遍历同一 scope+space 的行。
+         * - 不删旧行: 被取代的记忆仍在 facts 表里,记忆页可见,删掉指向它的新记忆即自动回到上下文。
+         *
+         * 回退方案(降级/返工时在备份副本上执行,不在代码里跑):
+         *  1) 旧版本 APK 打开 v18 库时会被 [archiveUnknownVersionDatabase] 整库改名为
+         *     `facts.db.pre-destructive.bak`,数据不丢,可人工迁回;
+         *  2) 需要退出该特性时: `ALTER TABLE facts DROP COLUMN supersedes_id` 并把 user_version 置回 17。
+         */
+        val MIGRATION_17_18 =
+            object : Migration(17, 18) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE facts ADD COLUMN supersedes_id INTEGER DEFAULT NULL")
+                }
+            }
+
+        /**
+         * v18→v19（重复记忆合并）: 新增 merged_into_id 列 —— 本条被合并进了哪条记忆。
+         *
+         * - 可空列,ALTER TABLE ADD COLUMN 是 O(1) 元数据操作,不重写表;
+         *   历史行全部为 NULL = "未被合并",召回/投影/记忆页行为与升级前完全一致。
+         * - 不加索引: 只按“哪些行带了标记”整批读一次(scoped scan),配合已有的
+         *   (scope, space_id) 复合索引即可,不另建单列索引。
+         * - 与 supersedes_id 语义不同: 那条是内容取代(矛盾仲裁),本列是重复聚合;
+         *   被合并的行不删、可查、可回退(删掉合并后的新行即自动撤销)。
+         *
+         * 回退方案(降级/返工时在备份副本上执行,不在代码里跑):
+         *  1) 旧版本 APK 打开 v19 库时会被 [archiveUnknownVersionDatabase] 整库改名为
+         *     `facts.db.pre-destructive.bak`,数据不丢,可人工迁回;
+         *  2) 需要退出该特性时: 先把标记清掉(`UPDATE facts SET merged_into_id = NULL`,否则旧版本虽然不读
+         *     本列,以后重新升级会看到指向已不存在行的编号),再 `ALTER TABLE facts DROP COLUMN merged_into_id`
+         *     并把 user_version 置回 18。
+         */
+        val MIGRATION_18_19 =
+            object : Migration(18, 19) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE facts ADD COLUMN merged_into_id INTEGER DEFAULT NULL")
+                }
+            }
+
+        /**
          * R-DB-03: 归档早期 v1/v2 或损坏的 facts 数据库。
          * 归档为 <name>.bak 后由 Room 重建空库,避免打开时崩溃。
          */
@@ -534,6 +610,9 @@ abstract class FactDb : RoomDatabase() {
                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                     MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
                     MIGRATION_15_16,
+                    MIGRATION_16_17,
+                    MIGRATION_17_18,
+                    MIGRATION_18_19,
                 )
                 .addCallback(
                     object : Callback() {

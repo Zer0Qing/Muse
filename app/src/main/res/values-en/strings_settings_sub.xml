@@ -260,6 +260,23 @@
     <string name="settings_asr_provider_system">System</string>
     <string name="settings_asr_provider_file">File (Experimental)</string>
     <string name="settings_asr_api_key">API Key</string>
+    <!-- ASR: follow provider configuration -->
+    <string name="settings_asr_follow_provider">Follow provider config</string>
+    <string name="settings_asr_follow_provider_subtitle">Endpoint and API key come from the provider; pick the model manually</string>
+    <string name="settings_asr_follow_provider_picker">Provider</string>
+    <string name="settings_asr_follow_model_picker">Model</string>
+    <!-- Shared placeholders and fallback notice for follow mode -->
+    <string name="settings_speech_follow_unset">Not selected</string>
+    <string name="settings_speech_follow_no_models">This provider has no models</string>
+    <string name="settings_speech_model_hint">Models are managed by the provider; this only picks one</string>
+    <string name="settings_speech_model_empty">No models available yet. Add one in the provider first</string>
+    <string name="settings_speech_model_open_providers">Open provider settings</string>
+    <string name="settings_speech_model_custom_prefix">Custom: %1$s</string>
+    <string name="settings_speech_model_custom_entry">Use a custom model…</string>
+    <string name="settings_speech_follow_fallback_notice">Fell back to manual settings: %1$s</string>
+    <string name="settings_speech_follow_reason_provider_missing">The selected provider was not found</string>
+    <string name="settings_speech_follow_reason_provider_disabled">The selected provider is disabled</string>
+    <string name="settings_speech_follow_reason_model_missing">No model selected</string>
     <string name="settings_asr_hide">Hide</string>
     <string name="settings_asr_show">Show</string>
     <string name="settings_asr_model">Model</string>
@@ -302,6 +319,9 @@
     <string name="settings_rag_cloud_api_subtitle">Quality-first, requires network and API Key</string>
     <string name="settings_rag_local_keyword">Local Keywords (Offline)</string>
     <string name="settings_rag_local_keyword_subtitle">No network needed; Chinese bigram + English tokenization hash retrieval</string>
+    <string name="settings_rag_active_backend_section">Active Backend</string>
+    <string name="settings_rag_active_backend_label">Currently in use</string>
+    <string name="settings_rag_active_backend_degraded_unknown">Fallen back to another backend; the reason was not recorded</string>
     <string name="settings_rag_cloud_provider_section">Cloud Provider</string>
     <string name="settings_rag_no_provider_hint">No provider configured yet. The currently active chat provider will be used.</string>
     <string name="settings_rag_baseurl_not_set">baseUrl not set</string>
@@ -457,6 +477,7 @@
     <!-- v1.99: Cloud voice dynamic fetching -->
     <string name="settings_media_tts_voice_fetch_failed">Fetch failed. Please check API Key</string>
     <string name="settings_media_tts_voice_pick">Pick a voice</string>
+    <string name="settings_media_tts_voice_reset">Voice reset, please pick again</string>
     <!-- v1.99: Advanced TTS parameters -->
     <string name="settings_media_tts_advanced_section">Advanced parameters</string>
     <string name="settings_media_tts_stability">Stability (ElevenLabs)</string>
@@ -466,6 +487,12 @@
     <string name="settings_media_tts_cloud_speed">Synthesis speed</string>
     <string name="settings_media_tts_response_format">Audio format</string>
     <string name="settings_media_tts_save_advanced">Save parameters</string>
+    <!-- Cloud TTS: follow provider configuration -->
+    <string name="settings_media_tts_follow_provider">Follow provider config</string>
+    <string name="settings_media_tts_follow_provider_subtitle">Endpoint and API key come from the provider; pick the model manually</string>
+    <string name="settings_media_tts_follow_provider_picker">Provider</string>
+    <string name="settings_media_tts_follow_model_picker">Model</string>
+    <string name="settings_media_tts_follow_voice_hint">Following only takes over the endpoint and API key; check that your voice works with the selected provider</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Custom theme</string>
     <string name="settings_theme_custom_add">Add theme</string>
@@ -504,6 +531,7 @@
     <string name="settings_agent_test_message_subtitle">Send one like a real proactive message (shown as a notification)</string>
     <string name="settings_agent_test_generating">Generating…</string>
     <string name="settings_agent_test_failed">Test failed:%1$s</string>
+    <string name="settings_agent_test_already_running">A proactive message is still being generated, please try again later</string>
     <string name="settings_agent_daily_summary_subtitle">Generates summaries at 9:00 AM, 12:00 PM, 9:00 PM and midnight; the switch only controls notifications</string>
     <string name="settings_agent_daily_summary_slots_title">Daily summary times</string>
     <string name="settings_agent_moment_count_title">Moments per day</string>
@@ -541,7 +569,7 @@
     <string name="settings_agent_pace_heavy">Frequent</string>
     <string name="settings_agent_pace_heavy_desc">About every 2 hours, up to 8 messages a day</string>
     <string name="settings_agent_pace_extreme">Maximum</string>
-    <string name="settings_agent_pace_extreme_desc">The assistant sets its own pace and reaches out whenever it wants</string>
+    <string name="settings_agent_pace_extreme_desc">About once every 30 minutes, with a random daily offset</string>
     <string name="settings_agent_pace_custom">Custom</string>
     <string name="settings_agent_quiet_hours_title">Quiet hours</string>
     <string name="settings_agent_quiet_hours_hint">No proactive messages are sent during this window, so nights stay undisturbed.</string>

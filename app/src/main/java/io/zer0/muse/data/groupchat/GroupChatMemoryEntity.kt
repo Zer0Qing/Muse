@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
  * v2.x: 群聊记忆隔离 — Room 实体。
  *
  * 背景:群聊消息含多个 Agent 的发言,若直接写入助手主记忆会污染主对话上下文。
- * 按 既有实现 的设计:群聊消息摘要写入独立的 fact store,不进入主记忆。
+ * 群聊消息摘要写入独立的 fact store,不进入主记忆。
  * 本表即"群聊专属 fact store",与 [io.zer0.memory] 模块的主记忆系统完全隔离。
  *
  * 注入路径:[SystemPromptAssembler] 在主助手构建 system prompt 时,把当前助手关联的
@@ -122,4 +122,14 @@ interface GroupChatMemoryDao {
     /** 删除指定助手在指定群聊的记忆(助手机器人退出群聊时调用)。 */
     @Query("DELETE FROM group_chat_memories WHERE groupChatId = :groupChatId AND assistantId = :assistantId")
     suspend fun deleteByGroupChatAndAssistant(groupChatId: String, assistantId: String)
+
+    /**
+     * 助手被删除时清掉它在所有群聊里的记忆。
+     *
+     * 群聊记忆是独立的 fact store,不走记忆模块的清理链路,需要单独删。
+     *
+     * @return 实际删除的行数
+     */
+    @Query("DELETE FROM group_chat_memories WHERE assistantId = :assistantId")
+    suspend fun deleteByAssistant(assistantId: String): Int
 }

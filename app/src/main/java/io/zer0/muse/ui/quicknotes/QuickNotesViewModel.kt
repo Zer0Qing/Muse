@@ -1,19 +1,15 @@
 package io.zer0.muse.ui.quicknotes
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
-import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.quicknote.NoteCipher
 import io.zer0.muse.data.quicknote.QuickNoteDao
 import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
+import io.zer0.muse.tools.reminder.ReminderAlarmScheduler
 import io.zer0.muse.tools.reminder.ReminderStore
 import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.Dispatchers
@@ -395,7 +391,7 @@ class QuickNotesViewModel(
     fun cancelReminder(id: String) {
         viewModelScope.launch {
             dao.setReminderAt(id, 0)
-            cancelAlarm(id)
+            ReminderAlarmScheduler.cancel(context, id)
             // ReminderStore 中也可能有对应条目,尝试移除
             reminderStore.list().firstOrNull { it.id == id }?.let { reminderStore.remove(it.id) }
         }
@@ -656,64 +652,45 @@ class QuickNotesViewModel(
 
     /**
      * v1.0.18: 同步提醒闹钟。
-     * reminderAt=0 取消闹钟,否则注册精确闹钟。
+     * reminderAt=0 取消闹钟,否则注册精确闹钟(无精确权限时降级为非精确并引导用户开启)。
      */
     private fun syncReminder(id: String, title: String, message: String, reminderAt: Long) {
         if (reminderAt <= 0) {
-            cancelAlarm(id)
+            ReminderAlarmScheduler.cancel(context, id)
             return
         }
         // 先存入 ReminderStore(触发后由 ReminderAlarmReceiver 移除)
         reminderStore.list().firstOrNull { it.id == id }?.let { reminderStore.remove(it.id) }
-        reminderStore.add(title, message, reminderAt, id = id)
-        scheduleAlarm(id, title, message, reminderAt)
-    }
-
-    /** 通过 AlarmManager 注册闹钟(按 ToolRegistry.scheduleAlarm 实现)。 */
-    private fun scheduleAlarm(id: String, title: String, message: String, triggerAtMillis: Long): Boolean {
-        return resultOf {
-            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
-                putExtra(ReminderAlarmReceiver.EXTRA_ID, id)
-                putExtra(ReminderAlarmReceiver.EXTRA_TITLE, title)
-                putExtra(ReminderAlarmReceiver.EXTRA_MESSAGE, message)
-                putExtra(ReminderAlarmReceiver.EXTRA_TARGET_TYPE, ReminderAlarmReceiver.TARGET_QUICK_NOTE)
-                putExtra(ReminderAlarmReceiver.EXTRA_TARGET_ID, id)
+        reminderStore.add(
+            title = title,
+            message = message,
+            triggerAtMillis = reminderAt,
+            id = id,
+            targetType = ReminderAlarmReceiver.TARGET_QUICK_NOTE,
+            targetId = id,
+        )
+        val result = ReminderAlarmScheduler.schedule(
+            context = context,
+            id = id,
+            title = title,
+            message = message,
+            triggerAtMillis = reminderAt,
+            targetType = ReminderAlarmReceiver.TARGET_QUICK_NOTE,
+            targetId = id,
+        )
+        when {
+            !result.scheduled -> {
+                reminderStore.markScheduleFailed(id, result.error ?: "alarm_schedule_failed")
+                MuseToast.show(context.getString(R.string.tool_reminder_schedule_failed), 3500L)
             }
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
+            result.needsExactPermission -> {
+                // 已降级为非精确闹钟，先保证「会响」，再引导用户开启「闹钟和提醒」权限。
+                reminderStore.markScheduled(id, exact = false, atMillis = System.currentTimeMillis())
+                MuseToast.show(context.getString(R.string.reminder_exact_permission_toast))
+                ReminderAlarmScheduler.requestExactAlarmPermission(context)
             }
-            val pi = PendingIntent.getBroadcast(context, id.hashCode(), intent, flags)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
-                Logger.w(TAG, "无 SCHEDULE_EXACT_ALARM 权限,无法设置精确提醒: id=$id")
-                return@resultOf false
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
-            } else {
-                am.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
-            }
-            true
-        }.onError { msg, _ -> Logger.w(TAG, "scheduleAlarm failed: $msg") }
-            .getOrNull() ?: false
-    }
-
-    /** 取消 AlarmManager 闹钟。 */
-    private fun cancelAlarm(id: String) {
-        resultOf {
-            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val intent = Intent(context, ReminderAlarmReceiver::class.java)
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
-            val pi = PendingIntent.getBroadcast(context, id.hashCode(), intent, flags)
-            am.cancel(pi)
-            pi.cancel()
-        }.onError { msg, _ -> Logger.w(TAG, "cancelAlarm failed: $msg") }
+            else -> reminderStore.markScheduled(id, exact = true, atMillis = System.currentTimeMillis())
+        }
     }
 
     companion object {

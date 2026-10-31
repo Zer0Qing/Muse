@@ -36,7 +36,7 @@ class MessageDaoWidgetAssistantQueryTest {
         database.close()
     }
 
-    private suspend fun session(id: String, assistantId: String, isMiniPhone: Boolean = false, deletedAt: Long? = null) {
+    private suspend fun session(id: String, assistantId: String, deletedAt: Long? = null) {
         val now = 1_000L
         database.sessionDao().insert(
             SessionEntity(
@@ -45,7 +45,6 @@ class MessageDaoWidgetAssistantQueryTest {
                 createdAt = now,
                 updatedAt = now,
                 assistantId = assistantId,
-                isMiniPhone = isMiniPhone,
                 deletedAt = deletedAt,
             ),
         )
@@ -84,14 +83,6 @@ class MessageDaoWidgetAssistantQueryTest {
         assistantMessage("m-a1", "s-a", "a-only", createdAt = 1_000L)
 
         assertNull(database.messageDao().getLastAssistantMessageForAssistant("assistant-b"))
-    }
-
-    @Test
-    fun excludesMiniPhoneSessions() = runTest {
-        session("s-mini", "assistant-a", isMiniPhone = true)
-        assistantMessage("m-mini", "s-mini", "private-message", createdAt = 9_000L)
-
-        assertNull(database.messageDao().getLastAssistantMessageForAssistant("assistant-a"))
     }
 
     @Test

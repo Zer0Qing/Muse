@@ -3,6 +3,9 @@
 
 package io.zer0.muse.ui.schedule
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.res.Resources
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
@@ -26,6 +29,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -64,12 +69,19 @@ import io.zer0.muse.data.schedule.ScheduledTaskEntity
 import io.zer0.muse.data.schedule.ScheduledTaskExecutionDao
 import io.zer0.muse.data.schedule.ScheduledTaskExecutionEntity
 import io.zer0.muse.data.schedule.TaskIdName
+import io.zer0.muse.schedule.BackgroundWakeDiagnostics
 import io.zer0.muse.schedule.CronExpression
 import io.zer0.muse.schedule.ScheduledTaskRunner
+import io.zer0.muse.schedule.WakeDiagnostics
+import io.zer0.muse.schedule.WakeState
+import io.zer0.muse.schedule.WakeStopReason
+import io.zer0.muse.schedule.WakeWorkEntry
+import io.zer0.muse.schedule.WakeWorkKind
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -83,6 +95,8 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.ui.theme.MuseStatusColors
+import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
@@ -217,6 +231,7 @@ fun ScheduledTasksScreen(
     val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
     var showCreate by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<ScheduledTaskEntity?>(null) }
+    var showWakeDiagnostics by rememberSaveable { mutableStateOf(false) }
 
     io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
@@ -224,6 +239,15 @@ fun ScheduledTasksScreen(
                 title = stringResource(R.string.schedule_title),
                 onBack = onBack,
                 largeTitle = true,
+                actions = {
+                    // 后台唤醒状态:后台调度不可见时,用户只能靠猜。只读面板,不改动任何调度。
+                    IconButton(onClick = { showWakeDiagnostics = true }) {
+                        Icon(
+                            MuseIcons.gauge,
+                            contentDescription = stringResource(R.string.wake_diagnostics_open),
+                        )
+                    }
+                },
             )
         },
         floatingActionButton = {
@@ -334,6 +358,9 @@ fun ScheduledTasksScreen(
                 }
             },
         )
+    }
+    if (showWakeDiagnostics) {
+        BackgroundWakeSheet(onDismiss = { showWakeDiagnostics = false })
     }
 }
 
@@ -667,12 +694,18 @@ private fun ExecutionHistorySection(
 @Composable
 private fun ExecutionRow(execution: ScheduledTaskExecutionEntity, initiallyExpanded: Boolean = false) {
     val failed = execution.status == "failed"
+    // 错过的轮次:这一轮没有正常跑完,不能拿「执行成功」的勾显示
+    val missed = execution.status == ScheduledTaskRunner.STATUS_MISSED
     val summary = if (failed) execution.errorMessage else execution.replySummary
     val canExpand = summary.length > 120
     var expanded by rememberSaveable(execution.id) { mutableStateOf(initiallyExpanded) }
     // L-SC3 修复: 用 MuseDateFormats.DATE_TIME_FULL_SEC 令牌替代硬编码 "MM-dd HH:mm:ss"
     val fmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, Locale.getDefault()) }
-    val iconTint = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val iconTint = when {
+        failed -> MaterialTheme.colorScheme.error
+        missed -> MaterialTheme.colorScheme.outline
+        else -> MaterialTheme.colorScheme.primary
+    }
 
     Row(
         modifier = Modifier
@@ -689,13 +722,11 @@ private fun ExecutionRow(execution: ScheduledTaskExecutionEntity, initiallyExpan
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
-            imageVector = if (failed) MuseIcons.alertCircle else MuseIcons.circleCheck,
-            contentDescription = if (failed) {
-                stringResource(
-                    R.string.schedule_execution_failed,
-                )
-            } else {
-                stringResource(R.string.schedule_execution_success)
+            imageVector = if (failed || missed) MuseIcons.alertCircle else MuseIcons.circleCheck,
+            contentDescription = when {
+                failed -> stringResource(R.string.schedule_execution_failed)
+                missed -> stringResource(R.string.schedule_execution_missed)
+                else -> stringResource(R.string.schedule_execution_success)
             },
             tint = iconTint,
             modifier = Modifier.size(16.dp),
@@ -800,16 +831,9 @@ private fun TaskDialog(
         ?: if (assistantId == "default" || assistantId.isBlank()) stringResource(R.string.schedule_default_assistant) else assistantId
 
     val nextRunPreview = remember(interval, cronExpr) {
-        val now = System.currentTimeMillis()
-        runCatching {
-            when (interval) {
-                "cron" -> if (cronExpr.isBlank()) null else CronExpression.parse(cronExpr.trim()).nextRunAfter(now)
-                "hourly" -> now + 3_600_000L
-                "daily" -> now + 86_400_000L
-                "weekly" -> now + 604_800_000L
-                else -> null
-            }
-        }.getOrNull()
+        // 预览与落库同口径:一次性任务没有「下次」,不显示预览
+        ScheduledTaskRunner.computeNextRun(interval, cronExpr.trim(), System.currentTimeMillis())
+            .takeIf { it > 0 }
     }
     val previewFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
     val previewText = nextRunPreview?.let { stringResource(R.string.schedule_next_run_preview, previewFmt.format(Date(it))) }
@@ -1043,21 +1067,16 @@ private fun TaskDialog(
             }
             val now = System.currentTimeMillis()
             val cronValue = if (interval == "cron") cronExpr.trim() else ""
-            val nextRun = if (interval == "cron") {
+            if (interval == "cron") {
+                // cron 表达式非法时仍要拦在保存前;ScheduledTaskRunner 对非法值只降级成
+                // 「无下次执行」,静默保存会把用户语法错误变成一个跑一次就消失的任务。
                 val parsed = runCatching { CronExpression.parse(cronValue) }.getOrNull()
                 if (parsed == null) {
                     errorMessage = errCronInvalid
                     return@MuseDialog
                 }
-                parsed.nextRunAfter(now)
-            } else {
-                now + when (interval) {
-                    "hourly" -> 3_600_000L
-                    "daily" -> 86_400_000L
-                    "weekly" -> 604_800_000L
-                    else -> 60_000L
-                }
             }
+            val nextRun = ScheduledTaskRunner.initialNextRunAt(interval, cronValue, now)
 
             val conditionConfig = when (conditionType) {
                 AutomationConfig.Condition.TIME_RANGE -> JsonObject(
@@ -1546,4 +1565,253 @@ private fun AutomationChainSection(candidates: List<TaskIdName>, selectedIds: Li
             }
         }
     }
+}
+
+// ── 后台唤醒状态 ─────────────────────────────────────────────────────
+// 定时任务「一次都没跑」时,应用自己的执行历史里不会留下任何痕迹:
+// 没有唤醒 → 没有执行记录 → 用户在任务页只看到「上次执行」停在很久以前。
+// 唯一能回答「系统到底有没有排这次唤醒」的就是 WorkManager 队列本身,
+// 所以这里把队列原样摊开(状态 / 下次运行 / 系统停跑原因),并给一份可复制的纯文本快照。
+// 只读:不注册、不取消、不重排任何任务。
+
+/**
+ * 后台唤醒状态面板。
+ *
+ * 数据源是 WorkManager 队列本身(见 [BackgroundWakeDiagnostics]):定时任务「一次都没跑」时,
+ * 应用自己的执行历史里不会留下任何痕迹,只有这里能回答「系统到底有没有排这次唤醒」。
+ */
+@Composable
+private fun BackgroundWakeSheet(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    var reloadKey by remember { mutableStateOf(0) }
+    val diagnostics by produceState<WakeDiagnostics?>(initialValue = null, reloadKey) {
+        value = BackgroundWakeDiagnostics.collectWithSettings(context)
+    }
+    MuseBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            text = stringResource(R.string.wake_diagnostics_title),
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.size(4.dp))
+        Text(
+            text = stringResource(R.string.wake_diagnostics_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.size(12.dp))
+        val report = diagnostics
+        if (report == null) {
+            Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                MuseSpinner()
+            }
+        } else {
+            WakeDiagnosticsHeader(report)
+            Spacer(Modifier.size(8.dp))
+            if (report.entries.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.wake_diagnostics_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                report.entries.forEachIndexed { index, entry ->
+                    if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    WakeEntryRow(entry)
+                }
+            }
+            Spacer(Modifier.size(12.dp))
+            MuseCapsuleButton(
+                text = stringResource(R.string.wake_diagnostics_copy),
+                onClick = { copyWakeSnapshot(context, report) },
+                leadingIcon = MuseIcons.copy,
+            )
+            Spacer(Modifier.size(8.dp))
+            MuseCapsuleButton(
+                text = stringResource(R.string.wake_diagnostics_refresh),
+                onClick = { reloadKey++ },
+                variant = IosCapsuleButtonVariant.Secondary,
+                leadingIcon = MuseIcons.refresh,
+            )
+            Spacer(Modifier.size(10.dp))
+            Text(
+                text = stringResource(R.string.wake_diagnostics_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
+}
+
+/** 顶部环境事实:总控开关、电池优化豁免、WorkManager 是否可用。 */
+@Composable
+private fun WakeDiagnosticsHeader(report: WakeDiagnostics) {
+    val statusColors = MaterialTheme.statusColors
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        val masterState = when (report.backgroundWorkEnabled) {
+            true -> stringResource(R.string.wake_diagnostics_total_control_on)
+            false -> stringResource(R.string.wake_diagnostics_total_control_off)
+            null -> stringResource(R.string.wake_diagnostics_total_control_unknown)
+        }
+        Text(
+            text = stringResource(R.string.wake_diagnostics_total_control, masterState),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (report.backgroundWorkEnabled == false) {
+                statusColors.warning
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+        Text(
+            text = stringResource(
+                R.string.wake_diagnostics_battery,
+                stringResource(
+                    if (report.batteryOptimizationExempt) {
+                        R.string.wake_diagnostics_granted
+                    } else {
+                        R.string.wake_diagnostics_denied
+                    },
+                ),
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        report.error?.let { message ->
+            Text(
+                text = stringResource(R.string.wake_diagnostics_read_failed, message),
+                style = MaterialTheme.typography.bodySmall,
+                color = statusColors.error,
+            )
+        }
+    }
+}
+
+/** 单条任务:类型 + 状态 + 下次运行 + 重试次数 + 系统停跑原因。 */
+@Composable
+private fun WakeEntryRow(entry: WakeWorkEntry) {
+    val statusColors = MaterialTheme.statusColors
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = wakeKindLabel(entry.kind),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = wakeStateLabel(entry.state),
+                style = MaterialTheme.typography.labelMedium,
+                color = wakeStateColor(entry.state, statusColors),
+            )
+        }
+        Text(
+            text = entry.uniqueName,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = stringResource(
+                R.string.wake_diagnostics_next_run,
+                formatWakeTime(entry.nextRunAtMillis) ?: stringResource(R.string.wake_diagnostics_next_run_none),
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        val extras = buildList {
+            add(stringResource(R.string.wake_diagnostics_attempts, entry.runAttemptCount))
+            if (entry.historyCount > 1) add(stringResource(R.string.wake_diagnostics_history, entry.historyCount - 1))
+            if (entry.constrained) add(stringResource(R.string.wake_diagnostics_constrained))
+        }
+        Text(
+            text = extras.joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.outline,
+        )
+        if (entry.stopReason != WakeStopReason.NOT_STOPPED) {
+            Text(
+                text = stringResource(
+                    R.string.wake_diagnostics_stop_reason,
+                    wakeStopReasonLabel(entry.stopReason),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (entry.stopReason.isExternalLimit) {
+                    statusColors.warning
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun wakeKindLabel(kind: WakeWorkKind): String = when (kind) {
+    WakeWorkKind.SCHEDULED_TASK -> stringResource(R.string.wake_kind_scheduled_task)
+    WakeWorkKind.PROACTIVE -> stringResource(R.string.wake_kind_proactive)
+    WakeWorkKind.DAILY_SUMMARY -> stringResource(R.string.wake_kind_daily_summary)
+    WakeWorkKind.CLOUD_BACKUP -> stringResource(R.string.wake_kind_cloud_backup)
+    WakeWorkKind.AUTO_BACKUP -> stringResource(R.string.wake_kind_auto_backup)
+    WakeWorkKind.STATS_CACHE -> stringResource(R.string.wake_kind_stats_cache)
+}
+
+@Composable
+private fun wakeStateLabel(state: WakeState): String = when (state) {
+    WakeState.ENQUEUED -> stringResource(R.string.wake_state_enqueued)
+    WakeState.RUNNING -> stringResource(R.string.wake_state_running)
+    WakeState.BLOCKED -> stringResource(R.string.wake_state_blocked)
+    WakeState.SUCCEEDED -> stringResource(R.string.wake_state_succeeded)
+    WakeState.FAILED -> stringResource(R.string.wake_state_failed)
+    WakeState.CANCELLED -> stringResource(R.string.wake_state_cancelled)
+    WakeState.NOT_REGISTERED -> stringResource(R.string.wake_state_not_registered)
+    WakeState.UNKNOWN -> stringResource(R.string.wake_state_unknown)
+}
+
+@Composable
+private fun wakeStopReasonLabel(reason: WakeStopReason): String = when (reason) {
+    WakeStopReason.NOT_STOPPED -> stringResource(R.string.wake_stop_not_stopped)
+    WakeStopReason.UNKNOWN -> stringResource(R.string.wake_stop_unknown)
+    WakeStopReason.CANCELLED_BY_APP -> stringResource(R.string.wake_stop_cancelled_by_app)
+    WakeStopReason.PREEMPT -> stringResource(R.string.wake_stop_preempt)
+    WakeStopReason.TIMEOUT -> stringResource(R.string.wake_stop_timeout)
+    WakeStopReason.DEVICE_STATE -> stringResource(R.string.wake_stop_device_state)
+    WakeStopReason.CONSTRAINT_BATTERY -> stringResource(R.string.wake_stop_battery)
+    WakeStopReason.CONSTRAINT_CHARGING -> stringResource(R.string.wake_stop_charging)
+    WakeStopReason.CONSTRAINT_NETWORK -> stringResource(R.string.wake_stop_network)
+    WakeStopReason.DEVICE_IDLE -> stringResource(R.string.wake_stop_device_idle)
+    WakeStopReason.CONSTRAINT_STORAGE -> stringResource(R.string.wake_stop_storage)
+    WakeStopReason.QUOTA -> stringResource(R.string.wake_stop_quota)
+    WakeStopReason.BACKGROUND_RESTRICTION -> stringResource(R.string.wake_stop_background_restriction)
+    WakeStopReason.APP_STANDBY -> stringResource(R.string.wake_stop_app_standby)
+    WakeStopReason.USER -> stringResource(R.string.wake_stop_user)
+    WakeStopReason.SYSTEM_PROCESSING -> stringResource(R.string.wake_stop_system_processing)
+    WakeStopReason.ESTIMATED_APP_LAUNCH_TIME_CHANGED -> stringResource(R.string.wake_stop_launch_time)
+}
+
+private fun wakeStateColor(state: WakeState, colors: MuseStatusColors): Color = when (state) {
+    WakeState.ENQUEUED -> colors.info
+    WakeState.RUNNING -> colors.success
+    WakeState.BLOCKED -> colors.warning
+    WakeState.SUCCEEDED -> colors.success
+    WakeState.FAILED -> colors.error
+    WakeState.CANCELLED -> colors.neutral
+    WakeState.NOT_REGISTERED -> colors.error
+    WakeState.UNKNOWN -> colors.neutral
+}
+
+/** 面板里给用户看的本地时间;快照里的时间由 [BackgroundWakeDiagnostics.formatSnapshot] 固定格式输出。 */
+private fun formatWakeTime(millis: Long?): String? = millis?.let { at ->
+    SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date(at))
+}
+
+private fun copyWakeSnapshot(context: Context, report: WakeDiagnostics) {
+    val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return
+    clipboard.setPrimaryClip(
+        ClipData.newPlainText("Muse Wake Snapshot", BackgroundWakeDiagnostics.formatSnapshot(report)),
+    )
+    MuseToast.show(context.getString(R.string.wake_diagnostics_copied))
 }

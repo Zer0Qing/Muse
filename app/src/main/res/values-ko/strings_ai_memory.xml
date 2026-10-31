@@ -153,6 +153,10 @@
     <string name="memory_contradictions_dismiss_cd">확인 후 지우기</string>
     <string name="memory_contradictions_title">확인 대기 중인 모순 메모리</string>
     <string name="memory_delete_confirm_title">메모리 삭제</string>
+    <string name="memory_menu_multi_select">여러 개 선택</string>
+    <string name="memory_bulk_delete_confirm_title">선택한 메모리 삭제</string>
+    <string name="memory_bulk_delete_item_name">%1$d개의 메모리</string>
+    <string name="memory_bulk_delete_consequence">메모리 %1$d개를 삭제합니다. 되돌릴 수 없습니다.</string>
     <string name="memory_pin_failed">고정에 실패했습니다. 다시 시도하세요.</string>
     <string name="memory_stats_session_live">대화 %1$d</string>
     <string name="memory_stream_mode_list">목록</string>
@@ -180,4 +184,28 @@
     <string name="memory_group_chat_clear_confirm_title">그룹 기억 모두 지우기</string>
     <string name="memory_group_chat_clear_item_name">모든 그룹 기억</string>
     <string name="memory_group_chat_clear_consequence">모든 그룹 요약이 삭제되며 되돌릴 수 없습니다</string>
+
+    <!-- 다중 선택 병합: 모델 초안을 확인한 뒤 저장 -->
+    <string name="memory_center_merge_action">병합</string>
+    <string name="memory_center_merge_title">기억 병합</string>
+    <string name="memory_center_merge_sources_title">원본 기억(%1$d개)</string>
+    <string name="memory_center_merge_result_label">병합 결과</string>
+    <string name="memory_center_merge_confirm">병합 확인</string>
+    <string name="memory_center_merge_running">병합 중…</string>
+
+    <!-- 기억 상태 배지: 목록과 상세가 같은 판정을 쓴다 -->
+    <string name="memory_status_merged">병합됨</string>
+    <string name="memory_status_suppressed">퇴장함</string>
+    <string name="memory_status_superseded">대체됨</string>
+    <string name="memory_status_merged_detail">다른 기억으로 병합되어 자동 회수 대상이 아닙니다. 본문은 여기에 남아 있습니다.</string>
+    <string name="memory_status_suppressed_detail">퇴장함: 오래 쓰이지 않아 자동 회수에서 빠졌습니다. 행은 남아 있으며 다시 검색되거나 중요도가 올라가면 돌아옵니다.</string>
+    <string name="memory_status_superseded_detail">더 새로운 기억으로 대체되어 현재 사실로 쓰이지 않습니다.</string>
+
+    <!-- 병합 실패 안내 -->
+    <string name="memory_merge_error_min_items">병합하려면 기억을 두 개 이상 선택하세요</string>
+    <string name="memory_merge_error_no_model">모델이 설정되지 않아 병합할 수 없습니다</string>
+    <string name="memory_merge_error_mixed_scope">같은 공간의 기억만 병합할 수 있습니다</string>
+    <string name="memory_merge_error_generate_failed">이 기억들을 병합하지 못했습니다</string>
+    <string name="memory_merge_error_empty_result">병합 결과는 비울 수 없습니다</string>
+    <string name="memory_merge_error_commit_failed">병합에 실패했습니다. 기억은 변경되지 않았습니다</string>
 </resources>

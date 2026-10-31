@@ -49,4 +49,34 @@ class ContentSafetyRulesTest {
         assertNull(ContentSafetyRules.check("workspace_write", "files/note.txt"))
         assertNull(ContentSafetyRules.check("unknown_tool", "rm -rf /"))
     }
+
+    @Test
+    fun `正文内容不参与路径规则匹配`() {
+        // 路径合法，正文里带省略号与绝对路径写法，不能因此被当成越界拦下。
+        val args =
+            mapOf(
+                "path" to "notes/todo.md",
+                "content" to "待办：等待 3 天... 参见 /usr/local/bin 与 C:\\Windows",
+                "append" to "false",
+            )
+        assertNull(ContentSafetyRules.checkArgs("workspace_write", args))
+    }
+
+    @Test
+    fun `路径本身越界仍被拦截`() {
+        assertEquals(
+            "workspace-traversal",
+            ContentSafetyRules.checkArgs(
+                "workspace_write",
+                mapOf("path" to "../etc/passwd", "content" to "x"),
+            )?.ruleId,
+        )
+        assertEquals(
+            "workspace-absolute-path",
+            ContentSafetyRules.checkArgs(
+                "workspace_write",
+                mapOf("path" to "/etc/passwd", "content" to "x"),
+            )?.ruleId,
+        )
+    }
 }

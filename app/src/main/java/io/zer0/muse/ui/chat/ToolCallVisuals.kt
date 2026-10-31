@@ -81,6 +81,7 @@ internal object ToolCallVisuals {
         "write_file" to MuseIcons.edit,
         "list_files" to MuseIcons.folder,
         "workspace_write" to MuseIcons.edit,
+        "workspace_edit" to MuseIcons.edit,
         "workspace_read" to MuseIcons.file,
         // 代码 / 终端
         "execute_code" to MuseIcons.code,
@@ -318,6 +319,7 @@ internal object ToolCallVisuals {
         "write_file" to R.string.tool_summary_write_file,
         "list_files" to R.string.tool_summary_list_files,
         "workspace_write" to R.string.tool_summary_workspace_write,
+        "workspace_edit" to R.string.tool_summary_workspace_edit,
         "execute_code" to R.string.tool_summary_execute_code,
         "execute_javascript" to R.string.tool_summary_execute_javascript,
         "execute_node_script" to R.string.tool_summary_execute_javascript,
@@ -434,7 +436,7 @@ internal object ToolCallVisuals {
         val raw: String? = when (toolName) {
             "web_search" -> argString(args, "query")
             "search_memory" -> argString(args, "query")
-            "read_file", "write_file", "workspace_write", "workspace_read" ->
+            "read_file", "write_file", "workspace_write", "workspace_edit", "workspace_read" ->
                 argString(args, "path") ?: argString(args, "file_path")
             "list_files" -> argString(args, "path") ?: argString(args, "directory")
             "open_url" -> argString(args, "url")
@@ -571,6 +573,7 @@ internal object ToolCallVisuals {
         "read_file" to R.string.tool_label_read_file,
         "write_file" to R.string.tool_label_write_file,
         "workspace_write" to R.string.tool_label_workspace_write,
+        "workspace_edit" to R.string.tool_label_workspace_edit,
         "list_files" to R.string.tool_label_list_files,
         "execute_code" to R.string.tool_label_execute_code,
         "execute_javascript" to R.string.tool_label_execute_javascript,

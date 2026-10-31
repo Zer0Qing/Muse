@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 设计:
  *  - 通过 [VideoProviderRegistry] 按 specId / host / type 选择 [VideoProvider]
  *    (修复 v1.136 的 providerId 硬匹配 bug:preset_kling ≠ kling 导致路由失败)
- *  - 统一异步轮询机制(对齐实现说明 既有实现 plugins/image-gen/lib/poller.ts):
+ *  - 统一异步轮询机制:
  *    - 5 秒一个 tick
  *    - 按任务年龄自适应频率:
  *      <2min 每 5s, 2-10min 每 15s, >10min 每 30s
@@ -152,7 +152,7 @@ class VideoGenerationService(
     /**
      * 轮询直到任务完成 / 失败 / 超时 / 取消。
      *
-     * 自适应频率(对齐 QingTian Poller):
+     * 自适应频率：
      *  - 5s 一个 tick
      *  - ageMs < 2min:     每 tick 都查(5s)
      *  - 2min <= ageMs < 10min:  每 3 个 tick 查一次(15s)
@@ -289,8 +289,6 @@ class VideoGenerationService(
          * - ageMs < 2min:   每个 tick 都查(5s 间隔)
          * - 2-10min:        每 3 个 tick 查一次(15s 间隔)
          * - >10min:         每 6 个 tick 查一次(30s 间隔)
-         *
-         * 对齐实现说明 既有实现 plugins/image-gen/lib/poller.ts shouldCheckThisTick。
          */
         internal fun shouldCheckThisTick(ageMs: Long, tickCount: Int): Boolean {
             return when {

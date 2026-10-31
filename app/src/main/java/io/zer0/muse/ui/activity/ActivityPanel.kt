@@ -23,7 +23,7 @@ import io.zer0.muse.ui.common.surface.MuseSurface
 import kotlinx.serialization.Serializable
 
 /**
- * 活动面板(既有实现 ActivityPanel.tsx 实现)。
+ * 活动面板。
  *
  * 展示定时任务/心跳/编译的执行历史及状态。
  */

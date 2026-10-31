@@ -2,6 +2,7 @@
 
 package io.zer0.muse.ui.knowledge
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -230,299 +231,326 @@ fun KnowledgeScreen(
     }
 
     // v1.54: 支持导入 txt/md/pdf/docx/epub/图片(OCR),导入后自动分块+生成 embedding 向量索引
-    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        persistKnowledgeUriReadPermission(context, uri)
-        val targetKbId = importTargetKbId.ifBlank { "default" }
-        val targetFolderPath = importTargetFolderPath
-        // v1.67-B: 保存 Job 引用以便取消
-        importJob = scope.launch {
-            importing = true
-            importProgress = context.getString(R.string.knowledge_reading_file)
-            val now = System.currentTimeMillis()
-            var createdDocId: String? = null
-            try {
-                // L-KUI2: 用 ContentResolver 获取 DISPLAY_NAME,比 lastPathSegment 更可靠
-                val fileName = withContext(Dispatchers.IO) {
-                    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                        val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                        if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
-                    } ?: uri.lastPathSegment?.substringAfterLast('/')?.substringAfterLast('%')
-                } ?: "doc-$now"
-                val lowerName = fileName.lowercase()
-                val archiveFormat = ArchiveFormat.fromFileName(lowerName)
-                if (archiveFormat != null) {
-                    importArchiveBundle(
-                        archiveUri = uri,
-                        archiveName = fileName,
-                        format = archiveFormat,
-                        deps = ArchiveImportDeps(
-                            context = context,
-                            kbDao = kbDao,
-                            docDao = dao,
-                            ragService = ragService,
-                            settings = settings,
-                            documentParser = documentParser,
-                            onProgress = { importProgress = it },
-                        ),
-                    )
-                    return@launch
-                }
-                // v1.0.47 P7-3: 解析型文档/图片仍限制 50MB；纯文本走流式索引。
-                val maxFileSizeBytes = 50L * 1024 * 1024
-                val fileSize = withContext(Dispatchers.IO) {
-                    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                        val idx = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
-                        if (idx >= 0 && cursor.moveToFirst()) cursor.getLong(idx) else -1L
-                    } ?: -1L
-                }
-                val isParsedDoc = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") ||
-                    lowerName.endsWith(".doc") || lowerName.endsWith(".epub") ||
-                    lowerName.endsWith(".pptx")
-                val isImage = lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
-                    lowerName.endsWith(".jpeg") || lowerName.endsWith(".bmp") ||
-                    lowerName.endsWith(".webp")
-                val isTextCandidate = !isParsedDoc && !isImage
-                val unsupportedTextCandidate =
-                    isTextCandidate &&
-                        (KnowledgeArchivePolicy.isArchiveFile(lowerName) || looksBinary(uri, context))
-                if (fileSize > maxFileSizeBytes && (!isTextCandidate || unsupportedTextCandidate)) {
-                    importing = false
-                    fileSizeWarning = formatFileSize(fileSize) to formatFileSize(maxFileSizeBytes)
-                    return@launch
-                }
-                val parserConfig = try {
-                    settings.getRagConfig()
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: java.io.IOException) {
-                    Logger.w("KnowledgeScreen", "读取 RAG 配置失败: ${e.message}")
-                    io.zer0.muse.rag.RagConfig()
-                }
-                if (isTextCandidate && !unsupportedTextCandidate) {
-                    val docId = "doc-$now"
-                    createdDocId = docId
-                    val fileType = when {
-                        lowerName.endsWith(".md") || lowerName.endsWith(".markdown") -> "md"
-                        lowerName.endsWith(".csv") -> "csv"
-                        lowerName.endsWith(".json") -> "json"
-                        else -> "txt"
-                    }
-                    val preview = StringBuilder()
-                    val digest = MessageDigest.getInstance("SHA-256")
-                    val textFlow = flow {
-                        val input = context.contentResolver.openInputStream(uri)
-                            ?: throw java.io.IOException(context.getString(R.string.knowledge_import_failed_read))
-                        input.use { stream ->
-                            stream.bufferedReader().use { reader ->
-                                val buffer = CharArray(64 * 1024)
-                                var totalChars = 0L
-                                while (true) {
-                                    val count = reader.read(buffer)
-                                    if (count < 0) break
-                                    if (count == 0) continue
-                                    totalChars += count
-                                    if (totalChars > maxFileSizeBytes) {
-                                        error("文件过大,超过 ${maxFileSizeBytes / 1024 / 1024}MB 限制")
-                                    }
-                                    if (preview.length < MAX_CONTENT_LENGTH) {
-                                        preview.append(
-                                            buffer,
-                                            0,
-                                            minOf(count, MAX_CONTENT_LENGTH - preview.length),
-                                        )
-                                    }
-                                    val piece = String(buffer, 0, count)
-                                    digest.update(piece.toByteArray(Charsets.UTF_8))
-                                    emit(piece)
-                                }
-                            }
-                        }
-                    }.flowOn(Dispatchers.IO)
-                    dao.upsert(
-                        KnowledgeFolderBrowser.withFolderPath(
-                            KnowledgeDocEntity(
-                                id = docId,
-                                title = fileName,
-                                content = "",
-                                filePath = uri.toString(),
-                                fileType = fileType,
-                                createdAt = now,
-                                updatedAt = now,
-                                kbId = targetKbId,
-                            ),
-                            targetFolderPath,
-                        ),
-                    )
-                    importProgress = context.getString(R.string.knowledge_chunking)
-                    val chunkCount = ragService.indexDocumentStreamed(
-                        docId = docId,
-                        textPieces = textFlow,
-                        ragConfig = parserConfig,
-                        onProgress = { indexed ->
-                            importProgress = context.getString(R.string.knowledge_import_indexed_chunks, indexed)
-                        },
-                    )
-                    if (chunkCount <= 0) {
-                        resultOf { ragService.deleteDocument(docId) }
-                        MuseToast.show(context.getString(R.string.knowledge_import_empty))
-                        return@launch
-                    }
-                    dao.upsert(
-                        (dao.getById(docId) ?: return@launch).copy(
-                            content = preview.toString(),
-                            chunkCount = chunkCount,
-                            embeddingModel = io.zer0.muse.rag.RagConfig.embeddingModelKey(parserConfig),
-                            contentHash = digest.digest().joinToString("") { byte -> "%02x".format(byte) },
-                            updatedAt = System.currentTimeMillis(),
-                        ),
-                    )
-                    scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(parserConfig)) }
-                    browsingKbId = targetKbId
-                    currentFolderPath = targetFolderPath
-                    MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
-                    return@launch
-                }
-                // 根据扩展名选择解析方式
-                val content = when {
-                    isParsedDoc -> {
-                        importProgress = context.getString(R.string.knowledge_parsing_doc)
-                        val parsed = withContext(Dispatchers.IO) {
-                            documentParser.parseResult(
-                                uri,
-                                context,
-                                parserConfig.documentParserType,
-                                parserConfig.cloudParserEndpoint,
-                                parserConfig.mineruEndpoint,
-                                parserConfig.mineruToken,
-                            )
-                        }
-                        if (parsed is io.zer0.common.Result.Error) {
-                            MuseToast.show(parsed.message)
-                            return@launch
-                        }
-                        val text = parsed.getOrNull()
-                        if (text.isNullOrBlank()) {
-                            MuseToast.show(context.getString(R.string.knowledge_import_empty))
-                            return@launch
-                        }
-                        text
-                    }
-                    isImage -> {
-                        importProgress = context.getString(R.string.knowledge_ocr)
-                        ocrManager.recognize(uri, context)
-                    }
-                    else -> {
-                        // 其余不应再走文本读取：压缩包/二进制已经在上方被拒绝。
-                        // v2.3.1: 压缩包/二进制守卫 — 与管理页(F-31)统一口径。此前主页面无守卫,
-                        // 二进制会被当文本读入 → 乱码写库并建立向量索引(静默污染检索,2026-09 反馈)
-                        MuseToast.show(context.getString(R.string.knowledge_import_unsupported))
-                        return@launch
-                    }
-                }
-                if (content.isNullOrBlank()) {
-                    MuseToast.show(context.getString(R.string.knowledge_import_empty))
-                    return@launch
-                }
-                val fileType = when {
-                    lowerName.endsWith(".md") || lowerName.endsWith(".markdown") -> "md"
-                    lowerName.endsWith(".pdf") -> "pdf"
-                    lowerName.endsWith(".docx") || lowerName.endsWith(".doc") -> "docx"
-                    lowerName.endsWith(".epub") -> "epub"
-                    lowerName.endsWith(".csv") -> "csv"
-                    lowerName.endsWith(".json") -> "json"
-                    lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
-                        lowerName.endsWith(".jpeg") -> "ocr"
-                    else -> "txt"
-                }
-                val docId = "doc-$now"
-                createdDocId = docId
-                // L-KUI1: 提取常量,截断时记录日志提示
-                val truncatedContent = if (content.length > MAX_CONTENT_LENGTH) {
-                    Logger.w("KnowledgeScreen", "内容超过 $MAX_CONTENT_LENGTH 字符,已截断(原 ${content.length} 字)")
-                    content.take(MAX_CONTENT_LENGTH)
-                } else {
-                    content
-                }
-                dao.upsert(
-                    KnowledgeDocEntity(
-                        id = docId,
-                        title = fileName,
-                        content = truncatedContent,
-                        filePath = uri.toString(),
-                        fileType = fileType,
-                        createdAt = now,
-                        updatedAt = now,
-                        // F-31: 写入导入时选定的目标知识库(空串 → 默认知识库)
-                        kbId = targetKbId,
-                    ).let { KnowledgeFolderBrowser.withFolderPath(it, targetFolderPath) },
+    // 单文件导入提取为局部 suspend 函数:返回 true = 该文件导入成功,false = 提前退出(没导成)。
+    // 全局 UI 状态(importing / importProgress / importJob)的收尾统一由调用方管理。
+    //
+    // ReturnCount 抑制的理由:这里是逐文件导入的多条失败路径（文件超限、解析失败、内容为空、
+    // 分块数为 0、落库后查不到……），每一条都对应一种要告知用户的真实原因。
+    // 拆成十几个小函数会把「一次导入」的流程切碎到无法阅读，反而更容易漏掉半成品清理。
+    @Suppress("ReturnCount")
+    suspend fun importOneDocument(uri: Uri, targetKbId: String, targetFolderPath: String?): Boolean {
+        val folderPath = targetFolderPath.orEmpty()
+        importProgress = context.getString(R.string.knowledge_reading_file)
+        val now = System.currentTimeMillis()
+        var createdDocId: String? = null
+        return try {
+            // L-KUI2: 用 ContentResolver 获取 DISPLAY_NAME,比 lastPathSegment 更可靠
+            val fileName = withContext(Dispatchers.IO) {
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
+                } ?: uri.lastPathSegment?.substringAfterLast('/')?.substringAfterLast('%')
+            } ?: "doc-$now"
+            val lowerName = fileName.lowercase()
+            val archiveFormat = ArchiveFormat.fromFileName(lowerName)
+            if (archiveFormat != null) {
+                importArchiveBundle(
+                    archiveUri = uri,
+                    archiveName = fileName,
+                    format = archiveFormat,
+                    deps = ArchiveImportDeps(
+                        context = context,
+                        kbDao = kbDao,
+                        docDao = dao,
+                        ragService = ragService,
+                        settings = settings,
+                        documentParser = documentParser,
+                        onProgress = { importProgress = it },
+                    ),
                 )
-                // v1.54: 自动分块 + 生成 embedding 向量索引
-                importProgress = context.getString(R.string.knowledge_chunking)
-                val ragConfig = parserConfig
-                // v1.103: 不再静默吞异常。runCatching 失败时把原因拼进 toast,
-                // 让用户知道为什么没建索引(网络/模型名/Provider 不兼容等),而不是只看到"已导入但未索引"。
-                var indexError: Throwable? = null
-                var indexErrorMsg: String? = null
-                val indexResult = resultOf {
-                    ragService.indexDocumentStreamed(
-                        docId = docId,
-                        textPieces = kotlinx.coroutines.flow.flow {
-                            content.chunked(io.zer0.muse.rag.RagService.STREAM_WINDOW_CHARS).forEach { emit(it) }
-                        },
-                        ragConfig = ragConfig,
-                    )
-                }.onError { msg, t ->
-                    indexErrorMsg = msg
-                    indexError = t
-                }
-                val chunkCount = indexResult.getOrNull()
-                if (chunkCount != null && chunkCount > 0) {
-                    // 更新文档的分块数和 embedding 模型
-                    val modelName = ragConfig.cloudModel.ifBlank { "cloud-default" }
-                    dao.upsert(
-                        (dao.getById(docId) ?: return@launch).copy(
-                            chunkCount = chunkCount,
-                            embeddingModel = modelName,
-                            // Hash the complete extracted text, not the DB preview, so reindexing can
-                            // distinguish truncated content instead of silently treating it as canonical.
-                            contentHash = io.zer0.muse.rag.RagService.computeContentHash(content),
-                            updatedAt = System.currentTimeMillis(),
-                        ),
-                    )
-                    // F-33: 记录本次索引用到的 embedding 配置,供切换检测
-                    scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }
-                    browsingKbId = targetKbId
-                    currentFolderPath = targetFolderPath
-                    MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
-                } else {
-                    // v1.103: 索引失败时显示具体原因,引导用户去 RAG 设置检查配置
-                    val reason = indexErrorMsg?.take(100)
-                    val msg = if (reason.isNullOrBlank()) {
-                        context.getString(R.string.knowledge_imported_no_index, fileName)
-                    } else {
-                        "${context.getString(R.string.knowledge_imported_no_index, fileName)}\n" +
-                            context.getString(R.string.knowledge_index_error_reason, reason)
-                    }
-                    MuseToast.show(msg)
-                    Logger.w("KnowledgeScreen", "indexDocument failed for $fileName", indexError)
-                }
+                return true
+            }
+            // v1.0.47 P7-3: 解析型文档/图片仍限制 50MB；纯文本走流式索引。
+            val maxFileSizeBytes = 50L * 1024 * 1024
+            val fileSize = withContext(Dispatchers.IO) {
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val idx = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                    if (idx >= 0 && cursor.moveToFirst()) cursor.getLong(idx) else -1L
+                } ?: -1L
+            }
+            val isParsedDoc = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") ||
+                lowerName.endsWith(".doc") || lowerName.endsWith(".epub") ||
+                lowerName.endsWith(".pptx")
+            val isImage = lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
+                lowerName.endsWith(".jpeg") || lowerName.endsWith(".bmp") ||
+                lowerName.endsWith(".webp")
+            val isTextCandidate = !isParsedDoc && !isImage
+            val unsupportedTextCandidate =
+                isTextCandidate &&
+                    (KnowledgeArchivePolicy.isArchiveFile(lowerName) || looksBinary(uri, context))
+            if (fileSize > maxFileSizeBytes && (!isTextCandidate || unsupportedTextCandidate)) {
+                fileSizeWarning = formatFileSize(fileSize) to formatFileSize(maxFileSizeBytes)
+                return false
+            }
+            val parserConfig = try {
+                settings.getRagConfig()
             } catch (e: kotlinx.coroutines.CancellationException) {
-                // v1.67-B: 用户取消导入,清理半成品文档 + 已生成的分块
-                createdDocId?.let { id ->
-                    resultOf { ragService.deleteDocument(id) }
-                }
-                MuseToast.show(context.getString(R.string.knowledge_import_cancelled))
                 throw e
             } catch (e: java.io.IOException) {
-                MuseToast.show(context.getString(R.string.knowledge_import_failed_read))
-            } catch (e: Exception) {
-                MuseToast.show(context.getString(R.string.knowledge_import_failed, e.message?.take(80) ?: ""))
+                Logger.w("KnowledgeScreen", "读取 RAG 配置失败: ${e.message}")
+                io.zer0.muse.rag.RagConfig()
+            }
+            if (isTextCandidate && !unsupportedTextCandidate) {
+                val docId = "doc-$now"
+                createdDocId = docId
+                val fileType = when {
+                    lowerName.endsWith(".md") || lowerName.endsWith(".markdown") -> "md"
+                    lowerName.endsWith(".csv") -> "csv"
+                    lowerName.endsWith(".json") -> "json"
+                    else -> "txt"
+                }
+                val preview = StringBuilder()
+                val digest = MessageDigest.getInstance("SHA-256")
+                val textFlow = flow {
+                    val input = context.contentResolver.openInputStream(uri)
+                        ?: throw java.io.IOException(context.getString(R.string.knowledge_import_failed_read))
+                    input.use { stream ->
+                        stream.bufferedReader().use { reader ->
+                            val buffer = CharArray(64 * 1024)
+                            var totalChars = 0L
+                            while (true) {
+                                val count = reader.read(buffer)
+                                if (count < 0) break
+                                if (count == 0) continue
+                                totalChars += count
+                                if (totalChars > maxFileSizeBytes) {
+                                    error("文件过大,超过 ${maxFileSizeBytes / 1024 / 1024}MB 限制")
+                                }
+                                if (preview.length < MAX_CONTENT_LENGTH) {
+                                    preview.append(
+                                        buffer,
+                                        0,
+                                        minOf(count, MAX_CONTENT_LENGTH - preview.length),
+                                    )
+                                }
+                                val piece = String(buffer, 0, count)
+                                digest.update(piece.toByteArray(Charsets.UTF_8))
+                                emit(piece)
+                            }
+                        }
+                    }
+                }.flowOn(Dispatchers.IO)
+                dao.upsert(
+                    KnowledgeFolderBrowser.withFolderPath(
+                        KnowledgeDocEntity(
+                            id = docId,
+                            title = fileName,
+                            content = "",
+                            filePath = uri.toString(),
+                            fileType = fileType,
+                            createdAt = now,
+                            updatedAt = now,
+                            kbId = targetKbId,
+                        ),
+                        folderPath,
+                    ),
+                )
+                importProgress = context.getString(R.string.knowledge_chunking)
+                val chunkCount = ragService.indexDocumentStreamed(
+                    docId = docId,
+                    textPieces = textFlow,
+                    ragConfig = parserConfig,
+                    onProgress = { indexed ->
+                        importProgress = context.getString(R.string.knowledge_import_indexed_chunks, indexed)
+                    },
+                )
+                if (chunkCount <= 0) {
+                    resultOf { ragService.deleteDocument(docId) }
+                    MuseToast.show(context.getString(R.string.knowledge_import_empty))
+                    return false
+                }
+                dao.upsert(
+                    (dao.getById(docId) ?: return false).copy(
+                        content = preview.toString(),
+                        chunkCount = chunkCount,
+                        embeddingModel = io.zer0.muse.rag.RagConfig.embeddingModelKey(parserConfig),
+                        contentHash = digest.digest().joinToString("") { byte -> "%02x".format(byte) },
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+                scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(parserConfig)) }
+                browsingKbId = targetKbId
+                currentFolderPath = folderPath
+                MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
+                return true
+            }
+            // 根据扩展名选择解析方式
+            val content = when {
+                isParsedDoc -> {
+                    importProgress = context.getString(R.string.knowledge_parsing_doc)
+                    val parsed = withContext(Dispatchers.IO) {
+                        documentParser.parseResult(
+                            uri,
+                            context,
+                            parserConfig.documentParserType,
+                            parserConfig.cloudParserEndpoint,
+                            parserConfig.mineruEndpoint,
+                            parserConfig.mineruToken,
+                        )
+                    }
+                    if (parsed is io.zer0.common.Result.Error) {
+                        MuseToast.show(parsed.message)
+                        return false
+                    }
+                    val text = parsed.getOrNull()
+                    if (text.isNullOrBlank()) {
+                        MuseToast.show(context.getString(R.string.knowledge_import_empty))
+                        return false
+                    }
+                    text
+                }
+                isImage -> {
+                    importProgress = context.getString(R.string.knowledge_ocr)
+                    ocrManager.recognize(uri, context)
+                }
+                else -> {
+                    // 其余不应再走文本读取：压缩包/二进制已经在上方被拒绝。
+                    // v2.3.1: 压缩包/二进制守卫 — 与管理页(F-31)统一口径。此前主页面无守卫,
+                    // 二进制会被当文本读入 → 乱码写库并建立向量索引(静默污染检索,2026-09 反馈)
+                    MuseToast.show(context.getString(R.string.knowledge_import_unsupported))
+                    return false
+                }
+            }
+            if (content.isNullOrBlank()) {
+                MuseToast.show(context.getString(R.string.knowledge_import_empty))
+                return false
+            }
+            val fileType = when {
+                lowerName.endsWith(".md") || lowerName.endsWith(".markdown") -> "md"
+                lowerName.endsWith(".pdf") -> "pdf"
+                lowerName.endsWith(".docx") || lowerName.endsWith(".doc") -> "docx"
+                lowerName.endsWith(".epub") -> "epub"
+                lowerName.endsWith(".csv") -> "csv"
+                lowerName.endsWith(".json") -> "json"
+                lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
+                    lowerName.endsWith(".jpeg") -> "ocr"
+                else -> "txt"
+            }
+            val docId = "doc-$now"
+            createdDocId = docId
+            // L-KUI1: 提取常量,截断时记录日志提示
+            val truncatedContent = if (content.length > MAX_CONTENT_LENGTH) {
+                Logger.w("KnowledgeScreen", "内容超过 $MAX_CONTENT_LENGTH 字符,已截断(原 ${content.length} 字)")
+                content.take(MAX_CONTENT_LENGTH)
+            } else {
+                content
+            }
+            dao.upsert(
+                KnowledgeDocEntity(
+                    id = docId,
+                    title = fileName,
+                    content = truncatedContent,
+                    filePath = uri.toString(),
+                    fileType = fileType,
+                    createdAt = now,
+                    updatedAt = now,
+                    // F-31: 写入导入时选定的目标知识库(空串 → 默认知识库)
+                    kbId = targetKbId,
+                ).let { KnowledgeFolderBrowser.withFolderPath(it, folderPath) },
+            )
+            // v1.54: 自动分块 + 生成 embedding 向量索引
+            importProgress = context.getString(R.string.knowledge_chunking)
+            val ragConfig = parserConfig
+            // v1.103: 不再静默吞异常。runCatching 失败时把原因拼进 toast,
+            // 让用户知道为什么没建索引(网络/模型名/Provider 不兼容等),而不是只看到"已导入但未索引"。
+            var indexError: Throwable? = null
+            var indexErrorMsg: String? = null
+            val indexResult = resultOf {
+                ragService.indexDocumentStreamed(
+                    docId = docId,
+                    textPieces = kotlinx.coroutines.flow.flow {
+                        content.chunked(io.zer0.muse.rag.RagService.STREAM_WINDOW_CHARS).forEach { emit(it) }
+                    },
+                    ragConfig = ragConfig,
+                )
+            }.onError { msg, t ->
+                indexErrorMsg = msg
+                indexError = t
+            }
+            val chunkCount = indexResult.getOrNull()
+            if (chunkCount != null && chunkCount > 0) {
+                // 更新文档的分块数和 embedding 模型
+                val modelName = ragConfig.cloudModel.ifBlank { "cloud-default" }
+                dao.upsert(
+                    (dao.getById(docId) ?: return false).copy(
+                        chunkCount = chunkCount,
+                        embeddingModel = modelName,
+                        // Hash the complete extracted text, not the DB preview, so reindexing can
+                        // distinguish truncated content instead of silently treating it as canonical.
+                        contentHash = io.zer0.muse.rag.RagService.computeContentHash(content),
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+                // F-33: 记录本次索引用到的 embedding 配置,供切换检测
+                scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }
+                browsingKbId = targetKbId
+                currentFolderPath = folderPath
+                MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
+            } else {
+                // v1.103: 索引失败时显示具体原因,引导用户去 RAG 设置检查配置
+                val reason = indexErrorMsg?.take(100)
+                val msg = if (reason.isNullOrBlank()) {
+                    context.getString(R.string.knowledge_imported_no_index, fileName)
+                } else {
+                    "${context.getString(R.string.knowledge_imported_no_index, fileName)}\n" +
+                        context.getString(R.string.knowledge_index_error_reason, reason)
+                }
+                MuseToast.show(msg)
+                Logger.w("KnowledgeScreen", "indexDocument failed for $fileName", indexError)
+            }
+            // 解析型文档/图片路径：走到这里说明该文件已落库(索引与否由上面的 toast 告知)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // v1.67-B: 用户取消导入,清理半成品文档 + 已生成的分块
+            createdDocId?.let { id ->
+                resultOf { ragService.deleteDocument(id) }
+            }
+            MuseToast.show(context.getString(R.string.knowledge_import_cancelled))
+            throw e
+        } catch (e: java.io.IOException) {
+            MuseToast.show(context.getString(R.string.knowledge_import_failed_read))
+            false
+        } catch (e: Exception) {
+            MuseToast.show(context.getString(R.string.knowledge_import_failed, e.message?.take(80) ?: ""))
+            false
+        }
+    }
+
+    // v2.6.x: 导入支持多选批量。目标知识库/文件夹在启动前算好,避免逐文件重算。
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+        val targetKbId = importTargetKbId.ifBlank { "default" }
+        val targetFolderPath = importTargetFolderPath
+        // v1.67-B: 保存 Job 引用以便取消(取消会中断整个批量循环)
+        importJob = scope.launch {
+            importing = true
+            var succeeded = 0
+            var failed = 0
+            try {
+                uris.forEachIndexed { index, uri ->
+                    importProgress = context.getString(R.string.knowledge_import_batch_progress, index + 1, uris.size)
+                    persistKnowledgeUriReadPermission(context, uri)
+                    if (importOneDocument(uri, targetKbId, targetFolderPath)) succeeded++ else failed++
+                }
             } finally {
                 importing = false
                 importProgress = ""
                 importJob = null
                 importTargetFolderPath = ""
+            }
+            // 只选了一个文件时保持原体验,不弹汇总
+            if (uris.size > 1) {
+                MuseToast.show(context.getString(R.string.knowledge_import_batch_done, succeeded, failed))
             }
         }
     }

@@ -204,6 +204,33 @@ class MemoryCompiler(
     }
 
     /**
+     * 在已编译摘要里按词做子串扫描。
+     *
+     * 读的是与 system prompt 注入同一份内容(按 scope + space 取,旧副本作回落),
+     * 并同样剔除墓碑行 —— 用户删过的内容不得因为“摘要里还有”被检索回来。
+     *
+     * @param query 用户查询串
+     * @param scope 记忆作用域
+     * @param spaceId 记忆空间
+     * @param limit 最多返回几条
+     */
+    suspend fun searchCompiledSections(
+        query: String,
+        scope: String = "main",
+        spaceId: String = "default",
+        limit: Int = 10,
+    ): List<CompiledSectionHit> = withContext(Dispatchers.IO) {
+        if (query.isBlank() || limit <= 0) return@withContext emptyList()
+        val normalizedScope = scope.ifBlank { "main" }
+        val normalizedSpace = spaceId.ifBlank { "default" }
+        val tombstones = loadTombstones(MemoryCompileTarget(scope = normalizedScope, spaceId = normalizedSpace))
+        val sections = Section.ALL.map { section ->
+            section.key to filterTombstonedLines(readSection(section, normalizedScope, normalizedSpace), tombstones)
+        }
+        scanCompiledSections(sections, query, limit)
+    }
+
+    /**
      * v1.0.53: 是否存在任何已编译 section。
      * 用于 daily pipeline 进度校验:旧版 updateContent 是 UPDATE 语义,
      * 表初始为空时写入静默丢失,但 daily_state 仍记录完成 → 需重置进度重跑。
@@ -848,6 +875,9 @@ class MemoryCompiler(
      * 至此"编辑/删除/新增"均在下一轮投影即刻一致;v12 的逐行对账语义退役,
      * 墓碑过滤仍作为吸收/投影的输入过滤保留(S-04)。
      *
+     * v18: 两段的取数口径不同 —— 吸收看全表(否则出场记忆会被当成产物孤儿重新补录),
+     * 投影只看“在场且未被取代”的行(投影结果就是注入给模型的 FACTS 段)。
+     *
      * @return 1 = 段内容有更新;0 = 无变化(含空表/无内容)
      */
     suspend fun reconcileFactsSectionWithStore(facts: List<io.zer0.memory.fact.FactStore.Fact>, target: MemoryCompileTarget? = null): Int =
@@ -867,8 +897,12 @@ class MemoryCompiler(
             }
 
             // 2) 投影(factStore 可用时重查最新表;否则退回传入快照,兼容无 store 场景)
+            //    v18: 投影就是注入内容,取数用 includeSuppressed=false —— 已出场(分数低于阈值)
+            //    与已被取代的旧记忆都不写进上下文。吸收那一段不受影响:它自己查全表([absorbFactLines]),
+            //    所以出场/被取代的行不会被当成“孤儿”重新补录。
             val source = if (store != null) {
-                resultOf { store.getByScopeAndSpace(scope, spaceId) }.getOrNull() ?: return@withContext 0
+                resultOf { store.getByScopeAndSpace(scope, spaceId, includeSuppressed = false) }
+                    .getOrNull() ?: return@withContext 0
             } else {
                 facts
             }

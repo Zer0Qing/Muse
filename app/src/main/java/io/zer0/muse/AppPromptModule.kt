@@ -65,6 +65,8 @@ val appPromptModule = module {
             stickerRepository = get(),
             // v2.6.7（P1-1）: 关系状态注入（亲密度/关系标签/最近互动）
             relationshipRepository = get(),
+            // 工具审批策略：提示词里的「本轮可调用」数与 schema 下发同源，需排除 ALWAYS_DENY 的工具
+            toolConfigStore = get(),
         )
     }
 }

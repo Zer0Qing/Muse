@@ -37,6 +37,8 @@ object DelegationContextBuilder {
                         toolCallInfo = null,
                         reasoning = null,
                         thinkingSignature = null,
+                        voiceUri = null,
+                        voiceDurationMs = 0L,
                     )
                 } else {
                     // 委派子助手时走纯文本路径:清空图片、视频、工具调用、推理链等字段,
@@ -46,6 +48,8 @@ object DelegationContextBuilder {
                         imageBase64List = emptyList(),
                         videoFileUri = null,
                         videoMimeType = null,
+                        voiceUri = null,
+                        voiceDurationMs = 0L,
                         toolCalls = null,
                         toolCallId = null,
                         toolCallInfo = null,

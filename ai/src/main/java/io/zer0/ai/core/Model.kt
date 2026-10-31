@@ -39,8 +39,7 @@ data class Model(
     /**
      * v1.0.4: 视觉能力声明(grounding 坐标定位 + 输出格式)。
      *
-     * 按 既有实现 的 `visionCapabilities` 字段。当模型支持在图片上定位物体
-     * (返回坐标框)时设为非 null,VisionBridge 会走 structured+primitives 路径,
+     * 当模型支持在图片上定位物体(返回坐标框)时设为非 null,VisionBridge 会走 structured+primitives 路径,
      * 让视觉模型不仅描述图片,还返回归一化坐标,纯文本模型可基于坐标说"点击 [320,240]"。
      *
      * null 或 grounding=false 表示模型只能描述图片(note-only 路径)。
@@ -88,12 +87,24 @@ data class Model(
 
     /** v1.0.4: 便捷判断:是否支持视觉 grounding(坐标定位)。 */
     fun supportsVisionGrounding(): Boolean = visionCapabilities?.grounding == true
+
+    /**
+     * v2.7: 该模型在能力目录(model-catalog)里声明的思考格式。
+     *
+     * 目录字段(`ModelCatalogEntry.compat.thinkingFormat`)原来只解析不消费,行为完全由
+     * [ProviderCompatRules] 的 host 硬编码表决定。这里把目录结论挂到 [Model] 上,让持有模型
+     * 的调用方与请求期派生出同一答案 —— 两边共用 [ProviderCompatRules.catalogThinkingFormat]
+     * 一份词汇映射,不重复口径。
+     *
+     * null 表示「目录没说(或词汇映射不了)」,此时以硬编码表为准,再没有就回到默认值。
+     * 完整优先级:[目录] > [硬编码表] > [默认值]。
+     */
+    val catalogThinkingFormat: ThinkingFormat?
+        get() = ProviderCompatRules.catalogThinkingFormat(id, providerId)
 }
 
 /**
  * v1.0.4: 视觉能力声明。
- *
- * 按 既有实现 的 `visionCapabilities` 字段设计。
  *
  * @param grounding 是否支持在图片上定位物体(返回坐标框)
  * @param outputFormat 坐标输出格式,决定提示词要求和归一化逻辑:

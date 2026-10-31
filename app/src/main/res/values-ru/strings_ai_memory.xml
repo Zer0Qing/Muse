@@ -153,6 +153,10 @@
     <string name="memory_contradictions_dismiss_cd">Подтвердить и удалить</string>
     <string name="memory_contradictions_title">Противоречивые воспоминания, ожидающие подтверждения</string>
     <string name="memory_delete_confirm_title">Удалить воспоминание</string>
+    <string name="memory_menu_multi_select">Выбрать несколько</string>
+    <string name="memory_bulk_delete_confirm_title">Удалить выбранные воспоминания</string>
+    <string name="memory_bulk_delete_item_name">Воспоминаний: %1$d</string>
+    <string name="memory_bulk_delete_consequence">Будет удалено воспоминаний: %1$d. Отменить это нельзя.</string>
     <string name="memory_pin_failed">Не удалось закрепить. Попробуйте снова.</string>
     <string name="memory_stats_session_live">Диалог %1$d</string>
     <string name="memory_stream_mode_list">Список</string>
@@ -180,4 +184,28 @@
     <string name="memory_group_chat_clear_confirm_title">Очистить всю память групп</string>
     <string name="memory_group_chat_clear_item_name">всю память групп</string>
     <string name="memory_group_chat_clear_consequence">Все итоги обсуждений будут удалены. Отменить нельзя</string>
+
+    <!-- Объединение нескольких воспоминаний: черновик модели и ручное подтверждение -->
+    <string name="memory_center_merge_action">Объединить</string>
+    <string name="memory_center_merge_title">Объединить воспоминания</string>
+    <string name="memory_center_merge_sources_title">Исходные воспоминания (%1$d)</string>
+    <string name="memory_center_merge_result_label">Результат объединения</string>
+    <string name="memory_center_merge_confirm">Подтвердить объединение</string>
+    <string name="memory_center_merge_running">Объединение…</string>
+
+    <!-- Значки состояния: список и подробности используют одно и то же правило -->
+    <string name="memory_status_merged">Объединена</string>
+    <string name="memory_status_suppressed">Угасла</string>
+    <string name="memory_status_superseded">Заменена</string>
+    <string name="memory_status_merged_detail">Объединена с другим воспоминанием, поэтому больше не извлекается автоматически. Текст остаётся здесь для справки.</string>
+    <string name="memory_status_suppressed_detail">Угасла: не использовалась достаточно долго и вышла из автоматического извлечения. Строка осталась и вернётся, если её снова найдут или повысят важность.</string>
+    <string name="memory_status_superseded_detail">Заменена более новым воспоминанием, поэтому больше не используется как текущий факт.</string>
+
+    <!-- Сообщения об ошибке объединения -->
+    <string name="memory_merge_error_min_items">Выберите хотя бы два воспоминания для объединения</string>
+    <string name="memory_merge_error_no_model">Модель не настроена, объединение невозможно</string>
+    <string name="memory_merge_error_mixed_scope">Объединять можно только воспоминания из одного пространства</string>
+    <string name="memory_merge_error_generate_failed">Не удалось объединить эти воспоминания</string>
+    <string name="memory_merge_error_empty_result">Результат объединения не может быть пустым</string>
+    <string name="memory_merge_error_commit_failed">Объединение не удалось, воспоминания не изменены</string>
 </resources>

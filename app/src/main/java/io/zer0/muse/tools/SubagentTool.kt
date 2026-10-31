@@ -14,11 +14,11 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * subagent_task 工具(既有实现 subagent-tool.ts 实现)。
+ * subagent_task 工具。
  *
  * 非阻塞后台子 agent 任务执行,支持线程续接与关闭。
  *
- * 三件套操作(按 既有实现):
+ * 三件套操作:
  *  - launch:启动新子 agent 任务,返回 taskId + threadId
  *  - reply :续接同一子 agent(按 threadId),传入新 task
  *  - close :关闭子 agent 线程,释放资源

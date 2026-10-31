@@ -314,6 +314,13 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
+                // v2.x: token 用量自查 —— 用户问「花了多少 / 上下文还剩多少」时才需要它
+                keywords = setOf(
+                    "token", "用量", "消耗", "花了多少", "用了多少", "上下文", "占用", "余额", "成本", "usage",
+                ),
+                toolNames = setOf("get_token_usage"),
+            ),
+            ToolFamily(
                 keywords = setOf("编码", "解码", "base64", "哈希", "uuid", "密码", "翻译", "translate", "encode", "decode", "hash"),
                 toolNames =
                 setOf(
@@ -322,8 +329,14 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("画图", "画", "图片", "生成图", "视频", "二维码", "朗读", "图像", "image", "video", "qr code"),
-                toolNames = setOf("generate_image", "generate_video", "generate_qr_code", "speak_text"),
+                // v2.x: 关键词里必须有「语音 / 发语音 / voice」—— find_tools 按空白/逗号切词后做 contains，
+                // 用户说“发个语音”“念给我听”才会把 send_voice 拉进当前会话工具面。
+                keywords = setOf(
+                    "画图", "画", "图片", "生成图", "视频", "二维码", "朗读", "图像",
+                    "语音", "发语音", "念一下", "语音消息",
+                    "image", "video", "qr code", "voice",
+                ),
+                toolNames = setOf("generate_image", "generate_video", "generate_qr_code", "speak_text", "send_voice"),
             ),
             ToolFamily(
                 keywords = setOf("子代理", "群聊", "渠道", "表情包", "subagent", "channel"),
@@ -362,6 +375,7 @@ object ToolExposurePolicy {
                     "workspace_list",
                     "workspace_read",
                     "workspace_write",
+                    "workspace_edit",
                     "workspace_delete",
                     "workspace_mkdir",
                     "workspace_move",

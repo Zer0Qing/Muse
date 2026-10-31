@@ -62,6 +62,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.perf.DataUriImageCache
 import io.zer0.muse.ui.common.animation.MuseInkGlyph
 import io.zer0.muse.ui.common.animation.MuseThinkingGlyphSize
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -80,6 +81,28 @@ import io.zer0.muse.ui.theme.tiny
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+
+/** data-URI 图片前缀:只有这种图必须先解码才知道比例。 */
+private const val DATA_URI_IMAGE_PREFIX = "data:image/"
+
+/**
+ * 作品卡画幅(4:3)。
+ *
+ * data-URI 要先解码才知道真实比例,而布局不能等解码:固定预占画幅后高度从第一帧就是
+ * 最终高度,解码完成后不再改,内容用 ContentScale.Fit 自己留白。
+ */
+private const val GENERATED_IMAGE_ASPECT = 4f / 3f
+
+/**
+ * 作品卡是否预占画幅:data-URI 返回 4:3,其它(URL / 文件路径)返回 null 表示不预占。
+ *
+ * URL / 文件路径的比例没人能提前知道(Coil 也要加载完才有尺寸),锁成 4:3 会让横向/
+ * 竖向长图都留白一大片,比改动前「按自身比例长到 420dp 上限」更差;这类图继续走
+ * 原来的 120..420dp 高度区间,按真实尺寸撑开。反过来 data-URI 不能用区间——它的解码
+ * 是在 IO 线程异步完成的,区间会让高度在解码前后跳一次。
+ */
+internal fun generatedImageAspectOf(imageUri: String): Float? =
+    if (imageUri.startsWith(DATA_URI_IMAGE_PREFIX)) GENERATED_IMAGE_ASPECT else null
 
 /**
  * 生成的图片卡片 — 圆角 + 点击预览。
@@ -102,9 +125,13 @@ internal fun GeneratedImageCard(
     promptSummary: String? = null,
     /** v2.0.1: 分享回调（null 时不显示分享按钮；非本地资源时传 null） */
     onShare: (() -> Unit)? = null,
-    /** 多图网格使用固定画幅；单图保留完整比例。 */
+    /** 多图网格用 1:1 裁切；单图 data-URI 用 4:3 定框，其余按自身比例（120..420dp）。 */
     compact: Boolean = false,
 ) {
+    // 画幅策略:data-URI 预占 4:3(解码前后高度一致);URL / 文件路径保持原来的
+    // heightIn(120..420)。原先两者都走区间,data-URI 在解码前只有 120dp、解码后跳到
+    // 实际比例,滚动时叠加 MessageBubble 的 animateContentSize 就是一串 relayout。
+    val preAllocatedAspect = generatedImageAspectOf(imageUri)
     Column(modifier = modifier.fillMaxWidth()) {
         // 作品：大圆角图（点按看大图）
         Box(
@@ -120,7 +147,13 @@ internal fun GeneratedImageCard(
                 contentDescription = stringResource(R.string.chat_generated_image_cd),
                 contentScale = if (compact) ContentScale.Crop else ContentScale.Fit,
                 modifier = Modifier
-                    .then(if (compact) Modifier.fillMaxSize() else Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 420.dp))
+                    .then(
+                        when {
+                            compact -> Modifier.fillMaxSize()
+                            preAllocatedAspect != null -> Modifier.fillMaxWidth().aspectRatio(preAllocatedAspect)
+                            else -> Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 420.dp)
+                        },
+                    )
                     .clip(MuseShapes.largeCard),
             )
         }
@@ -343,37 +376,26 @@ fun SmartImage(
     contentDescription: String? = null,
     contentScale: ContentScale = ContentScale.Fit,
 ) {
-    val dataUriPrefix = "data:image/"
-    if (model is String && model.startsWith(dataUriPrefix)) {
+    if (model is String && model.startsWith(DATA_URI_IMAGE_PREFIX)) {
         // data URI:提取 base64 部分,IO 线程解码
         val base64Part = remember(model) {
             val commaIndex = model.indexOf(',')
             if (commaIndex > 0) model.substring(commaIndex + 1) else null
         }
         if (base64Part != null) {
-            val bitmapState by produceState<android.graphics.Bitmap?>(initialValue = null, base64Part) {
-                value = withContext(Dispatchers.IO) {
-                    runCatching {
-                        // B-02: 部分上游按 76 字符换行输出 base64,NO_WRAP 解码遇到换行直接失败
-                        // (显示灰块);解码前剥离换行符,兼容两种格式。
-                        val normalized = base64Part.replace("\n", "").replace("\r", "")
-                        val bytes = android.util.Base64.decode(normalized, android.util.Base64.NO_WRAP)
-                        // v1.79 (H-B1): 先探测尺寸再降采样,避免大图解码 OOM
-                        val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-                        val targetSize = 1024
-                        var sampleSize = 1
-                        while (options.outWidth / sampleSize > targetSize || options.outHeight / sampleSize > targetSize) {
-                            sampleSize *= 2
-                        }
-                        val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
-                    }.onFailure { Logger.w("MessageBubble", "base64 image decode failed: ${it.message}", it) }.getOrNull()
+            // 进程级缓存:命中时首帧就是位图(不再出现一帧灰块),也未必要再解一次。
+            // 缓存跨 composition 存活 —— 滑出屏幕再滑回来不会重解。
+            val cacheKey = remember(model) { DataUriImageCache.keyOf(model) }
+            val cachedBitmap = remember(cacheKey) { DataUriImageCache.get(cacheKey) }
+            val bitmapState by produceState<android.graphics.Bitmap?>(initialValue = cachedBitmap, base64Part) {
+                if (value == null) {
+                    value = withContext(Dispatchers.IO) {
+                        DataUriImageCache.decodeOrGet(cacheKey) { decodeDataUriBitmap(base64Part) }
+                    }
                 }
-                // v1.79 (M-B11): produceState 退出时显式回收 Bitmap,避免内存泄漏
-                awaitDispose {
-                    value?.recycle()
-                }
+                // 这里不再 awaitDispose { value?.recycle() }:位图现在由 [DataUriImageCache]
+                // 持有并复用,滑出屏幕就回收会让下一次命中拿到已回收的位图直接崩。
+                // 回收交给 LRU 字节上限 + GC。
             }
             val current = bitmapState
             if (current != null) {
@@ -410,6 +432,29 @@ fun SmartImage(
         )
     }
 }
+
+/**
+ * data-URI 的 base64 段 → Bitmap。
+ *
+ * 从 [SmartImage] 里抽出来:解码本身与组合生命周期无关(结果进[DataUriImageCache]),
+ * 放在外面也让 SmartImage 只留渲染分支。
+ */
+private fun decodeDataUriBitmap(base64Part: String): android.graphics.Bitmap? = runCatching {
+    // B-02: 部分上游按 76 字符换行输出 base64,NO_WRAP 解码遇到换行直接失败
+    // (显示灰块);解码前剥离换行符,兼容两种格式。
+    val normalized = base64Part.replace("\n", "").replace("\r", "")
+    val bytes = android.util.Base64.decode(normalized, android.util.Base64.NO_WRAP)
+    // v1.79 (H-B1): 先探测尺寸再降采样,避免大图解码 OOM
+    val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+    val targetSize = 1024
+    var sampleSize = 1
+    while (options.outWidth / sampleSize > targetSize || options.outHeight / sampleSize > targetSize) {
+        sampleSize *= 2
+    }
+    val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
+    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+}.onFailure { Logger.w("MessageBubble", "base64 image decode failed: ${it.message}", it) }.getOrNull()
 
 /**
  * 审计修复 (S-02): 助手消息视频生成结果卡片。

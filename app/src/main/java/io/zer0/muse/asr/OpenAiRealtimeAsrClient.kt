@@ -21,6 +21,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -37,25 +38,32 @@ import java.util.concurrent.atomic.AtomicBoolean
  * OpenAI Realtime 流式 ASR Controller(基于 OpenAI 官方 Realtime 协议,与本项目
  * [DashScopeAsrController] 架构一致)。
  *
- * 走 wss://api.openai.com/v1/realtime?intent=transcription,真流式 + 服务端 VAD。
+ * 走 wss://api.openai.com/v1/realtime?intent=transcription,真流式 + 客户端手动 commit。
  *
- * 协议(按 OpenAI Realtime API transcription 模式):
+ * 协议(按 OpenAI Realtime API GA 版 transcription 模式):
  *  1. 建立 WebSocket(wss://api.openai.com/v1/realtime?intent=transcription)
  *     - Header: Authorization: Bearer {apiKey}
- *     - Header: OpenAI-Beta: realtime=v1
- *  2. 发送 session.update 事件,配置:
- *     - input_audio_format: pcm16
- *     - input_audio_transcription.model: whisper-1(或 gpt-4o-transcribe 等)
- *     - input_audio_transcription.prompt: 热词(可选,提升专有名词识别率)
- *     - input_audio_transcription.language: 语种(可选)
- *     - turn_detection: server_vad(ServerVadThreshold 默认 0.5,turn_detection_offset=0)
- *     - input_audio_noise_reduction_types: 噪声抑制(可选,如 ["near_field", "far_field"])
- *     - sample_rate: 16000(配置项)
+ *     - 不发送 OpenAI-Beta: realtime=v1 —— Beta 通道已于 2026-05-12 下线,
+ *       带该头握手会被拒;GA 版不需要任何 Beta 版本标记头
+ *  2. 发送 session.update 事件,配置(GA 把输入侧配置全部收进 session.audio.input 一层):
+ *     - session.type: transcription(GA 必填,与 realtime 语音对话形态区分)
+ *     - session.audio.input.format: { type: "audio/pcm", rate: 16000 }
+ *       rate 取 [AsrAudioCapture] 的采集采样率([AsrConfig.sampleRate] 默认 16000),
+ *       声明值与真实采集不一致会让服务端按错误帧长解析 PCM
+ *     - session.audio.input.transcription.model: gpt-realtime-whisper(实时转写模型)
+ *     - session.audio.input.transcription.prompt: 热词(可选,提升专有名词识别率)
+ *     - session.audio.input.transcription.language: 语种(可选)
+ *     - session.audio.input.turn_detection: null（不为服务端 VAD，改由客户端 commit 手动开点）；
+ *       该键必须显式写 null，与省略该键语义不同
+ *     - session.audio.input.noise_reduction: null(未启用噪声抑制)
+ *     纯转写用途,不配置 session.audio.output 与语音对话相关项
  *  3. 启动 AudioRecord(VOICE_COMMUNICATION 源,PCM 16-bit mono)循环采集
  *  4. 每帧:计算 RMS 振幅 → 更新 state.amplitudes;Base64 编码 → 发 input_audio_buffer.append 事件
  *  5. 接收 conversation.item.input_audio_transcription.delta 增量拼接
  *  6. 接收 conversation.item.input_audio_transcription.completed 入 completedTranscripts
- *  7. stop():发 input_audio_buffer.commit,等服务端 VAD 自然收尾(或超时强制切 Idle)
+ *     （delta 与 completed 都只是累积文本，不向上层发任何提交信号）
+ *  7. stop()：用户主动结束时才发 input_audio_buffer.commit（turn_detection 为 null 时
+ *     这是唯一的断开点），等服务端回 completed 收尾（或超时强制切 Idle）
  *  8. dispose():取消协程,关 WebSocket,释放 AudioRecord
  *
  * 状态流转:Idle → Connecting → Listening → Stopping → Idle(或 Error)
@@ -67,8 +75,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  *  - 重连成功后补发缓冲的音频帧,重置退避计数
  *  - 重连失败超过 5 次后切 Error 状态,通知 UI"网络异常,请检查网络后重试"
  *
- * 注:服务端 VAD 已足够智能,本地 VAD 默认不启用([AsrConfig.vadEnabled] 默认 false);
- * 若用户启用本地 VAD,则静音超过 [AsrConfig.vadSilenceDurationMs] 时主动触发 stop。
+ * 注:服务端 VAD 关闭后,一段输入的结束点完全由调用方 stop() 决定——这正是要的语义:
+ * ASR 不会因为句间停顿就自行收尾,服务端也不会替用户提前提交半句话。
+ * 本地 VAD 默认也不启用([AsrConfig.vadEnabled] 默认 false)。
  *
  * @param config ASR 配置(必须有 apiKey)
  * @param sharedClient 可注入共享 OkHttpClient
@@ -204,11 +213,7 @@ class OpenAiRealtimeAsrController(
         // endpoint 优先取 config.baseUrl,空时用内置默认值
         // baseUrl 可能是 https:// 或 wss://,需要转换为 wss:// 并加 intent=transcription
         val endpoint = buildRealtimeEndpoint(config.baseUrl)
-        val request = Request.Builder()
-            .url(endpoint)
-            .header("Authorization", "Bearer ${config.apiKey}")
-            .header("OpenAI-Beta", "realtime=v1")
-            .build()
+        val request = buildRealtimeRequest(endpoint, config.apiKey)
 
         val ws = client.newWebSocket(request, streamSession)
         webSocket = ws
@@ -536,6 +541,12 @@ class OpenAiRealtimeAsrController(
                 val full = buildTranscript()
                 _state.update { it.copy(transcript = full) }
                 onTranscriptChange?.invoke(full)
+                // 手动 commit 模式下 completed 就是本段输入的收尾:commit 后立刻回落 Idle,
+                // 不再耗着等 stop() 的 5s 超时兜底(delta / completed 本身不向上层发提交信号)
+                if (_state.value.status == ASRStatus.Stopping) {
+                    _state.update { it.copy(status = ASRStatus.Idle) }
+                    cleanupConnection()
+                }
             }
             "error" -> {
                 val errObj = event.optObject("error")
@@ -575,10 +586,10 @@ class OpenAiRealtimeAsrController(
         audioRecord = null
         runCatching { recorder?.release() }
 
-        // 发 input_audio_buffer.commit,触发服务端 VAD 收尾(回 transcription.completed)
+        // 发 input_audio_buffer.commit — 手动 commit 模式(turn_detection=null)下唯一的收尾信号
         val ws = webSocket
         if (ws != null) {
-            ws.send(buildInputAudioBufferCommitMessage())
+            ws.send(buildRealtimeCommitMessage())
         }
 
         // 超时保护:5 秒未收到收尾,强制切 Idle
@@ -670,6 +681,8 @@ class OpenAiRealtimeAsrController(
             if (query == null) path else "$path?$query"
         }
         // 拼接 intent=transcription(若已有 query 用 &,否则用 ?),避免重复参数。
+        // GA 的会话形态已由 session.update 里的 session.type 承担,intent 参数不再必需;
+        // 保留它是因为它只是冗余的形态提示,不影响鉴权与行为,却能兼容尚未跟进 GA 的中转站。
         return if (realtimePath.contains("intent=transcription")) {
             realtimePath
         } else if (realtimePath.contains("?")) {
@@ -679,39 +692,16 @@ class OpenAiRealtimeAsrController(
         }
     }
 
-    /** 构造 session.update 事件 JSON(配置模型/采样率/VAD/噪声抑制/热词)。 */
+    /** 构造 session.update 事件 JSON(会话类型/输入格式/模型/VAD/热词)。 */
     private fun buildSessionUpdateMessage(): String {
-        val modelName = config.model.ifBlank { config.defaultModel() }
-        val session = buildJsonObject {
-            put("input_audio_format", "pcm16")
-            put(
-                "input_audio_transcription",
-                buildJsonObject {
-                    put("model", modelName)
-                    // 热词通过 prompt 传入(Realtime API 支持)
-                    if (config.hotwords.isNotEmpty()) {
-                        val prompt = config.hotwords.joinToString(", ")
-                        if (prompt.isNotBlank()) put("prompt", prompt)
-                    }
-                    config.language?.takeIf { it.isNotBlank() }?.let { put("language", it) }
-                },
-            )
-            // 服务端 VAD(ServerVadThreshold 默认 0.5)
-            put(
-                "turn_detection",
-                buildJsonObject {
-                    put("type", "server_vad")
-                    put("threshold", 0.5)
-                    put("prefix_padding_ms", 300)
-                    put("silence_duration_ms", 500)
-                },
-            )
-        }
-        val msg = buildJsonObject {
-            put("type", "session.update")
-            put("session", session)
-        }
-        return json.encodeToString(JsonObject.serializer(), msg)
+        val payload = buildRealtimeSessionUpdatePayload(
+            model = config.model.ifBlank { config.defaultModel() },
+            hotwords = config.hotwords,
+            language = config.language,
+            // 与 [AsrAudioCapture.create] 用的是同一个采样率,不能各自写死
+            sampleRate = config.sampleRate,
+        )
+        return json.encodeToString(JsonObject.serializer(), payload)
     }
 
     /** 构造 input_audio_buffer.append 事件 JSON(音频 base64 编码后发送)。 */
@@ -719,14 +709,6 @@ class OpenAiRealtimeAsrController(
         val msg = buildJsonObject {
             put("type", "input_audio_buffer.append")
             put("audio", audioBase64)
-        }
-        return json.encodeToString(JsonObject.serializer(), msg)
-    }
-
-    /** 构造 input_audio_buffer.commit 事件 JSON(触发服务端 VAD 收尾转录)。 */
-    private fun buildInputAudioBufferCommitMessage(): String {
-        val msg = buildJsonObject {
-            put("type", "input_audio_buffer.commit")
         }
         return json.encodeToString(JsonObject.serializer(), msg)
     }
@@ -765,6 +747,116 @@ class OpenAiRealtimeAsrController(
         private const val MAX_RECONNECT_DELAY_MS = 30_000L
     }
 }
+
+/**
+ * Realtime 输入 PCM 的默认采样率:与 [AsrConfig.sampleRate] 默认值、[AsrAudioCapture] 的采集参数一致。
+ * 实际发送值以调用方传入的采集采样率为准,这里只作为纯函数默认值。
+ */
+private const val DEFAULT_INPUT_SAMPLE_RATE = 16_000
+
+/**
+ * 构造 Realtime WebSocket 握手请求。
+ *
+ * GA 版不需要任何版本标记头:Beta 通道(`OpenAI-Beta: realtime=v1`)已于 2026-05-12 下线,
+ * 继续发送会导致握手被拒。鉴权只用 `Authorization`。
+ *
+ * 独立成函数以便单元测试直接断言握手头,无需起真实 WebSocket。
+ */
+internal fun buildRealtimeRequest(endpoint: String, apiKey: String): Request =
+    Request.Builder()
+        .url(endpoint)
+        .header("Authorization", "Bearer $apiKey")
+        .build()
+
+/**
+ * 构造 GA 版 `session.update` 的 payload(纯函数,便于单元测试直接断言)。
+ *
+ * GA 用 `session.type` 区分会话形态:`"transcription"` 为纯转写,`"realtime"` 为语音对话。
+ * 本客户端只做转写,固定 `transcription`;该字段缺失会被服务端拒绝。
+ *
+ * 输入侧配置在 GA 全部嵌套在 `session.audio.input` 下:
+ * ```
+ * {
+ *   "type": "session.update",
+ *   "session": {
+ *     "type": "transcription",
+ *     "audio": {
+ *       "input": {
+ *         "format": { "type": "audio/pcm", "rate": 16000 },
+ *         "transcription": { "model": ..., "prompt": ..., "language": ... },
+ *         "turn_detection": null,
+ *         "noise_reduction": null
+ *       }
+ *     }
+ *   }
+ * }
+ * ```
+ * 扁平写法(`session.input_audio_format` / `session.input_audio_transcription` /
+ * `session.turn_detection`)已被 GA 取代,不再被识别。
+ *
+ * @param model 转写模型名(空则由调用方兜底默认值)
+ * @param hotwords 热词,拼成 `prompt` 传入;为空则不发该字段
+ * @param language 语种提示;为 null/空白则不发该字段
+ * @param sampleRate [AsrAudioCapture] 实际采集的采样率,写进 `format.rate`。
+ *   默认 16000 与 [AsrConfig.sampleRate] 默认值一致,不是文档示例值。
+ */
+internal fun buildRealtimeSessionUpdatePayload(
+    model: String,
+    hotwords: List<String>,
+    language: String?,
+    sampleRate: Int = DEFAULT_INPUT_SAMPLE_RATE,
+): JsonObject {
+    val input = buildJsonObject {
+        // GA 的输入格式声明:容器类型 + 采样率,缺 rate 服务端无法正确切帧
+        put(
+            "format",
+            buildJsonObject {
+                put("type", "audio/pcm")
+                put("rate", sampleRate)
+            },
+        )
+        put(
+            "transcription",
+            buildJsonObject {
+                put("model", model)
+                // 热词通过 prompt 传入(Realtime API 支持)
+                if (hotwords.isNotEmpty()) {
+                    val prompt = hotwords.joinToString(", ")
+                    if (prompt.isNotBlank()) put("prompt", prompt)
+                }
+                language?.takeIf { it.isNotBlank() }?.let { put("language", it) }
+            },
+        )
+        // 服务端 VAD 关闭(turn_detection=null):只能由客户端 commit 开点,
+        // 这样整段文本才会在用户认为说完之后一次性收尾。
+        put("turn_detection", JsonNull)
+        // 未启用噪声抑制:显式 null 表示关闭
+        put("noise_reduction", JsonNull)
+    }
+    val session = buildJsonObject {
+        put("type", "transcription")
+        put(
+            "audio",
+            buildJsonObject {
+                put("input", input)
+            },
+        )
+    }
+    return buildJsonObject {
+        put("type", "session.update")
+        put("session", session)
+    }
+}
+
+/**
+ * 构造 `input_audio_buffer.commit` 事件(纯函数,便于单元测试直接断言)。
+ *
+ * session 的 `turn_detection` 为 null 时服务端不做 VAD,本事件是唯一能开点一段输入的信号:
+ * 用户点「结束」→ 停采集 → commit → 服务端回 `transcription.completed` 收尾。
+ */
+internal fun buildRealtimeCommitMessage(): String = buildJsonObject {
+    put("type", "input_audio_buffer.commit")
+}.toString()
 
 /**
  * OpenAI Realtime WebSocket 会话,用 Channel 桥接回调到协程(持续监听模式)。

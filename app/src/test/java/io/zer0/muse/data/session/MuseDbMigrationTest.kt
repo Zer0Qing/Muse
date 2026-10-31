@@ -562,105 +562,106 @@ class MuseDbMigrationTest {
         }
     }
 
-    /** 模拟"已崩溃设备":v79 用旧版迁移 SQL 建出带索引的坏 schema → user_version 已到 80 →
-     * 新版用 MIGRATION_80_81 清理索引后校验必须通过。 */
+    /** 模拟"已崩溃设备":v80 上的带索引坏表 → MIGRATION_80_81 清索引并重建表,数据全部保留。
+     *
+     * 只跑 80→81 这一段:完整升级链的终态会经 121→122 删掉这两张表,
+     * 走全链就断言不到 80→81 的处理结果了。 */
     @Test
     fun migrate80To81_cleansLegacyIndexesFromCrashedDevice() {
-        val dbFile = context.getDatabasePath("muse_migration_80_crash.db").apply {
-            parentFile?.mkdirs()
-            if (exists()) delete()
-        }
+        val dbName = "muse_migration_80_crash.db"
+        context.deleteDatabase(dbName)
+        val helper = FrameworkSQLiteOpenHelperFactory().create(
+            androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbName)
+                .callback(
+                    object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(80) {
+                        override fun onCreate(db: SupportSQLiteDatabase) {
+                            db.execSQL(
+                                "CREATE TABLE ai_moments (id TEXT NOT NULL PRIMARY KEY, " +
+                                    "content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'life', mood TEXT, " +
+                                    "likes INTEGER NOT NULL DEFAULT 0, likedByUser INTEGER NOT NULL DEFAULT 0, " +
+                                    "source TEXT NOT NULL DEFAULT 'scheduled', createdAt INTEGER NOT NULL DEFAULT 0)",
+                            )
+                            db.execSQL(
+                                "CREATE TABLE ai_moment_comments (id TEXT NOT NULL PRIMARY KEY, " +
+                                    "momentId TEXT NOT NULL, sender TEXT NOT NULL, content TEXT NOT NULL, " +
+                                    "createdAt INTEGER NOT NULL DEFAULT 0)",
+                            )
+                            db.execSQL("CREATE INDEX idx_moments_created ON ai_moments(createdAt DESC)")
+                            db.execSQL("CREATE INDEX idx_moment_comments_moment ON ai_moment_comments(momentId)")
+                            db.execSQL("INSERT INTO ai_moments (id, content, createdAt) VALUES ('m1', '坏设备遗留动态', 100)")
+                        }
+
+                        override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+                    },
+                )
+                .build(),
+        )
         try {
-            // 先按 v79 快照建全表,再手动叠加"旧版 79→80 迁移"的坏表(带索引,无 mood 默认),最后写 user_version=80
-            createSchemaAtVersion(79, dbFile.absolutePath)
-            val raw = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(dbFile, null)
-            raw.execSQL(
-                "CREATE TABLE ai_moments (id TEXT NOT NULL PRIMARY KEY, " +
-                    "content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'life', mood TEXT, " +
-                    "likes INTEGER NOT NULL DEFAULT 0, likedByUser INTEGER NOT NULL DEFAULT 0, " +
-                    "source TEXT NOT NULL DEFAULT 'scheduled', createdAt INTEGER NOT NULL DEFAULT 0)",
-            )
-            raw.execSQL(
-                "CREATE TABLE ai_moment_comments (id TEXT NOT NULL PRIMARY KEY, " +
-                    "momentId TEXT NOT NULL, sender TEXT NOT NULL, content TEXT NOT NULL, " +
-                    "createdAt INTEGER NOT NULL DEFAULT 0)",
-            )
-            raw.execSQL("CREATE INDEX idx_moments_created ON ai_moments(createdAt DESC)")
-            raw.execSQL("CREATE INDEX idx_moment_comments_moment ON ai_moment_comments(momentId)")
-            raw.execSQL("INSERT INTO ai_moments (id, content, createdAt) VALUES ('m1', '坏设备遗留动态', 100)")
-            raw.version = 80
-            raw.close()
-            // 用新版 MuseDb 打开:应自动跑 80→81 清理索引,校验通过
-            val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
-                .addMigrations(*migrationsFrom(80).toTypedArray())
-                .allowMainThreadQueries()
-                .build()
-            db.openHelper.writableDatabase
+            val db = helper.writableDatabase
+            MuseDb.MIGRATION_80_81.migrate(db)
+
             // 数据仍在
-            db.query(androidx.sqlite.db.SimpleSQLiteQuery("SELECT count(*) FROM ai_moments")).use { c ->
+            db.query("SELECT count(*) FROM ai_moments").use { c ->
                 assertTrue("坏设备遗留动态应保留", c.moveToFirst() && c.getInt(0) == 1)
             }
             // 索引已清理
             db.query(
-                androidx.sqlite.db.SimpleSQLiteQuery(
-                    "SELECT count(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_moments%'",
-                ),
+                "SELECT count(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_moments%'",
             ).use { c ->
                 assertTrue("残留索引应被清理", c.moveToFirst() && c.getInt(0) == 0)
             }
-            db.close()
         } finally {
-            if (dbFile.exists()) dbFile.delete()
-            context.deleteDatabase(dbFile.name)
+            helper.close()
+            context.deleteDatabase(dbName)
         }
     }
 
     /** 模拟真机中间版坏表: mood 列带 DEFAULT NULL(真机 dflt_value 读为 'NULL'),索引残留,
-     * user_version=80。MIGRATION_80_81 重建表后必须校验通过,数据含 mood 值保留。 */
+     * MIGRATION_80_81 重建表后数据(含 mood 值)必须保留。 */
     @Test
     fun migrate80To81_rebuildsTableWithMoodNullDefault() {
-        val dbFile = context.getDatabasePath("muse_migration_80_moodnull.db").apply {
-            parentFile?.mkdirs()
-            if (exists()) delete()
-        }
-        try {
-            createSchemaAtVersion(79, dbFile.absolutePath)
-            val raw = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(dbFile, null)
-            raw.execSQL(
-                "CREATE TABLE ai_moments (id TEXT NOT NULL PRIMARY KEY, " +
-                    "content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'life', mood TEXT DEFAULT NULL, " +
-                    "likes INTEGER NOT NULL DEFAULT 0, likedByUser INTEGER NOT NULL DEFAULT 0, " +
-                    "source TEXT NOT NULL DEFAULT 'scheduled', createdAt INTEGER NOT NULL DEFAULT 0)",
-            )
-            raw.execSQL(
-                "CREATE TABLE ai_moment_comments (id TEXT NOT NULL PRIMARY KEY, " +
-                    "momentId TEXT NOT NULL, sender TEXT NOT NULL, content TEXT NOT NULL, " +
-                    "createdAt INTEGER NOT NULL DEFAULT 0)",
-            )
-            raw.execSQL("CREATE INDEX idx_moments_created ON ai_moments(createdAt DESC)")
-            raw.execSQL("INSERT INTO ai_moments (id, content, mood, createdAt) VALUES ('m1', '中间版动态', '开心', 100)")
-            raw.version = 80
-            raw.close()
+        val dbName = "muse_migration_80_moodnull.db"
+        context.deleteDatabase(dbName)
+        val helper = FrameworkSQLiteOpenHelperFactory().create(
+            androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbName)
+                .callback(
+                    object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(80) {
+                        override fun onCreate(db: SupportSQLiteDatabase) {
+                            db.execSQL(
+                                "CREATE TABLE ai_moments (id TEXT NOT NULL PRIMARY KEY, " +
+                                    "content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'life', mood TEXT DEFAULT NULL, " +
+                                    "likes INTEGER NOT NULL DEFAULT 0, likedByUser INTEGER NOT NULL DEFAULT 0, " +
+                                    "source TEXT NOT NULL DEFAULT 'scheduled', createdAt INTEGER NOT NULL DEFAULT 0)",
+                            )
+                            db.execSQL(
+                                "CREATE TABLE ai_moment_comments (id TEXT NOT NULL PRIMARY KEY, " +
+                                    "momentId TEXT NOT NULL, sender TEXT NOT NULL, content TEXT NOT NULL, " +
+                                    "createdAt INTEGER NOT NULL DEFAULT 0)",
+                            )
+                            db.execSQL("CREATE INDEX idx_moments_created ON ai_moments(createdAt DESC)")
+                            db.execSQL("INSERT INTO ai_moments (id, content, mood, createdAt) VALUES ('m1', '中间版动态', '开心', 100)")
+                        }
 
-            val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
-                .addMigrations(*migrationsFrom(80).toTypedArray())
-                .allowMainThreadQueries()
-                .build()
-            db.openHelper.writableDatabase
+                        override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+                    },
+                )
+                .build(),
+        )
+        try {
+            val db = helper.writableDatabase
+            MuseDb.MIGRATION_80_81.migrate(db)
+
             // 数据(含 mood 值)保留
-            db.query(
-                androidx.sqlite.db.SimpleSQLiteQuery(
-                    "SELECT content, mood FROM ai_moments WHERE id='m1'",
-                ),
-            ).use { c ->
+            db.query("SELECT content, mood FROM ai_moments WHERE id='m1'").use { c ->
                 assertTrue("中间版动态应保留", c.moveToFirst())
                 assertEquals("中间版动态", c.getString(0))
                 assertEquals("开心", c.getString(1))
             }
-            db.close()
         } finally {
-            if (dbFile.exists()) dbFile.delete()
-            context.deleteDatabase(dbFile.name)
+            helper.close()
+            context.deleteDatabase(dbName)
         }
     }
 
@@ -734,7 +735,8 @@ class MuseDbMigrationTest {
      *  - usage_records / assistant_relationship / session_todos / card_entities 四张表的列集合与默认值；
      *  - usage_records 三个索引、session_todos 的 sessionId 唯一索引、
      *    card_entities 的 dockSlot 唯一索引与 originMessageId 索引；
-     *  - sessions.input_draft、ai_moments.visibleToJson、ai_moment_comments.parentCommentId 三列；
+     *  - sessions.input_draft 列；
+     *  - 朋友圈/日记四张表已在前一版迁移（121→122）中删除，终态不应再存在；
      *  - 迁移前插入的 sessions / messages 各一行未丢。
      */
     @Test
@@ -767,7 +769,7 @@ class MuseDbMigrationTest {
                 .allowMainThreadQueries()
                 .build()
             try {
-                assertV26xTerminalState(db.openHelper.writableDatabase, "v$fromVersion→119")
+                assertV26xTerminalState(db.openHelper.writableDatabase, "v$fromVersion→120")
             } finally {
                 db.close()
             }
@@ -793,7 +795,7 @@ class MuseDbMigrationTest {
     }
 
     /**
-     * v112 → 119 全链：专门覆盖含数据回填的 112→113（usage_records 的 INSERT...SELECT）。
+     * v112 → 120 全链：专门覆盖含数据回填的 112→113（usage_records 的 INSERT...SELECT）。
      *
      * 回填条件（MuseDb.MIGRATION_112_113）：`role='ASSISTANT' AND (promptTokens + completionTokens) > 0`。
      * 这里刻意铺满四种边界：有用量的 assistant（回填）、零用量（不回填）、
@@ -821,8 +823,8 @@ class MuseDbMigrationTest {
                 .build()
             try {
                 val raw = db.openHelper.writableDatabase
-                assertV26xSurfaces(raw, "v112→119")
-                assertRoomValidatedLatestSchema(raw, "v112→119")
+                assertV26xSurfaces(raw, "v112→120")
+                assertRoomValidatedLatestSchema(raw, "v112→120")
                 assertUsageBackfill(raw)
                 assertMessagesSurvivedBackfill(raw)
             } finally {
@@ -920,16 +922,16 @@ class MuseDbMigrationTest {
      * 硬证据：Room 校验通过后会把自己的 identity_hash 写进 room_master_table。
      * 如果迁移产出的结构与实体不符，RoomOpenHelper.onValidateSchema 会先抛
      * "Migration didn't properly handle"，根本走不到写 hash 这步。
-     * 所以「hash == 119 快照的 identityHash」等价于「Room 真的比对过并认可了终态」。
+     * 所以「hash == 最新（v122）快照的 identityHash」等价于「Room 真的比对过并认可了终态」。
      */
     private fun assertRoomValidatedLatestSchema(db: SupportSQLiteDatabase, tag: String) {
-        val expected = loadSchema(119).getJSONObject("database").getString("identityHash")
+        val expected = loadSchema(122).getJSONObject("database").getString("identityHash")
         val actual = mutableListOf<String>()
         db.query("SELECT identity_hash FROM room_master_table WHERE id = 42").use { cursor ->
             while (cursor.moveToNext()) actual += cursor.getString(0)
         }
         assertEquals(
-            "$tag: Room 写入的 identity_hash 应等于 v119 实体快照（证明 Room 已校验并认可终态 schema）",
+            "$tag: Room 写入的 identity_hash 应等于最新（v122）实体快照（证明 Room 已校验并认可终态 schema）",
             listOf(expected),
             actual,
         )
@@ -963,6 +965,7 @@ class MuseDbMigrationTest {
                 "completion_tokens",
                 "reasoning_tokens",
                 "cached_tokens",
+                "cache_write_tokens",
                 "first_token_ms",
                 "duration_ms",
             ),
@@ -977,6 +980,7 @@ class MuseDbMigrationTest {
                 "completion_tokens" to "0",
                 "reasoning_tokens" to "0",
                 "cached_tokens" to "0",
+                "cache_write_tokens" to "0",
                 "first_token_ms" to "0",
                 "duration_ms" to "0",
             ),
@@ -1128,14 +1132,16 @@ class MuseDbMigrationTest {
 
     private fun assertMomentSurfaces(db: SupportSQLiteDatabase, tag: String) {
         assertEquals(
-            "$tag: ai_moments.visibleToJson 默认空串（空串 = 公开，旧数据行为不变）",
-            "''",
-            columnDefaults(db, "ai_moments")["visibleToJson"],
+            "$tag: 朋友圈/日记四张表应在 121→122 迁移中删除（旧小手机数据已整体移除）",
+            emptySet<String>(),
+            setOf("ai_moments", "ai_moment_comments", "ai_moment_likes", "ai_diaries")
+                .filter { tableExists(db, it) }
+                .toSet(),
         )
-        val commentDefaults = columnDefaults(db, "ai_moment_comments")
-        assertTrue("$tag: ai_moment_comments 应有 parentCommentId 列", commentDefaults.containsKey("parentCommentId"))
-        assertEquals("$tag: parentCommentId 默认 NULL（旧数据等同顶层评论）", "NULL", commentDefaults["parentCommentId"])
     }
+
+    private fun tableExists(db: SupportSQLiteDatabase, table: String): Boolean =
+        db.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?", arrayOf(table)).use { it.moveToFirst() }
 
     private fun columnDefaults(db: SupportSQLiteDatabase, table: String): Map<String, String?> {
         val defaults = mutableMapOf<String, String?>()

@@ -307,10 +307,10 @@ internal fun ProviderEditPage(
     }
 
     // 拉取上游模型业务逻辑
-    // v1.132 优化(既有实现/既有实现):
-    //  - 缓存优先:5 分钟 TTL,命中直接返回,跳过网络(按 既有实现 的文件级缓存)
+    // v1.132 优化:
+    //  - 缓存优先:5 分钟 TTL,命中直接返回,跳过网络
     //  - URL 多策略补全:base → base+/v1 → 剥离尾部 /v1 后重试(覆盖用户漏填/多填场景)
-    //  - 错误分级:401/403 立即报错不 fallback(凭证问题不掩盖,按 既有实现)
+    //  - 错误分级:401/403 立即报错不 fallback(凭证问题不掩盖)
     //  - 手动刷新按钮可绕过缓存(forceFresh = true)
     val fetchModels: (Boolean) -> Unit = { forceFresh ->
         if (apiKey.isBlank()) {
@@ -512,7 +512,7 @@ internal fun ProviderEditPage(
         )
     }
 
-    // v2.4: 独立测试连接业务逻辑(既有实现/既有实现)
+    // v2.4: 独立测试连接业务逻辑
     //  - 与 fetchModels 区分:只调用 ProviderRegistry.create().listModels() 做一次轻量测试,
     //    不写入 modelsState,不写 ModelListCache,只显示结果
     //  - 错误分级:401/403 → API Key 无效,404 → URL 不支持,timeout → 连接超时,

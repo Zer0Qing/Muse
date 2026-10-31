@@ -142,7 +142,8 @@ class DailySummaryService(
                 .getOrNull()
                 ?: emptyList()
         }
-        val facts = resultOf { factStore.getAll("main") }.getOrNull() ?: emptyList()
+        // v17: 每日总结会把这些事实写进上下文,已出场(分数低于衰减阈值)的不参与注入。
+        val facts = resultOf { factStore.getAll("main", includeSuppressed = false) }.getOrNull() ?: emptyList()
         val todayFacts = facts
             .sortedByDescending { it.createdAt }
             .take(30)

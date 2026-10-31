@@ -251,6 +251,18 @@
     <string name="settings_asr_provider_system">Sistema</string>
     <string name="settings_asr_provider_file">Arquivo (Experimental)</string>
     <string name="settings_asr_api_key">Chave de API</string>
+    <!-- ASR: seguir configuração do provedor -->
+    <string name="settings_asr_follow_provider">Seguir configuração do provedor</string>
+    <string name="settings_asr_follow_provider_subtitle">O endpoint e a chave de API vêm do provedor; o modelo é escolhido manualmente</string>
+    <string name="settings_asr_follow_provider_picker">Provedor</string>
+    <string name="settings_asr_follow_model_picker">Modelo</string>
+    <!-- Placeholders e aviso de retorno compartilhados do modo seguir -->
+    <string name="settings_speech_follow_unset">Não selecionado</string>
+    <string name="settings_speech_follow_no_models">Este provedor não tem modelos</string>
+    <string name="settings_speech_follow_fallback_notice">Usando a configuração manual: %1$s</string>
+    <string name="settings_speech_follow_reason_provider_missing">O provedor selecionado não foi encontrado</string>
+    <string name="settings_speech_follow_reason_provider_disabled">O provedor selecionado está desativado</string>
+    <string name="settings_speech_follow_reason_model_missing">Nenhum modelo selecionado</string>
     <string name="settings_asr_hide">Esconder</string>
     <string name="settings_asr_show">Mostrar</string>
     <string name="settings_asr_model">Modelo</string>
@@ -293,6 +305,9 @@
     <string name="settings_rag_cloud_api_subtitle">Qualidade em primeiro lugar, requer rede e chave de API</string>
     <string name="settings_rag_local_keyword">Palavras-chave locais (off-line)</string>
     <string name="settings_rag_local_keyword_subtitle">Nenhuma rede necessária;</string>
+    <string name="settings_rag_active_backend_section">Backend ativo</string>
+    <string name="settings_rag_active_backend_label">Em uso no momento</string>
+    <string name="settings_rag_active_backend_degraded_unknown">Revertido para outro backend; o motivo não foi registrado</string>
     <string name="settings_rag_cloud_provider_section">Provedor de nuvem</string>
     <string name="settings_rag_no_provider_hint">Nenhum provedor configurado ainda.</string>
     <string name="settings_rag_baseurl_not_set">baseUrl não definido</string>
@@ -457,6 +472,12 @@
     <string name="settings_media_tts_cloud_speed">Velocidade de síntese</string>
     <string name="settings_media_tts_response_format">Formato de áudio</string>
     <string name="settings_media_tts_save_advanced">Salvar parâmetros</string>
+    <!-- TTS na nuvem: seguir configuração do provedor -->
+    <string name="settings_media_tts_follow_provider">Seguir configuração do provedor</string>
+    <string name="settings_media_tts_follow_provider_subtitle">O endpoint e a chave de API vêm do provedor; o modelo é escolhido manualmente</string>
+    <string name="settings_media_tts_follow_provider_picker">Provedor</string>
+    <string name="settings_media_tts_follow_model_picker">Modelo</string>
+    <string name="settings_media_tts_follow_voice_hint">Seguir assume apenas o endpoint e a chave de API; confirme se a voz funciona com o provedor escolhido</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Tema personalizado</string>
     <string name="settings_theme_custom_add">Adicionar tema</string>
@@ -494,6 +515,7 @@
     <string name="settings_agent_test_message_subtitle">Enviar um como mensagem proativa real (exibido como notificação)</string>
     <string name="settings_agent_test_generating">Gerando…</string>
     <string name="settings_agent_test_failed">Falha no teste: %1$s</string>
+    <string name="settings_agent_test_already_running">Ainda estamos gerando uma mensagem proativa; tente novamente mais tarde</string>
     <string name="settings_agent_daily_summary_subtitle">Gera resumo da conversa diariamente às 09:00, 12:00, 21:00 e 00:00; o botão controla apenas as notificações</string>
     <string name="settings_agent_current_model_hint">Padrão global (compartilhado pelo chat principal / Agent)</string>
     <string name="settings_agent_keep_alive_title">Manter em segundo plano</string>

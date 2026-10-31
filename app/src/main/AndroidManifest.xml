@@ -343,6 +343,19 @@
             android:name=".tools.reminder.ReminderAlarmReceiver"
             android:exported="false" />
 
+        <!-- 重启 / 应用更新后重排提醒闹钟。默认启用，且不跟随「开机自启动」开关：
+             用户设的提醒在重启后不该丢失。只做重排，不弹 Activity。 -->
+        <receiver
+            android:name=".tools.reminder.ReminderBootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+
         <!-- 文件附件:用于把沙盒内文件通过 ACTION_VIEW 分享给其它应用打开 -->
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -20,6 +20,8 @@ import io.zer0.common.resultOf
 import io.zer0.muse.MainActivity
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
+import io.zer0.muse.proactive.ProactiveDismissProtocol
+import io.zer0.muse.proactive.ProactiveDismissReceiver
 import io.zer0.muse.ui.theme.presets.WarmPaperTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -257,11 +259,13 @@ class MuseNotificationManager(private val context: Context) {
      *
      * @param assistant 助手实体(取 name + 头像)
      * @param preview 主动消息完整内容
+     * @param outcomeId 这条消息在结果账里的 id：有它才能在通知上挂「这次不用」
      */
     suspend fun notifyProactiveMessage(
         assistant: AssistantEntity,
         preview: String,
         target: MuseNotificationTarget = MuseNotificationTarget.Chat,
+        outcomeId: String? = null,
     ) {
         // v1.0.80: 主动消息是"助手主动联系用户",即使前台也应走系统通知 —
         // 用户可能没盯着会话(在看别的页面/别的 app),即时消息式通知不能被前台判断拦截。
@@ -279,13 +283,22 @@ class MuseNotificationManager(private val context: Context) {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
         // v0.44: 头像加载成功才设 largeIcon,否则用默认小图标
         if (avatar != null) builder.setLargeIcon(avatar)
-        val notif = builder.build()
         // 问题6.4: 每条主动消息分配唯一 ID(基于助手 id hash + 自增序列),
         // 避免与 notifyReminder 的固定 ID 冲突,且不让新通知覆盖旧通知。
         // 范围 [NOTIF_ID_PROACTIVE_MESSAGE_BASE, NOTIF_ID_PROACTIVE_MESSAGE_BASE + 0x0FFF],
         // 与 NOTIF_ID_PROACTIVE_MESSAGE(1004)/NOTIF_ID_CHAT_COMPLETED(1001) 等固定 ID 错开。
         val notifId = NOTIF_ID_PROACTIVE_MESSAGE_BASE or
             (proactiveNotifIdSeq.getAndIncrement() and 0x0FFF)
+        // 「这次不用」：通知被划掉只是「现在不想看」，点这个按钮才是「这条不该发」。
+        // 两者在结果账里是不同的信号，所以不能靠 setAutoCancel 顺带处理。
+        if (outcomeId != null) {
+            builder.addAction(
+                R.drawable.ic_quick_capture_close,
+                context.getString(R.string.notif_proactive_action_dismiss),
+                buildDismissIntent(outcomeId, notifId),
+            )
+        }
+        val notif = builder.build()
         // M2-1: 改用 resultOf{}
         resultOf { nm.notify(notifId, notif) }
             .onError { msg, t ->
@@ -297,6 +310,20 @@ class MuseNotificationManager(private val context: Context) {
                     Logger.w(TAG, "notifyProactiveMessage failed: $msg")
                 }
             }
+    }
+
+    /**
+     * 主动消息通知会被系统拦下的原因;null 表示看不出拦裁项。
+     *
+     * 只回答「发了之后到底有没有可能显示」——不改变发送时机与内容。
+     * 系统级拦截不会抛异常(notify 静默入队后被丢弃),调用方从返回值看不出来,
+     * 所以主动消息链路用它把「没发通知」和「发了但系统会丢掉」分开记。
+     */
+    fun proactiveNotificationBlocker(): String? = when {
+        !nm.areNotificationsEnabled() -> "系统通知权限已关闭"
+        nm.getNotificationChannel(CHANNEL_PROACTIVE_MESSAGE)?.importance == NotificationManager.IMPORTANCE_NONE ->
+            "主动消息通知渠道已被关闭"
+        else -> null
     }
 
     /**
@@ -523,6 +550,22 @@ class MuseNotificationManager(private val context: Context) {
         }
         val requestCode = target.requestKey.hashCode() and Int.MAX_VALUE
         return PendingIntent.getActivity(context, requestCode, intent, flags)
+    }
+
+    /**
+     * 构建通知上「这次不用」按钮的 PendingIntent。
+     *
+     * requestCode 用通知 id：每条主动消息一个按钮，若共用同一个 PendingIntent，
+     * 后发的会覆盖前一条的 extra，用户点老通知却记到新消息头上。
+     */
+    private fun buildDismissIntent(outcomeId: String, notifId: Int): PendingIntent {
+        val intent = Intent(context, ProactiveDismissReceiver::class.java).apply {
+            action = ProactiveDismissProtocol.ACTION_DISMISS
+            putExtra(ProactiveDismissProtocol.EXTRA_OUTCOME_ID, outcomeId)
+            putExtra(ProactiveDismissProtocol.EXTRA_NOTIFICATION_ID, notifId)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(context, notifId, intent, flags)
     }
 
     companion object {

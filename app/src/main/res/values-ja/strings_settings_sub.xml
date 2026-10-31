@@ -251,6 +251,18 @@
     <string name="settings_asr_provider_system">システム</string>
     <string name="settings_asr_provider_file">ファイル (実験的)</string>
     <string name="settings_asr_api_key">APIキー</string>
+    <!-- ASR：プロバイダー設定に従う -->
+    <string name="settings_asr_follow_provider">プロバイダー設定に従う</string>
+    <string name="settings_asr_follow_provider_subtitle">エンドポイントと API キーはプロバイダーの設定を使用し、モデルは手動で選択します</string>
+    <string name="settings_asr_follow_provider_picker">プロバイダー</string>
+    <string name="settings_asr_follow_model_picker">モデル</string>
+    <!-- 追従モード共通のプレースホルダーとフォールバック通知 -->
+    <string name="settings_speech_follow_unset">未選択</string>
+    <string name="settings_speech_follow_no_models">このプロバイダーにはモデルがありません</string>
+    <string name="settings_speech_follow_fallback_notice">手動設定にフォールバックしました: %1$s</string>
+    <string name="settings_speech_follow_reason_provider_missing">選択したプロバイダーが見つかりません</string>
+    <string name="settings_speech_follow_reason_provider_disabled">選択したプロバイダーは無効です</string>
+    <string name="settings_speech_follow_reason_model_missing">モデルが選択されていません</string>
     <string name="settings_asr_hide">隠れる</string>
     <string name="settings_asr_show">見せる</string>
     <string name="settings_asr_model">モデル</string>
@@ -293,6 +305,9 @@
     <string name="settings_rag_cloud_api_subtitle">品質第一、ネットワークと API キーが必要</string>
     <string name="settings_rag_local_keyword">ローカルキーワード (オフライン)</string>
     <string name="settings_rag_local_keyword_subtitle">ネットワークは必要ありません。</string>
+    <string name="settings_rag_active_backend_section">現在のバックエンド</string>
+    <string name="settings_rag_active_backend_label">現在実際に使用中</string>
+    <string name="settings_rag_active_backend_degraded_unknown">別のバックエンドにフォールバックしました（理由は記録されていません）</string>
     <string name="settings_rag_cloud_provider_section">クラウドプロバイダー</string>
     <string name="settings_rag_no_provider_hint">まだプロバイダーが設定されていません。</string>
     <string name="settings_rag_baseurl_not_set">ベースURLが設定されていません</string>
@@ -457,6 +472,12 @@
     <string name="settings_media_tts_cloud_speed">合成速度</string>
     <string name="settings_media_tts_response_format">音声フォーマット</string>
     <string name="settings_media_tts_save_advanced">パラメータの保存</string>
+    <!-- クラウド TTS：プロバイダー設定に従う -->
+    <string name="settings_media_tts_follow_provider">プロバイダー設定に従う</string>
+    <string name="settings_media_tts_follow_provider_subtitle">エンドポイントと API キーはプロバイダーの設定を使用し、モデルは手動で選択します</string>
+    <string name="settings_media_tts_follow_provider_picker">プロバイダー</string>
+    <string name="settings_media_tts_follow_model_picker">モデル</string>
+    <string name="settings_media_tts_follow_voice_hint">追従するのはエンドポイントと API キーのみです。音色が選択したプロバイダーで使えるかはご自身でご確認ください</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">カスタムテーマ</string>
     <string name="settings_theme_custom_add">テーマの追加</string>
@@ -494,6 +515,7 @@
     <string name="settings_agent_test_message_subtitle">実際のプロアクティブメッセージのように1件送信(通知として表示)</string>
     <string name="settings_agent_test_generating">生成中…</string>
     <string name="settings_agent_test_failed">テスト失敗: %1$s</string>
+    <string name="settings_agent_test_already_running">前回のプロアクティブメッセージをまだ生成中です。しばらくしてからお試しください</string>
     <string name="settings_agent_daily_summary_subtitle">毎日 09:00、12:00、21:00、00:00 に会話要約を生成。スイッチは通知のみ制御</string>
     <string name="settings_agent_current_model_hint">グローバルデフォルト(メインチャット / Agent 共通)</string>
     <string name="settings_agent_keep_alive_title">バックグラウンドで実行</string>

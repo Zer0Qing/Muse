@@ -37,3 +37,28 @@ object MuseSwitchSizes {
     /** 拇指与轨道的内缩(复用通用紧凑间距令牌,不引入新值)。 */
     val trackPadding = MusePaddings.tinyGap
 }
+
+/**
+ * 列表行几何([io.zer0.muse.ui.common.surface.MuseListItem])。
+ *
+ * 原先两个值以字面量写在 MuseListItem 的默认参数里,无法被 Web 令牌比对;
+ * 提到这里后 `tokens.json` 的 `component.listRow.*` 与组件用同一个源。
+ */
+object MuseListItemSizes {
+    /** 常规列表行最小高度(对齐 Material3 ListItem 默认,确保触摸目标)。 */
+    val minHeight = 60.dp
+
+    /** 紧凑列表(菜单 / 选择面板)的行最小高度。 */
+    val compactMinHeight = 48.dp
+}
+
+/**
+ * 胶囊按钮几何([io.zer0.muse.ui.common.form.MuseCapsuleButton])。
+ *
+ * 按压反馈原来写在 animateFloatAsState 的目标值里,现收成常量,与
+ * `tokens.json` 的 `component.button.capsulePressScale` 同源。
+ */
+object MuseCapsuleButtonSizes {
+    /** 按压时的缩放比例(1f 为原尺寸)。 */
+    const val pressScale = 0.97f
+}

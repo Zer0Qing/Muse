@@ -23,6 +23,8 @@ class ToolExecutionContextTest {
                 name = "context_probe",
                 description = "test",
                 parameters = mapOf("value" to "value"),
+                // 探针工具只回显参数，无副作用。
+                riskLevel = ToolRiskLevel.SAFE,
             ),
         ) { args, executionContext ->
             "${executionContext.scope}/${executionContext.spaceId}:${args["value"]}"
@@ -44,7 +46,12 @@ class ToolExecutionContextTest {
     fun jsonContextIsPassedWithoutModelArguments() = runBlocking {
         val registry = ToolRegistry(context)
         registry.registerWithContext(
-            ToolRegistry.ToolDef("context_probe", "test", mapOf("value" to "value")),
+            ToolRegistry.ToolDef(
+                "context_probe",
+                "test",
+                mapOf("value" to "value"),
+                riskLevel = ToolRiskLevel.SAFE,
+            ),
         ) { args, executionContext ->
             "${executionContext.scope}/${executionContext.spaceId}:${args["value"]}"
         }

@@ -1,5 +1,7 @@
 package io.zer0.muse.transformer
 
+import io.zer0.muse.perf.BoundedLruCache
+
 /**
  * 用户不可见的内部标记清洗器。
  *
@@ -113,8 +115,12 @@ object InternalMarkupSanitizer {
      * 等价于 [stripForDisplay]（卡片状态尾巴已在其中与 mood/think 同级处理）。
      * 单独留一个名字，是为了让调用点读起来能看出「这是给用户看的口径」，
      * 也方便以后两者分岔时不用改几十处调用。
+     *
+     * 结果按正文本身缓存（见 [DisplayContentCache]）：消息列表的过滤、计数、
+     * 分组判定在同一次刷新里会把同一条消息问 3–4 次，取一次就够。
+     * 输出与 [stripForDisplay] 逐字节一致，缓存只省重复计算，不改口径。
      */
-    fun displayContent(text: String): String = stripForDisplay(text)
+    fun displayContent(text: String): String = displayContentCache.getOrCompute(text, ::stripForDisplay)
 
     /**
      * v2.6.8 出口二：复制 / 分享 / 导出 / 朗读用的正文。
@@ -169,3 +175,50 @@ object InternalMarkupSanitizer {
         .trim()
         .ifBlank { null }
 }
+
+/** [DisplayContentCache] 的条数上限：约等于「两屏消息 + 前后各留一段」。 */
+internal const val DISPLAY_CONTENT_CACHE_MAX_ENTRIES: Int = 512
+
+/**
+ * 超过这个字符数的正文只算不存。
+ *
+ * 单条结果的大小随正文线性增长，几条万字消息就能把 LRU 挤空、反而降低命中率；
+ * 这类超长消息在列表里都很少，重算代价可以接受。
+ */
+internal const val DISPLAY_CONTENT_CACHE_MAX_CHARS: Int = 8_000
+
+/**
+ * `displayContent` 结果的有界缓存。
+ *
+ * key 直接用正文本身，而不是「消息 id + 内容哈希」：清洗结果只由正文决定，
+ * 用正文做 key 让「同输入必得同输出」不依赖哈希不碰撞 —— 命中比较先看引用、
+ * 再看内容，同一帧里传进来的都是同一个 [String] 实例，比较是常数时间起步。
+ *
+ * 淘汰：底层是 access-order 的 LRU（[BoundedLruCache]），超出 [maxEntries]
+ * 时从最久未使用的一端淘汰，容量恒定，不会随消息总数增长。
+ *
+ * 线程安全：容器逐操作加锁。渲染调用在主线程，但导出/索引侧不保证单线程，
+ * 所以这里不假设只有一个调用方。
+ */
+internal class DisplayContentCache(
+    maxEntries: Int = DISPLAY_CONTENT_CACHE_MAX_ENTRIES,
+) {
+    private val entries = BoundedLruCache<String, String>(maxEntries) { 1 }
+
+    /** 命中直接返回上次结果，未命中才调用 [compute] 并把结果写回。 */
+    fun getOrCompute(text: String, compute: (String) -> String): String {
+        entries.get(text)?.let { return it }
+        val computed = compute(text)
+        if (text.length <= DISPLAY_CONTENT_CACHE_MAX_CHARS) entries.put(text, computed)
+        return computed
+    }
+
+    fun containsKey(text: String): Boolean = entries.containsKey(text)
+
+    fun size(): Int = entries.size()
+
+    fun clear() = entries.clear()
+}
+
+/** 进程级实例：缓存的价值就在跨重组、跨帧复用，per-call 建一份等于没有。 */
+private val displayContentCache = DisplayContentCache()

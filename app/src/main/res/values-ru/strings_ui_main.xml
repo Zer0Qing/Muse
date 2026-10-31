@@ -183,17 +183,58 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Настройки</string>
-    <string name="settings_screen_group_assistants">Ассистент и персона</string>
-    <string name="settings_screen_group_models">Модели и рассуждения</string>
+    <string name="settings_screen_group_assistants">Диалоги и роли</string>
+    <string name="settings_screen_group_chat_input">Чат и ввод</string>
+    <string name="settings_screen_group_models">Модели и провайдеры</string>
     <string name="settings_screen_group_chat_display">Диалог и выражение</string>
+    <string name="settings_screen_group_tools">Инструменты и поиск</string>
+    <string name="settings_screen_group_voice">Голос</string>
+    <string name="settings_screen_group_media">Изображения и перевод</string>
     <string name="settings_screen_group_memory">Память и знания</string>
     <string name="settings_screen_group_data_privacy">Данные и резервные копии</string>
-    <string name="settings_screen_group_tools">Возможности и инструменты</string>
-    <string name="settings_screen_group_about">О приложении и диагностика</string>
-    <string name="settings_screen_group_connection">Подключение, аккаунт и безопасность</string>
+    <string name="settings_screen_group_connection">Подключения</string>
+    <string name="settings_screen_group_automation">Автоматизация</string>
     <string name="settings_screen_group_proactive">Проактивность и автоматизация</string>
-    <string name="settings_screen_group_voice_media">Голос и медиа</string>
-    <string name="settings_screen_group_look">Интерфейс и отображение</string>
+    <string name="settings_screen_group_look">Внешний вид</string>
+    <string name="settings_screen_group_data">Данные</string>
+    <string name="settings_screen_group_privacy">Приватность и очистка</string>
+    <string name="settings_screen_group_about">О приложении и справка</string>
+    <string name="settings_screen_group_developer">Для разработчиков</string>
+    <!-- Категории настроек (первый уровень) -->
+    <string name="settings_group_assistants">Ассистенты и роли</string>
+    <string name="settings_group_assistants_desc">Профиль, ассистенты, ресурсы и агенты</string>
+    <string name="settings_group_chat">Чат</string>
+    <string name="settings_group_chat_desc">Отображение, стикеры, быстрые заметки и отправка</string>
+    <string name="settings_group_models">Модели и провайдеры</string>
+    <string name="settings_group_models_desc">Провайдеры, маршрутизация задач и плагины</string>
+    <string name="settings_group_tools">Инструменты и права</string>
+    <string name="settings_group_tools_desc">Инструменты, мастер прав и веб-поиск</string>
+    <string name="settings_group_voice">Голос</string>
+    <string name="settings_group_voice_desc">Озвучивание, распознавание и клонирование голоса</string>
+    <string name="settings_group_image">Изображения и зрение</string>
+    <string name="settings_group_image_desc">Генерация изображений и видео, зрение, перевод</string>
+    <string name="settings_group_memory">Память и знания</string>
+    <string name="settings_group_memory_desc">Центр памяти и поиск по знаниям</string>
+    <string name="settings_group_connection">Подключения</string>
+    <string name="settings_group_connection_desc">Центр подключений, каналы, веб-версия и MCP</string>
+    <string name="settings_group_automation">Автоматизация</string>
+    <string name="settings_group_automation_desc">Проактивные сообщения, задачи по расписанию, уведомления и работа в фоне</string>
+    <string name="settings_group_appearance">Внешний вид</string>
+    <string name="settings_group_appearance_desc">Темы, размер шрифта и мини-телефон</string>
+    <string name="settings_group_data_privacy">Данные и приватность</string>
+    <string name="settings_group_data_privacy_desc">Данные, рабочая область, резервные копии, импорт и приватность</string>
+    <string name="settings_group_about_developer">О приложении и разработчику</string>
+    <string name="settings_group_about_developer_desc">Обучение, обновления, статистика и журналы диагностики</string>
+    <string name="settings_group_data_storage">Данные и резервные копии</string>
+    <string name="settings_group_data_storage_desc">Управление данными, рабочая область, копии, импорт и архив чатов</string>
+    <string name="settings_group_privacy_security">Приватность и безопасность</string>
+    <string name="settings_group_privacy_security_desc">Маскировка приватности и безопасность при отправке</string>
+    <string name="settings_group_about">О приложении</string>
+    <string name="settings_group_about_desc">Обучение, сведения о версии и проверка обновлений</string>
+    <string name="settings_group_developer">Разработчику</string>
+    <string name="settings_group_developer_desc">Статистика, экспериментальные функции, отладка и аудит</string>
+    <string name="settings_group_section_about">О приложении</string>
+    <string name="settings_group_section_developer">Для разработчиков</string>
     <string name="settings_screen_appearance_label">Внешний вид</string>
     <string name="settings_screen_appearance_desc">Тема / Размер шрифта</string>
     <string name="settings_screen_chat">Чат</string>
@@ -206,6 +247,24 @@
     <string name="settings_screen_data_backup_desc">Облачное резервное копирование / Web-сервер</string>
     <string name="settings_screen_data_import">Импорт данных</string>
     <string name="settings_screen_data_import_desc">Миграция из RikkaHub / Kelivo</string>
+    <!-- Веб-доступ (Настройки -> Подключения): адрес / PIN / QR-код -->
+    <string name="settings_screen_web_access">Веб-доступ</string>
+    <string name="settings_screen_web_access_desc">Адрес / PIN / QR-код — отсканируйте и подключайтесь</string>
+    <string name="settings_web_access_intro">Откройте адрес ниже в браузере на iPhone или компьютере и введите PIN, чтобы пользоваться веб-версией.</string>
+    <string name="settings_web_access_enable">Включить веб-доступ</string>
+    <string name="settings_web_access_enable_subtitle">При выключении другие устройства сразу отключаются, порт освобождается</string>
+    <string name="settings_web_access_lan">Разрешить доступ по локальной сети</string>
+    <string name="settings_web_access_lan_on">Телефоны и компьютеры в той же Wi-Fi сети смогут открыть</string>
+    <string name="settings_web_access_lan_off">Доступ только с этого устройства</string>
+    <string name="settings_web_access_local_only_hint">Доступ только с этого устройства — другие не смогут отсканировать этот QR-код</string>
+    <string name="settings_web_access_no_ip">Локальный IP не найден: подключитесь к Wi-Fi или проверьте изоляцию устройств на роутере</string>
+    <string name="settings_web_access_scan_hint">Отсканируйте камерой телефона, чтобы открыть</string>
+    <string name="settings_web_access_first_login_hint">При первом входе потребуется 6-значный PIN выше</string>
+    <string name="settings_web_access_pin_regenerated">Новый PIN: %1$s. Другим устройствам нужно войти заново</string>
+    <string name="settings_web_access_qr_cd">QR-код адреса веб-доступа</string>
+    <string name="settings_web_access_tip_iphone">На iPhone откройте в Safari и выберите «Поделиться → На экран «Домой»», чтобы работать в полный экран</string>
+    <string name="settings_web_access_tip_same_wifi">Телефон и это устройство должны быть в одной Wi-Fi сети</string>
+    <string name="settings_web_access_tip_disable">После выключения переключателя другие устройства сразу отключаются</string>
     <string name="settings_screen_rag">Поиск знаний</string>
     <string name="settings_screen_rag_desc">Конфигурация RAG / Embedding / Параметры блоков</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
@@ -353,6 +412,9 @@
     <string name="skill_operation_failed">Сбой операции: %1$s</string>
     <string name="skill_unnamed">(Безымянный)</string>
     <string name="skill_enabled">Включено</string>
+    <string name="skill_bulk_summary">Пользовательских навыков: %1$d, включено: %2$d</string>
+    <string name="skill_bulk_disable_all">Отключить все</string>
+    <string name="skill_bulk_enable_all">Включить все</string>
     <string name="skill_disabled">Выключено</string>
     <string name="skill_built_in">Встроено</string>
     <string name="skill_built_in_seed">Встроено (сид)</string>
@@ -525,7 +587,7 @@
     <string name="free_model_service_unavailable">Бесплатная квота недоступна. Добавьте API-ключ или попробуйте позже.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">Менеджер плагинов</string>
+    <string name="provider_plugins_title">Плагины провайдеров</string>
     <string name="muse_plugins_external">Внешние плагины</string>
     <string name="provider_plugins_empty">Нет плагинов</string>
     <string name="provider_plugins_import">Импортировать плагин</string>
@@ -665,7 +727,11 @@
     <string name="muse_plugins_draft">Ожидает подтверждения (не будет выполняться)</string>
     <string name="muse_plugins_draft_saved">Сохранено как отключённый черновик</string>
     <string name="muse_plugins_install_confirm_action">Подтвердить установку и включить</string>
-    <string name="muse_plugins_install_confirm_capabilities">Заявленные возможности: %1$s</string>
+    <string name="muse_plugins_install_confirm_capabilities">Возможности, которые он заявляет: %1$s</string>
+    <string name="muse_plugins_capabilities_disclaimer">Заявление лишь описывает, что плагин собирается использовать; оно не ограничивает то, что он сможет делать после установки.</string>
+    <string name="muse_plugins_global_switch_title">Общий выключатель плагинов</string>
+    <string name="muse_plugins_global_switch_desc">Когда выключен, ни один плагин не выполняется. Установки и настройки сохраняются.</string>
+    <string name="muse_plugins_runtime_label">Среда выполнения: %1$s</string>
     <string name="muse_plugins_install_confirm_code">Точка входа: %1$d байт · доп. файлов: %2$d · SHA-256 входа: %3$s</string>
     <string name="muse_plugins_install_confirm_summary">Версия %1$s · Автор %2$s · Внешний код будет выполняться в ограниченной JS-песочнице</string>
     <string name="muse_plugins_install_confirm_title">Подтверждение установки: %1$s</string>
@@ -730,4 +796,12 @@
     <string name="workspace_empty_subtitle">Файлы, созданные или сохранённые ассистентом в чате, появятся здесь</string>
     <string name="settings_screen_group_storage">Хранилище</string>
     <string name="settings_screen_group_migrate">Резервные копии</string>
+
+    <string name="workspace_mounts_title">Точки монтирования</string>
+    <string name="workspace_mount_add">Добавить папку</string>
+    <string name="workspace_mount_read_only">Только чтение</string>
+    <string name="workspace_mount_remove">Удалить</string>
+    <string name="workspace_mount_added">%1$s смонтирован</string>
+    <string name="workspace_mount_failed">Не удалось смонтировать: %1$s</string>
+    <string name="workspace_read_only_hint">Монтирование только для чтения, изменения невозможны</string>
 </resources>

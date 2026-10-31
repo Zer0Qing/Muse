@@ -24,7 +24,7 @@ class ChannelToolFactoryTest {
             contextProvider = { "ctx" },
         )
 
-        // 顺序与既有实现 channel-router.ts 注入顺序一致:reply → pass → read_context
+        // 顺序:reply → pass → read_context
         assertEquals(
             listOf("channel_reply", "channel_pass", "channel_read_context"),
             defs.map { it.name },

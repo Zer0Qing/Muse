@@ -2169,13 +2169,21 @@ class OpenAIProvider(
      *
      * 其他 carrier(REASONING_ITEMS / REASONING_DETAILS / THINKING_BLOCKS / THOUGHT_SIGNATURE)
      * 不通过此函数处理 — 它们走 Responses API / OpenRouter / Anthropic / Gemini 各自路径。
+     *
+     * v2.6.14: 来源守卫 —— `thinkingSignature` / `thinkingEncryptedContent` 非空说明该思考块
+     * 由签名型协议产出（Anthropic thinking block 的 signature_delta、OpenAI Responses 的
+     * reasoning item id / encrypted_content），不可能由 `reasoning_content` 协议的模型生成。
+     * 此时不把思考文本当 reasoning_content 发出，只按协议要求决定是否留空字符串占位。
      */
     private fun UIMessage.computeReasoningContentForReplay(compat: ProviderCompat?, carriesTools: Boolean): String? {
         val contract = compat?.reasoningReplayContract ?: return null
         if (contract.carrier != ReasoningCarrier.REASONING_CONTENT) return null
+        // v2.6.14: 签名型协议产出的思考块不能经 reasoning_content 回放（跨协议泄漏）。
+        val hasForeignProvenance = !thinkingSignature.isNullOrBlank() || !thinkingEncryptedContent.isNullOrBlank()
+        val replayable = if (hasForeignProvenance) null else reasoning
         return when (contract.policy) {
             ReasoningReplayPolicy.NONE -> null
-            ReasoningReplayPolicy.PRESERVE -> reasoning?.takeIf { it.isNotBlank() }
+            ReasoningReplayPolicy.PRESERVE -> replayable?.takeIf { it.isNotBlank() }
             ReasoningReplayPolicy.REQUIRE_TOOL_CALL -> {
                 if (role != MessageRole.ASSISTANT) return null
                 // v1.0.81: 对齐 DeepSeek 官方 thinking mode 协议 — 当请求带 tools 参数时，
@@ -2186,9 +2194,9 @@ class OpenAIProvider(
                 if (carriesTools) {
                     // v2.5.3: 只有协议要求字段必存在（requiresNonEmptyReasoning）时才发空串占位；
                     // Qwen/Doubao 等容忍缺省的协议空串省略，节省 token。
-                    if (contract.requiresNonEmptyReasoning) reasoning.orEmpty() else reasoning?.takeIf { it.isNotBlank() }
+                    if (contract.requiresNonEmptyReasoning) replayable.orEmpty() else replayable?.takeIf { it.isNotBlank() }
                 } else {
-                    reasoning?.takeIf { it.isNotBlank() }
+                    replayable?.takeIf { it.isNotBlank() }
                 }
             }
         }

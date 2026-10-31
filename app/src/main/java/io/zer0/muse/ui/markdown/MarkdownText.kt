@@ -67,6 +67,7 @@ import coil.compose.AsyncImage
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.common.markdown.FrontmatterParser
+import io.zer0.muse.perf.MarkdownParseCache
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -95,13 +96,13 @@ private val INLINE_REGEX = Regex(
 // L2 修复: [N] 引用编号正则 — 仅当 N 为正整数且非 [text](url) 形式
 private val CITATION_REGEX = Regex("""\[(\d+)]""")
 
-// v1.97: 纯文本 URL 自动识别(类似 既有实现 linkify)
+// v1.97: 纯文本 URL 自动识别(linkify 式自动链接)
 // 匹配 http/https 开头的 URL,到空白/引号/括号/中文标点结束
-// 既有实现 trimAutoLinkifiedSuffixes:排除尾部中文标点(。、,;!?」』)
+// 尾部中文标点(。、,;!?」』)由二次清理排除
 // v1.97 阶段二: internal 供单元测试覆盖边界用例(URL_AUTOLINK_REGEX 边界测试)
 // v1.97 阶段二修正: 字符类移除 `:` 和 `?` — 这两个字符在 URL 主体中合法(端口 :8080 / query ?q=1),
 // 排除会导致 URL 被截断。ASCII 句点 `.` 同理不排除(URL 内合法,如 example.com),句末标点
-// 由 既有实现 trimAutoLinkifiedSuffixes 在调用处二次清理(此处保持简单字符类)。
+// 由调用处二次清理(此处保持简单字符类)。
 // 注: `!` 保留排除(中文全角感叹号 ! 后接中文文本时不应纳入 URL)。
 internal val URL_AUTOLINK_REGEX = Regex("""https?://[^\s<>"'`)\]】」』。、,;!]+""")
 
@@ -219,7 +220,15 @@ fun MarkdownText(
         }
         streamed
     } else {
-        remember(bodyText) { parseMarkdown(bodyText) }
+        // 非流式(历史消息):同步解析 + 进程级 LRU 命中。
+        // 滚动卡顿的根因是 LazyColumn 滚出即销毁 composition,remember 随之失效,
+        // 滚回来时全量重算;解析结果落到 [MarkdownParseCache] 后,滚出再滚回直接命中。
+        // 首帧仍走同步解析,不改成 Dispatchers.Default:无缓存时先出一帧空的,再切到
+        // 真实内容,本身就是一次高度跳变(滚动中比省下一次解析更刺眼)。
+        // key 的 id 部分用 [cardId]:聊天场景它就是消息 id(msg.id.toString()),
+        // 没传 cardId 的场景(文档预览等)退化成纯内容 hash。
+        val cacheKey = remember(cardId, bodyText) { MarkdownParseCache.keyOf(cardId, bodyText) }
+        remember(cacheKey) { MarkdownParseCache.getOrParse(cardId, bodyText) }
     }
     // v1.97 (P2): 流式 + 块数超阈值时只渲染尾部,降低 Compose 重组成本
     val truncated = isStreaming && allBlocks.size > STREAMING_BLOCK_CAP
@@ -1027,7 +1036,7 @@ fun parseInline(
  * Phase 8.4: 把一段普通文本中的 [N] 引用编号渲染为可点击 URL 注解。
  * 仅当 N 在 citationUrls 范围内时才注解,其他 [N] 当普通文本输出。
  *
- * v1.97: 增加纯文本 URL 自动识别(类似 既有实现 linkify)。
+ * v1.97: 增加纯文本 URL 自动识别(linkify 式自动链接)。
  * 普通文本中的 http/https URL 会被自动渲染为 primary 色可点击链接。
  * URL 优先于 [N] 引用扫描,避免 URL 内的 [数字] 被误匹配。
  *

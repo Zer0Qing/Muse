@@ -138,7 +138,7 @@ class GeminiProvider(
             request.model,
         )
         val (system, contents) = splitSystem(normalizedMessages)
-        val body = buildRequestBody(
+        var body = buildRequestBody(
             system = system,
             contents = contents,
             temperature = request.temperature,
@@ -147,6 +147,7 @@ class GeminiProvider(
             supportsImageOutput = request.model.supportsImageOutput(),
             tools = request.tools,
             nativeWebSearch = request.nativeWebSearch,
+            modelId = request.model.id,
         )
         // M-GEM2: buildUrl 可能抛 IllegalStateException(Vertex AI 配置缺失),包裹 try-catch 发 Error
         val url: String = try {
@@ -195,6 +196,9 @@ class GeminiProvider(
         //   从未发出 Content/Image/ToolCall delta(只有 reasoning/思考无实质回答),则视为虚假结束。
         val hasEmittedContent = AtomicBoolean(false)
 
+        /** 思考参数已从 token 预算回退到档位：只容错一次，避免死循环。 */
+        var forceThinkingLevel = false
+
         /**
          * M-GEM2: 启动(或重启)SSE 流。可重试错误(UNAVAILABLE/5xx/429/网络异常)按指数退避重试,
          * 最多 [MAX_RETRIES] 次。
@@ -232,6 +236,34 @@ class GeminiProvider(
                     if (!response.isSuccessful) {
                         val errText = ProviderHttpSupport.readBodyCapped(response)
                         val code = response.code
+                        // Gemini 3 代起不再接受 token 预算，只认档位。
+                        // 模型名认不出来时先用旧写法发，被 400 拒了再换成档位重发一次。
+                        if (code == 400 && !anyDeltaSent.get() && !forceThinkingLevel &&
+                            errText.contains("thinking budget is not supported", ignoreCase = true)
+                        ) {
+                            forceThinkingLevel = true
+                            body = buildRequestBody(
+                                system = system,
+                                contents = contents,
+                                temperature = request.temperature,
+                                maxTokens = request.maxTokens,
+                                reasoningLevel = request.reasoningLevel,
+                                supportsImageOutput = request.model.supportsImageOutput(),
+                                tools = request.tools,
+                                nativeWebSearch = request.nativeWebSearch,
+                                modelId = request.model.id,
+                                forceThinkingLevel = true,
+                            )
+                            Logger.i(TAG, "流式请求被拒(不接受 thinking budget)，改用 thinking level 重发")
+                            generation.incrementAndGet()
+                            eventSource.cancel()
+                            call.cancel()
+                            scope.launch {
+                                if (request.abortSignal.aborted || scope.isClosedForSend) return@launch
+                                startStream()
+                            }
+                            return
+                        }
                         // v1.0.1 (P0): 429 限流时先尝试切换 key(多 key 场景),立即重试无需 backoff
                         if (code == 429 && !anyDeltaSent.get() && attempt.get() < MAX_RETRIES &&
                             !request.abortSignal.aborted && !scope.isClosedForSend &&
@@ -505,6 +537,7 @@ class GeminiProvider(
             supportsImageOutput = request.model.supportsImageOutput(),
             tools = request.tools,
             nativeWebSearch = request.nativeWebSearch,
+            modelId = request.model.id,
         )
         // M-GEM7: buildUrl/resolveToken 纳入 try-catch,原在 try 块外抛 IllegalStateException 会绕过错误处理
         // M-GEM13: Vertex AI 服务账号配置无效时 resolveToken 抛 RuntimeException
@@ -626,7 +659,7 @@ class GeminiProvider(
      *
      * v1.80 (M-GEM5): 支持分页,循环请求直到 nextPageToken 为 null,加安全页数上限防止异常响应无限循环。
      *
-     * v1.132 优化(既有实现/既有实现):
+     * v1.132 优化:
      *  - 短超时 client(30s),避免分页请求卡顿占用 chat 长连接
      *  - 按 id 去重 + 字母序排序
      *  - 过滤空 id
@@ -947,6 +980,18 @@ class GeminiProvider(
      *
      * H-GEM2: [tools] 透传为 Gemini tools 格式(单个 tool 包裹 functionDeclarations 数组)。
      */
+    /**
+     * 思考深度用档位还是用 token 预算。
+     *
+     * Gemini 3 代起（含 4 代 / Argon）只接受档位；Gemini 1/2 代只接受预算。
+     * 模型名对不上任何一代时返回 false 保留旧行为，由调用方的自动回退兜底。
+     */
+    private fun usesThinkingLevel(modelId: String?): Boolean {
+        val id = modelId?.lowercase() ?: return false
+        if (id.contains("gemini-1") || id.contains("gemini-2")) return false
+        return true
+    }
+
     private fun buildRequestBody(
         system: String?,
         contents: List<GeminiContent>,
@@ -956,13 +1001,22 @@ class GeminiProvider(
         supportsImageOutput: Boolean = false,
         tools: List<ToolDefinition>? = null,
         nativeWebSearch: Boolean = false,
+        modelId: String? = null,
+        forceThinkingLevel: Boolean = false,
     ): String {
-        // Phase 8.5 修复: Gemini 2.5 系列支持 thinkingConfig.thinkingBudget。
-        // OFF → 不发(让模型用默认);其他等级用 level.budgetTokens 作为预算。
+        // 思考参数的两种写法：
+        //  - Gemini 2 代及更早：thinkingConfig.thinkingBudget（token 数）
+        //  - Gemini 3 代起（含 4 代 / Argon）：thinkingConfig.thinkingLevel（档位）
+        // 传错写法会被服务端直接 400 拒掉，所以按模型分代选。
+        // [forceThinkingLevel] 给自动回退用：不认模型名，强制发档位。
         val thinkingCfg = when (reasoningLevel) {
             ReasoningLevel.OFF -> null
             ReasoningLevel.AUTO -> null
-            else -> reasoningLevel.budgetTokens?.let { GeminiThinkingConfig(thinkingBudget = it) }
+            else -> if (forceThinkingLevel || usesThinkingLevel(modelId)) {
+                reasoningLevel.effort?.let { GeminiThinkingConfig(thinkingLevel = it) }
+            } else {
+                reasoningLevel.budgetTokens?.let { GeminiThinkingConfig(thinkingBudget = it) }
+            }
         }
         // Phase 8.6 + M-GEM12: responseModalities 统一大写
         val responseModalities = if (supportsImageOutput) listOf("TEXT", "IMAGE") else null

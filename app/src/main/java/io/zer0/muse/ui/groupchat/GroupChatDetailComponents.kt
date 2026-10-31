@@ -873,7 +873,7 @@ internal fun GroupChatInputBar(
     var showMentionDropdown by remember { mutableStateOf(false) }
     // 插入 @成员 后把光标落到末尾的信号量(纯 String 绑定改不动光标,靠它驱动 MuseTextField)
     var caretTick by remember { mutableIntStateOf(0) }
-    // 从文本末尾找最后一个 @,若 @ 后无空白则为有效 mention 查询(按 既有实现 channel-mentions)
+    // 从文本末尾找最后一个 @,若 @ 后无空白则为有效 mention 查询
     val mentionQuery: String? = remember(text) {
         val atIndex = text.lastIndexOf('@')
         if (atIndex < 0) return@remember null
@@ -1044,7 +1044,7 @@ internal fun GroupChatInputBar(
  * 群聊活动状态栏 — 展示当前轮转中各 agent 的状态 chip。
  *
  * IDLE 状态被过滤不显示;无活动时整个栏不占空间。
- * 既有实现 ActivityHub UI:紧凑横向 chip 行,每个 chip 含图标 + 名字 + 状态文案;
+ * 布局:紧凑横向 chip 行,每个 chip 含图标 + 名字 + 状态文案;
  * REPLYING 态加呼吸动画,ERROR 态用错误配色,NO_REPLY 态弱化展示。
  *
  * @param activities 当前群聊中各 agent 的活动列表

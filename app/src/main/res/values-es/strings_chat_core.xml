@@ -106,12 +106,17 @@
     <string name="chat_doc_default_name">Documento</string>
     <string name="chat_doc_parse_failed">Error al analizar el documento: %1$s</string>
     <string name="chat_attachment_workspace_ref">Adjunto guardado en el espacio de trabajo: %1$s (%2$s)</string>
+    <string name="chat_attachment_preview_unavailable">Este archivo no se puede abrir en la app. El original está en el espacio de trabajo: %1$s</string>
     <string name="chat_attachment_import_failed">No se pudo guardar el adjunto: %1$s</string>
     <string name="chat_doc_char_count">%1$d caracteres</string>
     <string name="chat_pasted_doc_name">texto-pegado_%1$s.txt</string>
     <string name="chat_thinking_preview">Pensando · %1$s</string>
     <string name="chat_voice_playing_cd">Reproduciendo voz</string>
     <string name="chat_voice_ready_cd">Voz lista</string>
+    <!-- v2.6.16: barra de mensaje de voz -->
+    <string name="chat_voice_play_cd">Reproducir mensaje de voz</string>
+    <string name="chat_voice_pause_cd">Pausar mensaje de voz</string>
+    <string name="chat_voice_expired">Mensaje de voz no disponible</string>
     <string name="chat_knowledge_chunk_title">«%1$s» · Fragmento n.º %2$d</string>
     <string name="chat_knowledge_chunk_score">Puntuación %1$s · %2$s</string>
     <string name="chat_citation_chip_a11y">Cita [%1$d]: %2$s, %3$s</string>
@@ -468,7 +473,8 @@
     <string name="msg_info_prompt">Entrada (prompt)</string>
     <string name="msg_info_completion">Salida (completion)</string>
     <string name="msg_info_reasoning">Razonamiento (reasoning)</string>
-    <string name="msg_info_cached">Aciertos de caché</string>
+    <string name="msg_info_cached">Lectura de caché</string>
+    <string name="msg_info_cache_write">Escritura de caché</string>
     <string name="msg_info_total">Total</string>
     <string name="msg_info_measured">Medido</string>
     <string name="msg_info_estimated">Estimado</string>

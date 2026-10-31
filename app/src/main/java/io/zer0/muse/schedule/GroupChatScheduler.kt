@@ -70,7 +70,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * 群聊调度器 — 用户发消息后串行触发群聊中的 Agent 轮转发言。
  *
- * 设计按 既有实现 的多 Agent 群聊模型:
+ * 按多 Agent 群聊模型设计:
  *  1. 用户在群聊中发送一条消息
  *  2. 调度器取出群聊的 memberIds,对每个 assistant 串行执行:
  *     a. 构造上下文(最近 N 条消息 + 群聊身份提示)
@@ -97,7 +97,7 @@ import java.util.concurrent.ConcurrentHashMap
  * @param chatGenerationManager v1.111: 复用单聊的保活机制(前台服务通知/心跳/状态)
  * @param skillExecutor 改造 1: 群聊关联团队且团队有 workflow 时,委托 TeamWorkflowExecutor
  *        执行并行/条件/聚合编排(经 SkillExecutor.delegateAgent → TeamWorkflowExecutor)。
- * @param activityHub 群聊活动状态管理器(按 既有实现 ActivityHub)。
+ * @param activityHub 群聊活动状态管理器。
  *        轮转各阶段 upsert agent 状态(VIEWING/REPLYING/NO_REPLY/ERROR/IDLE),
  *        UI 通过 StateFlow 响应式订阅展示活动 chip。
  * @param delegationChainTracker v1.202: 委派链路追踪器,在 [invokeAgent] 中调用
@@ -1305,7 +1305,7 @@ class GroupChatScheduler(
     /**
      * 触发群聊 Agent 轮转发言。
      *
-     * v1.97 改进(按 既有实现-orig):
+     * v1.97 改进:
      *  - @mention 解析:从最近用户消息中提取 @agentName,被提及的 agent 优先发言
      *  - 决策修复:被 @提及的 agent 如果返回 [PASS],重试一次提示"你被@提及了"
      *  - Guard limit:单成员最多 MAX_INVOCATIONS_PER_MEMBER 次调用,防死循环
@@ -2407,7 +2407,7 @@ class GroupChatScheduler(
      * v1.97: 从最近消息中解析 @mention,返回被提及的 assistant id 列表。
      *
      * 匹配规则:在最近用户消息中查找 @name,name 与 assistant.name 或 assistant.id 匹配。
-     * 按 既有实现-orig 的 channel-mentions.ts:支持中英文标点边界,按名称长度降序匹配。
+     * 匹配时考虑中英文标点边界,按名称长度降序。
      */
     private fun parseMentions(recentMessages: List<GroupChatMessageEntity>, assistants: List<AssistantEntity>): Set<String> {
         // 取最近一条用户消息
@@ -2422,8 +2422,7 @@ class GroupChatScheduler(
         // 与 assistant name/id 匹配(忽略大小写)
         // v1.116 (C2-1): 按 name 长度降序排序后再匹配,避免短名称误匹配长名称的前缀。
         // 例:群内有 "Alice" 和 "Alice2" 时,@Alice2 应匹配后者而非前者。
-        // 当前用 equals 精确匹配,排序不影响结果,但为未来扩展(别名/部分匹配)打好基础,
-        // 且符合 既有实现 channel-mentions.ts 的设计意图。
+        // 当前用 equals 精确匹配,排序不影响结果,但为未来扩展(别名/部分匹配)打好基础。
         val sortedAssistants = assistants.sortedByDescending { it.name.length }
         val mentioned = mutableSetOf<String>()
         for (token in tokens) {
@@ -3249,7 +3248,7 @@ class GroupChatScheduler(
      *
      * - System: assistant.systemPrompt + 群聊身份提示(含改造 3 身份防混淆 guidance)
      * - System: v1.137 RAG 注入(知识库命中片段,@mention 定向检索)
-     * - User: Phone Session 推送式 prompt(改造 2,按 既有实现 channel-router.ts)
+     * - User: Phone Session 推送式 prompt(改造 2)
      *
      * v1.97: 新增 isMentioned / isRepair 参数,在 user message 中注入 @提及和决策修复提示。
      * v1.137: 新增 RAG 注入与视觉辅助(VisionBridge)处理:
@@ -3258,7 +3257,7 @@ class GroupChatScheduler(
      *    而非直接丢弃图片(参考单聊 ChatViewModel 的处理)。
      *
      * 改造 2(Phone Session 模式):每个 agent 独立收到"手机推送"式 prompt,
-     * 而非把所有成员塞进同一上下文。按 既有实现 channel-router.ts:793-821。
+     * 而非把所有成员塞进同一上下文。
      *  - System:assistant.systemPrompt + buildGroupChatHintSection(含身份防混淆 guidance)
      *    + MOOD 格式 + 必须通过 channel_* 工具决策
      *  - User:buildPhonePrompt 构造的"手机推送"prompt(最近消息 + @提及 + 决策修复)
@@ -3454,7 +3453,6 @@ class GroupChatScheduler(
 
         // 改造 2 Phone Session:User message 改为"手机推送"式 prompt
         // 每个 agent 独立收到一条"你的手机收到了群聊新消息"的推送,而非把所有成员塞进同一上下文。
-        // 按 既有实现 channel-router.ts:793-821。
         // v2.x: 使用过滤后的 visibleMessages 构造 transcript,确保非目标 agent 看不到悄悄话。
         val userContent = buildPhonePrompt(
             chatName = chatName,
@@ -3515,7 +3513,7 @@ class GroupChatScheduler(
     }
 
     /**
-     * 改造 2: 构造 Phone Session 推送式 prompt(按 既有实现 channel-router.ts:793-821)。
+     * 改造 2: 构造 Phone Session 推送式 prompt。
      *
      * 每个 agent 独立收到一条"你的手机收到了群聊新消息"的推送,而非把所有成员塞进同一上下文。
      *  - 顶部声明"手机收到新群聊消息"

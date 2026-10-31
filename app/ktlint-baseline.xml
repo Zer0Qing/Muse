@@ -63,9 +63,6 @@
         <error line="191" column="1" source="standard:max-line-length" />
         <error line="357" column="1" source="standard:max-line-length" />
     </file>
-    <file name="src/main/java/io/zer0/muse/data/diary/DiaryRepository.kt">
-        <error line="14" column="17" source="standard:property-naming" />
-    </file>
     <file name="src/main/java/io/zer0/muse/data/export/ConversationExporter.kt">
         <error line="3" column="1" source="standard:import-ordering" />
         <error line="150" column="9" source="standard:function-signature" />
@@ -88,9 +85,6 @@
     <file name="src/main/java/io/zer0/muse/data/groupchat/GroupChatRepository.kt">
         <error line="47" column="17" source="standard:property-naming" />
     </file>
-    <file name="src/main/java/io/zer0/muse/data/import/MiniDataLoader.kt">
-        <error line="1" column="9" source="standard:package-name" />
-    </file>
     <file name="src/main/java/io/zer0/muse/data/import/ThirdPartyImporter.kt">
         <error line="1" column="9" source="standard:package-name" />
         <error line="351" column="1" source="standard:max-line-length" />
@@ -100,9 +94,6 @@
     </file>
     <file name="src/main/java/io/zer0/muse/data/knowledge/KnowledgeDocEntity.kt">
         <error line="25" column="83" source="standard:discouraged-comment-location" />
-    </file>
-    <file name="src/main/java/io/zer0/muse/data/moment/MomentRepository.kt">
-        <error line="23" column="17" source="standard:property-naming" />
     </file>
     <file name="src/main/java/io/zer0/muse/data/plugin/PluginManifest.kt">
         <error line="17" column="5" source="standard:enum-entry-name-case" />
@@ -261,9 +252,6 @@
     </file>
     <file name="src/main/java/io/zer0/muse/schedule/GreetingHintGenerator.kt">
         <error line="32" column="17" source="standard:property-naming" />
-    </file>
-    <file name="src/main/java/io/zer0/muse/schedule/MomentScheduler.kt">
-        <error line="49" column="17" source="standard:property-naming" />
     </file>
     <file name="src/main/java/io/zer0/muse/tools/AgentRouter.kt">
         <error line="331" column="1" source="standard:max-line-length" />
@@ -638,13 +626,6 @@
         <error line="79" column="71" source="standard:discouraged-comment-location" />
         <error line="103" column="89" source="standard:discouraged-comment-location" />
     </file>
-    <file name="src/main/java/io/zer0/muse/ui/moment/MiniWeatherScreen.kt">
-        <error line="450" column="1" source="standard:max-line-length" />
-        <error line="451" column="1" source="standard:max-line-length" />
-    </file>
-    <file name="src/main/java/io/zer0/muse/ui/moment/MomentViewModel.kt">
-        <error line="52" column="17" source="standard:property-naming" />
-    </file>
     <file name="src/main/java/io/zer0/muse/ui/quicknotes/QuickCaptureTheme.kt">
         <error line="1" column="1" source="standard:filename" />
     </file>
@@ -867,16 +848,6 @@
     <file name="src/test/java/io/zer0/muse/data/plugin/market/MarketSigningFixtureTest.kt">
         <error line="67" column="17" source="standard:property-naming" />
     </file>
-    <file name="src/test/java/io/zer0/muse/data/proactive/ProactiveScoreEngineTest.kt">
-        <error line="28" column="17" source="standard:property-naming" />
-        <error line="34" column="42" source="standard:discouraged-comment-location" />
-        <error line="35" column="34" source="standard:discouraged-comment-location" />
-        <error line="36" column="40" source="standard:discouraged-comment-location" />
-        <error line="39" column="35" source="standard:discouraged-comment-location" />
-        <error line="51" column="44" source="standard:discouraged-comment-location" />
-        <error line="67" column="42" source="standard:discouraged-comment-location" />
-        <error line="85" column="33" source="standard:discouraged-comment-location" />
-    </file>
     <file name="src/test/java/io/zer0/muse/data/session/MuseDbMigrationTest.kt">
         <error line="699" column="25" source="standard:function-signature" />
         <error line="700" column="25" source="standard:function-signature" />
@@ -907,9 +878,6 @@
     <file name="src/test/java/io/zer0/muse/schedule/GroupChatWriteGateWiringTest.kt">
         <error line="3" column="1" source="standard:import-ordering" />
         <error line="43" column="63" source="standard:function-signature" />
-    </file>
-    <file name="src/test/java/io/zer0/muse/schedule/MomentWriteGateWiringTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/test/java/io/zer0/muse/schedule/ProactiveWriteGateWiringTest.kt">
         <error line="3" column="1" source="standard:import-ordering" />

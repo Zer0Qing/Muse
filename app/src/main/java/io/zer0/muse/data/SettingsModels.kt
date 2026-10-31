@@ -356,6 +356,17 @@ data class MediaConfig(
     val ttsCloudSpeed: Float = 1.0f,
     /** v1.99(4.8): 云端 TTS 音频格式(mp3/opus/aac/flac/wav,默认 mp3)。 */
     val ttsResponseFormat: String = "mp3",
+    /**
+     * 云端 TTS 是否跟随供应商配置(默认 false)。
+     *
+     * 开启后 baseUrl / apiKey 取自 [ttsProviderId] 指向的供应商,模型取自 [ttsModelId];
+     * 关闭时一律使用手动配置([ttsEndpoint] / [ttsApiKey] / [ttsModel]),行为与旧版一致。
+     */
+    val ttsFollowProvider: Boolean = false,
+    /** 跟随模式下所选供应商 id(空串表示未选)。 */
+    val ttsProviderId: String = "",
+    /** 跟随模式下所选模型 id(空串表示未选)。 */
+    val ttsModelId: String = "",
 ) {
     /**
      * P0-2: 返回 ttsApiKey 已加密(走 [SecureKeyStore.encrypt])的副本,供持久化前调用。
@@ -386,7 +397,9 @@ data class MediaConfig(
  * - [allowedHourStart] v1.95: 允许发送时段开始小时(0-23,24小时制),不在此时段跳过发送避免夜间打扰
  * - [allowedHourEnd] v1.95: 允许发送时段结束小时(0-23,24小时制),支持跨夜(如 22-8 表示22点到次日8点)
  * - [agentOnly] v1.95: 仅Agent会话可发主动消息(true=只发Agent Tab会话,false=不限制)
- * - [maxDailyMessages] v2.0 5.9: 每日主动消息上限(默认 3),可在设置页调整
+ * - [maxDailyMessages] **已废弃**：曾经由「节奏」档位写入，但全仓无任何读取方，
+ *   实际上从未生效。每日条数现在由 [io.zer0.muse.data.proactive.ProactiveIntensity.cap]
+ *   决定（安静 3 / 克制 8 / 标准 15 / 主动 30 / 黏人不限）。字段保留仅为旧配置反序列化兼容。
  * - [temperature] v2.0 5.9: LLM 调用温度(默认 0.8),决策阶段用 temperature×0.5,生成阶段用本字段
  */
 @kotlinx.serialization.Serializable
@@ -456,25 +469,16 @@ data class ProactiveMessageConfig(
      */
     val consecutiveFailures: Int = 0,
     /**
-     * v2.6.2（用户反馈）: 助手自主调度下次发送时间。
+     * v2.6.2（用户反馈）: **已废弃，无实现**。
      *
-     * true 时,决策阶段的 LLM 除判断「该不该发」外,还返回一个
-     * `nextIntervalMinutes`（下次隔多久再来找你）。发送成功后用它覆盖固定间隔，
-     * 让节奏由助手自己掌握（可短可长），而不是机械的每 N 分钟一次。
+     * 曾计划让助手在决策阶段返一个 `nextIntervalMinutes`，用它覆盖固定间隔，
+     * 由助手自己决定下次隔多久来。但全仓没有任何读取方，界面也不再写入本字段：
+     * 调度与判定只看 [intervalMinutes]（含当日抖动）。
      *
-     * 取值范围被钳在 [MIN_AI_INTERVAL_MINUTES, MAX_AI_INTERVAL_MINUTES]，
-     * 防止模型给出过短/过长值。选「极多」档时自动开启。
+     * 保留仅为旧配置反序列化兼容；新代码不得读它，也不得写它。
      */
     val aiPaced: Boolean = false,
-) {
-    companion object {
-        /** AI 自主调度时允许的最短间隔（分钟）。 */
-        const val MIN_AI_INTERVAL_MINUTES = 10
-
-        /** AI 自主调度时允许的最长间隔（分钟，24 小时）。 */
-        const val MAX_AI_INTERVAL_MINUTES = 1440
-    }
-}
+)
 
 /**
  * v2.6.2（用户反馈）: 记忆星座（知识图谱）配置。

@@ -69,9 +69,19 @@ object QqSendErrorMapper {
         }
     }
 
-    /** 本次失败重试也救不回来（配置类问题）。 */
+    /**
+     * **这一条**消息再重试也发不出去 —— 与「配置永久坏了」不是一回事。
+     *
+     * 两种都算永久，但含义不同：
+     *  - 配置类（[CODE_BOT_NOT_IN_GROUP] / [CODE_NO_ACTIVE_PERMISSION]）：不改配置永远失败；
+     *  - 被动窗口过期（[CODE_PASSIVE_EXCEEDED]）：时间只会更晚，这条消息确实无救，
+     *    但用户下一条新消息仍能正常回复。
+     *
+     * 所以调用方拿到 true 应当把**当前入站**收成终态（不再重试），
+     * 而不是把渠道标记为不可用。
+     */
     fun isPermanent(raw: String?): Boolean = when (extractCode(raw)) {
-        CODE_BOT_NOT_IN_GROUP, CODE_NO_ACTIVE_PERMISSION -> true
+        CODE_BOT_NOT_IN_GROUP, CODE_NO_ACTIVE_PERMISSION, CODE_PASSIVE_EXCEEDED -> true
         else -> false
     }
 }

@@ -24,6 +24,8 @@ import io.zer0.memory.ticker.MemoryTicker
 import io.zer0.muse.util.ErrorMessages
 import io.zer0.muse.data.MultiAgentConfig
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.SpeechProviderResolver
+import io.zer0.muse.data.withResolvedEndpoint
 import io.zer0.muse.network.NetworkMonitor
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.artifact.ArtifactRepository
@@ -75,6 +77,7 @@ import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.transformer.splitThinkTagsForStreaming
 import io.zer0.muse.ui.chat.ChatStateAccessor
+import io.zer0.muse.ui.chat.ContextTokenUsage
 import io.zer0.muse.ui.chat.ChatAudioCoordinator
 import io.zer0.muse.ui.chat.ChatGenerationController
 import io.zer0.muse.ui.chat.GenerationDeps
@@ -309,7 +312,28 @@ data class ChatToolsState(
 data class PendingMessage(
     val text: String,
     val images: List<String> = emptyList(),
+    /**
+     * 入队时所在的会话 id。
+     *
+     * 插话通道靠它判定「这条排队消息属于哪一段对话」:取走一条属于别的会话的消息,
+     * 就是在那段对话里塞进用户没说过的话,而它会成为模型后续推理的依据。
+     * null 表示入队时拿不到会话(旧数据/无会话),按最保守方式处理 —— 不参与插话。
+     */
+    val sessionId: String? = null,
 )
+
+/**
+ * 从待发送队列里挑出可以作为插话注入下一轮的条目。
+ *
+ * 只认「本轮会话 + 纯文本」的条目:
+ *  - [PendingMessage.sessionId] 与本轮会话不一致 → 属于别的会话,取走就是跨会话污染;
+ *  - [PendingMessage.sessionId] 为 null(旧数据/入队时无会话) → 无法确认归属,留在队列里走原有发送路径;
+ *  - 带图片 → 要过发送管道的媒体落盘与挂载链路,这里二次实现会丢附件。
+ *
+ * 宁可漏取:漏取的后果是消息晚一步发出,错取的后果是对话里出现用户没说过的话。
+ */
+internal fun selectSteeringMessages(queue: List<PendingMessage>, sessionId: String): List<PendingMessage> =
+    queue.filter { it.sessionId == sessionId && it.images.isEmpty() && it.text.isNotBlank() }
 
 data class ChatInputState(
     val input: String = "",
@@ -381,6 +405,13 @@ data class ChatAgentState(
     val agentModeHint: String? = null,
 )
 
+/**
+ * 聊天页 UI 状态。
+ *
+ * ⚠️ [asrConfig] 可能已被供应商配置覆盖:开启「跟随供应商配置」时,baseUrl / apiKey / model
+ * 来自 [io.zer0.muse.data.SpeechProviderResolver] 的解析结果(见本类订阅 combine 的收集块)。
+ * **禁止把它直接传给 `saveAsrConfig` 落盘**;落盘必须取 `settings.asrConfigFlow` 的原始值。
+ */
 class ChatUiState(
     val streamState: ChatStreamState = ChatStreamState(),
     val inputState: ChatInputState = ChatInputState(),
@@ -947,7 +978,6 @@ class ChatUiState(
         pinnedMessageContent = pinnedMessageContent,
     )
 }
-
 data class ToolCallRecord(
     val toolName: String,
     val arguments: String,
@@ -974,6 +1004,8 @@ data class PendingToolApproval(
     val toolCallId: String,
     val toolName: String,
     val argumentsPreview: String,
+    /** 完整参数（已解析），供审批卡片展开查看，不截断。 */
+    val argumentsFull: Map<String, Any?> = emptyMap(),
     val alwaysAllow: Boolean = false,
     /** v1.0.16: 本次开启期间批准全部工具(内存态,不持久化) */
     val appRunAllowAll: Boolean = false,
@@ -1039,6 +1071,7 @@ data class MessageExpandedState(
  * 防止其污染搜索关键词。
  */
 private val KNOWLEDGE_MENTION_REGEX = Regex("@[^\\s@]+")
+
 
 /** R-TEST-06: 发送守卫纯逻辑（防空消息/流式中/Agent 会话创建重入）。 */
 internal fun canStartGeneration(text: String, images: List<String>, isStreaming: Boolean, isCreatingAgentSession: Boolean): Boolean =
@@ -1523,13 +1556,19 @@ class ChatViewModel(
     private val _voiceConversationState get() = voiceState.state
     val voiceConversationState: StateFlow<VoiceConversationState> = _voiceConversationState.asStateFlow()
 
-    /** 语音对话模式实时识别文本(LISTENING 时 ASR 回调写入,UI 据此显示转写)。 */
+    /**
+     * 语音对话模式的本轮累积识别文本(从开始录音到点「结束」之间,跨多个 ASR 会话累积)。
+     * UI 据此显示转写,点「结束」时整段提交。
+     */
     private val _voiceConversationTranscript get() = voiceState.transcript
     val voiceConversationTranscript: StateFlow<String> = _voiceConversationTranscript.asStateFlow()
 
     /** 语音对话模式当前 AI 回复文本(SPEAKING 时填充,UI 据此显示朗读内容)。 */
     private val _voiceConversationAiReply get() = voiceState.aiReply
     val voiceConversationAiReply: StateFlow<String> = _voiceConversationAiReply.asStateFlow()
+
+    /** 语音对话轻提示(如「没听清，再说一次」)；录音重新开始时清空。 */
+    val voiceConversationHint: StateFlow<String?> = voiceState.hint.asStateFlow()
 
     /** TTS 播放状态(透传 TtsManager.playbackState,供语音对话 UI 显示进度)。 */
     val ttsPlaybackStateFlow: StateFlow<PlaybackState> get() = ttsManager.playbackState
@@ -1764,6 +1803,14 @@ class ChatViewModel(
                     }
             }
 
+    /**
+     * 切换序号守卫。
+     *
+     * 只排本界面内连续发起的切换；写成实例字段而不是全局单例，
+     * 否则一个界面实例的迟到切换会把另一个实例的切换判成过期。
+     */
+    private val switchGuard = io.zer0.muse.ui.chat.SessionSwitchGuard()
+
     // v1.x: 会话 CRUD Controller(rename/archive/delete/ignore-memory/fork)
     private val sessionController =
         ChatSessionController(
@@ -1822,6 +1869,7 @@ class ChatViewModel(
                 },
                 requeueOutboxForSession = { sid -> generationController.requeueOutboxForSession(sid) },
             ),
+            switchGuard = switchGuard,
         )
 
     // v1.x: 聊天级设置 Controller(侧栏/绘图/工具模型/toast)
@@ -2029,6 +2077,8 @@ class ChatViewModel(
         override val settings get() = this@ChatViewModel.settings
         override val sessionRepository get() = this@ChatViewModel.sessionRepository
         override val chatService get() = this@ChatViewModel.chatService
+        // 上下文溢出恢复：压一轮历史再重发（详见 ChatToolLoopRunner 的 recovery 分支）
+        override val contextCompressTransformer get() = this@ChatViewModel.contextCompressTransformer
         override val sessionManager get() = this@ChatViewModel.sessionManager
         override val notificationManager get() = this@ChatViewModel.notificationManager
         override val conversationService get() = this@ChatViewModel.conversationService
@@ -2179,6 +2229,7 @@ class ChatViewModel(
         override val toolApprovalSessions get() = this@ChatViewModel.toolApprovalSessions
         override val pendingToolApprovalRecords get() = this@ChatViewModel.pendingToolApprovalRecords
         override val approvalTimeoutPaused get() = this@ChatViewModel.approvalTimeoutPaused
+        override val appInForeground get() = this@ChatViewModel.appForegroundFlow.value
         override fun addError(type: io.zer0.muse.ui.ChatErrorType, message: String, isRecoverable: Boolean) =
             this@ChatViewModel.addError(type, message, isRecoverable)
         override fun isToolResultSuccess(result: String) = this@ChatViewModel.isToolResultSuccess(result)
@@ -2228,6 +2279,12 @@ class ChatViewModel(
     private var translateJob: Job? = null
 
     init {
+        // 上下文占用供 get_token_usage 自查：工具层看不到 ChatUiState，
+        // 这里把读取入口绑到本 ViewModel 的实时 state（进程级单例，绑定一次即可）。
+        io.zer0.muse.ui.chat.ContextOccupancyProbe.bind {
+            val snapshot = _state.value
+            snapshot.contextTokenCount to snapshot.contextMaxTokens
+        }
         // B2-04: 子代理遇到需审批工具时,复用主会话的审批卡
         toolApprovalRouter.delegate = this
         // 监听配置变化,刷新 isConfigured 标志
@@ -2438,8 +2495,19 @@ class ChatViewModel(
             }
         }
         // Phase 9.3 (M2): 观察 ASR 配置(SYSTEM/DashScope/Step)
+        // 跟随供应商开启时在状态里落解析后的连接参数,是否可用校验与建连都读这一份
         viewModelScope.launch {
-            settings.asrConfigFlow.collect { cfg ->
+            combine(settings.asrConfigFlow, settings.providersFlow) { cfg, providers ->
+                val resolved = SpeechProviderResolver.resolveAsr(cfg, providers)
+                if (resolved.isProviderFallback) {
+                    Logger.w(
+                        "ChatViewModel",
+                        "ASR 跟随供应商配置失败,回退手动配置: ${resolved.fallbackReason}" +
+                            "(providerId=${cfg.providerId}, modelId=${cfg.modelId})",
+                    )
+                }
+                cfg.withResolvedEndpoint(resolved)
+            }.collect { cfg ->
                 _state.update { it.copy(asrConfig = cfg) }
             }
         }
@@ -3234,9 +3302,11 @@ class ChatViewModel(
         // 现移到 Dispatchers.Default 后台线程执行,结果回主线程写 state。
         val msgsSnapshot = _messages.value
         val sysPromptSnapshot = cachedSystemPrompt
+        // v2.x: 占用口径与流式刷新路径同源（provider 实测优先 + 尾部估算，见 [ContextTokenUsage]），
+        // 否则切会话/压缩后写回的是纯估算，会把刚采到的真实水位冲掉。
         val tokenCount =
             withContext(Dispatchers.Default) {
-                TokenEstimator.estimate(msgsSnapshot, sysPromptSnapshot)
+                ContextTokenUsage.estimate(msgsSnapshot, sysPromptSnapshot)
             }
         _state.update {
             it.copy(
@@ -4824,14 +4894,14 @@ class ChatViewModel(
     /** 从 Room 刷新当前查看会话，不修改导航焦点，也不取消后台生成。 */
     private fun refreshDisplayedSessionFromDatabase() {
         val sessionId = displayedSessionId() ?: return
-        val switchToken = io.zer0.muse.ui.chat.SessionSwitchGuard.begin()
+        val switchToken = switchGuard.begin()
         sessionMemoryCache.remove(sessionId)
         viewModelScope.launch {
             val loaded =
                 runCatching {
                     withContext(Dispatchers.IO) { messageController.loadMessagesPaged(sessionId) }
                 }.onFailure { Logger.w("ChatVM", "前台刷新会话失败: ${it.message}") }.getOrNull() ?: return@launch
-            if (io.zer0.muse.ui.chat.SessionSwitchGuard.isStale(switchToken) || displayedSessionId() != sessionId) {
+            if (switchGuard.isStale(switchToken) || displayedSessionId() != sessionId) {
                 return@launch
             }
             val (messages, hasMore) = loaded
@@ -4842,7 +4912,7 @@ class ChatViewModel(
                     messages,
                     settleUnfinished = !isBackgroundStreaming,
                 )
-            if (io.zer0.muse.ui.chat.SessionSwitchGuard.isStale(switchToken) || displayedSessionId() != sessionId) {
+            if (switchGuard.isStale(switchToken) || displayedSessionId() != sessionId) {
                 return@launch
             }
             updateMessages { messages }
@@ -5028,7 +5098,13 @@ class ChatViewModel(
     private suspend fun persistToolMessageMedia(sessionId: String?, assistantId: Uuid) {
         if (sessionId.isNullOrBlank()) return
         val msg = _messages.value.firstOrNull { it.id == assistantId } ?: return
-        if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() && msg.videoFileUri == null) return
+        // 语音消息只有 voiceUri 一个媒体字段，同样需要立即落盘：新起的语音消息（同一回合
+        // 第二条及以后）除此之外没有别的落盘时机，跳过会让整条消息在重启/切页后消失。
+        if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() &&
+            msg.videoFileUri == null && msg.voiceUri == null
+        ) {
+            return
+        }
         withContext(Dispatchers.IO + NonCancellable) {
             // B-1: 会话已删除则跳过媒体消息落盘,防止删后"复活"。
             if (generationController.isSessionWritesSuppressed(sessionId).not()) {
@@ -5091,7 +5167,7 @@ class ChatViewModel(
         if (!_state.value.isAgentMode) return
         val targetId = assistantId.ifBlank { "default" }
         // v2.x: 切换序号 — 过期(被更新的切换取代)的异步加载结果在提交前丢弃,防止串会话
-        val switchToken = io.zer0.muse.ui.chat.SessionSwitchGuard.begin()
+        val switchToken = switchGuard.begin()
         // 停止所有后台生成 + 脱离 UI 流式 + 停 TTS/ASR,与 switchSession 一致
         chatGenerationManager.stop()
         runCatching { io.zer0.muse.schedule.ChatGenerationService.stop(appContext) }
@@ -5130,7 +5206,7 @@ class ChatViewModel(
             }
             // 预加载消息(直接查 DB,不读缓存),一次性更新状态
             val (messages, hasMore) = messageController.loadMessagesPaged(sessionId)
-            if (io.zer0.muse.ui.chat.SessionSwitchGuard.isStale(switchToken)) {
+            if (switchGuard.isStale(switchToken)) {
                 // 已被更新的切换取代:释放本次 acquire,丢弃加载结果
                 sessionManager.release(sessionId)
                 Logger.i("ChatVM", "switchAgentAssistant 结果过期,丢弃: $sessionId")
@@ -5286,6 +5362,33 @@ class ChatViewModel(
         // favorite 状态陈旧(气泡收藏图标与收藏面板不一致)。
         displayedSessionId()?.let { sessionMemoryCache.remove(it) }
         miscCoordinator.toggleFavorite(messageId)
+    }
+
+    /**
+     * 把收藏状态改成指定值（外部入口用：网页端长按菜单）。
+     *
+     * 与 [toggleFavorite] 共用同一套乐观更新与回滚，区别只是目标状态由调用方给定，
+     * 重复设置到同一状态不会翻转。
+     */
+    fun setMessageFavorite(messageId: Uuid, favorite: Boolean) {
+        displayedSessionId()?.let { sessionMemoryCache.remove(it) }
+        miscCoordinator.setFavorite(messageId, favorite)
+    }
+
+    /**
+     * 删除一批消息（外部入口用：网页端多选删除）。
+     *
+     * 与 [deleteMessage] 的区别：不停掉该会话的在途生成、不抑制后续落盘 ——
+     * 外部删的是历史消息，不该顺手把手机端正在跑的回复掐了。逐条走
+     * [ChatMiscCoordinator.deleteMessage]，消息列表、对话树与 DB 三处保持一致。
+     */
+    fun deleteMessages(messageIds: List<Uuid>) {
+        if (messageIds.isEmpty()) return
+        displayedSessionId()?.let { sessionMemoryCache.remove(it) }
+        messageIds.forEach { id ->
+            miscCoordinator.deleteMessage(id)
+            _conversationTree.value = _conversationTree.value.removeMessage(id)
+        }
     }
 
     /** 功能1: 设置消息表情回应(null = 取消)。 */
@@ -5574,7 +5677,13 @@ class ChatViewModel(
         audioCoordinator.disposeAsr()
     }
 
-    /** Phase 9.3 (M2): 保存 ASR 配置。v1.105: 委托至 [ChatAudioCoordinator]。 */
+    /**
+     * Phase 9.3 (M2): 保存 ASR 配置。v1.105: 委托至 [ChatAudioCoordinator]。
+     *
+     * ⚠️ 入参必须是用户编辑后的原始配置(来自 `settings.asrConfigFlow` 或设置页).
+     * **不得传入 `state.asrConfig`** —— 那个副本可能已被供应商配置覆盖(跟随供应商时
+     * baseUrl/apiKey/model 取供应商值),落盘会把供应商密钥写进 `asr_config_json`。
+     */
     fun saveAsrConfig(config: io.zer0.muse.asr.AsrConfig) {
         audioCoordinator.saveAsrConfig(config)
     }
@@ -5596,8 +5705,10 @@ class ChatViewModel(
      *  - RECORD_AUDIO 权限已授予(UI 层负责检查/申请)
      *  - ASR API 已配置([shouldUseApiRecording] 返回 true),否则报错退出
      *
-     * 状态流转:IDLE → LISTENING(启动 ASR)→ 等待用户说话 → 自动发送 → THINKING →
+     * 状态流转:IDLE → LISTENING(启动 ASR)→ 用户点「结束」→ THINKING →
      * SPEAKING(TTS 朗读)→ LISTENING(连续对话)→ ...
+     *
+     * 本段输入何时结束由用户决定:ASR 不会把“录音结束”自动当成提交信号。
      */
     fun startVoiceConversation() = mediaController.startVoiceConversation()
 
@@ -5622,6 +5733,15 @@ class ChatViewModel(
     fun interruptVoiceConversation() = mediaController.interruptVoiceConversation()
 
     /**
+     * 语音对话主按钮(非按住式 toggle)：
+     *  - IDLE：开始一轮对话
+     *  - LISTENING 且正在录音：结束本段输入并提交
+     *  - LISTENING 但未在录音：重新开始录音
+     *  - THINKING / SPEAKING：中断当前回复
+     */
+    fun toggleVoiceConversation() = mediaController.toggleVoiceConversation()
+
+    /**
      * 启动一轮 ASR 录音,识别文本通过回调写入 [_voiceConversationTranscript]。
      *
      * 注意:不写入输入框字段(语音对话模式不走 InputBar 文本流),
@@ -5633,9 +5753,13 @@ class ChatViewModel(
      * 启动状态机循环观察协程:监听 ASR/流式/TTS 状态切换,自动驱动状态机循环。
      *
      * 三个观察点(单一 collect,内部分支处理):
-     *  1. LISTENING 状态下 ASR isRecording 由 true → false:录音结束,取 transcript 自动发送 → THINKING
-     *  2. THINKING 状态下 isStreaming 由 true → false:AI 回复完成,取最后一条 assistant 消息调 TTS → SPEAKING
-     *  3. SPEAKING 状态下 isSpeaking 由 true → false:TTS 朗读完成,恢复录音 → LISTENING(连续对话)
+     *  1. LISTENING 期间 ASR isRecording 由 true → false：仅当用户已显式结束本段输入(已先置
+     *     pendingCommit)时取本轮累积文本提交 → THINKING；否则(Error / 服务端收尾 / 空文本)
+     *     不发消息，已累积文本保留，回到 LISTENING 重新收音（累积为空才给「再说一次」轻提示）
+     *  2. THINKING 状态下 isStreaming 由 true → false：AI 回复完成，取最后一条 assistant 消息调 TTS → SPEAKING
+     *  3. SPEAKING 状态下 isSpeaking 由 true → false：TTS 朗读完成，恢复录音 → LISTENING(连续对话)
+     *
+     * THINKING / SPEAKING 期间麦克风保持关闭(TTS 不自录)，只在回到 LISTENING 时重开。
      *
      * 协程在 [stopVoiceConversation] / [interruptVoiceConversation] 时被 cancel。
      */

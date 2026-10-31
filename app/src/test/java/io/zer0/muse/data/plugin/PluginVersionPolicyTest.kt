@@ -181,4 +181,23 @@ class PluginVersionPolicyTest {
         )
         assertTrue(rejected(decision).contains("降级"))
     }
+
+    @Test
+    fun devBuildSkipsMinAppVersionButKeepsOtherChecks() {
+        // 本地构建的占位版本号比任何插件要求都小，卡在门槛上只会挡住调试；
+        // 但降级、签名这些校验仍然生效。
+        val allowed = PluginVersionPolicy.evaluate(
+            candidate(minAppVersion = "9.9.9"),
+            null,
+            PluginVersionPolicy.DEV_SENTINEL_VERSION,
+        )
+        assertEquals(PluginVersionDecision.Allow, allowed)
+
+        val downgrade = PluginVersionPolicy.evaluate(
+            candidate(version = "0.9.0", minAppVersion = "9.9.9"),
+            installed("1.0.0"),
+            PluginVersionPolicy.DEV_SENTINEL_VERSION,
+        )
+        assertTrue(rejected(downgrade).contains("降级"))
+    }
 }

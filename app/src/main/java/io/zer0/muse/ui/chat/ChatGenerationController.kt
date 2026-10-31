@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.ai.ChatService
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
@@ -27,6 +28,11 @@ import io.zer0.muse.session.ExecutionKind
 import io.zer0.muse.session.ExecutionState
 import io.zer0.muse.session.SessionExecutionRegistry
 import io.zer0.muse.session.TurnPhase
+import io.zer0.muse.session.WarmupHistory
+import io.zer0.muse.transformer.CompressionPolicy
+import io.zer0.muse.transformer.ContextCompressTransformer
+import io.zer0.muse.transformer.ConversationCompressor
+import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.UserMessageTimeContext
 import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.ChatStreamPhase
@@ -70,6 +76,15 @@ internal fun effectiveGenerationSessionId(state: ChatUiState): String? =
 
 /** 发送前上下文预警比例（占用达到窗口的这个比例时激进截断历史）。 */
 internal const val PRESEND_TOKEN_WARNING_RATIO = 0.9f
+
+/**
+ * 发送前自救压缩后保留的尾部消息条数。
+ *
+ * 比常规压缩（[CompressionPolicy.KEEP_RECENT_DEFAULT]）更短，因为进到这里就是“已经超窗”。
+ * 与运行中那条恢复（ChatToolLoopRunner.OVERFLOW_RECOVERY_KEEP_RECENT）取同一个值：
+ * 两条路径对“压到什么程度”不能各有一套口径。
+ */
+private const val PRESEND_OVERFLOW_KEEP_RECENT = 4
 
 /**
  * 发送 payload 硬上限比例 — 达到即拒绝发送（压缩/截断后仍超限的兜底）。
@@ -119,6 +134,31 @@ internal fun isNearContextLimit(currentTokens: Int, windowTokens: Int): Boolean 
 internal fun exceedsHardContextLimit(payloadTokens: Int, windowTokens: Int): Boolean =
     windowTokens > 0 && payloadTokens >= (windowTokens * CONTEXT_HARD_LIMIT_RATIO).toInt()
 
+/**
+ * 发送前溢出自救：先压一轮历史，压完再估一次。
+ *
+ * 拦戴不移除，只在它前面加一次自救：拦戴是最后的安全网（避免必然 400 的调用），
+ * 而很多“超窗”其实压缩一下就能发。
+ *
+ * 只压一次：本函数只被调用一次、也只调一次 [compress]；压不动（null / 没压短）
+ * 直接放弃，不再估第二次，也不重试 —— 反复压只会把真实历史越压越少。
+ *
+ * @param history 待发送的历史（已按条数 / 预算裁剪过）
+ * @param compress 压缩动作；null 表示腾不出空间（消息太少 / 无净收益 / 压缩不可用）
+ * @param stillOverflows 拿压缩后的历史重算 payload，是否仍超窗
+ * @return 压完确实不再超窗时返回压缩后的历史；null 表示自救失败，调用方保持拦截、报原错误
+ */
+internal suspend fun recoverPreSendOverflow(
+    history: List<UIMessage>,
+    compress: suspend () -> List<UIMessage>?,
+    stillOverflows: suspend (List<UIMessage>) -> Boolean,
+): List<UIMessage>? {
+    val compressed = compress() ?: return null
+    // 没压短：重估也会是同一个结果，没必要白算一次 BPE
+    if (compressed.size >= history.size) return null
+    return compressed.takeIf { !stillOverflows(it) }
+}
+
 internal fun shouldRollbackOptimisticSend(state: ChatUiState, requestSessionId: String): Boolean =
     effectiveGenerationSessionId(state) == requestSessionId
 
@@ -135,6 +175,66 @@ internal class ChatGenerationController(
     private val executionRegistry: SessionExecutionRegistry? = null,
 ) {
     private val shadowEventSequencer = ConversationShadowEventSequencer()
+
+    /**
+     * 发送前溢出自救用的压缩器。
+     *
+     * 走全局容器按需解析，不为一个旁路能力改动 [GenerationDeps] 的整条构造链
+     * （与 ChatToolLoopRunner 取 UsageRecorder 同一取舍）。取不到时返回 null：
+     * 自救不发生，行为与加这条之前完全一致 —— 拦下就报错。
+     *
+     * 注意：这是**第二个** [ContextCompressTransformer] 实例，与 ChatViewModel 持有的那个
+     * 共享全局 `CompressionSummaryStore`。本路径不读 `lastCoveredBoundaryId`、也不写
+     * checkpoint，所以当前两个实例行为等价、无状态分叉。若将来要给本路径接检查点（写
+     * ContextCheckpoint），必须先回头评估这个实例差异 —— 那时候“两个实例可互换”就不再成立。
+     */
+    private val overflowCompressor: ContextCompressTransformer? by lazy {
+        runCatching {
+            val koin = org.koin.core.context.GlobalContext.get()
+            ContextCompressTransformer(
+                chatService = koin.get<ChatService>(),
+                compressor = koin.get<ConversationCompressor>(),
+            )
+        }.onFailure { Logger.w("ChatVM", "overflow compressor unavailable: ${it.message}") }
+            .getOrNull()
+    }
+
+    /**
+     * 发送前自救的压缩：用现成压缩器压一轮历史，没压短就返回 null。
+     *
+     * 参数与运行中那条（ChatToolLoopRunner.compressForOverflowRecovery）取同一套：
+     * 强制触发阈值、更短的保留尾部、摘要失败时允许可见标记截断兜底。压缩器本身的行为与
+     * 阈值语义不改，只读它的返回值。
+     *
+     * @return 压缩后的历史；null 表示腾不出空间（消息太少 / 无可压缩区间 / 无净收益 / 压缩器不可用）。
+     */
+    private suspend fun compressHistoryForOverflow(history: List<UIMessage>, sessionId: String): List<UIMessage>? {
+        val transformer = overflowCompressor ?: return null
+        if (history.size < 2) return null
+        // 可压缩区间 = SYSTEM 前缀之后到最近 keepRecent 条之前，尾巴不能把所有消息占满
+        val keepRecent = minOf(PRESEND_OVERFLOW_KEEP_RECENT, history.size - 1).coerceAtLeast(1)
+        val context =
+            TransformContext(
+                sessionId = sessionId,
+                modelId = accessor.snapshot.currentAssistant?.modelId,
+                extras =
+                mapOf(
+                    "compress_enabled" to true,
+                    "compress_threshold" to CompressionPolicy.FORCE_TRIGGER_THRESHOLD,
+                    "compress_keep_recent" to keepRecent,
+                    "compress_force_fallback" to true,
+                    "compress_char_budget" to
+                        WarmupHistory.compressTokenBudgetFor(
+                            contextMaxTokens = accessor.snapshot.contextMaxTokens,
+                        ),
+                ),
+            )
+        val compressed =
+            resultOf { transformer.transform(history, context) }
+                .onError { message, t -> Logger.w("ChatVM", "pre-send overflow compress failed: $message", t) }
+                .getOrNull() ?: return null
+        return compressed.takeIf { it.size < history.size }
+    }
 
     // B-1: 会话删除写抑制集 — 删除会话消息时登记,令该会话全部在途流式落盘
     // (persistCurrentAssistant / persistInterruptedAssistant / 收尾 upsertMessage)
@@ -208,6 +308,18 @@ internal class ChatGenerationController(
         val rawText = accessor.snapshot.input.trim()
         val images = accessor.snapshot.pendingImages
         val docs = accessor.snapshot.pendingDocuments
+        // 附件的结构化元数据跟着消息一起存。正文里那行「附件已存入工作区」是给模型看的，
+        // 它不适合当界面展示：既看不出有几个文件，也没法点开。
+        // 这里只带元数据，不存 extractedText —— 正文已经拼进 content，再存一份会让消息表膨胀。
+        val attachments = docs.map { doc ->
+            io.zer0.ai.core.AttachmentRef(
+                name = doc.name,
+                mimeType = doc.mimeType.ifBlank { "application/octet-stream" },
+                size = doc.sizeBytes,
+                sourceType = "FILE",
+                workspacePath = doc.workspacePath,
+            )
+        }
         // v1.136 T10: 合并待发送文档内容到消息文本(文档文本 + 用户输入)
         var text = buildSendText(rawText, docs.map { it.content })
         val canStart =
@@ -258,7 +370,7 @@ internal class ChatGenerationController(
                             accessor.update {
                                 it.copy(hasMoreHistory = hasMore, isLoadingMore = false, lastHistoryLoadCount = 0)
                             }
-                            enqueueSend(text, images, id)
+                            enqueueSend(text, images, id, attachments)
                         } finally {
                             deps.generationState.isCreatingAgentSession = false
                         }
@@ -273,7 +385,7 @@ internal class ChatGenerationController(
             deps.generateImage(text, sessionId)
             return
         }
-        enqueueSend(text, images, sessionId)
+        enqueueSend(text, images, sessionId, attachments)
     }
 
     /** B7-04: 流式打断后继续生成,复用最后一条带 [已中断] 标记的 assistant 消息续写。 */
@@ -364,7 +476,12 @@ internal class ChatGenerationController(
 
     /** v5: 乐观更新 — 用户消息立即显示,不等待 DB 写入;随后入队由消费循环串行处理。 */
     @Suppress("LongMethod")
-    fun enqueueSend(text: String, images: List<String>, sessionId: String) {
+    fun enqueueSend(
+        text: String,
+        images: List<String>,
+        sessionId: String,
+        attachments: List<io.zer0.ai.core.AttachmentRef> = emptyList(),
+    ) {
         if (restoreBlocksChatWrites("enqueueSend")) {
             deps.addError(
                 ChatErrorType.UNKNOWN,
@@ -417,9 +534,20 @@ internal class ChatGenerationController(
         }
         // v1.0.47 P5: 记录输入历史(新→旧,去重,截断到 MAX_INPUT_HISTORY)
         val newHistory = (listOf(text) + accessor.snapshot.inputHistory.filter { it != text }).take(MAX_INPUT_HISTORY)
-        val userMsg = UIMessage(role = MessageRole.USER, content = text, imageBase64List = images)
+        val userMsg =
+            UIMessage(role = MessageRole.USER, content = text, imageBase64List = images, attachments = attachments)
         // P0 修复: 强制 assistantMsg.createdAt 严格晚于 userMsg.createdAt(+1ms),避免 DB 排序不稳定。
-        val assistantMsg = UIMessage(role = MessageRole.ASSISTANT, content = "", createdAt = userMsg.createdAt + 1)
+        // v2.6.15: 记下产出模型 —— 思考块回放的同模型守卫以它判定来源（见 ProviderPayloadNormalizer
+        // 里的 stripCrossModelReasoning）。这里用的是本次发送实际会走的模型（任务路由已写回快照）；
+        // 真正开始流式后若解析出别的模型（助手专属模型 / 工具轮模型 / 兜底切换），
+        // 由 [ChatToolLoopRunner] 收尾时按本轮实际模型改写。
+        val assistantMsg =
+            UIMessage(
+                role = MessageRole.ASSISTANT,
+                content = "",
+                createdAt = userMsg.createdAt + 1,
+                modelId = accessor.snapshot.selectedModelId,
+            )
         // v1.0.15: 异步写入 outbox(保证"刚点击发送就退出"时消息不丢失)
         val outboxId = Uuid.random().toString()
         val outboxReady =
@@ -732,6 +860,9 @@ internal class ChatGenerationController(
      * v2.x: [excludedMessageIds] 排除"已并入会话检查点、不会再发给模型"的消息。
      * 占用率必须反映**模型实际会看到的内容**：否则压缩之后占用率仍停在压缩前的水位，
      * 会每轮重复触发压缩同一段历史（既费钱，也会让用户看到反复压缩的怪现象）。
+     *
+     * v2.x: 口径改为"provider 实测优先 + 尾部本地估算"（见 [ContextTokenUsage]）。
+     * 会话里没有任何带 usage 的消息时，结果与原来一样是纯 [TokenEstimator] 估算。
      */
     suspend fun updateContextTokenCount(excludedMessageIds: Set<String> = emptySet()) {
         val msgsSnapshot = deps.stateStore.messages.value
@@ -744,7 +875,7 @@ internal class ChatGenerationController(
         val sysPromptSnapshot = deps.systemPromptCache.cachedSystemPrompt
         val tokenCount =
             withContext(Dispatchers.Default) {
-                runCatching { TokenEstimator.estimate(counted, sysPromptSnapshot) }
+                runCatching { ContextTokenUsage.estimate(counted, sysPromptSnapshot) }
                     .onFailure { Logger.w("ChatVM", "TokenEstimator failed: ${it.message}") }
                     .getOrDefault(0)
             }
@@ -870,6 +1001,9 @@ internal class ChatGenerationController(
                     useGlobalMemory = useGlobalMemory,
                     memoryScope = memoryScope,
                     memorySpaceId = memorySpaceId,
+                    // 必须与 ChatViewModel.refreshContextInfo 传入同一身份，否则读写两侧 key 永不相等，
+                    // 每次进会话后的首条消息都会整份重建静态快照。
+                    sessionId = effSid,
                 )
             val staticSnapshot =
                 if (currentKey == deps.systemPromptCache.cachedStaticSnapshotKey &&
@@ -892,6 +1026,8 @@ internal class ChatGenerationController(
                                         useGlobalMemory = useGlobalMemory,
                                         memoryScope = memoryScope,
                                         memorySpaceId = memorySpaceId,
+                                        // 跨会话衔接靠它排除「当前会话自己」，不传会把本轮对话尾巴当上一会话注入。
+                                        sessionId = effSid,
                                     )
                                 },
                             )
@@ -1149,22 +1285,55 @@ internal class ChatGenerationController(
                 }
 
             // P3-10: 上下文超限兜底 — 近上限时复核本轮真实 payload(system + preset + RAG
-            // + 截断后历史)的估算 token;仍达到硬上限(CONTEXT_HARD_LIMIT_RATIO)则置位拒绝
-            // 发送,由 launchStream 回滚空占位并给出用户可见提示。
+            // + 截断后历史)的估算 token;仍达到硬上限(CONTEXT_HARD_LIMIT_RATIO)则先自救
+            // (压一轮历史再重新估算),自救不成就置位拒绝发送,由 launchStream 回滚空占位
+            // 并给出用户可见提示。
+            //
+            // 闸门语义与运行中那条（ChatToolLoopRunner 的溢出恢复分支）**各自独立**，
+            // 一轮请求最多各压一次，而不是共享一个标志：
+            //  - 这里是“本地估算超窗”，可能误判（估算不含工具定义 / cache write / reasoning），
+            //    压缩未必真的需要；
+            //  - 那边是 provider 真实拒了，属于确凿冲突。
+            // 共用一个标志会让“估算误判”白白吃掉 provider 那条唯一的确凿机会。
+            // 代价也就是最坏情况两轮压缩（估算后仍超 -> 仍被 provider 拒 -> 再压一次），
+            // 两次都是“保留摘要 + 最近若干条”的压缩，不会把历史压空；
+            // 而两边各自只允许一次，也就到此为止。
             if (nearContextLimit) {
-                val payloadTokens =
+                var payloadTokens =
                     withContext(Dispatchers.Default) {
                         TokenEstimator.estimate(prefixMessages + truncatedHistory)
                     }
                 // v2.6.x: 硬拦截同样按本轮实际模型窗口（窗口来源同上方 windowTokens）。
                 val hardMaxTokens = windowTokens
                 if (exceedsHardContextLimit(payloadTokens, hardMaxTokens)) {
-                    contextOverflowBlocked = true
-                    Logger.w(
-                        "ChatVM",
-                        "pre-send context overflow: payload=$payloadTokens/$hardMaxTokens " +
-                            "(${payloadTokens * 100 / hardMaxTokens}%), refuse to send | sessionId=$sessionId",
-                    )
+                    // 先自救一次：压完再算一遍，真不超了就不再拦截
+                    val compressedHistory =
+                        recoverPreSendOverflow(
+                            history = truncatedHistory,
+                            compress = { compressHistoryForOverflow(truncatedHistory, sessionId) },
+                            stillOverflows = { candidate ->
+                                payloadTokens =
+                                    withContext(Dispatchers.Default) {
+                                        TokenEstimator.estimate(prefixMessages + candidate)
+                                    }
+                                exceedsHardContextLimit(payloadTokens, hardMaxTokens)
+                            },
+                        )
+                    if (compressedHistory != null) {
+                        truncatedHistory = compressedHistory
+                        Logger.w(
+                            "ChatVM",
+                            "pre-send context overflow: 压缩后重估 payload=$payloadTokens/$hardMaxTokens " +
+                                "(${payloadTokens * 100 / hardMaxTokens}%), 继续发送 | sessionId=$sessionId",
+                        )
+                    } else {
+                        contextOverflowBlocked = true
+                        Logger.w(
+                            "ChatVM",
+                            "pre-send context overflow: payload=$payloadTokens/$hardMaxTokens " +
+                                "(${payloadTokens * 100 / hardMaxTokens}%), refuse to send | sessionId=$sessionId",
+                        )
+                    }
                 }
             }
         }
@@ -1694,6 +1863,7 @@ internal class ChatGenerationController(
                     completionTokens = usage?.completionTokens,
                     reasoningTokens = usage?.reasoningTokens,
                     cachedTokens = usage?.cachedTokens,
+                    cacheWriteTokens = usage?.cacheWriteTokens,
                 ),
             )
             accessor.updateMessages { list ->
@@ -1705,6 +1875,7 @@ internal class ChatGenerationController(
                             completionTokens = usage?.completionTokens,
                             reasoningTokens = usage?.reasoningTokens,
                             cachedTokens = usage?.cachedTokens,
+                            cacheWriteTokens = usage?.cacheWriteTokens,
                         )
                     } else {
                         it

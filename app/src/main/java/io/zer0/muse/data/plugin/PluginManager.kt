@@ -955,7 +955,10 @@ class PluginManager(
                 require(relative.isNotBlank() && !relative.contains("..") && !relative.contains('\\')) {
                     "插件额外文件路径非法"
                 }
-                require(relative.endsWith(".js") || relative.endsWith(".json") || relative.endsWith(".md")) {
+                require(
+                    relative.endsWith(".js") || relative.endsWith(".json") ||
+                        relative.endsWith(".md") || relative.endsWith(".py"),
+                ) {
                     "插件包含不支持的文件类型"
                 }
                 extraFiles[relative] = canonicalFile.readText()

@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * v1.0.53: 子 agent 会话历史 JSONL 持久化(既有实现 childSessionPath)。
+ * v1.0.53: 子 agent 会话历史 JSONL 持久化。
  *
  * 路径: filesDir/subagent_sessions/<threadId>.jsonl
  * 每行一个 JSON: UIMessage 序列化

@@ -84,7 +84,10 @@ object FindToolsTool {
         if (visible.isEmpty()) return "No tools registered."
         val grouped = visible.groupBy { ToolCategories.categoryOf(it.name) }
         val sb = StringBuilder()
-        sb.appendLine("Full tool capability list (${visible.size} tools total):")
+        sb.appendLine(
+            "Full tool capability list (${visible.size} tools total, session-visible: " +
+                "the per-turn schema may expose fewer under the current request and approval policy):",
+        )
         if (visible.any { ToolCategories.permissionOf(it.name).isNotEmpty() }) {
             sb.appendLine(
                 "* = needs extra system authorization (Shizuku/Root, Accessibility or Termux). " +
@@ -158,12 +161,7 @@ object FindToolsTool {
         val status = toolRegistry.permissionStatusProvider?.invoke()
         // v2.6.1: 收窄到助手实际可见集(未登记 = 不作限制,兼容旧调用点)。
         val visibleNames = toolRegistry.visibleTools(executionContext.sessionId)
-        val searchable =
-            if (visibleNames == null) {
-                allRegistered
-            } else {
-                allRegistered.filter { it.name in visibleNames }
-            }
+        val searchable = ToolSchemaRules.visibleSubset(allRegistered, visibleNames)
         if (query.isEmpty()) {
             return fullList(searchable, status = status)
         }

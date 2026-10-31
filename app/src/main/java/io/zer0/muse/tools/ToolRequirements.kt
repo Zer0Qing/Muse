@@ -128,6 +128,8 @@ object ToolRequirements {
             "save_memory", "pin_memory", "delete_memory", "unpin_memory", "search_memory",
             "recall_experience", "record_experience", "search_conversation",
             "current_status", "runtime_selfcheck", "platform_selfcheck", "find_tools",
+            // v2.x: token 用量自查（全应用内数据，无系统权限）
+            "get_token_usage",
             "calculator", "base64_encode", "base64_decode", "url_encode", "url_decode",
             "hash_text", "generate_uuid", "generate_password", "json_pretty", "random_number",
             "get_current_time", "translate", "speak_text", "share_text", "vibrate",
@@ -138,6 +140,8 @@ object ToolRequirements {
             "session_move_folder", "channel_reply", "channel_pass", "channel_read_context",
             "subagent_task", "subagent_run", "subagent_close", "delegate_agent",
             "generate_image", "generate_video", "generate_qr_code",
+            // v2.x: 语音消息——本地 TTS 合成 + 挂在自己的消息上,不碰系统权限
+            "send_voice",
         ).forEach { put(it, NONE) }
     }
 

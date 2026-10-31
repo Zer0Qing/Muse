@@ -30,8 +30,6 @@ import java.io.File
  *    避免给 MuseDb 增加 schema 版本 + 迁移成本。
  *  - 文件 IO 全部走 IO Dispatcher + Mutex 串行化,保证线程安全。
  *  - 工具调用恢复时保留原始 [PendingToolCall.toolCallId],让 LLM 能对应上 tool_call_id。
- *
- * 实现说明:既有实现 项目的 finishInterruptedPendingTools。
  */
 @Suppress("TooManyFunctions")
 object PendingToolCallStore {

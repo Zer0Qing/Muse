@@ -16,6 +16,18 @@ package io.zer0.muse.tools
  */
 object ShowCardTool {
 
+    /**
+     * 解析 `update_card_data` 的目标卡片 id。
+     *
+     * 模型省略 card_id 时指向**当前这条助手消息**上的卡片：它刚 show_card 完，
+     * 手上唯一确定的就是「这一条」，而不是一个它从未见过的 id。
+     * 显式给了就以它为准（改之前某条消息里的卡片），校验交给调用方。
+     *
+     * 抽成纯函数是为了能单测：这段逻辑嵌在工具注册的 lambda 里时不可达。
+     */
+    internal fun resolveCardTarget(requested: String?, contextMessageId: String?): String =
+        requested?.trim().orEmpty().ifBlank { contextMessageId?.trim().orEmpty() }
+
     fun toolDef() = ToolRegistry.ToolDef(
         name = "show_card",
         description = "展示可视化内容(SVG 图形、图表或交互式 HTML),在沙箱 WebView 里内联渲染成可交互卡片。" +
@@ -46,8 +58,11 @@ object ShowCardTool {
      * （见 `parseShowCardArgs` → `inlineCardData`），那条路径不依赖任何 id 约定。
      * 后续更新由 `update_card_data` 按消息 id 写入，卡片用 `window.muse.data.onChange`
      * 订阅即可。
+     *
+     * @param messageId 承载这张卡的消息 id，由宿主注入。回执里会把它告诉模型：
+     *   模型自己要更新这张卡时，需要一个能指名它的 id，而它无法从其他地方得知。
      */
-    fun execute(args: Map<String, String>): String {
+    fun execute(args: Map<String, String>, messageId: String? = null): String {
         val title = args["title"]?.trim()
             ?: return "Error: title parameter is required."
         val code = args["code"]?.trim()
@@ -59,6 +74,9 @@ object ShowCardTool {
         val dataNote = if (data.isNullOrBlank()) "" else " Bound data: ${data.length} chars."
         val height = args["height"]?.trim()
         val heightNote = if (height.isNullOrBlank() || height == "auto") "" else " Height: $height."
-        return "Card '$title' rendered. Code length: ${code.length} chars.$dataNote$heightNote"
+        val idNote = messageId?.takeIf { it.isNotBlank() }
+            ?.let { " Card bound to message $it; pass it as card_id to update this card later." }
+            .orEmpty()
+        return "Card '$title' rendered. Code length: ${code.length} chars.$dataNote$heightNote$idNote"
     }
 }

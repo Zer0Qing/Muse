@@ -11,6 +11,9 @@ class FindToolsToolTest {
         description = desc,
         parameters = mapOf("x" to "param"),
         required = setOf("x"),
+        // 夹具风险等级不是本测试的关注点（检索/分组不看它），但也不能随手写 SAFE：
+        // 名字都是真实工具名或第三方工具名，用生产侧同一套推断给出诚实值。
+        riskLevel = ToolPermissionResolver.riskLevelFor(name),
     )
 
     private val tools = listOf(

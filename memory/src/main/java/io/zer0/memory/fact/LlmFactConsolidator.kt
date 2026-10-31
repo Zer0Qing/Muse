@@ -5,6 +5,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.llm.MemoryLlmClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -88,27 +89,61 @@ class LlmFactConsolidator(
         return total
     }
 
+    /**
+     * v19: 手动合并 —— 把用户选中的若干条记忆合成一条**草稿**,只返回文本、不落库。
+     *
+     * 与自动整合共用同一套 prompt 与护栏([mergeTexts]):保留全部关键信息、去重、
+     * `__SKIP__` 表示不该合并、超长或疑似原样输出视为无效。差异只有两点:
+     *  - 输出上限更宽松([MANUAL_MERGE_MAX_TOKENS]):手动场景可能一次选 5 条长记忆;
+     *  - 置顶条目不再排除:用户明确选了它就是要合并,置顶保护只服务于自动路径。
+     *
+     * @param texts 参与合并的记忆正文(空白项忽略)
+     * @return 合并草稿;少于 2 条、模型显式跳过、输出异常或超时时返回 null
+     */
+    suspend fun synthesize(texts: List<String>): String? {
+        val cleaned = texts.map { it.trim() }.filter { it.isNotEmpty() }
+        if (cleaned.size < 2) return null
+        return try {
+            mergeTexts(cleaned, MANUAL_MERGE_MAX_TOKENS, MANUAL_MERGE_TIMEOUT_MS)
+        } catch (e: TimeoutCancellationException) {
+            // 客户端自身的超时也抛 TimeoutCancellationException(带自己的 coroutine),
+            // 它不属于调用方的取消,按“本次没合成出来”降级;真正的取消继续向上抛。
+            Logger.w(TAG, "手动合并生成超时: ${e.message}")
+            null
+        }
+    }
+
     /** 调 LLM 把一组相似记忆合并成一条;失败、显式跳过或疑似未合并时返回 null。 */
-    private suspend fun mergeGroupWithLlm(group: List<FactStore.Fact>): String? {
-        val totalLength = group.sumOf { it.fact.length }
+    private suspend fun mergeGroupWithLlm(group: List<FactStore.Fact>): String? =
+        mergeTexts(group.map { it.fact }, AUTO_MERGE_MAX_TOKENS, MERGE_TIMEOUT_MS)
+
+    /**
+     * 自动整合与手动合并的共用实现:同一套 prompt、同一套输出护栏。
+     *
+     * @param texts 参与合并的正文(按展示顺序编号进 prompt)
+     * @param maxTokens 输出上限
+     * @param timeoutMs 本次调用的超时
+     */
+    private suspend fun mergeTexts(texts: List<String>, maxTokens: Int, timeoutMs: Long): String? {
+        val totalLength = texts.sumOf { it.length }
         val user = buildString {
             appendLine("以下是多条内容重复或高度相似的记忆,请把它们合并成一条:保留所有关键信息")
             appendLine("(人名、时间、地点、数字、事件),去重,语言自然简洁,不要遗漏任何事实细节。")
             appendLine("如果发现这些记忆其实内容不同、不应该合并,请只输出一个字符串 __SKIP__。")
             appendLine()
-            group.forEachIndexed { idx, fact -> appendLine("${idx + 1}. ${fact.fact}") }
+            texts.forEachIndexed { idx, text -> appendLine("${idx + 1}. $text") }
             appendLine()
             append("请直接输出合并后的一条记忆,不要任何前缀、编号或引号:")
         }
         val result = resultOf {
-            withTimeoutOrNull(MERGE_TIMEOUT_MS) {
+            withTimeoutOrNull(timeoutMs) {
                 llmClient.callText(
                     systemPrompt = SYSTEM_PROMPT,
                     userContent = user,
                     model = model,
                     temperature = 0.3f,
-                    maxTokens = 300,
-                    timeoutMs = MERGE_TIMEOUT_MS,
+                    maxTokens = maxTokens,
+                    timeoutMs = timeoutMs,
                 ).trim()
             }
         }.onError { msg, t -> Logger.w(TAG, "LLM 合并记忆失败: ${t?.message ?: msg}") }
@@ -116,11 +151,13 @@ class LlmFactConsolidator(
 
         // 启发式护栏: 显式跳过 / 异常输出 / 疑似未合并原样输出
         val text = result.trim().trim('"', '\'', '「', '」', '“', '”').trim()
-        if (text.isBlank() || text == SKIP_MARKER) return null
-        if (text.length > totalLength) return null
-        if (text.startsWith("1.") || text.startsWith("1、")) return null
-        if (text.contains("\n2.") || text.contains("\n2、")) return null
-        return text.takeIf { it.length > 2 }
+        val looksUnmerged = text.length > totalLength ||
+            text.startsWith("1.") || text.startsWith("1、") ||
+            text.contains("\n2.") || text.contains("\n2、")
+        return when {
+            text.isBlank() || text == SKIP_MARKER || looksUnmerged -> null
+            else -> text.takeIf { it.length > 2 }
+        }
     }
 
     companion object {
@@ -134,6 +171,18 @@ class LlmFactConsolidator(
 
         /** 单簇 LLM 超时(毫秒)。 */
         private const val MERGE_TIMEOUT_MS = 30_000L
+
+        /** 自动整合单簇输出上限:簇内条数由聚簇算法限定,内容通常很短。 */
+        private const val AUTO_MERGE_MAX_TOKENS = 300
+
+        /**
+         * 手动合并输出上限:用户可能一次选中多条长记忆,300 token 会在半句处截断,
+         * 截断的结果看起来像“合并成功”但丢了事实,比失败更糟。
+         */
+        private const val MANUAL_MERGE_MAX_TOKENS = 1_200
+
+        /** 手动合并超时:输入更长,给模型比自动路径更宽的时间。 */
+        private const val MANUAL_MERGE_TIMEOUT_MS = 45_000L
 
         private const val SYSTEM_PROMPT = "你是记忆整理助手。你的任务是把同一簇的重复记忆合并成一条:" +
             "保留所有关键信息,去重,语言自然简洁。宁可不合并,也不要编造或丢失关键信息。"

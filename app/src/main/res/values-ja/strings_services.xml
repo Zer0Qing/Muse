@@ -310,11 +310,11 @@
 
     <!-- v1.136: Reminder tool strings -->
     <string name="tool_reminder_scheduled">リマインダーがスケジュールされています (id: %1$s)\n時間: %2$s</string>
-    <string name="tool_reminder_schedule_failed">リマインダーのスケジュールを設定できませんでした。アラーム/通知の権限を確認してください。</string>
+    <string name="tool_reminder_schedule_failed">リマインダーを作成できませんでした。システムがこのアラームを拒否したため、鳴らない可能性があります。システム設定でこのアプリの「アラームとリマインダー」権限を確認してから、もう一度お試しください。</string>
     <string name="tool_reminder_cancelled">キャンセルされたリマインダー: %1$s</string>
     <string name="tool_reminder_not_found">リマインダーが見つかりません: %1$s</string>
     <string name="tool_reminder_list_header">スケジュールされたリマインダー (%1$d 合計):\n</string>
-    <string name="tool_reminder_list_item">- ID: %1$s | 時間: %2$s | タイトル: %3$s</string>
+    <string name="tool_reminder_list_item">- ID: %1$s | 時間: %2$s | タイトル: %3$s | 状態: %4$s</string>
     <string name="tool_reminder_list_empty">スケジュールされたリマインダーはありません</string>
     <string name="tool_reminder_missing_title">パラメータがありません: タイトル</string>
     <string name="tool_reminder_missing_message">パラメータがありません: メッセージ</string>
@@ -322,6 +322,15 @@
     <string name="tool_reminder_missing_id">パラメータがありません: id</string>
     <string name="tool_reminder_invalid_time">時間を解析できません: %1$s、yyyy-MM-dd HH:mm を使用してください</string>
     <string name="tool_reminder_past_time">リマインダーの時刻を過去にすることはできません</string>
+    <string name="tool_reminder_scheduled_inexact">リマインダーがスケジュールされています (id: %1$s)\n時間: %2$s\n注意:「アラームとリマインダー」権限がオフのため、このリマインダーはおおよその時刻にしか鳴りません(数分遅れる場合があります)。システム設定でこのアプリに権限を付与してください。</string>
+    <string name="tool_reminder_status_scheduled">スケジュール済み、時間どおりに鳴ります</string>
+    <string name="tool_reminder_status_inexact">スケジュール済みですが正確なアラーム権限がなく、数分遅れる場合があります</string>
+    <string name="tool_reminder_status_unscheduled">アラームを登録できませんでした。鳴らない可能性があるため、再設定してください</string>
+    <string name="tool_reminder_status_lost">登録が確認できません。鳴らない可能性があります</string>
+    <string name="tool_reminder_catchup_title">%1$s(遅延)</string>
+    <string name="reminder_exact_permission_hint">「アラームとリマインダー」権限がオフのため、リマインダーが数分遅れて鳴り、時間どおりでない場合があります。</string>
+    <string name="reminder_exact_permission_action">「アラームとリマインダー」権限を有効にする</string>
+    <string name="reminder_exact_permission_toast">「アラームとリマインダー」権限がオフのため、リマインダーが数分遅れる場合があります。設定を開きました。手動で有効にしてください。</string>
 
     <!-- v1.136: Resource library tool strings -->
     <string name="tool_resource_added">リソースが保存されました\nid: %1$s\ntitle: %2$s</string>

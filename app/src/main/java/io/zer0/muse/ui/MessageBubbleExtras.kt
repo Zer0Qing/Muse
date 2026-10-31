@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,7 +57,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import io.zer0.ai.core.AttachmentRef
 import io.zer0.ai.core.RagCitation
+import io.zer0.common.FileSizeFormatter
 import io.zer0.muse.R
 import io.zer0.muse.ui.chat.ToolCallVisuals
 import io.zer0.muse.ui.chat.ToolResultRenderer
@@ -797,6 +800,25 @@ internal fun extractStickerPaths(text: String): List<String> {
 }
 
 /**
+ * Markdown 图片语法 `![alt](url)` 的地址正则。
+ */
+internal val MARKDOWN_IMAGE_PATTERN = Regex("""!\[[^\]]*]\((\S+?)\)""")
+
+/**
+ * 从正文里取出 Markdown 图片地址。
+ *
+ * Markdown 解析器会把 `![alt](url)` 从文字里抹掉（避免与图片区重复），
+ * 但此前没有任何地方把它们取出来渲染，模型用 Markdown 写的图就整行消失。
+ * 只接受能直接加载的绝对地址与 data URI；相对路径不处理，留在正文里。
+ */
+internal fun extractMarkdownImageUrls(text: String): List<String> =
+    MARKDOWN_IMAGE_PATTERN.findAll(text)
+        .map { it.groupValues[1].trim() }
+        .filter { it.startsWith("http://") || it.startsWith("https://") || it.startsWith("data:image/") }
+        .distinct()
+        .toList()
+
+/**
  * v2.x: 长文消息判定 — 结构型内容或超长正文时,AI 消息"不进卡"
  * (长内容直接落在呼吸边上全宽排版,不被气泡容器包住)。
  *
@@ -1288,3 +1310,150 @@ private fun DirectToolOutput(
         }
     }
 }
+
+/**
+ * v2.6.13: 消息里的附件芯片。
+ *
+ * 附件正文在发送时被压成一行「已存入工作区」的文本塞进消息体，那是给模型看的引用，
+ * 不适合当界面：看不出有几个文件、多大，也点不开。这里按结构化元数据渲染成芯片。
+ */
+@Composable
+internal fun MessageAttachmentChips(
+    attachments: List<AttachmentRef>,
+    onOpen: (AttachmentRef) -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        attachments.forEach { attachment ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MuseShapes.medium)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                    .clickable { onOpen(attachment) }
+                    .heightIn(min = MuseIconSizes.touchTarget)
+                    .padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.labelVerticalGap),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            ) {
+                Icon(
+                    imageVector = attachmentIcon(attachment),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
+                )
+                Text(
+                    text = attachment.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (attachment.size > 0) {
+                    Text(
+                        text = FileSizeFormatter.format(attachment.size),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * v2.6.13: 附件预览。
+ *
+ * PDF 走已有的 pdf.js 查看器；文本类内联显示；其余（docx/xlsx/压缩包）只说明原件在哪。
+ * 不做「交给外部应用打开」：工作区可能是 SAF 挂载，拿不到可共享的 File 路径。
+ */
+@Composable
+internal fun AttachmentPreviewDialog(
+    attachment: AttachmentRef,
+    loadBytes: suspend () -> ByteArray?,
+    onDismiss: () -> Unit,
+) {
+    if (isPdfAttachment(attachment)) {
+        io.zer0.muse.ui.artifact.DocPreviewDialog(
+            fileName = attachment.name,
+            loadBytes = loadBytes,
+            onDismiss = onDismiss,
+        )
+        return
+    }
+
+    var text by remember(attachment.id) { mutableStateOf<String?>(null) }
+    var loaded by remember(attachment.id) { mutableStateOf(false) }
+    LaunchedEffect(attachment.id) {
+        if (isTextAttachment(attachment)) {
+            val bytes = runCatching { loadBytes() }.getOrNull()
+            if (bytes != null && bytes.size <= MAX_INLINE_PREVIEW_BYTES) {
+                text = String(bytes, Charsets.UTF_8)
+            }
+        }
+        loaded = true
+    }
+
+    val unavailableText = stringResource(
+        R.string.chat_attachment_preview_unavailable,
+        attachment.workspacePath.orEmpty(),
+    )
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = attachment.name,
+        content = {
+            val body = text
+            when {
+                body != null -> Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                !loaded -> MuseSpinner(size = MuseIconSizes.iconMedium)
+                else -> Text(
+                    text = unavailableText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        dismissText = stringResource(R.string.common_close),
+        onDismiss = onDismiss,
+    )
+}
+
+/** 按 MIME 与扩展名选一个语义图标。 */
+private fun attachmentIcon(attachment: AttachmentRef): androidx.compose.ui.graphics.vector.ImageVector {
+    val mime = attachment.mimeType.lowercase()
+    val ext = attachment.name.substringAfterLast('.', "").lowercase()
+    return when {
+        mime.startsWith("image/") -> MuseIcons.image
+        mime.startsWith("audio/") || mime.startsWith("video/") -> MuseIcons.paperclip
+        mime == "application/pdf" || ext == "pdf" -> MuseIcons.fileText
+        ext in TEXT_ATTACHMENT_EXTENSIONS -> MuseIcons.fileText
+        else -> MuseIcons.paperclip
+    }
+}
+
+private fun isPdfAttachment(attachment: AttachmentRef): Boolean =
+    attachment.mimeType.equals("application/pdf", ignoreCase = true) ||
+        attachment.name.endsWith(".pdf", ignoreCase = true)
+
+private fun isTextAttachment(attachment: AttachmentRef): Boolean {
+    val mime = attachment.mimeType.lowercase()
+    val ext = attachment.name.substringAfterLast('.', "").lowercase()
+    return mime.startsWith("text/") ||
+        mime in setOf("application/json", "application/xml") ||
+        ext in TEXT_ATTACHMENT_EXTENSIONS
+}
+
+/** 可内联预览的扩展名。 */
+private val TEXT_ATTACHMENT_EXTENSIONS =
+    setOf("txt", "md", "json", "xml", "csv", "log", "yaml", "yml", "html", "htm")
+
+/** 内联预览的字节上限：超过就不往 Compose 里塞，避免一段日志把界面卡住。 */
+private const val MAX_INLINE_PREVIEW_BYTES = 512 * 1024

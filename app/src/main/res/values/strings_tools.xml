@@ -154,6 +154,7 @@
     <string name="tool_summary_unpin_memory">取消置顶记忆</string>
     <string name="tool_summary_web_search">搜索了网页</string>
     <string name="tool_summary_workspace_write">写入了工作区</string>
+    <string name="tool_summary_workspace_edit">替换了工作区文件片段</string>
     <string name="tool_summary_write_file">写入了文件</string>
     <string name="tool_summary_prefix_browser">操作了浏览器</string>
     <string name="tool_summary_prefix_channel">管理了频道</string>
@@ -214,6 +215,7 @@
     <string name="tool_label_web_search">网页搜索</string>
     <string name="tool_label_write_file">写入文件</string>
     <string name="tool_label_workspace_write">工作区写入</string>
+    <string name="tool_label_workspace_edit">工作区局部编辑</string>
     <!-- P4: 工具轨迹折叠态状态文案(P2-22 新增) -->
     <string name="tool_trace_running">正在执行</string>
     <string name="tool_trace_empty">空结果</string>

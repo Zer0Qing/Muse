@@ -63,9 +63,11 @@ class ToolRegistrarBootstrapper(
     assistantManageToolsRegistrar: AssistantManageToolsRegistrar,
 ) {
     init {
+        // 计数走统一入口（[ToolRegistry.countTools]），避免各处自算一套
+        val registered = toolRegistry.countTools(sessionId = null).registeredTotal
         Logger.i(
             "ToolRegistrarBootstrapper",
-            "工具注册器全部初始化完成，当前注册工具数=${toolRegistry.listTools().size}",
+            "工具注册器全部初始化完成，本地注册工具数=$registered（启动时刻；MCP、插件与会话技能尚未登记）",
         )
         // 分类覆盖校验必须放在这里 —— 所有 Registrar 的 init 已执行完,
         // 此刻 toolRegistry 才持有全部内置工具(详见 ToolRegistry.assertBuiltInCategoryCoverage)。

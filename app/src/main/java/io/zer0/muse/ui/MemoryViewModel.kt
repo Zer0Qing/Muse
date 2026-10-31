@@ -162,6 +162,61 @@ data class MemoryItem(
     val hitCount: Int = 0,
     /** 会话摘要所属记忆空间;事实项由事实存储自身保留。 */
     val spaceId: String? = null,
+    /** 已合并进另一条记忆(不参与召回,列表仍可见)。 */
+    val mergedIntoId: Long? = null,
+    /** 已退出自动召回(衰减到阈值以下,行仍在)。 */
+    val suppressed: Boolean = false,
+    /** 被别的记忆取代(内容被新记忆推翻)。 */
+    val superseded: Boolean = false,
+) {
+    /** 列表徽章与详情说明共用的状态投影(三种状态互相独立,可同时命中)。 */
+    val status: MemoryFactStatus
+        get() = MemoryFactStatus(merged = mergedIntoId != null, suppressed = suppressed, superseded = superseded)
+}
+
+/**
+ * 记忆「不在正常使用中」的状态投影。
+ *
+ * 三种状态各自独立判定 —— 一条记忆可能既已出场又被合并,做成互斥枚举会让列表
+ * 漏掉其中一个真实原因,用户看到的徽章就不足以解释它为什么不生效。
+ *
+ * @param merged 已合并进另一条记忆(指向聚合后的新行)
+ * @param suppressed 已退出自动召回(衰减到阈值以下,行仍在)
+ * @param superseded 被别的记忆取代(内容被新记忆推翻)
+ */
+data class MemoryFactStatus(
+    val merged: Boolean = false,
+    val suppressed: Boolean = false,
+    val superseded: Boolean = false,
+) {
+    /** 三种状态都没命中 = 仍在正常召回链路里。 */
+    val isInactive: Boolean get() = merged || suppressed || superseded
+}
+
+/**
+ * 「被取代」集合的比对键。
+ *
+ * 各分库的 fact.id 独立自增会撞号,只比裸 id 会把子助手库里同号的记忆认成本行。
+ */
+internal fun memoryFactKey(scope: String?, id: Long): String = "${scope.orEmpty()}:$id"
+
+/**
+ * 单条事实行的状态判定(纯函数,便于单测)。
+ *
+ * @param mergedIntoId 本行 merged_into_id
+ * @param suppressedAt 本行 suppressed_at(非空即已出场)
+ * @param supersededKeys 由 [memoryFactKey] 组成的「已被其他行取代」集合
+ */
+internal fun memoryFactStatusOf(
+    scope: String?,
+    id: Long,
+    mergedIntoId: Long?,
+    suppressedAt: String?,
+    supersededKeys: Set<String>,
+): MemoryFactStatus = MemoryFactStatus(
+    merged = mergedIntoId != null,
+    suppressed = suppressedAt != null,
+    superseded = memoryFactKey(scope, id) in supersededKeys,
 )
 
 /**
@@ -199,6 +254,22 @@ data class GroupChatMemoryUiItem(
     val summary: String,
     val createdAt: Long,
     val timeText: String,
+)
+
+/**
+ * 手动合并记忆的草稿状态,null = 没有正在进行的合并。
+ *
+ * 只承载一次合并会话的中间结果:模型出的草稿在用户确认前不落库,
+ * 所以正文([mergedText])是可编辑的 UI 输入,[sourceItems] 保留原始条目以便确认时取 id。
+ *
+ * @param sources 参与合并的原始 N 条正文(只读展示,让用户知道合并了什么)
+ * @param mergedText 模型生成的合并草稿(UI 可编辑)
+ * @param sourceItems 被选中的原始记忆条目(确认合并时按 id 落库)
+ */
+data class MemoryMergeDraft(
+    val sources: List<String>,
+    val mergedText: String,
+    val sourceItems: List<MemoryItem>,
 )
 
 /**
@@ -360,6 +431,18 @@ class MemoryViewModel(
     private val _organizeResult = MutableStateFlow<String?>(null)
     val organizeResult: StateFlow<String?> = _organizeResult.asStateFlow()
 
+    /** 手动合并的草稿;null = 没有正在进行的合并。 */
+    private val _mergeDraft = MutableStateFlow<MemoryMergeDraft?>(null)
+    val mergeDraft: StateFlow<MemoryMergeDraft?> = _mergeDraft.asStateFlow()
+
+    /** 手动合并进行中(生成草稿与落库两段都置位,供 UI 禁按钮防连点)。 */
+    private val _mergeRunning = MutableStateFlow(false)
+    val mergeRunning: StateFlow<Boolean> = _mergeRunning.asStateFlow()
+
+    /** 合并失败提示(UI 消费后清除),null = 无错误。 */
+    private val _mergeError = MutableStateFlow<String?>(null)
+    val mergeError: StateFlow<String?> = _mergeError.asStateFlow()
+
     /**
      * 统一整理记忆：编译摘要后执行去重。
      * 两个底层动作仍保持独立 API，供旧入口和后台任务兼容；新 UI 只暴露本方法。
@@ -418,6 +501,120 @@ class MemoryViewModel(
     fun consumeOrganizeResult() {
         _organizeResult.value = null
         if (!_organizeRunning.value) _organizeStage.value = null
+    }
+
+    // ── 手动合并记忆:选中的几条事实 → 模型草稿 → 用户确认后一次事务落库 ──
+
+    /**
+     * 事实条目所属作用域:优先用条目自带 scope,缺失时回退当前选择(与删除路径同一口径)。
+     */
+    private fun mergeScopeOf(item: MemoryItem): String =
+        item.scope?.takeIf { it.isNotBlank() }
+            ?: _selectedScope.value?.takeIf { it.isNotBlank() }
+            ?: "main"
+
+    /** 事实条目所属记忆空间:优先用条目自带 spaceId,缺失时回退当前选择。 */
+    private fun mergeSpaceOf(item: MemoryItem): String =
+        item.spaceId?.takeIf { it.isNotBlank() } ?: _selectedSpaceId.value.ifBlank { "default" }
+
+    /**
+     * 手动合并的第一步:只让模型出草稿,不改库。
+     *
+     * 只接受 Fact 层且 id 可解析的条目,且必须落在**同一个 FactStore**(同 scope + 同 space):
+     * [FactStore.mergeFacts] 在一个事务里插新行并给源行打 merged_into_id,
+     * 跨库的条目没法一次事务覆盖,提前拦下来比事后半完成更安全。
+     */
+    fun prepareMerge(items: List<MemoryItem>) {
+        _mergeError.value = null
+        if (_mergeRunning.value) return
+        val targets = items.filter { it.source == "Fact" && it.id.toLongOrNull() != null }
+        if (targets.size < 2) {
+            _mergeError.value = getApplication<Application>().getString(R.string.memory_merge_error_min_items)
+            return
+        }
+        val consolidator = factConsolidator
+        if (consolidator == null) {
+            _mergeError.value = getApplication<Application>().getString(R.string.memory_merge_error_no_model)
+            return
+        }
+        val scopes = targets.map(::mergeScopeOf).toSet()
+        val spaces = targets.map(::mergeSpaceOf).toSet()
+        if (scopes.size > 1 || spaces.size > 1) {
+            _mergeError.value = getApplication<Application>().getString(R.string.memory_merge_error_mixed_scope)
+            return
+        }
+        _mergeRunning.value = true
+        viewModelScope.launch {
+            try {
+                val texts = targets.map { it.content }
+                val merged = withContext(Dispatchers.IO) {
+                    resultOf { consolidator.synthesize(texts) }
+                        .onError { msg, t -> Logger.w("MemoryViewModel", "手动合并生成失败: ${t?.message ?: msg}") }
+                        .getOrNull()
+                }
+                if (merged.isNullOrBlank()) {
+                    _mergeError.value = getApplication<Application>().getString(R.string.memory_merge_error_generate_failed)
+                } else {
+                    _mergeDraft.value = MemoryMergeDraft(
+                        sources = texts,
+                        mergedText = merged,
+                        sourceItems = targets,
+                    )
+                }
+            } finally {
+                _mergeRunning.value = false
+            }
+        }
+    }
+
+    /**
+     * 确认合并:用(可能被用户改过的)[editedText]做合并正文,源行退场,插入一条新事实。
+     *
+     * 成功后静默刷新列表:与批量删除一致,避免替换视图导致滚动位置回到顶部。
+     * 失败保留草稿,用户改完可以重试。
+     */
+    fun confirmMerge(editedText: String) {
+        val draft = _mergeDraft.value ?: return
+        if (editedText.isBlank()) {
+            _mergeError.value = getApplication<Application>().getString(R.string.memory_merge_error_empty_result)
+            return
+        }
+        if (_mergeRunning.value) return
+        val ids = draft.sourceItems.mapNotNull { it.id.toLongOrNull() }.distinct()
+        val scope = draft.sourceItems.firstOrNull()?.let(::mergeScopeOf) ?: "main"
+        val spaceId = draft.sourceItems.firstOrNull()?.let(::mergeSpaceOf) ?: "default"
+        _mergeRunning.value = true
+        viewModelScope.launch {
+            try {
+                val newId = withContext(Dispatchers.IO) {
+                    resultOf {
+                        storeForScope(scope).mergeFacts(ids, editedText, scope = scope, spaceId = spaceId)
+                    }
+                        .onError { msg, t -> Logger.w("MemoryViewModel", "手动合并落库失败: ${t?.message ?: msg}") }
+                        .getOrNull()
+                }
+                if (newId == null) {
+                    _mergeError.value = getApplication<Application>().getString(R.string.memory_merge_error_commit_failed)
+                } else {
+                    _mergeDraft.value = null
+                    _mergeError.value = null
+                    loadAll(silent = true)
+                }
+            } finally {
+                _mergeRunning.value = false
+            }
+        }
+    }
+
+    /** 放弃本次合并:清掉草稿与错误提示,不动库。 */
+    fun cancelMerge() {
+        _mergeDraft.value = null
+        _mergeError.value = null
+    }
+
+    /** UI 消费合并错误提示后调用,清除提示。 */
+    fun consumeMergeError() {
+        _mergeError.value = null
     }
 
     /**
@@ -793,7 +990,21 @@ class MemoryViewModel(
                     }
                 }
 
+                // 状态徽章: 「被取代」= 本行被别的行的 supersedes_id 指向,需要反查一次。
+                // 集合用全量 facts 而不是 visibleFacts —— 取代方可能被重要度/时间筛选挡住,
+                // 拿它自己的可见性去决定要不要标出被取代方是错的。key 带 scope 防跨分库 id 撞号。
+                val supersededKeys = facts.mapNotNull { row ->
+                    row.supersedesId?.let { memoryFactKey(row.scope, it) }
+                }.toSet()
+
                 val factItems = visibleFacts.map { fact ->
+                    val status = memoryFactStatusOf(
+                        scope = fact.scope,
+                        id = fact.id,
+                        mergedIntoId = fact.mergedIntoId,
+                        suppressedAt = fact.suppressedAt,
+                        supersededKeys = supersededKeys,
+                    )
                     MemoryItem(
                         id = fact.id.toString(),
                         title = fact.fact.take(60),
@@ -816,6 +1027,10 @@ class MemoryViewModel(
                         pinnedAt = fact.pinnedAt,
                         // v9: 透传 category,供新 UI 按分类筛选与展示
                         category = fact.category,
+                        // 状态徽章: 已合并/已出场读本行字段,被取代看反查集合
+                        mergedIntoId = fact.mergedIntoId,
+                        suppressed = status.suppressed,
+                        superseded = status.superseded,
                     )
                 }
                 val summaryItems = projectConversationMemoryItems(

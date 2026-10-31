@@ -279,12 +279,23 @@ class ChatMiscCoordinator(
     /** 切换消息收藏状态(乐观更新 + 失败回滚)。 */
     fun toggleFavorite(messageId: Uuid) {
         val target = resolveFavoriteTarget(messageId) ?: return
-        val newFav = !target.favorite
-        applyFavoriteState(messageId, target, newFav)
+        setFavorite(messageId, !target.favorite)
+    }
+
+    /**
+     * 把收藏状态设成指定值（幂等：已是目标状态时不再写库，也不报错）。
+     *
+     * 与 [toggleFavorite] 的区别是不翻转，供外部入口（网页端长按菜单）直接指定“收藏/取消收藏”。
+     * 目标不在当前消息列表也不在收藏列表时（跨会话删除后的残留引用），照样写库，只是没有乐观更新。
+     */
+    fun setFavorite(messageId: Uuid, favorite: Boolean) {
+        val target = resolveFavoriteTarget(messageId)
+        if (target != null && target.favorite == favorite) return
+        if (target != null) applyFavoriteState(messageId, target, favorite)
         accessor.coroutineScope.launch {
-            resultOf { sessionRepository.setMessageFavorite(messageId.toString(), newFav) }
+            resultOf { sessionRepository.setMessageFavorite(messageId.toString(), favorite) }
                 .onError { _, t ->
-                    rollbackFavoriteState(messageId, target, newFav)
+                    if (target != null) rollbackFavoriteState(messageId, target, favorite)
                     pushFavoriteError(t)
                 }
         }

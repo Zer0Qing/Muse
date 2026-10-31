@@ -249,6 +249,8 @@ class QqReceiver(
         val text = resolveInboundText(data)
         if (openid.isNotBlank() && text.isNotBlank()) {
             recordQqInbound(appScope, ChannelInbox.Source("QQ", openid, channelId, messageId), data, text)
+        } else {
+            Logger.i(TAG, "QQ 单聊消息无可用文本,跳过($messageId ← $openid)")
         }
     }
 
@@ -265,6 +267,9 @@ class QqReceiver(
         val text = resolveInboundText(data)
         if (groupOpenId.isNotBlank() && text.isNotBlank()) {
             recordQqInbound(appScope, ChannelInbox.Source("QQ", target, channelId, messageId), data, text)
+        } else {
+            // 只有 @ 不带文字(且无附件)会落到这里:以前是无声丢弃,排查时完全看不出。
+            Logger.i(TAG, "QQ 群消息无可用文本,跳过($messageId ← $target)")
         }
     }
 

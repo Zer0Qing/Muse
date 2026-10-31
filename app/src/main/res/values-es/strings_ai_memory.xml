@@ -153,6 +153,10 @@
     <string name="memory_contradictions_dismiss_cd">Confirmar y borrar</string>
     <string name="memory_contradictions_title">Recuerdos contradictorios pendientes de confirmar</string>
     <string name="memory_delete_confirm_title">Eliminar recuerdo</string>
+    <string name="memory_menu_multi_select">Seleccionar varios</string>
+    <string name="memory_bulk_delete_confirm_title">Eliminar recuerdos seleccionados</string>
+    <string name="memory_bulk_delete_item_name">%1$d recuerdos</string>
+    <string name="memory_bulk_delete_consequence">Se eliminarán %1$d recuerdos y no se podrá deshacer.</string>
     <string name="memory_pin_failed">Error al fijar. Inténtalo de nuevo.</string>
     <string name="memory_stats_session_live">Sesión %1$d</string>
     <string name="memory_stream_mode_list">Lista</string>
@@ -180,4 +184,28 @@
     <string name="memory_group_chat_clear_confirm_title">Borrar todos los recuerdos de grupo</string>
     <string name="memory_group_chat_clear_item_name">todos los recuerdos de grupo</string>
     <string name="memory_group_chat_clear_consequence">Se eliminarán todos los resúmenes. No se puede deshacer</string>
+
+    <!-- Fusión de varias memorias: borrador del modelo y confirmación manual -->
+    <string name="memory_center_merge_action">Fusionar</string>
+    <string name="memory_center_merge_title">Fusionar recuerdos</string>
+    <string name="memory_center_merge_sources_title">Recuerdos originales (%1$d)</string>
+    <string name="memory_center_merge_result_label">Resultado fusionado</string>
+    <string name="memory_center_merge_confirm">Confirmar fusión</string>
+    <string name="memory_center_merge_running">Fusionando…</string>
+
+    <!-- Insignias de estado: la lista y el detalle comparten un mismo criterio -->
+    <string name="memory_status_merged">Fusionada</string>
+    <string name="memory_status_suppressed">Desvanecida</string>
+    <string name="memory_status_superseded">Reemplazada</string>
+    <string name="memory_status_merged_detail">Fusionada en otro recuerdo, así que ya no se recupera automáticamente. El texto se conserva aquí para consultarlo.</string>
+    <string name="memory_status_suppressed_detail">Desvanecida: sin uso durante el tiempo suficiente para salir de la recuperación automática. La fila sigue aquí y vuelve cuando se la vuelve a encontrar o se la marca como más importante.</string>
+    <string name="memory_status_superseded_detail">Sustituida por un recuerdo más reciente, así que ya no se usa como el hecho actual.</string>
+
+    <!-- Mensajes de fallo al fusionar -->
+    <string name="memory_merge_error_min_items">Selecciona al menos dos recuerdos para fusionar</string>
+    <string name="memory_merge_error_no_model">No hay un modelo configurado, no se puede fusionar</string>
+    <string name="memory_merge_error_mixed_scope">Solo se pueden fusionar recuerdos del mismo espacio</string>
+    <string name="memory_merge_error_generate_failed">No se pudieron fusionar estos recuerdos</string>
+    <string name="memory_merge_error_empty_result">El resultado de la fusión no puede estar vacío</string>
+    <string name="memory_merge_error_commit_failed">La fusión falló, los recuerdos no cambiaron</string>
 </resources>

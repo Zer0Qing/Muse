@@ -152,7 +152,13 @@ internal data class GeminiGenerationConfig(
 
 @Serializable
 internal data class GeminiThinkingConfig(
-    val thinkingBudget: Int,
+    /** 按 token 数指定思考预算。Gemini 2 代及更早使用这个字段。 */
+    val thinkingBudget: Int? = null,
+    /**
+     * 按档位指定思考深度。Gemini 3 代起（含 4 代 / Argon）只能用这个字段，
+     * 传 thinkingBudget 会直接返回 400“Thinking budget is not supported for this model”。
+     */
+    val thinkingLevel: String? = null,
 )
 
 @Serializable

@@ -183,17 +183,58 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">設定</string>
-    <string name="settings_screen_group_assistants">アシスタントと人格</string>
-    <string name="settings_screen_group_models">モデルと推論</string>
+    <string name="settings_screen_group_assistants">会話と役割</string>
+    <string name="settings_screen_group_chat_input">チャットと入力</string>
+    <string name="settings_screen_group_models">モデルとプロバイダー</string>
     <string name="settings_screen_group_chat_display">会話と表現</string>
+    <string name="settings_screen_group_tools">ツールと検索</string>
+    <string name="settings_screen_group_voice">音声</string>
+    <string name="settings_screen_group_media">画像と翻訳</string>
     <string name="settings_screen_group_memory">記憶と知識</string>
     <string name="settings_screen_group_data_privacy">データとバックアップ</string>
-    <string name="settings_screen_group_tools">能力とツール</string>
-    <string name="settings_screen_group_about">情報と診断</string>
-    <string name="settings_screen_group_connection">接続・アカウント・セキュリティ</string>
+    <string name="settings_screen_group_connection">接続</string>
+    <string name="settings_screen_group_automation">自動化</string>
     <string name="settings_screen_group_proactive">自発と自動化</string>
-    <string name="settings_screen_group_voice_media">音声とメディア</string>
-    <string name="settings_screen_group_look">インターフェースと表示</string>
+    <string name="settings_screen_group_look">外観</string>
+    <string name="settings_screen_group_data">データ</string>
+    <string name="settings_screen_group_privacy">プライバシーと整理</string>
+    <string name="settings_screen_group_about">情報とヘルプ</string>
+    <string name="settings_screen_group_developer">開発者</string>
+    <!-- 設定の第一レベル分類 -->
+    <string name="settings_group_assistants">アシスタントと役割</string>
+    <string name="settings_group_assistants_desc">プロフィール、アシスタント、リソース、エージェント</string>
+    <string name="settings_group_chat">チャット</string>
+    <string name="settings_group_chat_desc">表示、スタンプ、クイックメモ、共有</string>
+    <string name="settings_group_models">モデルとプロバイダー</string>
+    <string name="settings_group_models_desc">プロバイダー、タスクルーティング、プラグイン</string>
+    <string name="settings_group_tools">ツールと権限</string>
+    <string name="settings_group_tools_desc">ツール、権限ウィザード、Web 検索</string>
+    <string name="settings_group_voice">音声</string>
+    <string name="settings_group_voice_desc">読み上げ、音声認識、音声クローン</string>
+    <string name="settings_group_image">画像と視覚</string>
+    <string name="settings_group_image_desc">画像・動画生成、視覚サポート、翻訳</string>
+    <string name="settings_group_memory">記憶と知識</string>
+    <string name="settings_group_memory_desc">記憶センターとナレッジ検索</string>
+    <string name="settings_group_connection">接続</string>
+    <string name="settings_group_connection_desc">接続センター、メッセージチャネル、Web 版、MCP</string>
+    <string name="settings_group_automation">自動化</string>
+    <string name="settings_group_automation_desc">自発メッセージ、定時タスク、通知、常駐</string>
+    <string name="settings_group_appearance">外観</string>
+    <string name="settings_group_appearance_desc">テーマと文字サイズ、ミニフォン</string>
+    <string name="settings_group_data_privacy">データとプライバシー</string>
+    <string name="settings_group_data_privacy_desc">データ、ワークスペース、バックアップ、インポート、プライバシー</string>
+    <string name="settings_group_about_developer">情報と開発者</string>
+    <string name="settings_group_about_developer_desc">チュートリアル、更新、統計、診断ログ</string>
+    <string name="settings_group_data_storage">データとバックアップ</string>
+    <string name="settings_group_data_storage_desc">データ管理、ワークスペース、バックアップ、インポート、アーカイブ</string>
+    <string name="settings_group_privacy_security">プライバシーとセキュリティ</string>
+    <string name="settings_group_privacy_security_desc">プライバシーのマスキングと共有時の安全</string>
+    <string name="settings_group_about">アプリについて</string>
+    <string name="settings_group_about_desc">チュートリアル、バージョン情報、アップデート確認</string>
+    <string name="settings_group_developer">開発者</string>
+    <string name="settings_group_developer_desc">統計、実験的な機能、デバッグと監査ログ</string>
+    <string name="settings_group_section_about">情報</string>
+    <string name="settings_group_section_developer">開発者</string>
     <string name="settings_screen_appearance_label">外観</string>
     <string name="settings_screen_appearance_desc">テーマ / フォントサイズ</string>
     <string name="settings_screen_chat">チャット</string>
@@ -206,6 +247,24 @@
     <string name="settings_screen_data_backup_desc">クラウドバックアップ / Web サーバー</string>
     <string name="settings_screen_data_import">データインポート</string>
     <string name="settings_screen_data_import_desc">RikkaHub / Kelivo からの移行</string>
+    <!-- Web アクセス（設定 → 接続）:アドレス / PIN / QR コード -->
+    <string name="settings_screen_web_access">Web アクセス</string>
+    <string name="settings_screen_web_access_desc">アドレス / PIN / QR コード。スキャンして接続</string>
+    <string name="settings_web_access_intro">iPhone やパソコンのブラウザで下のアドレスを開き、PIN を入力すると Web 版が使えます。</string>
+    <string name="settings_web_access_enable">Web アクセスを有効化</string>
+    <string name="settings_web_access_enable_subtitle">オフにすると他の端末は即座に切断され、ポートも解放されます</string>
+    <string name="settings_web_access_lan">ローカルネットワークからのアクセスを許可</string>
+    <string name="settings_web_access_lan_on">同じ Wi-Fi 上のスマホやパソコンから開けます</string>
+    <string name="settings_web_access_lan_off">この端末からのみアクセス可能</string>
+    <string name="settings_web_access_local_only_hint">この端末からのみアクセス可能。他の端末ではこの QR コードをスキャンできません</string>
+    <string name="settings_web_access_no_ip">ローカル IP を取得できません。Wi-Fi に接続するか、ルーターの端末間通信制限を確認してください</string>
+    <string name="settings_web_access_scan_hint">スマホのカメラでスキャンすると開けます</string>
+    <string name="settings_web_access_first_login_hint">初回は上の 6 桁の PIN の入力が必要です</string>
+    <string name="settings_web_access_pin_regenerated">新しい PIN: %1$s。他の端末は再ログインが必要です</string>
+    <string name="settings_web_access_qr_cd">Web アクセス先の QR コード</string>
+    <string name="settings_web_access_tip_iphone">iPhone は Safari で開き「共有 → ホーム画面に追加」で全画面表示になります</string>
+    <string name="settings_web_access_tip_same_wifi">スマホとこの端末は同じ Wi-Fi に接続してください</string>
+    <string name="settings_web_access_tip_disable">スイッチをオフにすると他の端末は即座に切断されます</string>
     <string name="settings_screen_rag">知識の検索</string>
     <string name="settings_screen_rag_desc">RAG 構成 / 埋め込み / チャンクパラメータ</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
@@ -353,6 +412,9 @@
     <string name="skill_operation_failed">操作が失敗しました: %1$s</string>
     <string name="skill_unnamed">(名前なし)</string>
     <string name="skill_enabled">有効</string>
+    <string name="skill_bulk_summary">カスタムスキル %1$d 件、有効 %2$d 件</string>
+    <string name="skill_bulk_disable_all">すべて無効化</string>
+    <string name="skill_bulk_enable_all">すべて有効化</string>
     <string name="skill_disabled">無効</string>
     <string name="skill_built_in">内蔵</string>
     <string name="skill_built_in_seed">内蔵（シード）</string>
@@ -525,7 +587,7 @@
     <string name="free_model_service_unavailable">無料枠サービスは利用できません。API Key を追加するか、後でもう一度お試しください。</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">プラグインマネージャー</string>
+    <string name="provider_plugins_title">プロバイダーのプラグイン</string>
     <string name="muse_plugins_external">外部プラグイン</string>
     <string name="muse_plugins_manage">プラグイン管理</string>
     <string name="muse_plugins_imported">プラグインパッケージをインストールしました</string>
@@ -668,7 +730,11 @@
     <string name="muse_plugins_draft">確認待ち（実行されません）</string>
     <string name="muse_plugins_draft_saved">無効な下書きとして保存しました</string>
     <string name="muse_plugins_install_confirm_action">インストールして有効化を確認</string>
-    <string name="muse_plugins_install_confirm_capabilities">宣言された機能：%1$s</string>
+    <string name="muse_plugins_install_confirm_capabilities">使用する機能の申告：%1$s</string>
+    <string name="muse_plugins_capabilities_disclaimer">この申告はプラグインが何を使う予定かを示すだけで、インストール後に実際に使える範囲を制限するものではありません。</string>
+    <string name="muse_plugins_global_switch_title">プラグイン全体スイッチ</string>
+    <string name="muse_plugins_global_switch_desc">オフにするとどのプラグインも実行されません。インストールと設定は保持されます。</string>
+    <string name="muse_plugins_runtime_label">実行環境：%1$s</string>
     <string name="muse_plugins_install_confirm_code">エントリ %1$d バイト · 追加ファイル %2$d 個 · エントリ SHA-256：%3$s</string>
     <string name="muse_plugins_install_confirm_summary">バージョン %1$s · 作者 %2$s · 外部コードは制限された JS サンドボックスで実行されます</string>
     <string name="muse_plugins_install_confirm_title">インストールの確認：%1$s</string>
@@ -775,4 +841,12 @@
     <string name="workspace_empty_subtitle">アシスタントが会話で作成・保存したファイルがここに表示されます</string>
     <string name="settings_screen_group_storage">ストレージ</string>
     <string name="settings_screen_group_migrate">バックアップと移行</string>
+
+    <string name="workspace_mounts_title">マウント</string>
+    <string name="workspace_mount_add">フォルダを追加</string>
+    <string name="workspace_mount_read_only">読み取り専用</string>
+    <string name="workspace_mount_remove">削除</string>
+    <string name="workspace_mount_added">%1$s をマウントしました</string>
+    <string name="workspace_mount_failed">マウント失敗：%1$s</string>
+    <string name="workspace_read_only_hint">読み取り専用のため変更できません</string>
 </resources>

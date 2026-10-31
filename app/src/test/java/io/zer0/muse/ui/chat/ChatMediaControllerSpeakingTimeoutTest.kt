@@ -101,9 +101,11 @@ class ChatMediaControllerSpeakingTimeoutTest {
             controller.startVoiceConversation()
             awaitState(VoiceConversationState.LISTENING)
 
-            // 1) ASR 录音结束并有识别文本 → THINKING,自动发送
+            // 1) 用户点「结束」后 ASR 收尾并有识别文本 → THINKING 发送
+            //    行为变更:isRecording true→false 本身不再触发提交,必须先显式结束本段输入
             stateStore.state.value = uiState(isRecording = true, isStreaming = false)
             voiceState.transcript.value = "你好"
+            controller.finishVoiceConversationListening()
             stateStore.state.value = uiState(isRecording = false, isStreaming = false)
             awaitState(VoiceConversationState.THINKING)
 
@@ -143,8 +145,10 @@ class ChatMediaControllerSpeakingTimeoutTest {
         controller.startVoiceConversation()
         awaitState(VoiceConversationState.LISTENING)
 
+        // 1) 用户点「结束」→ ASR 收尾 → THINKING(行为变更:录音结束本身不再是提交信号)
         stateStore.state.value = uiState(isRecording = true, isStreaming = false)
         voiceState.transcript.value = "在吗"
+        controller.finishVoiceConversationListening()
         stateStore.state.value = uiState(isRecording = false, isStreaming = false)
         awaitState(VoiceConversationState.THINKING)
 

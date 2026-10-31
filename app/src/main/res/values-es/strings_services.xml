@@ -310,11 +310,11 @@
 
     <!-- v1.136: Reminder tool strings -->
     <string name="tool_reminder_scheduled">Recordatorio programado (id: %1$s)\nHora: %2$s</string>
-    <string name="tool_reminder_schedule_failed">No se pudo programar el recordatorio; verifique los permisos de alarma/notificación</string>
+    <string name="tool_reminder_schedule_failed">No se pudo crear el recordatorio: el sistema rechazó la alarma, por lo que es posible que no suene. Revisa el permiso «Alarmas y recordatorios» de esta app en los ajustes del sistema e inténtalo de nuevo.</string>
     <string name="tool_reminder_cancelled">Recordatorio cancelado: %1$s</string>
     <string name="tool_reminder_not_found">Recordatorio no encontrado: %1$s</string>
     <string name="tool_reminder_list_header">Recordatorios programados (%1$d total):\n</string>
-    <string name="tool_reminder_list_item">- id: %1$s | hora: %2$s | título: %3$s</string>
+    <string name="tool_reminder_list_item">- id: %1$s | hora: %2$s | título: %3$s | estado: %4$s</string>
     <string name="tool_reminder_list_empty">No hay recordatorios programados</string>
     <string name="tool_reminder_missing_title">Parámetro faltante: título</string>
     <string name="tool_reminder_missing_message">Parámetro faltante: mensaje</string>
@@ -322,6 +322,15 @@
     <string name="tool_reminder_missing_id">Parámetro faltante: identificación</string>
     <string name="tool_reminder_invalid_time">No se puede analizar el tiempo: %1$s, utilice yyyy-MM-dd HH:mm</string>
     <string name="tool_reminder_past_time">El tiempo del recordatorio no puede estar en el pasado.</string>
+    <string name="tool_reminder_scheduled_inexact">Recordatorio programado (id: %1$s)\nHora: %2$s\nNota: el permiso «Alarmas y recordatorios» está desactivado, así que este recordatorio sonará solo de forma aproximada (puede retrasarse unos minutos). Activa ese permiso para esta app en los ajustes del sistema.</string>
+    <string name="tool_reminder_status_scheduled">Programado, sonará a tiempo</string>
+    <string name="tool_reminder_status_inexact">Programado, pero sin permiso de alarma exacta; puede retrasarse unos minutos</string>
+    <string name="tool_reminder_status_unscheduled">La alarma no se programó; puede no sonar, vuelve a configurarla</string>
+    <string name="tool_reminder_status_lost">Programación no confirmada; puede no sonar</string>
+    <string name="tool_reminder_catchup_title">%1$s (tarde)</string>
+    <string name="reminder_exact_permission_hint">El permiso «Alarmas y recordatorios» está desactivado, por lo que los recordatorios pueden sonar con unos minutos de retraso y no a tiempo.</string>
+    <string name="reminder_exact_permission_action">Activar el permiso «Alarmas y recordatorios»</string>
+    <string name="reminder_exact_permission_toast">El permiso «Alarmas y recordatorios» está desactivado, por lo que los recordatorios pueden retrasarse unos minutos. Se abrieron los ajustes; actívalo manualmente.</string>
 
     <!-- v1.136: Resource library tool strings -->
     <string name="tool_resource_added">Recurso guardado\nid: %1$s\ntítulo: %2$s</string>

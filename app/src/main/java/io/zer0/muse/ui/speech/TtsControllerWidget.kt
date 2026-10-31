@@ -44,7 +44,7 @@ import io.zer0.muse.ui.theme.MuseMotion
 import org.koin.compose.koinInject
 
 /**
- * v1.4: 悬浮 TTS 控制器(既有实现 TTSController)。
+ * v1.4: 悬浮 TTS 控制器。
  *
  * 用 Compose 浮窗实现(不依赖 FloatingWindow 第三方库),显示在屏幕底部右下角,
  * InputBar 上方。仅当 [TtsManager.playbackState] 不是 Idle 时显示。

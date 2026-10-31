@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.SpeechProviderResolver
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
@@ -38,7 +39,9 @@ import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSliderRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.speech.TtsEngineSwitch
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.VoiceInfo
 import io.zer0.muse.ui.theme.MusePaddings
@@ -58,6 +61,8 @@ fun MediaSettingsPage(
     onBack: () -> Unit,
     /** P2-9: 打开语音克隆页(从「语音播报(TTS)」分组入口进入)。 */
     onOpenVoiceCloning: () -> Unit = {},
+    /** 模型候选为空时的出口：供应商统一管模型，得回到那页去加。 */
+    onOpenProviderSettings: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val ttsManager: TtsManager = koinInject()
@@ -115,6 +120,7 @@ fun MediaSettingsPage(
                 config = config,
                 settings = settings,
                 ttsManager = ttsManager,
+                onOpenProviderSettings = onOpenProviderSettings,
             )
         }
 
@@ -212,11 +218,18 @@ private fun TtsVoiceSelector(ttsManager: TtsManager, currentVoice: String, onVoi
  * 动态拉取并展示可选音色,选中后写回 [MediaConfig.ttsVoice]。
  */
 @Composable
-private fun CloudTtsConfigSection(config: MediaConfig, settings: SettingsRepository, ttsManager: TtsManager) {
+@Suppress("LongMethod") // 引擎/跟进/凭据/音色/模型/接口地址同属一块，拆开反而要反复跳转
+private fun CloudTtsConfigSection(
+    config: MediaConfig,
+    settings: SettingsRepository,
+    ttsManager: TtsManager,
+    onOpenProviderSettings: () -> Unit,
+) {
     val scope = rememberCoroutineScope()
     val systemLabel = stringResource(R.string.settings_media_tts_engine_system)
     val savedToast = stringResource(R.string.settings_media_tts_saved)
     val fetchFailedLabel = stringResource(R.string.settings_media_tts_voice_fetch_failed)
+    val voiceResetLabel = stringResource(R.string.settings_media_tts_voice_reset)
     val pickLabel = stringResource(R.string.settings_media_tts_voice_pick)
 
     SettingsGroup(
@@ -246,19 +259,20 @@ private fun CloudTtsConfigSection(config: MediaConfig, settings: SettingsReposit
                 expanded = engineExpanded,
                 onDismissRequest = { engineExpanded = false },
             ) {
+                // 切引擎同时校验音色 id：旧引擎的音色在新引擎下只会换来 4xx，不如清空重选
+                val switchEngine: (String) -> Unit = { engineId ->
+                    val switched = TtsEngineSwitch.apply(config, engineId)
+                    scope.launch { settings.saveMediaConfig(switched.config) }
+                    engineExpanded = false
+                    if (switched.voiceReset) MuseToast.show(voiceResetLabel, 2500)
+                }
                 MuseListItem(
-                    onClick = {
-                        scope.launch { settings.saveMediaConfig(config.copy(ttsEngine = "system")) }
-                        engineExpanded = false
-                    },
+                    onClick = { switchEngine("system") },
                     headlineContent = { Text(systemLabel) },
                 )
                 TtsManager.CLOUD_TTS_ENGINES.forEach { (engineId, labelRes) ->
                     MuseListItem(
-                        onClick = {
-                            scope.launch { settings.saveMediaConfig(config.copy(ttsEngine = engineId)) }
-                            engineExpanded = false
-                        },
+                        onClick = { switchEngine(engineId) },
                         headlineContent = { Text(stringResource(labelRes)) },
                     )
                 }
@@ -267,6 +281,9 @@ private fun CloudTtsConfigSection(config: MediaConfig, settings: SettingsReposit
 
         // system 模式不显示表单
         if (config.ttsEngine == "system") return@SettingsGroup
+
+        // 跟随供应商配置(开启后 endpoint / API Key 取自供应商,模型在这里手选)
+        TtsFollowProviderSection(config = config, settings = settings)
 
         // API Key
         SettingsGroupDivider()
@@ -283,6 +300,8 @@ private fun CloudTtsConfigSection(config: MediaConfig, settings: SettingsReposit
                 label = { Text(stringResource(R.string.settings_media_tts_api_key)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                // 跟随供应商时凭据由供应商提供,手填值保留但不可编辑
+                enabled = !config.ttsFollowProvider,
                 visualTransformation = if (apiKeyVisible) {
                     VisualTransformation.None
                 } else {
@@ -313,6 +332,7 @@ private fun CloudTtsConfigSection(config: MediaConfig, settings: SettingsReposit
                 },
                 variant = IosCapsuleButtonVariant.Text,
                 fillWidth = false,
+                enabled = !config.ttsFollowProvider,
             )
         }
 
@@ -417,34 +437,24 @@ private fun CloudTtsConfigSection(config: MediaConfig, settings: SettingsReposit
             }
         }
 
-        // 模型
+        // 模型：候选来自供应商，这里只负责选一个
         SettingsGroupDivider()
-        var model by remember(config.ttsEngine) { mutableStateOf(config.ttsModel) }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(MusePaddings.cardInner),
-        ) {
-            MuseTextField(
-                value = model,
-                onValueChange = { model = it },
-                label = { Text(stringResource(R.string.settings_media_tts_model)) },
-                placeholder = { Text(stringResource(R.string.settings_media_tts_model_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            MuseCapsuleButton(
-                text = stringResource(R.string.settings_media_tts_save_model),
-                onClick = {
-                    scope.launch {
-                        settings.saveMediaConfig(config.copy(ttsModel = model.trim()))
-                        MuseToast.show(savedToast)
-                    }
-                },
-                variant = IosCapsuleButtonVariant.Text,
-                fillWidth = false,
-            )
+        val ttsProviders by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+        val modelProvider = remember(ttsProviders, config.ttsProviderId) {
+            SpeechModelPicker.candidateProvider(ttsProviders, config.ttsProviderId)
         }
+        // 跟随供应商时模型存在 ttsModelId，手动模式存在 ttsModel
+        val currentModelId = if (config.ttsFollowProvider) config.ttsModelId else config.ttsModel
+        SpeechModelSection(
+            title = stringResource(R.string.settings_media_tts_model),
+            currentModelId = currentModelId,
+            provider = modelProvider,
+            emptyLabel = stringResource(R.string.settings_media_tts_model_placeholder),
+            onPick = { modelId ->
+                scope.launch { settings.saveMediaConfig(SpeechModelPicker.applyToTts(config, modelId)) }
+            },
+            onOpenProviders = onOpenProviderSettings,
+        )
 
         // 自定义 Endpoint
         SettingsGroupDivider()
@@ -461,6 +471,8 @@ private fun CloudTtsConfigSection(config: MediaConfig, settings: SettingsReposit
                 placeholder = { Text(stringResource(R.string.settings_media_tts_endpoint_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                // 跟随供应商时接口地址由供应商提供,手填值保留但不可编辑
+                enabled = !config.ttsFollowProvider,
             )
             MuseCapsuleButton(
                 text = stringResource(R.string.settings_media_tts_save_endpoint),
@@ -472,9 +484,111 @@ private fun CloudTtsConfigSection(config: MediaConfig, settings: SettingsReposit
                 },
                 variant = IosCapsuleButtonVariant.Text,
                 fillWidth = false,
+                enabled = !config.ttsFollowProvider,
             )
         }
     }
+}
+
+/**
+ * 云端 TTS「跟随供应商配置」区块。
+ *
+ * 开启后 endpoint / API Key 取自所选供应商;模型在下方「模型」行选（跟随模式写 ttsModelId）,
+ * 手填的值原样保留(只是变灰不可编辑),关掉开关立即恢复手动配置。
+ * 供应商被删除/停用或未选模型时,合成回退手动配置,这里同步给出提示。
+ */
+@Composable
+private fun TtsFollowProviderSection(config: MediaConfig, settings: SettingsRepository) {
+    val scope = rememberCoroutineScope()
+    val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val unsetLabel = stringResource(R.string.settings_speech_follow_unset)
+
+    SettingsGroupDivider()
+    SettingsSwitchRow(
+        icon = MuseIcons.cloud,
+        title = stringResource(R.string.settings_media_tts_follow_provider),
+        subtitle = stringResource(R.string.settings_media_tts_follow_provider_subtitle),
+        checked = config.ttsFollowProvider,
+        onCheckedChange = { follow ->
+            scope.launch { settings.saveMediaConfig(config.copy(ttsFollowProvider = follow)) }
+        },
+    )
+
+    if (config.ttsFollowProvider) {
+        val selectedProvider = providers.firstOrNull { it.id == config.ttsProviderId }
+        var providerExpanded by remember { mutableStateOf(false) }
+
+        SettingsGroupDivider()
+        Box {
+            SettingsItemRow(
+                icon = MuseIcons.server,
+                title = stringResource(R.string.settings_media_tts_follow_provider_picker),
+                subtitle = selectedProvider?.displayName ?: unsetLabel,
+                onClick = { providerExpanded = true },
+            ) {
+                ChevronRight()
+            }
+            MuseAnchoredMenu(
+                expanded = providerExpanded,
+                onDismissRequest = { providerExpanded = false },
+            ) {
+                providers.forEach { provider ->
+                    MuseListItem(
+                        headlineContent = { Text(provider.displayName) },
+                        onClick = {
+                            // 换供应商时清空模型选择,避免带着上一个供应商的模型发请求
+                            scope.launch {
+                                settings.saveMediaConfig(
+                                    config.copy(ttsProviderId = provider.id, ttsModelId = ""),
+                                )
+                            }
+                            providerExpanded = false
+                        },
+                    )
+                }
+            }
+        }
+
+        // 模型选择不在这里重复：下方「模型」行按跟随开关自动写到 ttsModelId / ttsModel
+
+        // 音色不跟随供应商:提醒用户自行确认兼容性,避免误以为整份凭据都已接管
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MusePaddings.cardInner),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_media_tts_follow_voice_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        val resolved = SpeechProviderResolver.resolveMedia(config, providers)
+        if (resolved.isProviderFallback) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(MusePaddings.cardInner),
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.settings_speech_follow_fallback_notice,
+                        stringResource(speechFollowFallbackReasonRes(resolved.fallbackReason)),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+/** 回退原因的文案资源(未知原因按「供应商未找到」处理,不在 UI 上暴露内部字符串)。 */
+internal fun speechFollowFallbackReasonRes(reason: String?): Int = when (reason) {
+    SpeechProviderResolver.REASON_PROVIDER_DISABLED -> R.string.settings_speech_follow_reason_provider_disabled
+    SpeechProviderResolver.REASON_MODEL_MISSING -> R.string.settings_speech_follow_reason_model_missing
+    else -> R.string.settings_speech_follow_reason_provider_missing
 }
 
 /**

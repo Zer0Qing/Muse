@@ -42,7 +42,6 @@ class FavoritesScreenWiringTest {
         val targets = listOf(
             "app/src/main/java/io/zer0/muse/ui/MessageBubble.kt",
             "app/src/main/java/io/zer0/muse/ui/translate/TranslateHistorySection.kt",
-            "app/src/main/java/io/zer0/muse/ui/moment/MomentsScreen.kt",
             "app/src/main/java/io/zer0/muse/ui/FavoritesScreen.kt",
         )
 
@@ -61,15 +60,10 @@ class FavoritesScreenWiringTest {
         // 选中态必须真的参与渲染：tint / alpha / 容器三档用的是同一处口径。
         listOf(
             "app/src/main/java/io/zer0/muse/ui/translate/TranslateHistorySection.kt",
-            "app/src/main/java/io/zer0/muse/ui/moment/MomentsScreen.kt",
         ).forEach { relative ->
             val source = locate(relative)
             assertTrue("$relative 必须用 favoriteStarTint 区分选中态", source.contains("favoriteStarTint("))
         }
-        assertTrue(
-            "朋友圈筛选还叠了 alpha 档位",
-            locate("app/src/main/java/io/zer0/muse/ui/moment/MomentsScreen.kt").contains("favoriteStarAlpha("),
-        )
     }
 
     @Test

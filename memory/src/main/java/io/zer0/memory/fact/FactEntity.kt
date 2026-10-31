@@ -19,6 +19,12 @@ import kotlinx.serialization.Serializable
  *   (如"张三"/"张先生"/"张三老师")共享同一 entity_key,用于精确去重与
  *   跨写法合并,解决"同一用户名 3 条重复记忆"问题。历史数据为 null,
  *   由反思任务在整理时回填。
+ * v17 schema: 新增 score / score_updated_at / suppressed_at 字段 —— 衰减从"到期删除"改为"分数出场"。
+ *   低分记忆只是退出召回(行保留、可回拨),清理必须走显式删除入口。
+ * v18 schema: 新增 supersedes_id 字段 —— 新记忆指向它取代的旧记忆。旧行保留可查,
+ *   只在编译上下文里让位;证据不足时不写入本列,两条都留在上下文由模型判断。
+ * v19 schema: 新增 merged_into_id 字段 —— 本条被合并进了哪条记忆。被指向的新记忆承载
+ *   去重后整合的正文,指向方(原始行)保留可查,但不参与自动召回、不进编译投影。
  *
  * Phase 7: @Serializable 用于备份导出/导入。id 自增主键在导入时清表后重新分配。
  */
@@ -155,4 +161,59 @@ data class FactEntity(
      */
     @ColumnInfo(name = "entity_key")
     val entityKey: String? = null,
+
+    /**
+     * v17: 持久化的衰减分数 —— "这条记忆还在不在场"的判定依据。
+     *
+     * 此前分数每次现算(按年龄推),没有落库,衰减的唯一后果就是删行;
+     * 现在分数随每日衰减结算写回本列,阈值判定因此有稳定依据:
+     *  - 新记忆从 [io.zer0.memory.ticker.MemoryConfig.baseImportance](默认 10.0)起算
+     *  - 每次结算按 exp(-λ·天数) 递减,λ = decayPerDay × forgetSpeed
+     *  - 被命中/合并时加 hitBonus,上限 baseImportance + hitBonus
+     */
+    @ColumnInfo(name = "score", defaultValue = "10.0")
+    val score: Float = 10f,
+
+    /**
+     * v17: 上一次衰减结算时间 ISO 8601 —— 持久分数的衰减时钟。
+     *
+     * 增量结算靠本列才不自相矛盾:每轮只按"上次结算到现在的天数"递减,
+     * 而不是每次都从 created_at 重算。null 表示从未结算,回退到 last_hit_at / created_at。
+     */
+    @ColumnInfo(name = "score_updated_at", defaultValue = "NULL")
+    val scoreUpdatedAt: String? = null,
+
+    /**
+     * v17: 出场时间 ISO 8601 —— null 表示仍在召回中。
+     *
+     * 分数低于 compileThreshold 时由衰减结算写入本列:该记忆不再参与检索与上下文注入,
+     * 但整行保留,后续被引用/显式检索时清除本列即可回到召回范围。
+     */
+    @ColumnInfo(name = "suppressed_at", defaultValue = "NULL")
+    val suppressedAt: String? = null,
+
+    /**
+     * v18: 被本条记忆取代的旧记忆 id —— null 表示本条不取代任何记忆。
+     *
+     * 写入时若判定本条与某条旧记忆在同一实体上断言相反,把旧记忆 id 记在这里:
+     * 旧行不删(记忆页仍可见、可回退),但编译产物(FACTS 段)不再把它写进上下文。
+     * 判定证据不足时留空 —— 两条都进上下文,由模型自己看出冲突。
+     */
+    @ColumnInfo(name = "supersedes_id", defaultValue = "NULL")
+    val supersedesId: Long? = null,
+
+    /**
+     * v19: 本条记忆被合并进了哪条记忆 —— null 表示未被合并。
+     *
+     * 与 [supersedesId] 是两种不同的关系,不要混用:
+     *  - [supersedesId]: 新记忆取代了旧记忆的**内容**(两条断言矛盾,新的是对的)
+     *  - [mergedIntoId]: 本条被**合并进了**另一条(两条不矛盾,只是重复,聚合后只留一份)
+     * 同一行不会同时带两个指向: 一条记忆要么被取代(内容作废),要么被合并(内容已并入他条)。
+     *
+     * 语义方向: 指向合并后生成的那条新事实的 id。新事实本身不带本列值,
+     * 聚合关系由被指向方反向查(见 FactStore.getMergedChildren)。
+     * 行不删、记忆页可见,只是不参与自动召回、不进编译投影;删掉新事实即自动撤销合并。
+     */
+    @ColumnInfo(name = "merged_into_id", defaultValue = "NULL")
+    val mergedIntoId: Long? = null,
 )

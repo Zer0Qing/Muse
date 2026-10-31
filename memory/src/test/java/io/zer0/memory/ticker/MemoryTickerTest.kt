@@ -3,6 +3,7 @@ package io.zer0.memory.ticker
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.ai.core.Model
+import io.zer0.common.Logger
 import io.zer0.memory.compile.MemoryCompiler
 import io.zer0.memory.deep.DeepMemoryProcessor
 import io.zer0.memory.fact.FactDbProvider
@@ -17,15 +18,24 @@ import io.zer0.memory.summary.ScopedCompiledSectionEntity
 import io.zer0.memory.summary.SessionSummaryDao
 import io.zer0.memory.summary.SessionSummaryEntity
 import io.zer0.memory.summary.SessionSummaryManager
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -476,8 +486,147 @@ class MemoryTickerTest {
     }
 
     // ──────────────────────────────────────────────
+    //  start/stop 竞态：stop 未收尾时到达的 start
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `start during stop is queued and exactly one timer survives`() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val ticker = newTicker(scope = scope, isMemoryEnabled = { true })
+        val warnings = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val previousSink = Logger.sink
+        Logger.sink = { level, tag, msg, _ ->
+            if (level == "WARN" && tag == "MemoryTicker") warnings += msg
+        }
+        try {
+            ticker.start()
+            assertEquals("start 应只建一个计时 job", 1, activeChildren(scope))
+
+            // 让 stop() 真的卡在「等后台任务收尾」：LLM 调用挂在 gate 上且不响应取消
+            val gate = CompletableDeferred<Unit>()
+            fakeLlm.hangGate = gate
+            ticker.flushSession(
+                sessionId = "stop-window",
+                messages = listOf(
+                    io.zer0.ai.core.UIMessage(
+                        role = io.zer0.ai.core.MessageRole.USER,
+                        content = "记住我在做记忆调度器的竞态测试",
+                    ),
+                ),
+                model = null,
+            )
+            awaitTrue { fakeLlm.callTextCount > 0 }
+
+            val stopper = launch(Dispatchers.Default) { ticker.stop() }
+            awaitTrue { ticker.timerPhaseName == "STOPPING" }
+            assertFalse("停止过程中计时 job 应已取消", ticker.isTimerRunning())
+
+            // 旧实现在这里直接 return，随后 stop 把 job 置空 → 永久停摆
+            ticker.start()
+            assertEquals("排队期间不应偷偷重启", "STOPPING", ticker.timerPhaseName)
+            assertFalse(ticker.isTimerRunning())
+            assertTrue(
+                "「要它跑却没在跑」必须留下 WARN，实际: $warnings",
+                warnings.any { it.contains("排队") },
+            )
+
+            gate.complete(Unit)
+            stopper.join()
+
+            assertTrue("stop 期间收到的 start 必须被补起", ticker.isTimerRunning())
+            assertEquals("最终有且只有一个计时 job", 1, activeChildren(scope))
+        } finally {
+            Logger.sink = previousSink
+            fakeLlm.hangGate = null
+            ticker.stop()
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `stop right after start leaves no timer and no leaked job`() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val ticker = newTicker(scope = scope, isMemoryEnabled = { true })
+        try {
+            ticker.start()
+            assertEquals(1, activeChildren(scope))
+
+            ticker.stop()
+
+            assertFalse("stop 后计时器不应在跑", ticker.isTimerRunning())
+            assertEquals("stop 后不应残留计时 job", 0, activeChildren(scope))
+            assertEquals("STOPPED", ticker.timerPhaseName)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `double start keeps one timer and double stop is harmless`() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val ticker = newTicker(scope = scope, isMemoryEnabled = { true })
+        try {
+            ticker.start()
+            ticker.start()
+            assertEquals("连续两次 start 只应有一个计时 job", 1, activeChildren(scope))
+            assertTrue(ticker.isTimerRunning())
+
+            // 两次并发 stop 都不得抛，也不能把 job 留在外面
+            val first = launch(Dispatchers.Default) { ticker.stop() }
+            val second = launch(Dispatchers.Default) { ticker.stop() }
+            first.join()
+            second.join()
+
+            assertFalse(ticker.isTimerRunning())
+            assertEquals(0, activeChildren(scope))
+
+            // 停完再停一次也不抛、不复活
+            ticker.stop()
+            assertEquals("STOPPED", ticker.timerPhaseName)
+            assertFalse(ticker.isTimerRunning())
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `start on a dead scope warns instead of silently doing nothing`() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        // 模拟进程级 scope 已取消（例如 Application 正在退出）
+        scope.cancel()
+        val ticker = newTicker(scope = scope, isMemoryEnabled = { true })
+        val warnings = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val previousSink = Logger.sink
+        Logger.sink = { level, tag, msg, _ ->
+            if (level == "WARN" && tag == "MemoryTicker") warnings += msg
+        }
+        try {
+            ticker.start()
+
+            assertFalse("scope 已死时不可能有计时器在跑", ticker.isTimerRunning())
+            assertTrue(
+                "请求启动但最终没有计时器时必须打 WARN，实际: $warnings",
+                warnings.any { it.contains("未能启动") },
+            )
+        } finally {
+            Logger.sink = previousSink
+        }
+    }
+
+    // ──────────────────────────────────────────────
     //  helpers
     // ──────────────────────────────────────────────
+
+    /** 独立 scope 里还活着的子 job 数，用来断言「到底有几个计时 job 在跑」。 */
+    private fun activeChildren(scope: CoroutineScope): Int =
+        scope.coroutineContext[Job]?.children?.count { it.isActive } ?: 0
+
+    /** 真实时间轮询（runBlocking 内 delay 是真等待）。 */
+    private suspend fun awaitTrue(timeoutMs: Long = 10_000, condition: () -> Boolean) {
+        withTimeout(timeoutMs) {
+            while (!condition()) delay(5)
+        }
+    }
 
     private fun newTicker(scope: CoroutineScope, isMemoryEnabled: () -> Boolean): MemoryTicker {
         return MemoryTicker(
@@ -516,6 +665,8 @@ private class FakeSessionSummaryDao : SessionSummaryDao {
     override suspend fun markProcessed(sessionId: String, now: String) {}
     override suspend fun deleteAll() {}
     override suspend fun deleteById(sessionId: String) {}
+    // 助手被删除时要清掉它名下的摘要；空数据 fake 里没有可删的行。
+    override suspend fun deleteByAssistant(assistantId: String): Int = 0
 }
 
 /** Fake [CompiledSectionDao]: 内存 map 存储,空实现。 */
@@ -562,6 +713,11 @@ private class FakeDailyStateDao : DailyStateDao {
 private class FakeMemoryLlmClient : MemoryLlmClient {
     @Volatile var callTextCount: Int = 0
 
+    /**
+     * 非 null 时 callText 挂在这里，且不响应取消 —— 用来制造「stop 仍卡在等后台任务」的窗口。
+     */
+    @Volatile var hangGate: CompletableDeferred<Unit>? = null
+
     @Volatile var response: String = ""
     override suspend fun callText(
         systemPrompt: String,
@@ -574,6 +730,7 @@ private class FakeMemoryLlmClient : MemoryLlmClient {
         callTextCount++
         // 返回空串让 MemoryCompiler 走 "result 为空 → SKIPPED" 分支
         // 这样 doCompileTodayAndAssemble/doDaily 都能快速完成
+        hangGate?.let { gate -> withContext(NonCancellable) { gate.await() } }
         return response
     }
 }

@@ -131,11 +131,6 @@ class ProactiveRelationRepository(
         dao.incrementSpent(assistantId)
     }
 
-    /** 用户主动来找时回补额度：他来找我说明关系在往前走，额度该松一点。 */
-    suspend fun grantCredit(assistantId: String, amount: Float = 0.5f) {
-        dao.addEarned(assistantId, amount)
-    }
-
     /**
      * 用户说「最近别烦我」。
      *
@@ -193,18 +188,36 @@ class ProactiveOutcomeRepository(
     private val relations: ProactiveRelationRepository,
 ) {
 
-    /** 记一条刚发出去的消息，状态为 PENDING。 */
+    companion object {
+        /**
+         * 发出多久还没任何反应就算过期。
+         *
+         * 一天的尺度是「今天没看到就是没看到」：一条主动消息挂上两三天再收尾，
+         * 学习结果是滞后两三天才拿到的；而太早收尾会把「明天早上才看到」当成没兴趣。
+         */
+        const val EXPIRE_AFTER_HOURS = 24
+
+        /** 同上，毫秒。 */
+        const val EXPIRE_AFTER_MS = EXPIRE_AFTER_HOURS * 3_600_000L
+    }
+
+    /**
+     * 记一条刚发出去的消息，状态为 PENDING。
+     *
+     * @return 新建记录的 id。通知上的「这次不用」按钮靠它回到同一条记录，
+     *         所以不能只写不管 —— 内部生成的主键必须回传给调用方。
+     */
     suspend fun recordSent(
         thought: PendingThoughtEntity?,
         sessionId: String,
         now: Long,
         assistantId: String = "",
         messageId: String? = null,
-    ) {
+    ): String {
+        val id = java.util.UUID.randomUUID().toString()
         dao.upsert(
             ProactiveOutcomeEntity(
-                // 主键内部生成：调用方从来不用它，传进来只是多一个要对的参数。
-                id = java.util.UUID.randomUUID().toString(),
+                id = id,
                 // 牵挂是可选的：现在大多数主动消息来自「接着对话说」，
                 // 并没有对应的账本条目。
                 thoughtId = thought?.id,
@@ -217,6 +230,7 @@ class ProactiveOutcomeRepository(
                 messageId = messageId,
             ),
         )
+        return id
     }
 
     /**
@@ -249,9 +263,32 @@ class ProactiveOutcomeRepository(
             OutcomeState.EXPIRED, OutcomeState.PENDING -> copy(state = state.name)
         }
 
-    /** 找某会话里最近一条还在等反应的主动消息，用于回复检测。 */
+    /** 找某会话里最近一条还在等反应的主动消息，用于回复检测与「打开即已读」。 */
     suspend fun findPendingInSession(sessionId: String): ProactiveOutcomeEntity? =
         dao.findPendingInSession(sessionId)
+
+    /**
+     * 把发出去超过 [EXPIRE_AFTER_MS] 仍然没人理的记录收尾成 EXPIRED。
+     *
+     * 交给 [resolve] 逐条走，而不是直接一条 UPDATE 改状态：收尾也是一次反馈，
+     * 亲密度得跟着掉一点点；只改状态的话，这条「发出去没人理」在关系上等于没发生。
+     *
+     * @return 本次收尾的条数
+     */
+    suspend fun expireOverdue(now: Long): Int {
+        val stale = dao.listPendingBefore(now - EXPIRE_AFTER_MS)
+        stale.forEach { resolve(it.id, OutcomeState.EXPIRED, now) }
+        return stale.size
+    }
+
+    /**
+     * 这些类型里哪些已经被用户用脚投票否决了。
+     *
+     * 一次把候选涉及的类型问完，而不是逐条牵挂查库：候选可能有十几条，
+     * 而类型只有那么几种，按类型判定的结果天然可以复用。
+     */
+    suspend fun unpopularKinds(assistantId: String, kinds: Collection<ThoughtKind>): Set<ThoughtKind> =
+        kinds.filterTo(mutableSetOf()) { isKindUnpopular(assistantId, it) }
 
     suspend fun getRecent(assistantId: String, limit: Int = 20): List<ProactiveOutcomeEntity> =
         dao.getRecent(assistantId, limit)

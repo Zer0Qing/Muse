@@ -16,6 +16,7 @@ import io.zer0.muse.data.promptinjection.PromptInjectionRepository
 import io.zer0.muse.transformer.SystemPromptAssembler
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -134,6 +135,35 @@ class MiniContextBuilderTest {
 
         val joined = result.joinToString("\n") { it.content }
         assertTrue("提示词注入必须生效\n实际内容:\n$joined", joined.contains("回复必须简短"))
+    }
+
+    @Test
+    fun `私信路径的系统指令带上语音标记约定`() = runTest {
+        coEvery {
+            assembler.build(any(), any(), any(), any(), any())
+        } returns listOf(UIMessage(role = MessageRole.SYSTEM, content = "完整系统提示"))
+        coEvery { settingsRepository.getUserProfile() } returns UserProfile()
+
+        val result = builder().buildMessages(assistant(lorebookIds = "[]"), "在吗", voiceMessageEnabled = true)
+
+        val systemText = result.filter { it.role == MessageRole.SYSTEM }.joinToString("\n") { it.content }
+        assertTrue("私信必须下发语音约定\n实际内容:\n$systemText", systemText.contains(voiceMessageInstruction()))
+        assertTrue("标记写法要写清楚", systemText.contains("[语音]") && systemText.contains("[/语音]"))
+        assertEquals("约定排在用户素材之前且素材仍是最后一条", MessageRole.USER, result.last().role)
+    }
+
+    @Test
+    fun `朋友圈路径不带语音标记约定`() = runTest {
+        coEvery {
+            assembler.build(any(), any(), any(), any(), any())
+        } returns listOf(UIMessage(role = MessageRole.SYSTEM, content = "完整系统提示"))
+        coEvery { settingsRepository.getUserProfile() } returns UserProfile()
+
+        val result = builder().buildMessages(assistant(lorebookIds = "[]"), "请发一条朋友圈动态")
+
+        val systemText = result.filter { it.role == MessageRole.SYSTEM }.joinToString("\n") { it.content }
+        assertFalse("朋友圈没有语音出口，不应出现标记\n实际内容:\n$systemText", systemText.contains("[语音]"))
+        assertFalse(systemText.contains(voiceMessageInstruction()))
     }
 
     @Test

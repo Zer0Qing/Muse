@@ -251,6 +251,18 @@
     <string name="settings_asr_provider_system">Система</string>
     <string name="settings_asr_provider_file">Файл (Экспериментальный)</string>
     <string name="settings_asr_api_key">API-ключ</string>
+    <!-- ASR: использовать настройки провайдера -->
+    <string name="settings_asr_follow_provider">Использовать настройки провайдера</string>
+    <string name="settings_asr_follow_provider_subtitle">Адрес и API-ключ берутся из провайдера, модель выбирается вручную</string>
+    <string name="settings_asr_follow_provider_picker">Провайдер</string>
+    <string name="settings_asr_follow_model_picker">Модель</string>
+    <!-- Общие подсказки и уведомление об откате для режима следования -->
+    <string name="settings_speech_follow_unset">Не выбрано</string>
+    <string name="settings_speech_follow_no_models">У этого провайдера нет моделей</string>
+    <string name="settings_speech_follow_fallback_notice">Использованы ручные настройки: %1$s</string>
+    <string name="settings_speech_follow_reason_provider_missing">Выбранный провайдер не найден</string>
+    <string name="settings_speech_follow_reason_provider_disabled">Выбранный провайдер отключён</string>
+    <string name="settings_speech_follow_reason_model_missing">Модель не выбрана</string>
     <string name="settings_asr_hide">Скрывать</string>
     <string name="settings_asr_show">Показывать</string>
     <string name="settings_asr_model">Модель</string>
@@ -293,6 +305,9 @@
     <string name="settings_rag_cloud_api_subtitle">Качество прежде всего, требуется сеть и ключ API</string>
     <string name="settings_rag_local_keyword">Локальные ключевые слова (офлайн)</string>
     <string name="settings_rag_local_keyword_subtitle">Никакая сеть не требуется;</string>
+    <string name="settings_rag_active_backend_section">Активный бэкенд</string>
+    <string name="settings_rag_active_backend_label">Сейчас используется</string>
+    <string name="settings_rag_active_backend_degraded_unknown">Выполнен откат на другой бэкенд; причина не записана</string>
     <string name="settings_rag_cloud_provider_section">Облачный провайдер</string>
     <string name="settings_rag_no_provider_hint">Поставщик еще не настроен.</string>
     <string name="settings_rag_baseurl_not_set">baseUrl не установлен</string>
@@ -457,6 +472,12 @@
     <string name="settings_media_tts_cloud_speed">Скорость синтеза</string>
     <string name="settings_media_tts_response_format">Аудио формат</string>
     <string name="settings_media_tts_save_advanced">Сохранить параметры</string>
+    <!-- Облачный TTS: использовать настройки провайдера -->
+    <string name="settings_media_tts_follow_provider">Использовать настройки провайдера</string>
+    <string name="settings_media_tts_follow_provider_subtitle">Адрес и API-ключ берутся из провайдера, модель выбирается вручную</string>
+    <string name="settings_media_tts_follow_provider_picker">Провайдер</string>
+    <string name="settings_media_tts_follow_model_picker">Модель</string>
+    <string name="settings_media_tts_follow_voice_hint">Следование берёт только адрес и API-ключ; совместимость голоса с выбранным провайдером проверьте сами</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Пользовательская тема</string>
     <string name="settings_theme_custom_add">Добавить тему</string>
@@ -494,6 +515,7 @@
     <string name="settings_agent_test_message_subtitle">Отправить одно как настоящее проактивное сообщение (показывается как уведомление)</string>
     <string name="settings_agent_test_generating">Создание…</string>
     <string name="settings_agent_test_failed">Сбой теста: %1$s</string>
+    <string name="settings_agent_test_already_running">Предыдущее проактивное сообщение всё ещё создаётся, попробуйте позже</string>
     <string name="settings_agent_daily_summary_subtitle">Создает сводку чата ежедневно в 09:00, 12:00, 21:00 и 00:00; переключатель управляет только уведомлениями</string>
     <string name="settings_agent_current_model_hint">Глобально по умолчанию (общий для основного чата / Agent)</string>
     <string name="settings_agent_keep_alive_title">Фоновая работа</string>

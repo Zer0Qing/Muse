@@ -62,12 +62,12 @@ class MemoryReflectionRunner(
         val contradictions = resultOf { store.detectContradictions(scope, spaceId) }
             .onError { msg, t -> Logger.w(TAG, "反思矛盾检测失败: ${t?.message ?: msg}") }
             .getOrNull() ?: emptyList()
-        // P2-32: 矛盾不再"空转"(只打日志) — 经 sink 落库,记忆中心 UI 可见可清
+        // P2-32: 矛盾不再“空转”(只打日志) — 经 sink 落库,记忆中心 UI 可见可清
+        // v18: 空结果也要落库 —— 写入时已被 supersedes 仲裁掉的冲突不再出现在清单里,
+        // 否则用户会对着已经处理完的矛盾反复确认(清空本身不会删任何记忆)。
         contradictionSink?.let { sink ->
-            if (contradictions.isNotEmpty()) {
-                resultOf { sink(scope, spaceId, contradictions) }
-                    .onError { msg, t -> Logger.w(TAG, "矛盾清单落库失败: ${t?.message ?: msg}") }
-            }
+            resultOf { sink(scope, spaceId, contradictions) }
+                .onError { msg, t -> Logger.w(TAG, "矛盾清单落库失败: ${t?.message ?: msg}") }
         }
 
         // 4. 重复确认晋升(同实体 ≥2 条 → 重要度 +1)

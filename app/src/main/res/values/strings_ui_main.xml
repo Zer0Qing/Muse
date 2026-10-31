@@ -228,17 +228,60 @@
 
     <!-- ===== 设置页 SettingsScreen ===== -->
     <string name="settings_screen_title">设置</string>
-    <string name="settings_screen_group_assistants">助手与人设</string>
-    <string name="settings_screen_group_models">模型与推理</string>
+    <!-- 设置页主列表按 14 组组织，每组不超过 5 项。以下键沿用旧键名，文案已改为新组名；
+         chat_display / data_privacy / proactive / storage / migrate 已不再使用，仅保留键。 -->
+    <string name="settings_screen_group_assistants">对话与角色</string>
+    <string name="settings_screen_group_chat_input">聊天与输入</string>
+    <string name="settings_screen_group_models">模型与供应商</string>
     <string name="settings_screen_group_chat_display">对话与表达</string>
+    <string name="settings_screen_group_tools">工具与检索</string>
+    <string name="settings_screen_group_voice">语音</string>
+    <string name="settings_screen_group_media">图像与翻译</string>
     <string name="settings_screen_group_memory">记忆与知识</string>
     <string name="settings_screen_group_data_privacy">数据与备份</string>
-    <string name="settings_screen_group_tools">能力与工具</string>
-    <string name="settings_screen_group_about">关于与诊断</string>
-    <string name="settings_screen_group_connection">连接、账号与安全</string>
+    <string name="settings_screen_group_connection">连接</string>
+    <string name="settings_screen_group_automation">自动化</string>
     <string name="settings_screen_group_proactive">主动与自动化</string>
-    <string name="settings_screen_group_voice_media">语音与多媒体</string>
-    <string name="settings_screen_group_look">界面与显示</string>
+    <string name="settings_screen_group_look">外观</string>
+    <string name="settings_screen_group_data">数据</string>
+    <string name="settings_screen_group_privacy">隐私与清理</string>
+    <string name="settings_screen_group_about">关于与帮助</string>
+    <string name="settings_screen_group_developer">开发者</string>
+    <!-- ===== 设置一级分类（首页 12 行；顺序与 SettingsCatalog 一致） ===== -->
+    <string name="settings_group_assistants">助手与角色</string>
+    <string name="settings_group_assistants_desc">用户资料、助手、角色资源与 Agent</string>
+    <string name="settings_group_chat">聊天</string>
+    <string name="settings_group_chat_desc">聊天显示、表情包、快速记录与分享</string>
+    <string name="settings_group_models">模型与供应商</string>
+    <string name="settings_group_models_desc">供应商与模型、任务路由、供应商插件</string>
+    <string name="settings_group_tools">工具与权限</string>
+    <string name="settings_group_tools_desc">可用工具、权限向导与联网搜索</string>
+    <string name="settings_group_voice">语音</string>
+    <string name="settings_group_voice_desc">朗读音色、语音识别与语音克隆</string>
+    <string name="settings_group_image">图像与视觉</string>
+    <string name="settings_group_image_desc">图片视频生成、视觉辅助与翻译</string>
+    <string name="settings_group_memory">记忆与知识</string>
+    <string name="settings_group_memory_desc">记忆中心与知识库检索</string>
+    <string name="settings_group_connection">连接</string>
+    <string name="settings_group_connection_desc">连接中心、消息渠道、网页版与 MCP</string>
+    <string name="settings_group_automation">自动化</string>
+    <string name="settings_group_automation_desc">主动消息、定时任务、通知监听与后台常驻</string>
+    <string name="settings_group_appearance">外观</string>
+    <string name="settings_group_appearance_desc">主题字号与小手机</string>
+    <string name="settings_group_data_privacy">数据与隐私</string>
+    <string name="settings_group_data_privacy_desc">数据、工作区、备份、导入与隐私开关</string>
+    <string name="settings_group_about_developer">关于与开发者</string>
+    <string name="settings_group_about_developer_desc">教程、版本更新、统计与诊断日志</string>
+    <string name="settings_group_data_storage">数据与备份</string>
+    <string name="settings_group_data_storage_desc">数据管理、工作区、备份、导入与归档聊天</string>
+    <string name="settings_group_privacy_security">隐私与安全</string>
+    <string name="settings_group_privacy_security_desc">隐私脱敏开关与分享安全</string>
+    <string name="settings_group_about">关于</string>
+    <string name="settings_group_about_desc">教程、版本信息与更新检查</string>
+    <string name="settings_group_developer">开发者</string>
+    <string name="settings_group_developer_desc">统计、实验性开关、调试与审计日志</string>
+    <string name="settings_group_section_about">关于</string>
+    <string name="settings_group_section_developer">开发者</string>
     <string name="settings_screen_appearance_label">外观</string>
     <string name="settings_screen_appearance_desc">主题 / 字号</string>
     <string name="settings_screen_chat">聊天</string>
@@ -251,6 +294,24 @@
     <string name="settings_screen_data_backup_desc">云备份 / Web 服务器</string>
     <string name="settings_screen_data_import">数据导入</string>
     <string name="settings_screen_data_import_desc">从 RikkaHub / Kelivo 迁移</string>
+    <!-- 网页版访问（设置 → 连接）：地址 / PIN / 二维码 -->
+    <string name="settings_screen_web_access">网页版访问</string>
+    <string name="settings_screen_web_access_desc">地址 / PIN / 二维码，扫一下就能连</string>
+    <string name="settings_web_access_intro">在 iPhone 或电脑的浏览器里打开下面的地址，输入 PIN 就能用网页版。</string>
+    <string name="settings_web_access_enable">启用网页版</string>
+    <string name="settings_web_access_enable_subtitle">关闭后其他设备立即断开，端口随即释放</string>
+    <string name="settings_web_access_lan">允许局域网访问</string>
+    <string name="settings_web_access_lan_on">同一 Wi-Fi 下的手机、电脑都能打开</string>
+    <string name="settings_web_access_lan_off">仅本机可访问</string>
+    <string name="settings_web_access_local_only_hint">仅本机可访问，其他设备扫不到这个二维码</string>
+    <string name="settings_web_access_no_ip">没拿到局域网 IP：先连上 Wi-Fi，或检查路由器是否隔离了设备</string>
+    <string name="settings_web_access_scan_hint">用手机相机扫一下即可打开</string>
+    <string name="settings_web_access_first_login_hint">首次打开需要输入上方的 6 位 PIN</string>
+    <string name="settings_web_access_pin_regenerated">新 PIN：%1$s；其他设备需要重新登录</string>
+    <string name="settings_web_access_qr_cd">网页版访问地址二维码</string>
+    <string name="settings_web_access_tip_iphone">iPhone 用 Safari 打开后点「分享 → 添加到主屏幕」，即可全屏使用</string>
+    <string name="settings_web_access_tip_same_wifi">手机和这台机器必须在同一个 Wi-Fi 下</string>
+    <string name="settings_web_access_tip_disable">关掉开关后，其他设备会立即断开</string>
     <string name="settings_screen_archived_desc">查看与恢复已归档的会话</string>
     <string name="settings_screen_rag">知识库检索</string>
     <string name="settings_screen_rag_desc">RAG 配置 / Embedding / 分块参数</string>
@@ -555,6 +616,9 @@
     <string name="skill_operation_failed">操作失败： %1$s</string>
     <string name="skill_unnamed">（未命名）</string>
     <string name="skill_enabled">已启用</string>
+    <string name="skill_bulk_summary">自定义技能 %1$d 个，已启用 %2$d 个</string>
+    <string name="skill_bulk_disable_all">全部停用</string>
+    <string name="skill_bulk_enable_all">全部启用</string>
     <string name="skill_disabled">已禁用</string>
     <string name="skill_built_in">内置</string>
     <string name="skill_built_in_seed">内置(seed)</string>
@@ -683,7 +747,7 @@
     <string name="free_model_service_unavailable">免费额度服务不可用，请填写 API Key 或等待服务恢复</string>
 
     <!-- ===== P2-10: Provider 插件管理(ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">插件管理</string>
+    <string name="provider_plugins_title">供应商插件</string>
     <string name="muse_plugins_external">外部插件</string>
     <string name="muse_plugins_manage">插件管理</string>
     <string name="muse_plugins_imported">插件包已安装</string>
@@ -700,7 +764,11 @@
     <string name="muse_plugins_install_confirm_title">确认安装：%1$s</string>
     <string name="muse_plugins_install_confirm_summary">版本 %1$s · 作者 %2$s · 外部代码将在受限 JS 沙盒中运行</string>
     <string name="muse_plugins_unknown_author">未知</string>
-    <string name="muse_plugins_install_confirm_capabilities">声明能力：%1$s</string>
+    <string name="muse_plugins_install_confirm_capabilities">声明使用的能力：%1$s</string>
+    <string name="muse_plugins_capabilities_disclaimer">这份声明只说明插件打算用到什么，不限制它安装后实际能做什么。</string>
+    <string name="muse_plugins_global_switch_title">插件总开关</string>
+    <string name="muse_plugins_global_switch_desc">关闭后所有插件都不执行，安装与配置保留</string>
+    <string name="muse_plugins_runtime_label">运行时：%1$s</string>
     <string name="muse_plugins_install_confirm_tools">提供工具：%1$s</string>
     <string name="muse_plugins_install_confirm_code">入口 %1$d 字节 · 附加文件 %2$d 个 · 入口 SHA-256：%3$s</string>
     <string name="muse_plugins_install_confirm_action">确认安装并启用</string>
@@ -810,6 +878,8 @@
     <string name="voice_cloning_list_title">已克隆语音</string>
     <string name="voice_cloning_delete_confirm">确认删除此克隆语音？</string>
     <string name="voice_cloning_success">克隆成功</string>
+    <string name="voice_cloning_key_saved">音色已设为当前，API Key 已保存</string>
+    <string name="voice_cloning_key_from_provider">音色已设为当前，API Key 沿用供应商配置</string>
     <string name="voice_cloning_failed">克隆失败：%1$s</string>
     <string name="voice_cloning_audio_required">请先选择样本音频</string>
 
@@ -893,4 +963,12 @@
     <string name="workspace_empty_subtitle">助手在对话中生成或保存的文件会出现在这里</string>
     <string name="settings_screen_group_storage">存储与空间</string>
     <string name="settings_screen_group_migrate">备份与迁移</string>
+
+    <string name="workspace_mounts_title">挂载管理</string>
+    <string name="workspace_mount_add">添加目录</string>
+    <string name="workspace_mount_read_only">只读</string>
+    <string name="workspace_mount_remove">移除</string>
+    <string name="workspace_mount_added">已挂载 %1$s</string>
+    <string name="workspace_mount_failed">挂载失败：%1$s</string>
+    <string name="workspace_read_only_hint">只读挂载，不能修改里面的内容</string>
 </resources>

@@ -41,6 +41,15 @@ import java.util.zip.ZipOutputStream
 @Config(sdk = [33])
 class PluginSkinListingTest {
 
+    /**
+     * 用例里显式给出 App 版本。
+     *
+     * 插件安装会校验 manifest 的 minAppVersion，而 [PluginManager] 默认取
+     * BuildConfig.VERSION_NAME：本地不带 -PversionName 构建时那是哨兵值 0.0.0-dev，
+     * 比插件要求的 1.0.0 小，用例就会因“构建参数没带”而失败。
+     */
+    private val testAppVersion = "2.6.17"
+
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     /** 每个插件包使用独立发行者 ID,避免同一测试方法内多把公钥争抢同一信任根条目。 */
@@ -61,7 +70,7 @@ class PluginSkinListingTest {
     fun installedUiSkinIsListedAndReloadsWithoutJsEntryFile() = runBlocking {
         val trustFile = File(context.cacheDir, "trust_${System.nanoTime()}.json")
         val trustStore = PluginTrustStore(trustFile)
-        val manager = PluginManager(context, skillRepoMock(), trustStore)
+        val manager = PluginManager(context, skillRepoMock(), trustStore, appVersionName = testAppVersion)
         val skin = bubbleSkin("aurora-bubble")
         val zip = signedZip(
             id = "skin-pack",
@@ -99,7 +108,7 @@ class PluginSkinListingTest {
     fun pluginWithoutEntryFileIsStillRejectedForNonSkinKinds() = runBlocking {
         val trustFile = File(context.cacheDir, "trust_${System.nanoTime()}.json")
         val trustStore = PluginTrustStore(trustFile)
-        val manager = PluginManager(context, skillRepoMock(), trustStore)
+        val manager = PluginManager(context, skillRepoMock(), trustStore, appVersionName = testAppVersion)
         val zip = signedZip(
             id = "tool-pack",
             kind = "tool",
@@ -125,7 +134,7 @@ class PluginSkinListingTest {
     fun invalidPluginSkinsAreFilteredOut() = runBlocking {
         val trustFile = File(context.cacheDir, "trust_${System.nanoTime()}.json")
         val trustStore = PluginTrustStore(trustFile)
-        val manager = PluginManager(context, skillRepoMock(), trustStore)
+        val manager = PluginManager(context, skillRepoMock(), trustStore, appVersionName = testAppVersion)
 
         // 对比度不达标
         installTrusted(
@@ -173,7 +182,7 @@ class PluginSkinListingTest {
     fun nonSkinPluginsProduceNoSkinEntry() = runBlocking {
         val trustFile = File(context.cacheDir, "trust_${System.nanoTime()}.json")
         val trustStore = PluginTrustStore(trustFile)
-        val manager = PluginManager(context, skillRepoMock(), trustStore)
+        val manager = PluginManager(context, skillRepoMock(), trustStore, appVersionName = testAppVersion)
         installTrusted(
             manager,
             signedZip(
@@ -197,7 +206,7 @@ class PluginSkinListingTest {
     fun disabledOrUninstalledPluginSkinStopsBeingUsable() = runBlocking {
         val trustFile = File(context.cacheDir, "trust_${System.nanoTime()}.json")
         val trustStore = PluginTrustStore(trustFile)
-        val manager = PluginManager(context, skillRepoMock(), trustStore)
+        val manager = PluginManager(context, skillRepoMock(), trustStore, appVersionName = testAppVersion)
         val zip = signedZip(
             id = "skin-pack",
             kind = PluginSecurityGate.UI_SKIN_KIND,
@@ -234,7 +243,7 @@ class PluginSkinListingTest {
     fun revokedTrustMakesInstalledSkinUnavailable() = runBlocking {
         val trustFile = File(context.cacheDir, "trust_${System.nanoTime()}.json")
         val trustStore = PluginTrustStore(trustFile)
-        val manager = PluginManager(context, skillRepoMock(), trustStore)
+        val manager = PluginManager(context, skillRepoMock(), trustStore, appVersionName = testAppVersion)
         val zip = signedZip(
             id = "skin-pack",
             kind = PluginSecurityGate.UI_SKIN_KIND,
@@ -260,7 +269,7 @@ class PluginSkinListingTest {
     fun unsignedDraftSkinNeverBecomesUsable() = runBlocking {
         val trustFile = File(context.cacheDir, "trust_${System.nanoTime()}.json")
         val trustStore = PluginTrustStore(trustFile)
-        val manager = PluginManager(context, skillRepoMock(), trustStore)
+        val manager = PluginManager(context, skillRepoMock(), trustStore, appVersionName = testAppVersion)
         val zip = unsignedSkinZip(
             id = "draft-skin",
             extraFiles = mapOf(
@@ -284,7 +293,7 @@ class PluginSkinListingTest {
     fun registryMutationsBumpSkinRevision() = runBlocking {
         val trustFile = File(context.cacheDir, "trust_${System.nanoTime()}.json")
         val trustStore = PluginTrustStore(trustFile)
-        val manager = PluginManager(context, skillRepoMock(), trustStore)
+        val manager = PluginManager(context, skillRepoMock(), trustStore, appVersionName = testAppVersion)
         val zip = signedZip(
             id = "skin-pack",
             kind = PluginSecurityGate.UI_SKIN_KIND,

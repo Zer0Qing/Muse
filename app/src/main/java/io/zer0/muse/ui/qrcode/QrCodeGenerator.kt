@@ -14,7 +14,7 @@ import io.zer0.common.Logger
 /**
  * v1.97: 二维码工具 — Provider 配置的二维码生成与解析。
  *
- * 既有实现 的 QR code 分享设计,格式:
+ * 格式:
  * ```
  * ai-provider:v1:<Base64(JSON(ProviderConfig))>
  * ```

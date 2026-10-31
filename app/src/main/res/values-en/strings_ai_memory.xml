@@ -175,6 +175,10 @@
     <string name="memory_center_filter_time_90">Last 90 days</string>
     <string name="memory_center_filter_time_all">All time</string>
     <string name="memory_delete_confirm_title">Delete memory</string>
+    <string name="memory_menu_multi_select">Select multiple</string>
+    <string name="memory_bulk_delete_confirm_title">Delete selected memories</string>
+    <string name="memory_bulk_delete_item_name">%1$d memories</string>
+    <string name="memory_bulk_delete_consequence">This deletes %1$d memories and cannot be undone.</string>
     <string name="memory_pin_failed">Failed to pin; please retry</string>
     <string name="memory_stats_session_live">Session %1$d</string>
     <string name="memory_stream_mode_list">List</string>
@@ -202,4 +206,28 @@
     <string name="memory_group_chat_clear_confirm_title">Clear all group chat memories</string>
     <string name="memory_group_chat_clear_item_name">all group chat memories</string>
     <string name="memory_group_chat_clear_consequence">Every group chat summary will be deleted. This cannot be undone</string>
+
+    <!-- Multi-select merge: model drafts, user confirms, then it is written -->
+    <string name="memory_center_merge_action">Merge</string>
+    <string name="memory_center_merge_title">Merge memories</string>
+    <string name="memory_center_merge_sources_title">Original memories (%1$d)</string>
+    <string name="memory_center_merge_result_label">Merged result</string>
+    <string name="memory_center_merge_confirm">Confirm merge</string>
+    <string name="memory_center_merge_running">Merging…</string>
+
+    <!-- Memory status badges: the list and the detail sheet share one judgement -->
+    <string name="memory_status_merged">Merged</string>
+    <string name="memory_status_suppressed">Faded out</string>
+    <string name="memory_status_superseded">Superseded</string>
+    <string name="memory_status_merged_detail">Merged into another memory, so it is no longer recalled automatically. The text stays here for reference.</string>
+    <string name="memory_status_suppressed_detail">Faded out: unused long enough to leave automatic recall. The row stays, and it comes back once it is matched again or marked more important.</string>
+    <string name="memory_status_superseded_detail">Replaced by a newer memory, so it is no longer used as the current fact.</string>
+
+    <!-- Merge failure messages -->
+    <string name="memory_merge_error_min_items">Select at least two memories to merge</string>
+    <string name="memory_merge_error_no_model">No model configured, cannot merge</string>
+    <string name="memory_merge_error_mixed_scope">Only memories in the same space can be merged</string>
+    <string name="memory_merge_error_generate_failed">Could not merge these memories</string>
+    <string name="memory_merge_error_empty_result">The merged text cannot be empty</string>
+    <string name="memory_merge_error_commit_failed">Merge failed, memories unchanged</string>
 </resources>

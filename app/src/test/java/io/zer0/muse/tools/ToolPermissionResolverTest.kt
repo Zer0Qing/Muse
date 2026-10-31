@@ -2,6 +2,7 @@ package io.zer0.muse.tools
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -364,5 +365,34 @@ class ToolPermissionResolverTest {
         assertTrue(ToolPermissionResolver.isUnsafeCommand("ls; rm -rf /")) // 命令分隔符
         assertTrue(ToolPermissionResolver.isUnsafeCommand("cat /etc/passwd | sh")) // 管道
         assertFalse(ToolPermissionResolver.isUnsafeCommand("ls")) // 安全命令放行
+    }
+
+    @Test
+    fun `isUnsafeCommand also catches damage the syntax and name checks miss`() {
+        // 第 0 步补的地板:既不含任何禁用语法字符,也不在可执行文件黑名单里
+        // (`dd` 不在黑名单、`mkfs.ext4` 也不是 `mkfs`),但破坏力已经够拦下。
+        assertTrue(ToolPermissionResolver.isUnsafeCommand("dd if=/dev/zero of=/dev/block/sda"))
+        assertTrue(ToolPermissionResolver.isUnsafeCommand("mkfs.ext4 /dev/block/sda1"))
+        assertTrue(ToolPermissionResolver.isUnsafeCommand("echo pwned > /system/etc/hosts"))
+    }
+
+    @Test
+    fun `read only sandbox verbs are not caught by the new floor`() {
+        // 地板只增加拒绝,不能反过来误杀 execute_shell 白名单里的命令形态。
+        listOf(
+            "ls", "cat notes.txt", "df", "du -sh", "echo hi", "whoami", "pwd", "tree",
+            "stat notes.txt", "find . -name x", "grep TODO notes.txt", "head -n 5 notes.txt",
+        ).forEach { command ->
+            assertFalse("白名单命令不该被地板误杀:$command", ToolPermissionResolver.isUnsafeCommand(command))
+        }
+    }
+
+    @Test
+    fun `two tiers stay apart from the read-only judgement`() {
+        // 管道/重定向在只读沙箱上照旧判为不安全,在通用终端第一档里不受影响 —— 两档不能合回一张判据。
+        listOf("cat notes.txt | grep x", "ls -la > listing.txt", "echo \$PATH | wc -l").forEach { command ->
+            assertTrue("execute_shell 仍应保持严:$command", ToolPermissionResolver.isUnsafeCommand(command))
+            assertNull("terminal_exec 第一档不该拦它:$command", ShellCommandBoundary.forbidReason(command, null))
+        }
     }
 }

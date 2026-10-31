@@ -150,6 +150,13 @@ class ShellService : IShellService.Stub() {
         }
     }
 
+    /**
+     * 读取一条命令输出流，最多保留 [MAX_OUTPUT_BYTES] 字节。
+     *
+     * 注意：本方法按字节保留**头部**，超限时的尾部会被丢掉。命令类输出（报错、失败用例、
+     * 退出状态都在最后几行）请走 `ToolOutputCapture`，它按字符保留尾部并能给出分段读取的引用；
+     * 不要拿本方法去接命令输出，否则结论会先在这里被截掉。
+     */
     private fun readStream(input: java.io.InputStream): String {
         val output = ByteArrayOutputStream()
         val buffer = ByteArray(8 * 1024)

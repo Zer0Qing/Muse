@@ -40,6 +40,27 @@ interface FactDao {
     @Query("SELECT * FROM facts WHERE session_id = :sessionId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     suspend fun getBySession(sessionId: String): List<FactEntity>
 
+    /**
+     * 会话被删除时清掉它产生的全部事实(含已出场/已合并的行)。
+     *
+     * 逐行删除只在一条会话的事实很少时才便宜;会话级清理一次删完,再按行号清派生数据。
+     *
+     * @return 实际删除的行数
+     */
+    @Query("DELETE FROM facts WHERE session_id = :sessionId")
+    suspend fun deleteBySession(sessionId: String): Int
+
+    /**
+     * 助手被删除时清掉该作用域在本库的全部事实。
+     *
+     * 子助手的行一般在 `facts_<id>.db` 里,但主库仍可能残留同 scope 的历史行,
+     * 两个库都要清,否则记忆页还能读到已删助手的事实。
+     *
+     * @return 实际删除的行数
+     */
+    @Query("DELETE FROM facts WHERE scope = :scope")
+    suspend fun deleteAllByScope(scope: String): Int
+
     @Query("SELECT COUNT(*) FROM facts")
     suspend fun count(): Int
 
@@ -95,6 +116,62 @@ interface FactDao {
      */
     @Query("UPDATE facts SET hit_count = hit_count + 1 WHERE id IN (:ids)")
     suspend fun incrementHitCount(ids: List<Long>): Int
+
+    /**
+     * v17: 命中/访问加成 —— 把持久分数加一个量级并重置衰减时钟,同时清除出场标记。
+     *
+     * 上限 [cap] 防止反复命中把分数堆到无意义高位;只处理传入的 id,
+     * 未出场的行传进来也只是补一次命中加成(与命中重置衰减时钟同语义)。
+     */
+    @Query("UPDATE facts SET score = MIN(score + :bonus, :cap), score_updated_at = :updatedAt, suppressed_at = NULL WHERE id IN (:ids)")
+    suspend fun boostScores(ids: List<Long>, bonus: Float, cap: Float, updatedAt: String): Int
+
+    /**
+     * v18: 已被取代的旧记忆 id —— 被其他行的 supersedes_id 指向的行。
+     *
+     * 召回/注入路径要判断“这条记忆是否已经让位”,这类行通常只有几条,
+     * 所以只取需要的列,不用整表映射换一个集合。
+     * [scope] / [spaceId] 传 null 表示不限(与 [getAll] 的全作用域语义一致)。
+     */
+    @Query(
+        """
+        SELECT supersedes_id FROM facts
+        WHERE supersedes_id IS NOT NULL
+          AND (:scope IS NULL OR scope = :scope)
+          AND (:spaceId IS NULL OR space_id = :spaceId)
+    """,
+    )
+    suspend fun getSupersededIds(scope: String?, spaceId: String?): List<Long>
+
+    /**
+     * v19: 已被合并进其他事实的行 id —— 这些行不参与自动召回、不进编译投影。
+     *
+     * 与 [getSupersededIds] 的区别: 那里取的是“被指向的旧 id”(需要外部集合运算),
+     * 这里取的是自己带 merged_into_id 的行 —— 召回过滤直接看“本行是否在集合里”。
+     * 被指向的新行(合并产物)不在本集合里,正常参与召回。
+     * 只取 id 列,不映射整行;[scope] / [spaceId] 传 null 表示不限。
+     */
+    @Query(
+        """
+        SELECT id FROM facts
+        WHERE merged_into_id IS NOT NULL
+          AND (:scope IS NULL OR scope = :scope)
+          AND (:spaceId IS NULL OR space_id = :spaceId)
+    """,
+    )
+    suspend fun getMergedIds(scope: String?, spaceId: String?): List<Long>
+
+    /** v19: 某条合并事实聚合了哪些原始行(按 id 升序,供 UI 展示“由 N 条合并”)。 */
+    @Query("SELECT * FROM facts WHERE merged_into_id = :factId ORDER BY id ASC")
+    suspend fun getMergedChildren(factId: Long): List<FactEntity>
+
+    /** v19: 把一组源事实标记为“已合并进 [mergedIntoId]”。 */
+    @Query("UPDATE facts SET merged_into_id = :mergedIntoId WHERE id IN (:ids)")
+    suspend fun updateMergedInto(ids: List<Long>, mergedIntoId: Long): Int
+
+    /** v19: 撤销合并 —— 清掉指向 [mergedIntoId] 的标记。 */
+    @Query("UPDATE facts SET merged_into_id = NULL WHERE merged_into_id = :mergedIntoId")
+    suspend fun clearMergedInto(mergedIntoId: Long): Int
 
     /** v5: 全字段更新(用于合并去重后替换内容)。 */
     @Query(
@@ -242,6 +319,69 @@ interface FactDao {
         "DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at < :nowISO AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)",
     )
     suspend fun deleteExpired(nowISO: String, scope: String? = null, spaceId: String? = null): Int
+
+    /**
+     * v17: 衰减退场候选 —— 只取结算需要的列。
+     *
+     * - 关键事实(importance=2)与置顶事实不参与衰减,因此不出现在候选里;
+     * - `refAt`: 本轮衰减的起算时间。自上次结算后又被命中(last_hit_at 比 score_updated_at 新)
+     *   时取 last_hit_at(命中重置时钟),否则取上次结算时间,首次结算回退到 created_at;
+     * - `hitSinceDecay`: 1 表示"自上次结算后又被引用过",本轮需要补 [boostScores] 同等的命中加成。
+     */
+    @Query(
+        """
+        SELECT id, score,
+               CASE
+                 WHEN last_hit_at IS NOT NULL AND (score_updated_at IS NULL OR last_hit_at > score_updated_at)
+                   THEN last_hit_at
+                 ELSE COALESCE(score_updated_at, created_at)
+               END AS refAt,
+               CASE
+                 WHEN last_hit_at IS NOT NULL AND (score_updated_at IS NULL OR last_hit_at > score_updated_at)
+                   THEN 1 ELSE 0
+               END AS hitSinceDecay
+        FROM facts
+        WHERE importance < 2 AND pinned_at IS NULL
+          AND (:scope IS NULL OR scope = :scope)
+          AND (:spaceId IS NULL OR space_id = :spaceId)
+    """,
+    )
+    suspend fun getDecayCandidates(scope: String?, spaceId: String?): List<DecayCandidate>
+
+    /** v17: 落库本轮衰减分数(不动出场标记)。 */
+    @Query("UPDATE facts SET score = :score, score_updated_at = :updatedAt WHERE id = :id")
+    suspend fun updateDecayedScore(id: Long, score: Float, updatedAt: String): Int
+
+    /**
+     * v17: 阈值出场 —— 分数低于 [threshold] 的普通/未置顶事实写入出场时间。
+     *
+     * 只影响“是否参与召回”,不删行。返回本轮新出场的条数。
+     */
+    @Query(
+        """
+        UPDATE facts SET suppressed_at = :at
+        WHERE suppressed_at IS NULL AND importance < 2 AND pinned_at IS NULL AND score < :threshold
+          AND (:scope IS NULL OR scope = :scope)
+          AND (:spaceId IS NULL OR space_id = :spaceId)
+    """,
+    )
+    suspend fun suppressBelowThreshold(at: String, threshold: Float, scope: String?, spaceId: String?): Int
+
+    /**
+     * v17: 阈值回场 —— 分数回昇到 [threshold] 以上(或改为关键/置顶)的事实重新进入召回。
+     *
+     * 配置调低阈值/关闭遗忘速度后,下一轮结算即可把已出场的记忆成批拉回。
+     */
+    @Query(
+        """
+        UPDATE facts SET suppressed_at = NULL
+        WHERE suppressed_at IS NOT NULL
+          AND (score >= :threshold OR importance >= 2 OR pinned_at IS NOT NULL)
+          AND (:scope IS NULL OR scope = :scope)
+          AND (:spaceId IS NULL OR space_id = :spaceId)
+    """,
+    )
+    suspend fun releaseAboveThreshold(threshold: Float, scope: String?, spaceId: String?): Int
 
     /**
      * 全文搜索(LIKE,兼容所有 ROM)。
@@ -468,7 +608,21 @@ data class FactTagSearchRow(
     val scope: String = "main",
     @androidx.room.ColumnInfo(name = "space_id")
     val spaceId: String = "default",
+    @androidx.room.ColumnInfo(name = "score")
+    val score: Float = 10f,
+    @androidx.room.ColumnInfo(name = "suppressed_at")
+    val suppressedAt: String? = null,
     val matchCount: Int,
+)
+
+/** v17: 衰减结算候选行(只含计算所需列)。 */
+data class DecayCandidate(
+    val id: Long,
+    val score: Float,
+    /** 本轮衰减起算时间 ISO 8601。 */
+    val refAt: String?,
+    /** 1 = 自上次结算后又被命中/合并过。 */
+    val hitSinceDecay: Int = 0,
 )
 
 /** FTS rebuild 用轻量行。 */

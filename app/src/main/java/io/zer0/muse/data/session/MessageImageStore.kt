@@ -135,6 +135,10 @@ class MessageImageStore(
     /**
      * 删除指定消息的所有图片文件(删除消息时调用,避免孤儿文件)。
      * 文件不存在静默忽略。
+     *
+     * 扫描的是 `{messageId}_` 前缀，所以除了本类落盘的 `{messageId}_{idx}_{hash}.bin`，
+     * 也会消掉 Web 端为内联 base64 生成的 `{messageId}_inline_{hash}.{ext}`（见
+     * [io.zer0.muse.web.HostMediaStore]）—— 这两类文件都只服务于那一条消息。
      */
     fun deleteByMessageId(messageId: String) {
         runCatching {

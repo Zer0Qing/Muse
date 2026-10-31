@@ -1,9 +1,9 @@
 package io.zer0.muse.tools
 
 import android.content.Context
-import io.zer0.common.Logger
 import io.zer0.muse.data.schedule.ScheduledTaskEntity
 import io.zer0.muse.data.session.MuseDb
+import io.zer0.muse.schedule.ScheduledTaskRunner
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -17,32 +17,6 @@ class ScheduledTaskToolsImpl(private val context: Context) {
     private val FMT_DATETIME_MIN = ThreadLocal.withInitial { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
 
     // ── v1.0.17: 定时任务工具 ──────────────────────────────────────────
-
-    /**
-     * 计算下次执行时间(简化版,按 ScheduledTaskRunner.computeNextRun)。
-     * - once: 立即(返回 now,由下一轮轮询执行)
-     * - hourly/daily/weekly: now + 固定间隔
-     * - cron: CronExpression 解析;空串或解析失败返回 0
-     * - 未知: 默认按 daily
-     */
-    fun computeNextRun(interval: String, cronExpr: String, now: Long): Long {
-        return when (interval) {
-            "once" -> now
-            "hourly" -> now + 3_600_000L
-            "daily" -> now + 86_400_000L
-            "weekly" -> now + 604_800_000L
-            "cron" -> {
-                if (cronExpr.isBlank()) return 0
-                try {
-                    io.zer0.muse.schedule.CronExpression.parse(cronExpr).nextRunAfter(now)
-                } catch (e: Exception) {
-                    Logger.w("ToolRegistry", "Invalid cron expr '$cronExpr': ${e.message}")
-                    0
-                }
-            }
-            else -> now + 86_400_000L
-        }
-    }
 
     /** 格式化时间戳为可读字符串(<=0 视为已禁用)。 */
     fun formatTimestamp(ts: Long): String {
@@ -94,7 +68,7 @@ class ScheduledTaskToolsImpl(private val context: Context) {
             interval = interval,
             cronExpr = cronExpr,
             enabled = true,
-            nextRunAt = computeNextRun(interval, cronExpr, now),
+            nextRunAt = ScheduledTaskRunner.initialNextRunAt(interval, cronExpr, now),
             createdAt = now,
             updatedAt = now,
             actionType = actionType,
@@ -146,7 +120,7 @@ class ScheduledTaskToolsImpl(private val context: Context) {
         val newConditionJson = conditionUpdate.json
         // 间隔或 cron 表达式变化时重新计算下次执行时间;仅切换 enabled 不重算
         val nextRunAt = if (interval != existing.interval || cronExpr != existing.cronExpr) {
-            computeNextRun(interval, cronExpr, now)
+            ScheduledTaskRunner.initialNextRunAt(interval, cronExpr, now)
         } else {
             existing.nextRunAt
         }

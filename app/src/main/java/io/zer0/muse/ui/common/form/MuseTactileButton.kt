@@ -38,7 +38,7 @@ import io.zer0.muse.ui.theme.MuseMotion
  *  - [MuseIconContainer.Solid] 主题色圆底，主操作
  *  - [MuseIconContainer.Neutral] 中性底，未选中/次要
  *
- * 按压反馈沿用既有实现：图标颜色渐变 (200ms easeOutCubic) 偏移 35%，
+ * 按压反馈:图标颜色渐变 (200ms easeOutCubic) 偏移 35%，
  * 有底色时叠加 0.92x 缩放；不出现 Material 涟漪。
  *
  * 用法:

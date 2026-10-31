@@ -12,6 +12,13 @@ data class RoleCount(
     val cnt: Int,
 )
 
+/** 单会话实测用量合计（provider 返回的 token 数，非本地估算）。 */
+data class SessionUsageAggregate(
+    val requests: Int,
+    val promptTokens: Long,
+    val completionTokens: Long,
+)
+
 /** Phase 10.3: 搜索结果 JOIN 投影(消息 + 会话标题,避免 N+1 查询)。 */
 data class MessageSearchJoin(
     val messageId: String,
@@ -164,6 +171,10 @@ interface MessageDao {
     )
     suspend fun getMessagesWithPersistedImagePaths(): List<String>
 
+    /** v2.6.16: 当前仍被消息引用的语音音频引用（清理孤儿语音文件时作为白名单）。 */
+    @Query("SELECT voiceUri FROM messages WHERE voiceUri IS NOT NULL")
+    suspend fun getReferencedVoiceUris(): List<String>
+
     /** v1.48: 按 id 删除单条消息(长按菜单删除误发消息用)。同时清理 FTS 索引。 */
     @Query("DELETE FROM messages WHERE id = :messageId")
     suspend fun deleteById(messageId: String)
@@ -187,14 +198,6 @@ interface MessageDao {
     /** v1.107: 只按 messageId 取单条消息(删除时查 sessionId 用于冗余计数维护)。 */
     @Query("SELECT * FROM messages WHERE id = :messageId LIMIT 1")
     suspend fun getByMessageId(messageId: String): MessageEntity?
-
-    /** v1.0.74: AI 生成图聚合 — 取 assistant 且带图的最近消息(相册用)。 */
-    @Query(
-        "SELECT * FROM messages WHERE role = 'ASSISTANT' AND deletedAt IS NULL " +
-            "AND (imageUrlsJson != '[]' OR imageBase64Json != '[]') " +
-            "ORDER BY createdAt DESC LIMIT :limit",
-    )
-    suspend fun getAllAssistantWithImages(limit: Int): List<MessageEntity>
 
     /** P3-16: 取全局最近一条 assistant 消息(桌面对话小部件用,跨会话)。 */
     @Query("SELECT * FROM messages WHERE role = 'ASSISTANT' ORDER BY createdAt DESC LIMIT 1")
@@ -394,6 +397,27 @@ interface MessageDao {
     suspend fun sumAssistantContentLength(): Long
 
     /**
+     * 单个会话的实测用量合计（get_token_usage 的「本会话」一栏）。
+     *
+     * 用量流水表 usage_records 没有会话维度，会话级数字只能从 messages 上 provider 实测的
+     * 用量字段求和：只数 ASSISTANT 行（usage 只挂在助手消息上）、跳过已删除行与全零行，
+     * 与 usage_records 的「全零不记」口径保持一致。
+     */
+    @Query(
+        """
+        SELECT COUNT(*) AS requests,
+               COALESCE(SUM(promptTokens), 0) AS promptTokens,
+               COALESCE(SUM(completionTokens), 0) AS completionTokens
+        FROM messages
+        WHERE sessionId = :sessionId
+          AND role = 'ASSISTANT'
+          AND deletedAt IS NULL
+          AND (COALESCE(promptTokens, 0) + COALESCE(completionTokens, 0)) > 0
+        """,
+    )
+    suspend fun usageTotalsBySession(sessionId: String): SessionUsageAggregate
+
+    /**
      * v0.47: 按 modelId 分组统计 ASSISTANT 消息数(环形图用)。
      *
      * 只统计 ASSISTANT 角色且 modelId 非空的消息(user/system 消息无 modelId)。
@@ -438,7 +462,6 @@ interface MessageDao {
      * 桌面小组件:取「用户在小组件里选中的助手」最近一条 assistant 消息。
      *
      * 此前小组件直接调 [getLastAssistantMessage] 取全局最近一条,选助手对显示内容零影响。
-     * 排除小手机私信会话:那是独立表面,私信内容不该被摆到桌面上。
      *
      * 放在接口末尾是为了不移动既有方法的行号 —— 本模块 ktlint 基线按行号匹配,
      * 中间插入会让后面所有条目漂移成"新增违规"。
@@ -446,7 +469,7 @@ interface MessageDao {
     @Query(
         "SELECT m.* FROM messages m JOIN sessions s ON m.sessionId = s.id " +
             "WHERE m.role = 'ASSISTANT' AND m.deletedAt IS NULL " +
-            "AND s.assistantId = :assistantId AND s.deletedAt IS NULL AND s.isMiniPhone = 0 " +
+            "AND s.assistantId = :assistantId AND s.deletedAt IS NULL " +
             "ORDER BY m.createdAt DESC LIMIT 1",
     )
     suspend fun getLastAssistantMessageForAssistant(assistantId: String): MessageEntity?

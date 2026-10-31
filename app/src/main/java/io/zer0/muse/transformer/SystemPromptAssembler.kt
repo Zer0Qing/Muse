@@ -135,7 +135,7 @@ class SystemPromptAssembler(
      * 注入该助手关联的群聊记忆摘要,用 `<group_chat_memory>` 标签与主记忆 `<long_term_memory>` 区分。
      *
      * 群聊消息含多个 Agent 发言,直接写入主记忆会污染主对话上下文。
-     * 按 既有实现:群聊消息摘要写入独立 fact store(本仓库),不进入主记忆系统。
+     * 群聊消息摘要写入独立 fact store(本仓库),不进入主记忆系统。
      * 为 null 时不注入(测试环境或未注入时降级)。
      */
     private val groupChatMemoryRepository: GroupChatMemoryRepository? = null,
@@ -149,7 +149,7 @@ class SystemPromptAssembler(
     private val factDbProvider: FactDbProvider? = null,
     /**
      * v1.0.52: 会话仓库 — 用于读取当前助手最近的会话列表,注入到 system prompt
-     * 作为 Recent Chats Reference(按 既有实现 的 recent_chats section)。
+     * 作为 Recent Chats Reference。
      *
      * 让 LLM 感知用户与该助手最近聊过什么,提供连续性上下文,但不作为指令执行。
      * 仅在 assistant.enableRecentChatsReference=true 时注入。
@@ -187,6 +187,11 @@ class SystemPromptAssembler(
      * 为 null 时不注入（测试环境或未注入时降级）。
      */
     private val relationshipRepository: io.zer0.muse.data.relationship.AssistantRelationshipRepository? = null,
+    /**
+     * 工具审批策略仓库 — 「本轮可调用」计数需要排除被用户禁用（ALWAYS_DENY）的工具，
+     * 与 function schema 下发同源。为 null 时不排除（测试环境或未注入时降级）。
+     */
+    private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
 ) {
     /**
      * 组装系统提示包。
@@ -407,7 +412,7 @@ class SystemPromptAssembler(
             if (profile.isNotBlank()) sections.add(profile)
             perfTimer.split("profile")
 
-            // ── 2.5 Recent Chats Reference(采用 既有实现)──
+            // ── 2.5 Recent Chats Reference ──
             // v1.0.52: 注入当前助手最近的会话标题+预览,让 LLM 感知用户近期上下文。
             // forSubagent=true 时跳过:子助手是隔离子会话,不应感知主会话历史。
             // 仅在 assistant.enableRecentChatsReference=true 时注入(用户可关闭)。
@@ -547,7 +552,7 @@ class SystemPromptAssembler(
             val decisionTree = promptLoader.render("decision_tree", locale = locale, fallback = DECISION_TREE_SECTION)
             if (decisionTree.isNotBlank()) sections.add(decisionTree)
 
-            // ── 8. 工具使用纪律(采用 既有实现)──
+            // ── 8. 工具使用纪律 ──
             val toolDiscipline = promptLoader.render("tool_discipline", locale = locale, fallback = TOOL_DISCIPLINE_SECTION)
             if (toolDiscipline.isNotBlank()) sections.add(toolDiscipline)
 
@@ -562,7 +567,7 @@ class SystemPromptAssembler(
                 promptLoader.render("delivery_contract", locale = locale, fallback = DELIVERY_CONTRACT_FALLBACK)
             if (deliveryContract.isNotBlank()) sections.add(deliveryContract)
 
-            // ── 9. 操作安全(采用 既有实现)──
+            // ── 9. 操作安全 ──
             val safety = promptLoader.render("operation_safety", locale = locale, fallback = OPERATION_SAFETY_SECTION)
             if (safety.isNotBlank()) sections.add(safety)
             perfTimer.split("static_templates")
@@ -942,14 +947,14 @@ class SystemPromptAssembler(
     /**
      * v1.0.52: 2.5 Recent Chats Reference — 注入当前助手最近的会话标题+预览。
      *
-     * 采用 既有实现 的 recent_chats section 设计:让 LLM 感知用户与该助手最近聊过什么,
+     * 设计目的:让 LLM 感知用户与该助手最近聊过什么,
      * 提供对话连续性上下文(例如用户说"继续刚才那个",LLM 能从最近对话列表里找到线索)。
      *
      * 与长期记忆的区别:
      *  - 长期记忆:系统编译的"用户是谁"(画像/事实),延迟数小时才更新
      *  - Recent Chats:原始会话标题+最后一条消息预览,实时反映用户当下在做什么
      *
-     * 安全考虑(按 既有实现):
+     * 安全考虑:
      *  - 用 <recent_chats> 边界标签包裹,声明标签内为数据而非指令,防止提示词注入
      *    (会话标题/预览由用户输入产生,可能含恶意指令)
      *  - 限制条数(RECENT_CHATS_MAX_ENTRIES=10),避免 prompt 膨胀
@@ -1387,26 +1392,35 @@ class SystemPromptAssembler(
         val configuredToolIds = assistant?.let { parseResourceIds(it.toolIdsJson).toSet() }.orEmpty()
         val configuredMcpServerIds = assistant?.let { parseResourceIds(it.mcpServerIdsJson).toSet() }.orEmpty()
         val configuredSkillIds = assistant?.let { parseResourceIds(it.skillIdsJson).toSet() }.orEmpty()
-        // 这里必须与 ChatStreamCoordinator 的 function schema 使用同一套过滤规则,
-        // 否则静态工具索引会介绍本轮实际不可调用的工具,模型容易反复发起无效调用。
-        val localTools =
-            allLocalTools.filter { tool ->
-                val selectedByTool =
-                    configuredToolIds.isEmpty() || tool.name in configuredToolIds ||
-                        // v2.x 阶段3:与 ChatStreamCoordinator 的 function schema 过滤保持一致
-                        tool.name == io.zer0.muse.tools.FindToolsTool.TOOL_NAME
-                val isMcpTool = tool.name.startsWith("mcp_") && tool.name.contains("__")
-                val selectedByMcp =
-                    !isMcpTool || configuredMcpServerIds.isEmpty() ||
-                        configuredMcpServerIds.any { serverId -> tool.name.startsWith("mcp_${serverId}__") }
-                selectedByTool && selectedByMcp
-            }
+        val deniedToolNames =
+            resultOf { toolConfigStore?.policiesFlow?.first() }
+                .onError { msg, t -> Logger.w(TAG, "工具审批策略读取失败: ${t?.message ?: msg}") }
+                .getOrNull()
+                ?.filterValues { it == io.zer0.muse.tools.ToolApprovalPolicy.ALWAYS_DENY }
+                ?.keys
+                .orEmpty()
+        // 筛选用 ToolSchemaRules 这一份（与 function schema 下发、计数入口同源）：
+        // 否则静态工具索引会介绍本轮实际不可调用的工具，模型容易反复发起无效调用。
+        val criteria =
+            io.zer0.muse.tools.ToolSchemaRules.Criteria(
+                configuredToolIds = configuredToolIds,
+                mcpServerIds = configuredMcpServerIds,
+                configuredSkillIds = configuredSkillIds,
+                deniedToolNames = deniedToolNames,
+            )
+        val localTools = allLocalTools.filter { io.zer0.muse.tools.ToolSchemaRules.localSelected(it.name, criteria) }
         // H-ASM1: skillRepository.listEnabled() 为 suspend,用 resultOf 正确重抛 CancellationException
         val skills =
             resultOf { skillRepository.listEnabled() }
                 .onError { _, t -> Logger.w(TAG, "skillRepository.listEnabled 失败", t) }
                 .getOrNull()
-                ?.filter { configuredSkillIds.isEmpty() || it.id in configuredSkillIds }
+                ?.let {
+                    io.zer0.muse.tools.ToolSchemaRules.selectSkills(
+                        it,
+                        allLocalTools.map { tool -> tool.name }.toSet(),
+                        criteria,
+                    )
+                }
                 ?: emptyList()
 
         // 仅比较条目数会漏掉 MCP server 重连后“工具数量不变、schema/名称已变”的情况。
@@ -1420,6 +1434,9 @@ class SystemPromptAssembler(
                 append(assistant?.mcpServerIdsJson.orEmpty())
                 append('|')
                 append(assistant?.skillIdsJson.orEmpty())
+                append('|')
+                // 审批策略变化（用户禁用/启用某个工具）同样要重建索引，否则计数与清单是旧的。
+                append(deniedToolNames.sorted().joinToString(","))
                 append('|')
                 localTools.sortedBy { it.name }.forEach { tool ->
                     append(tool.name)
@@ -1479,19 +1496,13 @@ class SystemPromptAssembler(
         // 工具 schema 会在本轮请求中单独传给模型,静态 system prompt 不再重复注入
         // 全部工具的完整描述和参数。这里保留分类与名称索引,减少输入 token 和选择噪声。
         //
-        // v2.6.7 修：此处原写死「118 个工具」，实际注册已到 210+，提示词与真实能力
-        // 长期脱节 —— 模型按错误的体量理解自己，就会出现「不知道自己有什么」、
-        // 靠 find_tools 空查询才能看到全表。改成实时计数，并把分类分布一并绦出，
-        // 模型每轮拿到的都是当前真相。
+        // 数量只从 [ToolRegistry.countTools] 这一处取（与 function schema 下发、
+        // find_tools 同源）：本段报的是「本轮可调用」档，即模型真正能调的那批。
+        val counts = toolRegistry.countTools(criteria = criteria, sessionId = null, enabledSkills = skills)
         val sb = StringBuilder()
         sb.appendLine("工具能力索引(内部约束):")
-        sb.appendLine(
-            "- 当前已注册工具共 ${all.size} 个（含技能），按类别分布：" +
-                grouped.entries.sortedByDescending { it.value.size }
-                    .joinToString("、") { "${it.key} ${it.value.size}" } + "。",
-        )
+        sb.append(toolManifestCountSection(counts, grouped.mapValues { it.value.size }))
         sb.appendLine("- 但本轮实际可调用的工具以请求中的 tools schema 为准；未出现在 schema 里的名字不要凭空调用。")
-        sb.appendLine("- 已注册 ≠ 现在能用：依赖无障碍/Shizuku/Root 的工具，通道未就绪时会失败。")
         sb.appendLine(
             "  不确定设备能力时先调 tool_status（一次返回可用/受阻清单与开通方式），" +
                 "不要靠试错来发现——答应用户之后才发现做不了，比一开始就说清楚更糟。",
@@ -1500,7 +1511,7 @@ class SystemPromptAssembler(
         // v2.x 阶段3:分层收窄后,通过 find_tools 按需装载缺失能力
         sb.appendLine("- 需要的工具不在本轮 schema 里时,调用 find_tools:带关键词检索并装载(下一轮起可调用);空关键词则返回全部工具的能力总览。")
         if (localTools.any { it.name.startsWith("mcp_") || it.category == "mcp" }) {
-            sb.appendLine("- 已注册的 MCP 工具是真实可执行的外部能力,不是仅供介绍的知识。用户请求涉及对应服务时,直接调用本轮 schema 中最匹配的 MCP 工具,不要声称只能给出操作步骤或要求用户代为执行。")
+            sb.appendLine("- 索引里的 MCP 工具是真实可执行的外部能力,不是仅供介绍的知识。用户请求涉及对应服务时,直接调用本轮 schema 中最匹配的 MCP 工具,不要声称只能给出操作步骤或要求用户代为执行。")
             sb.appendLine("- MCP 工具返回结果后,以结果为准继续对话;如果调用失败,如实说明失败原因,不要把工具名或内部协议细节伪装成成功。")
         }
 
@@ -1603,6 +1614,35 @@ class SystemPromptAssembler(
     // ── 静态 section(决策树 + MOOD 格式) ──────────────────────────────
 
     companion object {
+
+        /**
+         * 工具索引头部的计数文案（纯函数，便于单测）。
+         *
+         * 只报「本轮可调用」一档（[io.zer0.muse.tools.ToolCounts.callableInSchema]），并给出类别分布
+         * （分类分布与 N 出自同一次筛选，built-in 数即其中 built-in 类的条目数）；另说明 find_tools
+         * 的会话可见档更大，避免模型把两处数字当成同一个口径。
+         */
+        internal fun toolManifestCountSection(
+            counts: io.zer0.muse.tools.ToolCounts,
+            categoryCounts: Map<String, Int>,
+        ): String =
+            buildString {
+                append("- 本轮可调用工具共 ${counts.callableInSchema} 个（含技能）")
+                val distribution =
+                    categoryCounts.entries.sortedByDescending { it.value }
+                        .joinToString("、") { "${it.key} ${it.value}" }
+                if (distribution.isNotEmpty()) append("，按类别分布：$distribution")
+                appendLine("。")
+                appendLine(
+                    "- 这个数就是本轮 function schema 里下发的数量：被审批策略禁用、未绑定当前助手、" +
+                        "或所属 MCP 服务未绑定的工具，都不在其中。",
+                )
+                appendLine("- 出现在索引里 ≠ 现在能用：依赖无障碍/Shizuku/Root 的工具，通道未就绪时会失败。")
+                appendLine(
+                    "- 本会话 find_tools 能列出 ${counts.sessionVisible} 个（含可装载技能），比上面多；" +
+                        "装载后能否调用仍以 schema 与审批策略为准。",
+                )
+            }
 
         /**
          * 把偏好列表渲染成提示词段。纯函数，便于单测。
@@ -2011,6 +2051,12 @@ class SystemPromptAssembler(
               需要带参数时再加 data-m-state='{"hours":6}'。
             - 复杂逻辑才用脚本:window.muse.send("文字") 把用户消息发回对话(必须由用户点击触发)。
             - 卡片可读宿主绑定数据:window.muse.getData(cardId);后续用 update_card_data 更新。
+              但宿主不会把新数据推进去,必须自己订阅,否则卡片停在第一次渲染那一帧:
+                window.muse.data.onChange(function (data) { 用 data 重绘 });
+              宿主每 800ms 比对一次字符串,内容变了才回调;返回的函数可取消订阅。
+              要用 update_card_data 刷新的卡片,生成时就把这段一起写上。
+            - 更新卡片数据时,省略 card_id 就是更新「当前这条消息上的卡片」,这是最常用的一种;
+              要改之前某条消息里的卡片,才需要显式给 card_id —— show_card 的回执里写着它绑到哪条消息。
             - 绝不让卡片自动发消息。
 
             v2.6.7 闭环契约(重要):
@@ -2057,7 +2103,7 @@ class SystemPromptAssembler(
             """.trimIndent()
 
         /**
-         * 工具使用纪律(采用 既有实现)。
+         * 工具使用纪律。
          *
          * 明确告诉 LLM 如何正确、高效、安全地使用工具,减少无效调用和循环失败。
          */
@@ -2105,7 +2151,7 @@ class SystemPromptAssembler(
             """.trimIndent()
 
         /**
-         * 操作安全提示(采用 既有实现)。
+         * 操作安全提示。
          *
          * 让 LLM 在操作文件、设备、外部系统前评估可逆性与风险。
          */
@@ -2238,7 +2284,7 @@ class SystemPromptAssembler(
             sb.appendLine("- 根据群聊上下文自然地参与对话,不要重复其他成员已说过的内容")
             sb.appendLine("- 如果当前话题不需要你发言,使用 channel_pass 跳过")
             sb.appendLine("- 发言时保持你的人格设定和专长领域")
-            // 改造 3: 注入身份防混淆 guidance(per-agent,按 既有实现 _formatChannelIdentityGuidance)
+            // 改造 3: 注入身份防混淆 guidance(per-agent)
             // 显式约束 LLM 不要把其他角色的人设当成自己的,避免身份混淆。
             sb.appendLine()
             sb.appendLine(buildIdentityGuidance(chatName, currentAgentName, members))
@@ -2246,7 +2292,7 @@ class SystemPromptAssembler(
         }
 
         /**
-         * 改造 3: 身份防混淆 guidance(按 既有实现 _formatChannelIdentityGuidance)。
+         * 改造 3: 身份防混淆 guidance。
          *
          * LLM 在群聊中容易把其他成员的人设/经历/记忆当成自己的,需显式约束:
          *  - 明确"你是谁、群里有谁"

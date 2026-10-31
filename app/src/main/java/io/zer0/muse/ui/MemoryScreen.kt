@@ -44,10 +44,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.memory.fact.MemoryLegacyReset
 import io.zer0.memory.space.MemorySpaceEntity
@@ -61,6 +64,7 @@ import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
@@ -69,6 +73,7 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.memory.MemoryGraphSettingsDialog
 import io.zer0.muse.ui.memory.MemoryGraphView
 import io.zer0.muse.ui.memory.MemoryGraphViewModel
@@ -77,6 +82,7 @@ import io.zer0.muse.ui.memory.MonthHeader
 import io.zer0.muse.ui.memory.PinnedMemorySection
 import io.zer0.muse.ui.memory.TimelineEventCard
 import io.zer0.muse.ui.memory.TimelineItem
+import io.zer0.muse.ui.memory.TimelineItemActions
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -112,6 +118,10 @@ fun MemoryScreen(
     val timeRangeFilter by viewModel.timeRangeFilter.collectAsStateWithLifecycle()
     val organizing by viewModel.organizeRunning.collectAsStateWithLifecycle()
     val organizeStage by viewModel.organizeStage.collectAsStateWithLifecycle()
+    // 多选合并：草稿 / 执行中 / 错误都由 ViewModel 持有，界面只负责展示与收集
+    val mergeDraft by viewModel.mergeDraft.collectAsStateWithLifecycle()
+    val mergeRunning by viewModel.mergeRunning.collectAsStateWithLifecycle()
+    val mergeError by viewModel.mergeError.collectAsStateWithLifecycle()
     val archiveRecovery: MemoryDbArchiveRecovery = koinInject()
     val archiveRecoveryScope = rememberCoroutineScope()
     var archiveInfo by remember { mutableStateOf<MemoryDbArchiveRecovery.ArchiveInfo?>(null) }
@@ -157,6 +167,14 @@ fun MemoryScreen(
     // U-3: 删除前需二次确认的目标条目(未选中时为 null,不弹窗)
     var deleteTarget by remember { mutableStateOf<MemoryItem?>(null) }
 
+    // 时间轴卡片长按出来的动作面板目标。
+    // 时间轴卡片直接删不了东西,长按先出面板(删除/多选),删除再走一次确认。
+    var timelineActionTarget by remember { mutableStateOf<TimelineItem?>(null) }
+
+    // 多选批量删除的二次确认目标;非 null 时弹确认框。
+    // 批量删一次带走多行且不可撤销,点一下就直接落库没有任何抢救余地。
+    var pendingBulkDelete by remember { mutableStateOf<List<MemoryItem>?>(null) }
+
     // v2.6.10: 多选删除。
     // 记忆会乱记、重复记，逐条删又每删一条就被刷回列表顶部、要再滑下来找下一条，
     // 所以长按进入多选，选完一次批量删。
@@ -175,6 +193,14 @@ fun MemoryScreen(
         selectionMode = false
         selectedFactKeys.clear()
     }
+
+    /**
+     * 合并确认已经发出。
+     *
+     * 成功时 ViewModel 把草稿清空，失败时保留草稿并给出 mergeError，
+     * 所以只有「草稿消失 + 这面旗标为 true」才代表真的合并成功、该退出多选。
+     */
+    var mergeConfirmPending by remember { mutableStateOf(false) }
 
     /**
      * v2.6.7: 经验库新增/编辑弹窗目标。
@@ -220,6 +246,24 @@ fun MemoryScreen(
         viewModel.consumeOrganizeResult()
     }
 
+    LaunchedEffect(mergeError) {
+        mergeError?.let {
+            // 有错误就说明这次确认没落库（草稿会被保留供重试）：把 pending 复位，
+            // 否则标记会停在「已发出确认」的中间态，下一次有东西把草稿清掉时跟着误退出多选。
+            mergeConfirmPending = false
+            MuseToast.show(it)
+            viewModel.consumeMergeError()
+        }
+    }
+    // 草稿消失有两个来源：确认成功（落库后清空）和用户取消。
+    // 只有前者退出多选；取消要停在多选态，方便改选后再合并。
+    LaunchedEffect(mergeDraft) {
+        if (mergeDraft == null && mergeConfirmPending) {
+            mergeConfirmPending = false
+            exitSelection()
+        }
+    }
+
     io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
@@ -228,24 +272,26 @@ fun MemoryScreen(
                 largeTitle = true,
                 actions = {
                     if (selectionMode) {
-                        // 多选态：只保留「取消」与「删除」，避免误触其他入口
-                        MuseTactileButton(
-                            icon = MuseIcons.x,
-                            onClick = { exitSelection() },
-                            contentDescription = stringResource(R.string.action_cancel),
-                        )
-                        MuseTactileButton(
-                            icon = MuseIcons.trash,
-                            onClick = {
+                        // 多选态：只保留「取消」「合并」「删除」，避免误触其他入口
+                        MemorySelectionActions(
+                            selectedCount = selectedFactKeys.size,
+                            mergeRunning = mergeRunning,
+                            onCancel = { exitSelection() },
+                            onMerge = {
                                 val picked =
                                     (state.factItems + state.searchResults)
                                         .distinctBy { factKeyOf(it) }
                                         .filter { factKeyOf(it) in selectedFactKeys }
-                                viewModel.deleteFacts(picked)
-                                exitSelection()
+                                viewModel.prepareMerge(picked)
                             },
-                            contentDescription = stringResource(R.string.action_delete),
-                            tint = MaterialTheme.colorScheme.error,
+                            onDelete = {
+                                val picked =
+                                    (state.factItems + state.searchResults)
+                                        .distinctBy { factKeyOf(it) }
+                                        .filter { factKeyOf(it) in selectedFactKeys }
+                                // 先弹确认再落库;确认后仍在多选态里把选中清掉(见下方弹窗)
+                                if (picked.isNotEmpty()) pendingBulkDelete = picked
+                            },
                         )
                     } else {
                         MuseTactileButton(
@@ -329,6 +375,8 @@ fun MemoryScreen(
                                 onDelete = { deleteTarget = it },
                                 onPin = { viewModel.toggleFactPinned(it.id, it.scope) },
                                 onImportance = { importanceItem = it },
+                                // 时间轴卡片长按:先出动作面板,删除再走二次确认
+                                onTimelineActions = { timelineActionTarget = it },
                                 selectionMode = selectionMode,
                                 isSelected = { factKeyOf(it) in selectedFactKeys },
                                 onLongPressItem = {
@@ -429,6 +477,8 @@ fun MemoryScreen(
                 },
             ),
             initialContent = item.content,
+            // 列表里的徽章只排得下一个主因,点开后把命中的状态逐条说清
+            statusNote = memoryStatusNote(item),
             onDismiss = { editItem = null },
             onConfirm = { content, onSaved ->
                 routeMemoryItemAction(
@@ -567,6 +617,61 @@ fun MemoryScreen(
                 deleteTarget = null
             },
             onDismiss = { deleteTarget = null },
+        )
+    }
+    // 时间轴卡片长按：面板 → 二次确认 → 按底层条目走同一套删除分派。
+    // 取消（面板或确认框）只关弹层，不动列表。
+    timelineActionTarget?.let { target ->
+        TimelineItemActions(
+            target = target,
+            onSelectMultiple = if (target.source == "Fact") {
+                { routable ->
+                    timelineActionTarget = null
+                    selectionMode = true
+                    toggleFactSelection(routable)
+                }
+            } else {
+                null
+            },
+            onDelete = { routable ->
+                routeMemoryItemAction(
+                    item = routable,
+                    onFact = viewModel::deleteFact,
+                    onSummary = viewModel::deleteSummary,
+                    onCompile = { sectionKey -> viewModel.deleteCompile(sectionKey) },
+                    onExperience = { id -> viewModel.deleteExperience(id) },
+                    onUnsupported = {},
+                )
+                timelineActionTarget = null
+            },
+            onDismiss = { timelineActionTarget = null },
+        )
+    }
+    // 多选批量删除：先确认条数再落库。取消停在多选态，改选后可以再点删除。
+    pendingBulkDelete?.let { targets ->
+        MemoryBulkDeleteDialog(
+            count = targets.size,
+            onConfirm = {
+                pendingBulkDelete = null
+                viewModel.deleteFacts(targets)
+                exitSelection()
+            },
+            onDismiss = { pendingBulkDelete = null },
+        )
+    }
+    // 多选合并：草稿非空即弹出预览。取消只清草稿（停在多选态），确认成功后才退出多选。
+    mergeDraft?.let { draft ->
+        MemoryMergeDialog(
+            draft = draft,
+            running = mergeRunning,
+            onCancel = {
+                mergeConfirmPending = false
+                viewModel.cancelMerge()
+            },
+            onConfirm = { edited ->
+                mergeConfirmPending = true
+                viewModel.confirmMerge(edited)
+            },
         )
     }
     if (showFilter) {
@@ -871,6 +976,7 @@ private fun LazyListScope.memoryStreamItems(
     onDelete: (MemoryItem) -> Unit,
     onPin: (MemoryItem) -> Unit,
     onImportance: (MemoryItem) -> Unit,
+    onTimelineActions: (TimelineItem) -> Unit,
     selectionMode: Boolean,
     isSelected: (MemoryItem) -> Boolean,
     onLongPressItem: (MemoryItem) -> Unit,
@@ -935,6 +1041,7 @@ private fun LazyListScope.memoryStreamItems(
             timelineFilter = timelineFilter,
             onTimelineFilter = onTimelineFilter,
             onToggleTimeline = onToggleTimeline,
+            onOpenActions = onTimelineActions,
             selection =
             MemorySelection(
                 active = selectionMode,
@@ -1288,6 +1395,9 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
         initialValue = io.zer0.muse.data.MemoryGraphConfig(),
     )
     var showGraphSettings by remember { mutableStateOf(false) }
+    // v2.6.11: 星座节点编辑 — 先取全文再弹窗。之前直接把 node.title（截断到 24 字）当新内容落库，
+    // 点一下就把长事实永久截断。
+    var graphEditTarget by remember { mutableStateOf<Pair<Long, String>?>(null) }
     val ioScope = rememberCoroutineScope()
     LaunchedEffect(scope, spaceId) { graphViewModel.load(scope, spaceId) }
     // v2.6.2: 「打开星座页时」频率 —— 每次进入时补一次边（已有边会跳过）。
@@ -1385,7 +1495,11 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
                         modifier = Modifier.fillMaxSize(),
                         onNodeAction = { node, action ->
                             when (action) {
-                                io.zer0.muse.ui.memory.NodeAction.EDIT -> graphViewModel.editNode(node.factId, node.title, scope, spaceId)
+                                io.zer0.muse.ui.memory.NodeAction.EDIT ->
+                                    // v2.6.11: 先拉全文，拿到后弹窗编辑；取不到（事实已不存在）则不弹。
+                                    graphViewModel.loadFactContent(node.factId, scope) { full ->
+                                        graphEditTarget = full?.let { node.factId to it }
+                                    }
                                 io.zer0.muse.ui.memory.NodeAction.DELETE -> graphViewModel.deleteNode(node.factId, scope, spaceId)
                                 io.zer0.muse.ui.memory.NodeAction.PIN -> graphViewModel.togglePin(node.factId, scope, spaceId)
                                 io.zer0.muse.ui.memory.NodeAction.LINK -> Unit
@@ -1398,6 +1512,16 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
                 }
             }
         }
+    }
+    graphEditTarget?.let { (factId, content) ->
+        FactEditDialog(
+            title = stringResource(R.string.memory_screen_edit_fact),
+            initialContent = content,
+            onDismiss = { graphEditTarget = null },
+            onConfirm = { text, onSaved ->
+                graphViewModel.editNode(factId, text, scope, spaceId) { saved -> onSaved(saved) }
+            },
+        )
     }
 }
 
@@ -1530,6 +1654,71 @@ internal fun MemoryFactRow(
 }
 
 /**
+ * 记忆状态徽章 —— 已合并 / 已出场 / 被取代。
+ *
+ * 三种状态在数据上互相独立,一条记忆可能同时命中多个。行内同时排三个徽章会把
+ * 底部那行（来源/分类/时间/会话）挤满,所以按「被取代 > 已合并 > 已出场」排序:
+ * 最要紧的那个用完整色,其余照旧渲染但降淡 —— 既不会漏掉真实原因,
+ * 也不会让一屏徽章抢走正文的注意力。完整解释在详情弹层里逐条列出。
+ */
+@Composable
+private fun MemoryStatusBadges(status: MemoryFactStatus) {
+    if (!status.isInactive) return
+    val colors = MaterialTheme.colorScheme
+    val badges = listOfNotNull(
+        if (status.superseded) {
+            Triple(stringResource(R.string.memory_status_superseded), colors.errorContainer, colors.onErrorContainer)
+        } else {
+            null
+        },
+        if (status.merged) {
+            Triple(stringResource(R.string.memory_status_merged), colors.surfaceVariant, colors.onSurfaceVariant)
+        } else {
+            null
+        },
+        if (status.suppressed) {
+            Triple(stringResource(R.string.memory_status_suppressed), colors.secondaryContainer, colors.onSecondaryContainer)
+        } else {
+            null
+        },
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        badges.forEachIndexed { index, badge ->
+            val (label, container, contentColor) = badge
+            val muted = index > 0
+            Surface(
+                shape = MuseShapes.large,
+                color = if (muted) container.copy(alpha = MEMORY_STATUS_MUTED_ALPHA) else container,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (muted) contentColor.copy(alpha = MEMORY_STATUS_MUTED_ALPHA) else contentColor,
+                    maxLines = 1,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 详情弹层里的状态说明：与列表徽章同一套判定，按「被取代 > 已合并 > 已出场」逐条列出。
+ *
+ * 用户点开一条带徽章的记忆，要能知道它为什么不生效、而不是只看到一个词。
+ */
+@Composable
+private fun memoryStatusNote(item: MemoryItem): String? {
+    val status = item.status
+    val lines = listOfNotNull(
+        if (status.superseded) stringResource(R.string.memory_status_superseded_detail) else null,
+        if (status.merged) stringResource(R.string.memory_status_merged_detail) else null,
+        if (status.suppressed) stringResource(R.string.memory_status_suppressed_detail) else null,
+    )
+    return lines.takeIf { it.isNotEmpty() }?.joinToString("\n")
+}
+
+/**
  * 记忆卡片的底部一行：来源/分类/时间 + 「更多」操作菜单。
  *
  * 从 [MemoryFactRow] 里拆出来的：卡片主体只负责「这条记忆是什么」，
@@ -1555,6 +1744,9 @@ private fun MemoryFactRowFooter(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            // 状态徽章（已合并/已出场/被取代）:放在来源之后、分类之前 ——
+            // “这条还生效吗”比“它属于哪个分类”更需要被一眼看到。
+            MemoryStatusBadges(status = item.status)
             item.category?.takeIf {
                 it.isNotBlank()
             }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
@@ -1671,12 +1863,12 @@ private fun LazyListScope.memoryStreamTimeline(
     timelineFilter: String,
     onTimelineFilter: (String) -> Unit,
     onToggleTimeline: () -> Unit,
+    onOpenActions: (TimelineItem) -> Unit,
     selection: MemorySelection,
 ) {
     // 多选状态来自同一个包，取短名后正文不用每行都写 selection.xxx。
     val selectionMode = selection.active
     val isSelected = selection.isSelected
-    val onLongPressItem = selection.onLongPress
     val onToggleSelect = selection.onToggle
 
     item(key = "memory_stream_timeline_toggle") {
@@ -1712,21 +1904,34 @@ private fun LazyListScope.memoryStreamTimeline(
             // 各库 fact.id 独立自增会重复,仅用 id 作 key 会触发 LazyColumn
             // "Key was already used" 崩溃。
             items(filtered, key = { "timeline_${it.source}_${it.scope.orEmpty()}_${it.id}" }) { item ->
+                val timelineItem = TimelineItem(
+                    id = "${item.source}_${item.id}",
+                    content = item.content,
+                    source = item.source,
+                    importance = item.importance,
+                    createdAt = item.createdAt ?: item.time,
+                    tags = item.tags,
+                    // 删除要按底层 id + 分库定位:摘要的 itemId 就是 sessionId
+                    itemId = item.id,
+                    sessionId = item.sessionId,
+                    scope = item.scope,
+                )
+                // 多选态下长按仍是勾选;平时长按出动作面板(删除/多选)。
+                // 摘要卡片不进多选,它在多选态下不接管手势。
+                val cardLongPress: (() -> Unit)? = if (!selectionMode) {
+                    { onOpenActions(timelineItem) }
+                } else if (item.source == "Fact") {
+                    { onToggleSelect(item) }
+                } else {
+                    null
+                }
                 // v2.x: 动效补齐 — 时间轴拍平条目统一入场动画(与列表模式同规格)
                 Box(museAnimateItem()) {
                     TimelineEventCard(
-                        item =
-                        TimelineItem(
-                            id = "${item.source}_${item.id}",
-                            content = item.content,
-                            source = item.source,
-                            importance = item.importance,
-                            createdAt = item.createdAt ?: item.time,
-                            tags = item.tags,
-                        ),
+                        item = timelineItem,
                         selectionMode = selectionMode,
                         isSelected = isSelected(item),
-                        onLongPress = if (item.source == "Fact") ({ onLongPressItem(item) }) else null,
+                        onLongPress = cardLongPress,
                         onToggleSelect = if (item.source == "Fact") ({ onToggleSelect(item) }) else null,
                     )
                 }
@@ -1738,6 +1943,9 @@ private fun LazyListScope.memoryStreamTimeline(
 
 // F-9: 来源会话 id 展示的最大长度(避免长 id 撑爆行布局)。
 private const val MEMORY_FACT_ROW_SESSION_ID_MAX = 10
+
+/** 同一行命中多个状态时，次要徽章的淡出程度(最强那个保持完整色)。 */
+private const val MEMORY_STATUS_MUTED_ALPHA = 0.55f
 
 /** v2.2.1: 记忆条目"可展开"判定阈值(字符数);超过或含换行即提供全文展开。 */
 private const val EXPAND_TEXT_THRESHOLD = 80
@@ -1772,3 +1980,166 @@ private fun MemoryFilterRow(label: String, selected: Boolean, onClick: () -> Uni
         }
     }
 }
+
+/**
+ * 多选态动作栏：取消 / 合并 / 删除。
+ *
+ * 合并进行中时合并入口换成 spinner，删除一并禁用：用户在弹窗里等模型那几秒最容易去点别处，
+ * 一旦源行被删掉，落库时找不到源就只能报「合并失败」，而这期间他什么都没改。
+ */
+@Composable
+internal fun MemorySelectionActions(
+    selectedCount: Int,
+    mergeRunning: Boolean,
+    onCancel: () -> Unit,
+    onMerge: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    MuseTactileButton(
+        icon = MuseIcons.x,
+        onClick = onCancel,
+        contentDescription = stringResource(R.string.action_cancel),
+    )
+    // 生成草稿要等模型几秒：把入口换成固定 48dp 的 spinner。
+    // 只置灰的话几秒内看不到任何反应，用户会以为没点上而连点。
+    if (mergeRunning) {
+        val runningDesc = stringResource(R.string.memory_center_merge_running)
+        Box(
+            modifier = Modifier.size(MuseIconSizes.touchTarget).semantics { contentDescription = runningDesc },
+            contentAlignment = Alignment.Center,
+        ) {
+            MuseSpinner(
+                size = MuseIconSizes.icon,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    } else {
+        // 合并要至少两条：不足时按钮留着但置灰，避免工具栏跟着条目数忽隐忽现
+        MuseTactileButton(
+            icon = MuseIcons.gitMerge,
+            onClick = onMerge,
+            contentDescription = stringResource(R.string.memory_center_merge_action),
+            enabled = selectedCount >= 2,
+        )
+    }
+    MuseTactileButton(
+        icon = MuseIcons.trash,
+        onClick = onDelete,
+        contentDescription = stringResource(R.string.action_delete),
+        enabled = !mergeRunning,
+        tint = MaterialTheme.colorScheme.error,
+    )
+}
+
+/**
+ * 多选批量删除的二次确认。
+ *
+ * 批量删一次会带走多行,且落库后不可撤销,所以先把条数摆出来再删 ——
+ * 之前点一下就直推 deleteFacts,误触没有任何挽回余地。
+ */
+@Composable
+internal fun MemoryBulkDeleteDialog(count: Int, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    ConfirmDeleteDialog(
+        title = stringResource(R.string.memory_bulk_delete_confirm_title),
+        itemName = stringResource(R.string.memory_bulk_delete_item_name, count),
+        consequence = stringResource(R.string.memory_bulk_delete_consequence, count),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
+}
+
+/**
+ * 多选合并的预览弹窗。
+ *
+ * 上半列出被合并的原文（只读），用户能看清「合的是哪几条」；
+ * 下半是可编辑的合并结果——草稿是模型写的，措辞需要人改一遍才落库。
+ * 内容可能很长，但不做另一层滚动：MuseDialog 的正文区本身已按可视高度滚动。
+ */
+@Composable
+internal fun MemoryMergeDialog(
+    draft: MemoryMergeDraft,
+    running: Boolean,
+    onCancel: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var edited by remember(draft) { mutableStateOf(draft.mergedText) }
+    MuseDialog(
+        onDismissRequest = { if (!running) onCancel() },
+        title = stringResource(R.string.memory_center_merge_title),
+        content = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Text(
+                    text = stringResource(R.string.memory_center_merge_sources_title, draft.sources.size),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                draft.sources.forEach { source ->
+                    Surface(
+                        shape = MuseShapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = source,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(MusePaddings.cardInner),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(MusePaddings.labelVerticalGap))
+                MuseTextField(
+                    value = edited,
+                    onValueChange = { edited = it },
+                    enabled = !running,
+                    label = { Text(stringResource(R.string.memory_center_merge_result_label)) },
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 240.dp),
+                )
+                if (running) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                    ) {
+                        MuseSpinner(
+                            size = MuseIconSizes.iconSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = stringResource(R.string.memory_center_merge_running),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
+        confirmText = stringResource(R.string.memory_center_merge_confirm),
+        // 空白正文会被 ViewModel 拒掉，提前置灰比点了没反应干净
+        confirmEnabled = edited.isNotBlank() && !running,
+        onConfirm = { onConfirm(edited) },
+        // 落库期间不给退出口，避免草稿已被清空、协程还在写
+        dismissText = if (running) null else stringResource(R.string.memory_screen_cancel),
+        onDismiss = onCancel,
+        properties = mergeDialogProperties(running),
+    )
+}
+
+/**
+ * 合并预览弹窗的窗口属性。
+ *
+ * 点空白一律不关：长文编到一半误触会把草稿扔掉。
+ * 返回键在空闲时可用、落库中失效——与取消按钮用同一个开关，避免两条退出口行为不一致。
+ */
+internal fun mergeDialogProperties(running: Boolean): DialogProperties = DialogProperties(
+    dismissOnClickOutside = false,
+    dismissOnBackPress = !running,
+    decorFitsSystemWindows = false,
+    usePlatformDefaultWidth = false,
+)

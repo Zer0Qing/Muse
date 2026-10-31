@@ -40,11 +40,14 @@ class ChatInputController(
             MuseToast.show(appContext.getString(R.string.chat_pending_queue_full))
             return
         }
+        // 记下入队时的会话:插话通道靠它确认这条消息属于哪段对话,拿不到就留 null
+        // (拿不到会话的条目不会被插话取走,仍走原有排队/单独发送路径)。
+        val sessionId = if (st.isAgentMode) st.agentSessionId else st.currentSessionId
         accessor.update {
             it.copy(
                 input = "",
                 pendingImages = emptyList(),
-                sendQueue = it.sendQueue + PendingMessage(text, st.pendingImages),
+                sendQueue = it.sendQueue + PendingMessage(text, st.pendingImages, sessionId),
             )
         }
     }

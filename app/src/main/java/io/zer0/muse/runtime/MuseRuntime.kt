@@ -43,6 +43,9 @@ object MuseRuntime {
     /** assets 中运行时数据包。 */
     private const val ASSETS_ZIP = "muse-runtime-assets.zip"
 
+    /** 传给子进程的 CPU 核数环境变量名（脚本包装层在原生取不到时据此兜底）。 */
+    const val ENV_CPU_COUNT = "MUSE_CPU_COUNT"
+
     /** 数据包版本标记（升级 assets 时同步修改，触发重新解压）。 */
     const val RUNTIME_DATA_VERSION = "npm-11.21.1"
 
@@ -157,6 +160,7 @@ object MuseRuntime {
      *  - PATH：运行时 bin（预留）+ 系统路径
      *  - LD_LIBRARY_PATH：native 库目录（双保险；库内 RPATH=$ORIGIN 已覆盖）
      *  - SHELL：/system/bin/sh（Android 无 /bin/sh）
+     *  - MUSE_CPU_COUNT：Java 侧看到的 CPU 核数（部分设备上 libuv 取不到，交给脚本层兜底）
      */
     fun buildEnv(ctx: Context, extra: Map<String, String> = emptyMap()): Map<String, String> {
         listOf(homeDir(ctx), tmpDir(ctx), binDir(ctx)).forEach { it.mkdirs() }
@@ -174,9 +178,13 @@ object MuseRuntime {
             put("MUSE_NODE_BIN", nodeBinary(ctx).absolutePath)
             put("MUSE_NPM_CLI", npmCli(ctx).absolutePath)
             put("MUSE_NPX_CLI", File(npmDir(ctx), "bin/npx-cli.js").absolutePath)
+            put(ENV_CPU_COUNT, childCpuCount().toString())
             putAll(extra)
         }
     }
+
+    /** 子进程可用的 CPU 核数；取不到时按 1 处理，避免下游拿到 0 再除零或退化。 */
+    internal fun childCpuCount(): Int = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
 
     // ── 子进程执行 ───────────────────────────────────────────────
 

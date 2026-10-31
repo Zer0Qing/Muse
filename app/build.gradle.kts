@@ -145,15 +145,46 @@ android {
         // v2.6.7: 设置页按「带着什么问题来」重排为 11 组，把错位选项归位；
         //          修常驻后台等页面的路由未注册；修保活服务缺通知渠道导致的
         //          startForeground 崩溃；关闭 R8 优化以避开超大 Compose 方法的 VerifyError。
+        // v2.6.11: 记忆多选合并（预览可编辑、可撤销）+ 记忆状态徽章；
+        //          聊天滚动渲染开销（跨 composition 缓存、图片画幅、群聊页每帧重组）。
+        // v2.6.12: 小手机整体重写为独立模块（自有美术、朋友圈、语音消息、主动私信、录音输入）；
+        //          旧小手机实现与数据表删除（DB 121→122，恢复旧备份时跳过旧小手机会话）；
+        //          设置页重排为 9 组；语音对话改手动端点；TTS/ASR 可跟随供应商；
+        //          RAG 设置页显示当前实际后端；修记忆孤儿条目、主动消息落点、广播注册崩溃与日志噪声。
+        // v2.6.13: 设置页再细分为 14 组（每组 ≤5 项，搜索索引补到 78 条）；小手机对外开放；
+        //          小手机可用性（联系人开聊、长按菜单、发送失败重试、会话置顶与清空）；
+        //          群聊（建群、最多两人回话、上下文互见）；朋友圈对齐微信（多图左右滑、删评论、
+        //          相对时间、点赞名单、封面身份牌）；朋友圈与私信改用角色自己的模型与最近对话。
+        // v2.6.14: 网页版：手机开放局域网访问，其他设备扫码进 PWA（开关/地址/PIN/二维码）；
+        //          移动优先的 Host 聊天壳（安全区与键盘处理、抽屉、流式光标、停止生成、审批卡、断线重连）；
+        //          Web 与 Android 共用一套设计令牌（带漂移检测测试）+ 组件基元；
+        //          数据面新增 settings/assistants/providers/sessions 命令；
+        //          网页端设置主页（14 组 49 项，文案与图标由 Host 下发）；聊天链路主线程开销优化。
+        // v2.6.15: 修 release 包 网页版起不来的问题（R8 删了 Netty 反射创建 Channel 要用的无参构造，
+        //          报 Class ... does not have a public non-arg constructor）；
+        //          修插件启动时 JsSandbox 未初始化导致激活失败。
+        // v2.6.16: 主动消息五档按用户设定改定值：安静 3 / 克制 8 / 标准 15 / 主动 30 / 黏人不限；
+        //          废除「等级地板 + 亲密度」拼额度的旧公式（它导致选黏人每天只能发 5 条）；
+        //          删除实际不生效的 maxDailyMessages 与 grantCredit 回补额度链路。
+        // v2.6.17: Web 服务引擎从 Netty 换成 CIO（Netty 两处反射被 R8 掉，导致 release 包服务端起不来）；
+        //          账本里粘人档的额度不再显示 2147483647，改为「今天不限次数」。
+        // v2.6.18: 设置改成两级：首页 12 类（48 入口），点进分类看条目、再进子页；搜索带面包屑；
+        //          入口清单数据化，首页/分类页/搜索共用一份；
+        //          Web 端与 App 的组件几何对齐并纳入校验（40 个几何令牌 + CSS 裸值扫描）；
+        //          网页端字体/配色改为与 App 一致；WebServer 只在绑定字段变化时重启（之前改 PIN 也会重启、搞断连接）。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 270
+            // 兜底值故意压成哨兵：忘带 -PversionCode 时，产物编号一眼就能看出是临时包，
+            // 不会再顶着上一个真版本号被当成正式包发出去。取 999999 而不是 0/1，
+            // 是为了让 debug 包能盖过任何已装的正式版，不报 INSTALL_FAILED_VERSION_DOWNGRADE。
+            ?: 999999
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "2.6.10"
+            // 同上，名字也走哨兵，避免“编号前进一格、名字原地不动”的组合再次出现。
+            ?: "0.0.0-dev"
     }
 
     signingConfigs {
@@ -205,6 +236,10 @@ android {
             // 否则 FileDescriptor 探针 / AndroidInterceptors 反射报 IllegalAccessException。
             // 清单取自 Robolectric 官方 Getting Started(Java 17+ 必需)。
             all {
+                // 这台机器上 Robolectric 的原生 SQLite 会在 nativeOpen 处触发
+                // EXCEPTION_ACCESS_VIOLATION（JVM 直接挂掉，看 hs_err_pid*.log）。
+                // 改用纯 Java 的 LEGACY 实现绕开原生库；它同样能执行建表/迁移/FTS 语句。
+                it.systemProperty("robolectric.sqliteMode", "LEGACY")
                 it.jvmArgs(
                     "--add-opens=java.base/java.lang=ALL-UNNAMED",
                     "--add-opens=java.base/java.util=ALL-UNNAMED",
@@ -321,6 +356,9 @@ dependencies {
     implementation(project(":accessibility"))
     // v2.2.1: 虚拟屏契约模块 — IVirtualDisplayService AIDL + 手递手常量
     implementation(project(":virtual-display-protocol"))
+    // P0: 小手机模块 — 自带 Room 库(MiniPhoneDb)与宿主接口 MiniPhoneHost。
+    // 依赖方向单向 app → miniphone，:miniphone 不反向依赖 :app。
+    implementation(project(":miniphone"))
 
     // P3-3: Shizuku SDK — 以 shell 权限执行命令(三通道路由之一,无需 root)
     implementation(libs.shizuku.api)
@@ -328,6 +366,7 @@ dependencies {
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.documentfile)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.process)
@@ -427,14 +466,15 @@ dependencies {
     // Phase 8.11: Ktor 嵌入式 Web 服务器(CIO 引擎 + JWT + ContentNegotiation + CORS)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)
-    // v2.x: HTTPS 支持 — Netty 引擎(CIO 不支持 HTTPS;保留 CIO 依赖以减少影响面)
-    implementation(libs.ktor.server.netty)
+    // v2.6.17: HTTPS 由 CIO 引擎的 sslConnector 提供。Netty 引擎已移除：
+    // 它依赖两处反射（ReflectiveChannelFactory 建 Channel、ResourceLeakDetector 静态初始化按名字找方法），
+    // R8 混淆 release 包时会把它们逐处掐掉，表现为服务端启动直接 NoClassDefFoundError。
     implementation(libs.ktor.server.auth)
-    // 排除 jwks-rsa: 它依赖 guava,与 AndroidX 的 listenablefuture 能力冲突;
-    // 我们用 HMAC-SHA256 对称签名,不需要 JWKS(RSA 公钥轮换),排除不影响功能
-    implementation(libs.ktor.server.auth.jwt) {
-        exclude(group = "com.auth0", module = "jwks-rsa")
-    }
+    // 不引 ktor-server-auth-jwt：它的取凭证/失败路径引用 com.auth0.jwk.JwkException，
+    // 而 jwks-rsa 必须排除（拉 guava，与 AndroidX 的 listenablefuture 能力冲突）。
+    // 缺类的结果不是 401 而是 NoClassDefFoundError，被 StatusPages 变成 500，
+    // /ws 握手也因此失败。我们只用 HMAC-SHA256 对称签名，不需要 JWKS/RSA 轮换，
+    // 鉴权改由 ktor-server-auth 的 bearer provider + java-jwt 自己校验（见 HostAuth.kt）。
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.cors)

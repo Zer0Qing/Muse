@@ -5,8 +5,8 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.tools.ToolPermissionResolver
 import io.zer0.muse.tools.ToolRegistry
-import io.zer0.muse.tools.ToolRiskLevel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -515,7 +515,9 @@ class McpRegistry(
                     category = "mcp",
                     parameterTypes = parameterTypes,
                     rawParametersJsonSchema = tool.inputSchema?.toString(),
-                    riskLevel = inferMcpRisk(tool.name),
+                    // 对端工具名是第三方自取的 — `get_diagnostics` 也可以是外发调用。
+                    // 不拿名字推风险，统一走动态工具判据（保守 NORMAL，ASK 模式下弹审批）。
+                    riskLevel = ToolPermissionResolver.riskLevelFor(registeredName),
                 ),
             ) { args ->
                 // 保留 inputSchema 声明的 JSON 类型,避免 boolean/number/array/object 被压成字符串。
@@ -715,21 +717,6 @@ class McpRegistry(
         val props = obj["properties"] as? JsonObject ?: return emptyMap()
         return props.mapValues { (_, definition) ->
             ((definition as? JsonObject)?.get("type") as? JsonPrimitive)?.content ?: "string"
-        }
-    }
-
-    /** MCP 工具不能默认标成 SAFE,否则 ASK 模式会绕过审批执行写入/删除操作。 */
-    private fun inferMcpRisk(toolName: String): ToolRiskLevel {
-        val name = toolName.lowercase()
-        return when {
-            listOf("delete", "destroy", "remove", "send", "publish", "commit", "execute", "run").any { name.contains(it) } ->
-                ToolRiskLevel.HIGH
-            listOf("create", "new", "update", "edit", "write", "add", "move", "rename", "open", "post", "put").any { name.contains(it) } ->
-                ToolRiskLevel.NORMAL
-            // 外部 MCP 的未知工具默认按 NORMAL 处理，不能因为名字没命中关键词就绕过审批。
-            listOf("read", "list", "get", "search", "fetch", "query", "check", "status", "info", "describe").any { name.contains(it) } ->
-                ToolRiskLevel.SAFE
-            else -> ToolRiskLevel.NORMAL
         }
     }
 

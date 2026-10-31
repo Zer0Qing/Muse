@@ -161,21 +161,23 @@ class TermuxChannel private constructor(private val context: Context) {
      *  1. 结果广播必须带 [EXTRA_REQUEST_ID]，且该 id 必须在本进程的 pending 表里——
      *     外部应用猜不到自增 id，也无法伪造未知 id 的“结果”；
      *  2. 收到的内容只当作字符串输出，不反射调用、不执行、不拼路径。
+     *
+     * 为什么不能按系统版本降级成 flags = 0：
+     * [ContextCompat.registerReceiver] 在 flags **既不含 RECEIVER_EXPORTED 也不含
+     * RECEIVER_NOT_EXPORTED** 时无条件抛 `IllegalArgumentException`，与 `Build.VERSION.SDK_INT`
+     * 无关（旧实现的 `SDK_INT >= TIRAMISU` 判断让 Android 12 及以下都走 0 分支，于是在
+     * vivo V1990A / Android 10 上一调 [exec] 就崩）。导出与否和系统版本无关，是唯一硬性要求，
+     * 所以这里恒定传入 RECEIVER_EXPORTED，不要再按版本分支。
      */
     private fun ensureReceiver() {
         if (receiverRegistered) return
         synchronized(receiverLock) {
             if (receiverRegistered) return
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.RECEIVER_EXPORTED
-            } else {
-                0
-            }
             ContextCompat.registerReceiver(
                 context,
                 resultReceiver,
                 IntentFilter(ACTION_RESULT),
-                flags,
+                ContextCompat.RECEIVER_EXPORTED,
             )
             receiverRegistered = true
         }

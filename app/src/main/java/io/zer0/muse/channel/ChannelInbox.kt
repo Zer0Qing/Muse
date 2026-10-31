@@ -221,6 +221,13 @@ internal class ChannelInboxJournal(
                 ledgerFailure = runCatching { claimEvent(source) }.exceptionOrNull()
                 false
             } else if (isEventClaimed(source)) {
+                // 重连 Resume 补发的重复事件会落在这里;账本保留 10 分钟,
+                // 没有日志的话它们就是无声消失,事后完全查不到痕迹。
+                Logger.i(
+                    TAG,
+                    "事件已被去重账本认领,跳过(platform=${source.platform}, from=${source.from}, " +
+                        "eventId=${source.eventId})",
+                )
                 false
             } else {
                 if (pendingCountLocked() >= ChannelInbox.MAX_PENDING_ITEMS) throw ChannelInboxCapacityException()

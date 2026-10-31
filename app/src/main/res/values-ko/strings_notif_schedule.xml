@@ -13,6 +13,7 @@
     <!-- Notification title/content -->
     <string name="notif_chat_completed_title">답글 완료 · %1$s</string>
     <string name="notif_proactive_message_title">%1$s 메시지를 보냈습니다</string>
+    <string name="notif_proactive_action_dismiss">지금은 괜찮아요</string>
     <string name="notif_live_progress_title">생성 중 · %1$s</string>
     <string name="notif_live_progress_text">%1$d 문자</string>
     <string name="notif_web_server_title">Muse 웹 서버 실행 중</string>

@@ -17,6 +17,7 @@ import io.zer0.muse.util.TokenEstimator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -85,6 +86,14 @@ class RagService(
     /** Cache directory used to stage a full source before replacing its current index. */
     private val reindexStagingDirectory: File? = null,
 ) {
+    /**
+     * 当前实际生效的 embedding 后端(含静默降级原因)。
+     *
+     * 用户配置的云端 embedding 不可用或能力不支持时,[io.zer0.muse.rag.EmbeddingService] 会回落本地关键词实现,
+     * 此时这里带 `degraded=true` 与原因文案;供设置页/诊断页提示「现在到底在用哪个 embedding 后端」。
+     */
+    val activeEmbeddingBackend: StateFlow<EmbeddingService.BackendState?> = embeddingService.activeBackend
+
     private val json = Json { ignoreUnknownKeys = true }
     private val embedBatchSize = 50
     private val vectorIndexRebuildMarkerFile: File? = indexFile?.let { File(it.absolutePath + ".rebuild_required") }

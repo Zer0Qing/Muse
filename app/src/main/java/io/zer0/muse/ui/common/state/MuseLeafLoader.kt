@@ -42,29 +42,24 @@ import io.zer0.muse.ui.theme.MuseMotion
  * @param color 主色。叶身用它的低透明度版本，光流与星用它本身。
  */
 @Composable
-fun MuseLeafLoader(
-    modifier: Modifier = Modifier,
-    size: Dp = 40.dp,
-    color: Color = LocalContentColor.current,
-) {
+fun MuseLeafLoader(modifier: Modifier = Modifier, size: Dp = 40.dp, color: Color = LocalContentColor.current) {
     val reducedMotion = MuseMotion.isReducedMotion()
-    val progress =
-        if (reducedMotion) {
-            0.55f
-        } else {
-            val transition = rememberInfiniteTransition(label = "muse_leaf")
-            val animated by transition.animateFloat(
-                initialValue = 0f,
-                targetValue = 1f,
-                animationSpec =
-                infiniteRepeatable(
-                    animation = tween(durationMillis = CYCLE_MS, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "muse_leaf_progress",
-            )
-            animated
-        }
+    val progress = if (reducedMotion) {
+        0.55f
+    } else {
+        val transition = rememberInfiniteTransition(label = "muse_leaf")
+        val animated by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = CYCLE_MS, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "muse_leaf_progress",
+        )
+        animated
+    }
     val shape = remember { LeafShape() }
 
     Canvas(modifier = modifier.size(size)) {
@@ -76,10 +71,13 @@ fun MuseLeafLoader(
         val unit = canvas.minDimension / LEAF_ARTBOARD
         // 把内容包围盒的中心挪到画布中心：缩放与旋转都绕同一个点转，
         // 这样角度怎么调都不会把图形推出框外。
+        // 这里的平移发生在缩放之后（外层 translate），所以位移量是画布坐标系里的
+        // 绝对差值，不能再乘 unit——乘了就是把「缩放过一次的偏移」又缩一次，
+        // 结果只在 unit 恰好等于 1 时居中，其余尺寸都会被推向一侧并溢出裁掉。
         val center = Offset(CONTENT_CENTER_X, CONTENT_CENTER_Y)
         translate(
-            left = canvas.width / 2f - CONTENT_CENTER_X * unit,
-            top = canvas.height / 2f - CONTENT_CENTER_Y * unit,
+            left = canvas.width / 2f - CONTENT_CENTER_X,
+            top = canvas.height / 2f - CONTENT_CENTER_Y,
         ) {
             scale(unit, unit, pivot = center) {
                 rotate(degrees = LEAF_TILT_DEGREES, pivot = center) {
@@ -99,13 +97,14 @@ private const val CYCLE_MS = 6_000
 private const val LEAF_ARTBOARD = 100f
 
 /**
- * 图形内容的包围盒中心（含叶身、叶脉、叶尖星）。
+ * 对齐基准：叶身自身的包围盒中心。
  *
- * 画布中心是 50,50，而内容实际偏左上（y 从 15 到 73），直接按 50,50 放会在视觉上偏。
- * 对齐用真中心，不用画布中心。
+ * 不取「叶身 + 叶尖星」的合并包围盒：那颗星只在叶脉汇聚的一小段进度里出现，
+ * 其余时间不在，而画布的位置是恒定的——把星算进去，星一缺席整片叶就显低。
+ * 叶身中心 y=48.8，含星中心 y=44.3，相差 4.5，32dp 下就是 1.4dp 的下坠。
  */
-private const val CONTENT_CENTER_X = 52.75f
-private const val CONTENT_CENTER_Y = 44.3f
+private const val CONTENT_CENTER_X = 50.06f
+private const val CONTENT_CENTER_Y = 48.8f
 
 /**
  * 叶子相对竖直方向的倾斜。
@@ -138,41 +137,38 @@ private const val STAR_FADE_START = 0.86f
  */
 private class LeafShape {
     /** 叶身轮廓。 */
-    val body: Path =
-        Path().apply {
-            moveTo(33.2f, 73.4f)
-            cubicTo(30.6f, 55.4f, 38.4f, 33.6f, 66.6f, 24.2f)
-            cubicTo(71.2f, 41.6f, 55.4f, 66.2f, 33.2f, 73.4f)
-            close()
-        }
+    val body: Path = Path().apply {
+        moveTo(33.2f, 73.4f)
+        cubicTo(30.6f, 55.4f, 38.4f, 33.6f, 66.6f, 24.2f)
+        cubicTo(71.2f, 41.6f, 55.4f, 66.2f, 33.2f, 73.4f)
+        close()
+    }
 
     /** 三条叶脉，顺序是从最长（贴外缘）到最短（贴叶柄侧）。 */
-    val veins: List<Path> =
-        listOf(
-            Path().apply {
-                moveTo(34.4f, 70.6f)
-                cubicTo(41.2f, 57.4f, 50.2f, 42.6f, 65.4f, 25.8f)
-            },
-            Path().apply {
-                moveTo(33.6f, 71.6f)
-                cubicTo(41.6f, 62.2f, 50.6f, 50.4f, 61.2f, 36.4f)
-            },
-            Path().apply {
-                moveTo(33.4f, 72.2f)
-                cubicTo(41.8f, 66.4f, 49.8f, 58.2f, 55.4f, 48.6f)
-            },
-        )
+    val veins: List<Path> = listOf(
+        Path().apply {
+            moveTo(34.4f, 70.6f)
+            cubicTo(41.2f, 57.4f, 50.2f, 42.6f, 65.4f, 25.8f)
+        },
+        Path().apply {
+            moveTo(33.6f, 71.6f)
+            cubicTo(41.6f, 62.2f, 50.6f, 50.4f, 61.2f, 36.4f)
+        },
+        Path().apply {
+            moveTo(33.4f, 72.2f)
+            cubicTo(41.8f, 66.4f, 49.8f, 58.2f, 55.4f, 48.6f)
+        },
+    )
 
     /** 叶尖那颗四角星。 */
-    val star: Path =
-        Path().apply {
-            moveTo(66.6f, 15.2f)
-            cubicTo(67.5f, 19.1f, 68.4f, 20f, 72.3f, 20.9f)
-            cubicTo(68.4f, 21.8f, 67.5f, 22.7f, 66.6f, 26.6f)
-            cubicTo(65.7f, 22.7f, 64.8f, 21.8f, 60.9f, 20.9f)
-            cubicTo(64.8f, 20f, 65.7f, 19.1f, 66.6f, 15.2f)
-            close()
-        }
+    val star: Path = Path().apply {
+        moveTo(66.6f, 15.2f)
+        cubicTo(67.5f, 19.1f, 68.4f, 20f, 72.3f, 20.9f)
+        cubicTo(68.4f, 21.8f, 67.5f, 22.7f, 66.6f, 26.6f)
+        cubicTo(65.7f, 22.7f, 64.8f, 21.8f, 60.9f, 20.9f)
+        cubicTo(64.8f, 20f, 65.7f, 19.1f, 66.6f, 15.2f)
+        close()
+    }
 
     /** 三条叶脉各自的长度，用于把「流光」按比例切开。 */
     val veinLengths: List<Float> by lazy {
@@ -184,12 +180,11 @@ private class LeafShape {
 
 /** 叶身：整轮在，头尾淡。 */
 private fun DrawScope.drawLeafBody(shape: LeafShape, color: Color, progress: Float) {
-    val alpha =
-        when {
-            progress < BODY_FADE_IN_END -> progress / BODY_FADE_IN_END
-            progress < BODY_FADE_OUT_START -> 1f
-            else -> ((1f - progress) / (1f - BODY_FADE_OUT_START)).coerceIn(0f, 1f)
-        } * BODY_BODY_MAX_ALPHA
+    val alpha = when {
+        progress < BODY_FADE_IN_END -> progress / BODY_FADE_IN_END
+        progress < BODY_FADE_OUT_START -> 1f
+        else -> ((1f - progress) / (1f - BODY_FADE_OUT_START)).coerceIn(0f, 1f)
+    } * BODY_BODY_MAX_ALPHA
     if (alpha <= 0.01f) return
     drawPath(path = shape.body, color = color.copy(alpha = alpha))
 }

@@ -32,14 +32,12 @@ import io.zer0.common.Logger
  * @param supportsResumeFromText 是否支持流式中断后从已产出文本续传(见字段注释)。
  * @param maxContextWindow Provider 级上下文窗口上限(token),null 表示无统一上限。
  * @param defaultMaxTokens 默认 max_tokens,null 表示用 Provider 默认。
- * @param thinkingFormat v1.0.7: 思考格式(对齐 既有实现 thinkingFormat 9 种)。
+ * @param thinkingFormat v1.0.7: 思考格式(共 9 种)。
  *   null=走标准 reasoning_effort;非 null=走对应厂商扩展字段(thinking / enable_thinking 等)。
  *   仅驱动 OpenAIProvider 的请求体构造;AnthropicProvider / GeminiProvider 各自实现原生思考。
  * @param reasoningReplayContract v1.0.7: reasoning 回放契约(carrier + policy)。
  *   null=不回放历史 reasoning;非 null=按 carrier/policy 在请求体中写入对应 wire 字段。
  *   决定 UIMessage.reasoning / thinkingSignature 如何序列化回请求体(多轮对话必备)。
- *
- * 独立编写,按 既有实现 项目的 core/provider-compat/ 目录实现思路。
  */
 data class ProviderCompat(
     val supportsDeveloperRole: Boolean = true,
@@ -59,13 +57,13 @@ data class ProviderCompat(
      * assistant 轮次(可能重答、拒绝或把未完成内容当作完整话语),此时应置 false,
      * 由 ChatService 关闭自动续传(改为让 UI 层 LCP 去重接管,而不是注入部分消息)。
      *
-     * 保守默认 true(与 既有实现 ProviderCompat 一致,不明确不支持则不关闭)。
+     * 保守默认 true(不明确不支持则不关闭)。
      */
     val supportsResumeFromText: Boolean = true,
     val maxContextWindow: Int? = null,
     val defaultMaxTokens: Int? = null,
     /**
-     * v1.0.7: 思考格式(对齐 既有实现 thinkingFormat 9 种)。
+     * v1.0.7: 思考格式(共 9 种)。
      *
      * - null:走标准 OpenAI `reasoning_effort` 字段(由 [supportsReasoningEffort] 决定是否发送)
      * - [ThinkingFormat.DEEPSEEK]:不发任何思考参数,仅消费流式 reasoning_content
@@ -80,7 +78,7 @@ data class ProviderCompat(
      */
     val thinkingFormat: ThinkingFormat? = null,
     /**
-     * v1.0.7: reasoning 回放契约(对齐 既有实现 5 种 carrier + 3 种 policy)。
+     * v1.0.7: reasoning 回放契约(5 种 carrier + 3 种 policy)。
      *
      * - null:不回放历史 reasoning(默认,向后兼容)
      * - [ReasoningReplayContract]([ReasoningCarrier.REASONING_CONTENT], [ReasoningReplayPolicy.REQUIRE_TOOL_CALL]):
@@ -111,11 +109,69 @@ data class ProviderCompat(
  *
  * 任一层未命中时保持上一层的值,最终返回融合后的 [ProviderCompat]。
  *
+ * v2.7: 三层之上再叠一层目录覆盖 —— 模型能力目录里对该模型**显式声明**的思考格式优先于
+ * 硬编码表。优先级:[目录] > [硬编码表] > [默认值],见 [resolve] 末尾。
+ *
  * 独立编写。
  */
 object ProviderCompatRules {
 
     private const val TAG = "ProviderCompatRules"
+
+    /**
+     * v2.7: 当前生效的模型能力目录(model-catalog)。
+     *
+     * 由 [io.zer0.ai.registry.ModelRegistry.installCatalog] 在注入运行时目录时同步写入 ——
+     * 目录只有一处加载入口,能力派生与兼容性派生读同一份数据。
+     */
+    @Volatile
+    private var catalog: ModelCatalog = ModelCatalog()
+
+    /**
+     * 注入/替换能力目录。
+     *
+     * 与 [io.zer0.ai.registry.ModelRegistry.installCatalog] 成对调用,不要在别处单独调用,
+     * 否则两条派生链会看到不同的目录。
+     */
+    fun installCatalog(newCatalog: ModelCatalog) {
+        catalog = newCatalog
+        warnOnAmbiguousDeclarations(newCatalog)
+    }
+
+    /**
+     * v2.7: 目录装载时检查「同名模型跨供应商声明不一致」,只打日志、不改行为。
+     *
+     * 背景:[catalogThinkingFormat] 拿不到 providerId 时按模型名全局查,先出现的供应商获胜。
+     * 同一个模型名被多个供应商声明时,两种形态会静默走错:
+     *  - 取值冲突:两家都声明且映射出不同格式 —— 无论发给哪家,总有一家套到别人的 wire 约定。
+     *    这是纯数据问题,该改目录生成侧。
+     *  - 单边声明:只有一家声明、其余没写 —— 未声明的供应商会「借到」那一份,而不是回落到
+     *    硬编码表(当前 glm-5.2 就是这种形态)。结果可能恰好对,但机制是错的。
+     *
+     * 只报警不修:真正该修的是把查询改成按 (providerId, modelId) 查、miss 时回落硬编码表。
+     */
+    private fun warnOnAmbiguousDeclarations(installed: ModelCatalog) {
+        if (installed.providers.isEmpty()) return
+        val declarations = HashMap<String, MutableList<Pair<String, String?>>>()
+        for ((providerId, models) in installed.providers) {
+            for ((modelId, entry) in models) {
+                declarations.getOrPut(modelId) { mutableListOf() } += providerId to entry.compat?.thinkingFormat
+            }
+        }
+        for ((modelId, entries) in declarations) {
+            if (entries.size < 2) continue
+            val formats = entries.map { thinkingFormatOfCatalog(it.second) }
+            val distinct = formats.filterNotNull().toSet()
+            val detail = entries.joinToString(" | ") { "${it.first}=${it.second ?: "<未声明>"}" }
+            when {
+                distinct.size >= 2 ->
+                    Logger.w(TAG, "目录声明冲突:$modelId $detail —— 同名模型取值不同,查询会静默取先出现者")
+                distinct.size == 1 && formats.any { it == null } ->
+                    Logger.w(TAG, "目录单边声明:$modelId $detail —— 未声明的供应商借用了别人的声明,而非回落硬编码表")
+                else -> Unit
+            }
+        }
+    }
 
     /**
      * v1.0.53: 已知 host 集合(与 [overrideByHost] 的 when 分支一一对应)。
@@ -148,6 +204,67 @@ object ProviderCompatRules {
         // 中转/聚合站
         "api.siliconflow.cn", "openrouter.ai", "opencode.ai",
     )
+
+    /**
+     * v2.7: 目录 `compat.thinkingFormat` 的词汇 → [ThinkingFormat]。
+     *
+     * 只映射「OpenAI 兼容协议上靠厂商扩展字段表达思考」这一组。以下两类按未声明处理,
+     * 由硬编码表接管:
+     *  - `anthropic` / `google-thinking-level`:原生协议自带能力,分别由 AnthropicProvider /
+     *    GeminiProvider 自己实现。[ProviderCompat.thinkingFormat] 只覆盖 OpenAI 兼容路径,
+     *    把 `anthropic` 映射进来会让走 OpenAI 兼容链路的 claude 模型套上 Anthropic 的 wire 约定。
+     *  - 未知词汇:目录与代码的词汇表版本不一致,不猜。
+     *
+     * 另外三组目录字段本轮**未接线**,原因留在这里,免得下次重新猜:
+     *  - `toolUse.dialect`:目录里 270 条非空值全部是 `openai`(与[ToolUseSpec]的缺省值相同),
+     *    而工具调用的 wire 格式实际由 [ProviderType] 决定。接进来既不改任何行为,还会把目录里
+     *    的 Anthropic / Gemini 模型标成 openai 方言 —— 这是目录数据问题,先不接。
+     *  - `thinkingLevels` / `defaultThinkingLevel`:模型级档位集合,但 [ProviderCompat] 没有承载
+     *    档位的字段,真正落地要改推理等级归一(即 Provider 请求组装),超出本轮范围。
+     *  - `compat.reasoningProfile`:`anthropic-adaptive*` / `kimi-openai` 这类「自适应思考」画像,
+     *    代码里还没有 adaptive thinking 分支,没有可映射的目标字段。
+     */
+    fun thinkingFormatOfCatalog(raw: String?): ThinkingFormat? = when (raw?.trim()?.lowercase()) {
+        "deepseek" -> ThinkingFormat.DEEPSEEK
+        "kimi" -> ThinkingFormat.KIMI
+        "qwen" -> ThinkingFormat.QWEN
+        "qwen-chat-template", "qwen_chat_template" -> ThinkingFormat.QWEN_CHAT_TEMPLATE
+        "zhipu" -> ThinkingFormat.ZHIPU
+        "openrouter" -> ThinkingFormat.OPENROUTER
+        "volcengine" -> ThinkingFormat.VOLCENGINE
+        "longcat" -> ThinkingFormat.LONGCAT
+        else -> null
+    }
+
+    /**
+     * v2.7: 目录为某模型声明的思考格式;未声明或词汇不可映射时返回 null(交给硬编码表)。
+     *
+     * 查询口径与 [io.zer0.ai.registry.ModelRegistry.catalogEntryOf] 一致:先按 providerId +
+     * modelId 精确命中,再退回按模型名全局查。请求期派生只拿得到 modelId(见 [resolve]),
+     * 走全局查;用户自建供应商/中转站的 providerId 与目录里的逻辑供应商名对不上,同样走全局查。
+     *
+     * 已知边界:不带 providerId 的全局查**不区分供应商** —— [ModelCatalog.entryByModelId]
+     * 按供应商在目录里的顺序取第一个命中者,同名模型被多个供应商声明时先出现的获胜,且无任何
+     * 日志。两种后果:取值不同时会静默发错字段;只有一方声明时,未声明的供应商会借到另一方的
+     * 声明而不是回落到硬编码表(如 glm-5.2 在 zhipu / zhipu-coding 里没声明,会借到
+     * opencode-go 的那份)。当前目录里没有取值冲突,但未来若出现同名跨供应商取值冲突,
+     * 这里必须改成带 providerId 的查询,不能继续用全局索引。
+     *
+     * 已知分歧(目录 vs 硬编码表,共 1 处,保持目录优先、未记例外):
+     * `opencode-go/glm-5.2` 目录声明 `zhipu`,而 `opencode.ai` 的 host 规则给 `DEEPSEEK`。
+     * 表那侧的依据是 2d15c2c3 修的一次真实 400,但只覆盖 DeepSeek 系模型的 reasoning_content
+     * 回放,从未对 GLM 模型做过陈述;目录那侧是上游声明的逐模型元数据,本地未实测。两边对该模型
+     * 都无实测依据,所以按「目录优先」保留。若日后在 opencode.ai 上出现发 thinking 对象即 400 的
+     * 反馈,应回退到硬编码表(或改目录数据),而不是在这里加代码例外。
+     */
+    fun catalogThinkingFormat(modelId: String?, providerId: String? = null): ThinkingFormat? {
+        if (modelId.isNullOrBlank()) return null
+        val current = catalog
+        if (current.providers.isEmpty()) return null
+        val entry = providerId?.takeIf { it.isNotBlank() }?.let { current.entryOf(it, modelId) }
+            ?: current.entryByModelId(modelId)
+        return thinkingFormatOfCatalog(entry?.compat?.thinkingFormat)
+    }
 
     /**
      * 派生 [ProviderCompat]。
@@ -192,6 +309,17 @@ object ProviderCompatRules {
             }
         }
 
+        // 第 4 层(最高优先):目录显式声明。
+        // 优先级:目录 > 硬编码表 > 默认值(null)。
+        // 目录是逐模型声明,比按 host / 名称前缀猜的表更具体,所以覆盖前三层的结果。
+        // 但它描述的是「该模型在官方端点上的字段约定」;对不在 [KNOWN_HOSTS] 里的自建中转站,
+        // 仍保守沿用 v1.0.53 的处理 —— 未知中转站可能不接受 thinking / enable_thinking 等
+        // 厂商扩展字段,无条件注入会 400,这种情况保留硬编码表的结果。
+        val catalogFormat = catalogThinkingFormat(modelId)
+        if (catalogFormat != null && (host.isEmpty() || hostKnown)) {
+            compat = compat.copy(thinkingFormat = catalogFormat)
+        }
+
         return compat
     }
 
@@ -220,7 +348,7 @@ object ProviderCompatRules {
             supportsReasoningEffort = false,
         )
         // v1.0.7: OPENAI_RESPONSES 走 Responses API,基础规则同 OPENAI,
-        //   但 reasoning 回放走 REASONING_ITEMS carrier + PRESERVE policy(对齐 既有实现)。
+        //   但 reasoning 回放走 REASONING_ITEMS carrier + PRESERVE policy。
         //   thinkingFormat 留 null(Responses API 自身用 reasoning.effort 字段,由 OpenAIProvider useResponseApi 分支处理)
         ProviderType.OPENAI_RESPONSES -> ProviderCompat(
             reasoningReplayContract = ReasoningReplayContract(
@@ -320,7 +448,7 @@ object ProviderCompatRules {
             "api.lingyiwanwu.com" -> this // v1.0.1 (P3): 零一万物,默认全 true
             "api.stepfun.com" -> this // v1.0.1 (P3): 阶跃星辰,默认全 true
             "ark.cn-beijing.volces.com" -> this // v1.0.1 (P3): 火山引擎 Doubao,默认全 true(thinking 由 modelId 细化)
-            // v1.0.6: 新增国产供应商(对齐 既有实现,均为 OpenAI 兼容,默认全 true)
+            // v1.0.6: 新增国产供应商(均为 OpenAI 兼容,默认全 true)
             "api.hunyuan.cloud.tencent.com" -> this // 腾讯混元
             "qianfan.baidubce.com" -> this // 百度千帆
             "api-inference.modelscope.cn" -> this // 魔搭

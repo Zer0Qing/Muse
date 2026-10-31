@@ -4,6 +4,7 @@ import androidx.compose.runtime.remember
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.license.LicensesScreen
 import io.zer0.muse.ui.ChatViewModel
@@ -35,6 +36,7 @@ import io.zer0.muse.ui.settings.SettingsAsrPage
 import io.zer0.muse.ui.settings.SettingsAssistantResourcesPage
 import io.zer0.muse.ui.settings.SettingsDataImportPage
 import io.zer0.muse.ui.settings.SettingsDataPage
+import io.zer0.muse.ui.settings.SettingsGroupPage
 import io.zer0.muse.ui.settings.SettingsMcpPage
 import io.zer0.muse.ui.settings.SettingsModelPage
 import io.zer0.muse.ui.settings.SettingsTutorialPage
@@ -44,6 +46,7 @@ import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.UserPreferencePage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.VisionSettingsPage
+import io.zer0.muse.ui.settings.WebAccessPage
 import io.zer0.muse.ui.terminal.TerminalScreen
 import org.koin.compose.koinInject
 
@@ -62,49 +65,29 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
     ) {
         SettingsScreen(
             onBack = { navController.popBackStack() },
-            onOpenAssistants = { navController.navigate(AssistantsRoute) },
             onOpenAccount = { navController.navigate(AccountRoute) },
-            onOpenModelSettings = { navController.navigate(SettingsModelRoute) },
-            onOpenDataSettings = { navController.navigate(SettingsDataRoute) },
-            onOpenAppearanceSettings = { navController.navigate(SettingsAppearanceRoute) },
-            onOpenChatSettings = { navController.navigate(SettingsChatRoute) },
-            onOpenMemorySettings = { navController.navigate(SettingsMemoryRoute) },
-            // v2.x: 记忆开关搜索项直达参数配置页(开启/关闭记忆系统在该页)
-            onOpenMemoryConfig = { navController.navigate(SettingsMemoryConfigRoute) },
-            onOpenMediaSettings = { navController.navigate(SettingsMediaRoute) },
-            onOpenExperimentsSettings = { navController.navigate(SettingsExperimentsRoute) },
-            onOpenSecuritySettings = { navController.navigate(SettingsSecurityRoute) },
-            onOpenProxySettings = { navController.navigate(SettingsProxyRoute) },
-            onOpenMultiAgentSettings = { navController.navigate(SettingsMultiAgentRoute) },
-            onOpenAgentSettings = { navController.navigate(SettingsAgentRoute) },
-            onOpenProactiveSettings = { navController.navigate(SettingsProactiveRoute) },
-            onOpenAboutSettings = { navController.navigate(SettingsAboutRoute) },
-            onOpenStats = { navController.navigate(StatsRoute) },
-            onOpenNotificationListener = { navController.navigate(NotificationListenerRoute) },
-            onOpenTools = { navController.navigate(ToolsScreenRoute) },
-            onOpenRagSettings = { navController.navigate(SettingsRagRoute) },
-            onOpenVisionSettings = { navController.navigate(SettingsVisionRoute) },
-            onOpenDataImport = { navController.navigate(SettingsDataImportRoute) },
-            onOpenTutorial = { navController.navigate(SettingsTutorialRoute) },
-            onOpenUserProfile = { navController.navigate(UserProfileEditRoute) },
-            onOpenTranslate = { navController.navigate(TranslateRoute) },
-            onOpenDataManagement = { navController.navigate(DataManagementRoute) },
-            onOpenDebugLog = { navController.navigate(DebugRoute) },
-            onOpenCrashReport = { navController.navigate(SettingsCrashReportRoute) },
-            onOpenAuditLog = { navController.navigate(AuditLogRoute) },
-            onOpenComponentGallery = { navController.navigate(ComponentGalleryRoute) },
-            onOpenWorkspace = { navController.navigate(WorkspaceRoute) },
-            onOpenConnectionCenter = { navController.navigate(ConnectionCenterRoute) },
-            // v1.0.72: 归档聊天 — 设置-数据与隐私入口(复用 ChatNavGraph 的 ArchivedChatsRoute)
-            onOpenArchivedChats = { navController.navigate(io.zer0.muse.ui.navigation.ArchivedChatsRoute) },
-            onOpenProviderPlugins = { navController.navigate(PluginManageRoute) },
-            // v1.133: 从 SettingsModelPage 拆出的 5 个独立二级页
-            onOpenWebSearch = { navController.navigate(SettingsWebSearchRoute) },
-            onOpenAsr = { navController.navigate(SettingsAsrRoute) },
-            onOpenMcp = { navController.navigate(SettingsMcpRoute) },
-            onOpenAssistantResources = { navController.navigate(SettingsAssistantResourcesRoute) },
+            onOpenGroup = { kind -> navController.navigate(SettingsGroupRoute(kind.name)) },
             onNavigate = { route -> navController.navigate(route) },
         )
+    }
+    // 设置一级分类页：首页 14 个分类点进来后的条目列表
+    composable<SettingsGroupRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { backStackEntry ->
+        val route = backStackEntry.toRoute<SettingsGroupRoute>()
+        // 路由里存的是字符串 id；映射不到就回首页，不要拿一个默认分类把用户带到错地方。
+        val kind = io.zer0.muse.ui.settings.SettingsGroupKind.entries
+            .firstOrNull { it.name == route.kind }
+        if (kind == null) {
+            navController.popBackStack()
+        } else {
+            SettingsGroupPage(
+                kind = kind,
+                onBack = { navController.popBackStack() },
+                onNavigate = { target -> navController.navigate(target) },
+            )
+        }
     }
     // v0.25: 账户中心(占位登录页)
     composable<AccountRoute>(
@@ -154,6 +137,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
     ) {
         SettingsAsrPage(
             onBack = { navController.popBackStack() },
+            onOpenProviderSettings = { navController.navigate(SettingsModelRoute) },
         )
     }
     // v1.133: 设置二级页 — MCP 服务器(从 SettingsModelPage 拆出)
@@ -217,20 +201,6 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         CloudBackupPage(
             onBack = { navController.popBackStack() },
         )
-    }
-    // v1.0.74: 设置二级页 — 小手机(总开关)
-    // v2.6.7: 本版不对外发布，路由也不注册。
-    if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
-        composable<SettingsMiniPhoneRoute>(
-            enterTransition = { MuseTransitions.horizontalPushEnter() },
-            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-        ) {
-            io.zer0.muse.ui.moment.MiniPhoneSettingsPage(
-                onBack = { navController.popBackStack() },
-                onOpenRelationships = { navController.navigate(RelationshipSettingsRoute) },
-                onOpenKeepAlive = { navController.navigate(KeepAliveSettingsRoute) },
-            )
-        }
     }
     // v0.26: 设置二级页 — 外观
     composable<SettingsAppearanceRoute>(
@@ -331,6 +301,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         MediaSettingsPage(
             onBack = { navController.popBackStack() },
             onOpenVoiceCloning = { navController.navigate(VoiceCloningRoute) },
+            // 模型只在供应商里维护：候选为空时出口指回供应商列表
+            onOpenProviderSettings = { navController.navigate(SettingsModelRoute) },
         )
     }
     // v0.32: 设置二级页 — 实验性
@@ -520,6 +492,13 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onOpenPlugins = { navController.navigate(PluginManageRoute) },
             onOpenToolPermissions = { navController.navigate(ToolsSettingsRoute) },
         )
+    }
+    // 网页版访问 — 设置 → 连接 → 网页版访问（地址 / PIN / 二维码）
+    composable<SettingsWebAccessRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        WebAccessPage(onBack = { navController.popBackStack() })
     }
     // 统一插件管理页（外部插件 + Provider 插件合并），旧入口已收敛到 PluginManageRoute
     composable<PluginManageRoute>(

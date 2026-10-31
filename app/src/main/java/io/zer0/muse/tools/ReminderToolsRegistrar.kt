@@ -1,10 +1,10 @@
 package io.zer0.muse.tools
 
 import android.content.Context
-import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.tools.reminder.ReminderAlarmScheduler
 import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
+import io.zer0.muse.tools.reminder.ReminderEntry
 import io.zer0.muse.tools.reminder.ReminderStore
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,18 +56,36 @@ class ReminderToolsRegistrar(
             if (triggerAt <= System.currentTimeMillis()) {
                 return@register context.getString(R.string.tool_reminder_past_time)
             }
-            val id = reminderStore.add(title, message, triggerAt)
-            val scheduled = scheduleAlarm(id, title, message, triggerAt)
-            if (scheduled) {
-                context.getString(
-                    R.string.tool_reminder_scheduled,
-                    id,
-                    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(triggerAt)),
-                )
-            } else {
-                reminderStore.remove(id)
-                context.getString(R.string.tool_reminder_schedule_failed)
+            val id = reminderStore.add(
+                title = title,
+                message = message,
+                triggerAtMillis = triggerAt,
+                targetType = ReminderAlarmReceiver.TARGET_HOME,
+                targetId = "",
+            )
+            val result = ReminderAlarmScheduler.schedule(
+                context = context,
+                id = id,
+                title = title,
+                message = message,
+                triggerAtMillis = triggerAt,
+                targetType = ReminderAlarmReceiver.TARGET_HOME,
+                targetId = "",
+            )
+            val whenText = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(triggerAt))
+            if (!result.scheduled) {
+                // 排期彻底失败：保留条目（而非悄悄删除），并记录原因，让 list_reminders 能如实标注。
+                reminderStore.markScheduleFailed(id, result.error ?: "alarm_schedule_failed")
+                return@register context.getString(R.string.tool_reminder_schedule_failed)
             }
+            if (result.needsExactPermission) {
+                // 已降级为非精确闹钟：先保证「会响」，再引导用户开启「闹钟和提醒」权限以获得准时。
+                reminderStore.markScheduled(id, exact = false, atMillis = System.currentTimeMillis())
+                ReminderAlarmScheduler.requestExactAlarmPermission(context)
+                return@register context.getString(R.string.tool_reminder_scheduled_inexact, id, whenText)
+            }
+            reminderStore.markScheduled(id, exact = true, atMillis = System.currentTimeMillis())
+            context.getString(R.string.tool_reminder_scheduled, id, whenText)
         }
 
         toolRegistry.register(
@@ -82,7 +100,7 @@ class ReminderToolsRegistrar(
         ) { args ->
             val id = args["id"]?.takeIf { it.isNotBlank() }
                 ?: return@register context.getString(R.string.tool_reminder_missing_id)
-            cancelAlarm(id)
+            ReminderAlarmScheduler.cancel(context, id)
             if (reminderStore.remove(id)) {
                 context.getString(R.string.tool_reminder_cancelled, id)
             } else {
@@ -101,6 +119,8 @@ class ReminderToolsRegistrar(
                 riskLevel = ToolRiskLevel.SAFE,
             ),
         ) { args ->
+            // 提醒列表文件损坏时，先把「列表坏了、已备份」这件事转述给用户，而不是假装列表为空。
+            reminderStore.consumeError()?.let { return@register it }
             val limit = args["limit"]?.toIntOrNull()?.takeIf { it > 0 } ?: 20
             val list = reminderStore.list().sortedBy { it.triggerAtMillis }.take(limit)
             if (list.isEmpty()) return@register context.getString(R.string.tool_reminder_list_empty)
@@ -113,11 +133,22 @@ class ReminderToolsRegistrar(
                         it.id,
                         sdf.format(Date(it.triggerAtMillis)),
                         it.title,
+                        statusText(it),
                     ),
                 )
             }
             sb.toString().trimEnd()
         }
+    }
+
+    /**
+     * 一条提醒的可读状态：让用户分得清「排上了会准时」「只能不准时地响」「可能根本不会响」。
+     */
+    private fun statusText(entry: ReminderEntry): String = when {
+        entry.scheduleError != null -> context.getString(R.string.tool_reminder_status_unscheduled)
+        entry.alarmLive && entry.scheduledExact -> context.getString(R.string.tool_reminder_status_scheduled)
+        entry.alarmLive -> context.getString(R.string.tool_reminder_status_inexact)
+        else -> context.getString(R.string.tool_reminder_status_lost)
     }
 
     private fun parseReminderTime(input: String): Long? {
@@ -137,50 +168,5 @@ class ReminderToolsRegistrar(
         } catch (_: Exception) {
             null
         }
-    }
-
-    private fun scheduleAlarm(id: String, title: String, message: String, triggerAtMillis: Long): Boolean {
-        return resultOf {
-            val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-            val intent = android.content.Intent(context, ReminderAlarmReceiver::class.java).apply {
-                putExtra(ReminderAlarmReceiver.EXTRA_ID, id)
-                putExtra(ReminderAlarmReceiver.EXTRA_TITLE, title)
-                putExtra(ReminderAlarmReceiver.EXTRA_MESSAGE, message)
-                putExtra(ReminderAlarmReceiver.EXTRA_TARGET_TYPE, ReminderAlarmReceiver.TARGET_HOME)
-                putExtra(ReminderAlarmReceiver.EXTRA_TARGET_ID, "")
-            }
-            val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-            } else {
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT
-            }
-            val pi = android.app.PendingIntent.getBroadcast(context, id.hashCode(), intent, flags)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
-                Logger.w("ReminderTools", "无 SCHEDULE_EXACT_ALARM 权限,无法设置精确提醒: id=$id")
-                return@resultOf false
-            }
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                am.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
-            } else {
-                am.setExact(android.app.AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
-            }
-            true
-        }.onError { msg, _ -> Logger.w("ReminderTools", "scheduleAlarm failed: $msg") }
-            .getOrNull() ?: false
-    }
-
-    private fun cancelAlarm(id: String) {
-        resultOf {
-            val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-            val intent = android.content.Intent(context, ReminderAlarmReceiver::class.java)
-            val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-            } else {
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT
-            }
-            val pi = android.app.PendingIntent.getBroadcast(context, id.hashCode(), intent, flags)
-            am.cancel(pi)
-            pi.cancel()
-        }.onError { msg, _ -> Logger.w("ReminderTools", "cancelAlarm failed: $msg") }
     }
 }

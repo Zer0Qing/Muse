@@ -4,6 +4,7 @@ import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStopReason
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderSpecificConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.ai.core.ReasoningLevel
@@ -22,6 +23,7 @@ import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
 import io.zer0.muse.data.chat.rewrite.buildCommitParts
 import io.zer0.muse.data.session.ConversationTurnEntity
 import io.zer0.muse.notification.MuseNotificationTarget
+import io.zer0.muse.session.WarmupHistory
 import io.zer0.muse.tools.SessionToolLoadRegistry
 import io.zer0.muse.tools.StreamRoundParams
 import io.zer0.muse.tools.StreamRoundResult
@@ -30,10 +32,13 @@ import io.zer0.muse.tools.ToolExposurePolicy
 import io.zer0.muse.tools.ToolLoopHost
 import io.zer0.muse.tools.ToolLoopParams
 import io.zer0.muse.tools.ToolRoundPresentationPolicy
+import io.zer0.muse.transformer.CompressionPolicy
+import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.ChatStreamPhase
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.mergeFinalAssistantMedia
+import io.zer0.muse.ui.selectSteeringMessages
 import io.zer0.muse.util.ErrorMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
@@ -50,6 +55,125 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+
+/**
+ * v2.6.15: 本轮 assistant 消息的产出模型戳。
+ *
+ * 思考块回放的同模型守卫靠这个字段判定来源（见 ProviderPayloadNormalizer.stripCrossModelReasoning）：
+ * 没有它，历史思考块就永远被当成“来源未知”，守卫形同虚设。
+ *
+ * 取值顺序：本轮实际使用的模型 > 消息上已有的戳。为什么本轮模型优先：发送时的占位消息只能用
+ * 当时的选择作估算，真正开始生成后可能因助手专属模型 / 工具轮模型 / 兜底切换而不同，
+ * 而这条消息的内容正是那一轮产出的；沿用旧戳会把它标成另一个模型，反而把合法回放剥掉。
+ */
+internal fun roundAssistantModelId(roundModel: Model?, existing: UIMessage?): String? =
+    roundModel?.id?.takeIf { it.isNotBlank() } ?: existing?.modelId?.takeIf { it.isNotBlank() }
+
+/**
+ * 上下文溢出（请求超出模型窗口）的判据。
+ *
+ * provider 各家用词不同，同一家不同版本也会换文案，所以判据做成「短语表 + 状态码表」：
+ * 新增一家只需往表里加一行，不动判定逻辑。输入是 provider 拼好的错误文案
+ * （已带 HTTP 状态码与响应 body 摘要，见各 Provider 的 parseErrorMessage）。
+ *
+ * 表里刻意不放「too many tokens」「token limit」这类宽泛短语：限流（TPM）文案里也常出现，
+ * 一旦误判成溢出，就会在限流时白花一次压缩请求，还把上下文压短一截。
+ */
+internal object ContextOverflowSignals {
+    /** 单条命中即判溢出（比较前统一转小写，所以表内全部小写）。 */
+    private val PHRASES: List<String> =
+        listOf(
+            // OpenAI 系（含 DeepSeek / Moonshot / 大部分中转站）
+            "context_length_exceeded",
+            "maximum context length",
+            "context length exceeded",
+            "reduce the length of the messages",
+            // 窗口类表述
+            "context window exceeded",
+            "context window exceeds",
+            "exceeds the context window",
+            "exceeds the maximum number of tokens",
+            "maximum number of tokens allowed",
+            // Anthropic
+            "prompt is too long",
+            // 通用输入长度
+            "input is too long",
+            "input length exceeds",
+            "range of input length",
+            "exceeded model token limit",
+            "输入过长",
+            // 请求体过大：与「上下文放不下」是同一个处置（压缩后重发）
+            "request entity too large",
+            "request is too large",
+            "payload too large",
+        )
+
+    /**
+     * 需要成对出现的判据。
+     *
+     * 中文文案常把「上下文」与「超出/过长」拆开说，单独任一个词都太宽（如
+     * 「max_tokens 超过上下文长度」这种参数错误），所以要求两者同时出现。
+     */
+    private val PAIRS: List<Pair<String, String>> =
+        listOf(
+            "上下文" to "超",
+            "上下文" to "过长",
+            "context" to "too long",
+        )
+
+    /** 状态码判据：413 在语义上就是「请求体放不下」，与溢出同一处置。 */
+    private val STATUS_PATTERNS: List<Regex> = listOf(Regex("""\bhttp\s+413\b"""))
+
+    /** 错误文案是否为上下文溢出。null / 空串一律判否。 */
+    fun matches(message: String?): Boolean {
+        val text = message?.trim().orEmpty()
+        if (text.isEmpty()) return false
+        val lower = text.lowercase()
+        if (PHRASES.any { lower.contains(it) }) return true
+        if (PAIRS.any { (first, second) -> lower.contains(first) && lower.contains(second) }) return true
+        return STATUS_PATTERNS.any { it.containsMatchIn(lower) }
+    }
+}
+
+/**
+ * 上下文溢出恢复的「一次性」闸门。
+ *
+ * 整个请求生命周期只允许做一次「压缩 + 重发」：压缩必然缩短历史，反复压会越压越短，
+ * 最后还是撞窗口，只是把真实内容一起丢了。所以先占位再压缩：占位之后无论成败都不再
+ * 试第二次，直接报原错误。
+ */
+internal class ContextOverflowRecovery {
+    /** 本次请求是否已用过恢复机会。 */
+    var used: Boolean = false
+        private set
+
+    /** 是否应当尝试恢复：溢出文案 + 不是网络中断 + 机会还在。 */
+    fun canRecover(error: String?, streamInterrupted: Boolean): Boolean =
+        !used && !streamInterrupted && ContextOverflowSignals.matches(error)
+
+    /** 占用本次请求唯一的恢复机会。 */
+    fun markUsed() {
+        used = true
+    }
+}
+
+/**
+ * 溢出后的一次恢复：压缩一轮历史，成功则把压缩后的历史交给调用方重发。
+ *
+ * @param compress 实际压缩动作；返回 null 表示压缩器没法腾出空间（消息太少 / 无净收益）。
+ * @return 压缩后的历史；null 表示放弃恢复，调用方应直接报原错误。
+ */
+internal suspend fun recoverFromContextOverflow(
+    error: String?,
+    streamInterrupted: Boolean,
+    recovery: ContextOverflowRecovery,
+    compress: suspend () -> List<UIMessage>?,
+): List<UIMessage>? {
+    if (!recovery.canRecover(error, streamInterrupted)) return null
+    // 先占位再压缩：压缩本身要发一次模型请求，失败也不能把机会退回去
+    recovery.markUsed()
+    return compress()
+}
 
 @Suppress(
     "LongParameterList", "LongMethod", "ComplexMethod", "TooGenericExceptionCaught",
@@ -132,6 +256,9 @@ internal class ChatToolLoopRunner(
                 assistantId = assistant?.id,
                 // v2.x 阶段3:宿主会话 id — find_tools 装载等按会话生效
                 sessionId = state.sessionId,
+                // 卡片的身份是承载它的消息 id。模型拿不到它，只能由宿主注入 ——
+                // 否则 update_card_data 没有任何可靠的 key 可用。
+                messageId = state.assistantId.toString(),
             )
 
         // v1.42: 流式过程中 UI/通知/token 更新采用字符+时间双阈值节流,降低重组频率。
@@ -153,6 +280,10 @@ internal class ChatToolLoopRunner(
         val pendingBuilder = StringBuilder()
         val chunkIntervals = ArrayDeque<Long>(STREAM_SLIDE_WINDOW)
         var lastChunkAt = 0L
+        // 上下文溢出恢复机会：整次请求(含所有工具轮与内部重试)只允许用一次。
+        // 放在 run 作用域而不是 params 里，是因为 streamRound 的递归重试都会落到这里，
+        // 不需要每层手动传递，也不会因为重试重置。
+        val overflowRecovery = ContextOverflowRecovery()
 
         /**
          * v1.0.4: 根据流式速率(滑动平均)计算本次 50ms 节流应输出的字符数。
@@ -182,6 +313,11 @@ internal class ChatToolLoopRunner(
         // C-17: 本代媒体登记表清零(上一代遗留 id 不参与本代收尾兜底)
         host.generationState.toolMediaMessages.clear()
         val baseHistorySize = conversationHistory.size
+        // v2.x: 工具定义占用在本轮生成里算一次就存下来 —— 工具清单（[tools]）整轮不变，
+        // 而编排器每轮会问两次 contextBudgetTokens()，每次都过一遍 schema 的 BPE 编码是纯浪费。
+        // TokenEstimator.estimateToolDefinitions 内部另有一层按内容指纹的缓存，这里是第二层。
+        // 取不到按 0 计，与原行为一致（预算宁可略宽，不能算不出来）。
+        var toolDefinitionTokensCache: Int? = null
         // B10: 流式 ThinkTag 实时剥离已接入 — 挂点在 flushPendingToUi(节流触发的 UI 更新),
         // 由 updateAssistantWithVisualTransform 完成: 先 O(n) contains("<think>") 短路,
         // 命中时才调用 transformer 层纯函数 splitThinkTagsForStreaming(见 ThinkTagTransformer.kt),
@@ -197,16 +333,58 @@ internal class ChatToolLoopRunner(
                 override fun contextBudgetTokens(): Int {
                     val window = host.stateStore.state.value.contextMaxTokens
                     if (window <= 0) return 0
+                    val toolTokens =
+                        toolDefinitionTokensCache
+                            ?: runCatching {
+                                io.zer0.muse.util.TokenEstimator.estimateToolDefinitions(tools)
+                            }.getOrDefault(0).also { toolDefinitionTokensCache = it }
                     // 与压缩触发共用同一套拆解：输出预留和安全余量必须一起扣，
                     // 否则这里以为还能塞、那边已经开始压缩，同一轮里出现两种判断。
-                    // 工具定义与系统提示的占用这一步拿不到，按 0 计 ——
-                    // 宁可给出略宽的额度，也不要用猜的数字把工具链截得过狠。
+                    // 工具定义按本轮真实要发的那批算（[tools] = 路由快照里的 definitions，
+                    // 每轮再按命中情况收窄，所以它是实际发送量的上界）；不抽它，额度会系统性偏宽，
+                    // 工具链撞到窗口也没有压缩机会。系统提示仍传 0：system 消息就在
+                    // conversationHistory 里，编排器已按历史计入，再扣一道就重复了。
                     return ContextBudget.compute(
                         contextWindow = window,
                         systemTokens = 0,
-                        toolTokens = 0,
+                        toolTokens = toolTokens,
                         maxOutputTokens = effectiveModel?.maxOutputTokens ?: 0,
                     ).historyBudget
+                }
+
+                /**
+                 * 插话通道：把用户在生成期间排进待发送队列的话交出去，由编排器在
+                 * 下一轮请求前作为 USER 消息插入 —— 用户不必等整轮跑完，也不必按停止
+                 * 把已经做完的工作一起丢掉。
+                 *
+                 * 取件规则（宁可漏取，不可错取）：
+                 *  - 只取 [io.zer0.muse.ui.PendingMessage.sessionId] 与本轮会话一致的条目。
+                 *    属于别的会话的排队消息被取走，等于在那段对话里塞进用户没说过的话，
+                 *    而且它会成为模型后续推理的依据 —— 这是数据污染，不是延迟问题。
+                 *    sessionId 为 null 的（旧数据/入队时无会话）同样不取。
+                 *  - 另外要求本轮会话正在显示。用户切到别的会话后入队的内容不属于这次运行，
+                 *    留在队列里等他自己发。
+                 *  - 只取纯文本条目。带图片的条目仍走原有排队：媒体要过发送管道的
+                 *    落盘与挂载链路，在这里二次实现会静默丢附件。
+                 *  - 取走即落盘 + 推 UI，插话在会话里是一条真实的用户消息；否则重进
+                 *    会话会看到助手在对着一句不存在的话作答。
+                 */
+                override suspend fun drainSteeringMessages(): List<String> {
+                    val snap = host.accessor.snapshot
+                    val displayed =
+                        if (snap.isAgentMode) snap.agentSessionId == sessionId else snap.currentSessionId == sessionId
+                    if (!displayed) return emptyList()
+                    val steering = selectSteeringMessages(snap.sendQueue, sessionId)
+                    if (steering.isEmpty()) return emptyList()
+                    host.accessor.update { it.copy(sendQueue = it.sendQueue - steering.toSet()) }
+                    for (item in steering) {
+                        val msg = UIMessage(role = MessageRole.USER, content = item.text)
+                        runCatching { host.sessionRepository.appendMessage(sessionId, msg) }
+                            .onFailure { Logger.w("ChatVM", "插话消息落盘失败: ${it.message}") }
+                        host.accessor.updateMessages { list -> list + msg }
+                    }
+                    host.messageController.rebuildConversationTree()
+                    return steering.map { it.text }
                 }
 
                 override suspend fun streamRound(params: StreamRoundParams): StreamRoundResult {
@@ -891,6 +1069,7 @@ internal class ChatToolLoopRunner(
                                                             completionTokens = usage.completionTokens,
                                                             reasoningTokens = usage.reasoningTokens,
                                                             cachedTokens = usage.cachedTokens,
+                                                            cacheWriteTokens = usage.cacheWriteTokens,
                                                             firstTokenMs = if (firstTokenAt > 0L) {
                                                                 (firstTokenAt - roundStartedAt).coerceAtLeast(0)
                                                             } else {
@@ -1103,6 +1282,49 @@ internal class ChatToolLoopRunner(
                         }
                     }
 
+                    // 上下文溢出（请求超出模型窗口）恢复：压一轮历史再重发一次。
+                    // 这是“聊到一半突然报错、只能开新会话”的主因——provider 已经明确说放不下，
+                    // 压完通常就放得下了。整个请求只尝试一次（机会在 recoverFromContextOverflow
+                    // 里当场占用），压缩器没有产出更短的历史时也直接放弃，报原错误。
+                    if (streamError != null) {
+                        val overflowHistory =
+                            recoverFromContextOverflow(
+                                error = streamError,
+                                streamInterrupted = streamInterrupted,
+                                recovery = overflowRecovery,
+                                compress = { compressForOverflowRecovery(params.history, sessionId) },
+                            )
+                        if (overflowHistory != null) {
+                            Logger.w(
+                                "ChatVM",
+                                "context overflow,压缩后重发 | round=${params.round} | " +
+                                    "messages ${params.history.size} -> ${overflowHistory.size} | error=$streamError",
+                            )
+                            // 压缩后的历史回写给整轮循环：否则下一个工具轮又拿原历史撞窗口，
+                            // 而恢复机会已经用掉了。
+                            conversationHistory.clear()
+                            conversationHistory.addAll(overflowHistory)
+                            // 复位与网络重试同款的流式状态：新一轮首 token 重新计时。
+                            // 溢出的请求本来就没吐出内容（provider 直接拒了），无需保留部分正文。
+                            pendingBuilder.clear()
+                            chunkIntervals.clear()
+                            lastChunkAt = 0L
+                            firstTokenTime = 0L
+                            lastUiUpdateChars = 0
+                            lastUiUpdateAt = streamStartedAt
+                            lastNotifChars = 0
+                            lastNotifAt = streamStartedAt
+                            lastTokenUpdateChars = 0
+                            lastTokenUpdateAt = streamStartedAt
+                            lastPersistChars = 0
+                            lastPersistAt = streamStartedAt
+                            host.stateStore.state.update { it.copy(isWaitingFirstToken = true) }
+                            return streamRound(
+                                params.copy(history = overflowHistory, preservePartialContent = false),
+                            )
+                        }
+                    }
+
                     streamError?.let {
                         val type = host.classifyErrorType(it)
                         val displayMsg = ErrorMessages.resolve(host.appContext, it)
@@ -1147,18 +1369,25 @@ internal class ChatToolLoopRunner(
                     // 4840 注释意图一致)。仅在 toolModel != 主模型时重跑;补轮失败(网络/限流)
                     // 时保留 toolModel 已产出的答复作为兜底,不让用户面对空回复。
                     // finish_reason=length 表示输出被 token 上限截断，此轮 tool_calls 的
-                    // arguments 很可能只收到一半。执行残缺参数比不执行更危险（写文件、跑命令
-                    // 都可能偏离原意），所以整轮调用作废，让模型下一轮重新规划。
-                    if (toolCallAccumulator.isNotEmpty() &&
-                        doneFinishReason != null &&
-                        ChatStopReason.isLengthLimited(doneFinishReason)
-                    ) {
+                    // arguments 很可能只收到一半。残缺参数不能执行（写文件、跑命令都可能偏离
+                    // 原意），但整轮调用作废同样有害：模型以为自己在正常收尾，收不到任何反馈，
+                    // 用户只看到一句"回复被截断"，任务原地停住。
+                    // 这里保留调用列表并标记本轮为"参数被截断"，hasToolCalls 仍为 true ——
+                    // 编排器会为每个调用回填一条明确的错误 tool result，循环因此多走一轮，
+                    // 模型在下一轮请求里看得见原因并能重发完整调用。多耗的一轮比静默失败值得；
+                    // 反复截断仍受既有轮次上限与相同签名停滞检测约束，不会失控。
+                    val toolCallsTruncated =
+                        toolCallAccumulator.isNotEmpty() &&
+                            doneFinishReason != null &&
+                            ChatStopReason.isLengthLimited(doneFinishReason)
+                    if (toolCallsTruncated) {
                         Logger.w(
                             "ChatVM",
-                            "finish_reason=length 截断，丢弃本轮 ${toolCallAccumulator.size} 个工具调用 | round=$round",
+                            "finish_reason=length 截断，本轮 ${toolCallAccumulator.size} 个工具调用不执行，回填参数截断错误 | round=$round",
                         )
-                        toolCallAccumulator.clear()
                     }
+                    // 注意：标记传递链是 runner → StreamRoundResult.Success → 编排器；runner 侧无单测覆盖
+                    // （依赖整个 ChatViewModel 宿主），改这里须连带跑 ToolOrchestratorRunLoopTest。
                     val hasToolCalls = toolCallAccumulator.isNotEmpty()
                     if (usesToolModel && !hasToolCalls && roundModel != effectiveModel) {
                         Logger.i("ChatVM", "工具轮产出最终答复(round=$round), 用主模型补一轮 | model=${effectiveModel?.id}")
@@ -1231,6 +1460,8 @@ internal class ChatToolLoopRunner(
                                 id = params.currentAssistantId,
                                 role = MessageRole.ASSISTANT,
                                 content = finalizedAssistant?.content ?: unmaskPii(params.builder.toString()),
+                                // v2.6.15: 工具轮重建同样要带上产出模型戳 —— 带思考块的恰恰是这类消息。
+                                modelId = roundAssistantModelId(roundModel, finalizedAssistant),
                                 reasoning = if (exposeRoundThinking) {
                                     finalizedAssistant?.reasoning ?: unmaskPii(params.reasoningBuilder.toString()).ifBlank { null }
                                 } else {
@@ -1253,7 +1484,10 @@ internal class ChatToolLoopRunner(
                                 toolCalls =
                                 toolCallAccumulator.toSortedMap().map { (idx, triple) ->
                                     ToolCall(
-                                        id = triple.first ?: "call_${System.currentTimeMillis()}_$idx",
+                                        // 每条调用都要能被 tool result 精确配对，缺 id 或 id 为空串
+                                        // 都不行（空 id 会被 provider 拒），一律按本轮 index 合成。
+                                        id = triple.first?.takeIf { it.isNotBlank() }
+                                            ?: "call_${System.currentTimeMillis()}_$idx",
                                         name = triple.second ?: "",
                                         arguments = triple.third.toString(),
                                     )
@@ -1269,9 +1503,12 @@ internal class ChatToolLoopRunner(
                                     thinkingSignature = thinkingSignature,
                                     thinkingEncryptedContent = thinkingEncryptedContent,
                                     imageBase64List = imageAccumulator.toList(),
+                                    // v2.6.15: 与工具轮一致，最终回复也记本轮实际模型。
+                                    modelId = roundAssistantModelId(roundModel, null),
                                 )
                             val withCitations =
                                 finalAssistant.copy(
+                                    modelId = roundAssistantModelId(roundModel, finalAssistant),
                                     reasoning = if (exposeRoundThinking) finalAssistant.reasoning else null,
                                     mood = if (exposeRoundThinking) finalAssistant.mood else null,
                                     reflection = if (exposeRoundThinking) finalAssistant.reflection else null,
@@ -1296,6 +1533,7 @@ internal class ChatToolLoopRunner(
                         contentLength = params.builder.length,
                         firstTokenTime = firstTokenTime,
                         citationUrls = citationUrls.toList(),
+                        toolCallsTruncated = toolCallsTruncated,
                     )
                 }
 
@@ -1605,6 +1843,45 @@ internal class ChatToolLoopRunner(
     }
 
     /**
+     * 上下文溢出恢复用的压缩：用现成压缩器压一轮历史，没压短就返回 null。
+     *
+     * 参数按「尽量压得动」取：强制触发阈值（不受条数门槛限制）、更小的保留尾部、
+     * 摘要失败时允许可见标记截断兜底。理由：走到这里说明 provider 已经判定请求放不下，
+     * 再保守地「没净收益就不压」只会把原错误原样丢给用户。
+     *
+     * 压缩器自身的行为与阈值语义不改，这里只读它的返回值。
+     *
+     * @return 压缩后的历史；null 表示无法恢复（消息太少 / 无可压缩区间 / 无净收益 / 调用失败）。
+     */
+    private suspend fun compressForOverflowRecovery(history: List<UIMessage>, sessionId: String): List<UIMessage>? {
+        if (history.size < 2) return null
+        // 可压缩区间 = SYSTEM 前缀之后到最近 keepRecent 条之前，所以尾巴不能把所有消息占满
+        val keepRecent = minOf(OVERFLOW_RECOVERY_KEEP_RECENT, history.size - 1).coerceAtLeast(1)
+        val context =
+            TransformContext(
+                sessionId = sessionId,
+                modelId = host.stateStore.state.value.currentAssistant?.modelId,
+                extras =
+                mapOf(
+                    "compress_enabled" to true,
+                    "compress_threshold" to CompressionPolicy.FORCE_TRIGGER_THRESHOLD,
+                    "compress_keep_recent" to keepRecent,
+                    "compress_force_fallback" to true,
+                    "compress_char_budget" to
+                        WarmupHistory.compressTokenBudgetFor(
+                            contextMaxTokens = host.stateStore.state.value.contextMaxTokens,
+                        ),
+                ),
+            )
+        val compressed =
+            resultOf { host.contextCompressTransformer.transform(history, context) }
+                .onError { message, t -> Logger.w("ChatVM", "overflow recovery compress failed: $message", t) }
+                .getOrNull() ?: return null
+        // 条数没变 = 压缩器原样返回，此时重发只会再撞一次同样的窗口
+        return compressed.takeIf { it.size < history.size }
+    }
+
+    /**
      * 从 ChatViewModel.companion 复制的常量(原 runToolLoop 直接引用)。
      * 值逐字照搬,保证行为等价。
      */
@@ -1624,5 +1901,8 @@ internal class ChatToolLoopRunner(
         const val MAX_STREAM_RETRIES = 3
         const val MAX_TOOL_ROUNDS = 12
         const val NETWORK_RECOVERY_TIMEOUT_MS = 30_000L
+
+        /** 溢出恢复压缩后保留的尾部消息条数：比常规压缩更短，以确保真的能腾出窗口。 */
+        const val OVERFLOW_RECOVERY_KEEP_RECENT = 4
     }
 }

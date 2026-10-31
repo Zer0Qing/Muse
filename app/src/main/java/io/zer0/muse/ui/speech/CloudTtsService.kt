@@ -27,7 +27,7 @@ import kotlin.coroutines.resume
  * 当 [MediaConfig.ttsEngine] != "system" 时,TtsManager 委托给本服务合成音频。
  * 返回 mp3 字节数组,写入临时文件后交由 MediaPlayer 播放(与系统 TTS 路径一致)。
  *
- * 设计既有实现 的 TTSProvider 抽象,但简化为单文件多 provider 分发。
+ * 按 TTSProvider 抽象组织,单文件内按 provider 分发。
  *
  * v1.99: 增强 —
  *  - 修复 Edge TTS 假域名(改为可配置 endpoint,默认空)
@@ -196,6 +196,27 @@ class CloudTtsService(
             VoiceInfo("Nova", "Nova", "en"),
             VoiceInfo("Onyx", "Onyx", "en"),
         )
+
+        /**
+         * 引擎内置（不靠联网）的音色 id 集合，供「切引擎时校验旧音色是否还成立」用。
+         *
+         * 返回 null 表示这个引擎的音色集合拿不到：ElevenLabs / MiniMax 要实时拉 /voices，
+         * CLONED 由 [VoiceCloningService] 管理，未识别的引擎 id 也无从判断。
+         */
+        fun builtInVoiceIds(engineId: String): Set<String>? = when (CloudTtsProvider.fromEngine(engineId)) {
+            CloudTtsProvider.OPENAI -> OPENAI_VOICES.voiceIds()
+            CloudTtsProvider.EDGE -> EDGE_VOICES.voiceIds()
+            CloudTtsProvider.GEMINI -> GEMINI_VOICES.voiceIds()
+            CloudTtsProvider.DASHSCOPE -> DASHSCOPE_VOICES.voiceIds()
+            CloudTtsProvider.FISH -> FISH_VOICES.voiceIds()
+            CloudTtsProvider.GROQ -> GROQ_VOICES.voiceIds()
+            CloudTtsProvider.QWEN -> QWEN_VOICES.voiceIds()
+            CloudTtsProvider.STEP -> STEP_VOICES.voiceIds()
+            CloudTtsProvider.XAI -> XAI_VOICES.voiceIds()
+            CloudTtsProvider.ELEVENLABS, CloudTtsProvider.MINIMAX, CloudTtsProvider.CLONED, null -> null
+        }
+
+        private fun List<VoiceInfo>.voiceIds(): Set<String> = mapTo(LinkedHashSet()) { it.id }
     }
 
     /**

@@ -5,6 +5,7 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.artifact.ArtifactRepository
@@ -109,6 +110,14 @@ internal class ChatMediaController(
         }
     }
 
+    /**
+     * 本段输入是否已被用户显式结束(点「结束」/松手)。
+     *
+     * 只有 [finishVoiceConversationListening] 会置位;ASR 自己回到 Idle/Error(服务端收尾、
+     * 识别出错)一律视为被打断,不得据此提交。
+     */
+    private var pendingCommit = false
+
     /** 进入语音对话模式:开始首轮 LISTENING 并启动状态机循环观察。 */
     fun startVoiceConversation() {
         if (voiceState.state.value != VoiceConversationState.IDLE) return
@@ -118,6 +127,9 @@ internal class ChatMediaController(
         }
         // 取消旧循环协程,重启确保状态干净
         voiceState.job?.cancel()
+        pendingCommit = false
+        voiceState.hint.value = null
+        voiceState.clearTranscript()
         voiceState.state.value = VoiceConversationState.LISTENING
         startListeningForVoiceConversation()
         observeVoiceConversationLoop()
@@ -127,17 +139,20 @@ internal class ChatMediaController(
     fun stopVoiceConversation() {
         voiceState.job?.cancel()
         voiceState.job = null
+        pendingCommit = false
         audioCoordinator.cancelVoiceConversationListening()
         ttsManager.stop()
         voiceState.state.value = VoiceConversationState.IDLE
-        voiceState.transcript.value = ""
+        voiceState.clearTranscript()
         voiceState.aiReply.value = ""
+        voiceState.hint.value = null
     }
 
     /** 中断当前语音对话状态(用户点击主按钮)。 */
     fun interruptVoiceConversation() {
         val current = voiceState.state.value
         if (current == VoiceConversationState.IDLE) return
+        pendingCommit = false
         audioCoordinator.cancelVoiceConversationListening()
         ttsManager.stop()
         // THINKING 状态下 AI 仍在生成,需停止生成避免后续 isStreaming 回调误触发 TTS
@@ -145,16 +160,74 @@ internal class ChatMediaController(
             onStop()
         }
         voiceState.state.value = VoiceConversationState.IDLE
-        voiceState.transcript.value = ""
+        voiceState.clearTranscript()
         voiceState.aiReply.value = ""
+        voiceState.hint.value = null
     }
 
-    /** 启动一轮 ASR 录音,识别文本通过回调写入 transcript。 */
-    private fun startListeningForVoiceConversation() {
-        voiceState.transcript.value = ""
-        audioCoordinator.startVoiceConversationListening { transcript ->
-            voiceState.transcript.value = transcript
+    /**
+     * 语音对话主按钮(UI 侧 toggle,非按住式):
+     *  - IDLE:开始一轮对话
+     *  - LISTENING 且正在录音:结束本段输入并提交
+     *  - LISTENING 但未在录音:重新开始录音
+     *  - THINKING / SPEAKING:中断当前回复
+     */
+    fun toggleVoiceConversation() {
+        when (voiceState.state.value) {
+            VoiceConversationState.IDLE -> startVoiceConversation()
+            VoiceConversationState.LISTENING -> if (stateStore.state.value.asrState.isRecording) {
+                finishVoiceConversationListening()
+            } else {
+                startListeningForVoiceConversation()
+            }
+            VoiceConversationState.THINKING, VoiceConversationState.SPEAKING -> interruptVoiceConversation()
         }
+    }
+
+    /**
+     * 显式提交入口:用户决定「这一句说完了」。
+     *
+     * 立刻关闭麦克风并让 ASR 收尾(Stopping → Idle),收尾后由状态循环统一提交文本。
+     * 只有这条路径(以及 [toggleVoiceConversation])会把一段输入标记为待提交。
+     */
+    fun finishVoiceConversationListening() {
+        if (voiceState.state.value != VoiceConversationState.LISTENING) return
+        if (!stateStore.state.value.asrState.isRecording) return
+        pendingCommit = true
+        voiceState.hint.value = null
+        audioCoordinator.stopVoiceConversationListening()
+    }
+
+    /**
+     * 启动一轮 ASR 录音:识别文本并入本轮累积文本(不清空,重开录音后继续累积)。
+     *
+     * 各 Provider 的 start() 都会重置自己的会话内文本,所以跨会话累积只能在这里做:
+     * 会话被服务端静音收尾后重开,前面说出的内容才不会丢。
+     */
+    private fun startListeningForVoiceConversation() {
+        audioCoordinator.startVoiceConversationListening { transcript ->
+            voiceState.accumulateTranscript(transcript)
+        }
+    }
+
+    /**
+     * ASR 在用户未提交的情况下结束(识别出错 / 服务端自行收尾 / 提交时没有文本):
+     * 不发消息,回到 LISTENING 并重新收音。
+     *
+     * 本轮已有累积文字时静默续听(不提示「再说一次」,录音重开继续累积);
+     * 只有累积为空才提示重说。ASR 处于 Error 时不立即重开
+     * (否则 start → Error 会形成死循环),留给用户点按钮再试。
+     */
+    private fun resumeListeningAfterInterruptedAsr() {
+        voiceState.aiReply.value = ""
+        voiceState.hint.value = if (voiceState.transcript.value.isBlank()) {
+            appContext.getString(R.string.voice_conversation_retry_hint)
+        } else {
+            null
+        }
+        voiceState.state.value = VoiceConversationState.LISTENING
+        if (stateStore.state.value.asrState.status == ASRStatus.Error) return
+        startListeningForVoiceConversation()
     }
 
     /** 启动状态机循环观察协程:监听 ASR/流式/TTS 状态切换,自动驱动状态机循环。 */
@@ -168,20 +241,33 @@ internal class ChatMediaController(
             var speakingWatchdog: Job? = null
             var speakingEpoch = 0
             stateStore.state.collect { state ->
-                // 1. LISTENING → THINKING:ASR 录音结束,取 transcript 自动发送
+                // 1. LISTENING 期间 ASR 会话结束:只有用户显式结束本段输入才提交
                 if (voiceState.state.value == VoiceConversationState.LISTENING) {
                     if (state.asrState.isRecording) {
                         wasRecording = true
+                        // 录音重新起来后清掉上一轮的轻提示
+                        if (voiceState.hint.value != null) voiceState.hint.value = null
                     } else if (wasRecording) {
                         wasRecording = false
-                        val text = voiceState.transcript.value.trim()
-                        if (text.isNotEmpty()) {
+                        val userCommitted = pendingCommit
+                        pendingCommit = false
+                        // 只有 ASR 干净收尾(Idle)才算本段输入完整结束;Error 说明这段识别不可信
+                        val endedCleanly = state.asrState.status == ASRStatus.Idle
+                        // 本轮累积文本 + ASR 收尾状态里携带的末段:收尾状态与回调是同一次识别的两个
+                        // 通道,回调可能还没刷到累积,两处内容重叠,合并规则负责去重
+                        val text = voiceState.commitText(state.asrState.transcript)
+                        if (userCommitted && endedCleanly && text.isNotEmpty()) {
+                            // 显式提交:麦克风已停,整段文本一次性发送
+                            audioCoordinator.stopVoiceConversationListening()
+                            voiceState.aiReply.value = ""
                             voiceState.state.value = VoiceConversationState.THINKING
                             onUpdateInput(text)
                             onSend()
+                            // 提交成功即本轮结束:累积清空,下一轮从空开始
+                            voiceState.clearTranscript()
                         } else {
-                            // 未识别到内容,回 IDLE 等待用户再次点击
-                            voiceState.state.value = VoiceConversationState.IDLE
+                            // 空文本提交 / Error / 服务端自行收尾:一律不发送,已累积文本保留
+                            resumeListeningAfterInterruptedAsr()
                         }
                     }
                 }
@@ -199,7 +285,9 @@ internal class ChatMediaController(
                             // P2-33: 新一轮播报从干净状态开始 — 上一轮被中断/看门狗回落时
                             // wasSpeaking 可能残留 true,不重置会让新一轮 SPEAKING 立刻被误判为"已结束"
                             wasSpeaking = false
-                            // TTS 播放时 ASR 已停止(本循环不会在 SPEAKING 状态启动 ASR),避免回声
+                            // 播报前确保麦克风已关(幂等):TTS 声音被自己录进去会识别成用户说话,
+                            // 形成自打断。SPEAKING 期间本循环不会启动 ASR,只在回到 LISTENING 时重开。
+                            audioCoordinator.stopVoiceConversationListening()
                             val speakStarted = ttsManager.speak(content, lastAssistant.id.toString())
                             if (!speakStarted) {
                                 // P2-14: speak() 返回失败(引擎未就绪/无引擎)时 isSpeaking 永不为

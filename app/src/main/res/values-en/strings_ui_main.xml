@@ -192,17 +192,58 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Settings</string>
-    <string name="settings_screen_group_assistants">Assistant &amp; Persona</string>
-    <string name="settings_screen_group_models">Models &amp; Reasoning</string>
+    <string name="settings_screen_group_assistants">Conversation &amp; Roles</string>
+    <string name="settings_screen_group_chat_input">Chat &amp; Input</string>
+    <string name="settings_screen_group_models">Models &amp; Providers</string>
     <string name="settings_screen_group_chat_display">Conversation &amp; Expression</string>
+    <string name="settings_screen_group_tools">Tools &amp; Retrieval</string>
+    <string name="settings_screen_group_voice">Voice</string>
+    <string name="settings_screen_group_media">Images &amp; Translation</string>
     <string name="settings_screen_group_memory">Memory &amp; Knowledge</string>
     <string name="settings_screen_group_data_privacy">Data &amp; Backup</string>
-    <string name="settings_screen_group_tools">Capabilities &amp; Tools</string>
-    <string name="settings_screen_group_about">About &amp; Diagnostics</string>
-    <string name="settings_screen_group_connection">Connection, Account &amp; Security</string>
+    <string name="settings_screen_group_connection">Connection</string>
+    <string name="settings_screen_group_automation">Automation</string>
     <string name="settings_screen_group_proactive">Proactive &amp; Automation</string>
-    <string name="settings_screen_group_voice_media">Voice &amp; Media</string>
-    <string name="settings_screen_group_look">Interface &amp; Display</string>
+    <string name="settings_screen_group_look">Appearance</string>
+    <string name="settings_screen_group_data">Data</string>
+    <string name="settings_screen_group_privacy">Privacy &amp; Cleanup</string>
+    <string name="settings_screen_group_about">About &amp; Help</string>
+    <string name="settings_screen_group_developer">Developer</string>
+    <!-- Settings categories (first level of the settings screen) -->
+    <string name="settings_group_assistants">Assistants and Roles</string>
+    <string name="settings_group_assistants_desc">Profile, assistants, resources and agents</string>
+    <string name="settings_group_chat">Chat</string>
+    <string name="settings_group_chat_desc">Chat display, stickers, quick notes and sharing</string>
+    <string name="settings_group_models">Models and Providers</string>
+    <string name="settings_group_models_desc">Providers, task routing and provider plugins</string>
+    <string name="settings_group_tools">Tools and Permissions</string>
+    <string name="settings_group_tools_desc">Tools, permission wizard and web search</string>
+    <string name="settings_group_voice">Voice</string>
+    <string name="settings_group_voice_desc">Speech playback, recognition and voice cloning</string>
+    <string name="settings_group_image">Images and Vision</string>
+    <string name="settings_group_image_desc">Image and video generation, vision and translation</string>
+    <string name="settings_group_memory">Memory and Knowledge</string>
+    <string name="settings_group_memory_desc">Memory center and knowledge retrieval</string>
+    <string name="settings_group_connection">Connections</string>
+    <string name="settings_group_connection_desc">Connection center, channels, web access and MCP</string>
+    <string name="settings_group_automation">Automation</string>
+    <string name="settings_group_automation_desc">Proactive messages, schedules, notifications and keep-alive</string>
+    <string name="settings_group_appearance">Appearance</string>
+    <string name="settings_group_appearance_desc">Themes, font size and mini phone</string>
+    <string name="settings_group_data_privacy">Data and Privacy</string>
+    <string name="settings_group_data_privacy_desc">Data, workspace, backup, import and privacy switches</string>
+    <string name="settings_group_about_developer">About and Developer</string>
+    <string name="settings_group_about_developer_desc">Tutorial, updates, stats and diagnostic logs</string>
+    <string name="settings_group_data_storage">Data and Backup</string>
+    <string name="settings_group_data_storage_desc">Data management, workspace, backup, import and archived chats</string>
+    <string name="settings_group_privacy_security">Privacy and Security</string>
+    <string name="settings_group_privacy_security_desc">Privacy switches, redaction and share security</string>
+    <string name="settings_group_about">About</string>
+    <string name="settings_group_about_desc">Tutorial, version info and update checks</string>
+    <string name="settings_group_developer">Developer</string>
+    <string name="settings_group_developer_desc">Stats, experimental switches, debug and audit logs</string>
+    <string name="settings_group_section_about">About</string>
+    <string name="settings_group_section_developer">Developer</string>
     <string name="settings_screen_appearance_label">Appearance</string>
     <string name="settings_screen_appearance_desc">Theme / Font Size</string>
     <string name="settings_screen_chat">Chat</string>
@@ -215,6 +256,24 @@
     <string name="settings_screen_data_backup_desc">Cloud Backup / Web Server</string>
     <string name="settings_screen_data_import">Data Import</string>
     <string name="settings_screen_data_import_desc">Migrate from RikkaHub / Kelivo</string>
+    <!-- Web access (Settings -> Connection): address / PIN / QR code -->
+    <string name="settings_screen_web_access">Web access</string>
+    <string name="settings_screen_web_access_desc">Address / PIN / QR code — scan to connect</string>
+    <string name="settings_web_access_intro">Open the address below in a browser on your iPhone or PC and enter the PIN to use the web version.</string>
+    <string name="settings_web_access_enable">Enable web access</string>
+    <string name="settings_web_access_enable_subtitle">Turning it off disconnects other devices right away and frees the port</string>
+    <string name="settings_web_access_lan">Allow LAN access</string>
+    <string name="settings_web_access_lan_on">Phones and PCs on the same Wi-Fi can open it</string>
+    <string name="settings_web_access_lan_off">Local access only</string>
+    <string name="settings_web_access_local_only_hint">Local access only — other devices cannot scan this QR code</string>
+    <string name="settings_web_access_no_ip">No LAN IP found: join a Wi-Fi network, or check whether the router isolates devices</string>
+    <string name="settings_web_access_scan_hint">Scan with your phone camera to open</string>
+    <string name="settings_web_access_first_login_hint">The first visit asks for the 6-digit PIN above</string>
+    <string name="settings_web_access_pin_regenerated">New PIN: %1$s — other devices must sign in again</string>
+    <string name="settings_web_access_qr_cd">QR code for the web access address</string>
+    <string name="settings_web_access_tip_iphone">On iPhone, open it in Safari, then Share → Add to Home Screen for a full-screen app</string>
+    <string name="settings_web_access_tip_same_wifi">Your phone and this device must be on the same Wi-Fi</string>
+    <string name="settings_web_access_tip_disable">Turning the switch off disconnects other devices immediately</string>
     <string name="settings_screen_rag">Knowledge Retrieval</string>
     <string name="settings_screen_rag_desc">RAG Config / Embedding / Chunk Params</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
@@ -459,6 +518,9 @@
     <string name="skill_operation_failed">Operation failed: %1$s</string>
     <string name="skill_unnamed">(Unnamed)</string>
     <string name="skill_enabled">Enabled</string>
+    <string name="skill_bulk_summary">%1$d custom skills, %2$d enabled</string>
+    <string name="skill_bulk_disable_all">Disable all</string>
+    <string name="skill_bulk_enable_all">Enable all</string>
     <string name="skill_disabled">Disabled</string>
     <string name="skill_built_in">Built-in</string>
     <string name="skill_built_in_seed">Built-in (seed)</string>
@@ -632,7 +694,7 @@
     <string name="free_model_service_unavailable">Free quota service is unavailable. Add an API Key or try again later.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">Plugin Manager</string>
+    <string name="provider_plugins_title">Provider Plugins</string>
     <string name="muse_plugins_external">External Plugins</string>
     <string name="muse_plugins_manage">Plugins</string>
     <string name="muse_plugins_imported">Plugin package installed</string>
@@ -678,6 +740,8 @@
     <string name="voice_cloning_list_title">Cloned voices</string>
     <string name="voice_cloning_delete_confirm">Confirm delete this cloned voice?</string>
     <string name="voice_cloning_success">Cloning Success</string>
+    <string name="voice_cloning_key_saved">Voice set as current, API key saved</string>
+    <string name="voice_cloning_key_from_provider">Voice set as current, API key taken from the provider</string>
     <string name="voice_cloning_failed">Cloning failed: %1$s</string>
     <string name="voice_cloning_audio_required">Please select sample audio first</string>
 
@@ -777,7 +841,11 @@
     <string name="muse_plugins_draft">Pending confirmation (won\'t run)</string>
     <string name="muse_plugins_draft_saved">Saved as a disabled draft</string>
     <string name="muse_plugins_install_confirm_action">Confirm install and enable</string>
-    <string name="muse_plugins_install_confirm_capabilities">Declared capabilities: %1$s</string>
+    <string name="muse_plugins_install_confirm_capabilities">Capabilities it declares using: %1$s</string>
+    <string name="muse_plugins_capabilities_disclaimer">This declaration only describes what the plugin intends to use; it does not limit what it can do once installed.</string>
+    <string name="muse_plugins_global_switch_title">Plugins enabled</string>
+    <string name="muse_plugins_global_switch_desc">When off, no plugin runs. Installs and settings are kept.</string>
+    <string name="muse_plugins_runtime_label">Runtime: %1$s</string>
     <string name="muse_plugins_install_confirm_code">Entrypoint %1$d bytes · %2$d additional files · Entry SHA-256: %3$s</string>
     <string name="muse_plugins_install_confirm_summary">Version %1$s · Author %2$s · External code will run in a restricted JS sandbox</string>
     <string name="muse_plugins_install_confirm_title">Confirm installation: %1$s</string>
@@ -884,4 +952,12 @@
     <string name="workspace_empty_subtitle">Files the assistant creates or saves in chat show up here</string>
     <string name="settings_screen_group_storage">Storage</string>
     <string name="settings_screen_group_migrate">Backup &amp; migration</string>
+
+    <string name="workspace_mounts_title">Mounts</string>
+    <string name="workspace_mount_add">Add folder</string>
+    <string name="workspace_mount_read_only">Read-only</string>
+    <string name="workspace_mount_remove">Remove</string>
+    <string name="workspace_mount_added">Mounted %1$s</string>
+    <string name="workspace_mount_failed">Mount failed: %1$s</string>
+    <string name="workspace_read_only_hint">Read-only mount, contents can\'t be changed</string>
 </resources>

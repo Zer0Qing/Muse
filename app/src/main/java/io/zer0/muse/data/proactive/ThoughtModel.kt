@@ -82,74 +82,69 @@ enum class ThoughtSource {
 /**
  * 主动等级 —— 用户只需要表达「想让它多主动」。
  *
- * 这个枚举同时控制三件事，缺一不可：
+ * 这个枚举控制两件事：
  *  1. 预算区间（[floor] / [cap]）
- *  2. fitness 阈值（[threshold]，越低越愿意为小事开口）
- *  3. 允许的 kind（[allowedKinds]）
+ *  2. 允许说出口的牵挂类型（[allowedKinds]）
  *
- * 第三条是关键区别：「安静」不是一个更小的频次，而是一种不同的语义 ——
+ * 第二条是关键区别：「安静」不是一个更小的频次，而是一种不同的语义 ——
  * 只说该说的事，不说想说的话。所以它直接砍掉 SHARE/MILESTONE 这类
  * 「想说话」的类型，而不是把它们的频次降到很低。
  *
+ * 这里曾经还有一个 `threshold`（fitness 阈值），用于把评分压在阈值下的内容筛掉。
+ * 评分体系在主动消息重建时被整体移除（改为把最近对话交给模型、由它决定说不说），
+ * 阈值随之失去消费方，留着只会让后来人以为还有个评分在起作用。
+ *
  * 与长期学习的 [ProactiveRelationEntity.intimacy] 分工：
- * 本枚举划出地板和天花板（用户的即时意志），intimacy 在区间内浮动（系统的长期学习）。
- * 用户选了「主动」但关系还没攒够，就停在地板上；关系攒够了自然往上，
- * 但永远撞不破天花板。
+ * 本枚举直接给出每日条数上限（安静 3 / 克制 8 / 标准 15 / 主动 30 / 黏人不限），
+ * 就是用户选的那一档。早期版本曾用「等级地板 + 亲密度学习值」拼额度，导致
+ * 用户选了黏人却每天只能发 5 条，已废弃。
  */
 enum class ProactiveIntensity(
-    /** 每天至少给到这个额度（地板），不受 intimacy 影响。 */
-    val floor: Int,
-    /** 每天最多给到这么多（天花板）。 */
+    /** 每天最多能发多少条（黏人档为 Int.MAX_VALUE，即不限）。 */
     val cap: Int,
-    /** 牵挂的 fitness 低于此值就都不发。 */
-    val threshold: Float,
     /** 该等级允许说出口的牵挂类型。 */
     val allowedKinds: Set<ThoughtKind>,
 ) {
-    /** 只要提醒，不要寒暄。 */
+    /** 只要提醒，不要寒暄。每天最多 3 条。 */
     QUIET(
-        floor = 0,
         cap = 3,
-        threshold = 0.55f,
         allowedKinds = setOf(ThoughtKind.REMINDER),
     ),
 
-    /** 偶尔被想到就好。 */
+    /** 偶尔被想到就好。每天最多 8 条。 */
     RESERVED(
-        floor = 1,
-        cap = 6,
-        threshold = 0.45f,
+        cap = 8,
         allowedKinds = setOf(ThoughtKind.REMINDER, ThoughtKind.FOLLOW_UP, ThoughtKind.CARE),
     ),
 
-    /** 大多数人的默认。 */
+    /** 大多数人的默认。每天最多 15 条。 */
     STANDARD(
-        floor = 2,
         cap = 15,
-        threshold = 0.35f,
         allowedKinds = ThoughtKind.entries.toSet(),
     ),
 
-    /** 喜欢互动。 */
+    /** 喜欢互动。每天最多 30 条。 */
     ACTIVE(
-        floor = 3,
-        cap = 24,
-        threshold = 0.28f,
+        cap = 30,
         allowedKinds = ThoughtKind.entries.toSet(),
     ),
 
-    /** 要陪伴感：不设上限。 */
+    /** 要陪伴感：不限次数。 */
     CLINGY(
-        floor = 5,
         cap = Int.MAX_VALUE,
-        threshold = 0.20f,
         allowedKinds = ThoughtKind.entries.toSet(),
     ),
 
     ;
 
+    /** 是否不限次数（目前只有黏人档）。 */
+    val unlimited: Boolean get() = cap == Int.MAX_VALUE
+
     /** 该类型是否允许在此等级下说出口。 */
     fun allows(kind: ThoughtKind): Boolean = kind in allowedKinds
+
+    /** 这个等级是不是「只说该说的事」—— 没有具体事由就不该开口。 */
+    val onlyWhenNeeded: Boolean get() = this == QUIET
 
     companion object {
         /** 默认档位。 */

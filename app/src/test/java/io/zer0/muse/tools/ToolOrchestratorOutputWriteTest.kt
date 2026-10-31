@@ -184,6 +184,42 @@ class ToolOrchestratorOutputWriteTest {
     }
 
     @Test
+    fun `command tool truncation keeps the tail and drops the head`() = runBlocking {
+        val progress = "progress line\n".repeat(TOOL_OUTPUT_INLINE_FALLBACK_CHARS / 14 + 20)
+        val output = progress + "FAILED: 3 tests failed\nexit=1"
+
+        val content = runWithOutput("terminal_exec", output, orchestrator())
+
+        assertTrue(content.contains("[完整结果已保存"))
+        assertTrue("命令的结论在末尾，必须保留", content.contains("FAILED: 3 tests failed"))
+        assertTrue(content.contains("exit=1"))
+        assertFalse(
+            "头部进度日志不该占预览",
+            content.contains(progress.take(TOOL_RESULT_PREVIEW_CHARS)),
+        )
+        assertTrue(content.contains("结果末尾的预览"))
+    }
+
+    @Test
+    fun `file read truncation keeps the head`() = runBlocking {
+        val output = "HEADER: schema version 3\n" + "x".repeat(TOOL_OUTPUT_INLINE_FALLBACK_CHARS) + "\nTRAILER"
+
+        val content = runWithOutput("read_file", output, orchestrator())
+
+        assertTrue("文件类结果开头更有用，必须保留", content.contains("HEADER: schema version 3"))
+        assertTrue(content.contains("[完整结果已保存"))
+    }
+
+    @Test
+    fun `pagination notice reports total length of a spilled tool result`() = runBlocking {
+        val content = runWithOutput("read_file", bigOutput, orchestrator())
+
+        assertTrue(content.contains("共 ${bigOutput.length} 字符"))
+        assertTrue(content.contains("offset_chars=0"))
+        assertTrue(content.contains("length_chars=$TOOL_OUTPUT_READ_PAGE_CHARS"))
+    }
+
+    @Test
     fun `large result is passed whole when current context has room`() = runBlocking {
         val output = "用户 API 返回".repeat(8_000)
         val content = runWithOutput(

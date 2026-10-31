@@ -41,6 +41,8 @@ class ToolRouteExecutionGuardTest {
                 description = "calendar-like test tool",
                 parameters = mapOf("title" to "event title"),
                 required = setOf("title"),
+                // 夹具模拟写日程类工具（本地可逆副作用）。
+                riskLevel = ToolRiskLevel.NORMAL,
             ),
         ) { args: Map<String, String> -> "executed:${args["title"]}" }
 

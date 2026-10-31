@@ -154,6 +154,7 @@
     <string name="tool_summary_unpin_memory">Unpinned a memory</string>
     <string name="tool_summary_web_search">Searched the web</string>
     <string name="tool_summary_workspace_write">Wrote to workspace</string>
+    <string name="tool_summary_workspace_edit">Edited a workspace file</string>
     <string name="tool_summary_write_file">Wrote a file</string>
     <string name="tool_summary_prefix_browser">Operated the browser</string>
     <string name="tool_summary_prefix_channel">Managed a channel</string>
@@ -214,6 +215,7 @@
     <string name="tool_label_web_search">Web search</string>
     <string name="tool_label_write_file">Write file</string>
     <string name="tool_label_workspace_write">Workspace write</string>
+    <string name="tool_label_workspace_edit">Workspace edit</string>
     <!-- P4: tool trace collapsed-state status text (from P2-22) -->
     <string name="tool_trace_running">Running…</string>
     <string name="tool_trace_empty">Empty result</string>

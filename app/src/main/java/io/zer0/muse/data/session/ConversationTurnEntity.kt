@@ -68,6 +68,22 @@ interface ConversationTurnDao {
     )
     suspend fun finishIfOpen(turnId: String, phase: String, finishedAt: Long): Int
 
+    /**
+     * A9: 把进程被杀留下的悬挂 turn（`finishedAt IS NULL`）一次性收敛到终态。
+     *
+     * 单条 SQL 完成整批读+改，幂等性来自写入条件本身：`finishedAt IS NULL` 既是筛选条件
+     * 也是更新前置条件，第二次执行匹配 0 行。已有 `finishedAt` 的行永不改动，不会被回退
+     * phase 或覆盖完成时间。`updatedAt` 与 `finishedAt` 取同一时刻，与 [finishIfOpen] 一致。
+     *
+     * @param startedBefore 只收敛 `startedAt` 早于此时刻的行，给本进程正在进行的 turn 留窗口
+     * @return 本次收敛的行数
+     */
+    @Query(
+        "UPDATE conversation_turns SET phase = :phase, finishedAt = :finishedAt, updatedAt = :finishedAt " +
+            "WHERE finishedAt IS NULL AND startedAt < :startedBefore",
+    )
+    suspend fun closeStaleOpenTurns(phase: String, startedBefore: Long, finishedAt: Long): Int
+
     @Query("DELETE FROM conversation_turns WHERE sessionId = :sessionId")
     suspend fun deleteBySession(sessionId: String)
 

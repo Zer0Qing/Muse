@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * 模型能力库(照搬既有实现 的 `model-catalog`)。
+ * 模型能力库(`model-catalog`)。
  *
  * 把"模型能做什么"从散落的硬编码收敛成 **一份数据** —— 现状是
  * `ProviderCompat` 的 host 白名单、`ModelRegistry` 的名称前缀规则、`KnownModels`

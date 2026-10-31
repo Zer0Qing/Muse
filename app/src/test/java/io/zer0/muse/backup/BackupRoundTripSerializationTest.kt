@@ -1,6 +1,5 @@
 package io.zer0.muse.backup
 
-import io.zer0.muse.data.diary.DiaryEntity
 import io.zer0.muse.data.groupchat.GroupChatMemoryEntity
 import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
 import io.zer0.muse.data.quicknote.QuickNoteEntity
@@ -78,7 +77,6 @@ class BackupRoundTripSerializationTest {
             assistantMessageId = "m2",
             createdAt = 100L,
         )
-        val diary = DiaryEntity(date = "2026-09-20", content = "日记正文", createdAt = 100L)
         val translate = TranslateHistoryEntity(
             id = "tr1",
             sourceText = "hello",
@@ -122,7 +120,6 @@ class BackupRoundTripSerializationTest {
             conversationTurns = listOf(convTurn),
             messageParts = listOf(messagePart),
             messageOutboxes = listOf(outbox),
-            diaries = listOf(diary),
             translateHistories = listOf(translate),
             knowledgeBases = listOf(kb),
             subagentThreads = listOf(thread),
@@ -140,7 +137,6 @@ class BackupRoundTripSerializationTest {
         assertEquals(convTurn, restored.conversationTurns.single())
         assertEquals(messagePart, restored.messageParts.single())
         assertEquals(outbox, restored.messageOutboxes.single())
-        assertEquals(diary, restored.diaries.single())
         assertEquals(translate, restored.translateHistories.single())
         assertEquals(kb, restored.knowledgeBases.single())
         assertEquals(thread, restored.subagentThreads.single())
@@ -190,7 +186,6 @@ class BackupRoundTripSerializationTest {
         // 旧备份无新字段 → 反序列化默认空列表,hasAnyData 不受影响
         val oldStyle = """{"version":3,"exportedAt":1,"sessions":[],"messages":[]}"""
         val restored = json.decodeFromString(BackupService.Backup.serializer(), oldStyle)
-        assertEquals(emptyList<DiaryEntity>(), restored.diaries)
         assertEquals(emptyList<TranslateHistoryEntity>(), restored.translateHistories)
         assertEquals(emptyMap<String, List<*>>(), restored.scopedFacts)
     }

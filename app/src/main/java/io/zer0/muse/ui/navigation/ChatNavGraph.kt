@@ -1,25 +1,16 @@
 package io.zer0.muse.ui.navigation
 
-import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import io.zer0.muse.R
 import io.zer0.muse.ui.ArchivedChatsScreen
 import io.zer0.muse.ui.ChatListScreen
 import io.zer0.muse.ui.ChatScreen
@@ -33,7 +24,6 @@ import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import io.zer0.muse.ui.settings.PromptTemplateManagerPage
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -43,7 +33,7 @@ import org.koin.androidx.compose.koinViewModel
  * 从 MainActivity 抽取以解决后者过载问题(原 1804 行 → 目标 ≤ 800 行)。
  * HOME 使用垂直过渡,其余页面统一使用 [MuseTransitions.horizontalPushEnter] / [horizontalPushPopExit]。
  */
-fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewModel: ChatViewModel, context: Context) {
+fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewModel: ChatViewModel) {
     // v0.22: 首页 — 顶部 Tab 导航(垂直过渡,HOME 专属)
     composable<HomeRoute>(
         enterTransition = { MuseTransitions.verticalPushEnter() },
@@ -58,6 +48,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
             onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
             onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
+            onOpenMiniPhone = { navController.navigate(MiniPhoneRoute) },
             // v0.27: 点击任务项 / 新建任务 → push 到独立聊天详情页(右滑入场,滑动式 push 过渡)
             onOpenChat = { navController.navigate(ChatDetailRoute) },
             // v0.45: 右上角搜索 → 独立全局搜索页
@@ -68,8 +59,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             },
             onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
             onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
-            // v1.0.72: 小手机 + AI 朋友圈入口
-            onOpenMiniPhone = { navController.navigate(MiniPhoneRoute) },
             // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
             onHtmlPreview = { html ->
                 navController.navigate(HtmlPreviewRoute(html))
@@ -101,150 +90,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             },
         )
     }
-    // v1.0.72: 小手机 + AI 朋友圈沉浸页
-    // v2.6.7: 本版不对外发布，路由也不注册 —— 仅隐藏 UI 不够，
-    // deep link / 恢复导航仍能落到这里。代码整体保留，开关改回即恢复。
-    if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
-        composable<MiniPhoneRoute>(
-            enterTransition = { MuseTransitions.fadeEnter() },
-            popExitTransition = { MuseTransitions.fadeExit() },
-        ) {
-            val momentViewModel: io.zer0.muse.ui.moment.MomentViewModel = org.koin.androidx.compose.koinViewModel()
-            val momentState by momentViewModel.state.collectAsStateWithLifecycle()
-            val settings: io.zer0.muse.data.SettingsRepository = org.koin.compose.koinInject()
-            val hiddenMiniPhoneApps by settings.miniPhoneHiddenAppsFlow.collectAsStateWithLifecycle(
-                initialValue = emptySet(),
-            )
-            val miniPhoneAppOrder by settings.miniPhoneAppOrderFlow.collectAsStateWithLifecycle(
-                initialValue = emptyList(),
-            )
-            var showMoments by remember { mutableStateOf(false) }
-            // v1.0.90 fix: 消息图标直达消息页(此前红点清了却进 feed)
-            var initialPage by remember { mutableStateOf("feed") }
-            // v2.6.7（P0-3）: 待打开的小手机内聊天会话 id。
-            // 消息 Tab 点已有会话时应该直接进那个会话，而不是按助手去找/建一个主对话会话。
-            var pendingMiniPhoneSessionId by remember { mutableStateOf<String?>(null) }
-            // v2.x: 新建会话触发器
-            var newSessionTrigger by remember { mutableStateOf(0) }
-            val context = LocalContext.current
-            // v2.6.9: 清理 pendingChatAssistantId 死路径时连带消失的注入，重新声明。
-            val sessionRepo = org.koin.compose.koinInject<io.zer0.muse.data.session.SessionRepository>()
-
-            // v2.6.7（P0-3）: 小手机内聊天 — 切到目标会话后留在小手机内嵌形态，不跳主 App。
-            LaunchedEffect(pendingMiniPhoneSessionId) {
-                val sessionId = pendingMiniPhoneSessionId ?: return@LaunchedEffect
-                sharedViewModel.retryLoadSessions()
-                sharedViewModel.switchSession(sessionId)
-                navController.navigate(MiniPhoneChatRoute)
-                pendingMiniPhoneSessionId = null
-            }
-
-            // v2.6.7（P3）: 小手机内新建会话。
-            // 旧实现 createSession("default") 写死默认助手，且跳主 App 的 ChatDetailRoute。
-            // 现在：选第一个启用的助手，创建小手机空间的会话（isMiniPhone=true），
-            // 留在小手机内聊天（MiniPhoneChatRoute），不弹出到主 App。
-            LaunchedEffect(newSessionTrigger) {
-                if (newSessionTrigger == 0) return@LaunchedEffect
-                val assistantId = momentState.assistants.values
-                    .firstOrNull { it.enabled }?.id
-                    ?: "default"
-                val newId = sessionRepo.createMiniPhoneSession(assistantId)
-                sharedViewModel.retryLoadSessions()
-                sharedViewModel.switchSession(newId)
-                navController.navigate(MiniPhoneChatRoute)
-            }
-
-            if (!showMoments) {
-                io.zer0.muse.ui.moment.MiniPhoneScreen(
-                    momentsCount = momentState.moments.size,
-                    // v2.6.9: 通讯录 → 角色详情页
-                    onOpenContactDetail = { assistantId ->
-                        navController.navigate(MiniPhoneContactDetailRoute(assistantId))
-                    },
-                    // v2.6.7（P0-3）: 点已有私信会话 → 带会话 id 进小手机内聊天页
-                    onOpenSession = { sessionId -> pendingMiniPhoneSessionId = sessionId },
-                    // v1.138: 小手机私信空间会话列表
-                    miniPhoneSessions = momentState.miniPhoneSessions,
-                    // v2.6.7（P1-3）: 正在输入状态
-                    typingAssistantIds = momentState.typingAssistantIds,
-                    onNewSession = { newSessionTrigger++ },
-                    // v1.0.90: 即时通讯形态的壳需要动态与消息原始数据（消息列表 / 通讯录）
-                    moments = momentState.moments,
-                    momentMessages = momentState.messages,
-                    assistants = momentState.assistants,
-                    unreadMoments = momentState.unreadMomentsCount,
-                    unreadMessages = momentState.unreadMessagesCount,
-                    wallpaper = momentState.wallpaper,
-                    // v1.0.74: 小手机主人 = 用户
-                    userName = momentState.userName,
-                    userAvatarUri = momentState.userAvatarUri,
-                    hiddenApps = hiddenMiniPhoneApps,
-                    appOrder = miniPhoneAppOrder,
-                    onOpenMoments = {
-                        momentViewModel.markMomentsRead()
-                        initialPage = "feed"
-                        showMoments = true
-                    },
-                    onOpenMessages = {
-                        momentViewModel.markMessagesRead()
-                        initialPage = "messages"
-                        showMoments = true
-                    },
-                    // v1.0.74: 备忘录复用快速记录,相册/天气/日记本独立页
-                    onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
-                    onOpenAlbum = { navController.navigate(MiniAlbumRoute) },
-                    onOpenWeather = { navController.navigate(MiniWeatherRoute) },
-                    onOpenDiary = { navController.navigate(MiniDiaryRoute) },
-                    onOpenSettings = { navController.navigate(SettingsMiniPhoneRoute) },
-                    // v2.6.7（P3）: 群聊会议入口。
-                    // 群聊列表嵌在主 App 首页 Tab 2，没有独立路由；这里跳回首页，
-                    // 不复制一份群聊列表 —— 两份列表会立刻分叉。
-                    onOpenGroupChats = {
-                        navController.navigate(io.zer0.muse.ui.navigation.HomeRoute) {
-                            popUpTo(io.zer0.muse.ui.navigation.MiniPhoneRoute) { inclusive = true }
-                        }
-                    },
-                    onSetWallpaper = momentViewModel::setWallpaper,
-                    onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
-                    onBack = { navController.popBackStack() },
-                )
-            } else {
-                io.zer0.muse.ui.moment.MomentsScreen(
-                    moments = momentState.moments,
-                    commentsByMoment = momentState.comments,
-                    favoriteMomentIds = momentState.favoriteMomentIds,
-                    messages = momentState.messages,
-                    unreadMessagesCount = momentState.unreadMessagesCount,
-                    isLoading = momentState.isLoading,
-                    userAvatarUri = momentState.userAvatarUri,
-                    userName = momentState.userName,
-                    coverImage = momentState.coverImage,
-                    assistants = momentState.assistants,
-                    banner = momentState.banner,
-                    onToggleLike = momentViewModel::toggleLike,
-                    onToggleFavorite = momentViewModel::toggleFavorite,
-                    onAddComment = momentViewModel::addComment,
-                    onDeleteMoment = momentViewModel::deleteMoment,
-                    onPublish = momentViewModel::publish,
-                    // v2.6.9: 带可见范围的发布
-                    onPublishWithVisibility = { content, images, visibility ->
-                        momentViewModel.publish(content, images, visibility)
-                    },
-                    onSetCover = momentViewModel::setCoverImage,
-                    onGenerateMoment = momentViewModel::generateNow,
-                    onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
-                    onMarkMessagesRead = momentViewModel::markMessagesRead,
-                    // v2.6.7: 接上动态编辑入口
-                    onEditMoment = momentViewModel::editMoment,
-                    onConsumeBanner = momentViewModel::consumeBanner,
-                    onRefresh = { momentViewModel.load() },
-                    onBack = { showMoments = false },
-                    initialPage = initialPage,
-                )
-            }
-        }
-    }
-
     // v2.6.9: 常驻后台设置页
     composable<KeepAliveSettingsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
@@ -257,98 +102,11 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
 
     // v2.6.7: 小手机内子路由一并受总闸控制（本版不对外发布）。
     if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
-        // v1.0.74: 小手机子页 — AI 相册(聚合 messages 里的 AI 生成图)
-        composable<MiniAlbumRoute>(
-            enterTransition = { MuseTransitions.horizontalPushEnter() },
-            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-        ) {
-            val settings: io.zer0.muse.data.SettingsRepository = org.koin.compose.koinInject()
-            val scope = rememberCoroutineScope()
-            val hiddenAlbumImageIds by settings.miniAlbumHiddenImageIdsFlow.collectAsStateWithLifecycle(
-                initialValue = emptySet(),
-            )
-            val favoriteAlbumImageIds by settings.miniAlbumFavoriteImageIdsFlow.collectAsStateWithLifecycle(
-                initialValue = emptySet(),
-            )
-            var albumImages by remember {
-                mutableStateOf<List<io.zer0.muse.data.`import`.MiniAlbumImage>>(emptyList())
-            }
-            var albumReloadKey by remember { mutableIntStateOf(0) }
-            var albumLoading by remember { mutableStateOf(false) }
-            // v2.6.9: 相册本地导入存储（用户自己放的图，与派生图片区分）
-            val albumStore = remember(context) {
-                io.zer0.muse.data.moment.MiniAlbumStore(context)
-            }
-            // ST-09: 相册加载失败给可读原因(此前异常会被吞掉,且页面无错误态)
-            var albumError by remember { mutableStateOf<String?>(null) }
-            LaunchedEffect(albumReloadKey) {
-                albumLoading = true
-                albumError = null
-                try {
-                    // v2.6.9: 派生图片（朋友圈/消息配图） + 用户导入的图片合并展示
-                    val derived = io.zer0.muse.data.`import`.MiniDataLoader.loadAiGeneratedImages(context)
-                    val imported = albumStore.listImported()
-                    albumImages = imported + derived
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    albumError = e.message?.take(120) ?: context.getString(R.string.common_load_failed)
-                } finally {
-                    albumLoading = false
-                }
-            }
-            io.zer0.muse.ui.moment.MiniAlbumScreen(
-                images = albumImages,
-                onBack = { navController.popBackStack() },
-                isLoading = albumLoading,
-                onRefresh = { albumReloadKey++ },
-                errorMessage = albumError,
-                hiddenImageIds = hiddenAlbumImageIds,
-                favoriteImageIds = favoriteAlbumImageIds,
-                onToggleFavorite = { imageId ->
-                    scope.launch { settings.toggleMiniAlbumFavoriteImage(imageId) }
-                },
-                onHideImage = { imageId ->
-                    scope.launch { settings.hideMiniAlbumImage(imageId) }
-                },
-                onUnhideImage = { imageId ->
-                    scope.launch { settings.unhideMiniAlbumImage(imageId) }
-                },
-                // v2.6.9: 从本地相册导入
-                onImportImages = { uris ->
-                    scope.launch {
-                        albumStore.import(uris)
-                        albumReloadKey++
-                    }
-                },
-                // v2.6.9: 导入的图真删，派生的图只能隐藏
-                onDeleteImported = { uriString ->
-                    scope.launch {
-                        albumStore.delete(uriString)
-                        albumReloadKey++
-                    }
-                },
-                isImportedImage = { uriString -> albumStore.isImported(uriString) },
-            )
+        // 小手机入口：整页由 :miniphone 模块自绘，主 App 只提供路由。
+        composable<MiniPhoneRoute> {
+            io.zer0.muse.miniphone.ui.MiniPhoneRoot()
         }
-        // v1.0.74: 小手机子页 — 天气(Open-Meteo)
-        composable<MiniWeatherRoute>(
-            enterTransition = { MuseTransitions.horizontalPushEnter() },
-            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-        ) {
-            io.zer0.muse.ui.moment.MiniWeatherScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // v1.0.74: 小手机子页 — 模型日记本(月视图 + LLM 生成)
-        composable<MiniDiaryRoute>(
-            enterTransition = { MuseTransitions.horizontalPushEnter() },
-            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-        ) {
-            io.zer0.muse.ui.moment.MiniDiaryScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
+
         // v2.6.7（P0-3）: 小手机内聊天页 — 微信风格外壳，返回回到小手机而不是主 App
         composable<MiniPhoneChatRoute>(
             enterTransition = { MuseTransitions.horizontalPushEnter() },
@@ -370,48 +128,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         ) {
             io.zer0.muse.ui.settings.RelationshipSettingsPage(
                 onBack = { navController.popBackStack() },
-            )
-        }
-        // v2.6.9: 小手机内角色详情页
-        composable<MiniPhoneContactDetailRoute>(
-            enterTransition = { MuseTransitions.horizontalPushEnter() },
-            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-        ) { entry ->
-            val route = entry.toRoute<MiniPhoneContactDetailRoute>()
-            val momentVm: io.zer0.muse.ui.moment.MomentViewModel =
-                org.koin.androidx.compose.koinViewModel()
-            val momentState by momentVm.state.collectAsStateWithLifecycle()
-            val relRepo = org.koin.compose.koinInject<
-                io.zer0.muse.data.relationship.AssistantRelationshipRepository,
-                >()
-            val localScope = androidx.compose.runtime.rememberCoroutineScope()
-            val sessionRepo = org.koin.compose.koinInject<io.zer0.muse.data.session.SessionRepository>()
-            val relationship by produceState<io.zer0.muse.data.relationship.AssistantRelationshipEntity?>(
-                initialValue = null,
-                route.assistantId,
-            ) {
-                value = relRepo.getOrDefault(route.assistantId)
-            }
-            io.zer0.muse.ui.moment.MiniPhoneContactDetailScreen(
-                assistant = momentState.assistants[route.assistantId],
-                relationship = relationship,
-                onBack = { navController.popBackStack() },
-                // v2.6.9（修正）: “发消息”必须先切到该角色的会话。旧实现直接
-                // navigate(MiniPhoneChatRoute)，不切会话，结果是“给 A 发消息实际发给了 B”。
-                onStartChat = {
-                    val assistantId = route.assistantId
-                    localScope.launch {
-                        val existing = sharedViewModel.state.value.sessions
-                            .firstOrNull { it.assistantId == assistantId && !it.archived }
-                        val targetId = existing?.id ?: sessionRepo.createMiniPhoneSession(assistantId)
-                        sharedViewModel.retryLoadSessions()
-                        sharedViewModel.switchSession(targetId)
-                        navController.navigate(MiniPhoneChatRoute)
-                    }
-                },
-                onEditRelationship = {
-                    navController.navigate(RelationshipSettingsRoute)
-                },
             )
         }
     }

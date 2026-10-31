@@ -17,6 +17,15 @@ object ProactiveReplyParser {
 
     private const val TAG = "ProactiveReply"
 
+    /** 正文硬上限（字）。超过这个长度一定要截，与提示词里的「一到三句话」一致。 */
+    const val MAX_CONTENT_CHARS = 200
+
+    /** 正文至少要这么多个字（标点、空白不算），否则等同于没说。 */
+    const val MIN_CONTENT_CHARS = 2
+
+    /** 句末标点。截断优先落在这些字符后面，不硬切半个词。 */
+    private const val SENTENCE_ENDS = "。！？!?…；;\n"
+
     /** 解析结果。 */
     sealed interface Result {
         /** 现在不该说。理由只进日志，不给用户看。 */
@@ -31,10 +40,45 @@ object ProactiveReplyParser {
 
     fun parse(raw: String): Result {
         val text = stripFences(raw).trim()
-        return when {
+        val parsed = when {
             text.isEmpty() -> Result.Failed("模型返回空内容")
             else -> extractJsonObject(text)?.let { parseJson(it) } ?: fallbackToProse(text)
         }
+        return if (parsed is Result.Message) validate(parsed) else parsed
+    }
+
+    /**
+     * 正文硬校验。
+     *
+     * 解析层是唯一能拦住「模型写小作文」的地方：提示词里写「一到三句话」只是建议，
+     * 而发出去的长文用户只能在通知栏看到前几十个字，还不如在这里压住。
+     * 太短同理 —— 一个字或一个标点不是「说话」，按 skip 处理（不是失败，不该重试）。
+     */
+    private fun validate(message: Result.Message): Result {
+        val content = message.content.trim()
+        if (content.count { it.isLetterOrDigit() } < MIN_CONTENT_CHARS) {
+            Logger.w(TAG, "正文过短，按跳过处理 | len=${content.length}")
+            return Result.Skip("正文过短（${content.length} 字）")
+        }
+        if (content.length <= MAX_CONTENT_CHARS) return message.copy(content = content)
+        val truncated = truncateToSentence(content)
+        Logger.i(TAG, "正文超长已截断 | from=${content.length} | to=${truncated.length}")
+        return message.copy(content = truncated)
+    }
+
+    /**
+     * 按句子边界截到 [MAX_CONTENT_CHARS] 以内。
+     *
+     * 先找最后一个句末标点；它太靠前（不到上限一半）时退而求其次，
+     * 在最后一个空白处断开（英文正文靠这个不切断单词）；再不行才硬切。
+     */
+    private fun truncateToSentence(text: String): String {
+        val head = text.take(MAX_CONTENT_CHARS)
+        val sentenceEnd = head.indexOfLast { it in SENTENCE_ENDS }
+        if (sentenceEnd >= MAX_CONTENT_CHARS / 2) return head.substring(0, sentenceEnd + 1).trim()
+        val space = head.indexOfLast { it.isWhitespace() }
+        if (space >= MAX_CONTENT_CHARS / 2) return head.substring(0, space).trim()
+        return head.trim()
     }
 
     /** 已经是纯 JSON 的情况。 */

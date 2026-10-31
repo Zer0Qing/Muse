@@ -104,6 +104,8 @@ import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
@@ -143,8 +145,12 @@ fun GroupChatDetailScreen(
         initialFirstVisibleItemScrollOffset = state.listFirstVisibleItemScrollOffset,
     )
     // v1.45: 滚动位置变化时同步缓存到 ViewModel
+    // v1.100: 加 distinctUntilChanged + sample(100ms) 降频,避免滚动时高频
+    // 写入 ViewModel state 导致整页重组(滚动 → 写 state → 重组 → 重测量的隐性循环)
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .sample(100L)
+            .distinctUntilChanged()
             .collect { (index, offset) ->
                 viewModel.onListScrollPositionChanged(index, offset)
             }

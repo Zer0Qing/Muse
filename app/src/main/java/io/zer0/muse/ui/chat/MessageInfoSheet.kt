@@ -31,7 +31,10 @@ import java.util.Locale
  *  - [UIMessage.modelId] / [UIMessage.createdAt]:基础信息
  *  - [UIMessage.durationMs]:生成总耗时(含工具循环;中断路径也回填)
  *  - [UIMessage.promptTokens] / [UIMessage.completionTokens] / [UIMessage.reasoningTokens] /
- *    [UIMessage.cachedTokens]:provider 实测值(流式 UsageDelta 末值)
+ *    [UIMessage.cachedTokens] / [UIMessage.cacheWriteTokens]:provider 实测值(流式 UsageDelta 末值)
+ *
+ * 缓存分两行展示:[UIMessage.cachedTokens](读)与 [UIMessage.cacheWriteTokens](写)单价不同,
+ * 合成一个「缓存」数字会让用户以为写入部分是便宜的。写入量为 0 或无实测时不占行。
  *
  * Token 展示状态:
  *  - 有实测(任一分项非 null)→ 展示全部分项 + 「实测」标签
@@ -52,6 +55,7 @@ fun MessageInfoSheet(msg: UIMessage, onDismiss: () -> Unit) {
     val completionLabel = stringResource(R.string.msg_info_completion)
     val reasoningLabel = stringResource(R.string.msg_info_reasoning)
     val cachedLabel = stringResource(R.string.msg_info_cached)
+    val cacheWriteLabel = stringResource(R.string.msg_info_cache_write)
     val totalLabel = stringResource(R.string.msg_info_total)
     val measuredTag = stringResource(R.string.msg_info_measured)
     val estimatedTag = stringResource(R.string.msg_info_estimated)
@@ -94,6 +98,10 @@ fun MessageInfoSheet(msg: UIMessage, onDismiss: () -> Unit) {
                     InfoRow(completionLabel, "${msg.completionTokens ?: 0}", measuredTag)
                     InfoRow(reasoningLabel, "${msg.reasoningTokens ?: 0}", measuredTag)
                     InfoRow(cachedLabel, "${msg.cachedTokens ?: 0}", measuredTag)
+                    // 缓存写入单列：写入单价高于输入价，不能合进上一行的「缓存命中」
+                    (msg.cacheWriteTokens ?: 0).takeIf { it > 0 }?.let { writeTokens ->
+                        InfoRow(cacheWriteLabel, "$writeTokens", measuredTag)
+                    }
                     InfoRow(
                         totalLabel,
                         "${(msg.promptTokens ?: 0) + (msg.completionTokens ?: 0)}",

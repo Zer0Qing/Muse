@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * 基于文件的体验存储(既有实现 experience.ts 实现)。
+ * 基于文件的体验存储。
  *
  * 渐进式披露模式:
  *  - experience.md = index (category + description + path)

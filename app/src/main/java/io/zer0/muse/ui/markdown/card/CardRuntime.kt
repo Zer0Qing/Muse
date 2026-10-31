@@ -64,6 +64,9 @@ internal fun CardRuntime(
     // 主题值跟着 Compose 主题走，深浅色一换就重新生成，卡片不需要重载。
     val themeCss = CardTheme.css()
     val componentCss = remember { CardStyles.full() }
+    // WebViewClient 本身无状态，建一次就够：每次重组 new 一个会让
+    // LifecycleAwareWebViewContainer 里以它为 key 的 remember 恒失效。
+    val webViewClient = remember { RichContentWebViewClient() }
     val html = remember(spec, bridge, themeCss, componentCss) {
         assembleHtml(spec, host, themeCss, componentCss)
     }
@@ -73,7 +76,7 @@ internal fun CardRuntime(
         htmlContent = html,
         baseUrl = null,
         javaScriptEnabled = true,
-        webViewClient = RichContentWebViewClient(),
+        webViewClient = webViewClient,
         scrollable = scrollable,
         onWebViewCreated = { webView ->
             // 高度接口无条件注册：与「能不能回传」无关。

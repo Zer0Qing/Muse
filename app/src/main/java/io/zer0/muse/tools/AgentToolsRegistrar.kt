@@ -26,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
  *  - subagent_task（Phase 5A / v1.202: launch+reply+close 三件套）
  *  - subagent_run（v1.0.52 P2-1: 同步阻塞式独立子 agent,完整工具循环 + XML 协议）
  *  - find_tools（v2.x: 工具库按需检索 — 分层收窄的补全通道,命中即装载后续轮次可见）
+ *  - get_token_usage（v2.x: token 消耗与上下文占用自查）
  */
 // 该注册器聚合多个工具域依赖，拆分需同步调整工具注册生命周期，暂保留局部豁免。
 @Suppress("LongParameterList")
@@ -57,6 +58,14 @@ class AgentToolsRegistrar(
     private val automationManager: io.zer0.muse.automation.core.AutomationManager? = null,
     /** v2.6.9: 牵挂账本 —— note_thought 工具写入，主动消息调度的燃料。 */
     private val proactiveThoughtStore: io.zer0.muse.data.proactive.ProactiveThoughtRepository? = null,
+    /** v2.x: token 用量自查 — 用量流水只读口；为 null 时工具回报不可用，不用空数据冒充。 */
+    private val usageRecordDao: io.zer0.muse.data.stats.UsageRecordDao? = null,
+    /** 本会话用量读取器（用量流水没有会话维度，该数字取自消息行的实测字段）。 */
+    private val sessionUsageReader: (suspend (String) -> TokenUsageTool.SessionUsage?)? = null,
+    /** 当前上下文占用（占用, 上限）；由 ChatViewModel 绑定，未绑定时工具侧整行省略。 */
+    private val contextOccupancy: (() -> Pair<Int, Int>?)? = null,
+    /** facts 表查不到时的编译摘要回落口；为空时 search_memory 只报事实表结果。 */
+    private val compiledSummarySearch: SearchMemoryTool.CompiledSummarySearch? = null,
 ) {
     init {
         registerAll()
@@ -75,6 +84,24 @@ class AgentToolsRegistrar(
             proactiveThoughtStore?.let { store ->
                 NoteThoughtTool.execute(args, store, executionContext)
             } ?: "Error: 牵挂账本未就绪"
+        }
+    }
+
+    /**
+     * token 用量自查（get_token_usage）。
+     *
+     * 三个数据源各自独立降级：用量流水缺失 → 明确报不可用；会话读取器缺失 → 只少一行；
+     * 上下文探针未绑定（后台任务 / 未打开对话）→ 整行省略。任何一项都不会被编成 0。
+     */
+    private fun registerTokenUsage() {
+        toolRegistry.registerWithContext(TokenUsageTool.toolDef()) { args, executionContext ->
+            TokenUsageTool.execute(
+                args = args,
+                context = executionContext,
+                dao = usageRecordDao,
+                sessionUsage = sessionUsageReader,
+                contextOccupancy = contextOccupancy,
+            )
         }
     }
 
@@ -113,7 +140,7 @@ class AgentToolsRegistrar(
         // Phase 1 v6：长期记忆搜索
         toolRegistry.registerWithContext(SearchMemoryTool.toolDef()) { args, executionContext ->
             val scopedStore = factDbProvider?.getFactStore(executionContext.assistantId ?: "default") ?: factStore
-            SearchMemoryTool.execute(args, scopedStore, executionContext)
+            SearchMemoryTool.execute(args, scopedStore, executionContext, compiledSummarySearch)
         }
 
         // v2.x: 记忆库显式写入/删除 — 助手自管记忆能力(作用域/空间走执行上下文,不可伪造)
@@ -183,8 +210,12 @@ class AgentToolsRegistrar(
         }
 
         // Phase 4B：展示卡片（v2.0: 支持绑定结构化数据）
-        toolRegistry.register(ShowCardTool.toolDef()) { args ->
-            ShowCardTool.execute(args)
+        //
+        // v2.6.13: 改用 context 版注册 —— 卡片的身份是承载它的消息 id，
+        // 模型在生成过程中拿不到它，必须由宿主注入（[io.zer0.muse.tools.ToolExecutionContext.messageId]）。
+        // 回执里带上这个 id，模型下一轮想更新同一张卡就有据可依。
+        toolRegistry.registerWithContext(ShowCardTool.toolDef()) { args, ctx ->
+            ShowCardTool.execute(args, ctx.messageId)
         }
         // v2.x: bounded chart/table output rendered directly in the tool result card.
         toolRegistry.register(RenderDataTool.toolDef()) { args ->
@@ -200,30 +231,41 @@ class AgentToolsRegistrar(
         // 一个渲染侧永远不会去查的 key 上，于是“数据更新了但卡片没变”，也从不报错。
         // 现在统一到消息 id：卡片自己读 window.muse.cardId 拿到的就是它，
         // 模型只需要知道“哪条消息上的卡片”，而不是一个它无法从 show_card 拿到的一次性 id。
-        toolRegistry.register(
+        toolRegistry.registerWithContext(
             ToolRegistry.ToolDef(
                 name = "update_card_data",
                 description = "更新已展示卡片所绑定的结构化数据。" +
                     "卡片会通过 window.muse.getData() 与 window.muse.data.onChange 重新读取。" +
-                    "用卡片所在的消息定位它,不要用 show_card 的返回值。",
+                    "省略 card_id 时默认更新当前这条消息上的卡片。",
                 parameters = mapOf(
-                    "card_id" to "Required. The message id carrying the card (window.muse.cardId on the card side).",
+                    "card_id" to "Optional. The message id carrying the card. Omit it to update the card on the current message.",
                     "data" to "Required. JSON text with the new data.",
                 ),
-                required = setOf("card_id", "data"),
+                required = setOf("data"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
             ),
-        ) { args ->
-            val cardId = args["card_id"]?.trim().orEmpty()
+        ) { args, ctx ->
+            val requested = args["card_id"]?.trim().orEmpty()
             val data = args["data"].orEmpty()
+            // 省略 card_id 时指向本轮这条助手消息：模型刚 show_card 完想换数据，
+            // 它手上唯一确定的就是「当前这条消息」，而不是一个它从未见过的 id。
+            val cardId = ShowCardTool.resolveCardTarget(requested, ctx.messageId)
             when {
-                cardId.isBlank() -> "Error: card_id is required."
                 data.isBlank() -> "Error: data is required."
+                cardId.isBlank() -> "Error: card_id is required when the current message id is unavailable."
                 cardDataStore == null -> "Error: card data store unavailable."
                 else -> {
+                    // 写入前先看一眼这个 id 以前绑过数据没有：
+                    // 写到一个没人读的键上不会报错，表现只是「卡片不动」，极难排查。
+                    val previouslyBound = cardDataStore.get(cardId) != null
                     cardDataStore.put(cardId, data)
-                    "Card '$cardId' data updated (${data.length} chars)."
+                    if (previouslyBound || cardId == ctx.messageId) {
+                        "Card '$cardId' data updated (${data.length} chars)."
+                    } else {
+                        "Wrote ${data.length} chars to '$cardId', but nothing was ever bound to that id. " +
+                            "If the card does not change, the id is wrong — omit card_id to target the current message."
+                    }
                 }
             }
         }
@@ -237,6 +279,9 @@ class AgentToolsRegistrar(
         toolRegistry.register(CurrentStatusTool.toolDef()) { args ->
             CurrentStatusTool.execute(args, context)
         }
+
+        // token 用量自查：让模型答得出「我花了多少」「上下文还剩多少」。
+        registerTokenUsage()
 
         // v1.202: 子 agent 任务工具(launch / reply / close 三件套 + status / cancel / list)
         // 之前漏注册导致 subagent_task 工具永远不可用,此处补齐
@@ -256,7 +301,7 @@ class AgentToolsRegistrar(
             SubagentRunSkill.execute(args, subagentRunner)
         }
 
-        // v1.0.53 Phase 1: subagent_close — 主动关闭子 agent 线程(既有实现 subagent_close)
+        // v1.0.53 Phase 1: subagent_close — 主动关闭子 agent 线程
         // 主 agent 用此工具释放不再需要的线程;子 agent 内部禁止调用(SubagentRunner RECURSIVE_FORBIDDEN_TOOLS)
         toolRegistry.register(SubagentCloseTool.toolDef()) { args ->
             SubagentCloseTool.execute(args, subagentThreadStore)

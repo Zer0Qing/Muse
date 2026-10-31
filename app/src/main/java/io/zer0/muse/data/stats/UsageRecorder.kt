@@ -17,7 +17,8 @@ class UsageRecorder(private val dao: UsageRecordDao) {
      * @param promptTokens 输入 token
      * @param completionTokens 输出 token（已含 reasoning，避免重复计）
      * @param reasoningTokens 推理 token（仅展示）
-     * @param cachedTokens 缓存命中 token（仅展示）
+     * @param cachedTokens 缓存**读取** token（仅展示）
+     * @param cacheWriteTokens 缓存**写入** token（仅展示;与读取分列，两者单价不同）
      * @param firstTokenMs 首字延迟；0 表示未记录（非流式）
      * @param durationMs 总耗时；0 表示未记录
      */
@@ -29,6 +30,7 @@ class UsageRecorder(private val dao: UsageRecordDao) {
         completionTokens: Int = 0,
         reasoningTokens: Int = 0,
         cachedTokens: Int = 0,
+        cacheWriteTokens: Int = 0,
         firstTokenMs: Long = 0,
         durationMs: Long = 0,
     ) {
@@ -45,6 +47,7 @@ class UsageRecorder(private val dao: UsageRecordDao) {
                     completionTokens = completionTokens,
                     reasoningTokens = reasoningTokens,
                     cachedTokens = cachedTokens,
+                    cacheWriteTokens = cacheWriteTokens,
                     firstTokenMs = firstTokenMs.coerceAtLeast(0),
                     durationMs = durationMs.coerceAtLeast(0),
                 ),

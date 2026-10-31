@@ -310,11 +310,11 @@
 
     <!-- v1.136: Reminder tool strings -->
     <string name="tool_reminder_scheduled">알림 예약됨(ID: %1$s)\n시간: %2$s</string>
-    <string name="tool_reminder_schedule_failed">알림을 예약하지 못했습니다. 알람/알림 권한을 확인하세요.</string>
+    <string name="tool_reminder_schedule_failed">알림을 만들지 못했습니다. 시스템이 이 알람을 거부하여 울리지 않을 수 있습니다. 시스템 설정에서 이 앱의 "알람 및 리마인더" 권한을 확인한 뒤 다시 시도하세요.</string>
     <string name="tool_reminder_cancelled">취소된 알림: %1$s</string>
     <string name="tool_reminder_not_found">알림을 찾을 수 없습니다: %1$s</string>
     <string name="tool_reminder_list_header">예약된 알림(%1$d 총계):\n</string>
-    <string name="tool_reminder_list_item">- ID: %1$s | 시간: %2$s | 제목: %3$s</string>
+    <string name="tool_reminder_list_item">- ID: %1$s | 시간: %2$s | 제목: %3$s | 상태: %4$s</string>
     <string name="tool_reminder_list_empty">예약된 알림 없음</string>
     <string name="tool_reminder_missing_title">누락된 매개변수: 제목</string>
     <string name="tool_reminder_missing_message">누락된 매개변수: 메시지</string>
@@ -322,6 +322,15 @@
     <string name="tool_reminder_missing_id">누락된 매개변수: ID</string>
     <string name="tool_reminder_invalid_time">시간을 구문 분석할 수 없습니다: %1$s, yyyy-MM-dd HH:mm을 사용하십시오.</string>
     <string name="tool_reminder_past_time">알림 시간은 과거일 수 없습니다.</string>
+    <string name="tool_reminder_scheduled_inexact">알림 예약됨(ID: %1$s)\n시간: %2$s\n참고: "알람 및 리마인더" 권한이 꺼져 있어 이 알림은 대략적인 시간에만 울립니다(몇 분 늦을 수 있음). 시스템 설정에서 이 앱의 권한을 켜 주세요.</string>
+    <string name="tool_reminder_status_scheduled">예약됨, 제시간에 울립니다</string>
+    <string name="tool_reminder_status_inexact">예약되었지만 정확한 알람 권한이 없어 몇 분 늦을 수 있습니다</string>
+    <string name="tool_reminder_status_unscheduled">알람이 예약되지 않았습니다. 울리지 않을 수 있으니 다시 설정하세요</string>
+    <string name="tool_reminder_status_lost">예약이 확인되지 않았습니다. 울리지 않을 수 있습니다</string>
+    <string name="tool_reminder_catchup_title">%1$s (지연)</string>
+    <string name="reminder_exact_permission_hint">"알람 및 리마인더" 권한이 꺼져 있어 알림이 몇 분 늦게 울릴 수 있고 제시간이 아닐 수 있습니다.</string>
+    <string name="reminder_exact_permission_action">"알람 및 리마인더" 권한 켜기</string>
+    <string name="reminder_exact_permission_toast">"알람 및 리마인더" 권한이 꺼져 있어 알림이 몇 분 늦을 수 있습니다. 설정을 열었으니 직접 켜 주세요.</string>
 
     <!-- v1.136: Resource library tool strings -->
     <string name="tool_resource_added">저장된 리소스\nID: %1$s\n제목: %2$s</string>

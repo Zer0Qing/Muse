@@ -21,7 +21,7 @@ import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseMotion
 
 /**
- * 置顶记忆管理区(既有实现 pinned-memory-store.ts 的 UI)。
+ * 置顶记忆管理区。
  *
  * 显示所有置顶记忆及移除按钮。
  */

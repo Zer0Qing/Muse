@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
 /**
- * v1.0.53: 工具输入内容安全规则(既有实现 safety-policy.ts)。
+ * v1.0.53: 工具输入内容安全规则。
  *
  * 每条规则: toolName + 内容匹配 + 动作(拦截)+ reason + ruleId。
  * 在工具执行前统一检查;命中返回拒绝结果(带 ruleId,日志可追溯)。
@@ -15,6 +15,13 @@ data class ContentSafetyRule(
     val reason: String,
     val ruleId: String,
     val risk: String = "high",
+    /**
+     * 只拿该参数的值去做匹配；null 表示拿全部参数值拼接后的串（默认行为）。
+     *
+     * 路径类规则必须指定这个字段。否则正文内容会跟路径拼在一起过 `contains("..")`，
+     * 写一段含省略号的文本就会被当成路径穿越拦下。
+     */
+    val targetArg: String? = null,
 )
 
 object ContentSafetyRules {
@@ -62,21 +69,34 @@ object ContentSafetyRules {
             reason = "不允许打开本地文件链接",
             ruleId = "url-local-file",
         ),
-        // workspace_write 路径越界
-        ContentSafetyRule(
-            toolName = "workspace_write",
-            matcher = { it.contains("..") },
-            reason = "路径包含 .. 被安全策略拦截",
-            ruleId = "workspace-traversal",
-        ),
-        // workspace_write 绝对路径越界
-        ContentSafetyRule(
-            toolName = "workspace_write",
-            matcher = { it.startsWith("/") || Regex("^[A-Za-z]:[\\\\/]").containsMatchIn(it) },
-            reason = "绝对路径写入被安全策略拦截(仅允许工作区内相对路径)",
-            ruleId = "workspace-absolute-path",
-        ),
-    )
+        // 写文件类工具的路径硬边界在下方 writePathRules 里按工具名展开:只看 path,不碰正文
+    ) + writePathRules("workspace_write") + writePathRules("workspace_edit")
+
+    /**
+     * 写文件类工具共用的路径硬边界。
+     *
+     * 两条规则都带 [ContentSafetyRule.targetArg]：只拿 path 匹配，正文内容不参与，
+     * 否则写一段带省略号的正文就会被当成路径穿越拦下。
+     *
+     * @param toolName 写文件类工具名（workspace_write / workspace_edit）
+     */
+    private fun writePathRules(toolName: String): List<ContentSafetyRule> =
+        listOf(
+            ContentSafetyRule(
+                toolName = toolName,
+                matcher = { it.contains("..") },
+                reason = "路径包含 .. 被安全策略拦截",
+                ruleId = "workspace-traversal",
+                targetArg = "path",
+            ),
+            ContentSafetyRule(
+                toolName = toolName,
+                matcher = { it.startsWith("/") || Regex("^[A-Za-z]:[\\\\/]").containsMatchIn(it) },
+                reason = "绝对路径写入被安全策略拦截(仅允许工作区内相对路径)",
+                ruleId = "workspace-absolute-path",
+                targetArg = "path",
+            ),
+        )
 
     /**
      * 检查规则;命中返回第一条规则,未命中返回 null。
@@ -85,4 +105,20 @@ object ContentSafetyRules {
      * @param input 输入内容(参数值拼接)
      */
     fun check(toolName: String, input: String): ContentSafetyRule? = RULES.firstOrNull { it.toolName == toolName && it.matcher(input) }
+
+    /**
+     * 按参数表检查。带 [ContentSafetyRule.targetArg] 的规则只拿对应字段，
+     * 其余规则仍拿全部参数值拼接后的串（与 [check] 行为一致）。
+     *
+     * 执行链路必须走这个入口：调用方把参数表原样传进来，不要在外部自己拼接再调 [check]，
+     * 否则路径规则会连带检查文件正文。
+     */
+    fun checkArgs(toolName: String, args: Map<String, String>): ContentSafetyRule? {
+        val joined by lazy { args.values.joinToString("\n") }
+        return RULES.firstOrNull { rule ->
+            if (rule.toolName != toolName) return@firstOrNull false
+            val input = rule.targetArg?.let { argName -> args[argName] ?: return@firstOrNull false } ?: joined
+            rule.matcher(input)
+        }
+    }
 }

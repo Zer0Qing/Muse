@@ -160,6 +160,30 @@ interface KnowledgeChunkDao {
     @Query("SELECT COUNT(*) FROM knowledge_chunks WHERE doc_id = :docId")
     suspend fun countByDoc(docId: String): Int
 
+    /** 按知识库聚合的分块数投影。 */
+    data class ChunkCountByKb(
+        @androidx.room.ColumnInfo(name = "kb_id") val kbId: String,
+        @androidx.room.ColumnInfo(name = "chunk_count") val chunkCount: Int,
+    )
+
+    /**
+     * 按知识库现算分块数(排除内部文档)。
+     *
+     * 知识库一览要的是「这个库现在真有多少块」 —— 文档行上的 `chunk_count` 是写入时记录的,
+     * 重建失败或半途中断后可能与实际块数不一致,所以数实体行。没有块的库不出现在结果里,
+     * 调用方按 0 处理。
+     */
+    @Query(
+        """
+        SELECT d.kb_id AS kb_id, COUNT(c.id) AS chunk_count
+        FROM knowledge_docs d
+        LEFT JOIN knowledge_chunks c ON c.doc_id = d.id
+        WHERE d.is_internal = 0
+        GROUP BY d.kb_id
+        """,
+    )
+    suspend fun countByKb(): List<ChunkCountByKb>
+
     /**
      * P1-5（审计报告）: 统计**不属于**给定文档集合的 chunk 数量。
      *

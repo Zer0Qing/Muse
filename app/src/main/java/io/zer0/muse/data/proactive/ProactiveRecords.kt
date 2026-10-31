@@ -105,6 +105,18 @@ interface ProactiveOutcomeDao {
     )
     suspend fun countKindState(assistantId: String, kind: String, state: String): Int
 
+    /**
+     * 找出仍然没有反应、而且发出时间已经早于给定时间点的记录。
+     *
+     * 巡检用它把「发出去一天都没人理」的主动消息收尾成 EXPIRED。
+     * 不用一条 UPDATE 直接改状态，是因为收尾同时要按结果调整亲密度，
+     * 而那套判定在 [ProactiveOutcomeRepository.resolve] 里。
+     */
+    @Query(
+        "SELECT * FROM proactive_outcome WHERE state = 'PENDING' AND sentAt <= :before",
+    )
+    suspend fun listPendingBefore(before: Long): List<ProactiveOutcomeEntity>
+
     /** 把超时未响应的记录收尾。 */
     @Query(
         "UPDATE proactive_outcome SET state = 'EXPIRED' " +
@@ -144,7 +156,12 @@ data class ProactiveRelationEntity(
     @ColumnInfo(defaultValue = "") val budgetDate: String = "",
     /** 当天已消耗条数。 */
     @ColumnInfo(defaultValue = "0") val spentToday: Int = 0,
-    /** 当天用户主动互动回补的额度。 */
+    /**
+     * 当天用户主动互动回补的额度。
+     *
+     * 已不再参与额度计算（每日条数现在完全由 [ProactiveIntensity.cap] 决定），
+     * 列保留仅为旧库结构兼容。
+     */
     @ColumnInfo(defaultValue = "0") val earnedToday: Float = 0f,
 ) {
     fun intensityEnum(): ProactiveIntensity = ProactiveIntensity.fromName(intensity)
@@ -181,12 +198,6 @@ interface ProactiveRelationDao {
         "UPDATE proactive_relation SET spentToday = spentToday + 1 WHERE assistantId = :assistantId",
     )
     suspend fun incrementSpent(assistantId: String)
-
-    @Query(
-        "UPDATE proactive_relation SET earnedToday = earnedToday + :amount " +
-            "WHERE assistantId = :assistantId",
-    )
-    suspend fun addEarned(assistantId: String, amount: Float)
 
     @Query("DELETE FROM proactive_relation")
     suspend fun deleteAll()

@@ -53,7 +53,6 @@ internal fun visionUnsupportedReason(providerName: String, modelId: String, inpu
 /**
  * v1.0.4: 视觉辅助 prepare 阶段的结果。
  *
- * 按 既有实现 的 `prepareVisionInputForTextOnlyModel` 设计。
  * 成功时 [text] 含注入的 `<vision-context>` 描述,[images] 清空(避免向纯文本模型发图)。
  * 失败时 [text] 含失败提示,[images] 清空,让文本模型明确知道本轮无图片。
  *
@@ -72,7 +71,7 @@ data class VisionPrepareResult(
 /**
  * 视觉辅助桥接器 — 让纯文本模型通过视觉模型"看到"图片。
  *
- * # v1.0.5 重写(按 既有实现)
+ * # v1.0.5 重写
  *
  * 工作原理:
  *  1. 检测当前模型是否支持视觉输入([supportsVision])
@@ -83,17 +82,17 @@ data class VisionPrepareResult(
  * # v1.0.5 重写修复的问题
  *
  *  1. **集成 [VisionImagePreprocessor]**:图片在送视觉模型前先压缩(2000×2000 + JPEG 80),
- *     超大图不再直接丢弃,而是压缩到预算内(对齐 既有实现 的 MODEL_IMAGE_INPUT_POLICY)
+ *     超大图不再直接丢弃,而是压缩到预算内
  *  2. **缓存 key 语义明确**:改用 [VisionCache.CacheKey] 数据类,不再复用 visionModelId 字段塞 suffix
  *  3. **移除 mimeType dead parameter**:[analyzeImage] 不再接收未使用的 mimeType 参数
  *  4. **grounding 兜底改进**:JSON 解析失败时把原始响应作为 `image_overview` 而非 `evidence`,
  *     让文本模型读到主要信息(原版 7 字段全填"无"信息利用率低)
  *  5. **visionCache 改为非空**:移除 `visionCache: VisionCache? = null` 的可空设计,减少 `?.` 防御
  *
- * # 保留的优势(比 既有实现 更好)
+ * # 保留的优势
  *
- *  - **并发分析**:多图 `coroutineScope { async }.awaitAll` 并发(既有实现 是串行)
- *  - **超时+重试**:`withTimeout(60s)` + `retryOnNetworkError(3次)`(既有实现 仅 120s 超时无重试)
+ *  - **并发分析**:多图 `coroutineScope { async }.awaitAll` 并发
+ *  - **超时+重试**:`withTimeout(60s)` + `retryOnNetworkError(3次)`
  *  - **streamChat 降级**:Provider 不支持 completeText 时降级 streamChat 兜底
  *  - **进度 StateFlow**:`progressFlow` 暴露分析进度供 UI 实时展示
  */
@@ -121,19 +120,19 @@ class VisionBridge(
          */
         private const val VISION_PROMPT_VERSION = 3
 
-        /** v1.0.4: 单条视觉笔记最大字符数(按 既有实现 MAX_NOTE_CHARS=3200)。 */
+        /** v1.0.4: 单条视觉笔记最大字符数。 */
         private const val MAX_NOTE_CHARS = 3200
 
-        /** v1.0.4: visual primitives 最大数量(按 既有实现 MAX_VISUAL_PRIMITIVES=16)。 */
+        /** v1.0.4: visual primitives 最大数量。 */
         private const val MAX_VISUAL_PRIMITIVES = 16
 
-        /** v1.0.4: primitive ref 标签最大字符数(按 既有实现 MAX_PRIMITIVE_REF_CHARS=96)。 */
+        /** v1.0.4: primitive ref 标签最大字符数。 */
         private const val MAX_PRIMITIVE_REF_CHARS = 96
 
         /**
          * v1.0.4: note-only 路径提示词(模型不支持 grounding)。
          *
-         * 按 既有实现 的 `_analyzeImageAsNote` 提示词,8 个固定字段。
+         * 要求模型按 8 个固定字段输出。
          * 关键改进:加入 `user_request` 字段,把用户的具体问题传给视觉模型,
          * 让视觉模型针对性回答(而非泛泛描述)。
          */
@@ -159,7 +158,6 @@ class VisionBridge(
         /**
          * v1.0.4: structured+primitives 路径提示词(模型支持 grounding)。
          *
-         * 按 既有实现 的 `_analyzeImageWithPrimitives` 提示词。
          * 要求返回严格 JSON,含 8 字段 + visual_primitives 数组(坐标框)。
          * 坐标格式由 [primitivePromptShape] 根据模型 outputFormat 派生。
          */
@@ -228,7 +226,7 @@ class VisionBridge(
     fun supportsVisionModel(model: Model?): Boolean = model != null && supportsVision(model)
 
     /**
-     * v1.0.4: 视觉辅助 prepare 阶段入口(按 既有实现)。
+     * v1.0.4: 视觉辅助 prepare 阶段入口。
      *
      * 在发送消息给纯文本模型之前调用,把图片"翻译"成文字描述注入用户消息,
      * 并清空图片列表(避免 HTTP 400)。
@@ -461,7 +459,7 @@ class VisionBridge(
     /**
      * v1.0.4: 根据 [VisionCapabilities.outputFormat] 派生 primitive 的 JSON schema 提示。
      *
-     * 按 既有实现 的 `primitivePromptShape`。不同模型原生坐标格式不同:
+     * 不同模型原生坐标格式不同:
      *  - "gemini": box_2d: [ymin, xmin, ymax, xmax](Gemini 原生 yxyx,归一化 0-1000)
      *  - "qwen": bbox_2d: [x1, y1, x2, y2] + point_2d: [x, y](Qwen-VL 原生)
      *  - "anchor": visual_anchors 带 role/center/box(Claude computer-use 风格)
@@ -499,8 +497,6 @@ class VisionBridge(
 
     /**
      * v1.0.4: 解析 grounding 响应,归一化坐标,生成含 `<visual-primitives>` 块的描述。
-     *
-     * 按 既有实现 的 `normalizeBox` + `formatInvalidStructuredNote`。
      *
      * v1.0.5 改进:解析失败时把原始响应作为 `image_overview`(而非 `evidence`),
      * 让文本模型读到主要信息(原版 7 字段全填"无"信息利用率低)。
@@ -572,7 +568,7 @@ class VisionBridge(
     private data class NormalizedPrimitive(
         val type: String,
         val box: String,
-        /** v1.0.7: point 类型专用的 2 元组坐标 "[x, y]"(对齐 既有实现 point primitive 格式)。 */
+        /** v1.0.7: point 类型专用的 2 元组坐标 "[x, y]"。 */
         val point: String? = null,
         val ref: String,
         val confidence: String,
@@ -613,7 +609,7 @@ class VisionBridge(
                     if (point != null && point.size >= 2) {
                         val x = point[0].jsonPrimitive.intOrNull ?: return null
                         val y = point[1].jsonPrimitive.intOrNull ?: return null
-                        // v1.0.7: point 输出 2 元组 "[x, y]"(对齐 既有实现 point primitive),
+                        // v1.0.7: point 输出 2 元组 "[x, y]",
                         // 原版误把点复制成 4 元组 "[x, y, x, y]" 当 box,文本模型无法正确解析点坐标
                         NormalizedPrimitive("point", "[$x, $y]", "[$x, $y]", ref, confidence)
                     } else {
@@ -882,7 +878,7 @@ class VisionBridge(
     /**
      * 构建视觉辅助失败提示文本。
      *
-     * 按 既有实现 的 `visionFailureNotice`:把失败信息注入到用户消息中,
+     * 把失败信息注入到用户消息中,
      * 让纯文本模型明确知道"本轮没有图片内容",并引导它请求用户重试或检查配置。
      */
     fun buildFailureNotice(reason: String?): String {

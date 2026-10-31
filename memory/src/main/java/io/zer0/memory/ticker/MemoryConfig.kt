@@ -41,10 +41,15 @@ data class MemoryConfig(
      */
     val conversationRecallEnabled: Boolean = true,
     /**
-     * 高斯衰减系数 λ(days^-1)。
-     * - 0.01 → 约 19 天归零(慢,记忆广)
-     * - 0.02 → 约 14 天归零(默认)
-     * - 0.04 → 约 10 天归零(快,聚焦近期)
+     * 指数衰减系数 λ(days^-1)，计算见 [Companion.factScore]。
+     *
+     * 下面括弧里的天数指「衰减到 [compileThreshold] 所需时间」，即 ln([baseImportance]/[compileThreshold])/λ：
+     * - 0.01 → 约 80 天（慢，记忆广）
+     * - 0.02 → 约 40 天（默认）
+     * - 0.04 → 约 20 天（快，聚焦近期）
+     *
+     * 命中过的 fact 会把 hitBonus 计入基础分，实际保留更久；
+     * [Companion.cutoffDays] 是这一换算的准绳，改系数时两处要一起对。
      */
     val decayPerDay: Float = 0.02f,
     /**

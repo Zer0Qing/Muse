@@ -32,14 +32,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.asr.AsrProviderType
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.SpeechProviderResolver
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
@@ -47,6 +50,7 @@ import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
@@ -62,7 +66,12 @@ import kotlinx.coroutines.launch
  *  4. 文件转录 — 仅 DashScope 文件模式显示,一个"保存转录设置"。
  */
 @Composable
-internal fun AsrSection(asrConfig: AsrConfig, settings: SettingsRepository) {
+@Suppress("LongMethod", "CyclomaticComplexMethod") // 一个设置页：字段按顺序排开比拆成多个只有一处的小函数更好读
+internal fun AsrSection(
+    asrConfig: AsrConfig,
+    settings: SettingsRepository,
+    onOpenProviderSettings: () -> Unit = {},
+) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var enginePickerOpen by remember { mutableStateOf(false) }
@@ -142,10 +151,78 @@ internal fun AsrSection(asrConfig: AsrConfig, settings: SettingsRepository) {
             var asrApiKey by remember(asrConfig.provider) { mutableStateOf(asrConfig.apiKey) }
             var asrApiKeyVisible by remember { mutableStateOf(false) }
             var asrBaseUrl by remember(asrConfig.provider) { mutableStateOf(asrConfig.baseUrl) }
-            var asrModel by remember(asrConfig.provider) { mutableStateOf(asrConfig.model) }
+            val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+            val unsetLabel = stringResource(R.string.settings_speech_follow_unset)
+            var providerPickerOpen by remember { mutableStateOf(false) }
+            val followProvider = providers.firstOrNull { it.id == asrConfig.providerId }
             val needsBaseUrl = asrConfig.provider == AsrProviderType.OPENAI_WHISPER ||
                 asrConfig.provider == AsrProviderType.OPENAI_REALTIME ||
                 asrConfig.provider == AsrProviderType.AGNES
+            // DashScope 实时识别走内置 wss 端点,供应商地址不参与:该引擎下不提供跟随开关
+            val followAvailable = asrConfig.provider != AsrProviderType.DASHSCOPE
+            // 只有在引擎支持且用户真的开了开关时,跟随后才生效
+            val followActive = followAvailable && asrConfig.followProvider
+
+            // 跟随供应商配置：开启后 API Key / 接口地址取自供应商，模型在同一供应商的模型里手选
+            if (followAvailable) {
+                SettingsSwitchRow(
+                    icon = MuseIcons.cloud,
+                    title = stringResource(R.string.settings_asr_follow_provider),
+                    subtitle = stringResource(R.string.settings_asr_follow_provider_subtitle),
+                    checked = asrConfig.followProvider,
+                    onCheckedChange = { follow ->
+                        scope.launch { settings.saveAsrConfig(asrConfig.copy(followProvider = follow)) }
+                    },
+                )
+            }
+
+            if (followActive) {
+                SettingsGroupDivider()
+                MuseListItem(
+                    onClick = { providerPickerOpen = true },
+                    leadingContent = { Icon(MuseIcons.server, contentDescription = null) },
+                    headlineContent = { Text(stringResource(R.string.settings_asr_follow_provider_picker)) },
+                    supportingContent = { Text(followProvider?.displayName ?: unsetLabel) },
+                )
+
+                val resolved = SpeechProviderResolver.resolveAsr(asrConfig, providers)
+                if (resolved.isProviderFallback) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                    ) {
+                        InlineError(
+                            stringResource(
+                                R.string.settings_speech_follow_fallback_notice,
+                                stringResource(speechFollowFallbackReasonRes(resolved.fallbackReason)),
+                            ),
+                        )
+                    }
+                }
+
+                if (providerPickerOpen) {
+                    MuseSelectionSheet(
+                        title = stringResource(R.string.settings_asr_follow_provider_picker),
+                        onDismissRequest = { providerPickerOpen = false },
+                    ) {
+                        providers.forEach { provider ->
+                            MuseListItem(
+                                onClick = {
+                                    // 换供应商时清空模型选择，避免带着上一个供应商的模型发请求
+                                    scope.launch {
+                                        settings.saveAsrConfig(
+                                            asrConfig.copy(providerId = provider.id, modelId = ""),
+                                        )
+                                    }
+                                    providerPickerOpen = false
+                                },
+                                headlineContent = { Text(provider.displayName) },
+                            )
+                        }
+                    }
+                }
+            }
 
             Column(
                 modifier = Modifier
@@ -153,7 +230,8 @@ internal fun AsrSection(asrConfig: AsrConfig, settings: SettingsRepository) {
                     .padding(MusePaddings.cardInner),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
-                if (asrConfig.apiKey.isBlank()) {
+                // 跟随时凭据由供应商提供，手填值保留但不可编辑
+                if (!followActive && asrConfig.apiKey.isBlank()) {
                     InlineError(stringResource(R.string.asr_missing_api_key_error))
                 }
                 MuseTextField(
@@ -162,6 +240,7 @@ internal fun AsrSection(asrConfig: AsrConfig, settings: SettingsRepository) {
                     label = { Text(stringResource(R.string.settings_asr_api_key)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    enabled = !followActive,
                     visualTransformation = if (asrApiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         MuseCapsuleButton(
@@ -186,29 +265,44 @@ internal fun AsrSection(asrConfig: AsrConfig, settings: SettingsRepository) {
                         placeholder = { Text(asrConfig.defaultBaseUrl().ifBlank { "https://api.openai.com/v1" }) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        enabled = !followActive,
                     )
                 }
-                MuseTextField(
-                    value = asrModel,
-                    onValueChange = { asrModel = it },
-                    label = { Text(stringResource(R.string.settings_asr_model)) },
-                    placeholder = { Text(asrConfig.defaultModel()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
                 SaveRow(stringResource(R.string.settings_asr_save_connection)) {
                     scope.launch {
+                        // 模型不在这里提交：它由下面的模型行自己写入
                         settings.saveAsrConfig(
                             asrConfig.copy(
                                 apiKey = asrApiKey.trim(),
                                 baseUrl = asrBaseUrl.trim(),
-                                model = asrModel.trim(),
                             ),
                         )
                         MuseToast.show(context.getString(R.string.settings_asr_saved))
                     }
                 }
             }
+
+            // ---- 模型：候选来自供应商，这里只负责选一个 ----
+            SettingsGroupDivider()
+            val modelProvider = remember(providers, asrConfig.providerId) {
+                SpeechModelPicker.candidateProvider(providers, asrConfig.providerId)
+            }
+            // 跟随时模型存在 modelId，手动模式存在 model
+            val currentModelId = if (SpeechModelPicker.asrFollowActive(asrConfig)) {
+                asrConfig.modelId
+            } else {
+                asrConfig.model
+            }
+            SpeechModelSection(
+                title = stringResource(R.string.settings_asr_model),
+                currentModelId = currentModelId,
+                provider = modelProvider,
+                emptyLabel = asrConfig.defaultModel(),
+                onPick = { modelId ->
+                    scope.launch { settings.saveAsrConfig(SpeechModelPicker.applyToAsr(asrConfig, modelId)) }
+                },
+                onOpenProviders = onOpenProviderSettings,
+            )
         }
 
         // ---- 识别 ----

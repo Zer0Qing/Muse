@@ -45,6 +45,13 @@ data class UsageRecordEntity(
     @ColumnInfo(name = "reasoning_tokens", defaultValue = "0") val reasoningTokens: Int = 0,
     @ColumnInfo(name = "cached_tokens", defaultValue = "0") val cachedTokens: Int = 0,
     /**
+     * 缓存**写入** token（Anthropic cache_creation_input_tokens）。
+     *
+     * 与 [cachedTokens]（缓存读取）分列：写入单价高于普通输入（Anthropic 为 1.25 倍），
+     * 合进一个数就再也拆不开。旧行为 0（该列不存在时不存在写入量可记）。
+     */
+    @ColumnInfo(name = "cache_write_tokens", defaultValue = "0") val cacheWriteTokens: Int = 0,
+    /**
      * 首字延迟（毫秒）。0 表示未记录（非流式请求或旧数据）。
      * 这是用户感知“快慢”最直接的指标，比总耗时更有意义。
      */
@@ -96,6 +103,7 @@ data class UsageTotals(
     @ColumnInfo(name = "completion_tokens") val completionTokens: Long,
     @ColumnInfo(name = "reasoning_tokens") val reasoningTokens: Long,
     @ColumnInfo(name = "cached_tokens") val cachedTokens: Long,
+    @ColumnInfo(name = "cache_write_tokens") val cacheWriteTokens: Long,
     @ColumnInfo(name = "avg_first_token_ms") val avgFirstTokenMs: Long,
 )
 
@@ -116,6 +124,7 @@ interface UsageRecordDao {
                COALESCE(SUM(completion_tokens), 0) AS completion_tokens,
                COALESCE(SUM(reasoning_tokens), 0) AS reasoning_tokens,
                COALESCE(SUM(cached_tokens), 0) AS cached_tokens,
+               COALESCE(SUM(cache_write_tokens), 0) AS cache_write_tokens,
                COALESCE(AVG(NULLIF(first_token_ms, 0)), 0) AS avg_first_token_ms
         FROM usage_records
         WHERE created_at >= :sinceMs

@@ -9,191 +9,552 @@ import java.io.File
 import java.util.UUID
 
 /**
- * P2-7: 工作区目录管理器(简化版 — 不实际运行 proot,仅提供目录与文件管理基础设施)。
+ * 工作区管理器。
  *
- * 工作区根目录: `/data/data/io.zer0.muse/files/workspace/`,所有 AI 工具与 UI 操作
- * 均只能在该根目录内进行读写,严禁通过 `..` 越权访问工作区外的任意文件。
+ * 工作区由若干条「挂载」组成，每条挂载是一块单独授权的目录，自带能力位
+ * （能否列目录、能否读、能否写）。默认挂载 [WorkspaceMount.MAIN_ID] 指向应用沙盒内的
+ * 固定目录，路径不写前缀时一律落到它上面——老数据、老工具调用、老模型习惯全部照常。
  *
- * 主要能力:
- *  - [listDir]: 列出指定相对路径下的目录与文件
- *  - [readFile]: 读取文本文件(限制 1MB,超出则返回错误)
- *  - [writeFile]: 写入文本文件(限制 10MB,超出则返回错误)
- *  - [delete]: 删除文件或目录(目录递归删除)
- *  - [mkdir]: 创建目录(支持多级)
- *  - [move]: 移动/重命名
- *  - [copy]: 复制(目录递归复制)
- *  - [grep]: 按文本或正则搜索文件内容(只读)
- *  - [resolveSafe]: 路径安全检查(私有,所有公共方法都经此校验)
+ * 路径语法：`挂载标识:/相对路径`。前缀只认已注册的标识，`a/b.jpg` 这种普通相对路径
+ * 不会被误判成挂载。
  *
- * 所有 IO 操作均切换到 [Dispatchers.IO] 协程执行,避免阻塞主线程。
+ * 安全边界：每条挂载的 [WorkspaceFs] 自己负责把相对路径钉在自己的根目录里；
+ * 本类额外做三道校验——能力位、`..` 段、会话可见范围。
  *
- * @param context 应用 Context(用于定位 filesDir)
+ * @param context 应用 Context（用于定位 filesDir）
  */
 class WorkspaceManager(private val context: Context) {
 
-    /** 工作区根目录:`/data/data/io.zer0.muse/files/workspace/`。 */
-    val rootDir: File = File(context.filesDir, "workspace").apply {
+    /** 默认挂载的根目录，沿用历史路径。 */
+    val rootDir: File = File(context.filesDir, MAIN_DIR_NAME).apply {
         if (!exists()) mkdirs()
     }
 
-    /**
-     * 工作区内的一条目录/文件条目(UI 列表与工具返回均使用此结构)。
-     *
-     * @param name 显示名(不含路径)
-     * @param relativePath 相对工作区根目录的路径(以 "/" 分隔,根目录为空串)
-     * @param isDirectory 是否为目录
-     * @param size 字节数(目录恒为 0)
-     * @param lastModified 最后修改时间戳(毫秒)
-     */
-    data class WorkspaceEntry(
-        val name: String,
-        val relativePath: String,
-        val isDirectory: Boolean,
-        val size: Long,
-        val lastModified: Long,
-    )
+    private val mountStore = WorkspaceMountStore(context)
+
+    private val bindingStore = WorkspaceSessionBindingStore(context)
+
+    private val fsLock = Any()
+
+    private val fsCache = HashMap<String, WorkspaceFs>()
 
     /**
-     * 一条内容命中。
+     * 按路径分配的写锁。同一文件的读—改—写串行，不同文件并行。
      *
-     * @param path 相对工作区根目录的文件路径
-     * @param lineNumber 行号(1 起)
-     * @param line 命中行的内容(过长会截断)
+     * 约定：`受锁方法内部不要再调用会加锁的公开方法` —— 这里用的是不可重入的
+     * [kotlinx.coroutines.sync.Mutex]，重入会等到超时。
      */
-    data class GrepMatch(
-        val path: String,
-        val lineNumber: Int,
-        val line: String,
-    )
+    private val pathLocks = WorkspacePathLock()
 
-    /** [grep] 的结果。 */
-    sealed class GrepResult {
-        /**
-         * @param matches 命中列表(最多 maxResults 条)
-         * @param scannedFiles 实际扫描的文件数
-         * @param truncated 是否因命中数达到上限而提前停止
-         */
-        data class Success(
-            val matches: List<GrepMatch>,
-            val scannedFiles: Int,
-            val truncated: Boolean,
-        ) : GrepResult()
+    // ── 挂载管理 ──────────────────────────────────────────────────────────────
 
-        data class Error(val message: String) : GrepResult()
+    /** 全部挂载，默认挂载排第一。 */
+    suspend fun mounts(): List<WorkspaceMount> = mountStore.mounts()
+
+    /** 按标识查一条挂载。 */
+    suspend fun findMount(id: String): WorkspaceMount? = mountStore.find(id)
+
+    /**
+     * 新增或更新一条挂载。
+     *
+     * 只登记授权，不动磁盘上的文件。
+     */
+    suspend fun upsertMount(mount: WorkspaceMount): WorkspaceMountStore.MountStoreResult {
+        val result = mountStore.upsert(mount)
+        if (result is WorkspaceMountStore.MountStoreResult.Success) invalidateFs(mount.id)
+        return result
     }
 
     /**
-     * 列出 [relativePath] 下的所有条目(目录在前,文件在后,各自按名称升序)。
+     * 移除一条挂载。
      *
-     * @param relativePath 相对工作区根目录的路径,空串或 "/" 表示根目录
-     * @return 操作结果:[ListResult] 包含条目列表或错误信息
+     * 同时清掉各会话里对它的引用，避免留下悬空标识。
+     *
+     * @return 是否真的删掉了一条
      */
-    suspend fun listDir(relativePath: String): ListResult = withContext(Dispatchers.IO) {
-        val dir = resolveSafe(relativePath, allowRoot = true, mustExist = true, mustBeDirectory = true)
-            ?: return@withContext ListResult.Error("非法路径或目录不存在: $relativePath")
-        val children = dir.listFiles()?.toList() ?: emptyList()
-        val entries = children.map { file ->
-            WorkspaceEntry(
-                name = file.name,
-                relativePath = formatRelativePath(file),
-                isDirectory = file.isDirectory,
-                size = if (file.isFile) file.length() else 0L,
-                lastModified = file.lastModified(),
-            )
-        }.sortedWith(compareByDescending<WorkspaceEntry> { it.isDirectory }.thenBy { it.name.lowercase() })
-        ListResult.Success(entries)
+    suspend fun removeMount(id: String): Boolean {
+        val removed = mountStore.remove(id)
+        if (removed) {
+            invalidateFs(id)
+            bindingStore.forgetMount(id)
+        }
+        return removed
     }
 
+    /** 记录一次使用时间，供界面排序。 */
+    suspend fun touchMount(id: String) {
+        mountStore.touch(id)
+    }
+
+    /** 某个会话可用的挂载标识；null 表示不限制。 */
+    suspend fun sessionMountIds(sessionId: String?): Set<String>? = bindingStore.allowedMountIds(sessionId)
+
+    /** 设置某个会话可用的挂载；传空集合表示取消限制。 */
+    suspend fun setSessionMounts(sessionId: String, ids: Set<String>) {
+        bindingStore.setAllowed(sessionId, ids)
+    }
+
+    // ── 内部：解析目标 ────────────────────────────────────────────────────────
+
+    /** 一次解析的结果：落在哪条挂载、相对路径、用哪个文件系统。 */
+    private class Target(
+        val mount: WorkspaceMount,
+        val relative: String,
+        val fs: WorkspaceFs,
+        val display: String,
+    )
+
     /**
-     * 读取文本文件内容(UTF-8)。
+     * 把一条用户路径解析成可执行的目标。
      *
-     * 限制:文件大小不得超过 [MAX_READ_BYTES](1MB),超出则返回错误。
+     * 三段校验：挂载是否存在、本会话是否可见、能力位是否满足；再拒绝 `..` 段。
      *
-     * @param relativePath 相对工作区根目录的文件路径
-     * @return 操作结果:[ReadResult] 包含文件内容或错误信息
+     * @param path 原始路径，可带 `mount:/` 前缀
+     * @param need 本次操作需要的能力，null 表示不校验
+     * @param scope 本会话可用的挂载集合，null 表示不限制
+     * @param allowRoot 是否允许直接指向挂载根目录
      */
-    suspend fun readFile(relativePath: String): ReadResult = withContext(Dispatchers.IO) {
-        val file = resolveSafe(relativePath, allowRoot = false, mustExist = true, mustBeDirectory = false)
-            ?: return@withContext ReadResult.Error("非法路径或文件不存在: $relativePath")
-        val size = file.length()
-        if (size > MAX_READ_BYTES) {
-            return@withContext ReadResult.Error("文件过大($size 字节),读取上限为 $MAX_READ_BYTES 字节")
+    private suspend fun target(path: String, need: MountCapability?, scope: Set<String>?, allowRoot: Boolean): Target {
+        val ids = mountStore.mountIds()
+        val parsed = WorkspacePathParser.parse(path, ids)
+        val mountId = parsed.mountId ?: WorkspacePathParser.DEFAULT_MOUNT_ID
+        val mount = mountStore.find(mountId) ?: throw WorkspaceIoException("挂载不存在: $mountId")
+        checkVisible(mount, scope)
+        checkCapability(mount, need)
+        checkPath(parsed, allowRoot)
+        return Target(mount, parsed.relative, fsFor(mount), displayOf(mount, parsed.relative))
+    }
+
+    /** 会话可见范围校验。 */
+    private fun checkVisible(mount: WorkspaceMount, scope: Set<String>?) {
+        if (scope != null && mount.id !in scope) {
+            throw WorkspaceIoException("「${mount.label}」不在本会话可用范围")
+        }
+    }
+
+    /** 能力位校验。 */
+    private fun checkCapability(mount: WorkspaceMount, need: MountCapability?) {
+        if (need != null && need !in mount.capabilities) {
+            throw WorkspaceIoException(deniedMessage(mount, need))
+        }
+    }
+
+    /** 路径段校验：拒绝 `..`；按需拒绝挂载根目录本身。 */
+    private fun checkPath(parsed: WorkspacePath, allowRoot: Boolean) {
+        if (WorkspacePathParser.hasParentSegment(parsed.relative)) {
+            throw WorkspaceIoException("路径不能包含 ..")
+        }
+        if (!allowRoot && parsed.isMountRoot) {
+            throw WorkspaceIoException("该操作不能直接作用于挂载根目录")
+        }
+    }
+
+    /** 能力不足时的提示语。 */
+    private fun deniedMessage(mount: WorkspaceMount, need: MountCapability): String = when (need) {
+        MountCapability.WRITE -> "「${mount.label}」是只读挂载，不能写入、删除或移动"
+        MountCapability.READ -> "「${mount.label}」没有读取权限"
+        MountCapability.LIST -> "「${mount.label}」不能列目录"
+    }
+
+    /** 取（并缓存）一条挂载的文件系统。 */
+    private fun fsFor(mount: WorkspaceMount): WorkspaceFs {
+        synchronized(fsLock) {
+            fsCache[mount.id]?.let { return it }
+            val fs = when (mount.provider) {
+                MountProvider.LOCAL -> {
+                    val root = mount.rootPath?.takeIf { it.isNotBlank() }
+                        ?: throw WorkspaceIoException("挂载「${mount.label}」缺少目录路径")
+                    LocalWorkspaceFs(File(root))
+                }
+                MountProvider.SAF -> {
+                    val uri = mount.treeUri?.takeIf { it.isNotBlank() }
+                        ?: throw WorkspaceIoException("挂载「${mount.label}」缺少目录授权")
+                    SafWorkspaceFs(context, Uri.parse(uri))
+                }
+            }
+            fsCache[mount.id] = fs
+            return fs
+        }
+    }
+
+    private fun invalidateFs(mountId: String) {
+        synchronized(fsLock) { fsCache.remove(mountId) }
+    }
+
+    /** 默认挂载用相对路径，其他挂载加回前缀，便于调用方原样回传。 */
+    private fun displayOf(mount: WorkspaceMount, relative: String): String =
+        if (mount.id == WorkspaceMount.MAIN_ID) relative else WorkspacePathParser.format(mount.id, relative)
+
+    // ── 内部：路径锁 ──────────────────────────────────────────────────────────
+
+    /** 在 [t] 这条路径的锁内执行 [block]。 */
+    private suspend fun <T> lockedBy(t: Target, block: suspend () -> T): T =
+        pathLocks.withLock(t.mount.id, t.relative, t.display, block)
+
+    /**
+     * 同时在两条路径的锁内执行 [block]（移动、复制这类要改两头的操作）。
+     *
+     * 按键排序获取，`A→B` 与 `B→A` 并发时两边都从同一个键开始，不会互等。
+     */
+    private suspend fun <T> lockedByBoth(first: Target, second: Target, block: suspend () -> T): T {
+        val keyA = pathLocks.keyOf(first.mount.id, first.relative)
+        val keyB = pathLocks.keyOf(second.mount.id, second.relative)
+        if (keyA == keyB) return lockedBy(first, block)
+        val (head, tail) = if (keyA < keyB) first to second else second to first
+        return lockedBy(head) { lockedBy(tail, block) }
+    }
+
+    // ── 目录与文件 ────────────────────────────────────────────────────────────
+
+    /**
+     * 列目录。
+     *
+     * 默认挂载的根目录额外带上其余挂载：根目录是所有入口的起点，
+     * 只列一个盘的内容会让别的挂载在默认视图里隐身。
+     *
+     * @param relativePath 相对路径，可带挂载前缀，空串表示默认挂载根目录
+     * @param scope 本会话可用的挂载集合，null 表示不限制
+     */
+    suspend fun listDir(relativePath: String, scope: Set<String>? = null): ListResult = withContext(Dispatchers.IO) {
+        try {
+            val t = target(relativePath, MountCapability.LIST, scope, allowRoot = true)
+            val entries = t.fs.list(t.relative).map { entry ->
+                WorkspaceEntry(
+                    name = entry.name,
+                    relativePath = displayOf(t.mount, entry.relativePath),
+                    isDirectory = entry.isDirectory,
+                    size = entry.size,
+                    lastModified = entry.lastModified,
+                )
+            }
+            val atDefaultRoot = t.mount.id == WorkspaceMount.MAIN_ID && t.relative.isEmpty()
+            ListResult.Success(if (atDefaultRoot) otherMountEntries(scope) + entries else entries)
+        } catch (e: WorkspaceIoException) {
+            ListResult.Error(e.message ?: "列目录失败")
+        }
+    }
+
+    /** 根视图里的其余挂载入口：一条挂载一行，回传路径写成 `挂载标识:/` 即落在该挂载。 */
+    private suspend fun otherMountEntries(scope: Set<String>?): List<WorkspaceEntry> =
+        mountStore.mounts()
+            .filter { it.id != WorkspaceMount.MAIN_ID }
+            .filter { scope == null || it.id in scope }
+            .filter { it.canList }
+            .map { mount ->
+                WorkspaceEntry(
+                    name = mount.id,
+                    relativePath = WorkspacePathParser.format(mount.id, ""),
+                    isDirectory = true,
+                    size = 0L,
+                    lastModified = mount.lastUsedAt,
+                )
+            }
+
+    /**
+     * 读文本文件（上限 [MAX_READ_BYTES]）。
+     *
+     * 整份读要过路径锁：同一份文件正在被写时，读到的必须是写完之后的内容，
+     * 不能是截断到一半的中间态。`workspace_edit` 的读—判—写另见 [editFile]。
+     */
+    suspend fun readFile(relativePath: String, scope: Set<String>? = null): ReadResult = withContext(Dispatchers.IO) {
+        try {
+            val t = target(relativePath, MountCapability.READ, scope, allowRoot = false)
+            lockedBy(t) {
+                val size = t.fs.size(t.relative)
+                if (size > MAX_READ_BYTES) {
+                    return@lockedBy ReadResult.Error("文件过大($size 字节),读取上限为 $MAX_READ_BYTES 字节")
+                }
+                if (!t.fs.exists(t.relative) || t.fs.isDirectory(t.relative)) {
+                    return@lockedBy ReadResult.Error("文件不存在: ${t.display}")
+                }
+                ReadResult.Success(t.fs.readText(t.relative))
+            }
+        } catch (e: WorkspaceIoException) {
+            ReadResult.Error(e.message ?: "读取失败")
+        }
+    }
+
+    /** 读文本文件；大文件按字符区间分页。 */
+    suspend fun readFilePage(
+        relativePath: String,
+        offsetChars: Int? = null,
+        lengthChars: Int? = null,
+        scope: Set<String>? = null,
+    ): ReadResult = withContext(Dispatchers.IO) {
+        try {
+            val t = target(relativePath, MountCapability.READ, scope, allowRoot = false)
+            lockedBy(t) {
+                if (!t.fs.exists(t.relative) || t.fs.isDirectory(t.relative)) {
+                    return@lockedBy ReadResult.Error("文件不存在: ${t.display}")
+                }
+                val paginated = offsetChars != null || lengthChars != null || t.fs.size(t.relative) > MAX_READ_BYTES
+                val content = if (paginated) {
+                    t.fs.readTextRange(
+                        relative = t.relative,
+                        offsetChars = offsetChars ?: 0,
+                        lengthChars = lengthChars ?: io.zer0.muse.tools.TOOL_OUTPUT_READ_PAGE_CHARS,
+                    )
+                } else {
+                    t.fs.readText(t.relative)
+                }
+                ReadResult.Success(content)
+            }
+        } catch (e: WorkspaceIoException) {
+            ReadResult.Error(e.message ?: "读取失败")
+        }
+    }
+
+    /** 读原始字节（文档预览等二进制场景）。 */
+    suspend fun readBytes(relativePath: String, scope: Set<String>? = null): ByteArray? = withContext(Dispatchers.IO) {
+        runCatching {
+            val t = target(relativePath, MountCapability.READ, scope, allowRoot = false)
+            t.fs.readBytes(t.relative)
+        }.getOrNull()
+    }
+
+    /** 写文本文件（同一路径的写入串行，不同文件并行）。 */
+    suspend fun writeFile(relativePath: String, content: String, scope: Set<String>? = null): OpResult = withContext(Dispatchers.IO) {
+        if (content.toByteArray(Charsets.UTF_8).size.toLong() > MAX_WRITE_BYTES) {
+            return@withContext OpResult.Error("内容过大,写入上限为 $MAX_WRITE_BYTES 字节")
         }
         try {
-            val content = file.readText(Charsets.UTF_8)
-            ReadResult.Success(content)
-        } catch (e: Exception) {
-            Logger.w(TAG, "readFile 失败: ${e.message}")
-            ReadResult.Error("读取失败: ${e.message}")
+            val t = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
+            lockedBy(t) { t.fs.writeText(t.relative, content, append = false) }
+            OpResult.Success
+        } catch (e: WorkspaceIoException) {
+            OpResult.Error(e.message ?: "写入失败")
         }
     }
 
-    /** Read a workspace file in full when small, or return a character page for large files. */
-    suspend fun readFilePage(relativePath: String, offsetChars: Int? = null, lengthChars: Int? = null): ReadResult =
-        withContext(Dispatchers.IO) {
-            val file = resolveSafe(relativePath, allowRoot = false, mustExist = true, mustBeDirectory = false)
-                ?: return@withContext ReadResult.Error("非法路径或文件不存在: $relativePath")
-            if (!file.isFile) return@withContext ReadResult.Error("不是文件: $relativePath")
-            try {
-                val content =
-                    if (offsetChars == null && lengthChars == null && file.length() <= MAX_READ_BYTES) {
-                        file.readText(Charsets.UTF_8)
-                    } else {
-                        io.zer0.muse.tools.ToolTextFilePager.readPage(
-                            file = file,
-                            path = relativePath,
-                            charset = Charsets.UTF_8,
-                            requestedOffset = offsetChars ?: 0,
-                            requestedLength = lengthChars ?: io.zer0.muse.tools.TOOL_OUTPUT_READ_PAGE_CHARS,
-                            continuationTool = "workspace_read",
-                        )
-                    }
-                ReadResult.Success(content)
-            } catch (e: Exception) {
-                Logger.w(TAG, "readFilePage 失败: ${e.message}")
-                ReadResult.Error("读取失败: ${e.message}")
+    /**
+     * 读—改—写：在同一把路径锁内读完整个文件、交给 [decide] 判定、按判定结果写回。
+     *
+     * 锁必须盖住从读到写的整段，否则两个并发调用会各自读到旧内容再各自写回，
+     * 后写的那次把先写的那次丢掉，而两边都返回成功。
+     *
+     * @param relativePath 文件路径
+     * @param scope 本会话可用的挂载集合，null 表示不限制
+     * @param decide 在完整原文上做判定；只做纯计算，不要再发起会加锁的调用
+     */
+    suspend fun editFile(
+        relativePath: String,
+        scope: Set<String>? = null,
+        decide: (original: String) -> EditDecision,
+    ): EditResult = withContext(Dispatchers.IO) {
+        try {
+            val t = target(relativePath, MountCapability.READ, scope, allowRoot = false)
+            lockedBy(t) {
+                val size = t.fs.size(t.relative)
+                if (size > MAX_READ_BYTES) {
+                    return@lockedBy EditResult.Failed("文件过大($size 字节),读取上限为 $MAX_READ_BYTES 字节")
+                }
+                if (!t.fs.exists(t.relative) || t.fs.isDirectory(t.relative)) {
+                    return@lockedBy EditResult.Failed("文件不存在: ${t.display}")
+                }
+                commitEdit(relativePath, scope, t.fs.readText(t.relative), decide)
             }
+        } catch (e: WorkspaceIoException) {
+            EditResult.Failed(e.message ?: "编辑失败")
         }
+    }
+
+    /** [editFile] 持锁段的后半：判定 + 写回。调用方必须已经持有该路径的锁。 */
+    private suspend fun commitEdit(
+        relativePath: String,
+        scope: Set<String>?,
+        original: String,
+        decide: (original: String) -> EditDecision,
+    ): EditResult {
+        val decision = decide(original)
+        if (decision is EditDecision.Abort) return EditResult.Rejected(decision.message)
+        val content = (decision as EditDecision.Commit).content
+        if (content.toByteArray(Charsets.UTF_8).size.toLong() > MAX_WRITE_BYTES) {
+            return EditResult.Failed("内容过大,写入上限为 $MAX_WRITE_BYTES 字节")
+        }
+        // 写回前才判写权限：只读挂载上读取是合法的，该报的是「不能写」。
+        val writable = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
+        writable.fs.writeText(writable.relative, content, append = false)
+        return EditResult.Applied(original, content)
+    }
+
+    /** 追加写入。 */
+    suspend fun appendFile(relativePath: String, content: String, scope: Set<String>? = null): OpResult = withContext(Dispatchers.IO) {
+        if (content.toByteArray(Charsets.UTF_8).size.toLong() > MAX_WRITE_BYTES) {
+            return@withContext OpResult.Error("内容过大,单次追加上限为 $MAX_WRITE_BYTES 字节")
+        }
+        try {
+            val t = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
+            lockedBy(t) { t.fs.writeText(t.relative, content, append = true) }
+            OpResult.Success
+        } catch (e: WorkspaceIoException) {
+            OpResult.Error(e.message ?: "追加失败")
+        }
+    }
+
+    /** 删除文件或目录（目录递归）。 */
+    suspend fun delete(relativePath: String, scope: Set<String>? = null): OpResult = withContext(Dispatchers.IO) {
+        try {
+            val t = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
+            lockedBy(t) { t.fs.delete(t.relative) }
+            OpResult.Success
+        } catch (e: WorkspaceIoException) {
+            OpResult.Error(e.message ?: "删除失败")
+        }
+    }
+
+    /** 创建目录（含多级）。 */
+    suspend fun mkdir(relativePath: String, scope: Set<String>? = null): OpResult = withContext(Dispatchers.IO) {
+        try {
+            val t = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
+            lockedBy(t) { t.fs.mkdirs(t.relative) }
+            OpResult.Success
+        } catch (e: WorkspaceIoException) {
+            OpResult.Error(e.message ?: "目录创建失败")
+        }
+    }
+
+    /** 移动或重命名（限同一条挂载内）。源与目标两条路径都上锁。 */
+    suspend fun move(from: String, to: String, scope: Set<String>? = null): OpResult = withContext(Dispatchers.IO) {
+        try {
+            val src = target(from, MountCapability.WRITE, scope, allowRoot = false)
+            val dst = target(to, MountCapability.WRITE, scope, allowRoot = false)
+            if (src.mount.id != dst.mount.id) {
+                return@withContext OpResult.Error("不能跨挂载移动,请改用复制")
+            }
+            lockedByBoth(src, dst) { src.fs.move(src.relative, dst.relative) }
+            OpResult.Success
+        } catch (e: WorkspaceIoException) {
+            OpResult.Error(e.message ?: "移动失败")
+        }
+    }
+
+    /** 复制（同一挂载内直接复制，跨挂载按字节搬运）。源与目标两条路径都上锁。 */
+    suspend fun copy(from: String, to: String, scope: Set<String>? = null): OpResult = withContext(Dispatchers.IO) {
+        try {
+            val src = target(from, MountCapability.READ, scope, allowRoot = false)
+            val dst = target(to, MountCapability.WRITE, scope, allowRoot = false)
+            lockedByBoth(src, dst) { copyLocked(src, dst) }
+        } catch (e: WorkspaceIoException) {
+            OpResult.Error(e.message ?: "复制失败")
+        }
+    }
+
+    /** 持锁段内的复制本体。 */
+    private suspend fun copyLocked(src: Target, dst: Target): OpResult {
+        if (src.mount.id == dst.mount.id) {
+            src.fs.copy(src.relative, dst.relative)
+            return OpResult.Success
+        }
+        if (src.fs.isDirectory(src.relative)) return OpResult.Error("跨挂载只能复制单个文件")
+        val bytes = src.fs.readBytes(src.relative)
+            ?: return OpResult.Error("读取源文件失败: ${src.display}")
+        bytes.inputStream().use { dst.fs.writeStream(dst.relative, it, MAX_WRITE_BYTES) }
+        return OpResult.Success
+    }
+
+    // ── 搜索 ──────────────────────────────────────────────────────────────────
 
     /**
-     * 在工作区内按文本或正则搜索文件内容。
+     * 在工作区内搜索内容。
      *
-     * 递归遍历 [relativePath] 下的全部文件，逐行匹配。以下情况会被跳过：
-     *  - 超过 [MAX_GREP_FILE_BYTES] 的文件（避免把大文件整份读进内存）
-     *  - 含 NUL 字节的二进制文件
-     *  - 无法以 UTF-8 解码的文件
+     * 遍历本会话可见的挂载，逐文件扫描。跳过超限文件、二进制文件与无法解码的文件。
      *
-     * 命中数达到 [maxResults] 时提前停止，并在结果里标记 truncated。
-     *
-     * @param pattern 要找的文本，或正则（[isRegex]=true 时）
-     * @param relativePath 搜索起点，默认工作区根目录
-     * @param isRegex 是否把 pattern 当作正则
-     * @param maxResults 命中数上限
+     * @param pattern 要找的文本，或正则（[isRegex] 为真时）
+     * @param relativePath 搜索起点，默认全部挂载根目录
+     * @param scope 本会话可用的挂载集合，null 表示不限制
      */
     suspend fun grep(
         pattern: String,
         relativePath: String = "",
         isRegex: Boolean = false,
         maxResults: Int = DEFAULT_GREP_MAX_RESULTS,
+        scope: Set<String>? = null,
     ): GrepResult = withContext(Dispatchers.IO) {
         if (pattern.isEmpty()) return@withContext GrepResult.Error("pattern 不能为空")
-
-        val base =
-            resolveSafe(relativePath, allowRoot = true, mustExist = true, mustBeDirectory = false)
-                ?: return@withContext GrepResult.Error("非法路径或不存在: $relativePath")
-
-        val regex =
-            if (isRegex) {
-                matchOrNull(pattern) ?: return@withContext GrepResult.Error("正则语法错误: $pattern")
-            } else {
-                null
+        val regex = if (isRegex) {
+            matchOrNull(pattern) ?: return@withContext GrepResult.Error("正则语法错误: $pattern")
+        } else {
+            null
+        }
+        try {
+            val starts = resolveGrepStarts(relativePath, scope)
+            val matches = mutableListOf<GrepMatch>()
+            var scanned = 0
+            var truncated = false
+            for (start in starts) {
+                if (matches.size >= maxResults) {
+                    truncated = true
+                    break
+                }
+                val outcome = scanMount(start, regex, pattern, maxResults, matches)
+                scanned += outcome.scanned
+                if (outcome.reachedCap) truncated = true
             }
+            GrepResult.Success(matches, scanned, truncated)
+        } catch (e: WorkspaceIoException) {
+            GrepResult.Error(e.message ?: "搜索失败")
+        }
+    }
 
-        val files = mutableListOf<File>()
-        collectFilesForGrep(base, files, MAX_GREP_FILES)
+    /** 一次扫描的结果：扫了多少文件、是否撞上命中上限。 */
+    private data class ScanOutcome(val scanned: Int, val reachedCap: Boolean)
 
-        val (matches, truncated) = scanForMatches(files, pattern, regex, maxResults)
-        GrepResult.Success(matches, files.size, truncated)
+    /** 搜索起点：一条路径对应一个挂载；空路径时展开到所有可见挂载。 */
+    private suspend fun resolveGrepStarts(relativePath: String, scope: Set<String>?): List<Target> {
+        val ids = mountStore.mountIds()
+        val parsed = WorkspacePathParser.parse(relativePath, ids)
+        if (parsed.mountId != null || parsed.relative.isNotEmpty()) {
+            return listOf(target(relativePath, MountCapability.READ, scope, allowRoot = true))
+        }
+        return mountStore.mounts()
+            .filter { scope == null || it.id in scope }
+            .filter { MountCapability.READ in it.capabilities }
+            .map { Target(it, "", fsFor(it), it.id) }
+    }
+
+    /** 扫描一条挂载，把命中追加到 [out]。 */
+    private suspend fun scanMount(
+        start: Target,
+        regex: Regex?,
+        pattern: String,
+        maxResults: Int,
+        out: MutableList<GrepMatch>,
+    ): ScanOutcome {
+        val files = try {
+            start.fs.walkFiles(start.relative, MAX_GREP_FILES)
+        } catch (e: WorkspaceIoException) {
+            Logger.w(TAG, "grep 遍历失败: ${e.message}")
+            return ScanOutcome(0, false)
+        }
+        var scanned = 0
+        for (rel in files) {
+            if (out.size >= maxResults) return ScanOutcome(scanned, true)
+            scanned++
+            if (collectHits(start, rel, regex, pattern, maxResults, out)) return ScanOutcome(scanned, true)
+        }
+        return ScanOutcome(scanned, false)
+    }
+
+    /** 扫一个文件并把命中写进 [out]；返回是否因为达到上限而要停。 */
+    private suspend fun collectHits(
+        start: Target,
+        rel: String,
+        regex: Regex?,
+        pattern: String,
+        maxResults: Int,
+        out: MutableList<GrepMatch>,
+    ): Boolean {
+        val size = runCatching { start.fs.size(rel) }.getOrDefault(0L)
+        if (size > MAX_GREP_FILE_BYTES) return false
+        val text = runCatching { start.fs.readText(rel) }.getOrNull() ?: return false
+        if (text.indexOf('\u0000') >= 0) return false
+        val display = displayOf(start.mount, rel)
+        text.lineSequence().forEachIndexed { idx, line ->
+            if (out.size >= maxResults) return@forEachIndexed
+            val hit = if (regex != null) regex.containsMatchIn(line) else line.contains(pattern)
+            if (hit) out.add(GrepMatch(display, idx + 1, line.take(MAX_GREP_LINE_CHARS)))
+        }
+        return out.size >= maxResults
     }
 
     /** 编译正则，语法非法时返回 null。 */
@@ -204,341 +565,83 @@ class WorkspaceManager(private val context: Context) {
         null
     }
 
-    /**
-     * 逐文件扫描命中，返回命中列表与是否被上限截断。
-     *
-     * 跳过超限文件、二进制文件与无法解码的文件。二进制判定用 NUL 字节，
-     * 比扩展名可靠（很多无扩展名文件其实是文本）。
-     */
-    private fun scanForMatches(files: List<File>, pattern: String, regex: Regex?, maxResults: Int): Pair<List<GrepMatch>, Boolean> {
-        val matches = mutableListOf<GrepMatch>()
-        for (file in files) {
-            if (matches.size >= maxResults) return matches to true
-            scanOneFile(file, pattern, regex, maxResults, matches)
-        }
-        return matches to false
-    }
+    // ── 导入 ──────────────────────────────────────────────────────────────────
 
-    /** 扫描单个文件，把命中追加到 [out]。 */
-    private fun scanOneFile(file: File, pattern: String, regex: Regex?, maxResults: Int, out: MutableList<GrepMatch>) {
-        if (!file.isFile || file.length() > MAX_GREP_FILE_BYTES) return
-        val text =
+    /**
+     * 从系统文件选择器选中的 URI 导入一个文件。
+     *
+     * 流式拷贝，不把整个文件读进内存；目标重名时自动追加序号。
+     * 序号判定与落盘在同一次持锁内完成（见 [importInto]）：
+     * 只锁写入的话，两个并发导入会算出同一个序号，后写的那次把先写的覆盖掉。
+     * URI 只在本次调用期间读取，不保留长期授权。
+     *
+     * @param uri 系统选择器返回的文件 URI
+     * @param targetDirectory 目标目录，空串表示默认挂载根目录
+     * @param displayName 可选目标文件名，为空时向系统查询
+     */
+    suspend fun importFile(uri: Uri, targetDirectory: String, displayName: String? = null, scope: Set<String>? = null): FileImportResult =
+        withContext(Dispatchers.IO) {
             try {
-                file.readText(Charsets.UTF_8)
+                val dir = target(targetDirectory, MountCapability.WRITE, scope, allowRoot = true)
+                val rawName = displayName?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: queryDisplayName(uri)
+                    ?: "imported-file"
+                importInto(dir, sanitizeImportedName(rawName), uri, scope)
+            } catch (e: WorkspaceIoException) {
+                FileImportResult.Error(e.message ?: "文件导入失败")
             } catch (e: Exception) {
-                // 二进制或编码不支持，按设计跳过；记一条便于排查「文件明明存在却没搜到」
-                Logger.d(TAG, "grep 跳过 ${file.name}: ${e.message}")
-                null
-            }
-        if (text != null && text.indexOf('\u0000') < 0) {
-            val relPath = formatRelativePath(file)
-            text.lineSequence().forEachIndexed { idx, line ->
-                if (out.size >= maxResults) return@forEachIndexed
-                val hit = if (regex != null) regex.containsMatchIn(line) else line.contains(pattern)
-                if (hit) {
-                    out.add(GrepMatch(relPath, idx + 1, line.take(MAX_GREP_LINE_CHARS)))
-                }
+                Logger.w(TAG, "importFile 失败: ${e.message}", e)
+                FileImportResult.Error("文件导入失败: ${e.message}")
             }
         }
-    }
-
-    /** 递归收集待搜索文件（grep 内部用，跳过隐藏目录以减少噪声）。 */
-    private fun collectFilesForGrep(dir: File, out: MutableList<File>, limit: Int) {
-        val children = dir.listFiles() ?: return
-        for (child in children) {
-            if (out.size >= limit) break
-            when {
-                !child.isDirectory -> out.add(child)
-                child.name.startsWith(".") -> Unit
-                else -> collectFilesForGrep(child, out, limit)
-            }
-        }
-    }
 
     /**
-     * 写入文本文件(UTF-8,覆盖写入)。
+     * 持锁的导入本体：先在「目标目录 + 基础文件名」这把锁下算序号，再落盘。
      *
-     * 限制:写入字节数不得超过 [MAX_WRITE_BYTES](10MB),超出则返回错误。
-     * 若父目录不存在会自动创建(支持多级)。
-     *
-     * @param relativePath 相对工作区根目录的文件路径
-     * @param content 文本内容
-     * @return 操作结果:[OpResult] 表示成功或失败原因
+     * 对外层这把基础名锁，是为了让同名的并发导入排队而不是各自算出一模一样的序号；
+     * 对实际文件名再取一把锁，是为了跟显式写这个文件的调用也串行。
+     * 两把锁只有导入这条路径会同时持有，且顺序固定（先基础名、后实际名）；
+     * 若与 move/copy 这类双路径操作碰到同一对路径，最坏是一次等锁超时，不会永久挂住。
      */
-    /**
-     * v2.0.1: 读取工作区文件字节(文档预览等二进制场景;上限由调用方控制)。
-     * 路径安全由 [resolveSafe] 保证。
-     */
-    suspend fun readBytes(relativePath: String): ByteArray? = withContext(Dispatchers.IO) {
-        val src = resolveSafe(relativePath, allowRoot = false, mustExist = true, mustBeDirectory = false)
-            ?: return@withContext null
-        runCatching { src.readBytes() }.getOrNull()
-    }
-
-    suspend fun writeFile(relativePath: String, content: String): OpResult = withContext(Dispatchers.IO) {
-        if (content.toByteArray(Charsets.UTF_8).size.toLong() > MAX_WRITE_BYTES) {
-            return@withContext OpResult.Error("内容过大,写入上限为 $MAX_WRITE_BYTES 字节")
-        }
-        val file = resolveSafe(relativePath, allowRoot = false, mustExist = false, mustBeDirectory = false)
-            ?: return@withContext OpResult.Error("非法路径: $relativePath")
-        try {
-            file.parentFile?.takeIf { !it.exists() }?.mkdirs()
-            file.writeText(content, Charsets.UTF_8)
-            OpResult.Success
-        } catch (e: Exception) {
-            Logger.w(TAG, "writeFile 失败: ${e.message}")
-            OpResult.Error("写入失败: ${e.message}")
-        }
-    }
-
-    /**
-     * v2.x: 追加写入工作区文件(不覆盖原内容)。
-     *
-     * 用于"长内容分批写入":模型单次输出有 token 上限,一次性塞长文会被截断
-     * (finishReason=length);分批 append 可绕开单次上限。文件不存在时等价于创建。
-     * 限制与 [writeFile] 一致(单次 10MB)。
-     */
-    suspend fun appendFile(relativePath: String, content: String): OpResult = withContext(Dispatchers.IO) {
-        if (content.toByteArray(Charsets.UTF_8).size.toLong() > MAX_WRITE_BYTES) {
-            return@withContext OpResult.Error("内容过大,单次追加上限为 $MAX_WRITE_BYTES 字节")
-        }
-        val file = resolveSafe(relativePath, allowRoot = false, mustExist = false, mustBeDirectory = false)
-            ?: return@withContext OpResult.Error("非法路径: $relativePath")
-        try {
-            file.parentFile?.takeIf { !it.exists() }?.mkdirs()
-            file.appendText(content, Charsets.UTF_8)
-            OpResult.Success
-        } catch (e: Exception) {
-            Logger.w(TAG, "appendFile 失败: ${e.message}")
-            OpResult.Error("追加失败: ${e.message}")
-        }
-    }
-
-    /**
-     * 删除文件或目录(目录递归删除)。
-     *
-     * @param relativePath 相对工作区根目录的路径
-     * @return 操作结果:[OpResult] 表示成功或失败原因
-     */
-    suspend fun delete(relativePath: String): OpResult = withContext(Dispatchers.IO) {
-        val file = resolveSafe(relativePath, allowRoot = false, mustExist = true, mustBeDirectory = false)
-            ?: return@withContext OpResult.Error("非法路径或不存在: $relativePath")
-        try {
-            val ok = if (file.isDirectory) file.deleteRecursively() else file.delete()
-            if (ok) OpResult.Success else OpResult.Error("删除失败(可能存在子项或权限不足)")
-        } catch (e: Exception) {
-            Logger.w(TAG, "delete 失败: ${e.message}")
-            OpResult.Error("删除失败: ${e.message}")
-        }
-    }
-
-    /**
-     * 创建目录(支持多级,已存在视为成功)。
-     *
-     * @param relativePath 相对工作区根目录的目录路径
-     * @return 操作结果:[OpResult] 表示成功或失败原因
-     */
-    suspend fun mkdir(relativePath: String): OpResult = withContext(Dispatchers.IO) {
-        val file = resolveSafe(relativePath, allowRoot = false, mustExist = false, mustBeDirectory = true)
-            ?: return@withContext OpResult.Error("非法路径: $relativePath")
-        try {
-            if (file.exists()) {
-                if (file.isDirectory) {
-                    OpResult.Success
-                } else {
-                    OpResult.Error("目标已存在且不是目录: $relativePath")
-                }
+    private suspend fun importInto(dir: Target, safeName: String, uri: Uri, scope: Set<String>?): FileImportResult {
+        val base = target(displayOf(dir.mount, joinRelative(dir.relative, safeName)), MountCapability.WRITE, scope, allowRoot = false)
+        return lockedBy(base) {
+            val candidateRel = uniqueName(dir, safeName)
+            val dest = target(displayOf(dir.mount, candidateRel), MountCapability.WRITE, scope, allowRoot = false)
+            if (pathLocks.keyOf(dest.mount.id, dest.relative) == pathLocks.keyOf(base.mount.id, base.relative)) {
+                streamInto(dest, uri)
             } else {
-                if (file.mkdirs()) OpResult.Success else OpResult.Error("目录创建失败")
+                lockedBy(dest) { streamInto(dest, uri) }
             }
-        } catch (e: Exception) {
-            Logger.w(TAG, "mkdir 失败: ${e.message}")
-            OpResult.Error("目录创建失败: ${e.message}")
         }
     }
 
-    /**
-     * 移动/重命名文件或目录。
-     *
-     * @param from 源路径(相对工作区根目录)
-     * @param to 目标路径(相对工作区根目录)
-     * @return 操作结果:[OpResult] 表示成功或失败原因
-     */
-    suspend fun move(from: String, to: String): OpResult = withContext(Dispatchers.IO) {
-        val src = resolveSafe(from, allowRoot = false, mustExist = true, mustBeDirectory = false)
-            ?: return@withContext OpResult.Error("源路径非法或不存在: $from")
-        val dst = resolveSafe(to, allowRoot = false, mustExist = false, mustBeDirectory = false)
-            ?: return@withContext OpResult.Error("目标路径非法: $to")
-        if (dst.exists()) return@withContext OpResult.Error("目标已存在: $to")
-        try {
-            dst.parentFile?.takeIf { !it.exists() }?.mkdirs()
-            if (src.renameTo(dst)) OpResult.Success else OpResult.Error("移动失败(可能跨挂载点,请使用 copy)")
-        } catch (e: Exception) {
-            Logger.w(TAG, "move 失败: ${e.message}")
-            OpResult.Error("移动失败: ${e.message}")
-        }
+    /** 把 URI 流式拷进 [dest]（调用方负责持锁）。 */
+    private suspend fun streamInto(dest: Target, uri: Uri): FileImportResult {
+        val input = context.contentResolver.openInputStream(uri)
+            ?: return FileImportResult.Error("无法读取所选文件")
+        var bytes = 0L
+        input.use { stream -> bytes = dest.fs.writeStream(dest.relative, stream, MAX_IMPORT_BYTES) }
+        return FileImportResult.Success(dest.display, bytes)
     }
 
-    /**
-     * 复制文件或目录(目录递归复制)。
-     *
-     * @param from 源路径(相对工作区根目录)
-     * @param to 目标路径(相对工作区根目录)
-     * @return 操作结果:[OpResult] 表示成功或失败原因
-     */
-    suspend fun copy(from: String, to: String): OpResult = withContext(Dispatchers.IO) {
-        val src = resolveSafe(from, allowRoot = false, mustExist = true, mustBeDirectory = false)
-            ?: return@withContext OpResult.Error("源路径非法或不存在: $from")
-        val dst = resolveSafe(to, allowRoot = false, mustExist = false, mustBeDirectory = false)
-            ?: return@withContext OpResult.Error("目标路径非法: $to")
-        if (dst.exists()) return@withContext OpResult.Error("目标已存在: $to")
-        try {
-            dst.parentFile?.takeIf { !it.exists() }?.mkdirs()
-            if (src.isDirectory) {
-                src.copyRecursively(dst, overwrite = false)
-                OpResult.Success
-            } else {
-                src.copyTo(dst, overwrite = false)
-                OpResult.Success
-            }
-        } catch (e: Exception) {
-            Logger.w(TAG, "copy 失败: ${e.message}")
-            OpResult.Error("复制失败: ${e.message}")
-        }
-    }
-
-    /**
-     * 从系统文件管理器选择的 URI 导入一个文件到工作区当前目录。
-     *
-     * 复制采用流式写入和临时文件提交,不会把整个文件读入内存;目标文件名冲突时
-     * 自动追加序号,避免覆盖工作区已有文件。URI 只在本次调用期间读取,不保存外部
-     * URI 权限,因此不会留下不可控的长期授权。
-     *
-     * @param uri SAF 返回的源文件 URI
-     * @param targetDirectory 工作区内目标目录,空串表示根目录
-     * @param displayName 可选目标文件名,为空时从 ContentResolver 查询
-     */
-    suspend fun importFile(uri: Uri, targetDirectory: String, displayName: String? = null): FileImportResult = withContext(Dispatchers.IO) {
-        val directory = resolveSafe(
-            targetDirectory,
-            allowRoot = true,
-            mustExist = true,
-            mustBeDirectory = true,
-        ) ?: return@withContext FileImportResult.Error("目标目录非法或不存在: $targetDirectory")
-
-        val rawName = displayName?.trim().takeUnless { it.isNullOrBlank() }
-            ?: queryDisplayName(uri)
-            ?: "imported-file"
-        val safeName = sanitizeImportedName(rawName)
-        var candidate = File(directory, safeName)
+    /** 在目标目录里找一个不冲突的文件名。 */
+    private suspend fun uniqueName(dir: Target, safeName: String): String {
+        var candidate = joinRelative(dir.relative, safeName)
+        if (!dir.fs.exists(candidate)) return candidate
+        val dot = safeName.lastIndexOf('.')
+        val stem = if (dot > 0) safeName.substring(0, dot) else safeName
+        val extension = if (dot > 0) safeName.substring(dot) else ""
         var suffix = 1
-        while (candidate.exists()) {
-            val dot = safeName.lastIndexOf('.')
-            val stem = if (dot > 0) safeName.substring(0, dot) else safeName
-            val extension = if (dot > 0) safeName.substring(dot) else ""
-            candidate = File(directory, "$stem ($suffix)$extension")
+        while (true) {
+            candidate = joinRelative(dir.relative, "$stem ($suffix)$extension")
+            if (!dir.fs.exists(candidate)) return candidate
             suffix++
         }
-        val targetPath = formatRelativePath(candidate)
-        val verifiedTarget = resolveSafe(
-            targetPath,
-            allowRoot = false,
-            mustExist = false,
-            mustBeDirectory = false,
-        ) ?: return@withContext FileImportResult.Error("目标文件路径非法: $targetPath")
-        val temp = File(directory, ".muse-import-${UUID.randomUUID()}.part")
-        var bytes = 0L
-        try {
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                temp.outputStream().buffered().use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read < 0) break
-                        if (read == 0) continue
-                        bytes += read
-                        if (bytes > MAX_IMPORT_BYTES) {
-                            return@withContext FileImportResult.Error(
-                                "文件过大,导入上限为 ${MAX_IMPORT_BYTES / (1024 * 1024)}MB",
-                            )
-                        }
-                        output.write(buffer, 0, read)
-                    }
-                }
-            } ?: return@withContext FileImportResult.Error("无法读取所选文件")
-            if (!temp.renameTo(verifiedTarget)) {
-                return@withContext FileImportResult.Error("导入文件写入失败")
-            }
-            FileImportResult.Success(targetPath, bytes)
-        } catch (e: Exception) {
-            Logger.w(TAG, "importFile 失败: ${e.message}", e)
-            FileImportResult.Error("文件导入失败: ${e.message}")
-        } finally {
-            if (temp.exists()) temp.delete()
-        }
     }
 
-    // ── 内部工具方法 ──────────────────────────────────────────────────────────
-
-    /**
-     * 路径安全校验与解析(核心安全边界)。
-     *
-     * 校验步骤:
-     *  1. 规范化输入路径(去除前后空白),空串或 "/" 视为根目录
-     *  2. 拼接到 rootDir 后取 canonicalFile,解析所有 `.`/`..`/符号链接
-     *  3. 严格校验 canonicalPath 必须以 rootDir.canonicalPath 为前缀(禁止越权)
-     *  4. 校验存在性/目录性(根据参数)
-     *
-     * 任何一步失败均返回 null,调用方据此返回错误信息。
-     *
-     * @param path 相对工作区根目录的路径
-     * @param allowRoot 是否允许根目录本身(列出根目录时为 true,读写文件时为 false)
-     * @param mustExist 是否必须存在
-     * @param mustBeDirectory 是否必须为目录(若为 true,则存在的文件不算目录会失败)
-     * @return 解析后的 [File],失败返回 null
-     */
-    private fun resolveSafe(path: String, allowRoot: Boolean, mustExist: Boolean, mustBeDirectory: Boolean): File? {
-        val trimmed = path.trim().trim('/')
-        if (trimmed.isEmpty()) {
-            if (!allowRoot) return null
-            return if (mustBeDirectory) rootDir else null
-        }
-        // 拒绝任何 ".." 段(双保险:即便 canonicalFile 能解析,也先在路径段层面拒绝)
-        val segments = trimmed.split('/').filter { it.isNotEmpty() }
-        if (segments.any { it == ".." }) return null
-        val candidate = File(rootDir, trimmed)
-        // canonicalFile 解析所有 `.`/符号链接,得到绝对真实路径
-        val canonical = try {
-            candidate.canonicalFile
-        } catch (e: Exception) {
-            Logger.w(TAG, "canonicalFile 解析失败: ${e.message}(path=$path)")
-            return null
-        }
-        val rootCanonical = rootDir.canonicalPath
-        // 严格前缀校验:canonicalPath 必须等于 root 或以 "root+分隔符" 开头。
-        // 用 File.separator 而非硬编码 '/' —— Windows JVM(JVM 单测环境)的
-        // canonicalPath 使用反斜杠,硬编码 '/' 会让所有子路径被误判越权。
-        val canonicalPath = canonical.canonicalPath
-        if (canonicalPath != rootCanonical && !canonicalPath.startsWith(rootCanonical + File.separator)) {
-            Logger.w(TAG, "越权访问拒绝: $path -> $canonicalPath(根: $rootCanonical)")
-            return null
-        }
-        if (mustExist && !canonical.exists()) return null
-        if (mustBeDirectory && canonical.exists() && !canonical.isDirectory) return null
-        return canonical
-    }
-
-    /**
-     * 把绝对 [file] 转换为相对工作区根目录的路径(用于 [WorkspaceEntry.relativePath])。
-     */
-    private fun formatRelativePath(file: File): String {
-        val rootPath = rootDir.canonicalPath
-        val filePath = file.canonicalPath
-        if (filePath == rootPath) return ""
-        // 同 resolveSafe:分隔符用 File.separator,Windows JVM 下 canonicalPath 是反斜杠
-        return filePath.removePrefix(rootPath + File.separator)
-            .replace(File.separatorChar, '/')
-    }
+    /** 把目录相对路径与文件名接起来。 */
+    private fun joinRelative(parent: String, name: String): String = if (parent.isEmpty()) name else "$parent/$name"
 
     private fun queryDisplayName(uri: Uri): String? = runCatching {
         context.contentResolver.query(
@@ -563,59 +666,135 @@ class WorkspaceManager(private val context: Context) {
             .replace(Regex("[\\u0000-\\u001F]"), "_")
             .replace("..", "_")
             .trim()
-        return cleaned.take(MAX_FILE_NAME_LENGTH).ifBlank { "imported-file" }
+        return cleaned.take(MAX_FILE_NAME_LENGTH).ifBlank { "imported-file-${UUID.randomUUID().toString().take(8)}" }
     }
 
-    // ── 结果类型(便于 UI/工具统一处理)──────────────────────────────────────
+    // ── 结果类型（便于 UI/工具统一处理）──────────────────────────────────────
+
+    /**
+     * 工作区内的一条目录/文件条目。
+     *
+     * @param name 显示名（不含路径）
+     * @param relativePath 可回传的路径：默认挂载为相对路径，其他挂载带 `mount:/` 前缀
+     * @param isDirectory 是否为目录
+     * @param size 字节数（目录恒为 0）
+     * @param lastModified 最后修改时间戳（毫秒）
+     */
+    data class WorkspaceEntry(
+        val name: String,
+        val relativePath: String,
+        val isDirectory: Boolean,
+        val size: Long,
+        val lastModified: Long,
+    )
+
+    /**
+     * 一条内容命中。
+     *
+     * @param path 文件路径
+     * @param lineNumber 行号（1 起）
+     * @param line 命中行内容
+     */
+    data class GrepMatch(
+        val path: String,
+        val lineNumber: Int,
+        val line: String,
+    )
+
+    /** [grep] 的结果。 */
+    sealed class GrepResult {
+        /**
+         * @param matches 命中列表（最多 maxResults 条）
+         * @param scannedFiles 实际扫描的文件数
+         * @param truncated 是否因命中数达到上限而提前停止
+         */
+        data class Success(
+            val matches: List<GrepMatch>,
+            val scannedFiles: Int,
+            val truncated: Boolean,
+        ) : GrepResult()
+
+        data class Error(val message: String) : GrepResult()
+    }
 
     /** listDir 结果。 */
     sealed class ListResult {
         data class Success(val entries: List<WorkspaceEntry>) : ListResult()
+
         data class Error(val message: String) : ListResult()
     }
 
     /** readFile 结果。 */
     sealed class ReadResult {
         data class Success(val content: String) : ReadResult()
+
         data class Error(val message: String) : ReadResult()
     }
 
-    /** 通用操作(write/delete/mkdir/move/copy)结果。 */
+    /** 通用操作（write/delete/mkdir/move/copy）结果。 */
     sealed class OpResult {
         object Success : OpResult()
+
         data class Error(val message: String) : OpResult()
+    }
+
+    /**
+     * 读—改—写里「改」这一步的结论，由 [editFile] 的调用方在完整原文上给出。
+     */
+    sealed class EditDecision {
+        /** 放弃写入，[message] 原样回给调用方；文件保持原样。 */
+        data class Abort(val message: String) : EditDecision()
+
+        /** 写回 [content]。 */
+        data class Commit(val content: String) : EditDecision()
+    }
+
+    /** [editFile] 的结果。 */
+    sealed class EditResult {
+        /** 已写回；[original] 与 [updated] 供调用方渲染 diff。 */
+        data class Applied(val original: String, val updated: String) : EditResult()
+
+        /** 判定阶段拒绝，文件未改动。 */
+        data class Rejected(val message: String) : EditResult()
+
+        /** 读或写失败（含等锁超时）。 */
+        data class Failed(val message: String) : EditResult()
     }
 
     /** 文件导入结果。 */
     sealed class FileImportResult {
         data class Success(val relativePath: String, val bytes: Long) : FileImportResult()
+
         data class Error(val message: String) : FileImportResult()
     }
 
     companion object {
         private const val TAG = "WorkspaceManager"
 
-        /** 读取文件大小上限:1MB(防止 AI 读取超大文件造成内存压力)。 */
+        /** 默认挂载的目录名。 */
+        private const val MAIN_DIR_NAME = "workspace"
+
+        /** 读取文件大小上限：1MB。 */
         const val MAX_READ_BYTES: Long = 1L * 1024 * 1024
 
-        /** 写入文件大小上限:10MB(防止 AI 写入超大内容造成磁盘压力)。 */
+        /** 写入文件大小上限：10MB。 */
         const val MAX_WRITE_BYTES: Long = 10L * 1024 * 1024
 
-        /** 文件管理器导入上限:256MB,采用流式复制不会产生整文件内存峰值。 */
+        /** 文件导入上限：256MB，流式复制不产生整文件内存峰值。 */
         const val MAX_IMPORT_BYTES: Long = 256L * 1024 * 1024
 
         private const val MAX_FILE_NAME_LENGTH = 180
     }
 }
 
-/** grep 单文件大小上限：超过则不读，避免大文件整份进内存。 */
+/** grep 单文件大小上限：超过则不读。 */
 private const val MAX_GREP_FILE_BYTES: Long = 2L * 1024 * 1024
 
-/** grep 最多检查的文件数，防止在超大工作区里长时间扫描。 */
+/** grep 最多检查的文件数。 */
 private const val MAX_GREP_FILES: Int = 2000
 
 /** grep 默认命中数上限。 */
 private const val DEFAULT_GREP_MAX_RESULTS: Int = 100
 
-/** grep 单行输出截断长度。 */
-private const val MAX_GREP_LINE_CHARS: Int = 300
+/** grep 命中行截断长度。 */
+private const val MAX_GREP_LINE_CHARS: Int = 400

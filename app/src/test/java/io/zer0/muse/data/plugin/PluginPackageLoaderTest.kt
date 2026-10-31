@@ -195,4 +195,63 @@ class PluginPackageLoaderTest {
         assertNull(loaded.skin)
         assertFalse(loaded.manifest.tools.isEmpty())
     }
+
+    // ── v2.7: Python 运行时 ──
+    //
+    // 这三条盯的是「能装上」与「装得上但跑不了」之间的缝隙：
+    // 执行端早就支持 python，但解包白名单与入口校验只认 .js，
+    // 于是 python 插件在安装阶段就被静默丢掉入口文件，报错却只说「缺少入口文件」。
+
+    private fun pythonManifest(entry: String = "main.py"): PluginManifest = PluginManifest(
+        id = "py-plugin",
+        name = "Py Plugin",
+        kind = "tool",
+        trust = "sandboxed",
+        capabilities = listOf("resource.read"),
+        tools = listOf(toolDeclaration()),
+        runtime = "python",
+        entry = entry,
+    )
+
+    @Test
+    fun pythonPluginLoadsPyEntry() {
+        val zip = zipOf(
+            "manifest.json" to AppJson.encodeToString(PluginManifest.serializer(), pythonManifest()),
+            "main.py" to "def hello(args):\n    return {'ok': True}\n",
+        )
+
+        val loaded = (PluginPackageLoader.loadFromZip(zip) as PluginPackageLoader.Result.Ok).package_
+
+        assertTrue("python 插件的入口代码必须能读出来", loaded.entryCode.contains("def hello"))
+    }
+
+    @Test
+    fun pythonPluginWithJsEntryIsRejected() {
+        val zip = zipOf(
+            "manifest.json" to AppJson.encodeToString(PluginManifest.serializer(), pythonManifest(entry = "main.js")),
+            "main.js" to "function hello(){}",
+        )
+
+        val result = PluginPackageLoader.loadFromZip(zip)
+
+        val reason = (result as PluginPackageLoader.Result.Err).reason
+        assertTrue("错误要指向真正的原因（运行时与入口不匹配）: $reason", reason.contains("python"))
+    }
+
+    @Test
+    fun jsPluginWithPyEntryIsRejected() {
+        val manifest = uiSkinManifest(
+            capabilities = listOf("resource.read"),
+            tools = listOf(toolDeclaration()),
+            kind = "tool",
+        ).copy(entry = "main.py")
+        val zip = zipOf(
+            "manifest.json" to AppJson.encodeToString(PluginManifest.serializer(), manifest),
+            "main.py" to "def hello(args):\n    return None\n",
+        )
+
+        val result = PluginPackageLoader.loadFromZip(zip)
+
+        assertTrue((result as PluginPackageLoader.Result.Err).reason.contains(".js"))
+    }
 }

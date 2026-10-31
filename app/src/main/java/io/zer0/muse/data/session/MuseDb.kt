@@ -108,8 +108,13 @@ import java.io.File
  *   纯新增表,旧 ProactiveMessageConfig 保留不迁移。
  *   v2.6.8: 版本 117 → 118,新增 card_entities 表(卡片停靠 / 跨应用悬浮的身份与状态载体)。
  *   纯新增表,不动既有表;卡片从「消息尾巴 + card_data.json」升为一等实体(UUID 主键)。
- *   注:SQLite 3.35 才支持 DROP COLUMN,minSdk 26 的旧设备不支持,故走"建新表 → 搬数据 →
- *   换名"路径(与 MIGRATION_*_* 中 group_chat_messages/skills 的历史做法一致)。
+ *   注：SQLite 3.35 才支持 DROP COLUMN，minSdk 26 的旧设备不支持，故走"建新表 → 搬数据 →
+ *   换名"路径（与 MIGRATION_*_* 中 group_chat_messages/skills 的历史做法一致）。
+ *   v2.6.16: 版本 120 → 121，messages 加 voiceUri / voiceDurationMs 两列（语音消息）。
+ *   纯新增列，旧行 voiceUri 为 NULL、voiceDurationMs 为 0，读出来就是"非语音消息"；
+ *   新版本代码不读旧列语义，旧数据一字未改。
+ *   版本 121 → 122，删除旧小手机遗留的四张表（朋友圈/日记）与 isMiniPhone=1 的会话及其消息。
+ *   该功能未对真实用户开放，库内无可保留业务数据；isMiniPhone 列保留（旧 SQLite 不支持 DROP COLUMN）。
  */
 @Database(
     entities = [
@@ -130,12 +135,6 @@ import java.io.File
         GroupChatMessageEntity::class,
         // v2.x: 群聊记忆隔离(独立 fact store,不污染主记忆)
         GroupChatMemoryEntity::class,
-        // v1.0.72: AI 朋友圈动态 + 评论(v1.0.73: + 点赞记录)
-        io.zer0.muse.data.moment.MomentEntity::class,
-        io.zer0.muse.data.moment.MomentCommentEntity::class,
-        io.zer0.muse.data.moment.MomentLikeEntity::class,
-        // v1.0.74: AI 日记本
-        io.zer0.muse.data.diary.DiaryEntity::class,
         // v1.0.74: 主动巡检日志
         io.zer0.muse.data.patrol.PatrolLogEntity::class,
         io.zer0.muse.data.stats.UsageRecordEntity::class,
@@ -184,7 +183,7 @@ import java.io.File
         io.zer0.muse.data.proactive.ProactiveOutcomeEntity::class,
         io.zer0.muse.data.proactive.ProactiveRelationEntity::class,
     ],
-    version = 119,
+    version = 122,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -216,9 +215,6 @@ abstract class MuseDb : RoomDatabase() {
     // v2.x: 群聊记忆隔离(独立 fact store,不污染主记忆)
     abstract fun groupChatMemoryDao(): GroupChatMemoryDao
 
-    /** v1.0.72: AI 朋友圈 DAO。 */
-    abstract fun momentDao(): io.zer0.muse.data.moment.MomentDao
-    abstract fun diaryDao(): io.zer0.muse.data.diary.DiaryDao
     abstract fun patrolLogDao(): io.zer0.muse.data.patrol.PatrolLogDao
 
     /** 用量流水（每次模型请求一行）。 */
@@ -1355,6 +1351,85 @@ abstract class MuseDb : RoomDatabase() {
                         "`earnedToday` REAL NOT NULL DEFAULT 0, " +
                         "PRIMARY KEY(`assistantId`))",
                 )
+            }
+        }
+
+        /**
+         * v2.6.15: 119 → 120 缓存读/写分列。
+         *
+         * 背景：拆分前 messages.cachedTokens / usage_records.cached_tokens 一个列装两种量
+         * （缓存读 + 缓存写），而缓存写入单价更高（Anthropic 为输入价的 1.25 倍），
+         * 合在一起就无法单独计价。
+         *
+         * 本迁移**只加列，不改也不回填旧值**：
+         *  - messages.cacheWriteTokens INTEGER DEFAULT NULL（NULL = 未知，旧行永远为 NULL）
+         *  - usage_records.cache_write_tokens INTEGER NOT NULL DEFAULT 0
+         * 旧行里 cachedTokens / cached_tokens 的存量值保持原样，读取时按「读」解释（不回填、不重算）。
+         *
+         * 回退（降级）方案：两列均为纯新增，旧版本代码不读它们，因此数据本身不会损坏。
+         * 若要把库降回 v119 交给旧版本使用：
+         *  1) 先备份 muse.db（设置 → 数据管理 → 导出备份，或直接拷文件）；
+         *  2) SQLite 3.35+：`ALTER TABLE messages DROP COLUMN cacheWriteTokens`、
+         *     `ALTER TABLE usage_records DROP COLUMN cache_write_tokens`；
+         *     低于 3.35 则「建新表 → 拷数据 → 改名」重建这两张表（messages 上的索引需一并重建）；
+         *  3) `PRAGMA user_version = 119`。
+         * 只装旧版本、不做第 2、3 步会因「库版本比代码新」在启动时被 Room 拒绝——
+         * 这是版本校验，不是数据损坏。
+         */
+        val MIGRATION_119_120 = object : Migration(119, 120) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 幂等补齐：88_89 等重建表路径会丢列，这里重新补上
+                ensureMessageColumns(db)
+                ensureUsageRecordColumns(db)
+            }
+        }
+
+        /**
+         * v2.6.16: 120 → 121 语音消息。
+         *
+         * messages 加两列：
+         *  - voiceUri TEXT，可空 —— 音频文件引用（VoiceMessageStore 的 file:// 路径），
+         *    NULL 表示非语音消息
+         *  - voiceDurationMs INTEGER NOT NULL DEFAULT 0 —— 时长（毫秒），0 表示未知
+         *
+         * 两列均为纯新增，旧行不需要回填：NULL / 0 已被读取路径解释为"非语音消息"。
+         * 幂等：ensureMessageColumns 已按 PRAGMA 判存在，88_89 等重建表路径丢列时同样能补上。
+         */
+        val MIGRATION_120_121 = object : Migration(120, 121) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureMessageColumns(db)
+            }
+        }
+
+        /**
+         * 版本 121 → 122：清理旧小手机遗留数据。
+         *
+         * 旧小手机的 UI 与调度链已整体移除，数据层还留着两类痕迹，这里一次删干净：
+         *  - 朋友圈 / 日记四张表（`ai_moments` / `ai_moment_comments` / `ai_moment_likes` / `ai_diaries`）
+         *  - `sessions.isMiniPhone = 1` 的私信会话，以及挂在它们下面的消息
+         *
+         * 该功能从未对真实用户开放，库里不存在需要保留的业务数据，因此是删除而非归档。
+         *
+         * 列不删：SQLite 3.35 才支持 `DROP COLUMN`，minSdk 26 的旧设备没有这个能力。
+         * `sessions.isMiniPhone` 保留为历史兼容列（NOT NULL DEFAULT 0，已无写入方），
+         * 下次结构变更时一并移除。
+         *
+         * messages 表没有 isMiniPhone 列，只能按所属会话反查；先删消息再删会话，
+         * 避免会话行没了之后留一批无主消息（备份/统计仍会扫 messages 全表）。
+         *
+         * 幂等：`DROP TABLE IF EXISTS` + 条件删除，重复执行不报错。
+         */
+        val MIGRATION_121_122 = object : Migration(121, 122) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `ai_moment_likes`")
+                db.execSQL("DROP TABLE IF EXISTS `ai_moment_comments`")
+                db.execSQL("DROP TABLE IF EXISTS `ai_moments`")
+                db.execSQL("DROP TABLE IF EXISTS `ai_diaries`")
+                db.execSQL(
+                    "DELETE FROM `messages` WHERE `sessionId` IN " +
+                        "(SELECT `id` FROM `sessions` WHERE `isMiniPhone` = 1)",
+                )
+                db.execSQL("DELETE FROM `sessions` WHERE `isMiniPhone` = 1")
             }
         }
 
@@ -3390,6 +3465,9 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_113_114,
                         MIGRATION_114_115,
                         MIGRATION_115_116, MIGRATION_116_117, MIGRATION_117_118, MIGRATION_118_119,
+                        MIGRATION_119_120,
+                        MIGRATION_120_121,
+                        MIGRATION_121_122,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -3535,11 +3613,36 @@ private fun ensureMessageColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
         "cachedTokens INTEGER DEFAULT NULL",
         // H11: 译文消息的源消息 id(原文对照折叠)
         "translationSourceId TEXT DEFAULT NULL",
+                        // v2.6.15: 缓存写入 token（与 cachedTokens 分列；旧行为 NULL = 未知）
+        "cacheWriteTokens INTEGER DEFAULT NULL",
+        // v2.6.16: 语音消息音频引用 + 时长（旧行 NULL / 0 = 非语音消息）
+        "voiceUri TEXT DEFAULT NULL",
+        "voiceDurationMs INTEGER NOT NULL DEFAULT 0",
     )
     columns.forEach { spec ->
         val name = spec.substringBefore(' ')
         if (name !in existing) {
             db.execSQL("ALTER TABLE messages ADD COLUMN $spec")
+        }
+    }
+}
+
+/** B8-06: 按当前 schema 补齐 usage_records 缺失列(幂等,已存在的列跳过)。 */
+private fun ensureUsageRecordColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+    val existing = mutableSetOf<String>()
+    db.query("PRAGMA table_info(usage_records)").use { cursor ->
+        while (cursor.moveToNext()) {
+            existing.add(cursor.getString(1))
+        }
+    }
+    val columns = listOf(
+        // v2.6.15: 缓存写入 token(与 cached_tokens 分列;旧行为 0)
+        "cache_write_tokens INTEGER NOT NULL DEFAULT 0",
+    )
+    columns.forEach { spec ->
+        val name = spec.substringBefore(' ')
+        if (name !in existing) {
+            db.execSQL("ALTER TABLE usage_records ADD COLUMN $spec")
         }
     }
 }

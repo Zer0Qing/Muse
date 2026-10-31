@@ -82,10 +82,11 @@ data class WebServerConfig(
         /**
          * 生成 6 位数字 PIN(首位 1-9,避免前导零导致显示与输入混淆)。
          * H7: 使用 SecureRandom 替代 Math.random(),消除截断偏差(L3)。
+         *
+         * [random] 默认用 [SecureRandom];单测可注入固定种子的 [java.util.Random] 锁住行为。
          */
-        fun generateRandomPin(): String {
+        fun generateRandomPin(random: java.util.Random = SecureRandom()): String {
             val sb = StringBuilder(PIN_LENGTH)
-            val random = SecureRandom()
             // 首位 1-9,避免前导零
             sb.append(1 + random.nextInt(9))
             repeat(PIN_LENGTH - 1) {

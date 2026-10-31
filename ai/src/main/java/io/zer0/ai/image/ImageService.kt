@@ -141,7 +141,7 @@ class ImageService(
         val createdAt = System.currentTimeMillis()
         var tick = 0
         var consecutiveErrors = 0
-        // 记录任务失败次数(并发安全,对齐 QingTian _errorCounts)
+        // 记录任务失败次数（并发安全）
         errorCounts.remove(taskId)
         while (true) {
             val ageMs = System.currentTimeMillis() - createdAt
@@ -189,7 +189,7 @@ class ImageService(
     }
 
     /**
-     * 决定当前 tick 是否触发真实查询(对齐 QingTian shouldCheckThisTick)。
+     * 决定当前 tick 是否触发真实查询。
      */
     internal fun shouldCheckThisTick(ageMs: Long, tickCount: Int): Boolean {
         return when {
@@ -231,22 +231,22 @@ class ImageService(
     companion object {
         private const val TAG = "ImageService"
 
-        /** 轮询 tick 间隔(5 秒,对齐 QingTian TICK_MS)。 */
+        /** 轮询 tick 间隔（5 秒）。 */
         private const val TICK_MS = 5_000L
 
-        /** 2 分钟(对齐 QingTian TWO_MINUTES)。 */
+        /** 2 分钟。 */
         private const val TWO_MINUTES_MS = 2L * 60 * 1000
 
-        /** 10 分钟(对齐 QingTian TEN_MINUTES)。 */
+        /** 10 分钟。 */
         private const val TEN_MINUTES_MS = 10L * 60 * 1000
 
         /** 轮询总超时(10 分钟,与 TEN_MINUTES_MS 对齐)。 */
         private const val POLL_TIMEOUT_MS = 10L * 60 * 1000
 
-        /** 连续错误上限(对齐 QingTian MAX_CONSECUTIVE_ERRORS)。 */
+        /** 连续错误上限。 */
         private const val MAX_CONSECUTIVE_ERRORS = 5
 
-        /** taskId → 连续错误计数(对齐 QingTian _errorCounts,并发安全)。 */
+        /** taskId → 连续错误计数（并发安全）。 */
         private val errorCounts = ConcurrentHashMap<String, Int>()
     }
 }

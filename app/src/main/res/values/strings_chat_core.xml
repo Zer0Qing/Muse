@@ -114,12 +114,17 @@
     <string name="chat_doc_default_name">文档</string>
     <string name="chat_doc_parse_failed">文档解析失败： %1$s</string>
     <string name="chat_attachment_workspace_ref">附件已存入工作区：%1$s（%2$s）</string>
+    <string name="chat_attachment_preview_unavailable">这个文件没法在应用内打开，原件在工作区：%1$s</string>
     <string name="chat_attachment_import_failed">附件保存失败：%1$s</string>
     <string name="chat_doc_char_count">%1$d 字</string>
     <string name="chat_pasted_doc_name">粘贴文本_%1$s.txt</string>
     <string name="chat_thinking_preview">思考 · %1$s</string>
     <string name="chat_voice_playing_cd">语音播放中</string>
     <string name="chat_voice_ready_cd">语音就绪</string>
+    <!-- v2.6.16: 语音消息条 -->
+    <string name="chat_voice_play_cd">播放语音</string>
+    <string name="chat_voice_pause_cd">暂停语音</string>
+    <string name="chat_voice_expired">语音已失效</string>
     <string name="chat_knowledge_chunk_title">《%1$s》 · 片段 #%2$d</string>
     <string name="chat_knowledge_chunk_score">分数 %1$s · %2$s</string>
     <string name="chat_citation_chip_a11y">引用 [%1$d]:%2$s,%3$s</string>
@@ -517,7 +522,8 @@
     <string name="msg_info_prompt">输入 (prompt)</string>
     <string name="msg_info_completion">输出 (completion)</string>
     <string name="msg_info_reasoning">推理 (reasoning)</string>
-    <string name="msg_info_cached">缓存命中</string>
+    <string name="msg_info_cached">缓存读取</string>
+    <string name="msg_info_cache_write">缓存写入</string>
     <string name="msg_info_total">合计</string>
     <string name="msg_info_measured">实测</string>
     <string name="msg_info_estimated">估算</string>

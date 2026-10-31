@@ -73,5 +73,30 @@ class MediaGenToolsRegistrar(
                 parameterTypes = mapOf("size" to "integer"),
             ),
         ) { args -> impl.execGenerateQrCode(args) }
+
+        // 语音消息：本地合成 → 存成本地音频 → 挂到助手自己的消息上。
+        // 风险 NORMAL 而不是 HIGH：不外发、不写用户目录，给 HIGH 会让每次发语音都弹审批卡。
+        // 用带上下文的注册方式：本回合语音条数上限要按「回合」计，回合标识（助手消息 id）
+        // 只能从宿主注入的 ToolExecutionContext 拿，模型不可伪造。
+        toolRegistry.registerWithContext(
+            ToolRegistry.ToolDef(
+                name = "send_voice",
+                // 描述里的「发语音 / 语音 / 朗读 / voice」都是 find_tools 的搜索词，别随便删
+                description =
+                "发语音：把一段文字合成为语音消息（发语音 / 朗读给用户听），直接在对话里发出。" +
+                    "每条语音只放一段话；一次回复可以调用多次，按顺序逐段发出，不要一次塞整篇。" +
+                    "只放需要朗读的台词，不要放旁白、动作描写、英文原文或 Markdown。" +
+                    "适合语气、情绪、陪伴性内容；描述、代码、长文本仍用文字回答。" +
+                    "会消耗 TTS 额度；没有中文的段落不会生成语音，单次回复最多 5 条。",
+                parameters = mapOf(
+                    "text" to "必填,要念出来的纯文本(一段话,口语化,不要 Markdown / 代码块 / 链接)",
+                    "emotion" to "可选,情绪语气,如 happy / sad / calm / excited;留空用设置里的默认情绪",
+                ),
+                required = setOf("text"),
+                riskLevel = ToolRiskLevel.NORMAL,
+            ),
+        ) { args, executionContext ->
+            impl.execSendVoice(args, executionContext.messageId)
+        }
     }
 }

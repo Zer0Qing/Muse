@@ -6,6 +6,7 @@ import io.zer0.common.Logger
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.proactive.ProactiveOutcomeEntity
 import io.zer0.muse.data.proactive.ThoughtDeriver
+import io.zer0.muse.data.session.SessionEntity
 import kotlinx.coroutines.flow.first
 
 /**
@@ -35,6 +36,19 @@ class ProactiveContextLoader(
 
         /** 取最近几条主动消息做「别再说一遍」的提醒。 */
         const val RECENT_PROACTIVE_COUNT = 4
+
+        /**
+         * 送进生成上下文的字符总预算。
+         *
+         * 条数上限和单条截断都管不住总量：40 条 × 单条 600 字能撜到两万多字，
+         * 全塞进提示词既费钱又会把真正重要的最后几句淡化。
+         * 超出时从**最旧**的一条开始丢，最近几轮对话必须留住 ——
+         * 主动消息接的是「刚才那句」，接不上就干脆别说。
+         */
+        const val CONTEXT_CHAR_BUDGET = 6000
+
+        /** 日志里把「距最后活动」折算成分钟的除数。 */
+        private const val MINUTE_MS = 60_000L
     }
 
     /** 一轮巡检需要的会话侧材料。 */
@@ -82,8 +96,42 @@ class ProactiveContextLoader(
         val recent = all
             .filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
             .takeLast(RECENT_MESSAGE_COUNT)
-        val lastUserAt = recent.lastOrNull { it.role == MessageRole.USER }?.createdAt ?: 0L
-        return SessionContext(sessionId, recent, lastUserAt, recentProactiveTexts(all, assistantId))
+        val budgeted = applyCharBudget(recent)
+        val lastUserAt = budgeted.lastOrNull { it.role == MessageRole.USER }?.createdAt ?: 0L
+        return SessionContext(sessionId, budgeted, lastUserAt, recentProactiveTexts(all, assistantId))
+    }
+
+    /**
+     * 按总字符预算裁掉最旧的素材。
+     *
+     * 从最新一条往回装，装不下就停：丢的永远是最旧的，不是最新的。
+     * 最新一条无条件保留 —— 它一条就超预算时宁可略微超出，
+     * 也不能让模型拿到一份「你们还没聊过什么」的空素材。
+     */
+    private fun applyCharBudget(messages: List<UIMessage>): List<UIMessage> {
+        if (messages.isEmpty()) return messages
+        var total = 0
+        var keepFrom = messages.size
+        for (index in messages.indices.reversed()) {
+            val next = total + messages[index].content.length
+            // keepFrom < messages.size 的意思是「最新一条已经装进去了」：
+            // 只有它才算例外，其余消息一律按预算卡。
+            if (next > CONTEXT_CHAR_BUDGET && keepFrom < messages.size) break
+            total = next
+            keepFrom = index
+        }
+        val kept = messages.subList(keepFrom, messages.size).toList()
+        val dropped = messages.size - kept.size
+        if (dropped > 0) {
+            Logger.i(
+                TAG,
+                "素材总量超预算 | budget=${CONTEXT_CHAR_BUDGET}字 | 保留=${kept.size}条/${total}字 | " +
+                    "丢弃=${dropped}条(最旧)",
+            )
+        } else {
+            Logger.d(TAG, "素材总量 | budget=${CONTEXT_CHAR_BUDGET}字 | 保留=${kept.size}条/${total}字")
+        }
+        return kept
     }
 
     /**
@@ -108,21 +156,84 @@ class ProactiveContextLoader(
         }.getOrDefault(emptyList())
     }
 
+    /** 主动消息会话的来源。排查「消息到底发去了哪个房间」时先看这个字段。 */
+    enum class SessionSource(val wireName: String) {
+        /** 该助手最近有用户发言的会话。 */
+        RECENT_ACTIVE("recent_active"),
+
+        /** 用户当前正在看的会话(属于该助手)。 */
+        VIEWED("viewed"),
+
+        /** 兜底新建的 Agent 会话。 */
+        NEW_AGENT("new_agent"),
+    }
+
+    /** 一次落点选择的结果:写哪个会话、为什么选了它、它的最后活动时间。 */
+    data class SessionPick(
+        val sessionId: String,
+        val source: SessionSource,
+        val lastActivityAt: Long,
+    )
+
     /**
-     * 定位主动消息要写进哪个会话。
+     * 定位主动消息要写进哪个会话(只关心会话 id)。
      *
-     * 比旧实现的四级回退链简单得多：该助手最近的一个 agent 会话，
-     * 没有就新建。不猜「用户当前在看哪个」—— 猜错会串会话，
-     * 而串会话的表现是「用 A 的人设说话，写进了 B 的房间」，很难被当成 bug 报上来。
+     * 具体选择过程见 [resolveSessionPick]。
      */
-    suspend fun resolveSession(assistant: AssistantEntity): String? {
+    suspend fun resolveSession(assistant: AssistantEntity): String? =
+        resolveSessionPick(assistant)?.sessionId
+
+    /**
+     * 定位主动消息的落点,并返回选中原因。
+     *
+     * 目标行为:在哪儿聊完,就由哪儿发。按优先级取第一个可用:
+     *  1. 该助手最近有用户发言的会话(排除条件写在 SQL 里,见 SessionDao)
+     *  2. 用户当前正在看的会话(需属于该助手,且同样非删除/非归档/非小手机)
+     *  3. 兜底新建 Agent 会话
+     *
+     * 每一步都单独包 runCatching:依赖没就绪时是降级到下一级,而不是让整轮巡检崩掉。
+     * 三级全空返回 null,由上层当作「没有可用会话」跳过本轮。
+     */
+    suspend fun resolveSessionPick(assistant: AssistantEntity): SessionPick? {
+        val now = System.currentTimeMillis()
+
+        // 1) 用户最后说话的地方
         val recent = runCatching {
-            runtime.sessions.getRecentAgentByAssistant(assistant.id, 1).firstOrNull()
+            runtime.sessions.getRecentActiveByAssistant(assistant.id)
         }.getOrNull()
-        if (recent != null) return recent.id
-        return runCatching {
+        if (recent != null) {
+            return logPick(assistant, SessionPick(recent.id, SessionSource.RECENT_ACTIVE, recent.updatedAt), now)
+        }
+
+        // 2) 用户正看着的会话。第 1 级只认「有用户发言」的房间,
+        //    刚打开还没来得及说话时会漏到这一级,那时候写进去正是用户想看到的地方。
+        val viewed = runCatching { runtime.settings.getViewedSessionId() }.getOrNull()
+        val viewedSession = viewed
+            ?.let { id -> runCatching { runtime.sessions.getSessionById(id) }.getOrNull() }
+            ?.takeIf { it.isWritableForProactive(assistant.id) }
+        if (viewedSession != null) {
+            return logPick(assistant, SessionPick(viewedSession.id, SessionSource.VIEWED, viewedSession.updatedAt), now)
+        }
+
+        // 3) 兜底:该助手一个可用会话都没有,建一个新的 Agent 会话
+        val created = runCatching {
             runtime.sessions.createAgentSession(assistant.id)
-        }.getOrNull()
+        }.getOrNull() ?: return null
+        return logPick(assistant, SessionPick(created, SessionSource.NEW_AGENT, now), now)
+    }
+
+    /** 主动消息能否写进该会话:属于该助手、未删除、未归档。 */
+    private fun SessionEntity.isWritableForProactive(assistantId: String): Boolean =
+        this.assistantId == assistantId && deletedAt == null && !archived
+
+    private fun logPick(assistant: AssistantEntity, pick: SessionPick, now: Long): SessionPick {
+        val idleMinutes = ((now - pick.lastActivityAt) / MINUTE_MS).coerceAtLeast(0L)
+        Logger.i(
+            TAG,
+            "主动消息会话选择 | assistantId=${assistant.id} | sessionId=${pick.sessionId} | " +
+                "source=${pick.source.wireName} | 距最后活动=${idleMinutes}分钟",
+        )
+        return pick
     }
 
     /** 最近一条主动消息的发出时间，用于抑制连发。 */
@@ -138,13 +249,16 @@ class ProactiveContextLoader(
      * 从记忆与里程碑推导新牵挂。
      *
      * 失败不抛：推导只是「补充燃料」，坏了不该让整轮巡检不跑。
+     *
+     * v17: 已出场(分数低于衰减阈值)的记忆不参与推导 —— 这里推导出来的牵挂会变成
+     * 主动消息的上下文,让出场的记忆从这道口子进去等于出场没做。
      */
     suspend fun deriveThoughts(assistantId: String, now: Long) {
         runCatching {
             val tracked = stores.thoughts.getOpenSourceRefs(assistantId)
             val scope = if (assistantId == "default") "main" else assistantId
-            val facts = runCatching { sources.factStore.getByScope(scope) }.getOrDefault(emptyList()) +
-                runCatching { sources.factStore.getByScope("main") }.getOrDefault(emptyList())
+            val facts = runCatching { sources.factStore.getByScope(scope, includeSuppressed = false) }.getOrDefault(emptyList()) +
+                runCatching { sources.factStore.getByScope("main", includeSuppressed = false) }.getOrDefault(emptyList())
 
             val fromFacts = ThoughtDeriver.fromFacts(
                 facts = facts.distinctBy { it.id },

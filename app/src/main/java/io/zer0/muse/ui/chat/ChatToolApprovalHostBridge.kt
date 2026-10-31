@@ -45,6 +45,9 @@ internal interface ChatToolApprovalHostBridge {
     /** 原 `approvalTimeoutPaused`(读)。 */
     val approvalTimeoutPaused: Boolean
 
+    /** 应用是否在前台(ProcessLifecycleOwner 的 ON_START/ON_STOP 驱动)。 */
+    val appInForeground: Boolean
+
     // ── 方法转发 ───────────────────────────────────────────────────────
 
     fun addError(type: io.zer0.muse.ui.ChatErrorType, message: String, isRecoverable: Boolean = true)

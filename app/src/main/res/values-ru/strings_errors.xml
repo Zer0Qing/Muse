@@ -125,6 +125,9 @@
     <string name="err_chat_video_generated">Видео создано</string>
     <string name="err_chat_video_cancelled">Создание видео отменено.</string>
     <string name="err_chat_video_gen_failed">Не удалось создать видео: %1$s</string>
+    <string name="err_chat_voice_generated">Голосовое сообщение отправлено</string>
+    <string name="err_chat_voice_cancelled">Отправка голосового сообщения отменена</string>
+    <string name="err_chat_voice_gen_failed">Не удалось синтезировать голос: %1$s</string>
     <string name="err_chat_qr_generated">QR-код создан</string>
     <string name="err_chat_misc_reorder_pinned_failed">Не удалось сохранить порядок закреплённых: %1$s</string>
     <string name="asr_system_unavailable">В системе нет службы распознавания речи. Настройте онлайн-распознавание речи в параметрах.</string>

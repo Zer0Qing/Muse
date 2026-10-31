@@ -107,6 +107,9 @@ fun AgentSettingsPage(
     val context = androidx.compose.ui.platform.LocalContext.current
     // v1.0.72: 主动消息测试发送(避免重复触发)
     var testSending by remember { mutableStateOf(false) }
+    // 测试按钮被「上一轮还在生成」拦下时的提示。在组合期取好，
+    // 点击回调里只有协程作用域，取不到 stringResource。
+    val testAlreadyRunningText = stringResource(R.string.settings_agent_test_already_running)
     // P0: 主动程度 / 免打扰时段 / 主动内容 / 高级 弹窗
     var showPacePicker by remember { mutableStateOf(false) }
     var showQuietHoursPicker by remember { mutableStateOf(false) }
@@ -662,7 +665,6 @@ fun AgentSettingsPage(
         val currentPace = ProactivePace.from(
             proactiveConfig.intervalMinutes,
             proactiveConfig.sendProbability,
-            proactiveConfig.maxDailyMessages,
         )
         MuseDialog(
             onDismissRequest = { showPacePicker = false },
@@ -686,11 +688,8 @@ fun AgentSettingsPage(
                                             proactiveConfig.copy(
                                                 intervalMinutes = pace.intervalMinutes,
                                                 sendProbability = pace.sendProbability,
-                                                maxDailyMessages = pace.maxDailyMessages,
                                                 randomOffsetMinutes = proactiveConfig.randomOffsetMinutes
                                                     .coerceIn(0, pace.intervalMinutes),
-                                                // v2.6.2: 「极多」档开启 AI 自主调度（助手自己决定下次时间）。
-                                                aiPaced = pace == ProactivePace.EXTREME,
                                             ),
                                         )
                                     }
@@ -1020,7 +1019,13 @@ fun AgentSettingsPage(
                                         )
                                         android.widget.Toast.makeText(
                                             context,
-                                            result.detail,
+                                            // 跳过的原因是「上一轮还在跑」，这句要说给人听，
+                                            // 走资源而不是把日志里的中文短语直接弹出来。
+                                            if (result.alreadyRunning) {
+                                                testAlreadyRunningText
+                                            } else {
+                                                result.detail
+                                            },
                                             android.widget.Toast.LENGTH_LONG,
                                         ).show()
                                     } catch (e: Exception) {

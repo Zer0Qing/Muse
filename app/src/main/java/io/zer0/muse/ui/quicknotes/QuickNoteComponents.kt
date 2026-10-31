@@ -776,6 +776,7 @@ internal fun QuickNoteFolderDialog(folders: List<String>, onDismiss: () -> Unit,
 internal fun QuickNoteReminderDialog(currentReminderAt: Long, onDismiss: () -> Unit, onSet: (Long) -> Unit, onCancel: () -> Unit) {
     val context = LocalContext.current
     val fmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
+    val canExact = remember { io.zer0.muse.tools.reminder.ReminderAlarmScheduler.canScheduleExact(context) }
 
     fun showDatePicker() {
         val now = Calendar.getInstance()
@@ -824,6 +825,20 @@ internal fun QuickNoteReminderDialog(currentReminderAt: Long, onDismiss: () -> U
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (!canExact) {
+                    // 没有「闹钟和提醒」权限时，闹钟只能非精确排期（可能晚几分钟）。
+                    // 这里给出可操作引导，而不是让用户以为提醒会准时响。
+                    Text(
+                        text = stringResource(R.string.reminder_exact_permission_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    QuickNoteActionRow(
+                        icon = MuseIcons.bell,
+                        label = stringResource(R.string.reminder_exact_permission_action),
+                        onClick = { io.zer0.muse.tools.reminder.ReminderAlarmScheduler.requestExactAlarmPermission(context) },
+                    )
+                }
                 QuickNoteActionRow(
                     icon = MuseIcons.bell,
                     label = stringResource(R.string.quick_notes_reminder_set),

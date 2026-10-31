@@ -61,9 +61,21 @@ val appInfraModule = module {
     // Phase 8.11: mDNS 服务发现(NSD 局域网服务注册)
     single { io.zer0.muse.web.MdnsService(androidContext()) }
     // Phase 8.11: 嵌入式 Web 服务器(Ktor CIO + JWT + mDNS)
+    // 末尾两个参数是记忆只读命令的数据源(全局 FactStore + 分库提供者),与记忆页同一套路由;
+    // 再往后是知识/自动化两个分类页的只读数据源(知识库三张表 + embedding 服务 + 定时任务两张表)。
+    // 系统状态只读命令的数据源(应用体积 / 备份 / 自动化能力位 / 电量)。
+    single<io.zer0.muse.web.HostSystemStatusSource> {
+        io.zer0.muse.web.AndroidHostSystemStatusSource(
+            context = androidContext(),
+            settings = get(),
+            autoBackupLogDao = get(),
+        )
+    }
     single {
         io.zer0.muse.web.WebServer(
-            get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(),
+            systemStatusSource = get(),
         )
     }
 
@@ -126,6 +138,18 @@ val appInfraModule = module {
     }
     // v1.0.92: LLM 记忆整合器(手动"整理记忆"与每日自动整合共用同一实现)
     single { io.zer0.memory.fact.LlmFactConsolidator(get()) }
+    // 会话/助手删除时的记忆清理(摘要/检查点/事实/编译产物/群聊记忆/矛盾清单)
+    single {
+        io.zer0.muse.data.memory.SessionMemoryCleanup(
+            summaryDao = get(),
+            checkpointDao = get(),
+            scopedSectionDao = get(),
+            groupChatMemoryDao = get(),
+            factDbProvider = get(),
+            fileWriter = get(),
+            contradictionStore = get(),
+        )
+    }
     // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
     single {
         io.zer0.muse.data.MemoryBackfillMigration(

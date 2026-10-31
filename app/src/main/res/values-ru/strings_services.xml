@@ -310,11 +310,11 @@
 
     <!-- v1.136: Reminder tool strings -->
     <string name="tool_reminder_scheduled">Запланированное напоминание (id: %1$s)\nВремя: %2$s</string>
-    <string name="tool_reminder_schedule_failed">Не удалось запланировать напоминание. Проверьте разрешения на будильники/уведомления.</string>
+    <string name="tool_reminder_schedule_failed">Не удалось создать напоминание: система отклонила будильник, поэтому оно может не сработать. Проверьте разрешение «Будильники и напоминания» для этого приложения в настройках системы и повторите попытку.</string>
     <string name="tool_reminder_cancelled">Отменено напоминание: %1$s</string>
     <string name="tool_reminder_not_found">Напоминание не найдено: %1$s</string>
     <string name="tool_reminder_list_header">Запланированные напоминания (%1$d всего):\n</string>
-    <string name="tool_reminder_list_item">- идентификатор: %1$s | время: %2$s | заголовок: %3$s</string>
+    <string name="tool_reminder_list_item">- идентификатор: %1$s | время: %2$s | заголовок: %3$s | статус: %4$s</string>
     <string name="tool_reminder_list_empty">Нет запланированных напоминаний</string>
     <string name="tool_reminder_missing_title">Отсутствует параметр: заголовок</string>
     <string name="tool_reminder_missing_message">Отсутствует параметр: сообщение</string>
@@ -322,6 +322,15 @@
     <string name="tool_reminder_missing_id">Отсутствует параметр: идентификатор</string>
     <string name="tool_reminder_invalid_time">Невозможно проанализировать время: %1$s, используйте гггг-ММ-дд ЧЧ:мм</string>
     <string name="tool_reminder_past_time">Время напоминания не может быть в прошлом</string>
+    <string name="tool_reminder_scheduled_inexact">Напоминание запланировано (id: %1$s)\nВремя: %2$s\nВнимание: разрешение «Будильники и напоминания» отключено, поэтому напоминание сработает только приблизительно (возможна задержка на несколько минут). Включите это разрешение для приложения в настройках системы.</string>
+    <string name="tool_reminder_status_scheduled">Запланировано, сработает вовремя</string>
+    <string name="tool_reminder_status_inexact">Запланировано, но без точного будильника; возможна задержка на несколько минут</string>
+    <string name="tool_reminder_status_unscheduled">Будильник не запланирован; может не сработать, задайте заново</string>
+    <string name="tool_reminder_status_lost">Планирование не подтверждено; может не сработать</string>
+    <string name="tool_reminder_catchup_title">%1$s (с опозданием)</string>
+    <string name="reminder_exact_permission_hint">Разрешение «Будильники и напоминания» отключено, поэтому напоминания могут срабатывать с задержкой в несколько минут, а не вовремя.</string>
+    <string name="reminder_exact_permission_action">Включить разрешение «Будильники и напоминания»</string>
+    <string name="reminder_exact_permission_toast">Разрешение «Будильники и напоминания» отключено, поэтому напоминания могут задерживаться на несколько минут. Настройки открыты; включите его вручную.</string>
 
     <!-- v1.136: Resource library tool strings -->
     <string name="tool_resource_added">Ресурс сохранен\nидентификатор: %1$s\nзаголовок: %2$s</string>

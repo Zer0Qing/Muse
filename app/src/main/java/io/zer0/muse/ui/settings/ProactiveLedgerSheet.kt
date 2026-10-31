@@ -89,12 +89,14 @@ fun ProactiveLedgerSheet(
             Spacer(Modifier.size(MusePaddings.contentGap))
 
             // ── 今日额度 ──
+            val unlimited = state.intensity.unlimited
             val remainingTimes = if (state.remainingBudget >= 1f) state.remainingBudget.toInt() else 0
             Text(
-                text = if (state.cooldownUntil > state.now) {
-                    stringResource(R.string.settings_proactive_v2_cooldown_sub)
-                } else {
-                    stringResource(R.string.settings_proactive_v2_budget, remainingTimes)
+                text = when {
+                    state.cooldownUntil > state.now -> stringResource(R.string.settings_proactive_v2_cooldown_sub)
+                    // 黏人档的额度是 Int.MAX_VALUE，直接渲染会变成「今天还能说 2147483647 次」
+                    unlimited -> stringResource(R.string.settings_proactive_v2_budget_unlimited)
+                    else -> stringResource(R.string.settings_proactive_v2_budget, remainingTimes)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -44,6 +44,18 @@ internal data class ChannelAgentCheckpoint(
 
 internal const val CHANNEL_AGENT_CHECKPOINT_UNREADABLE = "CHECKPOINT_UNREADABLE"
 
+/** 排队超窗预检的终态错误码：被动回复窗口已被队列等待耗尽。 */
+internal const val REPLY_WINDOW_EXPIRED_BY_QUEUE = "被动回复窗口已过期(排队超时)"
+
+/**
+ * 排队超窗预检：被动回复窗口是否已被队列等待耗尽。
+ *
+ * 只对 QQ 有实际作用；其它平台 [ChannelAutoReply.replyWindowDeadlineMillis] 返回 [Long.MAX_VALUE]，
+ * 这里恒为 false。返回 true 时调用方必须直接收终态，不再进模型。
+ */
+internal fun queuedReplyWindowExpired(inbound: ChannelInbox.Inbound, nowMillis: Long): Boolean =
+    nowMillis >= ChannelAutoReply.replyWindowDeadlineMillis(inbound.platform, inbound.timestamp)
+
 internal class ChannelAgentCheckpointUnreadableException(cause: Throwable) :
     IllegalStateException("渠道 Agent 恢复断点不可读取", cause)
 
@@ -219,27 +231,37 @@ class ChannelAutoReply(
     private suspend fun handleMessage(inbound: ChannelInbox.Inbound, text: String): HandleResult {
         channelManager.refresh()
         val config = selectAutoReplyConfig(channelManager.channels.value, inbound)
-        return if (config == null) {
-            HandleResult.Ignored
-        } else {
-            ChannelConversationStore.appendTurn(
-                config.id,
-                inbound.from,
-                ChannelConversationStore.Turn(
-                    role = "user",
-                    text = text,
-                    mediaKind = inbound.mediaKind,
-                    mediaBase64 = inbound.mediaBase64,
-                    mediaPath = inbound.mediaPath,
-                    dispatchId = inbound.dispatchId,
-                ),
+        if (config == null) return HandleResult.Ignored
+        // 排队超窗预检：窗口判断原本只在 runAgent 里做，消息在队列里排过窗口之后
+        // 仍会先跑完一轮模型，才发现根本发不出去。
+        // 必须早于 appendTurn：否则会话里会留下一条没有回复的用户消息，污染后续上下文。
+        val now = System.currentTimeMillis()
+        if (queuedReplyWindowExpired(inbound, now)) {
+            val deadline = replyDeadline(inbound)
+            Logger.w(
+                TAG,
+                "入站消息排队超窗,跳过模型调用(platform=${inbound.platform}, from=${inbound.from}, " +
+                    "等待 ${now - inbound.timestamp}ms, deadline=$deadline, now=$now)",
             )
-            when (val reply = prepareReply(inbound, config)) {
-                is ReplyPreparation.Ready -> sendPreparedReply(inbound, config, reply.text)
-                ReplyPreparation.Ignored -> HandleResult.Ignored
-                is ReplyPreparation.Blocked -> HandleResult.Blocked(reply.errorCode)
-                ReplyPreparation.Retry -> HandleResult.Retry
-            }
+            return HandleResult.Blocked(REPLY_WINDOW_EXPIRED_BY_QUEUE)
+        }
+        ChannelConversationStore.appendTurn(
+            config.id,
+            inbound.from,
+            ChannelConversationStore.Turn(
+                role = "user",
+                text = text,
+                mediaKind = inbound.mediaKind,
+                mediaBase64 = inbound.mediaBase64,
+                mediaPath = inbound.mediaPath,
+                dispatchId = inbound.dispatchId,
+            ),
+        )
+        return when (val reply = prepareReply(inbound, config)) {
+            is ReplyPreparation.Ready -> sendPreparedReply(inbound, config, reply.text)
+            ReplyPreparation.Ignored -> HandleResult.Ignored
+            is ReplyPreparation.Blocked -> HandleResult.Blocked(reply.errorCode)
+            ReplyPreparation.Retry -> HandleResult.Retry
         }
     }
 
@@ -333,11 +355,7 @@ class ChannelAutoReply(
 
     /** 本次回复必须在此之前发出，否则被动回复窗口已关。 */
     private fun replyDeadline(inbound: ChannelInbox.Inbound): Long =
-        if (inbound.platform == ChannelPlatform.QQ.name) {
-            inbound.timestamp + QQ_PASSIVE_WINDOW_MS - SEND_MARGIN_MS
-        } else {
-            Long.MAX_VALUE
-        }
+        replyWindowDeadlineMillis(inbound.platform, inbound.timestamp)
 
     /** 根据实际发出了几段决定终态，并把“用户真正收到的内容”写回会话。 */
     private suspend fun finishDelivery(
@@ -920,6 +938,19 @@ class ChannelAutoReply(
 
     /** 给发送本身预留的余量，避免生成到最后一秒才发才发现窗口已关。 */
     private const val SEND_MARGIN_MS = 15_000L
+
+        /**
+         * 被动回复窗口的截止时刻（毫秒）。
+         *
+         * 只对 QQ 有意义：其它平台没有被动回复窗口，返回 [Long.MAX_VALUE] 表示永不超窗。
+         * 发送前判断与排队超窗预检共用这一份计算，避免两处阈值走偏。
+         */
+        internal fun replyWindowDeadlineMillis(platform: String, receivedAtMillis: Long): Long =
+            if (platform == ChannelPlatform.QQ.name) {
+                receivedAtMillis + QQ_PASSIVE_WINDOW_MS - SEND_MARGIN_MS
+            } else {
+                Long.MAX_VALUE
+            }
 
         /** 回发文本上限,防止超长内容超出各平台消息限制。 */
         private const val MAX_REPLY_LENGTH = 4_000

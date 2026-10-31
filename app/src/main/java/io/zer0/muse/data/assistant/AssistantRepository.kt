@@ -40,6 +40,11 @@ class AssistantRepository(
      * 避免已删助手的记忆分库与数据库连接永久残留。
      */
     private val factDbProvider: io.zer0.memory.fact.FactDbProvider? = null,
+    /**
+     * 助手删除时的记忆侧清理(摘要/段落/群聊记忆/产物目录/事实)。
+     * null 时跳过(单测/无 DI 环境)。
+     */
+    private val sessionMemoryCleanup: io.zer0.muse.data.memory.SessionMemoryCleanup? = null,
 ) {
 
     val observeAll: Flow<List<AssistantEntity>> = dao.observeAll()
@@ -87,6 +92,12 @@ class AssistantRepository(
 
     suspend fun delete(id: String) {
         dao.deleteById(id)
+        // 记忆必须先清、分库文件后删:清理器要读 `facts.db` 主库与 `facts_<id>.db` 本身,
+        // 文件一旦先删,任何读取都会把空库重新建出来。
+        sessionMemoryCleanup?.let { cleanup ->
+            resultOf { cleanup.cleanAssistant(id) }
+                .onError { msg, t -> Logger.w("AssistantRepo", "清理助手记忆失败: $msg", t) }
+        }
         // P0-10: 删除助手时释放并清理其事实分库(默认助手不删,主助手记忆共用一个 facts.db)
         if (id.isNotBlank() && id != "default") {
             factDbProvider?.let { provider ->
@@ -298,7 +309,7 @@ class AssistantRepository(
         // 名字注入双路径:
         //   1) 模板变量 {{user_name}} — 用户称呼(引导页填写,见 UserProfile.userNickName)
         //   2) SystemPromptAssembler 的"用户画像" section — 显式注入"你的名字: 你叫「X」"
-        // 设计说明:既有实现-orig 三层人设(identity 身份 / ishiki 人格 / 关系定位)
+        // 设计说明:三层人设(identity 身份 / ishiki 人格 / 关系定位)
         const val DEFAULT_SYSTEM_PROMPT = """你是 {{char}},{{user_name}}的灵感伙伴。
 
 # 身份

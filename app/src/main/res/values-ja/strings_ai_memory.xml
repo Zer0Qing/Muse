@@ -153,6 +153,10 @@
     <string name="memory_contradictions_dismiss_cd">確認して削除</string>
     <string name="memory_contradictions_title">確認待ちの矛盾する記憶</string>
     <string name="memory_delete_confirm_title">記憶を削除</string>
+    <string name="memory_menu_multi_select">複数選択</string>
+    <string name="memory_bulk_delete_confirm_title">選択した記憶を削除</string>
+    <string name="memory_bulk_delete_item_name">%1$d 件の記憶</string>
+    <string name="memory_bulk_delete_consequence">%1$d 件の記憶を削除します。元に戻せません。</string>
     <string name="memory_pin_failed">ピン留めに失敗しました。もう一度お試しください。</string>
     <string name="memory_stats_session_live">会話 %1$d</string>
     <string name="memory_stream_mode_list">リスト</string>
@@ -180,4 +184,28 @@
     <string name="memory_group_chat_clear_confirm_title">グループ記憶をすべて消去</string>
     <string name="memory_group_chat_clear_item_name">すべてのグループ記憶</string>
     <string name="memory_group_chat_clear_consequence">全グループの要約が削除されます。元に戻せません</string>
+
+    <!-- 複数選択の統合：モデルの下書きを確認してから保存 -->
+    <string name="memory_center_merge_action">統合</string>
+    <string name="memory_center_merge_title">記憶を統合</string>
+    <string name="memory_center_merge_sources_title">元の記憶（%1$d 件）</string>
+    <string name="memory_center_merge_result_label">統合結果</string>
+    <string name="memory_center_merge_confirm">統合する</string>
+    <string name="memory_center_merge_running">統合中…</string>
+
+    <!-- 記憶の状態バッジ：一覧と詳細で同じ判定を使う -->
+    <string name="memory_status_merged">統合済み</string>
+    <string name="memory_status_suppressed">退場済み</string>
+    <string name="memory_status_superseded">置き換え済み</string>
+    <string name="memory_status_merged_detail">別の記憶に統合されたため、自動召回の対象外です。本文はここに残っています。</string>
+    <string name="memory_status_suppressed_detail">退場済み：長く使われず自動召回から外れました。行は残っており、再度検索に当たるか重要度を上げれば戻ります。</string>
+    <string name="memory_status_superseded_detail">新しい記憶に置き換えられたため、現在の事実としては使われません。</string>
+
+    <!-- 統合失敗のメッセージ -->
+    <string name="memory_merge_error_min_items">統合するには記憶を 2 件以上選んでください</string>
+    <string name="memory_merge_error_no_model">モデルが未設定のため統合できません</string>
+    <string name="memory_merge_error_mixed_scope">同じ空間の記憶だけを統合できます</string>
+    <string name="memory_merge_error_generate_failed">これらの記憶を統合できませんでした</string>
+    <string name="memory_merge_error_empty_result">統合結果を空にはできません</string>
+    <string name="memory_merge_error_commit_failed">統合に失敗しました。記憶は変わっていません</string>
 </resources>

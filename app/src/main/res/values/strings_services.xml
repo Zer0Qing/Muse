@@ -340,11 +340,11 @@
 
     <!-- v1.136: 定时提醒工具字符串 -->
     <string name="tool_reminder_scheduled">已创建定时提醒（id: %1$s）\n触发时间： %2$s</string>
-    <string name="tool_reminder_schedule_failed">创建提醒失败，请检查闹钟/通知权限</string>
+    <string name="tool_reminder_schedule_failed">创建提醒失败：系统拒绝了这条提醒的闹钟，它可能不会响。请到系统设置里检查本应用的「闹钟和提醒」权限后重试。</string>
     <string name="tool_reminder_cancelled">已取消提醒： %1$s</string>
     <string name="tool_reminder_not_found">未找到提醒： %1$s</string>
     <string name="tool_reminder_list_header">当前定时提醒（共 %1$d 个）:\n</string>
-    <string name="tool_reminder_list_item">- id: %1$s | 时间： %2$s | 标题： %3$s</string>
+    <string name="tool_reminder_list_item">- id: %1$s | 时间： %2$s | 标题： %3$s | 状态： %4$s</string>
     <string name="tool_reminder_list_empty">当前没有定时提醒</string>
     <string name="tool_reminder_missing_title">缺少参数： title</string>
     <string name="tool_reminder_missing_message">缺少参数： message</string>
@@ -352,6 +352,15 @@
     <string name="tool_reminder_missing_id">缺少参数： id</string>
     <string name="tool_reminder_invalid_time">无法解析时间： %1$s，请使用 yyyy-MM-dd HH:mm 格式</string>
     <string name="tool_reminder_past_time">提醒时间不能是过去的时间</string>
+    <string name="tool_reminder_scheduled_inexact">已创建定时提醒（id: %1$s）\n触发时间： %2$s\n注意：未授予「闹钟和提醒」权限，这条提醒只能近似时间响铃（可能晚几分钟）。建议在系统设置中为本应用开启该权限。</string>
+    <string name="tool_reminder_status_scheduled">已排期，将准时响铃</string>
+    <string name="tool_reminder_status_inexact">已排期，但未获精确闹钟权限，可能晚几分钟</string>
+    <string name="tool_reminder_status_unscheduled">闹钟未能排上，可能不会响，请重新设置</string>
+    <string name="tool_reminder_status_lost">未确认排期，可能不会响</string>
+    <string name="tool_reminder_catchup_title">%1$s（补）</string>
+    <string name="reminder_exact_permission_hint">未开启「闹钟和提醒」权限，提醒只能晚几分钟响，可能不准时。</string>
+    <string name="reminder_exact_permission_action">去开启「闹钟和提醒」权限</string>
+    <string name="reminder_exact_permission_toast">未开启「闹钟和提醒」权限，提醒可能晚几分钟响；已为你打开设置页，请手动开启。</string>
 
     <!-- v1.136: 资源库工具字符串 -->
     <string name="tool_resource_added">资源已保存\nid: %1$s\n标题： %2$s</string>

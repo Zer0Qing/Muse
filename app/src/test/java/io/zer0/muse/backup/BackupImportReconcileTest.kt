@@ -13,21 +13,28 @@ class BackupImportReconcileTest {
 
     private fun source(): String = java.io.File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
 
+    /** 取 verifyInsertedCounts 的完整函数体（到同级缩进的收尾括号为止），不靠魔法字符数截断。 */
+    private fun verifyInsertedCountsBody(): String {
+        val src = source()
+        val start = src.indexOf("private suspend fun verifyInsertedCounts")
+        require(start >= 0) { "未找到 verifyInsertedCounts" }
+        val end = src.indexOf("\n    }", start)
+        require(end > start) { "未找到 verifyInsertedCounts 函数体结尾" }
+        return src.substring(start, end)
+    }
+
     @Test
     fun `import reconciles inserted row counts after flush`() {
         val src = source()
         assertTrue(
             "flush 之后必须调用入库对账",
-            src.contains("verifyInsertedCounts(expectedCounts)"),
+            src.contains("verifyInsertedCounts(expectedCounts, skippedSessionCount = skippedMiniPhoneSessions)"),
         )
     }
 
     @Test
     fun `reconcile compares against real table rows`() {
-        val src = source()
-        val start = src.indexOf("private suspend fun verifyInsertedCounts")
-        assertTrue("未找到 verifyInsertedCounts", start >= 0)
-        val body = src.substring(start, start + 1200)
+        val body = verifyInsertedCountsBody()
         assertTrue(
             "对账应读取真实表行数(如 sessionDao().observeAll())",
             body.contains("db.sessionDao().observeAll().first().size"),
@@ -40,10 +47,7 @@ class BackupImportReconcileTest {
 
     @Test
     fun `reconcile failure does not block import on counting errors`() {
-        val src = source()
-        val start = src.indexOf("private suspend fun verifyInsertedCounts")
-        assertTrue("未找到 verifyInsertedCounts", start >= 0)
-        val body = src.substring(start, start + 1200)
+        val body = verifyInsertedCountsBody()
         assertTrue(
             "取数失败只记日志,不应阻断导入",
             body.contains("入库对账取数失败"),

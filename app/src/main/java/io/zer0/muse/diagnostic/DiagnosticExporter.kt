@@ -6,9 +6,13 @@ import android.os.Build
 import androidx.core.content.FileProvider
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.R
 import io.zer0.muse.debug.DebugLogStore
+import io.zer0.muse.schedule.BackgroundWakeDiagnostics
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.io.File
 import java.text.SimpleDateFormat
@@ -24,6 +28,8 @@ import java.util.zip.ZipOutputStream
  *  - generation-trace.jsonl：最近 20 轮生成链路轨迹（统计量，无正文）
  *  - device-info.txt：设备/Android 版本/ABI/app 版本
  *  - debug-log.txt：DebugLogStore 的现有日志缓冲（若有）
+ *  - background-work.txt：WorkManager 队列里在册的后台任务状态（定时任务「没跑」时唯一能回答
+ *    「系统到底有没有唤醒」的证据，见 [BackgroundWakeDiagnostics]）
  *
  * **红线**：不含消息正文、prompt、API key 原文。
  */
@@ -34,9 +40,30 @@ object DiagnosticExporter {
     /**
      * 打包诊断 zip 到 cacheDir，返回 FileProvider URI（供分享 Intent 使用）。
      * 失败返回 null。
+     *
+     * 全程在 IO 线程：zip 写入、日志文件读取和 WorkManager 查询都不应该压在调用方线程上。
      */
-    fun exportZip(context: Context): android.net.Uri? {
-        return runCatching {
+    suspend fun exportZip(context: Context): android.net.Uri? = withContext(Dispatchers.IO) {
+        val zipFile = buildDiagnosticZip(context) ?: return@withContext null
+        runCatching {
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", zipFile)
+        }.onFailure { Logger.w("DiagnosticExporter", "导出失败: ${it.message}") }.getOrNull()
+    }
+
+    /**
+     * 只负责把内容写进 zip，不碰 FileProvider。
+     *
+     * 拆成独立函数是为了能直接对 zip 内容做断言（不依赖 provider 声明与分享 Intent）。
+     * 任一环节抛异常时整包失败，返回 null。
+     */
+    internal suspend fun buildDiagnosticZip(context: Context): File? = withContext(Dispatchers.IO) {
+        // 唤醒状态采集失败不影响整包导出:其它诊断信息仍然有价值。
+        val backgroundWork = resultOf {
+            BackgroundWakeDiagnostics.formatSnapshot(BackgroundWakeDiagnostics.collectWithSettings(context))
+        }.onError { message, throwable ->
+            Logger.w("DiagnosticExporter", "后台唤醒状态采集失败: $message", throwable)
+        }.getOrNull()
+        runCatching {
             val zipFile = File(context.cacheDir, "muse_diagnostic_${exportDateFormat.format(Date())}.zip")
             ZipOutputStream(BufferedOutputStream(zipFile.outputStream())).use { zos ->
                 // 1. 生成链路轨迹
@@ -76,13 +103,20 @@ object DiagnosticExporter {
                     logFile.inputStream().use { it.copyTo(zos) }
                     zos.closeEntry()
                 }
+
+                // 5. 后台唤醒状态（WorkManager 队列的在册任务与状态）
+                if (backgroundWork != null) {
+                    zos.putNextEntry(ZipEntry("background-work.txt"))
+                    zos.write(backgroundWork.toByteArray())
+                    zos.closeEntry()
+                }
             }
-            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", zipFile)
+            zipFile
         }.onFailure { Logger.w("DiagnosticExporter", "导出失败: ${it.message}") }.getOrNull()
     }
 
     /** 调起系统分享。 */
-    fun share(context: Context) {
+    suspend fun share(context: Context) {
         val uri = exportZip(context) ?: return
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "application/zip"

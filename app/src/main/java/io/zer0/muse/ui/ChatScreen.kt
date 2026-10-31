@@ -230,6 +230,50 @@ private fun isRenderableChatMessage(message: UIMessage, showToolCallDetails: Boo
 private fun List<UIMessage>.filterRenderableChatMessages(showToolCallDetails: Boolean = true): List<UIMessage> =
     filter { isRenderableChatMessage(it, showToolCallDetails) }
 
+/** 图片作品条提示词最多展示多少字，超出截断。 */
+private const val IMAGE_GEN_PROMPT_CHARS = 60
+
+/** 生成图片的工具名。图片作品条靠它向前找最近一次调用的参数。 */
+private const val IMAGE_GEN_TOOL = "generate_image"
+
+/**
+ * 每条消息「向前最近一次 generate_image 的提示词」，供图片作品条展示。
+ *
+ * 旧实现在每个可见 item 里各自向前扫一遍（`take(index + 1).asReversed()`）：
+ * 列表合计 O(n²)，而且同一份工具参数在每次刷新里会被重新解析 JSON。
+ * 这里正向扫一遍：扫到哪条，就把「截至这条为止最近一次提示词」记给它，
+ * 每条消息只解析一次自己带的参数。语义与逐条向前扫完全一致 ——
+ * 最近一次调用的提示词为空时结果就是 null，不会继续往前追溯。
+ *
+ * @param parsePrompt 参数 JSON → 提示词；默认真实解析，调用方可注入计数实现以验证解析次数
+ * @return 消息 id（字符串形式，与列表 key 同一空间）→ 提示词（已截断）
+ */
+internal fun imageGenPromptsByMessage(
+    messages: List<UIMessage>,
+    parsePrompt: (String) -> String? = ::promptOfImageGenCall,
+): Map<String, String?> {
+    val prompts = HashMap<String, String?>(messages.size)
+    var latest: String? = null
+    var sawCall = false
+    for (message in messages) {
+        val args =
+            message.toolCalls?.firstOrNull { it.name == IMAGE_GEN_TOOL }?.arguments
+                ?: message.toolCallInfo?.takeIf { it.toolName == IMAGE_GEN_TOOL }?.arguments
+        if (args != null) {
+            sawCall = true
+            latest = parsePrompt(args)?.takeIf { it.isNotBlank() }?.let { prompt ->
+                if (prompt.length > IMAGE_GEN_PROMPT_CHARS) prompt.take(IMAGE_GEN_PROMPT_CHARS) + "…" else prompt
+            }
+        }
+        prompts[message.id.toString()] = if (sawCall) latest else null
+    }
+    return prompts
+}
+
+/** 从 generate_image 的参数 JSON 里取 prompt；解析失败当作「没有提示词」。 */
+private fun promptOfImageGenCall(args: String): String? =
+    runCatching { org.json.JSONObject(args).optString("prompt") }.getOrNull()
+
 /**
  * Phase 8.10: 拦截音量键上/下键事件,转为滚动操作。
  * - VOLUME_UP → direction = -1(向上滚)
@@ -414,12 +458,15 @@ fun ChatScreen(
     var showVoiceConversation by remember { mutableStateOf(false) }
     // v2.x: 委员会 — 从对话召唤临时群聊讨论(结论经 DeferredResultStore 回灌本条会话)
     var showCommitteeDialog by remember { mutableStateOf(false) }
-    // 命中列表:当前会话已加载消息中,内容含查询词(忽略大小写)的消息 id;空查询返回空。
+    // 命中列表:当前会话已加载消息中,内容含查询词(忽略大小写)的消息 id;空查询或未开启查找时返回空。
     // 仅覆盖已加载消息(OBSERVE_LIMIT 内),更早历史需先上滑加载更多。
+    // A1 门禁:没开会话内查找就不做这轮全量扫描 —— messages 在流式期间每个 flush 都是新列表实例,
+    // 少了这个门禁,displayContent+contains 的全表扫描会随刷新反复执行。showInChatSearch 同时作为 key,
+    // 开启查找后立即重算命中,关闭时清空命中(此时查找条本身也不再展示)。
     val findMatches =
-        remember(messages, inChatQuery) {
+        remember(messages, inChatQuery, showInChatSearch) {
             val q = inChatQuery.trim()
-            if (q.isEmpty()) {
+            if (!showInChatSearch || q.isEmpty()) {
                 emptyList()
             } else {
                 messages.filter {
@@ -505,6 +552,9 @@ fun ChatScreen(
     var contextDividerExpanded by remember(state.currentSessionId, state.agentSessionId) {
         mutableStateOf(false)
     }
+    // v2.x: 流式输出时 messages 一秒会变很多次,同一对 (hidden, total) 重复打了几十行。
+    // 这条日志本身有用(诊断「某些消息为什么不显示」),所以只去重、不删。
+    val chatRenderLogGate = remember { ChatRenderLogGate() }
     val visibleMessages by produceState(
         initialValue =
         if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) {
@@ -533,7 +583,7 @@ fun ChatScreen(
         }
         val renderableMessages = messages.filterRenderableChatMessages(state.chatPreferences.showToolCallDetails)
         val hiddenShells = messages.size - renderableMessages.size
-        if (hiddenShells > 0) {
+        if (chatRenderLogGate.shouldLog(hiddenShells, messages.size)) {
             Logger.d(
                 "ChatRender",
                 "hidden non-renderable messages=$hiddenShells, total=${messages.size}, " +
@@ -1600,6 +1650,7 @@ fun ChatScreen(
                                 ToolApprovalCard(
                                     toolName = approval.toolName,
                                     argumentsPreview = approval.argumentsPreview,
+                                    argumentsFull = approval.argumentsFull,
                                     onApprove = { viewModel.approveToolCall(approval.toolCallId) },
                                     onDeny = { reason -> viewModel.denyToolCall(approval.toolCallId, reason) },
                                     onPersistPolicy = { policy ->
@@ -2178,6 +2229,14 @@ fun ChatScreen(
                             val lastUserId = visibleMessages.lastOrNull { it.role == MessageRole.USER }?.id
                             // M-UI3: 将最新计划卡关联到最近一条助手消息,随消息一起滚动
                             val lastAssistantId = visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id
+                            // v2.x 性能: 图片作品条的提示词在列表外一次算完。
+                            // 旧实现是每个可见 item 各自向前扫一遍，流式期间合计 O(n²)，
+                            // 且同一份工具参数每帧重新解析 JSON。key 仍然依赖 visibleMessages，
+                            // 但那只是每轮一次 O(n)。
+                            val imageGenPrompts =
+                                remember(visibleMessages) {
+                                    imageGenPromptsByMessage(visibleMessages)
+                                }
                             // I3: 聊天区独立错误边界,消息列表渲染数据构建失败只降级该区域
                             RegionErrorBoundary(
                                 regionName = "chat",
@@ -2466,6 +2525,36 @@ fun ChatScreen(
                                                 }
                                             // v1.58: 从此消息分叉对话
                                             val onFork = remember(msg.id) { { viewModel.forkSessionFromMessage(msg.id) } }
+                                            // v2.x 性能: 同一个 msg.id 的回调实例必须跨重组复用。
+                                            // 下游有几处把这个 lambda 当 remember 的 key（卡片桥 → 整段卡片 HTML），
+                                            // 每帧换新对象就会把缓存全部打穿。key 只放不可变的 msg.id，
+                                            // 可变对象（sheetState、branchInfo 等）不进 key。
+                                            val onToggleTranslationExpanded =
+                                                remember(msg.id) {
+                                                    { viewModel.toggleMessageTranslationExpanded(msg.id.toString()) }
+                                                }
+                                            val onToggleSelection =
+                                                remember(msg.id) { { viewModel.toggleMessageSelection(msg.id) } }
+                                            val onEnterMultiSelect = remember { { viewModel.setSelectionMode(true) } }
+                                            val onToggleMoodExpanded =
+                                                remember(msg.id) { { viewModel.toggleMessageMoodExpanded(msg.id.toString()) } }
+                                            val onToggleReasoningExpanded =
+                                                remember(msg.id) {
+                                                    { viewModel.toggleMessageReasoningExpanded(msg.id.toString()) }
+                                                }
+                                            val onToggleReflectionExpanded =
+                                                remember(msg.id) {
+                                                    { viewModel.toggleMessageReflectionExpanded(msg.id.toString()) }
+                                                }
+                                            val onDeleteMessage = remember(msg.id) { { viewModel.deleteMessage(msg.id) } }
+                                            val onDeleteWithFollowing =
+                                                remember(msg.id) { { viewModel.deleteMessageWithFollowing(msg.id) } }
+                                            // v1.0.92: 卡片回传 — 脚本消息发送 / 保存为工件
+                                            // v2.6.7: 与分组卡共用同一处理器，避免两套实现漂移
+                                            val onCardAction =
+                                                remember(msg.id) {
+                                                    { action: CardAction -> handleCardAction(msg.id.toString(), action) }
+                                                }
                                             // 消息项动画统一走 museAnimateItem；流式中的最后一条消息不做插入/位移动画，
                                             // 避免内容增量和列表布局动画同时运行造成抖动。
                                             Column(
@@ -2512,9 +2601,7 @@ fun ChatScreen(
                                                     // v2.4.6: 消息自带译文(语言→译文)— 可展开块
                                                     translations = msg.translations,
                                                     isTranslationExpanded = expandedState?.isTranslationExpanded,
-                                                    onToggleTranslationExpanded = {
-                                                        viewModel.toggleMessageTranslationExpanded(msg.id.toString())
-                                                    },
+                                                    onToggleTranslationExpanded = onToggleTranslationExpanded,
                                                     // v2.3: debug 模式性能摘要(仅最后一条 assistant 消息)
                                                     debugInfo = if (isLast && msg.role == MessageRole.ASSISTANT) state.debugInfo else null,
                                                     onEdit = onEdit,
@@ -2523,8 +2610,8 @@ fun ChatScreen(
                                                     onContinue = viewModel::continueGeneration,
                                                     selectionMode = state.selectionMode,
                                                     selected = msg.id.toString() in state.selectedMessageIds,
-                                                    onToggleSelection = { viewModel.toggleMessageSelection(msg.id) },
-                                                    onEnterMultiSelect = { viewModel.setSelectionMode(true) },
+                                                    onToggleSelection = onToggleSelection,
+                                                    onEnterMultiSelect = onEnterMultiSelect,
                                                     onTranslate = onTranslate,
                                                     onToggleFavorite = onToggleFavorite,
                                                     // 阶段 J: 复制消息内容到剪贴板(长按 → 复制)
@@ -2579,8 +2666,8 @@ fun ChatScreen(
                                                     onForward = onForward,
                                                     onFork = onFork,
                                                     // v1.48: 长按菜单"删除消息"
-                                                    onDeleteMessage = { viewModel.deleteMessage(msg.id) },
-                                                    onDeleteWithFollowing = { viewModel.deleteMessageWithFollowing(msg.id) },
+                                                    onDeleteMessage = onDeleteMessage,
+                                                    onDeleteWithFollowing = onDeleteWithFollowing,
                                                     // v0.29 P0-4: AI 消息底部显示模型名 + token 估算
                                                     modelName = displayModelName,
                                                     // v0.31: 聊天行为偏好传给 MessageBubble
@@ -2598,42 +2685,15 @@ fun ChatScreen(
                                                     onArtifactClick = viewModel::selectArtifact,
                                                     // v2.0.1: 图片作品条提示词（向前找最近一次 generate_image 调用；
                                                     // toolCalls 不持久化，重启后走 toolCallInfo 持久化路径）
-                                                    imageGenPrompt =
-                                                    remember(msg.id, visibleMessages) {
-                                                        val genCall =
-                                                            visibleMessages.take(index + 1).asReversed()
-                                                                .firstNotNullOfOrNull { m ->
-                                                                    val fromCalls = m.toolCalls?.firstOrNull { it.name == "generate_image" }
-                                                                    val fromInfo =
-                                                                        m.toolCallInfo?.takeIf { it.toolName == "generate_image" }
-                                                                    when {
-                                                                        fromCalls != null -> fromCalls.arguments
-                                                                        fromInfo != null -> fromInfo.arguments
-                                                                        else -> null
-                                                                    }
-                                                                }
-                                                        genCall
-                                                            ?.let { args ->
-                                                                runCatching { org.json.JSONObject(args).optString("prompt") }.getOrNull()
-                                                            }
-                                                            ?.takeIf { it.isNotBlank() }
-                                                            ?.let { if (it.length > 60) it.take(60) + "…" else it }
-                                                    },
+                                                    // v2.x 性能: 向前扫已提到列表外一次算完，这里只查表。
+                                                    imageGenPrompt = imageGenPrompts[msg.id.toString()],
                                                     // v1.45: mood/reasoning 展开状态由 ViewModel 集中管理
                                                     isMoodExpanded = expandedState?.isMoodExpanded,
                                                     isReasoningExpanded = expandedState?.isReasoningExpanded,
                                                     isReflectionExpanded = expandedState?.isReflectionExpanded,
-                                                    onToggleMoodExpanded = { viewModel.toggleMessageMoodExpanded(msg.id.toString()) },
-                                                    onToggleReasoningExpanded = {
-                                                        viewModel.toggleMessageReasoningExpanded(
-                                                            msg.id.toString(),
-                                                        )
-                                                    },
-                                                    onToggleReflectionExpanded = {
-                                                        viewModel.toggleMessageReflectionExpanded(
-                                                            msg.id.toString(),
-                                                        )
-                                                    },
+                                                    onToggleMoodExpanded = onToggleMoodExpanded,
+                                                    onToggleReasoningExpanded = onToggleReasoningExpanded,
+                                                    onToggleReflectionExpanded = onToggleReflectionExpanded,
                                                     // v1.137: 计划卡按 messageId 关联到创建它的助手消息,随该消息滚动。
                                                     // 旧计划(无 messageId)回退到 lastAssistantId 兜底,保持向后兼容。
                                                     agentPlan =
@@ -2656,7 +2716,7 @@ fun ChatScreen(
                                                     onHtmlPreview = onHtmlPreview,
                                                     // v1.0.92: 卡片回传 — 脚本消息发送 / 保存为工件
                                                     // v2.6.7: 与分组卡共用同一处理器，避免两套实现漂移
-                                                    onCardAction = { action -> handleCardAction(msg.id.toString(), action) },
+                                                    onCardAction = onCardAction,
                                                     // v2.6.8: 任务卡步骤里产物卡的回传桥 —— 同一个处理器。
                                                     // 旧实现任务卡路径根本没有桥，卡片能看不能点。
                                                     onTaskCardCardAction = handleCardAction,

@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import io.zer0.muse.R
+import io.zer0.muse.data.MediaConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -123,6 +124,8 @@ fun VoiceCloningPage(
 
     // ── 预提取 stringResource(非 Composable lambda 内不能直接调用)──
     val strSuccess = stringResource(R.string.voice_cloning_success)
+    val strKeySaved = stringResource(R.string.voice_cloning_key_saved)
+    val strKeyFromProvider = stringResource(R.string.voice_cloning_key_from_provider)
     val strAudioRequired = stringResource(R.string.voice_cloning_audio_required)
     val strEmpty = stringResource(R.string.voice_cloning_list_empty)
     val strDeleteConfirm = stringResource(R.string.voice_cloning_delete_confirm)
@@ -363,16 +366,24 @@ fun VoiceCloningPage(
                                     sampleAudioBase64 = base64,
                                 ).onSuccess { voiceId ->
                                     MuseToast.show(strSuccess, 2000)
-                                    // B6-04: 克隆成功自动设为当前 TTS 音色
+                                    // B6-04: 克隆成功自动设为当前 TTS 音色；手动模式下把输入框里的
+                                    // API Key 一并落库 —— 只写引擎与音色的结果是：音色看起来换上了，
+                                    // 云端合成却因 key 为空直接失败，静默回落系统 TTS。
+                                    var followProvider = false
                                     runCatching {
                                         val media = settings.mediaConfigFlow.first()
+                                        followProvider = media.ttsFollowProvider
                                         settings.saveMediaConfig(
-                                            media.copy(
-                                                // P2-15: 此前写死 "fish",用 ElevenLabs 克隆的 voiceId
-                                                // 会被挂在 fish 引擎名下,朗读永远取不到该音色
-                                                ttsEngine = selectedProvider,
-                                                ttsVoice = voiceId,
+                                            media.afterVoiceClone(
+                                                engine = selectedProvider,
+                                                voiceId = voiceId,
+                                                apiKey = apiKey,
                                             ),
+                                        )
+                                    }.onSuccess {
+                                        MuseToast.show(
+                                            if (followProvider) strKeyFromProvider else strKeySaved,
+                                            2500,
                                         )
                                     }
                                     // 重置表单
@@ -661,3 +672,22 @@ private fun ClonedVoiceRow(
         }
     }
 }
+
+/**
+ * 克隆成功后要写回的 TTS 配置：引擎、音色，手动模式下连同输入框里的 API Key。
+ *
+ * 三件东西是一体的 —— 只写引擎与音色、不写 key，用户看到「克隆成功 + 已设为当前音色」，
+ * 而云端合成其实因为 key 为空一直在回落系统 TTS。
+ *
+ * 「跟随供应商配置」开启时 key 由供应商提供，这里不动 [MediaConfig.ttsApiKey]：
+ * 把手填值写进去只会留一份切换回手动模式后才会用到、且未必有效的凭据。
+ *
+ * @param engine 克隆所用供应商（同时就是 TTS 引擎 id，避免把 voiceId 挂到别的引擎下）
+ * @param voiceId 克隆返回的音色 id
+ * @param apiKey 页面上输入的 API Key（手动模式下写入，前后空白去掉）
+ */
+internal fun MediaConfig.afterVoiceClone(engine: String, voiceId: String, apiKey: String): MediaConfig = copy(
+    ttsEngine = engine,
+    ttsVoice = voiceId,
+    ttsApiKey = if (ttsFollowProvider) ttsApiKey else apiKey.trim(),
+)

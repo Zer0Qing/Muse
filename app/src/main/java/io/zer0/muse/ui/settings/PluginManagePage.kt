@@ -127,6 +127,8 @@ fun PluginManagePage(onBack: () -> Unit) {
 
     /** UI-FIX: 插件页三档层级 —— 0 已安装 / 1 市场 / 2 信任管理。 */
     var pluginTab by rememberSaveable { mutableIntStateOf(0) }
+    // v2.6.13: 插件总开关。关闭后所有插件工具/Hook/激活都不执行，但安装与配置保留。
+    val pluginsEnabled by settings.pluginsGloballyEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     var pendingExternalInstall by remember { mutableStateOf<PendingExternalInstall?>(null) }
     var pendingDeleteExternal by remember { mutableStateOf<PluginManager.InstalledPlugin?>(null) }
     var pendingDeleteProvider by remember { mutableStateOf<ProviderPlugin?>(null) }
@@ -485,6 +487,35 @@ fun PluginManagePage(onBack: () -> Unit) {
                         selectedIndex = pluginTab,
                         onSelect = { pluginTab = it },
                         modifier = Modifier.widthIn(max = 260.dp),
+                    )
+                }
+            }
+            // v2.6.13: 插件总开关。放在分档上方而不是埋在某个 tab 里 ——
+            // 它的作用是「插件出问题时能一键止损」，用户不该先找到对的页签才能用。
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.muse_plugins_global_switch_title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.muse_plugins_global_switch_desc),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    MuseSwitch(
+                        checked = pluginsEnabled,
+                        onCheckedChange = { enabled ->
+                            scope.launch { settings.savePluginsGloballyEnabled(enabled) }
+                        },
                     )
                 }
             }
@@ -2021,6 +2052,12 @@ private fun PluginInstallPreviewContent(preview: PluginSecurityGate.InstallPrevi
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        // 运行时必须写在摘要里：JS 与 Python 的隔离强度不同，用户有权知道自己在授权什么。
+        Text(
+            text = stringResource(R.string.muse_plugins_runtime_label, preview.runtime),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Text(
             text = stringResource(
                 R.string.muse_plugins_install_confirm_capabilities,
@@ -2029,6 +2066,14 @@ private fun PluginInstallPreviewContent(preview: PluginSecurityGate.InstallPrevi
             ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
+        )
+        // 声明与权限是两件事，但界面上挨在一起很容易被读成「它只需要这些权限」。
+        // 实际执行时能力声明不构成约束（放开是有意的，收紧会让一批忘声明的插件直接坏掉），
+        // 所以这里只把语义说清，不假装它是一道安全边界。
+        Text(
+            text = stringResource(R.string.muse_plugins_capabilities_disclaimer),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = stringResource(

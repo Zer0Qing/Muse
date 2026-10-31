@@ -65,9 +65,38 @@ object TextTruncation {
     /** 便捷入口：只要截断后的文本。 */
     fun headTailText(text: String, maxLength: Int): String = headTail(text, maxLength).text
 
+    /**
+     * 超过 [maxLength] 时只保留尾部，开头以省略标记替代。
+     *
+     * 用于「结论在最后」的内容：命令输出、构建日志、测试报告。这类文本开头是进度日志，
+     * 真正要看的是最后几行的报错、失败用例与退出状态；按头部截断等于留住了最不重要的部分。
+     *
+     * @param maxLength 触发截断的长度上限（按字符计；切分不破坏代理对）
+     */
+    fun tail(text: String, maxLength: Int, marker: (Int, Int) -> String = ::defaultTailMarker): Result {
+        if (maxLength <= 0 || text.length <= maxLength) {
+            return Result(text, truncated = false, originalLength = text.length, omittedLength = 0)
+        }
+        val kept = text.takeLastSurrogateSafe(maxLength)
+        val omitted = text.length - kept.length
+        return Result(
+            text = marker(omitted, text.length) + kept,
+            truncated = true,
+            originalLength = text.length,
+            omittedLength = omitted,
+        )
+    }
+
+    /** 便捷入口：只要保留尾部后的文本。 */
+    fun tailText(text: String, maxLength: Int): String = tail(text, maxLength).text
+
     /** 默认省略标记：写明省略量与原文长度，避免模型误以为看到的就是全部。 */
     private fun defaultMarker(omitted: Int, original: Int): String =
         "\n\n[... 已省略 $omitted 字（原文 $original 字）...]\n\n"
+
+    /** 尾部截断的省略标记：省略的是开头，标记放在最前，保留的尾部紧随其后。 */
+    private fun defaultTailMarker(omitted: Int, original: Int): String =
+        "[... 已省略开头 $omitted 字（原文 $original 字），以下为末尾部分 ...]\n\n"
 
     /**
      * 从头取 [count] 个字符，且不切断代理对（高位代理后紧跟低位代理才成对）。

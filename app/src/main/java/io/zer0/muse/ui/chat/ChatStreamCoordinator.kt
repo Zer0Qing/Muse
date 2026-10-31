@@ -393,7 +393,14 @@ class ChatStreamCoordinator(
      * 注意:本方法不做 mood/think 标签提取 — 媒体追加的 content 均为本地生成的纯文本占位,
      * 不含模型标签,与 updateAssistant 完整路径对无标签内容的处理等价。
      */
-    fun appendMediaToAssistant(id: Uuid, content: String? = null, imageUrls: List<String>? = null, videoFileUri: String? = null) {
+    fun appendMediaToAssistant(
+        id: Uuid,
+        content: String? = null,
+        imageUrls: List<String>? = null,
+        videoFileUri: String? = null,
+        voiceUri: String? = null,
+        voiceDurationMs: Long = 0L,
+    ) {
         accessor.updateMessages { list ->
             list.map { msg ->
                 if (msg.id != id) {
@@ -410,6 +417,8 @@ class ChatStreamCoordinator(
                         content = mergedContent,
                         imageUrls = if (imageUrls != null) (msg.imageUrls + imageUrls).distinct() else msg.imageUrls,
                         videoFileUri = videoFileUri ?: msg.videoFileUri,
+                        voiceUri = voiceUri ?: msg.voiceUri,
+                        voiceDurationMs = if (voiceUri != null) voiceDurationMs else msg.voiceDurationMs,
                     )
                 }
             }
@@ -1173,22 +1182,14 @@ class ChatStreamCoordinator(
                     ?.keys
                     .orEmpty()
             val registeredToolDefs =
-                toolRegistry.listToolsAsToolDefinitions().filter { definition ->
-                    val notDenied = definition.name !in deniedToolNames
-                    val selectedByTool =
-                        configuredToolIds.isEmpty() || definition.name in configuredToolIds ||
-                            // v2.x 阶段3:find_tools 是分层收窄的补全通道,对任何助手白名单都保持可用
-                            definition.name == io.zer0.muse.tools.FindToolsTool.TOOL_NAME
-                    val isMcpTool =
-                        definition.name.startsWith("mcp_") &&
-                            definition.name.contains("__")
-                    val selectedByMcp =
-                        !isMcpTool ||
-                            configuredMcpServerIds.any { serverId ->
-                                definition.name.startsWith("mcp_${serverId}__")
-                            }
-                    notDenied && selectedByTool && selectedByMcp
-                }
+                io.zer0.muse.tools.ToolSchemaRules.selectLocalTools(
+                    toolRegistry.listToolsAsToolDefinitions(),
+                    io.zer0.muse.tools.ToolSchemaRules.Criteria(
+                        configuredToolIds = configuredToolIds,
+                        mcpServerIds = configuredMcpServerIds,
+                        deniedToolNames = deniedToolNames,
+                    ),
+                )
 
             // Phase 8.8: 加载已启用且被当前助手绑定的 Skills 并转为 ToolDefinition;
             // 空 skillIdsJson 同样兼容旧助手,表示使用全部全局启用 Skills。
@@ -1200,12 +1201,14 @@ class ChatStreamCoordinator(
             // ② channel_* 群聊三件套仅在群聊上下文由 ChannelToolFactory 注入,
             //   主会话 skillMap 必须剔除,否则主会话 LLM 可用 skill 版以任意 agent
             //   身份向任意群聊发言(绕过 ChannelToolFactory 的身份绑定防护)。
+            // 两条规则写在 ToolSchemaRules:提示词工具索引与计数入口也用它,不要在本处内联。
             val localToolNames = toolRegistry.listTools().map { it.name }.toSet()
             val enabledSkills =
-                skillRepository.listEnabled()
-                    .distinctBy { it.id }
-                    .filterNot { it.id in localToolNames || it.id.startsWith("channel_") }
-                    .filter { configuredSkillIds.isEmpty() || it.id in configuredSkillIds }
+                io.zer0.muse.tools.ToolSchemaRules.selectSkills(
+                    skillRepository.listEnabled(),
+                    localToolNames,
+                    io.zer0.muse.tools.ToolSchemaRules.Criteria(configuredSkillIds = configuredSkillIds),
+                )
             // 缓存 skill id → SkillEntity 映射,工具执行时用
             skillMap = enabledSkills.associateBy { it.id }
             // v2.x 工具瘦身阶段4:技能默认与 OPTIONAL 同口径收窄，find_tools 必须能
@@ -1215,11 +1218,16 @@ class ChatStreamCoordinator(
                 enabledSkills
                     .filter { it.id !in stickerToolIds }
                     .map { sk ->
+                        // 风险等级只作目录元数据:该条目仅进 find_tools 检索目录,
+                        // 不登记审批台账(不在 toolDefs 里,getToolRiskLevel 查不到)。
+                        // 但技能本身是可执行体,名字由用户/插件自取,不能按"听起来只读"
+                        // 声明 SAFE;给 NORMAL 使元数据与技能的真实可执行性一致。
                         ToolRegistry.ToolDef(
                             name = sk.id,
                             description = sk.description,
                             parameters = emptyMap(),
                             category = "skill",
+                            riskLevel = io.zer0.muse.tools.ToolRiskLevel.NORMAL,
                         )
                     }
             toolRegistry.setSearchableSkills(state.sessionId, skillSearchDefs)

@@ -269,6 +269,21 @@ class ToolExposurePolicyTest {
         assertTrue("未声明为技能时保持既有可见性", "skill_weekly_report" in legacy)
     }
 
+    @Test
+    fun `工作区族命中时能带出 workspace_edit`() {
+        // 工具存在但发不出去等于不存在：工作区族的 toolNames 必须含 workspace_edit，
+        // 否则用户说“改一下工作区里的代码”时这个工具不会被露出，find_tools 也无从谈起。
+        val workspaceTools = padding + listOf(
+            tool("workspace_read"), tool("workspace_write"), tool("workspace_edit"), tool("calculator"),
+        )
+
+        val hit = ToolExposurePolicy.filterToolsForRequest("帮我改一下工作区里的代码", workspaceTools)
+            .map { it.name }
+            .toSet()
+        assertTrue("工作区族命中应带出 workspace_edit", "workspace_edit" in hit)
+        assertTrue("同族其他工具行为不变", "workspace_write" in hit)
+    }
+
     /** 填充到收窄阈值(20)以上，否则分层逻辑不生效。 */
     private val padding = (1..22).map { tool("pad_tool_$it") }
 

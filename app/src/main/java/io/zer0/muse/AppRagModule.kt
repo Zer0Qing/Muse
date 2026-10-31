@@ -1,6 +1,5 @@
 package io.zer0.muse
 
-import kotlinx.coroutines.flow.first
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -34,7 +33,8 @@ val appRagModule = module {
             ftsDao = get<io.zer0.muse.data.session.MuseDb>().knowledgeChunkFtsDao(),
             vectorSearch = io.zer0.muse.rag.VectorSearchService(
                 chunkPageProvider = { limit, offset ->
-                    val titles = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().observeAll().first()
+                    // v2.6.x: 只读 id/title 投影;分页循环里每页调用一次,不再把整篇正文读进内存
+                    val titles = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().getDocTitles()
                         .associate { it.id to it.title }
                     get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>().getPageWithEmbedding(limit, offset).map { chunk ->
                         io.zer0.muse.rag.VectorSearchService.ChunkWithDoc(
@@ -77,7 +77,7 @@ val appRagModule = module {
             // P2-31: BM25-only(精确命中)补齐内容元数据,不再整体丢弃
             bm25MetaResolver = { chunkIds ->
                 val dao = get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>()
-                val titles = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().observeAll().first()
+                val titles = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().getDocTitles()
                     .associate { it.id to it.title }
                 dao.getByIds(chunkIds).associate { chunk ->
                     chunk.id to io.zer0.muse.rag.HybridSearchService.ChunkMeta(
@@ -99,8 +99,8 @@ val appRagModule = module {
             docDao = get(),
             ftsDao = get<io.zer0.muse.data.session.MuseDb>().knowledgeChunkFtsDao(),
             docTitleProvider = {
-                get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().observeAll()
-                    .first().associate { it.id to it.title }
+                get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().getDocTitles()
+                    .associate { it.id to it.title }
             },
             embeddingService = get(),
             hybridSearchService = get(),

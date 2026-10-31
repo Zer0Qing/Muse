@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -63,6 +65,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.workspace.WorkspaceManager
+import io.zer0.muse.workspace.WorkspaceMount
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
@@ -123,6 +126,9 @@ fun WorkspaceScreen(
     var renameEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
     // 新建弹窗(类型:文件 / 文件夹)
     var createDialog by remember { mutableStateOf<CreateType?>(null) }
+    // 挂载表与挂载管理弹窗
+    var mounts by remember { mutableStateOf<List<WorkspaceMount>>(emptyList()) }
+    var mountSheetOpen by remember { mutableStateOf(false) }
 
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
 
@@ -180,6 +186,56 @@ fun WorkspaceScreen(
         }
     }
 
+    // 挂载表：进入页面时读一次，增删后再刷新。
+    LaunchedEffect(Unit) {
+        mounts = workspaceManager.mounts()
+    }
+
+    val knownMountIds = remember(mounts) { mounts.mapTo(mutableSetOf()) { it.id } }
+    val currentMountId = remember(currentPath, knownMountIds) {
+        val prefix = currentPath.substringBefore(':', "")
+        if (prefix.isNotEmpty() && prefix in knownMountIds) prefix else WorkspaceMount.MAIN_ID
+    }
+    val currentMount = mounts.firstOrNull { it.id == currentMountId }
+    val currentReadOnly = currentMount?.isReadOnly == true
+
+    // 选一个目录作为新挂载：拿持久化授权再登记。
+    val mountDirectoryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            val granted = runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, flags)
+                true
+            }.getOrDefault(false)
+            val label = mountLabelFromUri(uri)
+            val mount = WorkspaceMount(
+                id = nextMountId(label, workspaceManager.mounts().mapTo(mutableSetOf()) { it.id }),
+                label = label,
+                provider = io.zer0.muse.workspace.MountProvider.SAF,
+                treeUri = uri.toString(),
+                capabilities = if (granted) {
+                    WorkspaceMount.DEFAULT_CAPABILITIES
+                } else {
+                    WorkspaceMount.READ_ONLY_CAPABILITIES
+                },
+                createdAt = System.currentTimeMillis(),
+            )
+            when (val r = workspaceManager.upsertMount(mount)) {
+                is io.zer0.muse.workspace.WorkspaceMountStore.MountStoreResult.Success -> {
+                    mounts = r.mounts
+                    MuseToast.show(context.getString(R.string.workspace_mount_added, label))
+                }
+                is io.zer0.muse.workspace.WorkspaceMountStore.MountStoreResult.Error -> {
+                    MuseToast.show(context.getString(R.string.workspace_mount_failed, r.message))
+                }
+            }
+        }
+    }
+
     // 审计修复 (3.1): 进入页面 / 切换目录时重新加载。
     // 加载逻辑直接内联进 LaunchedEffect,currentPath 变化时旧协程会被自动取消,
     // 避免先发的 listDir 晚返回后覆盖新目录的加载结果。
@@ -199,11 +255,12 @@ fun WorkspaceScreen(
         isLoading = false
     }
 
-    // 计算当前目录显示名(根目录 = "工作区",子目录 = 最末段名)
-    val currentName = if (currentPath.isEmpty()) {
-        stringResource(R.string.workspace_title)
-    } else {
-        currentPath.substringAfterLast('/')
+    // 计算当前目录显示名(根目录 = "工作区",挂载根 = 挂载名,子目录 = 最末段名)
+    val currentName = when {
+        currentPath.isEmpty() -> stringResource(R.string.workspace_title)
+        currentPath.endsWith(":/") || currentPath.endsWith(":") ->
+            currentMount?.label ?: stringResource(R.string.workspace_title)
+        else -> currentPath.substringAfterLast('/')
     }
 
     io.zer0.muse.ui.common.surface.MusePageScaffold(
@@ -214,6 +271,11 @@ fun WorkspaceScreen(
                 largeTitle = true,
                 actions = {
                     MuseTactileButton(
+                        icon = MuseIcons.folder,
+                        onClick = { mountSheetOpen = true },
+                        contentDescription = stringResource(R.string.workspace_mounts_title),
+                    )
+                    MuseTactileButton(
                         icon = MuseIcons.download,
                         onClick = {
                             runCatching {
@@ -223,7 +285,7 @@ fun WorkspaceScreen(
                             }
                         },
                         contentDescription = stringResource(R.string.workspace_import_file),
-                        enabled = !isImporting,
+                        enabled = !isImporting && !currentReadOnly,
                     )
                     // v2.0.1: 产物中心入口
                     MuseTactileButton(
@@ -244,11 +306,13 @@ fun WorkspaceScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            MuseFloatingButton(
-                icon = MuseIcons.plus,
-                onClick = { createDialog = CreateType.FILE },
-                contentDescription = stringResource(R.string.workspace_new_file),
-            )
+            if (!currentReadOnly) {
+                MuseFloatingButton(
+                    icon = MuseIcons.plus,
+                    onClick = { createDialog = CreateType.FILE },
+                    contentDescription = stringResource(R.string.workspace_new_file),
+                )
+            }
         },
     ) { innerPadding ->
         Box(
@@ -553,6 +617,81 @@ fun WorkspaceScreen(
     }
 
     // 新建文件 / 文件夹弹窗
+    if (mountSheetOpen) {
+        MuseDialog(
+            onDismissRequest = { mountSheetOpen = false },
+            title = stringResource(R.string.workspace_mounts_title),
+            content = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                ) {
+                    mounts.forEach { mount ->
+                        val selected = mount.id == currentMountId
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MuseShapes.medium)
+                                .clickable {
+                                    currentPath = if (mount.id == WorkspaceMount.MAIN_ID) "" else mount.id + ":/"
+                                    mountSheetOpen = false
+                                }
+                                .padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.contentGap),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                        ) {
+                            Text(
+                                text = mount.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (mount.isReadOnly) {
+                                Text(
+                                    text = stringResource(R.string.workspace_mount_read_only),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (!mount.system) {
+                                androidx.compose.material3.TextButton(
+                                    onClick = {
+                                        scope.launch {
+                                            workspaceManager.removeMount(mount.id)
+                                            mounts = workspaceManager.mounts()
+                                            if (currentMountId == mount.id) currentPath = ""
+                                        }
+                                    },
+                                ) {
+                                    Text(stringResource(R.string.workspace_mount_remove))
+                                }
+                            }
+                        }
+                    }
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            mountSheetOpen = false
+                            runCatching { mountDirectoryLauncher.launch(null) }
+                                .onFailure {
+                                    MuseToast.show(
+                                        context.getString(R.string.workspace_mount_failed, it.message),
+                                    )
+                                }
+                        },
+                    ) {
+                        Text(stringResource(R.string.workspace_mount_add))
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.common_close),
+            onConfirm = { mountSheetOpen = false },
+        )
+    }
+
     createDialog?.let { type ->
         var newName by remember { mutableStateOf("") }
         val titleRes = when (type) {
@@ -635,8 +774,50 @@ private enum class CreateType { FILE, FOLDER }
  */
 private fun parentPath(path: String): String {
     if (path.isEmpty()) return ""
+    // 带挂载前缀时只在挂载内部退一级，到挂载根再退就回到默认工作区。
+    val prefixEnd = path.indexOf(":/")
+    if (prefixEnd >= 0) {
+        val rest = path.substring(prefixEnd + 2)
+        if (rest.isEmpty()) return ""
+        val cut = rest.lastIndexOf('/')
+        val prefix = path.substring(0, prefixEnd)
+        return if (cut < 0) "$prefix:/" else "$prefix:/${rest.substring(0, cut)}"
+    }
     val idx = path.lastIndexOf('/')
     return if (idx < 0) "" else path.substring(0, idx)
+}
+
+/**
+ * 从授权 URI 里取一个可读的目录名。
+ *
+ * 目录 URI 的最后一段形如 `primary:DCIM/Camera`，取冒号后最末一级。
+ */
+private fun mountLabelFromUri(uri: android.net.Uri): String {
+    val raw = uri.lastPathSegment?.substringAfterLast(':')?.trim().orEmpty()
+    val name = raw.substringAfterLast('/').trim()
+    return name.ifEmpty { "Mounted" }
+}
+
+/**
+ * 由目录名生成一个合法且不重复的挂载标识。
+ *
+ * 标识只允许小写字母、数字、下划线与连字符，且以字母开头。
+ */
+private fun nextMountId(label: String, taken: Set<String>): String {
+    val base = label.lowercase()
+        .map { if (it in 'a'..'z' || it in '0'..'9') it else '_' }
+        .joinToString("")
+        .trim('_')
+        .ifEmpty { "mount" }
+    val normalized = if (base.first() in 'a'..'z') base else "m$base"
+    val stem = normalized.take(24)
+    if (stem !in taken) return stem
+    var index = 1
+    while (true) {
+        val candidate = "${stem.take(20)}_$index"
+        if (candidate !in taken) return candidate
+        index++
+    }
 }
 
 /**

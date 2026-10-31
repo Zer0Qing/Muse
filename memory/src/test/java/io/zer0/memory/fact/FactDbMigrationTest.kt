@@ -157,6 +157,9 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_13_14,
                 FactDb.MIGRATION_14_15,
                 FactDb.MIGRATION_15_16,
+                FactDb.MIGRATION_16_17,
+                FactDb.MIGRATION_17_18,
+                FactDb.MIGRATION_18_19,
             )
             .allowMainThreadQueries()
             .build()
@@ -229,6 +232,9 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_13_14,
                 FactDb.MIGRATION_14_15,
                 FactDb.MIGRATION_15_16,
+                FactDb.MIGRATION_16_17,
+                FactDb.MIGRATION_17_18,
+                FactDb.MIGRATION_18_19,
             )
             .allowMainThreadQueries()
             .build()
@@ -387,6 +393,9 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_13_14,
                 FactDb.MIGRATION_14_15,
                 FactDb.MIGRATION_15_16,
+                FactDb.MIGRATION_16_17,
+                FactDb.MIGRATION_17_18,
+                FactDb.MIGRATION_18_19,
             )
             .allowMainThreadQueries()
             .build()
@@ -553,6 +562,9 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_13_14,
                 FactDb.MIGRATION_14_15,
                 FactDb.MIGRATION_15_16,
+                FactDb.MIGRATION_16_17,
+                FactDb.MIGRATION_17_18,
+                FactDb.MIGRATION_18_19,
             )
             .allowMainThreadQueries()
             .build()
@@ -627,6 +639,9 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_13_14,
                 FactDb.MIGRATION_14_15,
                 FactDb.MIGRATION_15_16,
+                FactDb.MIGRATION_16_17,
+                FactDb.MIGRATION_17_18,
+                FactDb.MIGRATION_18_19,
             )
             .allowMainThreadQueries()
             .build()
@@ -677,7 +692,216 @@ class FactDbMigrationTest {
         db.close()
     }
 
+    /**
+     * v17: 老用户从 v16 升级 —— 衰减分数落库,历史行初始化成 [MemoryConfig.baseImportance](10.0),
+     * 而不是 0:0 分会让所有旧记忆在第一轮结算里集体出场,等于升级即“失忆”。
+     */
+    @Test
+    fun migrate16To17_initializesPersistedScoreForLegacyRows() {
+        val dbFile = newDbFile()
+        val helper = FrameworkSQLiteOpenHelperFactory().create(
+            configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbFile.absolutePath)
+                .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(16) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(V16_FACTS)
+                    }
+
+                    override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
+                    }
+                })
+                .build(),
+        ).writableDatabase
+
+        helper.execSQL(
+            """
+            INSERT INTO facts (id, fact, tags, time, session_id, created_at, importance, category,
+                confidence, source, expires_at, last_confirmed_at, last_hit_at, hit_count,
+                scope, space_id, pinned_at, entity_key)
+            VALUES (7, '用户喜欢喝美式咖啡', '[]', NULL, NULL, '2026-05-01T00:00:00Z', 0, 'preference',
+                1.0, 'user_explicit', NULL, NULL, NULL, 3,
+                'main', 'default', NULL, '用户')
+            """.trimIndent(),
+        )
+
+        FactDb.MIGRATION_16_17.migrate(helper)
+
+        helper.query("SELECT score, score_updated_at, suppressed_at FROM facts WHERE id = 7").use { cursor ->
+            assertTrue("历史事实应保留", cursor.moveToFirst())
+            assertEquals("旧记忆分数应初始化为 baseImportance(非 0)", 10.0f, cursor.getFloat(0), 0.001f)
+            assertTrue("首轮结算前不写结算时间", cursor.isNull(1))
+            assertTrue("升级后不应立刻出场", cursor.isNull(2))
+        }
+        helper.close()
+    }
+
+    /**
+     * v18: 老用户从 v17 升级 —— `supersedes_id` 是可空新增列,历史行一律为 NULL,
+     * 即“不取代任何记忆”: 编译段的取舍与召回行为与升级前完全一致。
+     */
+    @Test
+    fun migrate17To18_leavesLegacyRowsWithoutSupersedes() {
+        val dbFile = newDbFile()
+        val helper = FrameworkSQLiteOpenHelperFactory().create(
+            configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbFile.absolutePath)
+                .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(17) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(V17_FACTS)
+                    }
+
+                    override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
+                    }
+                })
+                .build(),
+        ).writableDatabase
+
+        helper.execSQL(
+            """
+            INSERT INTO facts (id, fact, tags, time, session_id, created_at, importance, category,
+                confidence, source, expires_at, last_confirmed_at, last_hit_at, hit_count,
+                scope, space_id, pinned_at, entity_key, score, score_updated_at, suppressed_at)
+            VALUES (9, '用户喜欢喝美式咖啡', '[]', NULL, NULL, '2026-05-01T00:00:00Z', 0, 'preference',
+                1.0, 'user_explicit', NULL, NULL, NULL, 3,
+                'main', 'default', NULL, '用户', 7.5, NULL, NULL)
+            """.trimIndent(),
+        )
+
+        FactDb.MIGRATION_17_18.migrate(helper)
+
+        helper.query("SELECT fact, score, supersedes_id FROM facts WHERE id = 9").use { cursor ->
+            assertTrue("历史事实应保留", cursor.moveToFirst())
+            assertEquals("升级不改变事实内容", "用户喜欢喝美式咖啡", cursor.getString(0))
+            assertEquals("升级不改变已落库的衰减分数", 7.5f, cursor.getFloat(1), 0.001f)
+            assertTrue("历史行不取代任何记忆", cursor.isNull(2))
+        }
+        helper.close()
+    }
+
+    /**
+     * v19: 老用户从 v18 升级 —— `merged_into_id` 是可空新增列,历史行一律为 NULL,
+     * 即“未被合并”: 召回、投影、列表行为与升级前完全一致。
+     */
+    @Test
+    fun migrate18To19_leavesLegacyRowsUnmerged() {
+        val dbFile = newDbFile()
+        val helper = FrameworkSQLiteOpenHelperFactory().create(
+            configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbFile.absolutePath)
+                .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(18) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(V18_FACTS)
+                    }
+
+                    override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
+                    }
+                })
+                .build(),
+        ).writableDatabase
+
+        helper.execSQL(
+            """
+            INSERT INTO facts (id, fact, tags, time, session_id, created_at, importance, category,
+                confidence, source, expires_at, last_confirmed_at, last_hit_at, hit_count,
+                scope, space_id, pinned_at, entity_key, score, score_updated_at, suppressed_at, supersedes_id)
+            VALUES (11, '用户喜欢喝美式咖啡', '[]', NULL, NULL, '2026-05-01T00:00:00Z', 1, 'preference',
+                1.0, 'user_explicit', NULL, NULL, NULL, 2,
+                'main', 'default', NULL, '用户', 8.5, NULL, NULL, NULL)
+            """.trimIndent(),
+        )
+
+        FactDb.MIGRATION_18_19.migrate(helper)
+
+        helper.query("SELECT fact, importance, supersedes_id, merged_into_id FROM facts WHERE id = 11").use { cursor ->
+            assertTrue("历史事实应保留", cursor.moveToFirst())
+            assertEquals("升级不改变事实内容", "用户喜欢喝美式咖啡", cursor.getString(0))
+            assertEquals("升级不改变已落库的重要度", 1, cursor.getInt(1))
+            assertTrue("历史行不带取代指向", cursor.isNull(2))
+            assertTrue("历史行“未被合并”", cursor.isNull(3))
+        }
+        helper.close()
+    }
+
     private companion object {
         const val DB_NAME = "facts_test.db"
+
+        /** v16 的 facts 表结构(与 schemas/16.json 一致,不含 v17 新增列)。 */
+        val V16_FACTS = """
+            CREATE TABLE IF NOT EXISTS `facts` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `fact` TEXT NOT NULL,
+                `tags` TEXT NOT NULL DEFAULT '[]',
+                `time` TEXT,
+                `session_id` TEXT,
+                `created_at` TEXT NOT NULL,
+                `importance` INTEGER NOT NULL DEFAULT 0,
+                `category` TEXT NOT NULL DEFAULT 'general',
+                `confidence` REAL NOT NULL DEFAULT 1.0,
+                `source` TEXT NOT NULL DEFAULT 'inferred',
+                `expires_at` TEXT,
+                `last_confirmed_at` TEXT,
+                `last_hit_at` TEXT DEFAULT NULL,
+                `hit_count` INTEGER NOT NULL DEFAULT 0,
+                `scope` TEXT NOT NULL DEFAULT 'main',
+                `space_id` TEXT NOT NULL DEFAULT 'default',
+                `pinned_at` TEXT DEFAULT NULL,
+                `entity_key` TEXT
+            )
+        """.trimIndent()
+
+        /** v17 的 facts 表结构(与 schemas/17.json 一致,含衰减三列,不含 supersedes_id)。 */
+        val V17_FACTS = """
+            CREATE TABLE IF NOT EXISTS `facts` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `fact` TEXT NOT NULL,
+                `tags` TEXT NOT NULL DEFAULT '[]',
+                `time` TEXT,
+                `session_id` TEXT,
+                `created_at` TEXT NOT NULL,
+                `importance` INTEGER NOT NULL DEFAULT 0,
+                `category` TEXT NOT NULL DEFAULT 'general',
+                `confidence` REAL NOT NULL DEFAULT 1.0,
+                `source` TEXT NOT NULL DEFAULT 'inferred',
+                `expires_at` TEXT,
+                `last_confirmed_at` TEXT,
+                `last_hit_at` TEXT DEFAULT NULL,
+                `hit_count` INTEGER NOT NULL DEFAULT 0,
+                `scope` TEXT NOT NULL DEFAULT 'main',
+                `space_id` TEXT NOT NULL DEFAULT 'default',
+                `pinned_at` TEXT DEFAULT NULL,
+                `entity_key` TEXT,
+                `score` REAL NOT NULL DEFAULT 10.0,
+                `score_updated_at` TEXT DEFAULT NULL,
+                `suppressed_at` TEXT DEFAULT NULL
+            )
+        """.trimIndent()
+
+        /** v18 的 facts 表结构(与 schemas/18.json 一致,含 supersedes_id,不含 merged_into_id)。 */
+        val V18_FACTS = """
+            CREATE TABLE IF NOT EXISTS `facts` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `fact` TEXT NOT NULL,
+                `tags` TEXT NOT NULL DEFAULT '[]',
+                `time` TEXT,
+                `session_id` TEXT,
+                `created_at` TEXT NOT NULL,
+                `importance` INTEGER NOT NULL DEFAULT 0,
+                `category` TEXT NOT NULL DEFAULT 'general',
+                `confidence` REAL NOT NULL DEFAULT 1.0,
+                `source` TEXT NOT NULL DEFAULT 'inferred',
+                `expires_at` TEXT,
+                `last_confirmed_at` TEXT,
+                `last_hit_at` TEXT DEFAULT NULL,
+                `hit_count` INTEGER NOT NULL DEFAULT 0,
+                `scope` TEXT NOT NULL DEFAULT 'main',
+                `space_id` TEXT NOT NULL DEFAULT 'default',
+                `pinned_at` TEXT DEFAULT NULL,
+                `entity_key` TEXT,
+                `score` REAL NOT NULL DEFAULT 10.0,
+                `score_updated_at` TEXT DEFAULT NULL,
+                `suppressed_at` TEXT DEFAULT NULL,
+                `supersedes_id` INTEGER DEFAULT NULL
+            )
+        """.trimIndent()
     }
 }

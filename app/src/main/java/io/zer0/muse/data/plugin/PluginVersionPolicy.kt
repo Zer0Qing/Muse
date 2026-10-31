@@ -39,6 +39,9 @@ sealed class PluginVersionDecision {
  */
 object PluginVersionPolicy {
 
+    /** 本地构建未注入 versionName 时的占位版本号，与 build.gradle.kts 的兵底值一致。 */
+    const val DEV_SENTINEL_VERSION = "0.0.0-dev"
+
     fun evaluate(
         candidate: PluginInstallCandidate,
         installed: InstalledPluginIdentity?,
@@ -61,7 +64,17 @@ object PluginVersionPolicy {
             ?: return PluginVersionDecision.Reject("无法解析当前 App 版本: $appVersion")
 
         if (requiredApp > currentApp) {
-            return PluginVersionDecision.Reject("插件要求 App 版本不低于 $requiredApp，当前为 $currentApp")
+            // 本地构建不带 -PversionName 时版本号是哨兵值，比任何插件要求的版本都小。
+            // 那种包本来就不是发出去的包，卡在版本门槛上只会挡住调试；
+            // 其余校验（签名、权限、schema）照旧执行。
+            if (appVersion == DEV_SENTINEL_VERSION) {
+                io.zer0.common.Logger.w(
+                    "PluginVersionPolicy",
+                    "开发构建（$DEV_SENTINEL_VERSION）跳过 minAppVersion 门槛：插件要求 $requiredApp",
+                )
+            } else {
+                return PluginVersionDecision.Reject("插件要求 App 版本不低于 $requiredApp，当前为 $currentApp")
+            }
         }
         val existing = installed ?: return PluginVersionDecision.Allow
 

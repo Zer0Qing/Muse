@@ -303,6 +303,24 @@
     <string name="settings_asr_provider_system">系统</string>
     <string name="settings_asr_provider_file">文件（实验）</string>
     <string name="settings_asr_api_key">API 密钥</string>
+    <!-- ASR：跟随供应商配置 -->
+    <string name="settings_asr_follow_provider">跟随供应商配置</string>
+    <string name="settings_asr_follow_provider_subtitle">接口地址与 API Key 取自供应商，模型手动选择</string>
+    <string name="settings_asr_follow_provider_picker">供应商</string>
+    <string name="settings_asr_follow_model_picker">模型</string>
+    <!-- 跟随模式共用的占位与回退提示 -->
+    <string name="settings_speech_follow_unset">未选择</string>
+    <string name="settings_speech_follow_no_models">该供应商没有可选模型</string>
+    <!-- 语音模型选择（TTS / ASR 共用）：模型只在供应商里维护 -->
+    <string name="settings_speech_model_hint">模型由供应商统一管理，这里只是选择</string>
+    <string name="settings_speech_model_empty">还没有可用模型，请先在供应商里添加</string>
+    <string name="settings_speech_model_open_providers">前往供应商设置</string>
+    <string name="settings_speech_model_custom_prefix">自定义：%1$s</string>
+    <string name="settings_speech_model_custom_entry">改为自定义…</string>
+    <string name="settings_speech_follow_fallback_notice">已回退到手动配置：%1$s</string>
+    <string name="settings_speech_follow_reason_provider_missing">未找到所选供应商</string>
+    <string name="settings_speech_follow_reason_provider_disabled">所选供应商已停用</string>
+    <string name="settings_speech_follow_reason_model_missing">未选择模型</string>
     <string name="settings_asr_hide">隐藏</string>
     <string name="settings_asr_show">显示</string>
     <string name="settings_asr_model">模型</string>
@@ -345,6 +363,9 @@
     <string name="settings_rag_cloud_api_subtitle">质量优先，需联网和 API Key</string>
     <string name="settings_rag_local_keyword">本地关键词（离线）</string>
     <string name="settings_rag_local_keyword_subtitle">无需联网，中文 bigram + 英文分词哈希检索</string>
+    <string name="settings_rag_active_backend_section">当前后端</string>
+    <string name="settings_rag_active_backend_label">当前实际在用</string>
+    <string name="settings_rag_active_backend_degraded_unknown">已降级到其它后端，具体原因未记录</string>
     <string name="settings_rag_cloud_provider_section">云端 Provider</string>
     <string name="settings_rag_no_provider_hint">尚未配置任何 Provider，将使用当前激活的聊天 Provider</string>
     <string name="settings_rag_baseurl_not_set">未设置 baseUrl</string>
@@ -522,6 +543,7 @@
     <!-- v1.99: 云端 TTS 音色动态拉取 + 高级参数 -->
     <string name="settings_media_tts_voice_fetch_failed">拉取失败，请检查 API Key</string>
     <string name="settings_media_tts_voice_pick">选择音色</string>
+    <string name="settings_media_tts_voice_reset">音色已重置，请重新选择</string>
     <string name="settings_media_tts_advanced_section">高级参数</string>
     <string name="settings_media_tts_stability">Stability(ElevenLabs)</string>
     <string name="settings_media_tts_similarity">Similarity Boost(ElevenLabs)</string>
@@ -530,6 +552,12 @@
     <string name="settings_media_tts_cloud_speed">合成语速</string>
     <string name="settings_media_tts_response_format">音频格式</string>
     <string name="settings_media_tts_save_advanced">保存参数</string>
+    <!-- 云端 TTS：跟随供应商配置 -->
+    <string name="settings_media_tts_follow_provider">跟随供应商配置</string>
+    <string name="settings_media_tts_follow_provider_subtitle">接口地址与 API Key 取自供应商，模型手动选择</string>
+    <string name="settings_media_tts_follow_provider_picker">供应商</string>
+    <string name="settings_media_tts_follow_model_picker">模型</string>
+    <string name="settings_media_tts_follow_voice_hint">跟随只接管接口地址与密钥，音色需自行确认与所选供应商兼容</string>
     <string name="settings_provider_media_gen_section">媒体生成模型</string>
     <string name="settings_asr_entry_title">语音识别引擎</string>
     <string name="settings_asr_entry_subtitle">选择语音转文字引擎（如 Paraformer / Whisper）</string>
@@ -551,6 +579,7 @@
     <string name="settings_agent_test_message_subtitle">像真实主动消息一样发一条（通知展示）</string>
     <string name="settings_agent_test_generating">正在生成…</string>
     <string name="settings_agent_test_failed">测试失败：%1$s</string>
+    <string name="settings_agent_test_already_running">上一轮主动消息还在生成中，请稍后再试</string>
     <string name="settings_agent_daily_summary_subtitle">每天 09:00、12:00、21:00 和 00:00 生成对话小结；开关只控制通知推送</string>
     <string name="settings_agent_daily_summary_slots_title">每日总结时段</string>
     <!-- v1.xxx U-5: 整点 chip 多选(替代裸文本逗号输入) -->
@@ -597,7 +626,7 @@
     <string name="settings_agent_pace_heavy">多</string>
     <string name="settings_agent_pace_heavy_desc">约 2 小时一次，每天最多 8 条</string>
     <string name="settings_agent_pace_extreme">极多</string>
-    <string name="settings_agent_pace_extreme_desc">助手自主决定节奏，想聊就来找你（不限次数）</string>
+    <string name="settings_agent_pace_extreme_desc">约 30 分钟一次，每天的节奏会随机前后浮动</string>
     <string name="settings_agent_pace_custom">自定义</string>
     <string name="settings_agent_quiet_hours_title">免打扰时段</string>
     <string name="settings_agent_quiet_hours_hint">这段时间内不会发送主动消息，避免夜间打扰</string>

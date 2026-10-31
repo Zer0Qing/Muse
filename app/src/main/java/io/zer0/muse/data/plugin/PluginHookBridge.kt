@@ -23,14 +23,32 @@ import kotlinx.coroutines.launch
  *  避免在 PluginManager 里注入执行设施，也让测试更容易。
  */
 class PluginHookBridge(
+    private val context: android.content.Context,
     private val pluginManager: PluginManager,
     private val hookRegistry: HookRegistry,
     private val appScope: CoroutineScope,
+    private val settings: io.zer0.muse.data.SettingsRepository,
 ) {
     private val registered = HashSet<String>()
 
+    /**
+     * 插件总开关的最新值。
+     *
+     * [sync] 是同步函数（被 revisionFlow 直接调），不能在里面临时阻塞读 Flow，
+     * 所以由订阅协程把值刷到字段上。默认 true：开关读不到时按开启处理，
+     * 不能因为一次读取失败把用户装的插件全部静默停掉。
+     */
+    @Volatile
+    private var globallyEnabled = true
+
     /** 启动订阅（由装配处调用一次）。 */
     fun start() {
+        appScope.launch {
+            settings.pluginsGloballyEnabledFlow.collect { enabled ->
+                globallyEnabled = enabled
+                sync()
+            }
+        }
         appScope.launch {
             pluginManager.revisionFlow.collect { sync() }
         }
@@ -48,6 +66,12 @@ class PluginHookBridge(
             registered.clear()
         }
 
+        // 总开关关闭时一个都不挂：插件代码不该有机会跑，包括 Hook。
+        if (!globallyEnabled) {
+            Logger.i(TAG, "插件总开关关闭，不挂任何 hook")
+            return
+        }
+
         pluginManager.list().filter { it.enabled && it.kind == "tool" }.forEach { plugin ->
             // 入口函数必须真实定义（loadVerifiedFunction 会重新读盘并过安全门）
             val verified =
@@ -58,7 +82,9 @@ class PluginHookBridge(
             if (HOOK_PROMPT_FINALIZE !in verified.manifest.hooks) return@forEach
 
             val hook = PluginPromptFinalizeHook(
+                context = context,
                 pluginId = plugin.id,
+                manifest = verified.manifest,
                 entryCode = verified.entryCode,
                 configJson = pluginManager.getPluginConfigJson(verified.manifest),
             )

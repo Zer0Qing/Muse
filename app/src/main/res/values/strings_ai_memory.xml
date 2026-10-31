@@ -166,6 +166,11 @@
     <string name="memory_menu_edit">编辑</string>
     <string name="memory_menu_delete">删除</string>
     <string name="memory_delete_confirm_title">删除记忆</string>
+    <!-- 时间轴卡片长按:动作面板 + 批量删除的二次确认 -->
+    <string name="memory_menu_multi_select">多选</string>
+    <string name="memory_bulk_delete_confirm_title">删除选中的记忆</string>
+    <string name="memory_bulk_delete_item_name">%1$d 条记忆</string>
+    <string name="memory_bulk_delete_consequence">将删除 %1$d 条记忆，删除后不可恢复。</string>
 
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n -->
     <string name="memory_contradictions_title">待确认的矛盾记忆</string>
@@ -200,4 +205,28 @@
     <string name="memory_group_chat_clear_confirm_title">清空全部群聊记忆</string>
     <string name="memory_group_chat_clear_item_name">全部群聊记忆</string>
     <string name="memory_group_chat_clear_consequence">所有群聊讨论摘要都会被删除，无法撤销</string>
+
+    <!-- 多选合并：勾选多条事实后由模型出草稿，人工确认再落库 -->
+    <string name="memory_center_merge_action">合并</string>
+    <string name="memory_center_merge_title">合并记忆</string>
+    <string name="memory_center_merge_sources_title">原始记忆（%1$d 条）</string>
+    <string name="memory_center_merge_result_label">合并结果</string>
+    <string name="memory_center_merge_confirm">确认合并</string>
+    <string name="memory_center_merge_running">合并中…</string>
+
+    <!-- 记忆状态徽章：列表与详情共用同一套判定（三种状态互相独立，可同时命中） -->
+    <string name="memory_status_merged">已合并</string>
+    <string name="memory_status_suppressed">已出场</string>
+    <string name="memory_status_superseded">被取代</string>
+    <string name="memory_status_merged_detail">已合并进另一条记忆，不再参与自动召回；这条正文仍保留在这里可查。</string>
+    <string name="memory_status_suppressed_detail">已出场：长时间没有被用到，已退出自动召回；行还留着，重新被检索命中或提升重要度后会回来。</string>
+    <string name="memory_status_superseded_detail">已被更新的记忆取代，不再作为当前事实使用。</string>
+
+    <!-- 合并失败提示 -->
+    <string name="memory_merge_error_min_items">至少选择两条记忆才能合并</string>
+    <string name="memory_merge_error_no_model">未配置模型，无法合并</string>
+    <string name="memory_merge_error_mixed_scope">只能合并同一空间内的记忆</string>
+    <string name="memory_merge_error_generate_failed">没能合并这些记忆</string>
+    <string name="memory_merge_error_empty_result">合并结果不能为空</string>
+    <string name="memory_merge_error_commit_failed">合并失败，记忆未改变</string>
 </resources>

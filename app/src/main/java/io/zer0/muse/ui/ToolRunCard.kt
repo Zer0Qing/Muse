@@ -148,6 +148,9 @@ private fun ToolRunLiveRow(
 /** 实时状态最多展示多少字。一行大约能装这么多，超了取尾部。 */
 private const val LIVE_STATUS_CHARS = 90
 
+/** 把换行/连续空白压成单个空格的匹配式：状态行每帧都算，不现编。 */
+private val whitespaceRun = Regex("\\s+")
+
 /**
  * 正在思考的单行预览。
  *
@@ -155,7 +158,7 @@ private const val LIVE_STATUS_CHARS = 90
  * 而且标签跟着动才看得出还在跑。
  */
 private fun thinkingPreview(raw: String?): String? {
-    val flat = raw.orEmpty().replace(Regex("\\s+"), " ").trim()
+    val flat = raw.orEmpty().replace(whitespaceRun, " ").trim()
     if (flat.isEmpty()) return null
     return if (flat.length <= LIVE_STATUS_CHARS) flat else "…" + flat.takeLast(LIVE_STATUS_CHARS)
 }
@@ -176,7 +179,7 @@ private fun resolveLiveActivity(
     if (!progressMessage.isNullOrBlank()) return progressMessage
     val raw = msgs.lastOrNull()?.reasoning?.takeIf { it.isNotBlank() }
         ?: msgs.lastOrNull { !it.reasoning.isNullOrBlank() }?.reasoning
-    val flat = raw.orEmpty().replace(Regex("\\s+"), " ").trim()
+    val flat = raw.orEmpty().replace(whitespaceRun, " ").trim()
     return when {
         flat.isEmpty() -> thinkingPlaceholder
         flat.length <= LIVE_STATUS_CHARS -> flat

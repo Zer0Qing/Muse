@@ -93,7 +93,7 @@ class DashScopeAsrController(
     // 可选本地 VAD(用户在 config 中显式启用;DashScope 服务端已自带 VAD,通常不需要本地)
     private var vadDetector: VadDetector? = null
 
-    // ── Phase 3: 断线重连相关字段(对齐 OpenAiRealtimeAsrController 的既有实现) ──
+    // ── Phase 3: 断线重连相关字段(对齐 [OpenAiRealtimeAsrController] 的重连实现) ──
     /** 已触发的重连次数(重连成功后清零)。 */
     private var reconnectAttempt = 0
 
@@ -381,7 +381,11 @@ class DashScopeAsrController(
                 }
             }
             "task-finished" -> {
-                Logger.d(TAG, "收到 task-finished,识别完成")
+                // 只有用户发起 stop()(状态已置 Stopping)时,task-finished 才是本段输入的结束信号。
+                // 服务端自行收尾(长时间静音/会话超时)不代表用户说完了:这里只回退状态,
+                // 由上层重新开录音,不提交任何文本给模型。
+                val userStopped = _state.value.status == ASRStatus.Stopping
+                Logger.d(TAG, "收到 task-finished,识别结束 | userStopped=$userStopped")
                 val full = buildTranscript()
                 _state.update { it.copy(status = ASRStatus.Idle, transcript = full, amplitudes = emptyList()) }
                 onTranscriptChange?.invoke(full)
@@ -875,7 +879,7 @@ internal class DashScopeSession(
  * Phase 3: DashScope 断线重连策略。
  *
  * 尝试上限与分批量客户端(Step/Whisper 的 AsrConstants.RECONNECT_MAX_ATTEMPTS)对齐,
- * 退避曲线对齐 [OpenAiRealtimeAsrController] 的既有实现(指数翻倍 + 封顶):
+ * 退避曲线对齐 [OpenAiRealtimeAsrController](指数翻倍 + 封顶):
  * 500ms → 1s → 2s,单次上限 8s,最多 3 次。
  */
 internal object DashScopeReconnectPolicy {

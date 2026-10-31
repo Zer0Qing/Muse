@@ -8,7 +8,7 @@ package io.zer0.muse.tools
  *  2. <subagent_progress/> — 每轮工具调用进度(轮次/工具名/参数/结果预览)
  *  3. <subagent_result>    — 最终结果(成功/失败 + 总轮次 + 总工具调用数 + 总结文本)
  *
- * 设计原则(按 既有实现 examples/subagent):
+ * 设计原则:
  *  - XML 标签结构化,便于主 agent 解析和理解子 agent 进度
  *  - 最终结果与工具结果完整返回;大 XML 由外层工具输出文件分页处理
  *  - 失败时仍返回可用信息(已完成的轮次 + 错误原因),让主 agent 决策重试或换路径

@@ -105,16 +105,16 @@ sealed class ChatStreamEvent {
 }
 
 /**
- * v1.0.7: 聊天请求模式(对齐 既有实现 mode: "chat" | "utility")。
+ * v1.0.7: 聊天请求模式(mode: "chat" | "utility")。
  *
  * - [CHAT]:用户对话路径,reasoningLevel 由用户偏好/session 决定,可开可关
  * - [UTILITY]:后台短文本生成路径(memory 摘要 / fact 抽取 / 视觉辅助 / skill 执行 /
  *   上下文压缩 / 主动消息 / 定时任务等),强制 reasoningLevel = OFF
  *   (短输出不需要思考链 + 省 token + 降延迟),且不注入 ProviderPromptPatches
  *
- * 设计原则(对齐 既有实现 buildProviderCompatOptions):
+ * 设计原则:
  *  - UTILITY 模式下,Provider 内部把 effectiveReasoningLevel 强制为 OFF,
- *    调用方传入的 reasoningLevel 被覆盖(对齐 既有实现 utility 模式注入 reasoningLevel: "off")
+ *    调用方传入的 reasoningLevel 被覆盖(utility 模式注入 reasoningLevel: "off")
  *  - 各 Provider 在 buildRequestBody 时按 mode 决定是否跳过 thinkingFormat 注入
  */
 enum class ChatRequestMode {
@@ -244,18 +244,56 @@ data class ChatCompletion(
  *
  * Provider 未返回 usage 时为 null,AgentTokenBudget 跳过累加(避免误判耗尽)。
  *
- * A5: 新增 [cachedTokens] — prompt 缓存命中 token(Anthropic cache_read + cache_creation,
- * OpenAI prompt_tokens_details.cached_tokens)。仅用于信息展示,不计入 [total]
+ * A5: 新增 [cachedTokens] — prompt 缓存 token。仅用于信息展示与成本估算,不计入 [total]
  * (保持既有 budget 语义不变:Anthropic 缓存 token 原本就不参与消耗累加)。
+ *
+ * 缓存读/写拆分:两者单价不同(写入通常更贵),混在一个字段里会让成本估算漏掉写入部分,
+ * 因此显式分列缓存读 [cachedTokens] 与缓存写 [cacheWriteTokens]。
  */
 data class UsageTokens(
     val promptTokens: Int = 0,
     val completionTokens: Int = 0,
     /** 推理 token(部分模型单独计入,如 OpenAI o1 的 completion_tokens_details.reasoning_tokens)。 */
     val reasoningTokens: Int = 0,
-    /** A5: prompt 缓存命中/写入 token(仅展示,不参与 [total])。 */
+    /**
+     * prompt 缓存**读取** token。
+     *
+     * 字段名沿用拆分前的 [cachedTokens] 以兼容既有调用点与持久化列,语义固定为「读」:
+     *  - OpenAI `prompt_tokens_details.cached_tokens`
+     *  - Gemini `usageMetadata.cachedContentTokenCount`
+     *  - Anthropic `usage.cache_read_input_tokens`
+     *
+     * 仅展示与计价用,不参与 [total]。
+     */
     val cachedTokens: Int = 0,
+    /**
+     * prompt 缓存**写入** token(Anthropic `usage.cache_creation_input_tokens`)。
+     *
+     * OpenAI / Gemini 没有独立的缓存写入计费项,恒为 0。
+     * 缓存写入单价通常高于普通输入(Anthropic 5 分钟 TTL 为输入价的 1.25 倍),
+     * 计价时必须单独计入,不能与 [cacheReadTokens] 混算。仅展示与计价用,不参与 [total]。
+     */
+    val cacheWriteTokens: Int = 0,
+    /**
+     * [promptTokens] 是否**包含**缓存部分——即该 provider 的 prompt 计价口径。
+     *
+     * 两家协议给的不是同一个东西,拿错会让计价算反:
+     *  - OpenAI / Gemini:`prompt_tokens` / `promptTokenCount` **含**缓存命中部分
+     *    ([cachedTokens] 是其子集)→ 默认 true,计价时要从 prompt 里减掉
+     *  - Anthropic:`input_tokens` **就是**非缓存输入,缓存读/写分列在
+     *    `cache_read_input_tokens` / `cache_creation_input_tokens` → 由 AnthropicProvider 置 false,
+     *    计价时绝不能相减(否则缓存量大时普通输入会被夹到 0,输入费直接漏算)
+     *
+     * 仅影响计价,不改变 [promptTokens] / [total] 本身的取值口径。
+     */
+    val promptTokensIncludeCache: Boolean = true,
 ) {
+    /** [cachedTokens] 的显式命名视图:缓存读取 token。 */
+    val cacheReadTokens: Int get() = cachedTokens
+
+    /** 缓存读 + 写合计(拆分前 [cachedTokens] 单个字段承载的就是这个和)。 */
+    val cachedTokensTotal: Int get() = cachedTokens + cacheWriteTokens
+
     /** 总消耗 = prompt + completion(已含 reasoning,不重复加)。 */
     val total: Int get() = promptTokens + completionTokens
 }

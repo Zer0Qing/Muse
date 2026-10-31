@@ -147,8 +147,8 @@ class MainActivity : ComponentActivity() {
         // 历史 DataStore 值会在 SettingsRepository.init 中异步迁移到 SP,首次冷启动可能短暂返回默认值,
         // 但下次启动即正确,可接受(用户感知不到语言切换的差异)。
         val lang = settings.getLanguageSync()
-        // I4: 语言解析收敛到 parseAppLocale,system/未知返回 null(跟随系统)。
-        val locale = parseAppLocale(lang) ?: return base
+        // I4: 语言解析收敛到 AppLocales,system/未知返回 null(跟随系统)。
+        val locale = io.zer0.muse.util.AppLocales.parse(lang) ?: return base
         // v1.133: 复制当前 Configuration 并覆盖 locale,避免修改全局 Configuration。
         // 同时显式设置 layoutDirection,避免某些 RTL/LTR 边界场景。
         val config = android.content.res.Configuration(base.resources.configuration)
@@ -692,7 +692,6 @@ private fun MuseNavGraph(
                         chatNavGraph(
                             navController = navController,
                             sharedViewModel = sharedViewModel,
-                            context = context,
                         )
                         assistantNavGraph(
                             navController = navController,
@@ -721,21 +720,6 @@ private fun MuseNavGraph(
             )
         } // 关闭 P2-13 内层 onKeyEvent Box
     }
-}
-
-/**
- * 语言偏好字符串 → Locale(与 values-* 资源目录对应)。
- * "system" 或未知值返回 null,表示跟随系统默认语言。
- */
-private fun parseAppLocale(lang: String): java.util.Locale? = when (lang) {
-    "zh" -> java.util.Locale.SIMPLIFIED_CHINESE
-    "en" -> java.util.Locale.US
-    "ja" -> java.util.Locale.JAPAN
-    "ko" -> java.util.Locale.KOREA
-    "ru" -> java.util.Locale("ru", "RU")
-    "es" -> java.util.Locale("es", "ES")
-    "pt-rBR" -> java.util.Locale("pt", "BR")
-    else -> null
 }
 
 /**
@@ -774,7 +758,7 @@ private fun RuntimeLocaleProvider(lang: String, content: @Composable () -> Unit)
         "MainActivity requires an ActivityResultRegistryOwner"
     }
     val appContext = context.applicationContext
-    val locale = remember(lang) { parseAppLocale(lang) }
+    val locale = remember(lang) { io.zer0.muse.util.AppLocales.parse(lang) }
     val config = remember(lang) {
         val base = Configuration(appContext.resources.configuration)
         if (locale != null) {

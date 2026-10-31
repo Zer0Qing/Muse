@@ -5,7 +5,7 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
- * Agent DM 仓库 (既有实现 dm-tool.ts 实现)。
+ * Agent DM 仓库。
  */
 class AgentDmRepository(private val dao: AgentMessageDao) {
 

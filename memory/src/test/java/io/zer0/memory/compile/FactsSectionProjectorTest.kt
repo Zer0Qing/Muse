@@ -14,12 +14,16 @@ class FactsSectionProjectorTest {
         pinnedAt: String? = null,
         createdAt: String = "2026-01-01T00:00:00Z",
         lastConfirmedAt: String? = null,
+        id: Long = 0,
+        supersedesId: Long? = null,
     ) = FactStore.Fact(
+        id = id,
         fact = text,
         importance = importance,
         pinnedAt = pinnedAt,
         createdAt = createdAt,
         lastConfirmedAt = lastConfirmedAt,
+        supersedesId = supersedesId,
     )
 
     @Test
@@ -72,5 +76,24 @@ class FactsSectionProjectorTest {
     fun `blank facts are skipped`() {
         val out = FactsSectionProjector.project(listOf(fact("  "), fact("有效")))
         assertEquals("有效", out)
+    }
+
+    /** v18: 被 supersedes 指向的旧记忆不进 FACTS 段。 */
+    @Test
+    fun `superseded fact is not projected`() {
+        val out = FactsSectionProjector.project(
+            listOf(
+                fact("张三喜欢喝咖啡", id = 1),
+                fact("张三讨厌喝咖啡", id = 2, supersedesId = 1),
+            ),
+        )
+        assertEquals("张三讨厌喝咖啡", out)
+    }
+
+    /** v18: 指向方不在投影输入里时(如已被删),旧记忆自己回到上下文。 */
+    @Test
+    fun `old fact returns when the superseding row is gone`() {
+        val out = FactsSectionProjector.project(listOf(fact("张三喜欢喝咖啡", id = 1)))
+        assertEquals("张三喜欢喝咖啡", out)
     }
 }

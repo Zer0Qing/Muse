@@ -4,6 +4,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.ui.taskcard.TaskCardData
 import io.zer0.muse.ui.taskcard.TaskCardPhase
 import io.zer0.muse.ui.taskcard.TaskStep
@@ -39,6 +40,8 @@ class ChatTaskCardCoordinatorRetryTest {
                 name = name,
                 description = "phase3 test tool",
                 parameters = emptyMap(),
+                // 纯占位条目（只用于解析步骤所属工具），不执行任何操作。
+                riskLevel = ToolRiskLevel.SAFE,
             ),
         )
     }

@@ -323,6 +323,27 @@ class MemoryFileWriter(
         }
     }
 
+    /**
+     * 删除某个 scope 的记忆目录(即 `memory/<scope>/` 下的全部文件)。
+     *
+     * 只删这一个 scope 目录：根上的 `memory.md` 与 `daily/` 是旧版单空间产物,
+     * 不属于任何 scope;其他 scope 的目录也不受影响。
+     *
+     * @return 删除的文件数(目录不存在时为 0)
+     */
+    fun deleteScopeDir(scope: String): Int = runCatching {
+        val dir = scope.trim()
+            .takeIf { it.isNotEmpty() }
+            ?.let { File(memoryDir, safePathSegment(it)) }
+            ?.takeIf { it.isDirectory }
+        val deleted = dir?.walkTopDown()?.count { it.isFile } ?: 0
+        dir?.deleteRecursively()
+        deleted
+    }.getOrElse {
+        Logger.w(TAG, "删除 scope 目录失败: ${it.message}", it)
+        0
+    }
+
     /** 在文件头部追加元信息(生成时间),便于调试。 */
     fun buildHeader(note: String): String {
         return "<!-- Generated: ${Instant.now()} | $note -->\n\n"

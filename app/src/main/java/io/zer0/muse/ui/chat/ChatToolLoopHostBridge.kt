@@ -11,6 +11,7 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.session.ConversationSessionManager
 import io.zer0.muse.tools.ToolApprovalState
+import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.ui.ChatErrorType
 import kotlin.uuid.Uuid
 
@@ -41,6 +42,14 @@ internal interface ChatToolLoopHostBridge {
     val settings: SettingsRepository
     val sessionRepository: SessionRepository
     val chatService: ChatService
+
+    /**
+     * 上下文压缩器。
+     *
+     * 只给「上下文溢出恢复」用：请求被 provider 判定超出模型窗口时，压一轮历史再重发。
+     * runner 只调用它的 transform，不改变其任何行为与阈值语义。
+     */
+    val contextCompressTransformer: ContextCompressTransformer
     val sessionManager: ConversationSessionManager
     val notificationManager: MuseNotificationManager
     val conversationService: ConversationService

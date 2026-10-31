@@ -49,7 +49,7 @@ data class ImportResult(
 
 /**
  * v1.61-A: 第三方数据导入器。
- * 支持 既有实现 和 既有实现 两种备份格式。
+ * 支持 RikkaHub 和 Kelivo 两种备份格式。
  */
 object ThirdPartyImporter {
 
@@ -76,7 +76,7 @@ object ThirdPartyImporter {
 
     /**
      * 自动检测备份格式并导入。
-     * @param backupUri SAF URI(backup_*.zip / 既有实现_backup_*.zip / ChatGPT conversations.json)
+     * @param backupUri SAF URI(backup_*.zip / kelivo_backup_*.zip / ChatGPT conversations.json)
      */
     suspend fun importFromUri(
         context: Context,
@@ -194,8 +194,8 @@ object ThirdPartyImporter {
 
         // 判断格式:
         //  - ChatGPT 导出: conversations.json(顶层数组或 {conversations: [...]})或新版分片 conversations-000.json ...
-        //  - 既有实现: chats.json + settings.json
-        //  - 既有实现: settings.json(且无 chats.json)
+        //  - Kelivo: chats.json + settings.json
+        //  - RikkaHub: settings.json(且无 chats.json)
         val settingsFile = extracted["settings.json"]
         val chatsFile = extracted["chats.json"]
         val hasChats = chatsFile != null
@@ -290,7 +290,7 @@ object ThirdPartyImporter {
     }
 
     /**
-     * v1.0.74: 导入裸 JSON 文本(自动嗅探 ChatGPT / 既有实现 settings / 既有实现 chats)。
+     * v1.0.74: 导入裸 JSON 文本(自动嗅探 ChatGPT / RikkaHub settings / Kelivo chats)。
      */
     private suspend fun importJsonText(
         context: Context,
@@ -309,7 +309,7 @@ object ThirdPartyImporter {
             root is kotlinx.serialization.json.JsonArray ||
                 (root is kotlinx.serialization.json.JsonObject && root.containsKey("conversations")) ->
                 importConversationsJson(context, text, assistantRepo, sessionRepo)
-            // 既有实现 settings.json(有 providers/assistants)
+            // RikkaHub settings.json(有 providers/assistants)
             root is kotlinx.serialization.json.JsonObject &&
                 (root.containsKey("providers") || root.containsKey("assistants")) ->
                 importRikkaHub(context, text, settings, assistantRepo)
@@ -317,8 +317,8 @@ object ThirdPartyImporter {
         }
     }
 
-    // ── 既有实现 导入 ──
-    // 既有实现 的 settings.json 是 Settings data class 的完整 JSON,含 providers 和 assistants
+    // ── RikkaHub 导入 ──
+    // RikkaHub 的 settings.json 是 Settings data class 的完整 JSON,含 providers 和 assistants
 
     private suspend fun importRikkaHub(
         context: Context,
@@ -787,8 +787,8 @@ object ThirdPartyImporter {
         )
     }
 
-    // ── 既有实现 导入 ──
-    // 既有实现 的 settings.json 是 SharedPreferences 键值对 JSON
+    // ── Kelivo 导入 ──
+    // Kelivo 的 settings.json 是 SharedPreferences 键值对 JSON
     // chats.json 包含 conversations 和 messages
 
     private suspend fun importKelivo(
@@ -939,8 +939,8 @@ object ThirdPartyImporter {
 
                 // 创建会话并导入消息
                 if (conversationsArr != null) {
-                    // H-IMP3: 预取所有已存在的 assistantId,用于校验/重映射 既有实现 的 assistantId,
-                    // 避免会话引用到不存在的 assistant(悬空引用)。原导入逻辑直接透传 既有实现
+                    // H-IMP3: 预取所有已存在的 assistantId,用于校验/重映射 Kelivo 的 assistantId,
+                    // 避免会话引用到不存在的 assistant(悬空引用)。原导入逻辑直接透传 Kelivo
                     // 的 assistantId,但该 id 在本项目不存在,导致 UI 无法加载助手信息。
                     val existingAssistantIds: Set<String> = assistantRepo.getAll().map { it.id }.toSet()
                     val defaultAssistantId = existingAssistantIds.firstOrNull { it == "default" }
@@ -954,7 +954,7 @@ object ThirdPartyImporter {
                             val title = convObj["title"]?.jsonPrimitive?.contentOrNull ?: context.getString(R.string.import_default_session_title)
                             val rawAssistantId = convObj["assistantId"]?.jsonPrimitive?.contentOrNull
 
-                            // H-IMP3: 校验 assistantId,不存在则尝试映射到本批次导入的 既有实现 助手,
+                            // H-IMP3: 校验 assistantId,不存在则尝试映射到本批次导入的 Kelivo 助手,
                             // 仍不存在则回退到默认助手,杜绝悬空引用。
                             val mappedAssistantId = rawAssistantId?.let { id ->
                                 when {

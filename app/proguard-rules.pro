@@ -250,6 +250,11 @@
 -keep class io.ktor.server.engine.EngineMain { *; }
 -keep class io.ktor.server.netty.NettyApplicationEngine { *; }
 -keep class io.ktor.server.netty.NettyApplicationEngine$Configuration { *; }
+
+# v2.6.14: Netty 已从依赖中移除（Web 服务改用 CIO 引擎），
+# Netty 的多处反射（ReflectiveChannelFactory、ResourceLeakDetector 静态初始化）
+# 在 R8 混淆的 release 包里会被逐处掐掉，导致服务端起不来；CIO 是纯 Kotlin 实现，没有这个问题。
+# 下面保留少量 dontwarn 以兼容残留的三方可选引用。
 -keepnames class io.ktor.server.engine.ApplicationEngineFactory
 -keepnames class * implements io.ktor.server.engine.ApplicationEngineFactory
 -keepattributes *Annotation*

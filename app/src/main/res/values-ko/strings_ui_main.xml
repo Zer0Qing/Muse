@@ -183,17 +183,58 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">설정</string>
-    <string name="settings_screen_group_assistants">어시스턴트와 페르소나</string>
-    <string name="settings_screen_group_models">모델과 추론</string>
+    <string name="settings_screen_group_assistants">대화와 역할</string>
+    <string name="settings_screen_group_chat_input">채팅과 입력</string>
+    <string name="settings_screen_group_models">모델과 공급자</string>
     <string name="settings_screen_group_chat_display">대화와 표현</string>
+    <string name="settings_screen_group_tools">도구와 검색</string>
+    <string name="settings_screen_group_voice">음성</string>
+    <string name="settings_screen_group_media">이미지와 번역</string>
     <string name="settings_screen_group_memory">기억과 지식</string>
     <string name="settings_screen_group_data_privacy">데이터와 백업</string>
-    <string name="settings_screen_group_tools">능력과 도구</string>
-    <string name="settings_screen_group_about">정보 및 진단</string>
-    <string name="settings_screen_group_connection">연결, 계정 및 보안</string>
+    <string name="settings_screen_group_connection">연결</string>
+    <string name="settings_screen_group_automation">자동화</string>
     <string name="settings_screen_group_proactive">능동과 자동화</string>
-    <string name="settings_screen_group_voice_media">음성과 미디어</string>
-    <string name="settings_screen_group_look">인터페이스와 표시</string>
+    <string name="settings_screen_group_look">외형</string>
+    <string name="settings_screen_group_data">데이터</string>
+    <string name="settings_screen_group_privacy">개인정보와 정리</string>
+    <string name="settings_screen_group_about">정보 및 도움말</string>
+    <string name="settings_screen_group_developer">개발자</string>
+    <!-- 설정 첫 단계 분류 -->
+    <string name="settings_group_assistants">어시스턴트 및 역할</string>
+    <string name="settings_group_assistants_desc">프로필, 어시스턴트, 리소스, 에이전트</string>
+    <string name="settings_group_chat">채팅</string>
+    <string name="settings_group_chat_desc">표시, 스티커, 빠른 메모, 공유</string>
+    <string name="settings_group_models">모델 및 공급자</string>
+    <string name="settings_group_models_desc">공급자, 작업 라우팅, 공급자 플러그인</string>
+    <string name="settings_group_tools">도구 및 권한</string>
+    <string name="settings_group_tools_desc">도구, 권한 마법사, 웹 검색</string>
+    <string name="settings_group_voice">음성</string>
+    <string name="settings_group_voice_desc">읽어주기, 음성 인식, 음성 복제</string>
+    <string name="settings_group_image">이미지 및 비전</string>
+    <string name="settings_group_image_desc">이미지·동영상 생성, 비전 지원, 번역</string>
+    <string name="settings_group_memory">기억 및 지식</string>
+    <string name="settings_group_memory_desc">기억 센터와 지식 검색</string>
+    <string name="settings_group_connection">연결</string>
+    <string name="settings_group_connection_desc">연결 센터, 메시지 채널, 웹 버전, MCP</string>
+    <string name="settings_group_automation">자동화</string>
+    <string name="settings_group_automation_desc">능동 메시지, 예약 작업, 알림, 상주 실행</string>
+    <string name="settings_group_appearance">외형</string>
+    <string name="settings_group_appearance_desc">테마와 글자 크기, 미니폰</string>
+    <string name="settings_group_data_privacy">데이터 및 개인정보</string>
+    <string name="settings_group_data_privacy_desc">데이터, 작업 공간, 백업, 가져오기, 개인정보</string>
+    <string name="settings_group_about_developer">정보 및 개발자</string>
+    <string name="settings_group_about_developer_desc">튜토리얼, 업데이트, 통계, 진단 로그</string>
+    <string name="settings_group_data_storage">데이터 및 백업</string>
+    <string name="settings_group_data_storage_desc">데이터 관리, 작업 공간, 백업, 가져오기, 보관된 채팅</string>
+    <string name="settings_group_privacy_security">개인정보 및 보안</string>
+    <string name="settings_group_privacy_security_desc">개인정보 마스킹과 공유 보안</string>
+    <string name="settings_group_about">앱 정보</string>
+    <string name="settings_group_about_desc">튜토리얼, 버전 정보, 업데이트 확인</string>
+    <string name="settings_group_developer">개발자</string>
+    <string name="settings_group_developer_desc">통계, 실험적 기능, 디버그 및 감사 로그</string>
+    <string name="settings_group_section_about">정보</string>
+    <string name="settings_group_section_developer">개발자</string>
     <string name="settings_screen_appearance_label">외형</string>
     <string name="settings_screen_appearance_desc">테마 / 글꼴 크기</string>
     <string name="settings_screen_chat">채팅</string>
@@ -206,6 +247,24 @@
     <string name="settings_screen_data_backup_desc">클라우드 백업 / Web 서버</string>
     <string name="settings_screen_data_import">데이터 가져오기</string>
     <string name="settings_screen_data_import_desc">RikkaHub / Kelivo에서 이관</string>
+    <!-- 웹 접속(설정 → 연결): 주소 / PIN / QR 코드 -->
+    <string name="settings_screen_web_access">웹 접속</string>
+    <string name="settings_screen_web_access_desc">주소 / PIN / QR 코드로 바로 연결</string>
+    <string name="settings_web_access_intro">iPhone이나 PC 브라우저에서 아래 주소를 열고 PIN을 입력하면 웹 버전을 쓸 수 있습니다.</string>
+    <string name="settings_web_access_enable">웹 접속 사용</string>
+    <string name="settings_web_access_enable_subtitle">끄면 다른 기기는 즉시 연결이 끊기고 포트도 해제됩니다</string>
+    <string name="settings_web_access_lan">같은 네트워크 접속 허용</string>
+    <string name="settings_web_access_lan_on">같은 Wi-Fi의 휴대폰과 PC에서 열 수 있습니다</string>
+    <string name="settings_web_access_lan_off">이 기기에서만 접속 가능</string>
+    <string name="settings_web_access_local_only_hint">이 기기에서만 접속 가능하며, 다른 기기에서는 이 QR 코드를 스캔할 수 없습니다</string>
+    <string name="settings_web_access_no_ip">로컬 IP를 찾지 못했습니다. Wi-Fi에 연결하거나 공유기의 기기 격리를 확인하세요</string>
+    <string name="settings_web_access_scan_hint">휴대폰 카메라로 스캔하면 열립니다</string>
+    <string name="settings_web_access_first_login_hint">처음 열면 위의 6자리 PIN을 입력해야 합니다</string>
+    <string name="settings_web_access_pin_regenerated">새 PIN: %1$s. 다른 기기는 다시 로그인해야 합니다</string>
+    <string name="settings_web_access_qr_cd">웹 접속 주소 QR 코드</string>
+    <string name="settings_web_access_tip_iphone">iPhone은 Safari에서 연 뒤 공유 → 홈 화면에 추가하면 전체 화면으로 쓸 수 있습니다</string>
+    <string name="settings_web_access_tip_same_wifi">휴대폰과 이 기기가 같은 Wi-Fi에 있어야 합니다</string>
+    <string name="settings_web_access_tip_disable">스위치를 끄면 다른 기기는 즉시 연결이 끊깁니다</string>
     <string name="settings_screen_rag">지식 검색</string>
     <string name="settings_screen_rag_desc">RAG 설정 / Embedding / 청크 파라미터</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
@@ -353,6 +412,9 @@
     <string name="skill_operation_failed">작업 실패: %1$s</string>
     <string name="skill_unnamed">(이름 없음)</string>
     <string name="skill_enabled">활성화됨</string>
+    <string name="skill_bulk_summary">사용자 스킬 %1$d개, 사용 중 %2$d개</string>
+    <string name="skill_bulk_disable_all">모두 사용 안 함</string>
+    <string name="skill_bulk_enable_all">모두 사용</string>
     <string name="skill_disabled">비활성화됨</string>
     <string name="skill_built_in">내장</string>
     <string name="skill_built_in_seed">내장(시드)</string>
@@ -525,7 +587,7 @@
     <string name="free_model_service_unavailable">무료 할당량 서비스를 사용할 수 없습니다. API Key를 추가하거나 나중에 다시 시도하세요.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">플러그인 관리</string>
+    <string name="provider_plugins_title">공급자 플러그인</string>
     <string name="muse_plugins_external">외부 플러그인</string>
     <string name="muse_plugins_manage">플러그인 관리</string>
     <string name="muse_plugins_imported">플러그인 패키지가 설치되었습니다</string>
@@ -668,7 +730,11 @@
     <string name="muse_plugins_draft">확인 대기(실행되지 않음)</string>
     <string name="muse_plugins_draft_saved">비활성 초안으로 저장했습니다</string>
     <string name="muse_plugins_install_confirm_action">설치 확인 후 활성화</string>
-    <string name="muse_plugins_install_confirm_capabilities">선언된 기능: %1$s</string>
+    <string name="muse_plugins_install_confirm_capabilities">사용하는 기능 신고: %1$s</string>
+    <string name="muse_plugins_capabilities_disclaimer">이 신고는 플러그인이 무엇을 사용할 예정인지만 설명하며, 설치 후 실제로 할 수 있는 일을 제한하지 않습니다.</string>
+    <string name="muse_plugins_global_switch_title">플러그인 전체 스위치</string>
+    <string name="muse_plugins_global_switch_desc">끄면 어떤 플러그인도 실행되지 않습니다. 설치와 설정은 유지됩니다.</string>
+    <string name="muse_plugins_runtime_label">실행 환경: %1$s</string>
     <string name="muse_plugins_install_confirm_code">진입점 %1$d바이트 · 추가 파일 %2$d개 · 진입점 SHA-256: %3$s</string>
     <string name="muse_plugins_install_confirm_summary">버전 %1$s · 작성자 %2$s · 외부 코드는 제한된 JS 샌드박스에서 실행됩니다</string>
     <string name="muse_plugins_install_confirm_title">설치 확인: %1$s</string>
@@ -774,4 +840,12 @@
     <string name="workspace_empty_subtitle">어시스턴트가 대화에서 생성하거나 저장한 파일이 여기에 표시됩니다</string>
     <string name="settings_screen_group_storage">저장 공간</string>
     <string name="settings_screen_group_migrate">백업 및 이전</string>
+
+    <string name="workspace_mounts_title">마운트</string>
+    <string name="workspace_mount_add">폴더 추가</string>
+    <string name="workspace_mount_read_only">읽기 전용</string>
+    <string name="workspace_mount_remove">제거</string>
+    <string name="workspace_mount_added">%1$s 마운트됨</string>
+    <string name="workspace_mount_failed">마운트 실패: %1$s</string>
+    <string name="workspace_read_only_hint">읽기 전용 마운트라 수정할 수 없습니다</string>
 </resources>

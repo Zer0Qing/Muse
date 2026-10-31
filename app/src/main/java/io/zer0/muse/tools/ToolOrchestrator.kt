@@ -13,6 +13,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.Perf
+import io.zer0.common.TextTruncation
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.chat.PendingToolCallStore
@@ -189,7 +190,7 @@ internal enum class ToolExecCategory {
 private val READ_ONLY_TOOL_NAMES: Set<String> =
     setOf(
         // 基础计算 / 状态查询
-        "get_current_time", "calculator", "echo", "current_status",
+        "get_current_time", "calculator", "echo", "current_status", "get_token_usage",
         // 网络只读(搜索 / 抓取 / 天气 / DNS)
         "web_search", "web_fetch", "get_weather", "get_public_ip", "ping_host", "dns_lookup", "translate",
         // 设备 / 系统信息
@@ -323,6 +324,9 @@ sealed class StreamRoundResult {
      * @param hasToolCalls 本轮是否产生了工具调用
      * @param contentLength 本轮 assistant 正文字符数(用于性能统计)
      * @param firstTokenTime 首 token 到达时的系统时间,未到达则为 0
+     * @param toolCallsTruncated 本轮 tool_calls 的 arguments 被输出长度上限截断。
+     *   残缺参数既不解析也不执行,由编排器为每个调用回填一条明确的错误 tool result,
+     *   让模型在同一份上下文里看到原因并重发完整调用。
      */
     data class Success(
         val assistantMessage: UIMessage,
@@ -330,6 +334,7 @@ sealed class StreamRoundResult {
         val contentLength: Int,
         val firstTokenTime: Long,
         val citationUrls: List<String> = emptyList(),
+        val toolCallsTruncated: Boolean = false,
     ) : StreamRoundResult()
 
     /**
@@ -473,9 +478,21 @@ interface ToolLoopHost {
      * 但几条超大工具结果就能在条数限额内把窗口撞爆 —— 而生成中途没有压缩机会。
      * 宿主掌握当前模型的窗口与预留量，这里只问一次、不反向依赖宿主实现。
      *
-     * 默认返回 0（不做判定），保证既有实现不需要改动。
+     * 默认返回 0（不做判定），保证现有实现不需要改动。
      */
     fun contextBudgetTokens(): Int = 0
+
+    /**
+     * 取用户在工具链运行期间发出的话（插话）。
+     *
+     * 编排器在「本轮工具结果全部回填完、下一轮请求发出之前」调用一次，把返回的每条文本
+     * 作为一条新的 USER 消息追加在 tool 结果之后。正在执行/刚执行完的工具不受影响：
+     * 不回滚、不取消、结果照旧回填，插话只改变下一轮请求看得到的内容。
+     *
+     * 默认返回空列表 —— 不实现该方法的宿主（子代理、定时任务等）行为完全不变：
+     * 没有插话时不产生任何额外消息，history 与改动前逐字一致。
+     */
+    suspend fun drainSteeringMessages(): List<String> = emptyList()
 }
 
 /**
@@ -755,7 +772,7 @@ class ToolOrchestrator(
      *  - [INTERRUPTED]: 执行被流式中断(用户停止/会话切换),结果不完整;
      *  - [APPROVAL_PENDING]: 等待用户审批,生成循环挂起。
      */
-    enum class ToolExecStatus { SUCCESS, FAILED, INTERRUPTED, APPROVAL_PENDING, TIMED_OUT, CANCELLED }
+    enum class ToolExecStatus { SUCCESS, FAILED, DENIED, INTERRUPTED, APPROVAL_PENDING, TIMED_OUT, CANCELLED }
 
     /**
      * Phase 3: 工具执行终态 → 任务卡步骤状态映射。
@@ -766,6 +783,8 @@ class ToolOrchestrator(
     private fun ToolExecStatus.toTaskStepStatus(): TaskStepStatus = when (this) {
         ToolExecStatus.SUCCESS -> TaskStepStatus.SUCCESS
         ToolExecStatus.FAILED -> TaskStepStatus.FAILED
+        // 用户主动拒绝不是失败:工具没跑、也没报错,与「取消」同档更贴实际。
+        ToolExecStatus.DENIED -> TaskStepStatus.CANCELLED
         ToolExecStatus.INTERRUPTED -> TaskStepStatus.CANCELLED
         ToolExecStatus.CANCELLED -> TaskStepStatus.CANCELLED
         ToolExecStatus.TIMED_OUT -> TaskStepStatus.TIMED_OUT
@@ -1005,17 +1024,22 @@ class ToolOrchestrator(
 
                     val assistantToolMsg = outcome.assistantMessage
                     val rawToolCallList = assistantToolMsg.toolCalls ?: emptyList()
-                    // v1.0.48: 过滤无效 toolCalls — 商汤 completeText 回退等场景可能返回
-                    //   空 name 或空 arguments 的 toolCall,直接执行会引发 HTTP 400
-                    //   (invalid tool_call function, function/name/arguments cannot be empty)
-                    //   过滤后若无有效调用,按"无工具调用"处理本轮,避免卡死
-                    // v2.6.10: 传入本轮暴露的工具名。模型偶尔把台词和函数名连成一串提交,
-                    //   有了这份名单才能把末尾那个真工具名还原出来,而不是把整条调用丢掉。
+                    val truncatedArgsRound = outcome.toolCallsTruncated
                     val toolCallList =
-                        ToolCallSanitizer.sanitize(
-                            rawToolCallList,
-                            params.tools.mapTo(HashSet()) { it.name },
-                        )
+                        if (truncatedArgsRound) {
+                            truncatedToolCallsForBackfill(rawToolCallList, round)
+                        } else {
+                            // v1.0.48: 过滤无效 toolCalls — 商汤 completeText 回退等场景可能返回
+                            //   空 name 或空 arguments 的 toolCall,直接执行会引发 HTTP 400
+                            //   (invalid tool_call function, function/name/arguments cannot be empty)
+                            //   过滤后若无有效调用,按"无工具调用"处理本轮,避免卡死
+                            // v2.6.10: 传入本轮暴露的工具名。模型偶尔把台词和函数名连成一串提交,
+                            //   有了这份名单才能把末尾那个真工具名还原出来,而不是把整条调用丢掉。
+                            ToolCallSanitizer.sanitize(
+                                rawToolCallList,
+                                params.tools.mapTo(HashSet()) { it.name },
+                            )
+                        }
                     if (rawToolCallList.size != toolCallList.size) {
                         Logger.w(
                             TAG,
@@ -1112,7 +1136,9 @@ class ToolOrchestrator(
 
                     // 断点续传:持久化未完成的工具调用。暂停模式是用户明确选择的
                     // “本轮不执行”，不应把这些调用重启后误当成待恢复副作用。
-                    if (params.allowToolExecution) {
+                    // 参数截断轮同理：回填用的 arguments 只是 `{}` 占位，落进 pending
+                    // 会在重启后被当成真调用执行。
+                    if (params.allowToolExecution && !truncatedArgsRound) {
                         savePendingToolCalls(params.sessionId, toolCallList, executionIdentity, host)
                     }
 
@@ -1120,6 +1146,8 @@ class ToolOrchestrator(
                     // v1.0.53: send_sticker 不纳入任务卡(表情包是趣味交互,不展示执行计划),
                     //   全部调用均为静默工具时不建卡(taskCardId=null,后续对卡的操作内部判空跳过)。
                     // v1.0.54: list_stickers 同样静默(列表情包是内部工作,用户无需看到)。
+                    // 参数截断轮不建卡：本轮没有一个调用会真的执行，卡片只会挂一排
+                    // 不前进的步骤；截断事实由下面的工具回执卡片向用户说明。
                     val silentToolNames = setOf("send_sticker", "list_stickers")
                     val taskCardToolCallsWithIds =
                         toolCallList
@@ -1128,7 +1156,7 @@ class ToolOrchestrator(
                     val taskCardToolCalls = taskCardToolCallsWithIds.map { it.second }
                     val taskCardToolCallIds = taskCardToolCallsWithIds.map { it.first }
                     val taskCardId: String? =
-                        if (taskCardToolCalls.isNotEmpty()) {
+                        if (taskCardToolCalls.isNotEmpty() && !truncatedArgsRound) {
                             val id = currentAssistantId.toString()
                             val taskCard =
                                 TaskCardData.fromToolCalls(
@@ -1264,7 +1292,7 @@ class ToolOrchestrator(
                     if (toolCallList.size > 1 && WeakToolUseDetector.isWeakToolModel(params.model)) {
                         Logger.i(TAG, "弱工具模型检测到 ${toolCallList.size} 个工具调用,串行执行 | model=${params.model?.id}")
                     }
-                    val parallelRound = shouldExecuteRoundInParallel(toolCallList, params)
+                    val parallelRound = !truncatedArgsRound && shouldExecuteRoundInParallel(toolCallList, params)
                     val stateLock = if (parallelRound) Mutex() else null
                     val approvalLock = if (parallelRound) Mutex() else null
                     if (parallelRound) {
@@ -1275,11 +1303,29 @@ class ToolOrchestrator(
                         )
                     }
                     val execResults: List<ToolExecResult> =
-                        executeToolRound(
-                            toolCallList = toolCallList,
-                            parallel = parallelRound,
-                            execute = { idx, tc -> executeToolCall(idx, tc, stateLock, approvalLock) },
-                        )
+                        if (truncatedArgsRound) {
+                            // 不执行、不审批、不落 pending：只把“这次调用的参数被输出上限截断”
+                            // 作为 tool result 回填给模型，由它在下一轮重发完整参数。
+                            // 代价是本回合多占一轮请求（轮次上限最坏多吃 1 轮），
+                            // 优于一整轮静默作废；反复截断仍受停滞检测与轮次上限约束。
+                            toolCallList.mapIndexed { idx, tc ->
+                                ToolExecResult(
+                                    idx = idx,
+                                    tc = tc,
+                                    finalToolResult = truncatedArgumentsToolResult(tc.name),
+                                    isSuccess = false,
+                                    displayResult = "工具 ${tc.name} 未执行：参数在生成时被输出长度上限截断",
+                                    status = ToolExecStatus.FAILED,
+                                    finishedAt = System.currentTimeMillis(),
+                                )
+                            }
+                        } else {
+                            executeToolRound(
+                                toolCallList = toolCallList,
+                                parallel = parallelRound,
+                                execute = { idx, tc -> executeToolCall(idx, tc, stateLock, approvalLock) },
+                            )
+                        }
                     if (!params.allowToolExecution) {
                         // 给模型一轮明确的“工具已暂停”结果，然后强制关闭工具收尾；
                         // 思考和最终回复仍然保留，不会触发真实工具副作用。
@@ -1520,8 +1566,31 @@ class ToolOrchestrator(
                         accessor.update { it.copy(agentPlans = latestPlans) }
                     }
 
+                    // 是否还有下一轮请求要发。插话只在有下一轮时取：本轮就结束的话，
+                    // 取出来也无处可送（用户那条消息会既没进请求、又不在队列里）。
+                    val willRunAnotherRound = (hasToolCalls || forceFinalResponse) && round < execPolicy.maxRounds
+
+                    // 用户插话：工具轮跑完、下一轮请求之前，把用户生成期间说的话作为 USER 消息接在
+                    // **全部 tool 结果之后**。位置只有这一处合法：
+                    //  - 插在本轮 assistant(tool_calls) 与 tool 结果之间 → 拆散配对，Provider 直接 400；
+                    //  - 并进某条 TOOL 消息 → TOOL 只能回填对应 tool_call_id 的结果，塞别的内容同样 400；
+                    //  - 插在更早的历史中间 → 会改写模型已经看过的前缀，缓存与思考块回放都会错位。
+                    // 作为一条独立的 USER 消息接在尾部，既不改动既有配对，又保证下一轮模型看到它。
+                    if (willRunAnotherRound) {
+                        val steeringMessages = host.drainSteeringMessages()
+                        if (steeringMessages.isNotEmpty()) {
+                            steeringMessages.forEach { text ->
+                                conversationHistory.add(UIMessage(role = MessageRole.USER, content = text))
+                            }
+                            Logger.i(
+                                TAG,
+                                "插入用户插话 ${steeringMessages.size} 条 | sessionId=${params.sessionId} | round=$round",
+                            )
+                        }
+                    }
+
                     // 创建新的占位 assistant 消息接收下一轮流式回复
-                    if ((hasToolCalls || forceFinalResponse) && round < execPolicy.maxRounds) {
+                    if (willRunAnotherRound) {
                         val nextAssistant = UIMessage(role = MessageRole.ASSISTANT, content = "")
                         val snapshot = accessor.snapshot
                         val isCurrentDisplayedSession2 =
@@ -2003,7 +2072,7 @@ class ToolOrchestrator(
             withTurnLock(stateLock) {
                 taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
                     s.copy(
-                        status = TaskStepStatus.FAILED,
+                        status = TaskStepStatus.CANCELLED,
                         result = deniedResult,
                         finishedAt = System.currentTimeMillis(),
                     )
@@ -2018,7 +2087,7 @@ class ToolOrchestrator(
             withTurnLock(stateLock) {
                 host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
             }
-            return ToolExecResult(idx, tc, deniedResult, false, status = ToolExecStatus.FAILED)
+            return ToolExecResult(idx, tc, deniedResult, false, status = ToolExecStatus.DENIED)
         }
 
         // v2.6.2（工具审计）: Answered 语义是“用户提供自定义回答，不执行工具”。
@@ -2238,7 +2307,7 @@ class ToolOrchestrator(
         // 需要更多内容时助手可用 read_file 的字符游标分段读取。
         // 只生成一次结果表示，展示与 LLM 共用同一份完整文本或完整文件引用。
         // 失败引导只进 LLM 历史,不泄漏到用户可见的任务卡/工具卡片。
-        val baseResult = prepareToolOutput(tc.id, toolResult, inlineOutputBudgetTokens)
+        val baseResult = prepareToolOutput(tc.id, tc.name, toolResult, inlineOutputBudgetTokens)
         // v1.0.47 P2-1: 结构化失败引导 — 仅拼进给 LLM 的历史消息,避免无效重试循环
         val llmResult =
             if (isSuccess) {
@@ -2452,6 +2521,34 @@ class ToolOrchestrator(
     }
 
     /**
+     * 为“参数被输出长度上限截断”的工具轮构造回填用的调用列表。
+     *
+     * 残缺 arguments 到此为止不解析、不修复、不执行：半截 JSON 补出来的形状永远不是模型的本意。
+     * 这里只保留协议上必需的两样事实：工具名与 tool_call_id。
+     *  - arguments 统一换成 `{}` 占位：回传给 provider 的 assistant tool_calls 必须是合法 JSON，
+     *    否则下一轮请求会被“Assistant tool call arguments must be valid JSON”直接拒掉；
+     *  - 连工具名都没收到的调用无从描述、也无从配对，整条丢弃（assistant 里的对应项一并消失，
+     *    不会留下无结果的 tool_call）；全部丢弃时回到“本轮无有效调用”的既有收口路径；
+     *  - id 缺失或重复时按轮次+序号合成，保证每条调用都能被自己的 tool result 指认。
+     */
+    internal fun truncatedToolCallsForBackfill(raw: List<ToolCall>, round: Int): List<ToolCall> {
+        val usedIds = mutableSetOf<String>()
+        return raw.filter { it.name.isNotBlank() }.mapIndexed { idx, tc ->
+            val id = tc.id.takeIf { it.isNotBlank() && it !in usedIds } ?: "truncated_call_${round}_$idx"
+            usedIds += id
+            ToolCall(id = id, name = tc.name, arguments = "{}")
+        }
+    }
+
+    /** 参数截断回执：机器可读的错误码，加上模型下一步该做什么。 */
+    internal fun truncatedArgumentsToolResult(toolName: String): String {
+        val safeToolName = toolName.replace("\\", "\\\\").replace("\"", "\\\"")
+        return """{"error":"arguments_truncated_by_output_limit","tool":"$safeToolName",""" +
+            """"detail":"这次调用的参数在生成时被输出长度上限截断，未执行；""" +
+            """请用完整参数重新发起该调用，内容过长时拆成多次较小的调用。"}"""
+    }
+
+    /**
      * 有些模型会把要说的话整个塞进工具调用里：name 为空或非法，arguments 是一整句人话。
      *
      * 这种调用无法执行，但里面装的不是参数，而是模型本来想说给用户的话。
@@ -2624,13 +2721,29 @@ class ToolOrchestrator(
     /**
      * 优先把完整结果送入当前模型窗口；放不下时保存完整文本并只传预览与分段读取指引。
      * 写盘失败时保留原始内存结果，不再悄悄裁掉尾部。
+     *
+     * 预览方向按工具语义选：[keepsOutputTail] 为真的命令类工具留尾部（报错/失败用例/退出码都在最后），
+     * 其余（文件读取、搜索结果等）仍然首尾兼顾——开头就是他们最常用的定位信息。
      */
-    private suspend fun prepareToolOutput(toolCallId: String, output: String, inlineBudgetTokens: Int?): String {
+    private suspend fun prepareToolOutput(
+        toolCallId: String,
+        toolName: String,
+        output: String,
+        inlineBudgetTokens: Int?,
+    ): String {
         if (output.length <= SMALL_TOOL_RESULT_INLINE_CHARS) return output
         val estimatedTokens = TokenEstimator.estimate(listOf(UIMessage(role = MessageRole.TOOL, content = output)))
         if (canInlineToolOutput(output.length, estimatedTokens, inlineBudgetTokens)) return output
 
-        val preview = output.take(TOOL_RESULT_PREVIEW_CHARS)
+        // 预览按码点安全截断:直接 take 会把代理对（emoji 等）切成两半，
+        // 并把省略量告诉模型，避免它以为看到的就是全部。
+        val keepTail = keepsOutputTail(toolName)
+        val preview =
+            if (keepTail) {
+                TextTruncation.tailText(output, TOOL_RESULT_PREVIEW_CHARS)
+            } else {
+                TextTruncation.headTailText(output, TOOL_RESULT_PREVIEW_CHARS)
+            }
         val fileName = "tool_output_${toolCallId}_${System.currentTimeMillis()}.txt"
 
         return try {
@@ -2662,11 +2775,19 @@ class ToolOrchestrator(
                 // chip; the previous "/tool_outputs/..." form matched no extractor pattern.
                 append("[完整输出已保存到: ${file.absolutePath}]\n")
                 append(
-                    "[需要完整内容时使用 read_file 分段读取: path=$TOOL_OUTPUTS_DIR/$fileName, " +
-                        "offset_chars=0, length_chars=$TOOL_OUTPUT_READ_PAGE_CHARS]\n\n",
+                    "[需要完整内容时用 workspace_read 分段读取: path=$TOOL_OUTPUTS_DIR:/$fileName, " +
+                        "offset_chars=0, length_chars=$TOOL_OUTPUT_READ_PAGE_CHARS；" +
+                        "也可用 read_file 读取（path=$TOOL_OUTPUTS_DIR/$fileName）]\n\n",
                 )
                 append(preview)
-                append("\n\n[以上是预览，不是完整结果；请按字符游标继续读取所需部分]")
+                // 尾部预览时明确告知省略的是开头，否则模型会把最后几行当成完整结果的开头。
+                append(
+                    if (keepTail) {
+                        "\n\n[以上是结果末尾的预览，不是完整结果；开头部分从 offset_chars=0 分段读取]"
+                    } else {
+                        "\n\n[以上是预览，不是完整结果；请按字符游标继续读取所需部分]"
+                    },
+                )
             }
         } catch (ce: kotlin.coroutines.cancellation.CancellationException) {
             throw ce

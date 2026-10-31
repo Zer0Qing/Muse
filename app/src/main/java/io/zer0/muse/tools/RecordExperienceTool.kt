@@ -5,7 +5,7 @@ import io.zer0.muse.data.experience.ExperienceRepository
 import java.util.UUID
 
 /**
- * record_experience 工具(既有实现 experience.ts 实现)。
+ * record_experience 工具。
  *
  * 将学到的经验记录到经验库中。
  */

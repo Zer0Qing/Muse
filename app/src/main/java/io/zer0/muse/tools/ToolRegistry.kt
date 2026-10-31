@@ -83,8 +83,8 @@ class ToolRegistry(
         val category: String = "built-in",
         /** 参数名 → JSON Schema type(如 integer / boolean),未指定默认 string。 */
         val parameterTypes: Map<String, String> = emptyMap(),
-        /** 工具风险等级,用于会话权限体系。 */
-        val riskLevel: ToolRiskLevel = ToolRiskLevel.SAFE,
+        /** 工具风险等级,用于会话权限体系。无缺省值:每个构造点必须显式声明,漏写即编译失败。 */
+        val riskLevel: ToolRiskLevel,
         /** 原始 JSON Schema。MCP 工具使用此字段保留嵌套对象、数组、枚举等完整结构。 */
         val rawParametersJsonSchema: String? = null,
     )
@@ -201,13 +201,34 @@ class ToolRegistry(
         sessionId?.let { visibleToolNamesBySession.remove(it) }
     }
 
+    /**
+     * 三档工具计数的统一入口（口径见 [ToolCounts]，规则见 [ToolSchemaRules]）。
+     *
+     * 启动日志、提示词工具索引、find_tools 头部计数都从这里取数：三个数各自对应
+     * 一层真实消费面，不再各写一套筛选实现。
+     */
+    fun countTools(
+        sessionId: String?,
+        criteria: ToolSchemaRules.Criteria = ToolSchemaRules.Criteria(),
+        enabledSkills: List<io.zer0.muse.data.skill.SkillEntity> = emptyList(),
+    ): ToolCounts = ToolCounter.compute(
+        ToolCounter.Input(
+            localToolDefs = listToolsAsToolDefinitions(),
+            registeredTools = listTools(),
+            sessionSkillDefs = searchableSkills(sessionId),
+            sessionVisibleNames = visibleTools(sessionId),
+            enabledSkills = enabledSkills,
+            criteria = criteria,
+        ),
+    )
+
     // v1.136: 定时提醒、资源库
     // v1.0.17: 快速记录改用 Room(MuseDb.get(context).quickNoteDao()),不再持有 QuickNoteStore
 
     init {
         // 注册内置 7 件套
         // JS 沙盒:让 AI 能执行 JavaScript 代码(数学计算/数据处理/简单算法)
-        // 底层用 WebView 的 V8 引擎,不新增大型依赖(既有实现 QuickJS 思路)
+        // 底层用 WebView 的 V8 引擎,不新增大型依赖
         register(CodeExecutionTool.toolDef()) { args ->
             CodeExecutionTool.executeFromArgs(args, context)
         }
@@ -297,34 +318,6 @@ class ToolRegistry(
             toolDefs.remove(name)
             bumpRevision()
         }
-    }
-
-    private fun registerBuiltIn(
-        name: String,
-        description: String,
-        parameters: Map<String, String>,
-        required: Set<String>,
-        fn: ToolFn,
-        riskLevel: ToolRiskLevel = ToolRiskLevel.SAFE,
-        parameterTypes: Map<String, String> = emptyMap(),
-    ) {
-        register(ToolDef(name, description, parameters, required, "built-in", parameterTypes, riskLevel), fn)
-    }
-
-    /**
-     * v1.0.53: 注册结构化结果内置工具(返回 [ToolOutcome])。
-     * 覆盖同名 String 通道。
-     */
-    private fun registerBuiltInOutcome(
-        name: String,
-        description: String,
-        parameters: Map<String, String>,
-        required: Set<String>,
-        fn: ToolOutcomeFn,
-        riskLevel: ToolRiskLevel = ToolRiskLevel.SAFE,
-        parameterTypes: Map<String, String> = emptyMap(),
-    ) {
-        registerOutcome(ToolDef(name, description, parameters, required, "built-in", parameterTypes, riskLevel), fn)
     }
 
     // v1.0.53: 工具分类注册表校验 — 每个内置工具必须有分类
@@ -457,8 +450,8 @@ class ToolRegistry(
             return executeJson(name, stringArgsToJson(args), fn, cancellationToken)
         }
         // v1.0.53: 内容级安全规则(执行前硬边界,不受审批模式影响)
-        val content = args.values.joinToString("\n")
-        ContentSafetyRules.check(name, content)?.let { rule ->
+        // 传参数表而不是拼好的串：路径类规则只该看 path，不能把正文一起拿去过匹配。
+        ContentSafetyRules.checkArgs(name, args)?.let { rule ->
             Logger.w("ToolRegistry", "内容安全规则命中: ${rule.ruleId} (tool=$name)")
             return ToolOutcome.error("${rule.reason}(${rule.ruleId})")
         }
@@ -600,8 +593,7 @@ class ToolRegistry(
         cancellationToken: () -> Boolean = { false },
     ): ToolOutcome {
         val stringArgs = rawArgs.entries.associate { (k, v) -> k to jsonArgValue(v) }
-        val content = stringArgs.values.joinToString("\n")
-        ContentSafetyRules.check(name, content)?.let { rule ->
+        ContentSafetyRules.checkArgs(name, stringArgs)?.let { rule ->
             Logger.w("ToolRegistry", "内容安全规则命中: ${rule.ruleId} (tool=$name)")
             return ToolOutcome.error("${rule.reason}(${rule.ruleId})")
         }
@@ -772,6 +764,8 @@ class ToolRegistry(
                 "ping_host", "dns_lookup", "get_public_ip", "json_pretty", "generate_password", "speak_text",
                 // v1.135: 媒体生成工具(ChatViewModel 注册,此处登记用于默认助手启用)
                 "generate_image", "generate_video", "generate_qr_code",
+                // v2.x: 助手发语音消息(MediaGenToolsRegistrar 注册,与生图同一条媒体投递链路)
+                "send_voice",
                 // v1.95: 表情包库工具(SkillExecutor 实现,此处登记便于统一识别)
                 "list_stickers", "send_sticker",
                 // 补充内置工具
@@ -779,6 +773,8 @@ class ToolRegistry(
                 "memory_config_get", "memory_config_set",
                 "recall_experience", "record_experience",
                 "todo_write", "show_card", "render_data", "notify", "current_status",
+                // v2.x: token 消耗与上下文占用自查（AgentToolsRegistrar 注册）
+                "get_token_usage",
                 // v2.0: 卡片数据绑定(AgentToolsRegistrar 注册)
                 "update_card_data",
                 "subagent_task",
@@ -796,7 +792,8 @@ class ToolRegistry(
                 "connector_list", "call_connector",
                 // P2-7: 工作区文件管理工具(WorkspaceToolsRegistrar 注册)
                 "workspace_list", "workspace_read", "workspace_write",
-                "workspace_delete", "workspace_mkdir", "workspace_move",
+                "workspace_edit", "workspace_delete", "workspace_mkdir", "workspace_move",
+                "workspace_copy", "workspace_mounts",
                 "workspace_grep",
                 // v1.0.17: 定时任务工具(助手可创建/管理定时任务)
                 "scheduled_task_create", "scheduled_task_list", "scheduled_task_update",

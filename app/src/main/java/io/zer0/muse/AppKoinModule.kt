@@ -114,12 +114,8 @@ val appModule = module {
     single { get<MuseDb>().statsCacheDao() } // 统计缓存
     single { get<MuseDb>().integrityLogDao() } // P3-3: 数据库完整性日志
     single { get<MuseDb>().translateHistoryDao() } // v1.0.17: 翻译历史
-    single { get<MuseDb>().momentDao() }
-    // v1.0.74: AI 日记本
-    single { get<MuseDb>().diaryDao() }
     single { get<MuseDb>().patrolLogDao() }
-    single { io.zer0.muse.data.diary.DiaryRepository(get()) }
-    // v2.6.7（P0-1）: 旁路生成上下文构建器 — 让朋友圈/评论/私信/日记走完整生成链路
+    // v2.6.7（P0-1）: 旁路生成上下文构建器 — 让小手机私信走完整生成链路
     // （世界书 / 记忆 / 用户画像 / 提示词注入都生效），不再只做三段字符串拼接。
     single {
         io.zer0.muse.data.moment.MiniContextBuilder(
@@ -127,17 +123,6 @@ val appModule = module {
             lorebookRepository = get(),
             promptInjectionRepository = get(),
             settingsRepository = get(),
-        )
-    }
-    single {
-        io.zer0.muse.data.diary.DiaryGenerator(
-            chatService = get(),
-            momentRepository = get(),
-            sessionRepository = get(),
-            contextBuilder = get(),
-            settingsRepository = get(),
-            factStore = get(),
-            assistantRepository = get(),
         )
     }
     single { AuditLogger(get()) } // P2-4: 审计日志记录器
@@ -158,11 +143,12 @@ val appModule = module {
             storageDir = java.io.File(androidContext().filesDir, "muse_images"),
         )
     }
-    single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get(), get()) } // +MuseDb: 跨表事务(H-SESS1)
+    // +MuseDb: 跨表事务(H-SESS1); +SessionMemoryCleanup: 删会话连带清记忆
+    single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get(), get(), get()) }
     single { io.zer0.muse.data.artifact.ArtifactRepository(get()) } // v1.43: 会话产物仓库
     single {
-        AssistantRepository(get(), androidContext(), get(), get())
-    } // Phase 8.2 + v1.0.51 注入 SettingsRepository;P0-10 注入 FactDbProvider(删助手清分库)
+        AssistantRepository(get(), androidContext(), get(), get(), get())
+    } // Phase 8.2 + v1.0.51 注入 SettingsRepository;P0-10 注入 FactDbProvider(删助手清分库);删除时连带清记忆
     single { LorebookRepository(get()) } // Phase 8.5
     single { io.zer0.muse.worldbook.WorldBookRepository(get()) } // P1-2: Worldbook 动态世界书
     single { QuickMessageRepository(get()) } // Phase 8.5
@@ -176,8 +162,6 @@ val appModule = module {
     } // v1.30: 群聊仓库(含 MuseDb 用于跨表事务)+ v2.x 遗留收尾 MessageImageStore
     // v2.x: 群聊记忆隔离仓库(独立 fact store,不污染主记忆)
     single { io.zer0.muse.data.groupchat.GroupChatMemoryRepository(get()) }
-    // v1.0.72: AI 朋友圈
-    single { io.zer0.muse.data.moment.MomentRepository(get(), get()) }
     // v2.6.7（P1-1）: 角色关系状态（亲密度 / 意愿档位 / 最近互动）
     single { get<MuseDb>().assistantRelationshipDao() }
     single { io.zer0.muse.data.relationship.AssistantRelationshipRepository(get()) }
@@ -186,27 +170,6 @@ val appModule = module {
     // v2.6.7: 会话待办持久化（跨会话台账）
     single { get<MuseDb>().sessionTodoDao() }
     single { io.zer0.muse.data.todo.SessionTodoRepository(get()) }
-    single {
-        io.zer0.muse.data.moment.MomentGenerator(
-            chatService = get(),
-            imageService = get(),
-            contextBuilder = get(),
-            settingsRepository = get(),
-        )
-    }
-    // v1.0.75: 互动引擎
-    single {
-        io.zer0.muse.data.moment.MomentInteractionEngine(
-            repository = get(),
-            generator = get(),
-            assistantRepository = get(),
-            sessionRepository = get(),
-            scope = get(),
-            relationshipRepository = get(),
-            settingsRepository = get(),
-        )
-    }
-    single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get(), get(), get()) }
     // v1.95: 表情包库仓库(文件存储,不碰 MuseDb)
     single { io.zer0.muse.data.sticker.StickerLibraryRepository(androidContext()) }
 
@@ -290,6 +253,9 @@ val appModule = module {
         )
     }
     single { io.zer0.muse.proactive.ProactiveComposer(chatService = get(), promptAssembler = get()) }
+    // 四路触发源(定时 / Worker / 回前台 / 手动)共用这一份单飞闸。
+    // 必须是单例：各拿一份就等于各有一道闸,等于没有闸。
+    single { io.zer0.muse.proactive.ProactiveCycleGuard() }
     single {
         io.zer0.muse.proactive.ProactiveContextLoader(
             stores = get(),
@@ -303,6 +269,7 @@ val appModule = module {
             runtime = get(),
             loader = get(),
             composer = get(),
+            guard = get(),
         )
     }
     single {
@@ -428,6 +395,8 @@ val appModule = module {
     // v1.202: 注入 SkillExecutor / SubagentThreadStore / DeferredResultStore / appScope,
     //         供 SubagentTool(launch/reply/close 三件套)使用
     single {
+        // v2.x: token 用量自查需要会话维度的用量（usage_records 没有会话列）。
+        val sessionRepository = get<SessionRepository>()
         io.zer0.muse.tools.AgentToolsRegistrar(
             toolRegistry = get(),
             pinnedMemoryStore = get(),
@@ -449,6 +418,26 @@ val appModule = module {
             automationManager = getOrNull(),
             // v2.6.9: 牵挂账本，供 note_thought 写入。
             proactiveThoughtStore = getOrNull(),
+            // v2.x: token 用量自查。用量流水与消息表都在 MuseDb 里；上下文占用由
+            // ChatViewModel 绑定的探针提供，未打开对话时自动省略该行。
+            usageRecordDao = get<MuseDb>().usageRecordDao(),
+            sessionUsageReader = { sessionId ->
+                sessionRepository.getUsageTotalsBySession(sessionId).let { row ->
+                    io.zer0.muse.tools.TokenUsageTool.SessionUsage(
+                        requests = row.requests,
+                        promptTokens = row.promptTokens,
+                        completionTokens = row.completionTokens,
+                    )
+                }
+            },
+            contextOccupancy = { io.zer0.muse.ui.chat.ContextOccupancyProbe.current() },
+            // facts 表查不到时回落到编译摘要（注入提示词的 TODAY/WEEK/LONGTERM 散文）。
+            // 用 getOrNull：没有装配记忆编译的单测/宿主里不回落，而不是启动就崩。
+            compiledSummarySearch = getOrNull<io.zer0.memory.compile.MemoryCompiler>()?.let { compiler ->
+                io.zer0.muse.tools.SearchMemoryTool.CompiledSummarySearch { query, scope, spaceId, limit ->
+                    compiler.searchCompiledSections(query, scope, spaceId, limit)
+                }
+            },
         )
     }
     // v2.x: current-session original conversation recall, scoped by host context.
@@ -572,11 +561,17 @@ val appModule = module {
     // 实现与 ViewModel 无关,只依赖持久化配置 + ImageService / VideoGenerationService;
     // 无 UI 链路(定时任务/群聊/子代理)不安装投递宿主,结果以文件路径/URL 返回。
     single {
+        // v2.x: 发语音消息 —— 合成走 TtsManager，落盘走 VoiceMessageStore。
+        // TtsManager 不实现 VoiceSynthesizer（给它加父类型会让 detekt 基线的类级豁免失效），
+        // 这里用 SAM 适配一次性接上。
+        val tts = get<io.zer0.muse.ui.speech.TtsManager>()
         io.zer0.muse.tools.MediaGenToolsImpl(
             context = androidContext(),
             settings = get(),
             imageService = get(),
             videoGenerationService = get(),
+            voiceSynthesizer = { text, file, emotion -> tts.synthesizeTo(text, file, emotion) },
+            voiceMessageStore = get<io.zer0.muse.ui.speech.VoiceMessageStore>(),
         )
     }
     // P2-23: 媒体生成工具注册器(init 块自动注册到 ToolRegistry)。
@@ -708,6 +703,8 @@ val appModule = module {
                 }
             },
             get(),
+            // 插件总开关：执行热路径读一次，不开订阅。
+            { get<io.zer0.muse.data.SettingsRepository>().arePluginsGloballyEnabled() },
         )
     }
     // P1-3b 拆域: Skill 管理工具实现(被 SkillExecutor 委托调用)
@@ -865,9 +862,9 @@ val appModule = module {
             sessionStore = get(),
         )
     }
-    // v1.0.53: 子 agent 全局并发限流器(既有实现 workflow createLimiter;所有委派入口共享同一配额)
+    // v1.0.53: 子 agent 全局并发限流器(所有委派入口共享同一配额)
     single { io.zer0.muse.tools.AgentConcurrencyLimiter() }
-    // v1.0.53 Phase 2: 工作流断点恢复日志(既有实现 lib/workflow/journal.ts)
+    // v1.0.53 Phase 2: 工作流断点恢复日志
     //  - 文件: filesDir/workflow_journals/<runId>.jsonl
     //  - TeamWorkflowExecutor resume 时命中缓存的节点秒回,首个未缓存节点起重跑
     single {
@@ -892,6 +889,46 @@ val appModule = module {
 }
 
 /**
+ * 小手机宿主实现注入。
+ *
+ * Koin 4.0 没有 `override<T>` DSL：同 key 定义以「模块加载顺序靠后者胜」表达覆盖
+ * （`KoinApplication` 默认 allowOverride = true，后加载的定义替换先加载的同 key 定义）。
+ * 所以本模块必须排在 [io.zer0.muse.miniphone.di.miniPhoneModule] 之后，
+ * 由这里覆盖该模块内的占位 MiniPhoneHost —— 见 [allKoinModules]。
+ */
+val miniPhoneHostModule = module {
+    // 私信里的一轮工具生成:工具面在 runner 内部收窄,这里只给入口与注册表
+    single {
+        io.zer0.muse.data.miniphone.MiniPhoneToolTurnRunner(
+            chatService = get<io.zer0.ai.ChatService>(),
+            toolRegistry = get<io.zer0.muse.tools.ToolRegistry>(),
+        )
+    }
+    single<io.zer0.muse.miniphone.api.MiniPhoneHost> {
+        val tts = get<io.zer0.muse.ui.speech.TtsManager>()
+        io.zer0.muse.data.miniphone.AppMiniPhoneHost(
+            assistantRepository = get(),
+            settingsRepository = get(),
+            textGenerator = get(),
+            contextBuilder = get(),
+            toolTurnRunner = get(),
+            // TtsManager 不实现 VoiceSynthesizer（给它加父类型会破 detekt 类级豁免），
+            // 与 AppMediaModule 的 send_voice 接法一致：SAM 适配一次
+            voiceSynthesizer = { text, file, emotion -> tts.synthesizeTo(text, file, emotion) },
+            voiceStore = get<io.zer0.muse.ui.speech.VoiceMessageStore>(),
+            cacheDir = androidContext().cacheDir,
+        )
+    }
+    single<io.zer0.muse.data.miniphone.MiniPhoneTextGenerator> {
+        io.zer0.muse.data.miniphone.MomentChainTextGenerator(
+            chatService = get(),
+            contextBuilder = get(),
+            settings = get(),
+        )
+    }
+}
+
+/**
  * 应用启动时加载的全部 Koin 模块。
  */
 val allKoinModules = listOf(
@@ -908,4 +945,8 @@ val allKoinModules = listOf(
     SsrfBridgeModule,
     aiModule,
     memoryModule,
+    // P0: 小手机模块（自带 Room 库 + 占位 MiniPhoneHost）
+    io.zer0.muse.miniphone.di.miniPhoneModule,
+    // 必须排在上面之后：同 key 定义以后加载者为准，这里覆盖占位实现
+    miniPhoneHostModule,
 )

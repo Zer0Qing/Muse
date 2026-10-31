@@ -153,6 +153,10 @@
     <string name="memory_contradictions_dismiss_cd">Confirmar e limpar</string>
     <string name="memory_contradictions_title">Memórias contraditórias aguardando confirmação</string>
     <string name="memory_delete_confirm_title">Excluir memória</string>
+    <string name="memory_menu_multi_select">Selecionar vários</string>
+    <string name="memory_bulk_delete_confirm_title">Excluir memórias selecionadas</string>
+    <string name="memory_bulk_delete_item_name">%1$d memórias</string>
+    <string name="memory_bulk_delete_consequence">%1$d memórias serão excluídas e não será possível desfazer.</string>
     <string name="memory_pin_failed">Falha ao fixar. Tente novamente.</string>
     <string name="memory_stats_session_live">Conversa %1$d</string>
     <string name="memory_stream_mode_list">Lista</string>
@@ -180,4 +184,28 @@
     <string name="memory_group_chat_clear_confirm_title">Limpar todas as memórias de grupo</string>
     <string name="memory_group_chat_clear_item_name">todas as memórias de grupo</string>
     <string name="memory_group_chat_clear_consequence">Todos os resumos serão excluídos. Não dá para desfazer</string>
+
+    <!-- Mesclagem de várias memórias: rascunho do modelo e confirmação manual -->
+    <string name="memory_center_merge_action">Mesclar</string>
+    <string name="memory_center_merge_title">Mesclar memórias</string>
+    <string name="memory_center_merge_sources_title">Memórias originais (%1$d)</string>
+    <string name="memory_center_merge_result_label">Resultado da mesclagem</string>
+    <string name="memory_center_merge_confirm">Confirmar mesclagem</string>
+    <string name="memory_center_merge_running">Mesclando…</string>
+
+    <!-- Selos de estado: a lista e o detalhe usam o mesmo critério -->
+    <string name="memory_status_merged">Mesclada</string>
+    <string name="memory_status_suppressed">Esmaecida</string>
+    <string name="memory_status_superseded">Substituída</string>
+    <string name="memory_status_merged_detail">Mesclada em outra memória, por isso não é mais recuperada automaticamente. O texto continua aqui para consulta.</string>
+    <string name="memory_status_suppressed_detail">Esmaecida: sem uso por tempo suficiente para sair da recuperação automática. A linha continua aqui e volta quando for encontrada de novo ou marcada como mais importante.</string>
+    <string name="memory_status_superseded_detail">Substituída por uma memória mais nova, por isso não é mais usada como o fato atual.</string>
+
+    <!-- Mensagens de falha na mesclagem -->
+    <string name="memory_merge_error_min_items">Selecione pelo menos duas memórias para mesclar</string>
+    <string name="memory_merge_error_no_model">Nenhum modelo configurado, não é possível mesclar</string>
+    <string name="memory_merge_error_mixed_scope">Só é possível mesclar memórias do mesmo espaço</string>
+    <string name="memory_merge_error_generate_failed">Não foi possível mesclar estas memórias</string>
+    <string name="memory_merge_error_empty_result">O resultado da mesclagem não pode ficar vazio</string>
+    <string name="memory_merge_error_commit_failed">A mesclagem falhou, as memórias não mudaram</string>
 </resources>

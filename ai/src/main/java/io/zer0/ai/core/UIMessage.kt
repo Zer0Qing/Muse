@@ -67,6 +67,7 @@ data class ToolCallInfo(
  * @param size 文件大小(字节)
  * @param sourceType 来源类型(FILE=本地文件 / URL=网络链接)
  * @param extractedText 提取的文本内容(文档解析后)
+ * @param workspacePath 工作区相对路径(如 `attachments/report.pdf`)
  */
 @Immutable
 @Serializable
@@ -77,6 +78,14 @@ data class AttachmentRef(
     val size: Long = 0L,
     val sourceType: String = "FILE",
     val extractedText: String? = null,
+    /**
+     * 工作区相对路径。
+     *
+     * 有它才能在消息里重新打开原件：附件发送时原件落在工作区 `attachments/` 下，
+     * 消息正文里只留一行引用文本。不存路径的话，用户事后只能去工作区自己翻。
+     * 为空表示没有留下可访问的副本（旧消息、或工作区不可用时的降级路径）。
+     */
+    val workspacePath: String? = null,
 )
 
 /**
@@ -134,6 +143,10 @@ data class UIMessage(
     /** 新对话链路提交顺序；有值时优先于 seq。 */
     val commitSeq: Long = 0L,
     val imageUrls: List<String> = emptyList(),
+    /** 助手发出的语音消息音频引用（本地文件 URI 或绝对路径）。Provider 发送请求时忽略。 */
+    val voiceUri: String? = null,
+    /** 语音时长，毫秒。UI 显示用，合成时由 TTS 返回或按文件探测。 */
+    val voiceDurationMs: Long = 0L,
     val toolCalls: List<ToolCall>? = null,
     val toolCallId: String? = null,
     val favorite: Boolean = false,
@@ -221,14 +234,19 @@ data class UIMessage(
      *  - [promptTokens] provider 实测输入 token(流式 UsageDelta 末值)
      *  - [completionTokens] provider 实测输出 token
      *  - [reasoningTokens] provider 实测推理 token(o1/DeepSeek-R1 等)
-     *  - [cachedTokens] provider 实测 prompt 缓存命中 token(Anthropic/OpenAI/Gemini)
+     *  - [cachedTokens] provider 实测 prompt 缓存**读取** token(Anthropic cache_read / OpenAI cached_tokens / Gemini cachedContentTokenCount)
+     *  - [cacheWriteTokens] provider 实测 prompt 缓存**写入** token(仅 Anthropic cache_creation;OpenAI/Gemini 无此项，为 null)
      * 均为 null 表示无实测/未回填(旧数据或 provider 未返回 usage)。
+     *
+     * 旧数据兼容:拆分前 [cachedTokens] 装的是「读 + 写」合并值，没有 [cacheWriteTokens] 列。
+     * 读取时保留原值不动（按「读」解释，不回填、不重算），写入量为 null（未知）。
      */
     val durationMs: Long? = null,
     val promptTokens: Int? = null,
     val completionTokens: Int? = null,
     val reasoningTokens: Int? = null,
     val cachedTokens: Int? = null,
+    val cacheWriteTokens: Int? = null,
     /**
      * H11: 翻译保留原文 — 译文消息指向被翻译的源消息 id(字符串形式)。
      * 非 null 时 UI 在译文气泡下方提供"查看原文"折叠,可与原文对照。

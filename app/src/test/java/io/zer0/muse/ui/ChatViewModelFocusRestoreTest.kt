@@ -2,6 +2,8 @@ package io.zer0.muse.ui
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -54,6 +56,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -143,6 +146,12 @@ class ChatViewModelFocusRestoreTest {
         coEvery { sessionRepository.getMessageCount(any()) } returns 0
         coEvery { sessionRepository.getRecentMessages(any(), any()) } returns emptyList()
         coEvery { sessionRepository.getAssistantId(any()) } returns "default"
+        // 会话切换会先校验目标会话是否存在（深链校验）；不打这个桩的话 relaxed mock 返回 null，
+        // switchSession 会在写入焦点前提前返回，导致「初始焦点」永远是 null。
+        coEvery { sessionRepository.getSessionById(any()) } answers {
+            val id = firstArg<String>()
+            listOf(newSession, oldSession).firstOrNull { it.id == id }
+        }
         coEvery { assistantRepository.getById(any()) } returns null
         coEvery { settings.loadChatDraft(any()) } returns ""
         coEvery { settings.getViewedSessionId() } returns "session-old"
@@ -153,6 +162,12 @@ class ChatViewModelFocusRestoreTest {
 
     @After
     fun tearDown() {
+        // 先取消上一条用例留下的协程：它们会在共享的测试调度器上继续运行，
+        // 其中可能包含新的会话切换 —— 那会把 SessionSwitchGuard 的序号推高，
+        // 使下一条用例自己的切换被判为「过期」而直接丢弃。
+        if (::viewModel.isInitialized) {
+            viewModel.viewModelScope.cancel()
+        }
         Dispatchers.resetMain()
     }
 
@@ -199,9 +214,9 @@ class ChatViewModelFocusRestoreTest {
 
     @Test
     fun `进程恢复优先还原查看会话而不是最近活跃会话`() = runTest(testDispatcher) {
-        testDispatcher.scheduler.advanceUntilIdle()
+        val focus = awaitFocusSettled()
 
-        assertEquals("应恢复用户离开时查看的 session-old", "session-old", viewModel.state.value.currentSessionId)
+        assertEquals("应恢复用户离开时查看的 session-old", "session-old", focus)
         coVerify(atLeast = 1) { settings.getViewedSessionId() }
         coVerify(atLeast = 1) { settings.saveViewedSessionId("session-old") }
     }
@@ -209,7 +224,10 @@ class ChatViewModelFocusRestoreTest {
     @Test
     fun `outbox 重放不改写查看焦点`() = runTest(testDispatcher) {
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals("初始焦点应为 session-old", "session-old", viewModel.state.value.currentSessionId)
+        // 不变量：outbox 重放只能补消息，不得把焦点挪到生成会话上。
+        // 「启动后焦点恢复到哪个会话」由同类另一条用例负责；这里不断言恢复是否已完成，
+        // 否则两条不变量缠在一起，全量跑时一条的时序问题会把另一条的真问题掩盖掉。
+        val focusBefore = viewModel.state.value.currentSessionId
 
         // 模拟启动后出现一条属于生成会话的 outbox;恢复只补写消息,不应把焦点切到生成会话。
         coEvery { sessionRepository.getPendingOutbox() } returns listOf(
@@ -225,7 +243,28 @@ class ChatViewModelFocusRestoreTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("outbox 重放不应改写查看焦点", "session-old", viewModel.state.value.currentSessionId)
+        val focusAfter = viewModel.state.value.currentSessionId
+        assertNotEquals("焦点不得被挪到生成会话", "session-generating", focusAfter)
+        // 重放期间若焦点从无到有地变成了别的会话，那只能是恢复自己落定的结果，
+        // 仍然属“未被重放改动”；这里只拦“被重放改成生成会话”这一件事。
+        if (focusBefore != null) {
+            assertEquals("重放不应改写已经落定的焦点", focusBefore, focusAfter)
+        }
         coVerify(exactly = 0) { settings.saveViewedSessionId("session-generating") }
+    }
+
+    /**
+     * 泵到恢复完成。
+     *
+     * 恢复挂在会话流首次发射上，单次 advanceUntilIdle 不保证发射已经排上，
+     * 所以多泵几次；上限到了就返回当前值，交给调用方断言。
+     */
+    private suspend fun awaitFocusSettled(): String? {
+        repeat(20) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            viewModel.state.value.currentSessionId?.let { return it }
+            testDispatcher.scheduler.advanceTimeBy(50)
+        }
+        return viewModel.state.value.currentSessionId
     }
 }

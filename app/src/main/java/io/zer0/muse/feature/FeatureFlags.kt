@@ -15,10 +15,19 @@ object FeatureFlags {
     /**
      * 小手机（MiniPhone）完整功能。
      *
-     * v2.6.6 发版时关闭：该功能尚在打磨，UI 形态与交互未定稿，暂不对外发布。
-     * 相关代码、数据表、设置项全部保留，改回 `true` 即恢复。
+     * v2.6.6 关闭过一轮（当时 UI 与交互未定稿）；v2.6.12 起已重写为独立模块
+     * （`:miniphone`，自带数据库与美术体系），重新对外开放。
      */
-    const val MINI_PHONE: Boolean = false
+    const val MINI_PHONE: Boolean = true
+
+    /**
+     * 小手机是否在首页与设置分类页露出入口。
+     *
+     * 与本功能本身的存放分开：[MINI_PHONE] 控制模块与路由是否存在，
+     * 这一项只控制“看不看得见”。半成品阶段不给主推入口，
+     * 搜索仍能命中、链接仍能进入，模块照常打进包里。
+     */
+    const val MINI_PHONE_ENTRY: Boolean = false
 
     /** 小手机内嵌的"AI 朋友圈"（Moments）。依赖 [MINI_PHONE]。 */
     const val MOMENTS: Boolean = MINI_PHONE

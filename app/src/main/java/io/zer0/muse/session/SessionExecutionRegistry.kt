@@ -127,10 +127,17 @@ class SessionExecutionRegistry(
     /**
      * 只允许当前 generation 更新当前状态；旧代晚到事件返回 false。
      *
-     * ENG-10 复核结论：本方法**当前没有生产调用方**（工具侧的迟到结果由
-     * `ChatViewModel` 的 `toolGenerationToken` 门禁负责），但它是这条不变量最直接的表达，
-     * 且有测试覆盖（[SessionExecutionRegistryTest] / [SessionExecutionRegistryPruningTest]）。
-     * 因此保留 API 而不删除——接线的价值高于删掉的整洁，谁要接入工具回写路径可以直接用。
+     * ENG-10 复核结论：本方法**当前没有生产调用方**，工具的迟到结果由
+     * `ChatMediaGenHost` 捕获的代际令牌(`ChatGenerationState.toolGenerationToken`)拦截。
+     * 两者**不等价，不能互为替代**：
+     *  - 令牌是全局单计数器，新生成(含切到其他会话)会使**所有会话**的在途工具结果作废；
+     *    本方法按 sessionId 分代，只作废同会话旧代。
+     *  - 本方法还额外要求该代仍有活跃记录(`ACTIVE_STATES` 不含 CANCEL_REQUESTED)，
+     *    令牌门禁没有这个“资源存活”条件；注册表为 null 时本方法恒为 false。
+     *  - 投递 Slot 不持有 GenerationIdentity，改走本方法等于换判据，不是收口。
+     * 因此保留本方法作为执行账本侧的代际判定与取消诊断，有测试覆盖
+     * ([SessionExecutionRegistryTest] / [SessionExecutionRegistryPruningTest])；
+     * 要接工具回写路径，先统一上述三点差异再谈接线。
      */
     fun isCurrent(identity: GenerationIdentity): Boolean = latestGenerationBySession[identity.sessionId] == identity.generationId &&
         active.values.any { registered ->

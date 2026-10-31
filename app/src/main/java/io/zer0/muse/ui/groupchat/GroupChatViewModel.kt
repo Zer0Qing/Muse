@@ -96,7 +96,7 @@ data class GroupChatUiState(
      */
     val lastHistoryLoadCount: Int = 0,
     /**
-     * ActivityHub: 当前群聊各 agent 的活动状态列表(按 既有实现 ActivityHub)。
+     * ActivityHub: 当前群聊各 agent 的活动状态列表。
      *
      * 由 [GroupChatActivityHub.activities] StateFlow 派生,仅包含当前群聊的活动。
      * UI 据此渲染 [AgentActivityBar] 中的状态 chip(IDLE 状态被过滤不显示)。
@@ -121,7 +121,7 @@ data class GroupChatUiState(
  * @param scheduler 群聊调度器(触发 Agent 轮转)
  * @param assistantRepository 助手仓库(加载成员候选列表)
  * @param settings 设置仓库(读取团队配置 + 用户名)
- * @param activityHub 群聊活动状态管理器(按 既有实现 ActivityHub),
+ * @param activityHub 群聊活动状态管理器,
  *        订阅其 [GroupChatActivityHub.activities] 派生当前群聊的活动列表到 UI state。
  */
 @OptIn(ExperimentalCoroutinesApi::class)

@@ -68,7 +68,7 @@ data class OAuthConfig(
         )
 
         /**
-         * v1.0.6: xAI OAuth Responses 预设(对齐 既有实现 xai-oauth)。
+         * v1.0.6: xAI OAuth Responses 预设。
          *
          * 与 [XAI_PRESET] 区别:此预设走 OpenAI Responses 协议(openai-responses),
          * baseUrl 指向 xAI OAuth 代理端点 https://cli-chat-proxy.grok.com,
@@ -85,7 +85,7 @@ data class OAuthConfig(
         )
 
         /**
-         * v2.x（用户反馈）: OpenAI Codex OAuth 预设 —— 按照参考实现（Codex CLI 同款协议）修正。
+         * v2.x（用户反馈）: OpenAI Codex OAuth 预设 —— 按 Codex CLI 同款协议修正。
          *
          * ChatGPT 订阅账号登录（不走 API 计费，走订阅额度）：
          *  - 流程: Authorization Code Flow + PKCE(S256)，浏览器打开授权页后回跳 loopback；

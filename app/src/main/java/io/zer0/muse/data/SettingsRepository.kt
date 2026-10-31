@@ -110,7 +110,7 @@ class SettingsRepository(
     private val utilityBindingMigrationDone = AtomicBoolean(false)
 
     /**
-     * v1.0.7: 内置供应商规格声明(对齐 既有实现 BUILTIN_PLUGINS)。
+     * v1.0.7: 内置供应商规格声明。
      * lazy 初始化,供 [providersFlow] 合并 spec 默认模型 + 用户 overlay。
      */
     private val presetProviders by lazy { PresetProviders(appContext, modelCatalogStore) }
@@ -246,7 +246,6 @@ class SettingsRepository(
             // v1.53-A2: 读取后解密 apiKey(旧明文数据透传,加密数据解密)
             val raw = prefs[KEY_PROVIDERS]?.let { json -> decodeProviders(json) } ?: emptyList()
             // v1.0.7: 三层合并 — specId 非空时,把 spec 默认模型列表与用户 overlay 合并
-            // 对齐 既有实现 BUILTIN_PLUGINS + Provider Catalog overlay 合并机制
             raw.map { config ->
                 val isLegacyFreeProvider =
                     config.allowMissingApiKey &&
@@ -513,17 +512,10 @@ class SettingsRepository(
     /** v1.54: RAG 配置(embedding 来源 + 检索参数)。 */
     val ragConfigFlow: Flow<RagConfig> =
         store.data.mapDistinct { prefs ->
-            val config = decodePrefsOrNull(prefs[KEY_RAG_CONFIG], RagConfig.serializer(), "RagConfig") ?: RagConfig()
-            // v1.0.53: 迁移 — 旧用户 RagConfig 缺 embeddingSource 字段,反序列化后默认为 LOCAL_KEYWORD。
-            // 若用户曾显式配置过云端 embedding(cloudProviderId 或 cloudModel 非空),说明他们已在用云端,
-            // 保留原 CLOUD 设置避免破坏可用配置;否则采用新默认值 LOCAL_KEYWORD(避免 embedding 报错)。
-            if (config.embeddingSource == RagConfig.EmbeddingSource.LOCAL_KEYWORD &&
-                (config.cloudProviderId.isNotBlank() || config.cloudModel.isNotBlank())
-            ) {
-                config.copy(embeddingSource = RagConfig.EmbeddingSource.CLOUD)
-            } else {
-                config
-            }
+            // 读路径只解码、不改写配置。v1.0.53 的旧用户迁移已收敛到
+            // migrateRagEmbeddingSourceIfNeeded()(启动时一次性执行);在此改写会导致
+            // 用户选了「本地关键词」后每次读取都被抬回 CLOUD。
+            decodePrefsOrNull(prefs[KEY_RAG_CONFIG], RagConfig.serializer(), "RagConfig") ?: RagConfig()
         }
 
     // H-SR2: MCP 静态 token 与飞书 App ID/App Secret 均走 SecureKeyStore。
@@ -989,6 +981,28 @@ class SettingsRepository(
         store.edit { it[KEY_SCHEDULE_WORK_ENABLED] = enabled }
     }
 
+    /**
+     * 插件总开关（默认开启）。
+     *
+     * 关闭后所有插件的工具、Hook、启动激活全部不执行 —— 但**不卸载**任何东西：
+     * 文件、配置、启用状态都原样保留，重新打开即恢复。
+     *
+     * 为什么需要它：插件出问题时的现有手段只有「逐个禁用」和「全部卸载」，
+     * 前者在装了十几个插件时不可用，后者会丢掉配置。
+     */
+    val pluginsGloballyEnabledFlow: Flow<Boolean> =
+        store.data.mapDistinct { prefs ->
+            prefs[KEY_PLUGINS_ENABLED] ?: true
+        }
+
+    /** 保存插件总开关。 */
+    suspend fun savePluginsGloballyEnabled(enabled: Boolean) {
+        store.edit { it[KEY_PLUGINS_ENABLED] = enabled }
+    }
+
+    /** 一次性读取插件总开关（执行热路径用，不必开订阅）。 */
+    suspend fun arePluginsGloballyEnabled(): Boolean = pluginsGloballyEnabledFlow.first()
+
     // ── v1.0.74: 深夜自主行动(时段外写日记不推送) ─────────────────
 
     /** 深夜自主行动开关(默认开启:时段外巡检自动写日记,不推送)。 */
@@ -1134,37 +1148,6 @@ class SettingsRepository(
     suspend fun saveQuickCaptureOverlayVerticalPositionFraction(position: Float) {
         store.edit {
             it[KEY_QUICK_CAPTURE_OVERLAY_VERTICAL_POSITION] = position.coerceIn(0f, 1f)
-        }
-    }
-
-    /** 小手机隐藏的桌面应用 id 集合,空集合表示全部显示。 */
-    val miniPhoneHiddenAppsFlow: Flow<Set<String>> =
-        store.data.mapDistinct { prefs ->
-            prefs[KEY_MINIPHONE_HIDDEN_APPS] ?: emptySet()
-        }
-
-    /** 保存小手机隐藏的桌面应用 id 集合。 */
-    suspend fun saveMiniPhoneHiddenApps(hiddenApps: Set<String>) {
-        store.edit { it[KEY_MINIPHONE_HIDDEN_APPS] = hiddenApps }
-    }
-
-    /** 小手机桌面应用顺序,空列表表示使用内置默认顺序。 */
-    val miniPhoneAppOrderFlow: Flow<List<String>> =
-        store.data.mapDistinct { prefs ->
-            prefs[KEY_MINIPHONE_APP_ORDER]
-                ?.split("|")
-                ?.filter { it.isNotBlank() }
-                ?: emptyList()
-        }
-
-    /** 保存小手机桌面应用顺序。 */
-    suspend fun saveMiniPhoneAppOrder(order: List<String>) {
-        store.edit {
-            if (order.isEmpty()) {
-                it.remove(KEY_MINIPHONE_APP_ORDER)
-            } else {
-                it[KEY_MINIPHONE_APP_ORDER] = order.distinct().joinToString("|")
-            }
         }
     }
 
@@ -1722,6 +1705,35 @@ class SettingsRepository(
         store.edit { it[KEY_RAG_CONFIG] = AppJson.encodeToString(RagConfig.serializer(), config) }
     }
 
+    /**
+     * v1.0.53: embedding 来源的一次性迁移(从读路径收敛到这里,启动时执行一次)。
+     *
+     * 旧用户 RagConfig 缺 embeddingSource 字段,反序列化后默认为 LOCAL_KEYWORD;
+     * 若其曾显式配置过云端 embedding(cloudProviderId 或 cloudModel 非空),说明升级前就在用云端,
+     * 这里把 source 写回 CLOUD 并置位标志,避免破坏可用配置。
+     *
+     * 标志位与配置在同一次 edit 内写入:要么一起生效,要么都不生效,中途崩溃不会漏迁移;
+     * 迁移完成后读路径不再改写配置,用户显式选「本地关键词」能真正生效。
+     */
+    suspend fun migrateRagEmbeddingSourceIfNeeded() {
+        if (store.data.first()[KEY_RAG_EMBEDDING_SOURCE_MIGRATED] == true) return
+        store.edit { prefs ->
+            if (prefs[KEY_RAG_EMBEDDING_SOURCE_MIGRATED] == true) return@edit
+            val config = decodePrefsOrNull(prefs[KEY_RAG_CONFIG], RagConfig.serializer(), "RagConfig")
+            if (config != null &&
+                config.embeddingSource == RagConfig.EmbeddingSource.LOCAL_KEYWORD &&
+                (config.cloudProviderId.isNotBlank() || config.cloudModel.isNotBlank())
+            ) {
+                prefs[KEY_RAG_CONFIG] =
+                    AppJson.encodeToString(
+                        RagConfig.serializer(),
+                        config.copy(embeddingSource = RagConfig.EmbeddingSource.CLOUD),
+                    )
+            }
+            prefs[KEY_RAG_EMBEDDING_SOURCE_MIGRATED] = true
+        }
+    }
+
     // ── F-33: 最近一次索引所用的 embedding 配置标识 ──
 
     /**
@@ -2034,18 +2046,21 @@ class SettingsRepository(
     }
 
     suspend fun updateProvider(config: ProviderConfig) {
-        store.edit {
-                prefs ->
+        store.edit { prefs ->
             val list =
                 decodePrefsOrNull(
                     prefs[KEY_PROVIDERS],
                     ListSerializer(ProviderConfig.serializer()),
                     "Providers(update)",
                 ) ?: emptyList()
+            val previous = list.firstOrNull { it.id == config.id }
             prefs[KEY_PROVIDERS] = encodeProviders(list.map { if (it.id == config.id) config else it })
+            cleanupReferencesToRemovedModels(prefs, config, previous, list)
         }
         // v1.132: 失效模型列表缓存(baseUrl/apiKey 可能已变更)
         io.zer0.ai.core.ModelListCache.invalidate(config.id)
+        // 供应商端点/密钥/模型列表已变:让由配置派生的缓存(如 embedding Provider)自行失效
+        ProviderConfigChangeBus.notifyChanged()
         // P2-4: 审计日志 — 修改 Provider(含密钥/端点)
         auditLogger.log(
             category = "user_action",
@@ -2053,6 +2068,100 @@ class SettingsRepository(
             target = config.id,
             detail = mapOf("display_name" to config.displayName),
         )
+    }
+
+    /**
+     * 保存 Provider 后,清掉指向「本次被删除的模型」的引用。
+     *
+     * 被删模型 id = 旧模型列表 - 新模型列表;同名模型仍存在于其他 Provider 时不算被删
+     * (中转站与官方共用模型 id 很常见,直接置空会把本来可用的选择误删)。
+     */
+    private suspend fun cleanupReferencesToRemovedModels(
+        prefs: MutablePreferences,
+        config: ProviderConfig,
+        previous: ProviderConfig?,
+        allProviders: List<ProviderConfig>,
+    ) {
+        val previousModelIds = previous?.models?.map { it.id }.orEmpty()
+        val currentModelIds = config.models.map { it.id }.toSet()
+        val removedModelIds = previousModelIds.filterNot { it in currentModelIds }.toSet()
+        if (removedModelIds.isEmpty()) return
+        val retainedModelIds = allProviders
+            .filterNot { it.id == config.id }
+            .flatMap { provider -> provider.models.map { it.id } }
+            .toSet()
+        val references = readModelReferences(prefs)
+        val cleaned = cleanupRemovedModelReferences(
+            providerId = config.id,
+            removedModelIds = removedModelIds,
+            retainedModelIds = retainedModelIds,
+            references = references,
+        )
+        if (cleaned == references) return
+        writeModelReferences(prefs, cleaned)
+        Logger.i(
+            "SettingsRepository",
+            "Provider ${config.id} 删除模型 ${removedModelIds.joinToString(",")},已清理指向它们的引用",
+        )
+    }
+
+    /** 读出所有「引用具体模型 ID」的配置(删模型后需要整体回写)。 */
+    private fun readModelReferences(prefs: MutablePreferences): ModelReferences = ModelReferences(
+        imageGenConfig =
+        decodePrefsOrNull(prefs[KEY_IMAGE_GEN_CONFIG], ImageGenConfig.serializer(), "ImageGenConfig(updateProvider)")
+            ?: ImageGenConfig(),
+        videoGenConfig =
+        decodePrefsOrNull(prefs[KEY_VIDEO_GEN_CONFIG], VideoGenConfig.serializer(), "VideoGenConfig(updateProvider)")
+            ?: VideoGenConfig(),
+        taskRoutingConfig =
+        decodePrefsOrNull(
+            prefs[KEY_TASK_ROUTING_CONFIG],
+            TaskRoutingConfig.serializer(),
+            "TaskRoutingConfig(updateProvider)",
+        ) ?: TaskRoutingConfig(),
+        utilityModelBinding =
+        decodePrefsOrNull(
+            prefs[KEY_UTILITY_MODEL_BINDING],
+            UtilityModelBinding.serializer(),
+            "UtilityModelBinding(updateProvider)",
+        ),
+        utilityLargeModelBinding =
+        decodePrefsOrNull(
+            prefs[KEY_UTILITY_LARGE_MODEL_BINDING],
+            UtilityModelBinding.serializer(),
+            "UtilityLargeModelBinding(updateProvider)",
+        ),
+        ragConfig =
+        decodePrefsOrNull(prefs[KEY_RAG_CONFIG], RagConfig.serializer(), "RagConfig(updateProvider)")
+            ?: RagConfig(),
+        visionModelId = prefs[KEY_VISION_MODEL_ID],
+    )
+
+    /** 回写 [readModelReferences] 读出的配置(只写给有变化的实现,避免无意义写入)。 */
+    private fun writeModelReferences(prefs: MutablePreferences, references: ModelReferences) {
+        prefs[KEY_IMAGE_GEN_CONFIG] =
+            AppJson.encodeToString(ImageGenConfig.serializer(), references.imageGenConfig)
+        prefs[KEY_VIDEO_GEN_CONFIG] =
+            AppJson.encodeToString(VideoGenConfig.serializer(), references.videoGenConfig)
+        prefs[KEY_TASK_ROUTING_CONFIG] =
+            AppJson.encodeToString(TaskRoutingConfig.serializer(), references.taskRoutingConfig)
+        writeModelBinding(prefs, KEY_UTILITY_MODEL_BINDING, references.utilityModelBinding)
+        writeModelBinding(prefs, KEY_UTILITY_LARGE_MODEL_BINDING, references.utilityLargeModelBinding)
+        prefs[KEY_RAG_CONFIG] =
+            AppJson.encodeToString(RagConfig.serializer(), references.ragConfig)
+        writeNullablePreference(prefs, KEY_VISION_MODEL_ID, references.visionModelId)
+    }
+
+    private fun writeModelBinding(
+        prefs: MutablePreferences,
+        key: Preferences.Key<String>,
+        binding: UtilityModelBinding?,
+    ) {
+        if (binding == null) {
+            prefs.remove(key)
+        } else {
+            prefs[key] = AppJson.encodeToString(UtilityModelBinding.serializer(), binding)
+        }
     }
 
     suspend fun deleteProvider(id: String) {
@@ -2117,6 +2226,12 @@ class SettingsRepository(
                         TaskRoutingConfig.serializer(),
                         "TaskRoutingConfig(deleteProvider)",
                     ) ?: TaskRoutingConfig(),
+                    ragConfig =
+                    decodePrefsOrNull(
+                        prefs[KEY_RAG_CONFIG],
+                        RagConfig.serializer(),
+                        "RagConfig(deleteProvider)",
+                    ) ?: RagConfig(),
                 )
             prefs[KEY_PROVIDERS] = encodeProviders(result.providers)
             writeNullablePreference(prefs, KEY_ACTIVE_PROVIDER_ID, result.activeProviderId)
@@ -2158,9 +2273,17 @@ class SettingsRepository(
                     TaskRoutingConfig.serializer(),
                     result.taskRoutingConfig,
                 )
+            // RAG 的云端 embedding 引用同步清理:此前 cloudProviderId 会永久指向已删供应商
+            prefs[KEY_RAG_CONFIG] =
+                AppJson.encodeToString(
+                    RagConfig.serializer(),
+                    result.ragConfig,
+                )
         }
         // v1.132: 失效模型列表缓存
         io.zer0.ai.core.ModelListCache.invalidate(id)
+        // 供应商列表/模型已变:让由配置派生的缓存(如 embedding Provider)自行失效
+        ProviderConfigChangeBus.notifyChanged()
         // P2-4: 审计日志 — 用户删除 Provider(fire-and-forget,失败不影响业务)
         auditLogger.log(
             category = "user_action",
@@ -2401,15 +2524,27 @@ class SettingsRepository(
     }
 
     /**
-     * 按 ID 查找已配置的供应商。
+     * 按 ID 查找已配置且启用的供应商。
+     *
+     * 停用的供应商等同于不存在:调用方拿到 null 后走各自的"未配置"分支,
+     * 而不是拿一份用户已经关掉的配置继续发请求。
      */
-    suspend fun getProviderById(id: String): ProviderConfig? = providersFlow.first().firstOrNull { it.id == id }
+    suspend fun getProviderById(id: String): ProviderConfig? =
+        providersFlow.first().firstOrNull { it.id == id && it.enabled }
 
     suspend fun markOnboardingShown() = appearance.markOnboardingShown()
 
-    override suspend fun get(): ProviderConfig? = providersFlow.first()?.firstOrNull {
-        it.id == activeProviderIdFlow.first()
-    } ?: providersFlow.first()?.firstOrNull()
+    /**
+     * 当前生效的供应商:激活项优先,其次第一个启用的供应商。
+     *
+     * 全部停用或根本未配置时返回 null —— 不硬取第一个,让调用方显式处理"没有可用供应商"。
+     */
+    override suspend fun get(): ProviderConfig? {
+        val enabledProviders = providersFlow.first().filter { it.enabled }
+        if (enabledProviders.isEmpty()) return null
+        val activeId = activeProviderIdFlow.first()
+        return enabledProviders.firstOrNull { it.id == activeId } ?: enabledProviders.first()
+    }
 
     /**
      * v2.2.1: [ProviderConfigStore] 首选回退 — 后台任务用"当前选中模型"而非激活 Provider 首个模型。
@@ -2543,15 +2678,22 @@ class SettingsRepository(
     }
 
     private suspend fun activeProviderFromPrefs(prefs: Preferences): ProviderConfig? {
-        val providers = prefs[KEY_PROVIDERS]?.let { decodeProviders(it) } ?: return null
-        val activeId = prefs[KEY_ACTIVE_PROVIDER_ID] ?: return providers.firstOrNull()?.let { enrichWithSpecDefaults(it) }
-        return (providers.firstOrNull { it.id == activeId } ?: providers.firstOrNull())?.let { enrichWithSpecDefaults(it) }
+        // 停用供应商不参与运行时选择;全部停用等价于未配置(返回 null,不硬取第一个)
+        val providers = prefs[KEY_PROVIDERS]?.let { decodeProviders(it) }?.filter { it.enabled } ?: return null
+        if (providers.isEmpty()) return null
+        val activeId = prefs[KEY_ACTIVE_PROVIDER_ID]
+        val active = if (activeId == null) {
+            providers.firstOrNull()
+        } else {
+            providers.firstOrNull { it.id == activeId } ?: providers.firstOrNull()
+        }
+        return active?.let { enrichWithSpecDefaults(it) }
     }
 
     /**
      * v1.0.7: 三层合并 — 用 spec 默认模型列表丰富用户配置。
      *
-     * 对齐 既有实现 _merge(plugin, userConfig):specId 非空时,从 [presetProviders]
+     * specId 非空时,从 [presetProviders]
      * 查找 spec,把 spec 默认模型 + 用户 overlay 模型合并(同 id 用户优先)。
      * specId 为 null(纯自定义供应商)或 spec 未找到时原样返回。
      */
@@ -2856,6 +2998,10 @@ class SettingsRepository(
         /** v1.54: RAG 配置(embedding 来源 + 检索参数)。 */
         private val KEY_RAG_CONFIG = stringPreferencesKey("rag_config_json")
 
+        /** v1.0.53: RAG embedding 来源一次性迁移完成标志(见 migrateRagEmbeddingSourceIfNeeded)。 */
+        private val KEY_RAG_EMBEDDING_SOURCE_MIGRATED =
+            booleanPreferencesKey("rag_embedding_source_migrated")
+
         /** F-33: 最近一次成功索引所用的 embedding 配置 key。 */
         private val KEY_LAST_EMBEDDING_MODEL = stringPreferencesKey("last_embedding_model_key")
         private val KEY_CHAT_DRAFTS = stringPreferencesKey("chat_drafts_json")
@@ -2882,6 +3028,9 @@ class SettingsRepository(
 
         /** v1.xxx: 后台调度总控开关(默认开启;关闭后各周期 Worker 跳过执行体)。 */
         private val KEY_SCHEDULE_WORK_ENABLED = booleanPreferencesKey("schedule_work_enabled")
+
+        /** v2.6.13: 插件总开关(默认开启;关闭后插件工具/Hook/激活全部不执行)。 */
+        private val KEY_PLUGINS_ENABLED = booleanPreferencesKey("plugins_globally_enabled")
 
         // v1.x: 最近一次每日总结,供首页问候语展示
         private val KEY_DAILY_SUMMARY_DATE = stringPreferencesKey("daily_summary_date")
@@ -2928,8 +3077,6 @@ class SettingsRepository(
         private const val KEY_CHAT_BACKGROUND_SESSION_PREFIX = "chat_background_session_"
         private val KEY_CHAT_GRADIENT = stringPreferencesKey("chat_gradient_json")
         private val KEY_MINIPHONE_ENABLED = booleanPreferencesKey("miniphone_enabled")
-        private val KEY_MINIPHONE_HIDDEN_APPS = stringSetPreferencesKey("miniphone_hidden_apps")
-        private val KEY_MINIPHONE_APP_ORDER = stringPreferencesKey("miniphone_app_order")
         private val KEY_MINI_ALBUM_HIDDEN_IMAGE_IDS = stringSetPreferencesKey("mini_album_hidden_image_ids")
         private val KEY_MINI_ALBUM_FAVORITE_IMAGE_IDS = stringSetPreferencesKey("mini_album_favorite_image_ids")
         private val KEY_NIGHT_PATROL_ENABLED = booleanPreferencesKey("night_patrol_enabled")

@@ -36,9 +36,6 @@ import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.data.knowledge.KnowledgeChunkEntity
 import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.milestone.MilestoneEntity
-import io.zer0.muse.data.moment.MomentEntity
-import io.zer0.muse.data.moment.MomentCommentEntity
-import io.zer0.muse.data.moment.MomentLikeEntity
 import io.zer0.muse.data.agentdm.AgentMessageEntity
 // P0-10: 此前缺失的会话域实体(备份补齐)
 import io.zer0.muse.data.session.ConversationEventEntity
@@ -195,10 +192,6 @@ class BackupService(
         val experiences: List<ExperienceEntity> = emptyList(),
         val milestones: List<MilestoneEntity> = emptyList(),
         val agentMessages: List<AgentMessageEntity> = emptyList(),
-        // ── v1.0.74: 朋友圈三表(此前缺失,换机恢复丢数据)──
-        val moments: List<MomentEntity> = emptyList(),
-        val momentComments: List<MomentCommentEntity> = emptyList(),
-        val momentLikes: List<MomentLikeEntity> = emptyList(),
         // ── P0-10: 此前缺失的实体(换机恢复丢数据)──
         val quickNotes: List<io.zer0.muse.data.quicknote.QuickNoteEntity> = emptyList(),
         val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity> = emptyList(),
@@ -206,8 +199,6 @@ class BackupService(
         val conversationTurns: List<ConversationTurnEntity> = emptyList(),
         val messageParts: List<MessagePartEntity> = emptyList(),
         val messageOutboxes: List<MessageOutboxEntity> = emptyList(),
-        // P0-10: 此前缺失的实体(换机恢复丢数据)
-        val diaries: List<io.zer0.muse.data.diary.DiaryEntity> = emptyList(),
         // P0-10: 子助手分库事实(facts_<id>.db)— assistantId → facts
         val scopedFacts: Map<String, List<FactEntity>> = emptyMap(),
         // P0-10: 其余此前缺失的用户数据实体(换机恢复丢数据)
@@ -263,10 +254,9 @@ class BackupService(
         folders.isNotEmpty() || groupChats.isNotEmpty() || groupChatMessages.isNotEmpty() ||
         scheduledTasks.isNotEmpty() || scheduledTaskExecutions.isNotEmpty() || knowledgeDocs.isNotEmpty() ||
         knowledgeChunks.isNotEmpty() || experiences.isNotEmpty() || milestones.isNotEmpty() ||
-        agentMessages.isNotEmpty() || moments.isNotEmpty() || momentComments.isNotEmpty() ||
-        momentLikes.isNotEmpty() || quickNotes.isNotEmpty() || worldBookEntries.isNotEmpty() ||
+        agentMessages.isNotEmpty() || quickNotes.isNotEmpty() || worldBookEntries.isNotEmpty() ||
         conversationEvents.isNotEmpty() || conversationTurns.isNotEmpty() || messageParts.isNotEmpty() ||
-        messageOutboxes.isNotEmpty() || diaries.isNotEmpty() || scopedFacts.isNotEmpty() ||
+        messageOutboxes.isNotEmpty() || scopedFacts.isNotEmpty() ||
         translateHistories.isNotEmpty() || knowledgeBases.isNotEmpty() || knowledgeFolders.isNotEmpty() ||
         subagentThreads.isNotEmpty() ||
         toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || assistantRelationships.isNotEmpty() ||
@@ -507,9 +497,6 @@ class BackupService(
                 experiences = db.experienceDao().getAll(),
                 milestones = db.milestoneDao().getAll(),
                 agentMessages = db.agentMessageDao().getAll(),
-                moments = db.momentDao().getAll(),
-                momentComments = db.momentDao().getAllComments(),
-                momentLikes = db.momentDao().getAllLikes(),
                 // P0-10: 此前缺失的实体(换机恢复丢数据)
                 quickNotes = db.quickNoteDao().getAll(),
                 worldBookEntries = db.worldBookDao().getAll(),
@@ -517,7 +504,6 @@ class BackupService(
                 conversationTurns = db.conversationTurnDao().getAll(),
                 messageParts = db.messagePartDao().getAll(),
                 messageOutboxes = db.messageOutboxDao().getAll(),
-                diaries = db.diaryDao().getAll(),
                 translateHistories = db.translateHistoryDao().getAll(),
                 knowledgeBases = db.knowledgeBaseDao().getAll(),
                 knowledgeFolders = db.knowledgeFolderDao().getAll(),
@@ -559,9 +545,6 @@ class BackupService(
         val experiences = muse.experiences
         val milestones = muse.milestones
         val agentMessages = muse.agentMessages
-        val moments = muse.moments
-        val momentComments = muse.momentComments
-        val momentLikes = muse.momentLikes
         // P0-10: 此前缺失的实体
         val quickNotes = muse.quickNotes
         val worldBookEntries = muse.worldBookEntries
@@ -569,7 +552,6 @@ class BackupService(
         val conversationTurns = muse.conversationTurns
         val messageParts = muse.messageParts
         val messageOutboxes = muse.messageOutboxes
-        val diaries = muse.diaries
         val translateHistories = muse.translateHistories
         val knowledgeBases = muse.knowledgeBases
         val knowledgeFolders = muse.knowledgeFolders
@@ -621,9 +603,6 @@ class BackupService(
             put("experiences", experiences.size)
             put("milestones", milestones.size)
             put("agentMessages", agentMessages.size)
-            put("moments", moments.size)
-            put("momentComments", momentComments.size)
-            put("momentLikes", momentLikes.size)
             // P0-10: 此前缺失的实体
             put("quickNotes", quickNotes.size)
             put("worldBookEntries", worldBookEntries.size)
@@ -631,7 +610,6 @@ class BackupService(
             put("conversationTurns", conversationTurns.size)
             put("messageParts", messageParts.size)
             put("messageOutboxes", messageOutboxes.size)
-            put("diaries", diaries.size)
             put("scopedFacts", scopedFactIds.size)
             put("translateHistories", translateHistories.size)
             put("knowledgeBases", knowledgeBases.size)
@@ -769,10 +747,6 @@ class BackupService(
         writeTypedLines(writer, "experience", experiences, ExperienceEntity.serializer())
         writeTypedLines(writer, "milestone", milestones, MilestoneEntity.serializer())
         writeTypedLines(writer, "agentMessage", agentMessages, AgentMessageEntity.serializer())
-        // v1.0.74: 朋友圈三表
-        writeTypedLines(writer, "moment", moments, MomentEntity.serializer())
-        writeTypedLines(writer, "momentComment", momentComments, MomentCommentEntity.serializer())
-        writeTypedLines(writer, "momentLike", momentLikes, MomentLikeEntity.serializer())
         // P0-10: 此前缺失的实体
         writeTypedLines(writer, "quickNote", quickNotes, io.zer0.muse.data.quicknote.QuickNoteEntity.serializer())
         writeTypedLines(writer, "worldBookEntry", worldBookEntries, io.zer0.muse.worldbook.WorldBookEntryEntity.serializer())
@@ -780,7 +754,6 @@ class BackupService(
         writeTypedLines(writer, "conversationTurn", conversationTurns, ConversationTurnEntity.serializer())
         writeTypedLines(writer, "messagePart", messageParts, MessagePartEntity.serializer())
         writeTypedLines(writer, "messageOutbox", messageOutboxes, MessageOutboxEntity.serializer())
-        writeTypedLines(writer, "diary", diaries, io.zer0.muse.data.diary.DiaryEntity.serializer())
         // P0-10: 其余此前缺失的用户数据实体
         writeTypedLines(writer, "translateHistory", translateHistories, TranslateHistoryEntity.serializer())
         writeTypedLines(writer, "knowledgeBase", knowledgeBases, KnowledgeBaseEntity.serializer())
@@ -925,9 +898,6 @@ class BackupService(
         val experiences: List<ExperienceEntity>,
         val milestones: List<MilestoneEntity>,
         val agentMessages: List<AgentMessageEntity>,
-        val moments: List<MomentEntity>,
-        val momentComments: List<MomentCommentEntity>,
-        val momentLikes: List<MomentLikeEntity>,
         // P0-10: 此前缺失的实体(换机恢复丢数据)
         val quickNotes: List<io.zer0.muse.data.quicknote.QuickNoteEntity>,
         val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity>,
@@ -935,8 +905,6 @@ class BackupService(
         val conversationTurns: List<ConversationTurnEntity>,
         val messageParts: List<MessagePartEntity>,
         val messageOutboxes: List<MessageOutboxEntity>,
-        // P0-10: AI 日记本(此前缺失,换机恢复丢日记)
-        val diaries: List<io.zer0.muse.data.diary.DiaryEntity>,
         // P0-10: 其余此前缺失的用户数据实体(换机恢复丢数据)
         val translateHistories: List<TranslateHistoryEntity>,
         val knowledgeBases: List<KnowledgeBaseEntity>,
@@ -1022,6 +990,11 @@ class BackupService(
             // buffer 声明在事务外(尾部 memory/fact 事务块也要访问)
             val sessionBuf = mutableListOf<SessionEntity>()
             val messageBuf = mutableListOf<MessageEntity>()
+            // 旧小手机已下线:备份里残留的 isMiniPhone 会话不再作为普通会话恢复。
+            // 过滤发生在写入前(不写库再删),它们的消息也一起跳过。
+            val skippedMiniPhoneSessionIds = mutableSetOf<String>()
+            var skippedMiniPhoneSessions = 0
+            var skippedMiniPhoneMessages = 0
             val summaryBuf = mutableListOf<SessionSummaryEntity>()
             val contextCheckpointBuf = mutableListOf<ContextCheckpointEntity>()
             val dailyBuf = mutableListOf<DailyStateEntity>()
@@ -1045,10 +1018,6 @@ class BackupService(
             val experienceBuf = mutableListOf<ExperienceEntity>()
             val milestoneBuf = mutableListOf<MilestoneEntity>()
             val agentMsgBuf = mutableListOf<AgentMessageEntity>()
-            // v1.0.74: 朋友圈三表
-            val momentBuf = mutableListOf<MomentEntity>()
-            val momentCommentBuf = mutableListOf<MomentCommentEntity>()
-            val momentLikeBuf = mutableListOf<MomentLikeEntity>()
             // P0-10: 此前缺失的实体
             val quickNoteBuf = mutableListOf<io.zer0.muse.data.quicknote.QuickNoteEntity>()
             val worldBookBuf = mutableListOf<io.zer0.muse.worldbook.WorldBookEntryEntity>()
@@ -1056,7 +1025,6 @@ class BackupService(
             val convTurnBuf = mutableListOf<ConversationTurnEntity>()
             val messagePartBuf = mutableListOf<MessagePartEntity>()
             val messageOutboxBuf = mutableListOf<MessageOutboxEntity>()
-            val diaryBuf = mutableListOf<io.zer0.muse.data.diary.DiaryEntity>()
             val translateHistoryBuf = mutableListOf<TranslateHistoryEntity>()
             val knowledgeBaseBuf = mutableListOf<KnowledgeBaseEntity>()
             // AUD-20261011-NDJSON-FOLDERS: 知识库文件夹此前只有导出行、没有恢复分支,
@@ -1099,10 +1067,6 @@ class BackupService(
                 db.experienceDao().deleteAll()
                 db.milestoneDao().deleteAll()
                 db.agentMessageDao().deleteAll()
-                // v1.0.74: 朋友圈三表
-                db.momentDao().deleteAllMoments()
-                db.momentDao().deleteAllComments()
-                db.momentDao().deleteAllLikes()
                 // P0-10: 此前缺失的实体
                 db.quickNoteDao().deleteAll()
                 db.worldBookDao().deleteAll()
@@ -1110,7 +1074,6 @@ class BackupService(
                 db.conversationTurnDao().deleteAll()
                 db.messagePartDao().deleteAll()
                 db.messageOutboxDao().deleteAll()
-                db.diaryDao().deleteAll()
                 db.translateHistoryDao().deleteAll()
                 db.knowledgeBaseDao().deleteAll()
                 db.knowledgeFolderDao().deleteAll()
@@ -1161,18 +1124,26 @@ class BackupService(
                             if (!path.isNullOrBlank() && content != null) binaryFileBuf.offer(path, content)
                         }
                         "session" -> obj["data"]?.let {
-                            // v2.x 导入预热:恢复的会话首轮以全量历史构建上下文一次
-                            sessionBuf.add(
-                                json.decodeFromJsonElement(SessionEntity.serializer(), it)
-                                    .copy(warmupPending = true),
-                            )
-                            if (sessionBuf.size >= IMPORT_BATCH) {
-                                sessionCount += sessionBuf.size
-                                flushBatch(sessionBuf) { batch -> db.withTransaction { batch.forEach { db.sessionDao().insert(it) } } }
+                            val session = json.decodeFromJsonElement(SessionEntity.serializer(), it)
+                            if (session.isMiniPhone) {
+                                skippedMiniPhoneSessionIds += session.id
+                                skippedMiniPhoneSessions += 1
+                            } else {
+                                // v2.x 导入预热:恢复的会话首轮以全量历史构建上下文一次
+                                sessionBuf.add(session.copy(warmupPending = true))
+                                if (sessionBuf.size >= IMPORT_BATCH) {
+                                    sessionCount += sessionBuf.size
+                                    flushBatch(sessionBuf) { batch -> db.withTransaction { batch.forEach { db.sessionDao().insert(it) } } }
+                                }
                             }
                         }
                         "message" -> obj["data"]?.let {
-                            messageBuf.add(json.decodeFromJsonElement(MessageEntity.serializer(), it))
+                            val message = json.decodeFromJsonElement(MessageEntity.serializer(), it)
+                            if (message.sessionId in skippedMiniPhoneSessionIds) {
+                                skippedMiniPhoneMessages += 1
+                                return@let
+                            }
+                            messageBuf.add(message)
                             if (messageBuf.size >= IMPORT_BATCH) {
                                 messageCount += messageBuf.size
                                 flushBatch(messageBuf) { batch -> db.withTransaction { batch.forEach { db.messageDao().upsert(it) } } }
@@ -1347,37 +1318,6 @@ class BackupService(
                                 }
                             }
                         }
-                        // v1.0.74: 朋友圈三表
-                        "moment" -> obj["data"]?.let {
-                            momentBuf.add(json.decodeFromJsonElement(MomentEntity.serializer(), it))
-                            if (momentBuf.size >= IMPORT_BATCH) {
-                                flushBatch(momentBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.momentDao().insertMoment(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "momentComment" -> obj["data"]?.let {
-                            momentCommentBuf.add(json.decodeFromJsonElement(MomentCommentEntity.serializer(), it))
-                            if (momentCommentBuf.size >= IMPORT_BATCH) {
-                                flushBatch(momentCommentBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.momentDao().insertComment(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "momentLike" -> obj["data"]?.let {
-                            momentLikeBuf.add(json.decodeFromJsonElement(MomentLikeEntity.serializer(), it))
-                            if (momentLikeBuf.size >= IMPORT_BATCH) {
-                                flushBatch(momentLikeBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.momentDao().addLike(it) }
-                                    }
-                                }
-                            }
-                        }
                         // P0-10: 此前缺失的实体
                         "quickNote" -> obj["data"]?.let {
                             quickNoteBuf.add(json.decodeFromJsonElement(io.zer0.muse.data.quicknote.QuickNoteEntity.serializer(), it))
@@ -1435,14 +1375,6 @@ class BackupService(
                                         batch.forEach { db.messageOutboxDao().upsert(it) }
                                     }
                                 }
-                            }
-                        }
-                        "diary" -> obj["data"]?.let {
-                            diaryBuf.add(json.decodeFromJsonElement(io.zer0.muse.data.diary.DiaryEntity.serializer(), it))
-                            if (diaryBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    diaryBuf,
-                                ) { batch -> db.withTransaction { batch.forEach { db.diaryDao().upsert(it) } } }
                             }
                         }
                         "translateHistory" -> obj["data"]?.let {
@@ -1628,6 +1560,14 @@ class BackupService(
                         "备份记录数不一致: $key 声明 $expected, 实际 $actual"
                     }
                 }
+                // 跳过不是静默行为:旧小手机会话被丢弃时要留下痕迹
+                if (skippedMiniPhoneSessions > 0) {
+                    Logger.w(
+                        "BackupService",
+                        "跳过 ${skippedMiniPhoneSessions} 条旧小手机会话及其 ${skippedMiniPhoneMessages} 条消息" +
+                            "（该功能已下线，不再作为普通会话恢复）",
+                    )
+                }
 
                 // 3. flush 剩余 buffer(C-10: memory/fact 缓冲这里不再 flush,
                 // 统一在 MuseDb 事务成功后的独立事务内一次性 deleteAll + 插入)。
@@ -1656,10 +1596,6 @@ class BackupService(
                 flushBatch(experienceBuf) { batch -> db.withTransaction { batch.forEach { db.experienceDao().upsert(it) } } }
                 flushBatch(milestoneBuf) { batch -> db.withTransaction { batch.forEach { db.milestoneDao().upsert(it) } } }
                 flushBatch(agentMsgBuf) { batch -> db.withTransaction { batch.forEach { db.agentMessageDao().upsert(it) } } }
-                // v1.0.74: 朋友圈三表
-                flushBatch(momentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertMoment(it) } } }
-                flushBatch(momentCommentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertComment(it) } } }
-                flushBatch(momentLikeBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().addLike(it) } } }
                 // P0-10: 此前缺失的实体
                 flushBatch(quickNoteBuf) { batch -> db.withTransaction { batch.forEach { db.quickNoteDao().upsert(it) } } }
                 flushBatch(worldBookBuf) { batch -> db.withTransaction { batch.forEach { db.worldBookDao().upsert(it) } } }
@@ -1667,7 +1603,6 @@ class BackupService(
                 flushBatch(convTurnBuf) { batch -> db.withTransaction { batch.forEach { db.conversationTurnDao().upsert(it) } } }
                 flushBatch(messagePartBuf) { batch -> db.withTransaction { db.messagePartDao().upsertAll(batch) } }
                 flushBatch(messageOutboxBuf) { batch -> db.withTransaction { batch.forEach { db.messageOutboxDao().upsert(it) } } }
-                flushBatch(diaryBuf) { batch -> db.withTransaction { batch.forEach { db.diaryDao().upsert(it) } } }
                 flushBatch(translateHistoryBuf) { batch -> db.withTransaction { batch.forEach { db.translateHistoryDao().insert(it) } } }
                 flushBatch(knowledgeBaseBuf) { batch -> db.withTransaction { batch.forEach { db.knowledgeBaseDao().upsert(it) } } }
                 // AUD-20261011-NDJSON-FOLDERS: 剩余缓冲 flush(与知识库同组,事务内落库)
@@ -1702,7 +1637,7 @@ class BackupService(
                 // 而解析成功不等于落库成功（缓冲 flush 的 upsert 可能因约束冲突等丢记录）。
                 // 这里对可计数的核心表再核一次真实行数，缺口即整体回滚，
                 // 避免“导入成功但数据半缺失”被静默放行。
-                verifyInsertedCounts(expectedCounts)
+                verifyInsertedCounts(expectedCounts, skippedSessionCount = skippedMiniPhoneSessions)
             } // 审计 0.5: MuseDb 大事务闭合(失败整体回滚,含清空)
 
             // C-10: memory/fact 依赖独立数据库,无法与 MuseDb 跨库原子。
@@ -2508,9 +2443,6 @@ class BackupService(
         val experiences: List<ExperienceEntity>,
         val milestones: List<MilestoneEntity>,
         val agentMessages: List<AgentMessageEntity>,
-        val moments: List<MomentEntity>,
-        val momentComments: List<MomentCommentEntity>,
-        val momentLikes: List<MomentLikeEntity>,
         // P0-10: 此前缺失的实体(换机恢复丢数据)
         val quickNotes: List<io.zer0.muse.data.quicknote.QuickNoteEntity>,
         val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity>,
@@ -2518,8 +2450,6 @@ class BackupService(
         val conversationTurns: List<ConversationTurnEntity>,
         val messageParts: List<MessagePartEntity>,
         val messageOutboxes: List<MessageOutboxEntity>,
-        // P0-10: AI 日记本(此前缺失,换机恢复丢日记)
-        val diaries: List<io.zer0.muse.data.diary.DiaryEntity>,
         // P0-10: 其余此前缺失的用户数据实体(换机恢复丢数据)
         val translateHistories: List<TranslateHistoryEntity>,
         val knowledgeBases: List<KnowledgeBaseEntity>,
@@ -2600,9 +2530,6 @@ class BackupService(
                 experiences = db.experienceDao().getAll(),
                 milestones = db.milestoneDao().getAll(),
                 agentMessages = db.agentMessageDao().getAll(),
-                moments = db.momentDao().getAll(),
-                momentComments = db.momentDao().getAllComments(),
-                momentLikes = db.momentDao().getAllLikes(),
                 // P0-10: 此前缺失的实体(换机恢复丢数据)
                 quickNotes = db.quickNoteDao().getAll(),
                 worldBookEntries = db.worldBookDao().getAll(),
@@ -2610,7 +2537,6 @@ class BackupService(
                 conversationTurns = db.conversationTurnDao().getAll(),
                 messageParts = db.messagePartDao().getAll(),
                 messageOutboxes = db.messageOutboxDao().getAll(),
-                diaries = db.diaryDao().getAll(),
                 translateHistories = db.translateHistoryDao().getAll(),
                 knowledgeBases = db.knowledgeBaseDao().getAll(),
                 knowledgeFolders = db.knowledgeFolderDao().getAll(),
@@ -2653,9 +2579,6 @@ class BackupService(
         val experiences = snap.experiences
         val milestones = snap.milestones
         val agentMessages = snap.agentMessages
-        val moments = snap.moments
-        val momentComments = snap.momentComments
-        val momentLikes = snap.momentLikes
         // P0-10: 此前缺失的实体
         val quickNotes = snap.quickNotes
         val worldBookEntries = snap.worldBookEntries
@@ -2663,7 +2586,6 @@ class BackupService(
         val conversationTurns = snap.conversationTurns
         val messageParts = snap.messageParts
         val messageOutboxes = snap.messageOutboxes
-        val diaries = snap.diaries
         val translateHistories = snap.translateHistories
         val knowledgeBases = snap.knowledgeBases
         // AUD-20261011-NDJSON-FOLDERS: 快照已读到 folders,但此前 Backup(...) 构造漏传 ——
@@ -2718,16 +2640,12 @@ class BackupService(
             experiences = experiences,
             milestones = milestones,
             agentMessages = agentMessages,
-            moments = moments,
-            momentComments = momentComments,
-            momentLikes = momentLikes,
             quickNotes = quickNotes,
             worldBookEntries = worldBookEntries,
             conversationEvents = conversationEvents,
             conversationTurns = conversationTurns,
             messageParts = messageParts,
             messageOutboxes = messageOutboxes,
-            diaries = diaries,
             scopedFacts = scopedFacts,
             translateHistories = translateHistories,
             knowledgeBases = knowledgeBases,
@@ -2983,8 +2901,23 @@ class BackupService(
         db.withTransaction {
             clearConversationStateForRestore(db)
             // v2.x 导入预热:恢复的会话首轮以全量历史构建上下文一次
-            backup.sessions.forEach { db.sessionDao().insert(it.copy(warmupPending = true)) }
-            backup.messages.forEach { db.messageDao().upsert(it) }
+            // 旧小手机已下线:备份里残留的 isMiniPhone 会话与其消息在写入前就丢掉,
+            // 不先写库再删(否则它们会以普通会话身份短暂出现在主列表)。
+            val miniPhoneSessionIds = backup.sessions.filter { it.isMiniPhone }.map { it.id }.toSet()
+            if (miniPhoneSessionIds.isNotEmpty()) {
+                Logger.w(
+                    "BackupService",
+                    "跳过 ${miniPhoneSessionIds.size} 条旧小手机会话及其" +
+                        " ${backup.messages.count { it.sessionId in miniPhoneSessionIds }} 条消息" +
+                        "（该功能已下线，不再作为普通会话恢复）",
+                )
+            }
+            backup.sessions.forEach {
+                if (!it.isMiniPhone) db.sessionDao().insert(it.copy(warmupPending = true))
+            }
+            backup.messages.forEach {
+                if (it.sessionId !in miniPhoneSessionIds) db.messageDao().upsert(it)
+            }
 
             // v3: 扩展表(在同一事务中清空 + 插入)
             db.assistantDao().deleteAll()
@@ -3003,10 +2936,6 @@ class BackupService(
             db.experienceDao().deleteAll()
             db.milestoneDao().deleteAll()
             db.agentMessageDao().deleteAll()
-            // v1.0.74: 朋友圈三表
-            db.momentDao().deleteAllMoments()
-            db.momentDao().deleteAllComments()
-            db.momentDao().deleteAllLikes()
             // P0-10: 此前缺失的实体
             db.quickNoteDao().deleteAll()
             db.worldBookDao().deleteAll()
@@ -3014,7 +2943,6 @@ class BackupService(
             db.conversationTurnDao().deleteAll()
             db.messagePartDao().deleteAll()
             db.messageOutboxDao().deleteAll()
-            db.diaryDao().deleteAll()
             db.translateHistoryDao().deleteAll()
             db.knowledgeBaseDao().deleteAll()
             db.knowledgeFolderDao().deleteAll()
@@ -3047,10 +2975,6 @@ class BackupService(
             backup.experiences.forEach { db.experienceDao().upsert(it) }
             backup.milestones.forEach { db.milestoneDao().upsert(it) }
             backup.agentMessages.forEach { db.agentMessageDao().upsert(it) }
-            // v1.0.74: 朋友圈三表(先删后插,防新旧混合)
-            backup.moments.forEach { db.momentDao().insertMoment(it) }
-            backup.momentComments.forEach { db.momentDao().insertComment(it) }
-            backup.momentLikes.forEach { db.momentDao().addLike(it) }
             // P0-10: 此前缺失的实体
             backup.quickNotes.forEach { db.quickNoteDao().upsert(it) }
             backup.worldBookEntries.forEach { db.worldBookDao().upsert(it) }
@@ -3063,7 +2987,6 @@ class BackupService(
             backup.conversationTurns.forEach { db.conversationTurnDao().upsert(it) }
             if (backup.messageParts.isNotEmpty()) db.messagePartDao().upsertAll(backup.messageParts)
             backup.messageOutboxes.forEach { db.messageOutboxDao().upsert(it) }
-            backup.diaries.forEach { db.diaryDao().upsert(it) }
             backup.translateHistories.forEach { db.translateHistoryDao().insert(it) }
             backup.knowledgeBases.forEach { db.knowledgeBaseDao().upsert(it) }
             backup.knowledgeFolders.forEach { db.knowledgeFolderDao().upsert(it) }
@@ -3172,9 +3095,14 @@ class BackupService(
      * （事务尚未提交，抛出会让整个 MuseDb 事务回滚）。取数失败不阻断导入，
      * 只记日志——对账是增益，不能因为统计接口异常让合法备份无法恢复。
      */
-    private suspend fun verifyInsertedCounts(expectedCounts: Map<String, Int>) {
+    private suspend fun verifyInsertedCounts(
+        expectedCounts: Map<String, Int>,
+        skippedSessionCount: Int = 0,
+    ) {
         expectedCounts.forEach { (key, expected) ->
-            if (expected <= 0) return@forEach
+            // 旧小手机会话在写入前就被跳过:对账基数要扣除它们,否则会把"按规则跳过"误判成"丢行"
+            val base = if (key == "sessions") expected - skippedSessionCount else expected
+            if (base <= 0) return@forEach
             val actual = resultOf {
                 when (key) {
                     "sessions" -> db.sessionDao().observeAll().first().size
@@ -3191,8 +3119,8 @@ class BackupService(
             }.onError { msg, t ->
                 Logger.w("BackupService", "入库对账取数失败($key): $msg", t)
             }.getOrNull() ?: return@forEach
-            check(actual >= expected) {
-                "备份入库数不一致: $key 声明 $expected, 实际入库 $actual"
+            check(actual >= base) {
+                "备份入库数不一致: $key 声明 $base, 实际入库 $actual"
             }
         }
     }
@@ -3226,9 +3154,6 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "experience" to "experiences",
     "milestone" to "milestones",
     "agentMessage" to "agentMessages",
-    "moment" to "moments",
-    "momentComment" to "momentComments",
-    "momentLike" to "momentLikes",
     // P0-10: 此前缺失的实体
     "quickNote" to "quickNotes",
     "worldBookEntry" to "worldBookEntries",
@@ -3236,7 +3161,6 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "conversationTurn" to "conversationTurns",
     "messagePart" to "messageParts",
     "messageOutbox" to "messageOutboxes",
-    "diary" to "diaries",
     "scopedFact" to "scopedFacts",
     "translateHistory" to "translateHistories",
     "knowledgeBase" to "knowledgeBases",

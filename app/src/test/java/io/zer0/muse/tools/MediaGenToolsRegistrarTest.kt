@@ -34,6 +34,8 @@ class MediaGenToolsRegistrarTest {
             settings = mockk(relaxed = true),
             imageService = mockk(relaxed = true),
             videoGenerationService = mockk(relaxed = true),
+            voiceSynthesizer = mockk(relaxed = true),
+            voiceMessageStore = mockk(relaxed = true),
         ),
     )
 

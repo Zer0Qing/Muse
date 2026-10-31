@@ -289,14 +289,20 @@ class ToolRegistrySmokeTest {
             "speak_text",
             // 媒体生成(依赖网络 + 供应商)
             "generate_image", "generate_video", "generate_qr_code",
+            // v2.x: 发语音消息(依赖 TTS 引擎 + 文件系统,Robolectric 下不执行)
+            "send_voice",
             // 表情包(依赖 SkillExecutor)
             "list_stickers", "send_sticker",
             // 记忆/经验(依赖 DB + LLM)
             "pin_memory", "unpin_memory", "recall_experience", "record_experience",
             // 记忆系统参数(依赖 DataStore)
             "memory_config_get", "memory_config_set",
+            // 用量统计(依赖 Room 聚合查询,Robolectric 下无真实数据)
+            "get_token_usage",
             // 工作区内容搜索(依赖文件系统)
             "workspace_grep",
+            // v2.6.11: 挂载改造新增的两个工作区工具(依赖文件系统 + SAF)
+            "workspace_copy", "workspace_mounts",
             // v2.6.7 fix (AUDIT F4): 本批新增的两个内置工具必须归组，
             // 否则 BUILT_IN_TOOL_IDS 与分组表并集不再相等。
             // read_user_file 依赖 SAF + UI 回调；remember_preference 依赖 DataStore。
@@ -315,7 +321,7 @@ class ToolRegistrySmokeTest {
             // OAuth 连接器(网络依赖)
             "connector_list", "call_connector",
             // 工作区文件(依赖文件系统)
-            "workspace_list", "workspace_read", "workspace_write", "workspace_delete",
+            "workspace_list", "workspace_read", "workspace_write", "workspace_edit", "workspace_delete",
             "workspace_mkdir", "workspace_move",
             // 定时任务(依赖 DB)
             "scheduled_task_create", "scheduled_task_list", "scheduled_task_update",

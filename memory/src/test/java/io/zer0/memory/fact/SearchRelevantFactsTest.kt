@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.Instant
 
 /**
  * v12 (T2-2): 运行时相关记忆检索测试。
@@ -123,5 +124,38 @@ class SearchRelevantFactsTest {
         store.add(FactStore.Fact(fact = "用户喜欢喝美式咖啡"))
         assertTrue(store.searchRelevantFacts("").isEmpty())
         assertTrue(store.searchRelevantFacts("   ").isEmpty())
+    }
+
+    @Test
+    fun `recall keeps its size when many candidates are suppressed`() = runTest {
+        // v17: 出场记忆仍占 FTS 候选窗口,召回不能因此变少。
+        // 先入库的 14 条全部已出场,按 rowid 会排在前面的窗口里。
+        val suppressedIds = (1..14).map { index ->
+            dao.insert(
+                FactEntity(
+                    fact = "已出场的咖啡记忆 $index",
+                    tags = "[]",
+                    createdAt = Instant.now().toString(),
+                    importance = 0,
+                    suppressedAt = Instant.now().toString(),
+                ),
+            )
+        }.toSet()
+        repeat(10) { index ->
+            dao.insert(
+                FactEntity(
+                    fact = "仍在召回中的咖啡记忆 $index",
+                    tags = "[]",
+                    createdAt = Instant.now().toString(),
+                    importance = 0,
+                ),
+            )
+        }
+        store.rebuildFtsIndex()
+
+        val hits = store.searchRelevantFacts("咖啡", limit = 5)
+
+        assertEquals("出场不应把召回条数挤少", 5, hits.size)
+        assertTrue("召回结果不得包含已出场的记忆", hits.none { it.id in suppressedIds })
     }
 }

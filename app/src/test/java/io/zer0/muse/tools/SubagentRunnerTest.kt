@@ -1,6 +1,7 @@
 package io.zer0.muse.tools
 
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.zer0.ai.ChatService
@@ -281,6 +282,8 @@ class SubagentRunnerTest {
             ChatCompletion(text = "工具调用完成,这是总结", finishReason = "stop"),
         )
         coEvery { mockToolRegistry.executeFromJson("echo", any()) } returns "hi"
+        // 风险等级要显式声明:闸门取不到就按 HIGH 处理（保守）,而 echo 本身是只读工具
+        every { mockToolRegistry.getToolRiskLevel("echo") } returns ToolRiskLevel.SAFE
 
         val runner =
             SubagentRunner(mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(), mockk(relaxed = true), ToolApprovalRouter())
@@ -319,6 +322,7 @@ class SubagentRunnerTest {
             mockChatService.completeText(any(), any(), any(), any(), isNull(), any(), any(), any())
         } returns ChatCompletion(text = "配额耗尽总结", finishReason = "stop")
         coEvery { mockToolRegistry.executeFromJson("echo", any()) } returns "loop"
+        every { mockToolRegistry.getToolRiskLevel("echo") } returns ToolRiskLevel.SAFE
 
         val runner =
             SubagentRunner(mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(), mockk(relaxed = true), ToolApprovalRouter())
@@ -392,6 +396,282 @@ class SubagentRunnerTest {
         assertFalse(result.progressEntries[0].success)
     }
 
+    // ── 审批闸门：子代理的判定必须与会话模式一致 ────────────────────────────
+
+    /**
+     * 有审批通道时：调用退到主会话审批链，STRICT 会话下的 NORMAL 工具必须进不了执行。
+     *
+     * 桥接这里扮演主会话审批链（与 [io.zer0.muse.ui.chat.ChatToolApprovalCoordinator] 同一条解析器调用），
+     * 因此测试能同时钉住「模式生效」与「传的是全量参数」。
+     */
+    @Test
+    fun `approval bridge blocks normal tool in strict session and receives full args`() = runTest {
+        val seen = mutableListOf<Map<String, Any?>>()
+        val previews = mutableListOf<String>()
+        val bridge = object : ToolApprovalBridge {
+            override suspend fun requestToolApproval(
+                toolName: String,
+                toolCallId: String,
+                argsPreview: String,
+                args: Map<String, Any?>,
+            ): ToolApprovalState {
+                seen += args
+                previews += argsPreview
+                return ToolPermissionResolver.resolve(
+                    toolName = toolName,
+                    risk = ToolRiskLevel.NORMAL,
+                    mode = SessionPermissionMode.STRICT,
+                    perToolPolicy = null,
+                    args = args,
+                )
+            }
+        }
+        val router = ToolApprovalRouter().also { it.delegate = bridge }
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("write_file", "写文件", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("write_file", "写文件", "{}"),
+        )
+        every { mockToolRegistry.getToolRiskLevel("write_file") } returns ToolRiskLevel.NORMAL
+
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        // 参数总量远超预览长度,判定必须看到完整值
+        val longPath = "/sdcard/notes/" + "a".repeat(400) + ".txt"
+        val arguments = """{"path":"$longPath","content":"hello"}"""
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returnsMany listOf(
+            ChatCompletion(
+                text = "",
+                finishReason = "tool_calls",
+                toolCalls = listOf(ToolCall(id = "call_1", name = "write_file", arguments = arguments)),
+            ),
+            ChatCompletion(text = "工具被拦住了", finishReason = "stop"),
+        )
+        coEvery { mockToolRegistry.executeFromJson("write_file", any()) } returns "written"
+
+        val runner = SubagentRunner(
+            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
+            mockk(relaxed = true), router,
+        )
+        val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
+
+        coVerify(exactly = 0) { mockToolRegistry.executeFromJson("write_file", any()) }
+        assertEquals(1, result.progressEntries.size)
+        assertFalse(result.progressEntries[0].success)
+        assertTrue(result.progressEntries[0].result.contains("Error"))
+        // 判定收到的是全量参数,预览才是截断的
+        assertEquals(longPath, seen.single()["path"])
+        assertTrue("预览不应该带上完整参数", previews.single().length <= 200)
+    }
+
+    /** 有审批通道且用户批准时，工具照常执行。 */
+    @Test
+    fun `approval bridge keeps normal tool executable when approved`() = runTest {
+        val router = ToolApprovalRouter().also {
+            it.delegate = object : ToolApprovalBridge {
+                override suspend fun requestToolApproval(
+                    toolName: String,
+                    toolCallId: String,
+                    argsPreview: String,
+                    args: Map<String, Any?>,
+                ): ToolApprovalState = ToolApprovalState.Approved()
+            }
+        }
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("write_file", "写文件", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("write_file", "写文件", "{}"),
+        )
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returnsMany listOf(
+            ChatCompletion(
+                text = "",
+                finishReason = "tool_calls",
+                toolCalls = listOf(ToolCall(id = "call_1", name = "write_file", arguments = """{"path":"a.txt"}""")),
+            ),
+            ChatCompletion(text = "写完了", finishReason = "stop"),
+        )
+        coEvery { mockToolRegistry.executeFromJson("write_file", any()) } returns "written"
+
+        val runner = SubagentRunner(
+            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
+            mockk(relaxed = true), router,
+        )
+        val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
+
+        coVerify(exactly = 1) { mockToolRegistry.executeFromJson("write_file", any()) }
+        assertTrue(result.progressEntries[0].success)
+        assertEquals("written", result.progressEntries[0].result)
+    }
+
+    /** 无审批通道 + STRICT（settings 缺失时的兜底）:NORMAL 工具被拦。 */
+    @Test
+    fun `no approval channel blocks normal tool without settings`() = runTest {
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("write_file", "写文件", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("write_file", "写文件", "{}"),
+        )
+        every { mockToolRegistry.getToolRiskLevel("write_file") } returns ToolRiskLevel.NORMAL
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returnsMany listOf(
+            ChatCompletion(
+                text = "",
+                finishReason = "tool_calls",
+                toolCalls = listOf(ToolCall(id = "call_1", name = "write_file", arguments = """{"path":"a.txt"}""")),
+            ),
+            ChatCompletion(text = "工具被拦住了", finishReason = "stop"),
+        )
+        coEvery { mockToolRegistry.executeFromJson("write_file", any()) } returns "written"
+
+        // settings = null ⇒ 模式取不到,兜底 STRICT
+        val runner = SubagentRunner(
+            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
+            mockk(relaxed = true), ToolApprovalRouter(),
+        )
+        val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
+
+        coVerify(exactly = 0) { mockToolRegistry.executeFromJson("write_file", any()) }
+        assertFalse(result.progressEntries[0].success)
+        assertTrue(result.progressEntries[0].result.contains("Error"))
+    }
+
+    /** 无审批通道 + ASK 会话:Pending 等于拒绝,不能默默放行。 */
+    @Test
+    fun `no approval channel turns pending into denial`() = runTest {
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("write_file", "写文件", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("write_file", "写文件", "{}"),
+        )
+        every { mockToolRegistry.getToolRiskLevel("write_file") } returns ToolRiskLevel.NORMAL
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returnsMany listOf(
+            ChatCompletion(
+                text = "",
+                finishReason = "tool_calls",
+                toolCalls = listOf(ToolCall(id = "call_1", name = "write_file", arguments = """{"path":"a.txt"}""")),
+            ),
+            ChatCompletion(text = "工具被拦住了", finishReason = "stop"),
+        )
+        coEvery { mockToolRegistry.executeFromJson("write_file", any()) } returns "written"
+        val settings = mockSettings(SessionPermissionMode.ASK)
+
+        val runner = SubagentRunner(
+            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
+            mockk(relaxed = true), ToolApprovalRouter(), settings,
+        )
+        val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
+
+        coVerify(exactly = 0) { mockToolRegistry.executeFromJson("write_file", any()) }
+        assertFalse(result.progressEntries[0].success)
+        assertTrue(result.progressEntries[0].result.contains("Error"))
+    }
+
+    /** 无审批通道 + TRUSTED 会话:正常放行（闸门按模式判定,不是一律拒绝）。 */
+    @Test
+    fun `no approval channel follows trusted session mode`() = runTest {
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("write_file", "写文件", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("write_file", "写文件", "{}"),
+        )
+        every { mockToolRegistry.getToolRiskLevel("write_file") } returns ToolRiskLevel.NORMAL
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returnsMany listOf(
+            ChatCompletion(
+                text = "",
+                finishReason = "tool_calls",
+                toolCalls = listOf(ToolCall(id = "call_1", name = "write_file", arguments = """{"path":"a.txt"}""")),
+            ),
+            ChatCompletion(text = "写完了", finishReason = "stop"),
+        )
+        coEvery { mockToolRegistry.executeFromJson("write_file", any()) } returns "written"
+
+        val runner = SubagentRunner(
+            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
+            mockk(relaxed = true), ToolApprovalRouter(), mockSettings(SessionPermissionMode.TRUSTED),
+        )
+        val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
+
+        coVerify(exactly = 1) { mockToolRegistry.executeFromJson("write_file", any()) }
+        assertTrue(result.progressEntries[0].success)
+    }
+
+    /**
+     * 参数化硬拒在子代理路径上生效，且看的是全量参数。
+     *
+     * 会话模式设为 TRUSTED（静态判定全放行）,所以被拦只能来自参数化策略;
+     * 危险标记特意放在 200 字符之后,只看预览就抓不到。
+     */
+    @Test
+    fun `parametrized hard denial applies on subagent path with full args`() = runTest {
+        val probeTool = "probe_param_guard"
+        ParamPolicies.register(probeTool) { args ->
+            val path = args["path"] as? String ?: return@register null
+            if (path.contains("secret")) {
+                ToolApprovalState.Denied("路径命中参数化硬拒,已拦截")
+            } else {
+                null
+            }
+        }
+        try {
+            val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+            every { mockToolRegistry.listTools() } returns listOf(
+                ToolRegistry.ToolDef(probeTool, "探针工具", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+            )
+            every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+                ToolDefinition(probeTool, "探针工具", "{}"),
+            )
+            every { mockToolRegistry.getToolRiskLevel(probeTool) } returns ToolRiskLevel.NORMAL
+            val mockChatService = mockk<ChatService>(relaxed = true)
+            val path = "/sdcard/" + "p".repeat(260) + "/secret.txt"
+            coEvery {
+                mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+            } returnsMany listOf(
+                ChatCompletion(
+                    text = "",
+                    finishReason = "tool_calls",
+                    toolCalls = listOf(ToolCall(id = "call_1", name = probeTool, arguments = """{"path":"$path"}""")),
+                ),
+                ChatCompletion(text = "工具被拦住了", finishReason = "stop"),
+            )
+            coEvery { mockToolRegistry.executeFromJson(probeTool, any()) } returns "done"
+
+            val runner = SubagentRunner(
+                mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
+                mockk(relaxed = true), ToolApprovalRouter(), mockSettings(SessionPermissionMode.TRUSTED),
+            )
+            val result = runner.run(SubagentRunner.Params(task = "探针", maxToolCalls = 3))
+
+            coVerify(exactly = 0) { mockToolRegistry.executeFromJson(probeTool, any()) }
+            assertFalse(result.progressEntries[0].success)
+            assertTrue(result.progressEntries[0].result.contains("参数化硬拒"))
+        } finally {
+            // 参数策略是全局注册表:用完立即改回「不拦截」,不给其他测试留副作用
+            ParamPolicies.register(probeTool) { null }
+        }
+    }
+
     // ── SubagentRunSkill 参数解析测试 ───────────────────────────────────────
 
     @Test
@@ -431,6 +711,13 @@ class SubagentRunnerTest {
         assertEquals(ToolRiskLevel.HIGH, def.riskLevel)
         assertTrue(def.required.contains("task"))
         assertEquals("integer", def.parameterTypes["max_tool_calls"])
+    }
+
+    // v1.0.53: 会话权限模式 mock — 闸门在无审批通道时读全局默认模式
+    private fun mockSettings(mode: SessionPermissionMode): io.zer0.muse.data.SettingsRepository {
+        val repo = io.mockk.mockk<io.zer0.muse.data.SettingsRepository>(relaxed = true)
+        io.mockk.every { repo.defaultSessionPermissionModeFlow } returns kotlinx.coroutines.flow.flowOf(mode)
+        return repo
     }
 
     // v1.0.53: 线程账本 mock — getOrCreate 返回有效 Pair,runSerialized 透传执行

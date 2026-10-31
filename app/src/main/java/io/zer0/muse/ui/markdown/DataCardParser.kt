@@ -4,7 +4,7 @@ import io.zer0.common.AppJson
 import kotlinx.serialization.Serializable
 
 /**
- * v1.0.53: 对话数据卡片解析(既有实现 show_card)。
+ * v1.0.53: 对话数据卡片解析(对应 show_card 工具)。
  *
  * 消息内容中的 ```card 代码块:
  * ```

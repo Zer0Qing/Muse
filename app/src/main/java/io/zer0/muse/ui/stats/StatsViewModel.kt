@@ -108,8 +108,10 @@ class StatsViewModel(
         val usageCompletionTokens: Long = 0,
         /** 推理 token 合计（仅展示）。 */
         val usageReasoningTokens: Long = 0,
-        /** 缓存命中 token 合计（仅展示）。 */
+        /** 缓存**读取** token 合计（仅展示）。 */
         val usageCachedTokens: Long = 0,
+        /** 缓存**写入** token 合计（仅展示）。与读取分列：两者单价不同，不合并成一个「缓存」数。 */
+        val usageCacheWriteTokens: Long = 0,
         /** 平均首字延迟（毫秒）；0 = 无数据。这是用户感知快慢最直接的指标。 */
         val avgFirstTokenMs: Long = 0,
         /** 按来源拆分（对话/压缩/标题/翻译/记忆/OCR…）。 */
@@ -403,6 +405,7 @@ class StatsViewModel(
                     usageCompletionTokens = io.usageTotals?.completionTokens ?: 0L,
                     usageReasoningTokens = io.usageTotals?.reasoningTokens ?: 0L,
                     usageCachedTokens = io.usageTotals?.cachedTokens ?: 0L,
+                    usageCacheWriteTokens = io.usageTotals?.cacheWriteTokens ?: 0L,
                     avgFirstTokenMs = io.usageTotals?.avgFirstTokenMs ?: 0L,
                     usageBySource = io.usageBySource,
                     usageTopModels = io.usageTopModels,

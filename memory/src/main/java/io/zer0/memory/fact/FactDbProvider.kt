@@ -74,4 +74,33 @@ class FactDbProvider(
         cache.values.forEach { runCatching { it.close() } }
         cache.clear()
     }
+
+    /**
+     * 磁盘上已有分库的助手 id(`facts_<id>.db`),不含主库 `facts.db`。
+     *
+     * 会话/助手删除要遍历所有分库,但只应打开真实存在的库:已被删除的助手不再有文件,
+     * 凭 id 猜一遍会凭空建出空库(并永久留在磁盘上)。
+     */
+    fun listAssistantDbIds(): List<String> {
+        val dir = context.getDatabasePath("facts.db").parentFile ?: return emptyList()
+        return dir.listFiles()
+            .orEmpty()
+            .asSequence()
+            .map { it.name }
+            .filter { it.startsWith(PER_ASSISTANT_DB_PREFIX) && it.endsWith(PER_ASSISTANT_DB_SUFFIX) }
+            .map { it.removePrefix(PER_ASSISTANT_DB_PREFIX).removeSuffix(PER_ASSISTANT_DB_SUFFIX) }
+            .filter { it.isNotBlank() && it != DEFAULT_ASSISTANT_KEY }
+            .distinct()
+            .sorted()
+            .toList()
+    }
+
+    private companion object {
+        /** 主库名与 per-assistant 分库名后缀(与 [getFactDb] 的命名规则一致)。 */
+        const val PER_ASSISTANT_DB_PREFIX = "facts_"
+        const val PER_ASSISTANT_DB_SUFFIX = ".db"
+
+        /** 主库对应的缓存 key,facts.db 不走 `facts_<id>.db` 命名。 */
+        const val DEFAULT_ASSISTANT_KEY = "default"
+    }
 }

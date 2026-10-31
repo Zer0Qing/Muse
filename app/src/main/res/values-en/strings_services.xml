@@ -324,11 +324,11 @@
 
     <!-- v1.136: Reminder tool strings -->
     <string name="tool_reminder_scheduled">Reminder scheduled (id: %1$s)\nTime: %2$s</string>
-    <string name="tool_reminder_schedule_failed">Failed to schedule reminder, please check alarm/notification permissions</string>
+    <string name="tool_reminder_schedule_failed">Failed to create reminder: the system rejected the alarm for this reminder, so it may not ring. Please check the Alarms and reminders permission for this app in system settings and try again.</string>
     <string name="tool_reminder_cancelled">Cancelled reminder: %1$s</string>
     <string name="tool_reminder_not_found">Reminder not found: %1$s</string>
     <string name="tool_reminder_list_header">Scheduled reminders (%1$d total):\n</string>
-    <string name="tool_reminder_list_item">- id: %1$s | time: %2$s | title: %3$s</string>
+    <string name="tool_reminder_list_item">- id: %1$s | time: %2$s | title: %3$s | status: %4$s</string>
     <string name="tool_reminder_list_empty">No scheduled reminders</string>
     <string name="tool_reminder_missing_title">Missing parameter: title</string>
     <string name="tool_reminder_missing_message">Missing parameter: message</string>
@@ -336,6 +336,15 @@
     <string name="tool_reminder_missing_id">Missing parameter: id</string>
     <string name="tool_reminder_invalid_time">Unable to parse time: %1$s, please use yyyy-MM-dd HH:mm</string>
     <string name="tool_reminder_past_time">Reminder time cannot be in the past</string>
+    <string name="tool_reminder_scheduled_inexact">Reminder scheduled (id: %1$s)\nTime: %2$s\nNote: the Alarms and reminders permission is off, so this reminder will ring only approximately (may be a few minutes late). Please enable that permission for this app in system settings.</string>
+    <string name="tool_reminder_status_scheduled">Scheduled, will ring on time</string>
+    <string name="tool_reminder_status_inexact">Scheduled, but without exact-alarm permission; may be a few minutes late</string>
+    <string name="tool_reminder_status_unscheduled">Alarm was not scheduled; may not ring, please set it again</string>
+    <string name="tool_reminder_status_lost">Scheduling unconfirmed; may not ring</string>
+    <string name="tool_reminder_catchup_title">%1$s (late)</string>
+    <string name="reminder_exact_permission_hint">The Alarms and reminders permission is off, so reminders may ring a few minutes late and not on time.</string>
+    <string name="reminder_exact_permission_action">Enable the Alarms and reminders permission</string>
+    <string name="reminder_exact_permission_toast">The Alarms and reminders permission is off, so reminders may be a few minutes late. Settings has opened; please enable it manually.</string>
 
     <!-- v1.136: Resource library tool strings -->
     <string name="tool_resource_added">Resource saved\nid: %1$s\ntitle: %2$s</string>

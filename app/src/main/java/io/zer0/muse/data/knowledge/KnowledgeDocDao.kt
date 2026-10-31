@@ -1,5 +1,6 @@
 package io.zer0.muse.data.knowledge
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -7,10 +8,45 @@ import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * v2.6.x: 文档标题映射用的轻量投影。
+ *
+ * 检索链路只要 id→title,用 [KnowledgeDocDao.observeAll] 会把 content(整篇正文)一并读进内存,
+ * 且该读取在分页循环里每页都会发生一次。
+ */
+data class KnowledgeDocTitleRow(
+    val id: String,
+    val title: String,
+)
+
+/**
+ * 文档列表用的轻量投影:不读正文,只带字节数与索引状态。
+ *
+ * [sizeBytes] 由 SQL 现算 `LENGTH(CAST(content AS BLOB))`;把整篇正文读回内存只为量一下
+ * 大小,在知识库页第一屏就要卡住。
+ */
+data class KnowledgeDocListRow(
+    val id: String,
+    val title: String,
+    @ColumnInfo(name = "chunk_count") val chunkCount: Int,
+    @ColumnInfo(name = "size_bytes") val sizeBytes: Long,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "embedding_model") val embeddingModel: String,
+)
+
 @Dao
 interface KnowledgeDocDao {
     @Query("SELECT * FROM knowledge_docs ORDER BY updated_at DESC")
     fun observeAll(): Flow<List<KnowledgeDocEntity>>
+
+    /**
+     * v2.6.x: id→title 的单次快照(只投影 id/title 两列,不读 content)。
+     *
+     * 排序与 [observeAll] 一致(updated_at 降序),调用方 `associate` 后得到的映射内容与顺序不变;
+     * 语义仍是「取一次」,不返回 Flow、不持续观察。
+     */
+    @Query("SELECT id, title FROM knowledge_docs ORDER BY updated_at DESC")
+    suspend fun getDocTitles(): List<KnowledgeDocTitleRow>
 
     /**
      * v1.133: 按知识库 ID 列出文档(默认排除 internal 文档)。
@@ -24,6 +60,34 @@ interface KnowledgeDocDao {
     /** v1.133: 列出所有非 internal 文档(用于跨 KB 检索时的候选集筛选)。 */
     @Query("SELECT * FROM knowledge_docs WHERE is_internal = 0 ORDER BY updated_at DESC")
     fun observeAllUser(): Flow<List<KnowledgeDocEntity>>
+
+    /**
+     * 按知识库分页列出文档(不含 internal 文档),排序与 [observeByKb] 一致。
+     *
+     * keyset 分页:`cursor` 传上一页最后一条的 id,只取排在它后面的行
+     * (`updated_at` 更早,同一时间戳则 id 更小)。`cursor` 找不到(文档已删、库被换过)
+     * 时子查询给 NULL、比较不成立,本页为空 —— 宁可回空页也不静默跳回第一页。
+     */
+    @Query(
+        """
+        SELECT id, title, chunk_count,
+               LENGTH(CAST(content AS BLOB)) AS size_bytes,
+               created_at, embedding_model
+        FROM knowledge_docs
+        WHERE kb_id = :kbId AND is_internal = 0
+          AND (
+            :cursor IS NULL
+            OR updated_at < (SELECT updated_at FROM knowledge_docs WHERE id = :cursor)
+            OR (
+                updated_at = (SELECT updated_at FROM knowledge_docs WHERE id = :cursor)
+                AND id < :cursor
+            )
+          )
+        ORDER BY updated_at DESC, id DESC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getPageByKb(kbId: String, cursor: String?, limit: Int): List<KnowledgeDocListRow>
 
     /**
      * v0.23: 全文搜索 — 标题或内容包含 query(大小写不敏感)。

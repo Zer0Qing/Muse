@@ -203,6 +203,8 @@
     <string name="schedule_no_executions">暂无执行记录</string>
     <string name="schedule_execution_failed">执行失败</string>
     <string name="schedule_execution_success">执行成功</string>
+    <string name="schedule_execution_missed">错过执行</string>
+    <string name="schedule_missed_summary">错过了 %1$d 次计划执行（上次计划时刻 %2$s，已过去约 %3$d 小时）；本次只补跑最近一次，其余 %1$d 次不再补跑</string>
     <string name="schedule_edit_title">编辑任务</string>
     <string name="schedule_task_name">任务名称</string>
     <string name="schedule_task_content">执行内容</string>
@@ -423,6 +425,8 @@
     <string name="knowledge_file_too_large_msg">文件大小 %1$s，超过 %2$s 限制。\n建议：\n• 分批上传较小的文件\n• 使用云端解析器（设置→RAG→文档解析器）</string>
     <string name="knowledge_file_too_large_confirm">知道了</string>
     <string name="knowledge_imported_indexed">已导入： %1$s (%2$d 块已索引)</string>
+    <string name="knowledge_import_batch_progress">正在导入 %1$d/%2$d</string>
+    <string name="knowledge_import_batch_done">批量导入完成：成功 %1$d 个，失败 %2$d 个</string>
     <string name="knowledge_imported_no_index">已导入： %1$s （向量索引失败，可用文本搜索）</string>
     <string name="knowledge_index_error_reason">原因：%1$s</string>
     <string name="knowledge_import_cancelled">已取消导入</string>
@@ -686,4 +690,62 @@
     <string name="mini_album_delete_imported_hint">这是你导入的图片，删除后文件会被移除。</string>
     <string name="mini_album_delete_imported_action">删除图片</string>
     <string name="quick_notes_remove_image">移除图片 %1$d</string>
+
+    <!-- 后台唤醒诊断:系统到底有没有为 Muse 排后台唤醒(只读,不改动任何调度) -->
+    <string name="wake_diagnostics_open">后台唤醒状态</string>
+    <string name="wake_diagnostics_title">后台唤醒状态</string>
+    <string name="wake_diagnostics_subtitle">这里读的是系统队列里的真实排期，只读，不会改动调度。</string>
+    <string name="wake_diagnostics_refresh">重新读取</string>
+    <string name="wake_diagnostics_copy">复制快照</string>
+    <string name="wake_diagnostics_copied">快照已复制</string>
+    <string name="wake_diagnostics_hint">「跑过但失败」看任务历史里的 failed／skipped／missed 记录；「一次都没跑」通常就是这里的未注册、被限制，或总控关着。</string>
+    <string name="wake_diagnostics_total_control">后台任务总控：%1$s</string>
+    <string name="wake_diagnostics_total_control_on">已开启</string>
+    <string name="wake_diagnostics_total_control_off">已关闭（唤醒照旧，执行体会直接返回）</string>
+    <string name="wake_diagnostics_total_control_unknown">读取失败</string>
+    <string name="wake_diagnostics_battery">电池优化豁免：%1$s</string>
+    <string name="wake_diagnostics_granted">已豁免</string>
+    <string name="wake_diagnostics_denied">未豁免</string>
+    <string name="wake_diagnostics_next_run">下次运行：%1$s</string>
+    <string name="wake_diagnostics_next_run_none">未在排队</string>
+    <string name="wake_diagnostics_attempts">已尝试 %1$d 次</string>
+    <string name="wake_diagnostics_history">另有 %1$d 条历史</string>
+    <string name="wake_diagnostics_constrained">带运行约束</string>
+    <string name="wake_diagnostics_stop_reason">系统停跑：%1$s</string>
+    <string name="wake_diagnostics_empty">没有可读取的后台任务</string>
+    <string name="wake_diagnostics_read_failed">读取失败：%1$s</string>
+    <!-- 状态名不翻译:用户反馈问题、开发者检索线上材料时用的都是 WorkInfo.State 的英文名,
+         所以所有语言包里都保留英文原文，不写「排队中/运行中」这类译名。 -->
+    <string name="wake_state_enqueued">ENQUEUED</string>
+    <string name="wake_state_running">RUNNING</string>
+    <string name="wake_state_blocked">BLOCKED</string>
+    <string name="wake_state_succeeded">SUCCEEDED</string>
+    <string name="wake_state_failed">FAILED</string>
+    <string name="wake_state_cancelled">CANCELLED</string>
+    <string name="wake_state_not_registered">NOT_REGISTERED</string>
+    <string name="wake_state_unknown">UNKNOWN</string>
+    <string name="wake_kind_scheduled_task">定时任务</string>
+    <string name="wake_kind_moment">朋友圈</string>
+    <string name="wake_kind_proactive">主动消息</string>
+    <string name="wake_kind_daily_summary">每日总结</string>
+    <string name="wake_kind_cloud_backup">云备份</string>
+    <string name="wake_kind_auto_backup">本地备份</string>
+    <string name="wake_kind_stats_cache">统计缓存</string>
+    <string name="wake_stop_not_stopped">未被停跑</string>
+    <string name="wake_stop_unknown">原因未知</string>
+    <string name="wake_stop_cancelled_by_app">应用主动取消</string>
+    <string name="wake_stop_preempt">被抢占</string>
+    <string name="wake_stop_timeout">超时</string>
+    <string name="wake_stop_device_state">设备状态变化</string>
+    <string name="wake_stop_battery">电量偏低</string>
+    <string name="wake_stop_charging">未充电</string>
+    <string name="wake_stop_network">网络不可用</string>
+    <string name="wake_stop_device_idle">设备空闲</string>
+    <string name="wake_stop_storage">存储不足</string>
+    <string name="wake_stop_quota">唤醒配额用完</string>
+    <string name="wake_stop_background_restriction">系统后台限制</string>
+    <string name="wake_stop_app_standby">应用待机分组</string>
+    <string name="wake_stop_user">用户操作</string>
+    <string name="wake_stop_system_processing">系统处理中</string>
+    <string name="wake_stop_launch_time">预估启动时间变化</string>
 </resources>

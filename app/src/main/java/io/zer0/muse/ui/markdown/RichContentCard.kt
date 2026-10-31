@@ -529,6 +529,9 @@ private fun SvgCard(
 ) {
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = koinInject()
     val store = cardDataStore
+    // 读数据回调只依赖存储与内联数据，按这两个缓存：每帧新建会让卡片桥
+    // （以它为 key 的 remember）重建，进而重拼整段卡片 HTML。
+    val readData = remember(store, inlineCardData) { { id: String -> store?.get(id) ?: inlineCardData } }
     CardRuntime(
         spec = CardSpec(
             language = CardLanguage.SVG,
@@ -538,7 +541,7 @@ private fun SvgCard(
         ),
         host = CardHost(
             onAction = onCardAction,
-            readData = { id -> store?.get(id) ?: inlineCardData },
+            readData = readData,
             cardId = cardId,
         ),
     )
@@ -555,6 +558,8 @@ private fun HtmlCard(
 ) {
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = koinInject()
     val store = cardDataStore
+    // 同 SvgCard：读数据回调必须跨重组稳定，否则卡片桥跟着重建。
+    val readData = remember(store, inlineCardData) { { id: String -> store?.get(id) ?: inlineCardData } }
     CardRuntime(
         spec = CardSpec(
             language = CardLanguage.HTML,
@@ -564,7 +569,7 @@ private fun HtmlCard(
         ),
         host = CardHost(
             onAction = onCardAction,
-            readData = { id -> store?.get(id) ?: inlineCardData },
+            readData = readData,
             cardId = cardId,
         ),
     )

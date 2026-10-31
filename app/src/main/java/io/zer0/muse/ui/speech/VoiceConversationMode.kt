@@ -74,19 +74,20 @@ import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 
 /**
- * 语音对话模式状态机(既有实现 AsrButton + TTSAutoPlay 的循环模型)。
+ * 语音对话模式状态机(ASR 按钮 + TTS 自动播放的循环模型)。
  *
  * 状态流转:
  *  - IDLE → LISTENING:用户点击主按钮,开始 ASR 录音
- *  - LISTENING → THINKING:ASR 录音结束(用户再次点击或松开),取出识别文本自动发送
+ *  - LISTENING → THINKING:用户再次点击主按钮(「这句话说完了」),取出整段识别文本一次性发送
  *  - THINKING → SPEAKING:AI 流式回复完成,自动调 TtsManager 朗读
  *  - SPEAKING → LISTENING:TTS 朗读完成,自动恢复录音(连续对话)
  *  - 任意状态 → IDLE:用户点击关闭按钮,或主按钮中断
  *
  * 设计要点:
+ *  - 本段输入何时结束完全由用户决定:主按钮是 toggle(非按住),ASR 自行结束不提交
  *  - TTS 播放时必须暂停 ASR(避免扬声器声音被麦克风拾入形成回声)
  *  - 退出时立即释放 ASR/TTS 资源,避免后台继续录音或朗读
- *  - 任何状态下点击主按钮都中断当前状态回到 IDLE,符合"一键可控"交互
+ *  - THINKING / SPEAKING 下点击主按钮中断当前状态,符合"一键可控"交互
  */
 enum class VoiceConversationState {
     /** 空闲,等待用户点击主按钮开始对话。 */
@@ -117,8 +118,11 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
     val conversationState by viewModel.voiceConversationState.collectAsStateWithLifecycle()
     val transcript by viewModel.voiceConversationTranscript.collectAsStateWithLifecycle()
     val aiReply by viewModel.voiceConversationAiReply.collectAsStateWithLifecycle()
+    val hint by viewModel.voiceConversationHint.collectAsStateWithLifecycle()
     val chatState by viewModel.state.collectAsStateWithLifecycle()
     val asrState = chatState.asrState
+    // 模式状态 + 实际录音状态:两者一起决定主按钮是音麦(开始)还是停止(结束并发送)
+    val isRecording = conversationState == VoiceConversationState.LISTENING && asrState.isRecording
     val playbackState by viewModel.ttsPlaybackStateFlow.collectAsStateWithLifecycle()
 
     // 切换语音 Bottom Sheet 状态
@@ -154,13 +158,8 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
         onClose()
     }
 
-    // 用户点击主按钮:任意状态中断回 IDLE(若已在 IDLE 则启动新一轮 LISTENING)
-    val handleMainButtonClick: () -> Unit = {
-        when (conversationState) {
-            VoiceConversationState.IDLE -> viewModel.startVoiceConversation()
-            else -> viewModel.interruptVoiceConversation()
-        }
-    }
+    // 用户点击主按钮:toggle(非按住)— LISTENING 时录音中→结束并提交,否则开始录音;其他状态→中断
+    val handleMainButtonClick: () -> Unit = { viewModel.toggleVoiceConversation() }
 
     Box(
         modifier = Modifier
@@ -195,6 +194,7 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
             // ── 中部:主按钮 + 状态文本 ─────────────────────────────────
             VoiceConversationMainButton(
                 state = conversationState,
+                isRecording = isRecording,
                 onClick = handleMainButtonClick,
                 modifier = Modifier.padding(vertical = MusePaddings.sectionGap),
             )
@@ -204,11 +204,9 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
                 state = conversationState,
                 transcript = transcript,
                 aiReply = aiReply,
+                hint = hint,
                 amplitudes = asrState.amplitudes,
-                playbackPositionMs = playbackState.positionMs,
-                playbackDurationMs = playbackState.durationMs,
-                playbackChunkIndex = playbackState.currentChunkIndex,
-                playbackTotalChunks = playbackState.totalChunks,
+                playback = playbackState,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -267,21 +265,27 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
 }
 
 /**
- * 语音对话主按钮(大圆形,根据状态切换图标与动画)。
+ * 语音对话主按钮(大圆形,根据模式状态 + 实际录音状态切换图标与动画)。
  *
  * - IDLE:麦克风图标,静态
- * - LISTENING:麦克风图标 + 脉冲缩放动画
+ * - LISTENING 且录音中:停止图标 + 脉冲动画(再点一下 = 结束并发送)
+ * - LISTENING 但未录音:麦克风图标(点一下 = 开始录音)
  * - THINKING:圆形进度条
- * - SPEAKING:扬声器图标 + 波形动画
+ * - SPEAKING:传声器图标 + 波形动画
  */
 @Composable
-private fun VoiceConversationMainButton(state: VoiceConversationState, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun VoiceConversationMainButton(
+    state: VoiceConversationState,
+    isRecording: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val primary = MaterialTheme.colorScheme.primary
     val onPrimary = MaterialTheme.colorScheme.onPrimary
     val error = MaterialTheme.colorScheme.error
 
-    // 脉冲动画(LISTENING 时主按钮放大缩小,模拟呼吸感);reduced-motion 下静态展示。
-    val pulseScale = if (state == VoiceConversationState.LISTENING && !MuseMotion.isReducedMotion()) {
+    // 脉冲动画(LISTENING 且录音中时主按钮放大缩小,模拟呼吸感);reduced-motion 下静态展示。
+    val pulseScale = if (state == VoiceConversationState.LISTENING && isRecording && !MuseMotion.isReducedMotion()) {
         val transition = rememberInfiniteTransition(label = "voiceMainPulse")
         val animatedScale by transition.animateFloat(
             initialValue = 1f,
@@ -306,13 +310,13 @@ private fun VoiceConversationMainButton(state: VoiceConversationState, onClick: 
         label = "voiceMainPress",
     )
 
-    // 主按钮背景色:LISTENING 用 error(红,录音中提示),SPEAKING 用 primary,其他用 primary
-    val buttonColor = when (state) {
-        VoiceConversationState.LISTENING -> error
+    // 主按钮背景色:LISTENING 且录音中用 error(红,录音中提示),其他用 primary
+    val buttonColor = when {
+        state == VoiceConversationState.LISTENING && isRecording -> error
         else -> primary
     }
 
-    val stateCd = stateAccessibilityLabel(state)
+    val stateCd = stateAccessibilityLabel(state, isRecording)
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -339,7 +343,7 @@ private fun VoiceConversationMainButton(state: VoiceConversationState, onClick: 
                     modifier = Modifier.size(72.dp),
                 )
                 VoiceConversationState.LISTENING -> Icon(
-                    imageVector = MuseIcons.microphone,
+                    imageVector = if (isRecording) MuseIcons.stop else MuseIcons.microphone,
                     contentDescription = null,
                     tint = onPrimary,
                     modifier = Modifier.size(72.dp),
@@ -359,7 +363,7 @@ private fun VoiceConversationMainButton(state: VoiceConversationState, onClick: 
         }
         Spacer(Modifier.height(MusePaddings.contentGap))
         Text(
-            text = stateStatusLabel(state),
+            text = stateStatusLabel(state, isRecording),
             style = MaterialTheme.typography.titleMedium,
             color = onPrimary,
             fontWeight = FontWeight.SemiBold,
@@ -376,11 +380,9 @@ private fun VoiceConversationStatusPanel(
     state: VoiceConversationState,
     transcript: String,
     aiReply: String,
+    hint: String?,
     amplitudes: List<Float>,
-    playbackPositionMs: Long,
-    playbackDurationMs: Long,
-    playbackChunkIndex: Int,
-    playbackTotalChunks: Int,
+    playback: PlaybackState,
     modifier: Modifier = Modifier,
 ) {
     val onPrimary = MaterialTheme.colorScheme.onPrimary
@@ -410,10 +412,26 @@ private fun VoiceConversationStatusPanel(
             }
             VoiceConversationState.LISTENING -> {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (!hint.isNullOrBlank()) {
+                        Text(
+                            text = hint,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = onPrimary,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(Modifier.height(MusePaddings.contentGap))
+                    }
                     Text(
                         text = stringResource(R.string.voice_conversation_listening),
                         style = MaterialTheme.typography.labelLarge,
                         color = onPrimaryMedium,
+                    )
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    Text(
+                        text = stringResource(R.string.voice_conversation_listening_finish_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onPrimaryMedium,
+                        textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(MusePaddings.contentGap))
                     // 波形动画(归一化振幅 → 竖条高度)
@@ -482,15 +500,15 @@ private fun VoiceConversationStatusPanel(
                         }
                     }
                     // 播放进度(分片进度 + 片内时间)
-                    if (playbackTotalChunks > 0) {
+                    if (playback.totalChunks > 0) {
                         Spacer(Modifier.height(MusePaddings.contentGap))
-                        val progress = if (playbackDurationMs > 0) {
-                            (playbackPositionMs.toFloat() / playbackDurationMs).coerceIn(0f, 1f)
+                        val progress = if (playback.durationMs > 0) {
+                            (playback.positionMs.toFloat() / playback.durationMs).coerceIn(0f, 1f)
                         } else {
                             0f
                         }
-                        val progressLabel = if (playbackTotalChunks > 1) {
-                            "${playbackChunkIndex + 1}/$playbackTotalChunks"
+                        val progressLabel = if (playback.totalChunks > 1) {
+                            "${playback.currentChunkIndex + 1}/${playback.totalChunks}"
                         } else {
                             "${(progress * 100).toInt()}%"
                         }
@@ -603,20 +621,28 @@ private fun VoicePickerContent(voices: List<android.speech.tts.Voice>, currentVo
     }
 }
 
-/** 主按钮无障碍标签。 */
+/** 主按钮无障碍标签（随录音状态变：录音中 = 结束并发送，未录音 = 开始录音）。 */
 @Composable
-private fun stateAccessibilityLabel(state: VoiceConversationState): String = when (state) {
+private fun stateAccessibilityLabel(state: VoiceConversationState, isRecording: Boolean): String = when (state) {
     VoiceConversationState.IDLE -> stringResource(R.string.voice_conversation_cd_idle)
-    VoiceConversationState.LISTENING -> stringResource(R.string.voice_conversation_cd_listening)
+    VoiceConversationState.LISTENING -> if (isRecording) {
+        stringResource(R.string.voice_conversation_cd_listening)
+    } else {
+        stringResource(R.string.voice_conversation_cd_listening_waiting)
+    }
     VoiceConversationState.THINKING -> stringResource(R.string.voice_conversation_cd_thinking)
     VoiceConversationState.SPEAKING -> stringResource(R.string.voice_conversation_cd_speaking)
 }
 
 /** 主按钮下方状态文本。 */
 @Composable
-private fun stateStatusLabel(state: VoiceConversationState): String = when (state) {
+private fun stateStatusLabel(state: VoiceConversationState, isRecording: Boolean): String = when (state) {
     VoiceConversationState.IDLE -> stringResource(R.string.voice_conversation_state_idle)
-    VoiceConversationState.LISTENING -> stringResource(R.string.voice_conversation_state_listening)
+    VoiceConversationState.LISTENING -> if (isRecording) {
+        stringResource(R.string.voice_conversation_state_listening)
+    } else {
+        stringResource(R.string.voice_conversation_state_listening_idle)
+    }
     VoiceConversationState.THINKING -> stringResource(R.string.voice_conversation_state_thinking)
     VoiceConversationState.SPEAKING -> stringResource(R.string.voice_conversation_state_speaking)
 }
