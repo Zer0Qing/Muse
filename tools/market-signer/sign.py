@@ -49,14 +49,24 @@ MANIFEST_ORDER = [
     "activationEvents", "hooks", "enabled", "tools", "signature",
     # ── 可选字段：默认值不参与序列化（与 App 端 PluginManifest 逐字对齐）──
     #  · contributes / uiPanel：App 侧 explicitNulls=false，值为 null 时不输出；
-    #  · hooks：App 侧 @EncodeDefault(NEVER)，空列表不输出（插件 Hook 体系 MVP 新增）；
+    #  · hooks：App 侧 @EncodeDefault(NEVER)，空列表不输出；
     #  · toolCards：App 侧 @EncodeDefault(NEVER)，空对象不输出。
     # 漏跳任何一个，App 验签都会因字节序列不同而失败（v2.0.0 市场事故根因）。
-    "contributes", "uiPanel", "hooks", "toolCards",
+    # hooks 的存放位置由上面那一行决定（须在 enabled 之前），此处不重复列出。
+    "contributes", "uiPanel", "toolCards",
 ]
 
 # 缺失时允许直接跳过的可选字段（不要求出现在 manifest 里，也不填默认值）。
 OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "hooks", "toolCards")
+
+# 作者可写入 manifest、但不进入签名载荷的字段。
+# App 端 PluginManifest.runtime 带 @EncodeDefault(NEVER) 且不在
+# SIGNED_TOP_LEVEL_FIELDS 里，任何取值都不会出现在签名 JSON 中；
+# 这里识别它只为校验入口扩展名与收集包内文件，序列化时丢弃。
+UNSIGNED_MANIFEST_FIELDS = ("runtime",)
+RUNTIME_JS = "js"
+RUNTIME_PYTHON = "python"
+KNOWN_RUNTIMES = (RUNTIME_JS, RUNTIME_PYTHON)
 MANIFEST_DEFAULTS = {
     "version": "0.1.0",
     "description": "",
@@ -92,8 +102,15 @@ TOOL_NAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 FUNCTION_NAME_REGEX = re.compile(r"^[a-zA-Z_$][a-zA-Z0-9_$]{0,63}$")
 VERSION_REGEX = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 SHA256_REGEX = re.compile(r"^[0-9a-f]{64}$")
-ALLOWED_CAPABILITIES = {"resource.read", "ui", "ui.mood", "ui.skin"}
-LOADED_EXTENSIONS = (".js", ".json", ".md")
+# 外部插件允许声明的能力名。App 安装侧已改为开放声明（仅用于安装预览展示，
+# 不再是拒绝条件），这里同步放宽到 App 清单文档列出的集合，
+# 避免作者声明 network 等常用能力时被签名工具单方面拒绝。
+ALLOWED_CAPABILITIES = {
+    "resource.read", "resource.write", "network",
+    "storage.read", "storage.write", "clipboard.read", "clipboard.write",
+    "notify", "device.info", "ui", "ui.mood", "ui.skin",
+}
+LOADED_EXTENSIONS = (".js", ".py", ".json", ".md")
 UI_SKIN_KIND = "ui-skin"
 UI_SKIN_ENTRY = "skin.json"
 MAX_SIGNATURE_BYTES = 256
@@ -105,6 +122,11 @@ def fail(message: str) -> None:
 
 
 def openssl_binary() -> str:
+    configured = os.environ.get("MUSE_OPENSSL", "").strip()
+    if configured:
+        if not os.path.isfile(configured):
+            fail(f"MUSE_OPENSSL 指向的文件不存在: {configured}")
+        return configured
     found = shutil.which("openssl")
     if not found:
         fail("找不到 openssl，可设置环境变量 MUSE_OPENSSL 指向可执行文件")
@@ -217,9 +239,9 @@ def verify_signature(key_path: Path, payload: bytes, signature: bytes) -> None:
 
 # ─────────────────────────── manifest 规范化 ───────────────────────────
 
-def ordered(source: dict, order, defaults=None, label: str = "", optional=()) -> dict:
+def ordered(source: dict, order, defaults=None, label: str = "", optional=(), allowed_extra=()) -> dict:
     defaults = defaults or {}
-    unknown = [key for key in source if key not in order]
+    unknown = [key for key in source if key not in order and key not in allowed_extra]
     if unknown:
         fail(f"{label} 含未知字段 {unknown}；为避免与 App 序列化不一致，必须删除或改名")
     result = {}
@@ -241,6 +263,7 @@ def normalize_manifest(raw: dict, with_signature: bool) -> dict:
     manifest = ordered(
         raw, MANIFEST_ORDER, MANIFEST_DEFAULTS, "manifest.json",
         optional=OPTIONAL_MANIFEST_FIELDS,
+        allowed_extra=UNSIGNED_MANIFEST_FIELDS,
     )
     manifest["tools"] = [
         ordered(tool, TOOL_ORDER, TOOL_DEFAULTS, f"tools[{index}]")
@@ -321,9 +344,25 @@ def finalize_optional_fields(manifest: dict) -> None:
         manifest.pop("uiPanel", None)
     if manifest.get("toolCards") is None or manifest.get("toolCards") == {}:
         manifest.pop("toolCards", None)
+    # hooks 带 @EncodeDefault(NEVER)：空列表同样不进入字节序列。
+    # 漏掉这一步会让 manifest.json 多出 "hooks":[]，与 App 序列化结果不一致，
+    # 所有签名包都会被判“发行者签名与插件内容不匹配”。
+    if not manifest.get("hooks"):
+        manifest.pop("hooks", None)
 
 
-def validate_manifest(manifest: dict) -> None:
+def declared_runtime(raw: dict) -> str:
+    """读取作者声明的运行时；缺省按 App 端默认值 js。
+
+    该字段不参与签名载荷，只影响入口扩展名校验与包内文件收集。
+    """
+    value = raw.get("runtime", RUNTIME_JS)
+    if value not in KNOWN_RUNTIMES:
+        fail(f"不支持的 runtime: {value}（可用：{', '.join(KNOWN_RUNTIMES)}）")
+    return value
+
+
+def validate_manifest(manifest: dict, runtime: str = RUNTIME_JS) -> None:
     if not PLUGIN_ID_REGEX.match(manifest["id"]):
         fail(f"插件 id 非法: {manifest['id']}")
     if not manifest["name"]:
@@ -332,6 +371,8 @@ def validate_manifest(manifest: dict) -> None:
         fail("外部插件 trust 必须是 sandboxed")
     is_skin = manifest["kind"] == UI_SKIN_KIND
     if is_skin:
+        if runtime != RUNTIME_JS:
+            fail("ui-skin 插件只支持 js 运行时")
         if manifest["tools"]:
             fail("ui-skin 插件不得声明工具")
         if "ui.skin" not in manifest["capabilities"]:
@@ -339,8 +380,9 @@ def validate_manifest(manifest: dict) -> None:
     else:
         if not manifest["tools"]:
             fail("插件必须声明至少一个工具")
-        if not manifest["entry"].lower().endswith(".js"):
-            fail(f"入口必须是 .js 文件: {manifest['entry']}")
+        expected_suffix = ".py" if runtime == RUNTIME_PYTHON else ".js"
+        if not manifest["entry"].lower().endswith(expected_suffix):
+            fail(f"runtime={runtime} 的入口必须是 {expected_suffix} 文件: {manifest['entry']}")
     for capability in manifest["capabilities"] + manifest["permissions"]:
         if capability not in ALLOWED_CAPABILITIES:
             fail(f"能力不在白名单内: {capability}")
@@ -386,8 +428,8 @@ def collect_files(src: Path, manifest: dict) -> tuple:
         if UI_SKIN_ENTRY not in extras:
             fail(f"ui-skin 插件缺少 {UI_SKIN_ENTRY}")
         for name in extras:
-            if name.lower().endswith(".js"):
-                fail(f"ui-skin 插件不得包含 JS: {name}")
+            if name.lower().endswith((".js", ".py")):
+                fail(f"ui-skin 插件不得包含脚本: {name}")
         validate_skin_json(extras[UI_SKIN_ENTRY])
     return entry_name, entry_bytes, extras
 
@@ -466,7 +508,7 @@ SUSPICIOUS_SNIPPETS = (
 )
 
 
-def check_entry_code(manifest: dict, entry_bytes: bytes) -> None:
+def check_entry_code(manifest: dict, entry_bytes: bytes, runtime: str = RUNTIME_JS) -> None:
     """校验 manifest 声明的函数确实存在于入口文件，并对可疑片段给出警告。"""
     if entry_bytes.startswith(b"\xef\xbb\xbf"):
         print("  警告：入口文件带 UTF-8 BOM，建议去掉（App 会按 UTF-8 解码）")
@@ -475,15 +517,18 @@ def check_entry_code(manifest: dict, entry_bytes: bytes) -> None:
     except UnicodeDecodeError as error:
         fail(f"入口文件不是合法 UTF-8: {error}")
 
+    declaration = r"def\s+" if runtime == RUNTIME_PYTHON else r"function\s+"
     for tool in manifest["tools"]:
         function_name = tool["functionName"]
-        pattern = re.compile(r"(^|\n)[ \t]*function\s+" + re.escape(function_name) + r"\s*\(")
+        pattern = re.compile(r"(^|\n)[ \t]*" + declaration + re.escape(function_name) + r"\s*\(")
         if not pattern.search(text):
             fail(f"入口未定义工具函数 {function_name}（manifest 工具 {tool['name']}）")
 
-    for snippet in SUSPICIOUS_SNIPPETS:
-        if snippet in text:
-            print(f"  警告：入口包含可疑片段 {snippet!r}，请确认是必要且安全的")
+    # 可疑片段表是按 JS 写法列的，Python 入口不套用，避免误报。
+    if runtime == RUNTIME_JS:
+        for snippet in SUSPICIOUS_SNIPPETS:
+            if snippet in text:
+                print(f"  警告：入口包含可疑片段 {snippet!r}，请确认是必要且安全的")
 
 
 
@@ -509,8 +554,9 @@ def command_pack(args) -> None:
         fail(f"发行者 ID 非法: {args.publisher_id}")
 
     raw = json.loads((src / "manifest.json").read_text(encoding="utf-8"))
+    runtime = declared_runtime(raw)
     manifest = normalize_manifest(raw, with_signature=False)
-    validate_manifest(manifest)
+    validate_manifest(manifest, runtime)
 
     publisher = public_key_info(key_path)
     manifest["signature"] = {
@@ -521,7 +567,7 @@ def command_pack(args) -> None:
     }
 
     entry_name, entry_bytes, extras = collect_files(src, manifest)
-    check_entry_code(manifest, entry_bytes)
+    check_entry_code(manifest, entry_bytes, runtime)
     signature = sign_bytes(key_path, signature_input(build_parts(manifest, entry_name, entry_bytes, extras, True)))
     verify_signature(
         key_path,
