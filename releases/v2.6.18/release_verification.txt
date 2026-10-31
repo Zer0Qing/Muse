@@ -1,0 +1,26 @@
+Muse v2.6.18 发布校验
+
+applicationId : io.zer0.muse
+versionName   : 2.6.18
+versionCode   : 281
+构建时间      : 2026-11-01T02:52:54
+归档时间      : 2026-11-01T02:58:53
+
+产物与 SHA-256
+--------------
+Muse_v2.6.18_universal.apk      190135728 bytes  dea2749e80b6d76a6207b1a9540e4feb3adea4a90b845c24dcaacbcdb879d3fa
+Muse_v2.6.18_arm64-v8a.apk      106132715 bytes  58b224e478166e2ebab7f9763fcc0cc625a56eac2223b968192db07383626c72
+Muse_v2.6.18_armeabi-v7a.apk     62065178 bytes  31d3526ed4b56ad109438a31c2acebfea8c5d60446770f1f56097b9f93e56b46
+Muse_v2.6.18_x86_64.apk         107415457 bytes  958a24bf2a2b60e45e6f746d9a56d44152d12e72259e406e0cf7e9ec6c87ba4a
+
+验证结果
+--------
+apksigner verify            : 通过（exit 0，arm64-v8a）
+aapt2 dump badging          : versionCode=281 versionName=2.6.18
+单元测试                    : app 3572 / memory 335 / ai 485 / miniphone 309，合计 4701 例，0 失败
+detekt                      : 0 问题
+release lint                : 无 error，无 warning
+
+构建命令
+--------
+./gradlew :app:assembleRelease -PversionName=2.6.18 -PversionCode=281

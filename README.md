@@ -297,6 +297,7 @@ python ci/script/validate_release_apks.py --apk "app/build/outputs/apk/release/*
 欢迎参与项目建设：
 
 - [贡献指南](CONTRIBUTING.md) · [安全政策](SECURITY.md) · [UI 组件库维护规范](UI组件库维护规范.md)
+- 开发文档在 [`docs/`](docs/)：架构与功能地图、审查结论、待办、交接说明
 - 提交 PR 前请通过本地门禁脚本与单测；新增字符串需同步全部语言包
 - 门禁与发布流水线脚本在 `ci/script/` 下；应用内置教程（设置 → 使用教程）同步维护
 

@@ -1,0 +1,33 @@
+{
+  "versionName": "2.6.18",
+  "versionCode": 281,
+  "applicationId": "io.zer0.muse",
+  "archivedAt": "2026-11-01T02:58:53",
+  "buildTime": "2026-11-01T02:52:54",
+  "artifacts": [
+    {
+      "file": "Muse_v2.6.18_universal.apk",
+      "abi": "universal",
+      "bytes": 190135728,
+      "sha256": "dea2749e80b6d76a6207b1a9540e4feb3adea4a90b845c24dcaacbcdb879d3fa"
+    },
+    {
+      "file": "Muse_v2.6.18_arm64-v8a.apk",
+      "abi": "arm64-v8a",
+      "bytes": 106132715,
+      "sha256": "58b224e478166e2ebab7f9763fcc0cc625a56eac2223b968192db07383626c72"
+    },
+    {
+      "file": "Muse_v2.6.18_armeabi-v7a.apk",
+      "abi": "armeabi-v7a",
+      "bytes": 62065178,
+      "sha256": "31d3526ed4b56ad109438a31c2acebfea8c5d60446770f1f56097b9f93e56b46"
+    },
+    {
+      "file": "Muse_v2.6.18_x86_64.apk",
+      "abi": "x86_64",
+      "bytes": 107415457,
+      "sha256": "958a24bf2a2b60e45e6f746d9a56d44152d12e72259e406e0cf7e9ec6c87ba4a"
+    }
+  ]
+}

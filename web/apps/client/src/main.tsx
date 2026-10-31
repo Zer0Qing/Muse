@@ -10,13 +10,6 @@ import {
   createMemorySpace,
   createSession,
   indexRagDocument,
-  connectHost,
-  hostLogout,
-  hostPinLogin,
-  type HostConnection,
-  type HostConnectionStatus,
-  type HostEvent,
-  type HostMessage,
   listAssistants,
   listMessages,
   listProviders,
@@ -38,7 +31,13 @@ import {
   type SessionRecord,
   type StoredProviderConfig,
 } from "./api.js";
+import { MessageContent } from "./components/MessageContent.js";
+import { HostApp } from "./host/HostApp.js";
+import { detectMode, initialMode, type ModeState } from "./host/host-mode.js";
 import "./styles.css";
+// Muse 组件基元的样式（取值来自 --muse-* 令牌）。基元本身目前没有页面级使用点，
+// 这里先把样式层挂上，避免后续引入基元时才发现暗色/令牌没有生效。
+import "./components/primitives.css";
 
 const defaultProvider: ProviderConfig = { id: "request-provider", type: "openai", displayName: "OpenAI-compatible", baseUrl: "https://api.openai.com/v1", modelIds: [], supportsStreaming: true };
 const providerTypes: ProviderConfig["type"][] = ["openai", "anthropic", "gemini", "deepseek", "openai_responses", "openai_compatible", "custom"];
@@ -130,19 +129,6 @@ function PushPanel({ session }: { session: ClientSession }) {
     try { if (!capabilities.push || !capabilities.notifications) throw new Error("当前浏览器不支持通知"); const key = import.meta.env.VITE_VAPID_PUBLIC_KEY; if (!key) throw new Error("未配置 VITE_VAPID_PUBLIC_KEY"); const permission = await Notification.requestPermission(); if (permission !== "granted") throw new Error("通知权限未授予"); const registration = await navigator.serviceWorker.ready; const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/")), (char) => char.charCodeAt(0)) }); await registerPushSubscription(session, subscription); setMessage("Push 已启用"); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Push 启用失败"); }
   }
   return <div className="workspace-section compact-section"><div><p className="eyebrow">PWA</p><h3>通知与离线能力</h3></div><p className="muted">{message}</p><button type="button" disabled={!capabilities.push} onClick={() => void enable()}>启用通知</button></div>;
-}
-
-function MessageContent({ content }: { content: string }) {
-  const blocks = content.split(/```/);
-  return <div className="message-content">{blocks.map((block, index) => {
-    if (index % 2 === 1) {
-      const lines = block.replace(/^\w+\r?\n/, "");
-      return <pre key={`code-${index}`}><code>{lines}</code></pre>;
-    }
-    return block.split(/\n{2,}/).filter(Boolean).map((paragraph, paragraphIndex) => (
-      <p key={`paragraph-${index}-${paragraphIndex}`}>{paragraph}</p>
-    ));
-  })}</div>;
 }
 
 function Workspace({ session, onLogout }: { session: ClientSession; onLogout: () => void }) {
@@ -260,124 +246,37 @@ function readStoredClientSession(): ClientSession | undefined {
   }
 }
 
-function HostLogin({ onLogin }: { onLogin: () => void }) {
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function submit() {
-    if (!/^\d{6}$/.test(pin)) { setError("请输入 6 位 PIN"); return; }
-    setBusy(true); setError("");
-    try { await hostPinLogin(pin); onLogin(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Host 连接失败"); }
-    finally { setBusy(false); }
-  }
-  return <section className="panel auth-panel host-login"><p className="eyebrow">MUSE HOST · LOCAL RUNTIME</p><h1>连接 Muse</h1><p className="lede">网页只负责展示，模型、记忆、工具和数据都由手机上的 Muse 负责处理。</p><input aria-label="Host PIN" inputMode="numeric" maxLength={6} type="password" placeholder="手机端 6 位 PIN" value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))} onKeyDown={(event) => { if (event.key === "Enter") void submit(); }} /><button type="button" disabled={busy} onClick={() => void submit()}>{busy ? "连接中…" : "连接 Host"}</button>{error && <p className="error">{error}</p>}</section>;
-}
-
-function HostMessageContent({ message, isLastAssistant, onRegenerate, onContinue }: { message: HostMessage; isLastAssistant: boolean; onRegenerate: () => void; onContinue: () => void }) {
-  return <article className={`message ${message.role}`} key={message.id}><small>{message.role === "user" ? "你" : message.role === "tool" ? "工具" : "Muse"}</small><MessageContent content={message.content || "…"} />{message.reasoning && <details><summary>思考过程</summary><p>{message.reasoning}</p></details>}{message.toolName && <details><summary>工具调用：{message.toolName}</summary><p>{message.content}</p></details>}{isLastAssistant && <div className="message-actions"><button className="quiet" type="button" onClick={onRegenerate}>重新生成</button><button className="quiet" type="button" onClick={onContinue}>继续生成</button></div>}</article>;
-}
-
-function HostChat({ onLogout }: { onLogout: () => void }) {
-  const [connection, setConnection] = useState<HostConnection>();
-  const [connectionStatus, setConnectionStatus] = useState<HostConnectionStatus>("reconnecting");
-  const [sessions, setSessions] = useState<NonNullable<HostEvent["sessions"]>>([]);
-  const [messages, setMessages] = useState<HostMessage[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string>();
-  const [input, setInput] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [pendingApprovals, setPendingApprovals] = useState<NonNullable<HostEvent["pendingApprovals"]>>([]);
-  const [error, setError] = useState("");
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const connectionRef = useRef<HostConnection | undefined>(undefined);
-
-  useEffect(() => {
-    let active = true;
-    let unsubscribeEvents: (() => void) | undefined;
-    let unsubscribeStatus: (() => void) | undefined;
-    void connectHost().then((next) => {
-      if (!active) { next.close(); return; }
-      setConnection(next);
-      connectionRef.current = next;
-      unsubscribeStatus = next.onStatus((status) => {
-        if (!active) return;
-        setConnectionStatus(status);
-        if (status === "connected") setError("");
-        if (status === "reconnecting") setError("手机 Host 连接已断开，正在重新连接…");
-      });
-      unsubscribeEvents = next.subscribe((event) => {
-        if (event.type === "state.snapshot") {
-          setSessions([...(event.sessions ?? [])]);
-          setMessages([...(event.messages ?? [])]);
-          setCurrentSessionId(event.sessionId);
-          setIsStreaming(event.isStreaming === true);
-          setPendingApprovals([...(event.pendingApprovals ?? [])]);
-        }
-        if (event.type === "error") setError(event.error ?? "Host 命令失败");
-      });
-      next.send({ type: "hello", requestId: crypto.randomUUID() });
-    }).catch((cause) => {
-      if (active) {
-        setConnectionStatus("closed");
-        setError(cause instanceof Error ? cause.message : "无法连接 Muse Host");
-      }
-    });
-    return () => {
-      active = false;
-      unsubscribeEvents?.();
-      unsubscribeStatus?.();
-      connectionRef.current?.close();
-      connectionRef.current = undefined;
-    };
-  }, []);
-
-  function sendCommand(command: Parameters<HostConnection["send"]>[0]) {
-    if (!connection) { setError("Host 尚未连接"); return; }
-    try {
-      connection.send({ ...command, requestId: crypto.randomUUID() });
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Host 暂时不可用");
-    }
-  }
-  function selectSession(sessionId: string) {
-    sendCommand({ type: "session.select", sessionId });
-    setMobileSidebarOpen(false);
-  }
-  function renameSession(sessionId: string, currentTitle: string) {
-    const title = window.prompt("会话名称", currentTitle)?.trim();
-    if (title) sendCommand({ type: "session.rename", sessionId, title });
-  }
-  function archiveSession(sessionId: string) {
-    sendCommand({ type: "session.archive", sessionId, archived: true });
-  }
-  function deleteSession(sessionId: string) {
-    if (window.confirm("删除这个会话？")) sendCommand({ type: "session.delete", sessionId });
-  }
-  function resolveApproval(toolCallId: string, decision: "approved" | "denied") {
-    sendCommand({ type: "tool.approval.resolve", generationId: toolCallId, text: decision });
-  }
-  function send() {
-    const text = input.trim();
-    if (!text || isStreaming) return;
-    setInput(""); setError("");
-    sendCommand({ type: "chat.send", ...(currentSessionId ? { sessionId: currentSessionId } : {}), text });
-  }
-  const current = sessions.find((item) => item.id === currentSessionId);
-  return <main className="app-layout host-layout">{mobileSidebarOpen && <button className="mobile-sidebar-scrim" type="button" aria-label="关闭会话列表" onClick={() => setMobileSidebarOpen(false)} />}<aside className={mobileSidebarOpen ? "sidebar mobile-open" : "sidebar"}><div className="brand"><b>Muse</b><span>Host</span></div><button type="button" onClick={() => sendCommand({ type: "session.new" })}>＋ 新对话</button><div className="host-badge">手机主机运算 · Web 远程界面</div><div className="session-list">{sessions.map((item) => <div className="session-entry" key={item.id}><button className={currentSessionId === item.id ? "session active" : "session"} type="button" onClick={() => selectSession(item.id)}>{item.pinned ? "📌 " : ""}{item.title}</button><div className="session-actions"><button className="quiet" type="button" aria-label={`重命名 ${item.title}`} onClick={() => renameSession(item.id, item.title)}>改名</button><button className="quiet" type="button" aria-label={`归档 ${item.title}`} onClick={() => archiveSession(item.id)}>归档</button><button className="quiet danger-action" type="button" aria-label={`删除 ${item.title}`} onClick={() => deleteSession(item.id)}>删</button></div></div>)}</div><button className="quiet" type="button" onClick={() => { void hostLogout(); onLogout(); }}>退出 Host</button></aside><section className="chat"><header><button className="mobile-menu-button" type="button" aria-label="打开会话列表" onClick={() => setMobileSidebarOpen(true)}>☰</button><div><p className="eyebrow">MUSE HOST · {connectionStatus === "connected" ? "CONNECTED" : connectionStatus === "reconnecting" ? "RECONNECTING" : "OFFLINE"}</p><h2>{current?.title ?? "Muse"}</h2></div><span className={connectionStatus === "reconnecting" ? "status reconnecting-status" : isStreaming ? "status streaming-status" : "status"}>{connectionStatus === "reconnecting" ? "重连中…" : isStreaming ? "生成中…" : connectionStatus === "connected" ? "在线" : "离线"}</span></header><div className="messages" role="log" aria-live="polite" aria-label="Host 消息记录">{pendingApprovals.map((approval) => <div className="approval-card" key={approval.toolCallId}><b>需要批准工具：{approval.toolName}</b><pre>{approval.argumentsPreview}</pre><div><button type="button" onClick={() => resolveApproval(approval.toolCallId, "approved")}>批准</button><button type="button" className="quiet" onClick={() => resolveApproval(approval.toolCallId, "denied")}>拒绝</button></div></div>)}{messages.length === 0 && <div className="empty"><h3>从一句话开始</h3><p>此页面只展示手机 Muse 的真实会话状态。</p></div>}{messages.map((message, index) => <HostMessageContent key={message.id} message={message} isLastAssistant={message.role === "assistant" && index === messages.length - 1} onRegenerate={() => sendCommand({ type: "chat.regenerate", ...(currentSessionId ? { sessionId: currentSessionId } : {}) })} onContinue={() => sendCommand({ type: "chat.continue", ...(currentSessionId ? { sessionId: currentSessionId } : {}) })} />)}</div><div className="composer"><div className="host-runtime-note">Provider、记忆、工具和审批由手机 Muse Host 负责</div><div className="send-row"><textarea aria-label="消息" placeholder="写点什么…" value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); send(); } }} /><button type="button" className={isStreaming ? "stop-button" : "send-button"} disabled={connectionStatus !== "connected" || (!isStreaming && !input.trim())} onClick={() => isStreaming ? sendCommand({ type: "chat.stop", ...(currentSessionId ? { sessionId: currentSessionId } : {}) }) : send()}>{isStreaming ? "停止" : "发送"}</button></div>{error && <p className="error">{error}</p>}</div></section></main>;
-}
-
-function App() {
+/** SaaS (cloud account) shell; kept as-is next to the Host mobile shell. */
+function SaasApp() {
   const [session, setSession] = useState<ClientSession | undefined>(readStoredClientSession);
   function handleLogin(value: ClientSession) { sessionStorage.setItem("muse.session", JSON.stringify(value)); setSession(value); }
   function logout() { sessionStorage.removeItem("muse.session"); setSession(undefined); }
-  const hostMode = new URLSearchParams(window.location.search).get("mode") === "host" || import.meta.env.VITE_HOST_MODE === "true";
-  const [hostAuthenticated, setHostAuthenticated] = useState(() => sessionStorage.getItem("muse.host") === "1");
-  if (hostMode) {
-    function hostLogoutAndClear() { sessionStorage.removeItem("muse.host"); setHostAuthenticated(false); }
-    return hostAuthenticated ? <HostChat onLogout={hostLogoutAndClear} /> : <main className="shell"><HostLogin onLogin={() => { sessionStorage.setItem("muse.host", "1"); setHostAuthenticated(true); }} /></main>;
-  }
   return session ? <Chat session={session} onLogout={logout} /> : <main className="shell"><Login onLogin={handleLogin} /></main>;
 }
 
-if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js"));
+/**
+ * Entry gate: a page served by the phone (LAN) prefers Host mode with the PIN;
+ * everything else (dev server, SaaS deploy) keeps the cloud account flow.
+ */
+function App() {
+  const [mode, setMode] = useState<ModeState>(initialMode);
+  useEffect(() => {
+    if (mode !== "pending") return;
+    let active = true;
+    void detectMode().then((next) => { if (active) setMode(next); });
+    return () => { active = false; };
+  }, [mode]);
+  if (mode === "pending") {
+    return <main className="shell"><div className="boot-screen"><span className="boot-dot" /><p>正在识别运行环境…</p></div></main>;
+  }
+  return mode === "host" ? <HostApp /> : <SaasApp />;
+}
+
+// iOS over plain http://LAN-IP is not a secure context, so the service worker is
+// optional by design: no SW registration must never block the app.
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  });
+}
 createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);

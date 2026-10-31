@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "icons": "node scripts/generate-icons.mjs",
+    "test": "node scripts/check-settings-render.mjs && node scripts/check-settings-pages.mjs && node scripts/check-settings-search.mjs && node scripts/check-i18n.mjs && node scripts/check-chat-render.mjs && node scripts/check-sessions.mjs && node scripts/check-assistant-memory.mjs && node scripts/check-knowledge-tasks.mjs && node scripts/check-data-platform.mjs && node scripts/check-appearance.mjs && node scripts/check-perf.mjs && node scripts/check-layout.mjs && node scripts/check-quality.mjs && node scripts/check-css-tokens.mjs",
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

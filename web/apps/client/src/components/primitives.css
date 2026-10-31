@@ -1,0 +1,498 @@
+/* =====================================================================
+   Muse 组件基元样式
+   ---------------------------------------------------------------------
+   对齐 Compose 端规格（MuseScaffold / MuseTopBar / MuseListItem /
+   MuseDivider / SectionLabel / CardGroup / MuseSwitch / MuseCapsuleButton /
+   气泡形状），所有取值都来自 src/design/tokens.json 生成的 `--muse-*`
+   变量。这一层只做一件事：把「明/暗两套 scheme 令牌」收敛成语义变量
+   `--ui-*`，组件规则只引用 `--ui-*` 与 `--muse-*`。
+   ===================================================================== */
+
+:root {
+  --ui-surface: var(--muse-color-scheme-light-surface);
+  --ui-surface-card: var(--muse-color-scheme-light-surface-container-low);
+  --ui-surface-variant: var(--muse-color-scheme-light-surface-variant);
+  --ui-on-surface: var(--muse-color-scheme-light-on-surface);
+  --ui-on-surface-variant: var(--muse-color-scheme-light-on-surface-variant);
+  --ui-outline: var(--muse-color-scheme-light-outline);
+  --ui-outline-variant: var(--muse-color-scheme-light-outline-variant);
+  --ui-primary: var(--muse-color-scheme-light-primary);
+  --ui-on-primary: var(--muse-color-scheme-light-on-primary);
+  --ui-primary-container: var(--muse-color-scheme-light-primary-container);
+  --ui-on-primary-container: var(--muse-color-scheme-light-on-primary-container);
+  --ui-error: var(--muse-color-scheme-light-error);
+  --ui-on-error: var(--muse-color-scheme-light-on-error);
+  --ui-divider: var(--muse-color-scheme-light-divider-hairline);
+  --ui-press-veil: var(--muse-color-scheme-light-pressed-veil);
+  --ui-label-ink: var(--muse-color-scheme-light-on-surface-veil80);
+  --ui-group-title-ink: var(--muse-color-scheme-light-on-surface-veil85);
+  --ui-switch-ring: var(--muse-color-scheme-light-primary-veil20);
+  --ui-primary-veil: var(--muse-color-scheme-light-primary-veil20);
+  --ui-error-veil: color-mix(in srgb, var(--ui-error) 8%, transparent);
+  --ui-error-ink: color-mix(in srgb, var(--ui-error) 60%, transparent);
+  --ui-switch-track-off: var(--muse-color-scheme-light-switch-track-off);
+  --ui-shadow: var(--muse-color-scheme-light-shadow);
+  /* 字体栈只在 styles.css 的 :root 定义一次（与手机 App 同一套系统无衬线） */
+  --ui-font: var(--font-ui);
+  --ui-safe-top: env(safe-area-inset-top, 0px);
+  --ui-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 明/暗两套 scheme 收敛成语义变量 `--ui-*`。
+   三态主题：
+     — 未强制（data-theme="system" 或无属性）：跟 prefers-color-scheme
+     — data-theme="light"：强制浅色（下面的暗色媒体查询会跳过）
+     — data-theme="dark"：强制深色
+   暗色声明写了两遍（媒体查询一遍、属性一遍），CSS 没有更好的复用手段；
+   check-appearance.mjs 会逐条比对这两块，防止漂。 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ui-surface: var(--muse-color-scheme-dark-surface);
+    --ui-surface-card: var(--muse-color-scheme-dark-surface-container-low);
+    --ui-surface-variant: var(--muse-color-scheme-dark-surface-variant);
+    --ui-on-surface: var(--muse-color-scheme-dark-on-surface);
+    --ui-on-surface-variant: var(--muse-color-scheme-dark-on-surface-variant);
+    --ui-outline: var(--muse-color-scheme-dark-outline);
+    --ui-outline-variant: var(--muse-color-scheme-dark-outline-variant);
+    --ui-primary: var(--muse-color-scheme-dark-primary);
+    --ui-on-primary: var(--muse-color-scheme-dark-on-primary);
+    --ui-primary-container: var(--muse-color-scheme-dark-primary-container);
+    --ui-on-primary-container: var(--muse-color-scheme-dark-on-primary-container);
+    --ui-error: var(--muse-color-scheme-dark-error);
+    --ui-on-error: var(--muse-color-scheme-dark-on-error);
+    --ui-divider: var(--muse-color-scheme-dark-divider-hairline);
+    --ui-press-veil: var(--muse-color-scheme-dark-pressed-veil);
+    --ui-label-ink: var(--muse-color-scheme-dark-on-surface-veil80);
+    --ui-group-title-ink: var(--muse-color-scheme-dark-on-surface-veil85);
+    --ui-switch-ring: var(--muse-color-scheme-dark-primary-veil20);
+    --ui-primary-veil: var(--muse-color-scheme-dark-primary-veil20);
+    --ui-switch-track-off: var(--muse-color-scheme-dark-switch-track-off);
+    --ui-shadow: var(--muse-color-scheme-dark-shadow);
+  }
+}
+
+/* 强制深色：与上面那块逐条一致（check-appearance.mjs 会比对） */
+:root[data-theme="dark"] {
+  --ui-surface: var(--muse-color-scheme-dark-surface);
+  --ui-surface-card: var(--muse-color-scheme-dark-surface-container-low);
+  --ui-surface-variant: var(--muse-color-scheme-dark-surface-variant);
+  --ui-on-surface: var(--muse-color-scheme-dark-on-surface);
+  --ui-on-surface-variant: var(--muse-color-scheme-dark-on-surface-variant);
+  --ui-outline: var(--muse-color-scheme-dark-outline);
+  --ui-outline-variant: var(--muse-color-scheme-dark-outline-variant);
+  --ui-primary: var(--muse-color-scheme-dark-primary);
+  --ui-on-primary: var(--muse-color-scheme-dark-on-primary);
+  --ui-primary-container: var(--muse-color-scheme-dark-primary-container);
+  --ui-on-primary-container: var(--muse-color-scheme-dark-on-primary-container);
+  --ui-error: var(--muse-color-scheme-dark-error);
+  --ui-on-error: var(--muse-color-scheme-dark-on-error);
+  --ui-divider: var(--muse-color-scheme-dark-divider-hairline);
+  --ui-press-veil: var(--muse-color-scheme-dark-pressed-veil);
+  --ui-label-ink: var(--muse-color-scheme-dark-on-surface-veil80);
+  --ui-group-title-ink: var(--muse-color-scheme-dark-on-surface-veil85);
+  --ui-switch-ring: var(--muse-color-scheme-dark-primary-veil20);
+  --ui-primary-veil: var(--muse-color-scheme-dark-primary-veil20);
+  --ui-switch-track-off: var(--muse-color-scheme-dark-switch-track-off);
+  --ui-shadow: var(--muse-color-scheme-dark-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .muse-switch-thumb,
+  .muse-switch-track,
+  .muse-capsule {
+    transition-duration: 0ms;
+  }
+  .muse-skeleton {
+    animation: none;
+  }
+}
+
+/* ── icons ─────────────────────────────────────────────────────────── */
+.muse-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: var(--muse-icons-icon);
+  height: var(--muse-icons-icon);
+  stroke-width: var(--muse-icons-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+}
+
+/* ── Screen ────────────────────────────────────────────────────────── */
+.muse-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--ui-surface);
+  color: var(--ui-on-surface);
+  font-family: var(--ui-font);
+  font-size: var(--muse-type-scale-body-large-font-size);
+  line-height: var(--muse-type-scale-body-large-line-height);
+  letter-spacing: var(--muse-type-scale-body-large-letter-spacing);
+  -webkit-tap-highlight-color: transparent;
+}
+.muse-screen-topbar { flex: 0 0 auto; padding-top: var(--ui-safe-top); background: var(--ui-surface); }
+.muse-screen-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.muse-screen-body.is-padded {
+  padding: var(--muse-space-section-gap) var(--muse-space-screen) var(--muse-space-large-gap);
+}
+.muse-screen-footer {
+  flex: 0 0 auto;
+  padding: 0 var(--muse-space-screen) calc(var(--ui-safe-bottom) + var(--muse-space-content-gap));
+}
+/* 固定定位的手机壳（.host-root）里，屏幕要撑满剩余高度，而不是被内容撑高：
+   否则 .muse-screen-body 的 overflow 失效，长列表会被外层裁掉。 */
+.muse-screen.is-fill { flex: 1 1 auto; min-height: 0; }
+
+/* ── TopBar ────────────────────────────────────────────────────────── */
+.muse-topbar { display: grid; gap: var(--muse-space-tight-gap); }
+.muse-topbar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--muse-space-tight-gap);
+  padding: var(--muse-component-top-bar-row-padding-y) var(--muse-component-top-bar-row-padding-x);
+}
+.muse-topbar-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: var(--muse-space-bubble-inner-vertical) var(--muse-space-bubble-inner-horizontal);
+  color: var(--ui-on-surface);
+  font-size: var(--muse-type-scale-title-large-font-size);
+  font-weight: var(--muse-type-scale-title-large-weight);
+  line-height: var(--muse-type-scale-title-large-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.muse-topbar-spacer { flex: 1 1 auto; }
+.muse-topbar-actions { display: flex; flex: 0 0 auto; align-items: center; gap: var(--muse-space-tiny-gap); }
+.muse-topbar-large-title {
+  margin: 0;
+  padding: var(--muse-space-tight-gap) var(--muse-space-message-gap);
+  color: var(--ui-on-surface);
+  font-size: var(--muse-type-scale-display-large-font-size);
+  font-weight: var(--muse-type-scale-display-large-weight);
+  line-height: var(--muse-type-scale-display-large-line-height);
+  letter-spacing: var(--muse-type-scale-display-large-letter-spacing);
+}
+.muse-icon-button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: var(--muse-icons-touch-target);
+  height: var(--muse-icons-touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--muse-radius-button);
+  color: var(--ui-on-surface);
+  background: transparent;
+  cursor: pointer;
+}
+.muse-icon-button:active { background: var(--ui-press-veil); }
+.muse-icon-button:disabled { cursor: not-allowed; opacity: var(--muse-color-alpha-action-disabled); }
+
+/* ── SectionLabel ──────────────────────────────────────────────────── */
+.muse-section-label {
+  margin: 0;
+  padding-bottom: var(--muse-space-tight-gap);
+  color: var(--ui-label-ink);
+  font-size: var(--muse-type-scale-label-large-font-size);
+  font-weight: var(--muse-type-scale-label-large-weight);
+  line-height: var(--muse-type-scale-label-large-line-height);
+}
+
+/* ── Card / CardGroup ──────────────────────────────────────────────── */
+.muse-card-group { display: block; }
+.muse-card-group > .muse-section-label { padding-left: var(--muse-space-screen); padding-right: var(--muse-space-screen); }
+.muse-card {
+  overflow: hidden;
+  border-radius: var(--muse-component-card-group-radius);
+  background: var(--ui-surface-card);
+  box-shadow: 0 var(--muse-elevation-low) calc(var(--muse-elevation-medium) * 2) var(--ui-shadow);
+}
+.muse-card.is-padded { padding: var(--muse-component-card-inner-padding-y) var(--muse-component-card-inner-padding-x); }
+
+/* ── ListRow ───────────────────────────────────────────────────────── */
+.muse-listrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--muse-component-list-row-min-height);
+  padding: var(--muse-component-list-row-padding-y) var(--muse-component-list-row-padding-x);
+  border: 0;
+  color: var(--ui-on-surface);
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+}
+.muse-listrow.is-interactive { cursor: pointer; }
+.muse-listrow.is-interactive:active { background: var(--ui-press-veil); }
+/* MuseListItem：leading 与文字间距 = screen(16)，文字与 trailing 间距 = contentGap(8)，
+   标题与副标题之间无额外间距。 */
+.muse-listrow-leading {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin-right: var(--muse-space-screen);
+  color: var(--ui-on-surface-variant);
+}
+.muse-listrow-text { display: grid; flex: 1 1 auto; min-width: 0; }
+.muse-listrow-title {
+  overflow: hidden;
+  color: var(--ui-on-surface);
+  font-size: var(--muse-type-scale-title-medium-font-size);
+  font-weight: var(--muse-type-scale-title-medium-weight);
+  line-height: var(--muse-type-scale-title-medium-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.muse-listrow-subtitle {
+  overflow: hidden;
+  color: var(--ui-on-surface-variant);
+  font-size: var(--muse-type-scale-body-small-font-size);
+  font-weight: var(--muse-type-scale-body-small-weight);
+  line-height: var(--muse-type-scale-body-small-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.muse-listrow-trailing {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--muse-space-content-gap);
+  margin-left: var(--muse-space-content-gap);
+  color: var(--ui-on-surface-variant);
+}
+.muse-listrow-chevron { color: var(--ui-outline); }
+/* MuseDivider：0.5dp 发丝线，起始缩进 = 16 内边距 + 24 图标 + 16 间距（= 56，见 MuseDivider.startIndent）。 */
+.muse-listrow-divider {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: calc(
+    var(--muse-component-card-inner-padding-x) + var(--muse-icons-icon) + var(--muse-space-screen)
+  );
+  height: var(--muse-component-card-border-width);
+  background: var(--ui-divider);
+}
+
+/* ── Switch（轨道 51×31、拇指 27、内缩 2） ──────────────────────────── */
+.muse-switch {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--muse-icons-touch-target);
+  min-height: var(--muse-icons-touch-target);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.muse-switch-track {
+  position: relative;
+  display: block;
+  width: var(--muse-component-switch-track-width);
+  height: var(--muse-component-switch-track-height);
+  border-radius: var(--muse-radius-pill);
+  background: var(--ui-switch-track-off);
+  transition: background-color var(--muse-motion-durations-tactile) var(--muse-motion-easings-ease-out-cubic);
+}
+.muse-switch.is-on .muse-switch-track { background: var(--ui-primary); }
+.muse-switch-thumb {
+  position: absolute;
+  top: var(--muse-component-switch-track-inset);
+  left: var(--muse-component-switch-track-inset);
+  display: block;
+  width: var(--muse-component-switch-thumb-size);
+  height: var(--muse-component-switch-thumb-size);
+  border-radius: var(--muse-radius-pill);
+  background: var(--ui-on-surface-variant);
+  transition:
+    transform var(--muse-motion-durations-tactile) var(--muse-motion-easings-ease-out-cubic),
+    background-color var(--muse-motion-durations-tactile) var(--muse-motion-easings-ease-out-cubic);
+}
+.muse-switch.is-on .muse-switch-thumb {
+  background: var(--ui-on-primary);
+  transform: translateX(
+    calc(
+      var(--muse-component-switch-track-width) - var(--muse-component-switch-thumb-size) -
+        2 * var(--muse-component-switch-track-inset)
+    )
+  );
+}
+/* 开启态拇指内圈：primary @20%（MuseSwitch drawCircle 装饰）。 */
+.muse-switch.is-on .muse-switch-track::after {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--muse-component-switch-track-inset) + var(--muse-component-switch-thumb-size) * 0.2);
+  width: calc(var(--muse-component-switch-thumb-size) * 0.6);
+  height: calc(var(--muse-component-switch-thumb-size) * 0.6);
+  border-radius: var(--muse-radius-pill);
+  background: var(--ui-switch-ring);
+  content: "";
+  transform: translateY(-50%);
+}
+.muse-switch:disabled { cursor: not-allowed; opacity: var(--muse-color-alpha-action-disabled); }
+
+/* ── CapsuleButton（48dp 高、24dp 圆角、按压 0.97x） ────────────────── */
+.muse-capsule {
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
+  align-items: center;
+  justify-content: center;
+  gap: var(--muse-space-content-gap);
+  min-height: var(--muse-component-button-capsule-min-height);
+  padding: var(--muse-space-item-gap) var(--muse-space-message-gap);
+  border: 0;
+  border-radius: var(--muse-component-button-capsule-radius);
+  font-family: inherit;
+  font-size: var(--muse-type-scale-label-large-font-size);
+  font-weight: var(--muse-type-scale-label-large-weight);
+  line-height: var(--muse-type-scale-label-large-line-height);
+  letter-spacing: var(--muse-type-scale-label-large-letter-spacing);
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform var(--muse-motion-durations-fast) var(--muse-motion-easings-ease-out-cubic),
+    background-color var(--muse-motion-durations-fast-normal) var(--muse-motion-easings-ease-out-cubic);
+}
+.muse-capsule.is-fill { width: 100%; }
+.muse-capsule > * { position: relative; z-index: 1; }
+.muse-capsule.is-primary { color: var(--ui-on-primary); background: var(--ui-primary); }
+.muse-capsule.is-secondary { color: var(--ui-on-primary-container); background: var(--ui-primary-container); }
+.muse-capsule:active:not(:disabled) { transform: scale(var(--muse-component-button-capsule-press-scale)); }
+.muse-capsule:disabled { cursor: not-allowed; background: transparent; }
+/* v1.0.92 口径：禁用态容器 0.38、文字 0.75 —— 不直接把 alpha 描到 content 上，
+   而是用一层半透明容器，文字只降到 0.75，浅色主题下不会变成一块黑。 */
+.muse-capsule:disabled::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--ui-primary);
+  opacity: var(--muse-color-alpha-action-disabled);
+  content: "";
+}
+.muse-capsule.is-secondary:disabled::before { background: var(--ui-primary-container); }
+.muse-capsule:disabled .muse-capsule-label { opacity: var(--muse-color-alpha-action-content-disabled); }
+
+/* ── Bubble（主体 20dp + 尾巴角 6dp，最大宽度比由 MuseBubbleStyles 给） ── */
+.muse-bubble {
+  display: grid;
+  gap: var(--muse-space-tight-gap);
+  max-width: calc(100% * var(--muse-component-bubble-max-width-ratio));
+  padding: var(--muse-component-bubble-inner-padding-y) var(--muse-component-bubble-inner-padding-x);
+  font-size: var(--muse-type-scale-body-large-font-size);
+  line-height: var(--muse-type-scale-body-large-line-height);
+  letter-spacing: var(--muse-type-scale-body-large-letter-spacing);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.muse-bubble.is-user {
+  align-self: flex-end;
+  justify-self: end;
+  color: var(--ui-on-primary);
+  background: var(--ui-primary);
+  border-radius:
+    var(--muse-component-bubble-radius) var(--muse-component-bubble-radius) var(--muse-component-bubble-tail-radius)
+    var(--muse-component-bubble-radius);
+}
+.muse-bubble.is-assistant {
+  align-self: flex-start;
+  justify-self: start;
+  color: var(--ui-on-surface);
+  background: var(--ui-surface-variant);
+  border-radius:
+    var(--muse-component-bubble-radius) var(--muse-component-bubble-radius) var(--muse-component-bubble-radius)
+    var(--muse-component-bubble-tail-radius);
+}
+.muse-bubble-body > :first-child { margin-top: 0; }
+.muse-bubble-body > :last-child { margin-bottom: 0; }
+.muse-bubble-meta {
+  color: var(--ui-outline);
+  font-size: var(--muse-type-scale-label-small-font-size);
+  line-height: var(--muse-type-scale-label-small-line-height);
+}
+.muse-bubble-actions {
+  display: flex;
+  gap: var(--muse-space-tiny-gap);
+  padding-top: var(--muse-space-tiny-gap);
+}
+
+/* ── 设置项图标（圆形药丸底 + 描边图标，对齐 MuseSettingsIcon） ─────── */
+.muse-settings-icon {
+  display: inline-grid;
+  place-items: center;
+  width: var(--muse-icons-icon-large);
+  height: var(--muse-icons-icon-large);
+  border-radius: var(--muse-radius-pill);
+  color: var(--ui-on-surface-variant);
+  background: var(--ui-surface-variant);
+}
+.muse-settings-icon .muse-icon {
+  width: var(--muse-icons-icon-small);
+  height: var(--muse-icons-icon-small);
+}
+
+/* ── 分组堆叠（CardGroup 之间的纵向间距 = cardGap 20dp） ───────────── */
+.muse-stack { display: grid; gap: var(--muse-space-card-gap); align-content: start; }
+
+/* ── 骨架条（扫光） ──────────────────────────────────────────────── */
+.muse-skeleton {
+  display: block;
+  width: 55%;
+  height: var(--muse-space-list-row-vertical);
+  border-radius: var(--muse-radius-tiny);
+  background: linear-gradient(
+    90deg,
+    var(--ui-surface-variant) 0%,
+    var(--ui-primary-veil) 50%,
+    var(--ui-surface-variant) 100%
+  );
+  background-size: 300% 100%;
+  animation: muse-skeleton-sweep var(--muse-motion-durations-loop-extra-slow) linear infinite;
+}
+.muse-skeleton.is-thin { width: 35%; height: var(--muse-space-aux-gap); }
+.muse-skeleton.is-label { width: 30%; height: var(--muse-type-scale-label-large-line-height); }
+@keyframes muse-skeleton-sweep {
+  from { background-position: 150% 0; }
+  to { background-position: -150% 0; }
+}
+
+/* ── 错误状态块（ErrorStateBox） ───────────────────────────────────── */
+.muse-error-box {
+  display: grid;
+  justify-items: center;
+  gap: var(--muse-space-content-gap);
+  padding: calc(var(--muse-space-screen) * 2) var(--muse-space-screen);
+  text-align: center;
+}
+.muse-error-box-icon {
+  display: inline-grid;
+  place-items: center;
+  width: calc(var(--muse-icons-icon-empty) + var(--muse-space-screen) * 2);
+  height: calc(var(--muse-icons-icon-empty) + var(--muse-space-screen) * 2);
+  border-radius: var(--muse-radius-pill);
+  color: var(--ui-error-ink);
+  background: var(--ui-error-veil);
+}
+.muse-error-box-message {
+  margin: 0;
+  color: var(--ui-on-surface-variant);
+  font-size: var(--muse-type-scale-title-medium-font-size);
+  font-weight: var(--muse-type-scale-title-medium-weight);
+  line-height: var(--muse-type-scale-title-medium-line-height);
+  letter-spacing: var(--muse-type-scale-title-medium-letter-spacing);
+}
+.muse-error-box-actions {
+  display: flex;
+  gap: var(--muse-space-content-gap);
+  padding-top: var(--muse-space-tight-gap);
+}
