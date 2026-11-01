@@ -45,7 +45,7 @@ It does four things:
 |---|---|---|
 | **Continuous** | Switch sessions, channels or models, it is still the same one | Four-tier memory + one persona across five chat channels |
 | **Proactive** | It moves things forward without being called | Pending-thoughts ledger, scheduled tasks, reaching out when it has been quiet |
-| **Capable** | It does more than talk | Accessibility / Shizuku / Root tiers, 170+ built-in tools, terminal and virtual display |
+| **Capable** | It does more than talk | Accessibility / Shizuku / Root tiers, 200+ tools, terminal and virtual display |
 | **Persistent** | Close and reopen, it is still there | Keep-alive service, local database, offline runtimes |
 
 No sign-up, no account, uninstall and it is gone.
@@ -145,7 +145,7 @@ It does not wait to be spoken to.
 | Root | Full system control, access other apps' data | Rooted device |
 | Termux | Full Linux environment (apt / pip / gcc / ffmpeg) | Install Termux and authorize |
 
-- **170+ built-in tools**, exposed in tiers by default; long-tail capabilities are loaded on demand via `find_tools`
+- **200+ tools**, exposed in tiers by default; long-tail capabilities are loaded on demand via `find_tools`
 - Every tool declares its required authorization and readiness (READY / NOT READY); unready calls **fail fast before execution** with clear guidance
 - Built-in terminal (custom PTY + xterm), background **virtual display**, vision-driven **GUI Agent**, browser automation
 - Safety boundaries: command allowlist, risk-based approval (Trusted / Ask / Strict), hard timeouts, workspace sandbox
@@ -209,9 +209,9 @@ It does not wait to be spoken to.
 </details>
 
 <details>
-<summary><b>Tools & Automation</b> — 170+ tools / permission tiers / approvals & budgets / four channels / terminal / virtual display / GUI Agent</summary>
+<summary><b>Tools & Automation</b> — 200+ tools / permission tiers / approvals & budgets / four channels / terminal / virtual display / GUI Agent</summary>
 
-- **Tool system**: 170+ built-in tools, exposed in tiers (core / standard / optional / advanced); only common tools are sent by default to keep context lean, while long-tail capabilities load on demand via `find_tools` (loaded tools stay available for the session); the system prompt carries a live capability index with the number actually available this round, not a hard-coded constant.
+- **Tool system**: 200+ tools, exposed in tiers (core / standard / optional / advanced); only common tools are sent by default to keep context lean, while long-tail capabilities load on demand via `find_tools` (loaded tools stay available for the session); the system prompt carries a live capability index with the number actually available this round, not a hard-coded constant.
 - **Permission tiers**: every tool that needs Shizuku / Root, Accessibility or Termux declares its dependencies and readiness (READY / NOT READY); unready calls fail fast with a structured `permission_required` error and authorization guidance.
 - **Approvals**: risk levels (safe / normal / high) combined with three modes (Trusted / Ask / Strict); "allow for this session" and per-tool policies; high-risk actions always ask first.
 - **Execution engine**: read-only tools run with bounded parallelism (max 3); blocking tools run on a dedicated thread pool with hard timeouts; oversized outputs are written to disk with previews and `read_file` references in context; a unified success judge; automatic early stop on repeated failures with honest reasons; tool rounds are unlimited by default (a cap is configurable), with circuit breakers for repeated identical calls, no-progress rounds and total call counts.

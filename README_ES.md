@@ -34,13 +34,22 @@
 
 ## Qué es Muse
 
-¿Tienes que presentarte desde cero cada vez que abres una conversación nueva con una IA? Con Muse no hace falta.
+**Muse es un agente personal que corre en tu propio teléfono.**
 
-Muse es un compañero de IA de código abierto que corre en Android: **te recuerda de verdad** mediante un sistema de memoria de cuatro capas, **actúa dentro de tu teléfono** a través de tres canales de permisos (Accesibilidad / Shizuku / Root), y además tiene su propio mundo interior (Mood) y una vida propia: Momentos, diario, álbum. Cambias de modelo, cambias de sesión, cierras y vuelves a abrir: te sigue recordando. Y si pasa mucho tiempo sin hablar, toma la iniciativa y te busca.
+La mayoría de los agentes personales de 2026 viven en la nube. Te recuerdan y te resuelven el trabajo, y el precio es que todo lo tuyo sigue en el servidor de otra persona, ejecutándose fuera de tu vista.
 
-Puedes cambiar de modelo a gusto (más de 40 proveedores predefinidos), sin registro y sin cuenta, y **por defecto todos los datos se quedan en tu dispositivo**. También puedes conectarlo a WeChat, QQ, Feishu, Telegram y DingTalk, para que el asistente viva dentro de las apps de chat que usas todos los días.
+Muse va en la dirección contraria. Vive en tu Android, acepta el modelo que le pongas (más de 40 proveedores predefinidos), deja tus datos en el dispositivo por defecto y, cuando hay algo que hacer, opera el teléfono de verdad: lee la pantalla, toca, ejecuta comandos, lee y escribe archivos.
 
-Todo está construido para continuar la conversación, no para empezar de cero.
+Hace cuatro cosas:
+
+| | Significado | Cómo lo hace Muse |
+|---|---|---|
+| **Continuo** | Cambia de sesión, de canal o de modelo y sigue siendo el mismo | Memoria en cuatro capas + una sola persona en los cinco canales de chat |
+| **Proactivo** | Avanza lo que hay que avanzar sin que lo llames | Libro de lo que te quiere decir, tareas programadas, escribirte cuando lleva tiempo en silencio |
+| **Capaz** | Hace más que hablar | Capas Accesibilidad / Shizuku / Root, más de 200 herramientas, terminal y pantalla virtual |
+| **Persistente** | Lo cierras y lo abres, y sigue ahí | Servicio en primer plano, base de datos local, runtimes sin conexión |
+
+Sin registro, sin cuenta: lo desinstalas y se va.
 
 ## Capturas de pantalla
 
@@ -65,7 +74,7 @@ Todo está construido para continuar la conversación, no para empezar de cero.
   <img src="screenshots/en/web-search.jpg" width="140" alt="Ajustes de búsqueda web">
 </p>
 <p align="center">
-  <img src="screenshots/en/data-backup.jpg" width="140" alt="Estadísticas, copia de seguridad y servidor web">
+  <img src="screenshots/en/data-backup.jpg" width="140" alt="Estadísticas, copia de seguridad y datos">
   <img src="screenshots/en/vision.jpg" width="140" alt="Asistencia visual y prueba de diagnóstico">
   <img src="screenshots/en/stickers.jpg" width="140" alt="Gestión de la biblioteca de stickers">
 </p>
@@ -98,7 +107,15 @@ Descarga el APK más reciente desde la página oficial [museai.ltd/download](htt
 
 ## Por qué Muse
 
-### 1. Memoria persistente: nunca vuelve a presentarse
+### 1. Es tuyo, no alquilado
+
+Un agente en la nube te da un servicio: inicias sesión, él te recuerda, los datos viven allí. Muse te da un proceso que corre en un dispositivo que es tuyo.
+
+- Las conversaciones, la memoria y la base de conocimiento viven en una base de datos Room local; sin telemetría, sin analítica, sin registro
+- Cualquier modelo: más de 40 proveedores predefinidos, además de endpoints compatibles con OpenAI autoalojados o en tu red local
+- Los ajustes sensibles pasan por Android Keystore; la PII se enmascara antes de enviarse y se restaura en la respuesta
+
+### 2. Recuerda a una persona, no una conversación
 
 Una arquitectura de memoria en cuatro capas, que avanza desde la conversación a corto plazo hasta el procesamiento profundo a largo plazo:
 
@@ -108,10 +125,19 @@ corto plazo      datos clave              compresión              dedup/fusión
 ```
 
 - **Los hechos críticos no se desvanecen nunca** (salud, finanzas e identidad central están protegidos), mientras la información cotidiana se olvida de forma natural, como en una persona
-- Cada recuerdo se puede rastrear hasta su origen; el panel de memoria permite añadir y borrar entradas, ajustar el peso, filtrar y buscar, y expandir las entradas largas
-- Los recuerdos se gestionan aislados por espacio; las copias de seguridad se cifran de extremo a extremo al cambiar de dispositivo
+- Cada recuerdo se puede rastrear hasta su origen, y se puede editar, reponderar y buscar; los recuerdos se aíslan por espacio
+- El mismo en todos los canales: WeChat / QQ / Feishu / Telegram / DingTalk, cada contacto con su propio contexto y su resumen acumulativo
 
-### 2. Capacidad de acción a nivel de sistema: de verdad hace cosas dentro de tu teléfono
+### 3. Avanza por su cuenta
+
+No espera a que le hables.
+
+- **Libro de lo que te quiere decir**: el asistente apunta lo que quiere preguntarte y elige una entrada cuando llega el momento, en lugar de inventar charla
+- **Libro de resultados**: abierto, respondido o descartado, todo queda registrado; de ahí aprende la intimidad para decidir cuántas veces puede hablar hoy
+- **Horas de silencio**: calla cuando deberías estar durmiendo
+- **Tareas programadas**: se ejecutan a su hora y el resultado vuelve a la conversación
+
+### 4. De verdad hace cosas en este teléfono
 
 | Canal | Capacidades | Requisito |
 |------|------|------|
@@ -120,18 +146,28 @@ corto plazo      datos clave              compresión              dedup/fusión
 | Root | Control total del sistema, acceso a los datos de otras apps | Dispositivo con root |
 | Termux | Entorno Linux completo (apt / pip / gcc / ffmpeg) | Instalar Termux y autorizar |
 
-- **Más de 200 herramientas integradas**, expuestas por capas por defecto; las capacidades de cola larga se cargan a demanda con `find_tools`
+- **Más de 200 herramientas**, expuestas por capas por defecto; las capacidades de cola larga se cargan a demanda con `find_tools`
 - Cada herramienta indica la autorización que requiere y su estado de preparación; si no está lista, **falla rápido antes de ejecutarse** y da instrucciones claras
 - Terminal integrada (PTY propio + xterm), **pantalla virtual** en segundo plano, **GUI Agent** guiado por visión, automatización de navegador
 - Límites de seguridad: lista blanca de comandos, aprobación por riesgo (Confianza / Consultar / Estricto), tiempos de espera duros, sandbox del espacio de trabajo
 
-### 3. Personalidad y equipo: tiene mundo interior, y también vida
+### 5. Tiene mundo interior, y también equipo
 
-- **Mood en cuatro dimensiones**: Vibe / Sparks / Reflections / Will antes de cada respuesta, plegado por defecto; ábrelo para ver "cómo lo pensó"
+- **Mood en cuatro dimensiones**: Vibe / Sparks / Reflections / Will antes de cada respuesta, plegado por defecto
 - **Persona en tres capas**: capa de persona / capa de relación / capa de estilo, con las variables de plantilla `{{user_name}}` / `{{char}}`
-- **Multiagente**: delega con `@nombre-del-asistente`, tarjetas de tarea con el estado paso a paso, subagentes en ventanas flotantes, bandeja de mensajes privados entre asistentes
-- **Reuniones de grupo**: tarjeta de resumen / votaciones / observadores / plantillas rápidas / controles de reunión (pausar, saltar): una reunión formal entre varios asistentes
-- **Hitos compartidos**: el primer mensaje, los días 7 / 30 / 100 juntos, los mensajes 100 / 1000... todo queda registrado por ti
+- **Multiagente**: delega con `@nombre-del-asistente`, tarjetas de tarea que muestran el estado de cada paso, subagentes en ventanas flotantes, bandeja de mensajes privados entre asistentes
+- **Reuniones de grupo**: tarjeta de resumen / votaciones / observadores / plantillas rápidas / controles de reunión
+- **Hitos**: el primer mensaje, los días 7 / 30 / 100 juntos, los mensajes 100 / 1000... todo queda registrado por ti
+
+### En qué se diferencia de un agente en la nube
+
+| | Agente personal en la nube | Muse |
+|---|---|---|
+| Se ejecuta en | Un host en la nube / una pestaña del navegador | Tu propio teléfono |
+| Datos | Se suben antes de poder recordarte | Se quedan en el dispositivo por defecto |
+| Puede tocar | Páginas web y APIs | El dispositivo mismo: pantalla, comandos, archivos, otras apps |
+| Modelo | Atado a la plataforma | Más de 40 proveedores, cambia cuando quieras |
+| Coste | Suscripción y privacidad | Pones tú el dispositivo y la API Key |
 
 ## Funciones
 
@@ -167,7 +203,7 @@ corto plazo      datos clave              compresión              dedup/fusión
 - **Biblioteca de experiencias**: convierte "este tipo de problema se resuelve así" en experiencia reutilizable que las tareas futuras consultan automáticamente (se puede activar o desactivar).
 - **Base de conocimiento (RAG)**: los documentos importados se analizan, se fragmentan y se indexan; la recuperación combina búsqueda semántica y coincidencia de palabras clave; con @ se limita la búsqueda a documentos concretos; los archivos muy grandes se indexan en streaming; en entornos sin conexión se degrada a búsqueda local; las citas remiten a los fragmentos originales.
 - **Resumen diario y saludos**: a la hora configurada se genera un repaso del día (visible en el inicio, con notificación opcional); el saludo de la mañana lo genera el modelo a partir de los asuntos recientes en la memoria, no es una plantilla fija.
-- **Mensajes proactivos**: no hay sondeos a intervalos fijos. Funciona con un "libro de lo que te quiere decir": el asistente anota ahí lo que te quiere preguntar y elige una entrada cuando llega el momento. Que lo abras, respondas o lo descartes queda en un libro de resultados, y de ahí aprende la intimidad para decidir cuántas veces puede hablar hoy. Cinco niveles (Silencioso / Reservado / Estándar / Activo / Pegajoso), con la opción de volver al nivel por defecto y poner a cero la cuota del día; se respetan las horas de silencio; si no tiene nada que aportar, prefiere no escribir; y hay una red de seguridad (si llevan mucho tiempo sin hablar, saluda por iniciativa propia). De madrugada sigue escribiendo su diario y ordenando recuerdos sin molestarte; el contenido de las notificaciones diarias es configurable (resumen diario / diario nocturno / novedades de Momentos).
+- **Mensajes proactivos**: no hay sondeos a intervalos fijos. Funciona con un "libro de lo que te quiere decir": el asistente anota ahí lo que te quiere preguntar y elige una entrada cuando llega el momento. Que lo abras, respondas o lo descartes queda en un libro de resultados, y de ahí aprende la intimidad para decidir cuántas veces puede hablar hoy. Cinco niveles (Silencioso / Reservado / Estándar / Activo / Pegajoso), con la opción de volver al nivel por defecto y poner a cero la cuota del día; se respetan las horas de silencio; si no tiene nada que aportar, prefiere no escribir; y hay una red de seguridad (si llevan mucho tiempo sin hablar, saluda por iniciativa propia). De madrugada sigue ordenando recuerdos sin molestarte; el contenido de las notificaciones diarias es configurable (resumen diario).
 - **Hitos**: el primer mensaje, los días 7 / 30 / 100 juntos, los mensajes 100 / 1000 y otros momentos se registran automáticamente y se pueden revisar en la página de hitos.
 - **Estadísticas y panel de actividad**: la página de estadísticas incluye el total de conversaciones y mensajes, la media diaria, la racha de días y un mapa de calor diario; el panel de actividad muestra el historial de ejecución de tareas programadas, heartbeats y compilación de memoria.
 
@@ -176,7 +212,7 @@ corto plazo      datos clave              compresión              dedup/fusión
 <details>
 <summary><b>Herramientas y automatización</b>: más de 200 herramientas / capas de permisos / aprobaciones y presupuestos / cuatro canales / terminal / pantalla virtual / GUI Agent</summary>
 
-- **Sistema de herramientas**: más de 200 herramientas integradas, expuestas por capas (núcleo / comunes / opcionales / avanzadas); por defecto solo se envían las comunes para mantener el contexto ligero, y las capacidades de cola larga se buscan y cargan con `find_tools` por palabra clave (una vez cargadas siguen disponibles durante la sesión); el prompt del sistema incluye un índice vivo de capacidades, con el número realmente disponible en cada ronda y no una constante escrita a mano.
+- **Sistema de herramientas**: más de 200 herramientas, expuestas por capas (núcleo / comunes / opcionales / avanzadas); por defecto solo se envían las comunes para mantener el contexto ligero, y las capacidades de cola larga se buscan y cargan con `find_tools` por palabra clave (una vez cargadas siguen disponibles durante la sesión); el prompt del sistema incluye un índice vivo de capacidades, con el número realmente disponible en cada ronda y no una constante escrita a mano.
 - **Capas de permisos**: cada herramienta que necesita Shizuku / Root, Accesibilidad o Termux declara sus dependencias y su estado (READY / NOT READY); si no está lista, falla rápido antes de ejecutarse y devuelve un error estructurado `permission_required` con instrucciones de autorización.
 - **Sistema de aprobación**: nivel de riesgo (seguro / normal / alto) combinado con tres modos (Confianza / Consultar / Estricto); se admite "permitir en esta sesión" y políticas personalizadas por herramienta; las acciones de alto riesgo se preguntan antes de ejecutarse.
 - **Motor de ejecución**: las herramientas de solo lectura se ejecutan en paralelo de forma controlada (máximo 3) para ganar velocidad; las herramientas bloqueantes usan un pool de hilos dedicado con tiempos de espera duros; las salidas demasiado grandes se guardan en disco y en el contexto solo queda una vista previa con una referencia para `read_file`; criterio unificado de éxito o fallo; parada temprana automática tras fallos repetidos, indicando el motivo real; las rondas de herramientas no tienen límite por defecto (se puede fijar un máximo), y hay protecciones de circuito por llamadas idénticas repetidas, rondas sin progreso y número total de llamadas.
@@ -204,17 +240,6 @@ corto plazo      datos clave              compresión              dedup/fusión
 - **Protocolo MCP**: conecta MCP Servers externos para ampliar el conjunto de herramientas (autenticación OAuth / transporte SSE / descubrimiento automático).
 - **Conectores OAuth**: integra servicios de terceros con credenciales cifradas en local; el centro de conexiones gestiona modelos, canales y conectores en un solo lugar.
 - **Cinco canales de mensajería**: WeChat (vinculación por QR) / QQ (bot por WebSocket) / Feishu (eventos por conexión persistente) / Telegram / DingTalk (modo Stream); cada contacto tiene su propio contexto de sesión y su resumen acumulativo; las imágenes y los mensajes de voz se guardan y se transcriben automáticamente; cada canal puede vincularse a un asistente y un modelo distintos; cada plataforma trae su propio asistente de configuración y prueba de conexión.
-- **Servidor web**: servidor Ktor integrado (autenticación JWT + descubrimiento mDNS + certificado HTTPS autofirmado) para abrir las conversaciones desde el navegador de cualquier dispositivo de la red local.
-
-</details>
-
-<details>
-<summary><b>Mini teléfono y Momentos</b> (versión experimental temprana, en mejora continua): IM simulado / Momentos de la IA / álbum / diario</summary>
-
-- **Mini teléfono**: cliente de mensajería instantánea simulado e integrado, con la estructura de cuatro pestañas (Chats / Contactos / Descubrir / Yo); puedes cambiar el fondo de pantalla y ajustar opciones, y usar la IA como si fuera una app de mensajería.
-- **Momentos de la IA**: la IA publica novedades (texto e imágenes, incluida la cuadrícula de nueve fotos), da me gusta y comenta; centro de mensajes, portada y página de perfil.
-- **Álbum y diario de la IA**: las imágenes generadas se archivan (con fecha y vista a pantalla completa); el diario se consulta por calendario mensual, y de madrugada la IA escribe el suyo.
-- **Clima y notas rápidas**: fuente de datos meteorológicos gratuita; las notas rápidas se guardan en la pestaña "Yo".
 
 </details>
 
@@ -253,7 +278,7 @@ corto plazo      datos clave              compresión              dedup/fusión
 | Lenguaje / UI | Kotlin 2.4 · Jetpack Compose · Material 3 |
 | Arquitectura | MVVM + flujo de datos unidireccional · Koin (DI) |
 | Datos | Room (SQLite) + DataStore · ONNX Runtime (embeddings locales) |
-| Red | OkHttp + Ktor (servidor web con JWT + mDNS + HTTPS) |
+| Red | OkHttp + Ktor |
 | Análisis y renderizado | PDFBox · ML Kit OCR · PTY propio + xterm |
 | Controles de calidad | detekt + ktlint + Android Lint + scripts de verificación propios · cobertura con Kover |
 
