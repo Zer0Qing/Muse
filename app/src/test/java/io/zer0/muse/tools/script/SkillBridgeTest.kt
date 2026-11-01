@@ -15,8 +15,11 @@ class SkillBridgeTest {
         )
 
         assertTrue(result is SkillBridge.HandleResult.Failure)
-        // v2.x: 默认用 ALL_ACTIONS 全放行；此处显式传入受限动作集，验证机制仍在（message 已改为新文案）。
-        assertTrue((result as SkillBridge.HandleResult.Failure).message.contains("不在放行动作集内"))
+        val message = (result as SkillBridge.HandleResult.Failure).message
+        // P0-2 起拒绝文案必须可行动：只说"不在放行集内"模型只会原样重试。
+        assertTrue("应说明是未授权，实际: $message", message.contains("未获授权"))
+        assertTrue("应指出去哪儿批准，实际: $message", message.contains("插件"))
+        assertTrue("应给出动作名便于自查，实际: $message", message.contains("http_get"))
     }
 
     @Test

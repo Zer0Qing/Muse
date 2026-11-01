@@ -774,4 +774,21 @@
     <string name="wake_stop_user">Acción del usuario</string>
     <string name="wake_stop_system_processing">Procesando el sistema</string>
     <string name="wake_stop_launch_time">Cambió el tiempo estimado de inicio</string>
+    <string name="plugin_permission_section_title">Capacidades y permisos</string>
+    <string name="plugin_permission_hint">Las capacidades no declaradas o desactivadas se rechazan de inmediato; los cambios surten efecto al instante.</string>
+    <string name="plugin_permission_pending_title">Este complemento declaro nuevas capacidades tras una actualizacion</string>
+    <string name="plugin_permission_approve">Aprobar nuevas</string>
+    <string name="plugin_permission_none">Este complemento no declara capacidades; solo puede ejecutar calculos.</string>
+    <string name="plugin_permission_denied_title">Llamadas bloqueadas</string>
+    <string name="plugin_permission_denied_row">%1$s necesita la capacidad %2$s</string>
+    <string name="plugin_permission_allow_session">Permitir en esta sesion</string>
+    <string name="plugin_permission_recent_title">Llamadas recientes</string>
+    <string name="plugin_permission_recent_empty">Aun no hay llamadas registradas</string>
+    <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
+    <string name="plugin_permission_expand">Mostrar</string>
+    <string name="plugin_permission_collapse">Ocultar</string>
+    <string name="plugin_permission_python_title">Tiempo de ejecucion Python (confianza alta)</string>
+    <string name="plugin_permission_python_warning">Los complementos de Python se ejecutan en un subproceso con el mismo UID que la aplicacion y pueden leer y escribir los datos directamente, sin los interruptores ni elsandbox de archivos. Activalo solo para fuentes confiables.</string>
+    <string name="plugin_row_python_trusted">Runtime Python · permitido</string>
+    <string name="plugin_row_python_locked">Runtime Python · requiere confianza alta</string>
 </resources>

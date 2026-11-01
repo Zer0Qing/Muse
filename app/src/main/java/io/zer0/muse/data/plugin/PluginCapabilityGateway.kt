@@ -1,0 +1,306 @@
+package io.zer0.muse.data.plugin
+
+import io.zer0.common.Logger
+import java.io.File
+import java.security.MessageDigest
+
+/**
+ * 插件能力总线（v2 重构 P0-1/P0-2）：把"清单声明了什么"变成"运行时到底放不放行"。
+ *
+ * ## 为什么要它
+ *
+ * 之前 `SkillBridge` 的调用方无条件传 `ALL_ACTIONS`，而安装确认页却对用户列出"声明能力"
+ * （`PluginManagePage.kt:2063`）—— 用户看到的能力清单与实际权限毫无关系：**声明只是装饰**。
+ * 这比没有权限系统更糟，因为它制造了假安全感。
+ *
+ * ## 五条规则
+ *
+ * 1. **默认拒绝**：能力未授予 → 对应桥动作不可用（`echo` 除外，它不带任何外泄面）。
+ * 2. **未登记的动作也拒绝**：新加桥动作却忘了登记映射 = 谁都调不到，而不是"不需要权限"。
+ * 3. **声明 ≠ 授权**：首见某插件时按已重验的声明批量落账（`decidedBy = install-auto`），
+ *    与今天行为一致，存量插件不会突然坏。
+ * 4. **升级扩权必须重批**：清单新增的能力不放行（见 [addedCapabilities]）；只缩小声明则静默跟随。
+ * 5. **每次调用重新查账**：撤销立即生效，不缓存到"注册工具列表"那一刻。
+ *
+ * 持久授权（ALWAYS）落盘；一次性 / 会话性授权走 [PluginSessionGrants]，两者生命周期不同。
+ * 能力名沿用清单已有词汇（`network` / `resource.read` / `resource.write` / `ui.skin`），
+ * 新增项按 `组.动作` 命名，避免再造一套需要映射的同义词。
+ */
+class PluginCapabilityGateway(
+    private val storeFile: File,
+    private val now: () -> Long = System::currentTimeMillis,
+) {
+    /** 判定结果。[Decision.Deny] 必须带"下一步怎么办"，让模型与用户都有路可走。 */
+    sealed interface Decision {
+        data object Allow : Decision
+
+        data class Deny(val capability: String, val reason: String) : Decision
+    }
+
+    @Volatile
+    private var store: PluginPermissionStore = PluginPermissionStore.fromFile(storeFile)
+
+    private val session = PluginSessionGrants()
+    private val audit = PluginCapabilityAudit(now)
+
+    /**
+     * 该插件当前可用的桥动作集合。
+     *
+     * [declared] 必须来自**磁盘重验后的 manifest**（`SkillMediaToolsImpl.kt:181` 已是该口径），
+     * 不能取注册表缓存字段 —— 否则改一下包内清单就能绕过授权。
+     */
+    fun allowedActions(pluginId: String, declared: List<String>): Set<String> =
+        actionsOf(grantedCapabilities(pluginId, declared))
+
+    /** 只查账、不看清单：给拿不到已重验 manifest 的执行点用（Hook、激活、沙盒网络出口）。 */
+    fun approvedActions(pluginId: String): Set<String> = actionsOf(liveCapabilities(pluginId))
+
+    /** 某能力是否已批准（沙盒网络出口与 Python 档这类单点判断用；会消费 ONCE 档的一次额度）。 */
+    fun isApproved(pluginId: String, capability: String): Boolean {
+        // Python 档走"记账本不看声明"这条路：清单里写多少次 runtime.python 都不会自我授予，
+        // 只有用户通过 grant 落的那条记录算数。
+        if (capability == RUNTIME_PYTHON) return store.plugins[pluginId]?.grants?.get(capability)?.allowed == true
+        val canonical = CAPABILITY_ALIASES[capability] ?: capability
+        return session.take(pluginId, canonical) || canonical in liveCapabilities(pluginId)
+    }
+
+    /** 单个动作判定；放行与拒绝都记审计。 */
+    fun check(pluginId: String, declared: List<String>, action: String): Decision {
+        if (action in ALWAYS_ALLOWED_ACTIONS) return Decision.Allow
+        val capability = CAPABILITY_FOR_ACTION[action] ?: return deny(pluginId, action, "-", UNSUPPORTED_ACTION)
+        // 先消费会话额度：ONCE 档必须"用完即失效"。若先查持久集合，
+        // liveCapabilities 会把还剩余额的 ONCE 也算进去，于是永远用不完。
+        val allowed = session.take(pluginId, capability) || capability in grantedCapabilities(pluginId, declared)
+        if (allowed) {
+            audit.record(pluginId, action, capability, allowed = true)
+            return Decision.Allow
+        }
+        val reason = if (capability !in declared) {
+            "插件清单未声明能力 '$capability'，因此不能调用 '$action'；需要该功能请更新清单声明后重新安装确认。"
+        } else {
+            "能力 '$capability' 未授权（动作 '$action' 被拒）；" +
+                "可在 设置 → 工具与扩展 → 插件 → 权限 中授予，或改用不需要该能力的做法。"
+        }
+        return deny(pluginId, action, capability, reason)
+    }
+
+    /**
+     * 授予/撤销一项能力。
+     *
+     * [tier] 决定持久性：[PluginPermissionTier.ALWAYS] 落盘；ONCE 只放行一次；SESSION 本次进程内有效。
+     */
+    fun grant(
+        pluginId: String,
+        capability: String,
+        allowed: Boolean,
+        declared: List<String>,
+        tier: PluginPermissionTier = PluginPermissionTier.ALWAYS,
+        decidedBy: String = PluginCapabilityGrant.DECIDED_BY_USER,
+    ) {
+        if (tier == PluginPermissionTier.ALWAYS) {
+            session.put(pluginId, capability, tier, allowed = false)
+            writeGrant(pluginId, capability, allowed, declared, decidedBy)
+        } else if (capability != RUNTIME_PYTHON) {
+            session.put(pluginId, capability, tier, allowed)
+        }
+    }
+
+    /** 批量接受一份新声明（用户在升级审核里点"同意"）。 */
+    fun approveDeclaration(pluginId: String, declared: List<String>) {
+        store = store.copy(
+            plugins = store.plugins.withRecord(pluginId, declared) { record ->
+                record.copy(
+                    grants = declared.associateWith { capability ->
+                        record.grants[capability] ?: PluginCapabilityGrant(
+                            allowed = true,
+                            decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
+                            decidedAt = now(),
+                        )
+                    },
+                )
+            },
+        )
+        persist()
+    }
+
+    /** 撤销该插件全部授权（卸载/停用/清数据时调用）。 */
+    fun revokeAll(pluginId: String) {
+        store = store.copy(plugins = store.plugins - pluginId)
+        session.clear(pluginId)
+        persist()
+    }
+
+    /**
+     * 清单新增但尚未批准的能力。权限页据此出"待重新审核"标记；是否为空即"要不要重审"。
+     */
+    fun addedCapabilities(pluginId: String, declared: List<String>): Set<String> =
+        canonicalCapabilities(declared) - canonicalCapabilities(
+            store.plugins[pluginId]?.declaredCapabilities.orEmpty(),
+        )
+
+    /** 当前生效的能力集合：既不含未声明的，也不含"升级新增未批准的"。 */
+    fun grantedCapabilities(pluginId: String, declared: List<String>): Set<String> {
+        seedFromDeclaration(pluginId, declared)
+        return canonicalCapabilities(declared.filterNot { it == RUNTIME_PYTHON }).intersect(liveCapabilities(pluginId))
+    }
+
+    /**
+     * Python 档**只能由用户显式授予**：走 [grant] 传 `capability = RUNTIME_PYTHON`，
+     * 读用 [isApproved]。不提供会话档 —— 它等于整台应用的数据目录，"临时"没有意义。
+     */
+
+    fun recentAudit(limit: Int = 50): List<PluginCapabilityAudit.Event> = audit.recent(limit)
+
+    /** 权限页一次性需要的账本视图：账本记录的声明集合 + 逐能力明细。 */
+    fun permissionView(pluginId: String): PluginPermissionView {
+        val record = store.plugins[pluginId] ?: return PluginPermissionView(emptyList(), emptyMap())
+        return PluginPermissionView(record.declaredCapabilities, record.grants)
+    }
+
+    /**
+     * 安装/启用时按**已重验的 manifest** 落账 —— 播种的唯一入口。
+     * 已有账本时不动 grants：新增能力只会被记为待审，绝不自动放行。
+     */
+    fun seedFromDeclaration(pluginId: String, declared: List<String>): PluginPermissionRecord {
+        store.plugins[pluginId]?.let { return it }
+        val declarableCaps = declared.filterNot { it == RUNTIME_PYTHON }
+        val seeded = PluginPermissionRecord(
+            declaredCapabilities = canonicalCapabilities(declarableCaps).sorted(),
+            declarationHash = declarationHash(declarableCaps),
+            grants = declarableCaps.toSet().associateWith {
+                // 首见即按声明批量放行，但标成 install-auto：升级扩权不能再走这条路。
+                PluginCapabilityGrant(
+                    allowed = true,
+                    decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
+                    decidedAt = now(),
+                )
+            },
+        )
+        store = store.copy(plugins = store.plugins + (pluginId to seeded))
+        persist()
+        return seeded
+    }
+
+    private fun liveCapabilities(pluginId: String): Set<String> {
+        val record = store.plugins[pluginId] ?: return emptySet()
+        val always = canonicalCapabilities(record.grants.filterValues { it.allowed }.keys)
+            .intersect(canonicalCapabilities(record.declaredCapabilities))
+        return always + canonicalCapabilities(session.liveCapabilities(pluginId))
+    }
+
+    private fun actionsOf(capabilities: Set<String>): Set<String> =
+        CAPABILITY_ACTIONS.filterKeys { it in capabilities }.values.flatten().toSet() + ALWAYS_ALLOWED_ACTIONS
+
+    private fun deny(pluginId: String, action: String, capability: String, reason: String): Decision {
+        audit.record(pluginId, action, capability, allowed = false)
+        return Decision.Deny(capability, reason)
+    }
+
+    private fun writeGrant(
+        pluginId: String,
+        capability: String,
+        allowed: Boolean,
+        declared: List<String>,
+        decidedBy: String,
+    ) {
+        store = store.copy(
+            plugins = store.plugins.withRecord(pluginId, declared) { record ->
+                record.copy(
+                    grants = record.grants + (capability to PluginCapabilityGrant(allowed, decidedBy, now())),
+                )
+            },
+        )
+        persist()
+    }
+
+    private fun persist() {
+        runCatching { PluginPermissionStore.toFile(storeFile, store) }
+            .onFailure { Logger.w(TAG, "权限账本写入失败: ${it.message}") }
+    }
+
+    companion object {
+        private const val TAG = "PluginCapability"
+        private const val UNSUPPORTED_ACTION =
+            "未知桥接动作，不在能力总线的授权范围内（新增动作必须先在 CAPABILITY_ACTIONS 登记能力映射）"
+
+        /** 联网能力名，与清单词汇一致（沙盒网络出口按它判定）。 */
+        const val NETWORK = "network"
+
+        /**
+         * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。
+         *
+         * 为什么单独一档：外部包可以写 `runtime: "python"`，而安全门只校验入口扩展名
+         * （`PluginSecurityGate.kt:319-322`）且仍要求 `trust == "sandboxed"`。
+         * 但 Python 跑在内置解释器的**子进程**里、与应用**同 UID**，可直接读写应用数据目录
+         * （`SkillMediaToolsImpl.kt` 的 python 分支注释自述）—— 称它 sandboxed 是假的。
+         * 所以它不进播种、不进会话表、也不受清单 capabilities 影响。
+         */
+        const val RUNTIME_PYTHON = "runtime.python"
+
+        /** 通路自检动作：不携带任何外泄面，始终放行。 */
+        val ALWAYS_ALLOWED_ACTIONS: Set<String> = setOf("echo")
+
+        /**
+         * 能力 → 桥动作。
+         *
+         * 新增桥动作必须同时登记在这里：不在表里的动作等于"谁都调不到"（fail-closed），
+         * 而不是"不需要权限"。
+         */
+        val CAPABILITY_ACTIONS: Map<String, Set<String>> = mapOf(
+            "resource.read" to setOf("fs_list", "fs_read"),
+            "resource.write" to setOf("fs_write", "fs_delete"),
+            NETWORK to setOf("http_get", "http_post"),
+            "clipboard.read" to setOf("clipboard_read"),
+            "clipboard.write" to setOf("clipboard_write"),
+            "clipboard" to setOf("clipboard_read", "clipboard_write"),
+            "notify" to setOf("notify"),
+            "device.info" to setOf("device_info"),
+        )
+
+        /**
+         * 同义拼写归一化。
+         *
+         * 仓库里两套词汇并存：内置清单与 `tools/market-signer/sign.py` 用 `resource.*`，
+         * 清单注释、author_plugin 参数说明、市场 README 用 `storage.*`。只认一套会让
+         * 另一套的真实包被新闸门静默挡死。
+         *
+         * 注意这里是**归一化**而不是往映射里加同义条目：后者会让"动作 → 能力"反查出现两个答案，
+         * 拒绝提示与授权判定就会对不上（这条是被测试抓出来的）。
+         */
+        val CAPABILITY_ALIASES: Map<String, String> = mapOf(
+            "storage.read" to "resource.read",
+            "storage.write" to "resource.write",
+        )
+
+        /** 把声明/查询里的能力名统一成映射表的规范名。 */
+        fun canonicalCapabilities(capabilities: Collection<String>): Set<String> =
+            capabilities.map { CAPABILITY_ALIASES[it] ?: it }.toSet()
+
+        private val CAPABILITY_FOR_ACTION: Map<String, String> =
+            CAPABILITY_ACTIONS.entries.flatMap { (capability, actions) -> actions.map { it to capability } }.toMap()
+
+        /** 声明集合的指纹：排序去重后取摘要前缀，用于展示与"是否变过"的快速比较。 */
+        fun declarationHash(capabilities: Collection<String>): String {
+            val joined = capabilities.toSortedSet().joinToString("|")
+            if (joined.isEmpty()) return "empty"
+            val digest = MessageDigest.getInstance("SHA-256").digest(joined.toByteArray())
+            return digest.joinToString("") { "%02x".format(it) }.take(16)
+        }
+
+        /** 用户操作时同步刷新"当前声明集合"，之后插件再扩权才算新增。 */
+        private fun Map<String, PluginPermissionRecord>.withRecord(
+            pluginId: String,
+            declared: List<String>,
+            transform: (PluginPermissionRecord) -> PluginPermissionRecord,
+        ): Map<String, PluginPermissionRecord> {
+            val existing = this[pluginId] ?: PluginPermissionRecord(
+                declaredCapabilities = canonicalCapabilities(declared).sorted(),
+                declarationHash = declarationHash(declared),
+            )
+            return this + (pluginId to transform(existing).copy(
+                declaredCapabilities = canonicalCapabilities(declared).sorted(),
+                declarationHash = declarationHash(declared),
+            ))
+        }
+    }
+}

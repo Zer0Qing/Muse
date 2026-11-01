@@ -765,7 +765,7 @@
     <string name="muse_plugins_install_confirm_summary">版本 %1$s · 作者 %2$s · 外部代码将在受限 JS 沙盒中运行</string>
     <string name="muse_plugins_unknown_author">未知</string>
     <string name="muse_plugins_install_confirm_capabilities">声明使用的能力：%1$s</string>
-    <string name="muse_plugins_capabilities_disclaimer">这份声明只说明插件打算用到什么，不限制它安装后实际能做什么。</string>
+    <string name="muse_plugins_capabilities_disclaimer">这份声明就是它的能力边界：未声明的动作会被直接拒绝；安装后仍可在插件的「能力与权限」里逐项开关。</string>
     <string name="muse_plugins_global_switch_title">插件总开关</string>
     <string name="muse_plugins_global_switch_desc">关闭后所有插件都不执行，安装与配置保留</string>
     <string name="muse_plugins_runtime_label">运行时：%1$s</string>

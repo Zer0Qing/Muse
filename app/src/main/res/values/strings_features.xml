@@ -748,4 +748,21 @@
     <string name="wake_stop_user">用户操作</string>
     <string name="wake_stop_system_processing">系统处理中</string>
     <string name="wake_stop_launch_time">预估启动时间变化</string>
+    <string name="plugin_permission_section_title">能力与权限</string>
+    <string name="plugin_permission_hint">未声明或已关闭的能力会被直接拒绝；开关改动立即生效。</string>
+    <string name="plugin_permission_pending_title">该插件升级后新增了尚未批准的能力</string>
+    <string name="plugin_permission_approve">同意新增</string>
+    <string name="plugin_permission_none">该插件未声明任何能力，只能运行纯计算逻辑。</string>
+    <string name="plugin_permission_denied_title">被拒绝的调用</string>
+    <string name="plugin_permission_denied_row">%1$s 需要能力 %2$s</string>
+    <string name="plugin_permission_allow_session">本次会话允许</string>
+    <string name="plugin_permission_recent_title">最近调用记录</string>
+    <string name="plugin_permission_recent_empty">暂无调用记录</string>
+    <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
+    <string name="plugin_permission_expand">展开</string>
+    <string name="plugin_permission_collapse">收起</string>
+    <string name="plugin_permission_python_title">Python 运行时（高信任）</string>
+    <string name="plugin_permission_python_warning">Python 插件运行在与本应用同一 UID 的子进程中，可直接读写应用数据目录，不受上面的能力开关与文件沙盒约束。仅在插件来源可信时允许。</string>
+    <string name="plugin_row_python_trusted">Python 运行时 · 已允许</string>
+    <string name="plugin_row_python_locked">Python 运行时 · 需高信任授权</string>
 </resources>

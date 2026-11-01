@@ -842,7 +842,7 @@
     <string name="muse_plugins_draft_saved">Saved as a disabled draft</string>
     <string name="muse_plugins_install_confirm_action">Confirm install and enable</string>
     <string name="muse_plugins_install_confirm_capabilities">Capabilities it declares using: %1$s</string>
-    <string name="muse_plugins_capabilities_disclaimer">This declaration only describes what the plugin intends to use; it does not limit what it can do once installed.</string>
+    <string name="muse_plugins_capabilities_disclaimer">This list is the plugin\'s capability boundary: undeclared actions are rejected outright. You can still toggle each capability later under Capabilities and permissions.</string>
     <string name="muse_plugins_global_switch_title">Plugins enabled</string>
     <string name="muse_plugins_global_switch_desc">When off, no plugin runs. Installs and settings are kept.</string>
     <string name="muse_plugins_runtime_label">Runtime: %1$s</string>

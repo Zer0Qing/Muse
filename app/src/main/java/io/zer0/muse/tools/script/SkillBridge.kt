@@ -41,7 +41,8 @@ import java.io.File
  *  - `notify`：应用内提示
  *  - `device_info`：设备基础信息
  *
- * 调用方默认传 [ALL_ACTIONS] 全放行；能力声明仅用于展示，不再作为硬门槛。
+ * 放行动作集**必须由调用方按能力账本给出**（见 `PluginCapabilityGateway.allowedActions`）；
+ * 本对象不再自行决定"全放行"—— 能力声明过去只是展示品，现在它是唯一的门。
  * 调用方（skill 执行结果处理处）先调用 [tryHandle]：若返回值不含 `__bridge__`
  * 字段则返回 [HandleResult.NotBridge]（按普通结果处理）；否则返回执行产物/错误。
  */
@@ -59,7 +60,7 @@ object SkillBridge {
     val DEFAULT_ALLOWED_ACTIONS: Set<String> = setOf("echo", "http_get")
 
     /**
-     * v2.x（沙盒放开）：全部桥接动作。调用方默认传它，不再按 manifest 声明逐项报批。
+     * 全部桥接动作。**仅作全集定义**（校验与 UI 列举用），调用方不该再直接把它当放行集。
      *
      * 保留的底线不在“动作是否允许”，而在各动作实现内：
      *  - `fs_*` 锁定在宿主 [Host.fsRoot]（路径 canonical 校验防逃逸）；
@@ -124,7 +125,9 @@ object SkillBridge {
         val action = (obj["action"] as? JsonPrimitive)?.contentOrNull
             ?: return HandleResult.Failure("__bridge__ 缺少 action 字段")
         if (action !in allowedActions) {
-            return HandleResult.Failure("__bridge__ action '$action' 不在放行动作集内")
+            return HandleResult.Failure(
+                "__bridge__ action '$action' 未获授权：插件需在清单声明对应能力，并在 设置 → 工具与扩展 → 插件 → 权限 中批准",
+            )
         }
         val params = obj["params"] as? JsonObject ?: buildJsonObject { }
         return when (action) {

@@ -773,4 +773,21 @@
     <string name="wake_stop_user">ユーザー操作</string>
     <string name="wake_stop_system_processing">システム処理中</string>
     <string name="wake_stop_launch_time">推定起動時刻の変化</string>
+    <string name="plugin_permission_section_title">権限と能力</string>
+    <string name="plugin_permission_hint">未申告または無効な能力は即座に拒否されます。切り替えは直ちに反映されます。</string>
+    <string name="plugin_permission_pending_title">このプラグインは更新後に新しい能力を申告しました</string>
+    <string name="plugin_permission_approve">新規を承認</string>
+    <string name="plugin_permission_none">このプラグインは能力を申告していないため、純粋な計算のみ実行できます。</string>
+    <string name="plugin_permission_denied_title">拒否された呼び出し</string>
+    <string name="plugin_permission_denied_row">%1$s には能力 %2$s が必要です</string>
+    <string name="plugin_permission_allow_session">このセッションだけ許可</string>
+    <string name="plugin_permission_recent_title">最近の呼び出し</string>
+    <string name="plugin_permission_recent_empty">記録された呼び出しはありません</string>
+    <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
+    <string name="plugin_permission_expand">表示</string>
+    <string name="plugin_permission_collapse">閉じる</string>
+    <string name="plugin_permission_python_title">Python ランタイム（高信頼）</string>
+    <string name="plugin_permission_python_warning">Python プラグインは本アプリと同じ UID のサブプロセスで動作し、アプリデータを直接読み書きできます。上記の能力スイッチやファイルサンドボックスの適用外です。信頼できる場合のみ有効化してください。</string>
+    <string name="plugin_row_python_trusted">Python ランタイム · 許可済み</string>
+    <string name="plugin_row_python_locked">Python ランタイム · 高信頼の許可が必要</string>
 </resources>

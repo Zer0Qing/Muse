@@ -2,6 +2,7 @@ package io.zer0.muse.tools
 
 import android.annotation.SuppressLint
 import android.content.Context
+import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import android.os.Looper
 import android.webkit.ConsoleMessage
 import android.webkit.JsResult
@@ -26,6 +27,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.put
 import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
@@ -54,17 +56,55 @@ object JsSandbox {
 
     private const val TAG = "JsSandbox"
 
-    /** 当前执行的插件 id（用于 host.getConfig 查找配置）。 */
-    @Volatile private var currentPluginId: String? = null
+    /** 联网能力名（与插件清单、能力总线同一词汇）。 */
+    private const val CAPABILITY_NETWORK = "network"
 
     /**
-     * 设置当前 JS 执行所属的插件 id，用于 host.getConfig(key) 查找配置。
+     * 每个 scope（插件 id / 内置默认）一个沙盒实例。
      *
-     * 必须在 [execute] 调用前设置，执行结束后自动清空。
+     * 为什么必须分实例（P0-4，解 B-10）：旧实现是**应用级共享单个 WebView + 一把全局锁**，
+     * 于是插件 A 死循环时 A 的超时把 B 一起堵在锁外，超时销毁还会连带清掉 A 的状态影响 B
+     * —— "一个插件卡住全体"就是这么来的。V8 中断不了脚本，那就**销毁整个实例**：只杀 A。
+     *
+     * 身份用一次性 token：token → 实例 的映射只写在 Kotlin 侧，脚本伪造不了别人的身份，
+     * 也不再需要调用方记得设置全局变量（旧代码里的 `currentPluginId` 从没被赋值过）。
      */
-    fun setCurrentPluginId(pluginId: String?) {
-        currentPluginId = pluginId
+    private class Instance(val scopeKey: String) {
+        @Volatile var webView: WebView? = null
+        @Volatile var lastUsedMs: Long = System.currentTimeMillis()
+        val logs = mutableListOf<String>()
+        val logsLock = Any()
+        val mutex = Mutex()
+        val deliver = java.util.concurrent.atomic.AtomicReference<((String) -> Unit)?>(null)
+
+        /**
+         * 追加一条日志，并按**行数 + 字节**双上限裁剪。
+         *
+         * 没有这一步，一个 `console.log` 刷屏的插件就能在一次执行里把日志列表撑到几百 MB
+         * —— 预算项（结果 4KB 由 ToolOrchestrator 截，日志这一路此前没人管）。
+         */
+        fun appendLog(line: String) {
+            synchronized(logsLock) {
+                logs.add(line.take(MAX_LOG_LINE_CHARS))
+                while (logs.size > MAX_LOG_LINES) logs.removeAt(0)
+                var bytes = logs.sumOf { it.length }
+                while (bytes > MAX_LOG_TOTAL_CHARS && logs.size > 1) {
+                    bytes -= logs.removeAt(0).length
+                }
+            }
+        }
+
+        fun snapshotLogs(): List<String> = synchronized(logsLock) { logs.toList() }
+
+        fun clearLogs() {
+            synchronized(logsLock) { logs.clear() }
+        }
     }
+
+    private val instances = ConcurrentHashMap<String, Instance>()
+
+    /** token → 实例。只存在于执行期间，结束即摘除（迟到的回调因此打不进别人的会话）。 */
+    private val tokenIndex = ConcurrentHashMap<String, Instance>()
 
     /**
      * 沙盒环境不可用。
@@ -80,10 +120,16 @@ object JsSandbox {
      * WebView 全局对象会跨 execute() 保留；即使 localStorage/缓存被清理，
      * 不覆盖这些变量也会让下一个插件读取上一个插件的配置。
      */
-    internal fun buildHostInjectionScript(scopeKey: String?, pluginConfigJson: String?): String {
+    internal fun buildHostInjectionScript(
+        scopeKey: String?,
+        pluginConfigJson: String?,
+        executionToken: String? = null,
+    ): String {
         val config = pluginConfigJson ?: "null"
         val pluginId = scopeKey?.let(::quoteJs) ?: "null"
-        return "window.__musePluginConfig = $config; window.__musePluginId = $pluginId;"
+        val token = executionToken?.let(::quoteJs) ?: "null"
+        return "window.__musePluginConfig = $config; window.__musePluginId = $pluginId; " +
+            "window.__museExecToken = $token;"
     }
 
     /**
@@ -113,7 +159,10 @@ object JsSandbox {
             // 沙盒页面是 about:blank，origin=null：直接 fetch 会被同源策略拦成 CORS 错误。
             // 这里把 fetch / XMLHttpRequest 改走 __museHttp（Kotlin 侧 OkHttp），彻底绕开 CORS。
             function __museDoHttp(method, url, headers, body) {
-                var payload = { method: method, url: url, headers: headers || {}, body: body };
+                var payload = {
+                    method: method, url: url, headers: headers || {}, body: body,
+                    token: window.__museExecToken || null
+                };
                 var raw = __museHttp.httpRequest(JSON.stringify(payload));
                 try { return JSON.parse(raw); } catch (e) { return { error: 'bad response: ' + raw }; }
             }
@@ -210,14 +259,7 @@ object JsSandbox {
         })();
     """
 
-    @Volatile private var webViewRef: WebView? = null
 
-    /**
-     * 异步返回值通道：脚本返回 Promise 时，`evaluateJavascript` 拿到的是 `{}`（Promise 无法序列化）。
-     * 包装脚本识别到 thenable 后改为通过 `__museAsync.deliver(...)` 回传真实结果，
-     * 这里保存当前等待中的回调（同一时刻只有一次执行，Mutex 已串行化）。
-     */
-    private val asyncDeliver = java.util.concurrent.atomic.AtomicReference<((String) -> Unit)?>(null)
 
     /** JS 侧「等我异步回传」的哨兵值。 */
     private const val ASYNC_SENTINEL = "__MUSE_ASYNC__"
@@ -230,9 +272,45 @@ object JsSandbox {
 
     /** 供 JS 调用的异步回传入口（注册为 `__museAsync`）。 */
     @android.webkit.JavascriptInterface
-    fun deliverAsyncResult(payload: String) {
-        asyncDeliver.getAndSet(null)?.invoke(payload)
+    /**
+     * 异步结果回传（`__museAsync`）。带 token 是因为接口方法本身不知道是哪个 WebView 调的：
+     * 多实例并发时没有 token 就会把 A 的结果投给 B。
+     */
+    fun deliverAsyncResult(token: String, payload: String) {
+        tokenIndex[token]?.deliver?.getAndSet(null)?.invoke(payload)
     }
+
+    /**
+     * 判定这次网络请求能不能放行；返回非 null 即拒绝原因（会原样回给脚本）。
+     *
+     * 两道检查都不该省：
+     *  - **凭证**：token 由宿主在每次执行前注入，脚本无法伪造别人的身份；缺 token 说明调用方
+     *    绕过了 fetch/XHR 垫片（直接调 `__museHttp`），不能让它逃过授权；
+     *  - **授权**：只有插件执行才查账本，且以「上次批准的声明集合」为准 —— 改包内清单不会自动扩权。
+     */
+    private fun networkGateDenialReason(tokenValue: JsonPrimitive?): String? {
+        val token = tokenValue?.contentOrNull
+        val instance = token?.let { tokenIndex[it] }
+        return when {
+            // 凭证缺失/失效：脚本绕过了 fetch/XHR 垫片，或这次执行已经结束 —— 一律按未授权处理
+            instance == null ->
+                "缺少有效的宿主调用凭证：请使用 fetch / XMLHttpRequest，不要直接调用 __museHttp"
+            // 内置默认 scope（用户显式的 JS 工具）不受插件能力门限制
+            instance.scopeKey == DEFAULT_SCOPE_KEY -> null
+            else -> {
+                val pluginId = instance.scopeKey
+                when (PluginCapabilityLedgers.sharedFromHolderOrNull()?.isApproved(pluginId, CAPABILITY_NETWORK)) {
+                    null -> "插件权限账本未就绪，暂时不能联网（请稍后重试）"
+                    false -> "未授权 network 能力：插件清单需声明 \"$CAPABILITY_NETWORK\"，" +
+                        "并在 设置 → 工具与扩展 → 插件 → 权限 中批准"
+                    true -> null
+                }
+            }
+        }
+    }
+
+    /** 统一给脚本的错误响应形状（与 fetch 的 `{error}` 约定一致，转义交给 JsonObject）。 */
+    private fun errorJson(message: String): String = buildJsonObject { put("error", message) }.toString()
 
     /**
      * 供 JS 调用的 HTTP 入口（注册为 `__museHttp`）：**由 Kotlin 侧 OkHttp 真正发请求**。
@@ -258,6 +336,12 @@ object JsSandbox {
         val bodyText = (request["body"] as? JsonPrimitive)?.contentOrNull
         // 审计：沙盒能发任意 HTTP，就得留下「发了什么」的痕迹（host + 方法 + 体量）。
         val host = runCatching { java.net.URI(url).host }.getOrNull() ?: "?"
+        // 授权门：`fetch / XMLHttpRequest` 是插件唯一的网络出口（JS 拿不到原始 socket）。
+        // 非插件执行（scope 为 null，如 execute_javascript 这类用户显式工具）不受此门限制。
+        networkGateDenialReason(request["token"] as? JsonPrimitive)?.let { denial ->
+            Logger.w(TAG, "沙盒网络被拒 | host=$host | $denial")
+            return errorJson(denial)
+        }
         Logger.i(TAG, "沙盒外发请求 | method=$method | host=$host | bodyBytes=${bodyText?.length ?: 0}")
         return try {
             val builder = okhttp3.Request.Builder().url(url).method(method, null)
@@ -345,12 +429,16 @@ object JsSandbox {
     /** 获取指定 scopeKey(插件 id)的熔断状态;null scope 表示内置工具,keyed 惰性创建。 */
     private fun stateFor(scopeKey: String?): CircuitState = circuitStates.getOrPut(scopeKey ?: DEFAULT_SCOPE_KEY) { CircuitState() }
 
-    /** 日志缓冲区:每次 execute 前清空。synchronized 保护多线程访问。 */
-    private val logsLock = Any()
-    private val currentLogs = mutableListOf<String>()
+    /** 单次执行的日志预算：行数与总字符数双限（对齐 rikkahub 的 64KB 日志上限量级）。 */
+    private const val MAX_LOG_LINES = 400
+    private const val MAX_LOG_LINE_CHARS = 2_000
+    private const val MAX_LOG_TOTAL_CHARS = 64 * 1024
 
-    /** 审计修复 (4.4): execute 互斥锁 — 串行化 WebView JS 执行。 */
-    private val executionMutex = Mutex()
+    /**
+     * 实例上限。再多就按最久未用回收 —— 一个 WebView 是十几 MB 级别的开销，
+     * 而同时活跃的插件通常个位数；上限存在的目的是让"装了几十个插件"不会吃满内存。
+     */
+    private const val MAX_INSTANCES = 4
 
     /** JS 沙盒执行结果。 */
     data class JsResult(
@@ -394,7 +482,12 @@ object JsSandbox {
         // 审计修复 (4.4): execute 加互斥 — 原实现无并发控制,多个工具同时 execute
         // 会并发进入 WebView JS 执行,console 日志缓冲区互相污染、超时销毁与回调交错;
         // 用 Mutex 串行化,同一时刻只允许一个 JS 执行。锁内等待是挂起而非阻塞主线程。
-        executionMutex.withLock {
+        val instance = instanceFor(scopeKey)
+        instance.mutex.withLock {
+            // token 在锁内颁发：同一实例一次只有一个执行，映射不会串台。
+            val token = java.util.UUID.randomUUID().toString()
+            tokenIndex[token] = instance
+            instance.lastUsedMs = System.currentTimeMillis()
             try {
                 // C-30: 熔断状态按 scopeKey 隔离读取
                 val state = stateFor(scopeKey)
@@ -403,13 +496,13 @@ object JsSandbox {
                         IllegalStateException("JS 沙盒已熔断，请稍后重试(scope=${scopeKey ?: "default"})"),
                     )
                 }
-                val webView = ensureWebView()
+                val webView = ensureWebView(instance)
                 // C-30: 每次执行前清理 localStorage / 缓存 / 表单数据,防止跨插件(以及跨执行)残留
                 //   泄漏到下一次执行。WebView 是全局共享单例,无法按插件隔离实例;
                 //   用"执行前清空数据"保证插件 A 写入的 localStorage 不会被插件 B 读到。
                 clearPerExecutionData(webView)
                 // 清空当前日志
-                synchronized(logsLock) { currentLogs.clear() }
+                instance.clearLogs()
 
                 // 用 IIFE 包裹代码:让 LLM 可以写语句块;返回值用 JSON.stringify 序列化
                 // 注意:LLM 写的代码可能是 "1+2" / "const x = 3; x*2" / "Math.max(1,2)" 等
@@ -427,19 +520,19 @@ object JsSandbox {
                     append("        if (__result__ && typeof __result__.then === 'function') {\n")
                     append("            try {\n")
                     append("                __result__.then(\n")
-                    append("                    function(v){ __museAsync.deliverAsyncResult(JSON.stringify({\n")
+                    append("                    function(v){ __museAsync.deliverAsyncResult(window.__museExecToken,JSON.stringify({\n")
                     append("                        ok: true,\n")
                     append("                        value: v === undefined ? null : (function(){\n")
                     append("                            try { return JSON.stringify(v); } catch (e) { return String(v); }\n")
                     append("                        })()\n")
                     append("                    })); },\n")
-                    append("                    function(e){ __museAsync.deliverAsyncResult(JSON.stringify({\n")
+                    append("                    function(e){ __museAsync.deliverAsyncResult(window.__museExecToken,JSON.stringify({\n")
                     append("                        ok: false,\n")
                     append("                        error: (e && e.message) || String(e)\n")
                     append("                    })); }\n")
                     append("                );\n")
                     append("            } catch (e) {\n")
-                    append("                __museAsync.deliverAsyncResult(JSON.stringify({ ok: false, ")
+                    append("                __museAsync.deliverAsyncResult(window.__museExecToken,JSON.stringify({ ok: false, ")
                     append("error: 'await failed: ' + ((e && e.message) || String(e)) }));\n")
                     append("            }\n")
                     append("            return '")
@@ -471,14 +564,15 @@ object JsSandbox {
                         fun finish(value: String?) {
                             if (done.compareAndSet(false, true) && cont.isActive) cont.resume(value)
                         }
-                        asyncDeliver.set { payload -> finish(payload) }
-                        cont.invokeOnCancellation { asyncDeliver.set(null) }
+                        val callback: (String) -> Unit = { payload -> finish(payload) }
+                        instance.deliver.set(callback)
+                        cont.invokeOnCancellation { instance.deliver.set(null) }
                         // INIT_JS 必须在**每次执行前**重新注入：WebView 只加载一次 about:blank，
                         // 但 loadDataWithBaseURL 会换掉整个 document，window 上的 fetch/XHR 垫片
                         // 与 host 对象会被一起清掉 —— 只在建 WebView 时注入一次等于没注入。
-                        webView.evaluateJavascript(
-                            INIT_JS + "\n" + buildHostInjectionScript(scopeKey, pluginConfigJson),
-                        ) { }
+                        val pluginScope = instance.scopeKey.takeIf { it != DEFAULT_SCOPE_KEY }
+                        val injection = buildHostInjectionScript(pluginScope, pluginConfigJson, token)
+                        webView.evaluateJavascript(INIT_JS + "\n" + injection) { }
                         webView.evaluateJavascript(wrappedCode) { result ->
                             // 异步脚本：包装脚本返回哨兵，真实结果稍后由 __museAsync 回传，别在这里结束。
                             if (result != null && result.contains(ASYNC_SENTINEL)) return@evaluateJavascript
@@ -490,7 +584,7 @@ object JsSandbox {
 
                 if (raw == null) {
                     // 超时:JS 仍在 V8 中跑(无法中断),但 Kotlin 侧返回超时错误
-                    val logs = synchronized(logsLock) { currentLogs.toList() }
+                    val logs = instance.snapshotLogs()
                     // R-SVC-04 + C-30: 超时后销毁 WebView 真正终止 JS,并累计熔断状态。
                     //   熔断计数按 scopeKey 隔离,避免一个插件死循环连坐其他 JS 工具。
                     state.consecutiveTimeouts++
@@ -503,7 +597,7 @@ object JsSandbox {
                                 "consecutive=${state.consecutiveTimeouts} total=${state.totalTimedOutMs}",
                         )
                     }
-                    destroy()
+                    destroyInstance(instance)
                     return@withContext Result.success(
                         JsResult(
                             value = null,
@@ -513,7 +607,7 @@ object JsSandbox {
                     )
                 }
 
-                val logs = synchronized(logsLock) { currentLogs.toList() }
+                val logs = instance.snapshotLogs()
                 val (value, error) = parseRawResult(raw)
                 state.consecutiveTimeouts = 0
                 // B-16a: totalTimedOutMs 原单调不减,熔断冷却结束后累计量仍逼近上限,
@@ -528,6 +622,10 @@ object JsSandbox {
             } catch (e: Exception) {
                 Logger.e(TAG, "JsSandbox execute 异常: ${e.message}", e)
                 Result.failure(e)
+            } finally {
+                // 摘 token：销毁实例后仍可能迟到的回调，既投不进结果也发不出请求。
+                tokenIndex.remove(token)
+                instance.deliver.set(null)
             }
         }
     }
@@ -576,7 +674,44 @@ object JsSandbox {
     }
 
     /**
-     * 销毁 WebView(可在 Application.onTerminate / 测试 tearDown 调用,释放资源)。
+     * 取该 scope 的沙盒实例；超过上限时按最久未用回收一个**空闲**实例。
+     *
+     * 回收只挑没在跑的实例：正在等结果的 WebView 一销毁，那次执行就只能靠超时收尾，
+     * 白白让调用方多等 10s。
+     */
+    private fun instanceFor(scopeKey: String?): Instance {
+        if (instances.size >= MAX_INSTANCES) evictIdleInstance()
+        return instances.getOrPut(scopeKey ?: DEFAULT_SCOPE_KEY) { Instance(scopeKey ?: DEFAULT_SCOPE_KEY) }
+    }
+
+    private fun evictIdleInstance() {
+        val victim = instances.values
+            .filter { it.webView == null || !it.mutex.isLocked }
+            .minByOrNull { it.lastUsedMs } ?: return
+        instances.remove(victim.scopeKey)
+        destroyInstance(victim)
+        Logger.i(TAG, "沙盒实例已回收(scope=${victim.scopeKey.takeUnless { it == DEFAULT_SCOPE_KEY } ?: "default"})")
+    }
+
+    /** 只销毁这一个 scope 的实例 —— 这正是"不连坐"的关键。 */
+    private fun destroyInstance(instance: Instance) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            Logger.w(TAG, "destroyInstance 必须在主线程调用,已忽略")
+            return
+        }
+        instance.webView?.let { wv ->
+            wv.stopLoading()
+            wv.removeAllViews()
+            (wv.parent as? android.view.ViewGroup)?.removeView(wv)
+            runCatching { wv.destroy() }
+                .onFailure { Logger.w(TAG, "WebView 销毁失败: ${it.message}") }
+        }
+        instance.webView = null
+        instance.clearLogs()
+    }
+
+    /**
+     * 销毁全部实例(可在 Application.onTerminate / 测试 tearDown 调用,释放资源)。
      * 必须在主线程调用。
      */
     fun destroy() {
@@ -584,29 +719,25 @@ object JsSandbox {
             Logger.w(TAG, "destroy 必须在主线程调用,已忽略")
             return
         }
-        webViewRef?.let { wv ->
-            wv.stopLoading()
-            wv.removeAllViews()
-            (wv.parent as? android.view.ViewGroup)?.removeView(wv)
-            wv.destroy()
-        }
-        webViewRef = null
-        synchronized(logsLock) { currentLogs.clear() }
-        Logger.i(TAG, "JsSandbox WebView 已销毁")
+        instances.values.toList().forEach { destroyInstance(it) }
+        instances.clear()
+        tokenIndex.clear()
+        Logger.i(TAG, "JsSandbox 全部实例已销毁")
     }
 
     // ── 内部实现 ──────────────────────────────────────────────────────
 
     /**
-     * 创建/获取 WebView 单例。必须在主线程调用。
-     * 第一次调用会创建 WebView + 注入安全限制 JS。
+     * 创建/获取该 scope 自己的 WebView。必须在主线程调用。
+     *
+     * 每个实例都是独立的 WebView：脚本死循环时销毁它不会波及别的插件。
      */
     @SuppressLint("SetJavaScriptEnabled")
-    private suspend fun ensureWebView(): WebView {
+    private suspend fun ensureWebView(instance: Instance): WebView {
         check(Looper.myLooper() == Looper.getMainLooper()) {
             "JsSandbox WebView 必须在主线程创建和访问"
         }
-        webViewRef?.let { return it }
+        instance.webView?.let { instance.lastUsedMs = System.currentTimeMillis(); return it }
         val ctx = appContext
             ?: error("JsSandbox 未初始化,请先调用 init(context) 注入 Application Context")
 
@@ -660,25 +791,19 @@ object JsSandbox {
                         ConsoleMessage.MessageLevel.LOG -> "log"
                         else -> "log"
                     }
-                    synchronized(logsLock) {
-                        currentLogs.add("[$level] ${consoleMessage.message()}")
-                    }
+                    instance.appendLog("[$level] ${consoleMessage.message()}")
                     return true
                 }
 
                 override fun onJsAlert(view: WebView?, url: String?, message: String?, result: android.webkit.JsResult): Boolean {
                     // 收集 alert 日志并阻止弹窗
-                    synchronized(logsLock) {
-                        currentLogs.add("[alert] ${message ?: ""}")
-                    }
+                    instance.appendLog("[alert] ${message ?: ""}")
                     result.cancel()
                     return true
                 }
 
                 override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: android.webkit.JsResult): Boolean {
-                    synchronized(logsLock) {
-                        currentLogs.add("[confirm] ${message ?: ""}")
-                    }
+                    instance.appendLog("[confirm] ${message ?: ""}")
                     result.cancel()
                     return true
                 }
@@ -700,7 +825,7 @@ object JsSandbox {
             wv.destroy()
             throw JsSandboxUnavailableException("沙盒环境自检未通过: ${verifiedResult.second.joinToString(", ").ifBlank { "未知原因" }}")
         }
-        webViewRef = wv
+        instance.webView = wv
         Logger.i(TAG, "WebView 沙盒已初始化")
         return wv
     }

@@ -262,4 +262,26 @@ class PluginAuthoringTest {
             }
         """.trimIndent()
     }
+
+    @Test
+    fun `authored drafts default to the node runtime`() {
+        // D1 的落点：新草稿默认跑在**可中断的 Node 子进程**里（真机 peer=458ms，
+        // WebView 档同伴死循环会拖到 12s+ 还完不成）。存量插件不受影响：
+        // 我们没改 PluginManifest.runtime 的默认值，只改助手起草这一条路径。
+        val manifest = PluginAuthoringRules.manifestOf(request())
+
+        assertEquals("node", manifest.runtime)
+        assertEquals("main.js", manifest.entry)
+    }
+
+    @Test
+    fun `a draft can never self-select the python runtime`() {
+        // python 是高信任档（同 UID 子进程、绕开能力总线），只能由用户单独批准。
+        // 如果模型在起草参数里写 runtime:"python" 就能拿到，P0-5 那道门等于白做。
+        val rejected = PluginAuthoringRules.validate(request().copy(runtime = "python"))
+        val accepted = PluginAuthoringRules.validate(request().copy(runtime = "js"))
+
+        assertTrue("python 必须被拒，实际: $rejected", rejected != null && rejected.contains("python"))
+        assertEquals("js 仍应可用", null, accepted)
+    }
 }

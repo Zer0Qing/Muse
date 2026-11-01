@@ -823,4 +823,21 @@
     <string name="wake_stop_user">Действие пользователя</string>
     <string name="wake_stop_system_processing">Обработка системой</string>
     <string name="wake_stop_launch_time">Изменилось ожидаемое время запуска</string>
+    <string name="plugin_permission_section_title">Возможности и разрешения</string>
+    <string name="plugin_permission_hint">Незаявленные или отключённые возможности отклоняются сразу; переключатели действуют немедленно.</string>
+    <string name="plugin_permission_pending_title">После обновления плагин заявил новые возможности</string>
+    <string name="plugin_permission_approve">Одобрить новые</string>
+    <string name="plugin_permission_none">Плагин не заявил ни одной возможности — доступен только чистый расчёт.</string>
+    <string name="plugin_permission_denied_title">Отклонённые вызовы</string>
+    <string name="plugin_permission_denied_row">%1$s требует возможность %2$s</string>
+    <string name="plugin_permission_allow_session">Разрешить на эту сессию</string>
+    <string name="plugin_permission_recent_title">Недавние вызовы</string>
+    <string name="plugin_permission_recent_empty">Вызовы ещё не записаны</string>
+    <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
+    <string name="plugin_permission_expand">Показать</string>
+    <string name="plugin_permission_collapse">Скрыть</string>
+    <string name="plugin_permission_python_title">Среда Python (высокое доверие)</string>
+    <string name="plugin_permission_python_warning">Плагины Python работают в дочернем процессе с тем же UID, что и приложение, и могут напрямую читать и писать данные приложения, минуя перечисленные переключатели и файловую песочницу. Включайте только для доверенных источников.</string>
+    <string name="plugin_row_python_trusted">Среда Python · разрешено</string>
+    <string name="plugin_row_python_locked">Среда Python · требуется высокое доверие</string>
 </resources>

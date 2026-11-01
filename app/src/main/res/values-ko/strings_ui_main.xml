@@ -731,7 +731,7 @@
     <string name="muse_plugins_draft_saved">비활성 초안으로 저장했습니다</string>
     <string name="muse_plugins_install_confirm_action">설치 확인 후 활성화</string>
     <string name="muse_plugins_install_confirm_capabilities">사용하는 기능 신고: %1$s</string>
-    <string name="muse_plugins_capabilities_disclaimer">이 신고는 플러그인이 무엇을 사용할 예정인지만 설명하며, 설치 후 실제로 할 수 있는 일을 제한하지 않습니다.</string>
+    <string name="muse_plugins_capabilities_disclaimer">이 목록이 플러그인의 능력 범위입니다. 신고하지 않은 동작은 즉시 거부되며, 설치 후에도 능력 및 권한에서 개별적으로 켜고 끌 수 있습니다.</string>
     <string name="muse_plugins_global_switch_title">플러그인 전체 스위치</string>
     <string name="muse_plugins_global_switch_desc">끄면 어떤 플러그인도 실행되지 않습니다. 설치와 설정은 유지됩니다.</string>
     <string name="muse_plugins_runtime_label">실행 환경: %1$s</string>

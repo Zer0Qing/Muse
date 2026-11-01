@@ -731,7 +731,7 @@
     <string name="muse_plugins_draft_saved">Guardado como borrador deshabilitado</string>
     <string name="muse_plugins_install_confirm_action">Confirmar instalación y activar</string>
     <string name="muse_plugins_install_confirm_capabilities">Capacidades que declara usar: %1$s</string>
-    <string name="muse_plugins_capabilities_disclaimer">Esta declaración solo describe lo que el plugin pretende usar; no limita lo que puede hacer una vez instalado.</string>
+    <string name="muse_plugins_capabilities_disclaimer">Esta lista es el limite de capacidades del complemento: las acciones no declaradas se rechazan de raiz. Podras cambiar cada capacidad despues en Capacidades y permisos.</string>
     <string name="muse_plugins_global_switch_title">Interruptor general de plugins</string>
     <string name="muse_plugins_global_switch_desc">Si está desactivado, ningún plugin se ejecuta. Las instalaciones y los ajustes se conservan.</string>
     <string name="muse_plugins_runtime_label">Entorno de ejecución: %1$s</string>

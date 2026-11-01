@@ -774,4 +774,21 @@
     <string name="wake_stop_user">사용자 조작</string>
     <string name="wake_stop_system_processing">시스템 처리 중</string>
     <string name="wake_stop_launch_time">예상 실행 시각 변경</string>
+    <string name="plugin_permission_section_title">능력 및 권한</string>
+    <string name="plugin_permission_hint">선언하지 않았거나 끈 능력은 바로 거부됩니다. 토글은 즉시 반영됩니다.</string>
+    <string name="plugin_permission_pending_title">이 플러그인은 업데이트 후 새 능력을 선언했습니다</string>
+    <string name="plugin_permission_approve">새 항목 승인</string>
+    <string name="plugin_permission_none">이 플러그인은 능력을 선언하지 않아 순수 계산만 실행할 수 있습니다.</string>
+    <string name="plugin_permission_denied_title">차단된 호출</string>
+    <string name="plugin_permission_denied_row">%1$s 에 %2$s 능력이 필요합니다</string>
+    <string name="plugin_permission_allow_session">이 세션만 허용</string>
+    <string name="plugin_permission_recent_title">최근 호출</string>
+    <string name="plugin_permission_recent_empty">기록된 호출이 없습니다</string>
+    <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
+    <string name="plugin_permission_expand">펼치기</string>
+    <string name="plugin_permission_collapse">접기</string>
+    <string name="plugin_permission_python_title">Python 런타임(고신뢰)</string>
+    <string name="plugin_permission_python_warning">Python 플러그인은 이 앱과 같은 UID의 하위 프로세스로 실행되어 앱 데이터를 직접 읽고 쓸 수 있으며, 위의 능력 토글과 파일 샌드박스의 적용을 받지 않습니다. 신뢰할 수 있는 출처에만 허용하세요.</string>
+    <string name="plugin_row_python_trusted">Python 런타임 · 허용됨</string>
+    <string name="plugin_row_python_locked">Python 런타임 · 고신뢰 허용 필요</string>
 </resources>

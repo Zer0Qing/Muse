@@ -728,7 +728,7 @@
     <string name="muse_plugins_draft_saved">Сохранено как отключённый черновик</string>
     <string name="muse_plugins_install_confirm_action">Подтвердить установку и включить</string>
     <string name="muse_plugins_install_confirm_capabilities">Возможности, которые он заявляет: %1$s</string>
-    <string name="muse_plugins_capabilities_disclaimer">Заявление лишь описывает, что плагин собирается использовать; оно не ограничивает то, что он сможет делать после установки.</string>
+    <string name="muse_plugins_capabilities_disclaimer">Это границы возможностей плагина: необъявленные действия отклоняются сразу. Переключать отдельные возможности можно и после установки в разделе «Возможности и разрешения».</string>
     <string name="muse_plugins_global_switch_title">Общий выключатель плагинов</string>
     <string name="muse_plugins_global_switch_desc">Когда выключен, ни один плагин не выполняется. Установки и настройки сохраняются.</string>
     <string name="muse_plugins_runtime_label">Среда выполнения: %1$s</string>

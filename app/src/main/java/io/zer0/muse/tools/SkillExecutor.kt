@@ -854,7 +854,19 @@ class SkillExecutor(
                 SkillEntity(
                     id = "author_plugin",
                     name = "编写插件",
-                    description = "让助手自己编写一个带 JS 工具实现的插件。code 是 JS 入口源码（工具实现必须是顶层 function 声明），tools 是工具声明数组（每项含 name/description/parametersJson/requiredJson/functionName），可选 capabilities 只能取 resource.read/ui/ui.mood。本工具只生成【未签名草稿】：草稿已禁用、不可执行，助手不能调用；必须由用户在「设置 → 插件管理」中审阅工具清单与代码，点击「签名并启用」后才会由本机作者密钥签名生效。",
+                    description = "让助手自己编写一个带 JS 工具实现的插件。code 是 JS 入口源码（工具实现必须是顶层" +
+                                        " function 声明），" +
+                                        "tools 是工具声明数组（每项含 name/description/parametersJ" +
+                                        "son/requiredJson/functionName），" +
+                                        "可选 capabilities 必须覆盖你代码里实际用到的桥接能力（resource.rea" +
+                                        "d / resource.write 或同义的 storage.read / storage" +
+                                        ".write、network、" +
+                                        "clipboard.read / clipboard.write、notify、" +
+                                        "device.info、" +
+                                        "ui / ui.mood / ui.skin）；**未声明的能力在运行时会被直接拒绝**，" +
+                                        "忘了声明就等于插件装得上但调不动。本工具只生成【未签名草稿】：草稿已禁用、不可执行，" +
+                                        "助手不能调用；必须由用户在「设置 → 插件管理」中审阅工具清单与代码，" +
+                                        "点击「签名并启用」后才会由本机作者密钥签名生效。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -923,12 +935,29 @@ class SkillExecutor(
                                     },
                                 )
                                 put(
+                                    "runtime",
+                                    buildJsonObject {
+                                        put("type", "string")
+                                        put(
+                                            "description",
+                                            "执行档：node（默认，跑在可中断的内置 Node 子进程里，" +
+                                                "能力一律走 muse.bridge/fetch 且受权限账本约束）或 " +
+                                                "js（WebView 沙盒，需要浏览器语义时才选）。python 不接受",
+                                        )
+                                    },
+                                )
+                                put(
                                     "capabilities",
                                     buildJsonObject {
                                         put("type", "array")
                                         put(
                                             "description",
-                                            "可选能力数组,取自白名单:resource.read / ui / ui.mood 与受控桥接能力(network / storage.read / storage.write / clipboard.read / clipboard.write / notify / device.info)，默认不声明",
+                                            "可选能力数组。可用名：resource.read / resource.write（等价别名" +
+                                                                " storage.read / storage.write）、network、" +
+                                                                "clipboard.read / clipboard.write、notify、" +
+                                                                "device.info、" +
+                                                                "ui / ui.mood / ui.skin。默认不声明 = 任何桥接动作都会被拒；请把你代" +
+                                                                "码里用到的都列上",
                                         )
                                     },
                                 )

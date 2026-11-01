@@ -726,4 +726,21 @@
     <string name="wake_stop_user">User action</string>
     <string name="wake_stop_system_processing">System processing</string>
     <string name="wake_stop_launch_time">Estimated launch time changed</string>
+    <string name="plugin_permission_section_title">Capabilities and permissions</string>
+    <string name="plugin_permission_hint">Undeclared or disabled capabilities are rejected outright; toggles take effect immediately.</string>
+    <string name="plugin_permission_pending_title">This plugin declared new capabilities after an update</string>
+    <string name="plugin_permission_approve">Approve new</string>
+    <string name="plugin_permission_none">This plugin declares no capabilities and can only run pure computation.</string>
+    <string name="plugin_permission_denied_title">Blocked calls</string>
+    <string name="plugin_permission_denied_row">%1$s needs capability %2$s</string>
+    <string name="plugin_permission_allow_session">Allow for this session</string>
+    <string name="plugin_permission_recent_title">Recent calls</string>
+    <string name="plugin_permission_recent_empty">No calls recorded yet</string>
+    <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
+    <string name="plugin_permission_expand">Show</string>
+    <string name="plugin_permission_collapse">Hide</string>
+    <string name="plugin_permission_python_title">Python runtime (high trust)</string>
+    <string name="plugin_permission_python_warning">Python plugins run in a subprocess sharing this app\'s UID and can read or write app data directly, bypassing the capability switches and file sandbox above. Enable only for sources you trust.</string>
+    <string name="plugin_row_python_trusted">Python runtime · allowed</string>
+    <string name="plugin_row_python_locked">Python runtime · needs high trust</string>
 </resources>

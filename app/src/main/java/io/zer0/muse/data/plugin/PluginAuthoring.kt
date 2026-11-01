@@ -22,8 +22,16 @@ data class AuthoredPluginRequest(
     val code: String,
     /** 工具声明；函数名必须确实存在于 [code] 中。 */
     val tools: List<ToolDeclaration>,
-    /** 声明能力（v2.x 沙盒放开后仅校验名称格式，仅用于安装预览展示；默认不声明任何能力）。 */
+    /** 声明能力。P0-2 起这**不是展示品**：未声明的桥接动作会在运行时被直接拒绝。 */
     val capabilities: List<String> = emptyList(),
+    /**
+     * 执行档。默认 `node`（P0-6/P0-7 的结论：子进程可中断、同伴不受连坐，真机 peer=458ms）。
+     *
+     * `js` 档仍可选 —— 需要真正的浏览器语义（DOM、真实异步定时器时序）时才用它。
+     * `python` 不接受：它是高信任档（同 UID 子进程、绕开能力总线），必须由用户单独批准，
+     * 不能让模型在起草时就自我授予。
+     */
+    val runtime: String = "node",
 )
 
 /**
@@ -43,6 +51,9 @@ object PluginAuthoringRules {
 
     /** 宿主固定入口文件名；模型不能自选入口路径。 */
     const val ENTRY_FILE = "main.js"
+
+    /** 草稿可用的执行档（python 不在内：它是高信任档，见 [AuthoredPluginRequest.runtime]）。 */
+    val ALLOWED_DRAFT_RUNTIMES = setOf("js", "node")
 
     /** 校验请求；返回中文可读原因，null 表示通过。 */
     fun validate(request: AuthoredPluginRequest): String? {
@@ -83,6 +94,10 @@ object PluginAuthoringRules {
                 return "插件代码中没有定义工具函数 ${tool.functionName}（需要顶层 function 声明）"
             }
         }
+        // 执行档白名单：草稿只能选 js/node，python 属于高信任档，必须走用户单独批准。
+        if (request.runtime.lowercase() !in ALLOWED_DRAFT_RUNTIMES) {
+            return "不支持的执行档 ${request.runtime}：草稿只能用 node（默认，可中断、同伴不受连坐）或 js（需要浏览器语义时）"
+        }
         // v2.x（沙盒放开）：能力不再按固定名单拒绝，仅校验名称格式合法。
         val invalidCapability = request.capabilities.firstOrNull { !PluginSecurityGate.isValidCapabilityName(it) }
         if (invalidCapability != null) {
@@ -118,6 +133,7 @@ object PluginAuthoringRules {
         kind = "tool",
         trust = PluginSecurityGate.EXTERNAL_TRUST,
         capabilities = request.capabilities,
+        runtime = request.runtime.lowercase(),
         permissions = emptyList(),
         activationEvents = listOf("onStartup"),
         enabled = true,

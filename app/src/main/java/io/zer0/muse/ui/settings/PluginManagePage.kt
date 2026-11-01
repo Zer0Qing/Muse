@@ -53,6 +53,8 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.plugin.ConfigItem
 import io.zer0.muse.data.plugin.ConfigItemType
+import io.zer0.muse.data.plugin.PluginCapabilityGateway
+import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.plugin.PluginSecurityGate
 import io.zer0.muse.data.plugin.PluginVersion
@@ -765,6 +767,13 @@ fun PluginManagePage(onBack: () -> Unit) {
                                 ?.version,
                             onRollback = { version -> rollbackRequest = plugin.id to version },
                         )
+                        // P0-3: 能力与权限。P0-2 之后声明真的会拦请求，这里必须给用户出口：
+                        // 看得到授予了什么、最近被拒过什么、升级新增能力要重新批准。
+                        PluginPermissionDisclosure(
+                            pluginId = plugin.id,
+                            declaredCapabilities = verified?.manifest?.capabilities.orEmpty(),
+                            runtime = verified?.manifest?.runtime.orEmpty(),
+                        )
                     }
                 }
 
@@ -1185,6 +1194,25 @@ private fun InstalledPluginRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // P0-5: Python 档在列表上就要看得见 —— 它等同高信任，不能只藏在折叠面板里。
+                // 判据用入口扩展名：安全门强制 runtime=python 的包入口必须是 .py
+                // （PluginSecurityGate.kt:319-322），因此不需要给 InstalledPlugin 加字段、
+                // 也不需要改 InstalledPluginRow 签名（它被三条 detekt 基线按签名压着）。
+                if (plugin.entry.lowercase().endsWith(".py")) {
+                    val trusted = PluginCapabilityLedgers.shared(LocalContext.current)
+                        .isApproved(plugin.id, PluginCapabilityGateway.RUNTIME_PYTHON)
+                    Text(
+                        text = stringResource(
+                            if (trusted) R.string.plugin_row_python_trusted else R.string.plugin_row_python_locked,
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (trusted) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
+                    )
+                }
                 Text(
                     // ST-04: 面向用户只显示版本/工具数;插件 id/指纹/sha256 收进「开发者信息」折叠区
                     text = stringResource(R.string.plugin_summary_brief, plugin.version, plugin.tools.size),
@@ -2067,9 +2095,8 @@ private fun PluginInstallPreviewContent(preview: PluginSecurityGate.InstallPrevi
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        // 声明与权限是两件事，但界面上挨在一起很容易被读成「它只需要这些权限」。
-        // 实际执行时能力声明不构成约束（放开是有意的，收紧会让一批忘声明的插件直接坏掉），
-        // 所以这里只把语义说清，不假装它是一道安全边界。
+        // P0-2 起这份声明**就是**执行期的能力边界（未声明即拒），不再是展示品。
+        // 之前这里写过"声明不构成约束" —— 那句在闸门接通后变成对用户的误导，必须同步改掉。
         Text(
             text = stringResource(R.string.muse_plugins_capabilities_disclaimer),
             style = MaterialTheme.typography.labelSmall,

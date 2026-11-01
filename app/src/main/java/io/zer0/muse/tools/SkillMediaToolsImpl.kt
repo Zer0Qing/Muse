@@ -7,6 +7,13 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.data.plugin.PluginCapabilityGateway
+import io.zer0.muse.data.plugin.PluginCapabilityLedgers
+import io.zer0.muse.data.plugin.PluginFunctionInvoker
+import io.zer0.muse.tools.script.NodePluginEngine
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.sticker.StickerLibraryRepository
@@ -187,8 +194,10 @@ class SkillMediaToolsImpl(
         val configJson = manager.getPluginConfigJson(verified.manifest)
         val argsJson = "[" + argumentsJson.ifBlank { "{}" } + "]"
 
-        // v2.7: 按 manifest.runtime 分派执行引擎。
-        //  - python：内置 Python 运行时（无 WebView 沙盒，子进程隔离）
+
+        // v2.7 → P0-6: 按 manifest.runtime 分派执行引擎。
+        //  - python：内置 CPython 子进程（高信任档，需用户单独允许）
+        //  - node：内置 Node 子进程 + vm 无网络上下文（可打断、可杀，见 NodePluginEngine）
         //  - 其余（默认 js）：WebView V8 沙盒 + __bridge__ 桥接
         if (verified.manifest.runtime.equals("python", ignoreCase = true)) {
             return execPythonPluginTool(
@@ -200,47 +209,56 @@ class SkillMediaToolsImpl(
             )
         }
 
+        if (PluginFunctionInvoker.isNode(verified.manifest)) {
+            return finishPluginCall(
+                result = NodePluginEngine(context).callPluginFunction(
+                    entryCode = verified.entryCode,
+                    functionName = functionName,
+                    argsJson = argsJson,
+                    scopeKey = pluginId,
+                    pluginConfigJson = configJson,
+                    // 多轮桥接（P0-7-1）：插件里每次 muse.bridge() 都走**与 js 档同一套判定**，
+                    // 不复用第二套逻辑 —— 两套授权的结局一定是其中一套漏检。
+                    bridgeHandler = { requestJson ->
+                        bridgeHandle(bridgeSentinel(requestJson), pluginId, verified.manifest.capabilities)
+                    },
+                ),
+                manager = manager,
+                pluginId = pluginId,
+                declared = verified.manifest.capabilities,
+            )
+        }
+
         JsSandbox.init(context)
         // C-30: 传入 pluginId 作为 scopeKey,使熔断状态与 localStorage 按插件隔离,
         //   一个插件死循环超时不会熔断/影响其他插件与内置 JS 工具。
-        return when (
-            val result = WebViewSkillEngine().callFunction(
+        return finishPluginCall(
+            result = WebViewSkillEngine().callFunction(
                 verified.entryCode,
                 functionName,
                 argsJson,
                 scopeKey = pluginId,
                 pluginConfigJson = configJson,
-            )
-        ) {
-            is SkillEngineResult.Success -> {
-                val value = result.valueJson
-                // F-17 + v2.2.1 大沙盒；v2.x（沙盒放开）：桥接动作**默认全放行**。
-                // 之前严格按 manifest 声明能力逐项放行，过于保守：插件作者忘了声明就调不到。
-                // 现改为：动作不设门槛，但**保留两类底线**（这两项是正确性而非保守）：
-                //  1. fs_* 仍锁定在插件自己的沙盒目录(workspace/plugins/<pluginId>)，防路径逃逸；
-                //  2. http_* 仍走 SSRF 防护（拒内网/本地地址）。
-                val allowedBridgeActions = SkillBridge.ALL_ACTIONS
-                val bridgeHost = SkillBridge.Host(
-                    context = context,
-                    fsRoot = java.io.File(context.filesDir, "workspace/plugins/$pluginId"),
-                )
-                when (val bridge = SkillBridge.tryHandle(value, allowedBridgeActions, bridgeHost)) {
-                    is SkillBridge.HandleResult.NotBridge -> {
-                        runCatching {
-                            AppJson.decodeFromString<String>(value)
-                        }.getOrElse {
-                            value.ifBlank { "null" }
-                        }
-                    }
-                    // 桥接请求的执行结果作为技能返回值直接返回给 LLM
-                    is SkillBridge.HandleResult.Output -> bridge.json
-                    // 桥接解析/执行失败（含 action 不支持）→ 返回错误对象，避免脚本以为成功
-                    is SkillBridge.HandleResult.Failure ->
-                        kotlinx.serialization.json.buildJsonObject {
-                            put("error", kotlinx.serialization.json.JsonPrimitive(bridge.message))
-                        }.toString()
-                }
-            }
+            ),
+            manager = manager,
+            pluginId = pluginId,
+            declared = verified.manifest.capabilities,
+        )
+    }
+
+    /**
+     * 统一收尾：成功就过桥接（按能力账本放行），失败就处理熔断。
+     *
+     * 抽出来是因为 WebView 档与 Node 档的后续处理**完全一样**；留在原处就得写两遍，
+     * 而"两遍"的结局一定是其中一遍忘了改 —— 桥接与账本恰好是最不能漏的那一处。
+     */
+    private suspend fun finishPluginCall(
+        result: SkillEngineResult,
+        manager: PluginManager,
+        pluginId: String,
+        declared: List<String>,
+    ): String = when (result) {
+            is SkillEngineResult.Success -> bridgeOrValue(result.valueJson, pluginId, declared)
             is SkillEngineResult.Error -> {
                 if (JsSandbox.isCircuitBrokenFor(pluginId)) {
                     resultOf { manager.setEnabled(pluginId, false) }
@@ -251,6 +269,51 @@ class SkillMediaToolsImpl(
                 }
             }
         }
+
+    /**
+     * 桥接动作按**能力账本**放行（P0-2）。此前这里无条件传 `ALL_ACTIONS`，
+     * 而安装确认框又向用户展示"声明能力"，等于给了假安全感。
+     *
+     * 保留的两类底线与能力无关，属正确性：
+     *  1. `fs_*` 仍锁定在插件自己的沙盒目录 `workspace/plugins/<pluginId>`，防路径逃逸；
+     *  2. `http_*` 仍走 SSRF 防护（拒内网/本地地址）。
+     */
+    private suspend fun bridgeOrValue(value: String, pluginId: String, declared: List<String>): String =
+        when (val bridge = bridgeHandle(value, pluginId, declared)) {
+            is SkillBridge.HandleResult.NotBridge ->
+                runCatching { AppJson.decodeFromString<String>(value) }.getOrElse { value.ifBlank { "null" } }
+            // 桥接请求的执行结果作为技能返回值直接返回给 LLM
+            is SkillBridge.HandleResult.Output -> bridge.json
+            // 桥接解析/执行失败（含 action 未授权）→ 返回错误对象，避免脚本以为成功
+            is SkillBridge.HandleResult.Failure -> buildJsonObject { put("error", JsonPrimitive(bridge.message)) }.toString()
+        }
+
+    /**
+     * 桥接判定的唯一入口：动作集来自**能力账本**（P0-2），不是清单声明、也不是全放行。
+     *
+     * 两类底线与能力无关，属正确性，所以留在 [SkillBridge] 里：
+     *  1. `fs_*` 锁定在插件自己的沙盒目录 `workspace/plugins/<pluginId>`，防路径逃逸；
+     *  2. `http_*` 走 SSRF 防护（拒内网/本地地址）。
+     */
+    private suspend fun bridgeHandle(value: String, pluginId: String, declared: List<String>): SkillBridge.HandleResult {
+        val allowedBridgeActions = PluginCapabilityLedgers.shared(context)
+            .allowedActions(pluginId, declared)
+        val bridgeHost = SkillBridge.Host(
+            context = context,
+            fsRoot = java.io.File(context.filesDir, "workspace/plugins/$pluginId"),
+        )
+        return SkillBridge.tryHandle(value, allowedBridgeActions, bridgeHost)
+    }
+
+    /** 把 RPC 请求 `{"action":...,"params":...}` 变成 js 档用的 `__bridge__` 哨兵文本。 */
+    private fun bridgeSentinel(requestJson: String): String {
+        val request = runCatching { AppJson.parseToJsonElement(requestJson) as? JsonObject }.getOrNull()
+            ?: return ""
+        return buildJsonObject {
+            put("__bridge__", JsonPrimitive(true))
+            request["action"]?.let { put("action", it) }
+            request["params"]?.let { put("params", it) }
+        }.toString()
     }
 
     /**
@@ -269,6 +332,13 @@ class SkillMediaToolsImpl(
         argsJson: String,
         configJson: String?,
     ): String {
+        // P0-5：Python 是同 UID 的子进程，能直接读写应用数据，桥接闸门管不到它。
+        // 这一档必须由用户显式批准，且不接受清单自我声明 —— 否则插件写一行 runtime:python 就自给了。
+        if (!PluginCapabilityLedgers.shared(context).isApproved(pluginId, PluginCapabilityGateway.RUNTIME_PYTHON)) {
+            Logger.w("SkillMediaToolsImpl", "Python 插件未获高信任授权: $pluginId")
+            return "插件需要「Python 运行时」高信任授权：Python 以子进程运行、与本应用同一 UID，" +
+                "可直接读写应用数据。请在 设置 → 工具与扩展 → 插件 → 「$pluginId」→ 能力与权限 中允许后重试。"
+        }
         val dataReady = io.zer0.muse.runtime.PythonRuntime.ensureData(context)
         if (dataReady.isFailure) {
             return "Python 运行时未就绪: ${dataReady.exceptionOrNull()?.message}"
