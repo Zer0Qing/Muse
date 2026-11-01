@@ -42,8 +42,8 @@ object MuseTransitions {
      * v2.6.7: 页面级位移像素（宽/高的 1/12 ≈ 8%）。
      *
      * 旧实现 `initialOffsetX = { it }` 让页面走满整屏，配 easeOutCubic
-     * 的读感是"先猛冲一步再拖回原位"。kelivo 全仓页面/内容位移在 6%~8%，
-     * 那里决定的是"这页从哪来"，不是"这页要滑多远"。
+     * 的读感是"先猛冲一步再拖回原位"。页面与内容的位移压在 6%~8% 时，
+     * 位移表达的是"这页从哪来"，而不是"这页要滑多远"。
      */
     private fun pageOffset(total: Int): Int = (total * MuseAnimation.SLIDE_FRACTION_PAGE).toInt()
 

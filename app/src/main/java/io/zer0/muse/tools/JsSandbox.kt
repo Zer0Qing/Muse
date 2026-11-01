@@ -429,7 +429,7 @@ object JsSandbox {
     /** 获取指定 scopeKey(插件 id)的熔断状态;null scope 表示内置工具,keyed 惰性创建。 */
     private fun stateFor(scopeKey: String?): CircuitState = circuitStates.getOrPut(scopeKey ?: DEFAULT_SCOPE_KEY) { CircuitState() }
 
-    /** 单次执行的日志预算：行数与总字符数双限（对齐 rikkahub 的 64KB 日志上限量级）。 */
+    /** 单次执行的日志预算：行数与总字符数双限 —— 64KB 够调试，又不至于让刷屏插件吃内存。 */
     private const val MAX_LOG_LINES = 400
     private const val MAX_LOG_LINE_CHARS = 2_000
     private const val MAX_LOG_TOTAL_CHARS = 64 * 1024

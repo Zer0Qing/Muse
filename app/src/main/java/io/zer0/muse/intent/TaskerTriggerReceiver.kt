@@ -23,8 +23,8 @@ import org.koin.java.KoinJavaComponent
 /**
  * v2.x: Tasker 联动接收器。
  *
- * 参考项目能力对标新增：允许 Android 自动化平台（Tasker / MacroDroid 等）通过广播
- * 触发 Muse 跑一轮对话，结果以通知返回。填补"外部自动化编排 Muse"的缺口。
+ * 允许 Android 自动化平台（Tasker / MacroDroid 等）通过广播
+ * 触发 Muse 跑一轮对话，结果以通知返回，用于"外部自动化编排 Muse"的场景。
  *
  * 用法（Tasker 的「发送意图」动作）：
  *  - 动作：`io.zer0.muse.action.TASKER_TRIGGER`

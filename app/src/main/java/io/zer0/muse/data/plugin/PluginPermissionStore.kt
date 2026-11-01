@@ -8,13 +8,14 @@ import java.io.File
 /**
  * 插件能力授权账本（v2 重构 P0-1）。
  *
- * 设计要点照 HANA：**清单里的 capabilities 只是"请求"，真正的授权是一条条记账的**。
+ * 核心约定：**清单里的 capabilities 只是"请求"，真正的授权是一条条记账的**。
+ * 声明和授权混成一谈的话，用户看到的权限清单就和实际能做的事脱钩了 —— 那比没有权限系统更糟。
  * 之前我们只有"装/不装"两档，且声明与实际权限无关（见 [PluginCapabilityGateway] 注释）。
  *
  * 三档授权（[PluginPermissionTier]）：
  *  - [PluginPermissionTier.ALWAYS] 持久化到本文件；
  *  - [PluginPermissionTier.SESSION] / [PluginPermissionTier.ONCE] **只存在内存会话表**，
- *    进程重启即失效 —— 与 HANA 的"持久层只存 always，once/session 在会话表"一致。
+ *    进程重启即失效 —— 临时授权一旦落盘，就会变成"当时说临时、事后成永久"。
  *
  * 文件：`filesDir/plugin_permissions.json`，经 [AtomicFileStore] 原子写，避免进程被杀留下半个 JSON。
  */

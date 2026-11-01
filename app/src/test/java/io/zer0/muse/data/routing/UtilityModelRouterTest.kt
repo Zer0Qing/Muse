@@ -16,7 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * 辅助模型路由级联测试 — 对齐 Hana 三档:大工具留空复用小工具,小工具留空回退主模型。
+ * 辅助模型路由级联测试 — 三档留空规则:大工具留空复用小工具,小工具留空回退主模型。
  *
  * 注意:Robolectric 同类测试共享 DataStore 环境,所有 Provider id 带纳秒后缀保证隔离。
  */

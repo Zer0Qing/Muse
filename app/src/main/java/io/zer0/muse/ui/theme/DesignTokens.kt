@@ -74,7 +74,7 @@ object MuseAnimation {
     const val NAV_VERTICAL_EXIT_MS = 280
 
     // ── v2.6.7 动效重置: 进场/退场时长分离 ─────────────────────────────
-    // 对标 kelivo: 进场 360ms / 退场 280ms。退场必须比进场短 ——
+    // 进场 360ms / 退场 280ms。退场必须比进场短 ——
     // 用户不想等一个已经决定离开的东西慢慢消失。
     /** 页面入场 (360ms): 比退场长，让新内容有时间 "站定"。 */
     const val ENTER_MS = 360
@@ -90,7 +90,8 @@ object MuseAnimation {
 
     // ── v2.6.7 动效重置: 位移距离 ─────────────────────────────────────
     // 旧实现让页面走满整屏(比例 1.0)或半屏(0.5)，配 easeOutCubic 就是
-    // "先猛冲一步再拖回来"，读感是 "抽出来"。kelivo 全仓位移在 2%~8%。
+    // "先猛冲一步再拖回来"，读感是 "抽出来"。位移压在 2%~8% 才像在说"这页从哪来"，
+// 而不是"这页要滑多远"。
     /** 页面转场位移比例（1/12 ≈ 8%）: 横向 push/pop 用。 */
     const val SLIDE_FRACTION_PAGE = 1f / 12f
 
@@ -103,7 +104,7 @@ object MuseAnimation {
     // v1.0.16: 错峰入场递增步长
     //
     // v2.6.7: 180ms → 28ms，并且必须封顶（见 [STAGGER_MAX_INDEX]）。
-    // 旧值的问题: 180ms 是 kelivo（16~20ms）的一个数量级以上，
+    // 旧值的问题: 180ms 比肉眼能分辨的错峰下限（十几毫秒）高了一个数量级，
     // 且调用点普遍写 `index * STAGGER_STEP_MS` 不封顶 ——
     // 第 10 项要等 1.8s，第 20 项要等 3.6s，表现为 "越往下越卡"。
     /** 错峰入场步长 (28ms): 列表项逐条入场的 delay 递增值。 */
@@ -143,7 +144,7 @@ object MuseAnimation {
     val Emphasized: Easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
 
     /**
-     * v2.6.7: "先长出来再稳住" 曲线 — 对标 kelivo 的 `Cubic(0.2, 0.8, 0.2, 1)`。
+     * v2.6.7: "先长出来再稳住" 曲线 —— `Cubic(0.2, 0.8, 0.2, 1)`。
      *
      * 前 20% 时间走完 80% 路程，剩余时间缓慢收敛。用于尺寸变化
      * （[androidx.compose.animation.animateContentSize]）与展开类动效：
