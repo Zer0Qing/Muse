@@ -1,0 +1,19 @@
+Muse v2.6.19 发布校验
+生成时间: 2026-11-01 15:53:35
+versionName=2.6.19  versionCode=282  applicationId=io.zer0.muse
+
+## 签名（apksigner verify --print-certs）
+Signer #1 certificate DN: CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN
+Signer #1 certificate SHA-256 digest: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+Signer #1 certificate SHA-1 digest: 8230c9b7150676e322457c588fff81764e02ee0c
+Signer #1 certificate MD5 digest: 3f6d42436cac25c25053c2ea58a1d134
+
+## 产物
+Muse_v2.6.19_arm64-v8a.apk  103032330 bytes  sha256=2705fedd19550b3b0b527eb95e11dca743d85ea5902f2fb372c73a3cd8587b50
+Muse_v2.6.19_armeabi-v7a.apk  58964789 bytes  sha256=fad4c2bac61c6704fc1df71e869112d3e564ceadb522eb3b29c7223d128a07be
+Muse_v2.6.19_universal.apk  187035343 bytes  sha256=9bf26b10f39965a6b348c080ce4dadd3d433dcfad59299f9658eba1331c0dcda
+Muse_v2.6.19_x86_64.apk  104315068 bytes  sha256=db2c5ee34e9d9acf46d4e38b9d900912d7c0525a836e60682d6e7e5c6d0b3d22
+
+## 冒烟
+Android 16 (API 36) x86_64 模拟器：卸载旧包后安装 Muse_v2.6.19_x86_64.apk，冷启动进入引导页，
+logcat 无 FATAL / VerifyError。
