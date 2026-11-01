@@ -1,7 +1,10 @@
 package io.zer0.muse.data.plugin
 
 import io.zer0.common.AppJson
+import io.zer0.muse.tools.ToolCallGate
 import io.zer0.muse.tools.script.SkillBridge
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -20,6 +23,8 @@ import kotlinx.serialization.json.contentOrNull
  */
 class PluginHostApi(
     private val writeConfig: suspend (pluginId: String, key: String, value: JsonElement?) -> Unit,
+    /** 宿主未接入时 `tool_invoke` 一律拒绝（fail-closed），不静默降级成"当作没这个动作"。 */
+    private val toolBridge: PluginToolInvokeBridge? = null,
 ) {
 
     /** 返回 null 表示这个动作不归本类管，调用方继续交给 [SkillBridge]。 */
@@ -32,11 +37,67 @@ class PluginHostApi(
         val obj = runCatching { AppJson.parseToJsonElement(valueJson) as? JsonObject }.getOrNull()
         val isBridge = (obj?.get("__bridge__") as? JsonPrimitive)?.booleanOrNull == true
         val action = (obj?.get("action") as? JsonPrimitive)?.contentOrNull
-        val mine = isBridge && action == ACTION_CONFIG_SET
         return when {
-            !mine -> null
-            ACTION_CONFIG_SET !in allowedActions -> SkillBridge.HandleResult.Failure(notAuthorized())
-            else -> writeConfigValue(pluginId, manifest, obj?.get("params") as? JsonObject)
+            !isBridge -> null
+            action == ACTION_CONFIG_SET -> handleConfigSet(pluginId, manifest, obj, allowedActions)
+            action == ACTION_TOOL_INVOKE -> handleToolInvoke(pluginId, obj, allowedActions)
+            else -> null
+        }
+    }
+
+    private suspend fun handleConfigSet(
+        pluginId: String,
+        manifest: PluginManifest,
+        obj: JsonObject,
+        allowedActions: Set<String>,
+    ): SkillBridge.HandleResult = when {
+        ACTION_CONFIG_SET !in allowedActions -> SkillBridge.HandleResult.Failure(notAuthorized())
+        else -> writeConfigValue(pluginId, manifest, obj["params"] as? JsonObject)
+    }
+
+    /**
+     * 插件调用其它工具：**同一套审批闸门**（[ToolCallGate]），不是第二条链。
+     *
+     * 深度限 1：被调用的工具如果本身是插件工具，它里面再发起 `tool_invoke` 会被拒 ——
+     * 否则"插件 A 调 B 调 C"既能把审批拖成一串，也可能绕开对 A 的那次判定。
+     */
+    private suspend fun handleToolInvoke(
+        pluginId: String,
+        obj: JsonObject,
+        allowedActions: Set<String>,
+    ): SkillBridge.HandleResult {
+        val params = obj["params"] as? JsonObject
+        val toolName = (params?.get("name") as? JsonPrimitive)?.contentOrNull?.trim()
+        val argumentsJson = params?.get("arguments")?.toString()?.takeIf { it != "null" } ?: "{}"
+        val bridge = toolBridge
+        val problem = when {
+            ACTION_TOOL_INVOKE !in allowedActions ->
+                "动作 'tool_invoke' 未获授权：插件需在清单声明能力 '$CAPABILITY_TOOL_INVOKE'，" +
+                    "并在 设置 → 工具与扩展 → 插件 → 权限 中批准"
+            coroutineContext[PluginToolCallMarker] != null ->
+                "工具调用链已达深度上限 1：本次调用由插件发起，其中的工具不得再触发 tool_invoke"
+            bridge == null -> "宿主未接入工具调用通道，tool_invoke 不可用"
+            toolName.isNullOrBlank() -> "tool_invoke 缺少 name 参数（要调用的工具名）"
+            else -> null
+        }
+        if (problem != null) return SkillBridge.HandleResult.Failure(problem)
+        return runToolInvoke(requireNotNull(bridge), requireNotNull(toolName), pluginId, argumentsJson)
+    }
+
+    /** 先审批、后执行：审批走 [ToolCallGate]（与主会话同一条链），执行在标记上下文里进行。 */
+    private suspend fun runToolInvoke(
+        bridge: PluginToolInvokeBridge,
+        toolName: String,
+        pluginId: String,
+        argumentsJson: String,
+    ): SkillBridge.HandleResult {
+        val outcome = bridge.gate(toolName, "plugin:$pluginId:${System.nanoTime()}", argumentsJson)
+        if (!outcome.allowed) return SkillBridge.HandleResult.Failure(outcome.reason)
+        return withContext(PluginToolCallMarker(pluginId)) {
+            runCatching { bridge.execute(toolName, argumentsJson) }.fold(
+                onSuccess = { SkillBridge.HandleResult.Output(it) },
+                onFailure = { SkillBridge.HandleResult.Failure("tool_invoke 执行失败: ${it.message}") },
+            )
         }
     }
 
@@ -116,5 +177,7 @@ class PluginHostApi(
     companion object {
         const val ACTION_CONFIG_SET = "config_set"
         const val CAPABILITY_CONFIG_WRITE = "config.write"
+        const val ACTION_TOOL_INVOKE = "tool_invoke"
+        const val CAPABILITY_TOOL_INVOKE = "host.tool.invoke"
     }
 }

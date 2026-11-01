@@ -672,7 +672,10 @@ class SubagentRunnerTest {
 
             coVerify(exactly = 0) { mockToolRegistry.executeFromJson(probeTool, any()) }
             assertFalse(result.progressEntries[0].success)
-            assertTrue(result.progressEntries[0].result.contains("参数化硬拒"))
+            assertTrue(
+                "应回传参数化硬拒的原因，实际: ${result.progressEntries[0].result}",
+                result.progressEntries[0].result.contains("参数化硬拒"),
+            )
         } finally {
             // 参数策略是全局注册表:用完立即改回「不拦截」,不给其他测试留副作用
             ParamPolicies.register(probeTool) { null }

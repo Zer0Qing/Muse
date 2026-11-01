@@ -705,6 +705,20 @@ val appModule = module {
             get(),
             // 插件总开关：执行热路径读一次，不开订阅。
             { get<io.zer0.muse.data.SettingsRepository>().arePluginsGloballyEnabled() },
+            // 插件调工具（tool_invoke）的通道。审批判定与主会话、子代理共用同一个 ToolCallGate：
+            // 三处各留一份判定的话，最先松动的就是绕过审批的入口。缺这条通道时动作直接拒绝，
+            // 不静默降级成"这个动作不存在"。
+            io.zer0.muse.data.plugin.PluginToolInvokeBridge(
+                gateCall = io.zer0.muse.data.plugin.PluginToolInvokeBridge.of(
+                    io.zer0.muse.tools.ToolCallGate(
+                        approvalRouter = get<io.zer0.muse.tools.ToolApprovalRouter>(),
+                        toolRegistry = get<io.zer0.muse.tools.ToolRegistry>(),
+                        toolConfigStore = get<io.zer0.muse.tools.ToolConfigStore>(),
+                        settings = getOrNull<io.zer0.muse.data.SettingsRepository>(),
+                    ),
+                ),
+                executeTool = { name, args -> get<io.zer0.muse.tools.ToolRegistry>().executeFromJson(name, args) },
+            ),
         )
     }
     // P1-3b 拆域: Skill 管理工具实现(被 SkillExecutor 委托调用)

@@ -259,6 +259,7 @@ class PluginCapabilityGateway(
             // 合成一项的话权限清单就没有意义了。
             "storage" to setOf("storage_get", "storage_set", "storage_delete", "storage_list"),
             "config.write" to setOf("config_set"),
+            "host.tool.invoke" to setOf("tool_invoke"),
         )
 
         /**

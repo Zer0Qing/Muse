@@ -1,7 +1,9 @@
 package io.zer0.muse.data.plugin
 
 import io.zer0.common.AppJson
+import io.zer0.muse.tools.ToolCallGate
 import io.zer0.muse.tools.script.SkillBridge
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonElement
 import org.junit.Assert.assertEquals
@@ -158,5 +160,105 @@ class PluginHostApiTest {
             "敏感项本身仍要能被表达",
             AppJson.encodeToString(ConfigItem.serializer(), ConfigItem(key = "k", secret = true)).contains("\"secret\":true"),
         )
+    }
+
+    // ── tool_invoke：必须复用主会话审批链，且深度限 1 ─────────────────────
+
+    /** 记录"审批被问了几次 / 执行跑了几次"，用来断言顺序与"被拒时绝不执行"。 */
+    private class Counters {
+        var gated = 0
+        var executed = 0
+    }
+
+    private fun bridgeFor(
+        counters: Counters,
+        outcome: ToolCallGate.Outcome = ToolCallGate.Outcome(allowed = true),
+        result: String = """{"ok":true}""",
+    ) = PluginToolInvokeBridge(
+        gateCall = { _, _, _ -> counters.gated++; outcome },
+        executeTool = { _, _ -> counters.executed++; result },
+    )
+
+    private fun toolApi(bridge: PluginToolInvokeBridge?) =
+        PluginHostApi(writeConfig = { _, _, _ -> }, toolBridge = bridge)
+
+    private fun invokeRequest(params: String) =
+        """{"__bridge__":true,"action":"tool_invoke","params":$params}"""
+
+    @Test
+    fun `tool_invoke without the capability never reaches the executor`() {
+        val counters = Counters()
+        val api = toolApi(bridgeFor(counters))
+
+        val result = runBlocking { api.handle("demo", manifest, invokeRequest("""{"name":"read_file"}"""), emptySet()) }
+
+        assertTrue("缺能力要指名缺哪个: $result", (result as SkillBridge.HandleResult.Failure).message.contains("host.tool.invoke"))
+        assertEquals("缺能力时连审批都不该弹", 0, counters.gated)
+        assertEquals("更不该执行", 0, counters.executed)
+    }
+
+    @Test
+    fun `tool_invoke runs only after the shared gate approves it`() {
+        val counters = Counters()
+        val api = toolApi(bridgeFor(counters))
+
+        val result = runBlocking {
+            api.handle(
+                "demo", manifest,
+                invokeRequest("""{"name":"read_file","arguments":{"path":"a"}}"""),
+                setOf("tool_invoke"),
+            )
+        }
+
+        assertTrue("应执行: $result", result is SkillBridge.HandleResult.Output)
+        assertEquals("审批问一次", 1, counters.gated)
+        assertEquals("批准后执行一次", 1, counters.executed)
+    }
+
+    @Test
+    fun `gate refusal is surfaced verbatim and the tool is not executed`() {
+        var executed = false
+        val api = PluginHostApi(
+            writeConfig = { _, _, _ -> },
+            toolBridge = PluginToolInvokeBridge(
+                gateCall = { _, _, _ -> ToolCallGate.Outcome(allowed = false, reason = "工具 'x' 未获批准(用户拒绝)") },
+                executeTool = { _, _ -> executed = true; "{}" },
+            ),
+        )
+
+        val result = runBlocking {
+            api.handle("demo", manifest, """{"__bridge__":true,"action":"tool_invoke","params":{"name":"x"}}""", setOf("tool_invoke"))
+        }
+
+        assertTrue("拒绝原因要原样给回模型: $result", (result as SkillBridge.HandleResult.Failure).message.contains("未获批准"))
+        assertTrue("绝不能执行", !executed)
+    }
+
+    @Test
+    fun `nested tool_invoke is refused by the depth marker`() {
+        val api = toolApi(bridgeFor(Counters()))
+
+        val result = runBlocking {
+            withContext(PluginToolCallMarker("other-plugin")) {
+                api.handle(
+                    "demo", manifest,
+                    """{"__bridge__":true,"action":"tool_invoke","params":{"name":"read_file"}}""",
+                    setOf("tool_invoke"),
+                )
+            }
+        }
+
+        assertTrue("深度闸必须拦住: $result", (result as SkillBridge.HandleResult.Failure).message.contains("深度上限"))
+    }
+
+    @Test
+    fun `missing bridge fails closed instead of pretending the action does not exist`() {
+        val api = toolApi(null)
+
+        val result = runBlocking {
+            api.handle("demo", manifest, """{"__bridge__":true,"action":"tool_invoke","params":{"name":"x"}}""", setOf("tool_invoke"))
+        }
+
+        assertTrue("未接入要拒绝而不是放行: $result", (result as SkillBridge.HandleResult.Failure).message.contains("未接入"))
     }
 }

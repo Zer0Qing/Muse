@@ -42,6 +42,11 @@ class SkillMediaToolsImpl(
      * 加一个可选依赖比改全部构造点安全；与 [imageDrawConfigProvider] 同型。
      */
     private val pluginsGloballyEnabled: suspend () -> Boolean = { true },
+    /**
+     * 插件发起工具调用的通道（`tool_invoke`）。为 null 时该动作一律拒绝 ——
+     * 缺依赖必须是"不可用"，不能退化成"这个动作不存在所以放过"。
+     */
+    private val toolBridge: io.zer0.muse.data.plugin.PluginToolInvokeBridge? = null,
 ) {
 
     suspend fun execListStickers(args: Map<String, String>): String {
@@ -311,7 +316,10 @@ class SkillMediaToolsImpl(
             .allowedActions(pluginId, manifest.capabilities)
         // 宿主侧状态写入（config_set 等）先过这一层；不属于它的动作原样回落 SkillBridge。
         // 授权集合是同一份 —— 两处共用，不存在"走哪条通道更宽松"的差别。
-        PluginHostApi(writeConfig = { id, key, newValue -> manager.setPluginConfig(id, key, newValue) })
+        PluginHostApi(
+            writeConfig = { id, key, newValue -> manager.setPluginConfig(id, key, newValue) },
+            toolBridge = toolBridge,
+        )
             .handle(pluginId, manifest, value, allowedBridgeActions)
             ?.let { return it }
         val bridgeHost = SkillBridge.Host(
