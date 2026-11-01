@@ -790,4 +790,5 @@
     <string name="plugin_permission_python_warning">Python プラグインは本アプリと同じ UID のサブプロセスで動作し、アプリデータを直接読み書きできます。上記の能力スイッチやファイルサンドボックスの適用外です。信頼できる場合のみ有効化してください。</string>
     <string name="plugin_row_python_trusted">Python ランタイム · 許可済み</string>
     <string name="plugin_row_python_locked">Python ランタイム · 高信頼の許可が必要</string>
+    <string name="plugin_permission_node_note">Node ランタイム：組み込み Node のサブプロセスで実行され、能力は項目ごとに認可します。タイムアウトは実際に中断され、他のプラグインに波及しません。</string>
 </resources>

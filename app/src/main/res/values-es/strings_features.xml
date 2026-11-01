@@ -791,4 +791,5 @@
     <string name="plugin_permission_python_warning">Los complementos de Python se ejecutan en un subproceso con el mismo UID que la aplicacion y pueden leer y escribir los datos directamente, sin los interruptores ni elsandbox de archivos. Activalo solo para fuentes confiables.</string>
     <string name="plugin_row_python_trusted">Runtime Python · permitido</string>
     <string name="plugin_row_python_locked">Runtime Python · requiere confianza alta</string>
+    <string name="plugin_permission_node_note">Runtime Node: se ejecuta en un subproceso de Node integrado; las capacidades se comprueban una a una; los tiempos limite se interrumpen de verdad y no bloquean otros complementos.</string>
 </resources>

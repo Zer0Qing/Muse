@@ -84,6 +84,12 @@ fun PluginPermissionPanel(
             )
         }
 
+        if (snapshot.nodeRuntime) {
+            // 7-4：node 档与 js 档的执行载体不同（子进程 + vm 上下文），
+            // 不说清楚就会被当成"和别的插件一样"，而它恰恰是**默认档**。
+            RuntimeNote(text = stringResource(R.string.plugin_permission_node_note))
+        }
+
         if (snapshot.pythonRuntime) {
             PythonTrustRow(
                 allowed = snapshot.pythonAllowed,
@@ -163,6 +169,16 @@ private fun PythonTrustRow(
             )
         }
     }
+}
+
+/** 运行时说明行：node 档要说清它与 js 的差别（默认档、可中断、能力一律经账本）。 */
+@Composable
+private fun RuntimeNote(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /** 已声明能力逐行开关。 */
@@ -329,6 +345,7 @@ private data class PermissionSnapshot(
     val recent: List<PluginCapabilityAudit.Event>,
     val pythonRuntime: Boolean = false,
     val pythonAllowed: Boolean = false,
+    val nodeRuntime: Boolean = false,
 ) {
     companion object {
         fun from(
@@ -341,6 +358,7 @@ private data class PermissionSnapshot(
             val audit = gateway.recentAudit()
             val declaredNames = declared.map(::canonical)
             return PermissionSnapshot(
+                nodeRuntime = runtime.equals("node", ignoreCase = true),
                 pythonRuntime = runtime.equals("python", ignoreCase = true),
                 pythonAllowed = gateway.isApproved(pluginId, PluginCapabilityGateway.RUNTIME_PYTHON),
                 declared = declaredNames.map { CapabilityRow(it, it in granted) },

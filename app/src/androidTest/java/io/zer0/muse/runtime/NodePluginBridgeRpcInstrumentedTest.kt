@@ -93,6 +93,38 @@ class NodePluginBridgeRpcInstrumentedTest {
         assertTrue("错误里要带授予指引: ${error?.message}", error?.message?.contains("设置") == true)
     }
 
+@Test
+    fun fetchWithoutNetworkCapabilityIsBlockedNotSilent() = runBlocking {
+        // 探针实测：内置 Node **本身有全局 fetch**（`fetchType":"function"`）。
+        // 所以沙盒里的 fetch 必须是我们注入的、走桥接的垫片 —— 否则插件一句 fetch 就绕开了 network 授权，
+        // 前面所有的能力账本都白做。这条测试正面锁住这一点。
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        MuseRuntime.ensureData(context).getOrThrow()
+        val engine = NodePluginEngine(context)
+        val asked = mutableListOf<String>()
+
+        val result = engine.callPluginFunction(
+            entryCode = """
+                async function go() {
+                  const res = await fetch('https://example.com/api');
+                  return '拿到正文: ' + (await res.text());
+                }
+            """.trimIndent(),
+            functionName = "go",
+            argsJson = "[]",
+            timeoutMs = 15_000L,
+            scopeKey = "fetch-gated",
+        ) { requestJson ->
+            asked += Regex("\"action\":\"([a-z_]+)\"").find(requestJson)?.groupValues?.get(1) ?: "?"
+            SkillBridge.HandleResult.Failure("能力 network 未授权；可在 设置 → 工具与扩展 → 插件 → 权限 中授予")
+        }
+
+        val error = result as? SkillEngineResult.Error
+        assertTrue("fetch 未授权必须失败，实际: $result", error != null)
+        assertTrue("宿主确实收到了 http_get 请求（说明 fetch 走的是桥接），实到: $asked", asked.contains("http_get"))
+        assertTrue("错误要带授予路径: ${error?.message}", error?.message?.contains("设置") == true)
+    }
+
     private companion object {
         const val TAG = "NodeRpcTest"
     }
