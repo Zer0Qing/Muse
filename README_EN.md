@@ -33,13 +33,22 @@
 
 ## What is Muse
 
-Tired of introducing yourself from scratch to every new AI chat? Not with Muse.
+**Muse is a personal agent that runs on your own phone.**
 
-Muse is an open-source AI companion for Android: it **truly remembers you** through a four-tier memory system, it **gets things done on your phone** through Accessibility / Shizuku / Root permission tiers, and it has an inner life (Mood) and a life of its own — Moments, a diary, an album. Switch models, switch sessions, close and reopen the app: it still remembers. When it's been a while, it will reach out to you first.
+Most personal agents in 2026 live in the cloud. They remember you and they get work done, and the price is that everything about you sits on someone else's server, executing out of sight.
 
-Bring any model (40+ preset providers). No sign-up, no account, and **your data stays on your device by default**. Muse also plugs into WeChat, QQ, Feishu, Telegram and DingTalk, so your assistant lives inside the chat apps you already use every day.
+Muse goes the other way. It lives on your Android phone, takes any model you point it at (40+ preset providers), keeps your data on the device by default, and when something needs doing it actually operates the phone: reading the screen, tapping, running commands, reading and writing files.
 
-Everything is built to continue your conversation — not to start over.
+It does four things:
+
+| | Meaning | How Muse does it |
+|---|---|---|
+| **Continuous** | Switch sessions, channels or models, it is still the same one | Four-tier memory + one persona across five chat channels |
+| **Proactive** | It moves things forward without being called | Pending-thoughts ledger, scheduled tasks, reaching out when it has been quiet |
+| **Capable** | It does more than talk | Accessibility / Shizuku / Root tiers, 170+ built-in tools, terminal and virtual display |
+| **Persistent** | Close and reopen, it is still there | Keep-alive service, local database, offline runtimes |
+
+No sign-up, no account, uninstall and it is gone.
 
 ## Screenshots
 
@@ -64,7 +73,7 @@ Everything is built to continue your conversation — not to start over.
   <img src="screenshots/en/web-search.jpg" width="140" alt="Web search settings">
 </p>
 <p align="center">
-  <img src="screenshots/en/data-backup.jpg" width="140" alt="Stats, backup and web server">
+  <img src="screenshots/en/data-backup.jpg" width="140" alt="Stats, backup and data management">
   <img src="screenshots/en/vision.jpg" width="140" alt="Vision assist and probe test">
   <img src="screenshots/en/stickers.jpg" width="140" alt="Sticker library">
 </p>
@@ -97,7 +106,15 @@ Download the latest APK from the official download page [museai.ltd/download](ht
 
 ## Why Muse
 
-### 1. Persistent memory — it never reintroduces itself
+### 1. It is yours, not rented
+
+A cloud agent gives you a service: you sign in, it remembers you, the data lives there. Muse gives you a process running on a device you own.
+
+- Conversations, memory and knowledge base live in a local Room database; no telemetry, no analytics, no sign-up
+- Any model: 40+ preset providers, plus self-hosted or LAN OpenAI-compatible endpoints
+- Sensitive settings go through Android Keystore; PII is masked before sending and restored on the way back
+
+### 2. It remembers a person, not a conversation
 
 A four-tier memory architecture, from short-term conversation to long-term deep processing:
 
@@ -107,10 +124,19 @@ short     key facts          compression        dedup/merge     long-term memory
 ```
 
 - **Critical facts never decay** (medical, financial, core identity are protected), while everyday details fade naturally like a human would
-- Every memory entry is traceable to its source; the memory panel supports editing, weight adjustment, filtering and search, with long entries expandable in place
-- Memories are isolated by space; backups are encrypted end to end
+- Every memory entry is traceable to its source; editable, reweightable, searchable, isolated by space
+- The same one across channels: WeChat / QQ / Feishu / Telegram / DingTalk, each contact with its own context and rolling summary
 
-### 2. System-level agency — it really does things on your phone
+### 3. It moves forward on its own
+
+It does not wait to be spoken to.
+
+- **Pending-thoughts ledger**: the assistant writes down what it wants to ask you later and picks one when the moment fits, instead of inventing small talk
+- **Outcome ledger**: opened, replied, dismissed — all recorded; intimacy learns from it and decides how many times it may speak today
+- **Quiet hours**: it stays silent when you should be asleep
+- **Scheduled tasks**: run on time, results land back in the conversation
+
+### 4. It really does things on this phone
 
 | Channel | Capabilities | Requirement |
 |---------|--------------|-------------|
@@ -119,18 +145,28 @@ short     key facts          compression        dedup/merge     long-term memory
 | Root | Full system control, access other apps' data | Rooted device |
 | Termux | Full Linux environment (apt / pip / gcc / ffmpeg) | Install Termux and authorize |
 
-- **200+ built-in tools**, exposed in tiers by default; long-tail capabilities are loaded on demand via `find_tools`
+- **170+ built-in tools**, exposed in tiers by default; long-tail capabilities are loaded on demand via `find_tools`
 - Every tool declares its required authorization and readiness (READY / NOT READY); unready calls **fail fast before execution** with clear guidance
 - Built-in terminal (custom PTY + xterm), background **virtual display**, vision-driven **GUI Agent**, browser automation
 - Safety boundaries: command allowlist, risk-based approval (Trusted / Ask / Strict), hard timeouts, workspace sandbox
 
-### 3. Personality & team — it has an inner life, and a life
+### 5. It has an inner life, and a team
 
-- **Mood, in four dimensions**: Vibe / Sparks / Reflections / Will before every reply, collapsed by default — expand to see what it was thinking
+- **Mood, in four dimensions**: Vibe / Sparks / Reflections / Will before every reply, collapsed by default
 - **Three-layer persona**: persona / relationship / style layers, with `{{user_name}}` / `{{char}}` template variables
 - **Multi-agent**: delegate with `@assistant-name`, task cards visualize each step, sub-agents run in floating windows, assistants have a private DM inbox
-- **Group meetings**: summary cards / votes / observers / quick templates / meeting controls (pause, skip) — a proper multi-assistant meeting
+- **Group meetings**: summary cards / votes / observers / quick templates / meeting controls
 - **Milestones**: first message, day 7 / 30 / 100, message 100 / 1000 — all remembered for you
+
+### How it differs from a cloud agent
+
+| | Cloud personal agent | Muse |
+|---|---|---|
+| Runs on | A cloud host / a browser tab | Your own phone |
+| Data | Uploaded before it can remember you | Stays on the device by default |
+| Can touch | Web pages and APIs | The device itself: screen, commands, files, other apps |
+| Model | Bound to the platform | 40+ providers, swap anytime |
+| Cost | Subscription and privacy | You supply a device and an API key |
 
 ## Features
 
@@ -166,16 +202,16 @@ short     key facts          compression        dedup/merge     long-term memory
 - **Experience library**: distil "handle this kind of problem this way" into reusable experiences that future tasks consult automatically (toggleable).
 - **Knowledge base (RAG)**: imported documents are parsed, chunked and indexed; retrieval uses hybrid semantic + keyword ranking; @-mentions scope retrieval to specific documents; very large files are indexed in a streaming fashion; offline environments fall back to local retrieval; citations trace back to the original passages.
 - **Daily summary & greetings**: a recap generated at configurable times (visible on the home screen, optionally pushed); morning greetings are generated from near-term items in memory, not templates.
-- **Proactive messages**: no fixed-interval polling. A pending-thoughts ledger holds what the assistant wants to ask you later, and it picks one when the moment fits. Being opened, answered or dismissed is recorded in an outcome ledger, and intimacy is learned from those outcomes to decide how often it may speak. Five levels (Quiet / Reserved / Standard / Active / Clingy), a reset that returns to the default level and clears today's quota, quiet hours that are honored, and silence when it has nothing to add. Night-time actions (its diary, tidying memories) still happen without disturbing you; configurable daily pushes (summary / diary / Moments).
+- **Proactive messages**: no fixed-interval polling. A pending-thoughts ledger holds what the assistant wants to ask you later, and it picks one when the moment fits. Being opened, answered or dismissed is recorded in an outcome ledger, and intimacy is learned from those outcomes to decide how often it may speak. Five levels (Quiet / Reserved / Standard / Active / Clingy), a reset that returns to the default level and clears today's quota, quiet hours that are honored, and silence when it has nothing to add. Night-time actions (tidying memories) still happen without disturbing you; configurable daily pushes (summary).
 - **Milestones**: first message, days 7 / 30 / 100 together, messages 100 / 1000 and more are recorded automatically.
 - **Stats & activity panel**: conversation / message totals, daily average, streaks and a daily heatmap; an activity panel shows the execution history of scheduled tasks, heartbeats and memory compilation.
 
 </details>
 
 <details>
-<summary><b>Tools & Automation</b> — 200+ tools / permission tiers / approvals & budgets / four channels / terminal / virtual display / GUI Agent</summary>
+<summary><b>Tools & Automation</b> — 170+ tools / permission tiers / approvals & budgets / four channels / terminal / virtual display / GUI Agent</summary>
 
-- **Tool system**: 200+ built-in tools, exposed in tiers (core / standard / optional / advanced); only common tools are sent by default to keep context lean, while long-tail capabilities load on demand via `find_tools` (loaded tools stay available for the session); the system prompt carries a live capability index with the number actually available this round, not a hard-coded constant.
+- **Tool system**: 170+ built-in tools, exposed in tiers (core / standard / optional / advanced); only common tools are sent by default to keep context lean, while long-tail capabilities load on demand via `find_tools` (loaded tools stay available for the session); the system prompt carries a live capability index with the number actually available this round, not a hard-coded constant.
 - **Permission tiers**: every tool that needs Shizuku / Root, Accessibility or Termux declares its dependencies and readiness (READY / NOT READY); unready calls fail fast with a structured `permission_required` error and authorization guidance.
 - **Approvals**: risk levels (safe / normal / high) combined with three modes (Trusted / Ask / Strict); "allow for this session" and per-tool policies; high-risk actions always ask first.
 - **Execution engine**: read-only tools run with bounded parallelism (max 3); blocking tools run on a dedicated thread pool with hard timeouts; oversized outputs are written to disk with previews and `read_file` references in context; a unified success judge; automatic early stop on repeated failures with honest reasons; tool rounds are unlimited by default (a cap is configurable), with circuit breakers for repeated identical calls, no-progress rounds and total call counts.
@@ -203,17 +239,6 @@ short     key facts          compression        dedup/merge     long-term memory
 - **MCP**: connect external MCP servers to extend the tool set (OAuth, SSE transport, automatic discovery).
 - **OAuth connectors**: connect third-party services with credentials encrypted locally; a connection center manages models, channels and connectors in one place.
 - **Five chat platforms**: WeChat (QR binding), QQ (bot WebSocket), Feishu (long-connection events), Telegram, DingTalk (Stream mode); per-contact session context with rolling summaries; images and voice messages are ingested and transcribed; each channel can bind a different assistant and model; every platform ships with its own setup wizard and connection test.
-- **Web server**: a built-in Ktor server (JWT auth + mDNS discovery + self-signed HTTPS) lets you browse conversations from any device on your LAN.
-
-</details>
-
-<details>
-<summary><b>Mini Phone & Moments</b> (early experimental, still being polished) — simulated IM / AI Moments / album / diary</summary>
-
-- **Mini Phone**: a built-in simulated IM client — Chats / Contacts / Discover / Me, four classic tabs; change the wallpaper, tweak settings, and use your AI like a messaging app.
-- **AI Moments**: the AI posts updates (text and photo grids), likes and comments; a message center, cover image and profile page.
-- **AI album & diary**: generated images are archived with dates and full-screen previews; the diary is browsable by month, and late at night the AI writes its own entries.
-- **Weather & quick notes**: a free weather data source; quick notes collected under "Me".
 
 </details>
 
@@ -252,7 +277,7 @@ short     key facts          compression        dedup/merge     long-term memory
 | Language / UI | Kotlin 2.4 · Jetpack Compose · Material 3 |
 | Architecture | MVVM + unidirectional data flow · Koin (DI) |
 | Data | Room (SQLite) + DataStore · ONNX Runtime (local embeddings) |
-| Networking | OkHttp + Ktor (web server: JWT + mDNS + HTTPS) |
+| Networking | OkHttp + Ktor |
 | Parsing & rendering | PDFBox · ML Kit OCR · custom PTY + xterm |
 | Quality gates | detekt + ktlint + Android Lint + custom check scripts · Kover coverage |
 
