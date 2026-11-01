@@ -1,6 +1,7 @@
 package io.zer0.muse.data.plugin
 
 import io.zer0.common.AppJson
+import io.zer0.muse.util.SafePaths
 import io.zer0.common.Logger
 import io.zer0.muse.util.readZipEntryWithLimit
 import kotlinx.serialization.decodeFromString
@@ -199,15 +200,8 @@ object PluginPackageLoader {
         }.getOrNull()
     }
 
-    private fun isSafeRelativePath(path: String): Boolean {
-        val normalized = path.trimEnd('/')
-        return normalized.isNotBlank() &&
-            !normalized.startsWith("/") &&
-            !normalized.startsWith("\\") &&
-            !normalized.contains("..") &&
-            !normalized.contains('\\') &&
-            normalized.split('/').none { it.isBlank() || it == "." }
-    }
+    /** 路径校验已收敛到 [SafePaths]（全仓一份实现）。这里只留转发，避免同名校验出现宽严不一。 */
+    private fun isSafeRelativePath(path: String): Boolean = SafePaths.isSafeRelative(path)
 
     private val PLUGIN_ID_REGEX = Regex("^[a-z0-9][a-z0-9_-]*$")
 

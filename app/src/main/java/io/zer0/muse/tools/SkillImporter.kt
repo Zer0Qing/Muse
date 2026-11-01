@@ -91,6 +91,15 @@ object SkillImporter {
      */
     const val PROMPT_PREFIX = "prompt:"
 
+    /**
+     * 技能包（`SKILL.md`）的路由前缀：`implementationKotlin = "prompt_file:<相对路径>"`。
+     *
+     * 存**相对路径**而不是把正文塞进这一列，是为了渐进披露：
+     * 列表只注入 name + description，正文要等模型真的调用这个技能时才从磁盘读。
+     * 相对路径也才经得起备份恢复 —— 绝对路径换台机器就是死链。
+     */
+    const val PROMPT_FILE_PREFIX = "prompt_file:"
+
     /** `.skill.json` 中声明提示词技能的 [SkillEntity.implementationKotlin] 取值。 */
     const val PROMPT_IMPLEMENTATION_KEY = "prompt"
 
@@ -112,9 +121,20 @@ object SkillImporter {
         put("properties", buildJsonObject { })
     }
 
-    /** 是否为提示词技能(见 [PROMPT_PREFIX] 的编码说明)。 */
+    /** 是否为提示词技能(见 [PROMPT_PREFIX] 的编码说明)。技能包（[PROMPT_FILE_PREFIX]）也算。 */
     fun isPromptSkill(implementationKotlin: String): Boolean =
-        implementationKotlin == PROMPT_IMPLEMENTATION_KEY || implementationKotlin.startsWith(PROMPT_PREFIX)
+        implementationKotlin == PROMPT_IMPLEMENTATION_KEY ||
+            implementationKotlin.startsWith(PROMPT_PREFIX) ||
+            implementationKotlin.startsWith(PROMPT_FILE_PREFIX)
+
+    /** 技能包正文的相对路径；非技能包返回 null。 */
+    fun promptFilePath(implementationKotlin: String): String? =
+        implementationKotlin.removePrefix(PROMPT_FILE_PREFIX).takeIf {
+            implementationKotlin.startsWith(PROMPT_FILE_PREFIX) && it.isNotBlank()
+        }
+
+    /** 编码技能包正文路径为 [SkillEntity.implementationKotlin] 存储形式。 */
+    fun encodePromptFile(relativePath: String): String = PROMPT_FILE_PREFIX + relativePath
 
     /**
      * 解析提示词技能的指令文本(剥离 `prompt:` 前缀)。

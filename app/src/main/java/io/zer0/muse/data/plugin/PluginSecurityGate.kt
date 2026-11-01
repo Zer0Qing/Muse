@@ -1,6 +1,7 @@
 package io.zer0.muse.data.plugin
 
 import io.zer0.common.AppJson
+import io.zer0.muse.util.SafePaths
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -536,15 +537,8 @@ object PluginSecurityGate {
     private const val MAX_PUBLIC_KEY_BYTES = 512
     private const val MAX_SIGNATURE_BYTES = 256
 
-    private fun isSafeRelativePath(path: String): Boolean {
-        val normalized = path.trimEnd('/')
-        return normalized.isNotBlank() &&
-            !normalized.startsWith("/") &&
-            !normalized.startsWith("\\") &&
-            !normalized.contains("..") &&
-            !normalized.contains('\\') &&
-            normalized.split('/').none { it.isBlank() || it == "." }
-    }
+    /** 路径校验已收敛到 [SafePaths]（全仓一份实现）。这里只留转发，避免同名校验出现宽严不一。 */
+    private fun isSafeRelativePath(path: String): Boolean = SafePaths.isSafeRelative(path)
 
     private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
         .digest(bytes)

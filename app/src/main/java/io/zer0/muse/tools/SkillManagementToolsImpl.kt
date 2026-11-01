@@ -220,7 +220,13 @@ class SkillManagementToolsImpl(
      * 替换为输入;无占位符时把输入追加到指令末尾;其余参数忽略。
      */
     fun execPromptSkill(skill: SkillEntity, args: Map<String, String> = emptyMap()): String {
-        val text = SkillImporter.decodePromptText(skill.implementationKotlin)?.trim()
+        // 技能包（SKILL.md）走文件按需读；正文不在库里，所以这里就是"渐进披露"的读的那一步。
+        val packagePath = SkillImporter.promptFilePath(skill.implementationKotlin)
+        val text = if (packagePath != null) {
+            io.zer0.muse.data.skill.SkillPackageStore(context).instructionBodyByPath(packagePath)?.trim()
+        } else {
+            SkillImporter.decodePromptText(skill.implementationKotlin)?.trim()
+        }
         if (text.isNullOrEmpty()) return context.getString(R.string.skill_prompt_empty)
         val input = args["input"]?.trim().orEmpty()
         val hasPlaceholder = text.contains(PROMPT_INPUT_PLACEHOLDER) || text.contains(PROMPT_ARGS_PLACEHOLDER)
