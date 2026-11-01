@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.proactive.ProactiveOutcomeRepository
@@ -18,6 +19,7 @@ import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.schedule.ChatGenerationManager
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -71,6 +73,8 @@ class ProactiveContextLoaderSessionTest {
         )
         settings = mockk(relaxed = true)
         coEvery { settings.getViewedSessionId() } returns null
+        every { settings.proactiveMessageConfigFlow } returns
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = true))
         assistant = mockk(relaxed = true)
         every { assistant.id } returns ASSISTANT_ID
     }
@@ -158,7 +162,8 @@ class ProactiveContextLoaderSessionTest {
     }
 
     @Test
-    fun `recent active agent session is picked when it is the latest`() = runTest {
+    fun `plain session wins even when agent session is newer`() = runTest {
+        // 用户反馈「主动消息总发在 Agent 页」：Agent Tab 更新更晚，也不该抢落点。
         seedSession("plain", updatedAt = now - 600 * MINUTE)
         seedUserMessage("plain", at = now - 601 * MINUTE)
         seedSession("agent", updatedAt = now - 5 * MINUTE, isAgentSession = true)
@@ -166,8 +171,58 @@ class ProactiveContextLoaderSessionTest {
 
         val pick = loader().resolveSessionPick(assistant)
 
-        assertEquals("Agent 会话最近有活动就写回 Agent 会话", "agent", pick?.sessionId)
+        assertEquals("Agent Tab 再新也不抢主动消息落点", "plain", pick?.sessionId)
         assertEquals(ProactiveContextLoader.SessionSource.RECENT_ACTIVE, pick?.source)
+    }
+
+    @Test
+    fun `agent session is used when the user only chatted there`() = runTest {
+        seedSession("agent", updatedAt = now - 5 * MINUTE, isAgentSession = true)
+        seedUserMessage("agent", at = now - 6 * MINUTE)
+
+        val pick = loader().resolveSessionPick(assistant)
+
+        assertEquals("只在 Agent 里聊过就写回那个 Agent 会话", "agent", pick?.sessionId)
+        assertEquals(ProactiveContextLoader.SessionSource.RECENT_ANY, pick?.source)
+    }
+
+    @Test
+    fun `agent session is skipped when the switch is off`() = runTest {
+        // 设置里关掉「Agent 会话」后：只有 Agent 会话可用时，宁可不发，也不落进 Agent Tab。
+        every { settings.proactiveMessageConfigFlow } returns
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = false))
+        seedSession("agent", updatedAt = now - 5 * MINUTE, isAgentSession = true)
+        seedUserMessage("agent", at = now - 6 * MINUTE)
+
+        val pick = loader().resolveSessionPick(assistant)
+
+        assertEquals("关闭后不许落进 Agent 会话", null, pick)
+    }
+
+    @Test
+    fun `plain session still wins when the switch is off`() = runTest {
+        every { settings.proactiveMessageConfigFlow } returns
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = false))
+        seedSession("plain", updatedAt = now - 600 * MINUTE)
+        seedUserMessage("plain", at = now - 601 * MINUTE)
+        seedSession("agent", updatedAt = now - 5 * MINUTE, isAgentSession = true)
+        seedUserMessage("agent", at = now - 6 * MINUTE)
+
+        val pick = loader().resolveSessionPick(assistant)
+
+        assertEquals("普通会话照常可写", "plain", pick?.sessionId)
+    }
+
+    @Test
+    fun `existing agent session is reused instead of creating a new one`() = runTest {
+        // 兜底每次都新建会让 Agent 页越堆越多空会话；应复用已有的那个。
+        seedSession("agent-old", updatedAt = now - 900 * MINUTE, isAgentSession = true)
+        seedAssistantMessage("agent-old", at = now - 900 * MINUTE)
+
+        val pick = loader().resolveSessionPick(assistant)
+
+        assertEquals("应复用已有 Agent 会话", "agent-old", pick?.sessionId)
+        assertEquals(ProactiveContextLoader.SessionSource.EXISTING_AGENT, pick?.source)
     }
 
     @Test
@@ -226,6 +281,7 @@ class ProactiveContextLoaderSessionTest {
         assertTrue("兜底新建的是 Agent 会话", created!!.isAgentSession)
         assertEquals(ASSISTANT_ID, created.assistantId)
     }
+
 
     @Test
     fun `no session at all falls back to a new agent session`() = runTest {

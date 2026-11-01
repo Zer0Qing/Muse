@@ -3,6 +3,7 @@ package io.zer0.muse.data.chat
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 import kotlin.uuid.Uuid
 
@@ -169,5 +170,53 @@ class ConversationTreeOrderingTest {
         // 只覆盖一部分时,未被覆盖的那条仍要保留
         val partial = mergeRebuildMessages(tree, emptyList(), setOf(user.id.toString()))
         assertEquals("未覆盖的消息仍需合并回来", listOf(assistant.id), partial.map { it.id })
+    }
+
+    @Test
+    fun `editing a middle user message keeps the branch in place after rebuild`() {
+        // 用户反馈：编辑中间某条消息后，新分支跑到最后。
+        // 这里走一遍真实链路：建树 → 编辑第 2 轮 → 用 displayMessages 重建树。
+        fun turn(index: Int): Pair<UIMessage, UIMessage> {
+            val user = UIMessage(
+                id = Uuid.random(),
+                role = MessageRole.USER,
+                content = "问题 $index",
+                createdAt = index * 10L,
+                seq = index * 2L,
+                variantGroupId = "ug-$index",
+            )
+            val assistant = UIMessage(
+                id = Uuid.random(),
+                role = MessageRole.ASSISTANT,
+                content = "回答 $index",
+                createdAt = index * 10L + 1,
+                seq = index * 2L + 1,
+                variantGroupId = "ag-$index",
+                parentGroupId = user.id.toString(),
+            )
+            return user to assistant
+        }
+
+        val (u1, a1) = turn(1)
+        val (u2, a2) = turn(2)
+        val (u3, a3) = turn(3)
+        val tree = ConversationTree.build(listOf(u1, a1, u2, a2, u3, a3))
+
+        val edit = tree.editUserMessage(u2.id, "问题 2（改）")
+        assertNotNull("编辑应成功", edit)
+        val shown = edit!!.tree.displayMessages
+
+        // 1) 树投影里，新变体仍在第 2 轮的位置
+        assertEquals(
+            listOf("问题 1", "问题 2（改）", "问题 3"),
+            shown.filter { it.role == MessageRole.USER }.map { it.content },
+        )
+
+        // 2) 用这份投影重建树（模拟流式结束后的 rebuild），顺序不能变
+        val rebuilt = ConversationTree.build(shown)
+        assertEquals(
+            listOf("问题 1", "问题 2（改）", "问题 3"),
+            rebuilt.displayMessages.filter { it.role == MessageRole.USER }.map { it.content },
+        )
     }
 }

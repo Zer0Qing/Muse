@@ -131,7 +131,9 @@ class PreSendOverflowRecoveryTest {
 
         val block = source.substring(recoveryIndex, blockIndex)
         assertTrue("压完要回写历史", block.contains("truncatedHistory = compressedHistory"))
-        assertTrue("压完要重新估算 payload", block.contains("TokenEstimator.estimate(prefixMessages + candidate)"))
+        // 只断言"用压缩后的 candidate 重估"这个语义；不绑定调用写法（第 37 轮给这次估算
+        // 加了共用计数缓存，参数变多，原锚点要求单行完整调用，会把纯格式变化当成回归）。
+        assertTrue("压完要重新估算 payload", block.contains("prefixMessages + candidate"))
 
         // 拦截仍然保留（最末安全网），只是前面多了一次自救
         assertTrue("拦截不得被移除", block.contains("if (compressedHistory != null)"))

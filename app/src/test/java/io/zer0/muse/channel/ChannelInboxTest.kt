@@ -134,7 +134,8 @@ class ChannelInboxTest {
                 inbound(source, "hello"),
             ),
         )
-        assertFalse(inboxFile.readText().contains(plaintextToken))
+        // 存储已改为按条目分片：断言必须覆盖全部分片，而不是旧单文件。
+        assertFalse(persistedText().contains(plaintextToken))
         val claimed = journal.claimNextPending()!!
         assertTrue(journal.savePreparedReply(claimed.dispatchId, "same reply"))
         assertTrue(journal.saveEncryptedAgentCheckpoint(claimed.dispatchId, "enc_v1:agent-checkpoint"))
@@ -251,6 +252,14 @@ class ChannelInboxTest {
         assertEquals(processing.dispatchId, journal.claimNextPending()?.dispatchId)
     }
 
+
+    /** 全部分片文件的文本（旧单文件不存在也不报错）。 */
+    private fun persistedText(): String {
+        val dir = File(directory, ChannelInbox.INBOX_DIR_NAME)
+        val shards = dir.listFiles().orEmpty().filter { it.isFile }
+        val legacy = inboxFile.takeIf { it.exists() }?.let { listOf(it) }.orEmpty()
+        return (shards + legacy).joinToString(separator = "") { it.readText() }
+    }
     private fun newJournal() = ChannelInboxJournal(nowMillis = { nowMillis.get() })
 
     private fun inbound(source: ChannelInbox.Source, text: String) = ChannelInbox.Inbound(
