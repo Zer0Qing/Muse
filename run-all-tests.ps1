@@ -1,6 +1,6 @@
 # ============================================================
 # Muse 一键全量测试脚本
-# 用法: pwsh .\run-all-tests.ps1 [-Fast] [-NoReport] [-SkipAndroidTest]
+# 用法: pwsh .\run-all-tests.ps1 [-Fast] [-NoReport] [-SkipAndroidTest] [-Gates]
 # 作用: 跑全部 6 个模块(app/memory/ai/common/accessibility/material3)单元测试,
 #       并在检测到已连接设备/模拟器时执行 app androidTest(P4-4 补全)。
 # 退出码: 0 = 全部通过; 1 = 有失败
@@ -8,7 +8,8 @@
 param(
     [switch]$Fast,           # 跳过重新编译,直接用缓存(仅测变化)
     [switch]$NoReport,       # 不生成汇总报告文件
-    [switch]$SkipAndroidTest # 强制执行 app androidTest(即使未检测到设备)
+    [switch]$SkipAndroidTest, # 强制执行 app androidTest(即使未检测到设备)
+    [switch]$Gates           # 跑完单测后再跑一遍全部 ci/script/check_*.py 门禁(只判回归)
 )
 
 $ErrorActionPreference = "Stop"
@@ -115,6 +116,23 @@ if ($androidRan) {
     Write-Host "`n  androidTest: 跳过(无设备或 -SkipAndroidTest)" -ForegroundColor DarkYellow
 }
 
+# 门禁(-Gates): 跑全部 check_*.py，按「是否回归」判定
+$gatesExit = $null
+$gatesSummary = "SKIPPED (-Gates not set)"
+if ($Gates) {
+    Write-Host "`n== 门禁 (check_*.py) ==" -ForegroundColor Cyan
+    $gatesLog = python "$root\ci\script\run_gates.py" --verbose 2>&1
+    $gatesExit = $LASTEXITCODE
+    $gatesLog | ForEach-Object { Write-Host $_ }
+    if ($gatesExit -eq 0) {
+        $gatesSummary = "PASS (no regression)"
+        Write-Host "  门禁: 无回归 OK" -ForegroundColor Green
+    } else {
+        $gatesSummary = "FAIL (regression)"
+        Write-Host "  门禁: 有回归 FAIL" -ForegroundColor Red
+    }
+}
+
 # 汇总报告文件
 if (-not $NoReport) {
     $reportFile = "$root\test-report-$(Get-Date -Format 'yyyyMMdd-HHmm').txt"
@@ -125,14 +143,17 @@ Muse 全量测试报告
 结果: $(if ($allPass) { 'PASS' } else { 'FAIL' })
 androidTest: $(if ($androidRan) { 'EXECUTED' } else { 'SKIPPED (no device or -SkipAndroidTest)' })
 用例: $totalTests (通过 $($totalTests - $totalFail - $totalErr - $totalSkip) / 失败 $totalFail / 错误 $totalErr / 跳过 $totalSkip)
+门禁: $gatesSummary
 $(if ($failedSuites.Count -gt 0) { "失败套件:`n" + ($failedSuites | ForEach-Object { "  - $_" }) -join "`n" } else { '' })
 "@ | Set-Content $reportFile
     Write-Host "`n  报告已保存: $reportFile" -ForegroundColor Cyan
 }
 
-if ($allPass) {
+# 门禁回归也算失败(仅在 -Gates 时判定，避免默认流程被存量债卡住)
+$finalPass = $allPass -and ($gatesExit -eq $null -or $gatesExit -eq 0)
+if ($finalPass) {
     Write-Host "`n  结果: 全部通过 ✓  可以发布" -ForegroundColor Green
 } else {
     Write-Host "`n  结果: 存在失败 ✗  请先修复再发布" -ForegroundColor Red
 }
-exit $(if ($allPass) { 0 } else { 1 })
+exit $(if ($finalPass) { 0 } else { 1 })

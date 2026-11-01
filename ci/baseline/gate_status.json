@@ -1,0 +1,21 @@
+{
+  "check_component_convergence.py": "red",
+  "check_design_tokens.py": "red",
+  "check_detekt_debt.py": "green",
+  "check_engineering_discipline.py": "green",
+  "check_font_scale_clipping.py": "green",
+  "check_hardcoded_cjk.py": "red",
+  "check_hardcoded_font_size.py": "green",
+  "check_horizontal_inset.py": "green",
+  "check_icon_content_description.py": "green",
+  "check_ktlint_report.py": "red",
+  "check_localizations.py": "green",
+  "check_migration_coverage.py": "green",
+  "check_perf_hotspots.py": "green",
+  "check_release_body_bilingual.py": "green",
+  "check_repo_hygiene.py": "green",
+  "check_row_text_width.py": "red",
+  "check_string_resource_args.py": "green",
+  "check_touch_target.py": "red",
+  "check_translation_residue.py": "green"
+}

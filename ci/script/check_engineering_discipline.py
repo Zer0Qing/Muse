@@ -160,6 +160,21 @@ def get_diff_lines(file_path: Path, base: str = "main") -> list[str]:
         return []
 
 
+def _raw_string_mask(lines: list[str]) -> list[bool]:
+    """标出每一行是否落在 Kotlin 三引号原始字符串内部（含起止行）。"""
+    mask: list[bool] = []
+    inside = False
+    for line in lines:
+        starts_inside = inside
+        # 同一行里可能成对出现（"""..."""），逐次翻转计数
+        count = line.count('"""')
+        # 去掉注释里的干扰：`//` 之后不再参与判断（近似处理）
+        if count % 2 == 1:
+            inside = not inside
+        mask.append(starts_inside or inside or count > 0)
+    return mask
+
+
 def scan_file(file_path: Path, added_lines: list[str] | None = None) -> list[dict]:
     """扫描单个文件中的违规模式"""
     violations = []
@@ -172,8 +187,18 @@ def scan_file(file_path: Path, added_lines: list[str] | None = None) -> list[dic
     else:
         check_lines = lines
 
+    # 跳过**原始字符串（Kotlin 三引号块）内部的行**。
+    #
+    # 卡片链路把一整段注入 WebView 的 JS 直接写在 """…""" 里，
+    # 那里面的 `try { ... } catch (e) { }` 是 JS 的空 catch，本来就是刻意的
+    # （桥调用失败不该让卡片挂掉）。按 Kotlin 规则扫它全是误报。
+    raw_string_mask = _raw_string_mask(lines)
+
+
     for rule_name, rule in RULES.items():
         for line_num, line in enumerate(check_lines, 1):
+            if added_lines is None and line_num - 1 < len(raw_string_mask) and raw_string_mask[line_num - 1]:
+                continue
             for match in rule["pattern"].finditer(line):
                 violations.append({
                     "file": str(file_path.relative_to(PROJECT_ROOT)),
