@@ -23,6 +23,8 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import kotlinx.serialization.json.contentOrNull
 import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentHashMap
@@ -107,6 +109,76 @@ object JsSandbox {
             Object.defineProperty(window, '__museSandboxDisabled', {
                 value: marker, writable: false, configurable: false, enumerable: false
             });
+            // ── 网络垫片 ──
+            // 沙盒页面是 about:blank，origin=null：直接 fetch 会被同源策略拦成 CORS 错误。
+            // 这里把 fetch / XMLHttpRequest 改走 __museHttp（Kotlin 侧 OkHttp），彻底绕开 CORS。
+            function __museDoHttp(method, url, headers, body) {
+                var payload = { method: method, url: url, headers: headers || {}, body: body };
+                var raw = __museHttp.httpRequest(JSON.stringify(payload));
+                try { return JSON.parse(raw); } catch (e) { return { error: 'bad response: ' + raw }; }
+            }
+            window.fetch = function(input, init) {
+                var url = (typeof input === 'string') ? input : (input && input.url) || '';
+                var opts = init || {};
+                var headers = {};
+                if (opts.headers) {
+                    if (typeof opts.headers.forEach === 'function' && !Array.isArray(opts.headers)) {
+                        opts.headers.forEach(function(v, k) { headers[k] = v; });
+                    } else if (Array.isArray(opts.headers)) {
+                        opts.headers.forEach(function(pair) { headers[pair[0]] = pair[1]; });
+                    } else {
+                        for (var k in opts.headers) { headers[k] = opts.headers[k]; }
+                    }
+                }
+                var res = __museDoHttp((opts.method || 'GET').toUpperCase(), url, headers,
+                    opts.body == null ? null : String(opts.body));
+                if (res.error) return Promise.reject(new TypeError(res.error));
+                return Promise.resolve({
+                    ok: res.status >= 200 && res.status < 300,
+                    status: res.status,
+                    statusText: res.statusText || '',
+                    url: url,
+                    headers: { get: function(n) { return (res.headers || {})[String(n).toLowerCase()] || null; } },
+                    text: function() { return Promise.resolve(res.body || ''); },
+                    json: function() { return Promise.resolve(JSON.parse(res.body || 'null')); }
+                });
+            };
+            function MuseXHR() {
+                this.readyState = 0; this.status = 0; this.statusText = '';
+                this.responseText = ''; this.response = ''; this.onload = null;
+                this.onerror = null; this.onreadystatechange = null; this._headers = {};
+            }
+            MuseXHR.prototype.open = function(method, url) {
+                this._method = (method || 'GET').toUpperCase(); this._url = url; this.readyState = 1;
+                if (this.onreadystatechange) this.onreadystatechange();
+            };
+            MuseXHR.prototype.setRequestHeader = function(k, v) { this._headers[k] = v; };
+            MuseXHR.prototype.getAllResponseHeaders = function() {
+                var out = ''; for (var k in (this._resHeaders || {})) out += k + ': ' + this._resHeaders[k] + '\r\n';
+                return out;
+            };
+            MuseXHR.prototype.send = function(body) {
+                var self = this;
+                setTimeout(function() {
+                    var res = __museDoHttp(self._method, self._url, self._headers,
+                        body == null ? null : String(body));
+                    self.readyState = 4;
+                    if (res.error) {
+                        self.status = 0;
+                        if (self.onreadystatechange) self.onreadystatechange();
+                        if (self.onerror) self.onerror(new Error(res.error));
+                        return;
+                    }
+                    self.status = res.status;
+                    self.statusText = res.statusText || '';
+                    self._resHeaders = res.headers || {};
+                    self.responseText = res.body || '';
+                    self.response = self.responseText;
+                    if (self.onreadystatechange) self.onreadystatechange();
+                    if (self.onload) self.onload();
+                }, 0);
+            };
+            window.XMLHttpRequest = MuseXHR;
             // B7-01: host 对象 — 插件可通过 host.getConfig(key) 读取宿主提供的配置值
             if (typeof host === 'undefined') {
                 window.host = {
@@ -139,6 +211,102 @@ object JsSandbox {
     """
 
     @Volatile private var webViewRef: WebView? = null
+
+    /**
+     * 异步返回值通道：脚本返回 Promise 时，`evaluateJavascript` 拿到的是 `{}`（Promise 无法序列化）。
+     * 包装脚本识别到 thenable 后改为通过 `__museAsync.deliver(...)` 回传真实结果，
+     * 这里保存当前等待中的回调（同一时刻只有一次执行，Mutex 已串行化）。
+     */
+    private val asyncDeliver = java.util.concurrent.atomic.AtomicReference<((String) -> Unit)?>(null)
+
+    /** JS 侧「等我异步回传」的哨兵值。 */
+    private const val ASYNC_SENTINEL = "__MUSE_ASYNC__"
+
+    /** 沙盒 HTTP 单次超时（毫秒）。 */
+    private const val HTTP_TIMEOUT_MS = 15_000L
+
+    /** 沙盒 HTTP 响应体上限：2 MB，超出即截断并标记。 */
+    private const val MAX_HTTP_BYTES = 2 * 1024 * 1024
+
+    /** 供 JS 调用的异步回传入口（注册为 `__museAsync`）。 */
+    @android.webkit.JavascriptInterface
+    fun deliverAsyncResult(payload: String) {
+        asyncDeliver.getAndSet(null)?.invoke(payload)
+    }
+
+    /**
+     * 供 JS 调用的 HTTP 入口（注册为 `__museHttp`）：**由 Kotlin 侧 OkHttp 真正发请求**。
+     *
+     * 为什么需要它：沙盒页面是 `about:blank`，origin 是 `null`，浏览器同源策略会把
+     * 绝大多数跨站请求直接拦成 CORS 错误 —— 工具描述里承诺的 fetch/XHR 实际上用不了。
+     * 走原生请求就没有 CORS 这回事。
+     *
+     * 边界（有意保留）：只允许 http/https；不带任何 cookie/凭据；响应体上限 [MAX_HTTP_BYTES]；
+     * 超时 [HTTP_TIMEOUT_MS]。@JavascriptInterface 方法运行在 WebView 的 JavaBridge 线程，
+     * 阻塞在这里不会卡主线程。
+     */
+    @android.webkit.JavascriptInterface
+    fun httpRequest(requestJson: String): String {
+        val request = runCatching { AppJson.parseToJsonElement(requestJson) as JsonObject }
+            .getOrNull() ?: return """{"error":"bad request json"}"""
+        val url = (request["url"] as? JsonPrimitive)?.contentOrNull.orEmpty()
+        val method = (request["method"] as? JsonPrimitive)?.contentOrNull?.uppercase() ?: "GET"
+        val scheme = runCatching { java.net.URI(url).scheme?.lowercase() }.getOrNull()
+        if (scheme != "http" && scheme != "https") {
+            return """{"error":"only http/https allowed"}"""
+        }
+        val bodyText = (request["body"] as? JsonPrimitive)?.contentOrNull
+        // 审计：沙盒能发任意 HTTP，就得留下「发了什么」的痕迹（host + 方法 + 体量）。
+        val host = runCatching { java.net.URI(url).host }.getOrNull() ?: "?"
+        Logger.i(TAG, "沙盒外发请求 | method=$method | host=$host | bodyBytes=${bodyText?.length ?: 0}")
+        return try {
+            val builder = okhttp3.Request.Builder().url(url).method(method, null)
+            (request["headers"] as? JsonObject)?.forEach { (name, value) ->
+                (value as? JsonPrimitive)?.contentOrNull?.let { builder.header(name, it) }
+            }
+            if (bodyText != null && method != "GET" && method != "HEAD") {
+                val mediaType = "application/octet-stream".toMediaTypeOrNull()
+                builder.method(method, okhttp3.RequestBody.create(mediaType, bodyText))
+            }
+            httpClient.newCall(builder.build()).execute().use { response ->
+                val bytes = response.body?.bytes() ?: ByteArray(0)
+                val truncated = bytes.size > MAX_HTTP_BYTES
+                // 审计（收尾）：记下状态码与体积，脚本侧拿到的就是这份。
+                Logger.i(TAG, "沙盒外发完成 | host=$host | status=${response.code} | bytes=${bytes.size}")
+                val text = String(
+                    if (truncated) bytes.copyOf(MAX_HTTP_BYTES) else bytes,
+                    Charsets.UTF_8,
+                )
+                val headers = buildJsonObject {
+                    response.headers.forEach { (name, value) ->
+                        put(name.lowercase(), JsonPrimitive(value))
+                    }
+                }
+                buildJsonObject {
+                    put("status", JsonPrimitive(response.code))
+                    put("statusText", JsonPrimitive(response.message))
+                    put("headers", headers)
+                    put("body", JsonPrimitive(text))
+                    put("truncated", JsonPrimitive(truncated))
+                }.toString()
+            }
+        } catch (e: Exception) {
+            Logger.w(TAG, "沙盒 HTTP 请求失败: ${e.message}")
+            buildJsonObject {
+                put("error", JsonPrimitive(e.message ?: e::class.java.simpleName))
+            }.toString()
+        }
+    }
+
+    /** 沙盒网络：共享客户端（不带 cookie jar，避免脚本拿到宿主会话）。 */
+    private val httpClient: okhttp3.OkHttpClient by lazy {
+        okhttp3.OkHttpClient.Builder()
+            .connectTimeout(HTTP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .readTimeout(HTTP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .callTimeout(HTTP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .followRedirects(true)
+            .build()
+    }
 
     @Volatile private var appContext: Context? = null
 
@@ -254,6 +422,30 @@ object JsSandbox {
                     append("        var __result__ = eval(")
                     append(quoteJs(code))
                     append(");\n")
+                    append("        // 脚本返回 Promise 时必须等它 settle：evaluateJavascript 只会拿到 {},\n")
+                    append("        // 成功和失败都变成空对象 —— 那是静默失败，比报错更难查。\n")
+                    append("        if (__result__ && typeof __result__.then === 'function') {\n")
+                    append("            try {\n")
+                    append("                __result__.then(\n")
+                    append("                    function(v){ __museAsync.deliverAsyncResult(JSON.stringify({\n")
+                    append("                        ok: true,\n")
+                    append("                        value: v === undefined ? null : (function(){\n")
+                    append("                            try { return JSON.stringify(v); } catch (e) { return String(v); }\n")
+                    append("                        })()\n")
+                    append("                    })); },\n")
+                    append("                    function(e){ __museAsync.deliverAsyncResult(JSON.stringify({\n")
+                    append("                        ok: false,\n")
+                    append("                        error: (e && e.message) || String(e)\n")
+                    append("                    })); }\n")
+                    append("                );\n")
+                    append("            } catch (e) {\n")
+                    append("                __museAsync.deliverAsyncResult(JSON.stringify({ ok: false, ")
+                    append("error: 'await failed: ' + ((e && e.message) || String(e)) }));\n")
+                    append("            }\n")
+                    append("            return '")
+                    append(ASYNC_SENTINEL)
+                    append("';\n")
+                    append("        }\n")
                     append("        // JSON.stringify 包装返回值,undefined → null\n")
                     append("        if (__result__ === undefined) {\n")
                     append("            return { ok: true, value: null };\n")
@@ -275,12 +467,23 @@ object JsSandbox {
                         // B7-01: 在执行前注入当前插件的配置到 window.__musePluginConfig
                         // pluginConfigJson 已经是安全的 JSON 字符串；即使为空也必须显式
                         // 覆盖旧值，避免共享 WebView 的全局状态跨插件泄漏。
-                        webView.evaluateJavascript(buildHostInjectionScript(scopeKey, pluginConfigJson)) { }
+                        val done = java.util.concurrent.atomic.AtomicBoolean(false)
+                        fun finish(value: String?) {
+                            if (done.compareAndSet(false, true) && cont.isActive) cont.resume(value)
+                        }
+                        asyncDeliver.set { payload -> finish(payload) }
+                        cont.invokeOnCancellation { asyncDeliver.set(null) }
+                        // INIT_JS 必须在**每次执行前**重新注入：WebView 只加载一次 about:blank，
+                        // 但 loadDataWithBaseURL 会换掉整个 document，window 上的 fetch/XHR 垫片
+                        // 与 host 对象会被一起清掉 —— 只在建 WebView 时注入一次等于没注入。
+                        webView.evaluateJavascript(
+                            INIT_JS + "\n" + buildHostInjectionScript(scopeKey, pluginConfigJson),
+                        ) { }
                         webView.evaluateJavascript(wrappedCode) { result ->
+                            // 异步脚本：包装脚本返回哨兵，真实结果稍后由 __museAsync 回传，别在这里结束。
+                            if (result != null && result.contains(ASYNC_SENTINEL)) return@evaluateJavascript
                             // withTimeout 取消后回调仍可能触发;用 isActive 守卫避免 resume 已取消的 cont
-                            if (cont.isActive) {
-                                cont.resume(result)
-                            }
+                            finish(result)
                         }
                     }
                 }
@@ -408,6 +611,11 @@ object JsSandbox {
             ?: error("JsSandbox 未初始化,请先调用 init(context) 注入 Application Context")
 
         val wv = WebView(ctx).apply {
+            // 异步返回值通道（脚本 return Promise 时用）。只暴露一个回传方法，不提供任何读取能力。
+            @Suppress("AddJavascriptInterface")
+            addJavascriptInterface(JsSandbox, "__museAsync")
+            // 网络垫片后端：Kotlin 侧发请求，绕开沙盒的 opaque origin（CORS）。
+            addJavascriptInterface(JsSandbox, "__museHttp")
             // ── WebSettings:开启 JS + 关闭所有危险功能 ──
             settings.javaScriptEnabled = true
             settings.allowContentAccess = false
@@ -541,7 +749,13 @@ object JsSandbox {
             val ok = (element["ok"] as? JsonPrimitive)?.booleanOrNull ?: true
             if (ok) {
                 val valueStr = (element["value"] as? JsonPrimitive)?.contentOrNull
-                valueStr to null
+                // 不做二次编码：value 本身已是 JSON 文本，这里解析成结构化元素返回，
+                // 让下游只序列化一次。否则 return {"a":1} 的字符串会被再包一层引号+转义，
+                // 模型得自己反两次 —— 用户实测 `"{\"a\":1}"` 就是这么来的。
+                val structured = valueStr?.let { text ->
+                    runCatching { AppJson.parseToJsonElement(text) }.getOrNull()
+                }
+                (structured ?: valueStr) to null
             } else {
                 val err = (element["error"] as? JsonPrimitive)?.contentOrNull
                     ?: "未知错误"

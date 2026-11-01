@@ -81,6 +81,12 @@ class ScheduledTaskRunner(
 ) {
     private var job: Job? = null
 
+    @Volatile
+    private var scheduleWorkEnabledCache: Boolean? = null
+
+    @Volatile
+    private var lastStuckRecoveryAt: Long = 0L
+
     /**
      * 定点推进([computeNextRunAnchored])的结果。
      *
@@ -288,6 +294,29 @@ class ScheduledTaskRunner(
          */
         internal fun claimTaskSucceeded(rowsAffected: Int): Boolean = rowsAffected > 0
 
+    /**
+     * 下一轮巡检等待时长（纯函数，便于单测）。
+     *
+     * - 没有到期任务 → [POLL_INTERVAL_MS]（保持每分钟一次的心跳）
+     * - 有到期任务且已经过期 → [MIN_POLL_DELAY_MS]（别空转，但也不能 0）
+     * - 到期时间在 [MIN_POLL_DELAY_MS] 与 [POLL_INTERVAL_MS] 之间 → 恰好睡到那一刻
+     * - 到期时间更远 → [POLL_INTERVAL_MS]（**不睡更久**：新建的近期任务不能被拖）
+     */
+    internal fun computePollDelay(
+        now: Long,
+        nextDueAt: Long?,
+        pollInterval: Long = POLL_INTERVAL_MS,
+        minDelay: Long = MIN_POLL_DELAY_MS,
+    ): Long {
+        if (nextDueAt == null) return pollInterval
+        val untilDue = nextDueAt - now
+        return when {
+            untilDue <= 0L -> minDelay
+            untilDue >= pollInterval -> pollInterval
+            else -> untilDue.coerceAtLeast(minDelay)
+        }
+    }
+
         /** 单次任务 AI 调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
 
@@ -322,6 +351,12 @@ class ScheduledTaskRunner(
          * 单次 AI 执行有 [LLM_TIMEOUT_MS](60s)上限,5 分钟远超单次耗时,不会误伤执行中任务。
          */
         private const val CLAIM_STUCK_TIMEOUT_MS = 5 * 60 * 1000L
+
+    /** 哨兵看门狗最小扫描间隔；与 [CLAIM_STUCK_TIMEOUT_MS] 同量级即可。 */
+    private const val STUCK_RECOVERY_INTERVAL_MS = CLAIM_STUCK_TIMEOUT_MS
+
+    /** 自适应休眠的下限：到期时间已过（或近在眼前）时也不要空转。 */
+    private const val MIN_POLL_DELAY_MS = 1_000L
     }
 
     private fun restoreBlocksScheduledWrites(taskId: String, operation: String): Boolean {
@@ -335,11 +370,40 @@ class ScheduledTaskRunner(
         job?.cancel()
         job = appScope.launch(GlobalCoroutineExceptionHandler) {
             Logger.i(TAG, "Runner started")
+            // 开关只订阅一次：早先每 tick 都要 GlobalContext 查找 + DataStore 读一次。
+            launch { observeScheduleWorkEnabled() }
             while (isActive) {
                 tickOnce()
-                delay(POLL_INTERVAL_MS)
+                delay(nextPollDelay())
             }
         }
+    }
+
+    /**
+     * 订阅「后台调度总控」开关，写入 [scheduleWorkEnabledCache]。
+     *
+     * 只订阅一次的原因：轮询是每分钟一次，而开关变化是低频事件 —— 每分钟去 DataStore
+     * 读一遍（还要先做一次 Koin 查找）属于白付。订阅后仍保持同样语义：开关关掉，
+     * 下一轮巡检就跳过。
+     */
+    private suspend fun observeScheduleWorkEnabled() {
+        val settings = resultOf {
+            org.koin.core.context.GlobalContext.get().get<io.zer0.muse.data.SettingsRepository>()
+        }.getOrNull() ?: return
+        resultOf { settings.scheduleWorkEnabledFlow.collect { enabled -> scheduleWorkEnabledCache = enabled } }
+    }
+
+    /**
+     * 下一轮巡检的等待时长。
+     *
+     * 有明确的到期时间就睡到那一刻（下限 [MIN_POLL_DELAY_MS]，上限仍是 [POLL_INTERVAL_MS]）。
+     * **只允许比 60s 短，不允许更长**：新建一个 5 秒后执行的任务时，固定 60s 轮询也会等最多 60s，
+     * 睡得更久就成了行为回退。
+     */
+    private suspend fun nextPollDelay(): Long {
+        val now = System.currentTimeMillis()
+        val nextDueAt = resultOf { dao.earliestNextRunAt(now, CLAIM_NEXT_RUN_SENTINEL) }.getOrNull()
+        return computePollDelay(now = now, nextDueAt = nextDueAt)
     }
 
     /**
@@ -367,8 +431,12 @@ class ScheduledTaskRunner(
             val now = System.currentTimeMillis()
             // B-26: 哨兵看门狗 — 先回收领取后事务失败、卡死在哨兵值(CLAIM_NEXT_RUN_SENTINEL)
             // 的任务,把超时未释放的 next_run_at 重置为 now,让本轮 getDueTasks 将其重新纳入到期执行。
+            // 哨兵看门狗自身有 5 分钟超时门槛，没必要每分钟扫一次：每 5 分钟一轮足够。
             try {
-                recoverStuckClaimNow(now)
+                if (now - lastStuckRecoveryAt >= STUCK_RECOVERY_INTERVAL_MS) {
+                    lastStuckRecoveryAt = now
+                    recoverStuckClaimNow(now)
+                }
             } catch (e: Exception) {
                 if (e is kotlin.coroutines.cancellation.CancellationException) throw e
                 Logger.w(TAG, "哨兵看门狗回收失败: ${e.message}")
@@ -397,6 +465,9 @@ class ScheduledTaskRunner(
      * 在用户不知情的情况下继续执行定时任务。
      */
     private suspend fun isScheduleWorkEnabled(): Boolean {
+        // 进程内已有快照就直接用（由 [observeScheduleWorkEnabled] 维护）。
+        // Worker 拉起、collector 还没跑起来时才会走到下面的实时读取。
+        scheduleWorkEnabledCache?.let { return it }
         val settings = resultOf {
             org.koin.core.context.GlobalContext.get().get<io.zer0.muse.data.SettingsRepository>()
         }.getOrNull()

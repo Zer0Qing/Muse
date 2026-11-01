@@ -14,9 +14,21 @@ plugins {
     alias(libs.plugins.kover)
 }
 
+// 性能整改专项（2026-11-01）：打开 Compose 编译器的稳定性报告与度量。
+// 只写 build/ 下的文本报告，不进包、不改运行时行为；作用是把「谁不可跳过、
+// 哪个类被判为不稳定」从口头推断变成可核对的清单（app/build/compose_reports/）。
+composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose_reports")
+    metricsDestination = layout.buildDirectory.dir("compose_metrics")
+}
+
 val museWebAssetsDir = layout.buildDirectory.dir("generated/museWebAssets").get().asFile
+// 用 Sync 而不是 Copy：web 端每次构建产出的是按内容哈希命名的新文件名，
+// Copy 只增不删，旧哈希会一直留在目标目录里跟着 APK 一起发出去（2026-11-01 实测累积 57 份，
+// 而 index.html 只引用其中 2 份）。Sync 会在拷贝后删除目标目录里源端已不存在的文件，
+// 让生成目录与 dist 严格一致；目标目录只由本任务写入，删除范围可控。
 val syncMuseWebAssets =
-    tasks.register<Copy>("syncMuseWebAssets") {
+    tasks.register<Sync>("syncMuseWebAssets") {
         val webDist = rootProject.file("web/apps/client/dist")
         from(webDist)
         into(File(museWebAssetsDir, "muse-web"))

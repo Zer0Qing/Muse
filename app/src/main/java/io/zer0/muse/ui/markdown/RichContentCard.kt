@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import io.zer0.muse.ui.markdown.card.CardHost
 import io.zer0.muse.ui.markdown.card.CardLanguage
+import io.zer0.muse.ui.markdown.card.CardPushToken
 import io.zer0.muse.ui.markdown.card.CardRuntime
 import io.zer0.muse.ui.markdown.card.CardSpec
 import io.zer0.muse.ui.markdown.card.parseCardSize
@@ -51,6 +53,8 @@ import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import java.io.ByteArrayInputStream
@@ -127,16 +131,12 @@ internal fun RichContentCard(
     heightSpec: String? = null,
 ) {
     val context = LocalContext.current
-    // v2.6.6: 渐进渲染节流 —— 流式期间源码持续增长，若每 token 都把新内容传给 WebView，
-    // 会触发频繁重载（卡死）。这里按固定字符档位量化：只有增长跨过一档才推进渲染。
+    // 渐进渲染节流 —— 流式期间源码持续增长，每交一次新内容给 WebView 就是一次整页重载
+    // （重解析 HTML + 重跑卡片脚本 + 图表重新初始化）。这里只在翻倍档位上推进快照：
+    // 一张 8KB 图表卡片的整页重载从 68 次降到 7 次，见 [ProgressiveCard]。
+    // 档位不变时返回的是等值前缀，下游 remember 与 WebView 的「内容未变不重载」都能命中。
     // 流式结束后（progressive=false）直接用最新完整内容。
-    val effectiveContent =
-        if (!progressive) {
-            content
-        } else {
-            content.take(content.length - content.length % PROGRESSIVE_RENDER_STEP)
-                .ifBlank { content }
-        }
+    val effectiveContent = if (!progressive) content else ProgressiveCard.snapshot(content)
     // Phase 2: chart/mermaid 的全屏预览在卡片内完成(本地 assets 脚本可正常加载)
     var showFullscreenPreview by remember { mutableStateOf(false) }
     // v2.x 统一化: 行内动作收敛为「更多」菜单(防止窄屏文本行被多个按钮挤压)
@@ -284,12 +284,6 @@ internal fun richContentSupportsPreview(language: String): Boolean = language.lo
 private val RICH_PREVIEW_LANGUAGES = setOf("html", "svg", "chart", "mermaid")
 
 /**
- * v2.6.6: 渐进渲染的字符量化档位 —— 流式期间源码每增长这么多字符才把新内容
- * 交给 WebView 重渲染，避免每个 token 都重载 WebView。
- */
-private const val PROGRESSIVE_RENDER_STEP = 120
-
-/**
  * 依赖本地 assets 脚本渲染、需在卡片内全屏 WebView 预览的语言。
  * HtmlPreviewScreen 以 about:blank 为 baseUrl,相对路径的 vendor 脚本无法加载。
  */
@@ -428,6 +422,42 @@ internal fun sanitizeHtml(input: String): String {
     return s
 }
 
+/**
+ * [sanitizeHtml] 的进程级 LRU。
+ *
+ * 清洗是 7 段正则 + 一次整篇标签重写，纯函数且只与输入有关。而这条路径会被
+ * 反复走：消息滚出屏幕再滚回来（LazyColumn 销毁并重建组合）、深浅色切换
+ * （themeCss 变 → 重新装配 HTML）都会对**同一份卡片源码**再洗一遍。
+ *
+ * 键用内容原文而不是哈希：正则清洗的结果不允许有碰撞风险，而条目上限很小
+ * （[MAX_ENTRIES]），把原文留在内存里是可控的代价。超长内容（[MAX_CONTENT_LENGTH]
+ * 以上）不进缓存，避免大卡片把缓存撑满。
+ */
+internal object SanitizedHtmlCache {
+
+    private const val MAX_ENTRIES = 12
+    private const val MAX_CONTENT_LENGTH = 64_000
+
+    private val entries = object : LinkedHashMap<String, String>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>): Boolean =
+            size > MAX_ENTRIES
+    }
+
+    /** 取清洗结果；同一份内容第二次进来直接命中原对象。 */
+    fun get(code: String): String {
+        if (code.length > MAX_CONTENT_LENGTH) return sanitizeHtml(code)
+        return synchronized(entries) {
+            entries.getOrPut(code) { sanitizeHtml(code) }
+        }
+    }
+
+    /** 仅供测试：当前条目数。 */
+    internal fun size(): Int = synchronized(entries) { entries.size }
+
+    /** 仅供测试：清空。 */
+    internal fun clear() = synchronized(entries) { entries.clear() }
+}
+
 /** 匹配 `onXxx="code"` / `onXxx='code'` / `onXxx=code`。 */
 private val INLINE_HANDLER_REGEX =
     Regex("""\s+(on[a-z]+)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))""", RegexOption.IGNORE_CASE)
@@ -518,6 +548,25 @@ internal class RichContentWebViewClient : WebViewClient() {
     }
 }
 
+/**
+ * 订阅这张卡自己的绑定数据，产出推送凭据。
+ *
+ * 只盯 `cardId` 这一个键：整张 cardId→data 映射变了但本卡没变时不产出新凭据，
+ * 也就不会给卡片发无意义的通知。存储缺失（无 CardDataStore 的宿主）或卡无身份时
+ * 返回 null，卡片侧据此退回 800ms 轮询。
+ */
+@Composable
+private fun rememberCardPushToken(
+    store: io.zer0.muse.data.card.CardDataStore?,
+    cardId: String?,
+): CardPushToken? {
+    if (store == null || cardId.isNullOrBlank()) return null
+    val value by remember(store, cardId) {
+        store.data.map { it[cardId] }.distinctUntilChanged()
+    }.collectAsState(initial = store.get(cardId))
+    return remember(value) { CardPushToken(value) }
+}
+
 @Suppress("FunctionNaming")
 @Composable
 private fun SvgCard(
@@ -543,6 +592,7 @@ private fun SvgCard(
             onAction = onCardAction,
             readData = readData,
             cardId = cardId,
+            pushToken = rememberCardPushToken(store, cardId),
         ),
     )
 }
@@ -571,6 +621,7 @@ private fun HtmlCard(
             onAction = onCardAction,
             readData = readData,
             cardId = cardId,
+            pushToken = rememberCardPushToken(store, cardId),
         ),
     )
 }

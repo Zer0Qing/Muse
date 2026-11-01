@@ -134,6 +134,12 @@ class ToolRegistry(
         _revision.value = _revision.value + 1
     }
 
+    // 见 [listToolsAsToolDefinitions]：定义列表按注册表版本缓存。
+    private val definitionsLock = Any()
+    private var definitionsRevision = Long.MIN_VALUE
+    private var definitionsAll: List<ToolDefinition> = emptyList()
+    private val definitionsByFilter = LinkedHashMap<List<String>, List<ToolDefinition>>()
+
     /** 动态工具注册/注销版本，供工具页和请求组装器订阅刷新。 */
     val revision: StateFlow<Long> = _revision.asStateFlow()
 
@@ -363,9 +369,41 @@ class ToolRegistry(
      * Phase 8.8: 支持 [enabledToolIds] 按 Assistant 过滤。
      * 把 [ToolDef.parameters](参数名 → 描述) 转换为 JSON Schema 字符串。
      *
+     * ## 为什么带缓存
+     *
+     * 重建一次全量定义并不便宜：带 `rawParametersJsonSchema` 的工具要被
+     * `decodeFromString` 两次（一次校验、一次取值）再 `encodeToString` 回字符串，
+     * 其余工具走 `buildJsonObject` 逐参数拼。而这条路径的调用频率远超直觉：
+     * 每次工具调用前的能力校验（`ToolRouteExecutionGuard.validateLocal`）、每轮请求
+     * 组装（两次）、定时任务、渠道自动回复、提示词里的工具计数都会调它 ——
+     * 等于「每调一次工具就付一遍全量 100+ 工具的定义重建代价」。
+     *
+     * 缓存键是注册表版本号（每次 register/unregister 都会 bump）+ 过滤用的名称列表。
+     * 版本号变了才重建，过滤结果另存一份并按数量上限淘汰。
+     *
      * @param enabledToolIds 启用的工具 id 列表;null 或空列表表示全部启用
      */
-    fun listToolsAsToolDefinitions(enabledToolIds: List<String>? = null): List<ToolDefinition> = listTools(enabledToolIds).map { def ->
+    fun listToolsAsToolDefinitions(enabledToolIds: List<String>? = null): List<ToolDefinition> =
+        synchronized(definitionsLock) {
+            val revision = _revision.value
+            if (definitionsRevision != revision) {
+                definitionsAll = buildToolDefinitions()
+                definitionsRevision = revision
+                definitionsByFilter.clear()
+            }
+            val all = definitionsAll
+            if (enabledToolIds.isNullOrEmpty()) {
+                all
+            } else {
+                definitionsByFilter.getOrPut(enabledToolIds.toList()) {
+                    if (definitionsByFilter.size >= MAX_FILTERED_DEFINITIONS) definitionsByFilter.clear()
+                    all.filter { it.name in enabledToolIds }
+                }
+            }
+        }
+
+    /** 全量重建 [ToolDefinition] 列表（缓存未命中时才走）。 */
+    private fun buildToolDefinitions(): List<ToolDefinition> = listTools().map { def ->
         val schema =
             def.rawParametersJsonSchema
                 ?.takeIf { raw -> runCatching { AppJson.decodeFromString(JsonObject.serializer(), raw) }.isSuccess }
@@ -716,6 +754,9 @@ class ToolRegistry(
     /** TTS 朗读实现(挂起直到初始化完成并加入队列)。 */
 
     companion object {
+        /** 见 [listToolsAsToolDefinitions]：过滤结果缓存上限。 */
+        private const val MAX_FILTERED_DEFINITIONS = 8
+
         /**
          * Tools that observe or mutate the shared foreground device UI. They are serialized across
          * sessions so screenshot -> decision -> action loops and durable workflows cannot interleave.

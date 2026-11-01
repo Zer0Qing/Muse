@@ -24,6 +24,15 @@ object RollingSummaryFormat {
     /** 格式修复最大重试次数(超过则抛错,由调用方走失败通道)。 */
     const val MAX_REPAIRS = 1
 
+    // 2026-11-01 性能整改:这些正则原先在函数里现场构造。
+    // parseMarkdownHeading 是**按行**调用的（extractMarkdownSection / hasFactSectionHeading /
+    // locateHeading / CompiledMemoryState.stripLeadingHeadings 都是逐行循环），
+    // 于是每行都要新建 2 个 java.util.regex.Pattern。memory.md 上千行时这是纯浪费。
+    private val HEADING_RE = Regex("^(#{1,6})[ \\t]+(.+?)[ \\t]*$")
+    private val TRAILING_HASHES_RE = Regex("[ \\t]+#+[ \\t]*$")
+    private val LINE_BREAK_RE = Regex("\\r?\\n")
+    private val BULLET_PREFIX_RE = Regex("^[-*+][ \\t]+")
+
     private fun isZh(locale: String): Boolean = locale.startsWith("zh")
 
     /** 按 locale 取 facts 段标题文本。 */
@@ -94,8 +103,8 @@ $requirements
     data class Heading(val level: Int, val title: String)
 
     fun parseMarkdownHeading(line: String): Heading? {
-        val match = Regex("^(#{1,6})[ \\t]+(.+?)[ \\t]*$").find(line) ?: return null
-        val title = match.groupValues[2].replace(Regex("[ \\t]+#+[ \\t]*$"), "").trim()
+        val match = HEADING_RE.find(line) ?: return null
+        val title = match.groupValues[2].replace(TRAILING_HASHES_RE, "").trim()
         return Heading(match.groupValues[1].length, title)
     }
 
@@ -105,7 +114,7 @@ $requirements
     fun extractMarkdownSection(markdown: String, titles: List<String>): String {
         if (markdown.isEmpty()) return ""
         val wanted = titles.map(::normalizeTitle).toHashSet()
-        val lines = markdown.split(Regex("\\r?\\n"))
+        val lines = markdown.split(LINE_BREAK_RE)
 
         for (i in lines.indices) {
             val heading = parseMarkdownHeading(lines[i]) ?: continue
@@ -126,7 +135,7 @@ $requirements
     fun hasFactSectionHeading(markdown: String): Boolean {
         if (markdown.isEmpty()) return false
         val wanted = FACT_SECTION_TITLES.map(::normalizeTitle).toHashSet()
-        for (line in markdown.split(Regex("\\r?\\n"))) {
+        for (line in markdown.split(LINE_BREAK_RE)) {
             val heading = parseMarkdownHeading(line) ?: continue
             if (normalizeTitle(heading.title) in wanted) return true
         }
@@ -138,12 +147,12 @@ $requirements
 
     /** facts 段正文是否是显式空标记(- 无 / - None)。 */
     fun isEmptyFactSection(text: String): Boolean {
-        val lines = text.split(Regex("\\r?\\n"))
+        val lines = text.split(LINE_BREAK_RE)
             .map { it.trim() }
             .filter { it.isNotEmpty() }
         if (lines.isEmpty()) return true
         return lines.all { line ->
-            val itemText = line.replace(Regex("^[-*+][ \\t]+"), "").trim().lowercase()
+            val itemText = line.replace(BULLET_PREFIX_RE, "").trim().lowercase()
             itemText == "无" || itemText == "none"
         }
     }
@@ -168,7 +177,7 @@ $requirements
      */
     fun validate(text: String): ValidationResult {
         val issues = mutableListOf<String>()
-        val lines = text.split(Regex("\\r?\\n"))
+        val lines = text.split(LINE_BREAK_RE)
 
         val fact = locateHeading(lines, FACT_SECTION_TITLES)
         val timeline = locateHeading(lines, TIMELINE_SECTION_TITLES)

@@ -2777,6 +2777,8 @@ fun ChatScreen(
                                                                 // v2.0: 有 provider 真实用量时直接展示输入/输出,否则回退到估算(~)
                                                                 promptTokens = msg.promptTokens,
                                                                 completionTokens = msg.completionTokens,
+                                                                // 流式期间不做本地 BPE 估算（见 TokenStatsBar 的 streaming 说明）
+                                                                streaming = state.isStreaming,
                                                                 modifier =
                                                                 Modifier
                                                                     .fillMaxWidth()

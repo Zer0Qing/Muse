@@ -429,8 +429,20 @@ data class ProactiveMessageConfig(
      * 「推迟到下一个活跃/允许窗口」这一步(仍然保留间隔、每日上限与失败退避)。
      */
     val allDayAllowed: Boolean = false,
-    /** v1.95: 仅Agent会话可发主动消息(true=只发Agent Tab会话,false=不限制)。 */
+    /**
+     * **已废弃**：v1.95 的「仅 Agent 会话」开关。全仓从来没有读取方（只在设置页画了个开关），
+     * 用户实测「打开/关闭都没区别」。保留字段只为旧配置反序列化兼容，逻辑请用 [agentSessionEnabled]。
+     */
+    @Deprecated("无读取方，改用 agentSessionEnabled")
     val agentOnly: Boolean = true,
+
+    /**
+     * Agent Tab 会话是否也接收主动消息。
+     *
+     * - true（默认）：与普通会话一视同仁；
+     * - false：主动消息**只发普通对话会话**，绝不落到 Agent Tab，也不会为此新建 Agent 会话。
+     */
+    val agentSessionEnabled: Boolean = true,
     /**
      * v2.0 5.9: 每日主动消息上限(默认 3)。
      *

@@ -30,7 +30,9 @@ object FileSizeFormatter {
         }
         // B 级不带小数；其余保留指定小数位，但去掉多余的尾随 0。
         if (unitIndex == 0) return "$bytes B"
-        val rounded = String.format("%.${decimals}f", value)
+        // 显式指定 Locale.US：默认区域下小数点可能是逗号（如 de-DE 的 1,5），
+        // 会让 "1,5 MB" 这类文本在设置页/日志里出现两种写法，也不好解析。
+        val rounded = String.format(java.util.Locale.US, "%.${decimals}f", value)
         val trimmed = if (rounded.contains('.')) rounded.trimEnd('0').trimEnd('.') else rounded
         return "$trimmed ${UNITS[unitIndex]}"
     }

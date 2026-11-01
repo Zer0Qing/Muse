@@ -965,11 +965,15 @@ fun AgentSettingsPage(
                     SettingsGroup {
                         SettingsSwitchRow(
                             icon = MuseIcons.user,
-                            title = stringResource(R.string.settings_agent_agent_only),
-                            subtitle = stringResource(R.string.settings_agent_agent_only_subtitle),
-                            checked = proactiveConfig.agentOnly,
+                            title = stringResource(R.string.settings_agent_agent_session_enabled),
+                            subtitle = stringResource(R.string.settings_agent_agent_session_enabled_subtitle),
+                            checked = proactiveConfig.agentSessionEnabled,
                             onCheckedChange = { v ->
-                                scope.launch { settings.saveProactiveMessageConfig(proactiveConfig.copy(agentOnly = v)) }
+                                scope.launch {
+                                    settings.saveProactiveMessageConfig(
+                                        proactiveConfig.copy(agentSessionEnabled = v),
+                                    )
+                                }
                             },
                         )
                         SettingsGroupDivider()

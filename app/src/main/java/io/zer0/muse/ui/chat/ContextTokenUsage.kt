@@ -2,6 +2,7 @@ package io.zer0.muse.ui.chat
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.util.MessageTokenCache
 import io.zer0.muse.util.TokenEstimator
 
 /**
@@ -73,14 +74,46 @@ internal object ContextTokenUsage {
      * CPU 密集（内部走 BPE 编码），调用方需放在 [kotlinx.coroutines.Dispatchers.Default] 上执行。
      * 有实测时多付一次尾段估算，尾段通常只有几条消息，成本远低于对整份历史重算。
      */
+    /**
+     * 复用一份按消息实例的计数缓存（2026-11-01 性能整改 P25）。
+     *
+     * 实测：200 条历史 + 系统提示的一次占用率重估 **10.29 ms**（JVM），而这条路径在流式期间
+     * 每涨 400 字符就触发一次、每轮组装提示词时还要再来一次。流式期间真正变的只有最后一条消息，
+     * 其余 199 条每次都在重跑 BPE。
+     *
+     * 缓存按实例身份键控、有界（超上限整体清空），不会让被替换的消息无限滞留。
+     */
+    private val tokenCache: MessageTokenCache = MessageTokenCache()
+
+    /** 上一次算过的系统提示与其 token 数（同一实例直接复用）。 */
+    @Volatile
+    private var cachedPrompt: String? = null
+
+    @Volatile
+    private var cachedPromptTokens: Int = 0
+
+    private fun promptTokens(systemPrompt: String): Int {
+        if (systemPrompt.isEmpty()) return 0
+        if (systemPrompt === cachedPrompt) return cachedPromptTokens
+        val tokens = TokenEstimator.estimate(systemPrompt)
+        cachedPrompt = systemPrompt
+        cachedPromptTokens = tokens
+        return tokens
+    }
+
     fun estimate(messages: List<UIMessage>, systemPrompt: String = ""): Int {
-        val fullEstimate = TokenEstimator.estimate(messages, systemPrompt)
+        // 系统提示每轮都一样，却每次都要重新 BPE 一遍（实测占剩余开销的大头）。
+        // 单条缓存即可：它是同一个字符串实例，比较用 === 而不是 equals，命中时零成本。
+        val fullEstimate = promptTokens(systemPrompt) + TokenEstimator.estimate(messages, cache = tokenCache)
         val measuredIndex = lastMeasuredIndex(messages)
         if (measuredIndex < 0) return fullEstimate
         val measured = measuredTokens(messages[measuredIndex])
         if (measured <= 0) return fullEstimate
         // system prompt 已经包含在实测的 promptTokens 里，尾段再带一遍会重复计数。
-        val tailEstimate = TokenEstimator.estimate(messages.subList(measuredIndex + 1, messages.size))
+        val tailEstimate = TokenEstimator.estimate(
+            messages.subList(measuredIndex + 1, messages.size),
+            cache = tokenCache,
+        )
         return blend(measured, tailEstimate, fullEstimate)
     }
 }

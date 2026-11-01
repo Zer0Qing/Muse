@@ -285,4 +285,21 @@ interface SessionDao {
             "ORDER BY s.updatedAt DESC LIMIT 1",
     )
     suspend fun getRecentActiveByAssistant(assistantId: String): SessionEntity?
+
+    /**
+     * 该助手最近有用户发言的**普通会话**（排除 Agent Tab 会话）。
+     *
+     * 主动消息的落点优先用它：Agent Tab 是独立界面，用户在那里说话不代表
+     * 主动消息应该出现在 Agent 页。只有连普通会话都没有时才退到 Agent 会话。
+     *
+     * 放在接口末尾的原因同上（ktlint 基线按行号匹配）。
+     */
+    @Query(
+        "SELECT * FROM sessions s WHERE s.assistantId = :assistantId " +
+            "AND s.deletedAt IS NULL AND s.archived = 0 AND s.isAgentSession = 0 " +
+            "AND EXISTS (SELECT 1 FROM messages m WHERE m.sessionId = s.id " +
+            "AND m.role = 'USER' AND m.deletedAt IS NULL) " +
+            "ORDER BY s.updatedAt DESC LIMIT 1",
+    )
+    suspend fun getRecentChatByAssistant(assistantId: String): SessionEntity?
 }

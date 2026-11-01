@@ -19,8 +19,20 @@ import java.io.File
  * 与 [ChannelInbox] 同构(全局单例 + 原子 JSON 持久化),但存的是"对话记录":
  * 用户与助手的往返轮次 + 滚动摘要(用于上下文自动压缩)。
  *
- * 结构: filesDir/channel_conversations.json
- *   { "<channelId>|<from>": { "summary": "...", "turns": [...], "updatedAt": 123 } }
+ * ## 存储形态(2026-11-01 性能整改)
+ *
+ * 旧形态是**单文件全量**:`filesDir/channel_conversations.json` 装全部会话。
+ * 每追加一条轮次都要把整张表重新序列化 + 原子写 + fsync —— 50 个会话、每个最多
+ * 200 轮时，一次 append 就要编码上兆字节，而实际变化的只有其中一条会话。
+ * 渠道每来一条消息至少 append 两次（用户轮 + 助手轮），全部持同一把对象锁。
+ *
+ * 现形态是**按会话分片**:`filesDir/channel_conversations/<key 的 sha256>.json`，
+ * 每个文件只装一条会话，形如 `{"key":"<channelId>|<from>","conversation":{...}}`。
+ * 于是 append 的落盘量 = 这条会话的大小（几十 KB 级），与其它会话无关；
+ * 原子写仍然逐文件进行，结论是「每个会话随时都是完整可读的」，比整表重写更不容易出问题。
+ *
+ * 旧文件保留兼容：分片目录为空且旧文件存在时，读旧文件 → 写分片 → 把旧文件改名成
+ * `.migrated`，失败也不影响使用（分片优先）。
  */
 object ChannelConversationStore {
 
@@ -54,6 +66,12 @@ object ChannelConversationStore {
 
     private const val TAG = "ChannelConversations"
 
+    /** 旧形态的单文件名（仅迁移时读取）。 */
+    private const val LEGACY_FILE_NAME = "channel_conversations.json"
+
+    /** 分片目录名。 */
+    private const val SHARD_DIR_NAME = "channel_conversations"
+
     /** 最多保留的对话数(超量时淘汰最久未更新的)。 */
     private const val MAX_CONVERSATIONS = 50
 
@@ -64,28 +82,88 @@ object ChannelConversationStore {
     private val _conversations = MutableStateFlow<Map<String, Conversation>>(emptyMap())
     val conversations: StateFlow<Map<String, Conversation>> = _conversations.asStateFlow()
 
-    private var file: File? = null
+    /** 旧形态的单文件（仅用于迁移）。 */
+    private var legacyFile: File? = null
 
-    /** 绑定应用上下文并恢复历史(幂等)。 */
+    /** 分片目录：一个会话一个文件。 */
+    private var shardDir: File? = null
+
+    /** 已绑定的 filesDir；null 表示还没绑定。 */
+    private var boundFilesDir: File? = null
+
+    /**
+     * 绑定应用上下文并恢复历史(幂等)。
+     *
+     * 以 filesDir 判定幂等而不是一个布尔标记：同一个应用只会用同一个 filesDir，
+     * 但单测里每个用例的临时目录不同 —— 用布尔会把状态留在上一个目录上，
+     * 于是「写进去了吗」这类断言读到的是别的目录。
+     */
     @Synchronized
     fun attach(context: Context) {
-        if (file != null) return
-        val target = File(context.applicationContext.filesDir, "channel_conversations.json")
-        file = target
-        if (target.exists()) {
-            runCatching {
-                AppJson.decodeFromString(
-                    MapSerializer(String.serializer(), Conversation.serializer()),
-                    target.readText(),
-                )
-            }.onSuccess { _conversations.value = it }
-                .onFailure { e ->
-                    // v2.6.0 (AUD-CHANNEL-F4): 恢复失败时隔离坏文件,避免被后续写入覆盖。
-                    Logger.w(TAG, "对话历史恢复失败,隔离坏文件: ${e.message}")
-                    io.zer0.muse.data.AtomicFileStore.quarantine(target, "conversation_restore_failed")
-                }
+        val filesDir = context.applicationContext.filesDir
+        if (boundFilesDir?.absolutePath == filesDir.absolutePath) return
+        boundFilesDir = filesDir
+        val legacy = File(filesDir, LEGACY_FILE_NAME)
+        val dir = File(filesDir, SHARD_DIR_NAME)
+        legacyFile = legacy
+        shardDir = dir
+        when {
+            // 分片优先：只要目录里已经有文件，就不再碰旧文件。
+            dir.isDirectory && !dir.listFiles().isNullOrEmpty() -> restoreFromShards(dir)
+            legacy.exists() -> migrateFromLegacy(legacy, dir)
+            else -> Unit
         }
     }
+
+    private fun restoreFromShards(dir: File) {
+        val restored = LinkedHashMap<String, Conversation>()
+        dir.listFiles().orEmpty().forEach { shard ->
+            if (!shard.isFile || shard.name.endsWith(".tmp", ignoreCase = true)) return@forEach
+            runCatching { shard.readText() }
+                .onSuccess { text ->
+                    val decoded = ChannelConversationFiles.decode(text)
+                    if (decoded != null) restored[decoded.first] = decoded.second
+                }
+                .onFailure { e -> Logger.w(TAG, "分片读取失败,跳过 ${shard.name}: ${e.message}") }
+        }
+        _conversations.value = restored
+            .entries
+            .sortedByDescending { it.value.updatedAt }
+            .take(MAX_CONVERSATIONS)
+            .associate { it.key to it.value }
+    }
+
+    private fun migrateFromLegacy(target: File, dir: File) {
+        runCatching {
+            AppJson.decodeFromString(
+                MapSerializer(String.serializer(), Conversation.serializer()),
+                target.readText(),
+            )
+        }.onSuccess { restored ->
+            _conversations.value = restored
+            // 迁移失败不影响使用：分片写不进去时下一次 append 还会再写分片，
+            // 旧文件继续留作兜底读取源（外部读不到分片就会回落到它）。
+            val startedAt = System.currentTimeMillis()
+            val migrated = restored.all { (key, conversation) ->
+                runCatching {
+                    AtomicFileStore.writeText(
+                        shardFile(dir, key),
+                        ChannelConversationFiles.encode(key, conversation),
+                    )
+                }.isSuccess
+            }
+            val cost = System.currentTimeMillis() - startedAt
+            if (migrated && target.renameTo(File(target.parentFile, LEGACY_FILE_NAME + ".migrated"))) {
+                Logger.i(TAG, "旧单文件已迁移为分片存储(${restored.size} 个会话, 耗时 ${cost}ms)")
+            }
+        }.onFailure { e ->
+            // v2.6.0 (AUD-CHANNEL-F4): 恢复失败时隔离坏文件,避免被后续写入覆盖。
+            Logger.w(TAG, "对话历史恢复失败,隔离坏文件: ${e.message}")
+            io.zer0.muse.data.AtomicFileStore.quarantine(target, "conversation_restore_failed")
+        }
+    }
+
+    private fun shardFile(dir: File, key: String): File = File(dir, ChannelConversationFiles.shardName(key))
 
     /** 对话键:渠道 id + 来源(联系人 id)。 */
     fun key(channelId: String, from: String): String = "$channelId|$from"
@@ -130,13 +208,17 @@ object ChannelConversationStore {
             updatedAt = System.currentTimeMillis(),
             recentDispatchTurnIds = dispatchTurnIds,
         )
-        val map = (_conversations.value + (key to updated))
-            .toList()
+        val merged = _conversations.value + (key to updated)
+        val trimmed = merged.entries
             .sortedByDescending { (_, conversation) -> conversation.updatedAt }
             .take(MAX_CONVERSATIONS)
-            .toMap()
-        check(persist(map)) { "Channel conversation could not persist an appended turn" }
-        _conversations.value = map
+            .associate { it.key to it.value }
+        val dropped = merged.keys - trimmed.keys
+        // 先落盘再改内存（既有恢复契约）：只写这一条会话的分片。
+        check(persistConversation(key, updated)) { "Channel conversation could not persist an appended turn" }
+        // 被淘汰的会话删掉对应分片；删失败只影响磁盘占用，内存里已不再引用它。
+        dropped.forEach { deleteConversation(it) }
+        _conversations.value = trimmed
     }
 
     /** 读取对话(不存在时返回 null)。 */
@@ -170,7 +252,7 @@ object ChannelConversationStore {
                     updatedAt = System.currentTimeMillis(),
                 )
             val map = _conversations.value + (key to updated)
-            if (!persist(map)) return false
+            if (!persistConversation(key, updated)) return false
             _conversations.value = map
         }
         return applicable
@@ -192,11 +274,12 @@ object ChannelConversationStore {
         return sameSummary && sameBoundary
     }
 
-    /** 清空单个对话。 */
+    /** 清空单个对话。删分片成功才更新内存,保证界面与磁盘一致。 */
     @Synchronized
     fun clear(channelId: String, from: String) {
-        val map = _conversations.value - key(channelId, from)
-        if (persist(map)) _conversations.value = map
+        val key = key(channelId, from)
+        if (!deleteConversation(key)) return
+        _conversations.value = _conversations.value - key
     }
 
     /** v2.0.1: 写入图片轮次的视觉降级描述缓存(按时间戳定位,最多命中一条)。 */
@@ -209,25 +292,63 @@ object ChannelConversationStore {
         val turns = conversation.turns.toMutableList().also {
             it[index] = it[index].copy(mediaDescription = description)
         }
-        val map = _conversations.value + (key to conversation.copy(turns = turns))
-        if (persist(map)) _conversations.value = map
+        val updated = conversation.copy(turns = turns)
+        if (persistConversation(key, updated)) _conversations.value = _conversations.value + (key to updated)
     }
 
-    private fun persist(items: Map<String, Conversation>): Boolean {
+    /** 写一条会话的分片；返回 false 表示没写成功（调用方据此决定是否更新内存）。 */
+    private fun persistConversation(key: String, conversation: Conversation): Boolean {
         if (ProcessWriteGate.restoring) return false
-        val target = file ?: return true
+        val dir = shardDir ?: return true
         return runCatching {
             AtomicFileStore.writeText(
-                target,
-                AppJson.encodeToString(
-                    MapSerializer(String.serializer(), Conversation.serializer()),
-                    items,
-                ),
+                shardFile(dir, key),
+                ChannelConversationFiles.encode(key, conversation),
             )
             true
         }.onFailure { e -> Logger.w(TAG, "对话历史持久化失败: ${e.message}") }
             .getOrDefault(false)
     }
+
+    /** 删除一条会话的分片；文件本来就不存在也算成功。 */
+    private fun deleteConversation(key: String): Boolean {
+        val dir = shardDir ?: return true
+        return runCatching {
+            val target = shardFile(dir, key)
+            !target.exists() || target.delete()
+        }.onFailure { e -> Logger.w(TAG, "对话分片删除失败: ${e.message}") }
+            .getOrDefault(false)
+    }
+}
+
+/**
+ * 分片的文件名与编码。抽出来是为了能在不启动单例、不碰真实 filesDir 的前提下单测
+ * 「同一 key 稳定同名」「编码/解码往返」「非法内容不被当成空会话」这三件事。
+ */
+internal object ChannelConversationFiles {
+
+    /** 分片内容：key 一起存进去，文件名只是哈希，读回来才知道它属于谁。 */
+    @Serializable
+    internal data class Envelope(
+        val key: String,
+        val conversation: ChannelConversationStore.Conversation,
+    )
+
+    /** 文件名 = key 的 SHA-256 十六进制。key 里有 `|`、可能含路径分隔符与控制字符。 */
+    fun shardName(key: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(key.toByteArray(Charsets.UTF_8))
+        return digest.joinToString(separator = "") { byte -> "%02x".format(byte) } + ".json"
+    }
+
+    fun encode(key: String, conversation: ChannelConversationStore.Conversation): String =
+        AppJson.encodeToString(Envelope.serializer(), Envelope(key, conversation))
+
+    /** 解码失败返回 null（调用方跳过该分片，不当成空会话写入内存）。 */
+    fun decode(text: String): Pair<String, ChannelConversationStore.Conversation>? =
+        runCatching { AppJson.decodeFromString(Envelope.serializer(), text) }
+            .getOrNull()
+            ?.let { it.key to it.conversation }
 }
 
 private fun channelDispatchTurnIdentity(dispatchId: String, role: String): String? =

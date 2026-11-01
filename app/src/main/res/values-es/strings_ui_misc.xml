@@ -154,16 +154,6 @@ Toca actualizar para obtener la lista</string>
     <string name="image_save_mediastore_insert_failed">Error al insertar MediaStore</string>
     <string name="image_save_open_stream_failed">No se puede abrir el flujo de salida</string>
 
-    <!-- ===== ui/experience/ExperiencePanel ===== -->
-    <string name="experience_title">Biblioteca de experiencias</string>
-    <string name="experience_enabled">Activado</string>
-    <string name="experience_add_cd">Añadir experiencia</string>
-    <string name="experience_search_hint">Buscar experiencias…</string>
-    <string name="experience_add_title">Agregar experiencia</string>
-    <string name="experience_add_category_hint">Categoría (por ejemplo, \'uso de herramientas\')</string>
-    <string name="experience_add_content_hint">Contenido de la experiencia (una frase)</string>
-    <string name="experience_add_confirm">Agregar</string>
-    <string name="experience_add_cancel">Cancelar</string>
 
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Registro de actividad</string>

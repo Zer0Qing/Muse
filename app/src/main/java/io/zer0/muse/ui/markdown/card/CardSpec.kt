@@ -72,12 +72,11 @@ private fun parseFixed(text: String): CardSize {
 }
 
 /** 根据源码嗅探语言（代码围栏没写语言时用）。 */
-internal fun detectCardLanguage(code: String): CardLanguage =
-    when {
-        code.trimStart().startsWith("<svg", ignoreCase = true) -> CardLanguage.SVG
-        code.trimStart().startsWith("<?xml", ignoreCase = true) -> CardLanguage.SVG
-        else -> CardLanguage.HTML
-    }
+internal fun detectCardLanguage(code: String): CardLanguage = when {
+    code.trimStart().startsWith("<svg", ignoreCase = true) -> CardLanguage.SVG
+    code.trimStart().startsWith("<?xml", ignoreCase = true) -> CardLanguage.SVG
+    else -> CardLanguage.HTML
+}
 
 /**
  * 宿主侧提供给卡片的全部能力，打包成一个对象。
@@ -92,4 +91,18 @@ internal data class CardHost(
     val readData: ((String) -> String?)? = null,
     /** 卡片身份。只由宿主产生（消息 id / 卡片实例 id），工具不参与。 */
     val cardId: String? = null,
+    /**
+     * 数据推送凭据。null 表示宿主不能反向通知卡片，卡片侧退回 800ms 轮询。
+     *
+     * 非 null 时它的**实例身份**就是「数据变过」的信号：同一个值复用同一实例，
+     * 值变了才换新实例。信号里不带数据本身 —— 卡片收到通知后仍走
+     * `window.muse.getData()` 取值，与轮询读的是同一条路径，行为一致。
+     */
+    val pushToken: CardPushToken? = null,
 )
+
+/**
+ * 见 [CardHost.pushToken]。包一层是为了让「数据为 null」也能作为有效信号
+ * （裸 null 既要表示「不支持推送」，又要表示「这条数据被删了」，无法区分）。
+ */
+internal class CardPushToken(val value: String?)

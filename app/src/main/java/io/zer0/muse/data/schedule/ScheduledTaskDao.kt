@@ -24,6 +24,15 @@ interface ScheduledTaskDao {
     @Query("SELECT * FROM scheduled_tasks WHERE enabled = 1 AND next_run_at <= :timeMillis ORDER BY next_run_at ASC LIMIT 10")
     suspend fun getDueTasks(timeMillis: Long): List<ScheduledTaskEntity>
 
+    /**
+     * 最近一次仍会到期的任务的 next_run_at（用于把轮询间隔压到"刚好赶上"而不是固定 60s）。
+     *
+     * 排除 [sentinel]（领取哨兵 = Long.MAX_VALUE）：那是"处理中"的占位值，
+     * 拿它当到期时间会一直算不出可唤醒时刻。
+     */
+    @Query("SELECT MIN(next_run_at) FROM scheduled_tasks WHERE enabled = 1 AND next_run_at > :after AND next_run_at != :sentinel")
+    suspend fun earliestNextRunAt(after: Long, sentinel: Long): Long?
+
     @Query("SELECT * FROM scheduled_tasks WHERE id = :id")
     suspend fun getById(id: String): ScheduledTaskEntity?
 

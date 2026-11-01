@@ -989,7 +989,13 @@ class RagService(
         // 端点“接受连接但永不响应”，调用会一直挂到 chat OkHttpClient 的
         // readTimeout=300s —— 用户在发消息关键路径上最长等 5 分钟才看到首字。
         // 这里加 10s 硬超时：超时同样触发熔断，上层降级到本地关键词检索。
-        val queryVector: FloatArray = resultOf {
+        // 先查向量缓存：命中就不进网络超时窗口（重复提问 / 重试同一句话最常见）。
+        // 这里刻意不用 embedWithCache —— 那个把 Provider 异常吞成 null，而下面的
+        // 熔断逻辑依赖异常；查不到时仍走原来的 withTimeout + provider.embed 路径。
+        val cachedQueryVector: FloatArray? = resultOf {
+            embeddingService.cachedVector(ragConfig, query)
+        }.getOrNull()
+        val queryVector: FloatArray = cachedQueryVector ?: resultOf {
             withTimeout(EMBED_QUERY_TIMEOUT_MS) { provider.embed(query) }
         }
             .onError { msg, e ->
@@ -1002,6 +1008,10 @@ class RagService(
             ?: return emptyList<VectorSearchService.SearchResult>().also { Perf.log("rag-retrieve", System.currentTimeMillis() - start) }
         // v1.0.47: embed 成功 → 清熔断(自愈),下次恢复走正常向量检索
         embeddingFailureUntil = 0L
+        if (cachedQueryVector == null) {
+            // 写缓存是纯优化：失败不影响本次检索结果。
+            resultOf { embeddingService.rememberVector(ragConfig, query, queryVector) }
+        }
 
         if (vectorEmbeddingsNeedReindex) {
             Logger.w("RagService", "Embedding 模型与已存储向量不一致，等待全库重新索引后再恢复向量检索")

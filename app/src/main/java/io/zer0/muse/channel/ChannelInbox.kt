@@ -90,12 +90,22 @@ object ChannelInbox {
         val encryptedAgentCheckpoint: String = "",
         /** 终态错误码;当前用于标记不可读取的 Agent 断点。 */
         val dispatchErrorCode: String = "",
+        /**
+         * 队列序号（2026-11-01 分片存储引入）。
+         *
+         * 分片文件名用它排序，恢复顺序 = 旧实现的数组顺序；0 表示旧数据，迁移时按原下标补齐。
+         * 它只表达**入队先后**，不表达调度优先级 —— 优先级仍由 dispatchState + 列表顺序决定。
+         */
+        val seq: Long = 0L,
     )
 
     private const val MAX_ITEMS = 100
     internal const val MAX_PENDING_ITEMS = MAX_ITEMS
     private const val MAX_RAW_LENGTH = 4000
     private const val INBOX_FILE = "channel_inbox.json"
+
+    /** 分片目录名（目录型备份白名单里也要有它）。 */
+    internal const val INBOX_DIR_NAME = "channel_inbox"
     private const val WEBHOOK_EVENT_LEDGER_FILE = "channel_webhook_event_ids.json"
 
     private val _messages = MutableStateFlow<List<Inbound>>(emptyList())
@@ -155,7 +165,15 @@ internal class ChannelInboxJournal(
     private val messages: MutableStateFlow<List<ChannelInbox.Inbound>> = MutableStateFlow(emptyList()),
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
+    /** 旧单文件（迁移源）；分片目录就绪后只作为备份白名单里的历史产物保留。 */
     private var file: File? = null
+
+    /** 分片目录：一条队列项一个文件，见 [persistItem]。 */
+    private var shardDir: File? = null
+
+    /** 已分配的最大序号（新事件取 +1）。 */
+    private var maxSeq: Long = 0L
+
     private var webhookEventDeduplicator: WebhookEventDeduplicator? = null
     private var webhookEventDeduplicationFailure: Throwable? = null
 
@@ -167,27 +185,15 @@ internal class ChannelInboxJournal(
 
     @Synchronized
     fun attach(inboxFile: File, ledgerFile: File) {
-        if (file != null) return
+        if (shardDir != null) return
         file = inboxFile
-        if (inboxFile.exists()) {
-            runCatching {
-                AppJson.decodeFromString(
-                    ListSerializer(ChannelInbox.Inbound.serializer()),
-                    inboxFile.readText(),
-                )
-            }.onSuccess { restored ->
-                val normalized = normalize(restored)
-                messages.value = normalized
-                if (normalized != restored) {
-                    check(persist(normalized)) { "Channel inbox could not persist restored state" }
-                }
-            }.onFailure { error ->
-                // v2.6.0 (AUD-CHANNEL-F4): 恢复失败时隔离坏文件,而不是继续用空列表 ——
-                // 否则后续 record 会用新内容覆盖坏文件,原始现场丢失、无法诊断。
-                // 复用项目已有的 AtomicFileStore.quarantine 惯例(同 DataStore 损坏备份)。
-                Logger.w(TAG, "收件箱恢复失败,隔离坏文件: ${error.message}")
-                io.zer0.muse.data.AtomicFileStore.quarantine(inboxFile, "inbox_restore_failed")
-            }
+        val dir = File(inboxFile.parentFile, ChannelInbox.INBOX_DIR_NAME)
+        shardDir = dir
+        when {
+            // 分片优先：目录里已经有文件就不再碰旧单文件。
+            dir.isDirectory && !dir.listFiles().isNullOrEmpty() -> restoreFromShards(dir)
+            inboxFile.exists() -> migrateFromLegacyFile(inboxFile)
+            else -> Unit
         }
         runCatching { WebhookEventDeduplicator(ledgerFile, nowMillis) }
             .onSuccess {
@@ -215,7 +221,7 @@ internal class ChannelInboxJournal(
                     val updated = messages.value.toMutableList().also {
                         it[index] = existing.copy(encryptedReplyContextToken = source.encryptedReplyContextToken)
                     }
-                    check(persist(updated)) { "Channel inbox could not refresh the inbound reply context" }
+                    check(persistItem(updated[index])) { "Channel inbox could not refresh the inbound reply context" }
                     messages.value = updated
                 }
                 ledgerFailure = runCatching { claimEvent(source) }.exceptionOrNull()
@@ -231,10 +237,18 @@ internal class ChannelInboxJournal(
                 false
             } else {
                 if (pendingCountLocked() >= ChannelInbox.MAX_PENDING_ITEMS) throw ChannelInboxCapacityException()
-                val retained = retain(listOf(item) + messages.value)
-                check(persist(retained)) { "Channel inbox could not persist the inbound event" }
+                val enriched = item.copy(seq = ++maxSeq)
+                val candidate = listOf(enriched) + messages.value
+                val retained = retain(candidate)
+                // 先落盘这条新事件，再改内存；被裁掉的条目随后删分片。
+                check(persistItem(enriched)) { "Channel inbox could not persist the inbound event" }
+                // 用 seq 判"有没有被裁掉"，不能比 data class 相等：
+                // normalize 会把终态条目的 mediaBase64 清空，清空后的副本与原对象不相等 ——
+                // 按相等来判会把"刚被规范化过的那条"误当成被裁掉，删掉它的分片。
+                val keptSeqs = retained.mapTo(HashSet()) { it.seq }
+                deleteDropped(candidate.filterNot { it.seq in keptSeqs })
                 messages.value = retained
-                observerItem = item
+                observerItem = enriched
                 wake = true
                 ledgerFailure = runCatching { claimEvent(source) }.exceptionOrNull()
                 true
@@ -270,7 +284,17 @@ internal class ChannelInboxJournal(
             },
         )
         if (recovered != current) {
-            check(persist(recovered)) { "Channel inbox could not recover interrupted dispatches" }
+            val changedSeqs = recovered
+                .filter { updated -> current.none { it.seq == updated.seq && it == updated } }
+                .mapTo(HashSet()) { it.seq }
+            changedSeqs.forEach { seq ->
+                val normalizedItem = recovered.first { it.seq == seq }
+                check(persistItem(normalizedItem)) { "Channel inbox could not recover interrupted dispatches" }
+            }
+            // 同上：只删"seq 已不存在"的分片。按相等判会把刚改过状态的那几条一并删掉（它们
+            // 在 current 里是 PROCESSING、在 recovered 里是 PENDING），等于刚写完就删。
+            val keptSeqs = recovered.mapTo(HashSet()) { it.seq }
+            deleteDropped(current.filterNot { it.seq in keptSeqs })
             messages.value = recovered
         }
     }
@@ -285,7 +309,7 @@ internal class ChannelInboxJournal(
         val current = messages.value
         val claimed = current[index].copy(dispatchState = ChannelInbox.DispatchState.PROCESSING)
         val updated = current.toMutableList().also { it[index] = claimed }
-        check(persist(updated)) { "Channel inbox could not persist dispatch claim" }
+        check(persistItem(claimed)) { "Channel inbox could not persist dispatch claim" }
         messages.value = updated
         return claimed
     }
@@ -410,7 +434,9 @@ internal class ChannelInboxJournal(
     @Synchronized
     fun clear() {
         val retained = messages.value.filter { it.isDispatchActive() }
-        if (persist(retained)) messages.value = retained
+        val keptSeqs = retained.mapTo(HashSet()) { it.seq }
+        deleteDropped(messages.value.filterNot { it.seq in keptSeqs })
+        messages.value = retained
     }
 
     private fun updateProcessing(dispatchId: String, transform: (ChannelInbox.Inbound) -> ChannelInbox.Inbound): Boolean {
@@ -419,9 +445,15 @@ internal class ChannelInboxJournal(
             it.dispatchId == dispatchId && it.dispatchState == ChannelInbox.DispatchState.PROCESSING
         }
         if (index < 0) return false
-        val updated = current.toMutableList().also { it[index] = transform(it[index]) }
+        val transformed = transform(current[index])
+        val updated = current.toMutableList().also { it[index] = transformed }
         val retained = retain(updated)
-        check(persist(retained)) { "Channel inbox could not persist dispatch state" }
+        // 落盘要用**规范化之后**的副本：transform 得出的条目可能还带着 mediaBase64，
+        // 而 normalize 会把终态条目的那份字节清掉。写原始副本等于把要清的东西又写回磁盘。
+        val normalized = retained.firstOrNull { it.seq == transformed.seq } ?: transformed
+        check(persistItem(normalized)) { "Channel inbox could not persist dispatch state" }
+        val keptSeqs = retained.mapTo(HashSet()) { it.seq }
+        deleteDropped(updated.filterNot { it.seq in keptSeqs })
         messages.value = retained
         return true
     }
@@ -451,11 +483,28 @@ internal class ChannelInboxJournal(
         sourceEventId == source.eventId
 
     private fun normalize(items: List<ChannelInbox.Inbound>): List<ChannelInbox.Inbound> {
-        val migrated = items.map { item ->
-            if (item.isDispatchActive() && item.dispatchId.isBlank()) {
-                item.copy(dispatchId = UUID.randomUUID().toString())
-            } else {
-                item
+        // 分片文件名带 seq，缺失（seq==0，来自旧数据或异常输入）时按当前顺序补齐。
+        items.forEach { if (it.seq > maxSeq) maxSeq = it.seq }
+        val withSeq = items.map { item -> if (item.seq > 0L) item else item.copy(seq = ++maxSeq) }
+        val assigned = withSeq
+        val migrated = assigned.map { item ->
+            when {
+                item.isDispatchActive() && item.dispatchId.isBlank() ->
+                    item.copy(dispatchId = UUID.randomUUID().toString())
+                // 终态条目的图片 base64 必须清掉。
+                //
+                // 它在这个时刻已经随轮次写进了 ChannelConversationStore（自动回复构造上下文时
+                // 就复制了一份），留在收件箱里没有任何消费者 —— 而收件箱是**整表落盘**的：
+                // 一条历史图片会让之后每次 record / claim / 完成派发都重新搬运这份字节。
+                // 带图的历史攒到十几条，单次落盘就是几 MB，全部持对象锁。
+                //
+                // BLOCKED 是「人工复核」终态（还留着 checkpoint 与已准备回复供诊断），图片同样保留。
+                // 只清 base64、不动 mediaPath：后者是磁盘文件引用，ChannelMediaCleaner 靠它判断哪些文件仍被引用。
+                !item.isDispatchActive() &&
+                    item.dispatchState != ChannelInbox.DispatchState.BLOCKED &&
+                    item.mediaBase64.isNotEmpty() ->
+                    item.copy(mediaBase64 = "")
+                else -> item
             }
         }
         val active = migrated.filter { it.isDispatchActive() }
@@ -465,19 +514,97 @@ internal class ChannelInboxJournal(
 
     private fun retain(items: List<ChannelInbox.Inbound>): List<ChannelInbox.Inbound> = normalize(items)
 
-    private fun persist(items: List<ChannelInbox.Inbound>): Boolean {
-        if (ProcessWriteGate.restoring) return false
-        val target = file ?: return true
-        return runCatching {
-            AtomicFileStore.writeText(
-                target,
-                AppJson.encodeToString(ListSerializer(ChannelInbox.Inbound.serializer()), items),
-            )
-            true
-        }.onFailure { error ->
-            Logger.w(TAG, "收件箱持久化失败: ${error.message}")
-        }.getOrDefault(false)
+    // ── 分片持久化（2026-11-01 性能整改）────────────────────────
+    //
+    // 旧形态是单个 channel_inbox.json：每次状态迁移都整表重写。渠道一条消息的生命周期里，
+    // 领取 / 存草稿 / **每次工具调用的断点（执行前后各一次）** / 完成，全是整表重写 ——
+    // 队列越大、工具调用越多，写放大越夸张，而且全部持对象锁。
+    //
+    // 现在一条队列项一个文件：channel_inbox/<seq 12 位>-<key 指纹>.json。
+    // 文件名带序号 → 恢复时按文件名排序即还原入队顺序，不需要额外索引文件。
+    //
+    // 语义变化（有意、且更安全）：以前一次写覆盖整队，现在每个条目各自原子写。
+    // 条目之间本就没有跨条目不变量，所以崩溃后的"部分写入"仍是合法状态：
+    // 每条要么是旧状态、要么是新状态，不会出现半条。
+
+    private fun restoreFromShards(dir: File) {
+        val loaded = dir.listFiles().orEmpty()
+            .filter { it.isFile && it.name.endsWith(".json") }
+            // 入队顺序：record 把新事件放在列表**最前**（listOf(item) + 旧列表），
+            // 所以 seq 越大越靠前 —— 恢复时必须降序，否则重启后领取顺序会反过来。
+            .sortedByDescending { it.name }
+            .mapNotNull { shard ->
+                runCatching {
+                    AppJson.decodeFromString(ChannelInbox.Inbound.serializer(), shard.readText())
+                }.onFailure { error ->
+                    Logger.w(TAG, "分片读取失败,跳过 ${shard.name}: ${error.message}")
+                    AtomicFileStore.quarantine(shard, "inbox_shard_parse")
+                }.getOrNull()
+            }
+        maxSeq = loaded.maxOfOrNull { it.seq } ?: 0L
+        val normalized = normalize(loaded)
+        messages.value = normalized
+        // 规范化可能裁掉条目（超上限），把对应分片删掉，避免下次又被读进来。
+        val kept = normalized.mapTo(HashSet()) { shardKeyOf(it) }
+        loaded.filterNot { shardKeyOf(it) in kept }.forEach { deleteItem(it) }
     }
+
+    private fun migrateFromLegacyFile(inboxFile: File) {
+        runCatching {
+            AppJson.decodeFromString(
+                ListSerializer(ChannelInbox.Inbound.serializer()),
+                inboxFile.readText(),
+            )
+        }.onSuccess { restored ->
+            // 旧数组**顺序即内存顺序**（新事件在前），所以下标 0 要拿最大的 seq，
+            // 这样按 seq 降序恢复出来的顺序与旧实现完全一致。
+            val withSeq = restored.mapIndexed { index, item -> item.copy(seq = (restored.size - index).toLong()) }
+            maxSeq = withSeq.maxOfOrNull { it.seq } ?: 0L
+            val normalized = normalize(withSeq)
+            messages.value = normalized
+            val startedAt = System.currentTimeMillis()
+            val allWritten = normalized.all { persistItem(it) }
+            val cost = System.currentTimeMillis() - startedAt
+            if (allWritten && inboxFile.renameTo(File(inboxFile.parentFile, inboxFile.name + ".migrated"))) {
+                Logger.i(TAG, "收件箱已迁移为分片存储(${normalized.size} 条, 耗时 ${cost}ms)")
+            }
+        }.onFailure { error ->
+            Logger.w(TAG, "收件箱恢复失败,隔离坏文件: ${error.message}")
+            AtomicFileStore.quarantine(inboxFile, "inbox_restore_failed")
+        }
+    }
+
+    /** 分片名里的稳定部分：dispatchId 优先；历史条目可能为空 → 退回内容指纹。 */
+    private fun shardKeyOf(item: ChannelInbox.Inbound): String =
+        item.dispatchId.ifBlank { "${item.platform}|${item.from}|${item.timestamp}|${item.summary.take(64)}" }
+
+    private fun shardFile(item: ChannelInbox.Inbound): File? {
+        val dir = shardDir ?: return null
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(shardKeyOf(item).toByteArray(Charsets.UTF_8))
+            .take(8)
+            .joinToString(separator = "") { byte -> "%02x".format(byte) }
+        return File(dir, "%012d-%s.json".format(item.seq, digest))
+    }
+
+    private fun persistItem(item: ChannelInbox.Inbound): Boolean {
+        if (ProcessWriteGate.restoring) return false
+        val target = shardFile(item) ?: return true
+        return runCatching {
+            AtomicFileStore.writeText(target, AppJson.encodeToString(ChannelInbox.Inbound.serializer(), item))
+            true
+        }.onFailure { error -> Logger.w(TAG, "收件箱分片写入失败: ${error.message}") }.getOrDefault(false)
+    }
+
+    private fun deleteItem(item: ChannelInbox.Inbound) {
+        val target = shardFile(item) ?: return
+        runCatching {
+            if (target.exists() && !target.delete()) Logger.w(TAG, "分片删除失败: ${target.name}")
+        }.onFailure { error -> Logger.w(TAG, "分片删除异常: ${error.message}") }
+    }
+
+    /** 删除 [dropped] 里所有条目的分片（裁剪 / 清空历史用）。 */
+    private fun deleteDropped(dropped: List<ChannelInbox.Inbound>) { dropped.forEach { deleteItem(it) } }
 
     private fun notifyPendingListener() {
         runCatching { pendingListener?.invoke() }

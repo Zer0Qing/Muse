@@ -83,17 +83,20 @@ class EmbeddingService(
     }
 
     /** 获取当前 RagConfig 对应的 EmbeddingProvider。 */
-    suspend fun getProvider(ragConfig: RagConfig): EmbeddingProvider {
+    suspend fun getProvider(ragConfig: RagConfig): EmbeddingProvider = entryFor(ragConfig).provider
+
+    /** 解析（或复用）Provider 缓存项；[embedWithCache] 需要同时拿到指纹。 */
+    private suspend fun entryFor(ragConfig: RagConfig): CacheEntry {
         val target = resolveCloudTarget(ragConfig)
         val fingerprint = fingerprintOf(ragConfig, target)
-        cached?.let { if (it.fingerprint == fingerprint) return it.provider }
+        cached?.let { if (it.fingerprint == fingerprint) return it }
         return mutex.withLock {
             // 双重检查,避免并发时重复创建 Provider
-            cached?.let { if (it.fingerprint == fingerprint) return@withLock it.provider }
+            cached?.let { if (it.fingerprint == fingerprint) return@withLock it }
             val entry = buildEntry(ragConfig, target, fingerprint)
             cached = entry
             _activeBackend.value = entry.state
-            entry.provider
+            entry
         }
     }
 
@@ -101,6 +104,44 @@ class EmbeddingService(
     fun invalidate() {
         cached = null
         _activeBackend.value = null
+    }
+
+    // ── 向量缓存 ────────────────────────────────────────────────
+
+    private val vectorStore = EmbeddingVectorStore()
+
+    /** 诊断计数：缓存命中/未命中（日志与测试使用）。 */
+    internal val vectorCacheHits: Int get() = vectorStore.hits
+
+    internal val vectorCacheMisses: Int get() = vectorStore.misses
+
+    /**
+     * 带缓存的批量取向量。命中缓存的文本不会进请求，未命中的一次批量补齐。
+     *
+     * 记忆相关性重排每轮都要把「query + 全部候选事实」编码一次；候选事实在轮次之间
+     * 几乎不变，缓存后典型情况只对 query 发一次请求；同一句话重试时连 query 也命中。
+     *
+     * @return 与 [texts] 等长的向量列表；任一步失败返回 null（调用方据此回退）
+     */
+    suspend fun embedWithCache(ragConfig: RagConfig, texts: List<String>): List<FloatArray>? {
+        if (texts.isEmpty()) return emptyList()
+        val entry = entryFor(ragConfig)
+        return vectorStore.embed(entry.provider, entry.fingerprint, texts)
+    }
+
+    /**
+     * 只查向量缓存：不触发编码、不走进网络超时窗口。
+     *
+     * 给「失败要熔断」的调用方用（RAG 的 query embedding）—— 那边靠**异常**触发 5 分钟熔断，
+     * 而 [embedWithCache] 会把 Provider 异常吞成 null。命中直接返回；未命中由调用方
+     * 自己 `withTimeout { provider.embed(...) }`，再调 [rememberVector] 写回。
+     */
+    suspend fun cachedVector(ragConfig: RagConfig, text: String): FloatArray? =
+        vectorStore.peek(entryFor(ragConfig).fingerprint, text)
+
+    /** 把已经取到的向量写回缓存（配合 [cachedVector] 使用）。 */
+    suspend fun rememberVector(ragConfig: RagConfig, text: String, vector: FloatArray) {
+        vectorStore.store(entryFor(ragConfig).fingerprint, text, vector)
     }
 
     // ── 缓存指纹 ────────────────────────────────────────────────

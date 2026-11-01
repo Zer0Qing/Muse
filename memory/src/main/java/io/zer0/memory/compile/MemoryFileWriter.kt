@@ -51,14 +51,29 @@ class MemoryFileWriter(
     }
 
     // v1.0.47: 记录上次写入的 memory.md 内容,相同则跳过 IO,避免 59 字节小文件反复写。
-    @Volatile
-    private var lastWrittenMemoryMd: String? = null
+    //
+    // 2026-11-01 性能整改:去重改为**按 target**。
+    // 早先条件里带了 `target == null`,而读路径 `MemoryCompiler.readCompiledMemoryMarkdown`
+    // 永远带 target 调用 —— 于是「读一次记忆」就等于「原子写一次文件」(写临时文件 + rename,
+    // 外加 targetDir/dailyDir 的 mkdirs)。会话切换、群聊每个角色每轮回复都会走这条读路径。
+    // 改成按 target 记内容后,内容没变时连目录都不碰。
+    private val lastWrittenByTarget = LinkedHashMap<String, String>()
 
-    // C-06: dedup 用独立锁对象 — lastWrittenMemoryMd 可空,synchronized 需要非空 Any 监视器。
+    // C-06: dedup 用独立锁对象,synchronized 需要非空 Any 监视器。
     private val memoryMdLock = Any()
+
+    /**
+     * 去重键：null target 沿用旧的「根目录」语义，非 null 用归一化后的 scope/space。
+     * 用逻辑键而不是目录绝对路径,是为了让快路径不触发 [targetDir] 里的 mkdirs。
+     */
+    private fun targetKey(target: MemoryCompileTarget?): String =
+        if (target == null) "" else "${target.normalizedScope}/${target.normalizedSpaceId}"
 
     companion object {
         private const val TAG = "MemoryFileWriter"
+
+        /** 去重表跟踪的 target 上限；超过就整体清空重建。 */
+        private const val MAX_TRACKED_TARGETS = 16
 
         /** week 段展示今天之前的 N 个已结束逻辑日;更早的条目 fold 进 longterm。 */
         const val DAILY_WINDOW_RETENTION_DAYS = 6
@@ -77,19 +92,25 @@ class MemoryFileWriter(
      * @param locale 语言,仅用于日志
      */
     fun writeMemoryMd(content: String, locale: String = "zh-CN", target: MemoryCompileTarget? = null) {
-        // v1.0.47: 内容未变则跳过 IO,避免短时间多次重复写入相同的小文件
         // C-06: dedup 加锁 — 读路径(readCompiledMemoryMarkdown)会调用本方法,
-        // 并发读-写同一文件时 lastWrittenMemoryMd 的 check-then-act 需串行化。
+        // 并发读-写同一文件时 check-then-act 需串行化。
         synchronized(memoryMdLock) {
-            if (target == null && content == lastWrittenMemoryMd) {
+            val key = targetKey(target)
+            if (content == lastWrittenByTarget[key]) {
                 Logger.d(TAG, "memory.md unchanged, skip write (${content.length} chars)")
                 return
             }
             runCatching {
-                val file = File(targetDir(target), "memory.md")
+                val dir = targetDir(target)
+                val file = File(dir, "memory.md")
                 // C-06: 临时文件 + 原子 rename,避免写一半进程被杀留下损坏文件
                 writeAtomically(file, content)
-                if (target == null) lastWrittenMemoryMd = content
+                // 上限只为兜住「target 无限增长」的极端情形；真的溢出就整体清空重建,
+                // 最坏结果是多写一次文件,不影响正确性。
+                if (lastWrittenByTarget.size >= MAX_TRACKED_TARGETS && !lastWrittenByTarget.containsKey(key)) {
+                    lastWrittenByTarget.clear()
+                }
+                lastWrittenByTarget[key] = content
             }.onFailure {
                 Logger.w(TAG, "写入 memory.md 失败: ${it.message}", it)
             }

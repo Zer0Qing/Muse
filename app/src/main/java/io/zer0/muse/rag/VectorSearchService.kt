@@ -126,17 +126,27 @@ class VectorSearchService(
         val chunkIndex: Int,
     )
 
-    @Volatile
-    private var cache: List<CachedVector>? = null
+    /**
+     * 向量缓存：键 = scope|metadata 过滤条件。
+     *
+     * 为什么是**有界多条目**而不是单条目：旧实现只留一份，键一变就整表重载。
+     * 实际使用里最常见的组合是「不带过滤」与「某个固定 tag 过滤」交替出现
+     * （主对话走全库、@mention 或定向检索带过滤），单条目缓存会在这两者之间来回打穿。
+     *
+     * 为什么只留 [MAX_CACHE_ENTRIES] 条：单条最多 [CACHE_THRESHOLD] 个 768 维向量，
+     * 每条都带正文，条数放大就是内存放大。两条正好覆盖「全库 + 一个过滤」的交替，
+     * 再多就要按真实内存预算重新论证。
+     */
+    private val cacheEntries = object : LinkedHashMap<String, List<CachedVector>>(4, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<CachedVector>>): Boolean =
+            size > MAX_CACHE_ENTRIES
+    }
 
-    @Volatile
-    private var cacheKey: String? = null // v1.133: scopeDocIds hash,不同 scope 独立缓存
     private val mutex = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
 
     fun invalidateCache() {
-        cache = null
-        cacheKey = null
+        synchronized(cacheEntries) { cacheEntries.clear() }
     }
 
     /**
@@ -385,10 +395,10 @@ class VectorSearchService(
                 "#${it.titleKeyword}#${it.sourceKeyword}"
         } ?: ""
         val key = (scopeDocIds?.sorted()?.joinToString(",") ?: "ALL") + "|" + filterKey
-        // scope 变化或首次加载
-        cache?.let { if (key == cacheKey) return it }
+        // 命中已有条目（含 scope/过滤条件都一致的重复查询）
+        synchronized(cacheEntries) { cacheEntries[key] }?.let { return it }
         return mutex.withLock {
-            cache?.let { if (key == cacheKey) return@withLock it }
+            synchronized(cacheEntries) { cacheEntries[key] }?.let { return@withLock it }
             val chunks = chunkPageProvider(total, 0)
             // v1.133: 若有 scope,在内存中过滤(避免 provider 走全量)
             val filtered = if (scopeDocIds != null && scopeDocIds.isNotEmpty()) {
@@ -403,8 +413,7 @@ class VectorSearchService(
                 if (n == 0f) return@mapNotNull null
                 CachedVector(chunk.chunkId, chunk.docId, chunk.docTitle, chunk.content, vector, n, chunk.chunkIndex)
             }
-            cache = parsed
-            cacheKey = key
+            synchronized(cacheEntries) { cacheEntries[key] = parsed }
             Logger.d("VectorSearchService", "加载 ${parsed.size} 条向量到缓存(scope=$key)")
             parsed
         }
@@ -454,6 +463,9 @@ class VectorSearchService(
         /** P2-33: 定向检索/元数据检索的分页批量(每次 provider 调用最多载入的 chunk 数)。 */
         internal const val BATCH_SIZE = 500
         private const val CACHE_THRESHOLD = 2000
+
+        /** 向量缓存条目上限（见 cacheEntries 的取舍说明）。 */
+        internal const val MAX_CACHE_ENTRIES = 2
 
         /** v1.133: FloatArray → ByteArray(BLOB 存储)。 */
         fun floatArrayToBlob(arr: FloatArray): ByteArray {

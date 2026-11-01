@@ -768,4 +768,6 @@
     <string name="settings_chat_carry_over_subtitle">把上一个对话的最后几轮也读进来。会更连贯，但会占用输入 token。</string>
     <string name="settings_chat_carry_over_count">带入 %1$d 条消息</string>
     <string name="settings_chat_carry_over_count_hint">约 %1$d 轮问答（用户与助手各算一条）</string>
+    <string name="settings_agent_agent_session_enabled">Agent 会话</string>
+    <string name="settings_agent_agent_session_enabled_subtitle">关闭后主动消息只发普通对话会话，不会出现在 Agent Tab</string>
 </resources>

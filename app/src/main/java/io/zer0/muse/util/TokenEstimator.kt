@@ -96,30 +96,42 @@ object TokenEstimator {
      * @param systemPrompt 系统提示文本(SystemPromptAssembler 组装后),默认空
      * @return token 数(BPE 精确或启发式回退)
      */
-    fun estimate(messages: List<UIMessage>, systemPrompt: String = ""): Int {
+    fun estimate(
+        messages: List<UIMessage>,
+        systemPrompt: String = "",
+        cache: MessageTokenCache? = null,
+    ): Int {
         var total = estimate(systemPrompt)
-        messages.forEach { msg ->
-            total += estimate(msg.content)
-            // 计入 assistant 的思考过程 / MOOD 腹稿 / 反思块(都会占用上下文)
-            msg.reasoning?.let { total += estimate(it) }
-            msg.mood?.let { total += estimate(it) }
-            msg.reflection?.let { total += estimate(it) }
-            // toolCalls 的 arguments 也算入(JSON 字符串)
-            msg.toolCalls?.forEach { tc ->
-                total += estimate(tc.arguments)
-            }
-            // 视觉图片(base64 / url)同样占用上下文;此前完全未计,导致视觉对话
-            // 预算系统性偏低 → AUTO_COMPRESS/占用圈失真,含图超长上下文可能撞 400。
-            val imageCount = msg.imageBase64List.size + msg.imageUrls.size
-            if (imageCount > 0) {
-                total += imageCount * IMAGE_TOKEN_ESTIMATE_PER_IMAGE
-            }
-        }
+        messages.forEach { msg -> total += (cache?.count(msg) ?: countMessage(msg)) }
         // M6: 每条消息约 4 tokens 开销(OpenAI 协议每条消息的固定开销:role 标记 + 分隔符)
-        val perMessageOverhead = 4
-        total += messages.size * perMessageOverhead
+        total += messages.size * PER_MESSAGE_OVERHEAD_TOKENS
         return total
     }
+
+    /**
+     * 单条消息占用的 token（含思考过程、MOOD、反思、工具调用参数与图片）。
+     *
+     * 抽出来是为了让 [MessageTokenCache] 能按消息缓存 —— 一次请求组装里同一批历史
+     * 会被估算好几遍（总预算、历史预算、超限判断、压缩后收益），每遍都跑一次 BPE。
+     */
+    fun countMessage(msg: UIMessage): Int {
+        var total = estimate(msg.content)
+        // 计入 assistant 的思考过程 / MOOD 腹稿 / 反思块(都会占用上下文)
+        msg.reasoning?.let { total += estimate(it) }
+        msg.mood?.let { total += estimate(it) }
+        msg.reflection?.let { total += estimate(it) }
+        // toolCalls 的 arguments 也算入(JSON 字符串)
+        msg.toolCalls?.forEach { tc -> total += estimate(tc.arguments) }
+        // 视觉图片(base64 / url)同样占用上下文;此前完全未计,导致视觉对话
+        // 预算系统性偏低 → AUTO_COMPRESS/占用圈失真,含图超长上下文可能撞 400。
+        val imageCount = msg.imageBase64List.size + msg.imageUrls.size
+        if (imageCount > 0) {
+            total += imageCount * IMAGE_TOKEN_ESTIMATE_PER_IMAGE
+        }
+        return total
+    }
+
+    private const val PER_MESSAGE_OVERHEAD_TOKENS = 4
 
     /**
      * 启发式回退(中文 1.5 字/token,英文 4 字符/token)。
@@ -139,5 +151,63 @@ object TokenEstimator {
         val cnTokens = (chineseCount / 1.5).toInt()
         val enTokens = otherCount / 4
         return cnTokens + enTokens
+    }
+}
+/**
+ * 单条消息 token 计数的**身份缓存**。
+ *
+ * `UIMessage` 是不可变数据类，同一实例的计数必然相同；而一次请求组装里，
+ * 同一批历史会被估算好几遍：
+ *   - 总预算（messages）
+ *   - 历史预算（去掉头部 SYSTEM）
+ *   - 超限判断（去掉 prefix 再用一次）
+ *   - 压缩后收益（compacted = prefix + 摘要 + recent，其中 prefix/recent 还是原实例）
+ *
+ * 用 `IdentityHashMap` 而不是 `HashMap`：按内容哈希更快也省内存，但内容相等判定要
+ * 逐字段比一遍长字符串，而我们把「同一实例」当作唯一可信的复用条件更安全。
+ * 生命周期与一次 transform 相同，调用方新建一个即可，不跨请求共享。
+ */
+class MessageTokenCache {
+
+    private val counts = java.util.IdentityHashMap<UIMessage, Int>()
+
+    private companion object {
+        /** 上限见 [count]：超过就整体清空。 */
+        const val MAX_CACHED_MESSAGES = 512
+    }
+
+    /** 命中次数（测试与诊断用）。 */
+    var hits: Int = 0
+        private set
+
+    /** 未命中次数，等于真正跑了 BPE 的消息条数（测试与诊断用）。 */
+    var misses: Int = 0
+        private set
+
+    /**
+     * 取一条消息的 token 数（未命中时跑 BPE 并缓存）。
+     *
+     * **线程安全**：`IdentityHashMap` 不是并发容器，并发 put 会让它结构损坏（可能死循环）。
+     * P25 把本缓存提升成 `ContextTokenUsage` 的进程级共享实例后，占用率刷新与提示词组装
+     * 会从不同线程同时进来 —— 所以这里必须加锁。
+     *
+     * 锁只覆盖 map 读写：真正贵的 BPE 计算放在锁外，避免把不同线程的编码串行化。
+     * 代价是极端并发下同一条消息可能被算两次（结果一致，只是白算一次）。
+     */
+    fun count(msg: UIMessage): Int {
+        synchronized(counts) {
+            counts[msg]?.let {
+                hits += 1
+                return it
+            }
+        }
+        val computed = TokenEstimator.countMessage(msg)
+        synchronized(counts) {
+            misses += 1
+            counts[msg] = computed
+            // 有界：按实例身份键控会拽住被替换掉的消息；超上限整体清空，宁可重算也不无限占内存。
+            if (counts.size > MAX_CACHED_MESSAGES) counts.clear()
+        }
+        return computed
     }
 }

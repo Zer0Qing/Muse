@@ -29,6 +29,14 @@ internal object CardScript {
     /** 高度上报接口的全局名（由 CardRuntime 注册为 addJavascriptInterface）。 */
     const val HEIGHT_SINK_NAME: String = "MuseHeightSink"
 
+    /**
+     * 通知卡片「绑定数据变了」的那一句。宿主用 evaluateJavascript 执行它。
+     *
+     * 只发信号、不发数据：卡片收到后自己走 `window.muse.getData()` 取值，
+     * 与轮询读的是同一条路径，所以两种模式的行为完全一致。
+     */
+    const val DATA_EVENT_JS: String = "window.__museDataEvent&&window.__museDataEvent()"
+
     /** 交互桥的全局名。 */
     const val BRIDGE_NAME: String = "MuseCardBridge"
 
@@ -37,11 +45,18 @@ internal object CardScript {
      *
      * 门面与观测是两段独立脚本：门面在无桥时会自己把能力标成 requires_host，
      * 观测则恒定注入（无桥场景同样需要高度跟随）。
+     *
+     * 结果按进程缓存一次：脚本内容与卡片、主题、数据都无关，而它会被每张卡的
+     * 每次 HTML 装配调用。
      */
-    fun build(): String = buildString {
-        append(FACADE_JS)
-        append('\n')
-        append(observerJs())
+    fun build(): String = BUILD
+
+    private val BUILD: String by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        buildString {
+            append(FACADE_JS)
+            append('\n')
+            append(observerJs())
+        }
     }
 
     /**
@@ -129,22 +144,42 @@ internal object CardScript {
     } catch (e) { return null; }
   };
 
-  // 数据订阅：桥只能被卡片调进来，推不进去，所以用轮询。
-  // 只在调用时启动，只比较字符串，内容没变什么也不做。
+  // 数据订阅：桥只能被卡片调进来，宿主反向通知要靠 evaluateJavascript。
+  // 宿主支持推送时（本页由 CardRuntime 注入 __museDataPush）走事件，变化才触发；
+  // 不支持时才退回 800ms 轮询 —— 降级路径保留，避免非聊天场景（无 CardDataStore）
+  // 的卡片失去刷新能力。
   window.muse.data = window.muse.data || {};
+  var __museSubs = [];
+  function __museRemove(entry){
+    var i = __museSubs.indexOf(entry);
+    if (i >= 0) __museSubs.splice(i, 1);
+  }
+  function __museRead(entry){
+    var raw;
+    try { raw = window.muse.getData(); } catch (e) { return; }
+    // 只在值真的变了才回调：轮询与推送走同一口径，避免推送风暴下重复重绘。
+    if (raw === entry.last) return;
+    entry.last = raw;
+    var value = null;
+    try { value = raw ? JSON.parse(raw) : null; } catch (e) { value = raw; }
+    try { entry.cb(value); } catch (e) { }
+  }
   window.muse.data.onChange = function(cb){
     if (typeof cb !== 'function') return function(){};
-    var last = null;
-    var timer = setInterval(function(){
-      var raw;
-      try { raw = window.muse.getData(); } catch (e) { return; }
-      if (raw === last) return;
-      last = raw;
-      var value = null;
-      try { value = raw ? JSON.parse(raw) : null; } catch (e) { value = raw; }
-      try { cb(value); } catch (e) { }
-    }, 800);
-    return function(){ clearInterval(timer); };
+    var entry = { cb: cb, last: null, timer: null };
+    __museSubs.push(entry);
+    if (window.__museDataPush) {
+      // 订阅时补读一次：覆盖「订阅之前数据就已经存在」和「推送落在页面加载期间」两种情形。
+      setTimeout(function(){ __museRead(entry); }, 0);
+      return function(){ __museRemove(entry); };
+    }
+    entry.timer = setInterval(function(){ __museRead(entry); }, 800);
+    return function(){ clearInterval(entry.timer); __museRemove(entry); };
+  };
+  // 宿主推送入口：只表示「可能变了」，取值仍走桥。
+  window.__museDataEvent = function(){
+    var snapshot = __museSubs.slice();
+    for (var i = 0; i < snapshot.length; i++) __museRead(snapshot[i]);
   };
 })();
 """
@@ -208,15 +243,24 @@ internal object CardScript {
     timer = setTimeout(evaluate, 80);
   }
 
+  // 兜底补测：只在「还没量到任何高度」时才补。
+  // 每次 evaluate 都要 getBoundingClientRect + scrollHeight，等于强制一次布局；
+  // 卡片多、滚动进出频繁时，150/400/900 三个无条件定时器就是每个卡片实例 3 次多余布局。
+  // 首次成功上报之后 ResizeObserver 会继续负责后续变化，兜底没有存在价值。
+  function fallback(){
+    if (reported > 0) return;
+    schedule();
+  }
+
   var ro = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver(schedule) : null;
   function start(){
     if (!document.body) { setTimeout(start, 16); return; }
     if (ro) ro.observe(document.body);
     schedule();
-    window.addEventListener('load', schedule);
-    setTimeout(schedule, 150);
-    setTimeout(schedule, 400);
-    setTimeout(schedule, 900);
+    window.addEventListener('load', fallback);
+    setTimeout(fallback, 150);
+    setTimeout(fallback, 400);
+    setTimeout(fallback, 900);
   }
   start();
 })();

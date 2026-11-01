@@ -170,16 +170,6 @@
     <string name="image_save_mediastore_insert_failed">MediaStore insert 失败</string>
     <string name="image_save_open_stream_failed">无法打开输出流</string>
 
-    <!-- ===== ui/experience/ExperiencePanel 经验库 ===== -->
-    <string name="experience_title">经验库</string>
-    <string name="experience_enabled">已启用</string>
-    <string name="experience_add_cd">添加经验</string>
-    <string name="experience_search_hint">搜索经验…</string>
-    <string name="experience_add_title">添加经验</string>
-    <string name="experience_add_category_hint">分类（如"工具使用"）</string>
-    <string name="experience_add_content_hint">经验内容（一句话）</string>
-    <string name="experience_add_confirm">添加</string>
-    <string name="experience_add_cancel">取消</string>
 
     <!-- ===== ui/activity/ActivityPanel 活动日志 ===== -->
     <string name="activity_log_title">活动日志</string>

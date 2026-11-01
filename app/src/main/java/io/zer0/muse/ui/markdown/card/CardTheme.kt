@@ -22,11 +22,20 @@ import androidx.compose.ui.graphics.luminance
  */
 internal object CardTheme {
 
-    /** 生成覆盖用的变量块。 */
+    /** 生成覆盖用的变量块（组合期便捷入口，等价于 `cssOf(MaterialTheme.colorScheme)`）。 */
     @Composable
     @ReadOnlyComposable
-    fun css(): String {
-        val scheme = MaterialTheme.colorScheme
+    fun css(): String = cssOf(MaterialTheme.colorScheme)
+
+    /**
+     * 给定配色求变量块 —— 纯函数。
+     *
+     * 拆出来是为了让调用方用 `remember(scheme)` 缓存：卡片高度每上报一次就会重组，
+     * 而这份 CSS 只跟配色有关。早先每次重组都重新拼三四十行变量，且因为它是
+     * `remember(spec, bridge, themeCss, ...)` 的键，字符串内容相等比较也要整段走一遍。
+     * 缓存后同一个 [scheme] 实例返回同一个引用，比较退化为引用相等。
+     */
+    fun cssOf(scheme: ColorScheme): String {
         val dark = scheme.background.luminance() < 0.5f
         return buildString {
             append(":root{")

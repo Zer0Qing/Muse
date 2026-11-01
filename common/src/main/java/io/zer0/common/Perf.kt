@@ -141,6 +141,21 @@ object Perf {
         private val splits = mutableListOf<Pair<String, Long>>()
 
         /**
+         * 附注：不是耗时，而是"这一轮发生了多少次/多少毫秒"之类的计数字段。
+         *
+         * 存在的理由：`Perf` 只有 ≥500ms 的分段才会以 WARN 进日志文件，
+         * 而 `chat-first-token`（通常几百毫秒）这类埋点根本不会出现在日志里；
+         * 把它挂到本来就会落盘的 `chat-turn` 行上，才查得到。
+         */
+        private val annotations = mutableListOf<String>()
+
+        /** 追加一个非耗时计数字段（如 firstToken=312、uiFlushes=7）。 */
+        fun annotate(key: String, value: Any?) {
+            if (!enabled) return
+            annotations.add("$key=$value")
+        }
+
+        /**
          * 记录一个分段点。
          * @param splitName 分段名称(如 "embedding" / "search")
          */
@@ -160,7 +175,8 @@ object Perf {
             if (splits.isEmpty()) {
                 log(name, total)
             } else {
-                val splitStr = splits.joinToString(", ") { "${it.first}=${it.second}ms" }
+                val splitStr = (splits.joinToString(", ") { "${it.first}=${it.second}ms" } +
+                    if (annotations.isEmpty()) "" else ", " + annotations.joinToString(", ")).trimStart(',', ' ')
                 if (total >= SLOW_THRESHOLD_MS) {
                     Logger.w("Perf", "$name: ${total}ms (slow) [$splitStr]")
                 } else {

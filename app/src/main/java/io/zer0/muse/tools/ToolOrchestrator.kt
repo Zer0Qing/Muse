@@ -859,6 +859,10 @@ class ToolOrchestrator(
             )
         Logger.i(TAG, "Agent Loop 开始 | sessionId=${params.sessionId} | 初始最大轮次: $roundLimitLabel")
 
+        // 每轮都要按"当前历史"算一次 token 占用（给内联输出预算用）。历史每轮只多两条，
+        // 共用一份按实例的计数缓存后，第 2 轮起只算新增的那两条，不再整份重跑 BPE。
+        val loopTokenCache = io.zer0.muse.util.MessageTokenCache()
+
         while ((hasToolCalls || forceFinalResponse) && round < execPolicy.maxRounds) {
             round++
             val stepStartedAt = System.currentTimeMillis()
@@ -1179,7 +1183,11 @@ class ToolOrchestrator(
                     // Phase 3: stateLock/approvalLock 仅在只读并发轮创建;串行路径传 null(行为与现状完全一致)
                     val contextBudgetTokens = host.contextBudgetTokens()
                     val currentHistoryTokens =
-                        if (contextBudgetTokens > 0) TokenEstimator.estimate(conversationHistory) else 0
+                        if (contextBudgetTokens > 0) {
+                        TokenEstimator.estimate(conversationHistory, cache = loopTokenCache)
+                    } else {
+                        0
+                    }
                     val inlineOutputBudgetTokens =
                         toolOutputInlineBudgetTokens(
                             contextBudgetTokens = contextBudgetTokens,

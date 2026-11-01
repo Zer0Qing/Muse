@@ -44,9 +44,10 @@ object ContentSafetyRules {
                     input.contains("Runtime.getRuntime().exec")
                 // 2) cookie 外泄
                 val hasCookieExfil = input.contains("document.cookie")
-                // 3) fetch/XMLHttpRequest/WebSocket/sendBeacon 外发到 http/https URL(覆盖单双引号)
-                val hasFetchExfil = Regex("""fetch\s*\(\s*['"`]https?://""").containsMatchIn(input) ||
-                    Regex("""XMLHttpRequest\s*\(\s*['"`]https?://""").containsMatchIn(input)
+                // 3) 网络外发：**普通 fetch / XHR 已放行**（沙盒改走 Kotlin 侧 OkHttp，
+                //    没有 cookie、有 2MB 上限、每次请求都记审计日志，见 JsSandbox.httpRequest）。
+                //    仍然拦截的是「带凭据/主动外传」的形态：cookie、sendBeacon、WebSocket。
+                //    历史：这里原本连普通 fetch 一起拦，导致工具描述承诺的联网能力完全不可用。
                 val hasWsExfil = Regex("""new\s+WebSocket\s*\(\s*['"`]wss?://""").containsMatchIn(input)
                 val hasBeacon = input.contains("sendBeacon") &&
                     Regex("""https?://""").containsMatchIn(input)
@@ -56,7 +57,7 @@ object ContentSafetyRules {
                         it.value.contains("token") || it.value.contains("secret") ||
                             it.value.contains("key=") || it.value.contains("auth")
                     }
-                hasDangerousProcess || hasCookieExfil || hasFetchExfil ||
+                hasDangerousProcess || hasCookieExfil ||
                     hasWsExfil || hasBeacon || hasUrlWithSensitive
             },
             reason = "疑似外传敏感信息被安全策略拦截",

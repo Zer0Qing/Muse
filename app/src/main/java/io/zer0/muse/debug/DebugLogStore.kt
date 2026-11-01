@@ -58,6 +58,14 @@ object DebugLogStore {
     private val buffer = ConcurrentLinkedDeque<DebugLogEntry>()
 
     /**
+     * 缓冲区条数（2026-11-01 性能整改）。
+     *
+     * `ConcurrentLinkedDeque.size()` 是 O(n) 遍历：每次写日志都为了一次比较趟一遍 2000 个节点。
+     * 这里用一个自增计数代替它 —— 并发下可能短暂偏差 ±线程数，但对"超上限就淘汰最旧"没有影响。
+     */
+    private val sizeCounter = AtomicInteger(0)
+
+    /**
      * v1.0.28: 全局自增 id 生成器,为每条日志分配唯一 id。
      *
      * 用于 DebugScreen LazyColumn 的 item key:之前的 `timestamp_tag_messageHash`
@@ -104,11 +112,11 @@ object DebugLogStore {
         )
         buffer.addLast(entry)
         // 超出上限淘汰最旧(ConcurrentLinkedDeque 没有 trim 等原子操作,先 add 再 trim 安全)。
-        // 注意:size() 是一次 O(n) 遊历而不是常量时间,所以这里每次写日志会趟一遍缓冲区。
-        // 稳态下 add 后只多一条,循环只跑一次、每次淘汰一条 —— 单次开销与缓冲区长度线性,
-        // 2000 条约 4k 次引用读数(微秒级),不是 O(n²),也不会随长度发生内存尖峰。
-        while (buffer.size > MAX_ENTRIES) {
-            buffer.pollFirst() ?: break
+        // 计数用自增变量:不再每行调一次 O(n) 的 size()。
+        var current = sizeCounter.incrementAndGet()
+        while (current > MAX_ENTRIES) {
+            if (buffer.pollFirst() == null) break
+            current = sizeCounter.decrementAndGet()
         }
     }
 
@@ -118,11 +126,12 @@ object DebugLogStore {
     fun getAll(): List<DebugLogEntry> = buffer.toList()
 
     /** 当前缓冲区条数。 */
-    fun size(): Int = buffer.size
+    fun size(): Int = sizeCounter.get()
 
     /** 清空全部日志。 */
     fun clear() {
         buffer.clear()
+        sizeCounter.set(0)
     }
 
     /**

@@ -409,6 +409,10 @@ class SessionRepository(
     suspend fun getRecentActiveByAssistant(assistantId: String): SessionEntity? =
         sessionDao.getRecentActiveByAssistant(assistantId)
 
+    /** 该助手最近有用户发言的普通会话（排除 Agent Tab），主动消息的首选落点。 */
+    suspend fun getRecentChatByAssistant(assistantId: String): SessionEntity? =
+        sessionDao.getRecentChatByAssistant(assistantId)
+
     /** v1.0.72: 设置会话"不参考记忆"标志。 */
     suspend fun setSessionIgnoreMemory(sessionId: String, ignore: Boolean) {
         withContext(Dispatchers.IO) {

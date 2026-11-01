@@ -382,7 +382,7 @@ fun MarkdownText(
                     // 内容太短时不渲染（避免半句 HTML 闪一下）；卡片内部按长度节流重绘。
                     val canProgressiveCard =
                         richLang in setOf("svg", "html", "chart") &&
-                            block.code.length >= PROGRESSIVE_CARD_MIN_CHARS
+                            block.code.length >= ProgressiveCard.MIN_CHARS
                     if (canProgressiveCard) {
                         RichContentCard(
                             language = richLang,
@@ -544,11 +544,8 @@ private fun StreamingCodePreview(block: MarkdownBlock.CodeBlock, style: TextStyl
  */
 private const val STREAMING_BLOCK_CAP = 30
 
-/**
- * v2.6.6: 流式渐进卡片的最小代码长度（字符）。
- * 低于此值不渲染卡片，避免半句 HTML 闪一下又重绘；达到后开始随内容增长逐步呈现。
- */
-private const val PROGRESSIVE_CARD_MIN_CHARS = 24
+// 流式渐进卡片的最小代码长度与档位口径统一由 [ProgressiveCard] 提供：
+// 低于它不渲染卡片（避免半句 HTML 闪一下又重绘），达到后按几何档位逐步呈现。
 
 /**
  * Phase 8.3: 支持链接点击的行内格式化 Text。

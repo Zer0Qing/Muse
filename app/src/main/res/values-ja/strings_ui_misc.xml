@@ -154,16 +154,6 @@
     <string name="image_save_mediastore_insert_failed">MediaStore の挿入に失敗しました</string>
     <string name="image_save_open_stream_failed">出力ストリームを開けません</string>
 
-    <!-- ===== ui/experience/ExperiencePanel ===== -->
-    <string name="experience_title">体験ライブラリ</string>
-    <string name="experience_enabled">有効</string>
-    <string name="experience_add_cd">経験値を追加する</string>
-    <string name="experience_search_hint">エクスペリエンスを検索…</string>
-    <string name="experience_add_title">経験の追加</string>
-    <string name="experience_add_category_hint">カテゴリ (例: 「ツールの使用法」)</string>
-    <string name="experience_add_content_hint">体験内容（一文）</string>
-    <string name="experience_add_confirm">追加</string>
-    <string name="experience_add_cancel">キャンセル</string>
 
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">アクティビティログ</string>

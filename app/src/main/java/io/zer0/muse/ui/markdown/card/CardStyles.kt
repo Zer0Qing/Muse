@@ -275,6 +275,14 @@ html,body{overflow:visible;}
 }
 """
 
-    /** 完整样式表。 */
-    fun full(): String = ALL + NARROW
+    /**
+     * 完整样式表。
+     *
+     * 与主题无关的常量样式：`ALL` 与 `NARROW` 都是编译期字面量，拼接结果恒定。
+     * 早先每次调用都重新 `ALL + NARROW` —— 每张卡片实例在组合期各分配一份十几 KB 的
+     * 相同字符串，同一屏多张卡片就是多份副本。改成进程级惰性求值后只留一份。
+     */
+    private val FULL: String by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { ALL + NARROW }
+
+    fun full(): String = FULL
 }

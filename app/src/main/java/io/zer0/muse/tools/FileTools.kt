@@ -148,7 +148,9 @@ object FileTools {
         )
 
         val target = candidates.firstOrNull { it.exists() && it.isFile }
-            ?: return "[错误] 文件不存在或不是普通文件: $path"
+            ?: return "[错误] 文件不存在或不是普通文件: $path" +
+                // 用 filesDir 那一支推目录：tool_outputs/ 就挂在它下面。
+                siblingHint(File(context.filesDir, trimmedPath))
 
         if (!target.canRead()) return "[错误] 文件不可读: ${target.absolutePath}"
 
@@ -373,4 +375,20 @@ class FileToolsRegistrar(
             }
         }
     }
+}
+
+/**
+ * 读取失败时给一句「这里实际有什么」。
+ *
+ * 此前只报「不存在或不是普通文件」，模型被指引去 `workspace_list` 列目录 ——
+ * 但 `tool_outputs/` 挂在 filesDir 下，不在 workspace 根里，那个动作根本够不着。
+ * 直接在同目录列几个真实文件名，比让模型去试一个不存在的动作有用。
+ */
+private fun siblingHint(target: File): String {
+    val dir = target.parentFile ?: return ""
+    val names = runCatching {
+        dir.listFiles()?.filter { it.isFile }?.take(5)?.map { it.name }
+    }.getOrNull().orEmpty()
+    if (names.isEmpty()) return ""
+    return "。该目录下现有: " + names.joinToString(", ")
 }

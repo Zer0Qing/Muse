@@ -154,16 +154,6 @@
     <string name="image_save_mediastore_insert_failed">MediaStore 삽입 실패</string>
     <string name="image_save_open_stream_failed">출력 스트림을 열 수 없습니다.</string>
 
-    <!-- ===== ui/experience/ExperiencePanel ===== -->
-    <string name="experience_title">체험도서관</string>
-    <string name="experience_enabled">활성화됨</string>
-    <string name="experience_add_cd">경험 추가</string>
-    <string name="experience_search_hint">경험 검색…</string>
-    <string name="experience_add_title">경험 추가</string>
-    <string name="experience_add_category_hint">카테고리(예: \'도구 사용\')</string>
-    <string name="experience_add_content_hint">체험내용(한문장)</string>
-    <string name="experience_add_confirm">추가하다</string>
-    <string name="experience_add_cancel">취소</string>
 
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">활동 로그</string>

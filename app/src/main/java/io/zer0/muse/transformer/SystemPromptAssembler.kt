@@ -1195,12 +1195,13 @@ class SystemPromptAssembler(
                     ordered
                 } else {
                     val ragCfg = settings.getRagConfig()
-                    val provider =
+                    // 走带缓存的批量取向量：候选事实在轮次之间几乎不变，命中后只对 query
+                    // 发一次请求；同一句话重试时连 query 也命中，一次网络都不发。
+                    val vectors =
                         org.koin.core.context.GlobalContext.get()
                             .get<io.zer0.muse.rag.EmbeddingService>()
-                            .getProvider(ragCfg)
-                    val vectors = provider.embed(listOf(input) + ordered.map { it.fact })
-                    if (vectors.size != ordered.size + 1) {
+                            .embedWithCache(ragCfg, listOf(input) + ordered.map { it.fact })
+                    if (vectors == null || vectors.size != ordered.size + 1) {
                         ordered
                     } else {
                         val queryVector = vectors.first()
@@ -1270,6 +1271,11 @@ class SystemPromptAssembler(
      * P2-34: 召回改为按当前问题相关性打分排序(标题/正文/标签命中),不再固定取最近 20 条;
      * 相关性为 0(无共同词)时回退按更新时间倒序。上限 20 条防 prompt 膨胀。
      */
+    // 经验打分的两个固定开销：分词正则每轮重新编译、每条经验每轮重新 lowercase。
+    // 两个都提成实例级（SystemPromptAssembler 在 Koin 里是单例）。
+    private val experienceTokenRegex = Regex("[\\p{L}\\p{Nd}]+")
+    private val experienceTextCache = ExperienceTextCache()
+
     private suspend fun buildExperienceSection(currentUserInput: String?): String {
         val repo = experienceRepository ?: return ""
         val experiences =
@@ -1299,17 +1305,19 @@ class SystemPromptAssembler(
 
     /** P2-34: 文本切词(字母/数字连续段,小写化;空输入返回空)。 */
     private fun tokenizeExperience(text: String): List<String> =
-        Regex("[\\p{L}\\p{Nd}]+").findAll(text.lowercase()).map { it.value }.toList()
+        experienceTokenRegex.findAll(text.lowercase()).map { it.value }.toList()
 
     /** P2-34: 经验条目对当前问题的相关性打分 — 命中词计词长,标签命中额外加权。 */
     private fun experienceRelevance(exp: ExperienceEntity, tokens: List<String>): Int {
         if (tokens.isEmpty()) return 0
-        val titleTxt =
-            if (exp.title.isBlank() && exp.content.isBlank()) {
-                ""
-            } else {
-                (exp.title + " " + exp.content).lowercase()
-            }
+        val titleTxt = if (exp.title.isBlank() && exp.content.isBlank()) {
+            ""
+        } else {
+            experienceTextCache.get(experienceTextCache.key(exp.id, exp.updatedAt))
+                ?: (exp.title + " " + exp.content).lowercase().also { lowered ->
+                    experienceTextCache.put(experienceTextCache.key(exp.id, exp.updatedAt), lowered)
+                }
+        }
         val tagsTxt = exp.tagsJson.lowercase()
         var score = 0
         for (tok in tokens) {

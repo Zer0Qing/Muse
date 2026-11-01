@@ -45,7 +45,12 @@ object CodeExecutionTool {
      */
     fun toolDef() = ToolRegistry.ToolDef(
         name = TOOL_NAME,
-        description = "执行 JavaScript 代码并返回结果。可用 Math/JSON/Array 等标准库与网络(fetch/XMLHttpRequest/WebSocket),但不能跳转页面或读取本地文件。超时 10 秒。",
+        description =
+            "执行 JavaScript 代码并返回结果。可用 Math/JSON/Array 等标准库;" +
+                "脚本可以 return Promise,工具会等它完成再返回真实结果。" +
+                "网络:fetch/XHR 由宿主原生发起(不是浏览器请求),因此**不受 CORS 限制**," +
+                "http/https 都可以访问;每次外发都会记审计日志。" +
+                "不能跳转页面或读取本地文件。超时 10 秒。",
         parameters = mapOf(
             "code" to "必填,要执行的 JavaScript 代码(如 '1+2*3' / 'Math.max(1,2,3)' / 'JSON.stringify([1,2,3])')",
             "timeout_ms" to "可选,超时毫秒数,默认 10000(10 秒)",

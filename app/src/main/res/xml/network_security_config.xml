@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- 默认: 禁止明文流量 -->
-    <base-config cleartextTrafficPermitted="false">
+    <!--
+      默认: 允许明文流量。
+      
+      2026-11 决定: JS 沙盒（execute_javascript / 插件 JS 工具）要能访问任意 http 主机。
+      Android 的网络安全策略是「按域名」放行的，无法只对沙盒开口子 —— 要支持任意主机
+      就只能把 base-config 打开。
+      
+      代价与兜底:
+       - 全应用不再强制 https（Provider 走 http 时日志里会告警 baseUrl 非 https）；
+       - 沙盒的每次外发都会写审计日志（JsSandbox.httpRequest），便于回溯；
+       - 仍禁止沙盒读取本地文件、仍拦 cookie / sendBeacon / WebSocket 外传。
+      若要收回这条，把下面的 false 改回来即可（沙盒随即只能走 https）。
+    -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

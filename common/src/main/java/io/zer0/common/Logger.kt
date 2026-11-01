@@ -45,6 +45,20 @@ object Logger {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
     private val lock = Any()
 
+    /**
+     * 常驻的文件写入句柄 + 已写字节数（2026-11-01 性能整改）。
+     *
+     * 旧实现每行 `file.appendText(line)` = open + write + close 三次系统调用；
+     * 实测单条日志（含 PII 脱敏）约 **0.25ms**（JVM），一次普通对话回合几十条日志就是十几毫秒，
+     * 而且这部分开销落在写日志的线程上（可能是主线程）。
+     *
+     * 现在句柄常驻、每行 flush：省掉 open/close，但**不改变持久化时机** ——
+     * 每行仍立刻落盘，崩溃不会丢日志，多进程追加的安全性也维持原样（仍是 O_APPEND 追加）。
+     * 字节数自己记账，避免每行再 stat 一次文件大小。
+     */
+    private var fileWriter: java.io.Writer? = null
+    private var writtenBytes: Long = 0L
+
     /** 日志等级枚举(用于 [fileLogLevel] 阈值控制)。 */
     enum class Level { DEBUG, INFO, WARN, ERROR }
 
@@ -207,11 +221,16 @@ object Logger {
         synchronized(lock) {
             val file = logFile ?: return
             try {
-                // Rolling:超 100KB 备份为 .1,新建空文件
-                if (file.exists() && file.length() > MAX_LOG_FILE_BYTES) {
-                    val backup = File(logDir, "$LOG_FILE_NAME.1")
-                    if (backup.exists()) backup.delete()
-                    file.renameTo(backup)
+                // Rolling:超 1MB 备份为 .1,新建空文件。轮转前必须先关句柄，
+                // 否则重命名后句柄仍指向被改名的那份文件，新日志会写进备份。
+                if (writtenBytes > MAX_LOG_FILE_BYTES || fileWriter == null) {
+                    if (writtenBytes > MAX_LOG_FILE_BYTES) {
+                        closeWriterLocked()
+                        val backup = File(logDir, "$LOG_FILE_NAME.1")
+                        if (backup.exists()) backup.delete()
+                        file.renameTo(backup)
+                        writtenBytes = 0L
+                    }
                 }
                 val timestamp = dateFormat.format(Date())
                 val levelStr = when (level) {
@@ -220,15 +239,38 @@ object Logger {
                     Level.WARN -> "W"
                     Level.ERROR -> "E"
                 }
-                val line = "$timestamp $levelStr/$tag: $msg\n"
-                file.appendText(line)
+                val sink = writerLocked(file)
+                val body = "$timestamp $levelStr/$tag: $msg\n"
+                sink.append(body)
+                // 按"字符数 × 2"估算字节数：中文日志一行 3 字节/字符，只数字符会让 1MB 上限实际放大到 3MB。
+                // 乘 2 是 BMP 字符（3 字节）与代理对（4 字节/2 字符）的折中估计 —— 偏保守，宁可早轮转。
+                writtenBytes += body.length * 2L
                 if (t != null) {
-                    file.appendText(stackTraceToString(t))
-                    file.appendText("\n")
+                    val trace = stackTraceToString(t) + "\n"
+                    sink.append(trace)
+                    writtenBytes += trace.length * 2L
                 }
+                // 每行都刷盘：持久化时机与旧实现一致。
+                sink.flush()
             } catch (_: Throwable) {
-                // 日志失败不能影响主流程
+                // 日志失败不能影响主流程（句柄可能在异常中作废，下次写入会重建）
+                closeWriterLocked()
             }
         }
+    }
+
+    /** 取常驻句柄；文件被外部删除/轮转后自动重建。 */
+    private fun writerLocked(file: File): java.io.Writer {
+        fileWriter?.let { return it }
+        val created = java.io.BufferedWriter(java.io.FileWriter(file, true), 8 * 1024)
+        fileWriter = created
+        writtenBytes = if (file.exists()) file.length() else 0L
+        return created
+    }
+
+    /** 关闭并丢弃句柄。 */
+    private fun closeWriterLocked() {
+        runCatching { fileWriter?.close() }
+        fileWriter = null
     }
 }

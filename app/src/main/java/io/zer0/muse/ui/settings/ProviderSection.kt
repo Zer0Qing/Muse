@@ -127,6 +127,58 @@ internal fun LazyListScope.providerListSection(
     item { ModelCatalogRow() }
     item { ProviderCollisionWarning(providers) }
 
+    // "添加 Provider" 入口 —— 置顶（用户反馈：自定义分组多时每次都要滚到底）
+    item {
+        SettingsGroup(
+            modifier = Modifier.padding(top = MusePaddings.itemGap),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onAddProvider() }
+                    .padding(horizontal = MusePaddings.screen, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.plus,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+                Text(
+                    text = stringResource(R.string.settings_provider_add),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            // v1.97: 扫描二维码导入 Provider
+            SettingsGroupDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onScanQr() }
+                    .padding(horizontal = MusePaddings.screen, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.qrcode,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+                Text(
+                    text = stringResource(R.string.qr_scan_btn),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
+    }
+
     // 官方厂商分组
     if (officialProviders.isNotEmpty()) {
         item { ProviderCategoryHeader(stringResource(R.string.settings_provider_category_official), officialProviders.size) }
@@ -187,57 +239,7 @@ internal fun LazyListScope.providerListSection(
         }
     }
 
-    // "添加 Provider" 入口(始终在列表末尾)
-    item {
-        SettingsGroup(
-            modifier = Modifier.padding(top = MusePaddings.itemGap),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onAddProvider() }
-                    .padding(horizontal = MusePaddings.screen, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.plus,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-                Text(
-                    text = stringResource(R.string.settings_provider_add),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-            // v1.97: 扫描二维码导入 Provider
-            SettingsGroupDivider()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onScanQr() }
-                    .padding(horizontal = MusePaddings.screen, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.qrcode,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-                Text(
-                    text = stringResource(R.string.qr_scan_btn),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-        }
-    }
+
 }
 
 /**

@@ -154,16 +154,6 @@
     <string name="image_save_mediastore_insert_failed">Вставка в MediaStore не удалась</string>
     <string name="image_save_open_stream_failed">Невозможно открыть выходной поток</string>
 
-    <!-- ===== ui/experience/ExperiencePanel ===== -->
-    <string name="experience_title">Библиотека опыта</string>
-    <string name="experience_enabled">Включено</string>
-    <string name="experience_add_cd">Добавить опыт</string>
-    <string name="experience_search_hint">Поиск опыта…</string>
-    <string name="experience_add_title">Добавить опыт</string>
-    <string name="experience_add_category_hint">Категория (например, «использование инструмента»)</string>
-    <string name="experience_add_content_hint">Содержание опыта (одно предложение)</string>
-    <string name="experience_add_confirm">Добавлять</string>
-    <string name="experience_add_cancel">Отмена</string>
 
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Журнал активности</string>

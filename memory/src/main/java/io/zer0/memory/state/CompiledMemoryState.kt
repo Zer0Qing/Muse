@@ -15,6 +15,22 @@ object CompiledMemoryState {
     /** 编译产物文件名常量。 */
     val COMPILED_FILES = listOf("memory.md", "facts.md", "today.md", "week.md", "longterm.md")
 
+    // 2026-11-01 性能整改:这些正则原先在函数体里现场构造。
+    // normalizeSectionBody 每次调用要新建 3 个、stripLeadingHeadings 1 个、
+    // normalizeLlmOutput 3 个；而 readCompiledMemoryMarkdown 一次读会调
+    // normalizeSectionBody 四次（facts/today/week/longterm），叠加起来是每读一次
+    // 记忆就重新编译十几个 Pattern。全部提成常量后只编译一次。
+    private val JSON_STRING_ARRAY_RE =
+        Regex("""^\s*\[\s*("(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")*)\s*]\s*$""", RegexOption.MULTILINE)
+    private val JSON_QUOTED_RE = Regex(""""(?:[^"\\]|\\.)*"""")
+    private val MANY_BLANK_LINES_RE = Regex("\n{3,}")
+    private val LINE_BREAK_RE = Regex("\\r?\\n")
+    private val FENCED_BLOCK_RE = Regex("""^\s*```(?:markdown|md|text)?\s*\n([\s\S]*?)\n```\s*$""")
+    private val THINK_BLOCK_RE = Regex("<think(?:ing)?>[\\s\\S]*?</think(?:ing)?>", RegexOption.IGNORE_CASE)
+    private val THINK_OPEN_TAIL_RE = Regex("<think(?:ing)?>[\\s\\S]*$", RegexOption.IGNORE_CASE)
+    private val THINK_OPEN_RE = Regex("<think(?:ing)?>", RegexOption.IGNORE_CASE)
+    private val THINK_CLOSE_RE = Regex("</think(?:ing)?>", RegexOption.IGNORE_CASE)
+
     /**
      * 规范化 section body:
      *  - 去除 <think>...</think> 块(部分模型输出思考标签)
@@ -32,9 +48,9 @@ object CompiledMemoryState {
         // 遇到第一个非标题、非空行即停止剥离,后续内容原样保留。
         s = stripLeadingHeadings(s)
         // JSON 字符串数组 → bullet list (["a","b"] → "- a\n- b")
-        val jsonArrMatch = Regex("""^\s*\[\s*("(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")*)\s*]\s*$""", RegexOption.MULTILINE).find(s)
+        val jsonArrMatch = JSON_STRING_ARRAY_RE.find(s)
         if (jsonArrMatch != null) {
-            val items = Regex(""""(?:[^"\\]|\\.)*"""").findAll(jsonArrMatch.groupValues[1])
+            val items = JSON_QUOTED_RE.findAll(jsonArrMatch.groupValues[1])
                 .map { it.value.trim('"') }
                 .toList()
             if (items.isNotEmpty()) {
@@ -42,7 +58,7 @@ object CompiledMemoryState {
             }
         }
         // 压缩 3+ 换行为 2 换行
-        s = s.replace(Regex("\n{3,}"), "\n\n")
+        s = s.replace(MANY_BLANK_LINES_RE, "\n\n")
         return s.trim()
     }
 
@@ -51,7 +67,7 @@ object CompiledMemoryState {
      * 遇到第一个非标题、非空行即停止,后续内容(含子标题)原样保留。
      */
     private fun stripLeadingHeadings(value: String): String {
-        val lines = value.split(Regex("\\r?\\n"))
+        val lines = value.split(LINE_BREAK_RE)
         var idx = 0
         // 跳过开头的空行 + 标题行
         while (idx < lines.size) {
@@ -79,7 +95,7 @@ object CompiledMemoryState {
         if (value.isEmpty()) return ""
         var s = value
         // 去 ```markdown\n...\n``` 围栏
-        val fenceMatch = Regex("""^\s*```(?:markdown|md|text)?\s*\n([\s\S]*?)\n```\s*$""").find(s)
+        val fenceMatch = FENCED_BLOCK_RE.find(s)
         if (fenceMatch != null) s = fenceMatch.groupValues[1]
         s = stripThinkTagBlocks(s)
         return s.trim()
@@ -90,13 +106,13 @@ object CompiledMemoryState {
         if (value.isEmpty()) return ""
         var s = value
         // 闭合块
-        s = s.replace(Regex("<think(?:ing)?>[\\s\\S]*?</think(?:ing)?>", RegexOption.IGNORE_CASE), "")
+        s = s.replace(THINK_BLOCK_RE, "")
         // 残留的开头未闭合块(部分模型只输出 <think> 开头)
-        s = s.replace(Regex("<think(?:ing)?>[\\s\\S]*$", RegexOption.IGNORE_CASE), "")
+        s = s.replace(THINK_OPEN_TAIL_RE, "")
         return s
     }
 
     /** 检测是否有孤立的 <think> 开头标签(无闭合)。 */
-    fun hasDanglingLeadingThinkTag(value: String): Boolean = Regex("<think(?:ing)?>", RegexOption.IGNORE_CASE).containsMatchIn(value) &&
-        !Regex("</think(?:ing)?>", RegexOption.IGNORE_CASE).containsMatchIn(value)
+    fun hasDanglingLeadingThinkTag(value: String): Boolean = THINK_OPEN_RE.containsMatchIn(value) &&
+        !THINK_CLOSE_RE.containsMatchIn(value)
 }

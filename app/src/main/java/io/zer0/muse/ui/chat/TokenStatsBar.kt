@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,9 +38,19 @@ fun TokenStatsBar(
     contextWindow: Int,
     promptTokens: Int? = null,
     completionTokens: Int? = null,
+    /**
+     * 这条消息是否仍在流式生成。
+     *
+     * 流式期间不做本地估算：最后一条助手消息每个 chunk 都会重组，而 BPE 是按正文长度线性涨的
+     * （5KB 正文 ≈ 1–2ms），全部落在主线程 —— 为了一个还在变的数字付这个代价不划算。
+     * 正文与卡源码越长，这条越明显。
+     */
+    streaming: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val estimatedOutput = (TokenEstimator.estimate(listOf(message)) - 4).coerceAtLeast(0)
+    val estimatedOutput = remember(message, streaming) {
+        if (streaming) 0 else (TokenEstimator.estimate(listOf(message)) - 4).coerceAtLeast(0)
+    }
     val outputTokens = completionTokens ?: estimatedOutput
     // contextTokenCount 在收尾时已按完整消息列表(含本条助手回复)重估;
     // 无 provider usage 时扣掉输出估算,得到输入上下文的近似值,避免把输出重复算进输入。
@@ -75,8 +86,13 @@ fun TokenStatsBar(
                 append(" · ")
                 append(stringResource(R.string.chat_token_output))
                 append(" ")
-                if (outputEstimated) append("~")
-                append(formatTokenCount(outputTokens))
+                if (streaming && completionTokens == null) {
+                    // 还在生成：这个数字每帧都在变，直接表明"待定"比给个假数字诚实。
+                    append("…")
+                } else {
+                    if (outputEstimated) append("~")
+                    append(formatTokenCount(outputTokens))
+                }
                 if (contextWindow > 0) {
                     append(" · ")
                     append(stringResource(R.string.chat_token_usage))

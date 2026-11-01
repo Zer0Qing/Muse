@@ -8,6 +8,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.session.WarmupHistory
+import io.zer0.muse.util.MessageTokenCache
 import io.zer0.muse.util.TokenEstimator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -34,6 +35,10 @@ internal fun retainMessagesInOriginalOrder(
 /** True when the complete payload estimate exceeds the configured compression budget. */
 internal fun isOverContextCompressionBudget(messages: List<UIMessage>, tokenBudget: Int): Boolean =
     tokenBudget > 0 && TokenEstimator.estimate(messages) > tokenBudget
+
+/** 同上，但 token 数已由调用方算好（一次请求里同一批消息只该估一遍）。 */
+internal fun isOverContextCompressionBudget(tokens: Int, tokenBudget: Int): Boolean =
+    tokenBudget > 0 && tokens > tokenBudget
 
 /**
  * 上下文压缩 Transformer(Phase 8.1 H1)。
@@ -158,9 +163,15 @@ class ContextCompressTransformer(
         // v2.3.2: 历史 key 名为 compress_char_budget,实际统一按 token 预算解释。
         // TokenEstimator 会计入 reasoning/toolCalls/图片,避免压缩在视觉或工具密集会话中触发过晚。
         val tokenBudget = (context.extra("compress_char_budget") as? Int) ?: 0
-        val totalTokens = TokenEstimator.estimate(messages)
+        // 一次 transform 里同一批消息要被估算好几遍（总预算 / 历史预算 / 超限判断 /
+        // 压缩后收益）。共用一份按实例的计数缓存，每条消息的 BPE 只跑一次。
+        val tokenCache = MessageTokenCache()
+        val totalTokens = TokenEstimator.estimate(messages, cache = tokenCache)
         @Suppress("NAME_SHADOWING")
-        val historyTokens = TokenEstimator.estimate(messages.dropWhile { it.role == MessageRole.SYSTEM })
+        val historyTokens = TokenEstimator.estimate(
+            messages.dropWhile { it.role == MessageRole.SYSTEM },
+            cache = tokenCache,
+        )
 
         // L-COMP6: threshold < keepRecent 时配置语义失效,告警
         if (threshold < keepRecent) {
@@ -171,7 +182,16 @@ class ContextCompressTransformer(
         // 那么超限判断也只能看历史部分，不能把系统提示再算一遍。
         val prefixEnd = systemPrefixEnd(messages)
         val overCount = messages.size > threshold
-        val overBudget = isOverContextCompressionBudget(messages.drop(prefixEnd), tokenBudget)
+        // 只在「条数没超」时才需要算预算；drop(prefixEnd) 是 messages 的子集，
+        // 且 prefix 也是同一批实例，缓存能直接命中。
+        // 注意是 `!overCount &&`：预算判断只在下方的「条数没超」分支里才有意义。
+        // 写成 `overCount &&` 会让「条数没超但 token 爆了」被判成不超预算，
+        // 也就是压缩永远不触发 —— 那正是按 token 预算解释的最初目的。
+        val overBudget = !overCount &&
+            isOverContextCompressionBudget(
+                TokenEstimator.estimate(messages.drop(prefixEnd), cache = tokenCache),
+                tokenBudget,
+            )
         if (!overCount && !overBudget) return messages
 
         // 已存在摘要时水位线抬半档：已压过一次还按原阈值判，会反复触发。
@@ -250,7 +270,7 @@ class ContextCompressTransformer(
         // v2.3.2: 净收益校验 —— 工具密集会话(大量保留项)或可压缩区间过短时,摘要可能比被替换掉的
         // 原文还长:压缩不但没省上下文,还白花一次 LLM 调用。按字符数比较(便宜的代理指标,
         // 避免在管道里跑 BPE 编码),没变小就保留原文。
-        val afterTokens = TokenEstimator.estimate(compacted)
+        val afterTokens = TokenEstimator.estimate(compacted, cache = tokenCache)
         if (afterTokens >= totalTokens) {
             Logger.i(name, "compress 无净收益($totalTokens → $afterTokens token),保留原文不压缩")
             if (forceFallback) return forceFallbackHistory(prefix, adjustedRecent, tokenBudget)

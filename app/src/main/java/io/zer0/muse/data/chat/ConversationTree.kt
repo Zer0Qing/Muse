@@ -373,10 +373,15 @@ data class ConversationTree(
         val newIndex = user.variants.size
         val newCount = newIndex + 1
         val now = System.currentTimeMillis()
+        // 新变体的 createdAt 必须**贴着原消息**，不能用 now：
+        // 重建树（fromMessages）按 createdAt 排序，用 now 会把这条排到整个会话最后，
+        // 于是「编辑中间那条」看起来变成「在末尾又发了一条」—— 用户反馈的正是这个。
+        // 与助手变体（retryAssistant）保持同一套做法：base + 序号。
+        val baseCreatedAt = user.currentVariant?.message?.createdAt ?: now
         val newUserMsg = UIMessage(
             role = MessageRole.USER,
             content = newContent,
-            createdAt = now,
+            createdAt = baseCreatedAt + newIndex,
             variantGroupId = userGroupId,
             variantIndex = newIndex,
             variantCount = newCount,
@@ -385,7 +390,7 @@ data class ConversationTree(
         val placeholder = UIMessage(
             role = MessageRole.ASSISTANT,
             content = "",
-            createdAt = now + 1,
+            createdAt = newUserMsg.createdAt + 1,
             variantGroupId = placeholderGroupId,
             variantIndex = 0,
             variantCount = 1,

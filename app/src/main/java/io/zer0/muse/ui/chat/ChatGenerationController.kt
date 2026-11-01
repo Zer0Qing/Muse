@@ -43,6 +43,7 @@ import io.zer0.muse.ui.canRegenerate
 import io.zer0.muse.ui.canStartGeneration
 import io.zer0.muse.ui.resumeFromInterrupted
 import io.zer0.muse.util.ErrorMessages
+import io.zer0.muse.util.MessageTokenCache
 import io.zer0.muse.util.TokenEstimator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -1299,9 +1300,12 @@ internal class ChatGenerationController(
             // 两次都是“保留摘要 + 最近若干条”的压缩，不会把历史压空；
             // 而两边各自只允许一次，也就到此为止。
             if (nearContextLimit) {
+                // 一次请求里 payload 要估两遍（原始 / 压缩后）。压缩后保留下来的消息是**同一批实例**，
+                // 共用一份按实例的计数缓存能把第二遍从"整份 BPE"降到"只算新增的摘要"。
+                val payloadTokenCache = MessageTokenCache()
                 var payloadTokens =
                     withContext(Dispatchers.Default) {
-                        TokenEstimator.estimate(prefixMessages + truncatedHistory)
+                        TokenEstimator.estimate(prefixMessages + truncatedHistory, cache = payloadTokenCache)
                     }
                 // v2.6.x: 硬拦截同样按本轮实际模型窗口（窗口来源同上方 windowTokens）。
                 val hardMaxTokens = windowTokens
@@ -1314,7 +1318,10 @@ internal class ChatGenerationController(
                             stillOverflows = { candidate ->
                                 payloadTokens =
                                     withContext(Dispatchers.Default) {
-                                        TokenEstimator.estimate(prefixMessages + candidate)
+                                        TokenEstimator.estimate(
+                                            prefixMessages + candidate,
+                                            cache = payloadTokenCache,
+                                        )
                                     }
                                 exceedsHardContextLimit(payloadTokens, hardMaxTokens)
                             },
@@ -1737,6 +1744,17 @@ internal class ChatGenerationController(
                 }.onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
             } finally {
                 // P3-9: 结束阶段计时(含准备/首字/每轮/收尾分段;异常路径同样落日志)
+                //
+                // 附注两项：首字延迟与流式 UI 刷新次数。
+                // 它们本身走 Perf.log，但 Perf 只把 ≥500ms 的写进日志文件（chat-first-token 通常更快），
+                // 于是日志里根本查不到。挂到这条本来就会落盘的 chat-turn 行上，才有可观测性。
+                // 键名刻意避开 token / key / secret 等字样：Logger 的 PII 脱敏会把
+                // `xxx=N` 这类键值当凭据替换成 [已脱敏]（第一版 firstToken=… 就是这样丢的）。
+                stageTimer.annotate(
+                    "ttftMs",
+                    if (state.firstTokenTime > 0L) state.firstTokenTime - state.streamStartedAt else -1L,
+                )
+                stageTimer.annotate("flushes", state.uiFlushCount)
                 stageTimer.end()
                 val executionState = generationExecutionId?.let { executionRegistry?.state(it) }
                 if (generationExecutionId != null && executionState == ExecutionState.RUNNING) {

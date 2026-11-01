@@ -22,7 +22,16 @@ import java.util.Base64
 internal object BackupBinaryFiles {
 
     /** 允许备份的目录前缀(相对 filesDir),恢复时按同一份清单校验。 */
-    val allowedPrefixes: List<String> = listOf("note_attachments/", "avatar/")
+    val allowedPrefixes: List<String> = listOf(
+        "note_attachments/",
+        "avatar/",
+        // 2026-11-01: 卡片数据改为按卡片分片（CardDataStore），单文件 card_data.json 只留作迁移源。
+        // 不加这一条的话，分片之后卡片数据就不在备份范围里 —— 恢复后所有 show_card 内容丢失。
+        "card_data/",
+        // 2026-11-01: 渠道收件箱改为按条目分片（ChannelInbox），单文件 channel_inbox.json 只留作迁移源。
+        // 不加这一条的话，恢复后待派发事件与近期入站历史全部丢失。
+        "channel_inbox/",
+    )
 
     /** 单文件上限:2MB。 */
     const val MAX_FILE_BYTES: Long = 2L * 1024 * 1024

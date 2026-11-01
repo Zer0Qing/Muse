@@ -158,13 +158,19 @@ class ProactiveContextLoader(
 
     /** 主动消息会话的来源。排查「消息到底发去了哪个房间」时先看这个字段。 */
     enum class SessionSource(val wireName: String) {
-        /** 该助手最近有用户发言的会话。 */
+        /** 该助手最近有用户发言的**普通**会话（不含 Agent Tab）。主动消息的首选落点。 */
         RECENT_ACTIVE("recent_active"),
+
+        /** 退一步：最近有用户发言的会话，**包括** Agent Tab（用户只在 Agent 里聊过时）。 */
+        RECENT_ANY("recent_any"),
 
         /** 用户当前正在看的会话(属于该助手)。 */
         VIEWED("viewed"),
 
-        /** 兜底新建的 Agent 会话。 */
+        /** 复用该助手已有的 Agent 会话（不新建，避免每次兜底都多出一个空 Agent 页）。 */
+        EXISTING_AGENT("existing_agent"),
+
+        /** 兜底新建的 Agent 会话（该助手一个会话都没有时）。 */
         NEW_AGENT("new_agent"),
     }
 
@@ -187,41 +193,80 @@ class ProactiveContextLoader(
      * 定位主动消息的落点,并返回选中原因。
      *
      * 目标行为:在哪儿聊完,就由哪儿发。按优先级取第一个可用:
-     *  1. 该助手最近有用户发言的会话(排除条件写在 SQL 里,见 SessionDao)
+     *  1. 该助手最近有用户发言的**普通**会话(排除条件写在 SQL 里,见 SessionDao)
      *  2. 用户当前正在看的会话(需属于该助手,且同样非删除/非归档/非小手机)
-     *  3. 兜底新建 Agent 会话
+     *  1.5 若只在 Agent Tab 里聊过 → 写进那个 Agent 会话
+     *  3. 复用已有 Agent 会话
+     *  4. 兜底新建 Agent 会话
      *
      * 每一步都单独包 runCatching:依赖没就绪时是降级到下一级,而不是让整轮巡检崩掉。
-     * 三级全空返回 null,由上层当作「没有可用会话」跳过本轮。
+     * 四级全空返回 null,由上层当作「没有可用会话」跳过本轮。
      */
     suspend fun resolveSessionPick(assistant: AssistantEntity): SessionPick? {
         val now = System.currentTimeMillis()
+        // 设置里的「Agent 会话也发主动消息」：关掉后完全不碰 Agent Tab（也不为它新建会话）。
+        val agentAllowed = agentSessionAllowed()
+        // 按优先级串起来：每一级失败/为空就降级到下一级，最后统一打一条选择日志。
+        val pick = pickRecentChat(assistant)
+            ?: pickRecentAny(assistant, agentAllowed)
+            ?: pickViewed(assistant, agentAllowed)
+            // 括号不能省：`a ?: if (c) x else y ?: z` 会被解析成 `a ?: (if (c) x else (y ?: z))`，
+            // 结果就是「允许 Agent 时反而走不到兜底」—— 这正是这次自测抓到的。
+            ?: (if (agentAllowed) pickExistingAgent(assistant) else null)
+            ?: (if (agentAllowed) createAgentSession(assistant) else null)
+        return pick?.let { logPick(assistant, it, now) }
+    }
 
-        // 1) 用户最后说话的地方
-        val recent = runCatching {
+    /** 读「Agent 会话也发主动消息」开关；读不到时按允许处理（保持既有行为）。 */
+    private suspend fun agentSessionAllowed(): Boolean = runCatching {
+        runtime.settings.proactiveMessageConfigFlow.first().agentSessionEnabled
+    }.getOrDefault(true)
+
+    /** 1) 用户最后说话的**普通**会话（Agent Tab 不算：那是独立界面，在那里说话不代表消息该出现在 Agent 页）。 */
+    private suspend fun pickRecentChat(assistant: AssistantEntity): SessionPick? {
+        val session = runCatching {
+            runtime.sessions.getRecentChatByAssistant(assistant.id)
+        }.getOrNull() ?: return null
+        return SessionPick(session.id, SessionSource.RECENT_ACTIVE, session.updatedAt)
+    }
+
+    /** 1.5) 用户只在 Agent Tab 里聊过 —— 写回那个 Agent 会话，而不是新建（新建会让 Agent 页越堆越多）。 */
+    private suspend fun pickRecentAny(assistant: AssistantEntity, agentAllowed: Boolean): SessionPick? {
+        val session = runCatching {
             runtime.sessions.getRecentActiveByAssistant(assistant.id)
-        }.getOrNull()
-        if (recent != null) {
-            return logPick(assistant, SessionPick(recent.id, SessionSource.RECENT_ACTIVE, recent.updatedAt), now)
-        }
+        }.getOrNull() ?: return null
+        if (!agentAllowed && session.isAgentSession) return null
+        return SessionPick(session.id, SessionSource.RECENT_ANY, session.updatedAt)
+    }
 
-        // 2) 用户正看着的会话。第 1 级只认「有用户发言」的房间,
-        //    刚打开还没来得及说话时会漏到这一级,那时候写进去正是用户想看到的地方。
+    /** 2) 用户正看着的会话（刚打开还没发言时会漏到这一级，写进去正是用户想看到的地方）。 */
+    private suspend fun pickViewed(assistant: AssistantEntity, agentAllowed: Boolean): SessionPick? {
         val viewed = runCatching { runtime.settings.getViewedSessionId() }.getOrNull()
-        val viewedSession = viewed
+        val session = viewed
             ?.let { id -> runCatching { runtime.sessions.getSessionById(id) }.getOrNull() }
             ?.takeIf { it.isWritableForProactive(assistant.id) }
-        if (viewedSession != null) {
-            return logPick(assistant, SessionPick(viewedSession.id, SessionSource.VIEWED, viewedSession.updatedAt), now)
-        }
+            ?.takeIf { agentAllowed || !it.isAgentSession }
+            ?: return null
+        return SessionPick(session.id, SessionSource.VIEWED, session.updatedAt)
+    }
 
-        // 3) 兜底:该助手一个可用会话都没有,建一个新的 Agent 会话
+    /** 3) 复用该助手已有的 Agent 会话（用户主动清空过才需要新建）。 */
+    private suspend fun pickExistingAgent(assistant: AssistantEntity): SessionPick? {
+        val session = runCatching {
+            runtime.sessions.getRecentAgentByAssistant(assistant.id, 1).firstOrNull()
+        }.getOrNull()
+            ?.takeIf { it.deletedAt == null && !it.archived }
+            ?: return null
+        return SessionPick(session.id, SessionSource.EXISTING_AGENT, session.updatedAt)
+    }
+
+    /** 4) 最后兜底：一个可用会话都没有，建一个新的 Agent 会话。 */
+    private suspend fun createAgentSession(assistant: AssistantEntity): SessionPick? {
         val created = runCatching {
             runtime.sessions.createAgentSession(assistant.id)
         }.getOrNull() ?: return null
-        return logPick(assistant, SessionPick(created, SessionSource.NEW_AGENT, now), now)
+        return SessionPick(created, SessionSource.NEW_AGENT, System.currentTimeMillis())
     }
-
     /** 主动消息能否写进该会话:属于该助手、未删除、未归档。 */
     private fun SessionEntity.isWritableForProactive(assistantId: String): Boolean =
         this.assistantId == assistantId && deletedAt == null && !archived

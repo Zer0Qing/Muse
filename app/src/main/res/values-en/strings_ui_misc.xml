@@ -164,16 +164,6 @@ Tap refresh to fetch the list upstream</string>
     <string name="image_save_mediastore_insert_failed">MediaStore insert failed</string>
     <string name="image_save_open_stream_failed">Cannot open output stream</string>
 
-    <!-- ===== ui/experience/ExperiencePanel ===== -->
-    <string name="experience_title">Experience Library</string>
-    <string name="experience_enabled">Enabled</string>
-    <string name="experience_add_cd">Add experience</string>
-    <string name="experience_search_hint">Search experiences…</string>
-    <string name="experience_add_title">Add Experience</string>
-    <string name="experience_add_category_hint">Category (e.g. \'tool usage\')</string>
-    <string name="experience_add_content_hint">Experience content (one sentence)</string>
-    <string name="experience_add_confirm">Add</string>
-    <string name="experience_add_cancel">Cancel</string>
 
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Activity Log</string>

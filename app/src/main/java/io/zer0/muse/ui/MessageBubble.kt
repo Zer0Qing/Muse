@@ -77,7 +77,6 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.resultOf
 import io.zer0.muse.R
-import io.zer0.muse.chat.InternalPromptMarkers
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.MoodSkinParser
@@ -128,15 +127,16 @@ import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-internal fun messageCopyText(content: String, reasoning: String?): String {
+internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。
+    //
+    // 只复制正文。此前会把思考过程拼在正文后面（还带一个 [思考过程] 标记），
+    // 用户实测「点复制拿到的是思考」—— 想要思考有专门的「复制思考」按钮，
+    // 复制正文就该只有正文。正文为空（只有思考/被中断）时才回退到思考，
+    // 免得按钮变成空操作。
     val body = InternalMarkupSanitizer.exportContent(content)
-    val thought = InternalMarkupSanitizer.exportContent(reasoning.orEmpty())
-    return when {
-        body.isNotBlank() && thought.isNotBlank() -> "$body\n\n${InternalPromptMarkers.THINKING_TAG}\n$thought"
-        body.isNotBlank() -> body
-        else -> thought
-    }
+    if (body.isNotBlank()) return body
+    return InternalMarkupSanitizer.exportContent(reasoning.orEmpty())
 }
 
 /**
@@ -188,6 +188,51 @@ internal data class MessageBubbleLayout(
     val widthFraction: Float,
     val hasOpaqueOuterSurface: Boolean,
 )
+
+/** 正文渲染所需的派生值（见 [MessageBubble] 里的 bubbleText remember）。 */
+internal data class BubbleText(
+    val content: String,
+    val titleText: String?,
+    val bodyContent: String,
+)
+
+
+/**
+ * 正文渲染所需的派生值。
+ *
+ * 抽成纯函数是为了能被单测直接覆盖：这段逻辑（贴纸路径剔除、压缩标记剥离、标题行切分、
+ * artifact 标记清理）以前写在组合体里，只能靠读代码确认，改动一次就可能悄悄改变渲染结果。
+ */
+internal fun deriveBubbleText(
+    content: String,
+    body: String,
+    imageUrls: List<String>,
+    imageBase64List: List<String>,
+    isStreaming: Boolean,
+    isCompressed: Boolean,
+): BubbleText {
+    val hasImages = imageUrls.isNotEmpty() || imageBase64List.isNotEmpty()
+    val hasStickerPaths = if (hasImages) false else extractStickerPaths(content).isNotEmpty()
+    val bodyWithoutStickerPaths = if (hasStickerPaths) {
+        STICKER_PATH_PATTERN.replace(body, "").trim()
+    } else {
+        body
+    }
+    val rawContent = if (isCompressed) {
+        body.removePrefix("[COMPRESSED]").trim()
+    } else {
+        bodyWithoutStickerPaths.ifEmpty { if (hasImages) "" else " " }
+    }
+    val firstLineEnd = rawContent.indexOf('\n').takeIf { it >= 0 } ?: rawContent.length
+    val firstLine = rawContent.substring(0, firstLineEnd)
+    val heading = !isStreaming && firstLine.isNotBlank() && firstLine.startsWith("#")
+    return BubbleText(
+        content = rawContent,
+        titleText = if (heading) firstLine else null,
+        bodyContent = (if (heading) rawContent.substring(firstLineEnd + 1).trimStart() else rawContent)
+            .replace(ARTIFACT_MARKER_RE, ""),
+    )
+}
 
 internal fun messageBubbleLayout(role: MessageBubbleRole): MessageBubbleLayout = when (role) {
     MessageBubbleRole.USER -> MessageBubbleLayout(widthFraction = 0.85f, hasOpaqueOuterSurface = true)
@@ -1539,30 +1584,29 @@ internal fun MessageBubble(
                                 // 文本内容(Markdown 渲染);图片消息可能 content 也含 markdown 图片语法,双渲染避免空泡
                                 // v1.0.54: send_sticker 的 content 只有贴纸绝对路径(用于渲染图片),渲染文本时剔除,
                                 //   避免"莫名其妙的路径"显示成文本。
-                                val stickerPathTexts = if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty()) {
-                                    extractStickerPaths(msg.content)
-                                } else {
-                                    emptyList()
+                                // 这一段曾经每次重组都重跑：表情包路径 findAll、两条整段正则替换（贴纸路径、artifact 标记）、
+                                // 标题行切分。流式期间每个 chunk 都会触发重组，长消息（尤其是带卡片源码的）代价随之线性增长。
+                                // 结果只由 msg.content / 图片列表 / isStreaming / body / isCompressed 决定，按它们缓存。
+                                val bubbleText = remember(
+                                    msg.content,
+                                    msg.imageUrls,
+                                    msg.imageBase64List,
+                                    isStreaming,
+                                    body,
+                                    isCompressed,
+                                ) {
+                                    deriveBubbleText(
+                                        content = msg.content,
+                                        body = body,
+                                        imageUrls = msg.imageUrls,
+                                        imageBase64List = msg.imageBase64List,
+                                        isStreaming = isStreaming,
+                                        isCompressed = isCompressed,
+                                    )
                                 }
-                                val bodyWithoutStickerPaths = if (stickerPathTexts.isNotEmpty()) {
-                                    STICKER_PATH_PATTERN.replace(body, "").trim()
-                                } else {
-                                    body
-                                }
-                                val content = if (isCompressed) {
-                                    body.removePrefix("[COMPRESSED]").trim()
-                                } else {
-                                    bodyWithoutStickerPaths.ifEmpty {
-                                        if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty()) " " else ""
-                                    }
-                                }
-                                // Markdown 标题提取:若内容以 # 标题开头,顶部显示粗体标题行,正文不再重复渲染标题
-                                val firstLineEnd = content.indexOf('\n').takeIf { it >= 0 } ?: content.length
-                                val firstLine = content.substring(0, firstLineEnd)
-                                val hasHeading = !isStreaming && firstLine.isNotBlank() && firstLine.startsWith("#")
-                                val titleText = if (hasHeading) firstLine else null
-                                val bodyContent = (if (hasHeading) content.substring(firstLineEnd + 1).trimStart() else content)
-                                    .replace(ARTIFACT_MARKER_RE, "")
+                                val content = bubbleText.content
+                                val titleText = bubbleText.titleText
+                                val bodyContent = bubbleText.bodyContent
                                 if (voiceUri == null && content.isNotBlank()) {
                                     // Markdown 标题行
                                     titleText?.let {
