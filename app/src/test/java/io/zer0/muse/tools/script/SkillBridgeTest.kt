@@ -54,4 +54,53 @@ class SkillBridgeTest {
         assertTrue(result is SkillBridge.HandleResult.Output)
         assertTrue((result as SkillBridge.HandleResult.Output).json.contains("ok"))
     }
+
+    @Test
+    fun `storage kv round trip respects value limit`(): Unit = runBlocking {
+        val root = java.nio.file.Files.createTempDirectory("muse-kv").toFile()
+        val host = SkillBridge.Host(context = null, fsRoot = root)
+        val allowed = setOf("storage_get", "storage_set", "storage_delete", "storage_list")
+
+        val set = SkillBridge.tryHandle(
+            """{"__bridge__":true,"action":"storage_set","params":{"key":"a.b","value":{"n":1}}}""",
+            allowed, host,
+        )
+        val read = SkillBridge.tryHandle(
+            """{"__bridge__":true,"action":"storage_get","params":{"key":"a.b"}}""",
+            allowed, host,
+        )
+        val missing = SkillBridge.tryHandle(
+            """{"__bridge__":true,"action":"storage_get","params":{"key":"nope"}}""",
+            allowed, host,
+        )
+        val list = SkillBridge.tryHandle(
+            """{"__bridge__":true,"action":"storage_list","params":{}}""",
+            allowed, host,
+        )
+
+        assertTrue("set 应成功: $set", set is SkillBridge.HandleResult.Output)
+        assertTrue("读回应带值: $read", (read as? SkillBridge.HandleResult.Output)?.json?.contains("\"n\"") == true)
+        assertTrue("未存过的键 found=false: $missing", (missing as? SkillBridge.HandleResult.Output)?.json?.contains("\"found\":false") == true)
+        assertTrue("list 要回 limitBytes: $list", (list as? SkillBridge.HandleResult.Output)?.json?.contains("limitBytes") == true)
+
+        val denied = SkillBridge.tryHandle(
+            """{"__bridge__":true,"action":"storage_set","params":{"key":"x","value":"y"}}""",
+            setOf("echo"), host,
+        )
+        assertTrue("未授权必须被拒", denied is SkillBridge.HandleResult.Failure)
+
+        val bigValue = "z".repeat(300 * 1024)
+        val tooBig = SkillBridge.tryHandle(
+            """{"__bridge__":true,"action":"storage_set","params":{"key":"x","value":"$bigValue"}}""",
+            allowed, host,
+        )
+        assertTrue("单项超上限要给出可行动提示: $tooBig", (tooBig as? SkillBridge.HandleResult.Failure)?.message?.contains("fs_write") == true)
+
+        val badKey = SkillBridge.tryHandle(
+            """{"__bridge__":true,"action":"storage_set","params":{"key":"../escape","value":1}}""",
+            allowed, host,
+        )
+        assertTrue("非法键必须拒: $badKey", badKey is SkillBridge.HandleResult.Failure)
+        root.deleteRecursively()
+    }
 }

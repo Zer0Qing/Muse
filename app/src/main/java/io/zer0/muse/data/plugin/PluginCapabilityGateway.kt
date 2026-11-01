@@ -255,6 +255,9 @@ class PluginCapabilityGateway(
             "clipboard" to setOf("clipboard_read", "clipboard_write"),
             "notify" to setOf("notify"),
             "device.info" to setOf("device_info"),
+            // 私有 KV 与 fs.* 是两种授权面：前者"能记状态"，后者"能读写目录里的文件"，
+            // 合成一项的话权限清单就没有意义了。
+            "storage" to setOf("storage_get", "storage_set", "storage_delete", "storage_list"),
         )
 
         /**

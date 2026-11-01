@@ -5,11 +5,16 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import io.zer0.common.AppJson
+import io.zer0.muse.data.AtomicFileStore
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import io.zer0.common.Logger
 import io.zer0.muse.tools.TOOL_OUTPUTS_DIR
 import io.zer0.muse.tools.ToolFailureText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -52,6 +57,13 @@ object SkillBridge {
 
     /** v2.2.1: http_post 请求体上限(256KB)。 */
     private const val MAX_REQUEST_BYTES = 256 * 1024
+
+    /** 插件私有 KV 的文件名与配额：整份 8MB、单项 256KB、list 最多回 200 个键。 */
+    private const val KV_FILE_NAME = ".muse-kv.json"
+    private const val MAX_KV_TOTAL_BYTES = 8 * 1024 * 1024
+    private const val MAX_KV_VALUE_BYTES = 256 * 1024
+    private const val MAX_KV_LISTED_KEYS = 200
+    private val KEY_NAME_REGEX = Regex("^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 
     /** B-2: 手动跟随重定向的最大跳数,防止重定向链无限延伸。 */
     private const val MAX_REDIRECTS = 5
@@ -111,7 +123,7 @@ object SkillBridge {
      * 尝试处理一个 skill 脚本的执行返回值。
      *
      * @param valueJson 脚本返回值的 JSON 字符串（SkillEngineResult.Success.valueJson）
-     * @param allowedActions 放行动作集（v2.x 默认传 [ALL_ACTIONS] 全放行）
+     * @param allowedActions 放行动作集，必须由调用方按**能力账本**给出（见 `PluginCapabilityGateway.allowedActions`）
      * @param host 桥接宿主（fs/剪贴板等动作需要）
      * @return 见 [HandleResult]
      */
@@ -141,9 +153,148 @@ object SkillBridge {
             "clipboard_read" -> execClipboardRead(host)
             "clipboard_write" -> execClipboardWrite(host, params)
             "notify" -> execNotify(host, params)
+            "storage_get" -> withContext(Dispatchers.IO) { execStorageGet(host, params) }
+            "storage_set" -> withContext(Dispatchers.IO) { execStorageSet(host, params) }
+            "storage_delete" -> withContext(Dispatchers.IO) { execStorageDelete(host, params) }
+            "storage_list" -> withContext(Dispatchers.IO) { execStorageList(host) }
             "device_info" -> HandleResult.Output(deviceInfoJson())
             else -> HandleResult.Failure("__bridge__ action '$action' 不受支持")
         }
+    }
+
+    // ── 插件私有 KV（storage_*）───────────────────────────────────────────
+    //
+    // 为什么单独做一套而不是让插件自己 `fs_write` 一个 JSON：
+    //  1. 配额要能算清楚 —— KV 走固定文件，超限能给出可行动的提示；散落的 fs_write 文件无从统计；
+    //  2. `fs.*` 与 `storage` 是两种不同的授权面（前者是"能读写我目录里的文件"，
+    //     后者是"能记住一点状态"），合并会让权限清单失去意义。
+
+    /** 读一个键。不存在返回 `{value: null}` —— 不是错误，插件要能区分"没存过"和"存了 null"。 */
+    private fun execStorageGet(host: Host?, params: JsonObject): HandleResult {
+        val store = kvFile(host) ?: return kvRootMissing()
+        val key = storageKey(params) ?: return HandleResult.Failure("storage_get 缺少合法的 key 参数")
+        val entry = readKv(store)[key]
+        val output = buildJsonObject {
+            put("key", JsonPrimitive(key))
+            put("found", JsonPrimitive(entry != null))
+            if (entry != null) put("value", entry["value"] ?: JsonNull)
+        }
+        return HandleResult.Output(output.toString())
+    }
+
+    /** 写一个键：先收参数，再交给 [writeKv] 做体积与配额判定。 */
+    private fun execStorageSet(host: Host?, params: JsonObject): HandleResult {
+        val store = kvFile(host)
+        val key = storageKey(params)
+        val value = params["value"]
+        return when {
+            store == null -> kvRootMissing()
+            key == null || value == null ->
+                HandleResult.Failure("storage_set 需要合法的 key（字母数字开头，可含 . _ -，<=64）与 value 参数")
+            else -> writeKv(store, key, value)
+        }
+    }
+
+    /** 落盘一次 KV 写入：单项超限与整份配额都在这一处判，避免两套上限各写一遍。 */
+    private fun writeKv(store: File, key: String, value: JsonElement): HandleResult {
+        val itemBytes = value.toString().toByteArray(Charsets.UTF_8).size
+        if (itemBytes > MAX_KV_VALUE_BYTES) {
+            return HandleResult.Failure(
+                "storage_set 单项 ${itemBytes / 1024}KB 超过上限(${MAX_KV_VALUE_BYTES / 1024}KB)；" +
+                    "大块内容请改用 fs_write 落成文件，KV 只存索引",
+            )
+        }
+        val snapshot = LinkedHashMap(readKv(store))
+        snapshot[key] = buildJsonObject { put("value", value) }
+        val serialized = encodeKv(snapshot)
+        val totalBytes = serialized.toByteArray(Charsets.UTF_8).size
+        if (totalBytes > MAX_KV_TOTAL_BYTES) {
+            return HandleResult.Failure(
+                "插件存储将达到配额上限(${MAX_KV_TOTAL_BYTES / 1024}KB)：" +
+                    "先用 storage_delete 清理不再需要的键，或把大块内容改用 fs_write 落成文件",
+            )
+        }
+        return runCatching { AtomicFileStore.writeText(store, serialized) }
+            .fold(
+                onSuccess = {
+                    HandleResult.Output(
+                        buildJsonObject {
+                            put("ok", JsonPrimitive(true))
+                            put("key", JsonPrimitive(key))
+                            put("bytes", JsonPrimitive(totalBytes))
+                        }.toString(),
+                    )
+                },
+                onFailure = { HandleResult.Failure("storage_set 写入失败: ${it.message}") },
+            )
+    }
+
+    private fun execStorageDelete(host: Host?, params: JsonObject): HandleResult {
+        val store = kvFile(host) ?: return kvRootMissing()
+        val key = storageKey(params) ?: return HandleResult.Failure("storage_delete 缺少合法的 key 参数")
+        val snapshot = LinkedHashMap(readKv(store))
+        val removed = snapshot.remove(key) != null
+        if (removed) {
+            runCatching { AtomicFileStore.writeText(store, encodeKv(snapshot)) }
+                .onFailure { return HandleResult.Failure("storage_delete 写入失败: ${it.message}") }
+        }
+        return HandleResult.Output(
+            buildJsonObject {
+                put("ok", JsonPrimitive(true))
+                put("removed", JsonPrimitive(removed))
+            }.toString(),
+        )
+    }
+
+    /** 只回键名与占用，不回值：避免一次 list 把整份数据塞进上下文。 */
+    private fun execStorageList(host: Host?): HandleResult {
+        val store = kvFile(host) ?: return kvRootMissing()
+        val entries = readKv(store).entries
+        return HandleResult.Output(
+            buildJsonObject {
+                put("limitBytes", JsonPrimitive(MAX_KV_TOTAL_BYTES))
+                put("usedBytes", JsonPrimitive(encodeKv(readKv(store)).toByteArray(Charsets.UTF_8).size))
+                put(
+                    "keys",
+                    kotlinx.serialization.json.buildJsonArray {
+                        entries.take(MAX_KV_LISTED_KEYS).forEach { (key, value) ->
+                            add(
+                                buildJsonObject {
+                                    put("key", JsonPrimitive(key))
+                                    put("bytes", JsonPrimitive(value.toString().toByteArray(Charsets.UTF_8).size))
+                                },
+                            )
+                        }
+                    },
+                )
+            }.toString(),
+        )
+    }
+
+    private fun kvRootMissing(): HandleResult = HandleResult.Failure("storage_* 需要插件沙盒目录，当前宿主未提供")
+
+    private fun kvFile(host: Host?): File? {
+        val root = host?.fsRoot ?: return null
+        return File(root, KV_FILE_NAME)
+    }
+
+    private fun storageKey(params: JsonObject): String? {
+        val key = (params["key"] as? JsonPrimitive)?.contentOrNull ?: return null
+        return key.takeIf { KEY_NAME_REGEX.matches(it) }
+    }
+
+    private fun readKv(store: File): Map<String, JsonObject> {
+        if (!store.isFile) return emptyMap()
+        val obj = runCatching { AppJson.parseToJsonElement(store.readText()) as? JsonObject }.getOrNull()
+            ?: return emptyMap()
+        return obj.entries.mapNotNull { (key, value) ->
+            (value as? JsonObject)?.let { key to it }
+        }.toMap()
+    }
+
+    private fun encodeKv(snapshot: Map<String, JsonObject>): String {
+        val builder = LinkedHashMap<String, JsonObject>(snapshot)
+        return AppJson.encodeToString(MapSerializer(String.serializer(), JsonObject.serializer()), builder)
     }
 
     // ── HTTP ─────────────────────────────────────────────────────────────

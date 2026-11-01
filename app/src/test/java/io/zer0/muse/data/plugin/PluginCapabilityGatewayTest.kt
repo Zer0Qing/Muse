@@ -279,4 +279,14 @@ class PluginCapabilityGatewayTest {
 
         assertFalse(gw.isApproved("p1", PluginCapabilityGateway.RUNTIME_PYTHON))
     }
+
+    @Test
+    fun `storage capability grants exactly the kv actions`() {
+        val gw = gateway()
+
+        val actions = gw.allowedActions("p1", listOf("storage"))
+
+        assertEquals(setOf("storage_get", "storage_set", "storage_delete", "storage_list"), actions - setOf("echo"))
+        assertFalse("storage 不该顺带给出 fs_write", actions.contains("fs_write"))
+    }
 }

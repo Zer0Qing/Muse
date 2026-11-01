@@ -423,7 +423,16 @@ class NodePluginEngine(private val context: Context) {
             |    getPluginId: function () { return __PLUGIN_ID__; }
             |  },
             |  muse: {
-            |    bridge: function (action, params) { return JSON.parse(__bridgeRaw(action, JSON.stringify(params || {}))); }
+            |    bridge: function (action, params) { return JSON.parse(__bridgeRaw(action, JSON.stringify(params || {}))); },
+            |    // storage 只是 bridge 的糖：**必须走同一条通道**，否则等于在沙盒里开第二个不受账本管的后门
+            |    storage: {
+            |      get: function (key) { return JSON.parse(__bridgeRaw('storage_get', JSON.stringify({ key: key }))); },
+            |      set: function (key, value) {
+            |        return JSON.parse(__bridgeRaw('storage_set', JSON.stringify({ key: key, value: value })));
+            |      },
+            |      delete: function (key) { return JSON.parse(__bridgeRaw('storage_delete', JSON.stringify({ key: key }))); },
+            |      list: function () { return JSON.parse(__bridgeRaw('storage_list', '{}')); }
+            |    }
             |  }
             |};
             |vm.createContext(__sandbox);
