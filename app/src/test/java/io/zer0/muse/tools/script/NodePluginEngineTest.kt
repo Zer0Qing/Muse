@@ -2,9 +2,11 @@ package io.zer0.muse.tools.script
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -150,5 +152,40 @@ class NodePluginEngineTest {
         val wrapper = engine().buildWrapper("function f(){}", "f", "", "p1", null, 3_000L)
 
         assertTrue(wrapper.contains("f.apply(undefined, [])"))
+    }
+
+    @Test
+    fun `concurrency guard fails fast instead of queueing`() = runBlocking {
+        val engine = engine()
+        // 额度是进程级共享的，用完必须还得干干净净，否则后面的测试会莫名少一格
+        val held = mutableListOf<NodePluginEngine>()
+        try {
+            repeat(NodePluginEngine.MAX_CONCURRENT_PROCESSES) { check(engine.tryEnterSlot()); held += engine }
+
+            assertFalse(
+                "满了要直接失败（排队会让调用方以为还在跑，超时更难归因）",
+                engine.tryEnterSlot(),
+            )
+            held.removeAt(0).exitSlot()
+            assertTrue("让出一个槽位后应能立刻进", engine.tryEnterSlot())
+        } finally {
+            repeat(NodePluginEngine.MAX_CONCURRENT_PROCESSES) { engine.exitSlot() }
+            held.forEach { runCatching { it.exitSlot() } }
+        }
+    }
+
+    @Test
+    fun `runtime-not-ready path must not leak a concurrency slot`() = runBlocking {
+        // 回归：`isReady` 检查曾经写在 try 外面，早退绕过 finally，
+        // 于是运行时没装好的设备上两次调用就把插件并发额度永久吃光。
+        val engine = engine()
+
+        repeat(NodePluginEngine.MAX_CONCURRENT_PROCESSES) {
+            val result = engine.callPluginFunction("function f(){return 1}", "f", "[]", scopeKey = "leak-check")
+            assertTrue("JVM 环境本就没有 Node，应给可读的未就绪错误: $result", result is SkillEngineResult.Error)
+        }
+
+        assertTrue("未就绪不该占用槽位", engine.tryEnterSlot())
+        engine.exitSlot()
     }
 }

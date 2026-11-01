@@ -68,27 +68,51 @@ class NodePluginEngine(private val context: Context) {
             SkillBridge.HandleResult.Failure("桥接不可用（宿主未接入能力总线）")
         },
     ): SkillEngineResult {
-        if (!MuseRuntime.isReady(context)) {
+        if (!tryEnterSlot()) {
+            // 旧实现靠全局锁顺带限流；池化/子进程化之后那层保护没了，必须显式补回来：
+            // 助手一次并行调 5 个插件工具是常规场景，不限并发就是 5 个 Node 进程同时吃内存。
+            // 这里选"快速失败"而不是排队：排队会让调用方以为还在跑，超时报错更难归因。
             return SkillEngineResult.Error(
-                message = "内置 Node 运行时未就绪（设置 → 工具与扩展 → 扩展运行时）；" +
-                    "Node 档插件暂时无法执行，请安装运行时数据或改用 js/python 档",
+                message = "插件并发已满（同时最多 $MAX_CONCURRENT_PROCESSES 个 Node 执行），请稍后重试；" +
+                    "内置 JS 工具与其他插件不受影响，它们不占这个额度",
             )
         }
-        val work = File(MuseRuntime.runtimeDir(context), PLUGIN_WORK_DIR).apply { mkdirs() }
+        val work = File(MuseRuntime.runtimeDir(context), PLUGIN_WORK_DIR)
         val tmp = File(work, "plugin-${UUID.randomUUID()}.js")
         val errFile = File(work, tmp.name + ".err")
-        tmp.writeText(buildWrapper(entryCode, functionName, argsJson, scopeKey, pluginConfigJson, timeoutMs))
         return try {
-            runPump(tmp, errFile, timeoutMs, bridgeHandler)
+            if (!MuseRuntime.isReady(context)) {
+                // 这个检查必须在 try 里面：放在外面会从 finally 旁边绕过去，
+                // 永久吃掉一个并发槽位 —— 运行时没装好的设备上，两次调用就把插件全锁死了。
+                SkillEngineResult.Error(
+                    message = "内置 Node 运行时未就绪（设置 → 工具与扩展 → 扩展运行时）；" +
+                        "Node 档插件暂时无法执行，请安装运行时数据或改用 js/python 档",
+                )
+            } else {
+                work.mkdirs()
+                tmp.writeText(buildWrapper(entryCode, functionName, argsJson, scopeKey, pluginConfigJson, timeoutMs))
+                runPump(tmp, errFile, timeoutMs, bridgeHandler)
+            }
         } catch (e: Exception) {
             // 子进程启动/管道/解析失败的统一兜底：任何异常都得变成可读的 Error，
             // 不能把堆栈甩给模型 —— 与 ProcessSkillEngine 同一口径。
             Logger.w(TAG, "Node 插件执行失败: ${e.message}", e)
             SkillEngineResult.Error(message = e.message ?: "Node 插件执行异常")
         } finally {
+            exitSlot()
             runCatching { tmp.delete() }
             runCatching { errFile.delete() }
         }
+    }
+
+    /**
+     * 抢一个执行槽位。测试可以直接调这两个函数（不需要真的起 Node），
+     * 因为"满了要快速失败"本身就是被测行为。
+     */
+    internal suspend fun tryEnterSlot(): Boolean = slots.tryAcquire()
+
+    internal fun exitSlot() {
+        if (slots.availablePermits() < MAX_CONCURRENT_PROCESSES) slots.release()
     }
 
     private suspend fun runPump(
@@ -294,12 +318,20 @@ class NodePluginEngine(private val context: Context) {
         .replace("__PLUGIN_ID__", JsonPrimitive(scopeKey ?: "").toString())
         .replace("__CONFIG_JSON__", pluginConfigJson ?: "null")
 
-    private companion object {
+    // 不用 private companion：测试要读 MAX_CONCURRENT_PROCESSES 来验证并发闸门，
+    // 而且这个上限本来就是对外的行为约定（写死在拒绝文案里）。
+    companion object {
         const val TAG = "NodePluginEngine"
         const val PLUGIN_WORK_DIR = "plugin-sandbox"
         const val MAX_HEAP_MB = 192
         const val MAX_STDERR_CHARS = 1_200
         const val MAX_STRAY_CHARS = 160
+
+        /** 同时允许的几个插件 Node 进程（一个 Node 进程几十 MB 起）。 */
+        const val MAX_CONCURRENT_PROCESSES = 2
+
+        /** 进程级共享：所有 NodePluginEngine 实例共用同一份额度。 */
+        private val slots = java.util.concurrent.Semaphore(MAX_CONCURRENT_PROCESSES)
 
         /** 单次执行的桥接次数上限：插件与宿主互相打转时的硬闸。 */
         const val MAX_BRIDGE_CALLS = 16
