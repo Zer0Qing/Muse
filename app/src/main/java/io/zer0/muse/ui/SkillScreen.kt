@@ -41,6 +41,7 @@ import io.zer0.common.AppJson
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.skill.SkillEntity
+import io.zer0.muse.data.skill.SkillPackageImporter
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.SkillExecutor
 import io.zer0.muse.tools.SkillImporter
@@ -86,6 +87,7 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
     var importMessage by remember { mutableStateOf<String?>(null) }
     var importing by remember { mutableStateOf(false) }
     var importDialogVisible by remember { mutableStateOf(false) }
+    val packageImporter = remember { SkillPackageImporter(context, skillRepository) }
     val builtInIds = remember {
         SkillExecutor.BUILT_IN_SKILLS.map { it.id }.toSet()
     }
@@ -120,6 +122,18 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                         }
                         sb.toString()
                     } ?: ""
+                }
+                // SKILL.md 走能力包路径：文本以 YAML 头部开头就不是 .skill.json，
+                // 让它落到下面的 recipe/json 分支只会得到一句"解析失败"，用户不知道为什么。
+                if (text.trimStart().startsWith("---")) {
+                    val outcome = packageImporter.importManifestText(text)
+                    importMessage = when (outcome) {
+                        is SkillPackageImporter.Outcome.Installed ->
+                            context.getString(R.string.skill_imported, outcome.skill.name)
+                        is SkillPackageImporter.Outcome.Failed ->
+                            context.getString(R.string.skill_import_error, outcome.reason)
+                    }
+                    return@launch
                 }
                 val recipeResult = SkillImporter.parseRecipe(text)
                 if (recipeResult is SkillImporter.RecipeParseResult.Ok) {
@@ -368,6 +382,7 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                 deleteConfirmTarget = null
                 scope.launch {
                     resultOf { skillRepository.delete(skill.id) }
+                        .onSuccess { scope.launch { packageImporter.deletePackageFor(skill) } }
                         .onError { msg, _ -> MuseToast.show(context.getString(R.string.skill_delete_failed_ui, msg)) }
                 }
             },

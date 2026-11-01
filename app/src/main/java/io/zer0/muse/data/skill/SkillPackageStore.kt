@@ -194,11 +194,14 @@ class SkillPackageStore(context: Context) {
     /** 一个已落盘的包。 */
     data class Imported(val skillId: String, val definition: SkillPackage.Parsed, val dir: File)
 
-    private companion object {
-        const val TAG = "SkillPackageStore"
-        const val RELATIVE_ROOT = "workspace/skills"
-        const val SKILL_FILE = "SKILL.md"
-        const val MAX_ID_BASE_CHARS = 40
+    companion object {
+        /** 清单文件名（导入器写临时包时也要用同一个值，不能各写一份字面量）。 */
+        const val SKILL_FILE_NAME = "SKILL.md"
+
+        private const val TAG = "SkillPackageStore"
+        private const val RELATIVE_ROOT = "workspace/skills"
+        private const val SKILL_FILE = SKILL_FILE_NAME
+        private const val MAX_ID_BASE_CHARS = 40
     }
 }
 
@@ -265,9 +268,17 @@ internal class SkillPackageZip {
         out.outputStream().use { write -> copyZipEntryWithLimit(zip, write, MAX_ENTRY_BYTES, name) }
     }
 
-    /** 所有条目共用同一个顶层目录时返回它（含结尾斜杠），否则返回空串。 */
+    /**
+     * 所有条目共用同一个顶层目录时返回它（含结尾斜杠），否则返回空串。
+     *
+     * 必须**每个名字都含分隔符**才算有顶层目录：
+     * 扁平包（根下就一个 `SKILL.md`）里没有 `/`，`substringBefore('/')` 会返回文件名本身，
+     * 于是"SKILL.md"被当成目录名，清单路径变成 `SKILL.md/SKILL.md` —— 这个 bug 是被
+     * 扁平 ZIP 的测试用例抓到的。
+     */
     private fun commonTopLevelDir(names: List<String>): String {
-        val first = names.firstOrNull()?.substringBefore('/') ?: return ""
+        if (names.isEmpty() || names.any { !it.contains('/') }) return ""
+        val first = names.first().substringBefore('/')
         if (first.isEmpty()) return ""
         return if (names.all { it.substringBefore('/') == first }) "$first/" else ""
     }
