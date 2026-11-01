@@ -47,6 +47,8 @@ data class SelectOption(
  * @param defaultVal 用户未手动设置时的默认值
  * @param description 用途说明（LLM 据此决定是否调用及如何传参）
  * @param options      仅 type=select 时有意义；其他类型忽略
+ * @param secret       凭据类配置（API key、token）。标了就不允许插件用 `config_set` 自己改，
+ *                     只能由用户在设置界面里填 —— 否则"插件能写配置"等于"插件能给自己换钥匙"。
  */
 @Serializable
 data class ConfigItem(
@@ -55,6 +57,12 @@ data class ConfigItem(
     val defaultVal: JsonElement? = null,
     val description: String = "",
     val options: List<SelectOption> = emptyList(),
+    /**
+     * 签名兼容约束：与 `runtime`/`hooks` 同理，默认值不参与序列化 ——
+     * 存量已签名市场包不含这个字段，一旦被编码会让所有存量包验签失败。
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val secret: Boolean = false,
 )
 
 /**

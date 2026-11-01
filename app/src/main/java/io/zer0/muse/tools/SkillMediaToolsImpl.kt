@@ -14,6 +14,8 @@ import io.zer0.muse.tools.script.NodePluginEngine
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.zer0.muse.data.plugin.PluginHostApi
+import io.zer0.muse.data.plugin.PluginManifest
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.sticker.StickerLibraryRepository
@@ -220,12 +222,12 @@ class SkillMediaToolsImpl(
                     // 多轮桥接（P0-7-1）：插件里每次 muse.bridge() 都走**与 js 档同一套判定**，
                     // 不复用第二套逻辑 —— 两套授权的结局一定是其中一套漏检。
                     bridgeHandler = { requestJson ->
-                        bridgeHandle(bridgeSentinel(requestJson), pluginId, verified.manifest.capabilities)
+                        bridgeHandle(bridgeSentinel(requestJson), pluginId, verified.manifest, manager)
                     },
                 ),
                 manager = manager,
                 pluginId = pluginId,
-                declared = verified.manifest.capabilities,
+                manifest = verified.manifest,
             )
         }
 
@@ -242,7 +244,7 @@ class SkillMediaToolsImpl(
             ),
             manager = manager,
             pluginId = pluginId,
-            declared = verified.manifest.capabilities,
+            manifest = verified.manifest,
         )
     }
 
@@ -256,9 +258,9 @@ class SkillMediaToolsImpl(
         result: SkillEngineResult,
         manager: PluginManager,
         pluginId: String,
-        declared: List<String>,
+        manifest: PluginManifest,
     ): String = when (result) {
-            is SkillEngineResult.Success -> bridgeOrValue(result.valueJson, pluginId, declared)
+            is SkillEngineResult.Success -> bridgeOrValue(result.valueJson, pluginId, manifest, manager)
             is SkillEngineResult.Error -> {
                 if (JsSandbox.isCircuitBrokenFor(pluginId)) {
                     resultOf { manager.setEnabled(pluginId, false) }
@@ -278,8 +280,12 @@ class SkillMediaToolsImpl(
      *  1. `fs_*` 仍锁定在插件自己的沙盒目录 `workspace/plugins/<pluginId>`，防路径逃逸；
      *  2. `http_*` 仍走 SSRF 防护（拒内网/本地地址）。
      */
-    private suspend fun bridgeOrValue(value: String, pluginId: String, declared: List<String>): String =
-        when (val bridge = bridgeHandle(value, pluginId, declared)) {
+    private suspend fun bridgeOrValue(
+        value: String,
+        pluginId: String,
+        manifest: PluginManifest,
+        manager: PluginManager,
+    ): String = when (val bridge = bridgeHandle(value, pluginId, manifest, manager)) {
             is SkillBridge.HandleResult.NotBridge ->
                 runCatching { AppJson.decodeFromString<String>(value) }.getOrElse { value.ifBlank { "null" } }
             // 桥接请求的执行结果作为技能返回值直接返回给 LLM
@@ -295,9 +301,19 @@ class SkillMediaToolsImpl(
      *  1. `fs_*` 锁定在插件自己的沙盒目录 `workspace/plugins/<pluginId>`，防路径逃逸；
      *  2. `http_*` 走 SSRF 防护（拒内网/本地地址）。
      */
-    private suspend fun bridgeHandle(value: String, pluginId: String, declared: List<String>): SkillBridge.HandleResult {
+    private suspend fun bridgeHandle(
+        value: String,
+        pluginId: String,
+        manifest: PluginManifest,
+        manager: PluginManager,
+    ): SkillBridge.HandleResult {
         val allowedBridgeActions = PluginCapabilityLedgers.shared(context)
-            .allowedActions(pluginId, declared)
+            .allowedActions(pluginId, manifest.capabilities)
+        // 宿主侧状态写入（config_set 等）先过这一层；不属于它的动作原样回落 SkillBridge。
+        // 授权集合是同一份 —— 两处共用，不存在"走哪条通道更宽松"的差别。
+        PluginHostApi(writeConfig = { id, key, newValue -> manager.setPluginConfig(id, key, newValue) })
+            .handle(pluginId, manifest, value, allowedBridgeActions)
+            ?.let { return it }
         val bridgeHost = SkillBridge.Host(
             context = context,
             fsRoot = java.io.File(context.filesDir, "workspace/plugins/$pluginId"),

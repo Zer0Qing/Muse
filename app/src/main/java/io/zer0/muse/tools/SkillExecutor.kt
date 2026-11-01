@@ -863,6 +863,7 @@ class SkillExecutor(
                                         ".write、network、" +
                                         "clipboard.read / clipboard.write、notify、" +
                                         "device.info、storage（插件私有 KV，与 fs.* 分开授权）、" +
+                                            "config.write（写回自己声明过的配置项，敏感项不可写）、" +
                                         "ui / ui.mood / ui.skin）；**未声明的能力在运行时会被直接拒绝**，" +
                                         "忘了声明就等于插件装得上但调不动。本工具只生成【未签名草稿】：草稿已禁用、不可执行，" +
                                         "助手不能调用；必须由用户在「设置 → 插件管理」中审阅工具清单与代码，" +
@@ -956,6 +957,7 @@ class SkillExecutor(
                                                                 " storage.read / storage.write）、network、" +
                                                                 "clipboard.read / clipboard.write、notify、" +
                                                                 "device.info、storage（插件私有 KV，与 fs.* 分开授权）、" +
+                                                                    "config.write（写回自己声明过的配置项，敏感项不可写）、" +
                                                                 "ui / ui.mood / ui.skin。默认不声明 = 任何桥接动作都会被拒；请把你代" +
                                                                 "码里用到的都列上",
                                         )
