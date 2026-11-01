@@ -11,6 +11,7 @@ import io.zer0.muse.tools.system.sanitizeShellCommandForLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 /**
  * Shell 执行器 —— 第二层 UI 自动化。
@@ -227,6 +228,51 @@ open class ShellExecutor(
     /** v2.x: 带退出码的详细执行结果(输出为 stdout+stderr 合并,供 device_shell 反馈使用)。 */
     data class ExecDetail(val exitCode: Int, val output: String)
 
+    /**
+     * 单条命令的超时。`input` / `screencap` 都是秒级；15s 足够，且能兜住「命令挂死」。
+     * internal 是为了让测试能调小（不用真等 15 秒）。
+     */
+    internal var commandTimeoutMs: Long = 15_000L
+
+    private data class ProcResult(val exit: Int, val output: String, val timedOut: Boolean)
+
+    /**
+     * 执行一条本地命令并**强制超时**。
+     *
+     * 旧实现是 `bufferedReader().readText()` 然后 `waitFor()` —— 两个都是无界阻塞：
+     * 只要子进程不关 stdout（或干脆卡住），自动化那个 `Mutex` 会被永久占住，
+     * 之后所有点击/读屏全部排队等死。这里改为：
+     *  - 读流放在独立线程，主线程 `waitFor(timeout)`；
+     *  - 超时就 `destroyForcibly()`，并把已读到的部分带回去（便于排查）。
+     */
+    private fun runProcess(command: String, redirectErrorStream: Boolean): ProcResult {
+        val proc = ProcessBuilder(shellPrefix + listOf("-c", command))
+            .redirectErrorStream(redirectErrorStream)
+            .start()
+        val buffer = StringBuilder()
+        val reader = Thread {
+            runCatching {
+                proc.inputStream.bufferedReader().use { r ->
+                    val chunk = CharArray(4096)
+                    while (true) {
+                        val n = r.read(chunk)
+                        if (n < 0) break
+                        synchronized(buffer) { buffer.append(chunk, 0, n) }
+                    }
+                }
+            }
+        }.apply { isDaemon = true; name = "muse-shell-reader"; start() }
+
+        val finished = runCatching { proc.waitFor(commandTimeoutMs, TimeUnit.MILLISECONDS) }.getOrDefault(false)
+        if (!finished) {
+            runCatching { proc.destroyForcibly() }
+            runCatching { reader.join(1_000) }
+            return ProcResult(-1, synchronized(buffer) { buffer.toString() }, timedOut = true)
+        }
+        runCatching { reader.join(2_000) }
+        return ProcResult(proc.exitValue(), synchronized(buffer) { buffer.toString() }, timedOut = false)
+    }
+
     /** 执行 shell 命令,返回 stdout 字符串。 */
     suspend fun exec(command: String): Result<String> = withContext(Dispatchers.IO) {
         if (shizukuAuthorizer != null) {
@@ -245,15 +291,15 @@ open class ShellExecutor(
             }
         }
         runCatching {
-            val proc = ProcessBuilder(shellPrefix + listOf("-c", command))
-                .redirectErrorStream(true)
-                .start()
-            val output = proc.inputStream.bufferedReader().use { it.readText() }
-            val exit = proc.waitFor()
-            if (exit != 0) {
-                Logger.w(TAG, "exec failed (exit=$exit, verb=${sanitizeShellCommandForLog(command)})")
+            val result = runProcess(command, redirectErrorStream = true)
+            if (result.timedOut) {
+                Logger.w(TAG, "exec 超时(${commandTimeoutMs}ms, verb=${sanitizeShellCommandForLog(command)})")
+                error("命令超时(${commandTimeoutMs}ms)：${sanitizeShellCommandForLog(command)}")
             }
-            output
+            if (result.exit != 0) {
+                Logger.w(TAG, "exec failed (exit=${result.exit}, verb=${sanitizeShellCommandForLog(command)})")
+            }
+            result.output
         }.onFailure { Logger.w(TAG, "exec error: ${it.message}") }
     }
 
@@ -277,12 +323,14 @@ open class ShellExecutor(
             return@withContext ExecDetail(result.exitCode, merged)
         }
         runCatching {
-            val proc = ProcessBuilder(shellPrefix + listOf("-c", command))
-                .redirectErrorStream(true)
-                .start()
-            val output = proc.inputStream.bufferedReader().use { it.readText() }
-            val exit = proc.waitFor()
-            ExecDetail(exit, output)
+            val result = runProcess(command, redirectErrorStream = true)
+            if (result.timedOut) {
+                Logger.w(TAG, "execDetailed 超时(${commandTimeoutMs}ms, verb=${sanitizeShellCommandForLog(command)})")
+            }
+            ExecDetail(
+                if (result.timedOut) -1 else result.exit,
+                if (result.timedOut) "命令超时(${commandTimeoutMs}ms)" else result.output,
+            )
         }.getOrElse { e ->
             Logger.w(TAG, "execDetailed error: ${e.message}")
             ExecDetail(-1, e.message ?: "执行失败")
@@ -294,9 +342,28 @@ open class ShellExecutor(
             val proc = ProcessBuilder(shellPrefix + listOf("-c", command))
                 .redirectErrorStream(false)
                 .start()
-            val out = proc.inputStream.readBytes()
-            proc.waitFor()
-            out
+            // 二进制输出（截图）同样不能无界等待：读流放线程，主线程带超时 waitFor。
+            val out = java.io.ByteArrayOutputStream()
+            val reader = Thread {
+                runCatching {
+                    proc.inputStream.use { input ->
+                        val chunk = ByteArray(8192)
+                        while (true) {
+                            val n = input.read(chunk)
+                            if (n < 0) break
+                            synchronized(out) { out.write(chunk, 0, n) }
+                        }
+                    }
+                }
+            }.apply { isDaemon = true; name = "muse-shell-binary-reader"; start() }
+
+            val finished = runCatching { proc.waitFor(commandTimeoutMs, TimeUnit.MILLISECONDS) }.getOrDefault(false)
+            if (!finished) {
+                runCatching { proc.destroyForcibly() }
+                error("命令超时(${commandTimeoutMs}ms)：${sanitizeShellCommandForLog(command)}")
+            }
+            runCatching { reader.join(2_000) }
+            synchronized(out) { out.toByteArray() }
         }
     }
 

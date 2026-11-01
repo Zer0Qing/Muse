@@ -4,6 +4,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -24,17 +25,40 @@ object MuseBubbleStyles {
     const val MAX_WIDTH_FRACTION = 0.70f
 
     /**
+     * 当前是否「黑白（mono）」主题。
+     *
+     * 灰阶主题下不能用「主色 + alpha」那套：mono 的主色在暗色模式是近白（#E9E9ED），
+     * 20% 叠到近黑背景上会变成一层发灰发浊的乳白，看起来像脏了的玻璃。
+     * 黑白主题一律走**实色灰阶**，不做渐变。
+     */
+    @Composable
+    fun isMonoBubbleTheme(): Boolean = LocalMuseThemeId.current == "mono"
+
+    /** 当前配色是否深色（用背景亮度判断，不依赖 isSystemInDarkTheme，避免跟随系统时误判）。 */
+    @Composable
+    private fun isDarkScheme(): Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    /**
      * 用户气泡默认底色(无皮肤)。
      *
      * v2.0: 从 surfaceVariant(与背景几乎同色,用户反馈"气泡看不见")改为主色浅染,
      * 亮/暗主题下都能和背景拉开对比;描边由 [userBorderColor] 给边缘。
      */
     @Composable
-    fun userSurfaceColor(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+    fun userSurfaceColor(): Color = if (isMonoBubbleTheme()) {
+        // 黑白主题：扁平灰阶。暗色用比背景亮两档的中灰，浅色用比背景深一档的浅灰。
+        if (isDarkScheme()) Color(0xFF2E2E34) else Color(0xFFECECF0)
+    } else {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+    }
 
     /** 用户气泡默认描边(无皮肤)— 主色 24%,让气泡边界清晰。 */
     @Composable
-    fun userBorderColor(): Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
+    fun userBorderColor(): Color = if (isMonoBubbleTheme()) {
+        if (isDarkScheme()) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.10f)
+    } else {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
+    }
 
     /**
      * 助手气泡默认底色(无皮肤)— 浅色卡片。
@@ -44,15 +68,23 @@ object MuseBubbleStyles {
      * 混色后亮/暗主题下都有稳定的可见度。
      */
     @Composable
-    fun assistantSurfaceColor(): Color = androidx.compose.ui.graphics.lerp(
-        MaterialTheme.colorScheme.surfaceVariant,
-        MaterialTheme.colorScheme.onSurface,
-        0.06f,
-    )
+    fun assistantSurfaceColor(): Color = if (isMonoBubbleTheme()) {
+        if (isDarkScheme()) Color(0xFF1C1C21) else Color(0xFFF4F4F6)
+    } else {
+        androidx.compose.ui.graphics.lerp(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurface,
+            0.06f,
+        )
+    }
 
     /** 助手气泡默认描边(无皮肤)— outlineVariant,给浅色卡片一个清晰边界。 */
     @Composable
-    fun assistantBorderColor(): Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f)
+    fun assistantBorderColor(): Color = if (isMonoBubbleTheme()) {
+        if (isDarkScheme()) Color.White.copy(alpha = 0.07f) else Color.Black.copy(alpha = 0.07f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f)
+    }
 
     /** 用户气泡默认文字色(无皮肤)。 */
     @Composable

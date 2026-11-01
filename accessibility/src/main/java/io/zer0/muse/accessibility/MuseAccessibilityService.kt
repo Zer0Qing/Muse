@@ -134,6 +134,22 @@ open class MuseAccessibilityService : AccessibilityService() {
         Logger.w(TAG, "无障碍服务被系统中断")
     }
 
+    /**
+     * 系统解绑（用户在设置里关掉开关、或系统回收绑定）时的回调。
+     *
+     * **必须处理**：只实现 onDestroy 是不够的 —— 系统解绑时可能只调 onUnbind 而进程仍然存活，
+     * 那时 connected 还是 true、instance 还指着旧实例，宿主会以为「无障碍可用」，
+     * 于是照样发手势/读控件树，然后失败。API 36 模拟器上实测能看到
+     * 「服务已连接 → Bound services 变空」这个漂移，正是这种情况。
+     */
+    override fun onUnbind(intent: android.content.Intent?): Boolean {
+        connected = false
+        instance = null
+        Logger.i(TAG, "无障碍服务被解绑")
+        notifyConnectionChanged(false)
+        return super.onUnbind(intent)
+    }
+
     override fun onDestroy() {
         connected = false
         instance = null

@@ -184,6 +184,12 @@ class SubagentRunner(
             "search_conversation",
             // v2.x: 发语音需要宿主会话上下文（回合标识）与可投递的助手消息，子 agent 两样都没有
             "send_voice",
+            // 屏幕自动化：与「子 agent 不应操作浏览器」同一条理由 —— UI 状态隔离。
+            // 这几个是 NORMAL/SAFE，能穿过「只允许 SAFE+NORMAL」的过滤，必须显式禁掉：
+            // 否则子 agent 能在用户没看屏的时候按 back/home/拉通知栏，改掉前台状态。
+            "screen_back", "screen_home", "screen_open_notifications", "screen_wait",
+            "screen_permission_status", "screen_open_settings",
+            "virtual_screen", "virtual_screen_input",
         )
     }
 

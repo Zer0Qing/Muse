@@ -434,4 +434,26 @@ class AutomationWorkflowResumeTest {
             }.getOrNull()
         }
     }
+
+    @Test
+    fun `workflow reports per-step progress to the caller`() = runBlocking {
+        // 20 步的 workflow 中途没有任何反馈时，用户看到的就是一个转圈。
+        // 这条钉住「第 x/y 步」确实会报到调用方（编排器再把它写进任务卡）。
+        val directory = Files.createTempDirectory("automation-workflow-progress").toFile()
+        try {
+            val workflow = AutomationWorkflow(manager = io.mockk.mockk(), journal = WorkflowJournal(directory))
+            val steps = listOf(
+                AutomationWorkflowStep(action = "wait", durationMs = 10L),
+                AutomationWorkflowStep(action = "wait", durationMs = 10L),
+            )
+            val reported = mutableListOf<String>()
+
+            val result = workflow.run(steps, runId = "progress-run", onProgress = { reported += it })
+
+            assertFalse(result.isError)
+            assertEquals(listOf("第 1/2 步：wait", "第 2/2 步：wait"), reported)
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
 }

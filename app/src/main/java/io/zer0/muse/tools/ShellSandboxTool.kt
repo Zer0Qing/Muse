@@ -56,6 +56,7 @@ object ShellSandboxTool {
         // v1.0.75 fix (工具审查 02): 补触发场景与返回格式
         // C-26: 示例改为沙箱内路径(/sdcard 等外部路径已被路径限制拦截)
         description = "在应用沙箱内执行白名单 Shell 命令,用于查询设备状态(文件/磁盘/进程)后做决策(仅 Agent Mode)。" +
+            "**只读、不改变设备状态**;要 tap/启动 App/改设置请用 device_shell(需 Shizuku 或 Root)。" +
             "允许的命令:ls/cat/grep/echo/wc/head/tail/find/file/stat/df/du/uname/whoami/date/pwd/tree。" +
             "工作目录为应用数据目录,路径参数仅允许应用数据目录内;禁止命令分隔符(&;|)和重定向(<>),超时 10 秒。" +
             "长输出会保存到可分段读取的应用文件。" +

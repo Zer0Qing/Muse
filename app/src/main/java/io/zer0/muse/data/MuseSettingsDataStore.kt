@@ -4,8 +4,12 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.preferencesDataStore
 import io.zer0.common.Logger
 import java.io.File
 
@@ -54,14 +58,48 @@ internal object SettingsStoreContextHolder {
     var applicationContext: Context? = null
 }
 
-internal val Context.museSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
-    name = SETTINGS_STORE_NAME,
-    corruptionHandler = ReplaceFileCorruptionHandler { ex ->
-        Logger.w("MuseSettingsDataStore", "muse_settings 数据损坏，尝试备份并重建: ${ex.message}", ex)
-        SettingsStoreContextHolder.applicationContext?.let { ctx ->
-            runCatching { backupCorruptFile(ctx) }
-                .onFailure { Logger.w("MuseSettingsDataStore", "备份损坏文件失败: ${it.message}", it) }
+private val settingsStoreLock = Any()
+private var settingsStore: DataStore<Preferences>? = null
+private var settingsStoreDir: File? = null
+private var settingsStoreScope: CoroutineScope? = null
+
+/**
+ * 所有 Settings 子仓库共用的 `muse_settings` DataStore。
+ *
+ * **为什么不用 `by preferencesDataStore(...)`**：
+ * 那个委托是**全局静态**的 —— 同一个进程里第一次取用后就把 DataStore 钉死在当时 `filesDir` 上。
+ * 生产环境 `filesDir` 不变，所以没问题；但 Robolectric 每个测试会给一个新的 `filesDir`，
+ * 静态委托仍往**已被删除的旧目录**写，`Files.move` 抛 `AccessDeniedException`
+ * （表现为「随便哪个用到设置的测试偶发红」，与代码逻辑无关）。
+ *
+ * 这里改为**按 filesDir 缓存**：目录不变就复用同一个实例（满足 DataStore「同一文件只能有一个实例」），
+ * 目录变了（只发生在测试）就为新目录建新实例。
+ */
+internal val Context.museSettingsDataStore: DataStore<Preferences>
+    get() {
+        val filesDir = applicationContext.filesDir
+        synchronized(settingsStoreLock) {
+            settingsStore?.let { existing -> if (settingsStoreDir == filesDir) return existing }
+            // 换目录（只在测试里发生）：先停掉旧实例的协程再建新的。
+            // 不停的话，旧 DataStore 会在文件已被 Robolectric 删掉后抛 AccessDeniedException，
+            // 变成「未捕获异常」泄漏到同一个 JVM 的下一个测试（实测会让无关的 runTest 直接红）。
+            runCatching { settingsStoreScope?.cancel() }
+            val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+            settingsStoreScope = scope
+            val created = PreferenceDataStoreFactory.create(
+                scope = scope,
+                corruptionHandler = ReplaceFileCorruptionHandler { ex ->
+                    Logger.w("MuseSettingsDataStore", "muse_settings 数据损坏，尝试备份并重建: ${ex.message}", ex)
+                    SettingsStoreContextHolder.applicationContext?.let { ctx ->
+                        runCatching { backupCorruptFile(ctx) }
+                            .onFailure { Logger.w("MuseSettingsDataStore", "备份损坏文件失败: ${it.message}", it) }
+                    }
+                    emptyPreferences()
+                },
+                produceFile = { File(filesDir, "datastore/$SETTINGS_STORE_NAME.preferences_pb") },
+            )
+            settingsStore = created
+            settingsStoreDir = filesDir
+            return created
         }
-        emptyPreferences()
-    },
-)
+    }

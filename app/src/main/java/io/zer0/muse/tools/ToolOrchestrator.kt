@@ -158,7 +158,7 @@ internal const val TOOL_OUTPUT_WRITE_TIMEOUT_MS = 5_000L
  *
  * 整改复核(2026-09-20):此前默认开启,但并发执行时序只做过单测、没有设备态验证,
  * 与计划书「默认保守、由用户显式开启」不符,故实际开关改为由
- * [ExperimentsConfig.parallelReadOnlyTools](默认 false = 串行)控制。
+ * [ExperimentsConfig.parallelReadOnlyTools]（**默认 true = 只读工具并发，上限 3**；写工具始终串行）控制。
  * 本次修复:该常量此前硬编码 false,会在 [shouldExecuteRoundInParallel] 里提前短路,
  * 直接把用户的实验开关淹掉 —— 现在它只表示“特性可用”(true),真正的开关交回用户。
  */
@@ -461,6 +461,13 @@ interface ToolLoopHost {
      * 避免不实现该方法的宿主(子代理、定时任务等)被误判成所有通道都不可用。
      */
     suspend fun availableDeviceChannels(): Set<ToolRequirements.Channel>? = null
+
+    /**
+     * 自动化总闸是否打开。默认 true（跳过判断），由宿主按设置实现。
+     *
+     * 放在**审批之前**用：闸关时不该先弹一次审批再拒绝 —— 那等于白打扰用户一次。
+     */
+    suspend fun automationEnabled(): Boolean = true
 
     /**
      * v1.x: 单个工具执行结束回调。
@@ -2041,6 +2048,17 @@ class ToolOrchestrator(
             }
         }
 
+        // v2.6.7 / v2.7: 通道预检 + 总闸判断必须**早于审批**。
+        // 原来预检在审批之后：注定失败的调用也会先弹一次审批，用户点了「允许」再被告知执行不了。
+        val preflight = ToolChannelPreflight.checkPreflightable(
+            tc.name,
+            host.availableDeviceChannels(),
+            host.automationEnabled(),
+        )
+        if (preflight is ToolChannelPreflight.Result.Blocked) {
+            Logger.w(TAG, "预检拦截 ${tc.name}: ${preflight.message.take(60)}")
+        }
+
         // 工具审批检查(v1.0.53: 传完整 args 供参数化权限判定)
         // F-07: 审批等待可见化 — 挂起等待用户响应的过程记录 APPROVAL_PENDING 状态日志
         Logger.d(TAG, "工具 ${tc.name} 等待审批(APPROVAL_PENDING) | sessionId=${params.sessionId}")
@@ -2222,12 +2240,6 @@ class ToolOrchestrator(
 
         val effectiveToolTimeoutMs = ToolExecutionTimeoutPolicy.forTool(tc.name, subagentSessionFix, toolTimeoutMs)
 
-        // v2.6.7: 执行前通道预检 —— 通道未就绪的工具注定失败,提前拦下并给出开通路径,
-        // 而不是让模型先答应用户再撞墙。宿主未提供通道信息时(null)跳过,维持原行为。
-        val preflight = ToolChannelPreflight.checkPreflightable(tc.name, host.availableDeviceChannels())
-        if (preflight is ToolChannelPreflight.Result.Blocked) {
-            Logger.w(TAG, "通道预检拦截 ${tc.name}: 缺 ${preflight.missing.joinToString(",")}")
-        }
 
         // 执行工具:skill 走 SkillExecutor(挂起、可取消),本地工具走 ToolRegistry
         // P2-18: 阻塞型工具(内部 runBlocking 桥接 WebView/文件 IO)无法被协程取消,
@@ -2273,14 +2285,24 @@ class ToolOrchestrator(
                             BrowserAutomationTool.executeFromArgs(tc.name, argsMap, sessionBm)
                         } else {
                             if (params.toolExecutionContext != null) {
+                                // 进度回调是**每次调用**的上下文（要绑 taskCardId + idx），
+                                // 宿主只能给出会话级字段，所以在这里 copy 一份补上。
+                                // 与 skill 分支写的是同一块 progressText，用户看到的是同一个入口。
+                                val callContext = params.toolExecutionContext.copy(
+                                    onProgress = { msg ->
+                                        taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
+                                            s.copy(progressText = msg)
+                                        }
+                                    },
+                                )
                                 if (params.routeSnapshot == null) {
-                                    toolRegistry.executeFromJson(tc.name, subagentSessionFix, params.toolExecutionContext)
+                                    toolRegistry.executeFromJson(tc.name, subagentSessionFix, callContext)
                                 } else {
                                     routeGuard.executeFromJson(
                                         tc.name,
                                         subagentSessionFix,
                                         params.routeSnapshot,
-                                        params.toolExecutionContext,
+                                        callContext,
                                     )
                                 }
                             } else {

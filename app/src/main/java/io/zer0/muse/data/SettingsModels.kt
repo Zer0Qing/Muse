@@ -434,7 +434,9 @@ data class ProactiveMessageConfig(
      * 用户实测「打开/关闭都没区别」。保留字段只为旧配置反序列化兼容，逻辑请用 [agentSessionEnabled]。
      */
     @Deprecated("无读取方，改用 agentSessionEnabled")
-    val agentOnly: Boolean = true,
+    // 默认值也从 true 改成 false：它没有任何读取方，留着 true 只会让后来者
+    // 以为「默认只发 Agent 会话」——那正好是这次要消灭的误解。
+    val agentOnly: Boolean = false,
 
     /**
      * Agent Tab 会话是否也接收主动消息。

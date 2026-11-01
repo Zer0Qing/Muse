@@ -2,4 +2,9 @@
 <resources>
     <string name="automation_tasker_title">Tasker / 外部自动化触发</string>
     <string name="automation_tasker_desc">允许其他应用发送广播触发一次文本补全；不会授予工具权限，但可能消耗模型额度。</string>
+    <string name="automation_master_title">允许屏幕自动化</string>
+    <string name="automation_master_desc">总开关。关闭后所有读屏/点击/输入/多步任务工具都会立刻拒绝执行，直到重新打开。</string>
+    <string name="automation_master_off_banner">当前已停用：所有读屏、点击、输入与多步任务工具都会拒绝执行，直到你重新打开上面的开关。</string>
+    <string name="automation_a11y_off_banner">无障碍服务当前未连接（可能被系统回收）。读屏与点击此刻都会失败。</string>
+    <string name="automation_a11y_off_action">去开启无障碍</string>
 </resources>

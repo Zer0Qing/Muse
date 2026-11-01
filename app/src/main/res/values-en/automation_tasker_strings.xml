@@ -2,4 +2,9 @@
 <resources>
     <string name="automation_tasker_title">Tasker / external automation trigger</string>
     <string name="automation_tasker_desc">Allow other apps to broadcast one text-completion request. This does not grant tool access, but may use model quota.</string>
+    <string name="automation_master_title">Allow screen automation</string>
+    <string name="automation_master_desc">Master switch. When off, every screen read/tap/input/multi-step tool refuses to run until you turn it back on.</string>
+    <string name="automation_master_off_banner">Currently disabled: every screen read, tap, input and multi-step tool refuses to run until you turn the switch above back on.</string>
+    <string name="automation_a11y_off_banner">Accessibility service is not connected (the system may have released it). Screen reading and tapping will fail.</string>
+    <string name="automation_a11y_off_action">Turn on accessibility</string>
 </resources>

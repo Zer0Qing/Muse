@@ -29,6 +29,14 @@ class VirtualDisplayClient(
     @Volatile
     private var compatibilityDpi: Int = DEFAULT_DPI
 
+    /**
+     * 虚拟屏通道是否可用（"ready(Shizuku)" / "ready(Root)" / 不可用原因）。
+     *
+     * 给「权限状态」类工具用：模型在选 virtual_* 之前就能知道能不能用，
+     * 而不是先试一次、失败再换方案（每次失败都烧一轮）。
+     */
+    suspend fun availability(): String = manager.channelState()
+
     /** 确保服务端 + 虚拟屏就绪(同尺寸复用);失败携带可读原因。 */
     suspend fun ensureDisplay(width: Int = DEFAULT_WIDTH, height: Int = DEFAULT_HEIGHT, dpi: Int = DEFAULT_DPI): Result<DisplayHandle> =
         withContext(Dispatchers.IO) {

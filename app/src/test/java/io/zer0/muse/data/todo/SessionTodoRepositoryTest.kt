@@ -35,7 +35,13 @@ class SessionTodoRepositoryTest {
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        database = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java).build()
+        // 用同步执行器：默认的 arch_disk_io 线程会在 @After 关库后继续跑 InvalidationTracker，
+        // Robolectric 的 SQLite shadow 会抛 "Illegal connection pointer"（未捕获异常会泄漏到下一个测试）。
+        database = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java)
+            .setQueryExecutor(java.util.concurrent.Executor { it.run() })
+            .setTransactionExecutor(java.util.concurrent.Executor { it.run() })
+            .allowMainThreadQueries()
+            .build()
         repository = SessionTodoRepository(database.sessionTodoDao())
     }
 

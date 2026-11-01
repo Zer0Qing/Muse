@@ -1086,6 +1086,24 @@ class SettingsRepository(
      * TaskerTriggerReceiver 是 exported 且无 permission 的入口,任意应用都能发;
      * 默认关闭可确保"用户从未启用过"时完全不响应(避免成本滥用与通知垃圾)。
      */
+    /**
+     * 自动化总闸。关掉后所有屏幕自动化工具（screen_* / ui_agent / automation_workflow）
+     * 一律快速失败并提示去设置页打开 —— 用户需要一个「一次停掉所有动手能力」的刹车。
+     *
+     * 默认 **开**：默认关会让已经授过权的用户以为功能坏了。
+     */
+    val automationEnabledFlow: Flow<Boolean> =
+        store.data.mapDistinct { prefs -> prefs[KEY_AUTOMATION_ENABLED] ?: true }
+
+    /** 读一次总闸（工具执行前用；读不到按开处理，保持既有行为）。 */
+    suspend fun automationEnabled(): Boolean = runCatching {
+        automationEnabledFlow.first()
+    }.getOrDefault(true)
+
+    suspend fun saveAutomationEnabled(enabled: Boolean) {
+        store.edit { it[KEY_AUTOMATION_ENABLED] = enabled }
+    }
+
     val taskerTriggerEnabledFlow: Flow<Boolean> =
         store.data.mapDistinct { prefs ->
             prefs[KEY_TASKER_TRIGGER_ENABLED] ?: false
@@ -2935,6 +2953,8 @@ class SettingsRepository(
 
         /** AUD-20261011-TASKER-ABUSE: Tasker 广播联动开关(默认关闭)。 */
         private val KEY_TASKER_TRIGGER_ENABLED = booleanPreferencesKey("tasker_trigger_enabled")
+
+    private val KEY_AUTOMATION_ENABLED = booleanPreferencesKey("automation_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_ENABLED = booleanPreferencesKey("quick_capture_overlay_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED =
             booleanPreferencesKey("quick_capture_overlay_default_migrated")

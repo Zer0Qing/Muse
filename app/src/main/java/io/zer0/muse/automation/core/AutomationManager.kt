@@ -217,18 +217,64 @@ class AutomationManager(
         accessibility.currentPackage() ?: if (shell.isAvailable()) shell.currentPackage() else root.currentPackage()
     }
 
+    /**
+     * 最近一次动作**实际**走的通道。
+     *
+     * 之前没人知道一次 tap 是无障碍做的还是 root 做的 —— 出问题时只能靠猜。
+     * 现在每次动作都记一行日志，并把这个值留在实例上供状态页/诊断读取。
+     */
+    @Volatile
+    var lastActionTier: PermissionLevel = PermissionLevel.NONE
+        private set
+
+    /**
+     * 按**当前可用性**选一层执行，**只执行一次**。
+     *
+     * 为什么不是「失败了再换一层」：
+     * `back()` / `home()` / `openNotifications()` 之前写的是 `a11y() || shell() || root()` ——
+     * 如果无障碍其实已经把动作做成了、却返回了 false，后面那一层会**再做一次**
+     * （返回两次、回到两个页面、通知栏拉开又收起）。这类动作不可重放，所以只选一层。
+     * 选中的那层失败就返回 false，由模型自己看屏幕决定要不要重试 —— 它本来就在环里。
+     */
+    private suspend fun runOnTier(
+        name: String,
+        onAccessibility: suspend () -> Boolean,
+        onShell: suspend () -> Boolean,
+        onRoot: suspend () -> Boolean,
+    ): Boolean {
+        val tier = when {
+            accessibility.isAvailable() -> PermissionLevel.ACCESSIBILITY
+            shell.isAvailable() -> PermissionLevel.SHELL
+            else -> PermissionLevel.ROOT
+        }
+        lastActionTier = tier
+        val ok = runCatching {
+            when (tier) {
+                PermissionLevel.ACCESSIBILITY -> onAccessibility()
+                PermissionLevel.SHELL -> onShell()
+                else -> onRoot()
+            }
+        }.getOrElse { error ->
+            Logger.w(TAG, "动作 $name 在 ${tier.name} 上抛错: ${error.message}")
+            false
+        }
+        Logger.d(TAG, "动作 $name | tier=${tier.name} | ok=$ok")
+        return ok
+    }
+
     /** 点击:优先无障碍,再按真实授权降级到 Shizuku/Root。 */
     suspend fun tap(x: Int, y: Int): Boolean = mutex.withLock {
-        if (accessibility.isAvailable()) {
-            accessibility.tap(x, y)
-        } else if (shell.isAvailable()) shell.tap(x, y) else root.tap(x, y)
+        runOnTier("tap", { accessibility.tap(x, y) }, { shell.tap(x, y) }, { root.tap(x, y) })
     }
 
     /** 长按。 */
     suspend fun longPress(x: Int, y: Int, durationMs: Long = 600): Boolean = mutex.withLock {
-        if (accessibility.isAvailable()) {
-            accessibility.longPress(x, y, durationMs)
-        } else if (shell.isAvailable()) shell.longPress(x, y, durationMs) else root.longPress(x, y, durationMs)
+        runOnTier(
+            "longPress",
+            { accessibility.longPress(x, y, durationMs) },
+            { shell.longPress(x, y, durationMs) },
+            { root.longPress(x, y, durationMs) },
+        )
     }
 
     /** 滑动。 */
@@ -254,10 +300,16 @@ class AutomationManager(
         }
     }
 
-    /** v2.x: 多段滑动 — 无障碍精确逐点;其余层降级首末两点直滑。 */
+    /**
+     * 多段滑动：**只有无障碍**能逐点注入。
+     *
+     * Shell/Root 的 input 命令只能直线滑动 —— 旧实现会把多段路径悄悄降级成「首点→末点」，
+     * 那是**另一个手势**（图案解锁会变成一条直线），比直接失败危险。现在 >2 点时明确拒绝。
+     */
     suspend fun swipePath(points: List<Pair<Int, Int>>, durationMs: Long = 400): Boolean = mutex.withLock {
         if (points.size < 2) return@withLock false
         if (accessibility.isAvailable()) return@withLock accessibility.swipePath(points, durationMs)
+        if (points.size > 2) return@withLock false
         val first = points.first()
         val last = points.last()
         if (shell.isAvailable()) {
@@ -267,44 +319,78 @@ class AutomationManager(
         }
     }
 
+    /** 多段路径手势是否可用（只有无障碍能注入多段；Shell/Root 只能直线）。 */
+    suspend fun supportsMultiPointGesture(): Boolean = accessibility.isAvailable()
+
     /** 输入文本。 */
     suspend fun inputText(text: String): Boolean = mutex.withLock {
-        if (accessibility.isAvailable()) {
-            accessibility.inputText(text)
-        } else if (shell.isAvailable()) shell.inputText(text) else root.inputText(text)
+        runOnTier(
+            "inputText",
+            { accessibility.inputText(text) },
+            { shell.inputText(text) },
+            { root.inputText(text) },
+        )
     }
 
     /** 按键。 */
     suspend fun pressKey(keyCode: Int): Boolean = mutex.withLock {
-        if (accessibility.isAvailable()) {
-            accessibility.pressKey(keyCode)
-        } else if (shell.isAvailable()) shell.pressKey(keyCode) else root.pressKey(keyCode)
+        runOnTier(
+            "pressKey",
+            { accessibility.pressKey(keyCode) },
+            { shell.pressKey(keyCode) },
+            { root.pressKey(keyCode) },
+        )
     }
 
     /** 启动 App。 */
     suspend fun launchApp(packageName: String): Boolean = mutex.withLock {
-        accessibility.launchApp(packageName) ||
-            if (shell.isAvailable()) shell.launchApp(packageName) else root.launchApp(packageName)
+        // 启动是幂等的（同一个 App 拉两次只是再拉到前台），所以这里保留「失败再换一层」；
+        // 但仍然记下实际生效的层级，免得日志里看不出是谁启动的。
+        val viaAccessibility = accessibility.launchApp(packageName)
+        if (viaAccessibility) {
+            lastActionTier = PermissionLevel.ACCESSIBILITY
+            Logger.d(TAG, "动作 launchApp | tier=ACCESSIBILITY | ok=true")
+            return@withLock true
+        }
+        val tier = if (shell.isAvailable()) PermissionLevel.SHELL else PermissionLevel.ROOT
+        lastActionTier = tier
+        val ok = if (tier == PermissionLevel.SHELL) {
+            shell.launchApp(packageName)
+        } else {
+            root.launchApp(packageName)
+        }
+        Logger.d(TAG, "动作 launchApp | tier=${tier.name} | ok=$ok")
+        ok
     }
 
     /** 返回。 */
     suspend fun back(): Boolean = mutex.withLock {
-        accessibility.back() || if (shell.isAvailable()) shell.back() else root.back()
+        runOnTier("back", { accessibility.back() }, { shell.back() }, { root.back() })
     }
 
     /** Home。 */
     suspend fun home(): Boolean = mutex.withLock {
-        accessibility.home() || if (shell.isAvailable()) shell.home() else root.home()
+        runOnTier("home", { accessibility.home() }, { shell.home() }, { root.home() })
     }
 
     /** 打开通知栏。 */
     suspend fun openNotifications(): Boolean = mutex.withLock {
-        accessibility.openNotifications() || if (shell.isAvailable()) shell.openNotifications() else root.openNotifications()
+        runOnTier(
+            "openNotifications",
+            { accessibility.openNotifications() },
+            { shell.openNotifications() },
+            { root.openNotifications() },
+        )
     }
 
     /** 打开快速设置。 */
     suspend fun openQuickSettings(): Boolean = mutex.withLock {
-        accessibility.openQuickSettings() || if (shell.isAvailable()) shell.openQuickSettings() else root.openQuickSettings()
+        runOnTier(
+            "openQuickSettings",
+            { accessibility.openQuickSettings() },
+            { shell.openQuickSettings() },
+            { root.openQuickSettings() },
+        )
     }
 
     /**
@@ -467,6 +553,63 @@ class AutomationManager(
     }
 
     /** 最高可用层级(无权限返回 NONE)。 */
+    /**
+     * 自动化需要用到的系统设置页。
+     *
+     * 存在的意义：模型发现某层没开时，只能告诉用户「去设置里开一下」——
+     * 用户得自己在十几层菜单里找。有了它，Agent 可以直接把用户送到正确的那一页。
+     */
+    enum class SystemSettingsTarget(val wireName: String) {
+        ACCESSIBILITY("accessibility"),
+        NOTIFICATION_ACCESS("notification_access"),
+        OVERLAY("overlay"),
+        BATTERY_OPTIMIZATION("battery"),
+        APP_DETAILS("app_details"),
+        ;
+
+        companion object {
+            fun fromWire(value: String?): SystemSettingsTarget? =
+                entries.firstOrNull { it.wireName == value?.trim()?.lowercase() }
+        }
+    }
+
+    /**
+     * 打开对应系统设置页。返回是否成功启动（厂商可能不实现某个 action，逐个降级）。
+     *
+     * 走 [io.zer0.muse.automation.ui.openAutomationSettings]：它逐个候选 Intent 检查可解析性并捕获
+     * ActivityNotFoundException —— 厂商系统缺实现时不会把宿主 Activity 弄崩。
+     */
+    fun openSystemSettings(target: SystemSettingsTarget): Boolean {
+        val pkgUri = android.net.Uri.parse("package:" + context.packageName)
+        val candidates = when (target) {
+            SystemSettingsTarget.ACCESSIBILITY -> listOf(
+                android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS),
+            )
+            SystemSettingsTarget.NOTIFICATION_ACCESS -> listOf(
+                android.content.Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"),
+                android.content.Intent(android.provider.Settings.ACTION_SETTINGS),
+            )
+            SystemSettingsTarget.OVERLAY -> listOf(
+                android.content.Intent(
+                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    pkgUri,
+                ),
+                android.content.Intent(android.provider.Settings.ACTION_SETTINGS),
+            )
+            SystemSettingsTarget.BATTERY_OPTIMIZATION -> listOf(
+                android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                android.content.Intent(android.provider.Settings.ACTION_SETTINGS),
+            )
+            SystemSettingsTarget.APP_DETAILS -> listOf(
+                android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri),
+                android.content.Intent(android.provider.Settings.ACTION_SETTINGS),
+            )
+        }
+        val started = io.zer0.muse.automation.ui.openAutomationSettings(context, candidates)
+        Logger.i(TAG, "打开系统设置页 | target=${target.wireName} | started=$started")
+        return started
+    }
+
     suspend fun highestLevel(): PermissionLevel {
         val s = _permissionState.value
         return when {

@@ -4,6 +4,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ToolCall
@@ -198,7 +199,11 @@ class SubagentRunnerTest {
             ToolRegistry.ToolDef("subagent_run", "delegate", emptyMap(), riskLevel = ToolRiskLevel.HIGH),
             ToolRegistry.ToolDef("delegate_agent", "delegate", emptyMap(), riskLevel = ToolRiskLevel.HIGH),
         )
-        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+        // 捕获实际传给 listToolsAsToolDefinitions 的名单 —— 这才是「模型看得到什么」。
+        // 原来这里只 assertTrue(result.success)，注释写着「间接确认」，实际一句断言都没有，
+        // HIGH 工具被放进来也不会红。改成真断言。
+        val offered = slot<List<String>>()
+        every { mockToolRegistry.listToolsAsToolDefinitions(capture(offered)) } returns listOf(
             ToolDefinition("web_search", "search", "{}"),
         )
         coEvery {
@@ -209,8 +214,10 @@ class SubagentRunnerTest {
             SubagentRunner(mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(), mockk(relaxed = true), ToolApprovalRouter())
         val result = runner.run(SubagentRunner.Params(task = "测试"))
         assertTrue(result.success)
-        // 验证 listToolsAsToolDefinitions 被调用时只传入 web_search(HIGH 工具被过滤)
-        // 通过验证返回的工具定义列表只含 web_search 间接确认
+
+        val names = offered.captured
+        assertTrue("SAFE 工具应在名单内，实际: $names", names.contains("web_search"))
+        assertTrue("HIGH 工具必须被剔除，实际: $names", names.none { it == "subagent_run" || it == "delegate_agent" })
     }
 
     @Test
@@ -738,5 +745,37 @@ class SubagentRunnerTest {
             firstArg<suspend () -> Any>()()
         }
         return limiter
+    }
+
+    @Test
+    fun `run never offers screen automation tools to subagents`() = runTest {
+        // 子代理是「文本工作者」，不该在用户没看屏的时候按 back/home/拉通知栏 ——
+        // 与「子 agent 不应操作浏览器」同一条 UI 状态隔离原则。
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("web_search", "search", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+            ToolRegistry.ToolDef("read_file", "read", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+            // 下面这些是 NORMAL/SAFE，能穿过「只允许 SAFE+NORMAL」的过滤，必须被显式黑名单挡掉
+            ToolRegistry.ToolDef("screen_back", "back", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+            ToolRegistry.ToolDef("screen_home", "home", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+            ToolRegistry.ToolDef("screen_open_settings", "settings", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+            ToolRegistry.ToolDef("screen_permission_status", "status", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+        )
+        val offered = slot<List<String>>()
+        every { mockToolRegistry.listToolsAsToolDefinitions(capture(offered)) } returns emptyList()
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returns ChatCompletion(text = "完成", finishReason = "stop")
+
+        val runner = SubagentRunner(
+            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
+            mockk(relaxed = true), ToolApprovalRouter(),
+        )
+        runner.run(SubagentRunner.Params(task = "整理笔记"))
+
+        val names = offered.captured
+        assertTrue("普通只读工具应保留，实际: $names", names.contains("web_search"))
+        assertTrue("屏幕自动化工具必须全部剔除，实际: $names", names.none { it.startsWith("screen_") })
     }
 }

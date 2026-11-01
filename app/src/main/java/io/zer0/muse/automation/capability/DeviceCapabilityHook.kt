@@ -33,6 +33,14 @@ class DeviceCapabilityHook(
      * vdisplay 实现）。为 null 时档案里记为不可用。
      */
     private val virtualDisplayProbe: suspend () -> Boolean = { false },
+    /**
+     * 自动化总闸探测（设置里的「允许屏幕自动化」）。
+     *
+     * 为 null 时按开处理：这个档案的价值在于**提前告诉模型别白试**，
+     * 所以闸关时必须让它在第一句就看见，而不是等工具调用失败才发现。
+     */
+    private val automationEnabledProbe: (suspend () -> Boolean)? = null,
+
     /** 内置 Node 运行时可用性探测（[io.zer0.muse.runtime.MuseRuntime.isReady]）。 */
     private val nodeRuntimeProbe: (() -> Boolean)? = null,
 ) : SystemPromptComposeHook {
@@ -84,6 +92,9 @@ class DeviceCapabilityHook(
             root = state.rootEnabled,
             virtualDisplay = probe("virtualDisplay", false) { virtualDisplayProbe() },
             nodeRuntime = probe("nodeRuntime", false) { nodeRuntimeProbe?.invoke() ?: false },
+            automationEnabled = probe("automationEnabled", true) {
+                automationEnabledProbe?.invoke() ?: true
+            },
             details = mapOf(
                 "shizukuState" to state.shizukuState.name,
                 "shizukuMessage" to state.shizukuMessage,

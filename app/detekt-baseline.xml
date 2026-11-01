@@ -77,9 +77,6 @@
     <ID>CyclomaticComplexMethod:AuditLogPage.kt$private fun prettyJson(json: String): String</ID>
     <ID>CyclomaticComplexMethod:AuditLogger.kt$AuditLogger$private fun toJsonElement(v: Any): JsonElement</ID>
     <ID>CyclomaticComplexMethod:AutoBackupHelper.kt$AutoBackupHelper$suspend fun backupNow(): Boolean</ID>
-    <ID>CyclomaticComplexMethod:AutomationTools.kt$AutomationTools$fun register(registry: ToolRegistry)</ID>
-    <ID>CyclomaticComplexMethod:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun executeVirtualStep( index: Int, action: String, step: AutomationWorkflowStep, runId: String, ): AutomationWorkflowStepResult</ID>
-    <ID>CyclomaticComplexMethod:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun runLocked( steps: List&lt;AutomationWorkflowStep&gt;, runId: String, retryUnknown: Boolean, durableJournal: WorkflowJournal, ): ToolOutcome</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private fun Backup.hasAnyData(): Boolean</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyBackupInternal(backup: Backup): Pair&lt;Int, Int&gt;</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyCloudBackupData(config: CloudBackupConfig, data: ByteArray): Pair&lt;Int, Int&gt;?</ID>
@@ -302,9 +299,6 @@
     <ID>CyclomaticComplexMethod:UIToolsSkill.kt$UIToolsRegistrar$fun registerAll()</ID>
     <ID>CyclomaticComplexMethod:UiAgentProtocol.kt$UiAgentProtocol$private fun parseArgs(body: String): Map&lt;String, String&gt;</ID>
     <ID>CyclomaticComplexMethod:UiAgentProtocol.kt$UiAgentProtocol$private fun parseDo(args: Map&lt;String, String&gt;): Action?</ID>
-    <ID>CyclomaticComplexMethod:UiAgentRunner.kt$UiAgentRunner$private suspend fun execute(action: UiAgentProtocol.Action, virtualDisplayId: Int?, width: Int, height: Int): String</ID>
-    <ID>CyclomaticComplexMethod:UiAgentRunner.kt$UiAgentRunner$private suspend fun executeOnVirtualDisplay(action: UiAgentProtocol.Action, displayId: Int, width: Int, height: Int): String</ID>
-    <ID>CyclomaticComplexMethod:UiAgentRunner.kt$UiAgentRunner$suspend fun run( task: String, maxSteps: Int = DEFAULT_MAX_STEPS, onProgress: (String) -&gt; Unit = {}, displayMode: DisplayMode = DisplayMode.AUTO, packageName: String? = null, ): RunResult</ID>
     <ID>CyclomaticComplexMethod:UserProfileEditPage.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun UserProfileEditPage(onBack: () -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:VectorSearchService.kt$VectorSearchService$private suspend fun scanPagedProvider( queryVector: FloatArray, queryNorm: Float, topK: Int, threshold: Float, mmrLambda: Float, applyMetadataInMemory: Boolean, metadataFilter: MetadataFilter?, pageProvider: suspend (limit: Int, offset: Int) -&gt; List&lt;ChunkWithDoc&gt;, ): List&lt;SearchResult&gt;</ID>
     <ID>CyclomaticComplexMethod:VectorSearchService.kt$VectorSearchService$private suspend fun searchStreamed( queryVector: FloatArray, queryNorm: Float, topK: Int, threshold: Float, mmrLambda: Float, // P2-30: 限定检索范围的文档集合;null/空 = 全库 scopeDocIds: List&lt;String&gt;?, metadataFilter: MetadataFilter?, ): List&lt;SearchResult&gt;</ID>
@@ -401,8 +395,6 @@
     <ID>LongMethod:AssistantScreen.kt$@Composable fun AssistantScreen(onBack: () -&gt; Unit, onOpenDetail: (String) -&gt; Unit, viewModel: ChatViewModel = koinViewModel())</ID>
     <ID>LongMethod:AuditLogPage.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun AuditLogPage(onBack: () -&gt; Unit)</ID>
     <ID>LongMethod:AutomationInitializer.kt$AutomationInitializer$fun initialize(context: Context, toolRegistry: ToolRegistry)</ID>
-    <ID>LongMethod:AutomationTools.kt$AutomationTools$fun register(registry: ToolRegistry)</ID>
-    <ID>LongMethod:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun runLocked( steps: List&lt;AutomationWorkflowStep&gt;, runId: String, retryUnknown: Boolean, durableJournal: WorkflowJournal, ): ToolOutcome</ID>
     <ID>LongMethod:BackgroundKeepAlive.kt$fun detectKeepAliveGuide(): KeepAliveGuide</ID>
     <ID>LongMethod:BackupNdJsonRecoveryIntegrationTest.kt$BackupNdJsonRecoveryIntegrationTest$@Test fun `fts failure rolls back muse memory and fact databases from ndjson recovery point`()</ID>
     <ID>LongMethod:BackupRoundTripSerializationTest.kt$BackupRoundTripSerializationTest$@Test fun `P0-10 entities round trip without data loss`()</ID>
@@ -630,8 +622,6 @@
     <ID>LongMethod:TranslateViewModel.kt$TranslateViewModel$fun translate()</ID>
     <ID>LongMethod:TtsControllerWidget.kt$@Composable fun TtsControllerWidget(modifier: Modifier = Modifier, ttsManager: TtsManager = koinInject())</ID>
     <ID>LongMethod:UIToolsSkill.kt$UIToolsSkill$fun toolDefs(): List&lt;ToolRegistry.ToolDef&gt;</ID>
-    <ID>LongMethod:UiAgentRunner.kt$UiAgentRunner$private suspend fun executeOnVirtualDisplay(action: UiAgentProtocol.Action, displayId: Int, width: Int, height: Int): String</ID>
-    <ID>LongMethod:UiAgentRunner.kt$UiAgentRunner$suspend fun run( task: String, maxSteps: Int = DEFAULT_MAX_STEPS, onProgress: (String) -&gt; Unit = {}, displayMode: DisplayMode = DisplayMode.AUTO, packageName: String? = null, ): RunResult</ID>
     <ID>LongMethod:UserProfileEditPage.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun UserProfileEditPage(onBack: () -&gt; Unit)</ID>
     <ID>LongMethod:VideoGenerationPage.kt$@Composable fun VideoGenerationPage( onBack: () -&gt; Unit, videoService: VideoGenerationService = koinInject(), settingsRepo: SettingsRepository = koinInject(), )</ID>
     <ID>LongMethod:VirtualDisplaySemanticActions.kt$VirtualDisplaySemanticActions$suspend fun tapViewId( manager: AutomationManager, displayManager: VirtualDisplayServerManager, displayId: Int, viewId: String, maxSwipes: Int = 0, verifyText: String? = null, ): TapTextResult</ID>
@@ -1052,8 +1042,6 @@
     <ID>NestedBlockDepth:ToolRegistry.kt$ToolRegistry$internal fun parseArgumentsLenient(json: String): JsonObject</ID>
     <ID>NestedBlockDepth:TtsManager.kt$TtsManager$fun flushStream()</ID>
     <ID>NestedBlockDepth:UiAgentProtocol.kt$UiAgentProtocol$private fun parseArgs(body: String): Map&lt;String, String&gt;</ID>
-    <ID>NestedBlockDepth:UiAgentRunner.kt$UiAgentRunner$private suspend fun executeOnVirtualDisplay(action: UiAgentProtocol.Action, displayId: Int, width: Int, height: Int): String</ID>
-    <ID>NestedBlockDepth:UiAgentRunner.kt$UiAgentRunner$suspend fun run( task: String, maxSteps: Int = DEFAULT_MAX_STEPS, onProgress: (String) -&gt; Unit = {}, displayMode: DisplayMode = DisplayMode.AUTO, packageName: String? = null, ): RunResult</ID>
     <ID>NestedBlockDepth:VectorSearchService.kt$VectorSearchService$private fun applyMMR(candidates: List&lt;Pair&lt;CachedVector, Float&gt;&gt;, topK: Int, mmrLambda: Float): List&lt;SearchResult&gt;</ID>
     <ID>NestedBlockDepth:WeClawClient.kt$WeClawClient$private fun parseMessages(array: JsonArray): List&lt;InboundMsg&gt;</ID>
     <ID>NestedBlockDepth:WebSearchProviders.kt$AutoWebSearchService$override suspend fun search(query: String, maxResults: Int): List&lt;WebSearchResult&gt;</ID>
@@ -1078,11 +1066,7 @@
     <ID>ReturnCount:AutoBackupHelper.kt$AutoBackupHelper$private fun ensureBackupDir(): File?</ID>
     <ID>ReturnCount:AutoBackupWorker.kt$AutoBackupWorker$override suspend fun doWork(): Result</ID>
     <ID>ReturnCount:AutomationManager.kt$AutomationManager$suspend fun executeWithRetry(action: suspend () -&gt; Boolean, maxRetries: Int = 1): Boolean</ID>
-    <ID>ReturnCount:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun executeNodeScript(index: Int, action: String, step: AutomationWorkflowStep): AutomationWorkflowStepResult</ID>
-    <ID>ReturnCount:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun executeVirtualInput( index: Int, action: String, step: AutomationWorkflowStep, displayManager: VirtualDisplayServerManager, displayId: Int, ): AutomationWorkflowStepResult</ID>
-    <ID>ReturnCount:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun executeVirtualStep( index: Int, action: String, step: AutomationWorkflowStep, runId: String, ): AutomationWorkflowStepResult</ID>
     <ID>ReturnCount:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun restoreCachedDisplayLease( runId: String, index: Int, step: AutomationWorkflowStep, cached: AutomationWorkflowStepResult, refreshDisplay: Boolean, ): AutomationWorkflowStepResult</ID>
-    <ID>ReturnCount:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun runLocked( steps: List&lt;AutomationWorkflowStep&gt;, runId: String, retryUnknown: Boolean, durableJournal: WorkflowJournal, ): ToolOutcome</ID>
     <ID>ReturnCount:AutomationWorkflowResumeTest.kt$AutomationWorkflowResumeTest.TestWorkflowResultCipher$override suspend fun decryptOrNull(stored: String): String?</ID>
     <ID>ReturnCount:BackupService.kt$BackupService$private suspend fun applyCloudBackupData(config: CloudBackupConfig, data: ByteArray): Pair&lt;Int, Int&gt;?</ID>
     <ID>ReturnCount:BackupService.kt$BackupService$private suspend fun verifyCloudBackupWrite(config: CloudBackupConfig, write: CloudWrite): Boolean</ID>
@@ -1461,7 +1445,6 @@
     <ID>ReturnCount:SubagentRunner.kt$SubagentRunner$private suspend fun executeAllowedTool(tc: ToolCall): ToolExecOutcome</ID>
     <ID>ReturnCount:SubagentRunner.kt$SubagentRunner$private suspend fun resolveSubagentModel(): Pair&lt;io.zer0.ai.core.ProviderConfig?, io.zer0.ai.core.Model?&gt;</ID>
     <ID>ReturnCount:SubagentRunner.kt$SubagentRunner$private suspend fun runInternal(params: Params, threadId: String, isNew: Boolean, cancellation: SubagentCancellation?): Result</ID>
-    <ID>ReturnCount:SubagentRunner.kt$SubagentRunner$suspend fun run(params: Params, cancellation: SubagentCancellation? = null): Result</ID>
     <ID>ReturnCount:SubagentThreadStore.kt$SubagentThreadStore$suspend fun close(threadId: String): Boolean</ID>
     <ID>ReturnCount:SubagentTool.kt$SubagentTool$private suspend fun doClose(args: Map&lt;String, String&gt;, subagentThreadStore: SubagentThreadStore): String</ID>
     <ID>ReturnCount:SubagentTool.kt$SubagentTool$private suspend fun doLaunch( args: Map&lt;String, String&gt;, skillExecutor: SkillExecutor, subagentThreadStore: SubagentThreadStore, deferredResultStore: DeferredResultStore, appScope: CoroutineScope, ): String</ID>
@@ -1510,8 +1493,6 @@
     <ID>ReturnCount:UIToolsSkill.kt$UIToolsSkill$suspend fun screenshot(client: AccessibilityClient, context: Context, path: String?, format: String): String</ID>
     <ID>ReturnCount:UIToolsSkill.kt$UIToolsSkill$suspend fun setText(client: AccessibilityClient, nodeId: String, text: String): String</ID>
     <ID>ReturnCount:UiAgentProtocol.kt$UiAgentProtocol$private fun parseDo(args: Map&lt;String, String&gt;): Action?</ID>
-    <ID>ReturnCount:UiAgentRunner.kt$UiAgentRunner$private suspend fun executeOnVirtualDisplay(action: UiAgentProtocol.Action, displayId: Int, width: Int, height: Int): String</ID>
-    <ID>ReturnCount:UiAgentRunner.kt$UiAgentRunner$suspend fun run( task: String, maxSteps: Int = DEFAULT_MAX_STEPS, onProgress: (String) -&gt; Unit = {}, displayMode: DisplayMode = DisplayMode.AUTO, packageName: String? = null, ): RunResult</ID>
     <ID>ReturnCount:UserActivityProfile.kt$UserActivityProfile$@Synchronized fun getActiveProbability(hour: Int): Float</ID>
     <ID>ReturnCount:UserActivityProfile.kt$UserActivityProfile$@Synchronized fun getNextActiveWindow(fromTime: Long, allowedHourStart: Int = 8, allowedHourEnd: Int = 22): Long</ID>
     <ID>ReturnCount:UserActivityProfile.kt$UserActivityProfile$private fun applyDecayIfNeeded(timestamp: Long)</ID>
@@ -1811,7 +1792,6 @@
     <ID>TooManyFunctions:AssistantRepository.kt$AssistantRepository</ID>
     <ID>TooManyFunctions:AutomationExecutor.kt$AutomationExecutor</ID>
     <ID>TooManyFunctions:AutomationManager.kt$AutomationManager</ID>
-    <ID>TooManyFunctions:AutomationWorkflow.kt$AutomationWorkflow</ID>
     <ID>TooManyFunctions:BackupService.kt$BackupService</ID>
     <ID>TooManyFunctions:BrowserManager.kt$BrowserManager</ID>
     <ID>TooManyFunctions:ChannelAutoReply.kt$ChannelAutoReply</ID>
@@ -2204,5 +2184,6 @@
     <ID>WildcardImport:TwilightPurpleTheme.kt$import io.zer0.muse.ui.theme.*</ID>
     <ID>WildcardImport:WarmPaperTheme.kt$import io.zer0.muse.ui.theme.*</ID>
     <ID>WildcardImport:WashiTheme.kt$import io.zer0.muse.ui.theme.*</ID>
+    <ID>ReturnCount:AutomationWorkflow.kt$AutomationWorkflow$private suspend fun executeVirtualStep( index: Int, action: String, step: AutomationWorkflowStep, runId: String, ): AutomationWorkflowStepResult</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -42,6 +42,17 @@ object ToolChannelPreflight {
         data class Blocked(val missing: Set<ToolRequirements.Channel>, val message: String) : Result
     }
 
+    /** 受「允许屏幕自动化」总闸管辖的工具（与 AutomationTools 注册的名字对齐）。 */
+    private val AUTOMATION_TOOLS: Set<String> = setOf(
+        "screen_read", "screen_current_app", "screen_back", "screen_home", "screen_tap",
+        "screen_tap_text", "screen_swipe", "screen_pinch", "screen_swipe_path", "screen_input",
+        "screen_open_notifications", "screen_wait",
+        // screen_permission_status / screen_open_settings 故意不在此列：它们是修复手段，
+        // 总闸关着时正需要它们（否则模型既查不到状态、也打不开设置页，彻底死路）。
+        "ui_agent", "automation_workflow",
+        "virtual_screen", "virtual_screen_input",
+    )
+
     /**
      * 预检。
      *
@@ -68,7 +79,20 @@ object ToolChannelPreflight {
      * 这些通道的判定交给已有真源：`ToolRegistry.permissionStatusProvider`
      * 与各工具自己的执行时检查。
      */
-    fun checkPreflightable(toolName: String, availableChannels: Set<ToolRequirements.Channel>?): Result {
+    fun checkPreflightable(
+        toolName: String,
+        availableChannels: Set<ToolRequirements.Channel>?,
+        automationEnabled: Boolean = true,
+    ): Result {
+        // 总闸优先：闸关时**连审批都不该弹** —— 用户点了「允许」，工具再拒绝执行，
+        // 等于白打扰一次（原来预检在审批之后，正是这个毛病）。
+        if (!automationEnabled && toolName in AUTOMATION_TOOLS) {
+            return Result.Blocked(
+                emptySet(),
+                "自动化总闸已关闭（设置 → 自动化 → 允许屏幕自动化）。" +
+                    "在用户重新打开之前，screen_* / ui_agent / automation_workflow 都不会执行。",
+            )
+        }
         val req = ToolRequirements.of(toolName)
         val missing = if (availableChannels == null || req.isUnconditional) {
             null

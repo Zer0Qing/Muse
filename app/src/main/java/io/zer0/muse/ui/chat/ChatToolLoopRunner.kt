@@ -1568,6 +1568,15 @@ internal class ChatToolLoopRunner(
                     }.getOrNull()
                 }
 
+                // 自动化总闸：闸关时让编排器在**审批之前**就拦下，避免白弹一次审批。
+                override suspend fun automationEnabled(): Boolean {
+                    return runCatching {
+                        org.koin.core.context.GlobalContext.get()
+                            .get<io.zer0.muse.data.SettingsRepository>()
+                            .automationEnabled()
+                    }.getOrDefault(true)
+                }
+
                 // v1.x: 单个工具开始/结束回调(用于调试日志)
                 //  默认空实现已存在于接口,这里覆盖做 debug 日志,便于追踪工具执行耗时与状态。
                 override fun onToolStart(toolCallId: String, toolName: String) {

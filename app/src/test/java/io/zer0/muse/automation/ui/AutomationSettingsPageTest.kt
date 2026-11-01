@@ -8,10 +8,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
+import io.mockk.verify
 import io.mockk.every
 import io.mockk.mockk
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
+import io.zer0.muse.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -39,9 +41,12 @@ class AutomationSettingsPageTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
-    private fun managerMock(): AutomationManager = mockk<AutomationManager>(relaxed = true).apply {
-        every { permissionState } returns MutableStateFlow(AutomationManager.PermissionState())
-        coEvery { refreshPermissions() } returns AutomationManager.PermissionState()
+    private fun managerMock(
+        accessibilityEnabled: Boolean = false,
+    ): AutomationManager = mockk<AutomationManager>(relaxed = true).apply {
+        val state = AutomationManager.PermissionState(accessibilityEnabled = accessibilityEnabled)
+        every { permissionState } returns MutableStateFlow(state)
+        coEvery { refreshPermissions() } returns state
     }
 
     @Test
@@ -91,5 +96,83 @@ class AutomationSettingsPageTest {
             .performClick()
 
         assertEquals(1, wizardCount)
+    }
+
+    private fun settingsMock(automationEnabled: Boolean): SettingsRepository =
+        mockk<SettingsRepository>(relaxed = true).apply {
+            every { automationEnabledFlow } returns MutableStateFlow(automationEnabled)
+            every { taskerTriggerEnabledFlow } returns MutableStateFlow(false)
+        }
+
+    @Test
+    fun `master switch off shows the disabled banner`() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                AutomationSettingsPage(
+                    manager = managerMock(),
+                    onBack = {},
+                    settings = settingsMock(automationEnabled = false),
+                )
+            }
+        }
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.automation_master_off_banner))
+            .assertExists()
+    }
+
+    @Test
+    fun `master switch on hides the disabled banner`() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                AutomationSettingsPage(
+                    manager = managerMock(),
+                    onBack = {},
+                    settings = settingsMock(automationEnabled = true),
+                )
+            }
+        }
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.automation_master_off_banner))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `a11y off banner shows when automation is on but service is disconnected`() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                AutomationSettingsPage(manager = managerMock(accessibilityEnabled = false), onBack = {})
+            }
+        }
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.automation_a11y_off_banner))
+            .assertExists()
+    }
+
+    @Test
+    fun `a11y off banner is hidden when accessibility is connected`() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                AutomationSettingsPage(manager = managerMock(accessibilityEnabled = true), onBack = {})
+            }
+        }
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.automation_a11y_off_banner))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `a11y off banner action opens system accessibility settings`() {
+        val manager = managerMock(accessibilityEnabled = false)
+        composeTestRule.setContent {
+            MaterialTheme {
+                AutomationSettingsPage(manager = manager, onBack = {})
+            }
+        }
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.automation_a11y_off_action))
+            .performClick()
+        verify {
+            manager.openSystemSettings(AutomationManager.SystemSettingsTarget.ACCESSIBILITY)
+        }
     }
 }

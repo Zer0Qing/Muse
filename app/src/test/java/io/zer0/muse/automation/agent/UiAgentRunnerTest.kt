@@ -379,4 +379,63 @@ class UiAgentRunnerTest {
             unmockkObject(VisionImagePreprocessor)
         }
     }
+
+    @Test
+    fun `agent system prompt warns against repeating an action blindly`() {
+        // ui_agent 每步自己决策，风险比单次工具调用更高：它可能「以为没点上」再点一次。
+        // 提示词必须明确告诉它「每个动作都真的执行一次，别盲目重复点同一控件」。
+        val prompt = io.zer0.muse.automation.agent.UiAgentRunner.Companion.AGENT_SYSTEM_PROMPT
+        assertTrue("应说明每个动作都会真的执行一次", prompt.contains("每个动作都会真的执行一次"))
+        assertTrue("应提示先看最新截图再决定", prompt.contains("先看最新的截图"))
+        assertTrue("应点名付款/发送/删除的两次副作用", prompt.contains("点两次就是两次副作用"))
+    }
+
+    @Test
+    fun `foreground agent runs a multi step task and reports per step progress`() = runBlocking {
+        // 端到端（不含真设备）：视觉模型给两个 tap + 一个 finish，验证
+        // 循环真的执行了两次点击、进度回调按步播报、最后按 completed=true 判成功。
+        val automation = mockk<AutomationManager>(relaxed = true)
+        val vision = mockk<VisionBridge>()
+        val client = mockk<VirtualDisplayClient>()
+        val displayManager = mockk<VirtualDisplayServerManager>()
+
+        coEvery { automation.screenshot() } returns png
+        coEvery { automation.readScreen() } returns ScreenInfo(
+            nodes = listOf(
+                UiNode(text = "A", boundsLeft = 0, boundsTop = 0, boundsRight = 6, boundsBottom = 8, isClickable = true),
+                UiNode(text = "B", boundsLeft = 0, boundsTop = 0, boundsRight = 8, boundsBottom = 6, isClickable = true),
+            ),
+            screenWidth = 10,
+            screenHeight = 10,
+        )
+        coEvery { automation.tap(any(), any()) } returns true
+        coEvery { vision.askWithImage(any(), any(), any(), any()) } returnsMany listOf(
+            "do(action=\"tap\", x=3, y=4)",
+            "do(action=\"tap\", x=5, y=6)",
+            "finish(success=true, result=\"done\")",
+        )
+        mockkObject(VisionImagePreprocessor)
+        coEvery { VisionImagePreprocessor.prepareSingle(any(), any()) } returns VisionImagePreprocessor.PreparedImage(
+            base64 = "AA==", mimeType = "image/png", originalWidth = 1, originalHeight = 1, resizedWidth = 1, resizedHeight = 1,
+        )
+        try {
+            val runner = UiAgentRunner(automation, vision, client, displayManager)
+            val progress = mutableListOf<String>()
+
+            val result = runner.run(
+                task = "点两个按钮",
+                maxSteps = 5,
+                onProgress = { progress += it },
+            )
+
+            assertTrue("应判定完成: ${result.summary}", result.finished)
+            coVerify(exactly = 1) { automation.tap(3, 4) }
+            coVerify(exactly = 1) { automation.tap(5, 6) }
+            assertTrue("应播报第 1 步进度，实际: $progress", progress.any { it.contains("第 1 步") })
+            assertTrue("应播报第 2 步进度，实际: $progress", progress.any { it.contains("第 2 步") })
+            assertTrue("完成时应播报确认，实际: $progress", progress.any { it.contains("已确认任务完成") })
+        } finally {
+            unmockkObject(VisionImagePreprocessor)
+        }
+    }
 }

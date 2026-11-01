@@ -63,6 +63,11 @@ fun AutomationSettingsPage(
     val context = LocalContext.current
     val taskerEnabled by settings?.taskerTriggerEnabledFlow?.collectAsStateWithLifecycle(initialValue = false)
         ?: remember { mutableStateOf(false) }
+    val automationEnabled by settings?.automationEnabledFlow?.collectAsStateWithLifecycle(initialValue = true)
+        ?: remember { mutableStateOf(true) }
+    // R1: 无障碍被系统回收时，页面要主动提示 —— 否则用户只会看到「开关都开着」，
+    // 却不知道为什么读屏/点击全都失败。实时读 permissionState（不是一次性探测）。
+    val permissionState by manager.permissionState.collectAsStateWithLifecycle()
     var testing by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<ScreenTestResult?>(null) }
 
@@ -96,6 +101,80 @@ fun AutomationSettingsPage(
             }
         }
 
+        // 总闸关闭时，页面顶部先给一条醒目提示：否则用户只会看到「开关是关的」，
+        // 却不知道这意味着所有屏幕自动化工具此刻都在拒绝执行。
+        if (!automationEnabled) {
+            item(key = "master-off-banner") {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = MuseIcons.shield,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                        Text(
+                            text = stringResource(R.string.automation_master_off_banner),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+            }
+        }
+
+        // R1: 总闸开着、但无障碍服务当前不可用（多半是被系统回收/用户关了开关）。
+        // 与上面的「总闸关闭」横幅互斥：那条说「为什么不能用」，这条说「去哪开回来」。
+        if (automationEnabled && !permissionState.accessibilityEnabled) {
+            item(key = "a11y-off-banner") {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = MuseIcons.shield,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.automation_a11y_off_banner),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            )
+                            Text(
+                                text = stringResource(R.string.automation_a11y_off_action),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(top = 6.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        manager.openSystemSettings(
+                                            AutomationManager.SystemSettingsTarget.ACCESSIBILITY,
+                                        )
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // v2.x: 三通道权限配置已收敛到「权限配置向导」(消除两页逐层重复)
         item(key = "permissions-entry") {
             SettingsGroup {
@@ -106,6 +185,26 @@ fun AutomationSettingsPage(
                     onClick = onOpenPermissionWizard,
                 ) {
                     ChevronRight()
+                }
+            }
+        }
+
+        // 总闸：一次停掉所有屏幕自动化（screen_* / ui_agent / automation_workflow）。
+        item(key = "automation-master") {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon = MuseIcons.switch,
+                    title = stringResource(R.string.automation_master_title),
+                    subtitle = stringResource(R.string.automation_master_desc),
+                    onClick = null,
+                ) {
+                    MuseSwitch(
+                        checked = automationEnabled,
+                        onCheckedChange = settings?.let { repository ->
+                            { enabled -> scope.launch { repository.saveAutomationEnabled(enabled) } }
+                        },
+                        contentDescription = stringResource(R.string.automation_master_title),
+                    )
                 }
             }
         }

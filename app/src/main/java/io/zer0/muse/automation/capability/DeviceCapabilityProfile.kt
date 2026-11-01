@@ -40,6 +40,8 @@ data class DeviceCapabilityProfile(
     val virtualDisplay: Boolean = false,
     val nodeRuntime: Boolean = false,
     val sandboxAvailable: Boolean = false,
+    /** 自动化总闸（设置里的「允许屏幕自动化」）。false 时所有 screen_* / ui_agent 都会拒绝执行。 */
+    val automationEnabled: Boolean = true,
     val details: Map<String, String> = emptyMap(),
 ) {
     /** 最高可用层级（无任何通道时为 [PermissionLevel.NONE]）。 */
@@ -118,6 +120,15 @@ data class DeviceCapabilityProfile(
      * 这些不是建议而是硬约束（每条都对应一次真实踩坑），因此与能力档案一起注入。
      */
     fun renderOperatingGuide(): String = buildString {
+        if (!automationEnabled) {
+            appendLine("## 自动化总闸已关闭")
+            appendLine(
+                "用户关掉了「允许屏幕自动化」：`screen_*` / `ui_agent` / `automation_workflow` 都会直接拒绝执行。" +
+                    "不要反复尝试，先请用户在 设置 → 自动化 → 允许屏幕自动化 打开；" +
+                    "在此之前只能使用不需要屏幕权限的工具（app_list / app_launch / app_settings 等）。",
+            )
+            appendLine()
+        }
         appendLine("## 操作手机的决策规程")
         appendLine("1. 动手前先确认能力：上表列出的是**当前**真实可用性；表里写「不可用」的通道不要反复重试，直接换方案或向用户说明缺哪一项权限。")
         appendLine("2. 按最低够用层级选通道：")
@@ -156,6 +167,7 @@ data class DeviceCapabilityProfile(
             virtualDisplay: Boolean = false,
             nodeRuntime: Boolean = false,
             sandboxAvailable: Boolean = false,
+            automationEnabled: Boolean = true,
             details: Map<String, String> = emptyMap(),
         ): DeviceCapabilityProfile = DeviceCapabilityProfile(
             accessibility = accessibility,
@@ -164,6 +176,7 @@ data class DeviceCapabilityProfile(
             virtualDisplay = virtualDisplay,
             nodeRuntime = nodeRuntime,
             sandboxAvailable = sandboxAvailable,
+            automationEnabled = automationEnabled,
             details = details,
         )
     }

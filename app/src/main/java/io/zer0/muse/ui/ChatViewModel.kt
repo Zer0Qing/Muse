@@ -1310,6 +1310,9 @@ class ChatViewModel(
     private suspend fun recordConversationShadow(event: ConversationEventDraft) = generationController.recordConversationShadow(event)
 
     companion object {
+        /** 输入草稿落盘防抖窗口：太短会频繁写库，太长则杀进程前可能来不及写。 */
+        private const val DRAFT_PERSIST_DEBOUNCE_MS = 500L
+
         /**
          * v2.5.7: 模型未声明上下文窗口时的兜底值（token）。
          *
@@ -1782,6 +1785,8 @@ class ChatViewModel(
             appContext = appContext,
             onEnqueueSend = { text, images, sid -> enqueueSend(text, images, sid) },
         )
+    /** 输入草稿防抖落盘的 Job（每次输入取消上一次）。 */
+    private var draftPersistJob: Job? = null
 
     // v1.x: 消息加载 Controller(初始分页/加载更多/计划恢复)
     private val messageController =
@@ -2885,7 +2890,32 @@ class ChatViewModel(
      * 从原消费者循环体内抽出,由外层永不死亡的 while 循环逐条调用。
      * 逻辑与原实现完全一致:会话切换跳过 + appendMessage 自动重试 + launchStream。
      */
-    fun updateInput(text: String) = inputController.updateInput(text)
+    fun updateInput(text: String) {
+        inputController.updateInput(text)
+        persistDraftDebounced(text)
+    }
+
+    /**
+     * 输入即草稿（防抖落盘）。
+     *
+     * 用户反馈：昨天没发出去的一段话，今天每次打开这个会话都会出现 —— 即使已经删掉了。
+     * 原因：草稿只在「切走会话」时保存，而且**空输入直接跳过保存**，
+     * 于是「删光输入框」这个动作从来没被写进库里，旧草稿每次都被 loadInputDraft 复活。
+     *
+     * 现在：输入变化就落盘（非空防抖 500ms，清空立即写），草稿始终等于用户最后看到的输入框内容。
+     */
+    private fun persistDraftDebounced(text: String) {
+        val st = _state.value
+        if (st.isAgentMode) return
+        val sessionId = st.currentSessionId ?: return
+        draftPersistJob?.cancel()
+        draftPersistJob = viewModelScope.launch(Dispatchers.IO) {
+            // 清空必须立刻落盘：晚 500ms 内被杀进程，旧草稿就会复活。
+            if (text.isNotEmpty()) delay(DRAFT_PERSIST_DEBOUNCE_MS)
+            runCatching { sessionRepository.saveInputDraft(sessionId, text) }
+                .onFailure { Logger.w("ChatVM", "保存输入草稿失败: ${it.message}") }
+        }
+    }
 
     /**
      * v1.205 B2: 把当前输入加入待发送队列(生成期间排队,不打断当前生成)。

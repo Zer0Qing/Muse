@@ -102,6 +102,12 @@ class ToolRegistry(
     /** 需要宿主会话边界的工具，context 由执行链路注入，模型不能伪造。 */
     typealias ContextToolFn = suspend (Map<String, String>, ToolExecutionContext) -> String
 
+    /** Outcome 版上下文工具：既要结构化返回，也要宿主上下文（如进度回调）。 */
+    // 上下文**可空**：ChannelAutoReply / MiniPhone / ScheduledTask / Subagent 等宿主
+    // 调用 executeFromJson 时不带上下文。强制要求会让 ui_agent 在那些宿主里直接失败。
+    // 需要 scope 语义的工具请用 registerWithContext（那条通道仍然强制要求上下文）。
+    typealias OutcomeContextFn = suspend (Map<String, String>, ToolExecutionContext?) -> ToolOutcome
+
     /** v1.0.53: 结构化结果执行函数(返回 [ToolOutcome])。 */
     private typealias ToolOutcomeFn = suspend (Map<String, String>) -> ToolOutcome
 
@@ -111,6 +117,7 @@ class ToolRegistry(
     // M-TR2: 改用 ConcurrentHashMap,保证 register/unregister/execute 并发安全
     private val tools = ConcurrentHashMap<String, ToolFn>()
     private val contextTools = ConcurrentHashMap<String, ContextToolFn>()
+    private val outcomeContextTools = ConcurrentHashMap<String, OutcomeContextFn>()
 
     // v1.0.53: 结构化结果工具通道(优先于 [tools] 查找)
     private val outcomeTools = ConcurrentHashMap<String, ToolOutcomeFn>()
@@ -262,6 +269,19 @@ class ToolRegistry(
     fun register(def: ToolDef, fn: ToolFn) {
         synchronized(registerLock) {
             tools[def.name] = fn
+            contextTools.remove(def.name)
+            outcomeTools.remove(def.name)
+            jsonTools.remove(def.name)
+            toolDefs[def.name] = def
+            bumpRevision()
+        }
+    }
+
+    /** Outcome + 上下文版注册：结构化返回，同时能拿到宿主上下文（进度回调等）。 */
+    fun registerOutcomeWithContext(def: ToolDef, fn: OutcomeContextFn) {
+        synchronized(registerLock) {
+            outcomeContextTools[def.name] = fn
+            tools.remove(def.name)
             contextTools.remove(def.name)
             outcomeTools.remove(def.name)
             jsonTools.remove(def.name)
@@ -536,6 +556,12 @@ class ToolRegistry(
                 .getOrNull()?.let { ToolOutcome.ok(it) }
                 ?: ToolOutcome.error(this.context.getString(R.string.tool_exec_exception))
         }
+        // Outcome + 上下文通道（ui_agent 这类需要进度的长任务）
+        outcomeContextTools[name]?.let { fn ->
+            return resultOf { fn(validArgs, executionContext) }
+                .onError { msg, _ -> Logger.w("ToolRegistry", "工具 $name 执行异常: $msg") }
+                .getOrNull() ?: ToolOutcome.error(context.getString(R.string.tool_exec_exception))
+        }
         // v1.0.53: 优先结构化通道
         outcomeTools[name]?.let { fn ->
             return resultOf { fn(validArgs) }
@@ -767,7 +793,7 @@ class ToolRegistry(
         internal val DEVICE_INTERACTION_TOOL_NAMES = setOf(
             "ui_agent", "automation_workflow", "device_shell",
             "screen_read", "screen_current_app", "screen_back", "screen_home", "screen_tap", "screen_tap_text",
-            "screen_swipe", "screen_pinch", "screen_swipe_path", "screen_input", "screen_launch_app",
+            "screen_swipe", "screen_pinch", "screen_swipe_path", "screen_input",
             "screen_open_notifications", "screen_wait",
             "virtual_screen", "virtual_screen_input",
             "ui_get_page_info", "ui_click", "ui_long_press", "ui_swipe", "ui_set_text", "ui_screenshot",

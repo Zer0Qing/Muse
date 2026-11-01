@@ -394,7 +394,6 @@ object ToolPermissionResolver {
         "screen_pinch" to ToolRiskLevel.HIGH,
         "screen_swipe_path" to ToolRiskLevel.HIGH,
         "screen_input" to ToolRiskLevel.HIGH,
-        "screen_launch_app" to ToolRiskLevel.HIGH,
         "app_force_stop" to ToolRiskLevel.HIGH,
         "app_clear_data" to ToolRiskLevel.HIGH,
         "app_uninstall" to ToolRiskLevel.HIGH,

@@ -60,7 +60,6 @@ class ToolPermissionResolverTest {
             "screen_pinch",
             "screen_swipe_path",
             "screen_input",
-            "screen_launch_app",
             "app_force_stop",
             "app_clear_data",
             "app_uninstall",
@@ -90,7 +89,7 @@ class ToolPermissionResolverTest {
         listOf(
             "automation_workflow", "virtual_screen", "virtual_screen_input",
             "screen_read", "screen_current_app", "screen_tap", "screen_tap_text",
-            "screen_swipe", "screen_pinch", "screen_swipe_path", "screen_input", "screen_launch_app",
+            "screen_swipe", "screen_pinch", "screen_swipe_path", "screen_input",
             "app_force_stop", "app_clear_data", "app_uninstall",
             "settings_get", "settings_put", "network_toggle", "am_start",
             "list_packages", "logcat_tail", "input_inject",

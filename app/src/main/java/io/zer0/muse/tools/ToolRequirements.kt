@@ -90,7 +90,7 @@ object ToolRequirements {
         listOf(
             "screen_read", "screen_tap", "screen_tap_text", "screen_swipe", "screen_swipe_path",
             "screen_pinch", "screen_wait", "screen_back", "screen_home", "screen_current_app",
-            "screen_input", "screen_launch_app", "screen_open_notifications",
+            "screen_input", "screen_open_notifications",
             "ui_agent", "input_inject", "virtual_screen", "virtual_screen_input",
             "automation_workflow",
         ).forEach { put(it, SCREEN) }

@@ -994,17 +994,23 @@ internal fun MessageBubble(
                 // 一屏几十个气泡如果每个都跑真模糊会拖垮滚动(性能黑洞),
                 // 改为渐变底 + 顶部高光边 + 描边,视觉近似但成本低。
                 val userGlassActive = glassActive && resolvedSkin == null && glassConfig.enabled
-                val userGlassModifier = if (userGlassActive) {
-                    Modifier
+                // 黑白主题：玻璃只保留「顶部高光 + 描边」，底色走实色灰阶 —— 不做任何渐变。
+                // 其余主题维持原来的「假玻璃」渐变（一屏几十个气泡没法跑真模糊）。
+                val monoFlatGlass = userGlassActive && MuseBubbleStyles.isMonoBubbleTheme()
+                val userGlassModifier = when {
+                    !userGlassActive -> Modifier
+                    monoFlatGlass -> Modifier
+                        .clip(userShape)
+                        .glassEdgeHighlight(userShape, glassConfig)
+                        .glassBorder(userShape, glassConfig)
+                    else -> Modifier
                         .clip(userShape)
                         .background(glassFakeSurfaceColor(MuseBubbleStyles.userSurfaceColor(), glassConfig))
                         .glassEdgeHighlight(userShape, glassConfig)
                         .glassBorder(userShape, glassConfig)
-                } else {
-                    Modifier
                 }
                 Surface(
-                    color = if (userGlassActive) Color.Transparent else userSurfaceColor,
+                    color = if (userGlassActive && !monoFlatGlass) Color.Transparent else userSurfaceColor,
                     shape = userShape,
                     border = userBorder,
                     // v1.0.29: 移除阴影,避免浅色气泡在深色/浅色背景下出现奇怪阴影边缘。

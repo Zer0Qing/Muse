@@ -20,4 +20,13 @@ data class ToolExecutionContext(
      * 只能要么要求模型自己猜（不可能对），要么静默写到一个没人读的键上。
      */
     val messageId: String? = null,
+
+    /**
+     * 长任务进度回调（可选）。
+     *
+     * `ui_agent` / `automation_workflow` 这类要跑十几步的工具，中途没有任何反馈时
+     * 用户只能看到一个转圈，分不清是卡死还是在干活。编排器把它接到任务卡的
+     * `progressText`（与 skill 执行分支同一条通道）。
+     */
+    val onProgress: ((String) -> Unit)? = null,
 )

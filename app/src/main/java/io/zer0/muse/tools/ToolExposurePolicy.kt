@@ -470,8 +470,9 @@ object ToolExposurePolicy {
                 toolNames =
                 setOf(
                     "ui_click", "ui_long_press", "ui_swipe", "ui_set_text", "ui_back", "ui_home", "ui_global_action",
-                    "screen_back", "screen_home", "screen_tap", "screen_tap_text", "screen_swipe", "screen_input",
-                    "screen_launch_app", "screen_open_notifications", "screen_wait", "screen_pinch", "screen_swipe_path",
+                    "screen_back", "screen_home", "screen_tap", "screen_tap_text", "screen_swipe",
+                    "screen_input", "screen_open_notifications", "screen_wait", "screen_pinch",
+                    "screen_swipe_path",
                 ),
             ),
             ToolFamily(

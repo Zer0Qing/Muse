@@ -102,7 +102,22 @@ object AutomationInitializer {
             val nodeScriptExecutor: suspend (String, Long) -> io.zer0.muse.tools.script.SkillEngineResult = { code, timeoutMs ->
                 io.zer0.muse.tools.NodeScriptTool.evaluate(appContext, code, timeoutMs)
             }
-            val tools = AutomationTools(mgr, workflowJournal, virtualDisplayClient, virtualDisplayManager, nodeScriptExecutor)
+            // 自动化总闸：从设置里读，工具执行前判断（设置缺失时按开处理）。
+            val settingsRepository = runCatching {
+                org.koin.java.KoinJavaComponent.get<io.zer0.muse.data.SettingsRepository>(
+                    io.zer0.muse.data.SettingsRepository::class.java,
+                )
+            }.getOrNull()
+            val tools = AutomationTools(
+                mgr,
+                workflowJournal,
+                virtualDisplayClient,
+                virtualDisplayManager,
+                nodeScriptExecutor,
+                automationEnabled = {
+                    settingsRepository?.automationEnabled() ?: true
+                },
+            )
             tools.register(toolRegistry)
 
             // 注册 Root 级别工具(分层执行:Shizuku 优先、Root 兜底,注册本身无副作用)

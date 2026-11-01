@@ -57,25 +57,31 @@ class ChatGenerationService : Service() {
         // 会抛 "KoinApplication has not been started" 形成崩溃循环。
         if (org.koin.core.context.GlobalContext.getOrNull() == null) {
             Logger.w("ChatGenService", "Koin 未启动(Safe Mode/进程异常恢复) — 放弃保活")
-            stopService()
+            runCatching { stopSelf() }
             return
         }
+        // 兜底（真机崩溃修复）：**任何**初始化异常都不允许让 Service 创建失败。
+        // Service onCreate 抛异常时系统会反复重启它 → 崩溃循环，用户看到的就是「一开就闪退」。
+        // 这里的 try 比「只在 Koin 判断上加守卫」更稳：Koin 版本差异、通知构建、WakeLock
+        // 任何一处抛 Throwable 都只会导致「这次保活放弃」，而不是整个应用挂掉。
+        try {
+            initForegroundAndWakeLock()
+        } catch (t: Throwable) {
+            Logger.e("ChatGenService", "onCreate 初始化失败 — 放弃保活(避免崩溃循环)", t)
+            runCatching { stopSelf() }
+        }
+    }
+
+    /** onCreate 的正常路径：进前台 + 拿 WakeLock。异常由 [onCreate] 统一兜底。 */
+    private fun initForegroundAndWakeLock() {
         // v1.112: 服务创建即进入前台状态,避免 onStartCommand 延迟导致 5 秒超时崩溃。
         // 用默认标题构造通知;后续 onStartCommand 会按实际生成状态更新。
-        try {
-            val notification = notificationManager.buildGenerationNotification(
-                getString(R.string.schedule_generating_default_title),
-                0,
-                io.zer0.muse.notification.MuseNotificationTarget.Chat,
-            )
-            startForegroundCompat(notification)
-        } catch (t: Throwable) {
-            // 通知构建失败时也必须调 startForeground,否则触发超时崩溃;
-            // 用最小通知兜底(若连 NotificationManager 都不可用,直接 stopSelf 放弃保活)。
-            Logger.e("ChatGenService", "onCreate startForeground 失败,放弃保活", t)
-            stopSelf()
-            return
-        }
+        val notification = notificationManager.buildGenerationNotification(
+            getString(R.string.schedule_generating_default_title),
+            0,
+            io.zer0.muse.notification.MuseNotificationTarget.Chat,
+        )
+        startForegroundCompat(notification)
         // v1.0.15: 获取 PARTIAL_WAKE_LOCK,保证生成期间 CPU 不休眠、网络不被 Doze 挂起
         wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Muse:ChatGeneration")
@@ -95,7 +101,7 @@ class ChatGenerationService : Service() {
         // 缺失时抛 "KoinApplication has not been started" 崩溃。
         if (org.koin.core.context.GlobalContext.getOrNull() == null) {
             Logger.w("ChatGenService", "Koin 未启动(Safe Mode?) — 停止服务,不进入观察循环")
-            stopService()
+            runCatching { stopSelf() }
             return START_NOT_STICKY
         }
         val action = intent?.action ?: ACTION_START

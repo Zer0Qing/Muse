@@ -261,7 +261,6 @@ object ToolCategories {
             "screen_tap_text",
             "screen_swipe",
             "screen_input",
-            "screen_launch_app",
             "screen_open_notifications",
             "screen_wait",
             // 屏幕自动化补充(此前注册了但未登记分类)
@@ -319,7 +318,7 @@ object ToolCategories {
             // 屏幕自动化(无障碍为主,可降级设备通道;screen_pinch 仅支持无障碍)
             listOf(
                 "screen_read", "screen_current_app", "screen_back", "screen_home", "screen_tap",
-                "screen_tap_text", "screen_swipe", "screen_input", "screen_launch_app",
+                "screen_tap_text", "screen_swipe", "screen_input",
                 "screen_open_notifications", "screen_wait", "screen_swipe_path",
             ).forEach { put(it, setOf(ToolPermission.ACCESSIBILITY, ToolPermission.SHELL_TIER)) }
             put("screen_pinch", setOf(ToolPermission.ACCESSIBILITY))

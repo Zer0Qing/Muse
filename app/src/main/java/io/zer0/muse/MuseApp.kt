@@ -526,6 +526,14 @@ class MuseApp : Application(), ImageLoaderFactory {
                                 nodeRuntimeProbe = {
                                     io.zer0.muse.runtime.MuseRuntime.isReady(applicationContext)
                                 },
+                                // 自动化总闸：关掉时让档案第一句就说明，避免模型白试。
+                                automationEnabledProbe = {
+                                    runCatching {
+                                        org.koin.java.KoinJavaComponent.get<io.zer0.muse.data.SettingsRepository>(
+                                            io.zer0.muse.data.SettingsRepository::class.java,
+                                        ).automationEnabled()
+                                    }.getOrDefault(true)
+                                },
                             ),
                         )
                     }

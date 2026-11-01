@@ -8,6 +8,7 @@ import io.mockk.mockk
 import io.zer0.muse.tools.BrowserManager
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolResultJudge
+import io.zer0.muse.tools.ToolExecutionContext
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -89,5 +90,28 @@ class UiAgentToolTest {
         assertTrue(outcome.isError)
         assertTrue(outcome.content.contains("display"))
         coVerify(exactly = 0) { runner.run(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `progress from the runner reaches the execution context`() = runBlocking {
+        // 15 步的 ui_agent 跑起来要好几分钟，中途没有任何反馈时用户只能看到转圈。
+        // 这条钉住：runner 的 onProgress 必须一路传到 ToolExecutionContext.onProgress。
+        val runner = mockk<UiAgentRunner>()
+        coEvery { runner.run(any(), any(), any(), any(), any()) } coAnswers {
+            val onProgress = arg<(String) -> Unit>(2)
+            onProgress("第 1 步:tap -> ok")
+            UiAgentRunner.RunResult(true, "done")
+        }
+        val registry = registry()
+        UiAgentTool(runner).register(registry)
+        val seen = mutableListOf<String>()
+
+        registry.executeFromJson(
+            "ui_agent",
+            """{"task":"打开设置"}""",
+            ToolExecutionContext(scope = "main", spaceId = "default", onProgress = { seen += it }),
+        )
+
+        assertTrue("进度应流到上下文，实际: $seen", seen.contains("第 1 步:tap -> ok"))
     }
 }

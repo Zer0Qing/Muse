@@ -95,4 +95,51 @@ class ToolChannelPreflightTest {
 
         assertEquals(ToolChannelPreflight.Result.Proceed, result)
     }
+
+    // ── 自动化总闸（v2.7） ─────────────────────────────────────────────
+
+    @Test
+    fun `master switch off blocks automation tools before approval`() {
+        val result = ToolChannelPreflight.checkPreflightable(
+            toolName = "screen_tap",
+            availableChannels = setOf(Channel.ACCESSIBILITY),
+            automationEnabled = false,
+        )
+        assertTrue("闸关时必须拦下", result is ToolChannelPreflight.Result.Blocked)
+        val message = (result as ToolChannelPreflight.Result.Blocked).message
+        assertTrue("应说清是总闸", message.contains("自动化总闸已关闭"))
+        assertTrue("应给出去哪儿打开", message.contains("允许屏幕自动化"))
+    }
+
+    @Test
+    fun `master switch off also blocks ui_agent and workflow`() {
+        for (name in listOf("ui_agent", "automation_workflow", "virtual_screen")) {
+            val result = ToolChannelPreflight.checkPreflightable(
+                toolName = name,
+                availableChannels = setOf(Channel.ACCESSIBILITY, Channel.SHELL),
+                automationEnabled = false,
+            )
+            assertTrue("$name 闸关时必须拦下", result is ToolChannelPreflight.Result.Blocked)
+        }
+    }
+
+    @Test
+    fun `master switch off leaves non automation tools alone`() {
+        val result = ToolChannelPreflight.checkPreflightable(
+            toolName = "web_search",
+            availableChannels = emptySet(),
+            automationEnabled = false,
+        )
+        assertTrue("非自动化工具不该被总闸拦", result !is ToolChannelPreflight.Result.Blocked)
+    }
+
+    @Test
+    fun `master switch on keeps automation tools unaffected`() {
+        val result = ToolChannelPreflight.checkPreflightable(
+            toolName = "screen_tap",
+            availableChannels = setOf(Channel.ACCESSIBILITY),
+            automationEnabled = true,
+        )
+        assertEquals(ToolChannelPreflight.Result.Proceed, result)
+    }
 }

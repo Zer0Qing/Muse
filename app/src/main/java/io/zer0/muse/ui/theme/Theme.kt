@@ -42,6 +42,14 @@ private fun Context.findActivity(): Activity? {
 }
 
 /**
+ * 当前生效的主题 id（`mono` / `sumi` / 自定义 id …）。
+ *
+ * 少数组件需要按主题做**结构性**差异（例如黑白主题下气泡必须是纯灰阶、不能带渐变），
+ * 用 id 判断比拿 ColorScheme 反推可靠。
+ */
+val LocalMuseThemeId = androidx.compose.runtime.staticCompositionLocalOf { "mono" }
+
+/**
  * Muse 主题入口 (v0.22 重写)。
  *
  * 设计决策:
@@ -223,6 +231,7 @@ fun MuseTheme(
             val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
             val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
             CompositionLocalProvider(
+                LocalMuseThemeId provides resolvedThemeId,
                 LocalIndication provides MuseNoRippleIndication,
                 LocalRippleConfiguration provides null,
                 LocalStatusColors provides statusColors,

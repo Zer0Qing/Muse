@@ -17,6 +17,7 @@ import io.zer0.muse.automation.core.ScreenInfo
 import io.zer0.muse.automation.core.UiNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.coroutines.resume
@@ -315,22 +316,42 @@ class AccessibilityExecutor(
         return dispatchGesture(svc, gesture)
     }
 
-    private suspend fun dispatchGesture(svc: MuseAccessibilityService, gesture: GestureDescription): Boolean =
-        suspendCancellableCoroutine { cont ->
-            svc.dispatchGesture(
-                gesture,
-                object : AccessibilityService.GestureResultCallback() {
-                    override fun onCompleted(g: GestureDescription?) {
-                        if (cont.isActive) cont.resume(true)
-                    }
+    /**
+     * 手势注入**必须有超时**：`dispatchGesture` 的完成回调由系统发起，
+     * 服务被回收 / 输入法抢占 / 系统异常时可能永远不回调。这个 suspend 函数一旦挂住，
+     * 外层 `AutomationManager.mutex` 就被永久占用 —— 所有后续点击读屏全部排队等死。
+     */
+    private suspend fun dispatchGesture(svc: MuseAccessibilityService, gesture: GestureDescription): Boolean {
+        val result = withTimeoutOrNull(gestureTimeoutMs) {
+            suspendCancellableCoroutine { cont ->
+                val accepted = runCatching {
+                    svc.dispatchGesture(
+                        gesture,
+                        object : AccessibilityService.GestureResultCallback() {
+                            override fun onCompleted(g: GestureDescription?) {
+                                if (cont.isActive) cont.resume(true)
+                            }
 
-                    override fun onCancelled(g: GestureDescription?) {
-                        if (cont.isActive) cont.resume(false)
-                    }
-                },
-                null,
-            )
+                            override fun onCancelled(g: GestureDescription?) {
+                                if (cont.isActive) cont.resume(false)
+                            }
+                        },
+                        null,
+                    )
+                }.getOrDefault(false)
+                // 系统直接拒收时不会有任何回调，这里立即结束，别等超时。
+                if (!accepted && cont.isActive) cont.resume(false)
+            }
         }
+        if (result == null) {
+            Logger.w(TAG, "手势注入超时(${gestureTimeoutMs}ms) — 按失败处理，避免卡住自动化锁")
+            return false
+        }
+        return result
+    }
+
+    /** 手势完成等待上限；要覆盖最长手势（滑动时长上限 5s）并留余量。internal 便于测试调小。 */
+    internal var gestureTimeoutMs: Long = 12_000L
 
     private fun pasteText(text: String): Boolean {
         return try {

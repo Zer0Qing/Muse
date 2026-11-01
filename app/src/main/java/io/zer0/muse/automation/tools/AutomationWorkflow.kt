@@ -36,6 +36,11 @@ private val CACHED_DISPLAY_ID_REGEX = Regex("""displayId=(\d+)""")
  * 这是 Agent 编排层的第一块：动作集合是显式白名单，不接受任意 shell；每一步失败就停止，
  * 结果同时保留给模型的摘要和给编排/UI 使用的结构化 details。
  */
+// 这是个「工作流引擎」：run/断点恢复 + 每类动作一个 executeXxx + 虚拟屏一族。
+// 27 个函数确实偏多，但按职责拆成协作类需要把 journal / displayLeases / manager 一起搬，
+// 会让「一步执行到底走哪条路」更难跟（且结构测试锚点也要跟着改）。
+// 这里选择显式保留并写清理由 —— 与 UiAgentRunner 的处理一致：例外要看得见，不藏在基线里。
+@Suppress("TooManyFunctions")
 class AutomationWorkflow(
     private val manager: AutomationManager,
     private val journal: WorkflowJournal? = null,
@@ -44,9 +49,17 @@ class AutomationWorkflow(
     private val nodeScriptExecutor: (suspend (String, Long) -> SkillEngineResult)? = null,
     private val displayLeases: VirtualDisplayLeaseRegistry = VirtualDisplayLeaseRegistry(),
 ) {
-    suspend fun run(steps: List<AutomationWorkflowStep>, runId: String, retryUnknown: Boolean = false): ToolOutcome {
+    suspend fun run(
+        steps: List<AutomationWorkflowStep>,
+        runId: String,
+        retryUnknown: Boolean = false,
+        /** 每步进度（写进任务卡 progressText）。默认空实现，供后台宿主无 UI 时复用。 */
+        onProgress: (String) -> Unit = {},
+    ): ToolOutcome {
         val durableJournal = journal ?: return ToolOutcome.error("工作流断点日志不可用，拒绝执行不可恢复的设备动作")
-        return durableJournal.withRunLock(runId) { runLocked(steps, runId, retryUnknown, durableJournal) }
+        return durableJournal.withRunLock(runId) {
+            runLocked(steps, runId, retryUnknown, durableJournal, onProgress)
+        }
     }
 
     private suspend fun runLocked(
@@ -54,74 +67,20 @@ class AutomationWorkflow(
         runId: String,
         retryUnknown: Boolean,
         durableJournal: WorkflowJournal,
+        onProgress: (String) -> Unit,
     ): ToolOutcome {
         val results = mutableListOf<AutomationWorkflowStepResult>()
-        val expectedKeys = steps.mapIndexed { index, step ->
-            val prompt = AppJson.encodeToString(AutomationWorkflowStep.serializer(), step)
-            index to durableJournal.computeKey(prompt, "automation_workflow:$index")
-        }.toMap()
-        val resume = try {
-            durableJournal.resume(runId, expectedKeys)
-        } catch (error: Exception) {
-            return ToolOutcome.error("无法读取工作流断点:${error.message ?: "run_id 无效或日志不可读"}")
+        // 断点准备（读日志、判定「上一步结果未知」、算虚拟屏刷新点）整块抽走：
+        // 它原来占 runLocked 前半段、且贡献了大部分分支。
+        val state = when (val plan = prepareResume(steps, runId, retryUnknown, durableJournal)) {
+            is ResumePlan.Blocked -> return plan.outcome
+            is ResumePlan.Ready -> plan.state
         }
-        val resumeFrom = resume.resumeFromSeq
-        val previousAtResume = try {
-            durableJournal.load(runId).get(resumeFrom)
-        } catch (error: Exception) {
-            return ToolOutcome.error("无法读取工作流断点:${error.message ?: "run_id 无效或日志不可读"}")
-        }
-        val uncertainPrevious = previousAtResume?.takeIf { it.status == STATUS_RUNNING || it.status == STATUS_FAILED }
-        if (uncertainPrevious != null && !retryUnknown) {
-            val action = steps.getOrNull(resumeFrom)?.action ?: "unknown"
-            return ToolOutcome.error(
-                "工作流在第 ${resumeFrom + 1} 步($action)中断，动作结果可能未知；为避免重复副作用，" +
-                    "请确认后用同一 run_id 并显式设置 retry_unknown=true 重试。",
-                mapOf(
-                    "runId" to runId,
-                    "resumeFrom" to resumeFrom,
-                    "outcomeUnknown" to true,
-                    "uncertainAction" to action,
-                ),
-            )
-        }
-        val nextDisplayActionIndex = steps.indices.firstOrNull { index ->
-            index >= resumeFrom && steps[index].action.trim().lowercase() in DISPLAY_REQUIRED_VIRTUAL_ACTIONS
-        }
-        val nextEnsureIndex = steps.indices.firstOrNull { index ->
-            index >= resumeFrom && steps[index].action.trim().equals("virtual_ensure", ignoreCase = true)
-        }
-        val cachedEnsureToRefresh =
-            if (nextDisplayActionIndex != null && (nextEnsureIndex == null || nextDisplayActionIndex < nextEnsureIndex)) {
-                steps.indices.lastOrNull { index ->
-                    index < resumeFrom && steps[index].action.trim().equals("virtual_ensure", ignoreCase = true)
-                }
-            } else {
-                null
-            }
         for ((index, step) in steps.withIndex()) {
-            val cached = resume.cached[index]
-            val cachedResult = cached
-                ?.takeIf { index < resumeFrom && it.status == "done" }
-                ?.let { runCatching { AppJson.decodeFromString(AutomationWorkflowStepResult.serializer(), it.result) }.getOrNull() }
-            val result = cachedResult?.let { cachedStep ->
-                val restored = restoreCachedDisplayLease(
-                    runId = runId,
-                    index = index,
-                    step = step,
-                    cached = cachedStep,
-                    refreshDisplay = index == cachedEnsureToRefresh,
-                )
-                if (!restored.success) {
-                    restored
-                } else if (step.action.trim().equals("node_script", ignoreCase = true)) {
-                    restored.copy(message = "Node 脚本结果（安全断点恢复）: ${restored.message}")
-                } else if (step.action.trim().equals("virtual_ensure", ignoreCase = true) && restored.displayId != null) {
-                    restored.copy(message = "虚拟屏已就绪 displayId=${restored.displayId}")
-                } else {
-                    restored.copy(message = "已从工作流断点恢复")
-                }
-            } ?: runStepDurably(durableJournal, runId, index, expectedKeys[index].orEmpty(), step)
+            // 20 步的流程中途没有反馈时，用户看到的就是一个转圈。
+            onProgress("第 ${index + 1}/${steps.size} 步：${step.action}")
+            val result = restoreFromCache(state, runId, index, step)
+                ?: runStepDurably(durableJournal, runId, index, state.expectedKeys[index].orEmpty(), step)
             results += result
             if (!result.success) break
         }
@@ -135,16 +94,135 @@ class AutomationWorkflow(
                 append("[${item.index}] ${item.action}: ${item.message}")
             }
         }
-        return if (success) {
-            ToolOutcome.ok(
-                content,
-                mapOf("runId" to runId, "resumeFrom" to resumeFrom, "completed" to completed, "total" to steps.size, "steps" to results),
+        val details = mapOf(
+            "runId" to runId,
+            "resumeFrom" to state.resumeFrom,
+            "completed" to completed,
+            "total" to steps.size,
+            "steps" to results,
+        )
+        return if (success) ToolOutcome.ok(content, details) else ToolOutcome.error(content, details)
+    }
+
+    /** 断点状态（准备阶段的产物）。 */
+    private class ResumeState(
+        val expectedKeys: Map<Int, String>,
+        val cached: Map<Int, WorkflowJournal.Entry>,
+        val resumeFrom: Int,
+        val cachedEnsureToRefresh: Int?,
+    )
+
+    /** 断点准备结果：要么可以继续，要么直接给调用方一个错误结论。 */
+    private sealed interface ResumePlan {
+        class Ready(val state: ResumeState) : ResumePlan
+        class Blocked(val outcome: ToolOutcome) : ResumePlan
+    }
+
+    /**
+     * 读断点日志、判定「上一步结果未知」、算出虚拟屏需要在哪一步刷新。
+     *
+     * 这些判定原来散在 [runLocked] 的前半段，把它拆出来后主流程只剩「逐步执行」。
+     */
+    @Suppress("ReturnCount")
+    private suspend fun prepareResume(
+        steps: List<AutomationWorkflowStep>,
+        runId: String,
+        retryUnknown: Boolean,
+        durableJournal: WorkflowJournal,
+    ): ResumePlan {
+        val expectedKeys = steps.mapIndexed { index, step ->
+            val prompt = AppJson.encodeToString(AutomationWorkflowStep.serializer(), step)
+            index to durableJournal.computeKey(prompt, "automation_workflow:$index")
+        }.toMap()
+        val resume = try {
+            durableJournal.resume(runId, expectedKeys)
+        } catch (error: Exception) {
+            return ResumePlan.Blocked(
+                ToolOutcome.error("无法读取工作流断点:${error.message ?: "run_id 无效或日志不可读"}"),
             )
-        } else {
-            ToolOutcome.error(
-                content,
-                mapOf("runId" to runId, "resumeFrom" to resumeFrom, "completed" to completed, "total" to steps.size, "steps" to results),
+        }
+        val resumeFrom = resume.resumeFromSeq
+        val previousAtResume = try {
+            durableJournal.load(runId).get(resumeFrom)
+        } catch (error: Exception) {
+            return ResumePlan.Blocked(
+                ToolOutcome.error("无法读取工作流断点:${error.message ?: "run_id 无效或日志不可读"}"),
             )
+        }
+        val uncertainPrevious =
+            previousAtResume?.takeIf { it.status == STATUS_RUNNING || it.status == STATUS_FAILED }
+        if (uncertainPrevious != null && !retryUnknown) {
+            val action = steps.getOrNull(resumeFrom)?.action ?: "unknown"
+            return ResumePlan.Blocked(
+                ToolOutcome.error(
+                    "工作流在第 ${resumeFrom + 1} 步($action)中断，动作结果可能未知；为避免重复副作用，" +
+                        "请确认后用同一 run_id 并显式设置 retry_unknown=true 重试。",
+                    mapOf(
+                        "runId" to runId,
+                        "resumeFrom" to resumeFrom,
+                        "outcomeUnknown" to true,
+                        "uncertainAction" to action,
+                    ),
+                ),
+            )
+        }
+        return ResumePlan.Ready(
+            ResumeState(
+                expectedKeys = expectedKeys,
+                cached = resume.cached,
+                resumeFrom = resumeFrom,
+                cachedEnsureToRefresh = ensureToRefresh(steps, resumeFrom),
+            ),
+        )
+    }
+
+    /**
+     * 需要刷新虚拟屏的那一步：当「下一步要用虚拟屏」而「下一步之前没有 virtual_ensure」时，
+     * 必须把断点前最后一次 ensure 也算作过期 —— 否则复用的 displayId 可能已经被回收。
+     */
+    private fun ensureToRefresh(steps: List<AutomationWorkflowStep>, resumeFrom: Int): Int? {
+        val nextDisplayActionIndex = steps.indices.firstOrNull { index ->
+            index >= resumeFrom && steps[index].action.trim().lowercase() in DISPLAY_REQUIRED_VIRTUAL_ACTIONS
+        }
+        val nextEnsureIndex = steps.indices.firstOrNull { index ->
+            index >= resumeFrom && steps[index].action.trim().equals("virtual_ensure", ignoreCase = true)
+        }
+        if (nextDisplayActionIndex == null || (nextEnsureIndex != null && nextDisplayActionIndex >= nextEnsureIndex)) {
+            return null
+        }
+        return steps.indices.lastOrNull { index ->
+            index < resumeFrom && steps[index].action.trim().equals("virtual_ensure", ignoreCase = true)
+        }
+    }
+
+    /**
+     * 命中缓存就直接还原（不重放设备动作）。返回 null 表示这一步没命中缓存，需要真正执行。
+     */
+    private suspend fun restoreFromCache(
+        state: ResumeState,
+        runId: String,
+        index: Int,
+        step: AutomationWorkflowStep,
+    ): AutomationWorkflowStepResult? {
+        val cached = state.cached[index] ?: return null
+        if (index >= state.resumeFrom || cached.status != "done") return null
+        val cachedStep = runCatching {
+            AppJson.decodeFromString(AutomationWorkflowStepResult.serializer(), cached.result)
+        }.getOrNull() ?: return null
+        val restored = restoreCachedDisplayLease(
+            runId = runId,
+            index = index,
+            step = step,
+            cached = cachedStep,
+            refreshDisplay = index == state.cachedEnsureToRefresh,
+        )
+        return when {
+            !restored.success -> restored
+            step.action.trim().equals("node_script", ignoreCase = true) ->
+                restored.copy(message = "Node 脚本结果（安全断点恢复）: ${restored.message}")
+            step.action.trim().equals("virtual_ensure", ignoreCase = true) && restored.displayId != null ->
+                restored.copy(message = "虚拟屏已就绪 displayId=${restored.displayId}")
+            else -> restored.copy(message = "已从工作流断点恢复")
         }
     }
 
@@ -295,46 +373,121 @@ class AutomationWorkflow(
         return result(index, action, true, screen.toSummary(20))
     }
 
+    /** 创建虚拟屏并把 displayId 登记为本 run 的 lease，回一条就绪结果。 */
+    private suspend fun ensureAndLease(
+        index: Int,
+        action: String,
+        step: AutomationWorkflowStep,
+        runId: String,
+        client: VirtualDisplayClient,
+    ): AutomationWorkflowStepResult {
+        val display = ensureVirtualDisplay(step, client)
+            .getOrElse { return failure(index, action, "创建虚拟屏失败:${it.message}") }
+        displayLeases.acquire(runId, display.displayId)
+        return result(
+            index,
+            action,
+            true,
+            "虚拟屏已就绪 displayId=${display.displayId} (${display.width}x${display.height})",
+            displayId = display.displayId,
+        )
+    }
+
+    /** 虚拟屏 id 解析结果：要么可用，要么已经产出终止结果。 */
+    private sealed interface DisplayResolution {
+        class Ready(val displayId: Int) : DisplayResolution
+        class Done(val result: AutomationWorkflowStepResult) : DisplayResolution
+    }
+
+    /**
+     * 解析本步要用的虚拟屏 displayId（含 lease 归属校验、`virtual_ensure` 之后的兼容登记、<0 时自动创建）。
+     *
+     * 从 [executeVirtualStep] 前半段搬出：这段有 4 个提前 return 和 3 层嵌套，
+     * 和后面的动作分发叠在一起时读不出主流程。搬出后主流程只剩「解析 id → 分发动作」。
+     */
+    @Suppress("ReturnCount", "LongMethod")
+    private suspend fun resolveDisplay(
+        index: Int,
+        action: String,
+        step: AutomationWorkflowStep,
+        runId: String,
+        client: VirtualDisplayClient,
+        displayManager: VirtualDisplayServerManager,
+    ): DisplayResolution {
+        val leasedDisplayId = displayLeases.displayFor(runId)
+        if (step.displayId != null && leasedDisplayId != null && !displayLeases.isKnownDisplayId(runId, step.displayId)) {
+            return DisplayResolution.Done(
+                failure(index, action, "displayId=${step.displayId} 不属于当前 run_id 的虚拟屏 lease"),
+            )
+        }
+        if (action == "virtual_close" && leasedDisplayId == null) {
+            return DisplayResolution.Done(failure(index, action, "当前 run_id 没有可释放的虚拟屏 lease"))
+        }
+        val displayId = leasedDisplayId ?: step.displayId ?: displayManager.lastDisplayId
+        if (displayId < 0) {
+            if (action != "virtual_launch") {
+                return DisplayResolution.Done(failure(index, action, "虚拟屏未创建；请先执行 virtual_ensure"))
+            }
+            val display = ensureVirtualDisplay(step, client).getOrElse {
+                return DisplayResolution.Done(failure(index, action, "创建虚拟屏失败:${it.message}"))
+            }
+            displayLeases.acquire(runId, display.displayId)
+            return DisplayResolution.Done(
+                launchOnVirtualDisplay(index, action, step, client, display.displayId),
+            )
+        }
+        if (leasedDisplayId == null && action != "virtual_close") {
+            // 兼容旧的 workflow：历史步骤依赖 manager.lastDisplayId，
+            // 首次使用时把该兼容 display 登记为共享 lease，后续 close 仍受 owner 保护。
+            displayLeases.acquire(runId, displayId)
+        }
+        return DisplayResolution.Ready(displayId)
+    }
+
+    /**
+     * 关闭虚拟屏：释放 lease，能销毁就销毁；服务重启导致屏幕已消失时按**幂等成功**处理。
+     */
+    private suspend fun closeVirtualDisplay(
+        index: Int,
+        action: String,
+        runId: String,
+        displayId: Int,
+        client: VirtualDisplayClient,
+        displayManager: VirtualDisplayServerManager,
+    ): AutomationWorkflowStepResult {
+        val canDestroy = displayLeases.release(runId, displayId)
+        if (!canDestroy) {
+            return result(index, action, true, "已释放 run_id 对虚拟屏 $displayId 的 lease，屏幕仍被其他 workflow 使用")
+        }
+        val destroyed = client.destroy(displayId)
+        // A service restart can make the old display disappear before close.
+        // VirtualDisplayClient clears the stale compatibility id in that case;
+        // treat the already-gone display as an idempotent successful close and
+        // never re-acquire a lease for a dead display.
+        val staleDisplayGone = !destroyed && displayManager.lastDisplayId != displayId
+        if (!destroyed && !staleDisplayGone) displayLeases.acquire(runId, displayId)
+        return result(
+            index,
+            action,
+            destroyed || staleDisplayGone,
+            if (staleDisplayGone) "虚拟屏 $displayId 已不存在，按幂等关闭处理" else "销毁虚拟屏 $displayId",
+        )
+    }
+
     private suspend fun executeVirtualStep(
         index: Int,
         action: String,
         step: AutomationWorkflowStep,
         runId: String,
     ): AutomationWorkflowStepResult {
-        val client = virtualDisplayClient ?: return failure(index, action, "虚拟屏工作流未初始化")
-        val displayManager = virtualDisplayManager ?: return failure(index, action, "虚拟屏工作流未初始化")
-        if (action == "virtual_ensure") {
-            val display = ensureVirtualDisplay(step, client)
-                .getOrElse { return failure(index, action, "创建虚拟屏失败:${it.message}") }
-            displayLeases.acquire(runId, display.displayId)
-            return result(
-                index,
-                action,
-                true,
-                "虚拟屏已就绪 displayId=${display.displayId} (${display.width}x${display.height})",
-                displayId = display.displayId,
-            )
-        }
+        val client = virtualDisplayClient
+        val displayManager = virtualDisplayManager
+        if (client == null || displayManager == null) return failure(index, action, "虚拟屏工作流未初始化")
+        if (action == "virtual_ensure") return ensureAndLease(index, action, step, runId, client)
 
-        val leasedDisplayId = displayLeases.displayFor(runId)
-        if (step.displayId != null && leasedDisplayId != null && !displayLeases.isKnownDisplayId(runId, step.displayId)) {
-            return failure(index, action, "displayId=${step.displayId} 不属于当前 run_id 的虚拟屏 lease")
-        }
-        if (action == "virtual_close" && leasedDisplayId == null) {
-            return failure(index, action, "当前 run_id 没有可释放的虚拟屏 lease")
-        }
-        val displayId = leasedDisplayId ?: step.displayId ?: displayManager.lastDisplayId
-        if (displayId < 0) {
-            if (action != "virtual_launch") return failure(index, action, "虚拟屏未创建；请先执行 virtual_ensure")
-            val display = ensureVirtualDisplay(step, client)
-                .getOrElse { return failure(index, action, "创建虚拟屏失败:${it.message}") }
-            displayLeases.acquire(runId, display.displayId)
-            return launchOnVirtualDisplay(index, action, step, client, display.displayId)
-        }
-        if (leasedDisplayId == null && action != "virtual_close") {
-            // 兼容旧的 workflow：历史步骤依赖 manager.lastDisplayId，
-            // 首次使用时把该兼容 display 登记为共享 lease，后续 close 仍受 owner 保护。
-            displayLeases.acquire(runId, displayId)
+        val displayId = when (val resolved = resolveDisplay(index, action, step, runId, client, displayManager)) {
+            is DisplayResolution.Done -> return resolved.result
+            is DisplayResolution.Ready -> resolved.displayId
         }
 
         return when (action) {
@@ -345,26 +498,7 @@ class AutomationWorkflow(
                 result(index, action, true, screen.toSummary(30))
             }
             "virtual_tap_text" -> executeVirtualTapText(index, action, step, displayManager, displayId)
-            "virtual_close" -> {
-                val canDestroy = displayLeases.release(runId, displayId)
-                if (!canDestroy) {
-                    result(index, action, true, "已释放 run_id 对虚拟屏 $displayId 的 lease，屏幕仍被其他 workflow 使用")
-                } else {
-                    val destroyed = client.destroy(displayId)
-                    // A service restart can make the old display disappear before close.
-                    // VirtualDisplayClient clears the stale compatibility id in that case;
-                    // treat the already-gone display as an idempotent successful close and
-                    // never re-acquire a lease for a dead display.
-                    val staleDisplayGone = !destroyed && displayManager.lastDisplayId != displayId
-                    if (!destroyed && !staleDisplayGone) displayLeases.acquire(runId, displayId)
-                    result(
-                        index,
-                        action,
-                        destroyed || staleDisplayGone,
-                        if (staleDisplayGone) "虚拟屏 $displayId 已不存在，按幂等关闭处理" else "销毁虚拟屏 $displayId",
-                    )
-                }
-            }
+            "virtual_close" -> closeVirtualDisplay(index, action, runId, displayId, client, displayManager)
             else -> executeVirtualInput(index, action, step, displayManager, displayId)
         }
     }
@@ -449,6 +583,9 @@ class AutomationWorkflow(
         }
     }
 
+    // 参数校验型函数：每个不合法输入都是一句直接回给模型的话（文本不支持/坐标非法/按键非法/策略拒绝），
+    // 拆成 Result 只会让调用点更长。
+    @Suppress("ReturnCount")
     private suspend fun executeVirtualInput(
         index: Int,
         action: String,
@@ -469,8 +606,13 @@ class AutomationWorkflow(
             step.text?.let { put("text", it) }
             step.key?.let { put("key", it) }
         }
+        step.text?.let { text ->
+            VirtualDisplayInputCommand.textRejectionReason(text)?.let {
+                return failure(index, action, "虚拟屏输入参数无效:$it")
+            }
+        }
         val command = VirtualDisplayInputCommand.build(displayId, inputAction, args)
-            ?: return failure(index, action, "虚拟屏输入参数无效")
+            ?: return failure(index, action, "虚拟屏输入参数无效（检查坐标/按键是否为合法值）")
         if (command.waitMs != null) {
             delay(command.waitMs)
             return result(index, action, true, "虚拟屏 $displayId 等待 ${command.waitMs}ms")
