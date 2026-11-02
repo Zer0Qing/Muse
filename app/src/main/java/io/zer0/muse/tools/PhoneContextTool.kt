@@ -56,9 +56,8 @@ object PhoneContextTool {
                 // 通讯录不是"最近几天"的东西：days 对它没有意义，保留统一接口即可
                 loadContacts(context)
             },
-            // 通知：没有历史存储（只有实时监听），同样如实报
-            PhoneContext.Source.NOTIFICATIONS to PhoneContextDispatcher.Provider {
-                PhoneContextDispatcher.Loaded.unavailable("这个应用还没有通知历史存储，无法回溯")
+            PhoneContext.Source.NOTIFICATIONS to PhoneContextDispatcher.Provider { window ->
+                loadNotifications(context, window)
             },
         )
         return PhoneContextDispatcher.describe(
@@ -99,6 +98,28 @@ object PhoneContextTool {
             return PhoneContextDispatcher.Loaded.unavailable("读取日历时出错：${it.message ?: it.javaClass.simpleName}")
         }
         return PhoneContextDispatcher.Loaded.available(items, truncated)
+    }
+
+    /**
+     * 通知历史：读本地有界存储（监听服务落盘）。
+     *
+     * 只给"哪个应用 + 标题 + 正文片段"：这些是用户自己手机上收到的内容，
+     * 但**没有任何跨设备能力** —— 历史只在本地，保留 3 天（见敏感数据政策）。
+     */
+    private fun loadNotifications(context: Context, days: Int): PhoneContextDispatcher.Loaded {
+        val store = io.zer0.muse.data.notification.NotificationHistoryStore(
+            java.io.File(context.filesDir, io.zer0.muse.data.notification.NotificationHistoryStore.FILE_NAME),
+        )
+        val windowMillis = days.coerceAtLeast(0) * 24L * 60 * 60 * 1000
+        val cutoff = System.currentTimeMillis() - windowMillis
+        val entries = store.recent(MAX_ITEMS).filter { it.atMillis >= cutoff }
+        val formatter = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
+        val items = entries.map { entry ->
+            val whenText = formatter.format(java.util.Date(entry.atMillis))
+            val body = entry.text.take(80)
+            "$whenText ${entry.packageName}: ${entry.title}${if (body.isBlank()) "" else " — $body"}"
+        }
+        return PhoneContextDispatcher.Loaded.available(items, truncated = entries.size >= MAX_ITEMS)
     }
 
     /**

@@ -47,11 +47,13 @@ class PhoneContextToolTest {
     }
 
     @Test
-    fun `notifications are honestly reported as not wired yet`() {
+    fun `an empty notification history says there is genuinely nothing`() {
         val text = PhoneContextTool.execute(mapOf("sources" to "notifications"), context)
 
-        assertTrue("要说明还没接入: $text", text.contains("还没有通知历史"))
-        assertTrue(text.contains("不可用"))
+        // 历史已接上：没数据时应当说"确实没有"，而不是"还没接入"
+        assertTrue("应报可用: $text", text.contains("可用"))
+        assertTrue("要说清是真没有: $text", text.contains("确实没有"))
+        assertTrue("不该再出现未接入的说法: $text", !text.contains("还没有通知历史"))
     }
 
     @Test

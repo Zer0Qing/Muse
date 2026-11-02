@@ -68,7 +68,7 @@ class MuseNotificationListenerService : NotificationListenerService() {
         private const val TAG = "MuseNotifListener"
         private const val REBIND_BACKOFF_MS = 30_000L
         private val stateLock = Any()
-        private val persistenceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
+    private val persistenceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
         private val persistenceMutex = Mutex()
 
         // 事件快速到达时,只允许最新快照落盘,防止并发 IO 把旧列表写回。
@@ -339,13 +339,50 @@ class MuseNotificationListenerService : NotificationListenerService() {
         }
     }
 
+    /**
+     * 通知历史（有界 + 保留期限），与"当前通知列表"分开存。
+     *
+     * 用 `applicationContext` 且延迟到首次使用：Service 构造时还没 attach，
+     * 那时候碰 Context 会拿到空实现。
+     */
+    private val historyStore by lazy {
+        io.zer0.muse.data.notification.NotificationHistoryStore(
+            java.io.File(applicationContext.filesDir, io.zer0.muse.data.notification.NotificationHistoryStore.FILE_NAME),
+        )
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         runCatching { recordNotification(sbn) }
             .onFailure { error -> Logger.w(TAG, "处理通知失败: ${error.message}", error) }
+        // 历史落盘（P2-02）：与"当前通知列表"分开，用户能问"今天上午有什么通知"
+        runCatching { historyStore.append(sbn.toHistoryEntry()) }
+            .onFailure { error -> Logger.w(TAG, "记录通知历史失败: ${error.message}") }
+    }
+
+    /** 从系统通知里取"能给人看"的三要素；取不到的字段留空，不编。 */
+    private fun StatusBarNotification.toHistoryEntry(): io.zer0.muse.data.notification.NotificationHistoryStore.Entry {
+        val extras = notification?.extras
+        val title = firstNonBlank(
+            extras?.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString(),
+            extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString(),
+        ).orEmpty()
+        val text = firstNonBlank(
+            extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString(),
+            extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
+        ).orEmpty()
+        return io.zer0.muse.data.notification.NotificationHistoryStore.Entry(
+            atMillis = System.currentTimeMillis(),
+            packageName = packageName,
+            title = title,
+            text = text,
+        )
     }
 
     private fun recordNotification(sbn: StatusBarNotification) {
         val notification = sbn.notification ?: return
+        // 历史落盘（P2-02）：与"当前通知列表"分开，用户能问"今天上午有什么通知"
+        runCatching { historyStore.append(sbn.toHistoryEntry()) }
+            .onFailure { Logger.w(TAG, "记录通知历史失败: ${it.message}") }
         val extras = notification.extras
         val pkg = sbn.packageName
 

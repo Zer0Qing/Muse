@@ -38,6 +38,9 @@ object SensitiveDataPolicy {
         /** 记忆原文：**是用户资产**，允许备份，保留最长。 */
         MEMORY_RAW("memory_raw", inlineLimitChars = 1200, retentionDays = 30, mayEnterBackup = true, mayEnterDiagnostics = false),
 
+        /** 通知历史：内容是别人发来的私信摘要，**不进备份、不进诊断**，只留三天。 */
+        NOTIFICATION("notification", inlineLimitChars = 300, retentionDays = 3, mayEnterBackup = false, mayEnterDiagnostics = false),
+
         /** 系统上下文快照（读屏/通知等）：时效性极强，隔天就没意义。 */
         SYSTEM_CONTEXT("system_context", inlineLimitChars = 600, retentionDays = 1, mayEnterBackup = false, mayEnterDiagnostics = true),
         ;
