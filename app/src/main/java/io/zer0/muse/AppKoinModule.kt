@@ -43,6 +43,8 @@ import java.util.concurrent.TimeUnit
 val appModule = module {
 // 插件读会话的唯一通道：会话身份由宿主随调用注入，这里只提供读写入口。
     single { io.zer0.muse.data.plugin.PluginChatBridge(get()) }
+    // 插件调模型：ChatService 缺失时不注册（动作会 fail-closed 拒绝，而不是假装可用）。
+    single { io.zer0.muse.data.plugin.PluginModelBridge(get(), getOrNull()) }
     single { SettingsRepository(androidContext(), get(), get()) }
     single<ProviderConfigStore> { get<SettingsRepository>() }
     single<MemoryLlmClient> { MemoryLlmClientImpl(get(), get(), androidContext()) }
@@ -721,6 +723,8 @@ val appModule = module {
                 ),
                 executeTool = { name, args -> get<io.zer0.muse.tools.ToolRegistry>().executeFromJson(name, args) },
             ),
+            // model_call 的模型通道：复用既有路由与 UTILITY 请求通道，不建第二条出口。
+            modelBridge = getOrNull(),
             // chat_read 的会话通道；缺它时该动作一律拒绝。
             // 命名参数必须排在所有位置参数之后，所以放在 toolBridge 后面。
             chatBridge = getOrNull(),

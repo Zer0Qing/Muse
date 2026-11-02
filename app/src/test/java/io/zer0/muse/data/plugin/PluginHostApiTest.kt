@@ -1,6 +1,8 @@
 package io.zer0.muse.data.plugin
 
 import io.zer0.common.AppJson
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
@@ -8,6 +10,8 @@ import io.zer0.muse.tools.ToolCallGate
 import io.zer0.muse.tools.script.SkillBridge
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonElement
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -336,5 +340,88 @@ class PluginHostApiTest {
         val json = (result as SkillBridge.HandleResult.Output).json
         assertTrue("内容要回传给插件: $json", json.contains("你好"))
         assertTrue("角色用小写标签: $json", json.contains("\"role\":\"user\""))
+    }
+
+    // ── model_call：成本面，三道闸 ────────────────────────────────────────
+
+    private fun modelApi(bridge: PluginModelBridge?) =
+        PluginHostApi(writeConfig = { _, _, _ -> }, modelBridge = bridge)
+
+    private fun modelRequest(prompt: String, maxTokens: Int? = null): String {
+        val params = buildJsonObject {
+            put("prompt", prompt)
+            if (maxTokens != null) put("maxTokens", maxTokens)
+        }
+        return "{" + "\"__bridge__\":true,\"action\":\"model_call\",\"params\":" + params + "}"
+    }
+
+    @Test
+    fun `model call without the capability is refused`() {
+        val bridge = mockk<PluginModelBridge>()
+
+        val result = runBlocking {
+            modelApi(bridge).handle("p1", manifest, modelRequest("hi"), emptySet())
+        }
+
+        assertTrue(
+            "缺能力要指名 host.model.call: $result",
+            (result as SkillBridge.HandleResult.Failure).message.contains("host.model.call"),
+        )
+    }
+
+    @Test
+    fun `model call fails closed when the host has no model channel`() {
+        val result = runBlocking {
+            modelApi(bridge = null).handle("p1", manifest, modelRequest("hi"), setOf("model_call"))
+        }
+
+        assertTrue("缺通道必须拒: $result", (result as SkillBridge.HandleResult.Failure).message.contains("未接入"))
+    }
+
+    @Test
+    fun `oversized prompt is refused instead of silently truncated`() {
+        val bridge = mockk<PluginModelBridge>()
+        val huge = "字".repeat(PluginModelBridge.MAX_PROMPT_CHARS + 1)
+
+        val result = runBlocking {
+            modelApi(bridge).handle("p1", manifest, modelRequest(huge), setOf("model_call"))
+        }
+
+        val message = (result as SkillBridge.HandleResult.Failure).message
+        assertTrue("要说清超限并解释为什么不截断: $message", message.contains("超过上限") && message.contains("不静默截断"))
+    }
+
+    @Test
+    fun `missing prompt is refused`() {
+        val bridge = mockk<PluginModelBridge>()
+
+        val result = runBlocking {
+            modelApi(bridge).handle(
+                "p1", manifest, """{"__bridge__":true,"action":"model_call","params":{}}""", setOf("model_call"),
+            )
+        }
+
+        assertTrue("要指出缺 prompt: $result", (result as SkillBridge.HandleResult.Failure).message.contains("prompt"))
+    }
+
+    @Test
+    fun `model call returns text and clamps tokens and output`() {
+        val bridge = mockk<PluginModelBridge>()
+        val tokensSlot = io.mockk.slot<Int>()
+        val long = "回".repeat(PluginModelBridge.MAX_OUTPUT_CHARS + 500)
+        coEvery { bridge.complete(any(), any(), capture(tokensSlot)) } returns long
+
+        val result = runBlocking {
+            modelApi(bridge).handle(
+                "p1", manifest, modelRequest("hi", maxTokens = 999_999), setOf("model_call"),
+            )
+        }
+
+        assertEquals("token 上限必须被夹住", PluginModelBridge.MAX_TOKENS_CAP, tokensSlot.captured)
+        val json = (result as SkillBridge.HandleResult.Output).json
+        val payload = AppJson.parseToJsonElement(json).jsonObject
+        val text = (payload["text"] as? JsonPrimitive)?.content.orEmpty()
+        assertEquals("要标记被截断", true, (payload["truncated"] as? JsonPrimitive)?.content?.toBoolean())
+        assertTrue("回传长度封顶: ${text.length}", text.length <= PluginModelBridge.MAX_OUTPUT_CHARS)
     }
 }

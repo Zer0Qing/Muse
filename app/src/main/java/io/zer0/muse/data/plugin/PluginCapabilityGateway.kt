@@ -261,6 +261,7 @@ class PluginCapabilityGateway(
             "config.write" to setOf("config_set"),
             "host.tool.invoke" to setOf("tool_invoke"),
             "chat.read" to setOf("chat_read"),
+            "host.model.call" to setOf("model_call"),
         )
 
         /**

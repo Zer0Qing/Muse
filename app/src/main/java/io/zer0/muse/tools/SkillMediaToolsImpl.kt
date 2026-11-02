@@ -55,6 +55,8 @@ class SkillMediaToolsImpl(
      * 缺依赖必须是"不可用"，不能退化成"这个动作不存在所以放过"。
      */
     private val chatBridge: io.zer0.muse.data.plugin.PluginChatBridge? = null,
+    /** 模型调用通道（`model_call`）。为 null 时该动作一律拒绝。 */
+    private val modelBridge: io.zer0.muse.data.plugin.PluginModelBridge? = null,
 ) {
 
     suspend fun execListStickers(args: Map<String, String>): String {
@@ -328,6 +330,7 @@ class SkillMediaToolsImpl(
             writeConfig = { id, key, newValue -> manager.setPluginConfig(id, key, newValue) },
             toolBridge = toolBridge,
             chatBridge = chatBridge,
+            modelBridge = modelBridge,
             // 会话身份只认宿主随这次调用带进来的上下文；插件参数里的 session_id 一律不读，
             // 否则一个插件就能跨会话捞别人的聊天记录。
             sessionId = coroutineContext[PluginSessionContext]?.sessionId

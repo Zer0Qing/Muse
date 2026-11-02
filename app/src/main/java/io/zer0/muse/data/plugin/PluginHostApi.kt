@@ -9,6 +9,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.contentOrNull
 
 /**
@@ -28,6 +30,8 @@ class PluginHostApi(
     /** 会话读取通道；[sessionId] 由宿主链路注入，插件自己传的一律不用。 */
     private val chatBridge: PluginChatBridge? = null,
     private val sessionId: String = PluginChatBridge.SESSION_PLACEHOLDER,
+    /** 模型调用通道（`model_call`）。缺通道时动作一律拒绝。 */
+    private val modelBridge: PluginModelBridge? = null,
 ) {
 
     /** 返回 null 表示这个动作不归本类管，调用方继续交给 [SkillBridge]。 */
@@ -45,6 +49,7 @@ class PluginHostApi(
             action == ACTION_CONFIG_SET -> handleConfigSet(pluginId, manifest, obj, allowedActions)
             action == ACTION_TOOL_INVOKE -> handleToolInvoke(pluginId, obj, allowedActions)
             action == ACTION_CHAT_READ -> handleChatRead(obj, allowedActions)
+            action == ACTION_MODEL_CALL -> handleModelCall(obj, allowedActions)
             else -> null
         }
     }
@@ -115,6 +120,46 @@ class PluginHostApi(
         return runCatching {
             SkillBridge.HandleResult.Output(PluginChatBridge.render(bridge.readRecent(sessionId, limit)))
         }.getOrElse { SkillBridge.HandleResult.Failure("chat_read 读取失败: ${it.message}") }
+    }
+
+    /**
+     * `model_call`：让插件用用户已配置的模型做一次生成。
+     *
+     * 成本面，三道闸：能力未授予直接拒；输入超长直接拒（不静默截断——被截掉的半边提示
+     * 会让模型给出看着合理其实错的答案）；输出长度封顶由桥本身负责。
+     */
+    private suspend fun handleModelCall(obj: JsonObject, allowedActions: Set<String>): SkillBridge.HandleResult {
+        val params = obj["params"] as? JsonObject
+        val prompt = (params?.get("prompt") as? JsonPrimitive)?.contentOrNull
+        val bridge = modelBridge
+        val problem = when {
+            ACTION_MODEL_CALL !in allowedActions ->
+                "动作 'model_call' 未获授权：插件需在清单声明能力 '$CAPABILITY_MODEL_CALL'（会计入你的模型用量），" +
+                    "并在 设置 → 工具与扩展 → 插件 → 权限 中批准"
+            bridge == null -> "宿主未接入模型调用通道，model_call 不可用"
+            prompt.isNullOrBlank() -> "model_call 缺少 prompt 参数"
+            prompt.length > PluginModelBridge.MAX_PROMPT_CHARS ->
+                "model_call 输入 ${prompt.length} 字超过上限(${PluginModelBridge.MAX_PROMPT_CHARS} 字)：" +
+                    "请自行先缩写，宿主不静默截断——半截提示会让模型给出看着合理其实错的结果"
+            else -> null
+        }
+        if (problem != null) return SkillBridge.HandleResult.Failure(problem)
+        val system = (params?.get("system") as? JsonPrimitive)?.contentOrNull
+        val maxTokens = ((params?.get("maxTokens") as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+            ?: PluginModelBridge.DEFAULT_MAX_TOKENS)
+            .coerceIn(1, PluginModelBridge.MAX_TOKENS_CAP)
+        return runCatching { requireNotNull(bridge).complete(prompt.orEmpty(), system, maxTokens) }.fold(
+            onSuccess = { text ->
+                val capped = text.take(PluginModelBridge.MAX_OUTPUT_CHARS)
+                SkillBridge.HandleResult.Output(
+                    buildJsonObject {
+                        put("text", JsonPrimitive(capped))
+                        put("truncated", JsonPrimitive(text.length > capped.length))
+                    }.toString(),
+                )
+            },
+            onFailure = { SkillBridge.HandleResult.Failure("model_call 失败：${it.message ?: it.javaClass.simpleName}") },
+        )
     }
 
     /** 先审批、后执行：审批走 [ToolCallGate]（与主会话同一条链），执行在标记上下文里进行。 */
@@ -214,6 +259,8 @@ class PluginHostApi(
         const val CAPABILITY_TOOL_INVOKE = "host.tool.invoke"
         const val ACTION_CHAT_READ = "chat_read"
         const val CAPABILITY_CHAT_READ = "chat.read"
+        const val ACTION_MODEL_CALL = "model_call"
+        const val CAPABILITY_MODEL_CALL = "host.model.call"
         const val DEFAULT_CHAT_LIMIT = 10
     }
 }
