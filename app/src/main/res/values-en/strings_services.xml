@@ -280,6 +280,11 @@
     <string name="tool_write_permission_denied">The system refused the write (a permission such as Modify system settings is likely missing)</string>
     <string name="automation_handoff_title">Virtual display handoff</string>
     <string name="automation_handoff_desc">%1$d display(s) left by the assistant; preview and take over</string>
+    <string name="automation_handoff_bring_main">Bring to main screen</string>
+    <string name="automation_handoff_bring_main_hint">Only the app is brought to the main screen; the previous page and input state depend on the app and may be lost.</string>
+    <string name="automation_handoff_bring_main_ok">Brought to the main screen (state retention depends on the app)</string>
+    <string name="automation_handoff_bring_main_failed">Failed: the display service is unavailable or the app could not start</string>
+    <string name="automation_handoff_close_destroy">Close and destroy this display</string>
     <string name="tool_volume_failed">Failed to set volume: %1$s</string>
     <string name="tool_write_verified_transition"> (verified: %1$d to %2$d)</string>
     <string name="tool_write_unverified"> (sent, but not confirmed)</string>

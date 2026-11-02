@@ -469,6 +469,9 @@ private fun VirtualDisplayHandoffSection(
             packageName = first.packageName,
             screenshot = { io.zer0.muse.automation.AutomationRuntime.screenshot(first.displayId) },
             tap = { x, y -> io.zer0.muse.automation.AutomationRuntime.tap(first.displayId, x, y) },
+            bringToMain = {
+                io.zer0.muse.automation.AutomationRuntime.launchOnMain(first.packageName)
+            },
             onClose = { onClose(first.displayId) },
         )
     }

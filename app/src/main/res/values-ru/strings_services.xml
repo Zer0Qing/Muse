@@ -266,6 +266,11 @@
     <string name="tool_write_permission_denied">Система отклонила запись (вероятно, нет разрешения «Изменение системных настроек»)</string>
     <string name="automation_handoff_title">Передача виртуального экрана</string>
     <string name="automation_handoff_desc">Ассистент оставил экранов: %1$d; можно посмотреть и управлять</string>
+    <string name="automation_handoff_bring_main">Вернуть на главный экран</string>
+    <string name="automation_handoff_bring_main_hint">Приложение просто появится на главном экране; прежняя страница и состояние ввода зависят от приложения и могут быть потеряны.</string>
+    <string name="automation_handoff_bring_main_ok">Возвращено на главный экран (сохранение состояния зависит от приложения)</string>
+    <string name="automation_handoff_bring_main_failed">Не удалось: служба экрана недоступна или приложение не запустилось</string>
+    <string name="automation_handoff_close_destroy">Закрыть и уничтожить этот экран</string>
     <string name="tool_volume_failed">Не удалось изменить громкость: %1$s</string>
     <string name="tool_write_verified_transition"> (подтверждено: %1$d → %2$d)</string>
     <string name="tool_write_unverified"> (отправлено, без подтверждения)</string>

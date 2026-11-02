@@ -266,6 +266,11 @@
     <string name="tool_write_permission_denied">El sistema rechazo la escritura (probablemente falta un permiso como Modificar ajustes del sistema)</string>
     <string name="automation_handoff_title">Entrega de pantalla virtual</string>
     <string name="automation_handoff_desc">El asistente dejo %1$d pantalla(s); puedes previsualizar y operar</string>
+    <string name="automation_handoff_bring_main">Llevar a la pantalla principal</string>
+    <string name="automation_handoff_bring_main_hint">Solo se lleva la app a la pantalla principal; la pagina y el estado previos dependen de la app y pueden perderse.</string>
+    <string name="automation_handoff_bring_main_ok">Llevado a la pantalla principal (la conservacion del estado depende de la app)</string>
+    <string name="automation_handoff_bring_main_failed">Fallo: el servicio de pantalla no esta disponible o la app no pudo iniciarse</string>
+    <string name="automation_handoff_close_destroy">Cerrar y destruir esta pantalla</string>
     <string name="tool_volume_failed">No se pudo ajustar el volumen: %1$s</string>
     <string name="tool_write_verified_transition"> (verificado: %1$d a %2$d)</string>
     <string name="tool_write_unverified"> (enviado, sin confirmar)</string>

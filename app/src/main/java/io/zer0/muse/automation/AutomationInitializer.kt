@@ -119,6 +119,8 @@ object AutomationInitializer {
                         }
                     },
                     destroy = { displayId -> virtualDisplayClient.destroy(displayId) },
+                    // "交回主屏"：launchApp 本来就作用在默认显示屏上
+                    launchOnMain = { packageName -> mgr.launchApp(packageName) },
                 )
             }
             val nodeScriptExecutor: suspend (String, Long) -> io.zer0.muse.tools.script.SkillEngineResult = { code, timeoutMs ->

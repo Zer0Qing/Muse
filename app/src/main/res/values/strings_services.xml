@@ -296,6 +296,11 @@
     <string name="tool_write_permission_denied">系统拒绝写入（可能缺少对应授权，例如「修改系统设置」）</string>
     <string name="automation_handoff_title">虚拟屏交接</string>
     <string name="automation_handoff_desc">有 %1$d 块助手留下的虚拟屏，可以预览并自己操作</string>
+    <string name="automation_handoff_bring_main">交回主屏</string>
+    <string name="automation_handoff_bring_main_hint">只保证应用出现在主屏；原来的页面与输入状态取决于应用自身，可能丢失。</string>
+    <string name="automation_handoff_bring_main_ok">已交回主屏（状态是否保留取决于应用）</string>
+    <string name="automation_handoff_bring_main_failed">交回失败：虚拟屏服务不可用，或应用无法启动</string>
+    <string name="automation_handoff_close_destroy">关闭并销毁这块屏</string>
     <string name="tool_volume_failed">设置音量失败： %1$s</string>
     <string name="tool_write_verified_transition">（已确认生效：%1$d → %2$d）</string>
     <string name="tool_write_unverified">（已发出，但未确认生效）</string>

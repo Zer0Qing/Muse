@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.delay
@@ -47,12 +48,16 @@ fun VirtualDisplayHandoffPanel(
     packageName: String,
     screenshot: suspend () -> ByteArray?,
     tap: suspend (x: Int, y: Int) -> Boolean,
+    /** 把目标应用交回主屏。返回 false 表示服务不可用或应用起不来。 */
+    bringToMain: suspend () -> Boolean,
     onClose: () -> Unit,
 ) {
     var frame by remember(displayId) { mutableStateOf<android.graphics.Bitmap?>(null) }
     var failures by remember(displayId) { mutableStateOf(0) }
     var lastTap by remember(displayId) { mutableStateOf<String?>(null) }
+    var actionResult by remember(displayId) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(displayId) {
         while (true) {
@@ -117,7 +122,40 @@ fun VirtualDisplayHandoffPanel(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        MuseCapsuleButton(text = "关闭并销毁这块屏", onClick = onClose, fillWidth = false)
+        // 能力边界必须写在按钮旁边：交回主屏**不保证**页面与输入状态还在。
+        Text(
+            text = androidx.compose.ui.res.stringResource(R.string.automation_handoff_bring_main_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        actionResult?.let { text ->
+            Text(text = text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        }
+        androidx.compose.foundation.layout.Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MuseCapsuleButton(
+                text = androidx.compose.ui.res.stringResource(R.string.automation_handoff_bring_main),
+                onClick = {
+                    scope.launch {
+                        val ok = runCatching { bringToMain() }.getOrDefault(false)
+                        actionResult = context.getString(
+                            if (ok) {
+                                R.string.automation_handoff_bring_main_ok
+                            } else {
+                                R.string.automation_handoff_bring_main_failed
+                            },
+                        )
+                    }
+                },
+                fillWidth = false,
+            )
+            MuseCapsuleButton(
+                text = androidx.compose.ui.res.stringResource(R.string.automation_handoff_close_destroy),
+                onClick = onClose,
+                fillWidth = false,
+            )
+        }
     }
 }
 
