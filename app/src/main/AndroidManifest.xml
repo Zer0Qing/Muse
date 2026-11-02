@@ -429,6 +429,18 @@
             </intent-filter>
         </receiver>
 
+        <!-- 主动消息通知「这次不用」按钮。
+             必须是清单注册：通知是后台 Worker 发的，发完进程随时可能被杀，
+             动态注册的接收器那时已经不存在，用户点按钮会毫无反应。
+             exported=false：只有本应用自己的 PendingIntent 发得动。 -->
+        <receiver
+            android:name=".proactive.ProactiveDismissReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="io.zer0.muse.action.PROACTIVE_DISMISS" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

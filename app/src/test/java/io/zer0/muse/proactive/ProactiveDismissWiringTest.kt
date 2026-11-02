@@ -37,18 +37,25 @@ class ProactiveDismissWiringTest {
     }
 
     @Test
-    fun `通知动作接收器用不导出标志注册`() {
-        val app = source("io/zer0/muse/MuseApp.kt")
-        val call = callSite(app, "ContextCompat.registerReceiver(")
-        assertTrue("注册的必须是主动消息动作接收器：$call", call.contains("ProactiveDismissReceiver()"))
-        assertTrue("过滤条件必须是本协议的动作：$call", call.contains("ProactiveDismissProtocol.ACTION_DISMISS"))
+    fun `通知动作接收器声明在清单里且不导出`() {
+        // 必须是清单注册：通知由后台 Worker 发出，发完进程随时可能被杀；
+        // 动态注册的接收器那时已经不存在，用户点「这次不用」会毫无反应。
+        val manifest = manifestSource()
+        val block = callSite(manifest, "\".proactive.ProactiveDismissReceiver\"")
+        assertTrue("清单里要声明接收器：$block", block.contains("ProactiveDismissReceiver"))
+        assertTrue("必须不导出：只有本应用自己的 PendingIntent 该发得动它：$block", block.contains("android:exported=\"false\""))
         assertTrue(
-            "必须显式声明 RECEIVER_NOT_EXPORTED：这条广播只该由本应用自己发出：$call",
-            call.contains("ContextCompat.RECEIVER_NOT_EXPORTED"),
+            "过滤条件必须是本协议的动作：$block",
+            block.contains("io.zer0.muse.action.PROACTIVE_DISMISS"),
         )
+    }
+
+    @Test
+    fun `不再用动态注册重复接管同一个广播`() {
+        val app = source("io/zer0/muse/MuseApp.kt")
         assertTrue(
-            "不导出就足够，不该顺手改成 RECEIVER_EXPORTED：$call",
-            !call.contains("ContextCompat.RECEIVER_EXPORTED"),
+            "清单注册已经能收到，动态注册会让同一次点击被处理两遍",
+            !app.contains("registerProactiveDismissReceiver"),
         )
     }
 
@@ -101,6 +108,14 @@ class ProactiveDismissWiringTest {
         val start = text.indexOf(marker)
         if (start < 0) fail("源码里找不到 $marker")
         return text.substring(start, minOf(text.length, start + WINDOW))
+    }
+
+    /** 清单不在源码树里，单独找一次。 */
+    private fun manifestSource(): String {
+        val roots = listOf("app/src/main", "src/main", "../app/src/main")
+        val file = roots.map { File(it, "AndroidManifest.xml") }.firstOrNull { it.isFile }
+            ?: fail("找不到 AndroidManifest.xml（工作目录 ${File(".").absolutePath}）")
+        return file.readText()
     }
 
     private fun source(relative: String): String {

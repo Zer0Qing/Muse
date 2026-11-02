@@ -3,14 +3,12 @@ package io.zer0.muse
 import android.app.Application
 import android.content.ComponentName
 import android.content.Context
-import android.content.IntentFilter
 import android.os.Build
 import android.os.PowerManager
 import android.os.StrictMode
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
-import androidx.core.content.ContextCompat
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -690,7 +688,6 @@ class MuseApp : Application(), ImageLoaderFactory {
             }.onError { msg, t -> Logger.w("MuseApp", "ScheduledTaskWorker 注册失败", t) }
             // v2.6.9: 主动消息重建版 — 牵挂账本驱动，不再按固定 tick 轮询。
             // 账上有事时 20 分钟复查一次，没事就 1 小时一次；没话说时整轮都是本地操作。
-            registerProactiveDismissReceiver()
             resultOf { proactiveScheduler.start() }
                 .onError { msg, t -> Logger.w("MuseApp", "ProactiveScheduler 启动失败", t) }
             // 模型能力目录:先注入现有目录(缓存/内置)保证立即可用,再静默刷新一次;
@@ -1006,27 +1003,6 @@ class MuseApp : Application(), ImageLoaderFactory {
         Logger.d("MuseApp", "StrictMode 已启用(debug): detectDiskReads/detectDiskWrites/detectNetwork + penaltyLog")
     }
 
-    /**
-     * 注册主动消息通知「这次不用」按钮的广播接收器。
-     *
-     * 运行时动态注册而不是写进 manifest：这个动作只服务于本应用弹出的通知，
-     * 不需要在未启动时也能收到（通知本身就是本进程发出去的，进程没了也就没通知可点），
-     * 而动态注册可以用 [ContextCompat.RECEIVER_NOT_EXPORTED] 明确告诉系统
-     * 「这份广播不开放给外部应用」。
-     *
-     * 注意换行不要合并：注册调用的实参表里必须出现 flag 字面量，
-     * 有测试会扫全仓的 registerReceiver 调用，确认没有既没导出又没声明 flag 的写法。
-     */
-    private fun registerProactiveDismissReceiver() {
-        resultOf {
-            ContextCompat.registerReceiver(
-                this,
-                io.zer0.muse.proactive.ProactiveDismissReceiver(),
-                IntentFilter(io.zer0.muse.proactive.ProactiveDismissProtocol.ACTION_DISMISS),
-                ContextCompat.RECEIVER_NOT_EXPORTED,
-            )
-        }.onError { msg, t -> Logger.w("MuseApp", "主动消息通知动作接收器注册失败: $msg", t) }
-    }
 
     /**
      * R-SVC-05: 仅生成任务活跃期间申请/释放 PARTIAL_WAKE_LOCK。

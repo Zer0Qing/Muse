@@ -87,8 +87,10 @@ class ProactiveScheduler(
                 val outcome = runCatching { runCycle(TRIGGER_TIMER, force = false) }
                     .onFailure { e -> Logger.w(TAG, "巡检异常: ${e.message}") }
                     .getOrNull()
-                // 这一轮被别的触发源占着没跑成，账本状态无从得知 ——
-                // 按「没事」睡一小时等于白白错过一次机会，等一小会儿再看。
+                // 三种情况的节奏不同，别混：
+                //  · null 只可能来自抛异常（被别的触发源占着时会返回 alreadyRunning=true 的对象），
+                //    异常后立刻重试容易变成热循环，按「没事」睡一小时；
+                //  · alreadyRunning 才是「被占着」—— 等前一轮跑完再看，所以是短间隔。
                 delay(
                     when {
                         outcome == null -> CHECK_IDLE_MS
