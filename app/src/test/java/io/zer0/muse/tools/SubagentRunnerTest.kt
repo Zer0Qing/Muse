@@ -781,4 +781,26 @@ class SubagentRunnerTest {
         assertTrue("普通只读工具应保留，实际: $names", names.contains("web_search"))
         assertTrue("屏幕自动化工具必须全部剔除，实际: $names", names.none { it.startsWith("screen_") })
     }
+
+    @Test
+    fun `a named profile that does not exist is refused instead of silently downgraded`() = runTest {
+        val runner = SubagentRunner(
+            mockk(relaxed = true),
+            mockk(relaxed = true),
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+            settings = null,
+            profileResolver = { null },
+        )
+
+        val result = runner.run(SubagentRunner.Params(task = "x", profile = "ghost"))
+
+        assertFalse(result.success)
+        assertTrue(
+            "角色不存在要明确说，否则用户以为角色生效了: ${result.error}",
+            result.error?.contains("找不到角色") == true,
+        )
+    }
 }

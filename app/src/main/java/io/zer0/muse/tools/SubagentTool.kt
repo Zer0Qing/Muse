@@ -28,11 +28,12 @@ import java.util.concurrent.ConcurrentHashMap
  *  - cancel :中止任务
  *  - list  :列出所有任务
  *
- * 权限档继承(改造 3):
- *  - access 参数(read/write,省略时默认 read,继承父会话档)
- *  - 非法值直接拒绝,不静默降级
- *  - 通过 [DelegationContract.DelegationRequest.access] 传给 [SkillExecutor.delegateAgent],
- *    由其校验 delegateDepth 与 access(简化方案:本工具只做参数解析)
+ * 权限档(改造 3，**已更正**):
+ *  - `access` 参数仍然解析与校验，但它对这条路径**没有实际作用**：
+ *    本工具委派给"另一个助手"，子代理只拿到一个 `delegate_agent` 工具，
+ *    既不能读写文件也不能操作设备，因此不存在"可写/只读"之分。
+ *  - 需要带工具执行的委派请用 `subagent_run`（走 [SubagentRunner]，access 三档真正生效）。
+ *  - 旧注释称"access 传给 delegateAgent 由其校验"与代码不符，已删除 —— 留着会让人以为设了有效。
  *
  * 异步结果回灌(改造 4):
  *  - launch/reply 立即返回 taskId,不阻塞主对话
@@ -78,7 +79,8 @@ object SubagentTool {
             // A-10: parent_session_id 必填 —— 缺省时异步结果无法归属到发起会话而静默丢失。
             "parent_session_id" to "REQUIRED for launch/reply. Parent session id for context isolation and " +
                 "result delivery. If omitted, the async result is silently lost.",
-            "access" to "Optional. Permission tier: read / write / full (default write; full still asks for approval per call).",
+            "access" to "Optional, accepted for compatibility but has NO effect on this tool: the delegate runs with a single " +
+                "delegate_agent tool and never touches files or the device. Use subagent_run when the task needs tools.",
             "label" to "Optional. Display label for the task.",
         ),
         required = setOf("action"),

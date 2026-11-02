@@ -470,6 +470,12 @@ val appModule = module {
             toolConfigStore = get(),
             toolApprovalRouter = get(),
             settings = get(),
+            // 角色目录：工作区下的 agents/。读不到就返回空，不影响委派本身。
+            profileResolver = { name ->
+                io.zer0.muse.tools.AgentProfileCatalog
+                    .load(java.io.File(androidContext().filesDir, "workspace"))
+                    .firstOrNull { it.name == name }
+            },
         )
     }
 

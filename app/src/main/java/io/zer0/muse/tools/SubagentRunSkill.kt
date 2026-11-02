@@ -93,6 +93,10 @@ object SubagentRunSkill {
         // v1.0.53 Phase 3: token 预算(可选,null=不限制)
         val tokenBudget = args["token_budget"]?.toIntOrNull()?.takeIf { it > 0 }
 
+        // 访问级别与角色：此前这条路径**完全忽略**了调用方传的值（永远走默认档）。
+        // 未知 access 由 SubagentAccess.parse 降级为只读（fail-closed）。
+        val access = SubagentAccess.parse(args["access"]).wire
+        val profile = args["profile"]?.trim()?.takeIf { it.isNotBlank() }
         val params = SubagentRunner.Params(
             task = task,
             contextText = contextText,
@@ -102,6 +106,8 @@ object SubagentRunSkill {
             threadId = threadId,
             closeAfterRun = closeAfterRun,
             tokenBudget = tokenBudget,
+            access = access,
+            profile = profile,
         )
 
         // 渲染启动阶段
