@@ -63,6 +63,81 @@ class SkillPackageImporter(
         }
     }
 
+    /**
+     * 归档下载器。抽成接口是为了能在**没有网络**的环境里验证整条链路
+     * （解析 → 下载 → 解包 → 落库 → 清理），而不是只能靠真机碰运气。
+     */
+    fun interface ArchiveDownloader {
+        /** @return null 表示成功；非 null 是可直接展示给用户的失败原因。 */
+        suspend fun download(url: String, target: File): String?
+    }
+
+    /**
+     * 从 GitHub 仓库地址安装技能包。
+     *
+     * 只接受 github.com（见 [SkillSourceUrl]）：让应用去下载任意 URL 等于把它变成内网探测器。
+     */
+    suspend fun importUrl(rawUrl: String, downloader: ArchiveDownloader = httpDownloader()): Outcome {
+        val parsed = SkillSourceUrl.parse(rawUrl)
+        if (parsed is SkillSourceUrl.Parsed.Invalid) return Outcome.Failed(parsed.reason)
+        val github = parsed as SkillSourceUrl.Parsed.GitHub
+        val staging = File(appContext.cacheDir, "skill-url-" + System.currentTimeMillis() + ".zip")
+        return try {
+            val failure = downloader.download(github.archiveUrl, staging)
+            if (failure != null) Outcome.Failed(failure) else importFile(staging)
+        } finally {
+            staging.delete()
+        }
+    }
+
+    /**
+     * 默认下载器：https、有超时、有大小上限。
+     *
+     * 这里统一 catch 所有异常是有意的：网络失败的原因极其异质（DNS/证书/超时/断流），
+     * 每一种都要把消息透传给用户；分类捕获只会让"未知失败"变成一句没信息量的兜底文案。
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun httpDownloader(): ArchiveDownloader = ArchiveDownloader { url, target ->
+        var connection: java.net.HttpURLConnection? = null
+        try {
+            connection = (java.net.URL(url).openConnection() as java.net.HttpURLConnection).apply {
+                instanceFollowRedirects = true
+                connectTimeout = 15_000
+                readTimeout = 30_000
+                requestMethod = "GET"
+            }
+            if (connection.url.protocol != "https") return@ArchiveDownloader "只接受 https 下载地址"
+            val code = connection.responseCode
+            if (code !in 200..299) return@ArchiveDownloader "下载失败：HTTP $code"
+            val declared = connection.contentLengthLong
+            if (declared > MAX_IMPORT_BYTES) {
+                return@ArchiveDownloader "仓库归档过大（${declared / (1024 * 1024)}MB，上限 ${MAX_IMPORT_BYTES / (1024 * 1024)}MB）"
+            }
+            var total = 0L
+            target.outputStream().use { output ->
+                connection.inputStream.use { input ->
+                    val buffer = ByteArray(8 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        total += read
+                        if (total > MAX_IMPORT_BYTES) {
+                            return@ArchiveDownloader "仓库归档超过 ${MAX_IMPORT_BYTES / (1024 * 1024)}MB 上限，已中止"
+                        }
+                        output.write(buffer, 0, read)
+                    }
+                }
+            }
+            null
+        } catch (cancellation: kotlinx.coroutines.CancellationException) {
+            throw cancellation
+        } catch (error: Throwable) {
+            "下载失败：${error.message ?: error.javaClass.simpleName}"
+        } finally {
+            runCatching { connection?.disconnect() }
+        }
+    }
+
     /** 从目录或 `.zip` 导入。 */
     suspend fun importFile(source: File): Outcome {
         val imported = store.import(source)
