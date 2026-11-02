@@ -2,6 +2,7 @@ package io.zer0.muse.automation.tools
 
 import io.zer0.common.Logger
 import io.zer0.muse.automation.core.AutomationManager
+import io.zer0.muse.automation.core.ScreenChange
 import io.zer0.muse.automation.core.DeviceCommandPolicy
 import io.zer0.muse.automation.vdisplay.VirtualDisplayClient
 import io.zer0.muse.automation.vdisplay.VirtualDisplayLeaseRegistry
@@ -225,7 +226,21 @@ class AutomationTools(
                 // 带了这个 id 却已失效，说明模型看到的是过时画面：拒绝点击比点错安全得多
                 return@registerGuarded "画面已变化（observation_id 已失效）：请先 screen_read 重新确认界面，再决定是否点击"
             }
-            if (manager.tap(x, y)) "已点击 ($x,$y)" + viaSuffix() else "点击失败(坐标越界或通道未就绪 —— 先 screen_read 取真实坐标)"
+            if (!manager.tap(x, y)) {
+                return@registerGuarded "点击失败(坐标越界或通道未就绪 —— 先 screen_read 取真实坐标)"
+            }
+            // 只有调用方明确带了 observation_id（说明它在意"点了有没有用"）才多读一次屏：
+            // 每次读屏都是一次 UI dump，无条件加会把所有点击都拖慢。
+            val verification = if (observationId.isNullOrBlank()) {
+                ""
+            } else {
+                val after = runCatching { ScreenChange.fingerprintOf(manager.readScreen()) }.getOrNull()
+                after?.let { fresh -> rememberObservation(fresh) }
+                val before = io.zer0.muse.automation.core.AutomationObservationRegistry
+                    .fingerprintOf(OBSERVATION_SCOPE, observationId, System.currentTimeMillis())
+                "；" + ScreenChange.afterActionResult(ScreenChange.compare(before, after))
+            }
+            "已点击 ($x,$y)$verification" + viaSuffix()
         }
 
         registerOutcomeGuarded(registry,
@@ -286,7 +301,14 @@ class AutomationTools(
             val x2 = args["x2"]?.toIntOrNull() ?: return@registerGuarded "错误:x2 必须是整数"
             val y2 = args["y2"]?.toIntOrNull() ?: return@registerGuarded "错误:y2 必须是整数"
             val dur = args["duration_ms"]?.toLongOrNull() ?: 400L
-            if (manager.swipe(x1, y1, x2, y2, dur)) "已滑动" + viaSuffix() else "滑动失败(坐标越界或通道未就绪)"
+            // 滑动前先记指纹：否则"滑到边界"和"翻页成功"在结果里长得一模一样
+            val before = runCatching { ScreenChange.fingerprintOf(manager.readScreen()) }.getOrNull()
+            if (!manager.swipe(x1, y1, x2, y2, dur)) {
+                return@registerGuarded "滑动失败(坐标越界或通道未就绪)"
+            }
+            val after = runCatching { ScreenChange.fingerprintOf(manager.readScreen()) }.getOrNull()
+            after?.let { fresh -> rememberObservation(fresh) }
+            ScreenChange.scrollResult(ScreenChange.compare(before, after)) + viaSuffix()
         }
 
         registerGuarded(registry,
@@ -654,6 +676,15 @@ internal fun deviceShellDescription(): String =
         "dumpsys/screencap/screendump/getprop/date 参数自由；uiautomator 仅 dump。" +
         "不支持管道/重定向/多命令拼接 —— 每次写一条完整命令。" +
         "与 screen_* 工具互补：screen_* 是高层动作，本工具是命令行自由度。"
+
+/** 记录一次新的观察（动作后刷新，后续点击以最新画面为准）。 */
+private fun rememberObservation(fingerprint: String) {
+    io.zer0.muse.automation.core.AutomationObservationRegistry.record(
+        scope = OBSERVATION_SCOPE,
+        fingerprint = fingerprint,
+        now = System.currentTimeMillis(),
+    )
+}
 
 /** 默认显示屏的观察 scope（虚拟屏有各自的 displayId，不共用这份台账）。 */
 private const val OBSERVATION_SCOPE = "main-display"

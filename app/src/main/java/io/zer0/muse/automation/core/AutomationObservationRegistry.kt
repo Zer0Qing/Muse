@@ -79,6 +79,11 @@ object AutomationObservationRegistry {
         return current(scope, now)?.id == observationId
     }
 
+    /** 取某个 id 对应的指纹（用于"动作前后"比对）；id 已失效时返回 null。 */
+    @Synchronized
+    fun fingerprintOf(scope: String, observationId: String, now: Long): String? =
+        current(scope, now)?.takeIf { it.id == observationId }?.fingerprint
+
     /**
      * 用界面要素算指纹。
      *
