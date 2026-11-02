@@ -85,6 +85,16 @@ data class PluginSignature(
  *
  * 每个插件通过 manifest 声明元数据、能力、激活事件、入口文件和工具列表。
  * 外部 `.muse-plugin` / ZIP 包必须包含本清单；`PluginManifest.BUILT_IN` 仅作内置能力展示。
+ *
+ * ## 兼容契约：读取永久兼容，写入一律最新格式
+ *
+ * 新增字段一律给默认值，且**默认值不得参与序列化**（`@EncodeDefault(NEVER)`）——
+ * 存量已签名包不含这些字段，一旦默认值被编码，验签会整批失败。
+ *
+ * 为什么读取不能收紧：已经装到用户机器上的包不可能召回重写。哪天新客户端读不动旧清单，
+ * 用户看到的就是"我的插件突然全没了"，而且没有任何回滚手段 —— 这比多一个新字段值钱得多。
+ * 放宽依赖的是共享 JSON 配置的 `ignoreUnknownKeys` / `coerceInputValues` 加字段默认值；
+ * 行为由 `PluginManifestCompatibilityTest` 钉住：收紧解析会让那组用例变红，而不是靠这段文字提醒。
  */
 @Serializable
 data class PluginManifest(
