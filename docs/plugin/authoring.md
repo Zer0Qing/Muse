@@ -309,13 +309,27 @@ export function onToolCallBefore({ tool, args }) {
 - 只有 `action: "block"` 且带非空 `reason` 才算阻止；其它任何返回（含解析失败、插件报错）
   一律**放行** —— 一个坏掉的钩子不该让整个应用不可用。
 
-## 11. 尚未提供（v1 范围外，已明确推迟）
+## 11. 现状：已提供 / 尚未提供
 
-- `schedules`（定时激活）—— 还没有调度源，写了不会被调用；
-- 决策型 `toolCall.before` hook（可拦/改工具调用）；
-- 其余 hooks（`systemPromptCompose` / `toolPromptCompose` / `messageProcessing` / `summaryGenerate`）的插件注册；
-- provider 类型插件并入统一插件体系；
-- 作者体验：`.d.ts` 生成、示例包、开发模式热重载、插件调试台；
-- 市场：发布流程与 CI、URL/二维码安装、更新通道。
+**已提供**（都有对应章节与测试）：
+
+| 能力 | 章节 |
+|---|---|
+| 宿主 API（文件/网络/剪贴板/通知/设备/KV/配置/工具/会话/模型） | 3–6 |
+| 声明式界面（只读 + 表单提交） | 7–8 |
+| 斜杠命令 `/name` | 10 |
+| 激活事件 `onStartup` / `onMessage` / `onToolCall` | 10.5 |
+| 决策型 `onToolCallBefore`（只能收窄） | 10.6 |
+| 追加系统提示词（带来源标记） | 9.7 |
+| 供应商插件（`kind=provider` + `provider.json`） | 9.8 |
+| 定时任务 `schedules`（应用存活期间） | 9.9 |
+| 示例包、类型声明、调试台 | 9.5 |
+
+**尚未提供**（明确推迟，不假装支持）：
+
+- 开发模式热重载（改文件即重载）—— 目前要重新安装包；
+- 其余 hooks：`toolPromptCompose` / `messageProcessing` / `summaryGenerate` 的插件注册；
+- 市场目录产物与发布流程（代码侧已能从 GitHub 装、能扫码装，目录 JSON 需要发布端）；
+- 后台唤醒式的定时任务（`schedules` 只在进程存活时触发）。
 
 推迟理由与前置条件见 `插件重构_设计.md` §9 与任务板（task-13 的 backlog 表）。
