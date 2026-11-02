@@ -43,9 +43,12 @@ import java.util.concurrent.TimeUnit
 val appModule = module {
 // 插件读会话的唯一通道：会话身份由宿主随调用注入，这里只提供读写入口。
     single { io.zer0.muse.data.plugin.PluginChatBridge(get()) }
-    // 插件调模型：ChatService 缺失时不注册（动作会 fail-closed 拒绝，而不是假装可用）。
+    // 插件调模型：走既有辅助模型路由与 UTILITY 通道；拿不到 SettingsRepository 时回落主对话模型。
     single { io.zer0.muse.data.plugin.PluginModelBridge(get(), getOrNull()) }
-    single { SettingsRepository(androidContext(), get(), get()) }
+    // 启动期一次性写盘在这里触发（而不是在 SettingsRepository.init 里自动跑）：
+    // 生产时序不变，但直接构造仓库的单元测试不会再多一个并发后台写手 ——
+    // 那正是「跑全量偶发挂一条、单跑必过、每轮换受害者」那族 flaky 的真实成因。
+    single { SettingsRepository(androidContext(), get(), get()).also { it.startStartupWork() } }
     single<ProviderConfigStore> { get<SettingsRepository>() }
     single<MemoryLlmClient> { MemoryLlmClientImpl(get(), get(), androidContext()) }
     // v12: LLM 事实去重判定器 — 算法层无法确定的同实体模糊候选交给大模型判断

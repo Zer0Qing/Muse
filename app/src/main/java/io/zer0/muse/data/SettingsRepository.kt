@@ -36,6 +36,7 @@ import io.zer0.muse.web.WebServerConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
@@ -99,6 +100,21 @@ class SettingsRepository(
 
     private val store get() = appContext.museSettingsDataStore
     private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
+
+    /**
+     * 启动期一次性写盘任务（顺序执行）。
+     *
+     * 暴露出来不是给生产代码用的，而是让**测试能确定性地等它跑完**：
+     * 不然任何对配置快照的断言都在和它赛跑，症状就是"偶发挂一条、单跑必过"。
+     */
+    @Volatile
+    var startupJob: Job? = null
+        private set
+
+    /** 等启动期写盘全部落定（测试用；已被取消或从未启动时立即返回）。 */
+    suspend fun awaitStartupWork() {
+        startupJob?.join()
+    }
     private val memoryEnabledCache = AtomicBoolean(true)
 
     // M-SR5: 防止 migrateLegacyProviderIfNeeded 在并发首调时重复执行(读旧 JSON + addProvider + remove 之间存在竞态)
@@ -1464,6 +1480,39 @@ class SettingsRepository(
     }
 
     /**
+     * 启动期单步执行：一步失败不阻断后续步骤，但**取消必须原样上抛**
+     * （否则作用域关停会被伪装成"这一步失败了"）。
+     */
+    private suspend fun runStartupStep(name: String, block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            Logger.w("SettingsRepository", "$name 失败: ${e.message}", e)
+        }
+    }
+
+    /**
+     * 自动注入 SiliconFlow 免费供应商（免登录即可试用）。
+     *
+     * 只注入、不激活：免费兜底的价值是"列表里有个能点的"，不需要替用户做选择。
+     * 旧逻辑在"用户没有任何供应商"时顺手把它设为激活，实际有两个后果：
+     *  1. 用户删光供应商（为了重新配自己的），下次启动它又回来并占着激活位；
+     *  2. 引导流程里用户刚填完自己的供应商但还没写激活位，也可能被它抢到。
+     */
+    private suspend fun injectFreeProviderIfAbsent() {
+        releaseAutoActivatedFreeProvider()
+        val providers = providersFlow.first()
+        if (providers.any { it.id == SiliconFlowFreeModels.PROVIDER_ID }) return
+        val freePreset = presetProviders.byId(SiliconFlowFreeModels.PROVIDER_ID) ?: return
+        // 使用原子 addProviderIfAbsent 防止与引导流程并发写入导致重复供应商
+        if (addProviderIfAbsent(freePreset)) {
+            Logger.i("SettingsRepository", "已自动注入 SiliconFlow 免费供应商(不自动激活)")
+        }
+    }
+
+    /**
      * v1.114: 关闭 cacheScope,释放协程资源。
      * SettingsRepository 是 Koin 单例,App 退出时调用。
      */
@@ -1514,45 +1563,42 @@ class SettingsRepository(
         cacheScope.launch { piiGuardEnabledFlow.collect { piiGuardEnabledCache = it } }
         // ANR 检测开关:订阅 Flow 落缓存,供 AnrWatcher 同步读取(支持运行时切换)。
         cacheScope.launch { anrDetectionFlow.collect { anrDetectionCache = it } }
-        cacheScope.launch { migrateLegacyProviderIfNeeded() }
-        // v2.x: 旧「工具模型/子代理模型」单 id 键迁移为带 provider 的辅助模型绑定(幂等,只跑一次)
-        cacheScope.launch { migrateLegacyUtilityBindingsIfNeeded() }
-        // 「偏好卡片输出」一次性关闭（旧版默认开关，存量用户 JSON 里已经是 true）。
-        // 卡片渲染链路还在重做，默认开着会把不可靠的东西摆到用户第一眼。
-        cacheScope.launch { chatSettings.migrateCardOutputOnOnce() }
-        // 自动注入 SiliconFlow 免费供应商（免登录即可试用）。
-        //
-        // 只注入、不激活：
-        // 免费兜底的价值是“列表里有个能点的”，不需要替用户做选择。
-        // 旧逻辑在“用户没有任何供应商”时顺手把它设为激活，实际有两个后果：
-        //  1. 用户删光供应商（为了重新配自己的），下次启动它又回来并占着激活位；
-        //  2. 引导流程里用户刚填完自己的供应商但还没写激活位，也可能被它抢到。
-        //
-        // 注入与「让位」必须串行：先让位再注入，否则两者并发时谁先跑不确定。
-        cacheScope.launch {
-            try {
-                releaseAutoActivatedFreeProvider()
-                val providers = providersFlow.first()
-                val hasFree = providers.any { it.id == SiliconFlowFreeModels.PROVIDER_ID }
-                if (!hasFree) {
-                    val freePreset =
-                        presetProviders.byId(SiliconFlowFreeModels.PROVIDER_ID)
-                            ?: return@launch
-                    // 使用原子 addProviderIfAbsent 防止与引导流程并发写入导致重复供应商
-                    if (addProviderIfAbsent(freePreset)) {
-                        Logger.i("SettingsRepository", "已自动注入 SiliconFlow 免费供应商(不自动激活)")
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w("SettingsRepository", "注入 SiliconFlow 免费供应商失败: ${e.message}", e)
-            }
-        }
-        // v2.3: 恢复连接测试缓存
-        cacheScope.launch { restoreConnectionTestCache() }
         // v2.3: 订阅任务路由配置到内存缓存(taskRoutingConfigFlow 已在 init 前声明,安全)
         cacheScope.launch { taskRoutingConfigFlow.collect { taskRoutingConfigCache = it } }
+    }
+
+    /**
+     * 启动期一次性写盘：供应商结构迁移、辅助模型绑定迁移、卡片输出开关收口、
+     * 免费供应商注入、连接测试缓存恢复。
+     *
+     * **为什么不在 init 里自动跑**：原先它们是 init 里的 5 个并发 launch，
+     * 任何「读一遍配置、做点事、再读一遍比对」的测试都会偶发看到 `providers_json`
+     * 在两次快照之间凭空冒出来 —— 这正是本仓库那族
+     * 「跑全量偶发挂一条、单跑必过、每轮换受害者」flaky 的真实成因
+     * （与未捕获异常无关：先加协程异常处理器那一笔并没有修掉它，`handlerHits=0` 就是证据）。
+     *
+     * 挪成显式调用之后：生产在 DI 工厂里触发（时序与原来完全一致），
+     * 而直接构造本仓库的测试天生没有这个后台写手，断言因此是确定的 ——
+     * 不需要每个用例各自记得 delay 或 join 去躲竞态。
+     *
+     * 幂等：重复调用返回同一个 Job（迁移本身也各自带「只跑一次」守卫）。
+     */
+    fun startStartupWork(): Job {
+        startupJob?.let { existing -> return existing }
+        val job = cacheScope.launch {
+            runStartupStep("迁移旧供应商") { migrateLegacyProviderIfNeeded() }
+            // v2.x: 旧「工具模型/子代理模型」单 id 键迁移为带 provider 的辅助模型绑定(幂等,只跑一次)
+            runStartupStep("迁移辅助模型绑定") { migrateLegacyUtilityBindingsIfNeeded() }
+            // 「偏好卡片输出」一次性关闭（旧版默认开关，存量用户 JSON 里已经是 true）。
+            // 卡片渲染链路还在重做，默认开着会把不可靠的东西摆到用户第一眼。
+            runStartupStep("卡片输出一次性关闭") { chatSettings.migrateCardOutputOnOnce() }
+            // 注入与「让位」必须串行：先让位再注入，否则两者并发时谁先跑不确定。
+            runStartupStep("注入免费供应商") { injectFreeProviderIfAbsent() }
+            // v2.3: 恢复连接测试缓存
+            runStartupStep("恢复连接测试缓存") { restoreConnectionTestCache() }
+        }
+        startupJob = job
+        return job
     }
 
     suspend fun mockLogin(userName: String, method: String = "phone") {
