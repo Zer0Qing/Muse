@@ -139,6 +139,9 @@ class PluginUiTreeTest {
             "list" to """{"type":"list","items":["a"]}""",
             "progress" to """{"type":"progress","value":1.0}""",
             "assetImage" to """{"type":"assetImage","path":"assets/a.png"}""",
+            "form" to """{"type":"form","children":[{"type":"input","key":"a","label":"A"}]}""",
+            "input" to """{"type":"input","key":"a","label":"A"}""",
+            "submit" to """{"type":"submit","label":"保存","handler":"save"}""",
             "code" to """{"type":"code","text":"x"}""",
         )
 
@@ -165,5 +168,81 @@ class PluginUiTreeTest {
 
         assertTrue("空容器不该被当成错误: ${parsed.reason}", parsed.success)
         assertEquals(1, parsed.nodes)
+    }
+
+    // ── 交互节点：表单的三条硬规矩（key 唯一 / kind 白名单 / handler 必填） ──────
+
+    @Test
+    fun `duplicate input keys are refused because they would silently drop user input`() {
+        val source = """
+            {"type":"form","children":[
+              {"type":"input","key":"title","label":"标题"},
+              {"type":"input","key":"title","label":"副标题"}
+            ]}
+        """.trimIndent()
+
+        val parsed = PluginUiTree.parse(source)
+
+        assertFalse("重复 key 必须整份拒", parsed.success)
+        assertTrue("要指出是哪个 key: ${parsed.reason}", parsed.reason?.contains("input.key 重复") == true)
+    }
+
+    @Test
+    fun `input without kind defaults to text instead of being rejected`() {
+        val parsed = PluginUiTree.parse("""{"type":"input","key":"a","label":"A"}""")
+
+        assertTrue("省略 kind 应视为 text: ${parsed.reason}", parsed.success)
+    }
+
+    @Test
+    fun `select without options is refused`() {
+        val parsed = PluginUiTree.parse("""{"type":"input","key":"a","label":"A","kind":"select"}""")
+
+        assertFalse("select 没选项要拒", parsed.success)
+        assertTrue("要说清缺 options: ${parsed.reason}", parsed.reason?.contains("options") == true)
+    }
+
+    @Test
+    fun `unsupported input kind is refused instead of degrading to a text box`() {
+        val parsed = PluginUiTree.parse("""{"type":"input","key":"a","label":"A","kind":"date"}""")
+
+        assertFalse("未知 kind 不能降级: ${parsed.reason}", parsed.success)
+        assertTrue("要列出可用 kind", parsed.reason?.contains("text/number/select/toggle") == true)
+    }
+
+    @Test
+    fun `submit without handler is refused`() {
+        val parsed = PluginUiTree.parse("""{"type":"submit","label":"保存","handler":""}""")
+
+        assertFalse("空 handler 要拒", parsed.success)
+        assertTrue("要说清 handler 规则: ${parsed.reason}", parsed.reason?.contains("handler") == true)
+    }
+
+    @Test
+    fun `too many inputs is refused`() {
+        val inputs = (1..(PluginUiTree.MAX_INPUTS + 5)).joinToString(",") {
+            """{"type":"input","key":"k$it","label":"第 $it 项"}"""
+        }
+
+        val parsed = PluginUiTree.parse("""{"type":"form","children":[$inputs]}""")
+
+        assertFalse("输入项也要有上限", parsed.success)
+        assertTrue("要说清输入项上限: ${parsed.reason}", parsed.reason?.contains("输入项超过") == true)
+    }
+
+    @Test
+    fun `inputs outside a form are still counted for key uniqueness`() {
+        // 唯一性按整棵树判：表单外散落的 input 一样会随提交上行（渲染器只认 form 内的），
+        // 但重名照样会撞，所以不能只在 form 子树里查。
+        val source = """
+            {"type":"column","children":[
+              {"type":"input","key":"x","label":"外部"},
+              {"type":"form","children":[{"type":"input","key":"x","label":"表单内"}]}
+            ]}
+        """.trimIndent()
+
+        val parsed = PluginUiTree.parse(source)
+
+        assertFalse("跨容器重复也要拒: ${parsed.reason}", parsed.success)
     }
 }

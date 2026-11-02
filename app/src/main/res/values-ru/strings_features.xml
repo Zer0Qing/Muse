@@ -855,5 +855,6 @@
     <string name="plugin_cap_chat_read">Чтение последних сообщений текущего чата (приватно, по умолчанию выкл)</string>
     <string name="plugin_cap_model_call">Генерация через настроенную модель (расходуется ваш лимит)</string>
     <string name="plugin_cap_ui_skin">Менять визуальное оформление</string>
+    <string name="plugin_cap_ui_interactive">Форма отправки и запуск обработчика плагина (меняет данные, по умолчанию выкл)</string>
     <string name="plugin_cap_runtime_python">Запуск Python вне изоляции (высокое доверие)</string>
 </resources>

@@ -33,16 +33,22 @@ object PluginCapabilityCopy {
         "chat.read" to R.string.plugin_cap_chat_read,
         "host.model.call" to R.string.plugin_cap_model_call,
         "ui.skin" to R.string.plugin_cap_ui_skin,
+        PluginCapabilityGateway.UI_INTERACTIVE to R.string.plugin_cap_ui_interactive,
         PluginCapabilityGateway.RUNTIME_PYTHON to R.string.plugin_cap_runtime_python,
     )
 
     /**
-     * 隐私面与成本面：批准前必须看得见代价。
+     * 隐私面、成本面与**会改数据**的面：批准前必须看得见代价。
      *
      * 把"读文件"和"读聊天记录"画成同一视觉权重，等于让用户用同一个手势
      * 签下两件完全不同的事 —— 这不是节省空间，是把授权变成橡皮图章。
      */
-    val SENSITIVE: Set<String> = setOf("chat.read", "host.model.call", PluginCapabilityGateway.RUNTIME_PYTHON)
+    val SENSITIVE: Set<String> = setOf(
+        "chat.read",
+        "host.model.call",
+        PluginCapabilityGateway.UI_INTERACTIVE,
+        PluginCapabilityGateway.RUNTIME_PYTHON,
+    )
 
     /**
      * 一句人话：**先归一化再查表**。

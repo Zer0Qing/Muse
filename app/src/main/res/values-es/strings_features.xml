@@ -806,5 +806,6 @@
     <string name="plugin_cap_chat_read">Leer los mensajes recientes del chat actual (privado, desactivado)</string>
     <string name="plugin_cap_model_call">Generar texto con tu modelo configurado (consume tu cuota)</string>
     <string name="plugin_cap_ui_skin">Cambiar la apariencia visual</string>
+    <string name="plugin_cap_ui_interactive">Mostrar un formulario y ejecutar su controlador (altera datos; desactivado)</string>
     <string name="plugin_cap_runtime_python">Ejecutar Python fuera del entorno aislado (alta confianza)</string>
 </resources>

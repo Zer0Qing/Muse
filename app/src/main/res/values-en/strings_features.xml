@@ -758,5 +758,6 @@
     <string name="plugin_cap_chat_read">Read recent messages of the current chat (private, off by default)</string>
     <string name="plugin_cap_model_call">Generate text with your configured model (counts against your usage)</string>
     <string name="plugin_cap_ui_skin">Change the visual skin</string>
+    <string name="plugin_cap_ui_interactive">Show a submit form and run the plugin handler (changes data, off by default)</string>
     <string name="plugin_cap_runtime_python">Run Python code outside the sandbox (high trust, confirm separately)</string>
 </resources>

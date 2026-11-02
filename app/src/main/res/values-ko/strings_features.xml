@@ -806,5 +806,6 @@
     <string name="plugin_cap_chat_read">현재 대화의 최근 메시지 읽기(개인정보, 기본 꺼짐)</string>
     <string name="plugin_cap_model_call">설정된 모델로 생성(사용량에 포함됨)</string>
     <string name="plugin_cap_ui_skin">화면 스킨 변경</string>
+    <string name="plugin_cap_ui_interactive">제출 양식 표시 및 플러그인 핸들러 실행 (데이터 변경, 기본 꺼짐)</string>
     <string name="plugin_cap_runtime_python">격리 환경 밖에서 Python 실행(신뢰도 높음)</string>
 </resources>

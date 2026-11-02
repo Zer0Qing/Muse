@@ -780,5 +780,6 @@
     <string name="plugin_cap_chat_read">读取当前对话的最近内容（属隐私，默认关闭）</string>
     <string name="plugin_cap_model_call">用你配置的模型生成内容（会计入你的用量）</string>
     <string name="plugin_cap_ui_skin">更换界面外观</string>
+    <string name="plugin_cap_ui_interactive">显示可提交的表单，并运行插件的界面处理函数（会改动数据，默认关闭）</string>
     <string name="plugin_cap_runtime_python">以 Python 运行代码，能离开沙盒（高信任，请单独确认）</string>
 </resources>

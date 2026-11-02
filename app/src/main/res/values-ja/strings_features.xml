@@ -805,5 +805,6 @@
     <string name="plugin_cap_chat_read">現在の会話の直近メッセージの読み取り（プライバシー、既定オフ）</string>
     <string name="plugin_cap_model_call">設定済みモデルでの生成（あなたの利用量に算入）</string>
     <string name="plugin_cap_ui_skin">外観スキンの変更</string>
+    <string name="plugin_cap_ui_interactive">送信フォームを表示しプラグインのハンドラを実行（データを変更、既定で無効）</string>
     <string name="plugin_cap_runtime_python">沙盒の外で Python を実行（高信頼、個別に確認）</string>
 </resources>

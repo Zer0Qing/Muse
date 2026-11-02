@@ -167,10 +167,12 @@ class PluginCapabilityGateway(
         val seeded = PluginPermissionRecord(
             declaredCapabilities = canonicalCapabilities(declarableCaps).sorted(),
             declarationHash = declarationHash(declarableCaps),
-            grants = declarableCaps.toSet().associateWith {
+            grants = declarableCaps.toSet().associateWith { capability ->
                 // 首见即按声明批量放行，但标成 install-auto：升级扩权不能再走这条路。
+                // 例外是 ui.interactive —— 提交表单会改数据，这一条要用户亲手打开：
+                // 它仍然留在 declaredCapabilities 里（看得见），只是默认关。
                 PluginCapabilityGrant(
-                    allowed = true,
+                    allowed = capability != UI_INTERACTIVE,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -236,6 +238,15 @@ class PluginCapabilityGateway(
          * 所以它不进播种、不进会话表、也不受清单 capabilities 影响。
          */
         const val RUNTIME_PYTHON = "runtime.python"
+
+        /**
+         * 交互界面能力（表单提交会**改插件自己的数据**），默认不放行。
+         *
+         * 与 [RUNTIME_PYTHON] 的区别：Python 那条连"声明"都不接受（只能单独授予），
+         * 而这一条要留在 `declaredCapabilities` 里 —— 面板上看不见一个能力，
+         * 用户就没法批准它；这里要的是"看得见、默认关、点开才生效"。
+         */
+        const val UI_INTERACTIVE = "ui.interactive"
 
         /** 通路自检动作：不携带任何外泄面，始终放行。 */
         val ALWAYS_ALLOWED_ACTIONS: Set<String> = setOf("echo")
