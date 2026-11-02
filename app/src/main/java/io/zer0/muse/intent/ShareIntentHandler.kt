@@ -54,6 +54,9 @@ class ShareIntentHandler(private val context: Context) {
         /** 打开 Assistant 管理页。 */
         object OpenAssistants : ShareResult()
 
+        /** 从深链安装插件（P5）：携带已通过校验的仓库地址。 */
+        data class InstallPlugin(val url: String) : ShareResult()
+
         /** 打开设置页。 */
         object OpenSettings : ShareResult()
 
@@ -174,6 +177,13 @@ class ShareIntentHandler(private val context: Context) {
                 if (id != null && SESSION_ID_REGEX.matches(id)) {
                     ShareResult.OpenScheduledTask(id)
                 } else {
+                    ShareResult.None
+                }
+            }
+            "plugin" -> when (val link = io.zer0.muse.data.plugin.PluginInstallLink.parse(uri.toString())) {
+                is io.zer0.muse.data.plugin.PluginInstallLink.Parsed.Target -> ShareResult.InstallPlugin(link.url)
+                is io.zer0.muse.data.plugin.PluginInstallLink.Parsed.Invalid -> {
+                    Logger.w(TAG, "插件安装深链被拒绝: ${link.reason}")
                     ShareResult.None
                 }
             }

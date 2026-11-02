@@ -137,6 +137,7 @@
                 <data android:scheme="muse" android:host="new" />
                 <data android:scheme="muse" android:host="assistants" />
                 <data android:scheme="muse" android:host="settings" />
+                <data android:scheme="muse" android:host="plugin" />
                  <data android:scheme="muse" android:host="scheduled-tasks" />
                  <data android:scheme="muse" android:host="scheduled-task" />
                  <data android:scheme="muse" android:host="quick-notes" />

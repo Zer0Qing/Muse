@@ -557,6 +557,22 @@ private fun MuseNavGraph(
                             }
                         }
                         when (result) {
+                            is ShareIntentHandler.ShareResult.InstallPlugin -> {
+                                // P5: 深链安装 —— 复用 GitHub 安装链路，结果用 Toast 反馈
+                                val importer = io.zer0.muse.data.skill.SkillPackageImporter(
+                                    context,
+                                    org.koin.java.KoinJavaComponent.get(
+                                        io.zer0.muse.data.skill.SkillRepository::class.java,
+                                    ),
+                                )
+                                val message = when (val outcome = importer.importUrl(result.url)) {
+                                    is io.zer0.muse.data.skill.SkillPackageImporter.Outcome.Installed ->
+                                        context.getString(R.string.skill_imported, outcome.skill.name)
+                                    is io.zer0.muse.data.skill.SkillPackageImporter.Outcome.Failed ->
+                                        context.getString(R.string.skill_import_error, outcome.reason)
+                                }
+                                io.zer0.muse.ui.common.feedback.MuseToast.show(message)
+                            }
                             is ShareIntentHandler.ShareResult.PrefillText -> {
                                 sharedViewModel.updateInput(result.text)
                                 navController.navigate(HomeRoute) {
