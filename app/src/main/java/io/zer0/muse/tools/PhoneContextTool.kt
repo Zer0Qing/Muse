@@ -52,9 +52,9 @@ object PhoneContextTool {
         val providers = mapOf(
             PhoneContext.Source.CALENDAR to PhoneContextDispatcher.Provider { window -> loadCalendar(context, window) },
             PhoneContext.Source.APP_USAGE to PhoneContextDispatcher.Provider { window -> loadAppUsage(context, window) },
-            // 联系人：本应用还没有查询入口（只有 add_contact），如实报"尚未接入"
             PhoneContext.Source.CONTACTS to PhoneContextDispatcher.Provider {
-                PhoneContextDispatcher.Loaded.unavailable("这个应用还没有接入联系人读取")
+                // 通讯录不是"最近几天"的东西：days 对它没有意义，保留统一接口即可
+                loadContacts(context)
             },
             // 通知：没有历史存储（只有实时监听），同样如实报
             PhoneContext.Source.NOTIFICATIONS to PhoneContextDispatcher.Provider {
@@ -99,6 +99,46 @@ object PhoneContextTool {
             return PhoneContextDispatcher.Loaded.unavailable("读取日历时出错：${it.message ?: it.javaClass.simpleName}")
         }
         return PhoneContextDispatcher.Loaded.available(items, truncated)
+    }
+
+    /**
+     * 联系人：只取**名字**，不取电话/邮箱。
+     *
+     * 上下文层要的是"我认识谁"这种弱信号，号码与邮箱属于更敏感的一层 ——
+     * 需要它们的时候应该用专门的工具，而不是顺手塞进上下文信封。
+     */
+    private fun loadContacts(context: Context): PhoneContextDispatcher.Loaded {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return PhoneContextDispatcher.Loaded.denied("需要通讯录读取权限")
+        }
+        val names = mutableListOf<String>()
+        runCatching {
+            context.contentResolver.query(
+                android.provider.ContactsContract.Contacts.CONTENT_URI,
+                arrayOf(android.provider.ContactsContract.Contacts.DISPLAY_NAME),
+                null,
+                null,
+                "${android.provider.ContactsContract.Contacts.DISPLAY_NAME} ASC",
+            )?.use { cursor ->
+                val nameIdx = cursor.getColumnIndexOrThrow(
+                    android.provider.ContactsContract.Contacts.DISPLAY_NAME,
+                )
+                while (cursor.moveToNext()) {
+                    names += cursor.getString(nameIdx)?.trim().orEmpty()
+                }
+            }
+        }.onFailure {
+            return PhoneContextDispatcher.Loaded.unavailable(
+                "读取通讯录时出错：${it.message ?: it.javaClass.simpleName}",
+            )
+        }
+        val items = names.filter { it.isNotEmpty() }
+        return PhoneContextDispatcher.Loaded.available(
+            items.take(MAX_ITEMS),
+            truncated = items.size > MAX_ITEMS,
+        )
     }
 
     /** 应用使用：需要"使用情况访问"特殊权限，用 AppOps 判断而不是普通运行时权限。 */
