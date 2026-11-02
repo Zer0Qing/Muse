@@ -281,14 +281,12 @@ object WorkspaceTool {
         val path = args["path"]?.trim() ?: ""
         return when (val r = manager.listDir(path, scope)) {
             is WorkspaceManager.ListResult.Success -> {
-                if (r.entries.isEmpty()) {
-                    "(empty)"
-                } else {
-                    r.entries.joinToString("\n") { e ->
-                        val type = if (e.isDirectory) "dir" else "file"
-                        "${e.relativePath} | $type | ${e.size} | ${e.lastModified}"
-                    }
+                // 目录大时截断并说明还有多少项：一次列几千项会把上下文吃光
+                val lines = r.entries.map { e ->
+                    val type = if (e.isDirectory) "dir" else "file"
+                    "${e.relativePath} | $type | ${e.size} | ${e.lastModified}"
                 }
+                io.zer0.muse.workspace.WorkspaceListContract.render(lines).text
             }
             is WorkspaceManager.ListResult.Error -> "Error: ${r.message}"
         }

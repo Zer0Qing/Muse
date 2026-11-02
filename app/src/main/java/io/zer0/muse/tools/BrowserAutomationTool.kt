@@ -270,7 +270,17 @@ object BrowserAutomationTool {
                     val selector = args["selector"]?.takeIf { it.isNotBlank() }
                         ?: return@runBlocking buildResult(success = false, error = "参数 selector 缺失或为空")
                     browserManager.extractText(selector).fold(
-                        onSuccess = { text -> buildResult(success = true, data = text) },
+                        onSuccess = { text ->
+                            buildResult(
+                                success = true,
+                                data = io.zer0.muse.web.WebSnapshotContract.render(
+                                    url = browserManager.currentUrl.value,
+                                    fetchedAtMillis = System.currentTimeMillis(),
+                                    body = text,
+                                ),
+                                verified = true,
+                            )
+                        },
                         onFailure = { e ->
                             Logger.w(TAG, "extractText 失败: selector=$selector | url=${browserManager.currentUrl.value} | err=${e.message}")
                             buildResult(success = false, error = e.message ?: "提取失败")
@@ -291,7 +301,16 @@ object BrowserAutomationTool {
                 }
                 TOOL_GET_HTML -> {
                     val html = browserManager.currentHtml.value
-                    buildResult(success = true, data = html)
+                    // 快照头：正文是某一刻抓的，不标时间模型会把它当"当前页面"
+                    buildResult(
+                        success = true,
+                        data = io.zer0.muse.web.WebSnapshotContract.render(
+                            url = browserManager.currentUrl.value,
+                            fetchedAtMillis = System.currentTimeMillis(),
+                            body = html,
+                        ),
+                        verified = true,
+                    )
                 }
                 TOOL_SCREENSHOT -> {
                     browserManager.captureScreenshot().fold(
