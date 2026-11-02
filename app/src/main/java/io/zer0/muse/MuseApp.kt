@@ -517,6 +517,8 @@ class MuseApp : Application(), ImageLoaderFactory {
                     hookRegistry.register(io.zer0.muse.hook.PluginEventHook(bridge))
                     // P3b: 决策型钩子（只能收窄；默认关闭，需 hook.toolCallBefore 授权）
                     hookRegistry.register(io.zer0.muse.hook.PluginToolDecisionHook(bridge))
+                    // P3b: 插件追加系统提示词（默认关闭；追加内容一律带来源标记）
+                    hookRegistry.register(io.zer0.muse.hook.PluginSystemPromptHook(bridge))
                 }.onError { msg, t -> Logger.w("MuseApp", "PluginActivationBridge 启动失败: $msg", t) }
                 // v2.x（诊断导出项目 A）: 生成链路轨迹记录仪初始化（纯观察者，异常内部吞）
                 resultOf { io.zer0.muse.diagnostic.GenerationTrace.init(applicationContext) }

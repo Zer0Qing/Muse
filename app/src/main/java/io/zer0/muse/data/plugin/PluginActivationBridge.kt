@@ -83,6 +83,53 @@ class PluginActivationBridge(
     }
 
     /**
+     * 收集插件要追加进系统提示词的片段（每段都带来源标记）。
+     *
+     * 与决策型钩子的区别：这里是**纯追加**，不改已有内容、不能拦任何东西，
+     * 但正因为能影响模型行为，能力与标记都不能省（见 [PluginPromptInjection]）。
+     *
+     * @return 拼好的片段；没有任何插件参与时返回 null
+     */
+    suspend fun composeSystemPromptAppend(contextJson: String): String? {
+        if (!settings.arePluginsGloballyEnabled()) return null
+        val ledger = PluginCapabilityLedgers.shared(context)
+        val parts = pluginManager.list()
+            .filter { it.enabled && it.kind == KIND_TOOL }
+            .filter { ledger.isApproved(it.id, PluginCapabilityGateway.HOOK_SYSTEM_PROMPT) }
+            .take(MAX_EVENT_PLUGINS)
+            .mapNotNull { plugin -> systemPromptPart(plugin, contextJson) }
+        return parts.takeIf { it.isNotEmpty() }?.joinToString("\n\n")
+    }
+
+    /** 问单个插件要一段追加文本；没声明/失败都返回 null。 */
+    private suspend fun systemPromptPart(
+        plugin: PluginManager.InstalledPlugin,
+        contextJson: String,
+    ): String? {
+        val verified = resultOf { pluginManager.loadVerifiedPlugin(plugin.id) }.getOrNull() ?: return null
+        if (HOOK_SYSTEM_PROMPT !in verified.manifest.hooks) return null
+        val raw = resultOf {
+            invoker.call(
+                manifest = verified.manifest,
+                entryCode = verified.entryCode,
+                functionName = SYSTEM_PROMPT_FUNCTION,
+                argsJson = "[$contextJson]",
+                configJson = pluginManager.getPluginConfigJson(verified.manifest),
+            )
+        }.getOrNull()
+        return when (raw) {
+            is SkillEngineResult.Success -> PluginPromptInjection
+                .wrap(verified.manifest.name, raw.valueJson.trim('"'))
+                .takeIf { it.isNotBlank() }
+            is SkillEngineResult.Error -> {
+                Logger.w(TAG, "系统提示词钩子失败(已跳过): ${plugin.id} — ${raw.message}")
+                null
+            }
+            null -> null
+        }
+    }
+
+    /**
      * 决策型钩子：插件能否**拦下**这次工具调用（对比清单插件计划 P3b）。
      *
      * 语义刻意是**只能收窄**：
@@ -283,6 +330,12 @@ class PluginActivationBridge(
 
         /** 懒激活：每次工具调用。 */
         const val ACTIVATION_ON_TOOL_CALL = "onToolCall"
+
+        /** 插件可挂接的 hook 名：往系统提示词追加片段。 */
+        const val HOOK_SYSTEM_PROMPT = "system_prompt_compose"
+
+        /** 该 hook 需要导出的函数名。 */
+        const val SYSTEM_PROMPT_FUNCTION = "onSystemPrompt"
 
         /** 决策型：工具调用前可否拦下（只收窄，不能放宽）。 */
         const val ACTIVATION_ON_TOOL_CALL_BEFORE = "onToolCallBefore"

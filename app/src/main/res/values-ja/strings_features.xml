@@ -797,6 +797,7 @@
     <string name="plugin_cap_event_on_message">メッセージごと</string>
     <string name="plugin_cap_event_on_tool_call">ツール呼び出しごと</string>
     <string name="plugin_cap_hook_tool_before">ツール呼び出しをブロック</string>
+    <string name="plugin_cap_hook_system_prompt">システムプロンプトに追記（振る舞いが変わります）</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>
     <string name="plugin_cap_clipboard">クリップボードの読み書き</string>

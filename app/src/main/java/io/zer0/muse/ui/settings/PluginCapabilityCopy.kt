@@ -38,6 +38,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.EVENT_ON_MESSAGE to R.string.plugin_cap_event_on_message,
         PluginCapabilityGateway.EVENT_ON_TOOL_CALL to R.string.plugin_cap_event_on_tool_call,
         PluginCapabilityGateway.HOOK_TOOL_CALL_BEFORE to R.string.plugin_cap_hook_tool_before,
+        PluginCapabilityGateway.HOOK_SYSTEM_PROMPT to R.string.plugin_cap_hook_system_prompt,
     )
 
     /**
@@ -53,6 +54,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.EVENT_ON_MESSAGE,
         PluginCapabilityGateway.EVENT_ON_TOOL_CALL,
         PluginCapabilityGateway.HOOK_TOOL_CALL_BEFORE,
+        PluginCapabilityGateway.HOOK_SYSTEM_PROMPT,
         PluginCapabilityGateway.RUNTIME_PYTHON,
     )
 

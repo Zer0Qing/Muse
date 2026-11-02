@@ -175,7 +175,8 @@ class PluginCapabilityGateway(
                     allowed = capability != UI_INTERACTIVE &&
                 capability != EVENT_ON_MESSAGE &&
                 capability != EVENT_ON_TOOL_CALL &&
-                capability != HOOK_TOOL_CALL_BEFORE,
+                capability != HOOK_TOOL_CALL_BEFORE &&
+                capability != HOOK_SYSTEM_PROMPT,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -268,6 +269,14 @@ class PluginCapabilityGateway(
      * 也意味着插件能看到工具名与参数（参数里常有用户内容）。
      */
     const val HOOK_TOOL_CALL_BEFORE = "hook.toolCallBefore"
+
+    /**
+     * 决策型钩子：能否往系统提示词里追加文本。
+     *
+     * 默认关闭且属于敏感能力：系统提示词决定模型怎么理解自己的角色，
+     * 能往里写文本就等于能改写助手行为。追加内容一律带来源标记（见 PluginPromptInjection）。
+     */
+    const val HOOK_SYSTEM_PROMPT = "hook.systemPrompt"
 
         /** 通路自检动作：不携带任何外泄面，始终放行。 */
         val ALWAYS_ALLOWED_ACTIONS: Set<String> = setOf("echo")
