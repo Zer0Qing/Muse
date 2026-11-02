@@ -262,6 +262,12 @@
     <string name="tool_brightness_auto">Auto</string>
     <string name="tool_brightness_manual">Manual</string>
     <string name="tool_brightness_set">Brilho definido como %1$d</string>
+    <string name="tool_write_verified"> (confirmado)</string>
+    <string name="tool_write_permission_denied">O sistema recusou a gravacao (provavelmente falta uma permissao como Modificar configuracoes do sistema)</string>
+    <string name="tool_volume_failed">Falha ao ajustar o volume: %1$s</string>
+    <string name="tool_write_verified_transition"> (confirmado: %1$d para %2$d)</string>
+    <string name="tool_write_unverified"> (enviado, sem confirmacao)</string>
+    <string name="tool_write_not_applied">Nao aplicado: esperado %1$d, obtido %2$d</string>
     <string name="tool_brightness_auto_set">Brilho automático ativado</string>
     <string name="tool_brightness_missing">Parâmetro ausente: valor</string>
     <string name="tool_brightness_failed">Falha ao definir o brilho: %1$s</string>
@@ -277,7 +283,7 @@
     <string name="tool_flashlight_on">Lanterna ligada</string>
     <string name="tool_flashlight_off">Lanterna desligada</string>
     <string name="tool_flashlight_state">Estado da lanterna: %1$s</string>
-    <string name="tool_flashlight_state_unknown">Estado da lanterna: desconhecido (não operado nesta sessão)</string>
+    <string name="tool_flashlight_state_unknown">Estado da lanterna: desconhecido (o sistema nao respondeu a tempo)</string>
     <string name="tool_flashlight_unavailable">O dispositivo não suporta lanterna</string>
     <string name="tool_flashlight_no_camera">Nenhuma câmera disponível</string>
     <string name="tool_flashlight_invalid_action">a ação deve estar ligada/desligada/status</string>

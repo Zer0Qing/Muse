@@ -276,6 +276,12 @@
     <string name="tool_brightness_auto">Auto</string>
     <string name="tool_brightness_manual">Manual</string>
     <string name="tool_brightness_set">Brightness set to %1$d</string>
+    <string name="tool_write_verified"> (verified)</string>
+    <string name="tool_write_permission_denied">The system refused the write (a permission such as Modify system settings is likely missing)</string>
+    <string name="tool_volume_failed">Failed to set volume: %1$s</string>
+    <string name="tool_write_verified_transition"> (verified: %1$d to %2$d)</string>
+    <string name="tool_write_unverified"> (sent, but not confirmed)</string>
+    <string name="tool_write_not_applied">Not applied: expected %1$d, got %2$d</string>
     <string name="tool_brightness_auto_set">Auto brightness enabled</string>
     <string name="tool_brightness_missing">Missing parameter: value</string>
     <string name="tool_brightness_failed">Failed to set brightness: %1$s</string>
@@ -291,7 +297,7 @@
     <string name="tool_flashlight_on">Flashlight turned on</string>
     <string name="tool_flashlight_off">Flashlight turned off</string>
     <string name="tool_flashlight_state">Flashlight state: %1$s</string>
-    <string name="tool_flashlight_state_unknown">Flashlight state: unknown (not operated this session)</string>
+    <string name="tool_flashlight_state_unknown">Flashlight state: unknown (the system did not report in time)</string>
     <string name="tool_flashlight_unavailable">Device does not support flashlight</string>
     <string name="tool_flashlight_no_camera">No camera available</string>
     <string name="tool_flashlight_invalid_action">action must be on/off/status</string>

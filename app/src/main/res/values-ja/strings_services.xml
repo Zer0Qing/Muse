@@ -262,6 +262,12 @@
     <string name="tool_brightness_auto">自動</string>
     <string name="tool_brightness_manual">マニュアル</string>
     <string name="tool_brightness_set">明るさを%1$dに設定</string>
+    <string name="tool_write_verified">（反映を確認済み）</string>
+    <string name="tool_write_permission_denied">システムが書き込みを拒否しました（「システム設定の変更」などの権限が必要です）</string>
+    <string name="tool_volume_failed">音量の設定に失敗しました： %1$s</string>
+    <string name="tool_write_verified_transition">（反映を確認済み：%1$d → %2$d）</string>
+    <string name="tool_write_unverified">（送信済み・未確認）</string>
+    <string name="tool_write_not_applied">設定が反映されていません：期待 %1$d、実際 %2$d</string>
     <string name="tool_brightness_auto_set">自動輝度を有効にしました</string>
     <string name="tool_brightness_missing">パラメータがありません: 値</string>
     <string name="tool_brightness_failed">明るさを設定できませんでした: %1$s</string>
@@ -277,7 +283,7 @@
     <string name="tool_flashlight_on">懐中電灯が点灯しました</string>
     <string name="tool_flashlight_off">懐中電灯がオフになりました</string>
     <string name="tool_flashlight_state">懐中電灯の状態: %1$s</string>
-    <string name="tool_flashlight_state_unknown">懐中電灯の状態: 不明(このセッションでは未操作)</string>
+    <string name="tool_flashlight_state_unknown">ライトの状態： 不明（システムから時間内に応答がありません）</string>
     <string name="tool_flashlight_unavailable">デバイスは懐中電灯をサポートしていません</string>
     <string name="tool_flashlight_no_camera">使用可能なカメラがありません</string>
     <string name="tool_flashlight_invalid_action">アクションはオン/オフ/ステータスである必要があります</string>

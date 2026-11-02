@@ -2,6 +2,8 @@ package io.zer0.muse.tools
 
 import android.annotation.SuppressLint
 import android.content.Context
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
@@ -381,29 +383,66 @@ class SystemToolsImpl(private val context: Context) {
      * auto 缺省时按 value(0-255)写手动亮度;均未提供时返回参数错误。
      */
     suspend fun execSetBrightness(args: Map<String, String>): String {
-        if (args["auto"].equals("true", ignoreCase = true)) {
-            return resultOf {
-                android.provider.Settings.System.putInt(
-                    context.contentResolver,
-                    android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE,
-                    android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC,
-                )
-                context.getString(R.string.tool_brightness_auto_set)
-            }.onError { msg, _ -> Logger.w("ToolRegistry", "启用自动亮度失败: $msg") }
-                .getOrNull() ?: context.getString(R.string.tool_brightness_failed, "auto")
-        }
+        if (args["auto"].equals("true", ignoreCase = true)) return setBrightnessAuto()
         val value = args["value"]?.toIntOrNull()?.coerceIn(0, 255)
             ?: return context.getString(R.string.tool_brightness_missing)
         return resultOf {
-            android.provider.Settings.System.putInt(
-                context.contentResolver,
+            val cr = context.contentResolver
+            // 写前/写后都读一次：`putInt` 的返回值与"是否真的生效"是两件事，
+            // 只报"已设置"会让模型以为改成功了（P1-01 的原始问题）。
+            val before = android.provider.Settings.System.getInt(
+                cr,
+                android.provider.Settings.System.SCREEN_BRIGHTNESS,
+                -1,
+            )
+            val written = android.provider.Settings.System.putInt(
+                cr,
                 android.provider.Settings.System.SCREEN_BRIGHTNESS,
                 value,
             )
-            context.getString(R.string.tool_brightness_set, value)
+            val after = android.provider.Settings.System.getInt(
+                cr,
+                android.provider.Settings.System.SCREEN_BRIGHTNESS,
+                -1,
+            )
+            when {
+                !written -> context.getString(
+                    R.string.tool_brightness_failed,
+                    context.getString(R.string.tool_write_permission_denied),
+                )
+                after != value -> context.getString(R.string.tool_write_not_applied, value, after)
+                else -> context.getString(R.string.tool_brightness_set, value) +
+                    context.getString(R.string.tool_write_verified_transition, before, after)
+            }
         }.onError { msg, _ -> Logger.w("ToolRegistry", "设置亮度失败: $msg") }
             .getOrNull() ?: context.getString(R.string.tool_brightness_failed, value.toString())
     }
+
+    /** 启用自动亮度：同样写后读回，确认模式真的切过去了。 */
+    private fun setBrightnessAuto(): String = resultOf {
+        val cr = context.contentResolver
+        val written = android.provider.Settings.System.putInt(
+            cr,
+            android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE,
+            android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC,
+        )
+        val mode = android.provider.Settings.System.getInt(
+            cr,
+            android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE,
+            -1,
+        )
+        val isAuto = mode == android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
+        when {
+            !written -> context.getString(
+                R.string.tool_brightness_failed,
+                context.getString(R.string.tool_write_permission_denied),
+            )
+            isAuto -> context.getString(R.string.tool_brightness_auto_set) +
+                context.getString(R.string.tool_write_verified)
+            else -> context.getString(R.string.tool_write_unverified)
+        }
+    }.onError { msg, _ -> Logger.w("ToolRegistry", "启用自动亮度失败: $msg") }
+        .getOrNull() ?: context.getString(R.string.tool_brightness_failed, "auto")
 
     /** 获取指定音频流音量。 */
     suspend fun execGetVolume(args: Map<String, String>): String {
@@ -425,10 +464,18 @@ class SystemToolsImpl(private val context: Context) {
             val am = context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
             val max = am.getStreamMaxVolume(streamType)
             val index = if (isPercent) (rawValue * max / 100).coerceIn(0, max) else rawValue.coerceIn(0, max)
+            // 之前返回的是"请求的索引"，读回之后才能区分"设了"和"生效了"。
+            val before = am.getStreamVolume(streamType)
             am.setStreamVolume(streamType, index, android.media.AudioManager.FLAG_SHOW_UI)
-            context.getString(R.string.tool_volume_set, streamLabel, index, max)
+            val after = am.getStreamVolume(streamType)
+            if (after == index) {
+                context.getString(R.string.tool_volume_set, streamLabel, after, max) +
+                    context.getString(R.string.tool_write_verified_transition, before, after)
+            } else {
+                context.getString(R.string.tool_write_not_applied, index, after)
+            }
         }.onError { msg, _ -> Logger.w("ToolRegistry", "设置音量失败: $msg") }
-            .getOrNull() ?: context.getString(R.string.tool_installed_apps_failed)
+            .getOrNull() ?: context.getString(R.string.tool_volume_failed, "")
     }
 
     /** 开关手电筒。A-02: 支持 enabled 参数;status 返回本会话最后已知状态(如实,不再恒"是")。 */
@@ -442,17 +489,10 @@ class SystemToolsImpl(private val context: Context) {
                 .get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
             if (!hasFlash) return@resultOf context.getString(R.string.tool_flashlight_unavailable)
             when (action) {
-                "on" -> {
-                    cm.setTorchMode(cameraId, true)
-                    lastFlashlightOn = true
-                    context.getString(R.string.tool_flashlight_on)
-                }
-                "off" -> {
-                    cm.setTorchMode(cameraId, false)
-                    lastFlashlightOn = false
-                    context.getString(R.string.tool_flashlight_off)
-                }
-                "status" -> when (lastFlashlightOn) {
+                "on" -> torchWriteResult(cm, cameraId, desired = true)
+                "off" -> torchWriteResult(cm, cameraId, desired = false)
+                // 状态必须问系统：进程内记忆在重启后与真实状态脱节（P1-01 的原始问题）。
+                "status" -> when (queryTorchState(cm, cameraId)) {
                     true -> context.getString(R.string.tool_flashlight_state, context.getString(R.string.tool_yes))
                     false -> context.getString(R.string.tool_flashlight_state, context.getString(R.string.tool_no))
                     null -> context.getString(R.string.tool_flashlight_state_unknown)
@@ -463,9 +503,63 @@ class SystemToolsImpl(private val context: Context) {
             .getOrNull() ?: context.getString(R.string.tool_flashlight_unavailable)
     }
 
+    /**
+     * 开关手电，并把结果与**系统回报的真实状态**对齐。
+     *
+     * 之前只把"我调用过 setTorchMode"写进内存字段就报成功；相机被占用、系统拒绝、
+     * 或进程重启后字段与真实状态脱节，用户都会看到一个假的"已打开"。
+     */
+    private suspend fun torchWriteResult(
+        cm: android.hardware.camera2.CameraManager,
+        cameraId: String,
+        desired: Boolean,
+    ): String {
+        val base = if (desired) R.string.tool_flashlight_on else R.string.tool_flashlight_off
+        cm.setTorchMode(cameraId, desired)
+        val actual = queryTorchState(cm, cameraId)
+        return context.getString(base) + context.getString(torchResultSuffixRes(desired, actual))
+    }
+
+    /**
+     * 手电结果的措辞：**只有系统回报的状态与请求一致，才算"已确认生效"**。
+     *
+     * 抽成纯函数是为了能在没有相机的测试环境里验证这条规则 —— 否则它只能靠人读代码相信。
+     */
+    internal fun torchResultSuffixRes(desired: Boolean, actual: Boolean?): Int =
+        if (actual == desired) R.string.tool_write_verified else R.string.tool_write_unverified
+
+    /**
+     * 查询手电真实状态。
+     *
+     * CameraManager 没有同步 getter：**注册回调时系统会立刻回报当前状态**，
+     * 所以"注册 + 等一次回调"就是查询。超时返回 null —— 宁可说未知，
+     * 也不要拿进程内记忆冒充系统状态。
+     */
+    private suspend fun queryTorchState(
+        cm: android.hardware.camera2.CameraManager,
+        cameraId: String,
+    ): Boolean? = withTimeoutOrNull(TORCH_STATE_TIMEOUT_MS) {
+        val state = CompletableDeferred<Boolean>()
+        val callback = object : android.hardware.camera2.CameraManager.TorchCallback() {
+            override fun onTorchModeChanged(id: String, enabled: Boolean) {
+                if (id == cameraId) state.complete(enabled)
+            }
+
+            override fun onTorchModeUnavailable(id: String) {
+                if (id == cameraId) state.complete(false)
+            }
+        }
+        cm.registerTorchCallback(callback, null)
+        try {
+            state.await()
+        } finally {
+            runCatching { cm.unregisterTorchCallback(callback) }
+        }
+    }
+
     companion object {
-        /** A-02: 本进程内手电筒最后已知状态(null = 本会话尚未操作过,如实报告未知)。 */
-        private var lastFlashlightOn: Boolean? = null
+        /** 查询手电状态的回调等待上限：CameraManager 注册时会立刻回报，正常是毫秒级。 */
+        private const val TORCH_STATE_TIMEOUT_MS = 400L
     }
 
     /** 控制设备振动。 */
