@@ -83,6 +83,36 @@ class PluginActivationBridge(
     }
 
     /**
+     * 执行一条定时任务：直接调插件导出的处理函数（不是 onActivate）。
+     *
+     * @return 是否成功；失败只记日志 —— 定时任务无人值守，报错也没人看，但不该影响下一次
+     */
+    suspend fun invokeScheduled(pluginId: String, handler: String, scheduleName: String): Boolean {
+        val verified = resultOf { pluginManager.loadVerifiedPlugin(pluginId) }.getOrNull() ?: return false
+        val argsJson = """[{"event":"$ACTIVATION_ON_SCHEDULE","name":${quote(scheduleName)}}]"""
+        val result = resultOf {
+            invoker.call(
+                manifest = verified.manifest,
+                entryCode = verified.entryCode,
+                functionName = handler,
+                argsJson = argsJson,
+                configJson = pluginManager.getPluginConfigJson(verified.manifest),
+            )
+        }.getOrNull()
+        return when (result) {
+            is SkillEngineResult.Success -> {
+                Logger.d(TAG, "定时任务完成: $pluginId / $scheduleName")
+                true
+            }
+            is SkillEngineResult.Error -> {
+                Logger.w(TAG, "定时任务失败: $pluginId / $scheduleName — ${result.message}")
+                false
+            }
+            null -> false
+        }
+    }
+
+    /**
      * 收集插件要追加进系统提示词的片段（每段都带来源标记）。
      *
      * 与决策型钩子的区别：这里是**纯追加**，不改已有内容、不能拦任何东西，
@@ -336,6 +366,9 @@ class PluginActivationBridge(
 
         /** 该 hook 需要导出的函数名。 */
         const val SYSTEM_PROMPT_FUNCTION = "onSystemPrompt"
+
+        /** 定时任务的激活事件名（写在清单 activationEvents 里可让作者知道会被调用）。 */
+        const val ACTIVATION_ON_SCHEDULE = "onSchedule"
 
         /** 决策型：工具调用前可否拦下（只收窄，不能放宽）。 */
         const val ACTIVATION_ON_TOOL_CALL_BEFORE = "onToolCallBefore"

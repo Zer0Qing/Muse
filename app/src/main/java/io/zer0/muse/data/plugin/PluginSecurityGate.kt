@@ -421,6 +421,7 @@ object PluginSecurityGate {
         "contributes", "uiPanel", "toolCards",
         "uiView",
         "commands",
+    "schedules",
     )
 
     /**

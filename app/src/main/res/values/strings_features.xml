@@ -773,6 +773,7 @@
     <string name="plugin_cap_event_on_tool_call">每次工具调用</string>
     <string name="plugin_cap_hook_tool_before">拦截工具调用（插件可阻止某次调用）</string>
     <string name="plugin_cap_hook_system_prompt">往系统提示词追加内容（会改变助手行为）</string>
+    <string name="plugin_cap_schedule">定时运行（应用存活期间按间隔执行）</string>
     <string name="plugin_debug_title">插件调试</string>
     <string name="plugin_cap_clipboard_read">读取剪贴板内容</string>
     <string name="plugin_cap_clipboard_write">向剪贴板写入内容</string>

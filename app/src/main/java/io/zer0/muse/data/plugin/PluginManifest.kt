@@ -200,6 +200,15 @@ data class PluginManifest(
      */
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val commands: List<PluginCommandDeclaration> = emptyList(),
+
+    /**
+     * 定时任务声明（插件计划：schedules）。
+     *
+     * 只在**应用进程存活**时按间隔触发：应用被冻结或杀死后不会补跑，
+     * 界面上会如实说明这一点。签名兼容约束与 commands 相同（默认值不参与序列化）。
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val schedules: List<PluginScheduleDeclaration> = emptyList(),
 ) {
     companion object {
         val BUILT_IN: List<PluginManifest> = listOf(

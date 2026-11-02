@@ -848,6 +848,7 @@
     <string name="plugin_cap_event_on_tool_call">На каждый вызов инструмента</string>
     <string name="plugin_cap_hook_tool_before">Блокировка вызовов инструментов</string>
     <string name="plugin_cap_hook_system_prompt">Дополнение системного запроса (меняет поведение)</string>
+    <string name="plugin_cap_schedule">Запуск по расписанию (пока приложение активно)</string>
     <string name="plugin_debug_title">Отладка плагинов</string>
     <string name="plugin_cap_clipboard_read">Чтение буфера обмена</string>
     <string name="plugin_cap_clipboard_write">Запись в буфер обмена</string>

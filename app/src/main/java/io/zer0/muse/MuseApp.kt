@@ -80,6 +80,9 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val skillRepository: SkillRepository by inject()
     private val builtInKnowledgeDocSeeder: io.zer0.muse.data.knowledge.BuiltInKnowledgeDocSeeder by inject()
     private val notificationManager: MuseNotificationManager by inject()
+
+    /** 插件定时任务的检查间隔：一分钟一次足够（任务间隔下限是 15 分钟）。 */
+    private val scheduleTickMs = 60_000L
     private val webServer: WebServer by inject()
     private val settings: SettingsRepository by inject()
     private val scheduledTaskRunner: io.zer0.muse.schedule.ScheduledTaskRunner by inject()
@@ -528,6 +531,20 @@ class MuseApp : Application(), ImageLoaderFactory {
                     )
                     appScope.launch { providerSync.sync() }
                     appScope.launch { pluginManager.revisionFlow.collect { providerSync.sync() } }
+                    // 定时任务：只在应用进程存活时按间隔触发（不假装支持后台唤醒）
+                    val scheduleRunner = io.zer0.muse.data.plugin.PluginScheduleRunner(
+                        pluginManager = pluginManager,
+                        bridge = bridge,
+                        ledger = io.zer0.muse.data.plugin.PluginCapabilityLedgers.shared(applicationContext),
+                        settings = settings,
+                    )
+                    appScope.launch {
+                        while (true) {
+                            runCatching { scheduleRunner.tick() }
+                                .onFailure { Logger.w("MuseApp", "插件定时任务 tick 失败: ${it.message}") }
+                            kotlinx.coroutines.delay(scheduleTickMs)
+                        }
+                    }
                 }.onError { msg, t -> Logger.w("MuseApp", "PluginActivationBridge 启动失败: $msg", t) }
                 // v2.x（诊断导出项目 A）: 生成链路轨迹记录仪初始化（纯观察者，异常内部吞）
                 resultOf { io.zer0.muse.diagnostic.GenerationTrace.init(applicationContext) }

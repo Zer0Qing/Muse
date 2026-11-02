@@ -176,7 +176,8 @@ class PluginCapabilityGateway(
                 capability != EVENT_ON_MESSAGE &&
                 capability != EVENT_ON_TOOL_CALL &&
                 capability != HOOK_TOOL_CALL_BEFORE &&
-                capability != HOOK_SYSTEM_PROMPT,
+                capability != HOOK_SYSTEM_PROMPT &&
+                capability != SCHEDULE,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -277,6 +278,14 @@ class PluginCapabilityGateway(
      * 能往里写文本就等于能改写助手行为。追加内容一律带来源标记（见 PluginPromptInjection）。
      */
     const val HOOK_SYSTEM_PROMPT = "hook.systemPrompt"
+
+    /**
+     * 定时执行：插件可以在应用存活期间按间隔跑自己的任务。
+     *
+     * 默认关闭且属于敏感能力：这是**无人值守**地运行插件代码，
+     * 用户不在场时它照样会动数据。
+     */
+    const val SCHEDULE = "schedule"
 
         /** 通路自检动作：不携带任何外泄面，始终放行。 */
         val ALWAYS_ALLOWED_ACTIONS: Set<String> = setOf("echo")

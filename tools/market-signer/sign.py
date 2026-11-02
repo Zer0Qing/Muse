@@ -55,12 +55,12 @@ MANIFEST_ORDER = [
     # hooks 的存放位置由上面那一行决定（须在 enabled 之前），此处不重复列出。
     # uiView 的位置按 App 端字段声明序排在 uiPanel 与 toolCards 之间 —— 这是有序列表，放错位置等于改协议。
     "contributes", "uiPanel", "uiView", "toolCards",
-    # commands 在 App 端是最后一个字段：有序列表里也必须排最后，放错位置等于改协议。
-    "commands",
+    # commands / schedules 在 App 端是最后两个字段：有序列表里也必须同序排最后。
+    "commands", "schedules",
 ]
 
 # 缺失时允许直接跳过的可选字段（不要求出现在 manifest 里，也不填默认值）。
-OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "uiView", "hooks", "toolCards", "commands")
+OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "uiView", "hooks", "toolCards", "commands", "schedules")
 
 # 作者可写入 manifest、但不进入签名载荷的字段。
 # App 端 PluginManifest.runtime 带 @EncodeDefault(NEVER) 且不在
