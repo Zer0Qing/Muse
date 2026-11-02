@@ -131,6 +131,17 @@ class AutomationTools(
             } else {
                 info.nodes
             }
+            // 发一个观察 id：后续 screen_tap 可以带上它，
+            // 期间只要界面变了（或有新的读屏），这个 id 就作废，点击会被拒绝。
+            val observation = io.zer0.muse.automation.core.AutomationObservationRegistry.record(
+                scope = OBSERVATION_SCOPE,
+                fingerprint = io.zer0.muse.automation.core.AutomationObservationRegistry.fingerprintOf(
+                    info.packageName,
+                    info.activityName,
+                    nodes.mapNotNull { it.text },
+                ),
+                now = System.currentTimeMillis(),
+            )
             buildString {
                 appendLine(info.toSummary(nodes.size.coerceAtMost(50)))
                 if (nodes.isNotEmpty()) {
@@ -142,6 +153,7 @@ class AutomationTools(
                             appendLine("[$i] ${n.toShortString()}")
                         }
                 }
+                appendLine("observation_id=${observation.id}")
             }
         }
 
@@ -195,6 +207,7 @@ class AutomationTools(
                 parameters = mapOf(
                     "x" to "必填,点击位置 X 坐标(像素)",
                     "y" to "必填,点击位置 Y 坐标(像素)",
+                    "observation_id" to "可选,screen_read 返回的 id;带上它可防止在已变化的界面上点击",
                 ),
                 required = setOf("x", "y"),
                 riskLevel = ToolRiskLevel.HIGH,
@@ -202,6 +215,16 @@ class AutomationTools(
         ) { args ->
             val x = args["x"]?.toIntOrNull() ?: return@registerGuarded "错误:x 必须是整数"
             val y = args["y"]?.toIntOrNull() ?: return@registerGuarded "错误:y 必须是整数"
+            val observationId = args["observation_id"]?.trim()
+            if (!observationId.isNullOrBlank() && !io.zer0.muse.automation.core.AutomationObservationRegistry.isFresh(
+                    OBSERVATION_SCOPE,
+                    observationId,
+                    System.currentTimeMillis(),
+                )
+            ) {
+                // 带了这个 id 却已失效，说明模型看到的是过时画面：拒绝点击比点错安全得多
+                return@registerGuarded "画面已变化（observation_id 已失效）：请先 screen_read 重新确认界面，再决定是否点击"
+            }
             if (manager.tap(x, y)) "已点击 ($x,$y)" + viaSuffix() else "点击失败(坐标越界或通道未就绪 —— 先 screen_read 取真实坐标)"
         }
 
@@ -631,3 +654,6 @@ internal fun deviceShellDescription(): String =
         "dumpsys/screencap/screendump/getprop/date 参数自由；uiautomator 仅 dump。" +
         "不支持管道/重定向/多命令拼接 —— 每次写一条完整命令。" +
         "与 screen_* 工具互补：screen_* 是高层动作，本工具是命令行自由度。"
+
+/** 默认显示屏的观察 scope（虚拟屏有各自的 displayId，不共用这份台账）。 */
+private const val OBSERVATION_SCOPE = "main-display"
