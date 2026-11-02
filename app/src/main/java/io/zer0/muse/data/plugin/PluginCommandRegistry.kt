@@ -27,6 +27,8 @@ class PluginCommandRegistry(
         val name: String,
         val description: String,
         val takesInput: Boolean,
+        /** 要调用的插件函数名（已在清单 tools 里声明）。 */
+        val handler: String,
     )
 
     /** 列出当前可用命令：只含已启用、入口校验通过、命令声明合法的插件。 */
@@ -51,6 +53,7 @@ class PluginCommandRegistry(
                         name = command.name,
                         description = command.description,
                         takesInput = command.takesInput,
+                        handler = command.handler,
                     )
                 }
             }

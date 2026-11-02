@@ -1141,6 +1141,9 @@ fun ChatScreen(
 
     // v1.0.30: 发送后自动收起键盘
     val focusManager = LocalFocusManager.current
+    // 插件斜杠命令：候选列表 + 执行。结果写回输入框，不写聊天历史。
+    val pluginCommandHost = io.zer0.muse.ui.plugin.rememberPluginCommandHost(setInput = viewModel::updateInput)
+    val pluginCommandScope = rememberCoroutineScope()
 
     // v1.135: 媒体选择 launcher — 同时支持图片和视频。
     // 照片按钮点击后走统一视觉媒体选择器;视频会被提取关键帧降级为图片发送。
@@ -1745,6 +1748,12 @@ fun ChatScreen(
                                 regionName = "input",
                                 data = { state.sendQueue },
                             ) {
+                                Column {
+                                    io.zer0.muse.ui.plugin.PluginCommandSuggestionStrip(
+                                        host = pluginCommandHost,
+                                        text = currentInput,
+                                        onPick = { entry -> viewModel.updateInput("/" + entry.name + " ") },
+                                    )
                                 RichInputBar(
                                     // v1.0.20 (Task 3): input/isStreaming 读派生值,避免其他字段变化触发 bottomBar 重组
                                     text = currentInput,
@@ -1773,7 +1782,10 @@ fun ChatScreen(
                                         // 首条消息才飞：后面每条都飞会变成噪音，
                                         // 而第一句恰好是「对话开始」这件事本身。
                                         val isFirstMessage = messages.none { it.role == MessageRole.USER }
-                                        if (isFirstMessage && !SlashCommand.isSlashCommand(text)) {
+                                        // 插件命令也走"不发给模型"的分支，动画同理跳过
+                                        val isCommandLike = SlashCommand.isSlashCommand(text) ||
+                                            io.zer0.muse.ui.plugin.shouldQueryPluginCommands(text)
+                                        if (isFirstMessage && !isCommandLike) {
                                             sendFlight = computeSendFlight(
                                                 text = text,
                                                 input = inputWindowBounds,
@@ -1783,8 +1795,13 @@ fun ChatScreen(
                                         if (SlashCommand.isSlashCommand(text)) {
                                             viewModel.executeSlashCommand(text)
                                         } else {
-                                            viewModel.send()
-                                            focusManager.clearFocus()
+                                            pluginCommandScope.launch {
+                                                // 只有真的命中插件命令才拦截；否则按普通消息发送
+                                                if (!pluginCommandHost.handle(text)) {
+                                                    viewModel.send()
+                                                    focusManager.clearFocus()
+                                                }
+                                            }
                                         }
                                     },
                                     onStop = viewModel::stop,
@@ -1971,6 +1988,7 @@ fun ChatScreen(
                                     pasteAsFileThreshold = state.pasteAsFileThreshold,
                                     onAddPastedTextAsDocument = viewModel::addPastedTextAsDocument,
                                 )
+                            }
                             } // I3: 输入区错误边界收尾
                         }
                     }
