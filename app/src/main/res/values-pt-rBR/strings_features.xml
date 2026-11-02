@@ -804,6 +804,8 @@
     <string name="plugin_cap_app_navigate">Abrir uma pagina especifica do app (inicio, ajustes, uma sessao...)</string>
     <string name="plugin_cap_app_messages">Escrever mensagens na conversa (parecem ditas pelo assistente)</string>
     <string name="plugin_cap_app_theme">Alternar entre aparencia clara e escura</string>
+    <string name="plugin_slot_provided_by">Fornecido pelo plugin "%1$s"</string>
+    <string name="plugin_cap_ui_slot">Mostrar interface do plugin no topo do chat</string>
     <string name="plugin_debug_title">Depuracao de plugins</string>
     <string name="plugin_cap_clipboard_read">Ler a area de transferencia</string>
     <string name="plugin_cap_clipboard_write">Escrever na area de transferencia</string>

@@ -1252,6 +1252,51 @@ class PluginManager(
         return PluginUiTree.parse(source)
     }
 
+    /** 槽位里要渲染的一段界面：哪个插件提供的、叫什么、界面树是什么。 */
+    data class SlotView(
+        val pluginId: String,
+        val pluginName: String,
+        val tree: PluginUiTree.Parsed,
+    )
+
+    /**
+     * 收集某个槽位里所有插件的界面片段。
+     *
+     * 三道过滤，缺一不可：插件已启用且安装已确认、声明了该槽位、**拿到了 `ui.slot` 授权**。
+     * 授权判定放在这里而不是渲染层：渲染层只该关心"画什么"，不该再判一次权限 ——
+     * 两处各判一次，迟早有一处先松动。
+     */
+    fun loadSlotViews(slot: PluginSlot.Id, isAuthorized: (String) -> Boolean): List<SlotView> =
+        list().asSequence()
+            .filter { it.enabled && it.installationConfirmed }
+            .filter { isAuthorized(it.id) }
+            .mapNotNull { plugin -> slotViewOf(plugin, slot) }
+            .take(PluginSlot.MAX_SLOT_PLUGINS)
+            .toList()
+
+    /** 单个插件在某槽位的片段；没有贡献、文件缺失、解析失败都返回 null（不抛）。 */
+    private fun slotViewOf(plugin: InstalledPlugin, slot: PluginSlot.Id): SlotView? {
+        val root = File(pluginsDir, plugin.id).canonicalFile
+        val manifest = runCatching {
+            AppJson.decodeFromString<PluginManifest>(File(root, "manifest.json").readText())
+        }.getOrNull()
+        val relative = manifest?.contributes?.slots
+            ?.firstOrNull { it.slot.trim() == slot.wire }
+            ?.view
+            ?.trim()
+        val file = relative
+            ?.takeIf { it.isNotBlank() }
+            ?.let { File(root, it).canonicalFile }
+            ?.takeIf { candidate ->
+                val ok = isWithin(root, candidate) && candidate.isFile
+                if (!ok) Logger.w(TAG, "槽位界面文件不存在或越界: ${plugin.id} — $relative")
+                ok
+            }
+        return file
+            ?.let { runCatching { PluginUiTree.parse(it.readText()) }.getOrNull() }
+            ?.let { tree -> SlotView(pluginId = plugin.id, pluginName = plugin.name, tree = tree) }
+    }
+
     /** 越界与存在性检查都收在这一步；null 表示"没有可渲染的声明式界面"。 */
     private fun declaredViewSource(pluginId: String): String? {
         val root = File(pluginsDir, pluginId).canonicalFile

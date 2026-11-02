@@ -26,6 +26,8 @@ type Capability =
   | "app.messages"
   /** 切换浅色/深色外观。默认关。 */
   | "app.theme"
+  /** 往宿主界面槽位里放自己的界面片段（当前只有 chat.top）。默认关。 */
+  | "ui.slot"
   | "clipboard.read"
   | "clipboard.write"
   /** 读写合一的简写，等价于同时声明 clipboard.read + clipboard.write。 */

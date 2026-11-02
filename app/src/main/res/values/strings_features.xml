@@ -778,6 +778,8 @@
     <string name="plugin_cap_app_navigate">让应用跳转到指定页面（首页、设置、会话等）</string>
     <string name="plugin_cap_app_messages">往会话里写消息（会被当成助手说过的话）</string>
     <string name="plugin_cap_app_theme">切换浅色/深色外观</string>
+    <string name="plugin_slot_provided_by">由插件「%1$s」提供</string>
+    <string name="plugin_cap_ui_slot">在聊天页顶部显示插件提供的界面</string>
     <string name="plugin_debug_title">插件调试</string>
     <string name="plugin_cap_clipboard_read">读取剪贴板内容</string>
     <string name="plugin_cap_clipboard_write">向剪贴板写入内容</string>

@@ -196,7 +196,8 @@ class PluginCapabilityGateway(
                 capability != NETWORK_LOCAL &&
                 capability != APP_NAVIGATE &&
                 capability != APP_MESSAGES &&
-                capability != APP_THEME,
+                capability != APP_THEME &&
+                capability != UI_SLOT,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -272,6 +273,14 @@ class PluginCapabilityGateway(
 
     /** 切明暗模式（浅色/深色/跟随系统）。默认关。 */
     const val APP_THEME = "app.theme"
+
+    /**
+     * 往宿主界面槽位里放自己的界面片段。
+     *
+     * 默认关：这条能改变用户**看到的**界面，而且内容来自插件包，
+     * 属于"要用户点头才显示"的东西。
+     */
+    const val UI_SLOT = "ui.slot"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。

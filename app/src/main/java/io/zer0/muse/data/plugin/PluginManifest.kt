@@ -258,4 +258,12 @@ data class PluginManifest(
 data class PluginContributes(
     /** 配置项列表，每项对应一个用户可调整的参数。 */
     val configuration: List<ConfigItem> = emptyList(),
+    /**
+     * 界面槽位贡献（`ui.slot` 能力）。
+     *
+     * 默认值不参与序列化：存量签名的包 manifest 里没有这个字段，
+     * 若空列表被编码进去，所有旧包的验签都会立刻失败（v2.0.0 的同类事故）。
+     */
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val slots: List<SlotContribution> = emptyList(),
 )

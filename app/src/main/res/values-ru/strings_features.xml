@@ -853,6 +853,8 @@
     <string name="plugin_cap_app_navigate">Открыть определённую страницу приложения (главная, настройки, диалог...)</string>
     <string name="plugin_cap_app_messages">Писать сообщения в диалог (выглядят как слова ассистента)</string>
     <string name="plugin_cap_app_theme">Переключение светлого и тёмного оформления</string>
+    <string name="plugin_slot_provided_by">Предоставлено плагином «%1$s»</string>
+    <string name="plugin_cap_ui_slot">Показывать интерфейс плагина вверху чата</string>
     <string name="plugin_debug_title">Отладка плагинов</string>
     <string name="plugin_cap_clipboard_read">Чтение буфера обмена</string>
     <string name="plugin_cap_clipboard_write">Запись в буфер обмена</string>

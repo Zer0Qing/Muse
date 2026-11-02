@@ -2278,7 +2278,11 @@ fun ChatScreen(
                                 ) {
                                     // B6-02: 全屏情绪皮肤(在消息列表背后)
                                     MoodSkinOverlay(visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.moodSkin)
-                                    LazyColumn(
+                                    // 插件槽位（ui.slot）：放在消息列表**上方**，不参与消息滚动。
+            // 只渲染拿到 ui.slot 授权的插件；没有内容时这个调用不占任何空间。
+            io.zer0.muse.ui.plugin.PluginSlotHost(slot = io.zer0.muse.data.plugin.PluginSlot.Id.CHAT_TOP)
+
+            LazyColumn(
                                         state = listState,
                                         modifier =
                                         Modifier

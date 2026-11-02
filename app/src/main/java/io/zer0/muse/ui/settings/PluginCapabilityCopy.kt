@@ -43,6 +43,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.APP_NAVIGATE to R.string.plugin_cap_app_navigate,
         PluginCapabilityGateway.APP_MESSAGES to R.string.plugin_cap_app_messages,
         PluginCapabilityGateway.APP_THEME to R.string.plugin_cap_app_theme,
+        PluginCapabilityGateway.UI_SLOT to R.string.plugin_cap_ui_slot,
         PluginCapabilityGateway.SCHEDULE to R.string.plugin_cap_schedule,
     )
 
@@ -64,6 +65,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.APP_NAVIGATE,
         PluginCapabilityGateway.APP_MESSAGES,
         PluginCapabilityGateway.APP_THEME,
+        PluginCapabilityGateway.UI_SLOT,
         PluginCapabilityGateway.SCHEDULE,
         PluginCapabilityGateway.RUNTIME_PYTHON,
     )
