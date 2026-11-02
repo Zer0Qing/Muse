@@ -172,7 +172,9 @@ class PluginCapabilityGateway(
                 // 例外是 ui.interactive —— 提交表单会改数据，这一条要用户亲手打开：
                 // 它仍然留在 declaredCapabilities 里（看得见），只是默认关。
                 PluginCapabilityGrant(
-                    allowed = capability != UI_INTERACTIVE,
+                    allowed = capability != UI_INTERACTIVE &&
+                capability != EVENT_ON_MESSAGE &&
+                capability != EVENT_ON_TOOL_CALL,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -247,6 +249,16 @@ class PluginCapabilityGateway(
          * 用户就没法批准它；这里要的是"看得见、默认关、点开才生效"。
          */
         const val UI_INTERACTIVE = "ui.interactive"
+
+    /**
+     * 懒激活事件（观察型）：每条用户消息、每次工具调用都会叫醒一次插件。
+     *
+     * 默认**关闭**：声明 ≠ 授权。这两个事件本身不改数据，但会持续运行插件代码，
+     * 属于"要用户点头才跑"的那一类；作者在清单里声明后，用户可在能力面板里打开。
+     */
+    const val EVENT_ON_MESSAGE = "event.onMessage"
+
+    const val EVENT_ON_TOOL_CALL = "event.onToolCall"
 
         /** 通路自检动作：不携带任何外泄面，始终放行。 */
         val ALWAYS_ALLOWED_ACTIONS: Set<String> = setOf("echo")

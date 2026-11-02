@@ -747,6 +747,8 @@
     <string name="plugin_cap_resource_read">Read files (only inside the plugin own sandbox folder)</string>
     <string name="plugin_cap_resource_write">Write files (only inside the plugin own sandbox folder)</string>
     <string name="plugin_cap_network">Reach the network (local and private addresses are blocked)</string>
+    <string name="plugin_cap_event_on_message">On every message</string>
+    <string name="plugin_cap_event_on_tool_call">On every tool call</string>
     <string name="plugin_cap_clipboard_read">Read the clipboard</string>
     <string name="plugin_cap_clipboard_write">Write to the clipboard</string>
     <string name="plugin_cap_clipboard">Read and write the clipboard</string>

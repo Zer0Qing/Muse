@@ -177,9 +177,23 @@ KV 存储那一条是 `storage`（不带 `.read`），两者不是一回事。
 - **不需要** `onCommand` 激活事件：命中即执行（激活事件目前只派发 `onStartup`）；
 - 输入里含 `/` 的路径（例如 `/usr/local/bin`）不会被当成命令，照常发给模型。
 
+## 10.5 激活事件：哪些真的会派发
+
+| 事件 | 状态 | 触发时机 |
+|---|---|---|
+| `onStartup` | ✅ 派发 | 应用启动、插件被启用、版本变化 |
+| `onToolCall` | ✅ 派发 | 每次工具调用前（**只给工具名，不给参数**） |
+| `onMessage` | ❌ 不派发 | 消息发送链路还没有插件派发点 |
+| `onCommand` | ❌ 不派发 | 斜杠命令命中即执行，不额外叫醒插件 |
+
+`onToolCall` 属于**观察型事件**：函数返回值不会被使用，也不要指望它拦下调用。
+它需要能力 `event.onToolCall`（默认关闭，用户可在能力面板里打开）——
+声明了但没授权时不会被叫醒，日志里会写明原因。
+
 ## 11. 尚未提供（v1 范围外，已明确推迟）
 
-- `schedules`（定时激活）与 `onMessage` / `onToolCall` / `onCommand` 等**激活事件派发**（目前只派发 `onStartup`）；
+- `schedules`（定时激活）与 `onMessage` 的派发（`onStartup` 与 `onToolCall` 已可用；
+  `onMessage` 目前**没有触发源** —— 消息发送链路还没有插件派发点，写了不会被调用）；
 - 决策型 `toolCall.before` hook（可拦/改工具调用）；
 - 其余 hooks（`systemPromptCompose` / `toolPromptCompose` / `messageProcessing` / `summaryGenerate`）的插件注册；
 - provider 类型插件并入统一插件体系；

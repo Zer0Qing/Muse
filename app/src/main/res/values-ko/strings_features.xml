@@ -795,6 +795,8 @@
     <string name="plugin_cap_resource_read">파일 읽기(플러그인 자신의 격리 폴더로 한정)</string>
     <string name="plugin_cap_resource_write">파일 쓰기(플러그인 자신의 격리 폴더로 한정)</string>
     <string name="plugin_cap_network">외부 URL 접속(로컬 및 사설 주소는 차단됨)</string>
+    <string name="plugin_cap_event_on_message">메시지마다</string>
+    <string name="plugin_cap_event_on_tool_call">도구 호출마다</string>
     <string name="plugin_cap_clipboard_read">클립보드 읽기</string>
     <string name="plugin_cap_clipboard_write">클립보드에 쓰기</string>
     <string name="plugin_cap_clipboard">클립보드 읽기 및 쓰기</string>

@@ -3,6 +3,8 @@ package io.zer0.muse.data.plugin
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.encodeToString
 import io.zer0.muse.tools.script.SkillEngineResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -52,6 +54,74 @@ class PluginActivationBridge(
         // revisionFlow 可能没有初始发射，首次同步单独跑一次。
         appScope.launch { dispatchStartup() }
     }
+
+    /**
+     * 懒激活：每条用户消息叫醒一次（观察型，返回值不用）。
+     *
+     * 文本**截断后再发**：事件是给插件做轻量反应的，不是把整段对话搬过去；
+     * 需要完整内容应该走 `chat.read` 能力，那条路有独立的授权与条数限制。
+     */
+    fun dispatchMessage(text: String) {
+        val preview = text.trim().take(MAX_EVENT_TEXT_CHARS)
+        appScope.launch {
+            dispatchEvent(
+                event = ACTIVATION_ON_MESSAGE,
+                capability = PluginCapabilityGateway.EVENT_ON_MESSAGE,
+                payloadJson = """{"event":"$ACTIVATION_ON_MESSAGE","text":${quote(preview)}}""",
+            )
+        }
+    }
+
+    /** 懒激活：每次工具调用叫醒一次（只给工具名，不给参数 —— 参数里常有敏感内容）。 */
+    fun dispatchToolCall(toolName: String) {
+        appScope.launch {
+            dispatchEvent(
+                event = ACTIVATION_ON_TOOL_CALL,
+                capability = PluginCapabilityGateway.EVENT_ON_TOOL_CALL,
+                payloadJson = """{"event":"$ACTIVATION_ON_TOOL_CALL","tool":${quote(toolName)}}""",
+            )
+        }
+    }
+
+    /**
+     * 派发一次懒激活事件。
+     *
+     * 三个上限一起挡住"插件越多越慢"：
+     *  - **总开关**关闭时一次都不叫；
+     *  - 只有**被授权**该能力、且在清单里声明了事件的插件才收到；
+     *  - 单次事件最多叫醒 [MAX_EVENT_PLUGINS] 个插件，超出只记日志。
+     */
+    private suspend fun dispatchEvent(event: String, capability: String, payloadJson: String) {
+        if (!settings.arePluginsGloballyEnabled()) return
+        val ledger = PluginCapabilityLedgers.shared(context)
+        val targets = pluginManager.list()
+            .filter { it.enabled && it.kind == KIND_TOOL }
+            .filter { ledger.isApproved(it.id, capability) }
+            .take(MAX_EVENT_PLUGINS)
+        targets.forEach { plugin ->
+            val verified = resultOf { pluginManager.loadVerifiedPlugin(plugin.id) }.getOrNull() ?: return@forEach
+            if (event !in verified.manifest.activationEvents) return@forEach
+            val result = resultOf {
+                invoker.call(
+                    manifest = verified.manifest,
+                    entryCode = verified.entryCode,
+                    functionName = ACTIVATION_FUNCTION,
+                    argsJson = "[$payloadJson]",
+                    configJson = pluginManager.getPluginConfigJson(verified.manifest),
+                )
+            }.getOrNull()
+            when (result) {
+                null -> Logger.w(TAG, "事件派发异常: ${plugin.id} / $event")
+                is SkillEngineResult.Success -> Logger.d(TAG, "事件已派发: ${plugin.id} / $event")
+                is SkillEngineResult.Error -> Logger.w(TAG, "事件处理失败: ${plugin.id} / $event — ${result.message}")
+            }
+        }
+    }
+
+    private fun quote(value: String): String = io.zer0.common.AppJson.encodeToString(
+        String.serializer(),
+        value,
+    )
 
     /** 对所有声明了 `onStartup` 且已启用的插件派发一次激活。 */
     suspend fun dispatchStartup() {
@@ -124,6 +194,18 @@ class PluginActivationBridge(
 
         /** 支持的激活事件：启动。 */
         const val ACTIVATION_STARTUP = "onStartup"
+
+        /** 懒激活：每条用户消息。 */
+        const val ACTIVATION_ON_MESSAGE = "onMessage"
+
+        /** 懒激活：每次工具调用。 */
+        const val ACTIVATION_ON_TOOL_CALL = "onToolCall"
+
+        /** 事件里携带的消息文本上限。 */
+        private const val MAX_EVENT_TEXT_CHARS = 500
+
+        /** 单次事件最多叫醒多少个插件。 */
+        private const val MAX_EVENT_PLUGINS = 20
 
         /** 插件入口需要导出的激活函数名。 */
         const val ACTIVATION_FUNCTION = "onActivate"

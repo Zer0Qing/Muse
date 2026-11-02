@@ -844,6 +844,8 @@
     <string name="plugin_cap_resource_read">Чтение файлов (только в изолированной папке плагина)</string>
     <string name="plugin_cap_resource_write">Запись файлов (только в изолированную папку плагина)</string>
     <string name="plugin_cap_network">Доступ в сеть (локальные и приватные адреса блокируются)</string>
+    <string name="plugin_cap_event_on_message">На каждое сообщение</string>
+    <string name="plugin_cap_event_on_tool_call">На каждый вызов инструмента</string>
     <string name="plugin_cap_clipboard_read">Чтение буфера обмена</string>
     <string name="plugin_cap_clipboard_write">Запись в буфер обмена</string>
     <string name="plugin_cap_clipboard">Чтение и запись буфера обмена</string>

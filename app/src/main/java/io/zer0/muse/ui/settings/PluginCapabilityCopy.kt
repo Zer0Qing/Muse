@@ -35,6 +35,8 @@ object PluginCapabilityCopy {
         "ui.skin" to R.string.plugin_cap_ui_skin,
         PluginCapabilityGateway.UI_INTERACTIVE to R.string.plugin_cap_ui_interactive,
         PluginCapabilityGateway.RUNTIME_PYTHON to R.string.plugin_cap_runtime_python,
+        PluginCapabilityGateway.EVENT_ON_MESSAGE to R.string.plugin_cap_event_on_message,
+        PluginCapabilityGateway.EVENT_ON_TOOL_CALL to R.string.plugin_cap_event_on_tool_call,
     )
 
     /**
@@ -47,6 +49,8 @@ object PluginCapabilityCopy {
         "chat.read",
         "host.model.call",
         PluginCapabilityGateway.UI_INTERACTIVE,
+        PluginCapabilityGateway.EVENT_ON_MESSAGE,
+        PluginCapabilityGateway.EVENT_ON_TOOL_CALL,
         PluginCapabilityGateway.RUNTIME_PYTHON,
     )
 

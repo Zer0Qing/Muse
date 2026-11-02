@@ -504,12 +504,15 @@ class MuseApp : Application(), ImageLoaderFactory {
         // v2.6.13: 插件激活事件（activationEvents）派发。
                 // 之前这个字段只被展示、从不派发，作者写了 onStartup 也不会被叫到。
                 resultOf {
-                    io.zer0.muse.data.plugin.PluginActivationBridge(
+                    val bridge = io.zer0.muse.data.plugin.PluginActivationBridge(
                         context = applicationContext,
                         pluginManager = pluginManager,
                         appScope = appScope,
                         settings = settings,
-                    ).start()
+                    )
+                    bridge.start()
+                    // P3b: 工具调用事件转给插件（观察型，按能力授权；默认关闭）
+                    hookRegistry.register(io.zer0.muse.hook.PluginEventHook(bridge))
                 }.onError { msg, t -> Logger.w("MuseApp", "PluginActivationBridge 启动失败: $msg", t) }
                 // v2.x（诊断导出项目 A）: 生成链路轨迹记录仪初始化（纯观察者，异常内部吞）
                 resultOf { io.zer0.muse.diagnostic.GenerationTrace.init(applicationContext) }

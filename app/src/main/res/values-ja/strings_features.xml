@@ -794,6 +794,8 @@
     <string name="plugin_cap_resource_read">ファイルの読み取り（プラグイン自身の沙盒フォルダ内のみ）</string>
     <string name="plugin_cap_resource_write">ファイルの書き込み（プラグイン自身の沙盒フォルダのみ）</string>
     <string name="plugin_cap_network">外部 URL への通信（ローカルと私用アドレスは遮断）</string>
+    <string name="plugin_cap_event_on_message">メッセージごと</string>
+    <string name="plugin_cap_event_on_tool_call">ツール呼び出しごと</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>
     <string name="plugin_cap_clipboard">クリップボードの読み書き</string>

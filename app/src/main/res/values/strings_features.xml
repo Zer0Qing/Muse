@@ -769,6 +769,8 @@
     <string name="plugin_cap_resource_read">读取文件（只能读到插件自己沙盒目录里的内容）</string>
     <string name="plugin_cap_resource_write">写入文件（只能写进插件自己的沙盒目录，动不到你其它数据）</string>
     <string name="plugin_cap_network">联网访问外部网址（内网与本机地址会被拦下）</string>
+    <string name="plugin_cap_event_on_message">每条消息</string>
+    <string name="plugin_cap_event_on_tool_call">每次工具调用</string>
     <string name="plugin_cap_clipboard_read">读取剪贴板内容</string>
     <string name="plugin_cap_clipboard_write">向剪贴板写入内容</string>
     <string name="plugin_cap_clipboard">读写剪贴板</string>

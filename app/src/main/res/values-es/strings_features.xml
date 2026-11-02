@@ -795,6 +795,8 @@
     <string name="plugin_cap_resource_read">Leer archivos (solo dentro de la carpeta propia del complemento)</string>
     <string name="plugin_cap_resource_write">Escribir archivos (solo en la carpeta propia del complemento)</string>
     <string name="plugin_cap_network">Acceder a la red (se bloquean direcciones locales y privadas)</string>
+    <string name="plugin_cap_event_on_message">En cada mensaje</string>
+    <string name="plugin_cap_event_on_tool_call">En cada llamada de herramienta</string>
     <string name="plugin_cap_clipboard_read">Leer el portapapeles</string>
     <string name="plugin_cap_clipboard_write">Escribir en el portapapeles</string>
     <string name="plugin_cap_clipboard">Leer y escribir el portapapeles</string>
