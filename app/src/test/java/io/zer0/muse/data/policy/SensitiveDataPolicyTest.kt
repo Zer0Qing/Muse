@@ -111,4 +111,73 @@ class SensitiveDataPolicyTest {
         assertEquals(1, ToolOutputRetention.purgeOnce(dir, now))
         assertEquals("第二次不应再扫目录", 0, ToolOutputRetention.purgeOnce(dir, now))
     }
+
+    // ── 分类表 ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `memory raw text may enter backups but mcp results may not`() {
+        assertTrue(
+            "记忆原文是用户资产，应该允许备份",
+            SensitiveDataPolicy.Category.MEMORY_RAW.mayEnterBackup,
+        )
+        assertFalse(
+            "第三方系统的 MCP 结果不该进用户备份",
+            SensitiveDataPolicy.Category.MCP_RESULT.mayEnterBackup,
+        )
+    }
+
+    @Test
+    fun `system context expires fastest and memory lasts longest`() {
+        val context = SensitiveDataPolicy.Category.SYSTEM_CONTEXT.retentionDays
+        val mcp = SensitiveDataPolicy.Category.MCP_RESULT.retentionDays
+        val tool = SensitiveDataPolicy.Category.TOOL_OUTPUT.retentionDays
+        val memory = SensitiveDataPolicy.Category.MEMORY_RAW.retentionDays
+
+        assertTrue("读屏快照隔天就没意义", context <= 1)
+        assertTrue("MCP 结果比工具输出留得更短", mcp < tool)
+        assertTrue("记忆原文留得最久", memory > tool)
+    }
+
+    @Test
+    fun `diagnostics may see tool output and screen context but not mcp or memory`() {
+        assertTrue(SensitiveDataPolicy.Category.TOOL_OUTPUT.mayEnterDiagnostics)
+        assertTrue(SensitiveDataPolicy.Category.SYSTEM_CONTEXT.mayEnterDiagnostics)
+        assertFalse(SensitiveDataPolicy.Category.MCP_RESULT.mayEnterDiagnostics)
+        assertFalse("记忆原文不进诊断日志", SensitiveDataPolicy.Category.MEMORY_RAW.mayEnterDiagnostics)
+    }
+
+    @Test
+    fun `categories round trip through their wire names`() {
+        SensitiveDataPolicy.Category.entries.forEach { category ->
+            assertEquals(category, SensitiveDataPolicy.Category.parse(category.wire))
+            assertEquals(category, SensitiveDataPolicy.Category.parse(" " + category.wire.uppercase() + " "))
+        }
+        assertEquals(null, SensitiveDataPolicy.Category.parse("unknown"))
+    }
+
+    @Test
+    fun `purge decisions follow the category retention`() {
+        val ageBeyondMcp = now - 4 * dayMs
+
+        assertTrue(
+            "4 天前的内容对 MCP 结果已过期",
+            SensitiveDataPolicy.shouldPurge(SensitiveDataPolicy.Category.MCP_RESULT, ageBeyondMcp, now),
+        )
+        assertFalse(
+            "同一份内容对记忆原文还没到期",
+            SensitiveDataPolicy.shouldPurge(SensitiveDataPolicy.Category.MEMORY_RAW, ageBeyondMcp, now),
+        )
+    }
+
+    @Test
+    fun `preview length follows the category limit`() {
+        val long = "字".repeat(5000)
+
+        val mcp = SensitiveDataPolicy.previewFor(SensitiveDataPolicy.Category.MCP_RESULT, long)
+        val memory = SensitiveDataPolicy.previewFor(SensitiveDataPolicy.Category.MEMORY_RAW, long)
+
+        assertEquals(SensitiveDataPolicy.Category.MCP_RESULT.inlineLimitChars + 1, mcp.length)
+        assertEquals(SensitiveDataPolicy.Category.MEMORY_RAW.inlineLimitChars + 1, memory.length)
+        assertTrue("记忆原文的内联上限应更宽", memory.length > mcp.length)
+    }
 }

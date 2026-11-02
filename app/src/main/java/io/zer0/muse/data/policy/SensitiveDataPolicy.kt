@@ -16,6 +16,47 @@ import java.io.File
  */
 object SensitiveDataPolicy {
 
+    /**
+     * 数据类别。**一张表定死"这类内容能留多久、能不能进备份/诊断"** ——
+     * 分散在各个消费方里各写一遍，迟早出现"工具输出 7 天、MCP 结果永久"这种不一致。
+     */
+    enum class Category(
+        val wire: String,
+        val inlineLimitChars: Int,
+        val retentionDays: Int,
+        /** 是否允许进入用户备份（导出/云备份）。 */
+        val mayEnterBackup: Boolean,
+        /** 是否允许进入诊断日志。 */
+        val mayEnterDiagnostics: Boolean,
+    ) {
+        /** 命令/工具输出：短、敏感、可重跑 → 不进备份，进诊断。 */
+        TOOL_OUTPUT("tool_output", inlineLimitChars = 400, retentionDays = 7, mayEnterBackup = false, mayEnterDiagnostics = true),
+
+        /** MCP 工具结果：可能含第三方系统数据 → 最短保留、两处都不进。 */
+        MCP_RESULT("mcp_result", inlineLimitChars = 800, retentionDays = 3, mayEnterBackup = false, mayEnterDiagnostics = false),
+
+        /** 记忆原文：**是用户资产**，允许备份，保留最长。 */
+        MEMORY_RAW("memory_raw", inlineLimitChars = 1200, retentionDays = 30, mayEnterBackup = true, mayEnterDiagnostics = false),
+
+        /** 系统上下文快照（读屏/通知等）：时效性极强，隔天就没意义。 */
+        SYSTEM_CONTEXT("system_context", inlineLimitChars = 600, retentionDays = 1, mayEnterBackup = false, mayEnterDiagnostics = true),
+        ;
+
+        companion object {
+            fun parse(raw: String?): Category? = entries.firstOrNull { it.wire == raw?.trim()?.lowercase() }
+        }
+    }
+
+    /** 按类别取规则。 */
+    fun rulesFor(category: Category): Category = category
+
+    /** 按类别决定是否清理。 */
+    fun shouldPurge(category: Category, lastModifiedMillis: Long, nowMillis: Long): Boolean =
+        shouldPurge(lastModifiedMillis, nowMillis, category.retentionDays)
+
+    /** 按类别的内联上限做预览。 */
+    fun previewFor(category: Category, text: String): String = preview(text, category.inlineLimitChars)
+
     /** 落盘输出的保留天数：够复现问题，又不至于长期堆着。 */
     const val TOOL_OUTPUT_RETENTION_DAYS = 7
 
