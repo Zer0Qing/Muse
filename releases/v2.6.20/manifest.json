@@ -2,32 +2,32 @@
   "versionName": "2.6.20",
   "versionCode": 283,
   "applicationId": "io.zer0.muse",
-  "archivedAt": "2026-11-03T00:18:44",
-  "buildTime": "2026-11-03T00:10:33",
+  "archivedAt": "2026-11-03T02:25:21",
+  "buildTime": "2026-11-03T02:24:04",
   "artifacts": [
     {
       "file": "Muse_v2.6.20_universal.apk",
       "abi": "universal",
-      "bytes": 187340563,
-      "sha256": "9cf7eab093a73371b97e74f93fa07d3ffb9e97957303d55a4656f60a3b5ee39f"
+      "bytes": 187402267,
+      "sha256": "5ff48ebfa34f45acca816245e65180e818ae01333ba64cdde69781d7dab1a895"
     },
     {
       "file": "Muse_v2.6.20_arm64-v8a.apk",
       "abi": "arm64-v8a",
-      "bytes": 103337554,
-      "sha256": "d0f329230929d49c81c4f9e9169e25634e5a06e772d2980e9d1377ed5f064bdc"
+      "bytes": 103399254,
+      "sha256": "837bea206b2fae66dd9ef1dfb7fabc45c0424f7f02bf4a6bb7ddb1ab7549558d"
     },
     {
       "file": "Muse_v2.6.20_armeabi-v7a.apk",
       "abi": "armeabi-v7a",
-      "bytes": 59270013,
-      "sha256": "0e5fe4f2f9aab7b74b49aeac4b9a90affab895c7ed6f23f81d67b051f1edd55d"
+      "bytes": 59331713,
+      "sha256": "05ed1257daa4ead22fbdcce04f532a73662201eca3d4da80ec7bd387f40e9f7d"
     },
     {
       "file": "Muse_v2.6.20_x86_64.apk",
       "abi": "x86_64",
-      "bytes": 104620292,
-      "sha256": "29aef1eeda20f0077ee1292e3d2e5f8d93053db53f528e35602b96b987c7ed2d"
+      "bytes": 104681996,
+      "sha256": "45815fbada76ad7c944a2b29961cc255cf13bf3976af35062d5329e86c901f4e"
     }
   ]
 }

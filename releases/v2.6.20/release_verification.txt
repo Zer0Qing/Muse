@@ -1,5 +1,5 @@
 Muse v2.6.20 发布校验
-生成时间: 2026-11-03 00:18:44
+生成时间: 2026-11-03 02:25:21
 versionName=2.6.20  versionCode=283  applicationId=io.zer0.muse
 
 ## 版本号（aapt2 dump badging）
@@ -13,20 +13,11 @@ Signer #1 certificate MD5 digest: 3f6d42436cac25c25053c2ea58a1d134
 （与 v2.6.19 证书 SHA-256 完全一致：可覆盖升级）
 
 ## 产物
-Muse_v2.6.20_arm64-v8a.apk  103337554 bytes  sha256=d0f329230929d49c81c4f9e9169e25634e5a06e772d2980e9d1377ed5f064bdc
-Muse_v2.6.20_armeabi-v7a.apk  59270013 bytes  sha256=0e5fe4f2f9aab7b74b49aeac4b9a90affab895c7ed6f23f81d67b051f1edd55d
-Muse_v2.6.20_universal.apk  187340563 bytes  sha256=9cf7eab093a73371b97e74f93fa07d3ffb9e97957303d55a4656f60a3b5ee39f
-Muse_v2.6.20_x86_64.apk  104620292 bytes  sha256=29aef1eeda20f0077ee1292e3d2e5f8d93053db53f528e35602b96b987c7ed2d
+Muse_v2.6.20_arm64-v8a.apk  103399254 bytes  sha256=837bea206b2fae66dd9ef1dfb7fabc45c0424f7f02bf4a6bb7ddb1ab7549558d
+Muse_v2.6.20_armeabi-v7a.apk  59331713 bytes  sha256=05ed1257daa4ead22fbdcce04f532a73662201eca3d4da80ec7bd387f40e9f7d
+Muse_v2.6.20_universal.apk  187402267 bytes  sha256=5ff48ebfa34f45acca816245e65180e818ae01333ba64cdde69781d7dab1a895
+Muse_v2.6.20_x86_64.apk  104681996 bytes  sha256=45815fbada76ad7c944a2b29961cc255cf13bf3976af35062d5329e86c901f4e
 
 ## 测试
-:app:testDebugUnitTest 4158 例 / 0 失败；common 32 / memory 340 / ai 485 / virtual-display-server 5，全部 0 失败。
+全量 5101 例 / 0 失败（app 4239 + common 32 + memory 340 + ai 485 + virtual-display-server 5）。
 :app:detekt 与 :common:detekt 均为 0。
-
-## 冒烟（本次实际执行）
-Android 16 (API 36) x86_64 模拟器（MuseReleaseApi36）：卸载旧包后安装 Muse_v2.6.20_x86_64.apk，
-冷启动进入首次权限流程，返回后 mCurrentFocus=io.zer0.muse/io.zer0.muse.MainActivity，
-进程 pid 未变（无崩溃重启），logcat 无 FATAL / VerifyError。
-
-## 安装包内确认
-dumpsys package io.zer0.muse 可见 io.zer0.muse/.proactive.ProactiveDismissReceiver filter ——
-本版修复的「这次不用」清单注册确实进了产物（此前只在运行时动态注册，进程被杀后点了没反应）。
