@@ -161,6 +161,9 @@
     <string name="tool_start_time_format_error">Неверный формат времени начала;</string>
     <string name="tool_no_calendar_account">Доступная учетная запись календаря не найдена</string>
     <string name="tool_calendar_added">Добавлено событие календаря: %1$s</string>
+    <string name="tool_calendar_choose_required">Доступно несколько календарей для записи; укажите один через calendar_id: %1$s</string>
+    <string name="tool_calendar_unknown_id">Указанный календарь не существует: id=%1$s</string>
+    <string name="tool_calendar_added_with_id">Событие «%1$s» добавлено (event_id=%2$s); по этому id его можно изменить или удалить</string>
     <string name="tool_calendar_add_failed_perm">Не удалось добавить событие календаря (проверьте разрешение WRITE_CALENDAR).</string>
     <string name="tool_calendar_add_failed">Не удалось добавить событие календаря.</string>
     <string name="tool_missing_param_hour">Отсутствует параметр: час (0–23).</string>

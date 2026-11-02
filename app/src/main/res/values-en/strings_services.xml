@@ -175,6 +175,9 @@
     <string name="tool_start_time_format_error">Invalid start time format; use yyyy-MM-dd HH:mm or ISO 8601</string>
     <string name="tool_no_calendar_account">No available calendar account found</string>
     <string name="tool_calendar_added">Calendar event added: %1$s</string>
+    <string name="tool_calendar_choose_required">Multiple writable calendars exist; specify one with calendar_id: %1$s</string>
+    <string name="tool_calendar_unknown_id">The specified calendar does not exist: id=%1$s</string>
+    <string name="tool_calendar_added_with_id">Added event &quot;%1$s&quot; (event_id=%2$s); use this id to update or delete it later</string>
     <string name="tool_calendar_add_failed_perm">Failed to add calendar event (please check WRITE_CALENDAR permission)</string>
     <string name="tool_calendar_add_failed">Failed to add calendar event</string>
     <string name="tool_missing_param_hour">Missing parameter: hour (0-23)</string>

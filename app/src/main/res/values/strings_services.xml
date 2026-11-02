@@ -191,6 +191,9 @@
     <string name="tool_start_time_format_error">开始时间格式错误，请使用 yyyy-MM-dd HH:mm 或 ISO 8601</string>
     <string name="tool_no_calendar_account">无法找到可用日历账户</string>
     <string name="tool_calendar_added">已添加日历事件： %1$s</string>
+    <string name="tool_calendar_choose_required">有多个可写日历，请用 calendar_id 指定写哪一个：%1$s</string>
+    <string name="tool_calendar_unknown_id">指定的日历不存在：id=%1$s</string>
+    <string name="tool_calendar_added_with_id">已添加事件「%1$s」（event_id=%2$s）；后续可用该 id 更新或删除</string>
     <string name="tool_calendar_add_failed_perm">添加日历事件失败（请检查 WRITE_CALENDAR 权限）</string>
     <string name="tool_calendar_add_failed">添加日历事件失败</string>
     <string name="tool_missing_param_hour">缺少参数： hour(0-23)</string>

@@ -161,6 +161,9 @@
     <string name="tool_start_time_format_error">Formato de hora de inicio no válido;</string>
     <string name="tool_no_calendar_account">No se encontró ninguna cuenta de calendario disponible</string>
     <string name="tool_calendar_added">Evento de calendario agregado: %1$s</string>
+    <string name="tool_calendar_choose_required">Hay varios calendarios editables; indica uno con calendar_id: %1$s</string>
+    <string name="tool_calendar_unknown_id">El calendario indicado no existe: id=%1$s</string>
+    <string name="tool_calendar_added_with_id">Evento agregado &quot;%1$s&quot; (event_id=%2$s); usa este id para actualizarlo o borrarlo</string>
     <string name="tool_calendar_add_failed_perm">No se pudo agregar el evento del calendario (verifique el permiso WRITE_CALENDAR)</string>
     <string name="tool_calendar_add_failed">No se pudo agregar el evento del calendario</string>
     <string name="tool_missing_param_hour">Parámetro faltante: hora (0-23)</string>

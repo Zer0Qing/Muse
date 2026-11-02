@@ -161,6 +161,9 @@
     <string name="tool_start_time_format_error">시작 시간 형식이 잘못되었습니다.</string>
     <string name="tool_no_calendar_account">사용 가능한 캘린더 계정이 없습니다.</string>
     <string name="tool_calendar_added">추가된 캘린더 이벤트: %1$s</string>
+    <string name="tool_calendar_choose_required">쓰기 가능한 캘린더가 여러 개입니다. calendar_id 로 지정하세요: %1$s</string>
+    <string name="tool_calendar_unknown_id">지정한 캘린더가 없습니다: id=%1$s</string>
+    <string name="tool_calendar_added_with_id">일정 &quot;%1$s&quot; 추가됨 (event_id=%2$s). 이 id 로 수정하거나 삭제할 수 있습니다</string>
     <string name="tool_calendar_add_failed_perm">캘린더 일정을 추가하지 못했습니다(WRITE_CALENDAR 권한을 확인하세요).</string>
     <string name="tool_calendar_add_failed">캘린더 일정을 추가하지 못했습니다.</string>
     <string name="tool_missing_param_hour">누락된 매개변수: 시(0-23)</string>

@@ -62,17 +62,6 @@ class CalendarToolsRegistrar(
             if (days < 0) return@register context.getString(R.string.tool_days_negative)
             cal.add(java.util.Calendar.DAY_OF_MONTH, days + 1)
             val endDay = cal.timeInMillis
-            val projection = arrayOf(
-                android.provider.CalendarContract.Events.TITLE,
-                android.provider.CalendarContract.Events.DTSTART,
-                android.provider.CalendarContract.Events.DTEND,
-                android.provider.CalendarContract.Events.EVENT_LOCATION,
-            )
-            val selection = "${android.provider.CalendarContract.Events.DTSTART} < ? AND " +
-                "(${android.provider.CalendarContract.Events.DTEND} > ? OR " +
-                "${android.provider.CalendarContract.Events.DTEND} IS NULL)"
-            val selectionArgs = arrayOf(endDay.toString(), startDay.toString())
-            val sortOrder = "${android.provider.CalendarContract.Events.DTSTART} ASC"
             val dateLabel = FMT_DATE.get()?.format(Date(startDay)) ?: startDay.toString()
             val sb = StringBuilder(
                 context.getString(
@@ -82,30 +71,36 @@ class CalendarToolsRegistrar(
                 ),
             )
             var count = 0
+            // 查 Instances 而不是 Events：重复日程在 Events 里只有一行，
+            // 查它会漏掉今天之后的每一次（"每天的站会今天不见了"）。
+            val uri = CalendarSemantics.instancesUri(startDay, endDay)
             try {
                 cr.query(
-                    android.provider.CalendarContract.Events.CONTENT_URI,
-                    projection,
-                    selection,
-                    selectionArgs,
-                    sortOrder,
+                    uri,
+                    CalendarSemantics.INSTANCE_PROJECTION,
+                    null,
+                    null,
+                    "${android.provider.CalendarContract.Instances.BEGIN} ASC",
                 )?.use { cursor ->
-                    val titleIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Events.TITLE)
-                    val startIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Events.DTSTART)
-                    val endIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Events.DTEND)
-                    val locIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Events.EVENT_LOCATION)
+                    val titleIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Instances.TITLE)
+                    val beginIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Instances.BEGIN)
+                    val endIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Instances.END)
+                    val locIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Instances.EVENT_LOCATION)
+                    val idIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Instances.EVENT_ID)
                     val fmt = FMT_DATETIME_MIN.get() ?: SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
                     while (cursor.moveToNext()) {
                         val title = cursor.getString(titleIdx) ?: context.getString(R.string.tool_no_title)
-                        val startMs = cursor.getLong(startIdx)
+                        val startMs = cursor.getLong(beginIdx)
                         val endMs = if (cursor.isNull(endIdx)) null else cursor.getLong(endIdx)
                         val loc = cursor.getString(locIdx)
+                        val eventId = cursor.getLong(idIdx)
                         val timeRange = if (endMs != null && endMs > startMs) {
                             "${fmt.format(Date(startMs))} ~ ${fmt.format(Date(endMs))}"
                         } else {
                             fmt.format(Date(startMs))
                         }
-                        sb.appendLine("  - $timeRange $title${if (loc.isNullOrBlank()) "" else " @$loc"}")
+                        // 带上 event_id：后续更新/删除要靠它，模型看不到就没法做对象级操作
+                        sb.appendLine("  - $timeRange $title${if (loc.isNullOrBlank()) "" else " @$loc"} (id=$eventId)")
                         count++
                     }
                 }
@@ -125,7 +120,8 @@ class CalendarToolsRegistrar(
                     "end_time" to "可选,结束时间,默认开始时间+1小时",
                     "description" to "可选,事件描述",
                     "location" to "可选,地点",
-                    "all_day" to "可选,true/false,默认 false",
+                    "all_day" to "可选,true/false,默认 false;全天事件按 UTC 午夜写入",
+                    "calendar_id" to "可选,写入哪个日历;有多个可写日历时必须指定(不指定会列出候选)",
                 ),
                 required = setOf("title", "start_time"),
                 category = "built-in",
@@ -139,17 +135,32 @@ class CalendarToolsRegistrar(
             val startMs = parseDateTime(startTimeStr)
                 ?: return@register context.getString(R.string.tool_start_time_format_error)
             val allDay = args["all_day"].equals("true", ignoreCase = true)
-            val endMs = if (allDay) {
-                parseDateTime(args["end_time"] ?: "") ?: (startMs + 24 * 60 * 60 * 1000 - 1)
+            val requestedEnd = parseDateTime(args["end_time"] ?: "")
+            // 全天事件必须落 UTC 午夜（DTEND 不含当日）；用本地毫秒会让西半球整体前移一天。
+            val requestedStart = startMs
+            val (eventStartMs, eventEndMs) = if (allDay) {
+                CalendarSemantics.normalizeAllDay(requestedStart, requestedEnd ?: (requestedStart + DAY_MS))
             } else {
-                parseDateTime(args["end_time"] ?: "") ?: (startMs + 60 * 60 * 1000)
+                requestedStart to (requestedEnd ?: (requestedStart + HOUR_MS))
             }
-            val calendarId = getDefaultCalendarId(cr)
-                ?: return@register context.getString(R.string.tool_no_calendar_account)
+            val requestedCalendarId = args["calendar_id"]?.trim()?.toLongOrNull()
+            val calendarId = when (
+                val choice = CalendarSemantics.chooseCalendar(listWritableCalendars(cr), requestedCalendarId)
+            ) {
+                is CalendarSemantics.CalendarChoice.Chosen -> choice.id
+                is CalendarSemantics.CalendarChoice.Ambiguous -> return@register context.getString(
+                    R.string.tool_calendar_choose_required,
+                    choice.candidates.joinToString("、") { "${it.second}(id=${it.first})" },
+                )
+                is CalendarSemantics.CalendarChoice.UnknownId ->
+                    return@register context.getString(R.string.tool_calendar_unknown_id, choice.id.toString())
+                CalendarSemantics.CalendarChoice.None ->
+                    return@register context.getString(R.string.tool_no_calendar_account)
+            }
             val values = android.content.ContentValues().apply {
                 put(android.provider.CalendarContract.Events.TITLE, title)
-                put(android.provider.CalendarContract.Events.DTSTART, startMs)
-                put(android.provider.CalendarContract.Events.DTEND, endMs)
+                put(android.provider.CalendarContract.Events.DTSTART, eventStartMs)
+                put(android.provider.CalendarContract.Events.DTEND, eventEndMs)
                 put(android.provider.CalendarContract.Events.ALL_DAY, if (allDay) 1 else 0)
                 args["description"]?.takeIf { it.isNotBlank() }?.let {
                     put(android.provider.CalendarContract.Events.DESCRIPTION, it)
@@ -163,7 +174,12 @@ class CalendarToolsRegistrar(
             resultOf {
                 val uri = cr.insert(android.provider.CalendarContract.Events.CONTENT_URI, values)
                 if (uri != null) {
-                    context.getString(R.string.tool_calendar_added, title)
+                    // 把 event_id 交回去：没有它，下一步"改时间/删掉"就只能靠标题猜
+                    context.getString(
+                        R.string.tool_calendar_added_with_id,
+                        title,
+                        uri.lastPathSegment ?: "?",
+                    )
                 } else {
                     context.getString(R.string.tool_calendar_add_failed_perm)
                 }
@@ -182,25 +198,35 @@ class CalendarToolsRegistrar(
         return null
     }
 
-    private fun getDefaultCalendarId(cr: android.content.ContentResolver): Long? {
-        return resultOf {
-            cr.query(
-                android.provider.CalendarContract.Calendars.CONTENT_URI,
-                arrayOf(android.provider.CalendarContract.Calendars._ID),
-                "${android.provider.CalendarContract.Calendars.VISIBLE} = ?",
-                arrayOf("1"),
-                null,
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    cursor.getLong(cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Calendars._ID))
-                } else {
-                    null
+    /** 可写日历（VISIBLE=1 且非只读）；有多个时由调用方要求用户指定。 */
+    private fun listWritableCalendars(cr: android.content.ContentResolver): List<Pair<Long, String>> = resultOf {
+        cr.query(
+            android.provider.CalendarContract.Calendars.CONTENT_URI,
+            arrayOf(
+                android.provider.CalendarContract.Calendars._ID,
+                android.provider.CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+            ),
+            "${android.provider.CalendarContract.Calendars.VISIBLE} = 1 AND " +
+                "${android.provider.CalendarContract.Calendars.IS_PRIMARY} IS NOT NULL",
+            null,
+            "${android.provider.CalendarContract.Calendars._ID} ASC",
+        )?.use { cursor ->
+            val idIdx = cursor.getColumnIndexOrThrow(android.provider.CalendarContract.Calendars._ID)
+            val nameIdx = cursor.getColumnIndexOrThrow(
+                android.provider.CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+            )
+            buildList {
+                while (cursor.moveToNext()) {
+                    add(cursor.getLong(idIdx) to (cursor.getString(nameIdx) ?: ""))
                 }
             }
-        }.getOrNull()
-    }
+        }
+    }.getOrNull().orEmpty()
 
     private companion object {
+        const val HOUR_MS = 60 * 60 * 1000L
+        const val DAY_MS = 24 * HOUR_MS
+
         val FMT_DATE = ThreadLocal.withInitial { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
         val FMT_DATETIME_MIN = ThreadLocal.withInitial { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
         val PARSE_FORMATS_PATTERNS = listOf(

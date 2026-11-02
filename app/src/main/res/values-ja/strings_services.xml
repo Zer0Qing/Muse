@@ -161,6 +161,9 @@
     <string name="tool_start_time_format_error">開始時刻の形式が無効です。</string>
     <string name="tool_no_calendar_account">使用可能なカレンダー アカウントが見つかりません</string>
     <string name="tool_calendar_added">追加されたカレンダー イベント: %1$s</string>
+    <string name="tool_calendar_choose_required">書き込み可能なカレンダーが複数あります。calendar_id で指定してください：%1$s</string>
+    <string name="tool_calendar_unknown_id">指定されたカレンダーが存在しません：id=%1$s</string>
+    <string name="tool_calendar_added_with_id">予定「%1$s」を追加しました（event_id=%2$s）。この id で更新・削除できます</string>
     <string name="tool_calendar_add_failed_perm">カレンダーイベントの追加に失敗しました (WRITE_CALENDAR 権限を確認してください)</string>
     <string name="tool_calendar_add_failed">カレンダーイベントの追加に失敗しました</string>
     <string name="tool_missing_param_hour">パラメータがありません: 時間 (0-23)</string>
