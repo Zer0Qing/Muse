@@ -805,6 +805,8 @@
         <!-- B7-01: Plugin configuration contribution -->
     <string name="muse_plugins_config">Configuração do plugin</string>
     <string name="muse_plugins_open_panel">Abrir painel</string>
+    <string name="muse_plugins_view_broken">A interface nao renderizou (toque para ver o motivo)</string>
+    <string name="muse_plugins_view_image_missing">(imagem ausente)</string>
     <string name="muse_plugins_trust_catalog_title">Raiz de confiança do catálogo</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Impressão digital %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">Você ainda não confia em nenhum editor. Ao instalar um plugin de um editor desconhecido, você será orientado a confirmar a confiança.</string>

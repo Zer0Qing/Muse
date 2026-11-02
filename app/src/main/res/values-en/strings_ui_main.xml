@@ -908,6 +908,8 @@
         <!-- B7-01: Plugin configuration contribution -->
     <string name="muse_plugins_config">Plugin Configuration</string>
     <string name="muse_plugins_open_panel">Open panel</string>
+    <string name="muse_plugins_view_broken">Interface failed to render (tap for details)</string>
+    <string name="muse_plugins_view_image_missing">(image missing)</string>
     <string name="muse_plugins_trust_catalog_title">Catalog trust root</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Fingerprint %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">You have not trusted any publishers yet. Installing a plugin from an unknown publisher will prompt you to confirm the trust.</string>

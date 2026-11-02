@@ -767,6 +767,17 @@ fun PluginManagePage(onBack: () -> Unit) {
                                 ?.version,
                             onRollback = { version -> rollbackRequest = plugin.id to version },
                         )
+                        // D4：声明式界面（宿主原生渲染）优先；HTML 面板仍在行内保留作逃生口。
+                        // 做成兄弟组件而不是给 InstalledPluginRow 加参数：那个函数的多个告警
+                        // 由 detekt 基线**按签名**压制，加参数会让它们集体复活。
+                        val declarativeView = remember(plugin.id, plugin.version, plugin.enabled) {
+                            if (plugin.enabled) pluginManager.loadUiView(plugin.id) else null
+                        }
+                        io.zer0.muse.ui.plugin.PluginDeclarativeViewEntry(
+                            pluginName = plugin.name,
+                            loaded = declarativeView,
+                            assetsRoot = if (plugin.enabled) pluginManager.pluginDirFor(plugin.id) else null,
+                        )
                         // P0-3: 能力与权限。P0-2 之后声明真的会拦请求，这里必须给用户出口：
                         // 看得到授予了什么、最近被拒过什么、升级新增能力要重新批准。
                         PluginPermissionDisclosure(

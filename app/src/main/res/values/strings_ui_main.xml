@@ -846,6 +846,8 @@
     <!-- B7-01: 插件配置贡献 -->
     <string name="muse_plugins_config">插件配置</string>
     <string name="muse_plugins_open_panel">打开面板</string>
+    <string name="muse_plugins_view_broken">界面未能渲染（点开看原因）</string>
+    <string name="muse_plugins_view_image_missing">（图片缺失）</string>
 
     <!-- ===== P2-7: 工作区(WorkspaceScreen + 工具描述) ===== -->
     <string name="workspace_title">工作区</string>

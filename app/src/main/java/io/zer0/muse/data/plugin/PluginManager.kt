@@ -1230,6 +1230,14 @@ class PluginManager(
     }
 
     /**
+     * 插件包目录。**只用来定位包内资源**（声明式界面里的 `assetImage`）。
+     *
+     * 返回的目录不做写操作；调用方拼相对路径时必须再过 [io.zer0.muse.util.SafePaths]，
+     * 因为那串路径来自插件 JSON，属于外部输入。
+     */
+    fun pluginDirFor(pluginId: String): File = File(pluginsDir, pluginId)
+
+    /**
      * 读取插件声明的**声明式界面**（`manifest.uiView` 指向的 JSON）。
      *
      * 这是插件 UI 的默认形态（D4）；[loadPluginPanel] 的 HTML 面板仍是逃生口。

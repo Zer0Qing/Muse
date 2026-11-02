@@ -805,6 +805,8 @@
         <!-- B7-01: Plugin configuration contribution -->
     <string name="muse_plugins_config">插件配置</string>
     <string name="muse_plugins_open_panel">パネルを開く</string>
+    <string name="muse_plugins_view_broken">画面を描画できませんでした（詳細はタップ）</string>
+    <string name="muse_plugins_view_image_missing">（画像がありません）</string>
     <string name="muse_plugins_trust_catalog_title">カタログの信頼ルート</string>
     <string name="muse_plugins_trust_publisher_fingerprint">フィンガープリント %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">まだどの発行者も信頼していません。不明な発行者のプラグインをインストールすると信頼確認に誘導されます。</string>

@@ -804,6 +804,8 @@
     <string name="muse_plugins_trust_catalog_removed">카탈로그 신뢰 루트를 제거하고 마켓 캐시를 비웠습니다</string>
     <string name="muse_plugins_config">플러그인 구성</string>
     <string name="muse_plugins_open_panel">패널 열기</string>
+    <string name="muse_plugins_view_broken">화면을 표시하지 못했습니다 (자세히 보려면 탭)</string>
+    <string name="muse_plugins_view_image_missing">(이미지 없음)</string>
     <string name="muse_plugins_trust_catalog_title">카탈로그 신뢰 루트</string>
     <string name="muse_plugins_trust_publisher_fingerprint">지문 %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">아직 어떤 배포자도 신뢰하지 않았습니다. 알 수 없는 배포자의 플러그인을 설치하면 신뢰 확인으로 안내합니다.</string>
