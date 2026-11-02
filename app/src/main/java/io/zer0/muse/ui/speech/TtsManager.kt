@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.speech
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import android.media.MediaPlayer
 import android.os.Build
@@ -278,7 +279,7 @@ class TtsManager(
     private var cloudStreamUtteranceId: String? = null
 
     /** v1.4: 播放协程 scope(Main 线程,MediaPlayer 必须主线程操作)。 */
-    private val playbackScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val playbackScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + GlobalCoroutineExceptionHandler)
 
     /** v1.4: 当前分片列表(用于状态显示 totalChunks)。 */
     @Volatile

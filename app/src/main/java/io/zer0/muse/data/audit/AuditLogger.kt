@@ -1,5 +1,6 @@
 package io.zer0.muse.data.audit
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -30,7 +31,7 @@ import kotlinx.serialization.json.put
  */
 class AuditLogger(private val dao: AuditLogDao) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
 
     /** 环形缓冲上限:超过此值触发批量清理。 */
     private val maxLogCount = MAX_LOG_COUNT

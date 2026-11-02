@@ -1,5 +1,6 @@
 package io.zer0.muse.schedule
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.Notification
 import android.app.Service
 import android.content.Context
@@ -40,7 +41,7 @@ class ChatGenerationService : Service() {
     private val notificationManager: MuseNotificationManager by inject()
     private val chatGenerationManager: ChatGenerationManager by inject()
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
     private var observeJob: Job? = null
     private var emptyStateStopJob: Job? = null
     private val stopGate = ForegroundServiceStopGate()

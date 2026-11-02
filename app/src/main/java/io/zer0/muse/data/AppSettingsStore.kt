@@ -1,5 +1,6 @@
 package io.zer0.muse.data
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -30,7 +31,7 @@ class AppSettingsStore(private val context: Context) {
 
     /** v1.131: 语言快速同步缓存，供主线程 attachBaseContext 同步读取。 */
     private val languageSyncCache = context.getSharedPreferences("muse_language_cache", Context.MODE_PRIVATE)
-    private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
 
     val languageFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_LANGUAGE] ?: "system" }
 

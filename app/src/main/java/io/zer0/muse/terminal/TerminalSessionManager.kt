@@ -1,5 +1,6 @@
 package io.zer0.muse.terminal
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import io.zer0.common.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +29,7 @@ class TerminalSessionManager(private val appContext: Context) {
         fun onExit(code: Int)
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
     private var process: Process? = null
     private var masterFd: Int = -1
     private var childPid: Int = -1

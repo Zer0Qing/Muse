@@ -1,5 +1,6 @@
 package io.zer0.muse.tools
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.muse.ui.SsrfGuard
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +28,7 @@ import kotlinx.coroutines.withContext
  */
 internal class WebViewSsrfGate(
     /** 后台预热协程作用域(生产:IO + SupervisorJob;测试可注入受控作用域)。 */
-    private val prewarmScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    private val prewarmScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler),
     /** 回调重试需要回到的回调线程(生产:主线程;测试:Unconfined 便于同步断言)。 */
     private val callbackDispatcher: CoroutineDispatcher = Dispatchers.Main,
     private val cachedVerdict: (String) -> Boolean? = SsrfGuard::cachedVerdictOrNull,

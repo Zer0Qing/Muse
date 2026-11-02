@@ -1,5 +1,7 @@
 package io.zer0.muse.tools
 
+
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.MessageRole
@@ -128,7 +130,7 @@ class SkillDelegateAgentImpl(
             )
             // This is the sole background owner for direct delegate_agent(nonBlocking=true)
             // calls. Register before starting so abort() always reaches the real child Job.
-            val job = CoroutineScope(Dispatchers.IO).launch(start = CoroutineStart.LAZY) {
+            val job = CoroutineScope(Dispatchers.IO + GlobalCoroutineExceptionHandler).launch(start = CoroutineStart.LAZY) {
                 try {
                     // v1.0.53: 非阻塞委派也走全局 limiter,防止绕过限流
                     val subResult = agentConcurrencyLimiter.run {

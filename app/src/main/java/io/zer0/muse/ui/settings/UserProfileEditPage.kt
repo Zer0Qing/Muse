@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.settings
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -65,7 +66,7 @@ import org.koin.compose.koinInject
 private class UserProfileSaveSink(
     private val settings: SettingsRepository,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + GlobalCoroutineExceptionHandler)
     private var saveJob: Job? = null
     private var latest: UserProfile = UserProfile()
 
@@ -83,7 +84,7 @@ private class UserProfileSaveSink(
         val value = latest
         if (value != UserProfile()) {
             // 页面已离开,不能用页面级 scope;用独立 IO scope 做最后一次兜底写入
-            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler).launch {
                 settings.saveUserProfile(value)
             }
         }

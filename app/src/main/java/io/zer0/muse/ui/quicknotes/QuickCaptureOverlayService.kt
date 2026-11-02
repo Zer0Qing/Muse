@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.quicknotes
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -54,7 +55,7 @@ import kotlin.math.roundToInt
  */
 class QuickCaptureOverlayService : Service() {
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + GlobalCoroutineExceptionHandler)
     private val settings: SettingsRepository by inject()
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null

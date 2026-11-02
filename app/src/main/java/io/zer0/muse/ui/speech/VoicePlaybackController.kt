@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.speech
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.runtime.getValue
@@ -145,7 +146,7 @@ class VoicePlaybackController(
     private var player: VoiceAudioPlayer? = null
 
     /** 惰性创建：从不播放的进程（含多数单测）不会触碰 Main 调度器。 */
-    private val scope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
+    private val scope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + GlobalCoroutineExceptionHandler) }
     private var ticker: Job? = null
 
     /** 点按：切换同一条语音的播放/暂停；换一条则停掉上一条再起播。 */

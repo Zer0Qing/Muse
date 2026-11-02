@@ -1,5 +1,6 @@
 package io.zer0.muse.data
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
@@ -84,7 +85,7 @@ internal val Context.museSettingsDataStore: DataStore<Preferences>
             // 不停的话，旧 DataStore 会在文件已被 Robolectric 删掉后抛 AccessDeniedException，
             // 变成「未捕获异常」泄漏到同一个 JVM 的下一个测试（实测会让无关的 runTest 直接红）。
             runCatching { settingsStoreScope?.cancel() }
-            val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+            val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + GlobalCoroutineExceptionHandler)
             settingsStoreScope = scope
             val created = PreferenceDataStoreFactory.create(
                 scope = scope,

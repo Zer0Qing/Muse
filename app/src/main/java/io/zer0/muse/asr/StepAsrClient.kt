@@ -1,5 +1,6 @@
 package io.zer0.muse.asr
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.annotation.SuppressLint
 import android.media.AudioRecord
 import android.os.SystemClock
@@ -61,7 +62,7 @@ class StepAsrController(
     private val baseUrl: String = config.baseUrl.ifBlank { DEFAULT_BASE_URL },
 ) : ASRController {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + GlobalCoroutineExceptionHandler)
 
     private val _state = MutableStateFlow(ASRState(isAvailable = config.apiKey.isNotBlank()))
     private val isDisposed = AtomicBoolean(false)

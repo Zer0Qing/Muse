@@ -1,5 +1,6 @@
 package io.zer0.muse.mcp
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -67,7 +68,7 @@ class McpRegistry(
      */
     private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository? = null,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
 
     /** 当前所有 MCP server 配置(内存 + 持久化)。 */
     private val _servers = MutableStateFlow<List<McpServerConfig>>(emptyList())

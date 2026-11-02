@@ -1,5 +1,6 @@
 package io.zer0.muse.mcp
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -203,7 +204,7 @@ class McpClient(
     private val appContext: android.content.Context? = null,
 ) : AutoCloseable {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
     private val idCounter = AtomicLong(1)
     private val pendingRequests = ConcurrentHashMap<Long, Channel<JsonObject>>()
 

@@ -1,5 +1,6 @@
 package io.zer0.muse.asr
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioRecord
@@ -83,7 +84,7 @@ class OpenAiWhisperAsrController(
         .readTimeout(AsrConstants.READ_TIMEOUT_SEC, TimeUnit.SECONDS)
         .build()
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + GlobalCoroutineExceptionHandler)
 
     private val _state = MutableStateFlow(ASRState(isAvailable = config.apiKey.isNotBlank()))
     private val isDisposed = AtomicBoolean(false)

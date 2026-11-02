@@ -1,5 +1,6 @@
 package io.zer0.muse.tools.reminder
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -32,7 +33,7 @@ class ReminderBootReceiver : BroadcastReceiver() {
         Logger.i(TAG, "收到 $action，开始重排提醒")
         val appContext = context.applicationContext
         val pendingResult = goAsync()
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler).launch {
             try {
                 // 用 resultOf 而不是 catch (Exception)：广播接收器里抛出去的异常没人接，
                 // 而 catch (Exception) 会把协程取消一并吞掉（CancellationException 也是 Exception）。

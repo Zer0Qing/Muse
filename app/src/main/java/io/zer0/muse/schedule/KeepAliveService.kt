@@ -1,5 +1,6 @@
 package io.zer0.muse.schedule
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.Notification
 import android.app.Service
 import android.content.Context
@@ -85,7 +86,7 @@ class KeepAliveService : Service() {
         }
     }
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
     private var heartbeatJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
 

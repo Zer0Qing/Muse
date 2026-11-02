@@ -1,5 +1,6 @@
 package io.zer0.muse.data
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -97,7 +98,7 @@ class SettingsRepository(
     val chatSettings = ChatSettingsStore(appContext)
 
     private val store get() = appContext.museSettingsDataStore
-    private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
     private val memoryEnabledCache = AtomicBoolean(true)
 
     // M-SR5: 防止 migrateLegacyProviderIfNeeded 在并发首调时重复执行(读旧 JSON + addProvider + remove 之间存在竞态)

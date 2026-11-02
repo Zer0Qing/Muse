@@ -1,5 +1,6 @@
 package io.zer0.muse.intent
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -48,7 +49,7 @@ class TaskerTriggerReceiver : BroadcastReceiver() {
         }
         val pendingResult = goAsync()
         @Suppress("TooGenericExceptionCaught")
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler).launch {
             try {
                 // v2.6.7 fix (AUDIT F22): 恢复窗口内不落库。
                 // 旧实现直接 appendMessage，恢复事务的 clearConversationStateForRestore

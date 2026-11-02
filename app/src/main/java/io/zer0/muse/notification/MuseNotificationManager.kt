@@ -1,5 +1,6 @@
 package io.zer0.muse.notification
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -65,7 +66,7 @@ class MuseNotificationManager(private val context: Context) {
     )
 
     private val liveProgressRequests = MutableStateFlow<LiveProgressRequest?>(null)
-    private val liveProgressScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val liveProgressScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
     private var lastLiveProgressSentAt = 0L
 
     init {

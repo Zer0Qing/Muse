@@ -1,5 +1,6 @@
 package io.zer0.muse.rag
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.common.Logger
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +46,7 @@ class SessionAttachmentService(
     private val settingsRepository: io.zer0.muse.data.SettingsRepository,
     private val docDao: KnowledgeDocDao,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
 
     /** 内存状态:sessionId → 附件列表(并发安全)。 */
     private val sessionAttachments = ConcurrentHashMap<String, MutableList<SessionAttachment>>()

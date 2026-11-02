@@ -1,5 +1,6 @@
 package io.zer0.muse.tools
 
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.common.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,7 @@ import java.util.concurrent.TimeUnit
 object TerminalExecTool {
     const val NAME = "terminal_exec"
     private const val TAG = "TerminalExec"
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = NAME,
