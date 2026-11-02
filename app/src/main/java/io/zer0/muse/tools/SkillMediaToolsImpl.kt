@@ -7,6 +7,8 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.data.plugin.PluginBridgeRouter
+import io.zer0.muse.data.plugin.PluginUiTree
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
 import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginFunctionInvoker
@@ -14,10 +16,8 @@ import io.zer0.muse.tools.script.NodePluginEngine
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import io.zer0.muse.data.plugin.PluginHostApi
 import io.zer0.muse.data.plugin.PluginManifest
 import io.zer0.muse.data.plugin.PluginChatBridge
-import io.zer0.muse.data.plugin.PluginSessionContext
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.sticker.StickerLibraryRepository
@@ -26,7 +26,6 @@ import io.zer0.muse.tools.script.SkillBridge
 import io.zer0.muse.tools.script.SkillEngineResult
 import io.zer0.muse.tools.script.WebViewSkillEngine
 import io.zer0.muse.ui.qrcode.QrCodeGenerator
-import kotlin.coroutines.coroutineContext
 
 /**
  * P1-3b 拆域：Skill 媒体/JS/插件工具实现（从 SkillExecutor.kt 迁移）。
@@ -321,29 +320,114 @@ class SkillMediaToolsImpl(
         pluginId: String,
         manifest: PluginManifest,
         manager: PluginManager,
-    ): SkillBridge.HandleResult {
-        val allowedBridgeActions = PluginCapabilityLedgers.shared(context)
-            .allowedActions(pluginId, manifest.capabilities)
-        // 宿主侧状态写入（config_set 等）先过这一层；不属于它的动作原样回落 SkillBridge。
-        // 授权集合是同一份 —— 两处共用，不存在"走哪条通道更宽松"的差别。
-        PluginHostApi(
-            writeConfig = { id, key, newValue -> manager.setPluginConfig(id, key, newValue) },
-            toolBridge = toolBridge,
-            chatBridge = chatBridge,
-            modelBridge = modelBridge,
-            // 会话身份只认宿主随这次调用带进来的上下文；插件参数里的 session_id 一律不读，
-            // 否则一个插件就能跨会话捞别人的聊天记录。
-            sessionId = coroutineContext[PluginSessionContext]?.sessionId
-                ?: PluginChatBridge.SESSION_PLACEHOLDER,
-        )
-            .handle(pluginId, manifest, value, allowedBridgeActions)
-            ?.let { return it }
-        val bridgeHost = SkillBridge.Host(
-            context = context,
-            fsRoot = java.io.File(context.filesDir, "workspace/plugins/$pluginId"),
-        )
-        return SkillBridge.tryHandle(value, allowedBridgeActions, bridgeHost)
+    ): SkillBridge.HandleResult = bridgeRouter(manager).handle(value, pluginId, manifest)
+
+    /**
+     * 桥接判定的构造点。判定本体在 [PluginBridgeRouter]：
+     * 声明式面板的提交 handler 走的是同一条路，两处各写一份授权迟早强弱不一。
+     */
+    private fun bridgeRouter(manager: PluginManager) = PluginBridgeRouter(
+        context = context,
+        writeConfig = { id, key, newValue -> manager.setPluginConfig(id, key, newValue) },
+        toolBridge = toolBridge,
+        chatBridge = chatBridge,
+        modelBridge = modelBridge,
+    )
+
+    /**
+     * 声明式面板的一次提交：调用插件的 handler，拿回**新的组件树**。
+     *
+     * 四道拒绝都必须给可行动原因（用户看得到、作者改得动）：
+     *  1. `ui.interactive` 未批准 —— 这条默认关，因为提交会改数据；
+     *  2. handler 未在清单声明 —— 由 `loadVerifiedFunction` 把关，不在解析器里重查；
+     *  3. 运行时不是 node —— js 档是单轮桥接语义：一次 bridge 请求就是返回值本身，
+     *     插件没法"先存再返回新界面"。这不是偏好，是运行时的既成限制，直说比静默失效诚实；
+     *  4. handler 自己抛错 —— 原文带回，界面保留用户已填内容。
+     */
+    suspend fun invokeUiSubmitHandler(
+        pluginId: String,
+        handlerName: String,
+        valuesJson: String,
+    ): UiSubmitResult {
+        val prepared = prepareUiCall(pluginId, handlerName)
+        val plan = prepared.plan
+            ?: return UiSubmitResult.Rejected(prepared.reason ?: "无法开始这次界面提交")
+        val manager = plan.manager
+        return PluginFunctionInvoker(context).call(
+            manifest = plan.manifest,
+            entryCode = plan.entryCode,
+            functionName = handlerName,
+            argsJson = "[" + valuesJson + "]",
+            configJson = plan.configJson,
+            bridgeHandler = { requestJson ->
+                bridgeRouter(manager).handle(bridgeSentinel(requestJson), pluginId, plan.manifest)
+            },
+        ).let { result ->
+            when (result) {
+                is SkillEngineResult.Error -> UiSubmitResult.Rejected("界面处理函数执行失败：${result.message}")
+                is SkillEngineResult.Success ->
+                    UiSubmitResult.Tree(PluginUiTree.parse(unquoteJsonString(result.valueJson)))
+            }
+        }
     }
+
+    /** 一次面板提交所需的全部前置信息。 */
+    private class UiCallPlan(
+        val manager: PluginManager,
+        val manifest: PluginManifest,
+        val entryCode: String,
+        val configJson: String?,
+    )
+
+    private data class UiPreparation(val plan: UiCallPlan?, val reason: String?)
+
+    /**
+     * 前置判定收成一条 when：早退写成一串 `?: return` 会撞 detekt 的 ReturnCount，
+     * 而这里与其为少几行去塞基线，不如让"为什么不能提交"只有一处判。
+     */
+    private fun prepareUiCall(pluginId: String, handlerName: String): UiPreparation {
+        val manager = pluginManager
+        val plugin = manager?.findPlugin(pluginId)
+        val verified = manager?.loadVerifiedPlugin(pluginId)
+        val function = manager?.loadVerifiedFunction(pluginId, handlerName)
+        val ledger = PluginCapabilityLedgers.shared(context)
+        val reason = when {
+            manager == null || plugin == null -> "插件未安装: $pluginId"
+            !plugin.enabled -> "插件已禁用: ${plugin.name}"
+            verified == null -> "插件入口校验失败: $pluginId"
+            !ledger.isApproved(pluginId, PluginCapabilityGateway.UI_INTERACTIVE) ->
+                "该插件的界面提交未获授权（需要能力「ui.interactive」，它会在你点提交时改动数据）。" +
+                    "请在 设置 → 工具与扩展 → 插件 → 「${plugin.name}」→ 能力与权限 中允许后重试"
+            !PluginFunctionInvoker.isNode(verified.manifest) ->
+                "交互面板目前要求 manifest 里写 runtime=node：js 档的桥接是单轮的" +
+                    "（一次 bridge 请求就是返回值本身），无法在存完数据后再返回新界面"
+            function == null -> "界面按钮指向的函数未在清单中声明: $pluginId/$handlerName"
+            else -> null
+        }
+        if (reason != null) return UiPreparation(null, reason)
+        val readyManager = requireNotNull(manager)
+        val readyVerified = requireNotNull(verified)
+        val readyFunction = requireNotNull(function)
+        return UiPreparation(
+            UiCallPlan(
+                manager = readyManager,
+                manifest = readyVerified.manifest,
+                entryCode = readyFunction.entryCode,
+                configJson = readyManager.getPluginConfigJson(readyVerified.manifest),
+            ),
+            null,
+        )
+    }
+
+    /** 面板提交的两种结果。[UiSubmitResult.Rejected.reason] 要能直接显示给用户。 */
+    sealed interface UiSubmitResult {
+        data class Tree(val parsed: PluginUiTree.Parsed) : UiSubmitResult
+        data class Rejected(val reason: String) : UiSubmitResult
+    }
+
+    /** 引擎返回的是 JSON 字符串字面量（带引号），组件树要的是裸对象。 */
+    private fun unquoteJsonString(value: String): String =
+        runCatching { AppJson.decodeFromString<String>(value) }.getOrElse { value }
 
     /** 把 RPC 请求 `{"action":...,"params":...}` 变成 js 档用的 `__bridge__` 哨兵文本。 */
     private fun bridgeSentinel(requestJson: String): String {

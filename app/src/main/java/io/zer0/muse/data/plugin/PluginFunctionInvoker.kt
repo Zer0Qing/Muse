@@ -34,6 +34,13 @@ internal class PluginFunctionInvoker(private val context: Context) {
         argsJson: String,
         configJson: String?,
         timeoutMs: Long = SkillEngine.DEFAULT_TIMEOUT_MS,
+        /**
+         * 多轮桥接（只有 node 档能用）。默认值是"桥接不可用"，
+         * 因为**没接入必须表现为拒绝**，而不是让插件以为调用成功了。
+         */
+        bridgeHandler: suspend (String) -> io.zer0.muse.tools.script.SkillBridge.HandleResult = {
+            io.zer0.muse.tools.script.SkillBridge.HandleResult.Failure("桥接不可用（宿主未接入能力总线）")
+        },
     ): SkillEngineResult {
         PluginCapabilityLedgers.shared(context).seedFromDeclaration(manifest.id, manifest.capabilities)
         // Hook 与启动激活也是真在跑插件代码，必须与工具路径同一道门；
@@ -64,6 +71,9 @@ internal class PluginFunctionInvoker(private val context: Context) {
                 timeoutMs = timeoutMs,
                 scopeKey = manifest.id,
                 pluginConfigJson = configJson,
+                // 交给调用方的同一个桥接判定：这里只是转发通道，**不在这里判权限**。
+                // 两处各判一次，最先松动的就是绕过账本的那条。
+                bridgeHandler = bridgeHandler,
             )
             else -> WebViewSkillEngine().callFunction(
                 functionDef = entryCode,

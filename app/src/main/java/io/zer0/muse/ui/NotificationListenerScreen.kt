@@ -463,7 +463,10 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                             text = stringResource(R.string.notif_listener_export),
                             onClick = {
                                 runCatching {
-                                    exportLauncher.launch("muse-notifications-${'$'}{System.currentTimeMillis()}.json")
+                                    // 时间戳必须是真插值：写成 ${'$'}{...} 会让文件名里原样出现
+                                    // 这段表达式，于是每次导出都同名、互相覆盖。
+                                    val stamp = System.currentTimeMillis()
+                                    exportLauncher.launch("muse-notifications-$stamp.json")
                                 }.onFailure {
                                     MuseToast.show(context.getString(R.string.notif_listener_export_failed, it.message))
                                 }

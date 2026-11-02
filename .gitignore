@@ -27,6 +27,8 @@ Thumbs.db
 !/docs/refactor-plan-chatviewmodel.md
 !/docs/rebuild/
 !/docs/rebuild/**
+!/docs/plugin/
+!/docs/plugin/**
 !/docs/assets/
 !/docs/assets/readme/
 !/docs/assets/readme/**
