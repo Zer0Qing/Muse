@@ -91,7 +91,7 @@ class SensitiveDataPolicyTest {
         old.setLastModified(now - 30 * dayMs)
         fresh.setLastModified(now - dayMs)
 
-        val deleted = ToolOutputRetention.purge(dir, now, retentionDays = 7)
+        val deleted = ToolOutputRetention.purge(dir, now)
 
         assertEquals(1, deleted)
         assertFalse("过期文件应被删除", old.exists())
@@ -179,5 +179,39 @@ class SensitiveDataPolicyTest {
         assertEquals(SensitiveDataPolicy.Category.MCP_RESULT.inlineLimitChars + 1, mcp.length)
         assertEquals(SensitiveDataPolicy.Category.MEMORY_RAW.inlineLimitChars + 1, memory.length)
         assertTrue("记忆原文的内联上限应更宽", memory.length > mcp.length)
+    }
+
+    // ── 按工具名分类（P2-05 消费方迁移） ────────────────────────────────
+
+    @Test
+    fun `mcp tool names map to the shorter retention category`() {
+        assertEquals(
+            SensitiveDataPolicy.Category.MCP_RESULT,
+            SensitiveDataPolicy.categoryForTool("mcp_server__search"),
+        )
+        assertEquals(
+            SensitiveDataPolicy.Category.TOOL_OUTPUT,
+            SensitiveDataPolicy.categoryForTool("terminal_exec"),
+        )
+        assertEquals(
+            "取不到名字时按普通输出处理",
+            SensitiveDataPolicy.Category.TOOL_OUTPUT,
+            SensitiveDataPolicy.categoryForTool(null),
+        )
+    }
+
+    @Test
+    fun `purge classifies each file by its own name`() {
+        // 同一个目录里混着两类：MCP 结果 4 天前就该删，普通输出还没到期
+        val mcp = File(dir, "mcp_server__tool_uuid.txt").apply { writeText("x") }
+        val tool = File(dir, "terminal_exec_uuid.txt").apply { writeText("y") }
+        mcp.setLastModified(now - 4 * dayMs)
+        tool.setLastModified(now - 4 * dayMs)
+
+        val deleted = ToolOutputRetention.purge(dir, now)
+
+        assertEquals(1, deleted)
+        assertFalse("MCP 结果 3 天到期，应被删除", mcp.exists())
+        assertTrue("普通输出 7 天到期，必须留着", tool.exists())
     }
 }

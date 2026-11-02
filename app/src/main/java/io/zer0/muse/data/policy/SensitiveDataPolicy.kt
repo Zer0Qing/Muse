@@ -50,6 +50,22 @@ object SensitiveDataPolicy {
         }
     }
 
+    /** MCP 工具名前缀：`mcp_{serverId}__{tool}`。 */
+    private const val MCP_TOOL_PREFIX = "mcp_"
+
+    /**
+     * 按工具名判断落盘内容属于哪一类。
+     *
+     * MCP 结果来自第三方系统，保留期比普通工具输出更短 —— 这条判断放在政策里，
+     * 而不是让每个落盘点各自写一遍字符串比较。
+     */
+    fun categoryForTool(toolName: String?): Category =
+        if (toolName?.trim()?.lowercase()?.startsWith(MCP_TOOL_PREFIX) == true) {
+            Category.MCP_RESULT
+        } else {
+            Category.TOOL_OUTPUT
+        }
+
     /** 按类别取规则。 */
     fun rulesFor(category: Category): Category = category
 
@@ -117,26 +133,29 @@ object ToolOutputRetention {
     @Volatile
     private var purgedThisProcess = false
 
-    /** @return 删掉的文件数 */
-    fun purgeOnce(
-        directory: File,
-        nowMillis: Long,
-        retentionDays: Int = SensitiveDataPolicy.TOOL_OUTPUT_RETENTION_DAYS,
-    ): Int {
+    /** 按"普通工具输出"类别清理一次（兼容入口）。 */
+    fun purgeOnce(directory: File, nowMillis: Long): Int {
         if (purgedThisProcess) return 0
         purgedThisProcess = true
-        return purge(directory, nowMillis, retentionDays)
+        return purge(directory, nowMillis)
     }
 
-    /** 直接执行一次清理（测试与"手动清理"入口用）。 */
-    fun purge(
-        directory: File,
-        nowMillis: Long,
-        retentionDays: Int = SensitiveDataPolicy.TOOL_OUTPUT_RETENTION_DAYS,
-    ): Int {
+    /**
+     * 直接执行一次清理（测试与"手动清理"入口用）。
+     *
+     * **按文件名分类**：落盘文件名以工具名开头，所以 `mcp_` 前缀的文件按 MCP 的短保留期，
+     * 其余按普通输出。早先按"类别各扫一遍"是错的 —— 目录是共用的，先跑的类别会把
+     * 另一类还没到期的文件一起删掉。
+     */
+    fun purge(directory: File, nowMillis: Long): Int {
         if (!directory.isDirectory) return 0
         val expired = directory.listFiles { file ->
-            file.isFile && SensitiveDataPolicy.shouldPurge(file.lastModified(), nowMillis, retentionDays)
+            file.isFile &&
+                SensitiveDataPolicy.shouldPurge(
+                    lastModifiedMillis = file.lastModified(),
+                    nowMillis = nowMillis,
+                    retentionDays = SensitiveDataPolicy.categoryForTool(file.name).retentionDays,
+                )
         } ?: return 0
         return expired.count { file -> runCatching { file.delete() }.getOrDefault(false) }
     }
