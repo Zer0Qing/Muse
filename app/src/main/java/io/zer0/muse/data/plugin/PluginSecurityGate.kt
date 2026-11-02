@@ -419,6 +419,7 @@ object PluginSecurityGate {
         "entry", "kind", "trust", "hidden", "capabilities", "permissions",
         "activationEvents", "hooks", "enabled", "tools", "signature",
         "contributes", "uiPanel", "toolCards",
+        "uiView",
     )
 
     /**

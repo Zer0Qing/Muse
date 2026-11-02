@@ -1230,6 +1230,31 @@ class PluginManager(
     }
 
     /**
+     * 读取插件声明的**声明式界面**（`manifest.uiView` 指向的 JSON）。
+     *
+     * 这是插件 UI 的默认形态（D4）；[loadPluginPanel] 的 HTML 面板仍是逃生口。
+     * 路径同样过 canonical 越界校验，字节上限由 [PluginUiTree.parse] 自己把关。
+     * 解析失败时把原因一起返回 —— 作者要能在页面上看到"为什么没渲染出来"。
+     */
+    fun loadUiView(pluginId: String): PluginUiTree.Parsed? {
+        val plugin = findPlugin(pluginId)?.takeIf { it.installationConfirmed && it.enabled } ?: return null
+        val source = runCatching { declaredViewSource(pluginId) }
+            .onFailure { error -> Logger.w(TAG, "读取声明式界面失败: $pluginId — ${error.message}") }
+            .getOrNull() ?: return null
+        return PluginUiTree.parse(source)
+    }
+
+    /** 越界与存在性检查都收在这一步；null 表示"没有可渲染的声明式界面"。 */
+    private fun declaredViewSource(pluginId: String): String? {
+        val root = File(pluginsDir, pluginId).canonicalFile
+        val manifest = AppJson.decodeFromString<PluginManifest>(File(root, "manifest.json").readText())
+        val rel = manifest.uiView?.trim().orEmpty()
+        if (rel.isBlank()) return null
+        val viewFile = File(root, rel).canonicalFile
+        return if (isWithin(root, viewFile) && viewFile.isFile) viewFile.readText() else null
+    }
+
+    /**
      * v2.0: 读取插件工具卡 HTML(工具名 → manifest.toolCards 声明)。
      *
      * [toolNameOrSkillId] 支持两种形式:插件 skill id(`plugin_<len>_<id>_<tool>`,

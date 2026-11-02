@@ -27,6 +27,7 @@ class SignedManifestFieldCoverageTest {
         "entry", "kind", "trust", "hidden", "capabilities", "permissions",
         "activationEvents", "hooks", "enabled", "tools", "signature",
         "contributes", "uiPanel", "toolCards",
+        "uiView",
     )
 
     @Test

@@ -9,7 +9,6 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import androidx.datastore.preferences.core.emptyPreferences
 import io.zer0.common.Logger
 import java.io.File
@@ -60,9 +59,22 @@ internal object SettingsStoreContextHolder {
 }
 
 private val settingsStoreLock = Any()
-private var settingsStore: DataStore<Preferences>? = null
-private var settingsStoreDir: File? = null
-private var settingsStoreScope: CoroutineScope? = null
+
+/**
+ * 按 `filesDir` 分片缓存。
+ *
+ * **为什么不能"换目录时取消旧 scope"**（这里以前就是这么做的）：
+ * 旧实例可能正被**别处**骑着读流 —— 生产里不会发生（只有一个目录），
+ * 但测试 JVM 是同一个进程跑很多用例，A 用例的订阅者还挂在流上，B 用例一取 store 就触发换目录，
+ * 取消会顺着 flow 打到 A 的收集协程上，症状是"完全无关的第三个用例红，堆栈里却指着别人的测试"。
+ * 实测被打到的有 `DiagnosticExporterZipTest`（JobCancellationException）。
+ *
+ * 现在只做一件事：一个目录一个实例，谁都不杀。旧目录被 Robolectric 删掉后，
+ * 残留订阅者若再写盘会抛 IO 异常 —— 那由作用域上的
+ * [io.zer0.muse.util.GlobalCoroutineExceptionHandler] 就地记录，不再冒泡到线程默认处理器。
+ * 生产进程只有一个目录，因此这个 Map 恒为 1 项，不存在累积成本。
+ */
+private val settingsStores = LinkedHashMap<File, DataStore<Preferences>>()
 
 /**
  * 所有 Settings 子仓库共用的 `muse_settings` DataStore。
@@ -80,13 +92,8 @@ internal val Context.museSettingsDataStore: DataStore<Preferences>
     get() {
         val filesDir = applicationContext.filesDir
         synchronized(settingsStoreLock) {
-            settingsStore?.let { existing -> if (settingsStoreDir == filesDir) return existing }
-            // 换目录（只在测试里发生）：先停掉旧实例的协程再建新的。
-            // 不停的话，旧 DataStore 会在文件已被 Robolectric 删掉后抛 AccessDeniedException，
-            // 变成「未捕获异常」泄漏到同一个 JVM 的下一个测试（实测会让无关的 runTest 直接红）。
-            runCatching { settingsStoreScope?.cancel() }
+            settingsStores[filesDir]?.let { return it }
             val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + GlobalCoroutineExceptionHandler)
-            settingsStoreScope = scope
             val created = PreferenceDataStoreFactory.create(
                 scope = scope,
                 corruptionHandler = ReplaceFileCorruptionHandler { ex ->
@@ -99,8 +106,7 @@ internal val Context.museSettingsDataStore: DataStore<Preferences>
                 },
                 produceFile = { File(filesDir, "datastore/$SETTINGS_STORE_NAME.preferences_pb") },
             )
-            settingsStore = created
-            settingsStoreDir = filesDir
+            settingsStores[filesDir] = created
             return created
         }
     }

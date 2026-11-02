@@ -163,6 +163,17 @@ data class PluginManifest(
      */
     val uiPanel: String? = null,
     /**
+     * 声明式界面文件（如 `ui/overview.json`）：由宿主原生渲染，**这是插件 UI 的默认形态**。
+     *
+     * 与 [uiPanel] 的分工：声明式树跟随用户主题、不占 WebView 沙盒、拿不到宿主界面；
+     * HTML 面板保留为需要自定义排版/图表时的逃生口。两者同时存在时优先渲染这一份。
+     *
+     * 兼容约束同 hooks/toolCards：默认值**不参与序列化**（`@EncodeDefault(NEVER)`），
+     * 否则存量已签名包会因 payload 多出字段而整批验签失败。
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val uiView: String? = null,
+    /**
      * v2.0: 插件工具卡 — 工具名 → 卡片 HTML 文件相对路径(如 "cards/stock.html")。
      *
      * 声明后,该插件工具的调用卡在聊天里提供"查看卡片"入口,

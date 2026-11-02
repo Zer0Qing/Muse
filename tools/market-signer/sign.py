@@ -53,11 +53,12 @@ MANIFEST_ORDER = [
     #  · toolCards：App 侧 @EncodeDefault(NEVER)，空对象不输出。
     # 漏跳任何一个，App 验签都会因字节序列不同而失败（v2.0.0 市场事故根因）。
     # hooks 的存放位置由上面那一行决定（须在 enabled 之前），此处不重复列出。
-    "contributes", "uiPanel", "toolCards",
+    # uiView 的位置按 App 端字段声明序排在 uiPanel 与 toolCards 之间 —— 这是有序列表，放错位置等于改协议。
+    "contributes", "uiPanel", "uiView", "toolCards",
 ]
 
 # 缺失时允许直接跳过的可选字段（不要求出现在 manifest 里，也不填默认值）。
-OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "hooks", "toolCards")
+OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "uiView", "hooks", "toolCards")
 
 # 作者可写入 manifest、但不进入签名载荷的字段。
 # App 端 PluginManifest.runtime 带 @EncodeDefault(NEVER) 且不在
