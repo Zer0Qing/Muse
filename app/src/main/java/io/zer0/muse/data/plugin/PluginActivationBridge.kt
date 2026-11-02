@@ -88,6 +88,7 @@ class PluginActivationBridge(
      * @return 是否成功；失败只记日志 —— 定时任务无人值守，报错也没人看，但不该影响下一次
      */
     suspend fun invokeScheduled(pluginId: String, handler: String, scheduleName: String): Boolean {
+        if (PluginKillSwitch.isDisabled(context)) return false
         val verified = resultOf { pluginManager.loadVerifiedPlugin(pluginId) }.getOrNull() ?: return false
         val argsJson = """[{"event":"$ACTIVATION_ON_SCHEDULE","name":${quote(scheduleName)}}]"""
         val result = resultOf {
@@ -121,7 +122,7 @@ class PluginActivationBridge(
      * @return 拼好的片段；没有任何插件参与时返回 null
      */
     suspend fun composeSystemPromptAppend(contextJson: String): String? {
-        if (!settings.arePluginsGloballyEnabled()) return null
+        if (PluginKillSwitch.isDisabled(context) || !settings.arePluginsGloballyEnabled()) return null
         val ledger = PluginCapabilityLedgers.shared(context)
         val parts = pluginManager.list()
             .filter { it.enabled && it.kind == KIND_TOOL }
@@ -171,7 +172,7 @@ class PluginActivationBridge(
      * @return null 表示放行；非 null 是给用户看的阻止原因
      */
     suspend fun decideToolCall(toolName: String, argsJson: String): String? {
-        if (!settings.arePluginsGloballyEnabled()) return null
+        if (PluginKillSwitch.isDisabled(context) || !settings.arePluginsGloballyEnabled()) return null
         val ledger = PluginCapabilityLedgers.shared(context)
         val targets = pluginManager.list()
             .filter { it.enabled && it.kind == KIND_TOOL }
@@ -224,7 +225,7 @@ class PluginActivationBridge(
      *  - 单次事件最多叫醒 [MAX_EVENT_PLUGINS] 个插件，超出只记日志。
      */
     private suspend fun dispatchEvent(event: String, capability: String, payloadJson: String) {
-        if (!settings.arePluginsGloballyEnabled()) return
+        if (PluginKillSwitch.isDisabled(context) || !settings.arePluginsGloballyEnabled()) return
         val ledger = PluginCapabilityLedgers.shared(context)
         val targets = pluginManager.list()
             .filter { it.enabled && it.kind == KIND_TOOL }

@@ -81,6 +81,10 @@ fun SafeModeScreen() {
     // v1.141 F2: 崩溃恢复引导 — 展示数据完好说明与云端备份恢复路径
     var showRecoveryGuide by remember { mutableStateOf(false) }
     var showClearDataConfirm by remember { mutableStateOf(false) }
+    // 插件总闸的当前状态：安全模式里要能一眼看出"现在插件是关的还是开的"。
+    var pluginsDisabled by remember {
+        mutableStateOf(io.zer0.muse.data.plugin.PluginKillSwitch.isDisabled(context))
+    }
 
     // 优先从 SP 读取结构化崩溃信息(v2.0+),为空时回退到崩溃日志文件
     val crashTime = remember { MuseCrashHandler.getCrashTime(context) }
@@ -131,6 +135,19 @@ fun SafeModeScreen() {
                 onClearData = { showClearDataConfirm = true },
                 onCopyInfo = { copyCrashInfo(context, crashTime, crashTrace) },
                 onShowRecoveryGuide = { showRecoveryGuide = true },
+                pluginsDisabled = pluginsDisabled,
+                onTogglePlugins = {
+                    // 不依赖 Koin：直接写标志文件，再冷启动让插件加载路径按新状态走。
+                    val nowDisabled = io.zer0.muse.data.plugin.PluginKillSwitch
+                        .setDisabled(context, !pluginsDisabled)
+                    Toast.makeText(
+                        context,
+                        if (nowDisabled) R.string.plugin_kill_switch_title else R.string.plugin_kill_switch_restore,
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    (context as? Activity)?.finishAffinity()
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                },
             )
 
             Spacer(Modifier.height(MusePaddings.sectionGap))
@@ -287,6 +304,8 @@ private fun ActionButtons(
     onClearData: () -> Unit,
     onCopyInfo: () -> Unit,
     onShowRecoveryGuide: () -> Unit,
+    pluginsDisabled: Boolean,
+    onTogglePlugins: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -300,6 +319,17 @@ private fun ActionButtons(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             onClick = onContinueNormal,
+        )
+        // a1) 插件总闸：崩溃最常见的原因是插件，这一步要排在"数据恢复"之前
+        SafeModeActionButton(
+            icon = if (pluginsDisabled) MuseIcons.refresh else MuseIcons.alertTriangle,
+            label = stringResource(
+                if (pluginsDisabled) R.string.safe_mode_restore_plugins else R.string.safe_mode_disable_plugins,
+            ),
+            description = stringResource(R.string.safe_mode_disable_plugins_desc),
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            onClick = onTogglePlugins,
         )
         // a2) v1.141 F2: 数据恢复引导 — tertiary 强调色,崩溃后引导恢复路径
         SafeModeActionButton(

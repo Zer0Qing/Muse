@@ -717,7 +717,13 @@ val appModule = module {
             },
             get(),
             // 插件总开关：执行热路径读一次，不开订阅。
-            { get<io.zer0.muse.data.SettingsRepository>().arePluginsGloballyEnabled() },
+            // 安全模式的总闸（文件标志）并进来：它是"关掉一切"的最后一道，
+            // 读文件失败按未关闭处理，不能让读不到就当成关了。
+            {
+                val appContext = get<android.content.Context>()
+                !io.zer0.muse.data.plugin.PluginKillSwitch.isDisabled(appContext) &&
+                    get<io.zer0.muse.data.SettingsRepository>().arePluginsGloballyEnabled()
+            },
             // 插件调工具（tool_invoke）的通道。审批判定与主会话、子代理共用同一个 ToolCallGate：
             // 三处各留一份判定的话，最先松动的就是绕过审批的入口。缺这条通道时动作直接拒绝，
             // 不静默降级成"这个动作不存在"。

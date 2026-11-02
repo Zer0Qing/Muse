@@ -67,6 +67,13 @@
     <string name="safe_mode_warning_title">Muse 启动遇到问题</string>
     <string name="safe_mode_continue_normal">直接正常打开 Muse</string>
     <string name="safe_mode_continue_normal_desc">保留聊天记录和设置，退出安全模式后再次启动</string>
+    <string name="safe_mode_disable_plugins">关闭所有插件后重启</string>
+    <string name="safe_mode_disable_plugins_desc">插件是崩溃最常见的原因。关掉后应用照常启动，插件管理页可随时恢复。</string>
+    <string name="plugin_kill_switch_title">所有插件已停用</string>
+    <string name="plugin_kill_switch_desc">这是安全模式里的总闸：工具、命令、事件、钩子、定时任务全部不执行。恢复后才会重新运行。</string>
+    <string name="plugin_kill_switch_restore">恢复插件</string>
+    <string name="plugin_kill_switch_disable">停用所有插件</string>
+    <string name="safe_mode_restore_plugins">恢复所有插件并重启</string>
     <string name="safe_mode_view_full_log">查看崩溃日志</string>
     <string name="safe_mode_view_full_log_desc">查看或分享完整日志，方便定位问题</string>
     <string name="safe_mode_clear_data_restart">删除全部数据并重新开始（不可撤销）</string>

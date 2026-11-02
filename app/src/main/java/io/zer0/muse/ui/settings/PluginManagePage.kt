@@ -485,6 +485,36 @@ fun PluginManagePage(onBack: () -> Unit) {
             ),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
+            // 安全模式总闸：插件全停时，页面顶部必须说清"为什么什么都不执行"，
+            // 并给出唯一的恢复入口 —— 总闸刻意不自动恢复。
+            if (io.zer0.muse.data.plugin.PluginKillSwitch.isDisabled(context)) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.plugin_kill_switch_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Text(
+                            text = stringResource(R.string.plugin_kill_switch_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.plugin_kill_switch_restore),
+                            onClick = {
+                                io.zer0.muse.data.plugin.PluginKillSwitch.setDisabled(context, false)
+                                externalPlugins = pluginManager.list()
+                            },
+                        )
+                    }
+                }
+            }
             // UI-FIX: 顶部分档 —— 已安装 / 市场 / 信任管理，不再把三块竖堆成一条长列表
             item {
                 Box(

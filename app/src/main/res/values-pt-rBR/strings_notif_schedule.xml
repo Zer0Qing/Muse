@@ -80,6 +80,13 @@
     <string name="safe_mode_data_recovery_desc">Esta falha não afeta seus dados locais; conversas e configurações estão intactas. Para restaurar de um backup na nuvem: após reiniciar, vá em Configurações → Backup de dados → Restaurar da nuvem.</string>
     <string name="safe_mode_data_recovery_ok">Entendi</string>
     <string name="safe_mode_continue_normal_desc">Mantenha conversas e configurações e tente abrir o Muse novamente</string>
+    <string name="safe_mode_disable_plugins">Desativar todos os plugins e reiniciar</string>
+    <string name="safe_mode_disable_plugins_desc">Plugins sao a causa mais comum de falhas. O app inicia normalmente; voce pode restaura-los na pagina de plugins.</string>
+    <string name="plugin_kill_switch_title">Todos os plugins estao desativados</string>
+    <string name="plugin_kill_switch_desc">E o interruptor do modo seguro: ferramentas, comandos, eventos, hooks e tarefas nao executam. Restaure para reativar.</string>
+    <string name="plugin_kill_switch_restore">Restaurar plugins</string>
+    <string name="plugin_kill_switch_disable">Desativar todos os plugins</string>
+    <string name="safe_mode_restore_plugins">Restaurar todos os plugins e reiniciar</string>
     <string name="safe_mode_view_full_log_desc">Veja ou compartilhe o registro completo para ajudar a diagnosticar o problema</string>
     <string name="safe_mode_clear_data_restart_desc">Exclui conversas, configurações e arquivos locais; use apenas quando o Muse não abrir normalmente</string>
     <string name="safe_mode_clear_data_confirm_title">Excluir todos os dados?</string>

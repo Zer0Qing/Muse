@@ -66,22 +66,37 @@ class PluginCapabilityGateway(
 
     /** 单个动作判定；放行与拒绝都记审计。 */
     fun check(pluginId: String, declared: List<String>, action: String): Decision {
-        if (action in ALWAYS_ALLOWED_ACTIONS) return Decision.Allow
-        val capability = CAPABILITY_FOR_ACTION[action] ?: return deny(pluginId, action, "-", UNSUPPORTED_ACTION)
+        // 安全模式总闸：连 echo 都不放行 —— "全部停用"不该留任何例外。
+        val disabled = PluginKillSwitch.isDisabledBeside(storeFile)
+        val capability = CAPABILITY_FOR_ACTION[action]
         // 先消费会话额度：ONCE 档必须"用完即失效"。若先查持久集合，
         // liveCapabilities 会把还剩余额的 ONCE 也算进去，于是永远用不完。
-        val allowed = session.take(pluginId, capability) || capability in grantedCapabilities(pluginId, declared)
-        if (allowed) {
-            audit.record(pluginId, action, capability, allowed = true)
-            return Decision.Allow
+        val allowed = !disabled && (
+            action in ALWAYS_ALLOWED_ACTIONS ||
+                (capability != null &&
+                    (session.take(pluginId, capability) || capability in grantedCapabilities(pluginId, declared)))
+            )
+        return when {
+            allowed -> {
+                if (capability != null) audit.record(pluginId, action, capability, allowed = true)
+                Decision.Allow
+            }
+            disabled -> deny(pluginId, action, "", PluginKillSwitch.DISABLED_MESSAGE)
+            capability == null -> deny(pluginId, action, "-", UNSUPPORTED_ACTION)
+            capability !in declared -> deny(
+                pluginId,
+                action,
+                capability,
+                "插件清单未声明能力 '$capability'，因此不能调用 '$action'；需要该功能请更新清单声明后重新安装确认。",
+            )
+            else -> deny(
+                pluginId,
+                action,
+                capability,
+                "能力 '$capability' 未授权（动作 '$action' 被拒）；" +
+                    "可在 设置 → 工具与扩展 → 插件 → 权限 中授予，或改用不需要该能力的做法。",
+            )
         }
-        val reason = if (capability !in declared) {
-            "插件清单未声明能力 '$capability'，因此不能调用 '$action'；需要该功能请更新清单声明后重新安装确认。"
-        } else {
-            "能力 '$capability' 未授权（动作 '$action' 被拒）；" +
-                "可在 设置 → 工具与扩展 → 插件 → 权限 中授予，或改用不需要该能力的做法。"
-        }
-        return deny(pluginId, action, capability, reason)
     }
 
     /**
