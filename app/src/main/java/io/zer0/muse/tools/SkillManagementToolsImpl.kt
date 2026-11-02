@@ -44,6 +44,36 @@ class SkillManagementToolsImpl(
         return context.getString(R.string.skill_unknown_error)
     }
 
+    /**
+     * `skill_resource`：列出 / 读取技能包内的资源文件（P1-09）。
+     *
+     * 技能正文常写"详见 references/schema.md"，此前模型**打不开**那个文件。
+     * 路径约束与大小上限在 [io.zer0.muse.data.skill.SkillPackageResources] 里，这里只做参数与文案。
+     */
+    suspend fun skillResource(args: Map<String, String>): String {
+        val skillId = args["skill_id"]?.trim().orEmpty()
+        if (skillId.isEmpty()) return "错误：skill_id 不能为空"
+        val resources = io.zer0.muse.data.skill.SkillPackageResources(
+            io.zer0.muse.data.skill.SkillPackageStore(context).root,
+        )
+        val path = args["path"]?.trim().orEmpty()
+        return when (args["action"]?.trim()?.lowercase() ?: "list") {
+            "list" -> {
+                val listed = resources.list(skillId)
+                if (listed.isEmpty()) {
+                    "技能「$skillId」包内没有资源文件（或该技能不是 SKILL.md 包）"
+                } else {
+                    "技能「$skillId」的资源：\n" + listed.joinToString("\n") { "- $it" }
+                }
+            }
+            "read" -> when (val outcome = resources.read(skillId, path)) {
+                is io.zer0.muse.data.skill.SkillPackageResources.Outcome.Text -> outcome.content
+                is io.zer0.muse.data.skill.SkillPackageResources.Outcome.Failed -> "错误：${outcome.reason}"
+            }
+            else -> "错误：action 只能是 list 或 read"
+        }
+    }
+
     suspend fun listSkills(args: Map<String, String>): String {
         val repo = skillRepository ?: return context.getString(R.string.skill_list_not_configured)
         val category = args["category"]?.takeIf { it.isNotBlank() }

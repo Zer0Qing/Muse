@@ -186,6 +186,8 @@ class SkillExecutor(
                 "list_public_files" -> fileTools?.execListPublicFiles(args) ?: context.getString(R.string.skill_impl_not_configured)
                 // Skill 管理类
                 "list_skills" -> managementTools?.listSkills(args) ?: context.getString(R.string.skill_impl_not_configured)
+                "skill_resource" -> managementTools?.skillResource(args)
+                    ?: context.getString(R.string.skill_impl_not_configured)
                 "uninstall_skill" -> managementTools?.uninstallSkill(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "disable_skill" -> managementTools?.disableSkill(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "enable_skill" -> managementTools?.enableSkill(args) ?: context.getString(R.string.skill_impl_not_configured)
@@ -1502,6 +1504,37 @@ class SkillExecutor(
                     category = "skill",
                 ),
                 SkillEntity(
+                    id = "skill_resource",
+                    name = "读取技能资源",
+                    description = "列出或读取 SKILL.md 技能包内的资源文件（references/ scripts/ assets/ 等）。" +
+                        "action=list 列出文件，action=read 读取指定路径的文本内容。",
+                    parametersJson =
+                    buildJsonObject {
+                        put("type", "object")
+                        put(
+                            "properties",
+                            buildJsonObject {
+                                put("skill_id", buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "技能 id（list_skills 里看到的那个）")
+                                })
+                                put("action", buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "list（默认）或 read")
+                                })
+                                put("path", buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "action=read 时的相对路径，如 references/schema.md")
+                                })
+                            },
+                        )
+                        put("required", kotlinx.serialization.json.JsonArray(listOf(kotlinx.serialization.json.JsonPrimitive("skill_id"))))
+                    }.toString(),
+                    requiredJson = """["skill_id"]""",
+                    implementationKotlin = "skill_resource",
+                    category = "skill",
+                ),
+                SkillEntity(
                     id = "uninstall_skill",
                     name = "卸载 Skill",
                     description = "卸载(删除)已安装的 Skill。需传入 id 或 name(至少一个),优先用 id。删除后该 Skill 不再可用。",
@@ -1918,7 +1951,7 @@ class SkillExecutor(
                 // 文件公共目录
                 "file_download", "read_public_file", "save_to_downloads", "list_public_files",
                 // Skill 管理
-                "list_skills", "uninstall_skill", "disable_skill", "enable_skill", "update_skill",
+                "list_skills", "skill_resource", "uninstall_skill", "disable_skill", "enable_skill", "update_skill",
                 // 表情包/媒体/翻译/JS
                 "list_stickers", "send_sticker", "generate_image", "translate", "execute_javascript",
             )
