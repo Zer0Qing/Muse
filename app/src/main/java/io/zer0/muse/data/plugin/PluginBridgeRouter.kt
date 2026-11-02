@@ -42,20 +42,36 @@ class PluginBridgeRouter(
         val allowedBridgeActions = ledger.allowedActions(pluginId, manifest.capabilities)
         // 宿主侧状态写入（config_set / tool_invoke / chat_read / model_call）先过这一层；
         // 不属于它的动作原样回落 SkillBridge。授权集合是同一份，不存在"走哪条通道更宽松"。
-        PluginHostApi(
+        val viaHostApi = PluginHostApi(
             writeConfig = writeConfig,
             toolBridge = toolBridge,
             chatBridge = chatBridge,
             sessionId = coroutineContext[PluginSessionContext]?.sessionId
                 ?: PluginChatBridge.SESSION_PLACEHOLDER,
             modelBridge = modelBridge,
-        )
-            .handle(pluginId, manifest, value, allowedBridgeActions)
-            ?.let { return it }
-        val host = SkillBridge.Host(
-            context = appContext,
-            fsRoot = File(appContext.filesDir, "workspace/plugins/$pluginId"),
-        )
-        return SkillBridge.tryHandle(value, allowedBridgeActions, host)
+        ).handle(pluginId, manifest, value, allowedBridgeActions)
+        val result = viaHostApi ?: run {
+            val host = SkillBridge.Host(
+                context = appContext,
+                fsRoot = File(appContext.filesDir, "workspace/plugins/$pluginId"),
+            )
+            SkillBridge.tryHandle(value, allowedBridgeActions, host)
+        }
+        // 调试台：记下最近发生了什么（只保留最近 N 条）
+        recordCall(pluginId, value, result)
+        return result
+    }
+
+    /** 把这次调用的结果写进调试日志；`NotBridge` 不算桥接调用，不记。 */
+    private fun recordCall(pluginId: String, requestJson: String, result: SkillBridge.HandleResult) {
+        val action = PluginBridgeCallLog.actionOf(requestJson)
+        val now = System.currentTimeMillis()
+        when (result) {
+            is SkillBridge.HandleResult.Output ->
+                PluginBridgeCallLog.record(pluginId, action, allowed = true, detail = null, atMillis = now)
+            is SkillBridge.HandleResult.Failure ->
+                PluginBridgeCallLog.record(pluginId, action, allowed = false, detail = result.message, atMillis = now)
+            SkillBridge.HandleResult.NotBridge -> Unit
+        }
     }
 }

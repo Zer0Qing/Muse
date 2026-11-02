@@ -183,6 +183,12 @@ fun PluginManagePage(onBack: () -> Unit) {
     /** 待确认撤销的发行者 id。 */
     var revokePublisherId by remember { mutableStateOf<String?>(null) }
 
+    /** P4 调试台：最近桥接调用（拒绝原因在这里看，不用去翻日志）。 */
+    var debugVisible by remember { mutableStateOf(false) }
+    if (debugVisible) {
+        PluginDebugDialog(onDismiss = { debugVisible = false })
+    }
+
     fun refreshMarketCatalog() {
         val url = catalogUrl.orEmpty()
         if (url.isBlank() || marketRefreshing) return
@@ -448,6 +454,13 @@ fun PluginManagePage(onBack: () -> Unit) {
                 title = stringResource(R.string.muse_plugins_manage),
                 onBack = onBack,
                 largeTitle = true,
+                actions = {
+                    io.zer0.muse.ui.common.form.MuseTactileButton(
+                        icon = MuseIcons.bug,
+                        onClick = { debugVisible = true },
+                        contentDescription = stringResource(R.string.plugin_debug_title),
+                    )
+                },
             )
         },
         containerColor = MaterialTheme.colorScheme.background,

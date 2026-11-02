@@ -799,6 +799,7 @@
     <string name="plugin_cap_event_on_tool_call">En cada llamada de herramienta</string>
     <string name="plugin_cap_hook_tool_before">Bloquear llamadas de herramientas</string>
     <string name="plugin_cap_hook_system_prompt">Anadir al mensaje de sistema (cambia el comportamiento)</string>
+    <string name="plugin_debug_title">Depuracion de plugins</string>
     <string name="plugin_cap_clipboard_read">Leer el portapapeles</string>
     <string name="plugin_cap_clipboard_write">Escribir en el portapapeles</string>
     <string name="plugin_cap_clipboard">Leer y escribir el portapapeles</string>
