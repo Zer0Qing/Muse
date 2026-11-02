@@ -800,6 +800,7 @@
     <string name="plugin_cap_hook_system_prompt">システムプロンプトに追記（振る舞いが変わります）</string>
     <string name="plugin_cap_schedule">定期的に実行（アプリ起動中のみ）</string>
     <string name="plugin_cap_network_local">LAN と localhost へのアクセス（家庭内サービス、ローカルポート）</string>
+    <string name="plugin_cap_app_navigate">アプリ内の指定ページを開く（ホーム、設定、会話など）</string>
     <string name="plugin_debug_title">プラグインのデバッグ</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>

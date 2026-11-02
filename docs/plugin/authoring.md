@@ -270,6 +270,23 @@ export function onDigest({ event, name }) {
   NAS、本机的其它服务上，这属于要用户明确点头的事；
 - 授权后 127.0.0.1、192.168.*、10.*、172.16-31.*、`.local` 都可以访问。
 
+## 9.96 让应用跳转（`app.navigate`）
+
+```js
+return { __bridge__: true, action: "app_navigate", params: { target: "settings" } };
+```
+
+固定目标：`home`、`new`、`chat`、`assistants`、`settings`、`scheduled-tasks`、`quick-notes`、
+`memory`、`knowledge`、`knowledge-bases`、`cloud-backup`、`settings-about`、`settings-agent`、
+`settings-model`、`settings-data`。
+
+参数化目标：`session:<id>`、`scheduled-task:<id>`、`quick-note:<id>`（id 只允许字母/数字/下划线/短横线，1–64）。
+
+- 需要能力 **`app.navigate`**（默认关）；
+- 跳转发生在**应用在前台时**：插件跑在后台协程里，没有界面可跳，所以这个动作只是"投递请求"。
+  没有前台界面时返回失败并说明原因，不会假装成功；
+- 目标走白名单：插件不能把用户弹到任意内部页面。
+
 ## 10. 斜杠命令（已可用）
 
 在清单里声明后，用户在输入框打 `/` 会看到候选；选中或回车执行，**结果写回输入框**

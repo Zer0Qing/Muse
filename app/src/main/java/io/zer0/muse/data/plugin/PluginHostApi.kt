@@ -50,7 +50,32 @@ class PluginHostApi(
             action == ACTION_TOOL_INVOKE -> handleToolInvoke(pluginId, obj, allowedActions)
             action == ACTION_CHAT_READ -> handleChatRead(obj, allowedActions)
             action == ACTION_MODEL_CALL -> handleModelCall(obj, allowedActions)
+            action == ACTION_APP_NAVIGATE -> handleAppNavigate(obj, allowedActions)
             else -> null
+        }
+    }
+
+    /**
+     * 让宿主跳到某个页面（`app.navigate`）。
+     *
+     * 只做两件事：校验目标、投递给导航总线。**不自己执行导航** —— 导航必须发生在
+     * 有 Activity 的地方；插件跑在后台协程里，那里没有界面可跳。
+     */
+    private fun handleAppNavigate(obj: JsonObject, allowedActions: Set<String>): SkillBridge.HandleResult {
+        if (ACTION_APP_NAVIGATE !in allowedActions) return SkillBridge.HandleResult.Failure(notAuthorized())
+        val target = (obj["params"] as? JsonObject)?.get("target")?.let { element ->
+            (element as? JsonPrimitive)?.contentOrNull
+        }
+        return when (val parsed = PluginAppNavigation.parse(target)) {
+            is PluginAppNavigation.Parsed.Invalid -> SkillBridge.HandleResult.Failure(parsed.reason)
+            is PluginAppNavigation.Parsed.Ok -> {
+                if (AppNavigationBus.request(parsed.uri)) {
+                    SkillBridge.HandleResult.Output("{\"ok\":true,\"target\":\"${parsed.uri}\"}")
+                } else {
+                    // 没有订阅者说明宿主还没起来：如实说"没送到"，别假装成功
+                    SkillBridge.HandleResult.Failure("当前没有可用的界面来执行跳转（应用可能还没进入前台）")
+                }
+            }
         }
     }
 
@@ -260,6 +285,9 @@ class PluginHostApi(
         const val ACTION_CHAT_READ = "chat_read"
         const val CAPABILITY_CHAT_READ = "chat.read"
         const val ACTION_MODEL_CALL = "model_call"
+
+    /** 跳转（`app.navigate`）。 */
+    const val ACTION_APP_NAVIGATE = "app_navigate"
         const val CAPABILITY_MODEL_CALL = "host.model.call"
         const val DEFAULT_CHAT_LIMIT = 10
     }

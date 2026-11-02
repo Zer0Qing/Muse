@@ -801,6 +801,7 @@
     <string name="plugin_cap_hook_system_prompt">Acrescentar ao prompt de sistema (muda o comportamento)</string>
     <string name="plugin_cap_schedule">Executar periodicamente (com o app ativo)</string>
     <string name="plugin_cap_network_local">Acessar rede local e localhost (servicos em casa)</string>
+    <string name="plugin_cap_app_navigate">Abrir uma pagina especifica do app (inicio, ajustes, uma sessao...)</string>
     <string name="plugin_debug_title">Depuracao de plugins</string>
     <string name="plugin_cap_clipboard_read">Ler a area de transferencia</string>
     <string name="plugin_cap_clipboard_write">Escrever na area de transferencia</string>

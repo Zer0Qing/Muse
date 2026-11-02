@@ -218,6 +218,17 @@ class MainActivity : ComponentActivity() {
                 notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+        // 插件跳转（app.navigate）：在 Activity 作用域订阅，复用同一条深链处理链。
+        // 放在这里而不是某个 composable 里，是因为 pendingShareResult / shareIntentHandler
+        // 都是 Activity 自己的字段；在 composable 里拿到的可能是参数副本，赋值不会生效。
+        lifecycleScope.launch {
+            io.zer0.muse.data.plugin.AppNavigationBus.requests.collect { uri ->
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri))
+                    .setPackage(packageName)
+                pendingShareResult = shareIntentHandler.handle(intent)
+            }
+        }
+
         // Phase 8.10: 处理 Safe Mode(上次崩溃)→ 跳过完整启动,仅显示崩溃提示
         if (MuseCrashHandler.checkSafeMode(applicationContext)) {
             Logger.w("MainActivity", "Safe mode active — last crash detected")

@@ -20,6 +20,8 @@ type Capability =
   | "network"
   /** 允许访问私网/本机（局域网服务、127.0.0.1、.local）。默认关。 */
   | "network.local"
+  /** 让宿主跳转到指定页面（页面白名单见作者文档）。默认关。 */
+  | "app.navigate"
   | "clipboard.read"
   | "clipboard.write"
   /** 读写合一的简写，等价于同时声明 clipboard.read + clipboard.write。 */
@@ -101,6 +103,23 @@ interface HostApi {
   chat: {
     /** action: chat_read —— 只给最近 30 条，且不含系统提示词。 */
     read(): Array<{ role: "user" | "assistant"; content: string }>;
+  };
+
+  /** 改变应用本身（需要 app.* 能力，全部默认关）。 */
+  app: {
+    /**
+     * 让宿主跳到某个页面。需要 `app.navigate`。
+     *
+     * 目标白名单：home / new / chat / assistants / settings / scheduled-tasks / quick-notes /
+     * memory / knowledge / knowledge-bases / cloud-backup / settings-about / settings-agent /
+     * settings-model / settings-data；参数化：`session:<id>`、`scheduled-task:<id>`、`quick-note:<id>`。
+     *
+     * 只在应用处于前台时生效：插件跑在后台，没有界面可跳，所以这是"投递请求"。
+     * 没有前台界面时返回 false（不会假装成功）。
+     *
+     * action: app_navigate
+     */
+    navigate(target: string): boolean;
   };
 
   /** 调用模型（计入用户用量）。输入上限 8KB，输出上限 4KB。 */

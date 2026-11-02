@@ -193,7 +193,8 @@ class PluginCapabilityGateway(
                 capability != HOOK_TOOL_CALL_BEFORE &&
                 capability != HOOK_SYSTEM_PROMPT &&
                 capability != SCHEDULE &&
-                capability != NETWORK_LOCAL,
+                capability != NETWORK_LOCAL &&
+                capability != APP_NAVIGATE,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -257,6 +258,9 @@ class PluginCapabilityGateway(
      * 这属于要用户明确点头的事，而不是装个插件就默认拥有。
      */
     const val NETWORK_LOCAL = "network.local"
+
+    /** 让宿主跳转到某个页面（页面白名单见 `PluginAppNavigation`）。默认关。 */
+    const val APP_NAVIGATE = "app.navigate"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。
@@ -337,6 +341,8 @@ class PluginCapabilityGateway(
             "host.tool.invoke" to setOf("tool_invoke"),
             "chat.read" to setOf("chat_read"),
             "host.model.call" to setOf("model_call"),
+            // app.*：插件能改应用里的东西。逐项授权、默认关 —— 这些动作直接改变用户看到/拥有的状态。
+            "app.navigate" to setOf("app_navigate"),
         )
 
         /**
