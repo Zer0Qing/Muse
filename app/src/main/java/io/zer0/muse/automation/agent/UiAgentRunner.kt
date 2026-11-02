@@ -348,6 +348,30 @@ class UiAgentRunner(
      */
     // 卫语句风格：每种执行面失败就直接返回「给模型看的那句话」。
     // 本仓库在 OAuthManager / AutomationManager 里已有同样用法，这里保持一致。
+    /** AUTO 模式的执行面选择结果。 */
+    internal enum class AutoSurfaceChoice {
+        /** 没指定目标包名：就在用户当前所在应用上操作。 */
+        CURRENT_FOREGROUND,
+
+        /** 目标已在前台：原地操作，不建虚拟屏也不重启应用。 */
+        OPERATE_IN_PLACE,
+
+        /** 目标不在前台：尝试独立虚拟屏，失败再降级到前台。 */
+        DEDICATED_DISPLAY,
+    }
+
+    /**
+     * AUTO 模式该用哪个执行面。
+     *
+     * 抽成纯函数的原因：这条判断决定"用户正在看的任务会不会被抽走"，
+     * 必须能在没有设备的环境里被验证（对比清单 P1-03）。
+     */
+    internal fun chooseAutoSurface(targetPackage: String?, currentForeground: String?): AutoSurfaceChoice = when {
+        targetPackage == null -> AutoSurfaceChoice.CURRENT_FOREGROUND
+        targetPackage == currentForeground -> AutoSurfaceChoice.OPERATE_IN_PLACE
+        else -> AutoSurfaceChoice.DEDICATED_DISPLAY
+    }
+
     @Suppress("ReturnCount")
     private suspend fun resolveExecutionSurface(
         displayMode: DisplayMode,
@@ -370,44 +394,65 @@ class UiAgentRunner(
                 history.appendLine("执行面: 独立虚拟屏(displayId=$display)")
             }
             DisplayMode.FOREGROUND -> {
-                if (targetPackage != null && !manager.launchApp(targetPackage)) {
+                // 已在前台就不重启：launchApp 会把用户正在看的页面重建一遍（可能丢状态）。
+                val alreadyThere = targetPackage != null && manager.currentPackage() == targetPackage
+                if (targetPackage != null && !alreadyThere && !manager.launchApp(targetPackage)) {
                     return Result.failure(IllegalStateException("无法在当前前台启动目标应用:$targetPackage"))
                 }
-                history.appendLine("执行面: 用户前台")
+                history.appendLine("执行面: 用户前台" + if (alreadyThere) "（目标已在前台，原地操作）" else "")
             }
-            DisplayMode.AUTO -> {
-                if (targetPackage == null) {
-                    resolvedDisplayMode = DisplayMode.FOREGROUND
-                    history.appendLine("自动选择执行面:当前前台(未指定目标应用包名)")
+            DisplayMode.AUTO -> return prepareAutoSurface(targetPackage, history)
+        }
+        return Result.success(ExecutionSurface(resolvedDisplayMode, virtualDisplayId))
+    }
+
+    /**
+     * AUTO 的执行面准备。
+     *
+     * 抽出来的两个原因：`resolveExecutionSurface` 的分支复杂度已经顶到 detekt 上限；
+     * 而这段本身就是"用户正在看的任务会不会被抽走"的决策点，独立成函数更好读。
+     */
+    private suspend fun prepareAutoSurface(
+        targetPackage: String?,
+        history: StringBuilder,
+    ): Result<ExecutionSurface> {
+        val pkg = targetPackage
+        // 前台查询可能失败（通道未授权/服务未连）：**读不到就按未知处理**，
+        // 退到虚拟屏，而不是让整次任务因为一次探测失败直接结束。
+        val foreground = if (pkg == null) null else runCatching { manager.currentPackage() }.getOrNull()
+        return when (chooseAutoSurface(pkg, foreground)) {
+            AutoSurfaceChoice.CURRENT_FOREGROUND -> {
+                history.appendLine("自动选择执行面:当前前台(未指定目标应用包名)")
+                Result.success(ExecutionSurface(DisplayMode.FOREGROUND, null))
+            }
+            AutoSurfaceChoice.OPERATE_IN_PLACE -> {
+                history.appendLine("自动选择执行面:目标已在前台，原地操作（不新建虚拟屏）")
+                Result.success(ExecutionSurface(DisplayMode.FOREGROUND, null))
+            }
+            AutoSurfaceChoice.DEDICATED_DISPLAY -> {
+                val client = virtualDisplayClient
+                val dedicated = if (client != null && virtualDisplayManager != null && pkg != null) {
+                    createDedicatedDisplay(pkg, client)
                 } else {
-                    val client = virtualDisplayClient
-                    val dedicated = if (client != null && virtualDisplayManager != null) {
-                        createDedicatedDisplay(targetPackage, client)
-                    } else {
-                        Result.failure(IllegalStateException("虚拟屏组件未初始化"))
-                    }
-                    if (dedicated.isSuccess) {
-                        virtualDisplayId = dedicated.getOrThrow()
-                        resolvedDisplayMode = DisplayMode.VIRTUAL
-                        history.appendLine("自动选择执行面:独立虚拟屏(displayId=$virtualDisplayId)")
-                    } else {
-                        if (!manager.launchApp(targetPackage)) {
-                            return Result.failure(
-                                IllegalStateException(
-                                    "虚拟屏不可用(${dedicated.exceptionOrNull()?.message ?: "未知原因"})" +
-                                        "，且无法在当前前台启动目标应用:$targetPackage",
-                                ),
-                            )
-                        }
-                        resolvedDisplayMode = DisplayMode.FOREGROUND
-                        history.appendLine(
-                            "自动降级到用户前台:虚拟屏不可用(${dedicated.exceptionOrNull()?.message ?: "未知原因"})",
+                    Result.failure(IllegalStateException("虚拟屏组件未初始化"))
+                }
+                if (dedicated.isSuccess) {
+                    val displayId = dedicated.getOrThrow()
+                    history.appendLine("自动选择执行面:独立虚拟屏(displayId=$displayId)")
+                    Result.success(ExecutionSurface(DisplayMode.VIRTUAL, displayId))
+                } else {
+                    val reason = dedicated.exceptionOrNull()?.message ?: "未知原因"
+                    if (pkg == null || !manager.launchApp(pkg)) {
+                        Result.failure(
+                            IllegalStateException("虚拟屏不可用($reason)，且无法在当前前台启动目标应用:$pkg"),
                         )
+                    } else {
+                        history.appendLine("自动降级到用户前台:虚拟屏不可用($reason)")
+                        Result.success(ExecutionSurface(DisplayMode.FOREGROUND, null))
                     }
                 }
             }
         }
-        return Result.success(ExecutionSurface(resolvedDisplayMode, virtualDisplayId))
     }
 
     private suspend fun createDedicatedDisplay(packageName: String, client: VirtualDisplayClient): Result<Int> {
