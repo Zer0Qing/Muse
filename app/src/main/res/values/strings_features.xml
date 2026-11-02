@@ -788,6 +788,7 @@
     <string name="plugin_service_notification_text">有插件正在后台运行，点开可管理</string>
     <string name="plugin_service_notification_stop">停止</string>
     <string name="plugin_cap_runtime_service">常驻后台运行（前台服务）</string>
+    <string name="plugin_cap_app_settings">修改应用设置（字号、动态取色、高对比、默认首页）</string>
     <string name="plugin_debug_title">插件调试</string>
     <string name="plugin_cap_clipboard_read">读取剪贴板内容</string>
     <string name="plugin_cap_clipboard_write">向剪贴板写入内容</string>

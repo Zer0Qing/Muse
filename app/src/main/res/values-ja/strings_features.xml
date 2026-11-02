@@ -813,6 +813,7 @@
     <string name="plugin_service_notification_text">バックグラウンドで動作中のプラグインがあります</string>
     <string name="plugin_service_notification_stop">停止</string>
     <string name="plugin_cap_runtime_service">バックグラウンドで常駐（フォアグラウンドサービス）</string>
+    <string name="plugin_cap_app_settings">アプリ設定の変更（文字サイズ、ダイナミックカラー、ハイコントラスト、ホーム）</string>
     <string name="plugin_debug_title">プラグインのデバッグ</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>

@@ -34,6 +34,8 @@ type Capability =
   | "schedule.background"
   /** 常驻后台运行（前台服务，一条常驻通知承载所有服务型插件）。默认关。 */
   | "runtime.service"
+  /** 修改白名单里的应用设置（字号/动态取色/高对比/默认首页）。默认关。 */
+  | "app.settings"
   | "clipboard.read"
   | "clipboard.write"
   /** 读写合一的简写，等价于同时声明 clipboard.read + clipboard.write。 */
@@ -165,6 +167,17 @@ interface HostApi {
      * action: app_set_theme_mode
      */
     setThemeMode(mode: "light" | "dark" | "system"): string;
+
+    /**
+     * 写一个白名单里的设置项。需要 `app.settings`（默认关）。
+     *
+     * 可写：`font_size_scale`（0.8–1.6）、`dynamic_color`（true/false）、
+     * `high_contrast`（true/false）、`default_home_page`（0–2）。
+     * 只开放外观类、可逆的项 —— 开关类与数据类被插件改掉后用户很难察觉。
+     *
+     * action: app_set_setting
+     */
+    setSetting(key: string, value: string): string;
   };
 
   /** 调用模型（计入用户用量）。输入上限 8KB，输出上限 4KB。 */

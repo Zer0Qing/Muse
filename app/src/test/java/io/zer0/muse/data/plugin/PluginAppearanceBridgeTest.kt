@@ -107,4 +107,67 @@ class PluginAppearanceBridgeTest {
         assertTrue("应当成功: $result", result is SkillBridge.HandleResult.Output)
         coVerify(exactly = 1) { settings.saveThemeMode("light") }
     }
+
+    // ── app.settings：白名单写设置 ─────────────────────────────────────
+
+    @Test
+    fun `a whitelisted numeric setting is written`() = runTest {
+        assertTrue(bridge.setSetting("font_size_scale", "1.15") is PluginAppearanceBridge.Applied.Ok)
+        coVerify { settings.saveFontSizeScale("1.15") }
+    }
+
+    @Test
+    fun `a whitelisted boolean setting is written`() = runTest {
+        assertTrue(bridge.setSetting("high_contrast", "TRUE") is PluginAppearanceBridge.Applied.Ok)
+        coVerify { settings.saveHighContrast(true) }
+    }
+
+    @Test
+    fun `an unknown setting key is refused and nothing is written`() = runTest {
+        val result = bridge.setSetting("allow_plugin_execution", "false")
+
+        assertTrue(result is PluginAppearanceBridge.Applied.Rejected)
+        assertTrue(
+            "要列出可写项: ${(result as PluginAppearanceBridge.Applied.Rejected).reason}",
+            result.reason.contains("font_size_scale"),
+        )
+        coVerify(exactly = 0) { settings.saveHighContrast(any()) }
+    }
+
+    @Test
+    fun `out of range values are refused`() = runTest {
+        assertTrue(bridge.setSetting("font_size_scale", "3.0") is PluginAppearanceBridge.Applied.Rejected)
+        assertTrue(bridge.setSetting("default_home_page", "9") is PluginAppearanceBridge.Applied.Rejected)
+        assertTrue(bridge.setSetting("default_home_page", "abc") is PluginAppearanceBridge.Applied.Rejected)
+        assertTrue(bridge.setSetting("dynamic_color", "yes") is PluginAppearanceBridge.Applied.Rejected)
+    }
+
+    @Test
+    fun `a storage failure on a setting is reported`() = runTest {
+        coEvery { settings.saveFontSizeScale(any()) } throws IllegalStateException("disk full")
+
+        val result = bridge.setSetting("font_size_scale", "1.0")
+
+        assertTrue(result is PluginAppearanceBridge.Applied.Rejected)
+        assertTrue((result as PluginAppearanceBridge.Applied.Rejected).reason.contains("disk full"))
+    }
+
+    @Test
+    fun `the settings action goes through the same capability gate`() = runTest {
+        PluginAppearanceChannels.install(bridge)
+        val api = PluginHostApi(writeConfig = { _, _, _ -> })
+        val request = """{"__bridge__":true,"action":"app_set_setting","params":{"key":"high_contrast","value":"true"}}"""
+
+        val denied = api.handle("p1", PluginManifest(id = "p1", name = "p1"), request, emptySet())
+        assertTrue(denied is SkillBridge.HandleResult.Failure)
+
+        val allowed = api.handle(
+            "p1",
+            PluginManifest(id = "p1", name = "p1"),
+            request,
+            setOf(PluginHostApi.ACTION_APP_SET_SETTING),
+        )
+        assertTrue("应当成功: $allowed", allowed is SkillBridge.HandleResult.Output)
+        coVerify(exactly = 1) { settings.saveHighContrast(true) }
+    }
 }

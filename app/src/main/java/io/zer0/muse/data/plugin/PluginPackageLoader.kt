@@ -82,6 +82,14 @@ object PluginPackageLoader {
                     // 这里曾经只收 .js/.json/.md，于是 python 插件的入口文件在解包阶段
                     // 就被静默丢掉，后续报错却是「缺少入口文件」—— 根本原因在这里。
                     val lowerName = name.lowercase()
+                    // 原生库必须**明确拒绝**，不能跟着"不认识的扩展名"一起被静默跳过：
+                    // 静默跳过的结果是插件装得上、运行时才报"找不到库"，作者根本不知道为什么。
+                    if (lowerName.endsWith(NATIVE_LIBRARY_EXTENSION)) {
+                        return Result.Err(
+                            "插件包包含原生库 '$name'：Android 10（API 29）起禁止从应用私有目录加载 .so（W^X 策略），" +
+                                "外部插件无法使用原生库。确实需要时只能做成内置插件随 APK 打包。",
+                        )
+                    }
                     if (ACCEPTED_FILE_EXTENSIONS.none { lowerName.endsWith(it) }) {
                         entry = zis.nextEntry
                         continue
@@ -207,6 +215,9 @@ object PluginPackageLoader {
 
     /** 包内允许的文件类型。 */
     private val ACCEPTED_FILE_EXTENSIONS = listOf(".js", ".json", ".md", ".py")
+
+    /** 原生库扩展名：单独识别，用于给出"平台不允许"的明确原因。 */
+    private const val NATIVE_LIBRARY_EXTENSION = ".so"
 
     /** ui-skin 是声明式包，不得携带任何可执行代码。 */
     private val FORBIDDEN_SKIN_EXTENSIONS = listOf(".js", ".py")

@@ -814,6 +814,7 @@
     <string name="plugin_service_notification_text">Ha plugins rodando em segundo plano</string>
     <string name="plugin_service_notification_stop">Parar</string>
     <string name="plugin_cap_runtime_service">Manter em segundo plano (servico em primeiro plano)</string>
+    <string name="plugin_cap_app_settings">Alterar ajustes (tamanho da fonte, cor dinamica, alto contraste, inicio)</string>
     <string name="plugin_debug_title">Depuracao de plugins</string>
     <string name="plugin_cap_clipboard_read">Ler a area de transferencia</string>
     <string name="plugin_cap_clipboard_write">Escrever na area de transferencia</string>

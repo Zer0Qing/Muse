@@ -766,6 +766,7 @@
     <string name="plugin_service_notification_text">Plugins are running in the background; tap to manage</string>
     <string name="plugin_service_notification_stop">Stop</string>
     <string name="plugin_cap_runtime_service">Keep running in the background (foreground service)</string>
+    <string name="plugin_cap_app_settings">Change app settings (font size, dynamic color, high contrast, default home)</string>
     <string name="plugin_debug_title">Plugin debug</string>
     <string name="plugin_cap_clipboard_read">Read the clipboard</string>
     <string name="plugin_cap_clipboard_write">Write to the clipboard</string>

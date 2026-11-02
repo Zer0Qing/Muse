@@ -394,6 +394,26 @@ export function onServiceStart() {
   不在后台静默复活；
 - 安全模式总闸关掉时服务不会启动。
 
+## 9.998 修改应用设置（`app.settings`）
+
+```js
+return { __bridge__: true, action: "app_set_setting", params: { key: "font_size_scale", value: "1.15" } };
+```
+
+可写项（白名单）：
+
+| key | 取值 | 说明 |
+|---|---|---|
+| `font_size_scale` | 0.8–1.6 | 字号缩放 |
+| `dynamic_color` | `true` / `false` | 动态取色 |
+| `high_contrast` | `true` / `false` | 高对比 |
+| `default_home_page` | 0–2 | 默认首页 |
+
+- 需要能力 **`app.settings`**（默认关）；
+- **只开放外观类、可逆的项**：开关类（例如"是否允许插件执行"）与数据类（例如备份路径）
+  被插件改掉之后，用户很难意识到发生了什么，也很难改回来；
+- 越界值、类型不对、写盘失败都**如实返回失败**。
+
 ## 10. 斜杠命令（已可用）
 
 在清单里声明后，用户在输入框打 `/` 会看到候选；选中或回车执行，**结果写回输入框**

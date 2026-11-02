@@ -47,6 +47,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.RUNTIME_LONG to R.string.plugin_cap_runtime_long,
         PluginCapabilityGateway.SCHEDULE_BACKGROUND to R.string.plugin_cap_schedule_background,
         PluginCapabilityGateway.RUNTIME_SERVICE to R.string.plugin_cap_runtime_service,
+        PluginCapabilityGateway.APP_SETTINGS to R.string.plugin_cap_app_settings,
         PluginCapabilityGateway.SCHEDULE to R.string.plugin_cap_schedule,
     )
 
@@ -72,6 +73,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.RUNTIME_LONG,
         PluginCapabilityGateway.SCHEDULE_BACKGROUND,
         PluginCapabilityGateway.RUNTIME_SERVICE,
+        PluginCapabilityGateway.APP_SETTINGS,
         PluginCapabilityGateway.SCHEDULE,
         PluginCapabilityGateway.RUNTIME_PYTHON,
     )

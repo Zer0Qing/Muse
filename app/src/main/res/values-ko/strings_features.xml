@@ -814,6 +814,7 @@
     <string name="plugin_service_notification_text">백그라운드에서 실행 중인 플러그인이 있습니다</string>
     <string name="plugin_service_notification_stop">중지</string>
     <string name="plugin_cap_runtime_service">백그라운드 상주 (포그라운드 서비스)</string>
+    <string name="plugin_cap_app_settings">앱 설정 변경 (글자 크기, 다이내믹 컬러, 고대비, 기본 홈)</string>
     <string name="plugin_debug_title">플러그인 디버그</string>
     <string name="plugin_cap_clipboard_read">클립보드 읽기</string>
     <string name="plugin_cap_clipboard_write">클립보드에 쓰기</string>

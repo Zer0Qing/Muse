@@ -211,7 +211,8 @@ class PluginCapabilityGateway(
                 capability != UI_SLOT &&
                 capability != RUNTIME_LONG &&
                 capability != SCHEDULE_BACKGROUND &&
-                capability != RUNTIME_SERVICE,
+                capability != RUNTIME_SERVICE &&
+                capability != APP_SETTINGS,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -287,6 +288,13 @@ class PluginCapabilityGateway(
 
     /** 切明暗模式（浅色/深色/跟随系统）。默认关。 */
     const val APP_THEME = "app.theme"
+
+    /**
+     * 写应用设置。默认关，且只开放**外观类、可逆**的四项
+     * （字号 / 动态取色 / 高对比 / 默认首页）—— 开关类与数据类被插件改掉后
+     * 用户很难意识到发生了什么，也很难改回来。
+     */
+    const val APP_SETTINGS = "app.settings"
 
     /**
      * 往宿主界面槽位里放自己的界面片段。
@@ -409,6 +417,7 @@ class PluginCapabilityGateway(
             "app.navigate" to setOf("app_navigate"),
             "app.messages" to setOf("app_insert_message"),
             "app.theme" to setOf("app_set_theme_mode"),
+            "app.settings" to setOf("app_set_setting"),
         )
 
         /**

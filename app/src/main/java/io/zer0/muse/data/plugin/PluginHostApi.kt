@@ -57,6 +57,7 @@ class PluginHostApi(
             action == ACTION_APP_NAVIGATE -> handleAppNavigate(obj, allowedActions)
             action == ACTION_APP_INSERT_MESSAGE -> handleAppInsertMessage(obj, allowedActions)
             action == ACTION_APP_SET_THEME_MODE -> handleAppSetThemeMode(obj, allowedActions)
+            action == ACTION_APP_SET_SETTING -> handleAppSetSetting(obj, allowedActions)
             else -> null
         }
     }
@@ -126,6 +127,24 @@ class PluginHostApi(
             is PluginAppearanceBridge.Applied.Rejected -> SkillBridge.HandleResult.Failure(applied.reason)
             is PluginAppearanceBridge.Applied.Ok ->
                 SkillBridge.HandleResult.Output("{\"ok\":true,\"mode\":\"${mode?.trim()}\"}")
+        }
+    }
+
+    /** 写白名单里的设置项（`app.settings`）。只开放外观类、可逆的四项。 */
+    private suspend fun handleAppSetSetting(
+        obj: JsonObject,
+        allowedActions: Set<String>,
+    ): SkillBridge.HandleResult {
+        if (ACTION_APP_SET_SETTING !in allowedActions) return SkillBridge.HandleResult.Failure(notAuthorized())
+        val bridge = appearanceBridge ?: PluginAppearanceChannels.current
+            ?: return SkillBridge.HandleResult.Failure("宿主未接入外观通道，app_set_setting 不可用")
+        val params = obj["params"] as? JsonObject
+        val key = (params?.get("key") as? JsonPrimitive)?.contentOrNull
+        val value = (params?.get("value") as? JsonPrimitive)?.contentOrNull
+        return when (val applied = bridge.setSetting(key, value)) {
+            is PluginAppearanceBridge.Applied.Rejected -> SkillBridge.HandleResult.Failure(applied.reason)
+            is PluginAppearanceBridge.Applied.Ok ->
+                SkillBridge.HandleResult.Output("{\"ok\":true,\"key\":\"${key?.trim()}\"}")
         }
     }
 
@@ -344,6 +363,9 @@ class PluginHostApi(
 
     /** 切明暗模式（`app.theme`）。 */
     const val ACTION_APP_SET_THEME_MODE = "app_set_theme_mode"
+
+    /** 写白名单里的设置项（`app.settings`）。 */
+    const val ACTION_APP_SET_SETTING = "app_set_setting"
         const val CAPABILITY_MODEL_CALL = "host.model.call"
         const val DEFAULT_CHAT_LIMIT = 10
     }
