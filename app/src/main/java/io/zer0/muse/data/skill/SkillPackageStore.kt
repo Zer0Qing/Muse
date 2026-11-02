@@ -30,6 +30,9 @@ class SkillPackageStore(context: Context) {
 
     private val zip = SkillPackageZip()
 
+    /** 导入 journal：清理上次进程被杀留下的半成品（P1-09）。 */
+    private val journal = SkillImportJournal(File(appContext.filesDir, RELATIVE_ROOT))
+
     /** 包根目录。 */
     val root: File get() = File(appContext.filesDir, RELATIVE_ROOT)
 
@@ -40,7 +43,16 @@ class SkillPackageStore(context: Context) {
     fun relativeManifestPath(skillId: String): String = "$RELATIVE_ROOT/$skillId/$SKILL_FILE"
 
     /** 导入一个包：[source] 是目录或 `.zip`。失败一律给可读中文原因。 */
-    fun import(source: File): Outcome = when {
+    fun import(source: File): Outcome {
+        // 先把上次中断留下的半成品清掉：否则同名包会被判成"已存在"，
+        // 而那个目录其实是残缺的。
+        journal.recover().takeIf { it.isNotEmpty() }?.let { recovered ->
+            Logger.w(TAG, "已清理中断的导入：${recovered.joinToString(",")}")
+        }
+        return importNow(source)
+    }
+
+    private fun importNow(source: File): Outcome = when {
         !source.exists() -> Outcome.fail("包不存在：${source.absolutePath}")
         source.isDirectory -> importDirectory(source)
         else -> importZip(source)
@@ -82,8 +94,13 @@ class SkillPackageStore(context: Context) {
         if (definition == null) return Outcome.fail(parseError ?: "SKILL.md 无效")
         val (plan, conflict) = planFor(definition)
         if (plan == null) return Outcome.fail(conflict ?: "无法准备目标目录")
+        // 打标记再复制：复制到一半进程被杀时，下次导入能把残目录清掉
+        journal.begin(plan.skillId, plan.target)
         return runCatching { source.copyRecursively(plan.target, overwrite = false) }.fold(
-            onSuccess = { Outcome.ok(plan.imported(definition)) },
+            onSuccess = {
+                journal.commit(plan.skillId)
+                Outcome.ok(plan.imported(definition))
+            },
             onFailure = { failAfterFailedCopy(plan.target, it) },
         )
     }
@@ -98,8 +115,12 @@ class SkillPackageStore(context: Context) {
                 if (plan == null) {
                     Outcome.fail(conflict ?: "无法准备目标目录")
                 } else {
+                    journal.begin(plan.skillId, plan.target)
                     runCatching { zip.extractTo(scanned, plan.target) }.fold(
-                        onSuccess = { Outcome.ok(plan.imported(definition)) },
+                        onSuccess = {
+                            journal.commit(plan.skillId)
+                            Outcome.ok(plan.imported(definition))
+                        },
                         onFailure = { failAfterFailedCopy(plan.target, it) },
                     )
                 }
