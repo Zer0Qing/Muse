@@ -78,7 +78,7 @@ object SubagentTool {
             // A-10: parent_session_id 必填 —— 缺省时异步结果无法归属到发起会话而静默丢失。
             "parent_session_id" to "REQUIRED for launch/reply. Parent session id for context isolation and " +
                 "result delivery. If omitted, the async result is silently lost.",
-            "access" to "Optional. Permission tier: read / write (default read, inherits parent session).",
+            "access" to "Optional. Permission tier: read / write / full (default write; full still asks for approval per call).",
             "label" to "Optional. Display label for the task.",
         ),
         required = setOf("action"),
@@ -418,11 +418,18 @@ object SubagentTool {
      * - "read" / "write"(大小写不敏感)→ 对应值
      * - 其他 → null(表示非法值,由调用方返回错误,不静默降级)
      */
-    private fun parseAccess(raw: String?): String? {
-        if (raw.isNullOrBlank()) return "read"
+    /**
+     * 解析 access 参数。
+     *
+     * 缺省返回 `write` —— 与 [SubagentRunner.Params.access] 的默认值保持一致：
+     * 两处默认值不同，工具路径就会比直接调用路径更窄，而这种差异没人会注意到。
+     */
+    internal fun parseAccess(raw: String?): String? {
+        if (raw.isNullOrBlank()) return "write"
         return when (raw.trim().lowercase()) {
             "read" -> "read"
-            "write" -> "write"
+            "write", "coder" -> "write"
+            "full", "all" -> "full"
             else -> null
         }
     }

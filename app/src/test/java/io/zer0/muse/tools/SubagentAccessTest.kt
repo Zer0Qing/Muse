@@ -124,4 +124,49 @@ class SubagentAccessTest {
 
         assertEquals(AgentProfileParser.MAX_PROFILES, AgentProfileParser.collect(files).size)
     }
+
+    // ── agents/ 目录读取 ────────────────────────────────────────────────
+
+    @Test
+    fun `the catalog reads markdown roles from the agents directory`() {
+        val workspace = kotlin.io.path.createTempDirectory("muse-agents").toFile()
+        try {
+            val dir = java.io.File(workspace, AgentProfileCatalog.DIRECTORY_NAME).apply { mkdirs() }
+            java.io.File(dir, "reviewer.md").writeText("---\nname: reviewer\naccess: read\n---\n审查")
+            java.io.File(dir, "writer.md").writeText("---\nname: writer\naccess: write\n---\n写作")
+            // 非 markdown 文件应被忽略
+            java.io.File(dir, "notes.txt").writeText("ignored")
+
+            val profiles = AgentProfileCatalog.load(workspace)
+
+            assertEquals(listOf("reviewer", "writer"), profiles.map { it.name })
+            assertEquals(SubagentAccess.READ_ONLY, profiles.first().access)
+        } finally {
+            workspace.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `a missing agents directory yields no roles instead of failing the delegation`() {
+        val workspace = kotlin.io.path.createTempDirectory("muse-empty").toFile()
+        try {
+            assertTrue(AgentProfileCatalog.load(workspace).isEmpty())
+        } finally {
+            workspace.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `a broken role file is skipped rather than breaking the whole catalog`() {
+        val workspace = kotlin.io.path.createTempDirectory("muse-broken").toFile()
+        try {
+            val dir = java.io.File(workspace, AgentProfileCatalog.DIRECTORY_NAME).apply { mkdirs() }
+            java.io.File(dir, "broken.md").writeText("没有 frontmatter")
+            java.io.File(dir, "ok.md").writeText("---\nname: ok\n---\n正文")
+
+            assertEquals(listOf("ok"), AgentProfileCatalog.load(workspace).map { it.name })
+        } finally {
+            workspace.deleteRecursively()
+        }
+    }
 }

@@ -75,6 +75,8 @@ class SubagentRunner(
     private val toolApprovalRouter: ToolApprovalRouter,
     /** v2.0: 子代理模型设置(为空时跟随主对话模型)。 */
     private val settings: io.zer0.muse.data.SettingsRepository? = null,
+    /** 角色解析：按名字取 `agents/<name>.md` 声明的角色；为空表示不支持角色。 */
+    private val profileResolver: ((String) -> AgentProfile?)? = null,
 ) {
     private val routeGuard = ToolRouteExecutionGuard(toolRegistry)
 
@@ -218,6 +220,12 @@ class SubagentRunner(
          * 要只读的调用方请显式传 `read`。
          */
         val access: String = "write",
+        /**
+         * 角色名（对应 `agents/<name>.md`）。声明了就按角色执行：
+         * 访问级别用角色里的声明（而不是 [access]），角色正文作为额外指令写进提示词。
+         * 角色不存在时**不静默降级**：直接拒绝并列出可用角色，否则用户以为角色生效了。
+         */
+        val profile: String? = null,
         /** 是否在执行完成后关闭线程(一次性委派场景)。默认 false。 */
         val closeAfterRun: Boolean = false,
         /** v1.0.53 Phase 3: token 预算上限(prompt + completion 合计);null=不限制。 */
@@ -327,10 +335,19 @@ class SubagentRunner(
      */
     private suspend fun runInternal(params: Params, threadId: String, isNew: Boolean, cancellation: SubagentCancellation?): Result {
         val maxToolCalls = params.maxToolCalls.coerceIn(1, MAX_TOOL_CALLS_HARD_CAP)
+        // 角色优先：角色是"这个委派是什么身份"的声明，比调用方随手传的 access 更明确
+        val profile = params.profile?.trim()?.takeIf { it.isNotEmpty() }?.let { name -> profileResolver?.invoke(name) }
+        if (params.profile != null && params.profile.isNotBlank() && profile == null) {
+            return Result(
+                success = false,
+                summary = "",
+                error = "找不到角色「${params.profile}」：请确认 agents/${params.profile}.md 存在",
+            )
+        }
         // 访问级别只解析一次，之后按值传递 —— 不能用共享字段：子代理是并发的。
-        val access = SubagentAccess.parse(params.access)
+        val access = profile?.access ?: SubagentAccess.parse(params.access)
         val allowedTools = buildAllowedToolDefinitions(access)
-        val systemPrompt = buildSystemPrompt(maxToolCalls, params.targetPaths, access)
+        val systemPrompt = buildSystemPrompt(maxToolCalls, params.targetPaths, access, profile)
 
         val history = mutableListOf<UIMessage>()
         // v1.0.53: 续接时恢复历史;全新执行时构造 system + user
@@ -750,7 +767,12 @@ class SubagentRunner(
      *  - 完成后输出清晰总结
      *  - 禁止递归委派
      */
-    private fun buildSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?, access: SubagentAccess): String {
+    private fun buildSystemPrompt(
+        maxToolCalls: Int,
+        targetPaths: List<String>?,
+        access: SubagentAccess,
+        profile: AgentProfile? = null,
+    ): String {
         // v2.6.0: 子 agent 提示词跟随应用 locale（旧版写死"用中文输出"，英文用户委托会被强制中文回复）。
         val lang = settings?.getLanguageSync()
         val locale = when (lang) {
@@ -758,10 +780,16 @@ class SubagentRunner(
             else -> lang
         }
         val isZh = locale.startsWith("zh", ignoreCase = true)
-        return if (isZh) {
+        val base = if (isZh) {
             buildChineseSystemPrompt(maxToolCalls, targetPaths, access)
         } else {
             buildEnglishSystemPrompt(maxToolCalls, targetPaths, access)
+        }
+        // 角色正文追加在末尾：它是"这个身份的额外要求"，不该覆盖上面的执行契约
+        return if (profile?.instructions.isNullOrBlank()) {
+            base
+        } else {
+            base + "\n\n## 角色：${profile?.name}\n${profile?.instructions}"
         }
     }
 

@@ -129,3 +129,25 @@ object AgentProfileParser {
         return seen.values.toList()
     }
 }
+
+/**
+ * 角色目录：读取 `agents/` 下的 Markdown 文件。
+ *
+ * 只负责 IO，解析与去重都在 [AgentProfileParser] 里（纯函数，可单测）。
+ * 读不到目录时返回空列表 —— 角色是可选功能，不能因为目录缺失就让委派失败。
+ */
+object AgentProfileCatalog {
+
+    const val DIRECTORY_NAME = "agents"
+
+    fun load(workspaceDir: java.io.File): List<AgentProfile> {
+        val dir = java.io.File(workspaceDir, DIRECTORY_NAME)
+        if (!dir.isDirectory) return emptyList()
+        val files = dir.listFiles { file -> file.isFile && file.name.endsWith(".md", ignoreCase = true) }
+            ?: return emptyList()
+        val loaded = files.map { file ->
+            file.nameWithoutExtension to runCatching { file.readText() }.getOrDefault("")
+        }
+        return AgentProfileParser.collect(loaded)
+    }
+}
