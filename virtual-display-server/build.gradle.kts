@@ -46,4 +46,6 @@ android {
 
 dependencies {
     implementation(project(":virtual-display-protocol"))
+    // 只用于纯逻辑单测（不进 dex：测试依赖不打进产物）
+    testImplementation(libs.junit)
 }

@@ -460,11 +460,15 @@ public final class ServerService extends IVirtualDisplayService.Stub {
             padded.recycle();
         }
         try {
-            byte[] bytes = compress(cropped, 80);
-            if (bytes.length > MAX_JPEG_BYTES) {
-                bytes = compress(cropped, 60);
-            }
-            return bytes;
+            // 从高往低退：模型要靠这张图认按钮和数字，一上来就压到 80 对细笔画偏糊
+            final byte[][] encoded = new byte[1][];
+            JpegQualityLadder.chooseQuality(
+                    quality -> {
+                        encoded[0] = compress(cropped, quality);
+                        return encoded[0].length;
+                    },
+                    MAX_JPEG_BYTES);
+            return encoded[0];
         } finally {
             cropped.recycle();
         }
