@@ -83,6 +83,15 @@ private fun NodeView(node: PluginUiTree.Node, assetsRoot: File?) {
     }
 }
 
+/**
+ * 供交互视图复用只读节点渲染。
+ *
+ * 存在的理由只有一句：**颜色/字号/上限只能有一份实现**。
+ * 交互视图若自己再写一遍 when，两处的排版会在下一次改设计令牌时分叉。
+ */
+@Composable
+internal fun PluginUiReadOnlyNode(node: PluginUiTree.Node, assetsRoot: File?) = NodeView(node, assetsRoot)
+
 @Composable
 private fun LeafView(node: PluginUiTree.Node, assetsRoot: File?) {
     when (node) {
@@ -251,7 +260,16 @@ private fun CodeBlock(text: String) {
  * 一个插件可以同时提供原生界面与自定义排版的 HTML。
  */
 @Composable
-fun PluginDeclarativeViewEntry(pluginName: String, loaded: PluginUiTree.Parsed?, assetsRoot: File?) {
+fun PluginDeclarativeViewEntry(
+    pluginName: String,
+    loaded: PluginUiTree.Parsed?,
+    assetsRoot: File?,
+    /** 是否已授予 `ui.interactive`。未授予时输入控件禁用并写明原因（不隐藏）。 */
+    interactiveEnabled: Boolean = false,
+    disabledReason: String? = null,
+    /** 提交入口。为 null 时界面按只读渲染（例如调用方还没有接上执行链）。 */
+    onSubmit: (suspend (handler: String, valuesJson: String) -> PluginUiSubmitOutcome)? = null,
+) {
     if (loaded == null) return
     var open by remember { mutableStateOf(false) }
     val broken = !loaded.success
@@ -297,7 +315,20 @@ fun PluginDeclarativeViewEntry(pluginName: String, loaded: PluginUiTree.Parsed?,
                         color = MaterialTheme.colorScheme.error,
                     )
                 } else {
-                    loaded.root?.let { PluginUiTreeView(it, assetsRoot) }
+                    val tree = loaded.root
+                    // 只有树里真的有交互节点、且调用方接上了提交链路，才走交互渲染；
+                    // 否则保持只读 —— 给一个点了没反应的界面比不给更糟。
+                    if (tree != null && onSubmit != null && hasInteractiveNodes(tree)) {
+                        PluginInteractiveUiView(
+                            root = tree,
+                            assetsRoot = assetsRoot,
+                            interactiveEnabled = interactiveEnabled,
+                            disabledReason = disabledReason,
+                            onSubmit = onSubmit,
+                        )
+                    } else {
+                        tree?.let { PluginUiTreeView(it, assetsRoot) }
+                    }
                 }
             },
             confirmText = stringResource(R.string.common_close),

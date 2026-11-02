@@ -807,6 +807,9 @@
     <string name="muse_plugins_open_panel">Abrir panel</string>
     <string name="muse_plugins_view_broken">La interfaz no pudo renderizarse (toca para ver el motivo)</string>
     <string name="muse_plugins_view_image_missing">(imagen faltante)</string>
+    <string name="plugin_ui_busy">El envio anterior sigue en curso; espera por favor</string>
+    <string name="plugin_ui_render_failed">No se pudo interpretar la interfaz devuelta por el complemento</string>
+    <string name="plugin_ui_needs_interactive">Esta vista puede enviar un formulario, pero necesita el permiso de interfaz interactiva (modifica datos del complemento)</string>
     <string name="muse_plugins_trust_catalog_title">Raíz de confianza del catálogo</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Huella %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">Aún no has confiado en ningún editor. Al instalar un plugin de un editor desconocido se te pedirá que confirmes la confianza.</string>

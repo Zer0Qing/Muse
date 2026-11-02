@@ -766,6 +766,9 @@
     <string name="muse_plugins_open_panel">Открыть панель</string>
     <string name="muse_plugins_view_broken">Интерфейс не отрисовался (нажмите, чтобы увидеть причину)</string>
     <string name="muse_plugins_view_image_missing">(изображение отсутствует)</string>
+    <string name="plugin_ui_busy">Предыдущая отправка ещё выполняется, подождите</string>
+    <string name="plugin_ui_render_failed">Не удалось разобрать интерфейс, возвращённый плагином</string>
+    <string name="plugin_ui_needs_interactive">Этот экран умеет отправлять форму, но нужно разрешение «интерактивный интерфейс» (меняет данные плагина)</string>
     <string name="muse_plugins_trust_catalog_title">Корень доверия каталога</string>
     <string name="muse_plugins_trust_publisher_fingerprint">Отпечаток %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">Вы ещё не доверились ни одному издателю. При установке плагина неизвестного издателя вам будет предложено подтвердить доверие.</string>

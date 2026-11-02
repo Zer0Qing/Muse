@@ -807,6 +807,9 @@
     <string name="muse_plugins_open_panel">パネルを開く</string>
     <string name="muse_plugins_view_broken">画面を描画できませんでした（詳細はタップ）</string>
     <string name="muse_plugins_view_image_missing">（画像がありません）</string>
+    <string name="plugin_ui_busy">前回の送信がまだ実行中です。終わるまでお待ちください</string>
+    <string name="plugin_ui_render_failed">プラグインが返した画面を解析できませんでした</string>
+    <string name="plugin_ui_needs_interactive">この画面はフォーム送信に対応しますが、対話的 UI の権限が必要です（プラグイン自身のデータを変更します）</string>
     <string name="muse_plugins_trust_catalog_title">カタログの信頼ルート</string>
     <string name="muse_plugins_trust_publisher_fingerprint">フィンガープリント %1$s</string>
     <string name="muse_plugins_trust_publishers_empty">まだどの発行者も信頼していません。不明な発行者のプラグインをインストールすると信頼確認に誘導されます。</string>

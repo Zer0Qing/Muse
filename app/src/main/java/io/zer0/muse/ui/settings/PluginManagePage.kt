@@ -773,10 +773,26 @@ fun PluginManagePage(onBack: () -> Unit) {
                         val declarativeView = remember(plugin.id, plugin.version, plugin.enabled) {
                             if (plugin.enabled) pluginManager.loadUiView(plugin.id) else null
                         }
+                        // 提交链路：账本判「交互界面」是否已批准，执行走 SkillMediaToolsImpl 的同一个入口
+                        // （与工具路径共用桥接路由器，不另建第二条）。koinInject 必须在组合作用域取。
+                        val mediaTools: io.zer0.muse.tools.SkillMediaToolsImpl = koinInject()
                         io.zer0.muse.ui.plugin.PluginDeclarativeViewEntry(
                             pluginName = plugin.name,
                             loaded = declarativeView,
                             assetsRoot = if (plugin.enabled) pluginManager.pluginDirFor(plugin.id) else null,
+                            interactiveEnabled = PluginCapabilityLedgers.shared(context)
+                                .isApproved(plugin.id, PluginCapabilityGateway.UI_INTERACTIVE),
+                            disabledReason = stringResource(R.string.plugin_ui_needs_interactive),
+                            onSubmit = { handler, values ->
+                                when (
+                                    val outcome = mediaTools.invokeUiSubmitHandler(plugin.id, handler, values)
+                                ) {
+                                    is io.zer0.muse.tools.SkillMediaToolsImpl.UiSubmitResult.Tree ->
+                                        io.zer0.muse.ui.plugin.PluginUiSubmitOutcome.Rendered(outcome.parsed)
+                                    is io.zer0.muse.tools.SkillMediaToolsImpl.UiSubmitResult.Rejected ->
+                                        io.zer0.muse.ui.plugin.PluginUiSubmitOutcome.Rejected(outcome.reason)
+                                }
+                            },
                         )
                         // P0-3: 能力与权限。P0-2 之后声明真的会拦请求，这里必须给用户出口：
                         // 看得到授予了什么、最近被拒过什么、升级新增能力要重新批准。

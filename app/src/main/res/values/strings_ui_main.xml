@@ -848,6 +848,9 @@
     <string name="muse_plugins_open_panel">打开面板</string>
     <string name="muse_plugins_view_broken">界面未能渲染（点开看原因）</string>
     <string name="muse_plugins_view_image_missing">（图片缺失）</string>
+    <string name="plugin_ui_busy">上一次仍在执行，请等它结束</string>
+    <string name="plugin_ui_render_failed">插件返回的界面无法解析</string>
+    <string name="plugin_ui_needs_interactive">这个界面可以提交表单，但需要先授予「交互界面」能力（会改动插件自己的数据）</string>
 
     <!-- ===== P2-7: 工作区(WorkspaceScreen + 工具描述) ===== -->
     <string name="workspace_title">工作区</string>
