@@ -797,6 +797,7 @@
     <string name="plugin_cap_network">Acessar a internet (enderecos locais e privados sao bloqueados)</string>
     <string name="plugin_cap_event_on_message">A cada mensagem</string>
     <string name="plugin_cap_event_on_tool_call">A cada chamada de ferramenta</string>
+    <string name="plugin_cap_hook_tool_before">Bloquear chamadas de ferramentas</string>
     <string name="plugin_cap_clipboard_read">Ler a area de transferencia</string>
     <string name="plugin_cap_clipboard_write">Escrever na area de transferencia</string>
     <string name="plugin_cap_clipboard">Ler e escrever na area de transferencia</string>

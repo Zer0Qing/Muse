@@ -174,7 +174,8 @@ class PluginCapabilityGateway(
                 PluginCapabilityGrant(
                     allowed = capability != UI_INTERACTIVE &&
                 capability != EVENT_ON_MESSAGE &&
-                capability != EVENT_ON_TOOL_CALL,
+                capability != EVENT_ON_TOOL_CALL &&
+                capability != HOOK_TOOL_CALL_BEFORE,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -259,6 +260,14 @@ class PluginCapabilityGateway(
     const val EVENT_ON_MESSAGE = "event.onMessage"
 
     const val EVENT_ON_TOOL_CALL = "event.onToolCall"
+
+    /**
+     * 决策型钩子：工具调用前能否**拦下**。
+     *
+     * 默认关闭且属于敏感能力：它能阻止用户本来能做的事，
+     * 也意味着插件能看到工具名与参数（参数里常有用户内容）。
+     */
+    const val HOOK_TOOL_CALL_BEFORE = "hook.toolCallBefore"
 
         /** 通路自检动作：不携带任何外泄面，始终放行。 */
         val ALWAYS_ALLOWED_ACTIONS: Set<String> = setOf("echo")

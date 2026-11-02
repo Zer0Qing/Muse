@@ -796,6 +796,7 @@
     <string name="plugin_cap_network">外部 URL への通信（ローカルと私用アドレスは遮断）</string>
     <string name="plugin_cap_event_on_message">メッセージごと</string>
     <string name="plugin_cap_event_on_tool_call">ツール呼び出しごと</string>
+    <string name="plugin_cap_hook_tool_before">ツール呼び出しをブロック</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>
     <string name="plugin_cap_clipboard">クリップボードの読み書き</string>

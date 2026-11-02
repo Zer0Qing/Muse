@@ -83,6 +83,62 @@ class PluginActivationBridge(
     }
 
     /**
+     * 决策型钩子：插件能否**拦下**这次工具调用（对比清单插件计划 P3b）。
+     *
+     * 语义刻意是**只能收窄**：
+     *  - 调用顺序上它排在审批闸门之后 —— 审批放行的才轮到插件，插件放行的不能反过来绕过审批；
+     *  - 插件只能返回"阻止 + 原因"，不能改写参数、也不能放行本来会被拦的调用；
+     *  - 插件抛错/返回无法解析 → **按放行处理并记日志**（与 HookRegistry 的既有口径一致：
+     *    单个插件出问题不该让整个应用不可用）。
+     *
+     * @return null 表示放行；非 null 是给用户看的阻止原因
+     */
+    suspend fun decideToolCall(toolName: String, argsJson: String): String? {
+        if (!settings.arePluginsGloballyEnabled()) return null
+        val ledger = PluginCapabilityLedgers.shared(context)
+        val targets = pluginManager.list()
+            .filter { it.enabled && it.kind == KIND_TOOL }
+            .filter { ledger.isApproved(it.id, PluginCapabilityGateway.HOOK_TOOL_CALL_BEFORE) }
+            .take(MAX_EVENT_PLUGINS)
+        // firstNotNullOfOrNull：第一个"说要拦"的插件决定结果，其余不再问
+        return targets.firstNotNullOfOrNull { plugin ->
+            runCatching { askPluginToBlock(plugin, toolName, argsJson) }.getOrNull()
+        }
+    }
+
+    /** 问单个插件要不要拦；放行返回 null。 */
+    private suspend fun askPluginToBlock(
+        plugin: PluginManager.InstalledPlugin,
+        toolName: String,
+        argsJson: String,
+    ): String? {
+        val verified = resultOf { pluginManager.loadVerifiedPlugin(plugin.id) }.getOrNull() ?: return null
+        if (ACTIVATION_ON_TOOL_CALL_BEFORE !in verified.manifest.activationEvents) return null
+        val raw = resultOf {
+            invoker.call(
+                manifest = verified.manifest,
+                entryCode = verified.entryCode,
+                functionName = TOOL_CALL_BEFORE_FUNCTION,
+                argsJson = """[{"tool":${quote(toolName)},"args":$argsJson}]""",
+                configJson = pluginManager.getPluginConfigJson(verified.manifest),
+            )
+        }.getOrNull()
+        return when (raw) {
+            is SkillEngineResult.Success -> PluginToolCallDecision.blockReason(raw.valueJson)?.also {
+                Logger.i(TAG, "插件 ${plugin.id} 阻止了工具调用: $toolName")
+            }
+            is SkillEngineResult.Error -> {
+                Logger.w(TAG, "工具决策钩子失败(按放行处理): ${plugin.id} — ${raw.message}")
+                null
+            }
+            null -> {
+                Logger.w(TAG, "工具决策钩子异常(按放行处理): ${plugin.id}")
+                null
+            }
+        }
+    }
+
+    /**
      * 派发一次懒激活事件。
      *
      * 三个上限一起挡住"插件越多越慢"：
@@ -227,6 +283,12 @@ class PluginActivationBridge(
 
         /** 懒激活：每次工具调用。 */
         const val ACTIVATION_ON_TOOL_CALL = "onToolCall"
+
+        /** 决策型：工具调用前可否拦下（只收窄，不能放宽）。 */
+        const val ACTIVATION_ON_TOOL_CALL_BEFORE = "onToolCallBefore"
+
+        /** 决策钩子需要导出的函数名。 */
+        const val TOOL_CALL_BEFORE_FUNCTION = "onToolCallBefore"
 
         /** 事件里携带的消息文本上限。 */
         private const val MAX_EVENT_TEXT_CHARS = 500

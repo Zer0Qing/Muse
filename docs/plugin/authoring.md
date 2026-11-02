@@ -190,6 +190,28 @@ KV 存储那一条是 `storage`（不带 `.read`），两者不是一回事。
 它需要能力 `event.onToolCall`（默认关闭，用户可在能力面板里打开）——
 声明了但没授权时不会被叫醒，日志里会写明原因。
 
+## 10.6 决策型钩子：拦下工具调用
+
+清单里声明 `onToolCallBefore`，并导出同名函数，就能在工具调用前拦一道：
+
+```js
+export function onToolCallBefore({ tool, args }) {
+  if (tool === "open_url" && !args.url?.startsWith("https://")) {
+    return { action: "block", reason: "只允许 https 地址" }
+  }
+  return { action: "allow" }
+}
+```
+
+规则（都往保守方向）：
+
+- 需要能力 **`hook.toolCallBefore`**（默认关闭、属于敏感能力）——
+  它能让你看到工具名与参数，也能让用户的操作失败；
+- **只能收窄**：它排在审批闸门之后，插件放行的调用不会绕过审批；
+- **不能改参数**：能改参数等于能替用户做决定，那不是这一层该有的权力；
+- 只有 `action: "block"` 且带非空 `reason` 才算阻止；其它任何返回（含解析失败、插件报错）
+  一律**放行** —— 一个坏掉的钩子不该让整个应用不可用。
+
 ## 11. 尚未提供（v1 范围外，已明确推迟）
 
 - `schedules`（定时激活）—— 还没有调度源，写了不会被调用；

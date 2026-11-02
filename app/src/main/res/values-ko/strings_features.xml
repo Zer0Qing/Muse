@@ -797,6 +797,7 @@
     <string name="plugin_cap_network">외부 URL 접속(로컬 및 사설 주소는 차단됨)</string>
     <string name="plugin_cap_event_on_message">메시지마다</string>
     <string name="plugin_cap_event_on_tool_call">도구 호출마다</string>
+    <string name="plugin_cap_hook_tool_before">도구 호출 차단</string>
     <string name="plugin_cap_clipboard_read">클립보드 읽기</string>
     <string name="plugin_cap_clipboard_write">클립보드에 쓰기</string>
     <string name="plugin_cap_clipboard">클립보드 읽기 및 쓰기</string>
