@@ -755,6 +755,7 @@
     <string name="plugin_cap_network_local">Access LAN and localhost (home services, local ports)</string>
     <string name="plugin_cap_app_navigate">Open a specific page in the app (home, settings, a session...)</string>
     <string name="plugin_cap_app_messages">Write messages into a chat (they look like the assistant said them)</string>
+    <string name="plugin_cap_app_theme">Switch between light and dark appearance</string>
     <string name="plugin_debug_title">Plugin debug</string>
     <string name="plugin_cap_clipboard_read">Read the clipboard</string>
     <string name="plugin_cap_clipboard_write">Write to the clipboard</string>

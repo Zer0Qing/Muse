@@ -195,7 +195,8 @@ class PluginCapabilityGateway(
                 capability != SCHEDULE &&
                 capability != NETWORK_LOCAL &&
                 capability != APP_NAVIGATE &&
-                capability != APP_MESSAGES,
+                capability != APP_MESSAGES &&
+                capability != APP_THEME,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -268,6 +269,9 @@ class PluginCapabilityGateway(
      * 这是能伪造历史的能力，必须由用户明确打开。
      */
     const val APP_MESSAGES = "app.messages"
+
+    /** 切明暗模式（浅色/深色/跟随系统）。默认关。 */
+    const val APP_THEME = "app.theme"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。
@@ -351,6 +355,7 @@ class PluginCapabilityGateway(
             // app.*：插件能改应用里的东西。逐项授权、默认关 —— 这些动作直接改变用户看到/拥有的状态。
             "app.navigate" to setOf("app_navigate"),
             "app.messages" to setOf("app_insert_message"),
+            "app.theme" to setOf("app_set_theme_mode"),
         )
 
         /**

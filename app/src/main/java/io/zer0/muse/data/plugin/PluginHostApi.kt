@@ -34,6 +34,8 @@ class PluginHostApi(
     private val modelBridge: PluginModelBridge? = null,
     /** 写会话通道（`app_insert_message`）。缺通道时动作一律拒绝。 */
     private val messageBridge: PluginMessageBridge? = null,
+    /** 外观通道（`app_set_theme_mode`）。缺通道时动作一律拒绝。 */
+    private val appearanceBridge: PluginAppearanceBridge? = null,
 ) {
 
     /** 返回 null 表示这个动作不归本类管，调用方继续交给 [SkillBridge]。 */
@@ -54,6 +56,7 @@ class PluginHostApi(
             action == ACTION_MODEL_CALL -> handleModelCall(obj, allowedActions)
             action == ACTION_APP_NAVIGATE -> handleAppNavigate(obj, allowedActions)
             action == ACTION_APP_INSERT_MESSAGE -> handleAppInsertMessage(obj, allowedActions)
+            action == ACTION_APP_SET_THEME_MODE -> handleAppSetThemeMode(obj, allowedActions)
             else -> null
         }
     }
@@ -105,6 +108,24 @@ class PluginHostApi(
             is PluginMessageBridge.Appended.Rejected -> SkillBridge.HandleResult.Failure(appended.reason)
             is PluginMessageBridge.Appended.Ok ->
                 SkillBridge.HandleResult.Output("{\"ok\":true,\"messageId\":\"${appended.messageId}\"}")
+        }
+    }
+
+    /** 切明暗模式（`app.theme`）。只认 light / dark / system，具体皮肤留给用户自己挑。 */
+    private suspend fun handleAppSetThemeMode(
+        obj: JsonObject,
+        allowedActions: Set<String>,
+    ): SkillBridge.HandleResult {
+        if (ACTION_APP_SET_THEME_MODE !in allowedActions) return SkillBridge.HandleResult.Failure(notAuthorized())
+        val bridge = appearanceBridge ?: PluginAppearanceChannels.current
+            ?: return SkillBridge.HandleResult.Failure("宿主未接入外观通道，app_set_theme_mode 不可用")
+        val mode = (obj["params"] as? JsonObject)?.get("mode")?.let { element ->
+            (element as? JsonPrimitive)?.contentOrNull
+        }
+        return when (val applied = bridge.setMode(mode)) {
+            is PluginAppearanceBridge.Applied.Rejected -> SkillBridge.HandleResult.Failure(applied.reason)
+            is PluginAppearanceBridge.Applied.Ok ->
+                SkillBridge.HandleResult.Output("{\"ok\":true,\"mode\":\"${mode?.trim()}\"}")
         }
     }
 
@@ -320,6 +341,9 @@ class PluginHostApi(
 
     /** 往会话里写消息（`app.messages`）。 */
     const val ACTION_APP_INSERT_MESSAGE = "app_insert_message"
+
+    /** 切明暗模式（`app.theme`）。 */
+    const val ACTION_APP_SET_THEME_MODE = "app_set_theme_mode"
         const val CAPABILITY_MODEL_CALL = "host.model.call"
         const val DEFAULT_CHAT_LIMIT = 10
     }

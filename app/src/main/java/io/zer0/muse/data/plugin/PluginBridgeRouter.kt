@@ -51,6 +51,7 @@ class PluginBridgeRouter(
             modelBridge = modelBridge,
             // 写消息通道走进程级持有：它的生命周期就是"启动时装一次"
             messageBridge = PluginMessageChannels.current,
+            appearanceBridge = PluginAppearanceChannels.current,
         ).handle(pluginId, manifest, value, allowedBridgeActions)
         val result = viaHostApi ?: run {
             val host = SkillBridge.Host(

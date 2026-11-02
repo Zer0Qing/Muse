@@ -24,6 +24,8 @@ type Capability =
   | "app.navigate"
   /** 往会话里写消息（用户会当成助手说的）。默认关。 */
   | "app.messages"
+  /** 切换浅色/深色外观。默认关。 */
+  | "app.theme"
   | "clipboard.read"
   | "clipboard.write"
   /** 读写合一的简写，等价于同时声明 clipboard.read + clipboard.write。 */
@@ -133,6 +135,16 @@ interface HostApi {
      * action: app_insert_message
      */
     insertMessage(text: string, role?: "assistant" | "user"): string;
+
+    /**
+     * 切明暗模式。需要 `app.theme`（默认关）。
+     *
+     * 只接受 `light` / `dark` / `system`。**具体皮肤不由插件决定** ——
+     * 挑哪个主题是用户口味，而且自建主题的 id 空间只有 UI 层知道。
+     *
+     * action: app_set_theme_mode
+     */
+    setThemeMode(mode: "light" | "dark" | "system"): string;
   };
 
   /** 调用模型（计入用户用量）。输入上限 8KB，输出上限 4KB。 */
