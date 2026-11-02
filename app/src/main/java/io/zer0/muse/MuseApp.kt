@@ -476,6 +476,12 @@ class MuseApp : Application(), ImageLoaderFactory {
                 resultOf {
                     hookRegistry.register(io.zer0.muse.hook.FloorContextLimiterHook(settings))
                 }.onError { msg, t -> Logger.w("MuseApp", "FloorContextLimiterHook 注册失败: $msg", t) }
+                // P2-03: 工具阶段投到系统通知（切走应用也能看到"在做什么"；通知被关时管理器内部降级）
+                resultOf {
+                    hookRegistry.register(
+                        io.zer0.muse.hook.TaskStageNotificationHook(notificationManager),
+                    )
+                }.onError { msg, t -> Logger.w("MuseApp", "TaskStageNotificationHook 注册失败: $msg", t) }
                 // P1-2: 注册 Worldbook 动态提示注入 Hook(常驻 + 关键词触发 + 深度注入)
                 resultOf {
                     hookRegistry.register(io.zer0.muse.worldbook.WorldBookHook(worldBookRepository))

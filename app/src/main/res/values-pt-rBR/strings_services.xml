@@ -292,6 +292,7 @@
     <string name="tool_write_not_applied">Nao aplicado: esperado %1$d, obtido %2$d</string>
     <string name="tool_brightness_auto_set">Brilho automático ativado</string>
     <string name="read_aloud_channel_name">Reproducao de leitura</string>
+    <string name="notif_task_stage_title">Executando uma tarefa</string>
     <string name="skill_url_dialog_title">Instalar habilidade do GitHub</string>
     <string name="skill_url_hint">https://github.com/autor/repositorio</string>
     <string name="skill_url_help">Apenas repositorios do GitHub; o arquivo e baixado e o SKILL.md e lido.</string>

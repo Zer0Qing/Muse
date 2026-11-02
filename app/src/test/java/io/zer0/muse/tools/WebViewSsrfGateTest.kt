@@ -113,12 +113,13 @@ class WebViewSsrfGateTest {
         val url = "http://cold-ssrf-c.example/"
         val retried = AtomicBoolean(false)
 
-        val startedAt = System.nanoTime()
         val blocked = gate.isBlockedNow(url) { retried.set(true) }
-        val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
 
         assertTrue("冷主机必须 fail-closed", blocked)
-        assertTrue("主线程路径不得等待 DNS(实测 ${elapsedMs}ms)", elapsedMs < 100)
+        // 判据换成"有没有等 DNS"本身：如果主线程路径真的去解析了，这里计数器已经是 1。
+        // 原来的墙钟断言（elapsedMs < 100）在负载高的机器上会无缘无故变红 ——
+        // 时间从来不是这条规则要表达的东西，"没触发解析"才是。
+        assertEquals("主线程路径不得等待 DNS（否则此处已完成一次解析）", 0, resolver.calls.get())
         assertFalse("预热未完成前不重试", retried.get())
 
         withTimeout(5_000) {

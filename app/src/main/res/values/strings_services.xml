@@ -322,6 +322,7 @@
     <string name="tool_write_not_applied">设置未生效：期望 %1$d，实际 %2$d</string>
     <string name="tool_brightness_auto_set">已启用自动亮度</string>
     <string name="read_aloud_channel_name">朗读播放</string>
+    <string name="notif_task_stage_title">正在执行任务</string>
     <string name="skill_url_dialog_title">从 GitHub 安装技能</string>
     <string name="skill_url_hint">https://github.com/作者/仓库</string>
     <string name="skill_url_help">只支持 github.com 的仓库；会下载仓库归档并读取其中的 SKILL.md。</string>

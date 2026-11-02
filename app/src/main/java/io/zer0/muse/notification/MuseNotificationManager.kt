@@ -444,6 +444,37 @@ class MuseNotificationManager(private val context: Context) {
         .build()
 
     /**
+     * 工具阶段投影（对比清单 P2-03）：把"正在执行哪个工具"投到系统通知。
+     *
+     * 与流式进度共用同一个低优先级渠道，但用独立 ID —— 两者可以同时存在
+     * （一边生成一边调工具），互相覆盖会让用户看到跳动的内容。
+     *
+     * **降级**：通知被系统或用户关掉时直接返回，不报错也不弹提示 ——
+     * 这是"没有通知"而不是"任务失败"，静默跳过才符合预期。
+     */
+    fun updateTaskStage(text: String?, target: MuseNotificationTarget = MuseNotificationTarget.Chat) {
+        if (text.isNullOrBlank()) {
+            resultOf { nm.cancel(NOTIF_ID_TASK_STAGE) }
+            return
+        }
+        if (!notificationsAllowed()) return
+        val notif = NotificationCompat.Builder(context, CHANNEL_CHAT_LIVE_UPDATE)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(context.getString(R.string.notif_task_stage_title))
+            .setContentText(text)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setProgress(0, 0, true)
+            .setContentIntent(buildMainActivityPendingIntent(target))
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+        resultOf { nm.notify(NOTIF_ID_TASK_STAGE, notif) }
+            .onError { msg, _ -> Logger.w(TAG, "updateTaskStage failed: $msg") }
+    }
+
+    private fun notificationsAllowed(): Boolean = runCatching { nm.areNotificationsEnabled() }.getOrDefault(false)
+
+    /**
      * 显示/更新 Web 服务器运行状态通知(常驻,直到服务器停止)。
      * @param port 监听端口
      * @param isRunning true 显示"运行中",false 取消通知
@@ -579,6 +610,8 @@ class MuseNotificationManager(private val context: Context) {
         private const val NOTIF_ID_CHAT_COMPLETED = 1001
         private const val NOTIF_ID_CHAT_PENDING_APPROVAL = 1005
         private const val NOTIF_ID_LIVE_UPDATE = 1002
+    /** 工具阶段通知：与流式进度分开，避免互相覆盖。 */
+    private const val NOTIF_ID_TASK_STAGE = 1005
 
         // v2.0: 流式进度通知最小发送间隔(毫秒)
         private const val LIVE_PROGRESS_MIN_INTERVAL_MS = 900L
