@@ -301,7 +301,16 @@ object WorkspaceTool {
         val offsetChars = args["offset_chars"]?.toIntOrNull()
         val lengthChars = args["length_chars"]?.toIntOrNull()
         return when (val r = manager.readFilePage(path, offsetChars, lengthChars, scope)) {
-            is WorkspaceManager.ReadResult.Success -> r.content
+            is WorkspaceManager.ReadResult.Success -> io.zer0.muse.workspace.WorkspaceReadContract.render(
+                meta = io.zer0.muse.workspace.WorkspaceReadContract.Meta(
+                    displayPath = path,
+                    revision = r.revision,
+                    offsetChars = r.offsetChars,
+                    returnedChars = r.content.length,
+                    totalChars = r.totalChars,
+                ),
+                content = r.content,
+            )
             is WorkspaceManager.ReadResult.Error -> "Error: ${r.message}"
         }
     }

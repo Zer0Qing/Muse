@@ -297,7 +297,13 @@ class WorkspaceManager(private val context: Context) {
                 } else {
                     t.fs.readText(t.relative)
                 }
-                ReadResult.Success(content)
+                ReadResult.Success(
+                    content = content,
+                    offsetChars = if (paginated) (offsetChars ?: 0) else 0,
+                    totalChars = if (paginated) -1 else content.length,
+                    // revision 只用大小 + 修改时间：不为此多读一遍文件（大文件读一遍的代价比这高得多）
+                    revision = "${t.fs.size(t.relative)}:${t.fs.lastModified(t.relative)}",
+                )
             }
         } catch (e: WorkspaceIoException) {
             ReadResult.Error(e.message ?: "读取失败")
@@ -726,7 +732,17 @@ class WorkspaceManager(private val context: Context) {
 
     /** readFile 结果。 */
     sealed class ReadResult {
-        data class Success(val content: String) : ReadResult()
+        /**
+     * @param offsetChars 本次读取的起始字符位
+     * @param totalChars 文件总字符数
+     * @param revision 版本指纹（大小 + 修改时间）；同内容同 revision
+     */
+    data class Success(
+        val content: String,
+        val offsetChars: Int = 0,
+        val totalChars: Int = content.length,
+        val revision: String = "",
+    ) : ReadResult()
 
         data class Error(val message: String) : ReadResult()
     }

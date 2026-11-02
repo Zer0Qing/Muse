@@ -53,6 +53,9 @@ data class FsEntry(
  * 抽象出这一层的原因：本地目录能直接拿到 [File]，系统授权目录只能拿到文档句柄，
  * 两套 API 语义差得远。上层只面对这组方法，就不再被来源绑死。
  */
+// 文件系统抽象天然是"一组基本操作"：增删改查 + 列目录 + 范围读 + stat。
+// 把它拆成几个接口只会让调用方同时持有多个引用，判定逻辑反而更散。
+@Suppress("TooManyFunctions")
 interface WorkspaceFs {
     /** 列目录。不存在或不是目录时抛 [WorkspaceIoException]。 */
     suspend fun list(relative: String): List<FsEntry>
@@ -65,6 +68,9 @@ interface WorkspaceFs {
 
     /** 字节数；不存在或不是文件时返回 0。 */
     suspend fun size(relative: String): Long
+
+    /** 最后修改时间（毫秒）。与 [size] 一起构成 revision：同内容同版本。 */
+    suspend fun lastModified(relative: String): Long
 
     /** 读文本。超出调用方上限由上层判断，这里不设业务上限。 */
     suspend fun readText(relative: String): String
@@ -160,6 +166,10 @@ class LocalWorkspaceFs(private val root: File) : WorkspaceFs {
 
     override suspend fun isDirectory(relative: String): Boolean = withContext(Dispatchers.IO) {
         resolve(relative, allowRoot = true)?.isDirectory == true
+    }
+
+    override suspend fun lastModified(relative: String): Long = withContext(Dispatchers.IO) {
+        require(relative).lastModified()
     }
 
     override suspend fun size(relative: String): Long = withContext(Dispatchers.IO) {

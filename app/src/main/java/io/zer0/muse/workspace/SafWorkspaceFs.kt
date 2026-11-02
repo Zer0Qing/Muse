@@ -94,6 +94,10 @@ class SafWorkspaceFs(private val context: Context, treeUri: Uri) : WorkspaceFs {
         find(relative)?.takeIf { it.isFile }?.length() ?: 0L
     }
 
+    override suspend fun lastModified(relative: String): Long = withContext(Dispatchers.IO) {
+        find(relative)?.takeIf { it.isFile }?.lastModified() ?: 0L
+    }
+
     override suspend fun readText(relative: String): String = withContext(Dispatchers.IO) {
         val doc = find(relative) ?: throw WorkspaceIoException("文件不存在: $relative")
         if (!doc.isFile) throw WorkspaceIoException("不是文件: $relative")
