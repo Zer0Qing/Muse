@@ -67,6 +67,8 @@ internal class ToolOutputCapture(
     val savedFile: File? get() = outputFile
 
     init {
+        // P2-05: 每次进程里第一次落盘时顺手清理过期输出（尽力而为，失败不影响本次执行）
+        io.zer0.muse.data.policy.ToolOutputRetention.purgeOnce(outputDirectory, System.currentTimeMillis())
         require(inlineLimitChars >= 0)
         require(previewLimitChars >= 0)
     }
