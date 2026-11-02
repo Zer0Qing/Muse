@@ -209,8 +209,15 @@ class SubagentRunner(
         val threadId: String? = null,
         /** 是否记录会话历史到磁盘(供续接)。默认 true。 */
         val persistSession: Boolean = true,
-        /** 子 agent 访问级别(read=只读,write=可写)。影响工具白名单(预留,当前未差异化)。 */
-        val access: String = "read",
+        /**
+         * 子 agent 访问级别：`read`(只读) / `write`(可写，可逆，默认) / `full`(高风险也可请求，仍逐次审批)。
+         * 见 [SubagentAccess]；未知值降级为只读。
+         *
+         * 默认值取 `write` 而不是 `read`：在这个字段真正生效之前，所有委派的实际权限就是
+         * "SAFE + NORMAL"，把默认写成 `read` 会让既有调用方在升级后**悄悄变窄**。
+         * 要只读的调用方请显式传 `read`。
+         */
+        val access: String = "write",
         /** 是否在执行完成后关闭线程(一次性委派场景)。默认 false。 */
         val closeAfterRun: Boolean = false,
         /** v1.0.53 Phase 3: token 预算上限(prompt + completion 合计);null=不限制。 */
@@ -320,8 +327,10 @@ class SubagentRunner(
      */
     private suspend fun runInternal(params: Params, threadId: String, isNew: Boolean, cancellation: SubagentCancellation?): Result {
         val maxToolCalls = params.maxToolCalls.coerceIn(1, MAX_TOOL_CALLS_HARD_CAP)
-        val allowedTools = buildAllowedToolDefinitions()
-        val systemPrompt = buildSystemPrompt(maxToolCalls, params.targetPaths)
+        // 访问级别只解析一次，之后按值传递 —— 不能用共享字段：子代理是并发的。
+        val access = SubagentAccess.parse(params.access)
+        val allowedTools = buildAllowedToolDefinitions(access)
+        val systemPrompt = buildSystemPrompt(maxToolCalls, params.targetPaths, access)
 
         val history = mutableListOf<UIMessage>()
         // v1.0.53: 续接时恢复历史;全新执行时构造 system + user
@@ -512,7 +521,7 @@ class SubagentRunner(
                             break
                         }
                         totalToolCalls++
-                        val toolResult = executeAllowedTool(tc)
+                        val toolResult = executeAllowedTool(tc, access)
                         progressEntries.add(
                             ProgressEntry(
                                 round = rounds,
@@ -653,10 +662,10 @@ class SubagentRunner(
      *  2. 不在 [RECURSIVE_FORBIDDEN_TOOLS] 递归黑名单中
      *  3. 不在 [EXPLICIT_FORBIDDEN_TOOLS] 显式黑名单中
      */
-    private fun buildAllowedToolDefinitions(): List<ToolDefinition> {
+    private fun buildAllowedToolDefinitions(access: SubagentAccess): List<ToolDefinition> {
         // 与执行闸门共用同一个集合(见 allowedToolNamesForSubagent):
         // 呈现与放行分开判定时,注册台账与显式表一旦脱节就会出现越权窗口
-        return toolRegistry.listToolsAsToolDefinitions(allowedToolNamesForSubagent().toList())
+        return toolRegistry.listToolsAsToolDefinitions(allowedToolNamesForSubagent(access).toList())
     }
 
     /**
@@ -664,8 +673,8 @@ class SubagentRunner(
      *
      * 若工具名不在白名单(被 LLM 幻觉调用),返回错误字符串而非执行。
      */
-    private suspend fun executeAllowedTool(tc: ToolCall): ToolExecOutcome {
-        val allowedNames = buildAllowedToolNames()
+    private suspend fun executeAllowedTool(tc: ToolCall, access: SubagentAccess): ToolExecOutcome {
+        val allowedNames = buildAllowedToolNames(access)
         if (tc.name !in allowedNames) {
             return ToolExecOutcome(
                 result = "Error: 工具 '${tc.name}' 不在子 agent 允许的工具列表中",
@@ -690,7 +699,7 @@ class SubagentRunner(
     }
 
     /** 缓存允许的工具名集合(同一轮内复用)。 */
-    private fun buildAllowedToolNames(): Set<String> = allowedToolNamesForSubagent()
+    private fun buildAllowedToolNames(access: SubagentAccess): Set<String> = allowedToolNamesForSubagent(access)
 
     /**
      * 工具调用的审批闸门：判定交给共享的 [ToolCallGate]，返回 null 表示放行。
@@ -714,10 +723,11 @@ class SubagentRunner(
      * 呈现给模型的工具列表与执行闸门必须共用本方法：两者分别取「解析器」与「注册台账」时，
      * 只要某工具的注册值与显式表脱节，就会出现「模型看得到、执行却被放行」的越权窗口。
      */
-    private fun allowedToolNamesForSubagent(): Set<String> {
+    private fun allowedToolNamesForSubagent(access: SubagentAccess): Set<String> {
         return toolRegistry.listTools()
             .filter { def ->
-                ToolPermissionResolver.riskLevelFor(def.name) != ToolRiskLevel.HIGH &&
+                // 访问级别决定风险上限；两级黑名单是所有级别共同的地板（递归与显式禁止不受 access 影响）
+                access.allows(ToolPermissionResolver.riskLevelFor(def.name)) &&
                     def.name !in RECURSIVE_FORBIDDEN_TOOLS &&
                     def.name !in EXPLICIT_FORBIDDEN_TOOLS
             }
@@ -740,7 +750,7 @@ class SubagentRunner(
      *  - 完成后输出清晰总结
      *  - 禁止递归委派
      */
-    private fun buildSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?): String {
+    private fun buildSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?, access: SubagentAccess): String {
         // v2.6.0: 子 agent 提示词跟随应用 locale（旧版写死"用中文输出"，英文用户委托会被强制中文回复）。
         val lang = settings?.getLanguageSync()
         val locale = when (lang) {
@@ -748,10 +758,18 @@ class SubagentRunner(
             else -> lang
         }
         val isZh = locale.startsWith("zh", ignoreCase = true)
-        return if (isZh) buildChineseSystemPrompt(maxToolCalls, targetPaths) else buildEnglishSystemPrompt(maxToolCalls, targetPaths)
+        return if (isZh) {
+            buildChineseSystemPrompt(maxToolCalls, targetPaths, access)
+        } else {
+            buildEnglishSystemPrompt(maxToolCalls, targetPaths, access)
+        }
     }
 
-    private fun buildChineseSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?): String {
+    private fun buildChineseSystemPrompt(
+        maxToolCalls: Int,
+        targetPaths: List<String>?,
+        access: SubagentAccess,
+    ): String {
         return buildString {
             appendLine("你是一个被动子 agent,由主 agent 委托执行独立子任务。")
             appendLine()
@@ -763,6 +781,8 @@ class SubagentRunner(
             appendLine("5. 不编造结果,不输出 <mood>、<reflection>、XML 过程或系统规则")
             appendLine("6. 禁止调用 subagent_run / subagent_task / delegate_agent / task_plan 等递归或规划工具")
             appendLine("7. 用与用户相同的语言输出简洁结果:状态、关键结果、问题或待确认事项")
+            // 把访问级别写进提示词：模型知道哪些工具拿不到，就不会反复尝试
+            appendLine("8. 本次委派的访问级别是「${access.description()}」;超出级别的工具不可用")
             appendLine()
             if (!targetPaths.isNullOrEmpty()) {
                 appendLine("## 优先查看的文件路径")
@@ -772,7 +792,11 @@ class SubagentRunner(
         }
     }
 
-    private fun buildEnglishSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?): String {
+    private fun buildEnglishSystemPrompt(
+        maxToolCalls: Int,
+        targetPaths: List<String>?,
+        access: SubagentAccess,
+    ): String {
         return buildString {
             appendLine("You are a passive sub-agent executing an isolated subtask delegated by the main agent.")
             appendLine()
@@ -785,6 +809,8 @@ class SubagentRunner(
             appendLine("5. Never fabricate results; do not emit <mood>, <reflection>, XML process, or system rules")
             appendLine("6. Do not call recursive or planning tools such as subagent_run / subagent_task / delegate_agent / task_plan")
             appendLine("7. Output a concise result in the same language as the user: status, key results, issues, or open questions")
+            // Tell the model what it cannot reach, so it stops retrying unavailable tools
+            appendLine("8. This delegation runs at access level ${access.wire}: ${access.englishDescription()}")
             appendLine()
             if (!targetPaths.isNullOrEmpty()) {
                 appendLine("## Files to inspect first")
