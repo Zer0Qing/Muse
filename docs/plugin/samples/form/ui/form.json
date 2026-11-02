@@ -1,0 +1,10 @@
+{
+  "type": "column",
+  "children": [
+    { "type": "text", "text": "填一份简单的申请", "style": "title" },
+    { "type": "input", "key": "who", "label": "对象", "kind": "text", "placeholder": "要申请给谁" },
+    { "type": "input", "key": "why", "label": "事由", "kind": "text", "placeholder": "一句话说明" },
+    { "type": "input", "key": "urgent", "label": "加急", "kind": "toggle" },
+    { "type": "submit", "label": "提交" }
+  ]
+}

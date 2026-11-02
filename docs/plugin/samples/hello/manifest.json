@@ -1,0 +1,21 @@
+{
+  "id": "sample-hello",
+  "name": "示例：打个招呼",
+  "version": "1.0.0",
+  "description": "最小的可用插件：一个工具，不需要任何权限。",
+  "author": "示例",
+  "entry": "main.js",
+  "runtime": "node",
+  "kind": "tool",
+  "trust": "sandboxed",
+  "capabilities": [],
+  "activationEvents": [],
+  "tools": [
+    {
+      "name": "greet",
+      "description": "向指定的人打招呼，返回一句问候。",
+      "functionName": "greet",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"名字\"}},\"required\":[\"name\"]}"
+    }
+  ]
+}

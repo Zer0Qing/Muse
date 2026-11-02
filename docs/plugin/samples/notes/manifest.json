@@ -1,0 +1,27 @@
+{
+  "id": "sample-notes",
+  "name": "示例：随手记",
+  "version": "1.0.0",
+  "description": "演示私有 KV 存储：保存一条短笔记并按时间列出。",
+  "author": "示例",
+  "entry": "main.js",
+  "runtime": "node",
+  "kind": "tool",
+  "trust": "sandboxed",
+  "capabilities": ["storage"],
+  "activationEvents": [],
+  "tools": [
+    {
+      "name": "note_save",
+      "description": "保存一条笔记（存进插件自己的 KV，其他插件看不到）。",
+      "functionName": "noteSave",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}},\"required\":[\"text\"]}"
+    },
+    {
+      "name": "note_list",
+      "description": "列出已保存的笔记（最多最近 10 条）。",
+      "functionName": "noteList",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{}}"
+    }
+  ]
+}

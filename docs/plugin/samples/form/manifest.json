@@ -1,0 +1,22 @@
+{
+  "id": "sample-form",
+  "name": "示例：填个表",
+  "version": "1.0.0",
+  "description": "演示声明式交互界面：表单在宿主里原生渲染，提交后由插件返回结果。",
+  "author": "示例",
+  "entry": "main.js",
+  "runtime": "node",
+  "kind": "tool",
+  "trust": "sandboxed",
+  "capabilities": ["ui.interactive"],
+  "activationEvents": [],
+  "uiView": "ui/form.json",
+  "tools": [
+    {
+      "name": "fill_form",
+      "description": "打开表单，填写后返回一段汇总文本。",
+      "functionName": "fillForm",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{}}"
+    }
+  ]
+}

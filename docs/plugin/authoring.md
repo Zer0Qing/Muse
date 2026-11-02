@@ -159,6 +159,18 @@ KV 存储那一条是 `storage`（不带 `.read`），两者不是一回事。
 | 交互面板目前要求 manifest 里写 runtime=node | 用了 js 档 | 改 `"runtime": "node"` |
 | 插件需要「Python 运行时」高信任授权 | `runtime: python` 未批准 | 让用户在能力与权限里单独允许 |
 
+## 9.5 照着改就能跑：示例与类型声明
+
+| 文件 | 用途 |
+|---|---|
+| `docs/plugin/muse-plugin.d.ts` | 宿主 API 的类型声明；放进你的项目就有补全与类型检查 |
+| `docs/plugin/samples/hello/` | **最小可用**：一个工具，零权限 |
+| `docs/plugin/samples/notes/` | 私有 KV 存储（`storage`）：保存并列出短笔记 |
+| `docs/plugin/samples/form/` | 声明式交互界面（`ui.interactive`）：表单在宿主里原生渲染 |
+
+三个示例的清单都会被测试真的解析一遍，`.d.ts` 也会被测试校验
+"每个桥接动作都写了" —— 所以它们不会烂在仓库里。
+
 ## 10. 斜杠命令（已可用）
 
 在清单里声明后，用户在输入框打 `/` 会看到候选；选中或回车执行，**结果写回输入框**
