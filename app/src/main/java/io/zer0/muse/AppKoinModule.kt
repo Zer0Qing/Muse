@@ -43,6 +43,8 @@ import java.util.concurrent.TimeUnit
 val appModule = module {
 // 插件读会话的唯一通道：会话身份由宿主随调用注入，这里只提供读写入口。
     single { io.zer0.muse.data.plugin.PluginChatBridge(get()) }
+    // 插件写消息通道（app.messages）。与只读的 chat 通道分开：写错了是「用户看到假消息」。
+    single { io.zer0.muse.data.plugin.PluginMessageBridge(get()) }
     // 插件调模型：走既有辅助模型路由与 UTILITY 通道；拿不到 SettingsRepository 时回落主对话模型。
     single { io.zer0.muse.data.plugin.PluginModelBridge(get(), getOrNull()) }
     // 启动期一次性写盘在这里触发（而不是在 SettingsRepository.init 里自动跑）：

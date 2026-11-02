@@ -801,6 +801,7 @@
     <string name="plugin_cap_schedule">定期的に実行（アプリ起動中のみ）</string>
     <string name="plugin_cap_network_local">LAN と localhost へのアクセス（家庭内サービス、ローカルポート）</string>
     <string name="plugin_cap_app_navigate">アプリ内の指定ページを開く（ホーム、設定、会話など）</string>
+    <string name="plugin_cap_app_messages">会話にメッセージを書き込む（アシスタントの発言として表示されます）</string>
     <string name="plugin_debug_title">プラグインのデバッグ</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>

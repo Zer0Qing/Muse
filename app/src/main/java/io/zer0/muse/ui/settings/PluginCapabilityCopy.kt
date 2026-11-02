@@ -41,6 +41,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.HOOK_SYSTEM_PROMPT to R.string.plugin_cap_hook_system_prompt,
         PluginCapabilityGateway.NETWORK_LOCAL to R.string.plugin_cap_network_local,
         PluginCapabilityGateway.APP_NAVIGATE to R.string.plugin_cap_app_navigate,
+        PluginCapabilityGateway.APP_MESSAGES to R.string.plugin_cap_app_messages,
         PluginCapabilityGateway.SCHEDULE to R.string.plugin_cap_schedule,
     )
 
@@ -60,6 +61,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.HOOK_SYSTEM_PROMPT,
         PluginCapabilityGateway.NETWORK_LOCAL,
         PluginCapabilityGateway.APP_NAVIGATE,
+        PluginCapabilityGateway.APP_MESSAGES,
         PluginCapabilityGateway.SCHEDULE,
         PluginCapabilityGateway.RUNTIME_PYTHON,
     )

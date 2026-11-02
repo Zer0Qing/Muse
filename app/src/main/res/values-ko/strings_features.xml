@@ -802,6 +802,7 @@
     <string name="plugin_cap_schedule">정기 실행 (앱이 살아있는 동안)</string>
     <string name="plugin_cap_network_local">LAN 및 localhost 접근 (집 안의 서비스, 로컬 포트)</string>
     <string name="plugin_cap_app_navigate">앱의 특정 화면 열기 (홈, 설정, 대화 등)</string>
+    <string name="plugin_cap_app_messages">대화에 메시지 쓰기 (어시스턴트가 한 말로 표시됩니다)</string>
     <string name="plugin_debug_title">플러그인 디버그</string>
     <string name="plugin_cap_clipboard_read">클립보드 읽기</string>
     <string name="plugin_cap_clipboard_write">클립보드에 쓰기</string>

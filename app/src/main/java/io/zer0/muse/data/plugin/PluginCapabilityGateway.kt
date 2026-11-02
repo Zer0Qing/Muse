@@ -194,7 +194,8 @@ class PluginCapabilityGateway(
                 capability != HOOK_SYSTEM_PROMPT &&
                 capability != SCHEDULE &&
                 capability != NETWORK_LOCAL &&
-                capability != APP_NAVIGATE,
+                capability != APP_NAVIGATE &&
+                capability != APP_MESSAGES,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -261,6 +262,12 @@ class PluginCapabilityGateway(
 
     /** 让宿主跳转到某个页面（页面白名单见 `PluginAppNavigation`）。默认关。 */
     const val APP_NAVIGATE = "app.navigate"
+
+    /**
+     * 往会话里写消息。默认关且敏感：写进去的内容用户会当成"助手说过的话"，
+     * 这是能伪造历史的能力，必须由用户明确打开。
+     */
+    const val APP_MESSAGES = "app.messages"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。
@@ -343,6 +350,7 @@ class PluginCapabilityGateway(
             "host.model.call" to setOf("model_call"),
             // app.*：插件能改应用里的东西。逐项授权、默认关 —— 这些动作直接改变用户看到/拥有的状态。
             "app.navigate" to setOf("app_navigate"),
+            "app.messages" to setOf("app_insert_message"),
         )
 
         /**

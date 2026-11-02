@@ -32,6 +32,8 @@ class PluginHostApi(
     private val sessionId: String = PluginChatBridge.SESSION_PLACEHOLDER,
     /** 模型调用通道（`model_call`）。缺通道时动作一律拒绝。 */
     private val modelBridge: PluginModelBridge? = null,
+    /** 写会话通道（`app_insert_message`）。缺通道时动作一律拒绝。 */
+    private val messageBridge: PluginMessageBridge? = null,
 ) {
 
     /** 返回 null 表示这个动作不归本类管，调用方继续交给 [SkillBridge]。 */
@@ -51,6 +53,7 @@ class PluginHostApi(
             action == ACTION_CHAT_READ -> handleChatRead(obj, allowedActions)
             action == ACTION_MODEL_CALL -> handleModelCall(obj, allowedActions)
             action == ACTION_APP_NAVIGATE -> handleAppNavigate(obj, allowedActions)
+            action == ACTION_APP_INSERT_MESSAGE -> handleAppInsertMessage(obj, allowedActions)
             else -> null
         }
     }
@@ -76,6 +79,32 @@ class PluginHostApi(
                     SkillBridge.HandleResult.Failure("当前没有可用的界面来执行跳转（应用可能还没进入前台）")
                 }
             }
+        }
+    }
+
+    /**
+     * 往当前会话里写一条消息（`app.messages`）。
+     *
+     * 会话 id **只认宿主注入的那一个**：插件参数里的 `session_id` 一律不读 ——
+     * 否则一个插件就能往任意会话里塞话，而用户会以为那是助手说的。
+     */
+    private suspend fun handleAppInsertMessage(
+        obj: JsonObject,
+        allowedActions: Set<String>,
+    ): SkillBridge.HandleResult {
+        if (ACTION_APP_INSERT_MESSAGE !in allowedActions) return SkillBridge.HandleResult.Failure(notAuthorized())
+        // 构造参数优先，其次读进程级持有：两者都没有才算"未接入"。
+        // 双保险的理由是这条通道的安装点在 Application 启动流程里，
+        // 而调用方可能来自不同装配路径（工具、命令、界面提交）—— 漏传一处就变成"动作永远不可用"。
+        val bridge = messageBridge ?: PluginMessageChannels.current
+            ?: return SkillBridge.HandleResult.Failure("宿主未接入消息写入通道，app_insert_message 不可用")
+        val params = obj["params"] as? JsonObject
+        val text = (params?.get("text") as? JsonPrimitive)?.contentOrNull.orEmpty()
+        val role = (params?.get("role") as? JsonPrimitive)?.contentOrNull.orEmpty()
+        return when (val appended = bridge.append(sessionId, role, text)) {
+            is PluginMessageBridge.Appended.Rejected -> SkillBridge.HandleResult.Failure(appended.reason)
+            is PluginMessageBridge.Appended.Ok ->
+                SkillBridge.HandleResult.Output("{\"ok\":true,\"messageId\":\"${appended.messageId}\"}")
         }
     }
 
@@ -288,6 +317,9 @@ class PluginHostApi(
 
     /** 跳转（`app.navigate`）。 */
     const val ACTION_APP_NAVIGATE = "app_navigate"
+
+    /** 往会话里写消息（`app.messages`）。 */
+    const val ACTION_APP_INSERT_MESSAGE = "app_insert_message"
         const val CAPABILITY_MODEL_CALL = "host.model.call"
         const val DEFAULT_CHAT_LIMIT = 10
     }

@@ -802,6 +802,7 @@
     <string name="plugin_cap_schedule">Ejecutar periodicamente (con la app activa)</string>
     <string name="plugin_cap_network_local">Acceder a la red local y a localhost (servicios en casa)</string>
     <string name="plugin_cap_app_navigate">Abrir una pagina concreta de la app (inicio, ajustes, una sesion...)</string>
+    <string name="plugin_cap_app_messages">Escribir mensajes en un chat (pareceran del asistente)</string>
     <string name="plugin_debug_title">Depuracion de plugins</string>
     <string name="plugin_cap_clipboard_read">Leer el portapapeles</string>
     <string name="plugin_cap_clipboard_write">Escribir en el portapapeles</string>

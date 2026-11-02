@@ -22,6 +22,8 @@ type Capability =
   | "network.local"
   /** 让宿主跳转到指定页面（页面白名单见作者文档）。默认关。 */
   | "app.navigate"
+  /** 往会话里写消息（用户会当成助手说的）。默认关。 */
+  | "app.messages"
   | "clipboard.read"
   | "clipboard.write"
   /** 读写合一的简写，等价于同时声明 clipboard.read + clipboard.write。 */
@@ -120,6 +122,17 @@ interface HostApi {
      * action: app_navigate
      */
     navigate(target: string): boolean;
+
+    /**
+     * 往**当前会话**写一条消息。需要 `app.messages`（默认关，敏感）。
+     *
+     * 会话由宿主决定，插件无法指定 —— 你在参数里写 sessionId 不会生效。
+     * 角色只允许 assistant / user（system 能改写模型行为，不给）。
+     * 单条上限 4000 字。
+     *
+     * action: app_insert_message
+     */
+    insertMessage(text: string, role?: "assistant" | "user"): string;
   };
 
   /** 调用模型（计入用户用量）。输入上限 8KB，输出上限 4KB。 */

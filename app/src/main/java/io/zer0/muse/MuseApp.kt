@@ -514,6 +514,13 @@ class MuseApp : Application(), ImageLoaderFactory {
                     bridge.start()
                     // 发送链路通过这个持有者投 onMessage（加构造参数会撞 LongParameterList）
                     io.zer0.muse.data.plugin.PluginActivationBridge.install(bridge)
+                    // 插件写消息通道（app.messages）：同样走进程级持有，
+                    // 避免给 SkillMediaToolsImpl 再加构造参数（那会连带 detekt 基线失配）
+                    io.zer0.muse.data.plugin.PluginMessageChannels.install(
+                        org.koin.java.KoinJavaComponent.get(
+                            io.zer0.muse.data.plugin.PluginMessageBridge::class.java,
+                        ),
+                    )
                     // P3b: 工具调用事件转给插件（观察型，按能力授权；默认关闭）
                     hookRegistry.register(io.zer0.muse.hook.PluginEventHook(bridge))
                     // P3b: 决策型钩子（只能收窄；默认关闭，需 hook.toolCallBefore 授权）

@@ -851,6 +851,7 @@
     <string name="plugin_cap_schedule">Запуск по расписанию (пока приложение активно)</string>
     <string name="plugin_cap_network_local">Доступ к локальной сети и localhost (домашние сервисы)</string>
     <string name="plugin_cap_app_navigate">Открыть определённую страницу приложения (главная, настройки, диалог...)</string>
+    <string name="plugin_cap_app_messages">Писать сообщения в диалог (выглядят как слова ассистента)</string>
     <string name="plugin_debug_title">Отладка плагинов</string>
     <string name="plugin_cap_clipboard_read">Чтение буфера обмена</string>
     <string name="plugin_cap_clipboard_write">Запись в буфер обмена</string>
