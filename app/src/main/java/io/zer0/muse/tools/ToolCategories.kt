@@ -80,6 +80,8 @@ object ToolCategories {
             "set_alarm",
             "set_timer",
             "add_calendar_event",
+            "update_calendar_event",
+            "delete_calendar_event",
             "toggle_wifi",
             "toggle_bluetooth",
             "toggle_flashlight",

@@ -179,6 +179,17 @@
     <string name="tool_calendar_unknown_id">The specified calendar does not exist: id=%1$s</string>
     <string name="tool_calendar_added_with_id">Added event &quot;%1$s&quot; (event_id=%2$s); use this id to update or delete it later</string>
     <string name="tool_calendar_add_failed_perm">Failed to add calendar event (please check WRITE_CALENDAR permission)</string>
+    <string name="tool_calendar_invalid_scope">scope must be all or this: %1$s</string>
+    <string name="tool_calendar_invalid_event_id">Invalid event_id: %1$s</string>
+    <string name="tool_calendar_nothing_to_update">Nothing to update; provide at least one of title/start_time/end_time/description/location/all_day</string>
+    <string name="tool_calendar_this_needs_occurrence">scope=this requires occurrence_time (the start of that occurrence)</string>
+    <string name="tool_calendar_this_update_unsupported">Editing a single occurrence is not supported yet: use scope=all for the whole series, or delete with scope=this to cancel one occurrence</string>
+    <string name="tool_calendar_updated">Event updated (id=%1$s)</string>
+    <string name="tool_calendar_deleted">Event deleted (id=%1$s)</string>
+    <string name="tool_calendar_canceled_this">Cancelled this occurrence of the series (id=%1$s)</string>
+    <string name="tool_calendar_event_not_found">Event not found (id=%1$s); it may have been deleted or the id is wrong</string>
+    <string name="tool_calendar_update_failed">Update failed: %1$s</string>
+    <string name="tool_calendar_delete_failed">Delete failed: %1$s</string>
     <string name="tool_calendar_add_failed">Failed to add calendar event</string>
     <string name="tool_missing_param_hour">Missing parameter: hour (0-23)</string>
     <string name="tool_hour_range">hour must be 0-23</string>

@@ -165,6 +165,17 @@
     <string name="tool_calendar_unknown_id">指定されたカレンダーが存在しません：id=%1$s</string>
     <string name="tool_calendar_added_with_id">予定「%1$s」を追加しました（event_id=%2$s）。この id で更新・削除できます</string>
     <string name="tool_calendar_add_failed_perm">カレンダーイベントの追加に失敗しました (WRITE_CALENDAR 権限を確認してください)</string>
+    <string name="tool_calendar_invalid_scope">scope は all か this のみです：%1$s</string>
+    <string name="tool_calendar_invalid_event_id">event_id が無効です：%1$s</string>
+    <string name="tool_calendar_nothing_to_update">変更する項目がありません（title/start_time/end_time/description/location/all_day のいずれか）</string>
+    <string name="tool_calendar_this_needs_occurrence">scope=this には occurrence_time（その回の開始時刻）が必要です</string>
+    <string name="tool_calendar_this_update_unsupported">単発の回だけの変更は未対応です：scope=all でシリーズ全体を変更するか、削除の scope=this でその回をキャンセルしてください</string>
+    <string name="tool_calendar_updated">予定を更新しました（id=%1$s）</string>
+    <string name="tool_calendar_deleted">予定を削除しました（id=%1$s）</string>
+    <string name="tool_calendar_canceled_this">このシリーズのこの回をキャンセルしました（id=%1$s）</string>
+    <string name="tool_calendar_event_not_found">予定が見つかりません（id=%1$s）。削除済みか id が誤っている可能性があります</string>
+    <string name="tool_calendar_update_failed">更新に失敗しました：%1$s</string>
+    <string name="tool_calendar_delete_failed">削除に失敗しました：%1$s</string>
     <string name="tool_calendar_add_failed">カレンダーイベントの追加に失敗しました</string>
     <string name="tool_missing_param_hour">パラメータがありません: 時間 (0-23)</string>
     <string name="tool_hour_range">時間は 0 ～ 23 である必要があります</string>

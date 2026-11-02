@@ -186,7 +186,204 @@ class CalendarToolsRegistrar(
             }.onError { msg, _ -> Logger.w("CalendarTools", "添加日历事件失败: $msg") }
                 .getOrNull() ?: context.getString(R.string.tool_calendar_add_failed)
         }
+
+        toolRegistry.register(
+            ToolRegistry.ToolDef(
+                name = "update_calendar_event",
+                description = "按 event_id 修改一个日历事件。需要 WRITE_CALENDAR 权限。",
+                parameters = mapOf(
+                    "event_id" to "必填,事件 id(calendar_today 输出里的 id=...)",
+                    "title" to "可选,新标题",
+                    "start_time" to "可选,新开始时间 ISO 8601 或 yyyy-MM-dd HH:mm",
+                    "end_time" to "可选,新结束时间",
+                    "description" to "可选,新描述",
+                    "location" to "可选,新地点",
+                    "all_day" to "可选,true/false;为 true 时按 UTC 午夜写入",
+                    "scope" to "可选,all(默认,整个系列) / this(仅单次;当前不支持修改)",
+                    "occurrence_time" to "可选,scope=this 时该次的开始时间",
+                ),
+                required = setOf("event_id"),
+                category = "built-in",
+                riskLevel = ToolRiskLevel.HIGH,
+            ),
+        ) { args ->
+            val cr = context.contentResolver
+            val eventIdRaw = args["event_id"]
+            val eventId = eventIdRaw?.trim()?.toLongOrNull()
+            val scope = CalendarSemantics.RecurrenceScope.parse(args["scope"])
+                ?: return@register context.getString(R.string.tool_calendar_invalid_scope, args["scope"].orEmpty())
+            val occurrenceTime = parseDateTime(args["occurrence_time"] ?: "")
+            val allDay = args["all_day"]?.takeIf { it.isNotBlank() }?.equals("true", ignoreCase = true)
+            val startMs = parseDateTime(args["start_time"] ?: "")
+            val endMs = parseDateTime(args["end_time"] ?: "")
+            val values = android.content.ContentValues()
+            var hasField = false
+            args["title"]?.takeIf { it.isNotBlank() }?.let {
+                values.put(android.provider.CalendarContract.Events.TITLE, it)
+                hasField = true
+            }
+            if (startMs != null) {
+                values.put(android.provider.CalendarContract.Events.DTSTART, startMs)
+                hasField = true
+            }
+            if (endMs != null) {
+                values.put(android.provider.CalendarContract.Events.DTEND, endMs)
+                hasField = true
+            }
+            args["description"]?.let {
+                values.put(android.provider.CalendarContract.Events.DESCRIPTION, it)
+                hasField = true
+            }
+            args["location"]?.let {
+                values.put(android.provider.CalendarContract.Events.EVENT_LOCATION, it)
+                hasField = true
+            }
+            allDay?.let {
+                values.put(android.provider.CalendarContract.Events.ALL_DAY, if (it) 1 else 0)
+                hasField = true
+            }
+            CalendarSemantics.checkUpdate(eventId, scope, hasField, occurrenceTime)?.let { rejection ->
+                return@register when (rejection) {
+                    CalendarSemantics.MutationRejection.INVALID_ID ->
+                        context.getString(R.string.tool_calendar_invalid_event_id, eventIdRaw.orEmpty())
+                    CalendarSemantics.MutationRejection.NOTHING_TO_UPDATE ->
+                        context.getString(R.string.tool_calendar_nothing_to_update)
+                    CalendarSemantics.MutationRejection.THIS_SCOPE_NEEDS_OCCURRENCE_TIME ->
+                        context.getString(R.string.tool_calendar_this_needs_occurrence)
+                    CalendarSemantics.MutationRejection.THIS_SCOPE_UPDATE_UNSUPPORTED ->
+                        context.getString(R.string.tool_calendar_this_update_unsupported)
+                }
+            }
+            // 改成全天时同样要落 UTC 午夜，否则和新增路径不一致（西半球会前移一天）
+            if (allDay == true && startMs != null) {
+                val (utcStart, utcEnd) = CalendarSemantics.normalizeAllDay(
+                    startMs,
+                    endMs ?: (startMs + DAY_MS),
+                )
+                values.put(android.provider.CalendarContract.Events.DTSTART, utcStart)
+                values.put(android.provider.CalendarContract.Events.DTEND, utcEnd)
+            }
+            val id = eventId ?: 0L
+            resultOf {
+                val rows = cr.update(
+                    android.provider.CalendarContract.Events.CONTENT_URI,
+                    values,
+                    "${android.provider.CalendarContract.Events._ID} = ?",
+                    arrayOf(id.toString()),
+                )
+                if (rows > 0) {
+                    context.getString(R.string.tool_calendar_updated, id.toString())
+                } else {
+                    context.getString(R.string.tool_calendar_event_not_found, id.toString())
+                }
+            }.onError { msg, _ -> Logger.w("CalendarTools", "更新日历事件失败: $msg") }
+                .getOrNull() ?: context.getString(R.string.tool_calendar_update_failed, "")
+        }
+
+        toolRegistry.register(
+            ToolRegistry.ToolDef(
+                name = "delete_calendar_event",
+                description = "按 event_id 删除日历事件；重复日程可只取消某一次。需要 WRITE_CALENDAR 权限。",
+                parameters = mapOf(
+                    "event_id" to "必填,事件 id",
+                    "scope" to "可选,all(默认,整个系列) / this(只取消这一次)",
+                    "occurrence_time" to "可选,scope=this 必填:该次的开始时间",
+                ),
+                required = setOf("event_id"),
+                category = "built-in",
+                riskLevel = ToolRiskLevel.HIGH,
+            ),
+        ) { args ->
+            val cr = context.contentResolver
+            val eventIdRaw = args["event_id"]
+            val eventId = eventIdRaw?.trim()?.toLongOrNull()
+            val scope = CalendarSemantics.RecurrenceScope.parse(args["scope"])
+                ?: return@register context.getString(R.string.tool_calendar_invalid_scope, args["scope"].orEmpty())
+            val occurrenceTime = parseDateTime(args["occurrence_time"] ?: "")
+            CalendarSemantics.checkDelete(eventId, scope, occurrenceTime)?.let { rejection ->
+                return@register when (rejection) {
+                    CalendarSemantics.MutationRejection.INVALID_ID ->
+                        context.getString(R.string.tool_calendar_invalid_event_id, eventIdRaw.orEmpty())
+                    CalendarSemantics.MutationRejection.THIS_SCOPE_NEEDS_OCCURRENCE_TIME ->
+                        context.getString(R.string.tool_calendar_this_needs_occurrence)
+                    else -> context.getString(R.string.tool_calendar_delete_failed, "")
+                }
+            }
+            val id = eventId ?: 0L
+            if (scope == CalendarSemantics.RecurrenceScope.THIS) {
+                // 取消单次 = 写一条"例外行"（STATUS_CANCELED），而不是删整条重复规则
+                return@register cancelSingleOccurrence(cr, id, occurrenceTime ?: 0L)
+            }
+            resultOf {
+                val rows = cr.delete(
+                    android.provider.CalendarContract.Events.CONTENT_URI,
+                    "${android.provider.CalendarContract.Events._ID} = ?",
+                    arrayOf(id.toString()),
+                )
+                if (rows > 0) {
+                    context.getString(R.string.tool_calendar_deleted, id.toString())
+                } else {
+                    context.getString(R.string.tool_calendar_event_not_found, id.toString())
+                }
+            }.onError { msg, _ -> Logger.w("CalendarTools", "删除日历事件失败: $msg") }
+                .getOrNull() ?: context.getString(R.string.tool_calendar_delete_failed, "")
+        }
     }
+
+    /**
+     * 取消重复日程中的某一次。
+     *
+     * CalendarContract 的做法是写一条**例外行**：`ORIGINAL_ID` 指向原事件、
+     * `ORIGINAL_INSTANCE_TIME` 指向该次开始、`STATUS = STATUS_CANCELED`。
+     * 直接删原事件会把整个系列删掉 —— 那是完全不同的语义。
+     */
+    private fun cancelSingleOccurrence(
+        cr: android.content.ContentResolver,
+        eventId: Long,
+        occurrenceTime: Long,
+    ): String = resultOf {
+        val original = readEventForException(cr, eventId)
+            ?: return@resultOf context.getString(R.string.tool_calendar_event_not_found, eventId.toString())
+        val values = android.content.ContentValues().apply {
+            put(android.provider.CalendarContract.Events.ORIGINAL_ID, eventId)
+            put(android.provider.CalendarContract.Events.ORIGINAL_INSTANCE_TIME, occurrenceTime)
+            put(android.provider.CalendarContract.Events.STATUS, android.provider.CalendarContract.Events.STATUS_CANCELED)
+            put(android.provider.CalendarContract.Events.CALENDAR_ID, original.first)
+            put(android.provider.CalendarContract.Events.DTSTART, occurrenceTime)
+            put(android.provider.CalendarContract.Events.DTEND, occurrenceTime)
+            put(android.provider.CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
+        }
+        val uri = cr.insert(android.provider.CalendarContract.Events.CONTENT_EXCEPTION_URI, values)
+        if (uri != null) {
+            context.getString(R.string.tool_calendar_canceled_this, eventId.toString())
+        } else {
+            context.getString(R.string.tool_calendar_delete_failed, "")
+        }
+    }.onError { msg, _ -> Logger.w("CalendarTools", "取消单次日程失败: $msg") }
+        .getOrNull() ?: context.getString(R.string.tool_calendar_delete_failed, "")
+
+    /** 读原事件的日历 id 与时间（写例外行需要）。 */
+    private fun readEventForException(
+        cr: android.content.ContentResolver,
+        eventId: Long,
+    ): Pair<Long, Long>? = resultOf {
+        cr.query(
+            android.provider.CalendarContract.Events.CONTENT_URI,
+            arrayOf(
+                android.provider.CalendarContract.Events.CALENDAR_ID,
+                android.provider.CalendarContract.Events.DTSTART,
+            ),
+            "${android.provider.CalendarContract.Events._ID} = ?",
+            arrayOf(eventId.toString()),
+            null,
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                cursor.getLong(0) to cursor.getLong(1)
+            } else {
+                null
+            }
+        }
+    }.getOrNull()
 
     private fun parseDateTime(input: String): Long? {
         if (input.isBlank()) return null

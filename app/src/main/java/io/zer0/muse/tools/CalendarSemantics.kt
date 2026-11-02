@@ -59,6 +59,60 @@ object CalendarSemantics {
         return startUtc to endUtc
     }
 
+    /** 重复日程的作用域：整个系列，还是只这一次。 */
+    enum class RecurrenceScope {
+        ALL,
+        THIS,
+        ;
+
+        companion object {
+            fun parse(raw: String?): RecurrenceScope? = when (raw?.trim()?.lowercase()) {
+                null, "", "all", "series" -> ALL
+                "this", "instance", "single" -> THIS
+                else -> null
+            }
+        }
+    }
+
+    /** 更新/删除被拒绝的原因。文案由调用方翻译，这里只给代号（保持纯函数可测）。 */
+    enum class MutationRejection {
+        INVALID_ID,
+        NOTHING_TO_UPDATE,
+        THIS_SCOPE_NEEDS_OCCURRENCE_TIME,
+        THIS_SCOPE_UPDATE_UNSUPPORTED,
+    }
+
+    /**
+     * 更新前的校验。
+     *
+     * `scope=THIS` 目前**只支持取消某一次**（走删除），不支持"只改这一次"：
+     * 修改单个实例要写例外行并重算系列，做不对会把整个重复日程弄乱 ——
+     * 与其半吊子支持，不如明确拒绝并给出可行替代。
+     */
+    fun checkUpdate(
+        eventId: Long?,
+        scope: RecurrenceScope?,
+        hasAnyField: Boolean,
+        occurrenceTime: Long?,
+    ): MutationRejection? = when {
+        eventId == null || eventId <= 0L -> MutationRejection.INVALID_ID
+        !hasAnyField -> MutationRejection.NOTHING_TO_UPDATE
+        scope == RecurrenceScope.THIS && occurrenceTime == null -> MutationRejection.THIS_SCOPE_NEEDS_OCCURRENCE_TIME
+        scope == RecurrenceScope.THIS -> MutationRejection.THIS_SCOPE_UPDATE_UNSUPPORTED
+        else -> null
+    }
+
+    /** 删除前的校验：单次取消必须给出该次的开始时间。 */
+    fun checkDelete(
+        eventId: Long?,
+        scope: RecurrenceScope?,
+        occurrenceTime: Long?,
+    ): MutationRejection? = when {
+        eventId == null || eventId <= 0L -> MutationRejection.INVALID_ID
+        scope == RecurrenceScope.THIS && occurrenceTime == null -> MutationRejection.THIS_SCOPE_NEEDS_OCCURRENCE_TIME
+        else -> null
+    }
+
     /** 目标日历的选择结果。 */
     sealed interface CalendarChoice {
         data class Chosen(val id: Long, val displayName: String) : CalendarChoice

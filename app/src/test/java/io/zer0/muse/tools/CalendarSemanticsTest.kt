@@ -122,4 +122,77 @@ class CalendarSemanticsTest {
         assertTrue("窗口起点要进路径: $uri", uri.toString().contains(start.toString()))
         assertTrue("窗口终点要进路径: $uri", uri.toString().contains(end.toString()))
     }
+
+    // ── 按 id 更新/删除的校验（P1-05 第二批） ────────────────────────────
+
+    @Test
+    fun `scope parsing accepts the documented words and rejects the rest`() {
+        assertEquals(CalendarSemantics.RecurrenceScope.ALL, CalendarSemantics.RecurrenceScope.parse(null))
+        assertEquals(CalendarSemantics.RecurrenceScope.ALL, CalendarSemantics.RecurrenceScope.parse(" ALL "))
+        assertEquals(CalendarSemantics.RecurrenceScope.THIS, CalendarSemantics.RecurrenceScope.parse("This"))
+        assertEquals(null, CalendarSemantics.RecurrenceScope.parse("sometimes"))
+    }
+
+    @Test
+    fun `an invalid event id is rejected before touching the provider`() {
+        listOf(null, 0L, -3L).forEach { id ->
+            assertEquals(
+                "id=$id 必须被拒绝",
+                CalendarSemantics.MutationRejection.INVALID_ID,
+                CalendarSemantics.checkUpdate(id, CalendarSemantics.RecurrenceScope.ALL, true, null),
+            )
+        }
+    }
+
+    @Test
+    fun `an update without any field is rejected`() {
+        assertEquals(
+            CalendarSemantics.MutationRejection.NOTHING_TO_UPDATE,
+            CalendarSemantics.checkUpdate(7L, CalendarSemantics.RecurrenceScope.ALL, hasAnyField = false, occurrenceTime = null),
+        )
+    }
+
+    @Test
+    fun `editing a single occurrence is refused with a reason instead of half working`() {
+        assertEquals(
+            "scope=this 缺 occurrence_time 要单独报",
+            CalendarSemantics.MutationRejection.THIS_SCOPE_NEEDS_OCCURRENCE_TIME,
+            CalendarSemantics.checkUpdate(7L, CalendarSemantics.RecurrenceScope.THIS, true, null),
+        )
+        assertEquals(
+            "带了 occurrence_time 也要明确说不支持",
+            CalendarSemantics.MutationRejection.THIS_SCOPE_UPDATE_UNSUPPORTED,
+            CalendarSemantics.checkUpdate(7L, CalendarSemantics.RecurrenceScope.THIS, true, 1_700_000_000_000L),
+        )
+    }
+
+    @Test
+    fun `a normal whole-series update passes validation`() {
+        assertEquals(
+            null,
+            CalendarSemantics.checkUpdate(7L, CalendarSemantics.RecurrenceScope.ALL, true, null),
+        )
+    }
+
+    @Test
+    fun `deleting a single occurrence requires its start time`() {
+        assertEquals(
+            CalendarSemantics.MutationRejection.THIS_SCOPE_NEEDS_OCCURRENCE_TIME,
+            CalendarSemantics.checkDelete(7L, CalendarSemantics.RecurrenceScope.THIS, null),
+        )
+        assertEquals(
+            "给了时间就放行（写例外行取消这一次）",
+            null,
+            CalendarSemantics.checkDelete(7L, CalendarSemantics.RecurrenceScope.THIS, 1_700_000_000_000L),
+        )
+        assertEquals(null, CalendarSemantics.checkDelete(7L, CalendarSemantics.RecurrenceScope.ALL, null))
+    }
+
+    @Test
+    fun `deleting with an invalid id is rejected`() {
+        assertEquals(
+            CalendarSemantics.MutationRejection.INVALID_ID,
+            CalendarSemantics.checkDelete(0L, CalendarSemantics.RecurrenceScope.ALL, null),
+        )
+    }
 }

@@ -165,6 +165,17 @@
     <string name="tool_calendar_unknown_id">O calendario indicado nao existe: id=%1$s</string>
     <string name="tool_calendar_added_with_id">Evento &quot;%1$s&quot; adicionado (event_id=%2$s); use este id para atualizar ou excluir</string>
     <string name="tool_calendar_add_failed_perm">Falha ao adicionar evento da agenda (verifique a permissão WRITE_CALENDAR)</string>
+    <string name="tool_calendar_invalid_scope">scope deve ser all ou this: %1$s</string>
+    <string name="tool_calendar_invalid_event_id">event_id invalido: %1$s</string>
+    <string name="tool_calendar_nothing_to_update">Nada para atualizar; informe ao menos title/start_time/end_time/description/location/all_day</string>
+    <string name="tool_calendar_this_needs_occurrence">scope=this exige occurrence_time (o inicio daquela ocorrencia)</string>
+    <string name="tool_calendar_this_update_unsupported">Editar apenas uma ocorrencia ainda nao e suportado: use scope=all para a serie ou exclua com scope=this para cancelar uma</string>
+    <string name="tool_calendar_updated">Evento atualizado (id=%1$s)</string>
+    <string name="tool_calendar_deleted">Evento excluido (id=%1$s)</string>
+    <string name="tool_calendar_canceled_this">Esta ocorrencia da serie foi cancelada (id=%1$s)</string>
+    <string name="tool_calendar_event_not_found">Evento nao encontrado (id=%1$s); pode ter sido excluido ou o id esta errado</string>
+    <string name="tool_calendar_update_failed">Falha ao atualizar: %1$s</string>
+    <string name="tool_calendar_delete_failed">Falha ao excluir: %1$s</string>
     <string name="tool_calendar_add_failed">Falha ao adicionar evento da agenda</string>
     <string name="tool_missing_param_hour">Parâmetro ausente: hora (0-23)</string>
     <string name="tool_hour_range">hora deve ser 0-23</string>

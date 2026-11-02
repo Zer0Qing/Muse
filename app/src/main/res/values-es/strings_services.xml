@@ -165,6 +165,17 @@
     <string name="tool_calendar_unknown_id">El calendario indicado no existe: id=%1$s</string>
     <string name="tool_calendar_added_with_id">Evento agregado &quot;%1$s&quot; (event_id=%2$s); usa este id para actualizarlo o borrarlo</string>
     <string name="tool_calendar_add_failed_perm">No se pudo agregar el evento del calendario (verifique el permiso WRITE_CALENDAR)</string>
+    <string name="tool_calendar_invalid_scope">scope debe ser all o this: %1$s</string>
+    <string name="tool_calendar_invalid_event_id">event_id no valido: %1$s</string>
+    <string name="tool_calendar_nothing_to_update">Nada que actualizar; indica al menos title/start_time/end_time/description/location/all_day</string>
+    <string name="tool_calendar_this_needs_occurrence">scope=this requiere occurrence_time (el inicio de esa ocurrencia)</string>
+    <string name="tool_calendar_this_update_unsupported">Aun no se puede editar una sola ocurrencia: usa scope=all para la serie o elimina con scope=this para cancelar una</string>
+    <string name="tool_calendar_updated">Evento actualizado (id=%1$s)</string>
+    <string name="tool_calendar_deleted">Evento eliminado (id=%1$s)</string>
+    <string name="tool_calendar_canceled_this">Se cancelo esta ocurrencia de la serie (id=%1$s)</string>
+    <string name="tool_calendar_event_not_found">No se encontro el evento (id=%1$s); puede haber sido eliminado o el id es incorrecto</string>
+    <string name="tool_calendar_update_failed">Fallo al actualizar: %1$s</string>
+    <string name="tool_calendar_delete_failed">Fallo al eliminar: %1$s</string>
     <string name="tool_calendar_add_failed">No se pudo agregar el evento del calendario</string>
     <string name="tool_missing_param_hour">Parámetro faltante: hora (0-23)</string>
     <string name="tool_hour_range">la hora debe ser 0-23</string>

@@ -195,6 +195,17 @@
     <string name="tool_calendar_unknown_id">指定的日历不存在：id=%1$s</string>
     <string name="tool_calendar_added_with_id">已添加事件「%1$s」（event_id=%2$s）；后续可用该 id 更新或删除</string>
     <string name="tool_calendar_add_failed_perm">添加日历事件失败（请检查 WRITE_CALENDAR 权限）</string>
+    <string name="tool_calendar_invalid_scope">scope 只能是 all 或 this：%1$s</string>
+    <string name="tool_calendar_invalid_event_id">event_id 无效：%1$s</string>
+    <string name="tool_calendar_nothing_to_update">没有要修改的字段，至少提供一个（title/start_time/end_time/description/location/all_day）</string>
+    <string name="tool_calendar_this_needs_occurrence">scope=this 需要 occurrence_time（该次的开始时间）</string>
+    <string name="tool_calendar_this_update_unsupported">暂不支持只修改单次实例：请用 scope=all 修改整个系列，或用删除的单次取消</string>
+    <string name="tool_calendar_updated">已更新事件（id=%1$s）</string>
+    <string name="tool_calendar_deleted">已删除事件（id=%1$s）</string>
+    <string name="tool_calendar_canceled_this">已取消该系列中的这一次（id=%1$s）</string>
+    <string name="tool_calendar_event_not_found">未找到该事件（id=%1$s），可能已被删除或 id 有误</string>
+    <string name="tool_calendar_update_failed">更新失败：%1$s</string>
+    <string name="tool_calendar_delete_failed">删除失败：%1$s</string>
     <string name="tool_calendar_add_failed">添加日历事件失败</string>
     <string name="tool_missing_param_hour">缺少参数： hour(0-23)</string>
     <string name="tool_hour_range">hour 取值范围 0-23</string>

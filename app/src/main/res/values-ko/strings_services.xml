@@ -165,6 +165,17 @@
     <string name="tool_calendar_unknown_id">지정한 캘린더가 없습니다: id=%1$s</string>
     <string name="tool_calendar_added_with_id">일정 &quot;%1$s&quot; 추가됨 (event_id=%2$s). 이 id 로 수정하거나 삭제할 수 있습니다</string>
     <string name="tool_calendar_add_failed_perm">캘린더 일정을 추가하지 못했습니다(WRITE_CALENDAR 권한을 확인하세요).</string>
+    <string name="tool_calendar_invalid_scope">scope 는 all 또는 this 여야 합니다: %1$s</string>
+    <string name="tool_calendar_invalid_event_id">event_id 가 올바르지 않습니다: %1$s</string>
+    <string name="tool_calendar_nothing_to_update">수정할 항목이 없습니다 (title/start_time/end_time/description/location/all_day 중 하나)</string>
+    <string name="tool_calendar_this_needs_occurrence">scope=this 에는 occurrence_time(해당 회차 시작 시각)이 필요합니다</string>
+    <string name="tool_calendar_this_update_unsupported">단일 회차만 수정하는 것은 아직 지원되지 않습니다. scope=all 로 시리즈 전체를 수정하거나, 삭제의 scope=this 로 해당 회차를 취소하세요</string>
+    <string name="tool_calendar_updated">일정을 수정했습니다 (id=%1$s)</string>
+    <string name="tool_calendar_deleted">일정을 삭제했습니다 (id=%1$s)</string>
+    <string name="tool_calendar_canceled_this">이 시리즈의 해당 회차를 취소했습니다 (id=%1$s)</string>
+    <string name="tool_calendar_event_not_found">일정을 찾을 수 없습니다 (id=%1$s). 삭제되었거나 id 가 잘못되었을 수 있습니다</string>
+    <string name="tool_calendar_update_failed">수정 실패: %1$s</string>
+    <string name="tool_calendar_delete_failed">삭제 실패: %1$s</string>
     <string name="tool_calendar_add_failed">캘린더 일정을 추가하지 못했습니다.</string>
     <string name="tool_missing_param_hour">누락된 매개변수: 시(0-23)</string>
     <string name="tool_hour_range">시간은 0-23이어야 합니다.</string>

@@ -165,6 +165,17 @@
     <string name="tool_calendar_unknown_id">Указанный календарь не существует: id=%1$s</string>
     <string name="tool_calendar_added_with_id">Событие «%1$s» добавлено (event_id=%2$s); по этому id его можно изменить или удалить</string>
     <string name="tool_calendar_add_failed_perm">Не удалось добавить событие календаря (проверьте разрешение WRITE_CALENDAR).</string>
+    <string name="tool_calendar_invalid_scope">scope должен быть all или this: %1$s</string>
+    <string name="tool_calendar_invalid_event_id">Некорректный event_id: %1$s</string>
+    <string name="tool_calendar_nothing_to_update">Нечего изменять: укажите хотя бы одно из title/start_time/end_time/description/location/all_day</string>
+    <string name="tool_calendar_this_needs_occurrence">scope=this требует occurrence_time (время начала этого повторения)</string>
+    <string name="tool_calendar_this_update_unsupported">Изменение только одного повторения пока не поддерживается: используйте scope=all для всей серии или удаление с scope=this, чтобы отменить одно</string>
+    <string name="tool_calendar_updated">Событие обновлено (id=%1$s)</string>
+    <string name="tool_calendar_deleted">Событие удалено (id=%1$s)</string>
+    <string name="tool_calendar_canceled_this">Это повторение серии отменено (id=%1$s)</string>
+    <string name="tool_calendar_event_not_found">Событие не найдено (id=%1$s): возможно, оно удалено или id неверен</string>
+    <string name="tool_calendar_update_failed">Не удалось обновить: %1$s</string>
+    <string name="tool_calendar_delete_failed">Не удалось удалить: %1$s</string>
     <string name="tool_calendar_add_failed">Не удалось добавить событие календаря.</string>
     <string name="tool_missing_param_hour">Отсутствует параметр: час (0–23).</string>
     <string name="tool_hour_range">час должен быть 0-23</string>
