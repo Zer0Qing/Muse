@@ -186,16 +186,36 @@ object BrowserAutomationTool {
                     when {
                         numberId != null -> browserManager.evaluateJs(buildNumberedClickJs(numberId)).fold(
                             onSuccess = { raw ->
-                                val ok = raw.contains("OK")
-                                buildResult(
-                                    success = true,
-                                    data = if (ok) "已点击编号 $numberId 元素" else "编号 $numberId 未找到(页面可能已刷新,请重新 browser_snapshot)",
-                                )
+                                if (raw.contains("OK")) {
+                                    buildResult(
+                                        success = true,
+                                        data = "已点击编号 $numberId 元素（页面变化未验证）",
+                                        verified = false,
+                                    )
+                                } else {
+                                    buildResult(
+                                        success = false,
+                                        error = "编号 $numberId 未找到：页面可能已刷新，请重新 browser_snapshot 取新编号",
+                                    )
+                                }
                             },
                             onFailure = { e -> buildResult(success = false, error = e.message ?: "点击失败") },
                         )
                         selector != null -> browserManager.click(selector).fold(
-                            onSuccess = { hit -> buildResult(success = true, data = if (hit) "已点击元素: $selector" else "未命中元素: $selector") },
+                            onSuccess = { hit ->
+                                if (hit) {
+                                    buildResult(
+                                        success = true,
+                                        data = "已点击元素: $selector（页面变化未验证）",
+                                        verified = false,
+                                    )
+                                } else {
+                                    buildResult(
+                                        success = false,
+                                        error = "未命中元素: $selector —— 选择器可能已失效，请先 browser_snapshot 再确认",
+                                    )
+                                }
+                            },
                             onFailure = { e -> buildResult(success = false, error = e.message ?: "点击失败") },
                         )
                         else -> buildResult(success = false, error = "参数 selector 或 numberId 至少需要一个")
@@ -208,16 +228,39 @@ object BrowserAutomationTool {
                     when {
                         numberId != null -> browserManager.evaluateJs(buildNumberedTypeJs(numberId, text)).fold(
                             onSuccess = { raw ->
-                                val ok = raw.contains("OK")
-                                buildResult(
-                                    success = true,
-                                    data = if (ok) "已向编号 $numberId 元素输入文本" else "编号 $numberId 未找到(页面可能已刷新,请重新 browser_snapshot)",
-                                )
+                                when {
+                                    raw.contains("OK") -> buildResult(
+                                        success = true,
+                                        data = "已向编号 $numberId 元素输入文本（页面变化未验证）",
+                                        verified = false,
+                                    )
+                                    raw.contains("NOT_EDITABLE") -> buildResult(
+                                        success = false,
+                                        error = "编号 $numberId 元素不可编辑：它可能不是输入框，请换一个可编辑元素",
+                                    )
+                                    else -> buildResult(
+                                        success = false,
+                                        error = "编号 $numberId 未找到：页面可能已刷新，请重新 browser_snapshot 取新编号",
+                                    )
+                                }
                             },
                             onFailure = { e -> buildResult(success = false, error = e.message ?: "输入失败") },
                         )
                         selector != null -> browserManager.type(selector, text).fold(
-                            onSuccess = { hit -> buildResult(success = true, data = if (hit) "已输入文本到: $selector" else "未命中元素: $selector") },
+                            onSuccess = { hit ->
+                                if (hit) {
+                                    buildResult(
+                                        success = true,
+                                        data = "已输入文本到: $selector（页面变化未验证）",
+                                        verified = false,
+                                    )
+                                } else {
+                                    buildResult(
+                                        success = false,
+                                        error = "未命中元素: $selector —— 选择器可能已失效，请先 browser_snapshot 再确认",
+                                    )
+                                }
+                            },
                             onFailure = { e -> buildResult(success = false, error = e.message ?: "输入失败") },
                         )
                         else -> buildResult(success = false, error = "参数 selector 或 numberId 至少需要一个")
@@ -285,9 +328,21 @@ object BrowserAutomationTool {
      *  - data: String? — 成功时的返回值(导航/点击/输入为提示文本;提取为内容;get_html 为 HTML 源码)
      *  - error: String? — 失败时的错误信息
      */
-    private fun buildResult(success: Boolean, data: String? = null, error: String? = null): String {
+    private fun buildResult(
+        success: Boolean,
+        data: String? = null,
+        error: String? = null,
+        /**
+         * 效果是否已被观察到。
+         *
+         * `success` 只表示"这一步按请求完成了"；点一下按钮到底有没有改变页面，
+         * 浏览器这边**看不到**。把两者混成一个 success，模型就会把"已发出"当成"已完成"。
+         */
+        verified: Boolean? = null,
+    ): String {
         val obj: JsonObject = buildJsonObject {
             put("success", JsonPrimitive(success))
+            if (verified != null) put("verified", JsonPrimitive(verified))
             if (data != null) {
                 put("data", JsonPrimitive(data))
             } else {
@@ -379,10 +434,15 @@ object BrowserAutomationTool {
         "el.click();return 'OK';})()"
 
     /** v1.0.92: numberId 模式输入脚本(text 经 JSON 编码防注入)。 */
+    /** 仅测试用：暴露 numberId 输入脚本，用来验证可编辑性检查真的写进了注入的 JS。 */
+    internal fun debugNumberedTypeScript(index: Int, text: String): String = buildNumberedTypeJs(index, text)
+
     private fun buildNumberedTypeJs(index: Int, text: String): String {
         val encoded = AppJson.encodeToString(String.serializer(), text)
         return "(function(){var el=(window.__museEls||[])[$index];" +
             "if(!el){return 'MISS';}" +
+            "var editable=el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.isContentEditable;" +
+            "if(!editable){return 'NOT_EDITABLE';}" +
             "el.focus();el.value=$encoded;" +
             "el.dispatchEvent(new Event('input',{bubbles:true}));" +
             "el.dispatchEvent(new Event('change',{bubbles:true}));return 'OK';})()"
