@@ -519,6 +519,15 @@ class MuseApp : Application(), ImageLoaderFactory {
                     hookRegistry.register(io.zer0.muse.hook.PluginToolDecisionHook(bridge))
                     // P3b: 插件追加系统提示词（默认关闭；追加内容一律带来源标记）
                     hookRegistry.register(io.zer0.muse.hook.PluginSystemPromptHook(bridge))
+                    // provider 并入：kind=provider 的插件把包内 provider.json 同步进供应商注册表
+                    val providerSync = io.zer0.muse.data.plugin.PluginProviderSync(
+                        pluginManager,
+                        org.koin.java.KoinJavaComponent.get(
+                            io.zer0.ai.plugin.ProviderPluginRegistry::class.java,
+                        ),
+                    )
+                    appScope.launch { providerSync.sync() }
+                    appScope.launch { pluginManager.revisionFlow.collect { providerSync.sync() } }
                 }.onError { msg, t -> Logger.w("MuseApp", "PluginActivationBridge 启动失败: $msg", t) }
                 // v2.x（诊断导出项目 A）: 生成链路轨迹记录仪初始化（纯观察者，异常内部吞）
                 resultOf { io.zer0.muse.diagnostic.GenerationTrace.init(applicationContext) }

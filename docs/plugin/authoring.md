@@ -207,6 +207,31 @@ export function onSystemPrompt(ctx) {
 - 单个插件一次最多追加 2000 字；
 - 返回空串等于不追加（不要用空串占位）。
 
+## 9.8 供应商插件（kind = provider）
+
+清单里写 `"kind": "provider"`，并在包内放一份 `provider.json`，就能给应用加一个 OpenAI 兼容的供应商：
+
+```json
+{
+  "id": "relay",
+  "displayName": "我的中转",
+  "baseUrl": "https://relay.example.com/v1",
+  "models": [
+    { "id": "gpt-4o-mini", "displayName": "mini", "contextWindow": 128000, "supportsTools": true }
+  ]
+}
+```
+
+规则：
+
+- **注册表里的 id 一律用插件 id**（`provider.json` 里的 `id` 会被覆盖）——
+  包 id 天然唯一，两个插件写同一个供应商 id 时不会互相顶掉；
+- `baseUrl` 必须是 **https**，否则整条声明被拒绝；
+- 插件**被禁用、卸载或文件坏掉**时，供应商会被**主动注销**，不留孤儿条目；
+- 信任边界与插件代码一致：`provider.json` 来自插件包，与它的 JS 同级信任。
+
+同步发生在应用启动与每次插件变更时（启用/禁用/安装/卸载），不需要手工操作。
+
 ## 10. 斜杠命令（已可用）
 
 在清单里声明后，用户在输入框打 `/` 会看到候选；选中或回车执行，**结果写回输入框**
