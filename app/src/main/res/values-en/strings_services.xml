@@ -293,6 +293,7 @@
     <string name="tool_write_verified"> (verified)</string>
     <string name="tool_write_permission_denied">The system refused the write (a permission such as Modify system settings is likely missing)</string>
     <string name="automation_handoff_title">Virtual display handoff</string>
+    <string name="assist_service_label">Muse assistant</string>
     <string name="automation_handoff_desc">%1$d display(s) left by the assistant; preview and take over</string>
     <string name="automation_handoff_bring_main">Bring to main screen</string>
     <string name="automation_handoff_bring_main_hint">Only the app is brought to the main screen; the previous page and input state depend on the app and may be lost.</string>

@@ -1144,6 +1144,17 @@ fun ChatScreen(
     // 插件斜杠命令：候选列表 + 执行。结果写回输入框，不写聊天历史。
     val pluginCommandHost = io.zer0.muse.ui.plugin.rememberPluginCommandHost(setInput = viewModel::updateInput)
     val pluginCommandScope = rememberCoroutineScope()
+    // 系统助理投递的上下文（P1-04）：填进输入框，由用户决定发不发。
+    // 已有草稿时追加而不是覆盖 —— 助理不该把用户刚写的东西弄没。
+    LaunchedEffect(Unit) {
+        io.zer0.muse.ui.assist.AssistInbox.pending.collect { prompt ->
+            if (!prompt.isNullOrBlank()) {
+                val existing = viewModel.state.value.input
+                viewModel.updateInput(if (existing.isBlank()) prompt else existing + "\n\n" + prompt)
+                io.zer0.muse.ui.assist.AssistInbox.consume()
+            }
+        }
+    }
 
     // v1.135: 媒体选择 launcher — 同时支持图片和视频。
     // 照片按钮点击后走统一视觉媒体选择器;视频会被提取关键帧降级为图片发送。

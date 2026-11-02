@@ -279,6 +279,7 @@
     <string name="tool_write_verified"> (confirmado)</string>
     <string name="tool_write_permission_denied">O sistema recusou a gravacao (provavelmente falta uma permissao como Modificar configuracoes do sistema)</string>
     <string name="automation_handoff_title">Entrega de tela virtual</string>
+    <string name="assist_service_label">Assistente Muse</string>
     <string name="automation_handoff_desc">O assistente deixou %1$d tela(s); pre-visualize e opere</string>
     <string name="automation_handoff_bring_main">Trazer para a tela principal</string>
     <string name="automation_handoff_bring_main_hint">Apenas o app vai para a tela principal; a pagina e o estado anteriores dependem do app e podem ser perdidos.</string>

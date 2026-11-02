@@ -279,6 +279,7 @@
     <string name="tool_write_verified">（反映を確認済み）</string>
     <string name="tool_write_permission_denied">システムが書き込みを拒否しました（「システム設定の変更」などの権限が必要です）</string>
     <string name="automation_handoff_title">仮想ディスプレイの引き継ぎ</string>
+    <string name="assist_service_label">Muse アシスタント</string>
     <string name="automation_handoff_desc">アシスタントが残した仮想ディスプレイが %1$d 件。プレビューして操作できます</string>
     <string name="automation_handoff_bring_main">メイン画面に戻す</string>
     <string name="automation_handoff_bring_main_hint">アプリをメイン画面に出すだけで、以前のページや入力状態はアプリ次第で失われる可能性があります。</string>

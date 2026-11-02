@@ -279,6 +279,7 @@
     <string name="tool_write_verified"> (подтверждено)</string>
     <string name="tool_write_permission_denied">Система отклонила запись (вероятно, нет разрешения «Изменение системных настроек»)</string>
     <string name="automation_handoff_title">Передача виртуального экрана</string>
+    <string name="assist_service_label">Ассистент Muse</string>
     <string name="automation_handoff_desc">Ассистент оставил экранов: %1$d; можно посмотреть и управлять</string>
     <string name="automation_handoff_bring_main">Вернуть на главный экран</string>
     <string name="automation_handoff_bring_main_hint">Приложение просто появится на главном экране; прежняя страница и состояние ввода зависят от приложения и могут быть потеряны.</string>

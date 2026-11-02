@@ -279,6 +279,7 @@
     <string name="tool_write_verified"> (verificado)</string>
     <string name="tool_write_permission_denied">El sistema rechazo la escritura (probablemente falta un permiso como Modificar ajustes del sistema)</string>
     <string name="automation_handoff_title">Entrega de pantalla virtual</string>
+    <string name="assist_service_label">Asistente Muse</string>
     <string name="automation_handoff_desc">El asistente dejo %1$d pantalla(s); puedes previsualizar y operar</string>
     <string name="automation_handoff_bring_main">Llevar a la pantalla principal</string>
     <string name="automation_handoff_bring_main_hint">Solo se lleva la app a la pantalla principal; la pagina y el estado previos dependen de la app y pueden perderse.</string>

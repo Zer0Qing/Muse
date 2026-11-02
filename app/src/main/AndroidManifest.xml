@@ -392,6 +392,26 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/muse_accessibility_service" />
         </service>
+        <!-- 系统数字助理入口（P1-04）：用户在系统设置里把 Muse 设为默认助理后，
+             长按 Home/电源键会走这里。BIND_VOICE_INTERACTION 由系统持有，普通应用绑不上。 -->
+        <service
+            android:name=".ui.assist.MuseVoiceInteractionService"
+            android:exported="true"
+            android:label="@string/assist_service_label"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction_service" />
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".ui.assist.MuseVoiceInteractionSessionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION" />
+
     </application>
 
 </manifest>
