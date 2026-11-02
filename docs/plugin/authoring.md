@@ -159,12 +159,31 @@ KV 存储那一条是 `storage`（不带 `.read`），两者不是一回事。
 | 交互面板目前要求 manifest 里写 runtime=node | 用了 js 档 | 改 `"runtime": "node"` |
 | 插件需要「Python 运行时」高信任授权 | `runtime: python` 未批准 | 让用户在能力与权限里单独允许 |
 
-## 10. 尚未提供（写完别惊讶）
+## 10. 斜杠命令（已可用）
 
-- `commands`（斜杠命令）、`schedules`（定时激活）、`onMessage`/`onToolCall` 等懒激活事件；
+在清单里声明后，用户在输入框打 `/` 会看到候选；选中或回车执行，**结果写回输入框**
+（可检查、可编辑再发），不会直接写进聊天记录。
+
+```json
+"commands": [
+  { "name": "daily", "description": "生成今天的日报", "handler": "makeDaily", "takesInput": true }
+]
+```
+
+- `name`：小写字母开头，只含小写字母/数字/`_`/`-`，最长 32；同名命令按插件 id 排序先到先得；
+- `handler`：必须已在 `tools` 里声明（执行入口只认清单声明过的函数）；
+- `takesInput: true` 时，`/daily 本周` 里的「本周」会作为 `input` 传给函数；
+- 每个插件最多 20 条；说明上限 120 字（它要进候选列表，属于上下文预算）；
+- **不需要** `onCommand` 激活事件：命中即执行（激活事件目前只派发 `onStartup`）；
+- 输入里含 `/` 的路径（例如 `/usr/local/bin`）不会被当成命令，照常发给模型。
+
+## 11. 尚未提供（v1 范围外，已明确推迟）
+
+- `schedules`（定时激活）与 `onMessage` / `onToolCall` / `onCommand` 等**激活事件派发**（目前只派发 `onStartup`）；
 - 决策型 `toolCall.before` hook（可拦/改工具调用）；
+- 其余 hooks（`systemPromptCompose` / `toolPromptCompose` / `messageProcessing` / `summaryGenerate`）的插件注册；
 - provider 类型插件并入统一插件体系；
-- 声明式界面的**交互控件**渲染（`form`/`input`/`submit` 已能解析与门控，
-  渲染器接线尚未完成 —— 现在放这些节点会被解析通过，但界面上暂时只显示只读内容）。
+- 作者体验：`.d.ts` 生成、示例包、开发模式热重载、插件调试台；
+- 市场：发布流程与 CI、URL/二维码安装、更新通道。
 
-以上都在计划内，见 `插件重构_设计.md` 的 P3/P4 与任务板。
+推迟理由与前置条件见 `插件重构_设计.md` §9 与任务板（task-13 的 backlog 表）。

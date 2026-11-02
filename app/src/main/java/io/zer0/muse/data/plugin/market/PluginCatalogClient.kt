@@ -57,7 +57,7 @@ internal class PluginCatalogClient(
             // 多读 1 字节：传输层按上限截断，若返回超过上限说明真实响应超限，必须拒绝。
             val response = transport.getBytes(url, maxCatalogBytes + 1)
             if (response.status !in 200..299) {
-                return CatalogFetchResult(error = "目录请求失败: HTTP ${response.status}")
+                return CatalogFetchResult(error = describeHttpFailure(response.status))
             }
             val bytes = response.body
             if (bytes.size > maxCatalogBytes) {
@@ -113,5 +113,19 @@ internal class PluginCatalogClient(
         internal const val CONNECT_TIMEOUT_MS = 10_000L
         internal const val READ_TIMEOUT_MS = 15_000L
         internal const val CALL_TIMEOUT_MS = 20_000L
+    }
+
+    /**
+     * 非 2xx 的说明。
+     *
+     * 404 必须单独说：内置官方目录地址在没有产物时，用户看到的应该是
+     * "地址上找不到目录文件"，而不是笼统的"请求失败" —— 后者会让人去查自己的网络，
+     * 而问题其实在服务端有没有发布。
+     */
+    internal fun describeHttpFailure(status: Int): String = when (status) {
+        404, 410 -> "目录地址上找不到目录文件（HTTP " + status + "）：可能尚未发布，或地址写错。可在设置里检查目录地址"
+        401, 403 -> "目录拒绝访问（HTTP " + status + "）：请检查该地址是否需要授权"
+        in 500..599 -> "目录服务暂时不可用（HTTP " + status + "），稍后再试"
+        else -> "目录请求失败: HTTP " + status
     }
 }
