@@ -293,6 +293,7 @@
     <string name="tool_brightness_auto_set">자동 밝기가 활성화되었습니다.</string>
     <string name="read_aloud_channel_name">읽어주기 재생</string>
     <string name="notif_task_stage_title">작업 실행 중</string>
+    <string name="notif_task_stage_stop">중지</string>
     <string name="skill_url_dialog_title">GitHub 에서 스킬 설치</string>
     <string name="skill_url_hint">https://github.com/작성자/저장소</string>
     <string name="skill_url_help">GitHub 저장소만 지원합니다. 아카이브를 내려받아 SKILL.md 를 읽습니다.</string>

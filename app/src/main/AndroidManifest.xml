@@ -419,6 +419,15 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- P2-03: 通知栏"停止"动作 → 生成链路（不导出，只有本应用能发） -->
+        <receiver
+            android:name=".notification.TaskStageActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="io.zer0.muse.action.STOP_TASK_STAGE" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

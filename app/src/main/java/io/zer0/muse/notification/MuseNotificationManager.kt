@@ -458,6 +458,13 @@ class MuseNotificationManager(private val context: Context) {
             return
         }
         if (!notificationsAllowed()) return
+        val stopIntent = PendingIntent.getBroadcast(
+            context,
+            0,
+            android.content.Intent(context, TaskStageActionReceiver::class.java)
+                .setAction(TaskStageActionReceiver.ACTION_STOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         val notif = NotificationCompat.Builder(context, CHANNEL_CHAT_LIVE_UPDATE)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(context.getString(R.string.notif_task_stage_title))
@@ -466,6 +473,7 @@ class MuseNotificationManager(private val context: Context) {
             .setOnlyAlertOnce(true)
             .setProgress(0, 0, true)
             .setContentIntent(buildMainActivityPendingIntent(target))
+            .addAction(0, context.getString(R.string.notif_task_stage_stop), stopIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         resultOf { nm.notify(NOTIF_ID_TASK_STAGE, notif) }

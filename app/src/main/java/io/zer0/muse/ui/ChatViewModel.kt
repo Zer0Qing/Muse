@@ -2284,6 +2284,12 @@ class ChatViewModel(
     private var translateJob: Job? = null
 
     init {
+        // P2-03: 通知栏「停止」→ 停掉当前生成。
+        // 通知层只发信号、不直接取消协程：取消必须由持有它的这一层做，
+        // 否则会出现"通知没了但任务还在跑"。
+        viewModelScope.launch {
+            io.zer0.muse.notification.TaskStageControl.stopRequests.collect { stop() }
+        }
         // 上下文占用供 get_token_usage 自查：工具层看不到 ChatUiState，
         // 这里把读取入口绑到本 ViewModel 的实时 state（进程级单例，绑定一次即可）。
         io.zer0.muse.ui.chat.ContextOccupancyProbe.bind {

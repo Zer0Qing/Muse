@@ -293,6 +293,7 @@
     <string name="tool_brightness_auto_set">Brillo automático activado</string>
     <string name="read_aloud_channel_name">Reproduccion de lectura</string>
     <string name="notif_task_stage_title">Ejecutando una tarea</string>
+    <string name="notif_task_stage_stop">Detener</string>
     <string name="skill_url_dialog_title">Instalar una habilidad desde GitHub</string>
     <string name="skill_url_hint">https://github.com/autor/repositorio</string>
     <string name="skill_url_help">Solo repositorios de GitHub; se descarga el archivo y se lee su SKILL.md.</string>

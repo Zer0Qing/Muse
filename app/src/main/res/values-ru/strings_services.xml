@@ -293,6 +293,7 @@
     <string name="tool_brightness_auto_set">Автоматическая яркость включена</string>
     <string name="read_aloud_channel_name">Воспроизведение чтения</string>
     <string name="notif_task_stage_title">Выполняется задача</string>
+    <string name="notif_task_stage_stop">Остановить</string>
     <string name="skill_url_dialog_title">Установить навык с GitHub</string>
     <string name="skill_url_hint">https://github.com/автор/репозиторий</string>
     <string name="skill_url_help">Только репозитории GitHub: архив скачивается, из него читается SKILL.md.</string>
