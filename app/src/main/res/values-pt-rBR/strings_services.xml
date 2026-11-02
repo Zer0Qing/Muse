@@ -264,6 +264,8 @@
     <string name="tool_brightness_set">Brilho definido como %1$d</string>
     <string name="tool_write_verified"> (confirmado)</string>
     <string name="tool_write_permission_denied">O sistema recusou a gravacao (provavelmente falta uma permissao como Modificar configuracoes do sistema)</string>
+    <string name="automation_handoff_title">Entrega de tela virtual</string>
+    <string name="automation_handoff_desc">O assistente deixou %1$d tela(s); pre-visualize e opere</string>
     <string name="tool_volume_failed">Falha ao ajustar o volume: %1$s</string>
     <string name="tool_write_verified_transition"> (confirmado: %1$d para %2$d)</string>
     <string name="tool_write_unverified"> (enviado, sem confirmacao)</string>

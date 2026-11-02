@@ -264,6 +264,8 @@
     <string name="tool_brightness_set">Яркость установлена ​​на %1$d</string>
     <string name="tool_write_verified"> (подтверждено)</string>
     <string name="tool_write_permission_denied">Система отклонила запись (вероятно, нет разрешения «Изменение системных настроек»)</string>
+    <string name="automation_handoff_title">Передача виртуального экрана</string>
+    <string name="automation_handoff_desc">Ассистент оставил экранов: %1$d; можно посмотреть и управлять</string>
     <string name="tool_volume_failed">Не удалось изменить громкость: %1$s</string>
     <string name="tool_write_verified_transition"> (подтверждено: %1$d → %2$d)</string>
     <string name="tool_write_unverified"> (отправлено, без подтверждения)</string>

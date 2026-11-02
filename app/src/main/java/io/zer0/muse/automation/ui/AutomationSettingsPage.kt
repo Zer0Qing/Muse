@@ -65,6 +65,8 @@ fun AutomationSettingsPage(
         ?: remember { mutableStateOf(false) }
     val automationEnabled by settings?.automationEnabledFlow?.collectAsStateWithLifecycle(initialValue = true)
         ?: remember { mutableStateOf(true) }
+    // P1-02：助手留下的虚拟屏（可预览、可自己操作）。展开的是 displayId。
+    var handoffExpanded by remember { mutableStateOf<Int?>(null) }
     // R1: 无障碍被系统回收时，页面要主动提示 —— 否则用户只会看到「开关都开着」，
     // 却不知道为什么读屏/点击全都失败。实时读 permissionState（不是一次性探测）。
     val permissionState by manager.permissionState.collectAsStateWithLifecycle()
@@ -186,6 +188,25 @@ fun AutomationSettingsPage(
                 ) {
                     ChevronRight()
                 }
+            }
+        }
+
+        // 虚拟屏交接（P1-02）：任务跑完把屏留下来时，用户在这里看得到、也能自己点。
+        val handoffs = io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
+            .list(System.currentTimeMillis())
+        if (handoffs.isNotEmpty()) {
+            item(key = "vdisplay-handoff") {
+                VirtualDisplayHandoffSection(
+                    handoffs = handoffs,
+                    expandedId = handoffExpanded,
+                    onExpand = { id -> handoffExpanded = id },
+                    onClose = { id ->
+                        // 关闭 = 放弃交接 + 销毁：留着它就是一块用户看不见、还占资源的屏
+                        io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry.release(id)
+                        handoffExpanded = null
+                        scope.launch { io.zer0.muse.automation.AutomationRuntime.destroy(id) }
+                    },
+                )
             }
         }
 
@@ -415,3 +436,40 @@ private data class ScreenTestResult(
     val success: Boolean,
     val devInfo: String? = null,
 )
+
+/**
+ * 虚拟屏交接区：一行入口 + 展开后的预览/触摸面板。
+ *
+ * 抽成独立 composable 的原因：设置页的分支复杂度已经顶到 detekt 上限，
+ * 而这块本身是"看 + 操作一块外部屏幕"的完整单元，独立更好读。
+ */
+@Composable
+private fun VirtualDisplayHandoffSection(
+    handoffs: List<io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry.Handoff>,
+    expandedId: Int?,
+    onExpand: (Int?) -> Unit,
+    onClose: (Int) -> Unit,
+) {
+    if (!io.zer0.muse.automation.AutomationRuntime.isReady) return
+    val first = handoffs.firstOrNull() ?: return
+    val expanded = expandedId == first.displayId
+    SettingsGroup {
+        SettingsItemRow(
+            icon = MuseIcons.bolt,
+            title = stringResource(R.string.automation_handoff_title),
+            subtitle = stringResource(R.string.automation_handoff_desc, handoffs.size),
+            onClick = { onExpand(if (expanded) null else first.displayId) },
+        ) {
+            ChevronRight()
+        }
+    }
+    if (expanded) {
+        VirtualDisplayHandoffPanel(
+            displayId = first.displayId,
+            packageName = first.packageName,
+            screenshot = { io.zer0.muse.automation.AutomationRuntime.screenshot(first.displayId) },
+            tap = { x, y -> io.zer0.muse.automation.AutomationRuntime.tap(first.displayId, x, y) },
+            onClose = { onClose(first.displayId) },
+        )
+    }
+}

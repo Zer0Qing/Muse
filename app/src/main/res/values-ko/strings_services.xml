@@ -264,6 +264,8 @@
     <string name="tool_brightness_set">밝기가 %1$d로 설정되었습니다.</string>
     <string name="tool_write_verified">(적용 확인됨)</string>
     <string name="tool_write_permission_denied">시스템이 쓰기를 거부했습니다 (시스템 설정 변경 권한이 필요할 수 있습니다)</string>
+    <string name="automation_handoff_title">가상 디스플레이 인계</string>
+    <string name="automation_handoff_desc">어시스턴트가 남긴 가상 디스플레이 %1$d개. 미리 보고 직접 조작할 수 있습니다</string>
     <string name="tool_volume_failed">볼륨 설정 실패: %1$s</string>
     <string name="tool_write_verified_transition">(적용 확인됨: %1$d → %2$d)</string>
     <string name="tool_write_unverified">(전송됨, 미확인)</string>

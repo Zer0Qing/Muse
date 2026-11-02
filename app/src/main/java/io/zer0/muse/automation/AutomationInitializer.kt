@@ -99,6 +99,28 @@ object AutomationInitializer {
             val virtualDisplayClient = virtualDisplayManager?.let { manager ->
                 io.zer0.muse.automation.vdisplay.VirtualDisplayClient(appContext, manager)
             }
+            // 把"截图 / 注入点击 / 销毁"三个动作暴露给界面（预览与触摸接管用）。
+            // 只暴露动作、不暴露整条构造链：界面不需要知道虚拟屏服务是怎么起来的。
+            if (virtualDisplayClient != null && virtualDisplayManager != null) {
+                io.zer0.muse.automation.AutomationRuntime.install(
+                    screenshot = { displayId -> virtualDisplayClient.screenshot(displayId) },
+                    tap = { displayId, x, y ->
+                        val command = io.zer0.muse.automation.vdisplay.VirtualDisplayInputCommand.build(
+                            displayId,
+                            "tap",
+                            mapOf("x" to x.toString(), "y" to y.toString()),
+                        ) ?: return@install false
+                        // 注入命令同样过白名单校验：界面触发的输入不因为"是用户点的"就少一道闸。
+                        val check = io.zer0.muse.automation.core.DeviceCommandPolicy.validate(command.shellCommand)
+                        if (check is io.zer0.muse.automation.core.DeviceCommandPolicy.Check.Invalid) {
+                            false
+                        } else {
+                            virtualDisplayManager.exec(command.shellCommand).exitCode == 0
+                        }
+                    },
+                    destroy = { displayId -> virtualDisplayClient.destroy(displayId) },
+                )
+            }
             val nodeScriptExecutor: suspend (String, Long) -> io.zer0.muse.tools.script.SkillEngineResult = { code, timeoutMs ->
                 io.zer0.muse.tools.NodeScriptTool.evaluate(appContext, code, timeoutMs)
             }

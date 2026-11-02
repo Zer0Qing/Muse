@@ -278,6 +278,8 @@
     <string name="tool_brightness_set">Brightness set to %1$d</string>
     <string name="tool_write_verified"> (verified)</string>
     <string name="tool_write_permission_denied">The system refused the write (a permission such as Modify system settings is likely missing)</string>
+    <string name="automation_handoff_title">Virtual display handoff</string>
+    <string name="automation_handoff_desc">%1$d display(s) left by the assistant; preview and take over</string>
     <string name="tool_volume_failed">Failed to set volume: %1$s</string>
     <string name="tool_write_verified_transition"> (verified: %1$d to %2$d)</string>
     <string name="tool_write_unverified"> (sent, but not confirmed)</string>

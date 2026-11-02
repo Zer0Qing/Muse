@@ -264,6 +264,8 @@
     <string name="tool_brightness_set">明るさを%1$dに設定</string>
     <string name="tool_write_verified">（反映を確認済み）</string>
     <string name="tool_write_permission_denied">システムが書き込みを拒否しました（「システム設定の変更」などの権限が必要です）</string>
+    <string name="automation_handoff_title">仮想ディスプレイの引き継ぎ</string>
+    <string name="automation_handoff_desc">アシスタントが残した仮想ディスプレイが %1$d 件。プレビューして操作できます</string>
     <string name="tool_volume_failed">音量の設定に失敗しました： %1$s</string>
     <string name="tool_write_verified_transition">（反映を確認済み：%1$d → %2$d）</string>
     <string name="tool_write_unverified">（送信済み・未確認）</string>

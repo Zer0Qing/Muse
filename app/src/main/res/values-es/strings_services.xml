@@ -264,6 +264,8 @@
     <string name="tool_brightness_set">Brillo establecido en %1$d</string>
     <string name="tool_write_verified"> (verificado)</string>
     <string name="tool_write_permission_denied">El sistema rechazo la escritura (probablemente falta un permiso como Modificar ajustes del sistema)</string>
+    <string name="automation_handoff_title">Entrega de pantalla virtual</string>
+    <string name="automation_handoff_desc">El asistente dejo %1$d pantalla(s); puedes previsualizar y operar</string>
     <string name="tool_volume_failed">No se pudo ajustar el volumen: %1$s</string>
     <string name="tool_write_verified_transition"> (verificado: %1$d a %2$d)</string>
     <string name="tool_write_unverified"> (enviado, sin confirmar)</string>
