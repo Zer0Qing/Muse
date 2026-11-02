@@ -55,7 +55,13 @@ class PluginBridgeRouter(
                 context = appContext,
                 fsRoot = File(appContext.filesDir, "workspace/plugins/$pluginId"),
             )
-            SkillBridge.tryHandle(value, allowedBridgeActions, host)
+            SkillBridge.tryHandle(
+                valueJson = value,
+                allowedActions = allowedBridgeActions,
+                host = host,
+                // 私网访问是**额外**授权：network 只管能不能联网，network.local 才管能不能连内网
+                allowLocalNetwork = ledger.isApproved(pluginId, PluginCapabilityGateway.NETWORK_LOCAL),
+            )
         }
         // 调试台：记下最近发生了什么（只保留最近 N 条）
         recordCall(pluginId, value, result)

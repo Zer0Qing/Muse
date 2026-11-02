@@ -192,7 +192,8 @@ class PluginCapabilityGateway(
                 capability != EVENT_ON_TOOL_CALL &&
                 capability != HOOK_TOOL_CALL_BEFORE &&
                 capability != HOOK_SYSTEM_PROMPT &&
-                capability != SCHEDULE,
+                capability != SCHEDULE &&
+                capability != NETWORK_LOCAL,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -247,6 +248,15 @@ class PluginCapabilityGateway(
 
         /** 联网能力名，与清单词汇一致（沙盒网络出口按它判定）。 */
         const val NETWORK = "network"
+
+    /**
+     * 允许访问**私网/本机**地址（局域网里的服务、127.0.0.1、`.local`）。
+     *
+     * 与 [NETWORK] 是两件事：前者是能不能联网，这条是能不能连内网。
+     * 默认关：内网地址能把请求打到家里的路由器、NAS、本机的其它服务上，
+     * 这属于要用户明确点头的事，而不是装个插件就默认拥有。
+     */
+    const val NETWORK_LOCAL = "network.local"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。

@@ -107,6 +107,16 @@ object SkillBridge {
     private val bridgeHttpClient: SkillBridgeHttpClient by lazy { SkillBridgeHttpClient() }
 
     /**
+     * 允许访问私网/本机的客户端（`network.local` 能力授权后才用）。
+     *
+     * 判定交给客户端那条谓词，而不是在这里再写一份私网规则 ——
+     * 两份规则一定会漂移，而漂移的表现是"某些地址偶尔能连"，最难查。
+     */
+    private val bridgeHttpClientLocal: SkillBridgeHttpClient by lazy {
+        SkillBridgeHttpClient(addressAllowed = { true })
+    }
+
+    /**
      * 桥接处理结果密封类。
      *
      *  - [NotBridge]：返回值不含 `__bridge__`，调用方按普通脚本结果继续处理
@@ -127,7 +137,16 @@ object SkillBridge {
      * @param host 桥接宿主（fs/剪贴板等动作需要）
      * @return 见 [HandleResult]
      */
-    suspend fun tryHandle(valueJson: String, allowedActions: Set<String> = DEFAULT_ALLOWED_ACTIONS, host: Host? = null): HandleResult {
+    // 这个函数是桥接动作的总调度：每个 action 一个分支 + 一处授权判定，
+    // 复杂度来自"动作表"本身而不是逻辑纠缠；拆开只会让"哪些动作走哪条路"更难读。
+    @Suppress("CyclomaticComplexMethod", "ReturnCount")
+    suspend fun tryHandle(
+        valueJson: String,
+        allowedActions: Set<String> = DEFAULT_ALLOWED_ACTIONS,
+        host: Host? = null,
+        /** 是否允许访问私网/本机地址（来自 `network.local` 能力的授权结果）。 */
+        allowLocalNetwork: Boolean = false,
+    ): HandleResult {
         val obj = runCatching {
             AppJson.parseToJsonElement(valueJson) as? JsonObject
         }.getOrNull() ?: return HandleResult.NotBridge
@@ -144,8 +163,8 @@ object SkillBridge {
         val params = obj["params"] as? JsonObject ?: buildJsonObject { }
         return when (action) {
             "echo" -> HandleResult.Output(params.toString())
-            "http_get" -> withContext(Dispatchers.IO) { execHttpGet(params, host) }
-            "http_post" -> withContext(Dispatchers.IO) { execHttpPost(params, host) }
+            "http_get" -> withContext(Dispatchers.IO) { execHttpGet(params, host, allowLocalNetwork) }
+            "http_post" -> withContext(Dispatchers.IO) { execHttpPost(params, host, allowLocalNetwork) }
             "fs_list" -> withContext(Dispatchers.IO) { execFsList(host, params) }
             "fs_read" -> withContext(Dispatchers.IO) { execFsRead(host, params) }
             "fs_write" -> withContext(Dispatchers.IO) { execFsWrite(host, params) }
@@ -300,7 +319,7 @@ object SkillBridge {
     // ── HTTP ─────────────────────────────────────────────────────────────
 
     /** 执行 http_get：SSRF 防护(含重定向逐跳校验) + 完整输出落盘。 */
-    private fun execHttpGet(params: JsonObject, host: Host?): HandleResult {
+    private fun execHttpGet(params: JsonObject, host: Host?, allowLocal: Boolean = false): HandleResult {
         val url = (params["url"] as? JsonPrimitive)?.contentOrNull
             ?: return HandleResult.Failure("http_get 缺少 url 参数")
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -308,11 +327,14 @@ object SkillBridge {
         }
         val outputDirectory = host?.context?.let { File(it.filesDir, TOOL_OUTPUTS_DIR) }
             ?: return HandleResult.Failure("http_get 缺少完整响应存储上下文")
-        return execHttpGetWithRedirects(url, outputDirectory)
+        return execHttpGetWithRedirects(url, outputDirectory, allowLocal)
     }
 
     /** v2.2.1: 执行 http_post（不跟随重定向，fail-closed）。 */
-    private fun execHttpPost(params: JsonObject, host: Host?): HandleResult {
+    // 参数校验分多道（url / 上下文 / 体积 / content-type），每道都要给作者一句可读的原因，
+    // 合并成一条 when 会让"哪一步失败"变得难查 —— 这里的多个 return 是有意的。
+    @Suppress("ReturnCount")
+    private fun execHttpPost(params: JsonObject, host: Host?, allowLocal: Boolean = false): HandleResult {
         val url = (params["url"] as? JsonPrimitive)?.contentOrNull
             ?: return HandleResult.Failure("http_post 缺少 url 参数")
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -327,7 +349,8 @@ object SkillBridge {
         val contentType = (params["content_type"] as? JsonPrimitive)?.contentOrNull
             ?.takeIf { it.isNotBlank() } ?: "text/plain; charset=utf-8"
         return try {
-            val result = bridgeHttpClient.postComplete(url, body, contentType, outputDirectory)
+            val client = if (allowLocal) bridgeHttpClientLocal else bridgeHttpClient
+            val result = client.postComplete(url, body, contentType, outputDirectory)
             HandleResult.Output(
                 buildJsonObject {
                     put("status", JsonPrimitive(result.status))
@@ -354,9 +377,14 @@ object SkillBridge {
      * 禁用自动跟随并逐跳校验，任一跳失败即 fail-closed。
      */
     @Suppress("TooGenericExceptionCaught") // 底层网络异常统一转为用户可见失败信息
-    private fun execHttpGetWithRedirects(startUrl: String, outputDirectory: File): HandleResult {
+    private fun execHttpGetWithRedirects(
+        startUrl: String,
+        outputDirectory: File,
+        allowLocal: Boolean = false,
+    ): HandleResult {
         return try {
-            val result = bridgeHttpClient.getComplete(startUrl, outputDirectory, MAX_REDIRECTS)
+            val client = if (allowLocal) bridgeHttpClientLocal else bridgeHttpClient
+            val result = client.getComplete(startUrl, outputDirectory, MAX_REDIRECTS)
             HandleResult.Output(
                 buildJsonObject {
                     put("status", JsonPrimitive(result.status))

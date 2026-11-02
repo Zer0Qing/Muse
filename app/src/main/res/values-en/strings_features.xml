@@ -752,6 +752,7 @@
     <string name="plugin_cap_hook_tool_before">Block tool calls (a plugin may stop a call)</string>
     <string name="plugin_cap_hook_system_prompt">Append to the system prompt (changes assistant behavior)</string>
     <string name="plugin_cap_schedule">Run on a schedule (while the app is alive)</string>
+    <string name="plugin_cap_network_local">Access LAN and localhost (home services, local ports)</string>
     <string name="plugin_debug_title">Plugin debug</string>
     <string name="plugin_cap_clipboard_read">Read the clipboard</string>
     <string name="plugin_cap_clipboard_write">Write to the clipboard</string>

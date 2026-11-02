@@ -799,6 +799,7 @@
     <string name="plugin_cap_hook_tool_before">ツール呼び出しをブロック</string>
     <string name="plugin_cap_hook_system_prompt">システムプロンプトに追記（振る舞いが変わります）</string>
     <string name="plugin_cap_schedule">定期的に実行（アプリ起動中のみ）</string>
+    <string name="plugin_cap_network_local">LAN と localhost へのアクセス（家庭内サービス、ローカルポート）</string>
     <string name="plugin_debug_title">プラグインのデバッグ</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>

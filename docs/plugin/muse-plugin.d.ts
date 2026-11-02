@@ -18,6 +18,8 @@ type Capability =
   | "resource.read"
   | "resource.write"
   | "network"
+  /** 允许访问私网/本机（局域网服务、127.0.0.1、.local）。默认关。 */
+  | "network.local"
   | "clipboard.read"
   | "clipboard.write"
   /** 读写合一的简写，等价于同时声明 clipboard.read + clipboard.write。 */
