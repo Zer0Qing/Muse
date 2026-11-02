@@ -62,12 +62,11 @@ class PluginActivationBridge(
      * 需要完整内容应该走 `chat.read` 能力，那条路有独立的授权与条数限制。
      */
     fun dispatchMessage(text: String) {
-        val preview = text.trim().take(MAX_EVENT_TEXT_CHARS)
         appScope.launch {
             dispatchEvent(
                 event = ACTIVATION_ON_MESSAGE,
                 capability = PluginCapabilityGateway.EVENT_ON_MESSAGE,
-                payloadJson = """{"event":"$ACTIVATION_ON_MESSAGE","text":${quote(preview)}}""",
+                payloadJson = messagePayload(text),
             )
         }
     }
@@ -122,6 +121,16 @@ class PluginActivationBridge(
         String.serializer(),
         value,
     )
+
+    /** 消息事件的载荷（截断 + 转义）。抽出来是为了能在没有插件环境的地方验证。 */
+    internal fun messagePayload(text: String): String {
+        val preview = text.trim().take(MAX_EVENT_TEXT_CHARS)
+        return """{"event":"$ACTIVATION_ON_MESSAGE","text":${quote(preview)}}"""
+    }
+
+    /** 工具调用事件的载荷。 */
+    internal fun toolCallPayload(toolName: String): String =
+        """{"event":"$ACTIVATION_ON_TOOL_CALL","tool":${quote(toolName)}}"""
 
     /** 对所有声明了 `onStartup` 且已启用的插件派发一次激活。 */
     suspend fun dispatchStartup() {
@@ -188,6 +197,24 @@ class PluginActivationBridge(
 
     companion object {
         private const val TAG = "PluginActivation"
+
+        @Volatile
+        private var shared: PluginActivationBridge? = null
+
+        /** 由装配处在创建桥之后调用一次；界面/发送链路通过 [dispatchMessageGlobal] 使用。 */
+        fun install(bridge: PluginActivationBridge) {
+            shared = bridge
+        }
+
+        /**
+         * 发送链路用的入口：桥没装好（例如测试、启动早期）时静默跳过。
+         *
+         * 用进程级持有者而不是继续加构造参数：`ChatGenerationController` 的参数已经很多，
+         * 为一个观察型事件再加一个依赖不值得（也撞过 `LongParameterList`）。
+         */
+        fun dispatchMessageGlobal(text: String) {
+            shared?.dispatchMessage(text)
+        }
 
         /** 只有工具类插件有可执行入口。 */
         private const val KIND_TOOL = "tool"

@@ -307,6 +307,10 @@ internal class ChatGenerationController(
     @Suppress("ReturnCount")
     fun send() {
         val rawText = accessor.snapshot.input.trim()
+        // 插件 onMessage 事件：观察型，投出去就不管（未授权/未声明时桥内部自己跳过）
+        if (rawText.isNotEmpty()) {
+            io.zer0.muse.data.plugin.PluginActivationBridge.dispatchMessageGlobal(rawText)
+        }
         val images = accessor.snapshot.pendingImages
         val docs = accessor.snapshot.pendingDocuments
         // 附件的结构化元数据跟着消息一起存。正文里那行「附件已存入工作区」是给模型看的，

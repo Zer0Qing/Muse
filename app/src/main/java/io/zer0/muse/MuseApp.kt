@@ -511,6 +511,8 @@ class MuseApp : Application(), ImageLoaderFactory {
                         settings = settings,
                     )
                     bridge.start()
+                    // 发送链路通过这个持有者投 onMessage（加构造参数会撞 LongParameterList）
+                    io.zer0.muse.data.plugin.PluginActivationBridge.install(bridge)
                     // P3b: 工具调用事件转给插件（观察型，按能力授权；默认关闭）
                     hookRegistry.register(io.zer0.muse.hook.PluginEventHook(bridge))
                 }.onError { msg, t -> Logger.w("MuseApp", "PluginActivationBridge 启动失败: $msg", t) }
