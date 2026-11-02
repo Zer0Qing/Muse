@@ -208,7 +208,14 @@ class SkillExecutor(
                     if (SkillImporter.isPromptSkill(skill.implementationKotlin)) {
                         managementTools?.execPromptSkill(skill, args) ?: context.getString(R.string.skill_impl_not_configured)
                     } else if (skill.implementationKotlin.startsWith("plugin:")) {
-                        mediaTools?.execPluginTool(skill, argumentsJson) ?: context.getString(R.string.skill_impl_not_configured)
+                        // 会话身份随协程上下文带进来：插件与模型都无法把它伪造成别的会话，
+                        // 也不需要给 execPluginTool 加参数（它的 ReturnCount 由基线按签名压制）。
+                        kotlinx.coroutines.withContext(
+                            io.zer0.muse.data.plugin.PluginSessionContext(sessionId),
+                        ) {
+                            mediaTools?.execPluginTool(skill, argumentsJson)
+                                ?: context.getString(R.string.skill_impl_not_configured)
+                        }
                     } else {
                         context.getString(R.string.skill_unknown_impl, skill.implementationKotlin)
                     }

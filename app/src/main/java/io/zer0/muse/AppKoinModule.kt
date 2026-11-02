@@ -41,6 +41,8 @@ import java.util.concurrent.TimeUnit
  * [ChatViewModel] 用 viewModel DSL 注册,UI 用 koinViewModel() 取用。
  */
 val appModule = module {
+// 插件读会话的唯一通道：会话身份由宿主随调用注入，这里只提供读写入口。
+    single { io.zer0.muse.data.plugin.PluginChatBridge(get()) }
     single { SettingsRepository(androidContext(), get(), get()) }
     single<ProviderConfigStore> { get<SettingsRepository>() }
     single<MemoryLlmClient> { MemoryLlmClientImpl(get(), get(), androidContext()) }
@@ -719,6 +721,9 @@ val appModule = module {
                 ),
                 executeTool = { name, args -> get<io.zer0.muse.tools.ToolRegistry>().executeFromJson(name, args) },
             ),
+            // chat_read 的会话通道；缺它时该动作一律拒绝。
+            // 命名参数必须排在所有位置参数之后，所以放在 toolBridge 后面。
+            chatBridge = getOrNull(),
         )
     }
     // P1-3b 拆域: Skill 管理工具实现(被 SkillExecutor 委托调用)

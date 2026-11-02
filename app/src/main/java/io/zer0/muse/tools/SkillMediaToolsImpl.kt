@@ -16,6 +16,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.zer0.muse.data.plugin.PluginHostApi
 import io.zer0.muse.data.plugin.PluginManifest
+import io.zer0.muse.data.plugin.PluginChatBridge
+import io.zer0.muse.data.plugin.PluginSessionContext
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.sticker.StickerLibraryRepository
@@ -24,6 +26,7 @@ import io.zer0.muse.tools.script.SkillBridge
 import io.zer0.muse.tools.script.SkillEngineResult
 import io.zer0.muse.tools.script.WebViewSkillEngine
 import io.zer0.muse.ui.qrcode.QrCodeGenerator
+import kotlin.coroutines.coroutineContext
 
 /**
  * P1-3b 拆域：Skill 媒体/JS/插件工具实现（从 SkillExecutor.kt 迁移）。
@@ -47,6 +50,11 @@ class SkillMediaToolsImpl(
      * 缺依赖必须是"不可用"，不能退化成"这个动作不存在所以放过"。
      */
     private val toolBridge: io.zer0.muse.data.plugin.PluginToolInvokeBridge? = null,
+    /**
+     * 会话读取通道（`chat_read`）。为 null 时该动作一律拒绝 ——
+     * 缺依赖必须是"不可用"，不能退化成"这个动作不存在所以放过"。
+     */
+    private val chatBridge: io.zer0.muse.data.plugin.PluginChatBridge? = null,
 ) {
 
     suspend fun execListStickers(args: Map<String, String>): String {
@@ -319,6 +327,11 @@ class SkillMediaToolsImpl(
         PluginHostApi(
             writeConfig = { id, key, newValue -> manager.setPluginConfig(id, key, newValue) },
             toolBridge = toolBridge,
+            chatBridge = chatBridge,
+            // 会话身份只认宿主随这次调用带进来的上下文；插件参数里的 session_id 一律不读，
+            // 否则一个插件就能跨会话捞别人的聊天记录。
+            sessionId = coroutineContext[PluginSessionContext]?.sessionId
+                ?: PluginChatBridge.SESSION_PLACEHOLDER,
         )
             .handle(pluginId, manifest, value, allowedBridgeActions)
             ?.let { return it }

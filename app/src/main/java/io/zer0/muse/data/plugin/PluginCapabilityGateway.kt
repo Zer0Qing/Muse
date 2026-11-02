@@ -260,6 +260,7 @@ class PluginCapabilityGateway(
             "storage" to setOf("storage_get", "storage_set", "storage_delete", "storage_list"),
             "config.write" to setOf("config_set"),
             "host.tool.invoke" to setOf("tool_invoke"),
+            "chat.read" to setOf("chat_read"),
         )
 
         /**

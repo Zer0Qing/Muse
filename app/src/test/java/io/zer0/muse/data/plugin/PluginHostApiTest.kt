@@ -1,6 +1,9 @@
 package io.zer0.muse.data.plugin
 
 import io.zer0.common.AppJson
+import io.mockk.coEvery
+import io.mockk.mockk
+import io.mockk.slot
 import io.zer0.muse.tools.ToolCallGate
 import io.zer0.muse.tools.script.SkillBridge
 import kotlinx.coroutines.withContext
@@ -260,5 +263,78 @@ class PluginHostApiTest {
         }
 
         assertTrue("未接入要拒绝而不是放行: $result", (result as SkillBridge.HandleResult.Failure).message.contains("未接入"))
+    }
+
+    // ── chat_read：隐私面，默认拒绝，身份只认宿主注入的会话 ─────────────────
+
+    private fun chatApi(
+        bridge: PluginChatBridge?,
+        sessionId: String = "sess-real",
+    ) = PluginHostApi(
+        writeConfig = { _, _, _ -> },
+        chatBridge = bridge,
+        sessionId = sessionId,
+    )
+
+    private fun chatRequest(limit: String? = null) = """
+        {"__bridge__":true,"action":"chat_read","params":${if (limit == null) "{}" else "{\"limit\":$limit}"}}
+    """.trimIndent()
+
+    @Test
+    fun `chat read without the capability is refused`() {
+        val repository = mockk<io.zer0.muse.data.session.SessionRepository>()
+
+        val result = runBlocking {
+            chatApi(PluginChatBridge(repository)).handle("p1", manifest, chatRequest(), emptySet())
+        }
+
+        assertTrue(
+            "缺能力要指名 chat.read: $result",
+            (result as SkillBridge.HandleResult.Failure).message.contains("chat.read"),
+        )
+    }
+
+    @Test
+    fun `chat read fails closed when the host has no chat channel`() {
+        val result = runBlocking {
+            chatApi(bridge = null).handle("p1", manifest, chatRequest(), setOf("chat_read"))
+        }
+
+        assertTrue("缺通道必须拒而不是放行: $result", (result as SkillBridge.HandleResult.Failure).message.contains("未接入"))
+    }
+
+    @Test
+    fun `placeholder session is refused so nothing can be read from a non-existent conversation`() {
+        val repository = mockk<io.zer0.muse.data.session.SessionRepository>()
+
+        val result = runBlocking {
+            chatApi(PluginChatBridge(repository), sessionId = PluginChatBridge.SESSION_PLACEHOLDER)
+                .handle("p1", manifest, chatRequest(), setOf("chat_read"))
+        }
+
+        assertTrue(
+            "占位会话要直接拒: $result",
+            (result as SkillBridge.HandleResult.Failure).message.contains("没有绑定真实会话"),
+        )
+    }
+
+    @Test
+    fun `chat read returns lines and clamps the requested limit`() {
+        val repository = mockk<io.zer0.muse.data.session.SessionRepository>()
+        val limitSlot = io.mockk.slot<Int>()
+        coEvery { repository.getRecentMessages("sess-real", capture(limitSlot)) } returns listOf(
+            io.zer0.ai.core.UIMessage(role = io.zer0.ai.core.MessageRole.USER, content = "你好"),
+        )
+
+        val result = runBlocking {
+            chatApi(PluginChatBridge(repository)).handle(
+                "p1", manifest, chatRequest(limit = "5000"), setOf("chat_read"),
+            )
+        }
+
+        assertEquals("请求 5000 条必须被夹到上限", PluginChatBridge.MAX_LINES, limitSlot.captured)
+        val json = (result as SkillBridge.HandleResult.Output).json
+        assertTrue("内容要回传给插件: $json", json.contains("你好"))
+        assertTrue("角色用小写标签: $json", json.contains("\"role\":\"user\""))
     }
 }

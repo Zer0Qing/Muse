@@ -25,6 +25,9 @@ class PluginHostApi(
     private val writeConfig: suspend (pluginId: String, key: String, value: JsonElement?) -> Unit,
     /** 宿主未接入时 `tool_invoke` 一律拒绝（fail-closed），不静默降级成"当作没这个动作"。 */
     private val toolBridge: PluginToolInvokeBridge? = null,
+    /** 会话读取通道；[sessionId] 由宿主链路注入，插件自己传的一律不用。 */
+    private val chatBridge: PluginChatBridge? = null,
+    private val sessionId: String = PluginChatBridge.SESSION_PLACEHOLDER,
 ) {
 
     /** 返回 null 表示这个动作不归本类管，调用方继续交给 [SkillBridge]。 */
@@ -41,6 +44,7 @@ class PluginHostApi(
             !isBridge -> null
             action == ACTION_CONFIG_SET -> handleConfigSet(pluginId, manifest, obj, allowedActions)
             action == ACTION_TOOL_INVOKE -> handleToolInvoke(pluginId, obj, allowedActions)
+            action == ACTION_CHAT_READ -> handleChatRead(obj, allowedActions)
             else -> null
         }
     }
@@ -82,6 +86,35 @@ class PluginHostApi(
         }
         if (problem != null) return SkillBridge.HandleResult.Failure(problem)
         return runToolInvoke(requireNotNull(bridge), requireNotNull(toolName), pluginId, argumentsJson)
+    }
+
+    /**
+     * `chat_read`：读**当前这次调用所在**的会话最近若干条。
+     *
+     * 两道拒绝都是隐私相关的，不是可有可无的校验：
+     *  - 没有真实会话（占位 id）时必须拒 —— 否则插件会把"读历史"落到一个不存在或别人的会话上；
+     *  - 行数由宿主夹紧，插件不能一次要走整个会话。
+     */
+    private suspend fun handleChatRead(obj: JsonObject, allowedActions: Set<String>): SkillBridge.HandleResult {
+        if (ACTION_CHAT_READ !in allowedActions) {
+            return SkillBridge.HandleResult.Failure(
+                "动作 'chat_read' 未获授权：插件需在清单声明能力 '$CAPABILITY_CHAT_READ'，" +
+                    "并在 设置 → 工具与扩展 → 插件 → 权限 中批准（读取聊天内容属隐私面）",
+            )
+        }
+        val bridge = chatBridge
+            ?: return SkillBridge.HandleResult.Failure("宿主未接入会话读取通道，chat_read 不可用")
+        if (sessionId.isBlank() || sessionId == PluginChatBridge.SESSION_PLACEHOLDER) {
+            return SkillBridge.HandleResult.Failure(
+                "本次调用没有绑定真实会话，无法读取历史；请在一次会话内的对话中调用该插件",
+            )
+        }
+        val params = obj["params"] as? JsonObject
+        val wanted = (params?.get("limit") as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: DEFAULT_CHAT_LIMIT
+        val limit = wanted.coerceIn(1, PluginChatBridge.MAX_LINES)
+        return runCatching {
+            SkillBridge.HandleResult.Output(PluginChatBridge.render(bridge.readRecent(sessionId, limit)))
+        }.getOrElse { SkillBridge.HandleResult.Failure("chat_read 读取失败: ${it.message}") }
     }
 
     /** 先审批、后执行：审批走 [ToolCallGate]（与主会话同一条链），执行在标记上下文里进行。 */
@@ -179,5 +212,8 @@ class PluginHostApi(
         const val CAPABILITY_CONFIG_WRITE = "config.write"
         const val ACTION_TOOL_INVOKE = "tool_invoke"
         const val CAPABILITY_TOOL_INVOKE = "host.tool.invoke"
+        const val ACTION_CHAT_READ = "chat_read"
+        const val CAPABILITY_CHAT_READ = "chat.read"
+        const val DEFAULT_CHAT_LIMIT = 10
     }
 }
