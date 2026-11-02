@@ -18,6 +18,9 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -284,7 +287,11 @@ class MediaGenToolsImpl(
         val startedAt = System.currentTimeMillis()
         // v1.135: 每 5 秒刷新一次进度提示,让用户感知长任务仍在进行。
         val progressJob = slot?.let { target ->
-            CoroutineScope(coroutineContext).launch {
+            // 用带父 Job 的 SupervisorJob：调用方取消时它照样被取消，
+            // 但进度提示自己出错不会把用户的生成任务一起带崩。
+            CoroutineScope(
+                coroutineContext + SupervisorJob(coroutineContext[Job]) + GlobalCoroutineExceptionHandler,
+            ).launch {
                 while (isActive) {
                     delay(PROGRESS_INTERVAL_MS)
                     target.onProgress(((System.currentTimeMillis() - startedAt) / 1000).toInt())

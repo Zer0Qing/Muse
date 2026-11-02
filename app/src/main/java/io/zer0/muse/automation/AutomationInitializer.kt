@@ -39,7 +39,10 @@ object AutomationInitializer {
      * 仍随进程存活，但可取消、可测试，不再使用无约束的 GlobalScope。
      */
     private val appScope = kotlinx.coroutines.CoroutineScope(
-        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+        // 必须带处理器：没有它，子任务里的异常会走线程默认处理器，
+        // 在测试环境里会被下一个 runTest 判成"测试开始前就有未捕获异常"（那族 flake 的形态）。
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO +
+            io.zer0.muse.util.GlobalCoroutineExceptionHandler,
     )
 
     @Volatile

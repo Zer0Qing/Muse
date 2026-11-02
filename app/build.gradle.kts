@@ -351,6 +351,14 @@ ksp {
 
 // 发布全量测试包含大量 Robolectric/Compose 用例;定期重启测试 worker
 // 防止单个 JVM 长时间累积 native/Compose 资源后在尾部用例 OOM。
+// 诊断开关：`-PcoroutineDebug` 打开协程调试模式，
+// 异常里会带上协程创建栈 —— 排查"测试开始前就有未捕获异常"这类问题时用它抓第一现场。
+tasks.withType<Test>().configureEach {
+    if (project.hasProperty("coroutineDebug")) {
+        jvmArgs("-Dkotlinx.coroutines.debug=on")
+    }
+}
+
 tasks.withType<Test>().configureEach {
     maxHeapSize = "2g"
     forkEvery = 200
