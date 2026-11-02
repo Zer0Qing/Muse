@@ -792,4 +792,19 @@
     <string name="plugin_row_python_trusted">Runtime Python · permitido</string>
     <string name="plugin_row_python_locked">Runtime Python · requer alta confianca</string>
     <string name="plugin_permission_node_note">Runtime Node: roda em um subprocesso do Node embutido; as capacidades sao verificadas uma a uma; os tempos limite sao realmente interrompidos e nao bloqueiam outros complementos.</string>
+    <string name="plugin_cap_resource_read">Ler arquivos (somente na pasta isolada do proprio complemento)</string>
+    <string name="plugin_cap_resource_write">Gravar arquivos (somente na pasta isolada do proprio complemento)</string>
+    <string name="plugin_cap_network">Acessar a internet (enderecos locais e privados sao bloqueados)</string>
+    <string name="plugin_cap_clipboard_read">Ler a area de transferencia</string>
+    <string name="plugin_cap_clipboard_write">Escrever na area de transferencia</string>
+    <string name="plugin_cap_clipboard">Ler e escrever na area de transferencia</string>
+    <string name="plugin_cap_notify">Exibir notificacoes</string>
+    <string name="plugin_cap_device_info">Ler informacoes do aparelho (modelo, versao do sistema)</string>
+    <string name="plugin_cap_storage">Usar o armazenamento proprio do complemento (limite de 8MB)</string>
+    <string name="plugin_cap_config_write">Mudar os ajustes do proprio complemento (nunca os itens secretos)</string>
+    <string name="plugin_cap_tool_invoke">Pedir para rodar outras ferramentas (cada uso ainda exige sua aprovacao)</string>
+    <string name="plugin_cap_chat_read">Ler as mensagens recentes da conversa atual (privado, desligado)</string>
+    <string name="plugin_cap_model_call">Gerar texto com o modelo configurado (conta no seu uso)</string>
+    <string name="plugin_cap_ui_skin">Mudar a aparencia visual</string>
+    <string name="plugin_cap_runtime_python">Rodar Python fora do ambiente isolado (confianca alta)</string>
 </resources>

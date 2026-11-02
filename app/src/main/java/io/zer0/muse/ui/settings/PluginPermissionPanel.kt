@@ -24,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
@@ -195,15 +197,25 @@ private fun CapabilityRows(
         )
     }
     rows.forEach { row ->
+        // 显示"这会做什么"而不是能力标识符：用户点的是后果，不是键名。
+        val label = PluginCapabilityCopy.text(LocalContext.current, row.capability)
+        val sensitive = PluginCapabilityCopy.isSensitive(row.capability)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
             Text(
-                text = row.capability,
+                text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
+                color = if (sensitive) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = row.capability },
             )
             MuseSwitch(checked = row.allowed, onCheckedChange = { next -> onToggle(row.capability, next) })
         }

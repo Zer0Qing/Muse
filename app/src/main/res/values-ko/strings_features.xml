@@ -792,4 +792,19 @@
     <string name="plugin_row_python_trusted">Python 런타임 · 허용됨</string>
     <string name="plugin_row_python_locked">Python 런타임 · 고신뢰 허용 필요</string>
     <string name="plugin_permission_node_note">Node 런타임: 내장 Node 하위 프로세스에서 실행되며 능력은 항목별로 승인됩니다. 시간 초과가 실제로 중단되어 다른 플러그인에 영향을 주지 않습니다.</string>
+    <string name="plugin_cap_resource_read">파일 읽기(플러그인 자신의 격리 폴더로 한정)</string>
+    <string name="plugin_cap_resource_write">파일 쓰기(플러그인 자신의 격리 폴더로 한정)</string>
+    <string name="plugin_cap_network">외부 URL 접속(로컬 및 사설 주소는 차단됨)</string>
+    <string name="plugin_cap_clipboard_read">클립보드 읽기</string>
+    <string name="plugin_cap_clipboard_write">클립보드에 쓰기</string>
+    <string name="plugin_cap_clipboard">클립보드 읽기 및 쓰기</string>
+    <string name="plugin_cap_notify">알림 표시</string>
+    <string name="plugin_cap_device_info">기기 정보 읽기(모델, OS 버전)</string>
+    <string name="plugin_cap_storage">플러그인 전용 저장 공간 사용(최대 8MB)</string>
+    <string name="plugin_cap_config_write">플러그인 자체 설정 변경(비밀 항목은 변경 불가)</string>
+    <string name="plugin_cap_tool_invoke">다른 도구 실행 요청(매번 사용자의 승인 필요)</string>
+    <string name="plugin_cap_chat_read">현재 대화의 최근 메시지 읽기(개인정보, 기본 꺼짐)</string>
+    <string name="plugin_cap_model_call">설정된 모델로 생성(사용량에 포함됨)</string>
+    <string name="plugin_cap_ui_skin">화면 스킨 변경</string>
+    <string name="plugin_cap_runtime_python">격리 환경 밖에서 Python 실행(신뢰도 높음)</string>
 </resources>

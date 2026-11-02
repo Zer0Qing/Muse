@@ -2086,12 +2086,13 @@ private fun PluginInstallPreviewContent(preview: PluginSecurityGate.InstallPrevi
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // 与权限面板同一份表述：安装页写"这会做什么"，面板写同一个词，
+        // 用户在两处看到的必须是同一件事。（context 只能在组合上下文里取，不能写进 joinToString 的 lambda。）
+        val capabilityCopyContext = LocalContext.current
+        val capabilitySummary = preview.capabilities.ifEmpty { listOf(noCapabilities) }
+            .joinToString("；") { PluginCapabilityCopy.text(capabilityCopyContext, it) }
         Text(
-            text = stringResource(
-                R.string.muse_plugins_install_confirm_capabilities,
-                preview.capabilities.ifEmpty { listOf(noCapabilities) }
-                    .joinToString(", "),
-            ),
+            text = stringResource(R.string.muse_plugins_install_confirm_capabilities, capabilitySummary),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
         )

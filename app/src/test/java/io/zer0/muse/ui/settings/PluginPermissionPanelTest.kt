@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
@@ -59,7 +60,10 @@ class PluginPermissionPanelTest {
             }
         }
 
-        composeTestRule.onNodeWithText("network").assertExists()
+        // 面板显示的是"这会做什么"，原始标识符退到无障碍标签里（既给读屏用，也给测试定位用）。
+        composeTestRule.onNodeWithContentDescription("network").assertExists()
+        // 精确匹配：可见文案不再是键名本身（人话里出现 network 这个词是允许的）
+        composeTestRule.onNodeWithText("network").assertDoesNotExist()
         composeTestRule.onAllNodes(isToggleable()).onFirst().assertIsOn().performClick()
 
         val after = gateway.check("p1", declared, "http_get")

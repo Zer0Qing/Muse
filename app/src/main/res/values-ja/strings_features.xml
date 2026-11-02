@@ -791,4 +791,19 @@
     <string name="plugin_row_python_trusted">Python ランタイム · 許可済み</string>
     <string name="plugin_row_python_locked">Python ランタイム · 高信頼の許可が必要</string>
     <string name="plugin_permission_node_note">Node ランタイム：組み込み Node のサブプロセスで実行され、能力は項目ごとに認可します。タイムアウトは実際に中断され、他のプラグインに波及しません。</string>
+    <string name="plugin_cap_resource_read">ファイルの読み取り（プラグイン自身の沙盒フォルダ内のみ）</string>
+    <string name="plugin_cap_resource_write">ファイルの書き込み（プラグイン自身の沙盒フォルダのみ）</string>
+    <string name="plugin_cap_network">外部 URL への通信（ローカルと私用アドレスは遮断）</string>
+    <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
+    <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>
+    <string name="plugin_cap_clipboard">クリップボードの読み書き</string>
+    <string name="plugin_cap_notify">通知の表示</string>
+    <string name="plugin_cap_device_info">端末情報の読み取り（機種・OS バージョン）</string>
+    <string name="plugin_cap_storage">プラグイン専用ストレージの使用（上限 8MB）</string>
+    <string name="plugin_cap_config_write">プラグイン自身の設定変更（秘密項目は変更不可）</string>
+    <string name="plugin_cap_tool_invoke">他のツールの実行申請（毎回あなたの承認が必要）</string>
+    <string name="plugin_cap_chat_read">現在の会話の直近メッセージの読み取り（プライバシー、既定オフ）</string>
+    <string name="plugin_cap_model_call">設定済みモデルでの生成（あなたの利用量に算入）</string>
+    <string name="plugin_cap_ui_skin">外観スキンの変更</string>
+    <string name="plugin_cap_runtime_python">沙盒の外で Python を実行（高信頼、個別に確認）</string>
 </resources>

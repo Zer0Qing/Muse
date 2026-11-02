@@ -841,4 +841,19 @@
     <string name="plugin_row_python_trusted">Среда Python · разрешено</string>
     <string name="plugin_row_python_locked">Среда Python · требуется высокое доверие</string>
     <string name="plugin_permission_node_note">Среда Node: работает в дочернем процессе встроенного Node; возможности проверяются по отдельности; таймауты действительно прерываются и не блокируют другие плагины.</string>
+    <string name="plugin_cap_resource_read">Чтение файлов (только в изолированной папке плагина)</string>
+    <string name="plugin_cap_resource_write">Запись файлов (только в изолированную папку плагина)</string>
+    <string name="plugin_cap_network">Доступ в сеть (локальные и приватные адреса блокируются)</string>
+    <string name="plugin_cap_clipboard_read">Чтение буфера обмена</string>
+    <string name="plugin_cap_clipboard_write">Запись в буфер обмена</string>
+    <string name="plugin_cap_clipboard">Чтение и запись буфера обмена</string>
+    <string name="plugin_cap_notify">Показывать уведомления</string>
+    <string name="plugin_cap_device_info">Чтение сведений об устройстве (модель, версия ОС)</string>
+    <string name="plugin_cap_storage">Использовать хранилище плагина (до 8MB)</string>
+    <string name="plugin_cap_config_write">Менять настройки самого плагина (секреты менять нельзя)</string>
+    <string name="plugin_cap_tool_invoke">Запуск других инструментов (каждый требует вашего подтверждения)</string>
+    <string name="plugin_cap_chat_read">Чтение последних сообщений текущего чата (приватно, по умолчанию выкл)</string>
+    <string name="plugin_cap_model_call">Генерация через настроенную модель (расходуется ваш лимит)</string>
+    <string name="plugin_cap_ui_skin">Менять визуальное оформление</string>
+    <string name="plugin_cap_runtime_python">Запуск Python вне изоляции (высокое доверие)</string>
 </resources>

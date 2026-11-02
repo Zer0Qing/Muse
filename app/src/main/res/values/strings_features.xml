@@ -766,4 +766,19 @@
     <string name="plugin_row_python_trusted">Python 运行时 · 已允许</string>
     <string name="plugin_row_python_locked">Python 运行时 · 需高信任授权</string>
     <string name="plugin_permission_node_note">Node 档：跑在内置 Node 的子进程里，能力必须逐项授权；超时会被真正打断，不会连累其它插件。</string>
+    <string name="plugin_cap_resource_read">读取文件（只能读到插件自己沙盒目录里的内容）</string>
+    <string name="plugin_cap_resource_write">写入文件（只能写进插件自己的沙盒目录，动不到你其它数据）</string>
+    <string name="plugin_cap_network">联网访问外部网址（内网与本机地址会被拦下）</string>
+    <string name="plugin_cap_clipboard_read">读取剪贴板内容</string>
+    <string name="plugin_cap_clipboard_write">向剪贴板写入内容</string>
+    <string name="plugin_cap_clipboard">读写剪贴板</string>
+    <string name="plugin_cap_notify">发出通知（不会自动替你打开别的页面）</string>
+    <string name="plugin_cap_device_info">读取设备信息（型号、系统版本等）</string>
+    <string name="plugin_cap_storage">使用插件自己的存储空间（上限 8MB）</string>
+    <string name="plugin_cap_config_write">修改这个插件自己的设置项（密钥类设置不允许改）</string>
+    <string name="plugin_cap_tool_invoke">请求调用其它工具（每次都会先弹审批，由你决定）</string>
+    <string name="plugin_cap_chat_read">读取当前对话的最近内容（属隐私，默认关闭）</string>
+    <string name="plugin_cap_model_call">用你配置的模型生成内容（会计入你的用量）</string>
+    <string name="plugin_cap_ui_skin">更换界面外观</string>
+    <string name="plugin_cap_runtime_python">以 Python 运行代码，能离开沙盒（高信任，请单独确认）</string>
 </resources>

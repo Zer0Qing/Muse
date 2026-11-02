@@ -744,4 +744,19 @@
     <string name="plugin_row_python_trusted">Python runtime · allowed</string>
     <string name="plugin_row_python_locked">Python runtime · needs high trust</string>
     <string name="plugin_permission_node_note">Node runtime: runs in a built-in Node subprocess; capabilities are checked per action; timeouts are actually interrupted and never block other plugins.</string>
+    <string name="plugin_cap_resource_read">Read files (only inside the plugin own sandbox folder)</string>
+    <string name="plugin_cap_resource_write">Write files (only inside the plugin own sandbox folder)</string>
+    <string name="plugin_cap_network">Reach the network (local and private addresses are blocked)</string>
+    <string name="plugin_cap_clipboard_read">Read the clipboard</string>
+    <string name="plugin_cap_clipboard_write">Write to the clipboard</string>
+    <string name="plugin_cap_clipboard">Read and write the clipboard</string>
+    <string name="plugin_cap_notify">Post notifications</string>
+    <string name="plugin_cap_device_info">Read device info (model, OS version)</string>
+    <string name="plugin_cap_storage">Use this plugin own storage (8MB cap)</string>
+    <string name="plugin_cap_config_write">Change this plugin own settings (secret items are never allowed)</string>
+    <string name="plugin_cap_tool_invoke">Ask to run other tools (each one still needs your approval)</string>
+    <string name="plugin_cap_chat_read">Read recent messages of the current chat (private, off by default)</string>
+    <string name="plugin_cap_model_call">Generate text with your configured model (counts against your usage)</string>
+    <string name="plugin_cap_ui_skin">Change the visual skin</string>
+    <string name="plugin_cap_runtime_python">Run Python code outside the sandbox (high trust, confirm separately)</string>
 </resources>
