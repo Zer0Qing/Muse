@@ -83,6 +83,37 @@ class PluginActivationBridge(
     }
 
     /**
+     * 前台服务型插件的启动钩子（`runtime.service`）。
+     *
+     * 只在服务宿主把插件拉起来时调一次；返回值只用于日志 ——
+     * 服务型插件没有"结果"要给用户看，失败也不该让服务整体退出。
+     */
+    suspend fun invokeServiceStart(pluginId: String): Boolean {
+        if (PluginKillSwitch.isDisabled(context)) return false
+        val verified = resultOf { pluginManager.loadVerifiedPlugin(pluginId) }.getOrNull() ?: return false
+        val result = resultOf {
+            invoker.call(
+                manifest = verified.manifest,
+                entryCode = verified.entryCode,
+                functionName = SERVICE_START_FUNCTION,
+                argsJson = "[{\"event\":\"$ACTIVATION_ON_SERVICE_START\"}]",
+                configJson = pluginManager.getPluginConfigJson(verified.manifest),
+            )
+        }.getOrNull()
+        return when (result) {
+            is SkillEngineResult.Success -> {
+                Logger.i(TAG, "插件服务已启动: $pluginId")
+                true
+            }
+            is SkillEngineResult.Error -> {
+                Logger.w(TAG, "插件服务启动失败: $pluginId — ${result.message}")
+                false
+            }
+            null -> false
+        }
+    }
+
+    /**
      * 执行一条定时任务：直接调插件导出的处理函数（不是 onActivate）。
      *
      * @return 是否成功；失败只记日志 —— 定时任务无人值守，报错也没人看，但不该影响下一次
@@ -370,6 +401,12 @@ class PluginActivationBridge(
 
         /** 定时任务的激活事件名（写在清单 activationEvents 里可让作者知道会被调用）。 */
         const val ACTIVATION_ON_SCHEDULE = "onSchedule"
+
+        /** 前台服务型插件的启动钩子事件名。 */
+        const val ACTIVATION_ON_SERVICE_START = "onServiceStart"
+
+        /** 该钩子需要导出的函数名。 */
+        const val SERVICE_START_FUNCTION = "onServiceStart"
 
         /** 决策型：工具调用前可否拦下（只收窄，不能放宽）。 */
         const val ACTIVATION_ON_TOOL_CALL_BEFORE = "onToolCallBefore"

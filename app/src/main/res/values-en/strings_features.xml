@@ -760,6 +760,12 @@
     <string name="plugin_cap_ui_slot">Show plugin-provided UI at the top of the chat</string>
     <string name="plugin_cap_runtime_long">Long-running tasks (up to 10 minutes per call)</string>
     <string name="plugin_cap_schedule_background">Run scheduled tasks in the background (even when the app is not open)</string>
+    <string name="plugin_service_channel_name">Plugin services</string>
+    <string name="plugin_service_channel_desc">Shown while plugins run in a foreground service</string>
+    <string name="plugin_service_notification_title">Plugin services running</string>
+    <string name="plugin_service_notification_text">Plugins are running in the background; tap to manage</string>
+    <string name="plugin_service_notification_stop">Stop</string>
+    <string name="plugin_cap_runtime_service">Keep running in the background (foreground service)</string>
     <string name="plugin_debug_title">Plugin debug</string>
     <string name="plugin_cap_clipboard_read">Read the clipboard</string>
     <string name="plugin_cap_clipboard_write">Write to the clipboard</string>

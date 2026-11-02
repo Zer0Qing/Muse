@@ -46,6 +46,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.UI_SLOT to R.string.plugin_cap_ui_slot,
         PluginCapabilityGateway.RUNTIME_LONG to R.string.plugin_cap_runtime_long,
         PluginCapabilityGateway.SCHEDULE_BACKGROUND to R.string.plugin_cap_schedule_background,
+        PluginCapabilityGateway.RUNTIME_SERVICE to R.string.plugin_cap_runtime_service,
         PluginCapabilityGateway.SCHEDULE to R.string.plugin_cap_schedule,
     )
 
@@ -70,6 +71,7 @@ object PluginCapabilityCopy {
         PluginCapabilityGateway.UI_SLOT,
         PluginCapabilityGateway.RUNTIME_LONG,
         PluginCapabilityGateway.SCHEDULE_BACKGROUND,
+        PluginCapabilityGateway.RUNTIME_SERVICE,
         PluginCapabilityGateway.SCHEDULE,
         PluginCapabilityGateway.RUNTIME_PYTHON,
     )

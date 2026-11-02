@@ -527,6 +527,23 @@ class MuseApp : Application(), ImageLoaderFactory {
                             io.zer0.muse.data.plugin.PluginAppearanceBridge::class.java,
                         ),
                     )
+
+                    // 前台服务型插件（runtime.service）：有符合条件的才拉起服务宿主，
+                    // 一个服务承载所有服务型插件，一条常驻通知说清有几个在跑
+                    appScope.launch {
+                        val ledger = io.zer0.muse.data.plugin.PluginCapabilityLedgers.shared(applicationContext)
+                        val eligible = io.zer0.muse.data.plugin.PluginServiceEligibility.select(
+                            pluginManager.list(),
+                        ) { pluginId ->
+                            ledger.isApproved(
+                                pluginId,
+                                io.zer0.muse.data.plugin.PluginCapabilityGateway.RUNTIME_SERVICE,
+                            )
+                        }
+                        if (eligible.isNotEmpty()) {
+                            io.zer0.muse.data.plugin.PluginServiceHostService.start(this@MuseApp)
+                        }
+                    }
                     // P3b: 工具调用事件转给插件（观察型，按能力授权；默认关闭）
                     hookRegistry.register(io.zer0.muse.hook.PluginEventHook(bridge))
                     // P3b: 决策型钩子（只能收窄；默认关闭，需 hook.toolCallBefore 授权）

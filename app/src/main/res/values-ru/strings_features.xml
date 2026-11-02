@@ -857,6 +857,12 @@
     <string name="plugin_cap_ui_slot">Показывать интерфейс плагина вверху чата</string>
     <string name="plugin_cap_runtime_long">Длительные задачи (до 10 минут за вызов)</string>
     <string name="plugin_cap_schedule_background">Запуск задач по расписанию в фоне (даже когда приложение закрыто)</string>
+    <string name="plugin_service_channel_name">Службы плагинов</string>
+    <string name="plugin_service_channel_desc">Показывается, пока плагины работают в foreground-службе</string>
+    <string name="plugin_service_notification_title">Службы плагинов работают</string>
+    <string name="plugin_service_notification_text">Плагины работают в фоне</string>
+    <string name="plugin_service_notification_stop">Остановить</string>
+    <string name="plugin_cap_runtime_service">Постоянная работа в фоне (foreground-служба)</string>
     <string name="plugin_debug_title">Отладка плагинов</string>
     <string name="plugin_cap_clipboard_read">Чтение буфера обмена</string>
     <string name="plugin_cap_clipboard_write">Запись в буфер обмена</string>

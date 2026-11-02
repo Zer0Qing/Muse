@@ -423,6 +423,17 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- 前台服务型插件（runtime.service）：一个服务承载所有服务型插件，
+             一条常驻通知说清"有几个插件在跑"。默认关，用户逐插件授权后才进来。 -->
+        <service
+            android:name=".data.plugin.PluginServiceHostService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Runs user-installed plugins that were explicitly granted the service capability" />
+        </service>
+
         <!-- P2-03: 通知栏"停止"动作 → 生成链路（不导出，只有本应用能发） -->
         <receiver
             android:name=".notification.TaskStageActionReceiver"

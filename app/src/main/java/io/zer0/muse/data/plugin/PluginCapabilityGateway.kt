@@ -210,7 +210,8 @@ class PluginCapabilityGateway(
                 capability != APP_THEME &&
                 capability != UI_SLOT &&
                 capability != RUNTIME_LONG &&
-                capability != SCHEDULE_BACKGROUND,
+                capability != SCHEDULE_BACKGROUND &&
+                capability != RUNTIME_SERVICE,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -309,6 +310,13 @@ class PluginCapabilityGateway(
      * 这条管"没人看着的时候能不能跑"。后者更敏感（耗电、无人值守），默认关。
      */
     const val SCHEDULE_BACKGROUND = "schedule.background"
+
+    /**
+     * 前台服务：插件可以常驻运行（一条常驻通知承载所有服务型插件）。
+     *
+     * 默认关，且是**最重的一项**：它意味着应用会在用户不看着的时候一直活着。
+     */
+    const val RUNTIME_SERVICE = "runtime.service"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。

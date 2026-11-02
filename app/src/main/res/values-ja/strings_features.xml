@@ -807,6 +807,12 @@
     <string name="plugin_cap_ui_slot">チャット上部にプラグインの画面を表示</string>
     <string name="plugin_cap_runtime_long">長時間の実行（1 回あたり最大 10 分）</string>
     <string name="plugin_cap_schedule_background">バックグラウンドで定期タスクを実行（アプリ未起動でも）</string>
+    <string name="plugin_service_channel_name">プラグインサービス</string>
+    <string name="plugin_service_channel_desc">プラグインがフォアグラウンドサービスで動作中の通知</string>
+    <string name="plugin_service_notification_title">プラグインサービス実行中</string>
+    <string name="plugin_service_notification_text">バックグラウンドで動作中のプラグインがあります</string>
+    <string name="plugin_service_notification_stop">停止</string>
+    <string name="plugin_cap_runtime_service">バックグラウンドで常駐（フォアグラウンドサービス）</string>
     <string name="plugin_debug_title">プラグインのデバッグ</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>

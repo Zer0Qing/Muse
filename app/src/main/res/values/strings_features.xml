@@ -782,6 +782,12 @@
     <string name="plugin_cap_ui_slot">在聊天页顶部显示插件提供的界面</string>
     <string name="plugin_cap_runtime_long">长时间运行（单次最多 10 分钟）</string>
     <string name="plugin_cap_schedule_background">后台唤醒定时任务（应用不在前台也会跑）</string>
+    <string name="plugin_service_channel_name">插件服务</string>
+    <string name="plugin_service_channel_desc">插件在前台服务里常驻运行时的通知</string>
+    <string name="plugin_service_notification_title">插件服务运行中</string>
+    <string name="plugin_service_notification_text">有插件正在后台运行，点开可管理</string>
+    <string name="plugin_service_notification_stop">停止</string>
+    <string name="plugin_cap_runtime_service">常驻后台运行（前台服务）</string>
     <string name="plugin_debug_title">插件调试</string>
     <string name="plugin_cap_clipboard_read">读取剪贴板内容</string>
     <string name="plugin_cap_clipboard_write">向剪贴板写入内容</string>

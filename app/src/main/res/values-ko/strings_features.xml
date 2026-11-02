@@ -808,6 +808,12 @@
     <string name="plugin_cap_ui_slot">채팅 상단에 플러그인 화면 표시</string>
     <string name="plugin_cap_runtime_long">장시간 실행 (호출당 최대 10분)</string>
     <string name="plugin_cap_schedule_background">백그라운드에서 예약 작업 실행 (앱이 꺼져 있어도)</string>
+    <string name="plugin_service_channel_name">플러그인 서비스</string>
+    <string name="plugin_service_channel_desc">플러그인이 포그라운드 서비스로 실행 중일 때 표시</string>
+    <string name="plugin_service_notification_title">플러그인 서비스 실행 중</string>
+    <string name="plugin_service_notification_text">백그라운드에서 실행 중인 플러그인이 있습니다</string>
+    <string name="plugin_service_notification_stop">중지</string>
+    <string name="plugin_cap_runtime_service">백그라운드 상주 (포그라운드 서비스)</string>
     <string name="plugin_debug_title">플러그인 디버그</string>
     <string name="plugin_cap_clipboard_read">클립보드 읽기</string>
     <string name="plugin_cap_clipboard_write">클립보드에 쓰기</string>
