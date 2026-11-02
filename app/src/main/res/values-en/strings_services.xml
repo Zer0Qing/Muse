@@ -306,6 +306,9 @@
     <string name="tool_write_not_applied">Not applied: expected %1$d, got %2$d</string>
     <string name="tool_brightness_auto_set">Auto brightness enabled</string>
     <string name="read_aloud_channel_name">Read-aloud playback</string>
+    <string name="skill_url_dialog_title">Install a skill from GitHub</string>
+    <string name="skill_url_hint">https://github.com/owner/repo</string>
+    <string name="skill_url_help">GitHub repositories only; the archive is downloaded and its SKILL.md is read.</string>
     <string name="read_aloud_notification_text">Reading aloud…</string>
     <string name="read_aloud_notification_stop">Stop</string>
     <string name="tool_brightness_missing">Missing parameter: value</string>

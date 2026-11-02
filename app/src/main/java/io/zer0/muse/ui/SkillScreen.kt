@@ -42,6 +42,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.skill.SkillPackageImporter
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.SkillExecutor
 import io.zer0.muse.tools.SkillImporter
@@ -87,6 +88,9 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
     var importMessage by remember { mutableStateOf<String?>(null) }
     var importing by remember { mutableStateOf(false) }
     var importDialogVisible by remember { mutableStateOf(false) }
+    // P1-09：从 GitHub 仓库地址安装（能力在 SkillPackageImporter.importUrl，这里只做入口）
+    var urlDialogVisible by remember { mutableStateOf(false) }
+    var urlInput by remember { mutableStateOf("") }
     val packageImporter = remember { SkillPackageImporter(context, skillRepository) }
     val builtInIds = remember {
         SkillExecutor.BUILT_IN_SKILLS.map { it.id }.toSet()
@@ -203,6 +207,12 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                                 .onFailure { importMessage = context.getString(R.string.skill_open_picker_failed, it.message) }
                         },
                         contentDescription = stringResource(R.string.skill_import_cd),
+                        enabled = !importing,
+                    )
+                    MuseTactileButton(
+                        icon = MuseIcons.link,
+                        onClick = { urlDialogVisible = true },
+                        contentDescription = stringResource(R.string.skill_url_dialog_title),
                         enabled = !importing,
                     )
                 },
@@ -399,6 +409,51 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
             MuseToast.show(msg)
             importMessage = null
         }
+    }
+
+    if (urlDialogVisible) {
+        MuseDialog(
+            onDismissRequest = { urlDialogVisible = false },
+            title = stringResource(R.string.skill_url_dialog_title),
+            content = {
+                Column {
+                    MuseTextField(
+                        value = urlInput,
+                        onValueChange = { urlInput = it },
+                        label = { Text(stringResource(R.string.skill_url_hint)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.skill_url_help),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.common_confirm),
+            confirmEnabled = urlInput.isNotBlank() && !importing,
+            onConfirm = {
+                val url = urlInput.trim()
+                urlDialogVisible = false
+                scope.launch {
+                    importing = true
+                    importDialogVisible = true
+                    val outcome = packageImporter.importUrl(url)
+                    importMessage = when (outcome) {
+                        is SkillPackageImporter.Outcome.Installed ->
+                            context.getString(R.string.skill_imported, outcome.skill.name)
+                        is SkillPackageImporter.Outcome.Failed ->
+                            context.getString(R.string.skill_import_error, outcome.reason)
+                    }
+                    importing = false
+                    importDialogVisible = false
+                    urlInput = ""
+                }
+            },
+            onDismiss = { urlDialogVisible = false },
+        )
     }
 
     if (importDialogVisible) {

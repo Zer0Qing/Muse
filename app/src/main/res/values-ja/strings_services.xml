@@ -292,6 +292,9 @@
     <string name="tool_write_not_applied">設定が反映されていません：期待 %1$d、実際 %2$d</string>
     <string name="tool_brightness_auto_set">自動輝度を有効にしました</string>
     <string name="read_aloud_channel_name">読み上げ再生</string>
+    <string name="skill_url_dialog_title">GitHub からスキルをインストール</string>
+    <string name="skill_url_hint">https://github.com/作者/リポジトリ</string>
+    <string name="skill_url_help">GitHub のリポジトリのみ対応。アーカイブを取得し SKILL.md を読みます。</string>
     <string name="read_aloud_notification_text">読み上げ中…</string>
     <string name="read_aloud_notification_stop">停止</string>
     <string name="tool_brightness_missing">パラメータがありません: 値</string>
