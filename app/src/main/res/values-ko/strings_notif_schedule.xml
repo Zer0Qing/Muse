@@ -86,6 +86,16 @@
     <string name="plugin_kill_switch_desc">안전 모드 일괄 중지입니다. 도구, 명령, 이벤트, 훅, 예약 작업이 실행되지 않습니다. 복원하면 다시 동작합니다.</string>
     <string name="plugin_kill_switch_restore">플러그인 복원</string>
     <string name="plugin_kill_switch_disable">모든 플러그인 끄기</string>
+    <string name="workspace_location_title">워크스페이스 위치</string>
+    <string name="workspace_location_downloads">다운로드(Download/Muse) — 모든 파일 관리자에서 보입니다</string>
+    <string name="workspace_location_internal">앱 전용 폴더 — 다른 앱에서는 보이지 않습니다</string>
+    <string name="workspace_location_move_downloads">다운로드로 이동</string>
+    <string name="workspace_location_move_internal">전용 폴더로 되돌리기</string>
+    <string name="workspace_location_need_permission">먼저 시스템 설정에서 "모든 파일 접근"을 허용해야 합니다</string>
+    <string name="workspace_location_copy_path">경로 복사</string>
+    <string name="workspace_location_moved">%1$d개 파일을 옮겼습니다. 적용하려면 앱을 다시 시작하세요.</string>
+    <string name="workspace_location_failed">이동하지 못했습니다: %1$s</string>
+    <string name="workspace_location_restart">앱 다시 시작</string>
     <string name="safe_mode_restore_plugins">모든 플러그인을 복원하고 다시 시작</string>
     <string name="safe_mode_view_full_log_desc">문제 진단을 위해 전체 로그를 보거나 공유합니다</string>
     <string name="safe_mode_clear_data_restart_desc">채팅, 설정 및 로컬 파일을 삭제합니다. Muse가 정상적으로 열리지 않을 때만 사용하세요</string>

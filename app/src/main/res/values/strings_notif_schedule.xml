@@ -73,6 +73,16 @@
     <string name="plugin_kill_switch_desc">这是安全模式里的总闸：工具、命令、事件、钩子、定时任务全部不执行。恢复后才会重新运行。</string>
     <string name="plugin_kill_switch_restore">恢复插件</string>
     <string name="plugin_kill_switch_disable">停用所有插件</string>
+    <string name="workspace_location_title">工作区位置</string>
+    <string name="workspace_location_downloads">下载目录（Download/Muse）— 任何文件管理器都能看到</string>
+    <string name="workspace_location_internal">应用私有目录 — 其它应用看不到</string>
+    <string name="workspace_location_move_downloads">放到下载目录</string>
+    <string name="workspace_location_move_internal">移回私有目录</string>
+    <string name="workspace_location_need_permission">需要先在系统设置里允许「所有文件访问」，否则写不进下载目录</string>
+    <string name="workspace_location_copy_path">复制路径</string>
+    <string name="workspace_location_moved">已迁移 %1$d 个文件，需要重启应用生效</string>
+    <string name="workspace_location_failed">没搬成：%1$s</string>
+    <string name="workspace_location_restart">重启应用</string>
     <string name="safe_mode_restore_plugins">恢复所有插件并重启</string>
     <string name="safe_mode_view_full_log">查看崩溃日志</string>
     <string name="safe_mode_view_full_log_desc">查看或分享完整日志，方便定位问题</string>

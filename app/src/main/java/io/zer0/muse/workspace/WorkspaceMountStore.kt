@@ -28,7 +28,7 @@ class WorkspaceMountStore(private val context: Context) {
     private val storeFile: File = File(context.filesDir, "workspace_mounts.json")
 
     /** 默认挂载对应的沙盒目录，沿用历史路径，老数据原地可用。 */
-    private val mainDir: File = File(context.filesDir, MAIN_DIR_NAME)
+    private val mainDir: File = WorkspaceLocation.resolve(context)
 
     /** 工具长输出目录，只读内置挂载的根。 */
     private val toolOutputsDir: File = File(context.filesDir, TOOL_OUTPUTS_DIR_NAME)
@@ -214,7 +214,6 @@ class WorkspaceMountStore(private val context: Context) {
         private const val TAG = "WorkspaceMountStore"
 
         /** 默认挂载的目录名。 */
-        private const val MAIN_DIR_NAME = "workspace"
 
         /** 默认挂载的展示名。 */
         private const val MAIN_LABEL = "工作区"

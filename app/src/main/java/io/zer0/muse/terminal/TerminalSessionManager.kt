@@ -113,7 +113,7 @@ class TerminalSessionManager(private val appContext: Context) {
     }
 
     private fun startPtyLocked(): Boolean {
-        val workDir = File(appContext.filesDir, "workspace").apply { mkdirs() }
+        val workDir = io.zer0.muse.workspace.WorkspaceLocation.resolve(appContext).apply { mkdirs() }
         val pidArray = IntArray(1)
         val fd = runCatching {
             // P1-B: 终端 PATH 追加运行时 bin，并注入 exec 垫片(名称映射 + shebang；运行时未就绪时为空串跳过)
@@ -151,7 +151,7 @@ class TerminalSessionManager(private val appContext: Context) {
     }
 
     private fun startPipeLocked() {
-        val workDir = File(appContext.filesDir, "workspace").apply { mkdirs() }
+        val workDir = io.zer0.muse.workspace.WorkspaceLocation.resolve(appContext).apply { mkdirs() }
         val started = runCatching {
             ProcessBuilder(SHELL_PATH)
                 .directory(workDir)

@@ -86,6 +86,16 @@
     <string name="plugin_kill_switch_desc">セーフモードの一括停止です。ツール・コマンド・イベント・フック・定期実行は動作しません。復元すると再び有効になります。</string>
     <string name="plugin_kill_switch_restore">プラグインを復元</string>
     <string name="plugin_kill_switch_disable">すべてのプラグインを無効化</string>
+    <string name="workspace_location_title">ワークスペースの場所</string>
+    <string name="workspace_location_downloads">ダウンロード（Download/Muse）— どのファイルマネージャーでも見えます</string>
+    <string name="workspace_location_internal">アプリ専用フォルダ — 他のアプリからは見えません</string>
+    <string name="workspace_location_move_downloads">ダウンロードへ移動</string>
+    <string name="workspace_location_move_internal">専用フォルダへ戻す</string>
+    <string name="workspace_location_need_permission">先にシステム設定で「すべてのファイルへのアクセス」を許可してください</string>
+    <string name="workspace_location_copy_path">パスをコピー</string>
+    <string name="workspace_location_moved">%1$d 個のファイルを移動しました。反映にはアプリの再起動が必要です。</string>
+    <string name="workspace_location_failed">移動できませんでした: %1$s</string>
+    <string name="workspace_location_restart">アプリを再起動</string>
     <string name="safe_mode_restore_plugins">すべてのプラグインを復元して再起動</string>
     <string name="safe_mode_view_full_log_desc">問題の調査に役立つ完全なログを表示または共有します</string>
     <string name="safe_mode_clear_data_restart_desc">チャット、設定、ローカル ファイルを削除します。Muse が通常起動できない場合だけ使用してください</string>

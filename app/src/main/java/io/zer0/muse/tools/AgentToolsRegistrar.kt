@@ -162,14 +162,14 @@ class AgentToolsRegistrar(
         toolRegistry.register(TerminalExecTool.toolDef()) { args ->
             TerminalExecTool.execute(
                 args,
-                java.io.File(context.filesDir, "workspace").apply { mkdirs() },
+                io.zer0.muse.workspace.WorkspaceLocation.resolve(context).apply { mkdirs() },
                 java.io.File(context.filesDir, TOOL_OUTPUTS_DIR),
             )
         }
         // 手机上下文：统一信封（来源/覆盖范围/权限状态），区分"未授权"与"确实没有"
         toolRegistry.register(PhoneContextTool.toolDef()) { args -> PhoneContextTool.execute(args, context) }
         // 后台终端 job：提交 → 轮询 → 终止（长任务用，terminal_exec 仍负责同步短命令）
-        TerminalJobTools.register(toolRegistry, java.io.File(context.filesDir, "workspace").apply { mkdirs() })
+        TerminalJobTools.register(toolRegistry, io.zer0.muse.workspace.WorkspaceLocation.resolve(context).apply { mkdirs() })
         // v2.2.1 Termux 通道:完整 Linux 环境命令执行(需用户安装 Termux 并授权;未就绪时返回配置引导)
         toolRegistry.register(TermuxExecTool.toolDef()) { args ->
             TermuxExecTool.execute(args, context)

@@ -59,6 +59,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <!-- 工作区放到公共下载目录时需要（用户主动开启才生效，默认不申请）。
+         Android 10 起写公共目录只能走这项特殊权限，没有替代方案。 -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <!-- v2.2.1 Termux 通道:经由 Termux RUN_COMMAND 协议执行命令(用户在 Termux 附加权限中授予) -->
     <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
     <!-- v2.2.1 无障碍独立 Provider:绑定其 AIDL 桥接服务(签名级权限,仅同签名应用可绑定) -->

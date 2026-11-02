@@ -391,6 +391,13 @@ fun WorkspaceScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
+                        // 位置卡片只在根目录出现：它回答的是"我的工作区到底在哪儿"，
+                        // 翻进子目录之后这个问题已经不需要再答一遍。
+                        if (currentPath.isEmpty()) {
+                            item(key = "__location__") {
+                                io.zer0.muse.ui.workspace.WorkspaceLocationCard()
+                            }
+                        }
                         // 当前目录非根时,首项展示"返回上级"
                         if (currentPath.isNotEmpty()) {
                             item(key = "__parent__") {

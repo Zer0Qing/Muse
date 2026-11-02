@@ -25,10 +25,13 @@ import java.util.UUID
  */
 class WorkspaceManager(private val context: Context) {
 
-    /** 默认挂载的根目录，沿用历史路径。 */
-    val rootDir: File = File(context.filesDir, MAIN_DIR_NAME).apply {
-        if (!exists()) mkdirs()
-    }
+    /**
+     * 默认挂载的根目录。
+     *
+     * 位置由 [WorkspaceLocation] 决定：默认仍是私有目录（历史路径不变），
+     * 用户在界面上主动选了「放到下载目录」并且拿到「所有文件访问」之后才换成 `Download/Muse`。
+     */
+    val rootDir: File = WorkspaceLocation.resolve(context)
 
     private val mountStore = WorkspaceMountStore(context)
 
@@ -788,7 +791,6 @@ class WorkspaceManager(private val context: Context) {
         private const val TAG = "WorkspaceManager"
 
         /** 默认挂载的目录名。 */
-        private const val MAIN_DIR_NAME = "workspace"
 
         /** 读取文件大小上限：1MB。 */
         const val MAX_READ_BYTES: Long = 1L * 1024 * 1024

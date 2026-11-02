@@ -86,6 +86,16 @@
     <string name="plugin_kill_switch_desc">Это общий выключатель безопасного режима: инструменты, команды, события, хуки и расписания не выполняются. Восстановите, чтобы включить.</string>
     <string name="plugin_kill_switch_restore">Восстановить плагины</string>
     <string name="plugin_kill_switch_disable">Отключить все плагины</string>
+    <string name="workspace_location_title">Расположение рабочей области</string>
+    <string name="workspace_location_downloads">Загрузки (Download/Muse) — видно в любом файловом менеджере</string>
+    <string name="workspace_location_internal">Папка приложения — другим приложениям не видна</string>
+    <string name="workspace_location_move_downloads">Переместить в Загрузки</string>
+    <string name="workspace_location_move_internal">Вернуть в папку приложения</string>
+    <string name="workspace_location_need_permission">Сначала разрешите «Доступ ко всем файлам» в настройках системы</string>
+    <string name="workspace_location_copy_path">Копировать путь</string>
+    <string name="workspace_location_moved">Перемещено файлов: %1$d. Перезапустите приложение.</string>
+    <string name="workspace_location_failed">Не удалось переместить: %1$s</string>
+    <string name="workspace_location_restart">Перезапустить</string>
     <string name="safe_mode_restore_plugins">Восстановить все плагины и перезапустить</string>
     <string name="safe_mode_view_full_log_desc">Просмотреть или отправить полный журнал для диагностики проблемы</string>
     <string name="safe_mode_clear_data_restart_desc">Удаляет чаты, настройки и локальные файлы; используйте только если Muse не запускается обычным способом</string>

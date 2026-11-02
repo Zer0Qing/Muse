@@ -86,6 +86,16 @@
     <string name="plugin_kill_switch_desc">E o interruptor do modo seguro: ferramentas, comandos, eventos, hooks e tarefas nao executam. Restaure para reativar.</string>
     <string name="plugin_kill_switch_restore">Restaurar plugins</string>
     <string name="plugin_kill_switch_disable">Desativar todos os plugins</string>
+    <string name="workspace_location_title">Local do workspace</string>
+    <string name="workspace_location_downloads">Downloads (Download/Muse) - visivel em qualquer gerenciador de arquivos</string>
+    <string name="workspace_location_internal">Pasta privada do app - invisivel para outros apps</string>
+    <string name="workspace_location_move_downloads">Mover para Downloads</string>
+    <string name="workspace_location_move_internal">Voltar para a pasta privada</string>
+    <string name="workspace_location_need_permission">Conceda "Acesso a todos os arquivos" nas configuracoes do sistema primeiro</string>
+    <string name="workspace_location_copy_path">Copiar caminho</string>
+    <string name="workspace_location_moved">%1$d arquivos movidos. Reinicie o app para aplicar.</string>
+    <string name="workspace_location_failed">Nao foi possivel mover: %1$s</string>
+    <string name="workspace_location_restart">Reiniciar app</string>
     <string name="safe_mode_restore_plugins">Restaurar todos os plugins e reiniciar</string>
     <string name="safe_mode_view_full_log_desc">Veja ou compartilhe o registro completo para ajudar a diagnosticar o problema</string>
     <string name="safe_mode_clear_data_restart_desc">Exclui conversas, configurações e arquivos locais; use apenas quando o Muse não abrir normalmente</string>

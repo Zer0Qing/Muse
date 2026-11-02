@@ -109,6 +109,16 @@
     <string name="plugin_kill_switch_desc">This is the safe-mode kill switch: tools, commands, events, hooks and schedules do not run. Restore to turn them back on.</string>
     <string name="plugin_kill_switch_restore">Restore plugins</string>
     <string name="plugin_kill_switch_disable">Disable all plugins</string>
+    <string name="workspace_location_title">Workspace location</string>
+    <string name="workspace_location_downloads">Downloads (Download/Muse) - visible in any file manager</string>
+    <string name="workspace_location_internal">App-private folder - invisible to other apps</string>
+    <string name="workspace_location_move_downloads">Move to Downloads</string>
+    <string name="workspace_location_move_internal">Move back to private folder</string>
+    <string name="workspace_location_need_permission">Grant "All files access" in system settings first, otherwise Downloads is not writable</string>
+    <string name="workspace_location_copy_path">Copy path</string>
+    <string name="workspace_location_moved">Moved %1$d files. Restart the app to apply.</string>
+    <string name="workspace_location_failed">Could not move: %1$s</string>
+    <string name="workspace_location_restart">Restart app</string>
     <string name="safe_mode_restore_plugins">Restore all plugins and restart</string>
     <string name="safe_mode_view_full_log_desc">View or share the full log to help diagnose the problem</string>
     <string name="safe_mode_clear_data_restart_desc">Deletes chats, settings and local files; use only when Muse cannot open normally</string>
