@@ -291,6 +291,9 @@
     <string name="tool_write_unverified"> (отправлено, без подтверждения)</string>
     <string name="tool_write_not_applied">Не применено: ожидалось %1$d, получено %2$d</string>
     <string name="tool_brightness_auto_set">Автоматическая яркость включена</string>
+    <string name="read_aloud_channel_name">Воспроизведение чтения</string>
+    <string name="read_aloud_notification_text">Чтение вслух…</string>
+    <string name="read_aloud_notification_stop">Стоп</string>
     <string name="tool_brightness_missing">Отсутствует параметр: значение</string>
     <string name="tool_brightness_failed">Не удалось установить яркость: %1$s</string>
     <string name="tool_volume_info">%1$s громкость: %2$d / %3$d</string>

@@ -291,6 +291,9 @@
     <string name="tool_write_unverified"> (enviado, sin confirmar)</string>
     <string name="tool_write_not_applied">No aplicado: se esperaba %1$d, se obtuvo %2$d</string>
     <string name="tool_brightness_auto_set">Brillo automático activado</string>
+    <string name="read_aloud_channel_name">Reproduccion de lectura</string>
+    <string name="read_aloud_notification_text">Leyendo en voz alta…</string>
+    <string name="read_aloud_notification_stop">Detener</string>
     <string name="tool_brightness_missing">Parámetro faltante: valor</string>
     <string name="tool_brightness_failed">No se pudo configurar el brillo: %1$s</string>
     <string name="tool_volume_info">%1$s volumen: %2$d / %3$d</string>

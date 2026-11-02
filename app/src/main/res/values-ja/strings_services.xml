@@ -291,6 +291,9 @@
     <string name="tool_write_unverified">（送信済み・未確認）</string>
     <string name="tool_write_not_applied">設定が反映されていません：期待 %1$d、実際 %2$d</string>
     <string name="tool_brightness_auto_set">自動輝度を有効にしました</string>
+    <string name="read_aloud_channel_name">読み上げ再生</string>
+    <string name="read_aloud_notification_text">読み上げ中…</string>
+    <string name="read_aloud_notification_stop">停止</string>
     <string name="tool_brightness_missing">パラメータがありません: 値</string>
     <string name="tool_brightness_failed">明るさを設定できませんでした: %1$s</string>
     <string name="tool_volume_info">%1$s ボリューム: %2$d / %3$d</string>

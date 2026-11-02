@@ -291,6 +291,9 @@
     <string name="tool_write_unverified">(전송됨, 미확인)</string>
     <string name="tool_write_not_applied">설정이 적용되지 않았습니다: 기대 %1$d, 실제 %2$d</string>
     <string name="tool_brightness_auto_set">자동 밝기가 활성화되었습니다.</string>
+    <string name="read_aloud_channel_name">읽어주기 재생</string>
+    <string name="read_aloud_notification_text">읽어주는 중…</string>
+    <string name="read_aloud_notification_stop">중지</string>
     <string name="tool_brightness_missing">누락된 매개변수: 값</string>
     <string name="tool_brightness_failed">밝기를 설정하지 못했습니다: %1$s</string>
     <string name="tool_volume_info">%1$s 볼륨: %2$d / %3$d</string>

@@ -290,6 +290,17 @@ class TtsManager(
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
 
     init {
+        // 音频焦点信号：服务拿到焦点变化后推给我们，朗读据此暂停或停止。
+        // 这条链路单独存在是有意的 —— 服务不该直接操作 MediaPlayer（必须在主线程）。
+        playbackScope.launch {
+            ReadAloudControl.signals.collect { action ->
+                when (action) {
+                    ReadAloudAction.PAUSE -> pause()
+                    ReadAloudAction.STOP -> stop()
+                    ReadAloudAction.CONTINUE -> Unit
+                }
+            }
+        }
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 // speakStream 路径才走 onStateChange;合成路径 synthesize 不触发 UI
@@ -565,6 +576,8 @@ class TtsManager(
      */
     private fun startPlayback(chunks: List<String>, utteranceId: String) {
         playbackJob?.cancel()
+        // 前台服务：退到后台/锁屏时保住进程，否则朗读会莫名中断（P1-10）
+        ReadAloudPlaybackService.start(appContext)
         startPositionUpdates()
         playbackJob = playbackScope.launch {
             updateState {
@@ -1283,6 +1296,8 @@ class TtsManager(
         }
         currentUtteranceId = null
         sentenceBuffer.clear()
+        // 朗读结束/被停止：撤掉前台服务，避免通知栏一直挂着
+        ReadAloudPlaybackService.stop(appContext)
         if (resetState) {
             updateState { PlaybackState() }
         }

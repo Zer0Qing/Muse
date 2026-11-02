@@ -321,6 +321,9 @@
     <string name="tool_write_unverified">（已发出，但未确认生效）</string>
     <string name="tool_write_not_applied">设置未生效：期望 %1$d，实际 %2$d</string>
     <string name="tool_brightness_auto_set">已启用自动亮度</string>
+    <string name="read_aloud_channel_name">朗读播放</string>
+    <string name="read_aloud_notification_text">正在朗读…</string>
+    <string name="read_aloud_notification_stop">停止</string>
     <string name="tool_brightness_missing">缺少参数： value</string>
     <string name="tool_brightness_failed">设置亮度失败： %1$s</string>
     <string name="tool_volume_info">%1$s 音量： %2$d / %3$d</string>

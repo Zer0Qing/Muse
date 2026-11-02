@@ -52,6 +52,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <!-- v1.43: 前台服务保活(切后台时保持 AI 生成) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- 快速记录系统悬浮窗(用户主动授权后使用) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -411,6 +412,12 @@
             android:name=".ui.assist.MuseVoiceInteractionSessionService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION" />
+
+        <!-- 朗读前台服务（P1-10）：退到后台/锁屏时保住进程，并接管音频焦点（来电即停） -->
+        <service
+            android:name=".ui.speech.ReadAloudPlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
     </application>
 
