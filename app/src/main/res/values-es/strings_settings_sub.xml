@@ -742,4 +742,6 @@
     <string name="settings_chat_carry_over_subtitle">Lee los últimos turnos de tu conversación anterior. Más continuidad, pero consume más tokens de entrada.</string>
     <string name="settings_chat_carry_over_count">Traer %1$d mensajes</string>
     <string name="settings_chat_carry_over_count_hint">Aproximadamente %1$d turnos</string>
+    <string name="connection_skills_title">Habilidades y paquetes de habilidades</string>
+    <string name="connection_skills_subtitle">%1$d habilidades personalizadas, %2$d de paquetes SKILL.md</string>
 </resources>

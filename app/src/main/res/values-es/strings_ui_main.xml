@@ -284,7 +284,15 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Oyente de notificaciones</string>
     <string name="connection_center_title">Centro de conexiones</string>
-    <string name="connection_center_desc">Canales, MCP, plugins y aprobación de herramientas</string>
+    <string name="connection_tools_subtitle">Aprobaciones, permisos y políticas de seguridad</string>
+    <string name="connection_tools_title">Permisos de herramientas</string>
+    <string name="connection_plugins_subtitle">%1$d complementos instalados; ábrelos para revisar sus permisos</string>
+    <string name="connection_plugins_title">Complementos</string>
+    <string name="connection_mcp_subtitle">%1$d servidores configurados</string>
+    <string name="connection_mcp_title">Servidores MCP</string>
+    <string name="connection_channels_subtitle">%1$d canales configurados</string>
+    <string name="connection_channels_title">Canales de mensajes</string>
+    <string name="connection_center_desc">Canales, MCP, complementos y aprobaciones de herramientas</string>
     <string name="channel_page_title">Canales de mensajes</string>
     <string name="message_action_annotate">Anotar</string>
     <string name="message_annotate_title">Notas del mensaje</string>

@@ -284,6 +284,14 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">알림 수신기</string>
     <string name="connection_center_title">연결 센터</string>
+    <string name="connection_tools_subtitle">승인, 허용 및 보안 정책</string>
+    <string name="connection_tools_title">도구 권한</string>
+    <string name="connection_plugins_subtitle">설치된 플러그인 %1$d개. 열어 각 능력 승인 상태를 확인하세요</string>
+    <string name="connection_plugins_title">플러그인</string>
+    <string name="connection_mcp_subtitle">서버 %1$d개 설정됨</string>
+    <string name="connection_mcp_title">MCP 서버</string>
+    <string name="connection_channels_subtitle">채널 %1$d개 설정됨</string>
+    <string name="connection_channels_title">메시지 채널</string>
     <string name="connection_center_desc">채널, MCP, 플러그인 및 도구 승인</string>
     <string name="channel_page_title">메시지 채널</string>
     <string name="message_action_annotate">주석</string>

@@ -490,6 +490,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onOpenChannels = { navController.navigate(ChannelSettingsRoute) },
             onOpenMcp = { navController.navigate(SettingsMcpRoute) },
             onOpenPlugins = { navController.navigate(PluginManageRoute) },
+            onOpenSkills = { navController.navigate(SkillsRoute) },
             onOpenToolPermissions = { navController.navigate(ToolsSettingsRoute) },
         )
     }

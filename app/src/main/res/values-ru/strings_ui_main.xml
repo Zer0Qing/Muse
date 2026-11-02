@@ -284,7 +284,15 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Прослушиватель уведомлений</string>
     <string name="connection_center_title">Центр подключений</string>
-    <string name="connection_center_desc">Каналы, MCP, плагины и одобрение инструментов</string>
+    <string name="connection_tools_subtitle">Одобрения, разрешения и политика безопасности</string>
+    <string name="connection_tools_title">Разрешения инструментов</string>
+    <string name="connection_plugins_subtitle">Установлено плагинов: %1$d; откройте, чтобы увидеть выданные разрешения</string>
+    <string name="connection_plugins_title">Плагины</string>
+    <string name="connection_mcp_subtitle">Настроено серверов: %1$d</string>
+    <string name="connection_mcp_title">Серверы MCP</string>
+    <string name="connection_channels_subtitle">Настроено каналов: %1$d</string>
+    <string name="connection_channels_title">Каналы сообщений</string>
+    <string name="connection_center_desc">Каналы, MCP, плагины и одобрения инструментов</string>
     <string name="channel_page_title">Каналы сообщений</string>
     <string name="message_action_annotate">Заметка</string>
     <string name="message_annotate_title">Заметки к сообщению</string>

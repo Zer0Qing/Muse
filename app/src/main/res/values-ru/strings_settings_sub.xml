@@ -742,4 +742,6 @@
     <string name="settings_chat_carry_over_subtitle">Читает последние реплики прошлого разговора. Связнее, но расходует входные токены.</string>
     <string name="settings_chat_carry_over_count">Переносить сообщений: %1$d</string>
     <string name="settings_chat_carry_over_count_hint">Примерно %1$d реплик</string>
+    <string name="connection_skills_title">Навыки и пакеты навыков</string>
+    <string name="connection_skills_subtitle">Пользовательских навыков: %1$d, из пакетов SKILL.md: %2$d</string>
 </resources>

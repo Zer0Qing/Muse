@@ -293,16 +293,16 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Notification Listener</string>
     <string name="channel_page_title">Message channels</string>
-    <string name="connection_center_title">Connections</string>
-    <string name="connection_center_desc">Channels, MCP, plugins &amp; tool approval</string>
+    <string name="connection_center_title">Extensions &amp; connections</string>
+    <string name="connection_center_desc">Channels, MCP, plugins and tool approvals</string>
     <string name="connection_channels_title">Message channels</string>
     <string name="connection_channels_subtitle">%1$d channels configured</string>
     <string name="connection_mcp_title">MCP servers</string>
     <string name="connection_mcp_subtitle">%1$d servers configured</string>
     <string name="connection_plugins_title">Plugins</string>
-    <string name="connection_plugins_subtitle">Manage installed external plugins</string>
+    <string name="connection_plugins_subtitle">%1$d plugins installed; open to review the grants of each</string>
     <string name="connection_tools_title">Tool permissions</string>
-    <string name="connection_tools_subtitle">Approval, trust and safety policies</string>
+    <string name="connection_tools_subtitle">Approvals, grants and safety policy</string>
     <string name="message_action_annotate">Annotate</string>
     <string name="message_annotate_title">Message notes</string>
     <string name="message_annotate_hint">Write a note…</string>

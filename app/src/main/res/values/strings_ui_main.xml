@@ -336,14 +336,14 @@
     <!-- v1.0.4: 通知监听 -->
     <string name="settings_screen_notification_listener">通知监听</string>
     <string name="channel_page_title">消息渠道</string>
-    <string name="connection_center_title">连接中心</string>
+    <string name="connection_center_title">扩展与连接</string>
     <string name="connection_center_desc">渠道、MCP、插件与工具批准</string>
     <string name="connection_channels_title">消息渠道</string>
     <string name="connection_channels_subtitle">%1$d 个渠道已配置</string>
     <string name="connection_mcp_title">MCP 服务器</string>
     <string name="connection_mcp_subtitle">%1$d 个服务器已配置</string>
     <string name="connection_plugins_title">插件</string>
-    <string name="connection_plugins_subtitle">管理已安装的外部插件</string>
+    <string name="connection_plugins_subtitle">已安装插件 %1$d 个，进入可查看各自的能力授权</string>
     <string name="connection_tools_title">工具权限</string>
     <string name="connection_tools_subtitle">审批、放权与安全策略</string>
     <string name="message_action_annotate">批注</string>

@@ -765,4 +765,6 @@
     <string name="settings_chat_carry_over_count_hint">Roughly %1$d turns (user and assistant each count as one)</string>
     <string name="settings_agent_agent_session_enabled">Agent sessions</string>
     <string name="settings_agent_agent_session_enabled_subtitle">When off, proactive messages only go to normal chat sessions and never to the Agent tab</string>
+    <string name="connection_skills_title">Skills &amp; skill packages</string>
+    <string name="connection_skills_subtitle">%1$d custom skills, %2$d from SKILL.md packages</string>
 </resources>

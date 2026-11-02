@@ -284,7 +284,15 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">通知リスナー</string>
     <string name="connection_center_title">接続センター</string>
-    <string name="connection_center_desc">チャンネル、MCP、プラグインとツール承認</string>
+    <string name="connection_tools_subtitle">承認、許可、安全ポリシー</string>
+    <string name="connection_tools_title">ツールの権限</string>
+    <string name="connection_plugins_subtitle">インストール済みプラグイン %1$d 個。開くと各能力の認可状態を確認できます</string>
+    <string name="connection_plugins_title">プラグイン</string>
+    <string name="connection_mcp_subtitle">%1$d 個のサーバーを設定済み</string>
+    <string name="connection_mcp_title">MCP サーバー</string>
+    <string name="connection_channels_subtitle">%1$d 個のチャンネルを設定済み</string>
+    <string name="connection_channels_title">メッセージチャンネル</string>
+    <string name="connection_center_desc">チャンネル、MCP、プラグイン、ツールの承認</string>
     <string name="channel_page_title">メッセージチャネル</string>
     <string name="message_action_annotate">注釈</string>
     <string name="message_annotate_title">メッセージ注釈</string>

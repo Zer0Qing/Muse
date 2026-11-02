@@ -770,4 +770,6 @@
     <string name="settings_chat_carry_over_count_hint">约 %1$d 轮问答（用户与助手各算一条）</string>
     <string name="settings_agent_agent_session_enabled">Agent 会话</string>
     <string name="settings_agent_agent_session_enabled_subtitle">关闭后主动消息只发普通对话会话，不会出现在 Agent Tab</string>
+    <string name="connection_skills_title">技能与技能包</string>
+    <string name="connection_skills_subtitle">共 %1$d 个自定义技能，其中 %2$d 个来自 SKILL.md 能力包</string>
 </resources>

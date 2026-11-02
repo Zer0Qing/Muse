@@ -742,4 +742,6 @@
     <string name="settings_chat_carry_over_subtitle">이전 대화의 마지막 몇 턴을 함께 읽습니다. 더 자연스럽지만 입력 토큰을 사용합니다.</string>
     <string name="settings_chat_carry_over_count">메시지 %1$d개 가져오기</string>
     <string name="settings_chat_carry_over_count_hint">약 %1$d턴 분량</string>
+    <string name="connection_skills_title">스킬 및 스킬 패키지</string>
+    <string name="connection_skills_subtitle">사용자 스킬 %1$d개, 그중 SKILL.md 패키지 %2$d개</string>
 </resources>
