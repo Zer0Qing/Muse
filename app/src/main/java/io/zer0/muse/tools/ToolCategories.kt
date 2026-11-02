@@ -236,6 +236,10 @@ object ToolCategories {
             "device_shell",
             // v2.x 终端一期:应用沙盒终端命令
             "terminal_exec",
+            "terminal_job_start",
+            "terminal_job_status",
+            "terminal_job_kill",
+            "terminal_job_list",
             // v2.2.1: Termux 通道(完整 Linux 环境命令,高风险)
             "termux_exec",
             // v2.2.1: GUI Agent 环(视觉驱动的多步屏幕操作,高风险)

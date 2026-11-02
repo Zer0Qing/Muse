@@ -166,6 +166,8 @@ class AgentToolsRegistrar(
                 java.io.File(context.filesDir, TOOL_OUTPUTS_DIR),
             )
         }
+        // 后台终端 job：提交 → 轮询 → 终止（长任务用，terminal_exec 仍负责同步短命令）
+        TerminalJobTools.register(toolRegistry, java.io.File(context.filesDir, "workspace").apply { mkdirs() })
         // v2.2.1 Termux 通道:完整 Linux 环境命令执行(需用户安装 Termux 并授权;未就绪时返回配置引导)
         toolRegistry.register(TermuxExecTool.toolDef()) { args ->
             TermuxExecTool.execute(args, context)
