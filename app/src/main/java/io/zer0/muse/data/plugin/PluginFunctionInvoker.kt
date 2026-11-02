@@ -47,6 +47,12 @@ internal class PluginFunctionInvoker(private val context: Context) {
         // 否则"关掉工具执行"只是把绕行路线留给了后台激活。
         val pythonTrusted = PluginCapabilityLedgers.shared(context)
             .isApproved(manifest.id, PluginCapabilityGateway.RUNTIME_PYTHON)
+        // 超时按授权收窄/放宽：没拿到 runtime.long 时，调用方传多大的 timeoutMs 都不作数
+        val effectiveTimeoutMs = PluginExecutionBudget.effectiveTimeoutMs(
+            requested = timeoutMs,
+            longTaskAllowed = PluginCapabilityLedgers.shared(context)
+                .isApproved(manifest.id, PluginCapabilityGateway.RUNTIME_LONG),
+        )
         if (isPython(manifest) && !pythonTrusted) {
             Logger.w(TAG, "Python 插件未获高信任授权，跳过执行: ${manifest.id}/$functionName")
             return SkillEngineResult.Error(
@@ -60,7 +66,7 @@ internal class PluginFunctionInvoker(private val context: Context) {
                 entryCode = entryCode,
                 functionName = functionName,
                 argsJson = argsJson,
-                timeoutMs = timeoutMs,
+                timeoutMs = effectiveTimeoutMs,
                 scopeKey = manifest.id,
                 pluginConfigJson = configJson,
             )
@@ -68,7 +74,7 @@ internal class PluginFunctionInvoker(private val context: Context) {
                 entryCode = entryCode,
                 functionName = functionName,
                 argsJson = argsJson,
-                timeoutMs = timeoutMs,
+                timeoutMs = effectiveTimeoutMs,
                 scopeKey = manifest.id,
                 pluginConfigJson = configJson,
                 // 交给调用方的同一个桥接判定：这里只是转发通道，**不在这里判权限**。
@@ -79,7 +85,7 @@ internal class PluginFunctionInvoker(private val context: Context) {
                 functionDef = entryCode,
                 functionName = functionName,
                 argsJson = argsJson,
-                timeoutMs = timeoutMs,
+                timeoutMs = effectiveTimeoutMs,
                 scopeKey = manifest.id,
                 pluginConfigJson = configJson,
             )

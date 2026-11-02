@@ -806,6 +806,7 @@
     <string name="plugin_cap_app_theme">라이트/다크 화면 전환</string>
     <string name="plugin_slot_provided_by">플러그인 "%1$s" 제공</string>
     <string name="plugin_cap_ui_slot">채팅 상단에 플러그인 화면 표시</string>
+    <string name="plugin_cap_runtime_long">장시간 실행 (호출당 최대 10분)</string>
     <string name="plugin_debug_title">플러그인 디버그</string>
     <string name="plugin_cap_clipboard_read">클립보드 읽기</string>
     <string name="plugin_cap_clipboard_write">클립보드에 쓰기</string>

@@ -805,6 +805,7 @@
     <string name="plugin_cap_app_theme">ライト/ダーク表示の切り替え</string>
     <string name="plugin_slot_provided_by">プラグイン「%1$s」提供</string>
     <string name="plugin_cap_ui_slot">チャット上部にプラグインの画面を表示</string>
+    <string name="plugin_cap_runtime_long">長時間の実行（1 回あたり最大 10 分）</string>
     <string name="plugin_debug_title">プラグインのデバッグ</string>
     <string name="plugin_cap_clipboard_read">クリップボードの読み取り</string>
     <string name="plugin_cap_clipboard_write">クリップボードへの書き込み</string>

@@ -28,6 +28,8 @@ type Capability =
   | "app.theme"
   /** 往宿主界面槽位里放自己的界面片段（当前只有 chat.top）。默认关。 */
   | "ui.slot"
+  /** 单次执行可以超过默认 10 秒（上限 10 分钟）。默认关。 */
+  | "runtime.long"
   | "clipboard.read"
   | "clipboard.write"
   /** 读写合一的简写，等价于同时声明 clipboard.read + clipboard.write。 */

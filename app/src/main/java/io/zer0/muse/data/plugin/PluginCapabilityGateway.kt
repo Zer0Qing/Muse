@@ -208,7 +208,8 @@ class PluginCapabilityGateway(
                 capability != APP_NAVIGATE &&
                 capability != APP_MESSAGES &&
                 capability != APP_THEME &&
-                capability != UI_SLOT,
+                capability != UI_SLOT &&
+                capability != RUNTIME_LONG,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -292,6 +293,13 @@ class PluginCapabilityGateway(
      * 属于"要用户点头才显示"的东西。
      */
     const val UI_SLOT = "ui.slot"
+
+    /**
+     * 长任务：单次执行可以超过默认的 10 秒（上限 10 分钟）。
+     *
+     * 默认关：长时间占用意味着更久的电量与内存占用，而且插件卡住时用户会更晚发现。
+     */
+    const val RUNTIME_LONG = "runtime.long"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。
