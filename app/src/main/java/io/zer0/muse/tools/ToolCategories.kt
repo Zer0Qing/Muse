@@ -112,6 +112,7 @@ object ToolCategories {
             "get_token_usage",
             "clipboard_write",
             "screen_time",
+            "phone_context",
             "get_location",
             "get_contacts_list",
             "get_contacts_count",
