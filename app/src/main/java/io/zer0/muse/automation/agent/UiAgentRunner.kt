@@ -59,6 +59,14 @@ class UiAgentRunner(
         packageName: String? = null,
         /** 总时间预算；长任务（>15 步 / 界面很慢）可调大。调用方负责夹到 [MIN_BUDGET_MS]..[MAX_BUDGET_MS]。 */
         budgetMs: Long = DEFAULT_BUDGET_MS,
+        /**
+         * 跑完是否把虚拟屏**交给用户**（预览/接管/手动关闭），而不是直接销毁。
+         *
+         * 默认 false = 保持原行为（任务结束即销毁）。置 true 时屏会被登记到
+         * [io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry]，
+         * 带过期时间；界面没来接就自动失效，避免孤儿屏长期占资源。
+         */
+        handoffOnFinish: Boolean = false,
     ): RunResult {
         // 墙钟预算：步数上限挡不住「每步都很慢」（视觉模型慢、截图慢）。
         // 没有这个上限时，一次 15 步的环可能跑十几分钟，用户只看到一个转圈。
@@ -155,10 +163,19 @@ class UiAgentRunner(
                     "② 把任务拆成更小的子任务；③ 先用 screen_read 看当前停在哪一步。\n动作记录:\n$history",
             )
         } finally {
-            if (virtualDisplayId != null) {
+            val displayId = virtualDisplayId
+            if (displayId != null && shouldDestroyOnFinish(displayId, handoffOnFinish)) {
                 withContext(NonCancellable) {
-                    runCatching { virtualDisplayClient?.destroy(virtualDisplayId) }
+                    runCatching { virtualDisplayClient?.destroy(displayId) }
                 }
+            } else if (displayId != null) {
+                // 交接：不销毁，登记到台账等界面来接手（带过期时间）。
+                io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry.offer(
+                    displayId = displayId,
+                    packageName = targetPackage.orEmpty(),
+                    now = System.currentTimeMillis(),
+                )
+                Logger.i(TAG, "虚拟屏已交接给用户: displayId=$displayId")
             }
         }
     }
@@ -348,6 +365,15 @@ class UiAgentRunner(
      */
     // 卫语句风格：每种执行面失败就直接返回「给模型看的那句话」。
     // 本仓库在 OAuthManager / AutomationManager 里已有同样用法，这里保持一致。
+    /**
+     * 跑完该不该销毁虚拟屏。
+     *
+     * 抽成纯函数：这条决定"用户能不能接手助手刚才操作的界面"，
+     * 必须能在没有设备的环境里被验证（对比清单 P1-02）。
+     */
+    internal fun shouldDestroyOnFinish(displayId: Int?, handoffOnFinish: Boolean): Boolean =
+        displayId != null && !handoffOnFinish
+
     /** AUTO 模式的执行面选择结果。 */
     internal enum class AutoSurfaceChoice {
         /** 没指定目标包名：就在用户当前所在应用上操作。 */
