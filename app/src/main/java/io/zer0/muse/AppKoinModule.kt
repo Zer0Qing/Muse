@@ -47,6 +47,18 @@ val appModule = module {
     single { io.zer0.muse.data.plugin.PluginMessageBridge(get()) }
     // 插件改外观通道（app.theme）。只开放明暗模式，具体皮肤留给用户自己挑。
     single { io.zer0.muse.data.plugin.PluginAppearanceBridge(get()) }
+    // 插件定时任务：上次执行时间落盘，进程被杀之后仍能算出"该不该补跑"
+    single {
+        io.zer0.muse.data.plugin.PluginScheduleRunner(
+            pluginManager = get(),
+            bridge = get(),
+            ledger = io.zer0.muse.data.plugin.PluginCapabilityLedgers.shared(androidContext()),
+            settings = get(),
+            store = io.zer0.muse.data.plugin.PluginScheduleRunner.PersistentStore(
+                io.zer0.muse.data.plugin.PluginScheduleStore.forContext(androidContext()),
+            ),
+        )
+    }
     // 插件调模型：走既有辅助模型路由与 UTILITY 通道；拿不到 SettingsRepository 时回落主对话模型。
     single { io.zer0.muse.data.plugin.PluginModelBridge(get(), getOrNull()) }
     // 启动期一次性写盘在这里触发（而不是在 SettingsRepository.init 里自动跑）：

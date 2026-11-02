@@ -145,4 +145,32 @@ class PluginScheduleTest {
         assertEquals("但也不该在下一 tick 立刻重试", 0, runner.tick())
         coVerify(exactly = 1) { f.bridge.invokeScheduled(any(), any(), any()) }
     }
+
+    // ── 后台唤醒（schedule.background） ─────────────────────────────────
+
+    @Test
+    fun `a background tick skips plugins without the background capability`() = runBlocking {
+        val f = Fixture()
+
+        // 有 schedule，但没有 schedule.background
+        assertEquals(0, f.runner().tick(background = true))
+        coVerify(exactly = 0) { f.bridge.invokeScheduled(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a background tick runs plugins that were granted the background capability`() = runBlocking {
+        val f = Fixture()
+        every { f.ledger.isApproved("p1", PluginCapabilityGateway.SCHEDULE_BACKGROUND) } returns true
+
+        assertEquals(1, f.runner().tick(background = true))
+        coVerify(exactly = 1) { f.bridge.invokeScheduled("p1", "onDigest", "digest") }
+    }
+
+    @Test
+    fun `the foreground tick is unaffected by the background capability`() = runBlocking {
+        val f = Fixture()
+
+        // 前台触发只看 schedule
+        assertEquals(1, f.runner().tick())
+    }
 }

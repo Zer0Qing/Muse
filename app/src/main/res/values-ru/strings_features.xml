@@ -856,6 +856,7 @@
     <string name="plugin_slot_provided_by">Предоставлено плагином «%1$s»</string>
     <string name="plugin_cap_ui_slot">Показывать интерфейс плагина вверху чата</string>
     <string name="plugin_cap_runtime_long">Длительные задачи (до 10 минут за вызов)</string>
+    <string name="plugin_cap_schedule_background">Запуск задач по расписанию в фоне (даже когда приложение закрыто)</string>
     <string name="plugin_debug_title">Отладка плагинов</string>
     <string name="plugin_cap_clipboard_read">Чтение буфера обмена</string>
     <string name="plugin_cap_clipboard_write">Запись в буфер обмена</string>

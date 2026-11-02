@@ -209,7 +209,8 @@ class PluginCapabilityGateway(
                 capability != APP_MESSAGES &&
                 capability != APP_THEME &&
                 capability != UI_SLOT &&
-                capability != RUNTIME_LONG,
+                capability != RUNTIME_LONG &&
+                capability != SCHEDULE_BACKGROUND,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -300,6 +301,14 @@ class PluginCapabilityGateway(
      * 默认关：长时间占用意味着更久的电量与内存占用，而且插件卡住时用户会更晚发现。
      */
     const val RUNTIME_LONG = "runtime.long"
+
+    /**
+     * 后台唤醒：应用不在前台（甚至进程被回收）时，定时任务仍可被系统唤醒补跑。
+     *
+     * 与 [SCHEDULE] 分开是刻意的：`schedule` 管"能不能按时间跑"，
+     * 这条管"没人看着的时候能不能跑"。后者更敏感（耗电、无人值守），默认关。
+     */
+    const val SCHEDULE_BACKGROUND = "schedule.background"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。

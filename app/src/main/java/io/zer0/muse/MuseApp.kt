@@ -543,12 +543,10 @@ class MuseApp : Application(), ImageLoaderFactory {
                     appScope.launch { providerSync.sync() }
                     appScope.launch { pluginManager.revisionFlow.collect { providerSync.sync() } }
                     // 定时任务：只在应用进程存活时按间隔触发（不假装支持后台唤醒）
-                    val scheduleRunner = io.zer0.muse.data.plugin.PluginScheduleRunner(
-                        pluginManager = pluginManager,
-                        bridge = bridge,
-                        ledger = io.zer0.muse.data.plugin.PluginCapabilityLedgers.shared(applicationContext),
-                        settings = settings,
-                    )
+                    // 从 Koin 取（带落盘存储的实例），与后台唤醒用的是同一个
+                    val scheduleRunner = org.koin.java.KoinJavaComponent.get<
+                        io.zer0.muse.data.plugin.PluginScheduleRunner,
+                        >(io.zer0.muse.data.plugin.PluginScheduleRunner::class.java)
                     appScope.launch {
                         while (true) {
                             runCatching { scheduleRunner.tick() }
@@ -749,6 +747,19 @@ class MuseApp : Application(), ImageLoaderFactory {
                     request,
                 )
             }.onError { msg, t -> Logger.w("MuseApp", "ProactiveWorker 注册失败", t) }
+            // 插件定时任务的后台唤醒（schedule.background）：15 分钟系统下限，
+            // 到期的任务由 PluginScheduleDue 判定后补跑；没授权的插件不会因此被唤醒
+            resultOf {
+                val request = PeriodicWorkRequestBuilder<io.zer0.muse.data.plugin.PluginScheduleWorker>(
+                    15,
+                    TimeUnit.MINUTES,
+                ).setConstraints(Constraints.Builder().build()).build()
+                WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                    io.zer0.muse.data.plugin.PluginScheduleWorker.UNIQUE_WORK_NAME,
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    request,
+                )
+            }.onError { msg, t -> Logger.w("MuseApp", "PluginScheduleWorker 注册失败", t) }
             // v1.0.84: 每日总结 — 09:00 / 12:00 / 21:00 / 00:00 四个独立时点。
             // WorkManager 负责进程被杀后的兜底，进程内触发器负责进程存活时准点投递。
             // B-10: scheduleNext 需读配置时段(DataStore),放入 appScope 异步执行

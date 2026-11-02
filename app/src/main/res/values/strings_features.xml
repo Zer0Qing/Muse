@@ -781,6 +781,7 @@
     <string name="plugin_slot_provided_by">由插件「%1$s」提供</string>
     <string name="plugin_cap_ui_slot">在聊天页顶部显示插件提供的界面</string>
     <string name="plugin_cap_runtime_long">长时间运行（单次最多 10 分钟）</string>
+    <string name="plugin_cap_schedule_background">后台唤醒定时任务（应用不在前台也会跑）</string>
     <string name="plugin_debug_title">插件调试</string>
     <string name="plugin_cap_clipboard_read">读取剪贴板内容</string>
     <string name="plugin_cap_clipboard_write">向剪贴板写入内容</string>

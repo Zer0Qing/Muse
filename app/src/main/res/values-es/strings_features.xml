@@ -807,6 +807,7 @@
     <string name="plugin_slot_provided_by">Proporcionado por el plugin "%1$s"</string>
     <string name="plugin_cap_ui_slot">Mostrar interfaz del plugin arriba del chat</string>
     <string name="plugin_cap_runtime_long">Tareas largas (hasta 10 minutos por llamada)</string>
+    <string name="plugin_cap_schedule_background">Ejecutar tareas programadas en segundo plano (aun sin la app abierta)</string>
     <string name="plugin_debug_title">Depuracion de plugins</string>
     <string name="plugin_cap_clipboard_read">Leer el portapapeles</string>
     <string name="plugin_cap_clipboard_write">Escribir en el portapapeles</string>

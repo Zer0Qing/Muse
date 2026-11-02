@@ -30,6 +30,8 @@ type Capability =
   | "ui.slot"
   /** 单次执行可以超过默认 10 秒（上限 10 分钟）。默认关。 */
   | "runtime.long"
+  /** 应用不在前台时也允许定时任务被唤醒补跑。默认关。 */
+  | "schedule.background"
   | "clipboard.read"
   | "clipboard.write"
   /** 读写合一的简写，等价于同时声明 clipboard.read + clipboard.write。 */
