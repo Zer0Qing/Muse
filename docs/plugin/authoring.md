@@ -333,6 +333,26 @@ return { __bridge__: true, action: "app_set_theme_mode", params: { mode: "dark" 
 - 一个槽位最多渲染 **3 个**插件的片段，避免把页面挤满；
 - 样式跟随用户主题：插件既拿不到也改不了颜色/字号。
 
+## 9.995 插件间共享存储（`storage.shared:<名字>`）
+
+默认每个插件的 KV 是隔离的。要让两个插件协作（一个抓数据、一个展示），显式声明共享名字空间：
+
+```json
+"capabilities": ["storage.shared:notes"]
+```
+
+```js
+return { __bridge__: true, action: "storage_shared_set",
+         params: { namespace: "notes", key: "last", value: "2026-11-03" } };
+```
+
+- **双方都要声明**同一个名字空间才互通 —— "谁能看到我的数据"由各自清单决定，不由先来后到决定；
+- 动作：`storage_shared_get` / `storage_shared_set` / `storage_shared_delete` / `storage_shared_list`，
+  都多一个 `namespace` 参数；
+- 名字规则是"能不能安全当目录名"：允许中文、大写、点号；拒绝 `/`、`\`、控制字符与 `..`，长度 1–32；
+- 容量与单插件 KV 相同（整份 8MB / 单值 256KB），**按名字空间计** ——
+  共享空间是多方共用的，不能让一方把额度吃光后其它插件也跟着写不进。
+
 ## 10. 斜杠命令（已可用）
 
 在清单里声明后，用户在输入框打 `/` 会看到候选；选中或回车执行，**结果写回输入框**

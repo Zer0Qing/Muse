@@ -69,10 +69,15 @@ class PluginCapabilityGateway(
         // 安全模式总闸：连 echo 都不放行 —— "全部停用"不该留任何例外。
         val disabled = PluginKillSwitch.isDisabledBeside(storeFile)
         val capability = CAPABILITY_FOR_ACTION[action]
+        // 共享空间动作族的授权由"清单里声明了哪个名字空间"决定，不在能力表里。
+        // 具体名字空间是否合法、是否真的声明了它，由桥接层再判一次（那里拿得到 params）。
+        val sharedStorageAllowed = action in SHARED_STORAGE_ACTIONS &&
+            declared.any { it.trim().startsWith(PluginSharedStorage.CAPABILITY_PREFIX) }
         // 先消费会话额度：ONCE 档必须"用完即失效"。若先查持久集合，
         // liveCapabilities 会把还剩余额的 ONCE 也算进去，于是永远用不完。
         val allowed = !disabled && (
             action in ALWAYS_ALLOWED_ACTIONS ||
+                sharedStorageAllowed ||
                 (capability != null &&
                     (session.take(pluginId, capability) || capability in grantedCapabilities(pluginId, declared)))
             )
@@ -82,6 +87,12 @@ class PluginCapabilityGateway(
                 Decision.Allow
             }
             disabled -> deny(pluginId, action, "", PluginKillSwitch.DISABLED_MESSAGE)
+            action in SHARED_STORAGE_ACTIONS -> deny(
+                pluginId,
+                action,
+                "-",
+                "清单未声明任何共享空间：需要 capabilities 里写 \"storage.shared:<名字>\"",
+            )
             capability == null -> deny(pluginId, action, "-", UNSUPPORTED_ACTION)
             capability !in declared -> deny(
                 pluginId,
@@ -338,6 +349,14 @@ class PluginCapabilityGateway(
 
         /** 通路自检动作：不携带任何外泄面，始终放行。 */
         val ALWAYS_ALLOWED_ACTIONS: Set<String> = setOf("echo")
+
+        /** 共享空间动作族（`storage.shared:<名字>`）。 */
+        val SHARED_STORAGE_ACTIONS: Set<String> = setOf(
+            "storage_shared_get",
+            "storage_shared_set",
+            "storage_shared_delete",
+            "storage_shared_list",
+        )
 
         /**
          * 能力 → 桥动作。

@@ -64,6 +64,8 @@ class PluginBridgeRouter(
                 host = host,
                 // 私网访问是**额外**授权：network 只管能不能联网，network.local 才管能不能连内网
                 allowLocalNetwork = ledger.isApproved(pluginId, PluginCapabilityGateway.NETWORK_LOCAL),
+                // 共享空间：能碰哪些名字空间，由**这个插件自己的清单**决定
+                sharedStorageNamespaces = PluginSharedStorage.declaredNamespaces(manifest.capabilities),
             )
         }
         // 调试台：记下最近发生了什么（只保留最近 N 条）

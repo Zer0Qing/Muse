@@ -35,6 +35,12 @@ type Capability =
   | "notify"
   | "device.info"
   | "storage"
+  /**
+   * 共享 KV 名字空间（例如 `storage.shared:notes`）。
+   *
+   * 声明后才能用 `storage_shared_*` 动作碰这个名字空间；**双方都要声明**才互通。
+   */
+  | `storage.shared:${string}`
   | "config.write"
   | "host.tool.invoke"
   | "chat.read"
@@ -46,7 +52,13 @@ type Capability =
   | "hook.toolCallBefore";
 
 interface HostApi {
-  /** 插件私有 KV（8MB）。别的插件读不到。 */
+  /**
+   * 插件私有 KV（8MB）。别的插件读不到。
+   *
+   * 另有共享空间：声明 `storage.shared:<名字>` 后用
+   * `storage_shared_get/set/delete/list`（多一个 `namespace` 参数）。
+   * action: storage_shared_get / storage_shared_set / storage_shared_delete / storage_shared_list
+   */
   storage: {
     /** action: storage_get */
     get(key: string): string | null;

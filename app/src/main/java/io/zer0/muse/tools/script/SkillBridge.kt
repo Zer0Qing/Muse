@@ -146,6 +146,8 @@ object SkillBridge {
         host: Host? = null,
         /** 是否允许访问私网/本机地址（来自 `network.local` 能力的授权结果）。 */
         allowLocalNetwork: Boolean = false,
+        /** 本插件声明过的共享名字空间（来自清单里的 `storage.shared:<名字>`）。 */
+        sharedStorageNamespaces: Set<String> = emptySet(),
     ): HandleResult {
         val obj = runCatching {
             AppJson.parseToJsonElement(valueJson) as? JsonObject
@@ -172,10 +174,31 @@ object SkillBridge {
             "clipboard_read" -> execClipboardRead(host)
             "clipboard_write" -> execClipboardWrite(host, params)
             "notify" -> execNotify(host, params)
-            "storage_get" -> withContext(Dispatchers.IO) { execStorageGet(host, params) }
-            "storage_set" -> withContext(Dispatchers.IO) { execStorageSet(host, params) }
-            "storage_delete" -> withContext(Dispatchers.IO) { execStorageDelete(host, params) }
-            "storage_list" -> withContext(Dispatchers.IO) { execStorageList(host) }
+            "storage_get" -> withContext(Dispatchers.IO) { execStorageGet(kvFile(host), params) }
+            "storage_set" -> withContext(Dispatchers.IO) { execStorageSet(kvFile(host), params) }
+            "storage_delete" -> withContext(Dispatchers.IO) { execStorageDelete(kvFile(host), params) }
+            "storage_list" -> withContext(Dispatchers.IO) { execStorageList(kvFile(host)) }
+            // 共享空间：同一个动作族，但 KV 落在 plugin-shared-kv/<名字空间>/ 下
+            "storage_shared_get" -> withContext(Dispatchers.IO) {
+                execStorageShared(params, host, sharedStorageNamespaces) { store ->
+                    execStorageGet(store, params)
+                }
+            }
+            "storage_shared_set" -> withContext(Dispatchers.IO) {
+                execStorageShared(params, host, sharedStorageNamespaces) { store ->
+                    execStorageSet(store, params)
+                }
+            }
+            "storage_shared_delete" -> withContext(Dispatchers.IO) {
+                execStorageShared(params, host, sharedStorageNamespaces) { store ->
+                    execStorageDelete(store, params)
+                }
+            }
+            "storage_shared_list" -> withContext(Dispatchers.IO) {
+                execStorageShared(params, host, sharedStorageNamespaces) { store ->
+                    execStorageList(store)
+                }
+            }
             "device_info" -> HandleResult.Output(deviceInfoJson())
             else -> HandleResult.Failure("__bridge__ action '$action' 不受支持")
         }
@@ -189,8 +212,8 @@ object SkillBridge {
     //     后者是"能记住一点状态"），合并会让权限清单失去意义。
 
     /** 读一个键。不存在返回 `{value: null}` —— 不是错误，插件要能区分"没存过"和"存了 null"。 */
-    private fun execStorageGet(host: Host?, params: JsonObject): HandleResult {
-        val store = kvFile(host) ?: return kvRootMissing()
+    private fun execStorageGet(store: File?, params: JsonObject): HandleResult {
+        if (store == null) return kvRootMissing()
         val key = storageKey(params) ?: return HandleResult.Failure("storage_get 缺少合法的 key 参数")
         val entry = readKv(store)[key]
         val output = buildJsonObject {
@@ -202,8 +225,7 @@ object SkillBridge {
     }
 
     /** 写一个键：先收参数，再交给 [writeKv] 做体积与配额判定。 */
-    private fun execStorageSet(host: Host?, params: JsonObject): HandleResult {
-        val store = kvFile(host)
+    private fun execStorageSet(store: File?, params: JsonObject): HandleResult {
         val key = storageKey(params)
         val value = params["value"]
         return when {
@@ -248,8 +270,8 @@ object SkillBridge {
             )
     }
 
-    private fun execStorageDelete(host: Host?, params: JsonObject): HandleResult {
-        val store = kvFile(host) ?: return kvRootMissing()
+    private fun execStorageDelete(store: File?, params: JsonObject): HandleResult {
+        if (store == null) return kvRootMissing()
         val key = storageKey(params) ?: return HandleResult.Failure("storage_delete 缺少合法的 key 参数")
         val snapshot = LinkedHashMap(readKv(store))
         val removed = snapshot.remove(key) != null
@@ -266,8 +288,42 @@ object SkillBridge {
     }
 
     /** 只回键名与占用，不回值：避免一次 list 把整份数据塞进上下文。 */
-    private fun execStorageList(host: Host?): HandleResult {
-        val store = kvFile(host) ?: return kvRootMissing()
+    /**
+     * 共享空间动作的统一入口：先验名字空间是否**本插件声明过**，再决定用哪份 KV。
+     *
+     * 名字空间必须是本插件在清单里声明过的那几个：光有 `storage` 能力不够，
+     * 也不能靠传参临时借别人的空间 —— "谁能看到我的数据"由双方各自的清单决定。
+     */
+    private fun execStorageShared(
+        params: JsonObject,
+        host: Host?,
+        declared: Set<String>,
+        run: (File) -> HandleResult,
+    ): HandleResult {
+        val namespace = (params["namespace"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+        val context = host?.context
+        val store = if (context == null) {
+            null
+        } else {
+            io.zer0.muse.data.plugin.PluginSharedStorage.fileFor(context, namespace)
+        }
+        return when {
+            namespace.isEmpty() -> HandleResult.Failure(
+                "storage_shared_* 需要 namespace 参数；可用：" +
+                    declared.sorted().joinToString("、").ifEmpty { "（本插件没有声明任何共享空间）" },
+            )
+            namespace !in declared -> HandleResult.Failure(
+                "未声明共享空间 '$namespace'：清单 capabilities 里需要 \"storage.shared:$namespace\"",
+            )
+            store == null -> HandleResult.Failure(
+                "共享空间名字不合法：只允许小写字母、数字、下划线与短横线，1-32 字符",
+            )
+            else -> run(store)
+        }
+    }
+
+    private fun execStorageList(store: File?): HandleResult {
+        if (store == null) return kvRootMissing()
         val entries = readKv(store).entries
         return HandleResult.Output(
             buildJsonObject {
