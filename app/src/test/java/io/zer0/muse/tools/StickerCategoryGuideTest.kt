@@ -18,7 +18,7 @@ import org.junit.Test
  */
 class StickerCategoryGuideTest {
 
-    private fun guide(cats: List<String>) = SkillMediaToolsImpl.buildCategoryGuide(cats)
+    private fun guide(cats: List<String>) = buildCategoryGuide(cats)
 
     @Test
     fun `known moods are mapped to matching categories`() {

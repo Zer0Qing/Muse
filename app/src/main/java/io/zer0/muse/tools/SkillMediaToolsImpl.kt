@@ -14,6 +14,7 @@ import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginFunctionInvoker
 import io.zer0.muse.tools.script.NodePluginEngine
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.zer0.muse.data.plugin.PluginManifest
@@ -349,7 +350,7 @@ class SkillMediaToolsImpl(
         handlerName: String,
         valuesJson: String,
     ): UiSubmitResult {
-        val prepared = prepareUiCall(pluginId, handlerName)
+        val prepared = prepareDeclaredCall(pluginId, handlerName, forInteractiveUi = true)
         val plan = prepared.plan
             ?: return UiSubmitResult.Rejected(prepared.reason ?: "无法开始这次界面提交")
         val manager = plan.manager
@@ -371,21 +372,28 @@ class SkillMediaToolsImpl(
         }
     }
 
-    /** 一次面板提交所需的全部前置信息。 */
-    private class UiCallPlan(
+    /** 调用一个"清单里声明过的函数"所需的全部前置信息。 */
+    private class DeclaredCallPlan(
         val manager: PluginManager,
         val manifest: PluginManifest,
         val entryCode: String,
         val configJson: String?,
     )
 
-    private data class UiPreparation(val plan: UiCallPlan?, val reason: String?)
+    private data class DeclaredCallPreparation(val plan: DeclaredCallPlan?, val reason: String?)
 
     /**
      * 前置判定收成一条 when：早退写成一串 `?: return` 会撞 detekt 的 ReturnCount，
-     * 而这里与其为少几行去塞基线，不如让"为什么不能提交"只有一处判。
+     * 而这里与其为少几行去塞基线，不如让"为什么不能调用"只有一处判。
+     *
+     * [forInteractiveUi] 只影响两条 UI 专属规则（`ui.interactive` 授权 + node 运行时）：
+     * 命令没有这两条限制 —— js 档单轮桥接也能返回一段文本，没必要为此拒绝。
      */
-    private fun prepareUiCall(pluginId: String, handlerName: String): UiPreparation {
+    private fun prepareDeclaredCall(
+        pluginId: String,
+        handlerName: String,
+        forInteractiveUi: Boolean,
+    ): DeclaredCallPreparation {
         val manager = pluginManager
         val plugin = manager?.findPlugin(pluginId)
         val verified = manager?.loadVerifiedPlugin(pluginId)
@@ -395,21 +403,21 @@ class SkillMediaToolsImpl(
             manager == null || plugin == null -> "插件未安装: $pluginId"
             !plugin.enabled -> "插件已禁用: ${plugin.name}"
             verified == null -> "插件入口校验失败: $pluginId"
-            !ledger.isApproved(pluginId, PluginCapabilityGateway.UI_INTERACTIVE) ->
+            forInteractiveUi && !ledger.isApproved(pluginId, PluginCapabilityGateway.UI_INTERACTIVE) ->
                 "该插件的界面提交未获授权（需要能力「ui.interactive」，它会在你点提交时改动数据）。" +
                     "请在 设置 → 工具与扩展 → 插件 → 「${plugin.name}」→ 能力与权限 中允许后重试"
-            !PluginFunctionInvoker.isNode(verified.manifest) ->
+            forInteractiveUi && !PluginFunctionInvoker.isNode(verified.manifest) ->
                 "交互面板目前要求 manifest 里写 runtime=node：js 档的桥接是单轮的" +
                     "（一次 bridge 请求就是返回值本身），无法在存完数据后再返回新界面"
-            function == null -> "界面按钮指向的函数未在清单中声明: $pluginId/$handlerName"
+            function == null -> "调用的函数未在清单中声明: $pluginId/$handlerName"
             else -> null
         }
-        if (reason != null) return UiPreparation(null, reason)
+        if (reason != null) return DeclaredCallPreparation(null, reason)
         val readyManager = requireNotNull(manager)
         val readyVerified = requireNotNull(verified)
         val readyFunction = requireNotNull(function)
-        return UiPreparation(
-            UiCallPlan(
+        return DeclaredCallPreparation(
+            DeclaredCallPlan(
                 manager = readyManager,
                 manifest = readyVerified.manifest,
                 entryCode = readyFunction.entryCode,
@@ -418,6 +426,35 @@ class SkillMediaToolsImpl(
             null,
         )
     }
+
+    /**
+     * 执行一条插件斜杠命令（`/name`），返回可直接显示给用户的文本。
+     *
+     * 与工具路径共用同一条执行链：能力账本、桥接路由器、并发额度、超时预算。
+     * js 档是单轮桥接：命令函数若返回桥接哨兵，这里替它执行一次并把结果作为命令输出 ——
+     * 与 `execPluginTool` 的 js 分支同一语义，不会假装"命令已完成"。
+     */
+    suspend fun invokePluginCommand(pluginId: String, handlerName: String, input: String): String {
+        val prepared = prepareDeclaredCall(pluginId, handlerName, forInteractiveUi = false)
+        val plan = prepared.plan ?: return prepared.reason ?: "无法执行这条命令"
+        val argsJson = "[" + buildJsonObject { put("input", input) }.toString() + "]"
+        val result = PluginFunctionInvoker(context).call(
+            manifest = plan.manifest,
+            entryCode = plan.entryCode,
+            functionName = handlerName,
+            argsJson = argsJson,
+            configJson = plan.configJson,
+            bridgeHandler = { requestJson ->
+                bridgeRouter(plan.manager).handle(bridgeSentinel(requestJson), pluginId, plan.manifest)
+            },
+        )
+        return when (result) {
+            is SkillEngineResult.Error -> "命令执行失败：${result.message}"
+            is SkillEngineResult.Success ->
+                commandText(result.valueJson, pluginId, plan.manifest, bridgeRouter(plan.manager))
+        }
+    }
+
 
     /** 面板提交的两种结果。[UiSubmitResult.Rejected.reason] 要能直接显示给用户。 */
     sealed interface UiSubmitResult {
@@ -484,28 +521,6 @@ class SkillMediaToolsImpl(
             is SkillEngineResult.Error -> "插件工具执行失败: ${result.message}"
         }
     }
-    companion object {
-        /**
-         * 生成语境对照段。纯函数，便于单测。
-         *
-         * @return 空串表示没有任何分类命中关键词（此时不输出这一段）
-         */
-        internal fun buildCategoryGuide(categories: List<String>): String {
-            val guide = STICKER_MOOD_KEYWORDS.mapNotNull { (mood, keys) ->
-                val matched = categories.filter { cat -> keys.any { cat.contains(it, ignoreCase = true) } }
-                if (matched.isEmpty()) null else mood to matched
-            }
-            if (guide.isEmpty()) return ""
-            val covered = guide.flatMap { it.second }.toSet()
-            val rest = categories.filterNot { it in covered }
-            return buildString {
-                appendLine("按当前对话情绪挑分类:")
-                guide.forEach { (mood, cats) -> appendLine("- $mood → ${cats.joinToString("、")}") }
-                if (rest.isNotEmpty()) appendLine("- 其余分类按名称自行判断: ${rest.joinToString("、")}")
-                appendLine()
-            }
-        }
-    }
 }
 
 /**
@@ -525,3 +540,33 @@ private val STICKER_MOOD_KEYWORDS: List<Pair<String, List<String>>> = listOf(
     "无奈/摆烂" to listOf("无奈", "摆烂", "躺平", "sigh", "shrug"),
     "晚安/睡觉" to listOf("晚安", "睡", "困", "goodnight", "sleep"),
 )
+
+    internal fun buildCategoryGuide(categories: List<String>): String {
+        val guide = STICKER_MOOD_KEYWORDS.mapNotNull { (mood, keys) ->
+            val matched = categories.filter { cat -> keys.any { cat.contains(it, ignoreCase = true) } }
+            if (matched.isEmpty()) null else mood to matched
+        }
+        if (guide.isEmpty()) return ""
+        val covered = guide.flatMap { it.second }.toSet()
+        val rest = categories.filterNot { it in covered }
+        return buildString {
+            appendLine("按当前对话情绪挑分类:")
+            guide.forEach { (mood, cats) -> appendLine("- $mood → ${cats.joinToString("、")}") }
+            if (rest.isNotEmpty()) appendLine("- 其余分类按名称自行判断: ${rest.joinToString("、")}")
+            appendLine()
+        }
+    }
+
+
+/** 命令返回值收尾：普通文本直接用；桥接哨兵替它执行一次（js 单轮语义）。 */
+private suspend fun commandText(
+    raw: String,
+    pluginId: String,
+    manifest: PluginManifest,
+    router: PluginBridgeRouter,
+): String = when (val bridge = router.handle(raw, pluginId, manifest)) {
+    is SkillBridge.HandleResult.Output -> bridge.json
+    is SkillBridge.HandleResult.Failure -> "命令执行失败：${bridge.message}"
+    is SkillBridge.HandleResult.NotBridge ->
+        runCatching { AppJson.decodeFromString<String>(raw) }.getOrElse { raw }
+}

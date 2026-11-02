@@ -188,6 +188,18 @@ data class PluginManifest(
      */
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val toolCards: Map<String, String> = emptyMap(),
+    /**
+     * 斜杠命令：用户输入 `/name` 时调用插件声明的 handler。
+     *
+     * 与 hooks/toolCards 同一兼容规则：默认值**不参与序列化**（`@EncodeDefault(NEVER)`），
+     * 否则存量已签名包会因 payload 多出字段而整批验签失败。
+     *
+     * 名字与 handler 的校验**不在这里**做：清单解析只负责"读得懂"，
+     * 校验放在命令注册表（`PluginCommandRegistry`）与执行入口（`loadVerifiedFunction`），
+     * 免得同一条规则有两个可能不同步的家。
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val commands: List<PluginCommandDeclaration> = emptyList(),
 ) {
     companion object {
         val BUILT_IN: List<PluginManifest> = listOf(
