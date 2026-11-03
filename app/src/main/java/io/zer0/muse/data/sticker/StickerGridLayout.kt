@@ -37,25 +37,27 @@ object StickerGridLayout {
     private const val SAMPLE_STEP = 2
 
     /** 单列带最小宽度（像素）：比这窄的是笔画碎片。 */
-    private const val MIN_LANE_PX = 50
+    private const val MIN_LANE_PX = 60
 
     /** 单行带最小高度（像素）。 */
-    private const val MIN_BAND_PX = 40
+    private const val MIN_BAND_PX = 60
 
     /** 取原始段时的下限：比这还窄的不算一段内容。 */
     private const val MIN_FRAGMENT_PX = 8
 
     /**
-     * 两条行带之间的空隙小到这个像素数以内，就认定它们属于同一张贴纸。
+     * 合并只在**相对量**上做：空隙 ≤ 行高中位数的这个比例。
      *
-     * 必须**绝对值 + 相对值双条件**：只用比例时，真实目录页上行间距约 30px、
-     * 行高约 106px（占 28%），会被整行并成一大块；只用绝对值则在缩放开很大时失准。
-     * 所以再加一条"不超过行高中位数的一定比例"。
+     * 绝对像素在真机上被证伪过：设成 25px 时，真实目录页的 6 条贴纸带（高 106~132）
+     * 里有四条被并成了 520px 的一整块，切出来是 75x458 的竖切片。
+     * 真机原始行段是 `[46,106,114,132,130,112,28,20,16,12]` ——
+     * 贴纸带都 100+，文字与配文带都 ≤46，用"相对中位数"就能干净分开：
+     * 0.1 倍约 11px，正好够把配文并进上面那张，又绝不至于把两行并起来。
      */
-    private const val MERGE_GAP_PX = 25
+    private const val MERGE_GAP_RELATIVE = 0.1f
 
-    /** 空隙不超过"行高中位数 × 这个比例"才允许合并。 */
-    private const val MERGE_GAP_RATIO = 0.3f
+    /** 只允许把"明显比中位行带矮"的带并上去（配文、印章、分隔线）。 */
+    private const val MERGE_SHORT_BAND_RELATIVE = 0.5f
 
     /**
      * @param isBackground 由调用方提供的"这像素是不是背景"判定（背景色估计在渲染层做，
@@ -112,11 +114,13 @@ object StickerGridLayout {
         if (runs.size < 2) return runs
         val heights = runs.map { it.last - it.first }
         val medianHeight = heights.sorted().let { it[it.size / 2] }
-        val limit = minOf(MERGE_GAP_PX, (medianHeight * MERGE_GAP_RATIO).toInt())
+        val gapLimit = medianHeight * MERGE_GAP_RELATIVE
+        val shortLimit = medianHeight * MERGE_SHORT_BAND_RELATIVE
         val out = mutableListOf(runs.first())
         runs.drop(1).forEach { next ->
             val prev = out.last()
-            if (next.first - prev.last <= limit) {
+            val narrow = (next.last - next.first) < shortLimit
+            if (narrow && next.first - prev.last <= gapLimit) {
                 out[out.lastIndex] = prev.first..next.last
             } else {
                 out += next

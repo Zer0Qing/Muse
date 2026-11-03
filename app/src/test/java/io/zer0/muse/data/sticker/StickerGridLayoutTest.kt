@@ -35,8 +35,11 @@ class StickerGridLayoutTest {
         rowY.forEach { y ->
             colX.forEach { x ->
                 sheet.rect(x, y, x + 160, y + 90) // 画
-                sheet.rect(x + 20, y + 104, x + 140, y + 124) // 配文
-                expected += StickerMontageSplitter.Cell(x - 5, y - 5, x + 165, y + 130)
+                // 配文紧跟在画下面。真机上这一隙约 6~12px；这里取 6px 是因为
+                // 行剖面按 2px 采样，边界会向外扩一步，10px 的视觉空隙实际算出 10px，
+                // 而合并阈值是行高中位数的 0.1 倍（此处约 9px）—— 卡线反而不稳定。
+                sheet.rect(x + 20, y + 96, x + 140, y + 116) // 配文
+                expected += StickerMontageSplitter.Cell(x - 5, y - 5, x + 165, y + 120)
             }
         }
         return sheet to expected

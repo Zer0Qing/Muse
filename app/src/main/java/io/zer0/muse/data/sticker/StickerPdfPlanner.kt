@@ -67,19 +67,28 @@ object StickerPdfPlanner {
      * 两个数字根本分不开。用面积当质量判据只会把好结果一起误杀。
      *
      * 结论：切得准不准，**数字判不出来，只能给人看**。所以这条链的最后一环是导入向导
-     * （预览 → 勾选 → 改名），而不是更强的启发式；这里只留"离谱就不收"的兜底
-     * （格子数上限与面积离散度）。
+     * （预览 → 勾选 → 改名），而不是更强的启发式；这里只留逐格形状剔除
+     * （长宽比、最小边长）与"离谱就不收"的兜底（格子数上限、面积离散度）。
      */
+    /**
+     * 单格最小边长（像素）。
+     *
+     * 真机量出来的：目录页顶上的标题文字被切成 900x30 一条。
+     * 这种**逐格剔掉**就行 —— 上一版写成"任一格超标就整页不收"，
+     * 结果一条标题文字把 21 张贴纸全带走了。一格坏不该毁掉整页。
+     */
+    const val MIN_CELL_SIDE_PX = 40
+
     fun plan(cells: List<StickerMontageSplitter.Cell>, pageWidth: Int, pageHeight: Int): Plan {
         val pageArea = pageWidth.toLong() * pageHeight.toLong()
+        // 先逐格剔掉"明显不是表情"的形状（细长条、碎片），再对剩下的做离谱判定
+        val usable = cells.filter { it.aspectRatio <= MAX_CELL_ASPECT && minOf(it.width, it.height) >= MIN_CELL_SIDE_PX }
         return when {
-            cells.isEmpty() -> Plan.Skip
-            cells.size > MAX_CELLS_PER_PAGE -> Plan.Skip
-            !uniformEnough(cells) -> Plan.Skip
-            // 细长条不是表情：文字行、分隔线、水印条都在这里挡掉
-            cells.any { it.aspectRatio > MAX_CELL_ASPECT } -> Plan.Skip
-            cells.size >= 2 -> Plan.Crop(cells)
-            cells.single().area >= pageArea * WHOLE_PAGE_AREA_RATIO -> Plan.Crop(cells)
+            usable.isEmpty() -> Plan.Skip
+            usable.size > MAX_CELLS_PER_PAGE -> Plan.Skip
+            !uniformEnough(usable) -> Plan.Skip
+            usable.size >= 2 -> Plan.Crop(usable)
+            usable.single().area >= pageArea * WHOLE_PAGE_AREA_RATIO -> Plan.Crop(usable)
             else -> Plan.Skip
         }
     }
