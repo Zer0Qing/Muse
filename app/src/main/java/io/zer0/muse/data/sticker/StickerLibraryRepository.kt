@@ -118,6 +118,10 @@ class StickerLibraryRepository(private val appContext: Context) {
                     Logger.i("StickerLibraryRepository", "importUri: 识别为单张图片,调用 importImage")
                     importImage(uri, displayName, onProgress)
                 }
+                lowerName.endsWith(".pdf") -> {
+                    Logger.i("StickerLibraryRepository", "importUri: 识别为 PDF,按页面切格导入")
+                    importPdf(uri, displayName, onProgress)
+                }
                 documentKindOf(displayName) != null -> {
                     Logger.i("StickerLibraryRepository", "importUri: 识别为文档容器,调用 importDocument")
                     importDocument(uri, displayName, onProgress)
@@ -125,7 +129,7 @@ class StickerLibraryRepository(private val appContext: Context) {
                 else -> {
                     Logger.w("StickerLibraryRepository", "importUri: 不支持的文件类型: $displayName")
                     Result.Error(
-                        "不支持的文件类型: $displayName（支持：ZIP 压缩包、docx/pptx 文档、png/jpg/jpeg/gif/webp/bmp 图片）",
+                        "不支持的文件类型: $displayName（支持：ZIP 压缩包、docx/pptx 文档、PDF、png/jpg/jpeg/gif/webp/bmp 图片）",
                     )
                 }
             }
@@ -429,6 +433,87 @@ class StickerLibraryRepository(private val appContext: Context) {
                     .onError { msg, t -> Logger.w("StickerLibraryRepository", "清理 staging 失败: $msg", t) }
             }
         }.onError { msg, t -> Logger.w("StickerLibraryRepository", "importDocument 失败: $msg", t) }
+    }
+
+    /**
+     * 从 PDF 导入表情（表情包重做 P5）。
+     *
+     * 市面素材有一半是 PDF，而它有两种长法：一页排几十个表情的**目录页**，
+     * 和一页一张的**单表情页**。两种都要照顾到，所以判定不在这儿 ——
+     * 切几刀由 [StickerPdfPlanner] 决定（纯函数、有单测），出像素由
+     * [StickerPageRenderer] 负责（薄胶水，真机核对）。
+     *
+     * 一页一页处理、渲染完立刻回收：30 页 A4 全量留在内存里就是几百 MB。
+     */
+    suspend fun importPdf(
+        uri: Uri,
+        displayName: String,
+        onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
+    ): Result<Int> = withContext(Dispatchers.IO) {
+        resultOf {
+            val pfd = appContext.contentResolver.openFileDescriptor(uri, "r")
+                ?: error("无法打开所选文件")
+            val renderer = StickerPageRenderer.open(pfd) ?: run {
+                runCatching { pfd.close() }
+                error("这份 PDF 打不开（可能已加密或损坏）")
+            }
+            val category = safeCategoryName(displayName.substringBeforeLast('.'))
+            val stagingDir = File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8))
+            stagingDir.mkdirs()
+            val pending = mutableListOf<PendingEntry>()
+            try {
+                renderer.use { open ->
+                    val pages = minOf(open.pageCount, StickerPageRenderer.MAX_PAGES)
+                    for (index in 0 until pages) {
+                        onProgress?.invoke("正在识别页面", index + 1, pages)
+                        val page = open.render(index) ?: continue
+                        page.use { rendered ->
+                            pending.addAll(cropPage(rendered, stagingDir, pending.size, category))
+                        }
+                    }
+                }
+                if (pending.isEmpty()) {
+                    error("PDF 里没识别出可用的表情（可能是纯文字页；扫描页请先用图片导入）")
+                }
+                val imported = commitStaged(pending, System.currentTimeMillis(), onProgress)
+                Logger.i("StickerLibraryRepository", "importPdf: 导入 ${imported.size} 张，分类=$category")
+                imported.size
+            } finally {
+                resultOf { stagingDir.deleteRecursively() }
+                    .onError { msg, t -> Logger.w("StickerLibraryRepository", "清理 staging 失败: $msg", t) }
+            }
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "importPdf 失败: $msg", t) }
+    }
+
+    /** 把一页切成若干张；页内格子太多直接放弃（判定在 Planner，这里只落盘）。 */
+    private fun cropPage(
+        page: StickerPageRenderer.RenderedPage,
+        stagingDir: File,
+        alreadyCollected: Int,
+        category: String,
+    ): List<PendingEntry> {
+        val cells = StickerMontageSplitter.split(page.pixels, page.width, page.height)
+        val plan = StickerPdfPlanner.plan(cells, page.width, page.height)
+        if (plan !is StickerPdfPlanner.Plan.Crop) return emptyList()
+        val picked = mutableListOf<PendingEntry>()
+        var ordinal = alreadyCollected
+        for (cell in plan.cells) {
+            if (ordinal >= MAX_ENTRY_COUNT) break
+            val name = "表情" + (ordinal + 1) + ".png"
+            val staged = page.pngOf(cell)?.let { bytes ->
+                val file = File(stagingDir, ordinal.toString() + "_" + name)
+                runCatching { file.outputStream().use { it.write(bytes) } }
+                    .onFailure { Logger.w("StickerLibraryRepository", "写入裁切结果失败: ${it.message}") }
+                    .getOrNull()
+                    ?.let { file }
+            }
+            // 写不成就不占序号：宁可少一张，也不要清单里留一条指向不存在文件的记录
+            if (staged != null) {
+                picked.add(PendingEntry(category, name, staged))
+                ordinal++
+            }
+        }
+        return picked
     }
 
     /** 读文件开头若干字节（用来嗅探类型）。 */
