@@ -26,6 +26,15 @@ object StickerPdfPlanner {
     /** 单页最多接受多少格（表情目录页没有更密的；超过说明切碎了）。 */
     const val MAX_CELLS_PER_PAGE = 40
 
+    /**
+     * 单格最大长宽比。
+     *
+     * 真机第一次跑就暴露了这个缺口：PDF 后面几页只有文字（图床链接与说明），
+     * 切格把一行行文字切成 **595x40 的横条**（长宽比近 15）当表情收了 26 条。
+     * 表情基本是方的，超过这个比例就不是表情 —— 与连通块那条路径用的上限一致。
+     */
+    const val MAX_CELL_ASPECT = 4f
+
     /** 单格占页面比例达到多少才敢当"整页一张"收。 */
     const val WHOLE_PAGE_AREA_RATIO = 0.7f
 
@@ -67,6 +76,8 @@ object StickerPdfPlanner {
             cells.isEmpty() -> Plan.Skip
             cells.size > MAX_CELLS_PER_PAGE -> Plan.Skip
             !uniformEnough(cells) -> Plan.Skip
+            // 细长条不是表情：文字行、分隔线、水印条都在这里挡掉
+            cells.any { it.aspectRatio > MAX_CELL_ASPECT } -> Plan.Skip
             cells.size >= 2 -> Plan.Crop(cells)
             cells.single().area >= pageArea * WHOLE_PAGE_AREA_RATIO -> Plan.Crop(cells)
             else -> Plan.Skip

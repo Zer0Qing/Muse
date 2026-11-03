@@ -118,5 +118,29 @@ class StickerPdfPlannerTest {
 
         assertTrue(StickerPdfPlanner.uniformEnough(grid))
     }
-}
 
+    @Test
+    fun `thin strips are not stickers`() {
+        // 真机上量到的形状：PDF 后几页只有文字，被切成 595x40 的横条（长宽比约 15）
+        val strips = listOf(
+            StickerMontageSplitter.Cell(0, 0, 595, 40),
+            StickerMontageSplitter.Cell(0, 60, 595, 100),
+            StickerMontageSplitter.Cell(0, 120, 595, 160),
+        )
+
+        assertTrue(
+            "细长条要整页不收",
+            StickerPdfPlanner.plan(strips, 990, 1400) is StickerPdfPlanner.Plan.Skip,
+        )
+    }
+
+    @Test
+    fun `a roughly square grid still passes the aspect gate`() {
+        val grid = (0 until 12).map { i ->
+            StickerMontageSplitter.Cell(i % 4 * 240, i / 4 * 340, i % 4 * 240 + 200, i / 4 * 340 + 300)
+        }
+
+        assertTrue(grid.all { it.aspectRatio <= StickerPdfPlanner.MAX_CELL_ASPECT })
+        assertTrue(StickerPdfPlanner.plan(grid, 990, 1400) is StickerPdfPlanner.Plan.Crop)
+    }
+}

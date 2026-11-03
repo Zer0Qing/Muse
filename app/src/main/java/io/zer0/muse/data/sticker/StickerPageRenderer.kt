@@ -8,7 +8,6 @@ import android.os.ParcelFileDescriptor
 import io.zer0.common.Logger
 import java.io.ByteArrayOutputStream
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * PDF 出像素与裁切的那层薄胶水（表情包重做 P5）。
@@ -58,7 +57,11 @@ internal class StickerPageRenderer private constructor(
     /** @return null 表示这一页渲染不出来（坏页不该让整份 PDF 失败） */
     fun render(index: Int): RenderedPage? = runCatching {
         renderer.openPage(index).use { page ->
-            val scale = min(1f, MAX_RENDER_SIDE / max(page.width, page.height).toFloat())
+            // 必须允许**放大**：PdfRenderer 的 page.width/height 是 PDF 点（A4 约 842），
+            // 用 min(1f, …) 就等于永远按 72dpi 渲染，比切格参数标定的尺寸小一半多 ——
+            // 真机上就是这么把"文字行"切成 595x40 的横条当表情收进来的。
+            val scale = (MAX_RENDER_SIDE.toFloat() / max(page.width, page.height))
+                .coerceIn(0.25f, 4f)
             val width = (page.width * scale).toInt().coerceAtLeast(1)
             val height = (page.height * scale).toInt().coerceAtLeast(1)
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)

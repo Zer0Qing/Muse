@@ -35,6 +35,13 @@ object StickerMontageSplitter {
         val width: Int get() = right - left
         val height: Int get() = bottom - top
         val area: Int get() = width * height
+
+        /** 长宽比（>=1）。细长条通常是文字行或分隔线，不是表情。 */
+        val aspectRatio: Float
+            get() {
+                val short = min(width, height).coerceAtLeast(1)
+                return max(width, height).toFloat() / short
+            }
     }
 
     /** 格子最小边长：低于这个多半是水印或角标（样本水印是 106×32）。 */
