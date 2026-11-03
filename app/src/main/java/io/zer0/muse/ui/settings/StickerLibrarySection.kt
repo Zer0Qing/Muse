@@ -155,6 +155,9 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
     var itemActions by remember { mutableStateOf<StickerItem?>(null) }
     var actionCaption by remember { mutableStateOf("") }
     var actionTarget by remember { mutableStateOf("") }
+    // 导入预览：文档/PDF 先解析成草稿，勾过再入库（表情包重做 P3）
+    var reviewDraft by remember { mutableStateOf<io.zer0.muse.data.sticker.StickerDraft?>(null) }
+    var reviewKept by remember { mutableStateOf(setOf<String>()) }
     val importLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
@@ -164,6 +167,19 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             stickerImportProgress = null
             stickerImportText = ""
             scope.launch {
+                // 文档与 PDF：先解析成草稿给用户看（自动挑图与自动切格都可能出错，
+                // 而"错"是数字判不出来的，只能让人勾一下）
+                val prepared = stickerRepo.prepareUri(uri)
+                if (prepared.isSuccess) {
+                    val draft = prepared.getOrNull()
+                    if (draft != null) {
+                        reviewDraft = draft
+                        reviewKept = draft.items.map { it.token }.toSet()
+                        importingSticker = false
+                        stickerImportProgress = null
+                        return@launch
+                    }
+                }
                 stickerRepo.importUri(uri) { phase, done, total ->
                     stickerImportProgress =
                         if (total != null && total > 0) {
@@ -638,6 +654,102 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             },
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showRenameDialog = false },
+        )
+    }
+
+    // 导入预览（表情包重做 P3）：把自动挑出来/切出来的图摊开给人勾
+    reviewDraft?.let { draft ->
+        val kept = reviewKept
+        MuseDialog(
+            onDismissRequest = {
+                stickerRepo.cancelDraft(draft.id)
+                reviewDraft = null
+            },
+            title = stringResource(R.string.settings_sticker_review_title, draft.items.size),
+            content = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.settings_sticker_review_hint, draft.category),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(360.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(draft.items, key = { it.token }) { entry ->
+                            val selected = entry.token in kept
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(MuseShapes.medium)
+                                    .background(
+                                        if (selected) {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                        },
+                                    )
+                                    .combinedClickable(
+                                        onClick = {
+                                            reviewKept = if (selected) {
+                                                kept - entry.token
+                                            } else {
+                                                kept + entry.token
+                                            }
+                                        },
+                                    ),
+                                contentAlignment = Alignment.BottomEnd,
+                            ) {
+                                AsyncImage(
+                                    model = coil.request.ImageRequest.Builder(context)
+                                        .data(entry.file)
+                                        .size(160)
+                                        .crossfade(false)
+                                        .build(),
+                                    contentDescription = entry.fileName,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                                if (selected) {
+                                    Icon(
+                                        imageVector = MuseIcons.check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .padding(3.dp)
+                                            .size(16.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.settings_sticker_review_import, kept.size),
+            onConfirm = {
+                reviewDraft = null
+                scope.launch {
+                    stickerRepo.commitDraft(draft.id, kept)
+                        .onSuccess { count ->
+                            MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
+                            refreshTrigger++
+                        }
+                        .onError { msg, _ ->
+                            MuseToast.show(context.getString(R.string.settings_sticker_import_failed, msg), 3500)
+                        }
+                }
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = {
+                stickerRepo.cancelDraft(draft.id)
+                reviewDraft = null
+            },
         )
     }
 

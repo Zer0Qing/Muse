@@ -422,6 +422,9 @@
     <string name="settings_sticker_upload_subtitle">zip, docx/pptx 문서, 이미지 지원. 한 번에 파일 하나</string>
     <string name="settings_sticker_add_from_gallery">갤러리에서 추가</string>
     <string name="settings_sticker_add_from_gallery_subtitle">여러 장 동시 선택. 현재 보는 스티커 팩에 추가됩니다</string>
+    <string name="settings_sticker_review_title">%1$d 개 미리보기</string>
+    <string name="settings_sticker_review_hint">자동 선택과自動 자르기는 틀릴 수 있습니다. 탭으로 선택 해제. 팩: %2$s</string>
+    <string name="settings_sticker_review_import">%1$d 개 가져오기</string>
     <string name="settings_sticker_rename_pack">이 팩 이름 변경</string>
     <string name="settings_sticker_rename_title">스티커 팩 이름 변경</string>
     <string name="settings_sticker_action_saved">업데이트됨</string>

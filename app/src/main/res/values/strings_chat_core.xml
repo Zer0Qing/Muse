@@ -480,6 +480,9 @@
     <string name="settings_sticker_upload_subtitle">支持压缩包、docx/pptx 文档、图片；一次可选一个文件</string>
     <string name="settings_sticker_add_from_gallery">从相册添加</string>
     <string name="settings_sticker_add_from_gallery_subtitle">一次可多选；加进当前查看的表情包</string>
+    <string name="settings_sticker_review_title">预览要导入的 %1$d 张</string>
+    <string name="settings_sticker_review_hint">自动挑图与切格可能出错，点一下取消勾选。分类：%2$s</string>
+    <string name="settings_sticker_review_import">导入 %1$d 张</string>
     <string name="settings_sticker_rename_pack">重命名此包</string>
     <string name="settings_sticker_rename_title">重命名表情包</string>
     <string name="settings_sticker_action_saved">已更新</string>

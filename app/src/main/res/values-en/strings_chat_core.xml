@@ -442,6 +442,9 @@
     <string name="settings_sticker_upload_subtitle">Accepts zip, docx/pptx documents and images; one file at a time</string>
     <string name="settings_sticker_add_from_gallery">Add from gallery</string>
     <string name="settings_sticker_add_from_gallery_subtitle">Pick several at once; added to the pack you are viewing</string>
+    <string name="settings_sticker_review_title">Review %1$d stickers</string>
+    <string name="settings_sticker_review_hint">Auto-picking and auto-cutting can be wrong; tap to uncheck. Pack: %2$s</string>
+    <string name="settings_sticker_review_import">Import %1$d</string>
     <string name="settings_sticker_rename_pack">Rename this pack</string>
     <string name="settings_sticker_rename_title">Rename sticker pack</string>
     <string name="settings_sticker_action_saved">Updated</string>

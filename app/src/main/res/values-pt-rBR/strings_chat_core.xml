@@ -423,6 +423,9 @@
     <string name="settings_sticker_upload_subtitle">Aceita zip, documentos docx/pptx e imagens; um arquivo por vez</string>
     <string name="settings_sticker_add_from_gallery">Adicionar da galeria</string>
     <string name="settings_sticker_add_from_gallery_subtitle">Escolha varias de uma vez; vao para o pacote aberto</string>
+    <string name="settings_sticker_review_title">Revisar %1$d adesivos</string>
+    <string name="settings_sticker_review_hint">A selecao automatica pode errar; toque para desmarcar. Pacote: %2$s</string>
+    <string name="settings_sticker_review_import">Importar %1$d</string>
     <string name="settings_sticker_rename_pack">Renomear este pacote</string>
     <string name="settings_sticker_rename_title">Renomear pacote</string>
     <string name="settings_sticker_action_saved">Atualizado</string>

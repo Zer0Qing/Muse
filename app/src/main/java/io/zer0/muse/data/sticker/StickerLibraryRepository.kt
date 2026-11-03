@@ -47,6 +47,9 @@ class StickerLibraryRepository(private val appContext: Context) {
     /** 清单文件(`filesDir/stickers/manifest.json`)。 */
     private val manifestFile: File get() = File(rootDir, "manifest.json")
 
+    /** 导入草稿仓库：解析出来但还没确认入库的东西放这儿。 */
+    private val draftStore = StickerDraftStore(File(rootDir, ".drafts"))
+
     /** 清单读写互斥锁(保证并发导入/删除的原子性)。 */
     private val manifestMutex = Mutex()
 
@@ -400,39 +403,55 @@ class StickerLibraryRepository(private val appContext: Context) {
         onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
     ): Result<Int> = withContext(Dispatchers.IO) {
         resultOf {
-            val container = appContext.contentResolver.openInputStream(uri)?.use { stream ->
-                StickerContainerReader.read(stream)
-            } ?: error("无法打开所选文件（不是有效的 docx/pptx？）")
-            val scanned = StickerDocumentScanner.scan(container.kind, container.entries)
-            val category = safeCategoryName(scanned.title ?: displayName.substringBeforeLast('.'))
-            val ordered = scanned.candidates.mapNotNull { candidate ->
-                container.entries[candidate.mediaPath]?.let { candidate to it }
-            }
-            if (ordered.isEmpty()) error("文档里没有找到图片")
-            val usable = StickerCandidateFilters.filter(
-                items = ordered,
-                widthOf = { entry -> dimensionsOf(entry.second).first },
-                heightOf = { entry -> dimensionsOf(entry.second).second },
-                bytesOf = { entry -> entry.second },
-            )
-            if (usable.isEmpty()) error("文档里的图片都不像表情（尺寸或重复规则挡下）")
-            onProgress?.invoke("正在解压", 0, usable.size)
-            val stagingDir = File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8))
-            stagingDir.mkdirs()
-            try {
-                val pending = usable.mapIndexed { index, (candidate, bytes) ->
-                    val file = File(stagingDir, index.toString() + "_" + safeFileName(candidate.mediaPath))
-                    file.outputStream().use { it.write(bytes) }
-                    PendingEntry(category, safeFileName(candidate.mediaPath), file, candidate.caption)
-                }
-                val imported = commitStaged(pending, System.currentTimeMillis(), onProgress)
-                Logger.i("StickerLibraryRepository", "importDocument: 导入 ${imported.size} 张，分类=$category")
-                imported.size
-            } finally {
-                resultOf { stagingDir.deleteRecursively() }
-                    .onError { msg, t -> Logger.w("StickerLibraryRepository", "清理 staging 失败: $msg", t) }
-            }
+            val draft = prepareDocument(uri, displayName).getOrThrow()
+            onProgress?.invoke("正在写入", 0, draft.items.size)
+            val count = commitDraft(draft.id).getOrThrow()
+            Logger.i("StickerLibraryRepository", "importDocument: 导入 $count 张，分类=${draft.category}")
+            count
         }.onError { msg, t -> Logger.w("StickerLibraryRepository", "importDocument 失败: $msg", t) }
+    }
+
+    /**
+     * 解析 docx/pptx 到草稿，**不入库**（表情包重做 P3）。
+     *
+     * 单独开这一步是因为自动挑图会挑错：文档媒体里常有封面、二维码、作者头像，
+     * 尺寸规则挡不住所有情况，得让人看一眼再定。
+     */
+    suspend fun prepareDocument(uri: Uri, displayName: String): Result<StickerDraft> =
+        withContext(Dispatchers.IO) {
+            resultOf {
+                val (category, pending) = collectDocument(uri, displayName)
+                toDraft(category, pending)
+            }
+                .onError { msg, t -> Logger.w("StickerLibraryRepository", "prepareDocument 失败: $msg", t) }
+        }
+
+    /** 读文档、按阅读顺序取图与配文、落到临时暂存区。 */
+    private fun collectDocument(uri: Uri, displayName: String): Pair<String, List<PendingEntry>> {
+        val container = appContext.contentResolver.openInputStream(uri)?.use { stream ->
+            StickerContainerReader.read(stream)
+        } ?: error("无法打开所选文件（不是有效的 docx/pptx？）")
+        val scanned = StickerDocumentScanner.scan(container.kind, container.entries)
+        val category = safeCategoryName(scanned.title ?: displayName.substringBeforeLast('.'))
+        val ordered = scanned.candidates.mapNotNull { candidate ->
+            container.entries[candidate.mediaPath]?.let { candidate to it }
+        }
+        if (ordered.isEmpty()) error("文档里没有找到图片")
+        val usable = StickerCandidateFilters.filter(
+            items = ordered,
+            widthOf = { entry -> dimensionsOf(entry.second).first },
+            heightOf = { entry -> dimensionsOf(entry.second).second },
+            bytesOf = { entry -> entry.second },
+        )
+        if (usable.isEmpty()) error("文档里的图片都不像表情（尺寸或重复规则挡下）")
+        val stagingDir = newStagingDir()
+        val pending = usable.mapIndexed { index, (candidate, bytes) ->
+            val name = safeFileName(candidate.mediaPath)
+            val file = File(stagingDir, index.toString() + "_" + name)
+            file.outputStream().use { it.write(bytes) }
+            PendingEntry(category, name, file, candidate.caption)
+        }
+        return category to pending
     }
 
     /**
@@ -451,38 +470,64 @@ class StickerLibraryRepository(private val appContext: Context) {
         onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
     ): Result<Int> = withContext(Dispatchers.IO) {
         resultOf {
-            val pfd = appContext.contentResolver.openFileDescriptor(uri, "r")
-                ?: error("无法打开所选文件")
-            val renderer = StickerPageRenderer.open(pfd) ?: run {
-                runCatching { pfd.close() }
-                error("这份 PDF 打不开（可能已加密或损坏）")
-            }
-            val category = safeCategoryName(displayName.substringBeforeLast('.'))
-            val stagingDir = File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8))
-            stagingDir.mkdirs()
-            val pending = mutableListOf<PendingEntry>()
-            try {
-                renderer.use { open ->
-                    val pages = minOf(open.pageCount, StickerPageRenderer.MAX_PAGES)
-                    for (index in 0 until pages) {
-                        onProgress?.invoke("正在识别页面", index + 1, pages)
-                        val page = open.render(index) ?: continue
-                        page.use { rendered ->
-                            pending.addAll(cropPage(rendered, stagingDir, pending.size, category))
-                        }
+            val draft = preparePdf(uri, displayName).getOrThrow()
+            onProgress?.invoke("正在写入", 0, draft.items.size)
+            val count = commitDraft(draft.id).getOrThrow()
+            Logger.i("StickerLibraryRepository", "importPdf: 导入 $count 张，分类=${draft.category}")
+            count
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "importPdf 失败: $msg", t) }
+    }
+
+    /**
+     * 解析 PDF 到草稿，**不入库**。
+     *
+     * 这一段对 PDF 是必需的而不是可选的：切格准不准**数字判不出来**
+     * （真实目录页量过：切准的格子占页 0.7%、切碎的也是 0.6%），
+     * 所以只能入库前给人看一眼再定。
+     */
+    suspend fun preparePdf(uri: Uri, displayName: String): Result<StickerDraft> =
+        withContext(Dispatchers.IO) {
+            resultOf {
+                val (category, pending) = collectPdf(uri, displayName)
+                toDraft(category, pending)
+            }.onError { msg, t -> Logger.w("StickerLibraryRepository", "preparePdf 失败: $msg", t) }
+        }
+
+    /**
+     * 一页一页渲染切格，收进临时暂存区。
+     *
+     * 这里 catch 任何异常都只为了同一件事：**失败时把暂存目录删掉再往上抛**。
+     * 半途失败留个 .staging_xxx 在库里，用户既看不到也删不掉；不是要吞异常。
+     */
+    @Suppress("TooGenericExceptionCaught") // 清理后原样 rethrow，见上
+    private fun collectPdf(uri: Uri, displayName: String): Pair<String, List<PendingEntry>> {
+        val pfd = appContext.contentResolver.openFileDescriptor(uri, "r")
+            ?: error("无法打开所选文件")
+        val renderer = StickerPageRenderer.open(pfd) ?: run {
+            runCatching { pfd.close() }
+            error("这份 PDF 打不开（可能已加密或损坏）")
+        }
+        val category = safeCategoryName(displayName.substringBeforeLast('.'))
+        val stagingDir = newStagingDir()
+        val pending = mutableListOf<PendingEntry>()
+        try {
+            renderer.use { open ->
+                val pages = minOf(open.pageCount, StickerPageRenderer.MAX_PAGES)
+                for (index in 0 until pages) {
+                    val page = open.render(index) ?: continue
+                    page.use { rendered ->
+                        pending.addAll(cropPage(rendered, stagingDir, pending.size, category))
                     }
                 }
-                if (pending.isEmpty()) {
-                    error("PDF 里没识别出可用的表情（可能是纯文字页；扫描页请先用图片导入）")
-                }
-                val imported = commitStaged(pending, System.currentTimeMillis(), onProgress)
-                Logger.i("StickerLibraryRepository", "importPdf: 导入 ${imported.size} 张，分类=$category")
-                imported.size
-            } finally {
-                resultOf { stagingDir.deleteRecursively() }
-                    .onError { msg, t -> Logger.w("StickerLibraryRepository", "清理 staging 失败: $msg", t) }
             }
-        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "importPdf 失败: $msg", t) }
+            if (pending.isEmpty()) {
+                error("PDF 里没识别出可用的表情（可能是纯文字页；扫描页请先用图片导入）")
+            }
+            return category to pending
+        } catch (e: Throwable) {
+            runCatching { stagingDir.deleteRecursively() }
+            throw e
+        }
     }
 
     /** 把一页切成若干张；页内格子太多直接放弃（判定在 Planner，这里只落盘）。 */
@@ -520,6 +565,72 @@ class StickerLibraryRepository(private val appContext: Context) {
         }
         return picked
     }
+
+
+    // ── 导入草稿（P3：解析出来先给人看，再入库）─────────────────────────────
+
+    /**
+     * 选取文件后**先解析成草稿**（表情包重做 P3 的界面入口）。
+     *
+     * 只覆盖文档与 PDF 两类：它们的图是"自动挑/自动切"出来的，
+     * 准不准判不出来，必须给人过一眼；压缩包是用户自己的目录结构、
+     * 相册多选是用户自己点的图，这两类没有"挑错"问题，仍走直接导入。
+     */
+    suspend fun prepareUri(uri: Uri): Result<StickerDraft> = withContext(Dispatchers.IO) {
+        val name = queryDisplayName(uri) ?: "导入的素材包"
+        resultOf {
+            when {
+                documentKindOf(name) != null -> prepareDocument(uri, name).getOrThrow()
+                name.lowercase().endsWith(".pdf") -> preparePdf(uri, name).getOrThrow()
+                else -> error("这类文件不需要预览，请直接导入")
+            }
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "prepareUri 失败: $msg", t) }
+    }
+
+    /** 一个新的临时暂存目录（解析中间产物，确认前不进正式库）。 */
+    private fun newStagingDir(): File =
+        File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8)).apply { mkdirs() }
+
+    /** 把暂存条目收进草稿目录，随后把临时目录删掉。 */
+    private fun toDraft(category: String, pending: List<PendingEntry>): StickerDraft {
+        val stagingParent = pending.firstOrNull()?.stagingFile?.parentFile
+        val draft = draftStore.create(
+            category = category,
+            seeds = pending.map { pe -> DraftSeed(pe.fileName, pe.stagingFile, pe.caption) },
+        )
+        runCatching { stagingParent?.deleteRecursively() }
+        requireNotNull(draft) { "没有可确认的内容" }
+        return draft
+    }
+
+    /** 向导里的"就导这些"。keepTokens 为空表示全部。 */
+    suspend fun commitDraft(draftId: String, keepTokens: Set<String> = emptySet()): Result<Int> =
+        withContext(Dispatchers.IO) {
+            resultOf {
+                val draft = draftStore.load(draftId) ?: error("草稿已失效，请重新选取文件")
+                val keep = if (keepTokens.isEmpty()) draft.items else draft.items.filter { it.token in keepTokens }
+                if (keep.isEmpty()) error("一张都没选")
+                val imported = commitStaged(
+                    keep.map { entry -> PendingEntry(draft.category, entry.fileName, entry.file, entry.caption) },
+                    System.currentTimeMillis(),
+                    null,
+                )
+                draftStore.delete(draftId)
+                imported.size
+            }.onError { msg, t -> Logger.w("StickerLibraryRepository", "commitDraft 失败: $msg", t) }
+        }
+
+    /** 用户取消：整个草稿目录删掉。 */
+    fun cancelDraft(draftId: String) {
+        draftStore.delete(draftId)
+    }
+
+    /** 向导显示用的草稿内容。 */
+    fun draftOf(draftId: String): StickerDraft? = draftStore.load(draftId)
+
+    /** 清掉上次没导完的草稿（启动时调一次；不能等用户自己去翻目录）。 */
+    fun purgeStaleDrafts(): Int = draftStore.purgeStale()
+
 
     /** 读文件开头若干字节（用来嗅探类型）。 */
     private fun File.headBytes(count: Int): ByteArray = runCatching {

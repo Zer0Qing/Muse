@@ -330,6 +330,9 @@
     <string name="settings_sticker_upload_subtitle">zip・docx/pptx・画像に対応。1 回に 1 ファイル</string>
     <string name="settings_sticker_add_from_gallery">アルバムから追加</string>
     <string name="settings_sticker_add_from_gallery_subtitle">複数選択可。表示中のスタンプパックに追加します</string>
+    <string name="settings_sticker_review_title">%1$d 件を確認</string>
+    <string name="settings_sticker_review_hint">自動選択と自動切り出しは誤りがあります。タップで選択解除。パック：%2$s</string>
+    <string name="settings_sticker_review_import">%1$d 件を読み込む</string>
     <string name="settings_sticker_rename_pack">このパックを改名</string>
     <string name="settings_sticker_rename_title">スタンプパックを改名</string>
     <string name="settings_sticker_action_saved">更新しました</string>
