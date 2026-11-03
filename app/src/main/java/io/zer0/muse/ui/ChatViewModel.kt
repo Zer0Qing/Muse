@@ -5704,7 +5704,9 @@ class ChatViewModel(
     fun observeArtifactsByMessage(messageId: String): kotlinx.coroutines.flow.Flow<List<io.zer0.muse.data.artifact.ArtifactEntity>> =
         mediaController.observeArtifactsByMessage(messageId)
 
-    fun observeArtifactsByMessages(messageIds: List<String>): kotlinx.coroutines.flow.Flow<List<io.zer0.muse.data.artifact.ArtifactEntity>> =
+    fun observeArtifactsByMessages(
+        messageIds: List<String>,
+    ): Flow<List<ArtifactEntity>> =
         mediaController.observeArtifactsByMessages(messageIds)
 
     /** v1.45: 缓存列表滚动位置,切页/后台后恢复。 */

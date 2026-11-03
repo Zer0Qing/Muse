@@ -17,7 +17,7 @@ class LegacyConversationMigrator(
         val existing = database.conversationSelectionDao().find(selectionSetId)
         if (existing != null) return existing.selectionSetId
         val messages = database.messageDao().observeBySession(sessionId).first()
-        val slots = LegacySlotImporter.import(sessionId, messages)
+        val slots = LegacySlotImporter.import(messages)
         store.importLegacySlots(sessionId, selectionSetId, slots)
         return selectionSetId
     }

@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import io.zer0.muse.conversation.core.CommandResult
 import io.zer0.muse.conversation.core.ConversationCommand
 import io.zer0.muse.conversation.runtime.ConversationSessionController
-import io.zer0.muse.data.conversation.SelectionSnapshotResolver
 
 class ConversationViewModel(
     private val controllerFactory: (String, ConversationPageModel) -> ConversationSessionController,

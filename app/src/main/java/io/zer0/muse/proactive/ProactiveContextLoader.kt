@@ -280,7 +280,6 @@ class ProactiveContextLoader(
                 .getOrDefault(proactiveConfigOnReadFailure())
         return ProactiveManualTestRoute.resolve(
             config = config,
-            assistant = assistant,
             existingAgentSession = { pickExistingAgent(assistant) },
             createAgentSession = {
                 createAgentSession(assistant)

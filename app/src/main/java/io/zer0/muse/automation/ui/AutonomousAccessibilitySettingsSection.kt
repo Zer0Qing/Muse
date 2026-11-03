@@ -4,7 +4,6 @@ import io.zer0.muse.automation.core.AutomationAction
 import io.zer0.muse.automation.core.AutonomousAccessibilityGrant
 import io.zer0.muse.automation.core.AutonomousAccessibilityWindow
 import io.zer0.muse.data.AutomationSettingsStore
-import java.time.ZoneId
 
 data class AutonomousAccessibilityDraftState(
     val enabled: Boolean = false,
@@ -79,7 +78,6 @@ internal fun buildAutonomousGrant(
 
 internal class AutonomousAccessibilityConfigurationStore(
     private val store: AutomationSettingsStore,
-    private val zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     suspend fun save(draft: AutonomousAccessibilityDraftState) {
         store.saveAutonomousAccessibilityWindow(draft.toWindow())

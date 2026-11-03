@@ -1,6 +1,5 @@
 package io.zer0.muse.data.conversation
 
-import io.zer0.muse.data.chat.ConversationTree
 import io.zer0.muse.data.session.MessageEntity
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -15,7 +14,7 @@ class LegacySlotImporterTest {
             message("a2", "ASSISTANT", 4, group = "ag2", index = 0, count = 1, parent = "u2"),
         )
 
-        val slots = LegacySlotImporter.import("session-1", messages)
+        val slots = LegacySlotImporter.import(messages)
 
         assertEquals(listOf("slot-0", "slot-1", "slot-2", "slot-3"), slots.map { it.slotId })
         assertEquals(listOf("u1", "a1", "u2", "a2"), slots.map { it.messageId })
@@ -31,7 +30,7 @@ class LegacySlotImporterTest {
             message("a1b", "ASSISTANT", 4, group = "ag1", index = 1, count = 2, parent = "u1b"),
         )
 
-        val slots = LegacySlotImporter.import("session-1", messages)
+        val slots = LegacySlotImporter.import(messages)
 
         assertEquals(listOf("u1b", "a1b"), slots.map { it.messageId })
     }

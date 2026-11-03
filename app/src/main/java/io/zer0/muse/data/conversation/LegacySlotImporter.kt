@@ -17,7 +17,7 @@ data class ImportedSlot(
  * content.
  */
 object LegacySlotImporter {
-    fun import(sessionId: String, messages: List<MessageEntity>): List<ImportedSlot> {
+    fun import(messages: List<MessageEntity>): List<ImportedSlot> {
         val originalIdByProjectionId = messages.associate { message ->
             runCatching { kotlin.uuid.Uuid.parse(message.id).toString() }
                 .getOrElse { stableProjectionId(message.id) } to message.id

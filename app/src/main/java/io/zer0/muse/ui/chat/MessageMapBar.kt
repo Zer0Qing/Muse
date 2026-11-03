@@ -60,7 +60,6 @@ internal val MESSAGE_MAP_RESERVED_WIDTH = MESSAGE_MAP_TOUCH_WIDTH + 2.dp
 internal fun MessageMapBar(
     messages: List<UIMessage>,
     listState: LazyListState,
-    messageStartIndex: Int,
     messageIndexForListIndex: (Int) -> Int?,
     modifier: Modifier = Modifier,
 ) {

@@ -250,7 +250,10 @@ class ChatMessageRenderRowsTest {
         assertEquals(1, rows.count { it.kind == ChatMessageRenderRowKind.Header })
         assertEquals(1, rows.count { it.kind == ChatMessageRenderRowKind.Footer })
         assertTrue(rows.filter { it.kind == ChatMessageRenderRowKind.Body }.isNotEmpty())
-        assertTrue(rows.filter { it.kind != ChatMessageRenderRowKind.Body }.all { it.kind == ChatMessageRenderRowKind.Header || it.kind == ChatMessageRenderRowKind.Footer })
+        assertTrue(
+            rows.filter { it.kind != ChatMessageRenderRowKind.Body }
+                .all { it.kind == ChatMessageRenderRowKind.Header || it.kind == ChatMessageRenderRowKind.Footer },
+        )
     }
 
     @Test

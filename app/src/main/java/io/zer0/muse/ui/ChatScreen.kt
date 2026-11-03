@@ -129,7 +129,6 @@ import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
-import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.navigation.ChatTopBarScrim
 import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
 import io.zer0.muse.ui.common.state.MuseLoadingState
@@ -227,9 +226,6 @@ private fun isRenderableChatMessage(message: UIMessage, showToolCallDetails: Boo
         (message.role == MessageRole.USER || InternalMarkupSanitizer.displayContent(message.content).isNotBlank())
     return hasVisibleContent || message.hasRenderablePayload(showToolCallDetails)
 }
-
-private fun List<UIMessage>.filterRenderableChatMessages(showToolCallDetails: Boolean = true): List<UIMessage> =
-    filter { isRenderableChatMessage(it, showToolCallDetails) }
 
 /** 图片作品条提示词最多展示多少字，超出截断。 */
 private const val IMAGE_GEN_PROMPT_CHARS = 60
@@ -514,9 +510,6 @@ fun ChatScreen(
             io.zer0.muse.ui.theme.BubbleSkinStore(context, pluginSkinSource)
         }
     val bubbleSkin by bubbleSkinStore.selectedSkinFlow.collectAsStateWithLifecycle(initialValue = null)
-    val proactiveConfig by settings.proactiveMessageConfigFlow.collectAsStateWithLifecycle(
-        initialValue = io.zer0.muse.data.ProactiveMessageConfig(),
-    )
     val proactiveSessionPreferences: io.zer0.muse.proactive.ProactiveSessionPreferenceRepository = koinInject()
     val effectiveSessionId = effectiveChatSessionId(state)
     var proactiveSessionMuted by remember(effectiveSessionId) { mutableStateOf(false) }
@@ -1579,7 +1572,8 @@ fun ChatScreen(
                                                         checked = proactiveTogglePresentation.checked,
                                                         onClick = {
                                                             showTopMenu = false
-                                                            val targetSessionId = effectiveChatSessionId(state) ?: return@MuseFloatingActionItem
+                                                            val targetSessionId = effectiveChatSessionId(state)
+                                                                ?: return@MuseFloatingActionItem
                                                             val newMuted = !proactiveSessionMuted
                                                             ioScope.launch {
                                                                 proactiveSessionPreferences.setMuted(
@@ -3492,8 +3486,7 @@ fun ChatScreen(
                     MessageMapBar(
                         messages = visibleMessages,
                         listState = listState,
-                        messageStartIndex = messageStartIndex,
-                        messageIndexForListIndex = { rowIndex ->
+                                                messageIndexForListIndex = { rowIndex ->
                             ChatRenderRowIndex.messageAtRow(
                                 renderRows,
                                 rowIndex - messageStartIndex,

@@ -1449,7 +1449,14 @@ internal fun MessageBubble(
                             // Phase 5-G / Phase 8.6: 渲染生成的图片(URL 或 base64 data URI)
                             // 统一显示源:优先用 imageUrls,避免 Gemini 同时有 imageUrls(data URI) 和 imageBase64List 时重复渲染
                             // v1.95: 同时扫描 content 中的表情包绝对路径(filesDir/stickers/...),由 send_sticker 工具产生
-                            val displayImageUris = remember(rendersBody, msg.imageUrls, msg.imageBase64List, msg.content, isLastAssistant, isStreaming) {
+                            val displayImageUris = remember(
+        rendersBody,
+        msg.imageUrls,
+        msg.imageBase64List,
+        msg.content,
+        isLastAssistant,
+        isStreaming,
+    ) {
                                 val fromUrls = if (msg.imageUrls.isNotEmpty()) {
                                     msg.imageUrls
                                 } else {

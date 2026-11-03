@@ -13,8 +13,6 @@ import io.zer0.muse.conversation.core.SlotKind
 import io.zer0.muse.conversation.core.WindowSlotReference
 import io.zer0.muse.conversation.core.ConversationAddress
 import io.zer0.muse.conversation.core.ConversationWindowSource
-import io.zer0.muse.conversation.render.LegacyConversationProjector
-import io.zer0.muse.conversation.render.LegacyRenderSlotKind
 import io.zer0.muse.conversation.ui.ConversationPageModel
 import io.zer0.muse.conversation.ui.ConversationTimelineRow
 import io.zer0.muse.conversation.ui.TimelineRow

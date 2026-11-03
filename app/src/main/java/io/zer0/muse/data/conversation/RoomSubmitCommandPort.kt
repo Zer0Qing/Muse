@@ -111,6 +111,12 @@ class RoomSubmitCommandPort(
             .joinToString("") { byte -> "%02x".format(byte) }
 
     private companion object {
+        /**
+         * 保留 `command` 形参：`identityFactory` 是"按这条命令构造身份"的注入缝，
+         * 测试里会换成读 command 的实现。默认实现只是发三个 uuid，所以不读它 ——
+         * 删掉形参会连带改掉缝的类型，那是为了过 lint 而改设计。
+         */
+        @Suppress("UnusedParameter")
         fun newSubmitIdentity(command: ConversationCommand.Submit): SubmitIdentity =
             SubmitIdentity(
                 userMessageId = Uuid.random().toString(),

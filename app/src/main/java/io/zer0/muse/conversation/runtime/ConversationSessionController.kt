@@ -7,11 +7,9 @@ import io.zer0.muse.conversation.core.ConversationWindowReader
 import io.zer0.muse.conversation.core.SelectionSetId
 import io.zer0.muse.conversation.core.SlotKind
 import io.zer0.muse.conversation.render.LegacyConversationProjector
-import io.zer0.muse.conversation.ui.ConversationTimelineRow
 import io.zer0.muse.conversation.ui.ConversationTimelineRows
 import io.zer0.muse.conversation.ui.ConversationPageModel
 import io.zer0.muse.conversation.ui.TimelineRow
-import io.zer0.muse.data.conversation.RoomConversationMessageSource
 import io.zer0.muse.data.conversation.RoomSubmitCommandPort
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

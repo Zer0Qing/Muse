@@ -53,7 +53,9 @@ class RoomConversationMessageSourceTest {
                     role = "ASSISTANT",
                     content = "world",
                     attachmentsJson =
-                    """[{"id":"a1","name":"report.pdf","mimeType":"application/pdf","size":42,"sourceType":"FILE","extractedText":null,"workspacePath":"attachments/report.pdf"}]""",
+                        "[{\"id\":\"a1\",\"name\":\"report.pdf\",\"mimeType\":\"application/pdf\",\"size\":42," +
+                            "\"sourceType\":\"FILE\",\"extractedText\":null," +
+                            "\"workspacePath\":\"attachments/report.pdf\"}]",
                     artifactIdsJson = """["artifact-1"]""",
                     createdAt = 2,
                 ),

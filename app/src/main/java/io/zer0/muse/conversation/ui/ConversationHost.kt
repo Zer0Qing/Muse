@@ -13,12 +13,6 @@ import io.zer0.muse.conversation.core.ConversationCommand
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-data class ConversationHostState(
-    val sessionId: String,
-    val model: ConversationPageModel? = null,
-    val isSubmitting: Boolean = false,
-    val error: String? = null,
-)
 
 @Composable
 fun ConversationHost(

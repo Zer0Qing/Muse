@@ -1,7 +1,6 @@
 package io.zer0.muse.proactive
 
 import io.zer0.muse.data.ProactiveMessageConfig
-import io.zer0.muse.data.assistant.AssistantEntity
 
 internal fun proactiveConfigOnReadFailure(): ProactiveMessageConfig =
     ProactiveMessageConfig(
@@ -14,7 +13,6 @@ internal fun proactiveConfigOnReadFailure(): ProactiveMessageConfig =
 object ProactiveManualTestRoute {
     suspend fun resolve(
         config: ProactiveMessageConfig,
-        assistant: AssistantEntity,
         existingAgentSession: suspend () -> ProactiveContextLoader.SessionPick?,
         createAgentSession: suspend () -> ProactiveContextLoader.SessionPick,
     ): ProactiveContextLoader.SessionPick? {
