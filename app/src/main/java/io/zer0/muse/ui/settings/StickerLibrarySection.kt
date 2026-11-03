@@ -850,6 +850,35 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                         label = { Text(stringResource(R.string.settings_sticker_move_target_label)) },
                         singleLine = true,
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // 包内顺序（表情包重做 P4 最后一项）：改完就收面板，让用户在网格里看到新位置
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_sticker_move_up),
+                            onClick = {
+                                itemActions = null
+                                scope.launch {
+                                    stickerRepo.moveStickerInCategory(target.id, -1)
+                                    refreshTrigger++
+                                }
+                            },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                            modifier = Modifier.weight(1f),
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_sticker_move_down),
+                            onClick = {
+                                itemActions = null
+                                scope.launch {
+                                    stickerRepo.moveStickerInCategory(target.id, 1)
+                                    refreshTrigger++
+                                }
+                            },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             },
             confirmText = stringResource(R.string.common_confirm),

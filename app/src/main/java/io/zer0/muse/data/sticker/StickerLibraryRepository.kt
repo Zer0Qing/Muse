@@ -90,7 +90,7 @@ class StickerLibraryRepository(private val appContext: Context) {
     suspend fun listStickers(category: String? = null): List<StickerItem> = withContext(Dispatchers.IO) {
         val all = manifestMutex.withLock { readManifest() }
         val filtered = if (category.isNullOrBlank()) all else all.filter { it.category == category }
-        filtered.sortedWith(compareBy({ it.category }, { it.fileName }))
+        filtered.sortedWith(compareBy({ it.category }, { it.order }, { it.fileName }))
     }
 
     /**
@@ -378,6 +378,8 @@ class StickerLibraryRepository(private val appContext: Context) {
     ): List<StickerItem> = manifestMutex.withLock {
         val current = readManifest().toMutableList()
         val imported = mutableListOf<StickerItem>()
+        // 每个包从"现有最大序 + 1"起排；批内顺序即调用方给的顺序（切格顺序 / 勾选顺序）
+        val nextOrder = mutableMapOf<String, Int>()
         for ((idx, pe) in pending.withIndex()) {
             if (idx % 10 == 0) onProgress?.invoke("正在写入", idx, pending.size)
             val targetDir = File(rootDir, pe.category).apply { mkdirs() }
@@ -396,6 +398,7 @@ class StickerLibraryRepository(private val appContext: Context) {
                 fileName = targetFile.name,
                 relativePath = "stickers/${pe.category}/${targetFile.name}",
                 addedAt = now,
+                order = orderFor(nextOrder, current, pe.category),
                 caption = pe.caption?.takeIf { it.isNotBlank() },
             )
             current.add(item)
@@ -403,6 +406,44 @@ class StickerLibraryRepository(private val appContext: Context) {
         }
         writeManifest(current)
         imported
+    }
+
+    /**
+     * 这个包里下一个该用的序号。
+     *
+     * 起点取"清单里该包的最大 order + 1"，所以第二批导入不会跟第一批撞号，
+     * 而同一批内按给出顺序递增 —— 切格顺序就这样保留下来。
+     */
+    private fun orderFor(nextOrder: MutableMap<String, Int>, current: List<StickerItem>, category: String): Int {
+        val next = nextOrder[category]
+            ?: ((current.filter { it.category == category }.maxOfOrNull { it.order } ?: -1) + 1)
+        nextOrder[category] = next + 1
+        return next
+    }
+
+    /**
+     * 包内前移/后移（delta 为 -1 / +1，也可给更大的步长）。
+     *
+     * 实现是"把新的包内顺序整列重编成 0..n-1"而不是交换两个 order：
+     * 交换在跨批导入后会有重复 order（两批各自从 1 开始过），重编一次顺手把历史脏数据也修了。
+     */
+    suspend fun moveStickerInCategory(id: String, delta: Int): Boolean = withContext(Dispatchers.IO) {
+        manifestMutex.withLock {
+            val current = readManifest().toMutableList()
+            val target = current.firstOrNull { it.id == id } ?: return@withLock false
+            val inCategory = current.filter { it.category == target.category }
+                .sortedWith(compareBy({ it.order }, { it.fileName }))
+            val from = inCategory.indexOfFirst { it.id == id }
+            val to = (from + delta).coerceIn(0, inCategory.lastIndex)
+            if (from == to) return@withLock false
+            val rearranged = inCategory.toMutableList().apply { add(to, removeAt(from)) }
+            val orderById = rearranged.withIndex().associate { (index, item) -> item.id to index }
+            val rewritten = current.map { item ->
+                orderById[item.id]?.let { order -> item.copy(order = order) } ?: item
+            }
+            writeManifest(rewritten)
+            true
+        }
     }
 
     /** 同名时附加短 uuid 后缀，绝不覆盖已有文件。 */
@@ -955,12 +996,21 @@ class StickerLibraryRepository(private val appContext: Context) {
             val moved = resultOf { source.renameTo(file) || run { source.copyTo(file, overwrite = false); true } }
                 .getOrNull() == true
             if (!moved) return@withLock false
+            val appendedToTarget = if (target == item.category) item.order else {
+                (current.filter { it.category == target }.maxOfOrNull { it.order } ?: -1) + 1
+            }
             current[index] = item.copy(
                 category = target,
                 fileName = file.name,
                 relativePath = "stickers/$target/${file.name}",
+                order = appendedToTarget,
             )
-            writeManifest(current)
+            // 原包收拢序号：挪走中间一张会留下空洞，重编一次让 0..n-1 连续
+            val sourceLeft = current.filter { it.category == item.category && it.id != item.id }
+                .sortedWith(compareBy({ it.order }, { it.fileName }))
+            val tight = sourceLeft.withIndex().associate { (i, it) -> it.id to i }
+            val rewritten = current.map { cur -> tight[cur.id]?.let { cur.copy(order = it) } ?: cur }
+            writeManifest(rewritten)
             resultOf {
                 val oldDir = File(rootDir, item.category)
                 if (oldDir.isDirectory && oldDir.listFiles()?.isEmpty() == true) oldDir.delete()
@@ -1238,6 +1288,14 @@ data class StickerItem(
     val fileName: String,
     val relativePath: String,
     val addedAt: Long,
+    /**
+     * 包内序号（表情包重做 P4 最后一项）。
+         *
+         * 不能继续只按 fileName 排：导出的目录页图叫 `表情1.png…表情25.png`，
+         * 字典序会把 10 排在 2 前面，用户看到的顺序跟切格顺序完全不同。
+         * 默认 0：旧的 JSON 清单没这个字段也必须能读；同值时按文件名兜底。
+         */
+    val order: Int = 0,
     /**
      * 配文（表情包重做 P2）。
      *

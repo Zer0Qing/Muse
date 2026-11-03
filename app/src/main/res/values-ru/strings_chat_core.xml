@@ -440,6 +440,8 @@
     <string name="settings_sticker_actions_hint">Сейчас в «%1$s»</string>
     <string name="settings_sticker_caption_label">Подпись</string>
     <string name="settings_sticker_move_target_label">Перенести в другой набор (новое имя создаёт набор)</string>
+    <string name="settings_sticker_move_up">Выше</string>
+    <string name="settings_sticker_move_down">Ниже</string>
     <string name="settings_sticker_upload_zip">Импортировать ZIP-файл</string>
     <string name="settings_sticker_upload_zip_subtitle">Выберите ZIP-файл;</string>
     <string name="settings_sticker_imported">Импортированные стикеры %1$d</string>

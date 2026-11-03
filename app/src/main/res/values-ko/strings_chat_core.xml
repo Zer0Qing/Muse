@@ -437,6 +437,8 @@
     <string name="settings_sticker_actions_hint">현재 “%1$s”</string>
     <string name="settings_sticker_caption_label">캡션</string>
     <string name="settings_sticker_move_target_label">다른 팩으로 이동 (새 이름은 새 팩 생성)</string>
+    <string name="settings_sticker_move_up">앞으로</string>
+    <string name="settings_sticker_move_down">뒤로</string>
     <string name="settings_sticker_upload_zip">우편번호 가져오기</string>
     <string name="settings_sticker_upload_zip_subtitle">ZIP 파일을 선택하세요.</string>
     <string name="settings_sticker_imported">가져온 %1$d 스티커</string>

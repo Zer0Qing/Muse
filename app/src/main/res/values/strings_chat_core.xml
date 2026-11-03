@@ -495,6 +495,8 @@
     <string name="settings_sticker_actions_hint">当前在「%1$s」</string>
     <string name="settings_sticker_caption_label">配文</string>
     <string name="settings_sticker_move_target_label">挪到另一个包（填新名字会新建包）</string>
+    <string name="settings_sticker_move_up">前移一位</string>
+    <string name="settings_sticker_move_down">后移一位</string>
     <string name="settings_sticker_upload_zip">导入压缩包</string>
     <string name="settings_sticker_upload_zip_subtitle">选取 zip 文件，按文件夹结构自动分类</string>
     <string name="settings_sticker_imported">已导入 %1$d 个表情包</string>

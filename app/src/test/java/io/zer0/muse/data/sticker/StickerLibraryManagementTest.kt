@@ -185,4 +185,83 @@ class StickerLibraryManagementTest {
             (renamed as Result.Error).message.contains("没有找到"),
         )
     }
+
+    @Test
+    fun `listing follows order, not file name`() = runTest {
+        // 这条刻意不依赖文件名（Robolectric 拿不到 DISPLAY_NAME，名字是合成出来的）：
+        // 先用 move 造出"order 与文件名字典序相反"的状态，再看列表跟谁走
+        repository.importImages(
+            listOf(
+                Uri.fromFile(imageFile("p1.png", 1)),
+                Uri.fromFile(imageFile("p2.png", 2)),
+                Uri.fromFile(imageFile("p3.png", 3)),
+            ),
+            "顺序",
+        )
+        val inserted = repository.listStickers("顺序")
+        val moved = inserted.last()
+
+        assertTrue(repository.moveStickerInCategory(moved.id, -2))
+
+        val after = repository.listStickers("顺序")
+        assertEquals("最后加的现在排最前", moved.id, after.first().id)
+        val names = after.map { it.fileName }
+        assertTrue("列表没有退回文件名字典序: $names", names != names.sorted())
+        assertEquals(listOf(0, 1, 2), after.map { it.order })
+    }
+
+    @Test
+    fun `a second batch continues the numbering instead of restarting`() = runTest {
+        repository.importImages(listOf(Uri.fromFile(imageFile("m1.png", 1))), "顺序")
+        repository.importImages(listOf(Uri.fromFile(imageFile("m2.png", 2))), "顺序")
+        repository.importImages(listOf(Uri.fromFile(imageFile("m3.png", 3))), "顺序")
+
+        assertEquals(listOf(0, 1, 2), repository.listStickers("顺序").map { it.order })
+    }
+
+    @Test
+    fun `move within the pack rewrites the whole numbering`() = runTest {
+        repository.importImages(
+            listOf(
+                Uri.fromFile(imageFile("p1.png", 1)),
+                Uri.fromFile(imageFile("p2.png", 2)),
+                Uri.fromFile(imageFile("p3.png", 3)),
+            ),
+            "顺序",
+        )
+        val last = repository.listStickers("顺序").last()
+
+        assertTrue(repository.moveStickerInCategory(last.id, -2))
+
+        val after = repository.listStickers("顺序")
+        assertEquals("移到了最前", last.id, after.first().id)
+        assertEquals("序号重编成连续值", listOf(0, 1, 2), after.map { it.order })
+    }
+
+    @Test
+    fun `moving past the edges is refused and changes nothing`() = runTest {
+        repository.importImages(
+            listOf(Uri.fromFile(imageFile("e1.png", 1)), Uri.fromFile(imageFile("e2.png", 2))),
+            "顺序",
+        )
+        val first = repository.listStickers("顺序").first()
+
+        assertTrue("已经在最前还往前移要返回 false", !repository.moveStickerInCategory(first.id, -1))
+        assertEquals(listOf(0, 1), repository.listStickers("顺序").map { it.order })
+        assertTrue("未知 id 要返回 false", !repository.moveStickerInCategory("nope", 1))
+    }
+
+    @Test
+    fun `moving across packs keeps each pack numbering tight`() = runTest {
+        repository.importImages(
+            listOf(Uri.fromFile(imageFile("x1.png", 1)), Uri.fromFile(imageFile("x2.png", 2))),
+            "甲包",
+        )
+        val mover = repository.listStickers("甲包").last()
+
+        assertTrue(repository.moveSticker(mover.id, "乙包"))
+
+        assertEquals("原包重排后仍是连续序号", listOf(0), repository.listStickers("甲包").map { it.order })
+        assertEquals("新包从 0 起排", listOf(0), repository.listStickers("乙包").map { it.order })
+    }
 }

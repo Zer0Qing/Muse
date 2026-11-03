@@ -438,6 +438,8 @@
     <string name="settings_sticker_actions_hint">Esta en “%1$s”</string>
     <string name="settings_sticker_caption_label">Texto</string>
     <string name="settings_sticker_move_target_label">Mover a otro paquete (un nombre nuevo crea uno)</string>
+    <string name="settings_sticker_move_up">Subir</string>
+    <string name="settings_sticker_move_down">Bajar</string>
     <string name="settings_sticker_upload_zip">Importar ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Elija un archivo ZIP;</string>
     <string name="settings_sticker_imported">Pegatinas %1$d importadas</string>
