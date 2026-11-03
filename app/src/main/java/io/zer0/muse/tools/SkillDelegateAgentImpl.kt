@@ -212,8 +212,8 @@ class SkillDelegateAgentImpl(
 
         // v1.104: 递归深度兜底(当前 completeText 不执行工具不会递归,此为防御性)
         val depth = (delegateDepth.get() ?: 0) + 1
-        if (depth > MAX_DELEGATE_DEPTH) {
-            return errorResult(context.getString(R.string.skill_delegate_max_depth, MAX_DELEGATE_DEPTH))
+        if (!DelegateDepth.allowsEntry(depth)) {
+            return errorResult(context.getString(R.string.skill_delegate_max_depth, DelegateDepth.MAX))
         }
         delegateDepth.set(depth)
         try {
@@ -300,12 +300,13 @@ class SkillDelegateAgentImpl(
             val temperature = assistant.temperature ?: 0.7f
             val maxTokens = assistant.maxTokens ?: 1500
             // v1.202 改造 3: 子 agent 工具调用能力 — 给 completeText 传入精简工具集。
-            //  - 当 depth < MAX_DELEGATE_DEPTH 时,子 agent 可用 delegate_agent 工具(允许再委派)
-            //  - 当 depth >= MAX_DELEGATE_DEPTH 时,不传 delegate_agent(防递归爆炸)
+            // 深度规则在 DelegateDepth 里（两处判定共用一个出处）：
+            //  - 还浅的子 agent 才拿得到 delegate_agent（允许再委派）
+            //  - 到最深那一层就不再下发该工具（防递归爆炸）
             //  - 工具集精简:只给 delegate_agent 一个工具,不给危险工具(write_file/http_post 等)
             // 注意:completeText 已支持 tools 参数(见 ChatService.completeText 签名),
             // 这里只是把 tools 传进去,LLM 若决策调用 delegate_agent,会返回 completion.toolCalls
-            val subagentTools: List<ToolDefinition>? = if (depth < MAX_DELEGATE_DEPTH) {
+            val subagentTools: List<ToolDefinition>? = if (DelegateDepth.shouldOfferDelegateTool(depth)) {
                 listOf(buildDelegateAgentToolDefinition())
             } else {
                 null
@@ -505,7 +506,7 @@ class SkillDelegateAgentImpl(
 
     private companion object {
         private val delegateDepth = ThreadLocal<Int>()
-        private const val MAX_DELEGATE_DEPTH = 3
+        // 深度上限搬去 DelegateDepth：入口判定与工具下发判定必须共用同一个数
 
         private fun buildDelegateAgentToolDefinition(): ToolDefinition {
             val schema = buildJsonObject {
@@ -586,3 +587,27 @@ class SkillDelegateAgentImpl(
 - 输出给主助手的内容应短而完整:结论/结果、关键依据、待确认事项(如有)。
     """.trimIndent()
 }
+
+/**
+ * 委派深度的唯一规则（协作语义显式化 · P4）。
+ *
+ * 这条规则此前散在两处内联比较里：入口用 `depth > 3` 拒、下发工具用 `depth < 3` 给。
+ * 两处各写一个 `3` 迟早漂移 —— 漂成什么样都不会编译报错，只会得到
+ * "递归到第 5 层还没停" 这种炸穿本地模型的现场。
+ *
+ * 两条判定的**关系**才是重点：最后被允许进来的那一层，一定拿不到 `delegate_agent`，
+ * 所以深度不可能靠工具调用自然增长到 `MAX + 1`；那条入口拒绝只是兜底
+ * （`delegateDepth` 是 ThreadLocal，异常路径没归零时才可能用到）。
+ */
+internal object DelegateDepth {
+
+    /** 最深允许到第 3 层委派。 */
+    const val MAX = 3
+
+    /** 这一层还能不能进来（进来后不会再往下给工具，见 [shouldOfferDelegateTool]）。 */
+    fun allowsEntry(depth: Int): Boolean = depth <= MAX
+
+    /** 这一层的子 agent 还能不能拿到 `delegate_agent` 工具。 */
+    fun shouldOfferDelegateTool(depth: Int): Boolean = depth < MAX
+}
+
