@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun CustomSearchEnginesSection(webSearchConfig: WebSearchConfig, settings: SettingsRepository) {
     val scope = rememberCoroutineScope()
+    val savedMessage = stringResource(R.string.search_custom_engine_saved)
     var editing by remember { mutableStateOf<CustomSearchEngine?>(null) }
     val engines = webSearchConfig.customEngines
 
@@ -106,7 +107,9 @@ internal fun CustomSearchEnginesSection(webSearchConfig: WebSearchConfig, settin
                     }
                 scope.launch {
                     settings.saveWebSearchConfig(webSearchConfig.copy(customEngines = updated))
-                    MuseToast.show("已保存")
+                    MuseToast.show(
+                        savedMessage,
+                    )
                 }
                 editing = null
             },
@@ -129,6 +132,7 @@ private fun newEngine(): CustomSearchEngine = CustomSearchEngine(
  */
 @Composable
 private fun CustomEngineEditor(initial: CustomSearchEngine, onDismiss: () -> Unit, onSave: (CustomSearchEngine) -> Unit) {
+    val endpointRequiredMessage = stringResource(R.string.search_custom_engine_endpoint_required)
     var name by remember { mutableStateOf(initial.name) }
     var endpoint by remember { mutableStateOf(initial.endpoint) }
     var apiKey by remember { mutableStateOf(initial.apiKey) }
@@ -158,7 +162,9 @@ private fun CustomEngineEditor(initial: CustomSearchEngine, onDismiss: () -> Uni
         confirmText = stringResource(R.string.action_save),
         onConfirm = {
             if (endpoint.isBlank()) {
-                MuseToast.show("请求地址不能为空")
+                MuseToast.show(
+                    endpointRequiredMessage,
+                )
             } else {
                 onSave(
                     initial.copy(

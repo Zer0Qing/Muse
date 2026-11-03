@@ -382,6 +382,7 @@
     <string name="subagent_task_completed">Завершенный</string>
     <string name="subagent_task_failed">Неуспешный</string>
     <string name="subagent_task_cancel">Отмена</string>
+    <string name="subagent_task_close_cd">Закрыть задачу субагента</string>
 
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">Без названия</string>

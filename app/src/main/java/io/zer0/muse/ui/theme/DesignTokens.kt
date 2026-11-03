@@ -5,8 +5,30 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+
+internal val CardWarningColor = Color(0xFFB07D20)
+
+internal object CardDataColors {
+    val dark = listOf(
+        Color(0xFF4A9F70),
+        Color(0xFF5C8FA8),
+        Color(0xFFC08A4E),
+        Color(0xFF9A7FB0),
+        Color(0xFFB06A62),
+        Color(0xFF8C8A5A),
+    )
+    val light = listOf(
+        Color(0xFF2A7A55),
+        Color(0xFF416F98),
+        Color(0xFFA86F35),
+        Color(0xFF7D6394),
+        Color(0xFF9D5750),
+        Color(0xFF6D7843),
+    )
+}
 
 /**
  * Muse 设计令牌 — 动画系统。

@@ -36,7 +36,7 @@ fun PluginDebugDialog(onDismiss: () -> Unit) {
         content = {
             if (entries.isEmpty()) {
                 Text(
-                    text = "还没有桥接调用。装一个插件并让它跑一次，这里就会出现记录。",
+                    text = stringResource(R.string.plugin_debug_empty),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

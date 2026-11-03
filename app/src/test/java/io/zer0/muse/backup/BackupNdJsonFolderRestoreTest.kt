@@ -40,6 +40,9 @@ class BackupNdJsonFolderRestoreTest {
         "worldBookEntry" to "worldBookBuf",
         "conversationEvent" to "convEventBuf",
         "conversationTurn" to "convTurnBuf",
+        "conversationCommandReceipt" to "conversationCommandReceiptBuf",
+        "conversationSelection" to "conversationSelectionBuf",
+        "conversationDisplaySlot" to "conversationDisplaySlotBuf",
         "messagePart" to "messagePartBuf",
         "messageOutbox" to "messageOutboxBuf",
         "translateHistory" to "translateHistoryBuf",
@@ -61,6 +64,7 @@ class BackupNdJsonFolderRestoreTest {
         "pendingThought" to "pendingThoughtBuf",
         "proactiveOutcome" to "proactiveOutcomeBuf",
         "proactiveRelation" to "proactiveRelationBuf",
+        "sessionProactivePreference" to "sessionProactivePreferenceBuf",
     )
 
     /** 从源码提取导出侧 writeTypedLines 的全部行类型。 */
@@ -99,6 +103,25 @@ class BackupNdJsonFolderRestoreTest {
             emptyList<String>(),
             missing,
         )
+    }
+
+    @Test
+    fun `ndjson meta map covers every individually exported type`() {
+        val source = File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
+        val mappingBlock =
+            source.substringAfter("private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(")
+                .substringBefore(")")
+        val mappedTypes =
+            Regex("\"([a-zA-Z]+)\"\\s+to\\s+\"")
+                .findAll(mappingBlock)
+                .map { it.groupValues[1] }
+                .toSet()
+
+        val missing =
+            exportedTypes()
+                .filter { it !in setOf("meta", "settings", "fileStore") }
+                .filterNot { it in mappedTypes }
+        assertEquals("exported NDJSON types missing a meta count key: $missing", emptyList<String>(), missing)
     }
 
     @Test

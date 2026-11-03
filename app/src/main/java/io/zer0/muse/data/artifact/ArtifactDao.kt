@@ -31,6 +31,9 @@ interface ArtifactDao {
     @Query("SELECT * FROM artifacts WHERE messageId = :messageId ORDER BY createdAt ASC")
     fun observeByMessage(messageId: String): Flow<List<ArtifactEntity>>
 
+    @Query("SELECT * FROM artifacts WHERE messageId IN (:messageIds) ORDER BY createdAt ASC")
+    fun observeByMessages(messageIds: List<String>): Flow<List<ArtifactEntity>>
+
     @Query("SELECT * FROM artifacts WHERE id = :id")
     suspend fun getById(id: String): ArtifactEntity?
 

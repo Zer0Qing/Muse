@@ -175,8 +175,10 @@ object Perf {
             if (splits.isEmpty()) {
                 log(name, total)
             } else {
-                val splitStr = (splits.joinToString(", ") { "${it.first}=${it.second}ms" } +
-                    if (annotations.isEmpty()) "" else ", " + annotations.joinToString(", ")).trimStart(',', ' ')
+                val splitStr = (
+                    splits.joinToString(", ") { "${it.first}=${it.second}ms" } +
+                        if (annotations.isEmpty()) "" else ", " + annotations.joinToString(", ")
+                    ).trimStart(',', ' ')
                 if (total >= SLOW_THRESHOLD_MS) {
                     Logger.w("Perf", "$name: ${total}ms (slow) [$splitStr]")
                 } else {

@@ -26,7 +26,7 @@ package io.zer0.muse.ui.markdown
 internal object MoodSectionParser {
     /** 小节标题：允许中英文标签与中英冒号。 */
     private val HEADER = Regex(
-        "^(Vibe|Sparks|Reflections|Will|心情|灵感|反思|意志)\\s*[:：]\\s*(.*)$",
+        "^(Vibe|Sparks|Reflections|Will|mood|inspiration|reflection|intent)\\s*[:：]\\s*(.*)$",
         RegexOption.IGNORE_CASE,
     )
 

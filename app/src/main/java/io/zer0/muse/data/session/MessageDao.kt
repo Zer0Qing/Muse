@@ -195,6 +195,9 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND id = :messageId LIMIT 1")
     suspend fun getById(sessionId: String, messageId: String): MessageEntity?
 
+    @Query("SELECT * FROM messages WHERE id IN (:messageIds)")
+    suspend fun getByIds(messageIds: List<String>): List<MessageEntity>
+
     /** v1.107: 只按 messageId 取单条消息(删除时查 sessionId 用于冗余计数维护)。 */
     @Query("SELECT * FROM messages WHERE id = :messageId LIMIT 1")
     suspend fun getByMessageId(messageId: String): MessageEntity?

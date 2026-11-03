@@ -42,15 +42,15 @@ object AssistHandoff {
             ?.take(MAX_TEXT_CHARS)
         val content = snapshot.contentText?.takeIf { it.isNotBlank() }?.trim()
         return buildString {
-            appendLine("（来自系统助理）")
-            if (where.isNotEmpty()) appendLine("当前界面：$where")
-            if (content != null) appendLine("内容提示：$content")
+            appendLine("[SYSTEM_ASSISTANT_CONTEXT]")
+            if (where.isNotEmpty()) appendLine("screen=$where")
+            if (content != null) appendLine("hint=$content")
             if (text != null) {
-                appendLine("屏幕上的文字：")
+                appendLine("text=")
                 append(text)
             }
             if (where.isEmpty() && content == null && text == null) {
-                append("我刚刚唤起了助手，但没能读到当前界面的内容。")
+                append("assistant_context_unavailable")
             }
         }.trim()
     }

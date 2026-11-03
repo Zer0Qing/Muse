@@ -96,6 +96,76 @@ def test_logger_cjk_ignored():
         vs = scan_file(p)
         assert len(vs) == 1, vs
 
+
+def test_search_keywords_are_not_visible_copy():
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / "SettingsSearchCatalog.kt"
+        p.write_text(
+            "keywords = listOf(\"主题\", \"theme\", \"zhuti\"),\n"
+            "Text(\"主题\")\n",
+            encoding="utf-8",
+        )
+        vs = scan_file(p)
+        assert len(vs) == 1, vs
+        assert "Text(\"主题\")" in vs[0].code
+
+
+def test_settings_catalog_visible_copy_still_detected():
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / "SettingsCatalog.kt"
+        p.write_text(
+            "keywords = listOf(\"主题\", \"theme\"),\n"
+            "Text(\"可见标题\")\n",
+            encoding="utf-8",
+        )
+        vs = scan_file(p)
+        assert len(vs) == 1, vs
+        assert "可见标题" in vs[0].code
+
+
+def test_keywords_list_argument_does_not_hide_visible_copy():
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / "SettingsSearchCatalog.kt"
+        p.write_text(
+            "sample(listOf(\"主题\", \"theme\"), title = \"可见标题\")\n",
+            encoding="utf-8",
+        )
+        vs = scan_file(p)
+        assert len(vs) == 1, vs
+        assert "可见标题" in vs[0].code
+
+
+def test_search_record_keyword_argument_is_not_visible_copy():
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / "SettingsSearchCatalog.kt"
+        p.write_text(
+            "record(\n"
+            "    R.string.section_theme,\n"
+            "    SettingsGroupKind.APPEARANCE,\n"
+            "    action,\n"
+            "    listOf(\"主题\", \"theme\"),\n"
+            ")\n",
+            encoding="utf-8",
+        )
+        assert scan_file(p) == []
+
+
+def test_multiline_catalog_keywords_are_not_visible_copy():
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / "SettingsCatalog.kt"
+        p.write_text(
+            "entry(\n"
+            "    R.string.title,\n"
+            "    action,\n"
+            "    keywords = listOf(\n"
+            "        \"主题\", \"theme\",\n"
+            "        \"zhuti\",\n"
+            "    ),\n"
+            ")\n",
+            encoding="utf-8",
+        )
+        assert scan_file(p) == []
+
 if __name__ == "__main__":
     test_hardcoded_cjk_in_text_detected()
     test_comment_with_cjk_ignored()
@@ -104,4 +174,9 @@ if __name__ == "__main__":
     test_string_resource_not_detected()
     test_mixed_line_only_reports_string_cjk()
     test_logger_cjk_ignored()
+    test_search_keywords_are_not_visible_copy()
+    test_settings_catalog_visible_copy_still_detected()
+    test_keywords_list_argument_does_not_hide_visible_copy()
+    test_search_record_keyword_argument_is_not_visible_copy()
+    test_multiline_catalog_keywords_are_not_visible_copy()
     print("test_hardcoded_cjk OK")

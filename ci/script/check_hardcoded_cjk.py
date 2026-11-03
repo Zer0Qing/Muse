@@ -44,6 +44,7 @@ CJK_IN_QUOTED_STRING = re.compile(r'"([^"\n]*[\u4e00-\u9fff][^"\n]*)"')
 # 兜底：行内含双引号且含 CJK（覆盖 raw string 的边界行）
 CJK_WITH_QUOTE = re.compile(r'[\u4e00-\u9fff]')
 LOGGER_CALL_START = re.compile(r'\b(?:Logger|Log)\.[A-Za-z]+\s*\(')
+SEARCH_KEYWORDS_START = re.compile(r'\bkeywords\s*=\s*(?:listOf\s*\()?')
 
 
 @dataclass
@@ -131,6 +132,197 @@ def strip_cjk_logger_calls(code: str, in_logger_call: bool = False) -> tuple[str
     return "".join(result), depth > 0
 
 
+def strip_search_keywords(code: str, in_keyword_list: bool = False) -> tuple[str, bool]:
+    """剔除搜索关键词列表；它们用于索引匹配，不是直接展示给用户的文案。"""
+    start = SEARCH_KEYWORDS_START.search(code)
+    if not in_keyword_list and start is None:
+        return code, False
+
+    prefix = code[: start.start()] if start is not None else ""
+    cursor = start.end() if start is not None else 0
+    open_parens = 1 if start is not None and start.group(0).rstrip().endswith("(") else 0
+    bracket_depth = 0
+    index = cursor
+    while index < len(code):
+        ch = code[index]
+        if ch in "\"'":
+            quote = ch
+            index += 1
+            while index < len(code):
+                if code[index] == "\\":
+                    index += 2
+                    continue
+                if code[index] == quote:
+                    index += 1
+                    break
+                index += 1
+            continue
+        if ch == "(":
+            open_parens += 1
+        elif ch == ")":
+            if open_parens == 0:
+                return prefix + code[index + 1 :], False
+            open_parens -= 1
+        elif ch in "[{":
+            bracket_depth += 1
+        elif ch in "]}":
+            bracket_depth -= 1
+        elif (
+            ch == ","
+            and open_parens == 0
+            and bracket_depth == 0
+        ):
+            return prefix + code[index + 1 :], False
+        index += 1
+    return prefix, start is not None
+
+
+def strip_keyword_list_arguments(code: str) -> str:
+    """剔除作为参数传入的裸 listOf(...) 关键词，不误伤同一行的其他可见文案。"""
+    result: list[str] = []
+    cursor = 0
+    marker = "listOf("
+    while True:
+        start = code.find(marker, cursor)
+        if start < 0:
+            result.append(code[cursor:])
+            return "".join(result)
+        segment = code[cursor:start]
+        context = "".join(result) + segment
+        argument_prefix = re.split(r"\brecord\s*\(", context)[-1]
+        inside_record = (
+            re.search(r"\brecord\s*\(", context) is not None
+            and len(re.findall(r"\b\w+\s*=", argument_prefix)) == 0
+        )
+        if not re.search(r"\bkeywords\s*=\s*$", segment) and not inside_record:
+            result.append(code[cursor : start + len(marker)])
+            cursor = start + len(marker)
+            continue
+        result.append(segment)
+        depth = 1
+        index = start + len(marker)
+        while index < len(code) and depth > 0:
+            ch = code[index]
+            if ch in "\"'":
+                quote = ch
+                index += 1
+                while index < len(code):
+                    if code[index] == "\\":
+                        index += 2
+                        continue
+                    if code[index] == quote:
+                        index += 1
+                        break
+                    index += 1
+                continue
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+            index += 1
+        if (
+            inside_record
+            and not re.search(r"\bkeywords\s*=\s*$", segment)
+            and re.search(r"^\s*,\s*\w+\s*=", code[index:])
+        ):
+            result.append(code[start:index])
+            cursor = index
+            continue
+        cursor = index
+
+
+def strip_record_keyword_arguments(code: str) -> str:
+    """剔除 SettingsSearchExtras 中 record() 的末位关键词参数。"""
+    stripped = code.strip()
+    if stripped.startswith("listOf(") and re.search(r"listOf\([^()]*\)\s*,?\s*$", stripped):
+        return ""
+    if re.search(r"\brecord\s*\(", code) is None:
+        return code
+    if not re.search(r"\brecord\s*\(.+\)", code):
+        return code
+    if not re.search(
+        r"\brecord\s*\([^()]*,\s*[^()]*,\s*[^()]*,\s*(?:listOf\([^()]*\)|\"[^\"]*\")\s*\)",
+        code,
+    ):
+        return code
+    result: list[str] = []
+    cursor = 0
+    start = 0
+    in_record_call = False
+    while True:
+        if not in_record_call:
+            match = re.search(r"\brecord\s*\(", code[start:])
+            if match is None:
+                result.append(code[cursor:])
+                return "".join(result)
+            record_start = start + match.start()
+            result.append(code[cursor:record_start])
+            start = start + match.end()
+            cursor = start
+            in_record_call = True
+        while start < len(code) and code[start].isspace():
+            start += 1
+        if start >= len(code):
+            result.append(code[cursor:])
+            return "".join(result)
+        if not (code.startswith("listOf(", start) or code[start] in "\"'"):
+            start += 1
+            continue
+
+        end = start
+        if code.startswith("listOf(", start):
+            end = start + len("listOf(")
+            depth = 1
+            while end < len(code) and depth > 0:
+                ch = code[end]
+                if ch in "\"'":
+                    quote = ch
+                    end += 1
+                    while end < len(code):
+                        if code[end] == "\\":
+                            end += 2
+                            continue
+                        if code[end] == quote:
+                            end += 1
+                            break
+                        end += 1
+                    continue
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    depth -= 1
+                end += 1
+        else:
+            quote = code[start]
+            end = start + 1
+            while end < len(code):
+                if code[end] == "\\":
+                    end += 2
+                    continue
+                if code[end] == quote:
+                    end += 1
+                    break
+                end += 1
+
+        after = end
+        while after < len(code) and code[after].isspace():
+            after += 1
+        if (
+            in_record_call
+            and after < len(code)
+            and (code[after] in ")]" or code[after] == ",")
+            and not code[after - 1 : after].isspace()
+        ):
+            cursor = end
+            start = end
+            continue
+
+        result.append(code[cursor:end])
+        cursor = end
+        start = end
+        in_record_call = False
+
+
 def scan_file(path: Path) -> list[Violation]:
     violations: list[Violation] = []
     try:
@@ -140,9 +332,60 @@ def scan_file(path: Path) -> list[Violation]:
         return violations
     in_block_comment = False
     in_logger_call = False
+    in_keyword_list = False
+    in_record_keyword_call = False
+    record_paren_depth = 0
+    in_settings_catalog = path.name in {"SettingsCatalog.kt", "SettingsSearchCatalog.kt"}
+    in_search_record = False
+    search_record_depth = 0
+    in_keywords_list = False
+    keywords_list_depth = 0
     for lineno, line in enumerate(lines, 1):
         code, in_block_comment = strip_comments(line, in_block_comment)
+        if in_settings_catalog and code.lstrip().startswith("record("):
+            in_search_record = True
+            search_record_depth = 0
+        if in_search_record:
+            search_record_depth += code.count("(") - code.count(")")
+        if (
+            in_search_record
+            and re.match(r"^\s+", code)
+            and re.match(r"^\s+\"", code)
+        ):
+            in_record_keyword_call = True
+            record_paren_depth += code.count("(") - code.count(")")
+            continue
+        if code.lstrip().startswith("record("):
+            in_record_keyword_call = True
+            record_paren_depth = 0
+        if in_record_keyword_call:
+            record_paren_depth += code.count("(") - code.count(")")
+            if (
+                re.search(r"listOf\s*\(", code)
+                and re.search(r"\)\s*,?\s*$", code)
+                and record_paren_depth <= 1
+            ):
+                code = re.sub(r"listOf\s*\(.*\)\s*,?\s*$", "", code)
+            if record_paren_depth <= 0:
+                in_record_keyword_call = False
+        if in_search_record and search_record_depth <= 0:
+            in_search_record = False
+        if in_keywords_list:
+            keywords_list_depth += code.count("(") - code.count(")")
+            if keywords_list_depth <= 0:
+                in_keywords_list = False
+            continue
+        if re.search(r"\bkeywords\s*=\s*listOf\s*\(", code):
+            keywords_list_depth = code.count("(") - code.count(")")
+            if keywords_list_depth > 0:
+                in_keywords_list = True
+                continue
         code, in_logger_call = strip_cjk_logger_calls(code, in_logger_call)
+        code, in_keyword_list = strip_search_keywords(code, in_keyword_list)
+        code = strip_keyword_list_arguments(code)
+        code = strip_record_keyword_arguments(code)
+        if in_settings_catalog and code == "":
+            continue
         if not code.strip():
             continue
         # 日志调用属于内部诊断,不纳入 UI 文案 i18n 检查

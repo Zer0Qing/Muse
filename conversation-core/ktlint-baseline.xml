@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<baseline version="1.0">
+    <file name="src/main/kotlin/io/zer0/muse/conversation/core/CheckpointWriter.kt">
+        <error line="56" column="54" source="standard:function-signature" />
+        <error line="67" column="65" source="standard:function-signature" />
+    </file>
+    <file name="src/main/kotlin/io/zer0/muse/conversation/core/DraftStore.kt">
+        <error line="112" column="36" source="standard:function-signature" />
+    </file>
+    <file name="src/main/kotlin/io/zer0/muse/conversation/core/IdempotencyGuard.kt">
+        <error line="11" column="63" source="standard:function-signature" />
+    </file>
+    <file name="src/main/kotlin/io/zer0/muse/conversation/core/TimelineProjection.kt">
+        <error line="5" column="9" source="standard:function-signature" />
+        <error line="6" column="9" source="standard:function-signature" />
+        <error line="6" column="42" source="standard:function-signature" />
+    </file>
+    <file name="src/main/kotlin/io/zer0/muse/conversation/core/TurnState.kt">
+        <error line="1" column="1" source="standard:filename" />
+    </file>
+    <file name="src/test/kotlin/io/zer0/muse/conversation/core/CheckpointWriterTest.kt">
+        <error line="61" column="59" source="standard:function-signature" />
+    </file>
+    <file name="src/test/kotlin/io/zer0/muse/conversation/core/CommandReceiptTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="45" column="66" source="standard:function-signature" />
+    </file>
+    <file name="src/test/kotlin/io/zer0/muse/conversation/core/GenerationEventTest.kt">
+        <error line="60" column="40" source="standard:function-signature" />
+        <error line="67" column="95" source="standard:function-signature" />
+        <error line="75" column="72" source="standard:function-signature" />
+        <error line="83" column="41" source="standard:function-signature" />
+    </file>
+    <file name="src/test/kotlin/io/zer0/muse/conversation/core/SelectionTimelineTest.kt">
+        <error line="56" column="70" source="standard:function-signature" />
+        <error line="65" column="87" source="standard:function-signature" />
+    </file>
+</baseline>

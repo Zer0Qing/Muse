@@ -523,6 +523,8 @@
     <string name="settings_agent_dm_subtitle">View private messages between Agents</string>
     <string name="settings_agent_agent_only">Agent sessions only</string>
     <string name="settings_agent_agent_only_subtitle">When enabled, only Agent assistants send proactive messages; task sessions do not</string>
+    <string name="settings_agent_plain_chat_enabled">Allow proactive messages in normal chats</string>
+    <string name="settings_agent_plain_chat_enabled_subtitle">Off by default so task chats stay clean. You can also mute any individual conversation from its top-right menu</string>
     <string name="settings_agent_temperature">Generation temperature</string>
     <string name="settings_agent_temperature_hint">Decision stage uses temperature×0.5 (more deterministic); generation stage uses this value. Higher values are more creative, lower values are more stable</string>
     <string name="settings_agent_temperature_stable">0.0 Stable</string>
@@ -764,7 +766,7 @@
     <string name="settings_chat_carry_over_count">Carry %1$d messages</string>
     <string name="settings_chat_carry_over_count_hint">Roughly %1$d turns (user and assistant each count as one)</string>
     <string name="settings_agent_agent_session_enabled">Agent sessions</string>
-    <string name="settings_agent_agent_session_enabled_subtitle">When off, proactive messages only go to normal chat sessions and never to the Agent tab</string>
+    <string name="settings_agent_agent_session_enabled_subtitle">When off, proactive messages are not sent to Agent sessions, and no Agent session is created for them</string>
     <string name="connection_skills_title">Skills &amp; skill packages</string>
     <string name="connection_skills_subtitle">%1$d custom skills, %2$d from SKILL.md packages</string>
 </resources>

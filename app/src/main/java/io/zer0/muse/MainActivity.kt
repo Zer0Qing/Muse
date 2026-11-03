@@ -596,7 +596,10 @@ private fun MuseNavGraph(
                                     popUpTo(HomeRoute) { inclusive = false }
                                     launchSingleTop = true
                                 }
-                                sharedViewModel.openSessionFromNotification(result.sessionId)
+                                sharedViewModel.openSessionFromNotification(
+                                    result.sessionId,
+                                    result.proactiveOutcomeId,
+                                )
                             }
                             is ShareIntentHandler.ShareResult.NewSession -> {
                                 // 小组件带了助手就用它,否则走设置里的默认助手。

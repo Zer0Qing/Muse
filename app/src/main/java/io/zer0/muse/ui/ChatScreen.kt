@@ -96,6 +96,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.perf.MessagePaginator
+import io.zer0.muse.perf.ChatMessageWindow
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.chat.BrowserStatusCapsule
 import io.zer0.muse.ui.chat.ChatContextDivider
@@ -159,7 +160,7 @@ import org.koin.compose.koinInject
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =
     listOf(
-        "中文", "English", "日本語", "한국어", "Français", "Deutsch", "Español", "Русский", "العربية", "Português",
+        "Chinese", "English", "Japanese", "Korean", "French", "German", "Spanish", "Russian", "Arabic", "Portuguese",
     )
 
 /** Phase 8.10: 音量键滚动单次位移(px),M21。 */
@@ -400,12 +401,12 @@ fun ChatScreen(
             },
         )
     // v1.45: 滚动位置变化时同步缓存到 ViewModel
-    // v1.100: 加 distinctUntilChanged + sample(100ms) 降频,避免滚动时高频
-    // 写入 ViewModel state 导致 ChatScreen 全量重组(滚动 → 写 state → 重组 → 重测量的隐性循环)
+    // 滚动中只读列表状态；停止后再持久化一次位置。滚动过程中写全局
+    // ChatUiState 会让整个 ChatScreen 重组，并与列表测量形成反馈环。
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
-            .sample(100L)
             .distinctUntilChanged()
+            .filter { !listState.isScrollInProgress }
             .collect { (index, offset) ->
                 viewModel.onListScrollPositionChanged(index, offset)
             }
@@ -516,6 +517,20 @@ fun ChatScreen(
     val proactiveConfig by settings.proactiveMessageConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.ProactiveMessageConfig(),
     )
+    val proactiveSessionPreferences: io.zer0.muse.proactive.ProactiveSessionPreferenceRepository = koinInject()
+    val effectiveSessionId = effectiveChatSessionId(state)
+    var proactiveSessionMuted by remember(effectiveSessionId) { mutableStateOf(false) }
+    LaunchedEffect(effectiveSessionId) {
+        proactiveSessionMuted =
+            effectiveSessionId?.let {
+                runCatching { proactiveSessionPreferences.isMuted(it) }.getOrDefault(false)
+            } ?: false
+    }
+    val proactiveTogglePresentation =
+        io.zer0.muse.ui.chat.ProactiveSessionMutePresentation.of(
+            muted = proactiveSessionMuted,
+            hasSession = effectiveSessionId != null,
+        )
     // 会话级浏览器注册表：UI 只观察已实际创建的 session manager，避免新会话
     // 在 Compose 期间产生副作用并在标题栏显示“未启动”入口。
     val browserRegistry: io.zer0.muse.tools.BrowserManagerRegistry = koinInject()
@@ -534,9 +549,6 @@ fun ChatScreen(
     // 关闭时 visibleMessages == messages,行为与原有逻辑完全一致。
     val performanceMode = state.chatPreferences.performanceMode
     // 分页和数量提示只统计真正可渲染的消息，空 assistant / 内部协议壳不应占用配额。
-    val renderableMessageCount by remember(messages) {
-        derivedStateOf { messages.count(::isRenderableChatMessage) }
-    }
     var paginatorPageCount by rememberSaveable { mutableStateOf(1) }
     // B7-03: 会话内未读状态
     // 切换会话 / 关闭性能模式时重置分页计数
@@ -555,70 +567,55 @@ fun ChatScreen(
     // v2.x: 流式输出时 messages 一秒会变很多次,同一对 (hidden, total) 重复打了几十行。
     // 这条日志本身有用(诊断「某些消息为什么不显示」),所以只去重、不删。
     val chatRenderLogGate = remember { ChatRenderLogGate() }
-    val visibleMessages by produceState(
-        initialValue =
-        if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) {
-            emptyList()
-        } else {
-            messages.filterRenderableChatMessages(state.chatPreferences.showToolCallDetails)
-        },
+    val chatWindow by remember(
         messages,
         paginatorPageCount,
         performanceMode,
         isAgentMode,
         state.isAgentMode,
         state.isSwitchingSession,
-        // v2.x: 检查点边界或展开状态变化都要重算可见列表
         state.contextCheckpointBoundaryId,
         contextDividerExpanded,
-        // v2.5.0 fix: 工具调用显示开关影响“仅工具载荷”消息的渲染资格，需重算
         state.chatPreferences.showToolCallDetails,
     ) {
-        // 门禁:Agent Tab 模式下但 ViewModel 还没切换到 Agent 模式时,显示空白。
-        // 避免 HorizontalPager 动画期间目标页已 compose 但 setAgentMode 尚未执行时闪现旧对话内容。
-        // v1.137 B2: isSwitchingSession=true 时保持上一帧(不清空),消除空列表闪屏。
         if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) {
-            value = emptyList()
-            return@produceState
-        }
-        val renderableMessages = messages.filterRenderableChatMessages(state.chatPreferences.showToolCallDetails)
-        val hiddenShells = messages.size - renderableMessages.size
-        if (chatRenderLogGate.shouldLog(hiddenShells, messages.size)) {
-            Logger.d(
-                "ChatRender",
-                "hidden non-renderable messages=$hiddenShells, total=${messages.size}, " +
-                    "session=${state.currentSessionId ?: state.agentSessionId ?: "none"}",
+            mutableStateOf(
+                io.zer0.muse.perf.ChatMessageWindowResult(
+                    visible = emptyList(),
+                    allRenderableCount = 0,
+                    projectedRenderableCount = 0,
+                    byId = emptyMap(),
+                ),
+            )
+        } else {
+            mutableStateOf(
+                ChatMessageWindow.project(
+                    messages = messages,
+                    pageSize =
+                    if (performanceMode) {
+                        MessagePaginator.DEFAULT_PAGE_SIZE * paginatorPageCount
+                    } else {
+                        Int.MAX_VALUE
+                    },
+                    isRenderable = { message ->
+                        isRenderableChatMessage(message, state.chatPreferences.showToolCallDetails)
+                    },
+                    boundaryMessageId = state.contextCheckpointBoundaryId,
+                    includeBeforeBoundary = contextDividerExpanded,
+                ),
             )
         }
-        // v2.x: 上下文已压缩时，默认把边界之前的消息收起（界面看起来像"从新上下文继续"）。
-        // 注意只影响界面：发给模型的历史由 ContextCheckpointMerge 在组装阶段过滤，
-        // 两者各管一段，互不依赖。
-        val boundary = state.contextCheckpointBoundaryId
-        val boundaryIndex = if (boundary == null) {
-            -1
-        } else {
-            renderableMessages.indexOfFirst { it.id.toString() == boundary }
-        }
-        val pruned =
-            if (boundaryIndex > 0 && !contextDividerExpanded) {
-                renderableMessages.subList(boundaryIndex, renderableMessages.size).toList()
-            } else {
-                renderableMessages
-            }
-        if (!performanceMode) {
-            value = pruned
-            return@produceState
-        }
-        val allIds = pruned.map { it.id.toString() }
-        if (allIds.isEmpty()) {
-            value = emptyList()
-            return@produceState
-        }
-        val pageSize = MessagePaginator.DEFAULT_PAGE_SIZE * paginatorPageCount
-        // 取首页(最新 N 条 ID),再反查 UIMessage 保留顺序
-        val visibleIds = MessagePaginator.createFlow(allIds, pageSize = pageSize).first()
-        val msgById = pruned.associateBy { it.id.toString() }
-        value = visibleIds.mapNotNull { msgById[it] }
+    }
+    val visibleMessages = chatWindow.visible
+    val renderableMessageCount = chatWindow.allRenderableCount
+    val projectedRenderableCount = chatWindow.projectedRenderableCount
+    val hiddenShells = messages.size - renderableMessageCount
+    if (chatRenderLogGate.shouldLog(hiddenShells, messages.size)) {
+        Logger.d(
+            "ChatRender",
+            "hidden non-renderable messages=$hiddenShells, total=${messages.size}, " +
+                "session=${state.currentSessionId ?: state.agentSessionId ?: "none"}",
+        )
     }
 
     // v1.0.74 fix (前端审计 1.1): 消息区在 LazyColumn 的起始全局索引。
@@ -688,10 +685,72 @@ fun ChatScreen(
     // v1.52: 收紧阈值 — 仅当最后一项的底部在视口内才算"在底部",
     //        避免"部分可见=在底部"导致流式增量把用户拉回底部。
     // v1.0.4 (P3-4): 性能模式下用 visibleMessages(实际渲染列表)判断,而非 messages。
+    val truncatedMarker = stringResource(R.string.err_reply_truncated)
+    val renderRows =
+        remember(
+            visibleMessages,
+            isStreaming,
+            state.chatPreferences.showToolCallDetails,
+            state.chatPreferences,
+            state.taskCards,
+            state.selectionMode,
+            state.isTranslating,
+            state.translatingMessageId,
+            state.tokenEstimateEnabled,
+            truncatedMarker,
+        ) {
+            val lastVisibleMessageId = visibleMessages.lastOrNull()?.id
+            visibleMessages.flatMapIndexed { messageIndex, message ->
+                val hasRichContent =
+                    message.toolCallInfo != null ||
+                        !message.toolCalls.isNullOrEmpty() ||
+                        state.taskCards[message.id.toString()] != null
+                ChatMessageRenderRows.project(
+                    message = message,
+                    isStreaming = isStreaming,
+                    hasRichContent = hasRichContent,
+                    messageIndex = messageIndex,
+                    isLastMessage = message.id == lastVisibleMessageId,
+                    allowSplitting = !state.selectionMode,
+                    hasRenderableFooter =
+                        !ChatMessageRenderRows.needsFooterDecision(
+                            message = message,
+                            isStreaming = isStreaming,
+                            hasRichContent = hasRichContent,
+                        ) ||
+                            ChatMessageRenderRows.hasRenderableFooter(
+                                message = message,
+                                isStreaming = isStreaming,
+                                isTranslating =
+                                    state.isTranslating &&
+                                        state.translatingMessageId == message.id,
+                                isLastAssistant =
+                                    message.id == lastVisibleMessageId &&
+                                        message.role == MessageRole.ASSISTANT,
+                                chatPreferences = state.chatPreferences,
+                                showsModelName = state.chatPreferences.showModelName,
+                                showsTokenStats =
+                                    message.id == lastVisibleMessageId &&
+                                        state.tokenEstimateEnabled,
+                                branchCount = message.variantCount,
+                                canContinue =
+                                    message.id == lastVisibleMessageId &&
+                                        (
+                                            message.content.contains("[已中断]") ||
+                                                (
+                                                    truncatedMarker.isNotBlank() &&
+                                                        message.content.contains(truncatedMarker)
+                                                    )
+                                            ),
+                            ),
+                )
+            }
+        }
     val isAtBottom by remember(
         visibleMessages.size,
         visibleMessages.lastOrNull()?.id,
         messageStartIndex,
+        renderRows.size,
     ) {
         derivedStateOf {
             if (visibleMessages.isEmpty()) return@derivedStateOf true
@@ -705,7 +764,7 @@ fun ChatScreen(
             // 最后可见项到达/越过消息区末条(容纳尾随项),且其底部在视口底部附近。
             // v1.0.74 fix (前端审计 1.1): 原实现 lastVisible.index == visibleMessages.lastIndex
             // 用全局索引比局部索引,agent_hint/load_more 等额外 item 存在时恒 false。
-            lastVisible.index >= messageStartIndex + visibleMessages.lastIndex &&
+            lastVisible.index >= messageStartIndex + renderRows.lastIndex &&
                 (lastVisible.offset + lastVisible.size) <= viewportEnd + 150
         }
     }
@@ -732,7 +791,7 @@ fun ChatScreen(
                 listState.firstVisibleItemIndex == 0 &&
                 // v1.0.4 (P3-4): 性能模式下仅当 visibleMessages 已覆盖全部 messages 时才触发 DB 加载,
                 // 否则由 paginatorLoadMoreTrigger 先扩展内存分页
-                (!performanceMode || visibleMessages.size >= renderableMessageCount)
+                (!performanceMode || visibleMessages.size >= projectedRenderableCount)
         }
     }
     LaunchedEffect(loadMoreTrigger) {
@@ -750,13 +809,13 @@ fun ChatScreen(
     // 扩展 paginatorPageCount(纯本地内存分页,不查 DB)。扩展后通过 scrollToItem 保持视觉位置不跳。
     val paginatorLoadMoreTrigger by remember(
         performanceMode,
-        renderableMessageCount,
+        projectedRenderableCount,
         visibleMessages.size,
         state.isStreaming,
     ) {
         derivedStateOf {
             performanceMode &&
-                renderableMessageCount > visibleMessages.size &&
+                projectedRenderableCount > visibleMessages.size &&
                 !state.isStreaming &&
                 listState.firstVisibleItemIndex == 0
         }
@@ -777,7 +836,9 @@ fun ChatScreen(
             val addedCount = visibleMessages.size - previousSize
             if (addedCount > 0) {
                 // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移,agent_hint/load_more 存在时定位不错位
-                listState.scrollToItem(messageStartIndex + addedCount, savedPaginatorScrollOffset)
+                val rowOffset =
+                    ChatRenderRowIndex.firstRowForMessage(renderRows, addedCount)
+                listState.scrollToItem(messageStartIndex + rowOffset, savedPaginatorScrollOffset)
             }
             savedPaginatorScrollOffset = 0
         }
@@ -799,7 +860,10 @@ fun ChatScreen(
                 }
             }
             // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移,agent_hint/load_more 存在时定位不错位
-            listState.scrollToItem(messageStartIndex + state.lastHistoryLoadCount, savedScrollOffset)
+                val messageOffset = state.lastHistoryLoadCount
+                val rowOffset =
+                    ChatRenderRowIndex.firstRowForMessage(renderRows, messageOffset)
+                listState.scrollToItem(messageStartIndex + rowOffset, savedScrollOffset)
             viewModel.clearHistoryLoadCount()
             savedScrollOffset = 0
         }
@@ -856,7 +920,9 @@ fun ChatScreen(
         }
         // 瞬时滚动到目标消息(长会话用动画会卡顿,且跳转场景需即时定位)
         // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
-        listState.scrollToItem(messageStartIndex + targetIndex)
+        val targetRowIndex =
+            ChatRenderRowIndex.firstRowForMessage(renderRows, targetIndex)
+        listState.scrollToItem(messageStartIndex + targetRowIndex)
         // 高亮窗口期 2.5s 后清空 highlightedMessageId + searchHighlightQuery
         delay(2500L)
         viewModel.clearHighlightedMessage()
@@ -902,7 +968,11 @@ fun ChatScreen(
                 snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > 0 }
             } ?: return@LaunchedEffect
         agentScrollRestored = true
-        listState.scrollToItem(target.coerceIn(0, total - 1), state.agentListFirstVisibleItemScrollOffset)
+        val targetRow =
+            renderRows.getOrNull(target)?.messageIndex?.let { messageIndex ->
+                ChatRenderRowIndex.firstRowForMessage(renderRows, messageIndex)
+            } ?: target
+        listState.scrollToItem(targetRow.coerceIn(0, total - 1), state.agentListFirstVisibleItemScrollOffset)
         // 不在底部时视为"用户停留处",避免新消息/流式增量又把列表拽回底部
         userScrolledUp = listState.canScrollForward
     }
@@ -971,7 +1041,6 @@ fun ChatScreen(
                     lastMessageCount = size
                     return@collect
                 }
-                val targetIndex = msgs.size - 1
                 // v2.0: 用"最后一条用户消息 id 是否变化"判定用户新发消息。
                 // 旧实现 (`size > lastMessageCount && last?.role == USER`) 在用户消息与
                 // 助手占位在两个采样点之间先后落地时会漏判,导致列表停在上一条消息位置不跟随。
@@ -988,7 +1057,6 @@ fun ChatScreen(
                 // v2.0: 滚到"最后一条消息的底部"而不是把消息顶部钉在 120dp 处。
                 // 旧的 120dp 偏移在长消息/流式追加时会让新文字落到屏幕外,
                 // 观感像"跟随的是上一条消息"。
-                val targetGlobalIndex = messageStartIndex + targetIndex
                 if (isUserSendMessage && (atBottom || !userScrolledUp)) {
                     // 用户刚发消息且在底部(或未主动上翻):瞬时贴到列表绝对底部,并解锁跟随
                     userScrolledUp = false
@@ -1020,7 +1088,10 @@ fun ChatScreen(
                             // 不跟随,用户必须手动滑到底才能看到全文(用户反馈)。
                             val info = listState.layoutInfo
                             val lastVisible = info.visibleItemsInfo.lastOrNull()
-                            if (lastVisible != null && lastVisible.index >= targetGlobalIndex) {
+                            val lastMessageRow =
+                                ChatRenderRowIndex.lastRowForMessage(renderRows, msgs.lastIndex)
+                            val lastMessageRowIndex = messageStartIndex + lastMessageRow
+                            if (lastVisible != null && lastVisible.index >= lastMessageRowIndex) {
                                 val missing = (lastVisible.offset + lastVisible.size) - info.viewportEndOffset
                                 if (missing > 0) {
                                     listState.animateScrollBy(missing.toFloat())
@@ -1504,14 +1575,18 @@ fun ChatScreen(
                                                         key = "proactive_toggle",
                                                         icon = MuseIcons.sparkle,
                                                         label = stringResource(R.string.chat_proactive_toggle),
-                                                        enabled = !isStreaming,
-                                                        checked = proactiveConfig.enabled,
+                                                        enabled = !isStreaming && proactiveTogglePresentation.enabled,
+                                                        checked = proactiveTogglePresentation.checked,
                                                         onClick = {
                                                             showTopMenu = false
+                                                            val targetSessionId = effectiveChatSessionId(state) ?: return@MuseFloatingActionItem
+                                                            val newMuted = !proactiveSessionMuted
                                                             ioScope.launch {
-                                                                settings.saveProactiveMessageConfig(
-                                                                    proactiveConfig.copy(enabled = !proactiveConfig.enabled),
+                                                                proactiveSessionPreferences.setMuted(
+                                                                    targetSessionId,
+                                                                    newMuted,
                                                                 )
+                                                                proactiveSessionMuted = newMuted
                                                             }
                                                         },
                                                     ),
@@ -1988,8 +2063,9 @@ fun ChatScreen(
                                     toolCallTotal = toolCallTotal,
                                     onShowToolCalls = { sheetState.showToolCallSheet = true },
                                     // v2.6.7: 不再向输入栏传草稿标记（UI 不留痕迹）
-                                    // v1.0.29: Agent Tab 不主动呼出输入法
-                                    autoFocus = !isAgentMode,
+                                    // Entering a conversation must not open the keyboard.
+                                    // The input still focuses normally when the user taps it.
+                                    autoFocus = false,
                                     // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏底部显示 Token 统计条)
                                     tokenEstimateEnabled = state.tokenEstimateEnabled,
                                     historyTokens = state.contextTokenCount,
@@ -2266,6 +2342,30 @@ fun ChatScreen(
                                 remember(visibleMessages) {
                                     imageGenPromptsByMessage(visibleMessages)
                                 }
+                            val messagesById = chatWindow.byId
+                            fun groupingRole(role: io.zer0.ai.core.MessageRole) =
+                                if (role == io.zer0.ai.core.MessageRole.TOOL) {
+                                    io.zer0.ai.core.MessageRole.ASSISTANT
+                                } else {
+                                    role
+                                }
+                            val visibleMessagesKey =
+                                remember(visibleMessages) {
+                                    visibleMessages.joinToString("\u001f") { it.id.toString() }
+                                }
+                            val artifactsByMessage by produceState(
+                                initialValue = emptyMap<String, List<ArtifactEntity>>(),
+                                visibleMessagesKey,
+                            ) {
+                                if (visibleMessages.isEmpty()) {
+                                    value = emptyMap<String, List<ArtifactEntity>>()
+                                } else {
+                                    viewModel.observeArtifactsByMessages(visibleMessages.map { it.id.toString() })
+                                        .collect { artifacts: List<ArtifactEntity> ->
+                                            value = artifacts.groupBy { it.messageId }
+                                        }
+                                }
+                            }
                             // I3: 聊天区独立错误边界,消息列表渲染数据构建失败只降级该区域
                             RegionErrorBoundary(
                                 regionName = "chat",
@@ -2402,11 +2502,75 @@ fun ChatScreen(
                                         itemsIndexed(
                                             // v1.0.4 (P3-4): 性能模式下渲染 visibleMessages(最近 N 条);
                                             // 非性能模式下 visibleMessages == messages,行为不变。
-                                            visibleMessages,
-                                            key = { _, it -> it.id },
-                                            // v1.100: contentType 让 LazyColumn 复用同类型 item 的 measure cache
-                                            contentType = { _, it -> it.role.name },
-                                        ) { index, msg ->
+                                            renderRows,
+                                            key = { _, row -> row.key },
+                                            // v1.100: contentType 让 LazyColumn 复用同类型 item 的 measure cache。
+                                            // 投影后 Header/Body/Footer 是不同 composable，必须分开复用桶；
+                                            // 只有真正相同的行种类才共享测量缓存。
+                                            contentType = { _, row ->
+                                                when (row.kind) {
+                                                    ChatMessageRenderRowKind.Header ->
+                                                        "header:${row.message?.role?.name.orEmpty()}"
+                                                    ChatMessageRenderRowKind.Body -> "body"
+                                                    ChatMessageRenderRowKind.Footer ->
+                                                        "footer:${row.message?.role?.name.orEmpty()}"
+                                                    ChatMessageRenderRowKind.Complete ->
+                                                        "complete:${row.message?.role?.name.orEmpty()}"
+                                                }
+                                            },
+                                        ) { rowIndex, row ->
+                                            val msg = row.message ?: return@itemsIndexed
+                                            if (row.kind == ChatMessageRenderRowKind.Body) {
+                                                ChatRenderContinuationRow(
+                                                    row = row,
+                                                    chatPreferences = state.chatPreferences,
+                                                    highlightText =
+                                                        if (msg.id.toString() == state.highlightedMessageId) {
+                                                            state.searchHighlightQuery
+                                                        } else {
+                                                            null
+                                                        },
+                                                    onHtmlPreview = onHtmlPreview,
+                                                    onCardAction = { action ->
+                                                        handleCardAction(msg.id.toString(), action)
+                                                    },
+                                                )
+                                                return@itemsIndexed
+                                            }
+                                            if (row.kind == ChatMessageRenderRowKind.Header) {
+                                                val index = row.messageIndex
+                                                val prevMsg = visibleMessages.getOrNull(index - 1)
+                                                val showDateSeparator =
+                                                    prevMsg != null &&
+                                                        !isSameDay(prevMsg.createdAt, msg.createdAt)
+                                                val showContextDivider =
+                                                    boundaryIdForRender != null &&
+                                                        msg.id.toString() == boundaryIdForRender
+                                                val showAvatar =
+                                                    prevMsg == null ||
+                                                        groupingRole(prevMsg.role) != groupingRole(msg.role) ||
+                                                        (
+                                                            msg.role == io.zer0.ai.core.MessageRole.USER &&
+                                                                (msg.createdAt - prevMsg.createdAt) > MESSAGE_GROUP_INTERVAL_MS
+                                                            )
+                                                MessageBubbleHeader(
+                                                    message = msg,
+                                                    showAvatar = showAvatar,
+                                                    showTimestamp = showAvatar,
+                                                    chatPreferences = state.chatPreferences,
+                                                    assistant = state.currentAssistant,
+                                                    showDateSeparator = showDateSeparator,
+                                                    showContextDivider = showContextDivider,
+                                                    contextCheckpointTotalCovered = state.contextCheckpointTotalCovered,
+                                                    contextDividerExpanded = contextDividerExpanded,
+                                                    onToggleContextDivider = {
+                                                        contextDividerExpanded = !contextDividerExpanded
+                                                    },
+                                                    modifier = Modifier.padding(bottom = MusePaddings.messageGap),
+                                                )
+                                                return@itemsIndexed
+                                            }
+                                            val index = row.messageIndex
                                             // 操作组聚合:组首条渲染组卡,组内其余条不渲染(视觉上被前一条吸收)。
                                             val groupedRun = if (showToolCallDetails) groupedRuns[msg.id.toString()] else null
                                             if (groupedRun != null) {
@@ -2461,11 +2625,7 @@ fun ChatScreen(
                                             // v1.100: isTranslating/isSpeaking 精确到 msg.id,用 derivedStateOf 收窄
                                             val isTranslating = state.isTranslating && state.translatingMessageId == msg.id
                                             val isSpeaking = state.isSpeaking && state.speakingMessageId == msg.id
-                                            // v1.43: 观察该消息关联的产物卡片列表
-                                            // H-S1: 用 produceState 以 msg.id 为 key,避免重组时反复重建 Flow + 反复查库
-                                            val artifacts by produceState(initialValue = emptyList<ArtifactEntity>(), msg.id) {
-                                                viewModel.observeArtifactsByMessage(msg.id.toString()).collect { value = it }
-                                            }
+                                            val artifacts = artifactsByMessage[msg.id.toString()].orEmpty()
                                             // v0.48: 消息分组 — 上一条同 role 且时间间隔 < 5 分钟 → 压缩头像和时间戳
                                             // v2.0.1: 连续同角色消息(含 assistant 拆出的思考/工具轮)不再重复头像 —
                                             // 一轮回复只显示一个头像(用户反馈"头像出现两个")。
@@ -2474,14 +2634,6 @@ fun ChatScreen(
                                             // 原判断直接用 role 比较，TOOL ≠ ASSISTANT 会让分组链在每个工具轮断开，
 
                                             // 表现为同一条回复里反复出现头像和名字。
-
-                                            fun groupingRole(role: io.zer0.ai.core.MessageRole) =
-
-                                                if (role == io.zer0.ai.core.MessageRole.TOOL) {
-                                                    io.zer0.ai.core.MessageRole.ASSISTANT
-                                                } else {
-                                                    role
-                                                }
 
                                             val showAvatar =
 
@@ -2588,31 +2740,53 @@ fun ChatScreen(
                                                 remember(msg.id) {
                                                     { action: CardAction -> handleCardAction(msg.id.toString(), action) }
                                                 }
-                                            // 消息项动画统一走 museAnimateItem；流式中的最后一条消息不做插入/位移动画，
-                                            // 避免内容增量和列表布局动画同时运行造成抖动。
-                                            Column(
-                                                modifier =
-                                                museAnimateItem(enabled = !(isLast && isStreaming))
-                                                    .padding(bottom = MusePaddings.messageGap),
-                                            ) {
-                                                // 日期分隔线渲染在消息上方
-                                                if (showDateSeparator) {
-                                                    DateSeparator(timestamp = msg.createdAt)
+                                            val onCopyMessage: (String) -> Unit =
+                                                remember(ioScope, context, copiedToastText) {
+                                                    { text ->
+                                                        ioScope.launch {
+                                                            val clipboard =
+                                                                withContext(Dispatchers.IO) {
+                                                                    context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                                                                        as android.content.ClipboardManager
+                                                                }
+                                                            clipboard.setPrimaryClip(
+                                                                android.content.ClipData.newPlainText("Muse Message", text),
+                                                            )
+                                                            MuseToast.show(copiedToastText)
+                                                        }
+                                                    }
                                                 }
-                                                // v2.x: 上下文分隔线画在"已压缩边界"那条消息之前 ——
-                                                // 它同时是这条消息的"以下是模型仍能看到的内容"的起点。
-                                                if (showContextDivider) {
-                                                    ChatContextDivider(
-                                                        totalCovered = state.contextCheckpointTotalCovered,
-                                                        expanded = contextDividerExpanded,
-                                                        onToggle = { contextDividerExpanded = !contextDividerExpanded },
-                                                        // 分隔线自带水平内边距，抵消外层消息的底部间距造成的过宽留白
-                                                        modifier = Modifier.padding(bottom = 0.dp),
-                                                    )
+                                            val onDelegate =
+                                                remember(msg.id, sheetState) {
+                                                    { sheetState.showDelegateSheet = DelegateSheetMode.Message(msg) }
+                                                }
+                                            // 消息列表直接由 LazyColumn 管理位置。放置动画会在
+                                            // 长对话滚动时持续参与布局，主对话帧率优先。
+                                            Column(
+                                                modifier = Modifier.padding(bottom = MusePaddings.messageGap),
+                                            ) {
+                                                if (row.kind == ChatMessageRenderRowKind.Complete) {
+                                                    // 日期分隔线渲染在消息上方
+                                                    if (showDateSeparator) {
+                                                        DateSeparator(timestamp = msg.createdAt)
+                                                    }
+                                                    // v2.x: 上下文分隔线画在"已压缩边界"那条消息之前 ——
+                                                    // 它同时是这条消息的"以下是模型仍能看到的内容"的起点。
+                                                    if (showContextDivider) {
+                                                        ChatContextDivider(
+                                                            totalCovered = state.contextCheckpointTotalCovered,
+                                                            expanded = contextDividerExpanded,
+                                                            onToggle = { contextDividerExpanded = !contextDividerExpanded },
+                                                            // 分隔线自带水平内边距，抵消外层消息的底部间距造成的过宽留白
+                                                            modifier = Modifier.padding(bottom = 0.dp),
+                                                        )
+                                                    }
                                                 }
                                                 // v2.x: 左滑引用已移除(用户反馈误触率高) — 引用改由长按菜单进入。
                                                 MessageBubble(
                                                     msg = msg,
+                                                    rendersBody = row.rendersMessageBody,
+                                                    rendersHeader = row.kind != ChatMessageRenderRowKind.Footer,
                                                     // v1.0.20 (Task 3): isStreaming 读派生值,避免每条消息因 input 按键重组
                                                     isStreaming = isStreaming,
                                                     isLastAssistant = isLast && msg.role == MessageRole.ASSISTANT,
@@ -2628,7 +2802,7 @@ fun ChatScreen(
                                                     // H11: 译文消息携带源消息内容(原文对照折叠),源消息缺失时不传
                                                     translationSourceContent =
                                                     msg.translationSourceId?.let { srcId ->
-                                                        messages.find { it.id.toString() == srcId }
+                                                        messagesById[srcId]
                                                             ?.let(::buildTranslationSourceText)
                                                     },
                                                     // v2.4.6: 消息自带译文(语言→译文)— 可展开块
@@ -2649,19 +2823,7 @@ fun ChatScreen(
                                                     onToggleFavorite = onToggleFavorite,
                                                     // 阶段 J: 复制消息内容到剪贴板(长按 → 复制)
                                                     // M-S8: clipboard 写切到 IO 线程,避免主线程 IPC
-                                                    onCopyMessage = { text ->
-                                                        ioScope.launch {
-                                                            val clipboard =
-                                                                withContext(Dispatchers.IO) {
-                                                                    context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
-                                                                        as android.content.ClipboardManager
-                                                                }
-                                                            clipboard.setPrimaryClip(
-                                                                android.content.ClipData.newPlainText("Muse Message", text),
-                                                            )
-                                                            MuseToast.show(copiedToastText)
-                                                        }
-                                                    },
+                                                    onCopyMessage = onCopyMessage,
                                                     // Phase 8.7: TTS 朗读(仅 AI 消息)
                                                     isSpeaking = isSpeaking,
                                                     onToggleTts = onToggleTts,
@@ -2692,7 +2854,7 @@ fun ChatScreen(
                                                     // R-UI-09: 任务卡取消按钮 -> 停止当前生成
                                                     onCancelTask = onCancelTask,
                                                     // v1.25: 长按菜单「委托给助手」
-                                                    onDelegate = { sheetState.showDelegateSheet = DelegateSheetMode.Message(msg) },
+                                                    onDelegate = onDelegate,
                                                     // v0.29 P0-3: 分享整段对话(导出 Markdown → 系统 share sheet)
                                                     onShareSession = onShareSession,
                                                     // F-2: 跨会话转发
@@ -3331,6 +3493,12 @@ fun ChatScreen(
                         messages = visibleMessages,
                         listState = listState,
                         messageStartIndex = messageStartIndex,
+                        messageIndexForListIndex = { rowIndex ->
+                            ChatRenderRowIndex.messageAtRow(
+                                renderRows,
+                                rowIndex - messageStartIndex,
+                            )
+                        },
                         modifier =
                         Modifier
                             .align(Alignment.CenterEnd)

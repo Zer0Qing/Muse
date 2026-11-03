@@ -750,6 +750,41 @@ class MuseDbMigrationTest {
         starts.forEach { assertV113StartUpgradesToLatest(it) }
     }
 
+    @Test
+    fun migrateV123StartAddsProactivePreferencesAndValidatesThroughRoom() {
+        assertTrue("123 schema snapshot must exist for real migration validation", schemaExists(123))
+        val dbFile = context.getDatabasePath("muse_migration_v123_to_124_full.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            createSchemaAtVersion(123, dbFile.absolutePath)
+            insertLegacyRow(dbFile.absolutePath, 123)
+
+            val db =
+                Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
+                    .addMigrations(*migrationsFrom(123).toTypedArray())
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val raw = db.openHelper.writableDatabase
+                raw.query("PRAGMA user_version").use {
+                    assertTrue(it.moveToFirst())
+                    assertEquals(124, it.getInt(0))
+                }
+                raw.query("SELECT muted FROM session_proactive_preferences").use {
+                    assertTrue("v124 proactive preference table must be usable", it.count >= 0)
+                }
+                assertRoomValidatedLatestSchema(raw, "v123→124", expectedVersion = 124)
+            } finally {
+                db.close()
+            }
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
+
     /** 单个 113..117 起点：建旧库 → Room 打开触发迁移 → 断言终态。 */
     private fun assertV113StartUpgradesToLatest(fromVersion: Int) {
         val dbFile = context.getDatabasePath("muse_migration_v26x_$fromVersion.db").apply {
@@ -924,14 +959,18 @@ class MuseDbMigrationTest {
      * "Migration didn't properly handle"，根本走不到写 hash 这步。
      * 所以「hash == 最新（v122）快照的 identityHash」等价于「Room 真的比对过并认可了终态」。
      */
-    private fun assertRoomValidatedLatestSchema(db: SupportSQLiteDatabase, tag: String) {
-        val expected = loadSchema(122).getJSONObject("database").getString("identityHash")
+    private fun assertRoomValidatedLatestSchema(
+        db: SupportSQLiteDatabase,
+        tag: String,
+        expectedVersion: Int = MuseDb.LATEST_SCHEMA_VERSION,
+    ) {
+        val expected = loadSchema(expectedVersion).getJSONObject("database").getString("identityHash")
         val actual = mutableListOf<String>()
         db.query("SELECT identity_hash FROM room_master_table WHERE id = 42").use { cursor ->
             while (cursor.moveToNext()) actual += cursor.getString(0)
         }
         assertEquals(
-            "$tag: Room 写入的 identity_hash 应等于最新（v122）实体快照（证明 Room 已校验并认可终态 schema）",
+            "$tag: Room 写入的 identity_hash 应等于最新（v$expectedVersion）实体快照（证明 Room 已校验并认可终态 schema）",
             listOf(expected),
             actual,
         )

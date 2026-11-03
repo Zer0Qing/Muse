@@ -156,6 +156,13 @@ class ProactiveScheduler(
         }.onFailure { e -> Logger.w(TAG, "记录主动消息已读失败: ${e.message}") }
     }
 
+    /** 通知点击携带的精确结果账 id，避免并发通知误标较新的记录。 */
+    suspend fun onProactiveOpened(outcomeId: String) {
+        runCatching {
+            stores.outcomes.resolve(outcomeId, OutcomeState.OPENED, System.currentTimeMillis())
+        }.onFailure { e -> Logger.w(TAG, "记录主动消息已读失败: ${e.message}") }
+    }
+
     /**
      * 用户点了通知上的「这次不用」。
      *

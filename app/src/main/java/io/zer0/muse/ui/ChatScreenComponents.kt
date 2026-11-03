@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -552,6 +553,7 @@ internal fun DateSeparator(timestamp: Long) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(DateSeparator.TEST_TAG)
             .padding(vertical = MusePaddings.itemGap),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
@@ -570,6 +572,10 @@ internal fun DateSeparator(timestamp: Long) {
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
         )
     }
+}
+
+internal object DateSeparator {
+    const val TEST_TAG = "date-separator"
 }
 
 /**

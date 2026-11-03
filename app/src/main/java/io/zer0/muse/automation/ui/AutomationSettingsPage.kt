@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,17 +30,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.AutomationSettingsStore
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 /**
  * UI 自动化设置页。
@@ -72,6 +79,24 @@ fun AutomationSettingsPage(
     val permissionState by manager.permissionState.collectAsStateWithLifecycle()
     var testing by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<ScreenTestResult?>(null) }
+    val automationSettingsStore = remember { AutomationSettingsStore(context.applicationContext) }
+    var autonomousDraft by remember { mutableStateOf(AutonomousAccessibilityDraftState()) }
+    var packageEditor by remember { mutableStateOf(AutonomousAccessibilityDraftState().allowedPackages.joinToString("\n")) }
+    var autonomousLoaded by remember { mutableStateOf(false) }
+    var taskPreview by remember { mutableStateOf<ChatViewModel.AutonomousAccessibilityTaskPreview?>(null) }
+    var taskGrant by remember { mutableStateOf<io.zer0.muse.automation.core.AutonomousAccessibilityGrant?>(null) }
+    val chatViewModel: ChatViewModel? = koinInject()
+
+    LaunchedEffect(automationSettingsStore, chatViewModel) {
+        autonomousDraft =
+            AutonomousAccessibilityDraftState.fromWindow(
+                automationSettingsStore.autonomousAccessibilityWindowFlow.first(),
+            )
+        packageEditor = autonomousDraft.allowedPackages.joinToString("\n")
+        taskPreview = runCatching { chatViewModel?.autonomousAccessibilityTaskPreview() }.getOrNull()
+        taskGrant = automationSettingsStore.autonomousAccessibilityGrantFlow.first()
+        autonomousLoaded = true
+    }
 
     SettingsSubPageScaffold(
         title = stringResource(R.string.automation_settings_title),
@@ -247,6 +272,71 @@ fun AutomationSettingsPage(
                         contentDescription = stringResource(R.string.automation_tasker_title),
                     )
                 }
+            }
+        }
+
+        item(key = "autonomous-accessibility") {
+            if (autonomousLoaded) {
+                AutonomousAccessibilitySettingsCard(
+                    draft = autonomousDraft,
+                    packageEditor = packageEditor,
+                    taskPreview = taskPreview,
+                    grant = taskGrant,
+                    onDraftChange = { autonomousDraft = it },
+                    onPackageEditorChange = { packageEditor = it },
+                    onSave = {
+                        autonomousDraft = autonomousDraft.copy(
+                            allowedPackages = parseAutonomousPackages(packageEditor),
+                        )
+                        scope.launch {
+                            runCatching {
+                                automationSettingsStore.saveAutonomousAccessibilityWindow(
+                                    autonomousDraft.copy(
+                                        allowedPackages = parseAutonomousPackages(packageEditor),
+                                    ).toWindow(),
+                                )
+                            }.onSuccess {
+                                MuseToast.show(context.getString(R.string.automation_autonomous_saved))
+                            }.onFailure {
+                                Logger.w("AutomationSettings", "save autonomous plan failed: ${it.message}")
+                            }
+                        }
+                    },
+                    onConfirmTask = {
+                        val preview = taskPreview
+                        val targetPackage = autonomousDraft.allowedPackages.firstOrNull()
+                        if (preview == null || targetPackage == null) {
+                            MuseToast.show(context.getString(R.string.automation_autonomous_confirm_required))
+                        } else {
+                            scope.launch {
+                                val grant =
+                                    buildAutonomousGrant(
+                                        sessionId = preview.sessionId,
+                                        latestUserMessage = preview.message,
+                                        packageName = targetPackage,
+                                        nowMillis = System.currentTimeMillis(),
+                                    )
+                                if (grant == null) {
+                                    MuseToast.show(context.getString(R.string.automation_autonomous_confirm_required))
+                                } else {
+                                    automationSettingsStore.saveAutonomousAccessibilityGrant(grant)
+                                    taskGrant = grant
+                                    MuseToast.show(context.getString(R.string.automation_autonomous_task_confirmed))
+                                }
+                            }
+                        }
+                    },
+                    onClearTask = {
+                        val current = taskGrant
+                        if (current != null) {
+                            scope.launch {
+                                automationSettingsStore.clearAutonomousAccessibilityGrant(expected = current)
+                                taskGrant = null
+                                MuseToast.show(context.getString(R.string.automation_autonomous_task_cleared))
+                            }
+                        }
+                    },
+                )
             }
         }
 

@@ -62,6 +62,11 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.data.proactive.ProactiveOutcomeEntity" to "proactiveOutcomes",
         // v2.6.9: 关系亲密度与等级
         "io.zer0.muse.data.proactive.ProactiveRelationEntity" to "proactiveRelations",
+        // v2.6.21: 单个对话的主动消息静音偏好，换机后必须保留。
+        "io.zer0.muse.proactive.SessionProactivePreferenceEntity" to "sessionProactivePreferences",
+        "ConversationCommandReceiptEntity" to "conversationCommandReceipts",
+        "ConversationSelectionEntity" to "conversationSelections",
+        "ConversationDisplaySlotEntity" to "conversationDisplaySlots",
     )
 
     /** 运维/派生表: 明确不纳入备份(重建成本低、含机器元数据)。新数据表不得落入此集合。 */

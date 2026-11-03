@@ -192,8 +192,13 @@ private fun BulletList(items: List<String>, ordered: Boolean) {
                     text = if (ordered) "${index + 1}." else "•",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
                 )
-                Text(text = item, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = item,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }

@@ -38,4 +38,5 @@ class ProactiveRuntime(
     val assistants: AssistantRepository,
     val notifier: MuseNotificationManager,
     val generations: ChatGenerationManager,
+    val proactiveSessionPreferences: ProactiveSessionPreferenceRepository,
 )

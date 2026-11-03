@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
@@ -13,7 +14,8 @@ plugins {
     alias(libs.plugins.kover)
 }
 
-// Phase 2.1: 聚合 6 模块的覆盖率数据到 root,运行 :koverXmlReport / :koverHtmlReport 即可生成全量报告
+// 聚合 Android/JVM 覆盖率模块；conversation-core 尚未应用 Kover，不能在此
+// 以 :app 消费者的属性解析依赖，否则 koverXmlReport 会因无 kover variant 失败。
 dependencies {
     kover(project(":app"))
     kover(project(":ai"))

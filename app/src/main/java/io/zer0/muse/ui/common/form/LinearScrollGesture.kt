@@ -54,10 +54,31 @@ internal val RAIL_TOUCH_WIDTH: Dp = 40.dp
 /** 拖到底时补滚的像素量（滚到真实末尾，绕开总高估算误差；滚动会自行钳到边界）。 */
 private const val BOTTOM_OVERSCROLL_PX = 1_000_000f
 
+/**
+ * One immutable layout sample for long-press navigation.
+ *
+ * Keeping the sample independent from [LazyListState] makes it explicit that
+ * idle composition does not observe list layout and that a gesture works from
+ * one stable baseline.
+ */
+internal data class LinearScrollSnapshot(
+    val visibleItems: List<LinearScrollItem>,
+    val totalItemsCount: Int,
+    val viewportSizePx: Int,
+    val viewportEndOffsetPx: Int,
+    val firstVisibleItemIndex: Int,
+    val firstVisibleItemScrollOffset: Int,
+)
+
+internal data class LinearScrollItem(
+    val index: Int,
+    val size: Int,
+)
+
 /** 列表可视高度（px）。优先用视口尺寸；尚未布局时回退到视口末端偏移。 */
-internal fun listViewportPx(state: LazyListState): Float {
-    val h = state.layoutInfo.viewportSize.height.toFloat()
-    return if (h > 0f) h else state.layoutInfo.viewportEndOffset.toFloat()
+internal fun listViewportPx(snapshot: LinearScrollSnapshot): Float {
+    val h = snapshot.viewportSizePx.toFloat()
+    return if (h > 0f) h else snapshot.viewportEndOffsetPx.toFloat()
 }
 
 /**
@@ -74,8 +95,8 @@ internal class LinearScrollModel {
     private var prefix: FloatArray = FloatArray(0)
 
     /** 用当前可见项高度刷新缓存（每次重组调用即可）。 */
-    fun update(state: LazyListState) {
-        state.layoutInfo.visibleItemsInfo.forEach { info ->
+    fun update(snapshot: LinearScrollSnapshot) {
+        snapshot.visibleItems.forEach { info ->
             if (info.size > 0 && measured[info.index] != info.size) {
                 measured[info.index] = info.size
                 dirty = true
@@ -105,10 +126,10 @@ internal class LinearScrollModel {
     }
 
     /** 估算的内容总高（px）；无测量时返回 0。 */
-    fun totalPx(state: LazyListState): Float {
+    fun totalPx(snapshot: LinearScrollSnapshot): Float {
         val avg = avgHeight()
         if (avg <= 0f) return 0f
-        val count = state.layoutInfo.totalItemsCount
+        val count = snapshot.totalItemsCount
         ensurePrefix(count)
         return prefix.getOrElse(count) { 0f }
     }
@@ -120,9 +141,9 @@ internal class LinearScrollModel {
     }
 
     /** 已滚过的内容偏移（px）。 */
-    fun scrolledPx(state: LazyListState): Float {
-        ensurePrefix(state.layoutInfo.totalItemsCount)
-        return offsetPx(state.firstVisibleItemIndex) + state.firstVisibleItemScrollOffset
+    fun scrolledPx(snapshot: LinearScrollSnapshot): Float {
+        ensurePrefix(snapshot.totalItemsCount)
+        return offsetPx(snapshot.firstVisibleItemIndex) + snapshot.firstVisibleItemScrollOffset
     }
 
     /** 内容偏移（px）落在哪个条目（用当前前缀反查）。 */
@@ -149,15 +170,13 @@ internal fun LinearScrollGesture(
     onActiveIndexChange: ((Int?) -> Unit)? = null,
     /** 长按激活状态变化（true = 开始滑动导航，false = 结束）。用于显隐可视提示。 */
     onActiveChange: ((Boolean) -> Unit)? = null,
+    snapshotSource: () -> LinearScrollSnapshot = { listState.toLinearScrollSnapshot() },
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     var active by remember { mutableStateOf(false) }
     val scrollJob = remember { mutableStateOf<Job?>(null) }
     val model = remember { LinearScrollModel() }
-    // 激活期间**冻结**高度模型：基准在长按成立时快照，滑动中不接受新测量，
-    // 保证"手指位移 → 内容位移"的换算系数稳定。
-    if (!active) model.update(listState)
 
     LaunchedEffect(active) {
         if (!active) onActiveIndexChange?.invoke(null)
@@ -175,8 +194,21 @@ internal fun LinearScrollGesture(
                     // 长按才激活；短按/快速滑动不拦截，让事件自然结束。
                     val longPress = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    // Reading layoutInfo subscribes the caller to every list
+                    // measurement. Take one snapshot only after activation.
+                    val snapshot = snapshotSource()
+                    model.update(snapshot)
                     active = true
-                    runLinearDrag(down, longPress.position.y, model, listState, scrollJob, scope, onActiveIndexChange)
+                    runLinearDrag(
+                        down,
+                        longPress.position.y,
+                        snapshot,
+                        model,
+                        listState,
+                        scrollJob,
+                        scope,
+                        onActiveIndexChange,
+                    )
                     active = false
                 }
             },
@@ -192,6 +224,7 @@ internal fun LinearScrollGesture(
 private suspend fun AwaitPointerEventScope.runLinearDrag(
     down: PointerInputChange,
     startY: Float,
+    snapshot: LinearScrollSnapshot,
     model: LinearScrollModel,
     listState: LazyListState,
     scrollJob: MutableState<Job?>,
@@ -199,11 +232,11 @@ private suspend fun AwaitPointerEventScope.runLinearDrag(
     onActiveIndexChange: ((Int?) -> Unit)?,
 ) {
     val railHeight = size.height.toFloat().coerceAtLeast(1f)
-    val totalPx = model.totalPx(listState)
-    val viewportPx = listViewportPx(listState)
+    val totalPx = model.totalPx(snapshot)
+    val viewportPx = listViewportPx(snapshot)
     val range = (totalPx - viewportPx).coerceAtLeast(0f)
-    val startScroll = model.scrolledPx(listState)
-    val count = listState.layoutInfo.totalItemsCount
+    val startScroll = model.scrolledPx(snapshot)
+    val count = snapshot.totalItemsCount
     // 滑过整个热区高度 = 滚完整个可达范围。
     val sensitivity = if (railHeight > 0f) range / railHeight else 0f
 
@@ -224,6 +257,19 @@ private suspend fun AwaitPointerEventScope.runLinearDrag(
         if (range > 0f) seek(startScroll + (change.position.y - startY) * sensitivity)
     }
 }
+
+private fun LazyListState.toLinearScrollSnapshot(): LinearScrollSnapshot =
+    LinearScrollSnapshot(
+        visibleItems =
+        layoutInfo.visibleItemsInfo.map { info ->
+            LinearScrollItem(index = info.index, size = info.size)
+        },
+        totalItemsCount = layoutInfo.totalItemsCount,
+        viewportSizePx = layoutInfo.viewportSize.height,
+        viewportEndOffsetPx = layoutInfo.viewportEndOffset,
+        firstVisibleItemIndex = firstVisibleItemIndex,
+        firstVisibleItemScrollOffset = firstVisibleItemScrollOffset,
+    )
 
 /** 按目标内容偏移定位列表：两端直接落到真首/真末，中间按条目 + 条目内偏移。 */
 private suspend fun seekList(listState: LazyListState, targetPx: Float, range: Float, count: Int, model: LinearScrollModel) {

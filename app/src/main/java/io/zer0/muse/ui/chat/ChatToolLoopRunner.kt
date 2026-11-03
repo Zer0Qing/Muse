@@ -101,7 +101,7 @@ internal object ContextOverflowSignals {
             "input length exceeds",
             "range of input length",
             "exceeded model token limit",
-            "输入过长",
+            "\u8f93\u5165\u8fc7\u957f",
             // 请求体过大：与「上下文放不下」是同一个处置（压缩后重发）
             "request entity too large",
             "request is too large",
@@ -116,8 +116,8 @@ internal object ContextOverflowSignals {
      */
     private val PAIRS: List<Pair<String, String>> =
         listOf(
-            "上下文" to "超",
-            "上下文" to "过长",
+            "\u4e0a\u4e0b\u6587" to "\u8d85",
+            "\u4e0a\u4e0b\u6587" to "\u8fc7\u957f",
             "context" to "too long",
         )
 
@@ -611,7 +611,7 @@ internal class ChatToolLoopRunner(
                         } catch (error: Exception) {
                             listOf(
                                 ChatStreamEvent.Error(
-                                    message = error.message ?: "非流式请求失败",
+                                        message = error.message ?: "non_stream_request_failed",
                                     throwable = error,
                                 ),
                             )
@@ -1606,6 +1606,20 @@ internal class ChatToolLoopRunner(
                     host.chatGenerationManager.touch(sessionId)
                     // M1.7: 工具执行结束 -> 回 GENERATING(续接请求或最终回复轮)
                     host.sessionManager.runtime(sessionId)?.markResumed(state.turnId)
+                    if (success && io.zer0.muse.automation.core.AutonomousAccessibilityApproval.actionFor(toolName) != null) {
+                        host.coroutineScope.launch(Dispatchers.IO) {
+                            val runtime =
+                                host.autonomousAccessibilityRuntime as? io.zer0.muse.automation.core.AutonomousAccessibilityRunRecorder
+                                    ?: return@launch
+                            val snapshot =
+                                runCatching { host.autonomousAccessibilityRuntime?.snapshot(sessionId) }.getOrNull()
+                                    ?: return@launch
+                            val pkg = snapshot.currentPackage ?: return@launch
+                            runCatching {
+                                runtime.recordSuccessfulRun(sessionId, pkg)
+                            }.onFailure { Logger.w("ChatVM", "记录自主无障碍执行失败: ${it.message}") }
+                        }
+                    }
                     if (ConversationRebuildFlagStore.current.shadowEventsEnabled) {
                         host.coroutineScope.launch(Dispatchers.IO) {
                             host.recordConversationShadow(

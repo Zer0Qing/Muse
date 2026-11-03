@@ -439,12 +439,17 @@ data class ProactiveMessageConfig(
     val agentOnly: Boolean = false,
 
     /**
-     * Agent Tab 会话是否也接收主动消息。
+     * Agent Tab 会话是否接收主动消息。默认 true：日常问候属于 Agent。
      *
-     * - true（默认）：与普通会话一视同仁；
-     * - false：主动消息**只发普通对话会话**，绝不落到 Agent Tab，也不会为此新建 Agent 会话。
+     * false 时仅阻止 Agent 落点；普通对话仍需 [allowPlainChatSession] 显式允许。
      */
     val agentSessionEnabled: Boolean = true,
+    /**
+     * 普通对话是否接收主动消息。默认 false：日常问候不污染任务对话框。
+     *
+     * 开启后，未单会话静音的普通对话才可成为主动消息落点。
+     */
+    val allowPlainChatSession: Boolean = false,
     /**
      * v2.0 5.9: 每日主动消息上限(默认 3)。
      *

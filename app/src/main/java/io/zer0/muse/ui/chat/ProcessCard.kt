@@ -33,9 +33,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.common.animation.MuseInkGlyph
 import io.zer0.muse.ui.common.animation.MuseThinkingGlyphSize
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -98,7 +101,15 @@ internal fun ProcessCard(
     // 计时：执行中每秒自增，结束时定格
     val elapsedMs = rememberElapsed(startedAt ?: taskCard?.createdAt, isActive)
 
-    val summaryText = resolveSummaryText(progressText, runningStep, doneSteps, totalSteps, isActive)
+    val summaryText =
+        resolveSummaryText(
+            context = LocalContext.current,
+            progressText = progressText,
+            runningStep = runningStep,
+            doneSteps = doneSteps,
+            totalSteps = totalSteps,
+            isActive = isActive,
+        )
 
     Surface(
         color = containerColor,
@@ -144,15 +155,24 @@ internal fun ProcessCard(
 }
 
 /** 摘要文案：优先用外部进度，其次当前步骤标题，最后是步数概况。 */
-private fun resolveSummaryText(progressText: String?, runningStep: TaskStep?, doneSteps: Int, totalSteps: Int, isActive: Boolean): String =
+private fun resolveSummaryText(
+    context: android.content.Context,
+    progressText: String?,
+    runningStep: TaskStep?,
+    doneSteps: Int,
+    totalSteps: Int,
+    isActive: Boolean,
+): String =
     when {
         progressText != null -> progressText
         runningStep != null ->
-            runningStep.title.ifBlank { runningStep.progressText.orEmpty() }.ifBlank { "执行中" }
-        totalSteps > 0 && doneSteps == totalSteps -> "已完成 $totalSteps 步"
-        totalSteps > 0 -> "已进行 $doneSteps / $totalSteps 步"
-        isActive -> "思考中"
-        else -> "已完成"
+            runningStep.title.ifBlank { runningStep.progressText.orEmpty() }
+                .ifBlank { context.getString(R.string.chat_process_running) }
+        totalSteps > 0 && doneSteps == totalSteps ->
+            context.getString(R.string.chat_process_steps_completed, totalSteps)
+        totalSteps > 0 -> context.getString(R.string.chat_process_steps_progress, doneSteps, totalSteps)
+        isActive -> context.getString(R.string.chat_process_thinking_now)
+        else -> context.getString(R.string.chat_process_completed)
     }
 
 /** 摘要行需要的全部信息，打成一个包，避免参数列表膨胀。 */
@@ -280,6 +300,7 @@ private fun ProcessStepList(steps: List<TaskStep>) {
  */
 @Composable
 private fun ProcessStepRow(step: TaskStep, depth: Int) {
+    val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
     val statusColor =
         when (step.status) {
@@ -306,7 +327,9 @@ private fun ProcessStepRow(step: TaskStep, depth: Int) {
                     .background(statusColor),
             )
             Text(
-                text = step.title.ifBlank { step.toolName.ifBlank { "步骤" } },
+                text = step.title.ifBlank {
+                    step.toolName.ifBlank { context.getString(R.string.chat_process_step_fallback) }
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = scheme.onSurface,
                 maxLines = 1,
@@ -322,7 +345,7 @@ private fun ProcessStepRow(step: TaskStep, depth: Int) {
             }
             if (step.status == TaskStepStatus.RUNNING) {
                 Text(
-                    text = "进行中",
+                    text = stringResource(R.string.chat_process_running_status),
                     style = MaterialTheme.typography.labelSmall,
                     color = scheme.primary,
                 )

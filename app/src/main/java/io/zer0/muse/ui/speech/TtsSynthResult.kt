@@ -45,10 +45,10 @@ internal suspend fun resolveCloudSynthOutcome(
     synthWithSystem: suspend () -> Boolean,
 ): TtsSynthResult {
     if (cloudOk) return TtsSynthResult.Success
-    if (!systemTtsReady) return TtsSynthResult.Failure("$failureReason（系统 TTS 不可用）")
+    if (!systemTtsReady) return TtsSynthResult.Failure("$failureReason,tts_system_unavailable")
     return if (synthWithSystem()) {
         TtsSynthResult.SystemFallback(failureReason)
     } else {
-        TtsSynthResult.Failure("$failureReason（系统 TTS 合成失败）")
+        TtsSynthResult.Failure("$failureReason,tts_system_synthesis_failed")
     }
 }

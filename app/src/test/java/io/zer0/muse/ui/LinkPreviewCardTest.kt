@@ -30,4 +30,16 @@ class LinkPreviewCardTest {
         assertFalse(data.isLoading)
         assertFalse(data.isFailed)
     }
+
+    @Test
+    fun `纯文本不创建链接预览状态`() {
+        assertFalse(shouldResolveLinkPreviews("这是一段没有链接的长消息。"))
+        assertFalse(shouldResolveLinkPreviews("ftp://example.com 不是网页链接"))
+    }
+
+    @Test
+    fun `包含网页链接的正文保留链接预览`() {
+        assertEquals(true, shouldResolveLinkPreviews("参考 https://example.com/article"))
+        assertEquals(true, shouldResolveLinkPreviews("参考 HTTPS://EXAMPLE.COM/article"))
+    }
 }

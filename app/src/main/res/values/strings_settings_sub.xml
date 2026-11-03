@@ -571,6 +571,8 @@
     <string name="settings_agent_dm_subtitle">查看 Agent 间私信往来</string>
     <string name="settings_agent_agent_only">仅Agent会话</string>
     <string name="settings_agent_agent_only_subtitle">开启后只有Agent助手会发送主动消息，任务会话不会</string>
+    <string name="settings_agent_plain_chat_enabled">允许普通对话接收主动消息</string>
+    <string name="settings_agent_plain_chat_enabled_subtitle">默认关闭，避免主动消息污染任务对话；也可在单个对话右上角单独静音</string>
     <string name="settings_agent_temperature">生成温度</string>
     <string name="settings_agent_temperature_hint">决策阶段用 temperature×0.5(更确定)，生成阶段用本值。值越大越有创造力，越小越稳定</string>
     <string name="settings_agent_temperature_stable">0.0 稳定</string>
@@ -769,7 +771,7 @@
     <string name="settings_chat_carry_over_count">带入 %1$d 条消息</string>
     <string name="settings_chat_carry_over_count_hint">约 %1$d 轮问答（用户与助手各算一条）</string>
     <string name="settings_agent_agent_session_enabled">Agent 会话</string>
-    <string name="settings_agent_agent_session_enabled_subtitle">关闭后主动消息只发普通对话会话，不会出现在 Agent Tab</string>
+    <string name="settings_agent_agent_session_enabled_subtitle">关闭后不会把主动消息发到 Agent 会话，也不会为此新建 Agent 会话</string>
     <string name="connection_skills_title">技能与技能包</string>
     <string name="connection_skills_subtitle">共 %1$d 个自定义技能，其中 %2$d 个来自 SKILL.md 能力包</string>
 </resources>

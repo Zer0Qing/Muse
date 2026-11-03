@@ -511,11 +511,11 @@ private fun SubagentThreadRow(
         if (onClose != null) {
             IconButton(
                 onClick = onClose,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = MuseIcons.x,
-                    contentDescription = "关闭子任务",
+                    contentDescription = stringResource(R.string.subagent_task_close_cd),
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(16.dp),
                 )

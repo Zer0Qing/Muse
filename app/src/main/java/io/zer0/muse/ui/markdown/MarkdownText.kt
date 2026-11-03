@@ -106,6 +106,16 @@ private val CITATION_REGEX = Regex("""\[(\d+)]""")
 // 注: `!` 保留排除(中文全角感叹号 ! 后接中文文本时不应纳入 URL)。
 internal val URL_AUTOLINK_REGEX = Regex("""https?://[^\s<>"'`)\]】」』。、,;!]+""")
 
+internal fun hasInlineMarkdownSyntax(text: String, hasCitations: Boolean = false): Boolean {
+    if (URL_AUTOLINK_REGEX.containsMatchIn(text)) return true
+    if (hasCitations && CITATION_REGEX.containsMatchIn(text)) return true
+    if ('`' in text || '[' in text || ']' in text || '*' in text) return true
+    return false
+}
+
+internal fun hasUrlAnnotations(annotatedText: AnnotatedString): Boolean =
+    annotatedText.getStringAnnotations("URL", 0, annotatedText.length).isNotEmpty()
+
 /**
  * 轻量 Markdown 渲染组件(自实现,不引入第三方库)。
  *
@@ -566,6 +576,15 @@ private fun LinkableText(
     /** v1.0.72: 长按非链接区域回调(气泡长按菜单用)。 */
     onLongPressOutside: (() -> Unit)? = null,
 ) {
+    if (!hasUrlAnnotations(annotatedText)) {
+        Text(
+            text = annotatedText,
+            style = style,
+            color = color,
+            modifier = modifier,
+        )
+        return
+    }
     val context = LocalContext.current
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     // v1.97: 待确认的 URL(null 表示无待确认链接)
@@ -958,7 +977,9 @@ fun parseInline(
     codeBgColor: Color = Color.Unspecified,
     citationUrls: List<String> = emptyList(),
     citationColor: Color = linkColor,
-): AnnotatedString = buildAnnotatedString {
+): AnnotatedString {
+    if (!hasInlineMarkdownSyntax(text, citationUrls.isNotEmpty())) return AnnotatedString(text)
+    return buildAnnotatedString {
     // L2 修复: 正则已提升为文件级 private val(INLINE_REGEX / CITATION_REGEX),此处直接引用
     // Phase 8.4: 单独走 [N] 引用扫描(在主正则之后),避免与 [text](url) 冲突
     var lastEnd = 0
@@ -1026,6 +1047,7 @@ fun parseInline(
             baseColor,
             linkColor,
         )
+    }
     }
 }
 

@@ -382,6 +382,7 @@
     <string name="subagent_task_completed">Concluído</string>
     <string name="subagent_task_failed">Fracassado</string>
     <string name="subagent_task_cancel">Cancelar</string>
+    <string name="subagent_task_close_cd">Fechar tarefa do subagente</string>
 
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">Sem título</string>

@@ -260,6 +260,8 @@ val appModule = module {
             outcomes = get(),
         )
     }
+    single { get<MuseDb>().sessionProactivePreferenceDao() }
+    single { io.zer0.muse.proactive.ProactiveSessionPreferenceRepository(get()) }
     single {
         io.zer0.muse.proactive.ProactiveSources(
             factStore = get(),
@@ -273,6 +275,7 @@ val appModule = module {
             assistants = get(),
             notifier = get(),
             generations = get(),
+            proactiveSessionPreferences = get(),
         )
     }
     single { io.zer0.muse.proactive.ProactiveComposer(chatService = get(), promptAssembler = get()) }

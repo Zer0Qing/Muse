@@ -1,6 +1,17 @@
 package io.zer0.muse
 
 import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.conversation.core.ConversationWindowReader
+import io.zer0.muse.conversation.runtime.ConversationSessionController
+import io.zer0.muse.conversation.ui.ConversationPageModel
+import io.zer0.muse.conversation.ui.ConversationViewModel
+import io.zer0.muse.data.conversation.RoomConversationMessageSource
+import io.zer0.muse.data.conversation.RoomConversationStore
+import io.zer0.muse.data.conversation.RoomConversationWindowSource
+import io.zer0.muse.data.conversation.RoomSubmitCommandPort
+import io.zer0.muse.data.conversation.SelectionSnapshotResolver
+import io.zer0.muse.data.conversation.LegacyConversationMigrator
+import org.koin.core.module.dsl.viewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -8,6 +19,32 @@ import org.koin.dsl.module
  * P2-3 拆域：ToolOrchestrator / 对话树快照 / ChatViewModel 注册独立模块。
  */
 val appChatModule = module {
+
+    single { RoomConversationStore(get()) }
+    single { RoomConversationWindowSource(get(), get()) }
+    single { RoomConversationMessageSource(get()) }
+    single { RoomSubmitCommandPort(get(), get()) }
+    single { LegacyConversationMigrator(get(), get()) }
+    single { SelectionSnapshotResolver(get(), get()) }
+
+    viewModel {
+        ConversationViewModel(
+            controllerFactory = { sessionId, pageModel: ConversationPageModel ->
+                ConversationSessionController(
+                    sessionId = sessionId,
+                    submitCommand = get(),
+                    windowReader = ConversationWindowReader(get()),
+                    messageSource = get<RoomConversationMessageSource>(),
+                    pageModel = pageModel,
+                ).also {
+                    require(sessionId.isNotBlank()) { "session id must not be blank" }
+                }
+            },
+            selectionResolver = { sessionId ->
+                get<SelectionSnapshotResolver>().resolve(sessionId, null)
+            },
+        )
+    }
 
     // Phase 8.2 / 8.4 / 8.5 / 8.6 / 8.7 / 8.8 / 9.1: ChatViewModel 注入 20 个依赖
     // v0.30-a: 新增 systemPromptAssembler

@@ -977,6 +977,20 @@ fun AgentSettingsPage(
                             },
                         )
                         SettingsGroupDivider()
+                        SettingsSwitchRow(
+                            icon = MuseIcons.chat,
+                            title = stringResource(R.string.settings_agent_plain_chat_enabled),
+                            subtitle = stringResource(R.string.settings_agent_plain_chat_enabled_subtitle),
+                            checked = proactiveConfig.allowPlainChatSession,
+                            onCheckedChange = { v ->
+                                scope.launch {
+                                    settings.saveProactiveMessageConfig(
+                                        proactiveConfig.copy(allowPlainChatSession = v),
+                                    )
+                                }
+                            },
+                        )
+                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.switch,
                             title = stringResource(R.string.settings_agent_temperature),

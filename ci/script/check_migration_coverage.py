@@ -50,16 +50,14 @@ def resolve_current_version(db_text: str) -> int | None:
 
     早期只匹配字面量,FactDb 改用常量后会被误报"无法解析当前 version"(口径问题,非链断)。
     """
-    literal = VERSION_RE.search(db_text)
+    literal = re.search(r"\bversion\s*=\s*(\d+)", db_text)
     if literal:
         return int(literal.group(1))
-    ref = CONST_VERSION_RE.search(db_text)
+    ref = re.search(r"\bversion\s*=\s*([A-Za-z_][A-Za-z0-9_.]*)", db_text)
     if not ref:
         return None
-    decl = re.search(
-        rf"const\s+val\s+{re.escape(ref.group(1))}\s*=\s*(\d+)",
-        db_text,
-    )
+    symbol = re.escape(ref.group(1).rsplit(".", 1)[-1])
+    decl = re.search(rf"const\s+val\s+{symbol}\s*=\s*(\d+)", db_text)
     return int(decl.group(1)) if decl else None
 
 

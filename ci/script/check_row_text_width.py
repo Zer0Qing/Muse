@@ -159,7 +159,13 @@ def scan_file(path: Path) -> list[tuple[int, str]]:
             is_slot = bool(SLOT_LAMBDA.search(line))
             if m and not is_slot:
                 cur[1] += 1  # 文本子项
+                # 这是保守的启发式：显式 weight 的跨行 Text 可能把 modifier
+                # 放在后续行；先抽完整个调用再判断，避免漏报。
                 call_text, end_line = _extract_call(lines, i)
+                if WIDTH_SAFE.search(call_text) and not LINES_SAFE.search(call_text):
+                    depth += opens - closes
+                    i += 1
+                    continue
                 has_width = bool(WIDTH_SAFE.search(call_text))
                 has_lines = bool(LINES_SAFE.search(call_text))
                 if not has_width and not has_lines:

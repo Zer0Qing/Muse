@@ -78,6 +78,10 @@ fun extractUrls(text: String): List<String> {
     return URL_REGEX.findAll(text).map { it.value.trimEnd('.', ',', ')', '(', '[', ']', '!', '?', ';', ':') }.distinct().toList()
 }
 
+internal fun shouldResolveLinkPreviews(text: String): Boolean =
+    text.contains("http://", ignoreCase = true) ||
+        text.contains("https://", ignoreCase = true)
+
 /**
  * Phase 2: 从 URL 提取展示用来源域名(去掉 www. 前缀;解析失败回退原始 URL)。
  */
@@ -239,6 +243,7 @@ private fun fetchHtml(url: String): String {
  */
 @Composable
 fun rememberLinkPreviews(text: String): List<LinkPreviewData> {
+    if (!shouldResolveLinkPreviews(text)) return emptyList()
     val urls = remember(text) { extractUrls(text).take(2) }
     val previews by produceState(
         initialValue = urls.map { LinkPreviewData(url = it, isLoading = true) },

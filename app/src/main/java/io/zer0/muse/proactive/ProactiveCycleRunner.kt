@@ -264,7 +264,12 @@ class ProactiveCycleRunner(
         loader.deriveThoughts(assistant.id, now)
 
         val relation = stores.relations.getOrCreate(assistant.id, now)
-        val sessionId = loader.resolveSession(assistant)
+        val sessionId =
+            if (trigger == ProactiveScheduler.TRIGGER_MANUAL) {
+                loader.resolveManualTestRoute(assistant)?.sessionId
+            } else {
+                loader.resolveSession(assistant)
+            }
         val context = sessionId?.let { loader.loadSessionContext(it, assistant.id) }
         val decision = context?.let {
             ProactiveTimingEngine.evaluate(
@@ -453,7 +458,7 @@ class ProactiveCycleRunner(
             runtime.notifier.notifyProactiveMessage(
                 assistant = ready.assistant,
                 preview = message.content,
-                target = MuseNotificationTarget.Session(ready.sessionId),
+                target = MuseNotificationTarget.ProactiveOutcome(ready.sessionId, outcomeId),
                 outcomeId = outcomeId,
             )
         }.exceptionOrNull()

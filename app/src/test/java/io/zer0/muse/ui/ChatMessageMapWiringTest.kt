@@ -31,6 +31,22 @@ class ChatMessageMapWiringTest {
         )
     }
 
+    @Test
+    fun `message map resolves lazy rows back to their owning message`() {
+        val source = locateChatScreenSource()
+        val mapCall =
+            source.substringAfter("MessageMapBar(")
+                .substringBefore("modifier =")
+
+        assertTrue(
+            "a split long message occupies multiple lazy rows, so map previews need the owning message index",
+            mapCall.contains("messageIndexForListIndex"),
+        )
+        assertTrue(mapCall.contains("messageAtRow("))
+        assertTrue(mapCall.contains("renderRows"))
+        assertTrue(mapCall.contains("rowIndex - messageStartIndex"))
+    }
+
     private fun locateChatScreenSource(): String {
         val candidates =
             listOf(

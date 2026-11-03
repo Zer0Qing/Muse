@@ -197,6 +197,9 @@ class BackupService(
         val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity> = emptyList(),
         val conversationEvents: List<ConversationEventEntity> = emptyList(),
         val conversationTurns: List<ConversationTurnEntity> = emptyList(),
+        val conversationCommandReceipts: List<io.zer0.muse.data.conversation.ConversationCommandReceiptEntity> = emptyList(),
+        val conversationSelections: List<io.zer0.muse.data.conversation.ConversationSelectionEntity> = emptyList(),
+        val conversationDisplaySlots: List<io.zer0.muse.data.conversation.ConversationDisplaySlotEntity> = emptyList(),
         val messageParts: List<MessagePartEntity> = emptyList(),
         val messageOutboxes: List<MessageOutboxEntity> = emptyList(),
         // P0-10: 子助手分库事实(facts_<id>.db)— assistantId → facts
@@ -224,6 +227,8 @@ class BackupService(
         val proactiveOutcomes: List<io.zer0.muse.data.proactive.ProactiveOutcomeEntity> = emptyList(),
         /** v2.6.9: 关系亲密度与主动等级。 */
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity> = emptyList(),
+        /** v2.6.21: 单个会话的主动消息静音偏好。 */
+        val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity> = emptyList(),
         val groupChatMemories: List<GroupChatMemoryEntity> = emptyList(),
         /**
          * v2.6.8: 卡片实体（`card_entities`）。
@@ -255,13 +260,16 @@ class BackupService(
         scheduledTasks.isNotEmpty() || scheduledTaskExecutions.isNotEmpty() || knowledgeDocs.isNotEmpty() ||
         knowledgeChunks.isNotEmpty() || experiences.isNotEmpty() || milestones.isNotEmpty() ||
         agentMessages.isNotEmpty() || quickNotes.isNotEmpty() || worldBookEntries.isNotEmpty() ||
-        conversationEvents.isNotEmpty() || conversationTurns.isNotEmpty() || messageParts.isNotEmpty() ||
+        conversationEvents.isNotEmpty() || conversationTurns.isNotEmpty() ||
+        conversationCommandReceipts.isNotEmpty() || conversationSelections.isNotEmpty() ||
+        conversationDisplaySlots.isNotEmpty() || messageParts.isNotEmpty() ||
         messageOutboxes.isNotEmpty() || scopedFacts.isNotEmpty() ||
         translateHistories.isNotEmpty() || knowledgeBases.isNotEmpty() || knowledgeFolders.isNotEmpty() ||
         subagentThreads.isNotEmpty() ||
         toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || assistantRelationships.isNotEmpty() ||
         sessionTodos.isNotEmpty() ||
         pendingThoughts.isNotEmpty() || proactiveOutcomes.isNotEmpty() || proactiveRelations.isNotEmpty() ||
+        sessionProactivePreferences.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
         cardEntities.isNotEmpty() ||
         settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty()
@@ -502,6 +510,9 @@ class BackupService(
                 worldBookEntries = db.worldBookDao().getAll(),
                 conversationEvents = db.conversationEventDao().getAll(),
                 conversationTurns = db.conversationTurnDao().getAll(),
+                conversationCommandReceipts = db.conversationCommandReceiptDao().getAll(),
+                conversationSelections = db.conversationSelectionDao().getAll(),
+                conversationDisplaySlots = db.conversationDisplaySlotDao().getAll(),
                 messageParts = db.messagePartDao().getAll(),
                 messageOutboxes = db.messageOutboxDao().getAll(),
                 translateHistories = db.translateHistoryDao().getAll(),
@@ -515,6 +526,7 @@ class BackupService(
                 pendingThoughts = db.pendingThoughtDao().getAll(),
                 proactiveOutcomes = db.proactiveOutcomeDao().getAll(),
                 proactiveRelations = db.proactiveRelationDao().getAll(),
+                sessionProactivePreferences = db.sessionProactivePreferenceDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8: 卡片实体（NDJSON 导出，与单 JSON 同一定序）。
                 // v2.6.9: 走 DAO 全量查询，不再手写列清单（见 CardEntityBackup.kt）。
@@ -550,6 +562,9 @@ class BackupService(
         val worldBookEntries = muse.worldBookEntries
         val conversationEvents = muse.conversationEvents
         val conversationTurns = muse.conversationTurns
+        val conversationCommandReceipts = muse.conversationCommandReceipts
+        val conversationSelections = muse.conversationSelections
+        val conversationDisplaySlots = muse.conversationDisplaySlots
         val messageParts = muse.messageParts
         val messageOutboxes = muse.messageOutboxes
         val translateHistories = muse.translateHistories
@@ -563,6 +578,7 @@ class BackupService(
         val pendingThoughts = muse.pendingThoughts
         val proactiveOutcomes = muse.proactiveOutcomes
         val proactiveRelations = muse.proactiveRelations
+        val sessionProactivePreferences = muse.sessionProactivePreferences
         val groupChatMemories = muse.groupChatMemories
         // v2.6.8: 卡片实体。
         val cardEntities = muse.cardEntities
@@ -608,6 +624,9 @@ class BackupService(
             put("worldBookEntries", worldBookEntries.size)
             put("conversationEvents", conversationEvents.size)
             put("conversationTurns", conversationTurns.size)
+            put("conversationCommandReceipts", conversationCommandReceipts.size)
+            put("conversationSelections", conversationSelections.size)
+            put("conversationDisplaySlots", conversationDisplaySlots.size)
             put("messageParts", messageParts.size)
             put("messageOutboxes", messageOutboxes.size)
             put("scopedFacts", scopedFactIds.size)
@@ -621,6 +640,7 @@ class BackupService(
             put("pendingThoughts", pendingThoughts.size)
             put("proactiveOutcomes", proactiveOutcomes.size)
             put("proactiveRelations", proactiveRelations.size)
+            put("sessionProactivePreferences", sessionProactivePreferences.size)
             put("assistantRelationships", assistantRelationships.size)
             put("groupChatMemories", groupChatMemories.size)
             put("cardEntities", cardEntities.size)
@@ -766,6 +786,24 @@ class BackupService(
         writeTypedLines(writer, "subagentThread", subagentThreads, SubagentThreadEntity.serializer())
         writeTypedLines(writer, "toolRound", toolRounds, ToolRoundEntity.serializer())
         writeTypedLines(writer, "sessionBranchHead", sessionBranchHeads, SessionBranchHeadEntity.serializer())
+        writeTypedLines(
+            writer,
+            "conversationCommandReceipt",
+            conversationCommandReceipts,
+            io.zer0.muse.data.conversation.ConversationCommandReceiptEntity.serializer(),
+        )
+        writeTypedLines(
+            writer,
+            "conversationSelection",
+            conversationSelections,
+            io.zer0.muse.data.conversation.ConversationSelectionEntity.serializer(),
+        )
+        writeTypedLines(
+            writer,
+            "conversationDisplaySlot",
+            conversationDisplaySlots,
+            io.zer0.muse.data.conversation.ConversationDisplaySlotEntity.serializer(),
+        )
         writeTypedLines(writer, "groupChatMemory", groupChatMemories, GroupChatMemoryEntity.serializer())
         // v2.6.8: 卡片实体。停靠卡离开消息流后只存在这张表里，漏写就是换机丢卡。
         writeTypedLines(writer, "cardEntity", cardEntities, CardEntityRecord.serializer())
@@ -794,6 +832,12 @@ class BackupService(
             "proactiveRelation",
             proactiveRelations,
             io.zer0.muse.data.proactive.ProactiveRelationEntity.serializer(),
+        )
+        writeTypedLines(
+            writer,
+            "sessionProactivePreference",
+            sessionProactivePreferences,
+            io.zer0.muse.proactive.SessionProactivePreferenceEntity.serializer(),
         )
         writeTypedLines(
             writer,
@@ -903,6 +947,9 @@ class BackupService(
         val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity>,
         val conversationEvents: List<ConversationEventEntity>,
         val conversationTurns: List<ConversationTurnEntity>,
+        val conversationCommandReceipts: List<io.zer0.muse.data.conversation.ConversationCommandReceiptEntity>,
+        val conversationSelections: List<io.zer0.muse.data.conversation.ConversationSelectionEntity>,
+        val conversationDisplaySlots: List<io.zer0.muse.data.conversation.ConversationDisplaySlotEntity>,
         val messageParts: List<MessagePartEntity>,
         val messageOutboxes: List<MessageOutboxEntity>,
         // P0-10: 其余此前缺失的用户数据实体(换机恢复丢数据)
@@ -920,6 +967,7 @@ class BackupService(
         val pendingThoughts: List<io.zer0.muse.data.proactive.PendingThoughtEntity>,
         val proactiveOutcomes: List<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>,
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity>,
+        val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity>,
         /** v2.6.8: 卡片实体（`card_entities`）—— 停靠卡离开消息流后唯一的存身处。 */
         val cardEntities: List<CardEntityRecord>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
@@ -1033,6 +1081,12 @@ class BackupService(
             val subagentThreadBuf = mutableListOf<SubagentThreadEntity>()
             val toolRoundBuf = mutableListOf<ToolRoundEntity>()
             val sessionBranchHeadBuf = mutableListOf<SessionBranchHeadEntity>()
+            val conversationCommandReceiptBuf =
+                mutableListOf<io.zer0.muse.data.conversation.ConversationCommandReceiptEntity>()
+            val conversationSelectionBuf =
+                mutableListOf<io.zer0.muse.data.conversation.ConversationSelectionEntity>()
+            val conversationDisplaySlotBuf =
+                mutableListOf<io.zer0.muse.data.conversation.ConversationDisplaySlotEntity>()
             val groupChatMemoryBuf = mutableListOf<GroupChatMemoryEntity>()
             // v2.6.7 fix (AUDIT F1): 待办与角色关系的恢复缓冲区。
             val sessionTodoBuf = mutableListOf<io.zer0.muse.data.todo.SessionTodoEntity>()
@@ -1040,6 +1094,8 @@ class BackupService(
             val pendingThoughtBuf = mutableListOf<io.zer0.muse.data.proactive.PendingThoughtEntity>()
             val proactiveOutcomeBuf = mutableListOf<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>()
             val proactiveRelationBuf = mutableListOf<io.zer0.muse.data.proactive.ProactiveRelationEntity>()
+            val sessionProactivePreferenceBuf =
+                mutableListOf<io.zer0.muse.proactive.SessionProactivePreferenceEntity>()
             val assistantRelationshipBuf =
                 mutableListOf<io.zer0.muse.data.relationship.AssistantRelationshipEntity>()
             // v2.6.8: 卡片实体恢复缓冲。
@@ -1072,6 +1128,9 @@ class BackupService(
                 db.worldBookDao().deleteAll()
                 db.conversationEventDao().deleteAll()
                 db.conversationTurnDao().deleteAll()
+                db.conversationCommandReceiptDao().deleteAll()
+                db.conversationSelectionDao().deleteAll()
+                db.conversationDisplaySlotDao().deleteAll()
                 db.messagePartDao().deleteAll()
                 db.messageOutboxDao().deleteAll()
                 db.translateHistoryDao().deleteAll()
@@ -1081,6 +1140,7 @@ class BackupService(
                 db.pendingThoughtWriteDao().deleteAll()
                 db.proactiveOutcomeDao().deleteAll()
                 db.proactiveRelationDao().deleteAll()
+                db.sessionProactivePreferenceDao().deleteAll()
                 db.assistantRelationshipDao().deleteAll()
                 db.subagentThreadDao().deleteAll()
                 db.toolRoundDao().deleteAll()
@@ -1359,6 +1419,51 @@ class BackupService(
                                 }
                             }
                         }
+                        "conversationCommandReceipt" -> obj["data"]?.let {
+                            conversationCommandReceiptBuf.add(
+                                json.decodeFromJsonElement(
+                                    io.zer0.muse.data.conversation.ConversationCommandReceiptEntity.serializer(),
+                                    it,
+                                ),
+                            )
+                            if (conversationCommandReceiptBuf.size >= IMPORT_BATCH) {
+                                flushBatch(conversationCommandReceiptBuf) { batch ->
+                                    db.withTransaction {
+                                        batch.forEach { db.conversationCommandReceiptDao().insert(it) }
+                                    }
+                                }
+                            }
+                        }
+                        "conversationSelection" -> obj["data"]?.let {
+                            conversationSelectionBuf.add(
+                                json.decodeFromJsonElement(
+                                    io.zer0.muse.data.conversation.ConversationSelectionEntity.serializer(),
+                                    it,
+                                ),
+                            )
+                            if (conversationSelectionBuf.size >= IMPORT_BATCH) {
+                                flushBatch(conversationSelectionBuf) { batch ->
+                                    db.withTransaction {
+                                        batch.forEach { db.conversationSelectionDao().insert(it) }
+                                    }
+                                }
+                            }
+                        }
+                        "conversationDisplaySlot" -> obj["data"]?.let {
+                            conversationDisplaySlotBuf.add(
+                                json.decodeFromJsonElement(
+                                    io.zer0.muse.data.conversation.ConversationDisplaySlotEntity.serializer(),
+                                    it,
+                                ),
+                            )
+                            if (conversationDisplaySlotBuf.size >= IMPORT_BATCH) {
+                                flushBatch(conversationDisplaySlotBuf) { batch ->
+                                    db.withTransaction {
+                                        batch.forEach { db.conversationDisplaySlotDao().upsert(it) }
+                                    }
+                                }
+                            }
+                        }
                         "messagePart" -> obj["data"]?.let {
                             messagePartBuf.add(json.decodeFromJsonElement(MessagePartEntity.serializer(), it))
                             if (messagePartBuf.size >= IMPORT_BATCH) {
@@ -1496,6 +1601,21 @@ class BackupService(
                                 }
                             }
                         }
+                        "sessionProactivePreference" -> obj["data"]?.let {
+                            sessionProactivePreferenceBuf.add(
+                                json.decodeFromJsonElement(
+                                    io.zer0.muse.proactive.SessionProactivePreferenceEntity.serializer(),
+                                    it,
+                                ),
+                            )
+                            if (sessionProactivePreferenceBuf.size >= IMPORT_BATCH) {
+                                flushBatch(sessionProactivePreferenceBuf) { batch ->
+                                    db.withTransaction {
+                                        batch.forEach { db.sessionProactivePreferenceDao().upsert(it) }
+                                    }
+                                }
+                            }
+                        }
                         "assistantRelationship" -> obj["data"]?.let {
                             assistantRelationshipBuf.add(
                                 json.decodeFromJsonElement(
@@ -1612,6 +1732,15 @@ class BackupService(
                 flushBatch(subagentThreadBuf) { batch -> db.withTransaction { batch.forEach { db.subagentThreadDao().upsert(it) } } }
                 flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
                 flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
+                flushBatch(conversationCommandReceiptBuf) { batch ->
+                    db.withTransaction { batch.forEach { db.conversationCommandReceiptDao().insert(it) } }
+                }
+                flushBatch(conversationSelectionBuf) { batch ->
+                    db.withTransaction { batch.forEach { db.conversationSelectionDao().insert(it) } }
+                }
+                flushBatch(conversationDisplaySlotBuf) { batch ->
+                    db.withTransaction { batch.forEach { db.conversationDisplaySlotDao().upsert(it) } }
+                }
                 flushBatch(groupChatMemoryBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatMemoryDao().insert(it) } } }
                 // v2.6.7 fix (AUDIT F1): 尾部 flush 待办与角色关系。
                 flushBatch(sessionTodoBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } } }
@@ -1624,6 +1753,11 @@ class BackupService(
                 }
                 flushBatch(proactiveRelationBuf) { batch ->
                     db.withTransaction { batch.forEach { db.proactiveRelationDao().upsert(it) } }
+                }
+                flushBatch(sessionProactivePreferenceBuf) { batch ->
+                    db.withTransaction {
+                        batch.forEach { db.sessionProactivePreferenceDao().upsert(it) }
+                    }
                 }
                 flushBatch(assistantRelationshipBuf) { batch ->
                     db.withTransaction { batch.forEach { db.assistantRelationshipDao().upsert(it) } }
@@ -2448,6 +2582,9 @@ class BackupService(
         val worldBookEntries: List<io.zer0.muse.worldbook.WorldBookEntryEntity>,
         val conversationEvents: List<ConversationEventEntity>,
         val conversationTurns: List<ConversationTurnEntity>,
+        val conversationCommandReceipts: List<io.zer0.muse.data.conversation.ConversationCommandReceiptEntity>,
+        val conversationSelections: List<io.zer0.muse.data.conversation.ConversationSelectionEntity>,
+        val conversationDisplaySlots: List<io.zer0.muse.data.conversation.ConversationDisplaySlotEntity>,
         val messageParts: List<MessagePartEntity>,
         val messageOutboxes: List<MessageOutboxEntity>,
         // P0-10: 其余此前缺失的用户数据实体(换机恢复丢数据)
@@ -2465,6 +2602,7 @@ class BackupService(
         val pendingThoughts: List<io.zer0.muse.data.proactive.PendingThoughtEntity>,
         val proactiveOutcomes: List<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>,
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity>,
+        val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity>,
         /** v2.6.8: 卡片实体。 */
         val cardEntities: List<CardEntityRecord>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
@@ -2535,6 +2673,9 @@ class BackupService(
                 worldBookEntries = db.worldBookDao().getAll(),
                 conversationEvents = db.conversationEventDao().getAll(),
                 conversationTurns = db.conversationTurnDao().getAll(),
+                conversationCommandReceipts = db.conversationCommandReceiptDao().getAll(),
+                conversationSelections = db.conversationSelectionDao().getAll(),
+                conversationDisplaySlots = db.conversationDisplaySlotDao().getAll(),
                 messageParts = db.messagePartDao().getAll(),
                 messageOutboxes = db.messageOutboxDao().getAll(),
                 translateHistories = db.translateHistoryDao().getAll(),
@@ -2548,6 +2689,7 @@ class BackupService(
                 pendingThoughts = db.pendingThoughtDao().getAll(),
                 proactiveOutcomes = db.proactiveOutcomeDao().getAll(),
                 proactiveRelations = db.proactiveRelationDao().getAll(),
+                sessionProactivePreferences = db.sessionProactivePreferenceDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8 / v2.6.9: 卡片实体。走 DAO 全量查询（Room 生成的映射，
                 // 实体加列不会再静默丢字段）。导出即按停靠顺序定序。
@@ -2584,6 +2726,9 @@ class BackupService(
         val worldBookEntries = snap.worldBookEntries
         val conversationEvents = snap.conversationEvents
         val conversationTurns = snap.conversationTurns
+        val conversationCommandReceipts = snap.conversationCommandReceipts
+        val conversationSelections = snap.conversationSelections
+        val conversationDisplaySlots = snap.conversationDisplaySlots
         val messageParts = snap.messageParts
         val messageOutboxes = snap.messageOutboxes
         val translateHistories = snap.translateHistories
@@ -2598,6 +2743,7 @@ class BackupService(
         // v2.6.7 fix (AUDIT F2): DbSnapshot 已读到待办，但构造 Backup 时漏传。
         // 单 JSON 导出会丢；且本函数同时是恢复失败回滚的快照来源。
         val sessionTodos = snap.sessionTodos
+        val sessionProactivePreferences = snap.sessionProactivePreferences
         val groupChatMemories = snap.groupChatMemories
         // v2.6.8: 卡片实体（停靠卡 / 悬浮卡）。buildBackup 同时是恢复失败回滚的 recovery point
         // 来源，漏传就会在回滚时清空用户全部卡片。
@@ -2644,6 +2790,9 @@ class BackupService(
             worldBookEntries = worldBookEntries,
             conversationEvents = conversationEvents,
             conversationTurns = conversationTurns,
+            conversationCommandReceipts = conversationCommandReceipts,
+            conversationSelections = conversationSelections,
+            conversationDisplaySlots = conversationDisplaySlots,
             messageParts = messageParts,
             messageOutboxes = messageOutboxes,
             scopedFacts = scopedFacts,
@@ -2655,6 +2804,7 @@ class BackupService(
             sessionBranchHeads = sessionBranchHeads,
             assistantRelationships = assistantRelationships,
             sessionTodos = sessionTodos,
+            sessionProactivePreferences = sessionProactivePreferences,
             groupChatMemories = groupChatMemories,
             cardEntities = cardEntities,
             settingsSnapshot = settingsSnapshot,
@@ -2941,6 +3091,9 @@ class BackupService(
             db.worldBookDao().deleteAll()
             db.conversationEventDao().deleteAll()
             db.conversationTurnDao().deleteAll()
+            db.conversationCommandReceiptDao().deleteAll()
+            db.conversationSelectionDao().deleteAll()
+            db.conversationDisplaySlotDao().deleteAll()
             db.messagePartDao().deleteAll()
             db.messageOutboxDao().deleteAll()
             db.translateHistoryDao().deleteAll()
@@ -2950,6 +3103,7 @@ class BackupService(
             db.pendingThoughtWriteDao().deleteAll()
             db.proactiveOutcomeDao().deleteAll()
             db.proactiveRelationDao().deleteAll()
+            db.sessionProactivePreferenceDao().deleteAll()
             db.assistantRelationshipDao().deleteAll()
             db.subagentThreadDao().deleteAll()
             db.toolRoundDao().deleteAll()
@@ -2985,6 +3139,9 @@ class BackupService(
                 }
             }
             backup.conversationTurns.forEach { db.conversationTurnDao().upsert(it) }
+            backup.conversationCommandReceipts.forEach { db.conversationCommandReceiptDao().insert(it) }
+            backup.conversationSelections.forEach { db.conversationSelectionDao().insert(it) }
+            backup.conversationDisplaySlots.forEach { db.conversationDisplaySlotDao().upsert(it) }
             if (backup.messageParts.isNotEmpty()) db.messagePartDao().upsertAll(backup.messageParts)
             backup.messageOutboxes.forEach { db.messageOutboxDao().upsert(it) }
             backup.translateHistories.forEach { db.translateHistoryDao().insert(it) }
@@ -2996,6 +3153,7 @@ class BackupService(
             backup.pendingThoughts.forEach { db.pendingThoughtDao().upsert(it) }
             backup.proactiveOutcomes.forEach { db.proactiveOutcomeDao().upsert(it) }
             backup.proactiveRelations.forEach { db.proactiveRelationDao().upsert(it) }
+            backup.sessionProactivePreferences.forEach { db.sessionProactivePreferenceDao().upsert(it) }
             // v2.6.7: 角色关系此前只导出不恢复（既有缺口），换机后亲密度/关系标签全丢。
             backup.assistantRelationships.forEach { db.assistantRelationshipDao().upsert(it) }
             backup.subagentThreads.forEach { db.subagentThreadDao().upsert(it) }
@@ -3159,6 +3317,9 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "worldBookEntry" to "worldBookEntries",
     "conversationEvent" to "conversationEvents",
     "conversationTurn" to "conversationTurns",
+    "conversationCommandReceipt" to "conversationCommandReceipts",
+    "conversationSelection" to "conversationSelections",
+    "conversationDisplaySlot" to "conversationDisplaySlots",
     "messagePart" to "messageParts",
     "messageOutbox" to "messageOutboxes",
     "scopedFact" to "scopedFacts",
@@ -3172,6 +3333,7 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "pendingThought" to "pendingThoughts",
     "proactiveOutcome" to "proactiveOutcomes",
     "proactiveRelation" to "proactiveRelations",
+    "sessionProactivePreference" to "sessionProactivePreferences",
     "assistantRelationship" to "assistantRelationships",
     "cardEntity" to "cardEntities",
     "groupChatMemory" to "groupChatMemories",

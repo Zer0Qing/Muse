@@ -32,6 +32,7 @@ include(":app")          // 主应用模块(UI/ViewModel/核心逻辑)
 include(":ai")           // AI SDK 抽象层(Provider/Model/Tool/UIMessage)
 include(":memory")       // 记忆系统
 include(":common")       // 通用工具与扩展
+include(":conversation-core") // 平台无关的对话身份、命令、投影与运行合同
 // v1.97 gap7: 启用 :material3 模块 — 挂载 material-color-utilities 源码,
 // 提供 DynamicScheme.toColorScheme() 扩展,供 CustomTheme 基于种子色生成 ColorScheme
 include(":material3")    // Material 颜色扩展(种子色 → ColorScheme 生成器)

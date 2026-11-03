@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import io.zer0.muse.ui.theme.CardDataColors
+import io.zer0.muse.ui.theme.CardWarningColor
 
 /**
  * 卡片主题的精确值。
@@ -76,7 +78,7 @@ internal object CardTheme {
     /** 语义：一个成功、一个警示、一个错误。数量克制。 */
     private fun StringBuilder.appendSemantic(scheme: ColorScheme) {
         declare("--muse-good", scheme.tertiary)
-        declare("--muse-warn", Color(0xFFB07D20))
+        declare("--muse-warn", CardWarningColor)
         declare("--muse-danger", scheme.error)
     }
 
@@ -87,25 +89,7 @@ internal object CardTheme {
      * 并尽量贴近月桂绿的邻近色域，避免一屏里突然冒出高饱和的红紫。
      */
     private fun StringBuilder.appendDataColors(dark: Boolean) {
-        val palette = if (dark) {
-            listOf(
-                Color(0xFF4A9F70),
-                Color(0xFF5C8FA8),
-                Color(0xFFC08A4E),
-                Color(0xFF9A7FB0),
-                Color(0xFFB06A62),
-                Color(0xFF8C8A5A),
-            )
-        } else {
-            listOf(
-                Color(0xFF2A7A55),
-                Color(0xFF416F98),
-                Color(0xFFA86F35),
-                Color(0xFF7D6394),
-                Color(0xFF9D5750),
-                Color(0xFF6D7843),
-            )
-        }
+        val palette = if (dark) CardDataColors.dark else CardDataColors.light
         palette.forEachIndexed { index, color -> declare("--muse-d${index + 1}", color) }
     }
 

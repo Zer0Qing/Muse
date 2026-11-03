@@ -96,6 +96,9 @@ class ProactiveContextLoaderSessionTest {
             assistants = mockk(relaxed = true),
             notifier = mockk<MuseNotificationManager>(relaxed = true),
             generations = mockk<ChatGenerationManager>(relaxed = true),
+            proactiveSessionPreferences = ProactiveSessionPreferenceRepository(
+                database.sessionProactivePreferenceDao(),
+            ),
         ),
         sources = ProactiveSources(factStore = mockk(relaxed = true), milestoneDao = mockk(relaxed = true)),
     )
@@ -147,11 +150,11 @@ class ProactiveContextLoaderSessionTest {
     }
 
     @Test
-    fun `recent active plain session wins over older agent session`() = runTest {
+    fun `plain session can be selected when explicitly allowed`() = runTest {
+        every { settings.proactiveMessageConfigFlow } returns
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = false, allowPlainChatSession = true))
         seedSession("plain", updatedAt = now - 5 * MINUTE)
         seedUserMessage("plain", at = now - 6 * MINUTE)
-        seedSession("agent", updatedAt = now - 600 * MINUTE, isAgentSession = true)
-        seedUserMessage("agent", at = now - 601 * MINUTE)
 
         val pick = loader().resolveSessionPick(assistant)
 
@@ -162,17 +165,16 @@ class ProactiveContextLoaderSessionTest {
     }
 
     @Test
-    fun `plain session wins even when agent session is newer`() = runTest {
-        // 用户反馈「主动消息总发在 Agent 页」：Agent Tab 更新更晚，也不该抢落点。
-        seedSession("plain", updatedAt = now - 600 * MINUTE)
-        seedUserMessage("plain", at = now - 601 * MINUTE)
+    fun `agent session remains default even when plain session is more recent`() = runTest {
+        seedSession("plain", updatedAt = now - 5 * MINUTE)
+        seedUserMessage("plain", at = now - 6 * MINUTE)
         seedSession("agent", updatedAt = now - 5 * MINUTE, isAgentSession = true)
         seedUserMessage("agent", at = now - 6 * MINUTE)
 
         val pick = loader().resolveSessionPick(assistant)
 
-        assertEquals("Agent Tab 再新也不抢主动消息落点", "plain", pick?.sessionId)
-        assertEquals(ProactiveContextLoader.SessionSource.RECENT_ACTIVE, pick?.source)
+        assertEquals("主动消息默认落到 Agent 会话", "agent", pick?.sessionId)
+        assertEquals(ProactiveContextLoader.SessionSource.EXISTING_AGENT, pick?.source)
     }
 
     @Test
@@ -183,14 +185,14 @@ class ProactiveContextLoaderSessionTest {
         val pick = loader().resolveSessionPick(assistant)
 
         assertEquals("只在 Agent 里聊过就写回那个 Agent 会话", "agent", pick?.sessionId)
-        assertEquals(ProactiveContextLoader.SessionSource.RECENT_ANY, pick?.source)
+        assertEquals(ProactiveContextLoader.SessionSource.EXISTING_AGENT, pick?.source)
     }
 
     @Test
     fun `agent session is skipped when the switch is off`() = runTest {
         // 设置里关掉「Agent 会话」后：只有 Agent 会话可用时，宁可不发，也不落进 Agent Tab。
         every { settings.proactiveMessageConfigFlow } returns
-            flowOf(ProactiveMessageConfig(agentSessionEnabled = false))
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = false, allowPlainChatSession = true))
         seedSession("agent", updatedAt = now - 5 * MINUTE, isAgentSession = true)
         seedUserMessage("agent", at = now - 6 * MINUTE)
 
@@ -202,7 +204,7 @@ class ProactiveContextLoaderSessionTest {
     @Test
     fun `plain session still wins when the switch is off`() = runTest {
         every { settings.proactiveMessageConfigFlow } returns
-            flowOf(ProactiveMessageConfig(agentSessionEnabled = false))
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = false, allowPlainChatSession = true))
         seedSession("plain", updatedAt = now - 600 * MINUTE)
         seedUserMessage("plain", at = now - 601 * MINUTE)
         seedSession("agent", updatedAt = now - 5 * MINUTE, isAgentSession = true)
@@ -227,6 +229,8 @@ class ProactiveContextLoaderSessionTest {
 
     @Test
     fun `deleted session is skipped`() = runTest {
+        every { settings.proactiveMessageConfigFlow } returns
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = false, allowPlainChatSession = true))
         seedSession("deleted", updatedAt = now - 1 * MINUTE, deletedAt = now - 1 * MINUTE)
         seedUserMessage("deleted", at = now - 2 * MINUTE)
         seedSession("plain", updatedAt = now - 300 * MINUTE)
@@ -240,6 +244,8 @@ class ProactiveContextLoaderSessionTest {
 
     @Test
     fun `archived session is skipped`() = runTest {
+        every { settings.proactiveMessageConfigFlow } returns
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = false, allowPlainChatSession = true))
         seedSession("archived", updatedAt = now - 1 * MINUTE, archived = true)
         seedUserMessage("archived", at = now - 2 * MINUTE)
         seedSession("plain", updatedAt = now - 300 * MINUTE)
@@ -253,6 +259,8 @@ class ProactiveContextLoaderSessionTest {
 
     @Test
     fun `viewed session is picked when no session has user messages`() = runTest {
+        every { settings.proactiveMessageConfigFlow } returns
+            flowOf(ProactiveMessageConfig(agentSessionEnabled = false, allowPlainChatSession = true))
         // 该助手名下只有不说话的老房间（只有主动消息落过），第 1 级取不到
         seedSession("agent-old", updatedAt = now - 900 * MINUTE, isAgentSession = true)
         seedAssistantMessage("agent-old", at = now - 900 * MINUTE)

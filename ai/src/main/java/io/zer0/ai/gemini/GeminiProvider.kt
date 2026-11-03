@@ -141,13 +141,7 @@ class GeminiProvider(
         var body = buildRequestBody(
             system = system,
             contents = contents,
-            temperature = request.temperature,
-            maxTokens = request.maxTokens,
-            reasoningLevel = request.reasoningLevel,
-            supportsImageOutput = request.model.supportsImageOutput(),
-            tools = request.tools,
-            nativeWebSearch = request.nativeWebSearch,
-            modelId = request.model.id,
+            request = request,
         )
         // M-GEM2: buildUrl 可能抛 IllegalStateException(Vertex AI 配置缺失),包裹 try-catch 发 Error
         val url: String = try {
@@ -245,13 +239,7 @@ class GeminiProvider(
                             body = buildRequestBody(
                                 system = system,
                                 contents = contents,
-                                temperature = request.temperature,
-                                maxTokens = request.maxTokens,
-                                reasoningLevel = request.reasoningLevel,
-                                supportsImageOutput = request.model.supportsImageOutput(),
-                                tools = request.tools,
-                                nativeWebSearch = request.nativeWebSearch,
-                                modelId = request.model.id,
+                                request = request,
                                 forceThinkingLevel = true,
                             )
                             Logger.i(TAG, "流式请求被拒(不接受 thinking budget)，改用 thinking level 重发")
@@ -531,13 +519,7 @@ class GeminiProvider(
         val body = buildRequestBody(
             system = system,
             contents = contents,
-            temperature = request.temperature,
-            maxTokens = request.maxTokens,
-            reasoningLevel = request.reasoningLevel,
-            supportsImageOutput = request.model.supportsImageOutput(),
-            tools = request.tools,
-            nativeWebSearch = request.nativeWebSearch,
-            modelId = request.model.id,
+            request = request,
         )
         // M-GEM7: buildUrl/resolveToken 纳入 try-catch,原在 try 块外抛 IllegalStateException 会绕过错误处理
         // M-GEM13: Vertex AI 服务账号配置无效时 resolveToken 抛 RuntimeException
@@ -995,15 +977,16 @@ class GeminiProvider(
     private fun buildRequestBody(
         system: String?,
         contents: List<GeminiContent>,
-        temperature: Float?,
-        maxTokens: Int?,
-        reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO,
-        supportsImageOutput: Boolean = false,
-        tools: List<ToolDefinition>? = null,
-        nativeWebSearch: Boolean = false,
-        modelId: String? = null,
+        request: ChatRequest,
         forceThinkingLevel: Boolean = false,
     ): String {
+        val temperature = request.temperature
+        val maxTokens = request.maxTokens
+        val reasoningLevel = request.reasoningLevel
+        val supportsImageOutput = request.model.supportsImageOutput()
+        val tools = request.tools
+        val nativeWebSearch = request.nativeWebSearch
+        val modelId = request.model.id
         // 思考参数的两种写法：
         //  - Gemini 2 代及更早：thinkingConfig.thinkingBudget（token 数）
         //  - Gemini 3 代起（含 4 代 / Argon）：thinkingConfig.thinkingLevel（档位）

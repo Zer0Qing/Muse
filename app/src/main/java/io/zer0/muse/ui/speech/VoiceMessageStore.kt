@@ -96,8 +96,8 @@ class VoiceMessageStore(
         val staging = File(dir, target.name + TMP_SUFFIX)
         runCatching {
             tempFile.copyTo(staging, overwrite = true)
-            if (target.exists() && !target.delete()) error("旧存档删除失败: ${target.name}")
-            if (!staging.renameTo(target)) error("改名失败: ${staging.name}")
+            if (target.exists() && !target.delete()) error("voice_archive_delete_failed: ${target.name}")
+            if (!staging.renameTo(target)) error("voice_archive_rename_failed: ${staging.name}")
         }.onFailure { e ->
             Logger.w(TAG, "语音落盘失败: ${e.message}")
             runCatching { staging.delete() }

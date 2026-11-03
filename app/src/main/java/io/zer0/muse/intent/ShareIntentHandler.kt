@@ -38,7 +38,10 @@ class ShareIntentHandler(private val context: Context) {
     /** 解析结果。 */
     sealed class ShareResult {
         /** 打开指定会话。 */
-        data class OpenSession(val sessionId: String) : ShareResult()
+        data class OpenSession(
+            val sessionId: String,
+            val proactiveOutcomeId: String? = null,
+        ) : ShareResult()
 
         /**
          * 新建会话。
@@ -162,7 +165,10 @@ class ShareIntentHandler(private val context: Context) {
                 val id = segments.firstOrNull()
                 // M4: sessionId 格式校验 — 防注入,只允许字母/数字/下划线/短横线,长度 1-64
                 if (id != null && SESSION_ID_REGEX.matches(id)) {
-                    ShareResult.OpenSession(id)
+                    val outcomeId =
+                        uri.getQueryParameter("proactiveOutcomeId")
+                            ?.takeIf { SESSION_ID_REGEX.matches(it) }
+                    ShareResult.OpenSession(id, outcomeId)
                 } else {
                     if (id != null) Logger.w(TAG, "Deep link sessionId 格式非法,已忽略: $id")
                     ShareResult.None

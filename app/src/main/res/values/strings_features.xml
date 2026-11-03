@@ -567,6 +567,7 @@
     <string name="subagent_task_completed">已完成</string>
     <string name="subagent_task_failed">失败</string>
     <string name="subagent_task_cancel">取消</string>
+    <string name="subagent_task_close_cd">关闭子任务</string>
 
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">未命名</string>

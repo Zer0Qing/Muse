@@ -36,15 +36,15 @@ class AssistHandoffTest {
         assertTrue(prompt.contains("com.example.shop"))
         assertTrue(prompt.contains("订单详情"))
         assertTrue(prompt.contains("https://example.com/order/1"))
-        assertTrue("要标明来源: $prompt", prompt.startsWith("（来自系统助理）"))
+        assertTrue("要标明来源: $prompt", prompt.startsWith("[SYSTEM_ASSISTANT_CONTEXT]"))
     }
 
     @Test
     fun `an empty snapshot says so instead of pretending`() {
         val prompt = AssistHandoff.buildPrompt(AssistSnapshot())
 
-        assertTrue(prompt.contains("没能读到"))
-        assertFalse("不能凭空说看到了屏幕: $prompt", prompt.contains("屏幕上的文字"))
+        assertTrue(prompt.contains("assistant_context_unavailable"))
+        assertFalse("不能凭空说看到了屏幕: $prompt", prompt.contains("text="))
     }
 
     @Test
@@ -54,8 +54,8 @@ class AssistHandoffTest {
         )
 
         assertTrue(prompt.contains("com.example.app"))
-        assertFalse("空字段不该出现: $prompt", prompt.contains("内容提示"))
-        assertFalse(prompt.contains("屏幕上的文字"))
+        assertFalse("空字段不该出现: $prompt", prompt.contains("hint="))
+        assertFalse(prompt.contains("text="))
         assertFalse(prompt.contains("未知"))
     }
 

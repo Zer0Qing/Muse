@@ -101,6 +101,14 @@ class ProactiveDismissWiringTest {
         )
     }
 
+    @Test
+    fun `主动消息通知深链携带精确结果账 id`() {
+        val runner = source("io/zer0/muse/proactive/ProactiveCycleRunner.kt")
+        assertTrue(
+            runner.contains("ProactiveOutcome(ready.sessionId, outcomeId)"),
+        )
+    }
+
     // ══════════════════════════════════════════════════════════════
 
     /** 取某个调用点之后一小段源码，用来限定断言范围，避免整文件里别处的同名字符串蒙对。 */

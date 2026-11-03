@@ -829,6 +829,16 @@ class SessionRepository(
         return projectMessagesForRead(messageDao.getRecentBySession(sessionId, limit).reversed())
     }
 
+    /** 新对话链路读取当前窗口消息；按请求顺序返回，并复用完整 legacy 字段投影。 */
+    suspend fun getMessagesForConversationWindow(messageIds: List<String>): List<UIMessage> {
+        val ids = messageIds.filter(String::isNotBlank).distinct()
+        if (ids.isEmpty()) return emptyList()
+        val byId = messageDao.getByIds(ids).associateBy { it.id }
+        val ordered = ids.mapNotNull(byId::get)
+        val projectedById = projectMessagesInOrder(ordered).associateBy { it.id.toString() }
+        return ids.mapNotNull(projectedById::get)
+    }
+
     /** 计划卡恢复用:读取会话中已持久化的工具展示消息,不受聊天首屏分页限制。 */
     suspend fun getToolCallMessages(sessionId: String): List<UIMessage> = withContext(Dispatchers.IO) {
         messageDao.getToolCallMessagesBySession(sessionId).map { it.toUIMessage() }
@@ -1021,6 +1031,11 @@ class SessionRepository(
             )
             database.generationCheckpointDao().deleteByAssistantMessageId(request.assistantMessageId)
             database.generationCheckpointDao().deleteByUserMessageId(request.userMessageId)
+            val committedTurn = database.conversationTurnDao().getById(request.turnId)
+            val committedMessage = messageDao.getById(request.sessionId, entity.id)
+            check(committedTurn?.phase == "COMPLETED" && committedMessage?.id == entity.id) {
+                "conversation commit did not become visible in the transaction"
+            }
             MessageCommitResult.Committed
         }
     }
@@ -1941,6 +1956,13 @@ class SessionRepository(
         if (!ConversationRebuildFlagStore.current.useMessageProjection || entities.isEmpty()) {
             return orderConversationMessages(entities.map { it.toUIMessage() })
         }
+        return orderConversationMessages(projectMessagesInOrder(entities))
+    }
+
+    private suspend fun projectMessagesInOrder(entities: List<MessageEntity>): List<UIMessage> {
+        if (!ConversationRebuildFlagStore.current.useMessageProjection || entities.isEmpty()) {
+            return entities.map { it.toUIMessage() }
+        }
         val ids = entities.map { it.id }
         val parts = database.messagePartDao().getByMessages(ids)
         val projection = ConversationProjector.project(
@@ -1949,14 +1971,12 @@ class SessionRepository(
             useCommitSeq = ConversationRebuildFlagStore.current.useCommitSeq,
         )
         val byId = entities.associateBy { it.id }
-        return orderConversationMessages(
-            projection.messages.mapNotNull { projected ->
-                byId[projected.id]?.toUIMessage()?.copy(
-                    content = projected.content,
-                    reasoning = projected.reasoning,
-                )
-            },
-        )
+        return projection.messages.mapNotNull { projected ->
+            byId[projected.id]?.toUIMessage()?.copy(
+                content = projected.content,
+                reasoning = projected.reasoning,
+            )
+        }
     }
 
     /** 会话列表/系统提示只显示正文，隐藏 mood、mod、think 等内部块和卡片状态尾巴。 */

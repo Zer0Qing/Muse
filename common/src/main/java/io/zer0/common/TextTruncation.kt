@@ -91,12 +91,10 @@ object TextTruncation {
     fun tailText(text: String, maxLength: Int): String = tail(text, maxLength).text
 
     /** 默认省略标记：写明省略量与原文长度，避免模型误以为看到的就是全部。 */
-    private fun defaultMarker(omitted: Int, original: Int): String =
-        "\n\n[... 已省略 $omitted 字（原文 $original 字）...]\n\n"
+    private fun defaultMarker(omitted: Int, original: Int): String = "\n\n[... 已省略 $omitted 字（原文 $original 字）...]\n\n"
 
     /** 尾部截断的省略标记：省略的是开头，标记放在最前，保留的尾部紧随其后。 */
-    private fun defaultTailMarker(omitted: Int, original: Int): String =
-        "[... 已省略开头 $omitted 字（原文 $original 字），以下为末尾部分 ...]\n\n"
+    private fun defaultTailMarker(omitted: Int, original: Int): String = "[... 已省略开头 $omitted 字（原文 $original 字），以下为末尾部分 ...]\n\n"
 
     /**
      * 从头取 [count] 个字符，且不切断代理对（高位代理后紧跟低位代理才成对）。

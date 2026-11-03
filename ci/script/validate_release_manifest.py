@@ -15,6 +15,8 @@ import re
 import sys
 from pathlib import Path
 
+from generate_release_manifest import db_version_of
+
 COMMIT_RE = re.compile(r"^[0-9a-fA-F]{7,64}$")
 
 
@@ -24,13 +26,6 @@ def sha256_of(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def db_version_of(path: Path) -> int:
-    match = re.search(r"version\s*=\s*(\d+)", path.read_text(encoding="utf-8"))
-    if not match:
-        raise ValueError(f"无法从 {path} 解析 DB version")
-    return int(match.group(1))
 
 
 def validate_manifest(

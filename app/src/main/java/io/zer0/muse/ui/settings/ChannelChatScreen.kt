@@ -48,7 +48,10 @@ fun ChannelChatScreen(channelId: String, from: String, onBack: () -> Unit) {
     MusePageScaffold(
         topBar = {
             MuseTopBar(
-                title = prettifyContactLabel(from),
+                title = prettifyContactLabel(
+                    raw = from,
+                    groupLabel = stringResource(R.string.channel_contact_group_label),
+                ),
                 onBack = onBack,
             )
         },
@@ -111,7 +114,18 @@ fun ChannelChatScreen(channelId: String, from: String, onBack: () -> Unit) {
 @Composable
 private fun ChannelBubble(turn: ChannelConversationStore.Turn) {
     val isAssistant = turn.role == "assistant"
-    val body = remember(turn) { turnBody(turn) }
+    val imageLabel = stringResource(R.string.channel_conversation_image_placeholder)
+    val attachmentLabel = stringResource(R.string.channel_conversation_attachment_placeholder)
+    val emptyLabel = stringResource(R.string.channel_conversation_empty_placeholder)
+    val body =
+        remember(turn) {
+            turnBody(
+                turn = turn,
+                imageLabel = imageLabel,
+                attachmentLabel = attachmentLabel,
+                emptyLabel = emptyLabel,
+            )
+        }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isAssistant) Arrangement.Start else Arrangement.End,
@@ -162,12 +176,17 @@ private fun ChannelBubble(turn: ChannelConversationStore.Turn) {
  * 这一页是「看对话怎么接的」，不是图库；图片给一行占位说明就够。
  * 视觉降级的描述如果有，优先用它，那本来就是给模型看的文字版。
  */
-private fun turnBody(turn: ChannelConversationStore.Turn): String = when {
+private fun turnBody(
+    turn: ChannelConversationStore.Turn,
+    imageLabel: String,
+    attachmentLabel: String,
+    emptyLabel: String,
+): String = when {
     turn.mediaDescription.isNotBlank() -> turn.mediaDescription
-    turn.mediaKind == "image" -> "[图片]"
-    turn.mediaPath.isNotBlank() -> "[附件]"
+    turn.mediaKind == "image" -> imageLabel
+    turn.mediaPath.isNotBlank() -> attachmentLabel
     turn.text.isNotBlank() -> turn.text
-    else -> "[空消息]"
+    else -> emptyLabel
 }
 
 private fun formatTime(at: Long): String =

@@ -28,7 +28,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  * 也能在模拟器上看到消息气泡的实际排版，用来验收 MOOD 分节、
  * 思考卡摘要行等改动。不参与正式导航，只能由 adb 直接拉起。
  *
- * 上线前应连同路由一起删除。
+ * 此页不属于正式导航，只由本地调试入口使用。
  */
 @Composable
 fun DevPreviewScreen() {
@@ -58,7 +58,7 @@ fun DevPreviewScreen() {
             .padding(vertical = MusePaddings.sectionGap),
     ) {
         Text(
-            text = "MOOD / 思考卡 预览（开发用）",
+            text = "MOOD / THINKING CARD PREVIEW (DEBUG)",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = 8.dp),
@@ -101,11 +101,10 @@ fun DevPreviewScreen() {
 /** 预览用样本：带 MOOD 四段 + 思考正文。 */
 private fun sampleMessage(): UIMessage = UIMessage(
     role = MessageRole.ASSISTANT,
-    content = "我把设置页按用户意图重排成 11 组了，一级入口从 34 个增到 48 个。\n\n" +
-        "顺手修了两个以前根本进不去的设置页。",
-    reasoning = "先确认现有层级和真实字段数量对不对得上。" +
-        "发现一级只有 7 组、可见入口 34 个，但落库字段有 275 个，" +
-        "说明界面层级是代码模块结构的投影，不是用户意图的投影。",
+    content = "Settings now follow user intent across 12 categories.\n\n" +
+        "Long messages are split into independently rendered sections.",
+    reasoning = "Check the real hierarchy and field counts before reorganizing." +
+        "Then verify that headers, bodies, and actions can be reused independently.",
     mood = SAMPLE_MOOD,
     modelId = "preview",
 )
@@ -114,7 +113,7 @@ private fun sampleMessage(): UIMessage = UIMessage(
 private fun sampleToolMessage(): UIMessage = UIMessage(
     role = MessageRole.ASSISTANT,
     content = "",
-    reasoning = "先读一遍现有设置页的分组，再决定怎么并。",
+    reasoning = "Read the current settings groups before merging them.",
     modelId = "preview",
     toolCallInfo = io.zer0.ai.core.ToolCallInfo(
         toolName = "update_settings",
@@ -125,14 +124,14 @@ private fun sampleToolMessage(): UIMessage = UIMessage(
     ),
 )
 
-private const val SAMPLE_MOOD = "Vibe: 这一版改完，聊天页终于不像一堆卡片堆着了\n" +
+private const val SAMPLE_MOOD = "Vibe: The chat page should feel like a conversation, not a stack of cards\n" +
     "Sparks:\n" +
-    "  - 四段 mood 拆开之后，Sparks 那三条才有地方站\n" +
-    "  - 思考卡和工具卡应该像一条流水，而不是两块积木\n" +
-    "  - 摘要行用「思考了一阵」比截取前 40 字更像人话\n" +
+    "  - Four mood sections leave space for the key ideas\n" +
+    "  - Thinking and tool cards should read as one continuous flow\n" +
+    "  - A short summary is clearer than a truncated paragraph\n" +
     "Reflections:\n" +
-    "  - 折叠标题带操作数，用户能一眼看出这一步干了多少事\n" +
-    "  - 计划卡保持独立是对的，它是干活时最该盯的东西\n" +
+    "  - Collapsed headers expose the operation count at a glance\n" +
+    "  - The plan card should remain visible while work is running\n" +
     "Will:\n" +
-    "  - 想把这套排版稳定下来\n" +
-    "  - 不想再加新卡片了"
+    "  - Keep this rendering structure stable\n" +
+    "  - Avoid adding more card types"

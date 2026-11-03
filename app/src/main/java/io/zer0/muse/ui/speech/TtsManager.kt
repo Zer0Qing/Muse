@@ -421,11 +421,11 @@ class TtsManager(
      * @return 三种结果之一：首选引擎成功 / 回落系统音色成功 / 彻底失败（见 [TtsSynthResult]）
      */
     suspend fun synthesizeTo(text: String, outputFile: File, emotionOverride: String? = null): TtsSynthResult {
-        if (text.isBlank()) return TtsSynthResult.Failure("待合成文本为空")
+        if (text.isBlank()) return TtsSynthResult.Failure("tts_text_empty")
         outputFile.parentFile?.let { parent ->
             if (!parent.exists() && !parent.mkdirs()) {
                 Logger.w("TtsManager", "synthesizeTo: 目标目录创建失败 ${parent.absolutePath}")
-                return TtsSynthResult.Failure("目标目录创建失败")
+                return TtsSynthResult.Failure("tts_output_directory_failed")
             }
         }
         return synthesizeToFile(text, outputFile, emotionOverride)
@@ -469,7 +469,7 @@ class TtsManager(
         return if (synthesizeWithSystemTts(text, file)) {
             TtsSynthResult.Success
         } else {
-            TtsSynthResult.Failure("系统 TTS 合成失败")
+            TtsSynthResult.Failure("tts_system_synthesis_failed")
         }
     }
 
@@ -481,7 +481,7 @@ class TtsManager(
      */
     private fun cloudFailureReason(resolved: ResolvedSpeechEndpoint): String =
         resolved.fallbackReason
-            ?: if (resolved.apiKey.isBlank()) "API Key 为空" else "云端 TTS 合成失败"
+            ?: if (resolved.apiKey.isBlank()) "tts_api_key_missing" else "tts_cloud_synthesis_failed"
 
     /**
      * v1.104: 系统 TTS 合成(从 synthesizeToFile 抽出,供云端失败回退复用)。
@@ -941,7 +941,7 @@ class TtsManager(
                         synthesizeToFile(sentence, file)
                     } catch (e: Exception) {
                         Logger.w("TtsManager", "cloud stream synth failed: ${e.message}")
-                        TtsSynthResult.Failure(e.message ?: "云端流式合成异常")
+                        TtsSynthResult.Failure(e.message ?: "tts_cloud_stream_failed")
                     }
                     if (outcome !is TtsSynthResult.Failure) {
                         cloudPlayChannel.send(file)

@@ -557,7 +557,10 @@ internal fun BackupSection(
                         MuseToast.show(
                             context.getString(
                                 R.string.settings_backup_import_failed,
-                                friendlyImportError(t?.message),
+                                friendlyImportError(
+                                    raw = t?.message,
+                                    context = context,
+                                ),
                             ),
                             3500,
                         )
@@ -628,16 +631,16 @@ private fun formatBackupSize(bytes: Long): String = when {
  * 原始信息里有数据库表名（如 knowledgeDocs）、「声明 / 入库」这类内部术语，
  * 直接展示等于什么都没说。这里按常见成因给出可操作提示。
  */
-private fun friendlyImportError(raw: String?): String {
-    if (raw.isNullOrBlank()) return "备份文件无法读取，请确认文件完整"
+private fun friendlyImportError(raw: String?, context: android.content.Context): String {
+    if (raw.isNullOrBlank()) return context.getString(R.string.backup_import_error_unreadable)
     val lower = raw.lowercase()
     val rules = listOf(
-        listOf("入库数不一致", "verify", "check") to "备份文件与当前版本不匹配，已回滚到导入前的状态",
-        listOf("password", "密码", "decrypt") to "解压失败，请检查备份密码是否正确",
-        listOf("version", "版本") to "备份版本过新或过旧，当前应用无法读取",
-        listOf("no such file", "not found", "找不到") to "找不到备份文件，可能已被移动或删除",
-        listOf("space", "磁盘", "空间") to "存储空间不足，请清理后重试",
+        listOf("verify", "check") to context.getString(R.string.backup_import_error_mismatch),
+        listOf("password", "decrypt") to context.getString(R.string.backup_import_error_password),
+        listOf("version") to context.getString(R.string.backup_import_error_version),
+        listOf("no such file", "not found") to context.getString(R.string.backup_import_error_missing),
+        listOf("space") to context.getString(R.string.backup_import_error_space),
     )
-    val hit = rules.firstOrNull { (keys, _) -> keys.any { it in lower || it in raw } }
-    return hit?.second ?: "备份文件异常，已回滚到导入前的状态"
+    val hit = rules.firstOrNull { (keys, _) -> keys.any { it in lower } }
+    return hit?.second ?: context.getString(R.string.backup_import_error_unknown)
 }

@@ -246,7 +246,10 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                                     testStatus = TestStatus.Error(
                                         context.getString(
                                             R.string.settings_provider_test_error_failed,
-                                            friendlyConnectError(outcome.reason),
+                                            friendlyConnectError(
+                                                raw = outcome.reason,
+                                                context = context,
+                                            ),
                                         ),
                                     )
                                 }
@@ -839,18 +842,21 @@ private val ONBOARDING_PRESET_LIST_MAX_HEIGHT = 320.dp
  * 上游返回的原文（如 `HTTP 500 [server error]: Model ...`）留在日志里，
  * 界面上先给出「该去改什么」，再附一小段原始信息供求助时复制。
  */
-private fun friendlyConnectError(raw: String): String {
+private fun friendlyConnectError(raw: String, context: android.content.Context): String {
     val lower = raw.lowercase()
     // 规则表：按顺序匹配，命中即返回。
     // 用表而非长 when，避免单函数圈复杂度超标。
     val rules = listOf(
-        listOf("401", "unauthorized", "invalid api key") to "API 密钥无效或已过期，请重新填写",
-        listOf("403", "forbidden") to "没有访问权限，请确认该密钥已开通此模型",
-        listOf("404", "model_not_found", "no such model") to "接口地址或模型名称不对，请核对后重试",
-        listOf("429", "rate limit") to "请求过于频繁，请稍后再试",
-        listOf("timeout", "timed out") to "连接超时，请检查网络或接口地址",
-        listOf("500", "502", "503", "server error") to "供应商服务异常，稍后再试；若持续失败，可能是内置模型已下线",
-        listOf("no model") to "没有找到可测试的模型，请先点击「获取」拉取模型列表",
+        listOf("401", "unauthorized", "invalid api key") to
+            context.getString(R.string.onboarding_connect_error_unauthorized),
+        listOf("403", "forbidden") to context.getString(R.string.onboarding_connect_error_forbidden),
+        listOf("404", "model_not_found", "no such model") to
+            context.getString(R.string.onboarding_connect_error_not_found),
+        listOf("429", "rate limit") to context.getString(R.string.onboarding_connect_error_rate_limit),
+        listOf("timeout", "timed out") to context.getString(R.string.onboarding_connect_error_timeout),
+        listOf("500", "502", "503", "server error") to
+            context.getString(R.string.onboarding_connect_error_server),
+        listOf("no model") to context.getString(R.string.onboarding_connect_error_no_model),
     )
     val hit = rules.firstOrNull { (keys, _) -> keys.any { it in lower } }
     return hit?.second ?: raw

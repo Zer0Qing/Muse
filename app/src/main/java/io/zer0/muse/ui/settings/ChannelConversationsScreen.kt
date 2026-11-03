@@ -181,7 +181,10 @@ private fun ConversationCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = prettifyContactLabel(from),
+                        text = prettifyContactLabel(
+                            raw = from,
+                            groupLabel = stringResource(R.string.channel_contact_group_label),
+                        ),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -221,11 +224,11 @@ private fun ConversationCard(
  * 群目标存成 `group:<openid>`，直接显示会带前缀且超长，
  * 这里把前缀转成可读标签并对长 id 保留首尾。
  */
-internal fun prettifyContactLabel(raw: String): String {
+internal fun prettifyContactLabel(raw: String, groupLabel: String = "Group"): String {
     val isGroup = raw.startsWith("group:")
     val core = raw.removePrefix("group:")
     val shown = if (core.length <= 20) core else core.take(10) + "…" + core.takeLast(6)
-    return if (isGroup) "群 $shown" else shown
+    return if (isGroup) groupLabel + " " + shown else shown
 }
 
 /** 最近一次发送失败提示。放列表最上方，因为它是"为什么它不回"的直接答案。 */
@@ -265,7 +268,7 @@ private fun LastTurnPreview(turn: ChannelConversationStore.Turn?) {
         text = stringResource(
             R.string.channel_conversation_turn_line,
             roleLabel,
-            current.text.ifBlank { "[附件]" },
+            current.text.ifBlank { stringResource(R.string.channel_conversation_attachment_placeholder) },
         ),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,

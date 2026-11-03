@@ -1,6 +1,8 @@
 package io.zer0.muse.ui.chat
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.automation.core.AutonomousAccessibilityApproval
+import io.zer0.muse.automation.core.AutonomousAccessibilityRuntimeSnapshot
 import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.tools.ToolPermissionResolver
 import io.zer0.muse.ui.PendingToolApproval
@@ -92,16 +94,17 @@ internal class ChatToolApprovalCoordinator(
             "ToolApproval",
             "resolved | tool=$toolName | state=$resolved",
         )
+        val autonomous = applyAutonomousAccessibilityGate(sessionId, toolName, resolved)
         // 状态机闭环:显式列出所有终态分支,确保 ToolApprovalState.Answered 有处理路径
-        when (resolved) {
+        when (autonomous) {
             is ToolApprovalState.Pending -> { /* 待审批,继续走下方用户审批流程 */ }
             is ToolApprovalState.Answered -> {
                 // 用户已提供自定义答案(替代工具执行),直接返回该答案
-                return resolved
+                return autonomous
             }
             is ToolApprovalState.Approved, is ToolApprovalState.Auto,
             is ToolApprovalState.Denied,
-            -> return resolved
+            -> return autonomous
         }
 
         // 需要用户审批:添加到待审批列表并等待结果
@@ -186,6 +189,40 @@ internal class ChatToolApprovalCoordinator(
             host.toolApprovalSessions.remove(toolCallId)
             host.pendingToolApprovalRecords.remove(toolCallId)
         }
+    }
+
+    private suspend fun applyAutonomousAccessibilityGate(
+        sessionId: String,
+        toolName: String,
+        resolved: ToolApprovalState,
+    ): ToolApprovalState {
+        if (resolved !== ToolApprovalState.Pending) return resolved
+        val runtime = host.autonomousAccessibilityRuntime ?: return resolved
+        val snapshot = runCatching { runtime.snapshot(sessionId) }.getOrElse { error ->
+            Logger.w("ToolApproval", "autonomous accessibility snapshot failed: ${error.message}")
+            AutonomousAccessibilityRuntimeSnapshot()
+        }
+        val decision =
+            io.zer0.muse.ui.chat.AutonomousAccessibilityGate.reserve(
+                sessionId = sessionId,
+                toolName = toolName,
+                pending = resolved,
+                snapshot = snapshot,
+            )
+        if (decision.approval === ToolApprovalState.Auto) {
+            Logger.i(
+                "ToolApproval",
+                "autonomous accessibility auto-approved | tool=$toolName | " +
+                    "package=${snapshot.currentPackage} | runs=${snapshot.runCountToday}/" +
+                    snapshot.window.maxRunsPerDay,
+            )
+        } else if (AutonomousAccessibilityApproval.actionFor(toolName) != null) {
+            Logger.d(
+                "ToolApproval",
+                "autonomous accessibility kept pending | tool=$toolName | reason=${decision.reason}",
+            )
+        }
+        return decision.approval
     }
 }
 

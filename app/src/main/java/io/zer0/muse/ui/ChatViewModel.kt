@@ -57,6 +57,9 @@ import io.zer0.muse.tools.ToolConfigStore
 import io.zer0.muse.tools.ToolPermissionResolver
 import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.tools.SessionPermissionStore
+import io.zer0.muse.automation.core.AutonomousAccessibilityRuntime
+import io.zer0.muse.automation.core.PersistentAutonomousAccessibilityRuntime
+import io.zer0.muse.data.AutomationSettingsStore
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.chat.InternalPromptMarkers
@@ -1293,6 +1296,30 @@ class ChatViewModel(
      * 中间插参数会让后续几十个 get() 整体错位。
      */
     private val relationshipRepository: io.zer0.muse.data.relationship.AssistantRelationshipRepository? = null,
+    /**
+     * Existing user text is the only task-level confirmation source. A settings
+     * window alone never grants accessibility execution.
+     */
+    private val autonomousAccessibilityRuntime: AutonomousAccessibilityRuntime? =
+        PersistentAutonomousAccessibilityRuntime(
+            store = AutomationSettingsStore(appContext),
+            foregroundPackage = {
+                runCatching {
+                    org.koin.core.context.GlobalContext.get()
+                        .get<io.zer0.muse.tools.system.AccessibilityClient>()
+                        .currentActivityName()
+                        .substringBefore('/')
+                        .takeIf { it.isNotBlank() && it != io.zer0.muse.tools.system.AccessibilityClient.SERVICE_CLASS_NAME }
+                }.getOrNull()
+            },
+            latestUserMessage = { sessionId ->
+                sessionRepository
+                    .getRecentMessages(sessionId, 40)
+                    .lastOrNull { it.role == io.zer0.ai.core.MessageRole.USER }
+                    ?.content
+            },
+            auditLogger = auditLogger,
+        ),
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
@@ -2085,6 +2112,7 @@ class ChatViewModel(
         // 上下文溢出恢复：压一轮历史再重发（详见 ChatToolLoopRunner 的 recovery 分支）
         override val contextCompressTransformer get() = this@ChatViewModel.contextCompressTransformer
         override val sessionManager get() = this@ChatViewModel.sessionManager
+        override val autonomousAccessibilityRuntime get() = this@ChatViewModel.autonomousAccessibilityRuntime
         override val notificationManager get() = this@ChatViewModel.notificationManager
         override val conversationService get() = this@ChatViewModel.conversationService
         override val messageCommit get() = this@ChatViewModel.messageCommit
@@ -2225,6 +2253,7 @@ class ChatViewModel(
         override val sessionPermissionStore get() = this@ChatViewModel.sessionPermissionStore
         override val toolConfigStore get() = this@ChatViewModel.toolConfigStore
         override val toolRegistry get() = this@ChatViewModel.toolRegistry
+        override val autonomousAccessibilityRuntime get() = this@ChatViewModel.autonomousAccessibilityRuntime
         override val notificationManager get() = this@ChatViewModel.notificationManager
         override val sessionManager get() = this@ChatViewModel.sessionManager
         override val skillRepository get() = this@ChatViewModel.skillRepository
@@ -2251,6 +2280,23 @@ class ChatViewModel(
     private val toolApprovalCoordinator = io.zer0.muse.ui.chat.ChatToolApprovalCoordinator(host = toolApprovalHostBridge)
 
     private val toolResumeCoordinator = io.zer0.muse.ui.chat.ChatToolResumeCoordinator(host = toolApprovalHostBridge)
+
+    init {
+        /**
+         * A previous process may die after reserving a run but before the final
+         * result callback. Release that stale reservation only if the persisted
+         * task is no longer the confirmed one.
+         */
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val sessionId = effectiveChatSessionId(_state.value) ?: return@launch
+                (autonomousAccessibilityRuntime as? PersistentAutonomousAccessibilityRuntime)
+                    ?.pruneGrantIfTaskChanged(sessionId)
+            }.onFailure {
+                Logger.w("ChatVM", "清理自主无障碍任务授权失败: ${it.message}")
+            }
+        }
+    }
 
     /**
      * Transformer 管道。会话摘要在上下文压缩后加入,不会被二次压缩或写入历史消息。
@@ -3690,6 +3736,26 @@ class ChatViewModel(
      */
     fun clearToast() = settingsController.clearToast()
 
+    data class AutonomousAccessibilityTaskPreview(
+        val sessionId: String,
+        val message: String,
+    )
+
+    /**
+     * Reads the real user message that can serve as a task-level confirmation.
+     * The settings page displays it but cannot synthesize or overwrite it.
+     */
+    suspend fun autonomousAccessibilityTaskPreview(): AutonomousAccessibilityTaskPreview? {
+        val sessionId = effectiveChatSessionId(_state.value) ?: return null
+        val message =
+            sessionRepository.getRecentMessages(sessionId, 40)
+                .lastOrNull { it.role == io.zer0.ai.core.MessageRole.USER }
+                ?.content
+                ?.takeIf(String::isNotBlank)
+                ?: return null
+        return AutonomousAccessibilityTaskPreview(sessionId, message)
+    }
+
     /**
      * v1.0.72: 设置当前会话"不参考记忆"标志(空白对话页选项)。
      * 持久化到会话,切换会话/重启保持;开启后 system prompt 跳过记忆注入。
@@ -3753,8 +3819,17 @@ class ChatViewModel(
      * 普通会话属于任务 Tab;Agent 会话不在任务列表中,必须切换到 Agent Tab
      * 并使用通知携带的精确会话 id,不能按默认助手重新猜测。
      */
-    fun openSessionFromNotification(sessionId: String) {
+    fun openSessionFromNotification(sessionId: String, proactiveOutcomeId: String? = null) {
         viewModelScope.launch {
+            if (!proactiveOutcomeId.isNullOrBlank()) {
+                runCatching {
+                    org.koin.core.context.GlobalContext.get()
+                        .get<io.zer0.muse.proactive.ProactiveScheduler>()
+                        .onProactiveOpened(proactiveOutcomeId)
+                }.onFailure { e ->
+                    Logger.w("ChatVM", "记录通知主动消息已读失败: ${e.message}")
+                }
+            }
             val target = sessionRepository.getSessionById(sessionId)
             if (target?.isAgentSession == true) {
                 setAgentMode(true, requestedSessionId = sessionId)
@@ -5628,6 +5703,9 @@ class ChatViewModel(
     /** v1.43: 观察某条消息关联的产物卡片列表。 */
     fun observeArtifactsByMessage(messageId: String): kotlinx.coroutines.flow.Flow<List<io.zer0.muse.data.artifact.ArtifactEntity>> =
         mediaController.observeArtifactsByMessage(messageId)
+
+    fun observeArtifactsByMessages(messageIds: List<String>): kotlinx.coroutines.flow.Flow<List<io.zer0.muse.data.artifact.ArtifactEntity>> =
+        mediaController.observeArtifactsByMessages(messageIds)
 
     /** v1.45: 缓存列表滚动位置,切页/后台后恢复。 */
     fun onListScrollPositionChanged(index: Int, offset: Int) = messageController.onListScrollPositionChanged(index, offset)

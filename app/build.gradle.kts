@@ -131,7 +131,7 @@ android {
         targetSdk = 36
         // v1.0.27 P0-1.1: 版本号支持从 Gradle property 注入,CI 从 git tag 自动提取
         // 优先级: -PversionCode/-PversionName > 环境变量 > 默认值
-        // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.87 注入
+        // 本地构建用默认值，正式 CI 通过 -PversionName/-PversionCode 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
         // v1.0.90: 全量整改收官(插件市场/UI与可访问性/安全与可靠性/CI 护栏)(正式构建仍由 CI 显式注入)
         // v1.0.91: 补丁版 —— 修记忆页置顶区崩溃、修自定义供应商页页签撑满整屏
@@ -188,15 +188,13 @@ android {
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            // 兜底值故意压成哨兵：忘带 -PversionCode 时，产物编号一眼就能看出是临时包，
-            // 不会再顶着上一个真版本号被当成正式包发出去。取 999999 而不是 0/1，
-            // 是为了让 debug 包能盖过任何已装的正式版，不报 INSTALL_FAILED_VERSION_DOWNGRADE。
-            ?: 999999
+            // 默认值跟随当前发行线；正式构建仍显式注入并与 tag 核对。
+            ?: 284
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            // 同上，名字也走哨兵，避免“编号前进一格、名字原地不动”的组合再次出现。
-            ?: "0.0.0-dev"
+            // 名称与编号保持同一发行线，防止本地构建无意产生错配。
+            ?: "2.6.21"
     }
 
     signingConfigs {
@@ -367,6 +365,7 @@ tasks.withType<Test>().configureEach {
 dependencies {
     // 项目内模块
     implementation(project(":ai"))
+    implementation(project(":conversation-core"))
     implementation(project(":memory"))
     implementation(project(":common"))
     // v1.97 gap7: :material3 模块 — DynamicScheme.toColorScheme() 扩展,
@@ -462,6 +461,7 @@ dependencies {
 
     // Serialization & Coroutines
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.jetbrains.markdown)
     implementation(libs.kotlinx.coroutines.android)
 
     // Phase 8.6: PDF 文本提取(pdfbox-android,Apache 2.0)
@@ -538,7 +538,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 266/2.6.6。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 284/2.6.21。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()

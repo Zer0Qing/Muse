@@ -2095,11 +2095,12 @@ private fun ChatListEditAction(label: String, enabled: Boolean, onClick: () -> U
  * 应把它藏起来，避免和自己的会话列表自相矛盾。
  */
 private fun looksLikeEmptyDayHint(text: String): Boolean {
-    val markers = listOf(
-        "今天还没聊",
-        "今天还没有",
-        "今天还没有新的对话",
-        "想到什么随时找我",
-    )
+    // 这些是模型生成内容的匹配标记，不是界面文案，保持稳定且不随语言切换。
+    val markers =
+        listOf(
+            "\u4eca\u5929\u8fd8\u6ca1\u804a",
+            "\u4eca\u5929\u8fd8\u6ca1\u6709",
+            "\u60f3\u5230\u4ec0\u4e48\u968f\u65f6\u627e\u6211",
+        )
     return markers.any { text.contains(it) }
 }

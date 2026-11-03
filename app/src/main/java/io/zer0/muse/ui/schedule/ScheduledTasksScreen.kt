@@ -1705,6 +1705,8 @@ private fun WakeEntryRow(entry: WakeWorkEntry) {
                 text = wakeStateLabel(entry.state),
                 style = MaterialTheme.typography.labelMedium,
                 color = wakeStateColor(entry.state, statusColors),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         Text(

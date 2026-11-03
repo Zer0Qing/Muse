@@ -13,6 +13,12 @@ import io.zer0.muse.data.agentdm.AgentMessageDao
 import io.zer0.muse.data.agentdm.AgentMessageEntity
 import io.zer0.muse.data.artifact.ArtifactDao
 import io.zer0.muse.data.artifact.ArtifactEntity
+import io.zer0.muse.data.conversation.ConversationCommandReceiptDao
+import io.zer0.muse.data.conversation.ConversationCommandReceiptEntity
+import io.zer0.muse.data.conversation.ConversationDisplaySlotDao
+import io.zer0.muse.data.conversation.ConversationDisplaySlotEntity
+import io.zer0.muse.data.conversation.ConversationSelectionDao
+import io.zer0.muse.data.conversation.ConversationSelectionEntity
 import io.zer0.muse.data.assistant.AssistantDao
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.audit.AuditLogDao
@@ -174,6 +180,9 @@ import java.io.File
         ToolRoundEntity::class,
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
+        ConversationCommandReceiptEntity::class,
+        ConversationSelectionEntity::class,
+        ConversationDisplaySlotEntity::class,
         io.zer0.muse.data.relationship.AssistantRelationshipEntity::class,
         io.zer0.muse.data.todo.SessionTodoEntity::class,
         // v2.6.8: 卡片实体(卡片停靠 / 跨应用悬浮的身份与状态载体)
@@ -182,8 +191,9 @@ import java.io.File
         io.zer0.muse.data.proactive.PendingThoughtEntity::class,
         io.zer0.muse.data.proactive.ProactiveOutcomeEntity::class,
         io.zer0.muse.data.proactive.ProactiveRelationEntity::class,
+        io.zer0.muse.proactive.SessionProactivePreferenceEntity::class,
     ],
-    version = 122,
+    version = MuseDb.LATEST_SCHEMA_VERSION,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -192,6 +202,7 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun messageDao(): MessageDao
     abstract fun messageFtsDao(): MessageFtsDao
     abstract fun artifactDao(): ArtifactDao
+    abstract fun sessionProactivePreferenceDao(): io.zer0.muse.proactive.SessionProactivePreferenceDao
     abstract fun assistantDao(): AssistantDao
     abstract fun lorebookDao(): LorebookDao
     abstract fun quickMessageDao(): QuickMessageDao
@@ -264,6 +275,9 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun toolRoundDao(): ToolRoundDao
     abstract fun messagePartDao(): MessagePartDao
     abstract fun sessionBranchHeadDao(): SessionBranchHeadDao
+    abstract fun conversationCommandReceiptDao(): ConversationCommandReceiptDao
+    abstract fun conversationSelectionDao(): ConversationSelectionDao
+    abstract fun conversationDisplaySlotDao(): ConversationDisplaySlotDao
 
     /** v2.6.7（P1-1）: 角色关系状态（亲密度 / 意愿档位 / 最近互动）。 */
     abstract fun assistantRelationshipDao(): io.zer0.muse.data.relationship.AssistantRelationshipDao
@@ -287,6 +301,8 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun proactiveRelationDao(): io.zer0.muse.data.proactive.ProactiveRelationDao
 
     companion object {
+        /** Single schema-version source; must match the latest exported JSON. */
+        const val LATEST_SCHEMA_VERSION = 124
         @Volatile
         private var dbInstance: MuseDb? = null
 
@@ -1430,6 +1446,61 @@ abstract class MuseDb : RoomDatabase() {
                         "(SELECT `id` FROM `sessions` WHERE `isMiniPhone` = 1)",
                 )
                 db.execSQL("DELETE FROM `sessions` WHERE `isMiniPhone` = 1")
+            }
+        }
+
+        val MIGRATION_122_123 = object : Migration(122, 123) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `conversation_command_receipts` (" +
+                        "`commandId` TEXT NOT NULL, `fingerprint` TEXT NOT NULL, " +
+                        "`payloadJson` TEXT NOT NULL, `sessionId` TEXT NOT NULL, " +
+                        "`messageId` TEXT NOT NULL, `turnId` TEXT DEFAULT NULL, " +
+                        "`acceptedAt` INTEGER NOT NULL, `resultJson` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`commandId`))",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `conversation_selections` (" +
+                        "`selectionSetId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, " +
+                        "`revision` INTEGER NOT NULL, `userSelectionJson` TEXT NOT NULL, " +
+                        "`assistantSelectionJson` TEXT NOT NULL, PRIMARY KEY(`selectionSetId`))",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_conversation_selections_sessionId_revision` " +
+                        "ON `conversation_selections` (`sessionId`, `revision`)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `conversation_display_slots` (" +
+                        "`slotId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                        "`parentSlotId` TEXT DEFAULT NULL, `logicalPosition` INTEGER NOT NULL, " +
+                        "`messageId` TEXT NOT NULL, PRIMARY KEY(`slotId`), " +
+                        "FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_conversation_display_slots_sessionId_logicalPosition` " +
+                        "ON `conversation_display_slots` (`sessionId`, `logicalPosition`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_conversation_display_slots_parentSlotId` " +
+                        "ON `conversation_display_slots` (`parentSlotId`)",
+                )
+            }
+        }
+
+        val MIGRATION_123_124 = object : Migration(123, 124) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `session_proactive_preferences` (" +
+                        "`sessionId` TEXT NOT NULL, `muted` INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`sessionId`), " +
+                        "FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                        "`index_session_proactive_preferences_sessionId` " +
+                        "ON `session_proactive_preferences` (`sessionId`)",
+                )
             }
         }
 
@@ -3468,6 +3539,8 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_119_120,
                         MIGRATION_120_121,
                         MIGRATION_121_122,
+                        MIGRATION_122_123,
+                        MIGRATION_123_124,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

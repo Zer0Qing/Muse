@@ -38,10 +38,28 @@ def sha256_of(path: Path) -> str:
 
 def db_version_of(db_file: Path) -> int:
     text = db_file.read_text(encoding="utf-8")
+    # Prefer the RoomDatabase.version declaration, not a historical
+    # `PRAGMA user_version = N` example inside a migration comment.
     m = re.search(r"version\s*=\s*(\d+)", text)
-    if not m:
-        raise SystemExit(f"FATAL: 无法从 {db_file} 解析 DB version")
-    return int(m.group(1))
+    constant = re.search(
+        r"version\s*=\s*(?:MuseDb\.)?([A-Z][A-Z0-9_]*_SCHEMA_VERSION)",
+        text,
+    )
+    if m:
+        numeric_index = m.start()
+    else:
+        numeric_index = len(text)
+    constant_index = constant.start() if constant else len(text)
+    if m and numeric_index <= constant_index:
+        return int(m.group(1))
+    if constant:
+        value = re.search(
+            rf"(?:const\s+val|val)\s+{re.escape(constant.group(1))}\s*=\s*(\d+)",
+            text,
+        )
+        if value:
+            return int(value.group(1))
+    raise SystemExit(f"FATAL: 无法从 {db_file} 解析 DB version")
 
 
 def atomic_write_text(path: Path, payload: str) -> None:

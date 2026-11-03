@@ -28,6 +28,7 @@ internal interface ChatToolApprovalHostBridge {
     val sessionPermissionStore: SessionPermissionStore
     val toolConfigStore: io.zer0.muse.tools.ToolConfigStore?
     val toolRegistry: io.zer0.muse.tools.ToolRegistry
+    val autonomousAccessibilityRuntime: io.zer0.muse.automation.core.AutonomousAccessibilityRuntime?
     val notificationManager: MuseNotificationManager
     val sessionManager: ConversationSessionManager
     val skillRepository: SkillRepository

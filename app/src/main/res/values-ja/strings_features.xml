@@ -382,6 +382,7 @@
     <string name="subagent_task_completed">完了</string>
     <string name="subagent_task_failed">失敗した</string>
     <string name="subagent_task_cancel">キャンセル</string>
+    <string name="subagent_task_close_cd">サブエージェントタスクを閉じる</string>
 
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">無題</string>

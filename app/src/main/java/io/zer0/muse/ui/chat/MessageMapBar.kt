@@ -57,7 +57,13 @@ internal val MESSAGE_MAP_TOUCH_WIDTH: Dp = 26.dp
 internal val MESSAGE_MAP_RESERVED_WIDTH = MESSAGE_MAP_TOUCH_WIDTH + 2.dp
 
 @Composable
-internal fun MessageMapBar(messages: List<UIMessage>, listState: LazyListState, messageStartIndex: Int, modifier: Modifier = Modifier) {
+internal fun MessageMapBar(
+    messages: List<UIMessage>,
+    listState: LazyListState,
+    messageStartIndex: Int,
+    messageIndexForListIndex: (Int) -> Int?,
+    modifier: Modifier = Modifier,
+) {
     val total = messages.size
     if (total == 0) return
 
@@ -95,7 +101,11 @@ internal fun MessageMapBar(messages: List<UIMessage>, listState: LazyListState, 
         LinearScrollGesture(
             listState = listState,
             onActiveIndexChange = { listIndex ->
-                activeIndex = listIndex?.let { (it - messageStartIndex).takeIf { rel -> rel in 0 until total } }
+                activeIndex =
+                    listIndex?.let { absoluteListIndex ->
+                        messageIndexForListIndex(absoluteListIndex)
+                            ?.takeIf { it in 0 until total }
+                    }
             },
             onActiveChange = { gestureActive = it },
         )

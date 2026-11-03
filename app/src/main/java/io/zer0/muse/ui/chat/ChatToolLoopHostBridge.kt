@@ -58,6 +58,7 @@ internal interface ChatToolLoopHostBridge {
     val chatGenerationManager: io.zer0.muse.schedule.ChatGenerationManager
     val sessionPermissionStore: io.zer0.muse.tools.SessionPermissionStore
     val toolOrchestrator: io.zer0.muse.tools.ToolOrchestrator
+    val autonomousAccessibilityRuntime: io.zer0.muse.automation.core.AutonomousAccessibilityRuntime?
 
     // ── 原 VM 方法转发(签名与 VM 侧一一对应)──────────────────────────
 

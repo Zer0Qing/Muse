@@ -151,6 +151,17 @@ class ProactiveOutcomeFeedbackTest {
     }
 
     @Test
+    fun `通知精确 id 不会误标同会话更新的一条`() = runTest {
+        val older = outcomes.recordSent(thought = null, sessionId = SESSION, now = now - HOUR, assistantId = ASSISTANT)
+        val newer = outcomes.recordSent(thought = null, sessionId = SESSION, now = now, assistantId = ASSISTANT)
+
+        scheduler.onProactiveOpened(older)
+
+        assertEquals(OutcomeState.OPENED, outcome(older).stateEnum())
+        assertEquals("点击旧通知不能顺手标记新消息", OutcomeState.PENDING, outcome(newer).stateEnum())
+    }
+
+    @Test
     fun `打开会话不覆盖已经回复的记录`() = runTest {
         val id = outcomes.recordSent(thought = null, sessionId = SESSION, now = now - HOUR, assistantId = ASSISTANT)
         outcomes.resolve(id, OutcomeState.REPLIED, now - HOUR)

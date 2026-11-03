@@ -39,6 +39,21 @@ class BubbleTextDerivationTest {
     }
 
     @Test
+    fun `plain text does not need sticker or artifact sanitization`() {
+        assertTrue(!needsBubbleTextSanitization("普通正文"))
+        assertTrue(
+            needsBubbleTextSanitization(
+                "路径 /data/user/0/io.zer0.muse/files/stickers/a.webp",
+            ),
+        )
+        assertTrue(
+            needsBubbleTextSanitization(
+                "[artifact:123e4567-e89b-12d3-a456-426614174000]",
+            ),
+        )
+    }
+
+    @Test
     fun `heading_is_split_out_of_body`() {
         val result = derive("# 标题行\n正文第一段")
         assertEquals("# 标题行", result.titleText)

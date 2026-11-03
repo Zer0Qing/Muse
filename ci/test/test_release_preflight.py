@@ -18,6 +18,7 @@ from resolve_release_version import (
 )
 from validate_release_signing import decode_keystore, normalize_text
 from generate_release_manifest import main as generate_manifest_main
+from generate_release_manifest import db_version_of
 from validate_release_manifest import validate_manifest
 from validate_release_apks import (
     EXPECTED_SIGNING_CERT_SHA256,
@@ -80,6 +81,56 @@ def test_release_version_rejects_tag_drift():
         assert "does not match Gradle default" in str(error)
     else:
         raise AssertionError("tag/version drift should fail before building")
+
+
+def test_db_version_accepts_companion_schema_constant(tmp_path):
+    db_file = tmp_path / "MuseDb.kt"
+    db_file.write_text(
+        "abstract class MuseDb {\n"
+        "    companion object {\n"
+        "        const val LATEST_SCHEMA_VERSION = 124\n"
+        "    }\n"
+        "}\n"
+        "@Database(version = MuseDb.LATEST_SCHEMA_VERSION)\n",
+        encoding="utf-8",
+    )
+
+    assert db_version_of(db_file) == 124
+
+
+def test_manifest_validator_uses_the_same_schema_constant_resolution(tmp_path):
+    apk = tmp_path / "app-arm64-v8a-release.apk"
+    apk.write_bytes(b"apk")
+    db = tmp_path / "MuseDb.kt"
+    db.write_text(
+        "abstract class MuseDb {\n"
+        "    companion object {\n"
+        "        const val LATEST_SCHEMA_VERSION = 124\n"
+        "    }\n"
+        "}\n"
+        "@Database(version = MuseDb.LATEST_SCHEMA_VERSION)\n",
+        encoding="utf-8",
+    )
+    notes = tmp_path / "release_body.md"
+    notes.write_text("notes", encoding="utf-8")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        __import__("json").dumps(
+            {
+                "versionName": "2.6.21",
+                "versionCode": 284,
+                "dbVersion": 124,
+                "apkSizeBytes": 3,
+                "apkSha256": __import__("hashlib").sha256(b"apk").hexdigest(),
+                "releaseNotesRef": notes.name,
+                "sourceCommit": "a" * 40,
+                "sourceRef": "v2.6.21",
+            },
+        ),
+        encoding="utf-8",
+    )
+
+    assert validate_manifest(manifest, apk, db, "v2.6.21", "A" * 40) == []
 
 
 def test_release_signing_never_falls_back_to_debug_keystore():

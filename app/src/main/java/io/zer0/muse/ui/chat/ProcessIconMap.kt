@@ -22,7 +22,7 @@ internal fun processIconFor(name: String): ImageVector {
 
 /** 思考、讨论、委派 —— 跟「谁在干」有关。 */
 private fun agentIcon(n: String): ImageVector? = when {
-    n.contains("思考") || n.contains("think") || n.contains("reasoning") -> MuseIcons.brain
+    n.contains("think") || n.contains("reasoning") -> MuseIcons.brain
     n.contains("discuss") || n.contains("council") -> MuseIcons.users
     n.contains("subagent") || n.contains("delegate") || n.contains("agent") -> MuseIcons.robot
     else -> null
@@ -39,9 +39,9 @@ private fun shellIcon(n: String): ImageVector? = when {
 /** 读与写 —— 跟「动没动文件」有关。 */
 private fun fileIcon(n: String): ImageVector? = when {
     n.contains("read") || n.contains("cat") || n.contains("list_files") -> MuseIcons.bookOpen
-    n.contains("open_file") || n.contains("翻") || n.contains("读过") -> MuseIcons.bookOpen
+    n.contains("open_file") -> MuseIcons.bookOpen
     n.contains("write") || n.contains("edit") || n.contains("patch") -> MuseIcons.edit
-    n.contains("create") || n.contains("save") || n.contains("落笔") -> MuseIcons.edit
+    n.contains("create") || n.contains("save") -> MuseIcons.edit
     else -> null
 }
 

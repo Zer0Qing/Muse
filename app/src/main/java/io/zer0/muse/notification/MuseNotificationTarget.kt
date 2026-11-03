@@ -27,6 +27,15 @@ sealed interface MuseNotificationTarget {
         override val requestKey: String = "session:$sessionId"
     }
 
+    data class ProactiveOutcome(val sessionId: String, val outcomeId: String) : MuseNotificationTarget {
+        override val deepLink: Uri =
+            Uri.parse("muse://session/${Uri.encode(sessionId)}")
+                .buildUpon()
+                .appendQueryParameter("proactiveOutcomeId", outcomeId)
+                .build()
+        override val requestKey: String = "proactive:$sessionId:$outcomeId"
+    }
+
     data object ScheduledTasks : MuseNotificationTarget {
         override val deepLink: Uri = Uri.parse("muse://scheduled-tasks")
         override val requestKey: String = "scheduled-tasks"
