@@ -100,7 +100,8 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         )
     }
 
-    // v2.6.7: 小手机内子路由一并受总闸控制（本版不对外发布）。
+    // 小手机与它的子路由只受 [MINI_PHONE] 控制：模块在包里就注册；
+                    // 首页/设置入口另由 MINI_PHONE_ENTRY 与 browseVisible 决定。
     if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
         // 小手机入口：整页由 :miniphone 模块自绘，主 App 只提供路由。
         composable<MiniPhoneRoute> {
