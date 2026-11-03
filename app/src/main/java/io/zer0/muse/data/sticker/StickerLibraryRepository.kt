@@ -492,7 +492,12 @@ class StickerLibraryRepository(private val appContext: Context) {
         alreadyCollected: Int,
         category: String,
     ): List<PendingEntry> {
-        val cells = StickerMontageSplitter.split(page.pixels, page.width, page.height)
+        val background = StickerMontageSplitter.backgroundImage(page.pixels, page.width, page.height)
+        val isBg: (Int) -> Boolean = { color -> StickerMontageSplitter.isBackgroundPixel(color, background) }
+        // 目录页用两段式（行带 + 行内列谷）：连通块在这种素材上要么并两张、要么把"画+配文"切开。
+        // 切不出东西的稀疏页（一页就一张表情）再退回连通块。
+        val gridCells = StickerGridLayout.layout(page.pixels, page.width, page.height, isBg)
+        val cells = gridCells.ifEmpty { StickerMontageSplitter.split(page.pixels, page.width, page.height) }
         val plan = StickerPdfPlanner.plan(cells, page.width, page.height)
         if (plan !is StickerPdfPlanner.Plan.Crop) return emptyList()
         val picked = mutableListOf<PendingEntry>()

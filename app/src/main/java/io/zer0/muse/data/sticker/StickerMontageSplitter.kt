@@ -24,6 +24,12 @@ import kotlin.math.min
  */
 object StickerMontageSplitter {
 
+    /** 估计页面背景色（取四边一圈的众数，返回真实颜色而非量化键）。 */
+    fun backgroundImage(pixels: IntArray, width: Int, height: Int): Int = guessBackground(pixels, width, height)
+
+    /** 某个像素是否算背景（透明像素一律算背景）。 */
+    fun isBackgroundPixel(color: Int, background: Int): Boolean = isBackground(color, background)
+
     /** 切出的格子：像素坐标，右/下为开区间。 */
     data class Cell(val left: Int, val top: Int, val right: Int, val bottom: Int) {
         val width: Int get() = right - left

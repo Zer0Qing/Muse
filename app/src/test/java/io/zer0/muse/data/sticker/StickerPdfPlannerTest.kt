@@ -65,15 +65,16 @@ class StickerPdfPlannerTest {
     }
 
     @Test
-    fun `a page cut into fragments is skipped even when the sizes look uniform`() {
-        // 真实样本的形状：每格约 82x100，占页 0.6% —— 面积彼此接近但都是碎片
-        val fragments = (0 until 25).map { i ->
+    fun `area alone is not a quality signal so uniform fragments are not special-cased`() {
+        // 真实样本量出来的事实：切准的格子中位占页 0.7%，被判碎片的也是 0.6% ——
+        // 面积分不开两者，所以这里不再有"面积太小就拒"的规则，只留离散度与数量两条兜底。
+        val uniform = (0 until 25).map { i ->
             StickerMontageSplitter.Cell(i % 5 * 200, i / 5 * 250, i % 5 * 200 + 82, i / 5 * 250 + 100)
         }
 
         assertTrue(
-            "碎片级切格必须整页不收",
-            StickerPdfPlanner.plan(fragments, pageWidth, pageHeight) is StickerPdfPlanner.Plan.Skip,
+            "均匀的小格不再被面积规则误杀（准不准交给人看）",
+            StickerPdfPlanner.plan(uniform, pageWidth, pageHeight) is StickerPdfPlanner.Plan.Crop,
         )
     }
 
