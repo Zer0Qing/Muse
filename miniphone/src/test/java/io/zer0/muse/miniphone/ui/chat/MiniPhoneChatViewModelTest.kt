@@ -317,6 +317,18 @@ class MiniPhoneChatViewModelTest {
         assertNotNull(db.threadDao().getThread(THREAD_ID))
     }
 
+    @Test
+    fun blankInputStoresNothingAndNeverAsksTheCharacter() = runBlocking {
+        val host = GatedHost(answer = "在的")
+        val viewModel = createViewModel(host)
+
+        // 空白输入不该在库里留一条"空气消息"：用户看到的是自己没发出去，
+        // 而不是发完冒出一个空泡再报错。
+        viewModel.send("   \n\t ")
+
+        assertEquals("空白输入不产生任何一条消息", emptyList<MpActorType>(), storedSenders())
+    }
+
     private fun createViewModel(host: MiniPhoneHost): MiniPhoneChatViewModel {
         var clock = NOW_BASE
         return MiniPhoneChatViewModel(
