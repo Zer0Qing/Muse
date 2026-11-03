@@ -628,9 +628,6 @@ class StickerLibraryRepository(private val appContext: Context) {
     /** 向导显示用的草稿内容。 */
     fun draftOf(draftId: String): StickerDraft? = draftStore.load(draftId)
 
-    /** 清掉上次没导完的草稿（启动时调一次；不能等用户自己去翻目录）。 */
-    fun purgeStaleDrafts(): Int = draftStore.purgeStale()
-
 
     /** 读文件开头若干字节（用来嗅探类型）。 */
     private fun File.headBytes(count: Int): ByteArray = runCatching {

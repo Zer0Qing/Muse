@@ -77,6 +77,12 @@ class StickerDraftStore(private val draftsRoot: File) {
     }
 
     /** 把临时文件收进一个草稿目录。返回的 file 已在草稿目录内。 */
+    init {
+        // 建好就清一次：没人会专门去点"清理草稿"，而遗弃的草稿是**用户看不见也删不掉**的占用。
+        // 放在这儿（而不是应用启动流程里）是因为仓库本身按需构造，效果一样且不用加接线。
+        purgeStale()
+    }
+
     fun create(category: String, seeds: List<DraftSeed>): StickerDraft? {
         if (seeds.isEmpty()) return null
         val id = UUID.randomUUID().toString().take(12)

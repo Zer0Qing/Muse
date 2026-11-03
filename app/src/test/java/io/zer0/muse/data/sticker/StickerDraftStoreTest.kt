@@ -80,14 +80,27 @@ class StickerDraftStoreTest {
     }
 
     @Test
-    fun `a directory without a readable record is cleaned rather than left forever`() {
+    fun `constructing the store cleans up directories nobody owns`() {
+        // 这条断言的是"接线方式"：清理挂在构造上，不依赖某个启动调用点
         val root = newRoot()
         File(root, "orphan_dir").apply { mkdirs() }
+
         val store = StickerDraftStore(root)
+
+        assertTrue("构造时就该清掉", store.list().isEmpty())
+        assertTrue(!File(root, "orphan_dir").exists())
+    }
+
+    @Test
+    fun `explicit purge still works for long-lived sessions`() {
+        val root = newRoot()
+        val store = StickerDraftStore(root)
+        // 会话中途冒出来的孤儿目录：构造时那次清理管不到它，才需要显式 purge
+        File(root, "later_orphan").apply { mkdirs() }
 
         val removed = store.purgeStale()
 
         assertEquals(1, removed)
-        assertTrue(!File(root, "orphan_dir").exists())
+        assertTrue(!File(root, "later_orphan").exists())
     }
 }
