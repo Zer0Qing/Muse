@@ -139,7 +139,10 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
         value = stickerRepo.listStickers(selectedCategory.takeIf { it.isNotBlank() })
     }
 
-    // 导入 zip launcher(SAF OpenDocument,限定 zip MIME)
+    // 导入选择器：不再用 MIME 挡路（表情包重做 P2）。
+    // 市面素材的形态是 docx / pptx / pdf / zip / 图片，而各家文件管理器对 Office 与
+    // 新式图片报的 MIME 五花八门（octet-stream、甚至空），一旦过滤器挡住，
+    // 用户连"选中它试试"的机会都没有。类型判定交给 importUri 按魔数判，错误信息更准。
     // v1.0.54: 改用 importUri(自动识别 zip/图片) + 进度回调,老设备导入大包需要可见反馈
     var importingSticker by remember { mutableStateOf(false) }
     var stickerImportProgress by remember { mutableStateOf<Float?>(null) }
@@ -247,10 +250,10 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             // 导入 zip(通过 SAF 选取压缩包)
             SettingsItemRow(
                 icon = MuseIcons.upload,
-                title = stringResource(R.string.settings_sticker_upload_zip),
-                subtitle = stringResource(R.string.settings_sticker_upload_zip_subtitle),
+                title = stringResource(R.string.settings_sticker_upload),
+                subtitle = stringResource(R.string.settings_sticker_upload_subtitle),
                 onClick = {
-                    importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
+                    importLauncher.launch(arrayOf("*/*"))
                 },
             ) { ChevronRight() }
             // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)

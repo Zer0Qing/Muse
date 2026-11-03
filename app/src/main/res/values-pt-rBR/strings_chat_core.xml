@@ -419,6 +419,8 @@
     <string name="settings_sticker_freq_occasional">Ocasional</string>
     <string name="settings_sticker_freq_normal">Normal</string>
     <string name="settings_sticker_freq_frequent">Frequente</string>
+    <string name="settings_sticker_upload">Importar figurinhas</string>
+    <string name="settings_sticker_upload_subtitle">Aceita zip, documentos docx/pptx e imagens; um arquivo por vez</string>
     <string name="settings_sticker_upload_zip">Importar ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Escolha um arquivo ZIP;</string>
     <string name="settings_sticker_imported">Adesivos %1$d importados</string>

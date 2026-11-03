@@ -419,6 +419,8 @@
     <string name="settings_sticker_freq_occasional">Ocasional</string>
     <string name="settings_sticker_freq_normal">Normal</string>
     <string name="settings_sticker_freq_frequent">Frecuente</string>
+    <string name="settings_sticker_upload">Importar stickers</string>
+    <string name="settings_sticker_upload_subtitle">Acepta zip, documentos docx/pptx e imagenes; un archivo a la vez</string>
     <string name="settings_sticker_upload_zip">Importar ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Elija un archivo ZIP;</string>
     <string name="settings_sticker_imported">Pegatinas %1$d importadas</string>

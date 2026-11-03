@@ -50,6 +50,9 @@ class StickerLibraryRepository(private val appContext: Context) {
     /** 支持的图片扩展名(小写)。 */
     private val imageExtensions = setOf("png", "jpg", "jpeg", "gif", "webp", "bmp")
 
+    /** 解不出尺寸时的中性回退：不因尺寸挡下用户选中的图（不是常量，所以用小写名）。 */
+    private val neutralDimension = 500 to 500
+
     // v1.117: 导入体积限制,防 ZIP 炸弹 / OOM(对齐 DocumentParser 的限制策略)
     private val MAX_SINGLE_ENTRY_BYTES = 10L * 1024 * 1024 // 单个图片 10MB
     private val MAX_TOTAL_IMPORT_BYTES = 200L * 1024 * 1024 // 累计 200MB
@@ -91,8 +94,16 @@ class StickerLibraryRepository(private val appContext: Context) {
             val displayName = queryDisplayName(uri)
             Logger.i("StickerLibraryRepository", "importUri: uri=$uri, displayName=$displayName")
             if (displayName.isNullOrBlank()) {
-                Logger.w("StickerLibraryRepository", "importUri: 无法获取文件名,尝试按 ZIP 处理")
-                return@withContext importZip(uri, onProgress)
+                // 从某些分享入口进来的 Uri 没有文件名。以前一律按 ZIP 处理，
+                // 于是文档形态会被当成"解压失败"；这里先按容器嗅一次再回落。
+                Logger.w("StickerLibraryRepository", "importUri: 无法获取文件名,先按文档容器尝试")
+                val asDocument = importDocument(uri, "导入的素材包", onProgress)
+                return@withContext if (asDocument.isSuccess) {
+                    asDocument
+                } else {
+                    Logger.i("StickerLibraryRepository", "importUri: 非文档容器,回落 ZIP 路径")
+                    importZip(uri, onProgress)
+                }
             }
             val lowerName = displayName.lowercase()
             when {
@@ -104,9 +115,15 @@ class StickerLibraryRepository(private val appContext: Context) {
                     Logger.i("StickerLibraryRepository", "importUri: 识别为单张图片,调用 importImage")
                     importImage(uri, displayName, onProgress)
                 }
+                documentKindOf(displayName) != null -> {
+                    Logger.i("StickerLibraryRepository", "importUri: 识别为文档容器,调用 importDocument")
+                    importDocument(uri, displayName, onProgress)
+                }
                 else -> {
                     Logger.w("StickerLibraryRepository", "importUri: 不支持的文件类型: $displayName")
-                    Result.Error("不支持的文件类型: $displayName(仅支持 ZIP 压缩包或 png/jpg/jpeg/gif/webp/bmp 图片)")
+                    Result.Error(
+                        "不支持的文件类型: $displayName（支持：ZIP 压缩包、docx/pptx 文档、png/jpg/jpeg/gif/webp/bmp 图片）",
+                    )
                 }
             }
         }
@@ -298,49 +315,7 @@ class StickerLibraryRepository(private val appContext: Context) {
                     if (pendingEntries.isEmpty()) error("压缩包内未找到图片文件(png/jpg/jpeg/gif/webp/bmp)")
 
                     Logger.i("StickerLibraryRepository", "importZip: 开始写入正式目录和清单")
-                    // staging → 正式目录 + 写清单(锁内完成,失败抛异常走 finally 清理)
-                    manifestMutex.withLock {
-                        val current = readManifest().toMutableList()
-                        for ((idx, pe) in pendingEntries.withIndex()) {
-                            // v1.0.54: 写入阶段进度(总数已知)
-                            if (idx % 10 == 0) {
-                                onProgress?.invoke("正在写入", idx, pendingEntries.size)
-                            }
-                            // 文件名冲突时附加短 uuid 后缀,避免覆盖
-                            val targetDir = File(rootDir, pe.category).apply { mkdirs() }
-                            var finalName = pe.fileName
-                            var targetFile = File(targetDir, finalName)
-                            // v1.113: Zip Slip 防护 — 确保解压目标路径在 rootDir 内
-                            val canonicalTarget = targetFile.canonicalPath
-                            val canonicalRoot = rootDir.canonicalPath
-                            if (!canonicalTarget.startsWith(canonicalRoot + File.separator)) {
-                                Logger.w("StickerLibraryRepository", "跳过路径穿越条目: ${pe.category}/${pe.fileName} -> $canonicalTarget")
-                                continue
-                            }
-                            if (targetFile.exists()) {
-                                val dotIdx = pe.fileName.lastIndexOf('.')
-                                val base = if (dotIdx > 0) pe.fileName.substring(0, dotIdx) else pe.fileName
-                                val ext = if (dotIdx > 0) pe.fileName.substring(dotIdx) else ""
-                                finalName = "${base}_${UUID.randomUUID().toString().take(6)}$ext"
-                                targetFile = File(targetDir, finalName)
-                            }
-                            // staging 文件移入正式目录(同分区 rename 原子且不复制)
-                            if (!pe.stagingFile.renameTo(targetFile)) {
-                                // rename 失败(罕见),回退复制
-                                pe.stagingFile.copyTo(targetFile, overwrite = false)
-                            }
-                            val item = StickerItem(
-                                id = UUID.randomUUID().toString(),
-                                category = pe.category,
-                                fileName = finalName,
-                                relativePath = "stickers/${pe.category}/$finalName",
-                                addedAt = now,
-                            )
-                            current.add(item)
-                            imported.add(item)
-                        }
-                        writeManifest(current)
-                    }
+                    imported.addAll(commitStaged(pendingEntries, now, onProgress))
                     Logger.i("StickerLibraryRepository", "importZip: 导入完成,共 ${imported.size} 张图片")
                 } finally {
                     // 无论成败,清理 staging 目录(成功时已空,失败时含半成品)
@@ -352,6 +327,141 @@ class StickerLibraryRepository(private val appContext: Context) {
                 Logger.w("StickerLibraryRepository", "importZip 失败: $msg", t)
             }
         }
+
+    /**
+     * staging → 正式目录 + 写清单（压缩包与文档导入共用一份）。
+     *
+     * 抽出来的原因不是省事，是**两处各写一份就会漂移**：文件名冲突规则、
+     * 路径穿越防护、清单落盘顺序，任何一处漏改都会表现成"某个入口导入的图会覆盖别人"。
+     */
+    private suspend fun commitStaged(
+        pending: List<PendingEntry>,
+        now: Long,
+        onProgress: ((phase: String, done: Int, total: Int?) -> Unit)?,
+    ): List<StickerItem> = manifestMutex.withLock {
+        val current = readManifest().toMutableList()
+        val imported = mutableListOf<StickerItem>()
+        for ((idx, pe) in pending.withIndex()) {
+            if (idx % 10 == 0) onProgress?.invoke("正在写入", idx, pending.size)
+            val targetDir = File(rootDir, pe.category).apply { mkdirs() }
+            val targetFile = uniqueTargetFile(targetDir, pe.fileName)
+            // Zip Slip / 路径穿越防护：目标必须仍在 stickers 根内
+            if (!targetFile.canonicalPath.startsWith(rootDir.canonicalPath + File.separator)) {
+                Logger.w("StickerLibraryRepository", "跳过越界条目: ${pe.category}/${pe.fileName}")
+                continue
+            }
+            if (!pe.stagingFile.renameTo(targetFile)) {
+                pe.stagingFile.copyTo(targetFile, overwrite = false)
+            }
+            val item = StickerItem(
+                id = UUID.randomUUID().toString(),
+                category = pe.category,
+                fileName = targetFile.name,
+                relativePath = "stickers/${pe.category}/${targetFile.name}",
+                addedAt = now,
+                caption = pe.caption?.takeIf { it.isNotBlank() },
+            )
+            current.add(item)
+            imported.add(item)
+        }
+        writeManifest(current)
+        imported
+    }
+
+    /** 同名时附加短 uuid 后缀，绝不覆盖已有文件。 */
+    private fun uniqueTargetFile(dir: File, wantedName: String): File {
+        val first = File(dir, wantedName)
+        if (!first.exists()) return first
+        val dot = wantedName.lastIndexOf('.')
+        val base = if (dot > 0) wantedName.substring(0, dot) else wantedName
+        val ext = if (dot > 0) wantedName.substring(dot) else ""
+        return File(dir, base + "_" + UUID.randomUUID().toString().take(6) + ext)
+    }
+
+    /**
+     * 从 Office 文档（docx / pptx）导入表情（表情包重做 P2）。
+     *
+     * 市面上传的素材包多数是 PDF + DOCX 这一对而不是压缩包：微信里传 zip 手机端打不开，
+     * 而 docx 里每张图都能长按另存、正文还带着每张的中文描述。这里把它变成"选中文件→直接进库"。
+     *
+     * 分类取正文第一段（样本里就是包名，如"呆猫八条"），取不到用文件名。
+     * 图旁描述作为**配文**保留 —— 那是唯一能说明"这张图什么意思"的信息。
+     */
+    suspend fun importDocument(
+        uri: Uri,
+        displayName: String,
+        onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
+    ): Result<Int> = withContext(Dispatchers.IO) {
+        resultOf {
+            val container = appContext.contentResolver.openInputStream(uri)?.use { stream ->
+                StickerContainerReader.read(stream)
+            } ?: error("无法打开所选文件（不是有效的 docx/pptx？）")
+            val scanned = StickerDocumentScanner.scan(container.kind, container.entries)
+            val category = safeCategoryName(scanned.title ?: displayName.substringBeforeLast('.'))
+            val ordered = scanned.candidates.mapNotNull { candidate ->
+                container.entries[candidate.mediaPath]?.let { candidate to it }
+            }
+            if (ordered.isEmpty()) error("文档里没有找到图片")
+            val usable = StickerCandidateFilters.filter(
+                items = ordered,
+                widthOf = { entry -> dimensionsOf(entry.second).first },
+                heightOf = { entry -> dimensionsOf(entry.second).second },
+                bytesOf = { entry -> entry.second },
+            )
+            if (usable.isEmpty()) error("文档里的图片都不像表情（尺寸或重复规则挡下）")
+            onProgress?.invoke("正在解压", 0, usable.size)
+            val stagingDir = File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8))
+            stagingDir.mkdirs()
+            try {
+                val pending = usable.mapIndexed { index, (candidate, bytes) ->
+                    val file = File(stagingDir, index.toString() + "_" + safeFileName(candidate.mediaPath))
+                    file.outputStream().use { it.write(bytes) }
+                    PendingEntry(category, safeFileName(candidate.mediaPath), file, candidate.caption)
+                }
+                val imported = commitStaged(pending, System.currentTimeMillis(), onProgress)
+                Logger.i("StickerLibraryRepository", "importDocument: 导入 ${imported.size} 张，分类=$category")
+                imported.size
+            } finally {
+                resultOf { stagingDir.deleteRecursively() }
+                    .onError { msg, t -> Logger.w("StickerLibraryRepository", "清理 staging 失败: $msg", t) }
+            }
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "importDocument 失败: $msg", t) }
+    }
+
+    /** 媒体路径 → 只留文件名。 */
+    private fun safeFileName(mediaPath: String): String = mediaPath.substringAfterLast('/')
+
+    /** 分类名当目录名用，必须去掉路径分隔符与控制字符；空了回落"文档导入"。 */
+    private fun safeCategoryName(raw: String): String {
+        val cleaned = raw.trim()
+            .replace(Regex("""[/\\:*?"<>|\x00-\x1F]"""), "_")
+            .trim('.', ' ')
+            .take(40)
+        return cleaned.ifBlank { "文档导入" }
+    }
+
+    /**
+     * 图片尺寸；解不出来回退成"中性方图"。
+     *
+     * 解不开不是丢弃的理由：把用户选的图悄悄扔掉，比多导一张更难解释。
+     * 真有多余的，导入向导里能看见并勾掉（P3）。
+     */
+    private fun dimensionsOf(bytes: ByteArray): Pair<Int, Int> = runCatching {
+        val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+        if (options.outWidth > 0 && options.outHeight > 0) {
+            options.outWidth to options.outHeight
+        } else {
+            neutralDimension
+        }
+    }.getOrDefault(neutralDimension)
+
+    /** 路由新形态（表情包重做 P2）。 */
+    private fun documentKindOf(name: String): StickerSourceKind? = when (name.lowercase().substringAfterLast('.', "")) {
+        "docx" -> StickerSourceKind.DOCX
+        "pptx" -> StickerSourceKind.PPTX
+        else -> null
+    }
 
     /**
      * 删除单个表情包(删物理文件 + 从清单移除)。
@@ -515,6 +625,8 @@ class StickerLibraryRepository(private val appContext: Context) {
         val category: String,
         val fileName: String,
         val stagingFile: File,
+        /** 配文（文档导入才有；zip 路径为 null）。 */
+        val caption: String? = null,
     )
 
     /** 读取清单文件(调用方需持锁)。清单不存在或解析失败返回空列表。 */
@@ -601,6 +713,14 @@ data class StickerItem(
     val fileName: String,
     val relativePath: String,
     val addedAt: Long,
+    /**
+     * 配文（表情包重做 P2）。
+     *
+     * 从 docx/pdf 素材导入时，图旁边那句中文描述是有用的信息（"小猫歪头"），
+     * 留下来才能搜、才能在发送时做候选。
+     * 默认 null：清单是 JSON 存盘的历史数据，老条目没这个字段也必须能读。
+     */
+    val caption: String? = null,
 )
 
 /**

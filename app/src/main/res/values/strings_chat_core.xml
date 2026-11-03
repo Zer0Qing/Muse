@@ -476,6 +476,8 @@
     <string name="settings_sticker_freq_occasional">偶尔</string>
     <string name="settings_sticker_freq_normal">正常</string>
     <string name="settings_sticker_freq_frequent">频繁</string>
+    <string name="settings_sticker_upload">导入表情包</string>
+    <string name="settings_sticker_upload_subtitle">支持压缩包、docx/pptx 文档、图片；一次可选一个文件</string>
     <string name="settings_sticker_upload_zip">导入压缩包</string>
     <string name="settings_sticker_upload_zip_subtitle">选取 zip 文件，按文件夹结构自动分类</string>
     <string name="settings_sticker_imported">已导入 %1$d 个表情包</string>
