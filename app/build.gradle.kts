@@ -519,6 +519,11 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.core.ktx)
+    // 真机 Compose 界面测试：BOM 与主源码集一致，避免版本漂移
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    // createComposeRule 需要一个空宿主 Activity，由这个 manifest 提供
+    androidTestImplementation("androidx.compose.ui:ui-test-manifest")
 
     // LeakCanary 内存泄漏检测(仅 debug)
     debugImplementation(libs.leakcanary.android)
