@@ -36,6 +36,9 @@ import java.util.zip.ZipInputStream
  *
  * @param appContext 应用 Context(用于 filesDir / contentResolver)
  */
+/** 配文长度上限：说明用的字段，不是正文。 */
+private const val MAX_CAPTION_CHARS = 200
+
 class StickerLibraryRepository(private val appContext: Context) {
 
     /** stickers 根目录(`filesDir/stickers`)。 */
@@ -428,6 +431,15 @@ class StickerLibraryRepository(private val appContext: Context) {
         }.onError { msg, t -> Logger.w("StickerLibraryRepository", "importDocument 失败: $msg", t) }
     }
 
+    /** 读文件开头若干字节（用来嗅探类型）。 */
+    private fun File.headBytes(count: Int): ByteArray = runCatching {
+        java.io.FileInputStream(this).use { input ->
+            val buffer = ByteArray(count)
+            val read = input.read(buffer)
+            if (read <= 0) ByteArray(0) else buffer.copyOf(read)
+        }
+    }.getOrDefault(ByteArray(0))
+
     /** 媒体路径 → 只留文件名。 */
     private fun safeFileName(mediaPath: String): String = mediaPath.substringAfterLast('/')
 
@@ -461,6 +473,154 @@ class StickerLibraryRepository(private val appContext: Context) {
         "docx" -> StickerSourceKind.DOCX
         "pptx" -> StickerSourceKind.PPTX
         else -> null
+    }
+
+    /**
+     * 从相册一次添加多张图片（表情包重做 P4）。
+     *
+     * 以前只有"导入压缩包"和"导入单张"，用户手机里现成的图要一张张选；
+     * 批量选择是更常见的做法，也是一次性把一批表情包搬进来的唯一省事路径。
+     *
+     * 非图片项被跳过而不是中止整批：相册多选里偶尔混进截图外的文件，
+     * 那不该让用户重来一遍。返回值里带上跳过的数量，界面能说清。
+     */
+    suspend fun importImages(
+        uris: List<Uri>,
+        category: String? = null,
+        onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
+    ): Result<Int> = withContext(Dispatchers.IO) {
+        resultOf {
+            val target = category?.takeIf { it.isNotBlank() }?.let(::safeCategoryName) ?: "默认"
+            val stagingDir = File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8))
+            stagingDir.mkdirs()
+            var skipped = 0
+            try {
+                val pending = mutableListOf<PendingEntry>()
+                uris.forEachIndexed { index, uri ->
+                    onProgress?.invoke("正在读取", index, uris.size)
+                    val given = queryDisplayName(uri)?.takeIf { isImageFile(it) }
+                    val staged = File(stagingDir, index.toString() + "_in")
+                    val copied = resultOf {
+                        appContext.contentResolver.openInputStream(uri).use { input ->
+                            requireNotNull(input).copyTo(staged.outputStream())
+                        }
+                        staged.length() > 0
+                    }.getOrNull() == true
+                    if (!copied) {
+                        staged.delete()
+                        skipped++
+                    } else {
+                        // 名字不一定拿得到（某些分享入口的 Uri 没有 DISPLAY_NAME），
+                        // 更不能凭空编一个 .png —— 那样任意文件都会以"图片"的身份进库，
+                        // 用户看到的是表情位上一个打不开的碎图。字节说了算。
+                        val head = staged.headBytes(12)
+                        val extension = StickerImportFormat.imageExtension(head)
+                        if (extension == null) {
+                            staged.delete()
+                            skipped++
+                        } else {
+                            // 不再改名：PendingEntry 本来就分开记"临时文件"和"最终文件名"，
+                            // 多一次 renameTo 只是多一个会静默失败的环节（它就是失败了）
+                            val wanted = given?.let { safeFileName(it) }
+                                ?: ("图片_" + (index + 1) + "." + extension)
+                            pending.add(PendingEntry(target, wanted, staged))
+                        }
+                    }
+                }
+                if (pending.isEmpty()) error("所选文件里没有可用图片（跳过 $skipped 个）")
+                val imported = commitStaged(pending, System.currentTimeMillis(), onProgress)
+                Logger.i("StickerLibraryRepository", "importImages: 导入 ${imported.size} 张到 $target，跳过 $skipped")
+                imported.size
+            } finally {
+                resultOf { stagingDir.deleteRecursively() }
+                    .onError { msg, t -> Logger.w("StickerLibraryRepository", "清理 staging 失败: $msg", t) }
+            }
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "importImages 失败: $msg", t) }
+    }
+
+    /**
+     * 改表情包（分类）名字。
+     *
+     * 与目标同名时**直接拒绝而不是自动合并**：合并意味着把两批图混在一起，
+     * 用户想改个名却把两个包搅了，那是比失败更难收拾的结果。
+     * 真要合并，可以逐张"挪到别的包"。
+     */
+    suspend fun renameCategory(from: String, to: String): Result<Int> = withContext(Dispatchers.IO) {
+        resultOf {
+            val target = safeCategoryName(to)
+            if (target == from) error("名字没变")
+            manifestMutex.withLock {
+                val current = readManifest().toMutableList()
+                if (current.any { it.category == target }) error("已经有一个叫「$target」的表情包，换个名字或逐张挪过去")
+                val moving = current.filter { it.category == from }
+                if (moving.isEmpty()) error("没有找到「$from」")
+                val now = System.currentTimeMillis()
+                moving.forEach { item ->
+                    val dir = File(rootDir, target).apply { mkdirs() }
+                    val file = uniqueTargetFile(dir, item.fileName)
+                    val source = File(appContext.filesDir, item.relativePath)
+                    if (!source.renameTo(file)) source.copyTo(file, overwrite = false)
+                    current[current.indexOf(item)] = item.copy(
+                        category = target,
+                        fileName = file.name,
+                        relativePath = "stickers/$target/${file.name}",
+                        addedAt = now,
+                    )
+                }
+                writeManifest(current)
+                resultOf {
+                    val oldDir = File(rootDir, from)
+                    if (oldDir.isDirectory && oldDir.listFiles()?.isEmpty() == true) oldDir.delete()
+                }
+                moving.size
+            }
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "renameCategory 失败: $msg", t) }
+    }
+
+    /** 把一张表情挪到另一个包（不存在就新建这个包）。 */
+    suspend fun moveSticker(id: String, toCategory: String): Boolean = withContext(Dispatchers.IO) {
+        manifestMutex.withLock {
+            val current = readManifest().toMutableList()
+            val index = current.indexOfFirst { it.id == id }
+            if (index < 0) return@withLock false
+            val item = current[index]
+            val target = safeCategoryName(toCategory)
+            if (item.category == target) return@withLock false
+            val dir = File(rootDir, target).apply { mkdirs() }
+            val file = uniqueTargetFile(dir, item.fileName)
+            val source = File(appContext.filesDir, item.relativePath)
+            val moved = resultOf { source.renameTo(file) || run { source.copyTo(file, overwrite = false); true } }
+                .getOrNull() == true
+            if (!moved) return@withLock false
+            current[index] = item.copy(
+                category = target,
+                fileName = file.name,
+                relativePath = "stickers/$target/${file.name}",
+            )
+            writeManifest(current)
+            resultOf {
+                val oldDir = File(rootDir, item.category)
+                if (oldDir.isDirectory && oldDir.listFiles()?.isEmpty() == true) oldDir.delete()
+            }
+            true
+        }
+    }
+
+    /**
+     * 改配文。
+     *
+     * 上限 200 字：配文是给"这张图什么意思"用的说明，不是正文；
+     * 允许清空（null），因为导入时自动带上的描述有时只是噪声。
+     */
+    suspend fun setCaption(id: String, caption: String?): Boolean = withContext(Dispatchers.IO) {
+        manifestMutex.withLock {
+            val current = readManifest().toMutableList()
+            val index = current.indexOfFirst { it.id == id }
+            if (index < 0) return@withLock false
+            current[index] = current[index].copy(caption = caption?.trim()?.takeIf { it.isNotEmpty() }?.take(MAX_CAPTION_CHARS))
+            writeManifest(current)
+            true
+        }
     }
 
     /**

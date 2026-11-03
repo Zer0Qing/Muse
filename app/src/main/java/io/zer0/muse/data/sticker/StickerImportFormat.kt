@@ -73,6 +73,16 @@ object StickerImportFormat {
     /** 文本里是否含图片 URL（用于把"链接清单"识别成一种可导入形态）。 */
     fun looksLikeUrlList(text: String): Boolean = StickerUrlList.harvest(text).isNotEmpty()
 
+    /** 按魔数给出图片扩展名；不是图片返回 null。 */
+    fun imageExtension(head: ByteArray): String? = when {
+        startsWith(head, PNG_MAGIC) -> "png"
+        startsWith(head, JPEG_MAGIC) -> "jpg"
+        startsWith(head, GIF_MAGIC) -> "gif"
+        startsWith(head, BMP_MAGIC) -> "bmp"
+        isWebp(head) -> "webp"
+        else -> null
+    }
+
     private fun isImageMagic(head: ByteArray): Boolean =
         startsWith(head, PNG_MAGIC) || startsWith(head, JPEG_MAGIC) ||
             startsWith(head, GIF_MAGIC) || startsWith(head, BMP_MAGIC) ||
