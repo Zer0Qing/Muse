@@ -23,8 +23,17 @@ package io.zer0.muse.data.sticker
  */
 object StickerPdfPlanner {
 
-    /** 单页最多接受多少格；超过就当噪声。 */
-    const val MAX_CELLS_PER_PAGE = 80
+    /** 单页最多接受多少格（表情目录页没有更密的；超过说明切碎了）。 */
+    const val MAX_CELLS_PER_PAGE = 40
+
+    /**
+     * 单格最少要占页面面积的比例。
+     *
+     * 来自真实样本的测量：那张 21 格目录页里，一张真贴纸约 198x233（占页 3.3%），
+     * 而算法切出的碎片是 82x100（占页 0.6%）—— 差 5 倍。
+     * 所以"每格至少 1.5% 页面积"正好能把碎片挡掉、把真贴纸放行。
+     */
+    const val MIN_CELL_AREA_RATIO_PAGE = 0.015f
 
     /** 单格占页面比例达到多少才敢当"整页一张"收。 */
     const val WHOLE_PAGE_AREA_RATIO = 0.7f
@@ -51,11 +60,13 @@ object StickerPdfPlanner {
     const val MAX_AREA_SPREAD = 8f
 
     fun plan(cells: List<StickerMontageSplitter.Cell>, pageWidth: Int, pageHeight: Int): Plan {
-        val pageArea = (pageWidth.toLong() * pageHeight.toLong()).toFloat()
+        val pageArea = pageWidth.toLong() * pageHeight.toLong()
         return when {
             cells.isEmpty() -> Plan.Skip
             cells.size > MAX_CELLS_PER_PAGE -> Plan.Skip
             !uniformEnough(cells) -> Plan.Skip
+            // 任何一格小到碎片程度，就说明这一页是被"切碎"而不是"切准"了
+            cells.any { it.area < pageArea * MIN_CELL_AREA_RATIO_PAGE } -> Plan.Skip
             cells.size >= 2 -> Plan.Crop(cells)
             cells.single().area >= pageArea * WHOLE_PAGE_AREA_RATIO -> Plan.Crop(cells)
             else -> Plan.Skip

@@ -24,7 +24,8 @@ class StickerPdfPlannerTest {
 
     @Test
     fun `a montage page is cut into its cells`() {
-        val cells = (0 until 21).map { cell(it) }
+        // 尺寸按真实目录页的比例：一张贴纸约占页 3%
+        val cells = (0 until 21).map { i -> cell(i, size = 300) }
 
         val plan = StickerPdfPlanner.plan(cells, pageWidth, pageHeight)
 
@@ -58,9 +59,22 @@ class StickerPdfPlannerTest {
 
     @Test
     fun `absurd cell counts are treated as noise`() {
-        val noisy = (0 until StickerPdfPlanner.MAX_CELLS_PER_PAGE + 5).map { cell(it, size = 12) }
+        val noisy = (0 until StickerPdfPlanner.MAX_CELLS_PER_PAGE + 5).map { cell(it, size = 300) }
 
         assertTrue("碎块过多宁可整页不收: ", StickerPdfPlanner.plan(noisy, pageWidth, pageHeight) is StickerPdfPlanner.Plan.Skip)
+    }
+
+    @Test
+    fun `a page cut into fragments is skipped even when the sizes look uniform`() {
+        // 真实样本的形状：每格约 82x100，占页 0.6% —— 面积彼此接近但都是碎片
+        val fragments = (0 until 25).map { i ->
+            StickerMontageSplitter.Cell(i % 5 * 200, i / 5 * 250, i % 5 * 200 + 82, i / 5 * 250 + 100)
+        }
+
+        assertTrue(
+            "碎片级切格必须整页不收",
+            StickerPdfPlanner.plan(fragments, pageWidth, pageHeight) is StickerPdfPlanner.Plan.Skip,
+        )
     }
 
     @Test
@@ -96,9 +110,9 @@ class StickerPdfPlannerTest {
     }
 
     @Test
-    fun `a regular grid of same-size cells still passes`() {
+    fun `a regular grid of same-size cells passes the uniformity check`() {
         val grid = (0 until 20).map { i ->
-            StickerMontageSplitter.Cell(i * 10, 0, i * 10 + 100, 100)
+            StickerMontageSplitter.Cell(i * 10, 0, i * 10 + 300, 300)
         }
 
         assertTrue(StickerPdfPlanner.uniformEnough(grid))
