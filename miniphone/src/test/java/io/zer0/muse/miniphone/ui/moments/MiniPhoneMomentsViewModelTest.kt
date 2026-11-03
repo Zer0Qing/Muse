@@ -1,5 +1,6 @@
 package io.zer0.muse.miniphone.ui.moments
 
+import androidx.lifecycle.ViewModelStore
 import android.net.Uri
 import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.api.MpCharacter
@@ -94,6 +95,7 @@ class MiniPhoneMomentsViewModelTest {
 
     @After
     fun tearDown() {
+        createdVmStore.clear()
         Dispatchers.resetMain()
         db.close()
     }
@@ -377,7 +379,7 @@ class MiniPhoneMomentsViewModelTest {
             settings = autoStore,
             material = material(),
             random = Random(0),
-        )
+        ).also { track(it) }
         val state = awaitState(viewModel) { current -> current.isLoaded }
 
         assertEquals(3, state.moments.size)
@@ -453,6 +455,19 @@ class MiniPhoneMomentsViewModelTest {
         createdAt = at,
     )
 
+    // 本类创建的 ViewModel 必须在 @After 回收：viewModelScope 挂在 Dispatchers.Main.immediate 上，
+    // 不回收就仍有协程在读全局 Main —— 本类之前的两次飘红就是它自己踩自己：
+    // `Dispatchers.Main is used concurrently with setting it`，一处发生在 setMain、一处发生在
+    // 遗留协程的 isDispatchNeeded。ViewModel.clear() 是 internal，所以挂进 ViewModelStore 统一清。
+    private val createdVmStore = ViewModelStore()
+    private var trackedCount = 0
+
+    private fun <VM : androidx.lifecycle.ViewModel> track(viewModel: VM): VM {
+        trackedCount += 1
+        createdVmStore.put("vm-" + trackedCount, viewModel)
+        return viewModel
+    }
+
     private fun createViewModel(host: MiniPhoneHost, onlyMine: Boolean = false): MiniPhoneMomentsViewModel = MiniPhoneMomentsViewModel(
         repository = repository,
         host = host,
@@ -460,7 +475,7 @@ class MiniPhoneMomentsViewModelTest {
         material = material(),
         onlyMine = onlyMine,
         random = Random(0),
-    )
+    ).also { track(it) }
 
     /** 真的素材组装:会话与动态都从内存库读,时间用测试时钟。 */
     private fun material(): MpCharacterMaterial = MpCharacterMaterial(

@@ -1,5 +1,6 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import androidx.lifecycle.ViewModelStore
 import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.api.MpCharacter
@@ -57,6 +58,7 @@ class MiniPhoneChatVoiceMessageTest {
 
     @After
     fun tearDown() {
+        createdVmStore.clear()
         Dispatchers.resetMain()
         db.close()
     }
@@ -123,6 +125,18 @@ class MiniPhoneChatVoiceMessageTest {
         assertEquals("结束后收起活动提示", null, state.activity)
     }
 
+    // 本类创建的 ViewModel 要在 @After 里回收：viewModelScope 挂在 Dispatchers.Main.immediate 上，
+    // 不回收就仍有协程在读全局 Main，下一个类 setMain 时会撞"不许并发换 Main"（那条约 1/5 概率的 flake）。
+    private val createdVmStore = ViewModelStore()
+    private var trackedCount = 0
+
+    // ViewModel.clear() 是 internal，测试里调不到；挂进 ViewModelStore 由它统一回收。
+    private fun <VM : androidx.lifecycle.ViewModel> track(viewModel: VM): VM {
+        trackedCount += 1
+        createdVmStore.put("vm-" + trackedCount, viewModel)
+        return viewModel
+    }
+
     private fun createViewModel(host: MiniPhoneHost): MiniPhoneChatViewModel {
         var clock = NOW_BASE
         return MiniPhoneChatViewModel(
@@ -151,7 +165,7 @@ class MiniPhoneChatVoiceMessageTest {
                     "new-$idCounter"
                 },
             ),
-        )
+        ).also { track(it) }
     }
 
     private suspend fun seedThread() {

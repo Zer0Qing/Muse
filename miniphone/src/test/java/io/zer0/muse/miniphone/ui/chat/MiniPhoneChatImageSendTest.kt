@@ -1,5 +1,7 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelStore
 import android.net.Uri
 import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.api.MpCharacter
@@ -65,6 +67,7 @@ class MiniPhoneChatImageSendTest {
 
     @After
     fun tearDown() {
+        createdVmStore.clear()
         Dispatchers.resetMain()
         db.close()
         directory.deleteRecursively()
@@ -148,6 +151,28 @@ class MiniPhoneChatImageSendTest {
         assertNull(blank.selfAvatarUri)
     }
 
+    /**
+     * 本类创建过的 ViewModel。
+     *
+     * 必须在 `@After` 里清掉：`viewModelScope` 用 `Dispatchers.Main.immediate`，
+     * VM 不回收 → 它的收集协程还活着、还会再读全局 Main；下一个测试类
+     * `Dispatchers.setMain(...)` 就撞上 kotlinx-coroutines-test 的
+     * "不许并发换 Main" 检查（那条约 1/5 概率飘红的 flake 就是这么来的）。
+     *
+     * 先 clear 再 resetMain：治的是**泄漏本身**，不去动全局 Main 的安装策略 ——
+     * 后者会和 Compose 测试规则抢 Main（已验证过是错的改法）。
+     */
+    private val createdVmStore = ViewModelStore()
+    private var trackedCount = 0
+
+    // 挂进一个 ViewModelStore，好在 @After 里一次性回收（ViewModel.clear() 是 internal，测试里调不到）
+
+    private fun <T : ViewModel> track(viewModel: T): T {
+        trackedCount += 1
+        createdVmStore.put("vm-$trackedCount", viewModel)
+        return viewModel
+    }
+
     private fun createViewModel(host: MiniPhoneHost): MiniPhoneChatViewModel {
         var clock = NOW_BASE
         return MiniPhoneChatViewModel(
@@ -173,7 +198,7 @@ class MiniPhoneChatImageSendTest {
                     "new-$idCounter"
                 },
             ),
-        )
+        ).also { track(it) }
     }
 
     /** 选择器给出的 uri 内容就是它的最后一段:落盘文件的字节能反证选择顺序。 */
