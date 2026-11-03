@@ -182,6 +182,28 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             }
         }
 
+    // 从相册一次选多张（表情包重做 P4）：以前只能"导入压缩包"或"导入单张"，
+    // 手机里现成的图要一张张选 —— 那不是人会用这个功能的方式。
+    var importingFromGallery by remember { mutableStateOf(false) }
+    val galleryLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenMultipleDocuments(),
+        ) { uris ->
+            if (uris.isNullOrEmpty()) return@rememberLauncherForActivityResult
+            importingFromGallery = true
+            scope.launch {
+                stickerRepo.importImages(uris, selectedCategory.ifBlank { null })
+                    .onSuccess { count ->
+                        MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
+                        refreshTrigger++
+                    }
+                    .onError { msg, _ ->
+                        MuseToast.show(context.getString(R.string.settings_sticker_import_failed, msg), 3500)
+                    }
+                importingFromGallery = false
+            }
+        }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -256,7 +278,16 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                     importLauncher.launch(arrayOf("*/*"))
                 },
             ) { ChevronRight() }
-            // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)
+            SettingsGroupDivider()
+            // 从相册添加（多选）。图进当前查看的包，没选包就进"默认"。
+            SettingsItemRow(
+                icon = MuseIcons.image,
+                title = stringResource(R.string.settings_sticker_add_from_gallery),
+                subtitle = stringResource(R.string.settings_sticker_add_from_gallery_subtitle),
+                onClick = { galleryLauncher.launch(arrayOf("image/*")) },
+            ) { ChevronRight() }
+
+    // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)
             if (importingSticker) {
                 Column(
                     modifier =

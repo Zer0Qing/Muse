@@ -421,6 +421,8 @@
     <string name="settings_sticker_freq_frequent">Frecuente</string>
     <string name="settings_sticker_upload">Importar stickers</string>
     <string name="settings_sticker_upload_subtitle">Acepta zip, documentos docx/pptx e imagenes; un archivo a la vez</string>
+    <string name="settings_sticker_add_from_gallery">Anadir desde la galeria</string>
+    <string name="settings_sticker_add_from_gallery_subtitle">Puedes elegir varias; van al paquete que estas viendo</string>
     <string name="settings_sticker_upload_zip">Importar ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Elija un archivo ZIP;</string>
     <string name="settings_sticker_imported">Pegatinas %1$d importadas</string>

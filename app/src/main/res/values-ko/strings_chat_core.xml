@@ -420,6 +420,8 @@
     <string name="settings_sticker_freq_frequent">자주</string>
     <string name="settings_sticker_upload">스티커 가져오기</string>
     <string name="settings_sticker_upload_subtitle">zip, docx/pptx 문서, 이미지 지원. 한 번에 파일 하나</string>
+    <string name="settings_sticker_add_from_gallery">갤러리에서 추가</string>
+    <string name="settings_sticker_add_from_gallery_subtitle">여러 장 동시 선택. 현재 보는 스티커 팩에 추가됩니다</string>
     <string name="settings_sticker_upload_zip">우편번호 가져오기</string>
     <string name="settings_sticker_upload_zip_subtitle">ZIP 파일을 선택하세요.</string>
     <string name="settings_sticker_imported">가져온 %1$d 스티커</string>

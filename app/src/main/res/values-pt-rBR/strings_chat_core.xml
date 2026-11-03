@@ -421,6 +421,8 @@
     <string name="settings_sticker_freq_frequent">Frequente</string>
     <string name="settings_sticker_upload">Importar figurinhas</string>
     <string name="settings_sticker_upload_subtitle">Aceita zip, documentos docx/pptx e imagens; um arquivo por vez</string>
+    <string name="settings_sticker_add_from_gallery">Adicionar da galeria</string>
+    <string name="settings_sticker_add_from_gallery_subtitle">Escolha varias de uma vez; vao para o pacote aberto</string>
     <string name="settings_sticker_upload_zip">Importar ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Escolha um arquivo ZIP;</string>
     <string name="settings_sticker_imported">Adesivos %1$d importados</string>

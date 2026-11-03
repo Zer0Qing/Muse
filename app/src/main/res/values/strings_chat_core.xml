@@ -478,6 +478,8 @@
     <string name="settings_sticker_freq_frequent">频繁</string>
     <string name="settings_sticker_upload">导入表情包</string>
     <string name="settings_sticker_upload_subtitle">支持压缩包、docx/pptx 文档、图片；一次可选一个文件</string>
+    <string name="settings_sticker_add_from_gallery">从相册添加</string>
+    <string name="settings_sticker_add_from_gallery_subtitle">一次可多选；加进当前查看的表情包</string>
     <string name="settings_sticker_upload_zip">导入压缩包</string>
     <string name="settings_sticker_upload_zip_subtitle">选取 zip 文件，按文件夹结构自动分类</string>
     <string name="settings_sticker_imported">已导入 %1$d 个表情包</string>

@@ -328,6 +328,8 @@
     <string name="settings_sticker_freq_frequent">よく使う</string>
     <string name="settings_sticker_upload">スタンプを読み込む</string>
     <string name="settings_sticker_upload_subtitle">zip・docx/pptx・画像に対応。1 回に 1 ファイル</string>
+    <string name="settings_sticker_add_from_gallery">アルバムから追加</string>
+    <string name="settings_sticker_add_from_gallery_subtitle">複数選択可。表示中のスタンプパックに追加します</string>
     <string name="settings_sticker_upload_zip">ZIPをインポート</string>
     <string name="settings_sticker_upload_zip_subtitle">ZIP ファイルを選択します。</string>
     <string name="settings_sticker_imported">輸入された%1$dステッカー</string>
