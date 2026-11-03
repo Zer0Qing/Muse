@@ -155,6 +155,32 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
     var itemActions by remember { mutableStateOf<StickerItem?>(null) }
     var actionCaption by remember { mutableStateOf("") }
     var actionTarget by remember { mutableStateOf("") }
+    // 整包导出（表情包重做 P4）：保存位置交给 SAF，用户选哪儿就写哪儿，
+    // 不需要"所有文件访问"那种大权限
+    val exportCategory = remember { mutableStateOf<String?>(null) }
+    val exportLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/zip"),
+        ) { uri ->
+            val category = exportCategory.value
+            exportCategory.value = null
+            if (uri == null || category.isNullOrBlank()) return@rememberLauncherForActivityResult
+            scope.launch {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { stream ->
+                        stickerRepo.exportCategoryZip(category, stream).getOrThrow()
+                    } ?: error("无法写入所选位置")
+                }.onSuccess { count ->
+                    MuseToast.show(context.getString(R.string.settings_sticker_export_done, category, count))
+                }.onFailure { error ->
+                    MuseToast.show(
+                        context.getString(R.string.settings_sticker_import_failed, error.message),
+                        3500,
+                    )
+                }
+            }
+        }
+
     // 导入预览：文档/PDF 先解析成草稿，勾过再入库（表情包重做 P3）
     var reviewDraft by remember { mutableStateOf<io.zer0.muse.data.sticker.StickerDraft?>(null) }
     var reviewKept by remember { mutableStateOf(setOf<String>()) }
@@ -400,6 +426,16 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                                 showRenameDialog = true
                             },
                             label = stringResource(R.string.settings_sticker_rename_pack),
+                        )
+                    }
+                    item(key = "export") {
+                        MuseChip(
+                            selected = false,
+                            onClick = {
+                                exportCategory.value = selectedCategory
+                                exportLauncher.launch(selectedCategory + ".zip")
+                            },
+                            label = stringResource(R.string.settings_sticker_export_pack),
                         )
                     }
                 }

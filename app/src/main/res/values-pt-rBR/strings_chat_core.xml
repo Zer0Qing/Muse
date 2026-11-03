@@ -426,6 +426,8 @@
     <string name="settings_sticker_review_title">Revisar %1$d adesivos</string>
     <string name="settings_sticker_review_hint">A selecao automatica pode errar; toque para desmarcar. Pacote: %2$s</string>
     <string name="settings_sticker_review_import">Importar %1$d</string>
+    <string name="settings_sticker_export_pack">Exportar este pacote</string>
+    <string name="settings_sticker_export_done">“%1$s” exportado com %2$d adesivos</string>
     <string name="settings_sticker_download_originals">Baixar originais pelos links (%1$d)</string>
     <string name="settings_sticker_download_result">%1$d substituídos, %2$d falharam</string>
     <string name="settings_sticker_rename_pack">Renomear este pacote</string>

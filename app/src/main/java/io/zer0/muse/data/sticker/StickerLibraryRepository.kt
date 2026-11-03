@@ -18,6 +18,7 @@ import java.io.File
 import java.nio.charset.Charset
 import java.util.UUID
 import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import java.util.zip.ZipInputStream
 
 /**
@@ -38,6 +39,16 @@ import java.util.zip.ZipInputStream
  */
 /** 配文长度上限：说明用的字段，不是正文。 */
 private const val MAX_CAPTION_CHARS = 200
+
+/** 导出包里的配文 sidecar 文件名（导入侧按它认回来）。 */
+private const val CAPSIONS_ENTRY_NAME = "captions.json"
+
+/** 配文 sidecar 的形态：分类 + 文件名到配文的映射。 */
+@Serializable
+private data class CaptionsFile(
+    val category: String,
+    val captions: Map<String, String> = emptyMap(),
+)
 
 class StickerLibraryRepository(private val appContext: Context) {
 
@@ -245,6 +256,8 @@ class StickerLibraryRepository(private val appContext: Context) {
                 stagingDir.mkdirs()
                 // 每个 staging 条目:分类 + 最终文件名 + staging 文件名
                 val pendingEntries = mutableListOf<PendingEntry>()
+                // 配文 sidecar（我们自己导出的包会带）：文件名 → 配文
+                val captions = LinkedHashMap<String, String>()
                 // v1.117: 累计大小/数量计数器,防 ZIP 炸弹
                 var totalBytes = 0L
 
@@ -285,7 +298,11 @@ class StickerLibraryRepository(private val appContext: Context) {
                                     }
                                     // 解析分类与文件名
                                     val (category, fileName) = parseCategoryAndName(rawName)
-                                    if (fileName != null && isImageFile(fileName)) {
+                                    // 配文 sidecar 走一条独立分支：它是元数据不是图，
+                                    // 但也不该多一个 continue —— 循环里的跳出已经够多了
+                                    if (rawName.substringAfterLast('/') == CAPSIONS_ENTRY_NAME) {
+                                        readCaptionsSidecar(zis.readBytes())?.let { captions.putAll(it) }
+                                    } else if (fileName != null && isImageFile(fileName)) {
                                         if (entryCount % 100 == 0) {
                                             Logger.d(
                                                 "StickerLibraryRepository",
@@ -325,7 +342,17 @@ class StickerLibraryRepository(private val appContext: Context) {
                     if (pendingEntries.isEmpty()) error("压缩包内未找到图片文件(png/jpg/jpeg/gif/webp/bmp)")
 
                     Logger.i("StickerLibraryRepository", "importZip: 开始写入正式目录和清单")
-                    imported.addAll(commitStaged(pendingEntries, now, onProgress))
+                    imported.addAll(
+                        commitStaged(
+                            if (captions.isEmpty()) {
+                                pendingEntries
+                            } else {
+                                pendingEntries.map { it.copy(caption = captions[it.fileName] ?: it.caption) }
+                            },
+                            now,
+                            onProgress,
+                        ),
+                    )
                     Logger.i("StickerLibraryRepository", "importZip: 导入完成,共 ${imported.size} 张图片")
                 } finally {
                     // 无论成败,清理 staging 目录(成功时已空,失败时含半成品)
@@ -655,6 +682,53 @@ class StickerLibraryRepository(private val appContext: Context) {
         }.onError { msg, t -> Logger.w("StickerLibraryRepository", "downloadDraftOriginals 失败: $msg", t) }
     }
 
+    /**
+     * 把一个表情包导出成 zip（表情包重做 P4 收尾）。
+     *
+     * 导出必须**带配文**：配文是导入时从文档正文里捡出来的信息，
+     * 只导图等于把它丢了，用户下次导入就只剩 `image12.png` 这种名字。
+     * 所以除图片外再写一份 `captions.json`（文件名 → 配文），
+     * 导入侧认识它就自动接回去。
+     *
+     * 目录结构是 `<分类名>/<文件名>`，正好也是 zip 导入用的分类解析格式，
+     * 导出的包可以直接再导回来（包括别的设备）。
+     *
+     * @return 写出的图片张数
+     */
+    suspend fun exportCategoryZip(category: String, target: java.io.OutputStream): Result<Int> =
+        withContext(Dispatchers.IO) {
+            resultOf {
+                val items = readManifest().filter { it.category == category }
+                if (items.isEmpty()) error("「$category」里没有表情包")
+                ZipOutputStream(target, Charsets.UTF_8).use { zos ->
+                    var written = 0
+                    val captions = LinkedHashMap<String, String>()
+                    for (item in items) {
+                        val file = File(appContext.filesDir, item.relativePath)
+                        if (!file.isFile) continue
+                        zos.putNextEntry(ZipEntry("$category/${item.fileName}"))
+                        file.inputStream().use { it.copyTo(zos) }
+                        zos.closeEntry()
+                        item.caption?.let { captions[item.fileName] = it }
+                        written++
+                    }
+                    if (written == 0) error("「$category」的文件都不在磁盘上")
+                    if (captions.isNotEmpty()) {
+                        zos.putNextEntry(ZipEntry(CAPSIONS_ENTRY_NAME))
+                        zos.write(
+                            AppJson.encodeToString(
+                                CaptionsFile.serializer(),
+                                CaptionsFile(category, captions),
+                            ).toByteArray(Charsets.UTF_8),
+                        )
+                        zos.closeEntry()
+                    }
+                    Logger.i("StickerLibraryRepository", "exportCategoryZip: $category 导出 $written 张")
+                    written
+                }
+            }.onError { msg, t -> Logger.w("StickerLibraryRepository", "exportCategoryZip 失败: $msg", t) }
+        }
+
     /** 用户取消：整个草稿目录删掉。 */
     fun cancelDraft(draftId: String) {
         draftStore.delete(draftId)
@@ -714,6 +788,11 @@ class StickerLibraryRepository(private val appContext: Context) {
     /** 向导显示用的草稿内容。 */
     fun draftOf(draftId: String): StickerDraft? = draftStore.load(draftId)
 
+
+    /** 导出包里那份配文 sidecar 的条目名。 */
+    private fun readCaptionsSidecar(bytes: ByteArray): Map<String, String>? = runCatching {
+        AppJson.decodeFromString(CaptionsFile.serializer(), bytes.toString(Charsets.UTF_8)).captions
+    }.getOrNull()
 
     /** 读文件开头若干字节（用来嗅探类型）。 */
     private fun File.headBytes(count: Int): ByteArray = runCatching {
