@@ -426,6 +426,8 @@
     <string name="settings_sticker_review_title">Revisar %1$d stickers</string>
     <string name="settings_sticker_review_hint">La seleccion automatica puede fallar; toca para desmarcar. Paquete: %2$s</string>
     <string name="settings_sticker_review_import">Importar %1$d</string>
+    <string name="settings_sticker_download_originals">Descargar originales por enlace (%1$d)</string>
+    <string name="settings_sticker_download_result">Reemplazados %1$d, fallidos %2$d</string>
     <string name="settings_sticker_rename_pack">Renombrar este paquete</string>
     <string name="settings_sticker_rename_title">Renombrar paquete</string>
     <string name="settings_sticker_action_saved">Actualizado</string>

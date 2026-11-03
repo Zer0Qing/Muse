@@ -449,7 +449,7 @@ class StickerLibraryRepository(private val appContext: Context) {
             val name = safeFileName(candidate.mediaPath)
             val file = File(stagingDir, index.toString() + "_" + name)
             file.outputStream().use { it.write(bytes) }
-            PendingEntry(category, name, file, candidate.caption)
+            PendingEntry(category, name, file, candidate.caption, candidate.sourceUrl)
         }
         return category to pending
     }
@@ -596,7 +596,7 @@ class StickerLibraryRepository(private val appContext: Context) {
         val stagingParent = pending.firstOrNull()?.stagingFile?.parentFile
         val draft = draftStore.create(
             category = category,
-            seeds = pending.map { pe -> DraftSeed(pe.fileName, pe.stagingFile, pe.caption) },
+            seeds = pending.map { pe -> DraftSeed(pe.fileName, pe.stagingFile, pe.caption, pe.sourceUrl) },
         )
         runCatching { stagingParent?.deleteRecursively() }
         requireNotNull(draft) { "没有可确认的内容" }
@@ -611,7 +611,9 @@ class StickerLibraryRepository(private val appContext: Context) {
                 val keep = if (keepTokens.isEmpty()) draft.items else draft.items.filter { it.token in keepTokens }
                 if (keep.isEmpty()) error("一张都没选")
                 val imported = commitStaged(
-                    keep.map { entry -> PendingEntry(draft.category, entry.fileName, entry.file, entry.caption) },
+                    keep.map { entry ->
+                        PendingEntry(draft.category, entry.fileName, entry.file, entry.caption, entry.sourceUrl)
+                    },
                     System.currentTimeMillis(),
                     null,
                 )
@@ -620,9 +622,93 @@ class StickerLibraryRepository(private val appContext: Context) {
             }.onError { msg, t -> Logger.w("StickerLibraryRepository", "commitDraft 失败: $msg", t) }
         }
 
+    /**
+     * 按正文里的直链把草稿换成**图床原图**（表情包重做 P5）。
+     *
+     * 用户点了才走：文档里的嵌入图通常已经被压过一遍，想要清晰的就得重下，
+     * 但"选个文件"不等于"同意我替你去下一整包"，所以这里只响应显式动作，
+     * 并且一次批量有条数与体积上限。
+     *
+     * 单条失败不影响整批（一条坏链接不该让另外 20 张白费），失败原因一起返回。
+     *
+     * @param fetcher 注入的取数函数（默认真下载；测试里给假的）
+     * @return 成功替换的张数，以及每条失败原因（含"体积已达上限"这类整批级说明）
+     */
+    suspend fun downloadDraftOriginals(
+        draftId: String,
+        keepTokens: Set<String> = emptySet(),
+        onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
+        fetcher: (String, File) -> String? = StickerUrlFetch::fetch,
+    ): Result<Pair<Int, List<String>>> = withContext(Dispatchers.IO) {
+        resultOf {
+            val draft = draftStore.load(draftId) ?: error("草稿已失效，请重新选取文件")
+            val targets = draft.items.filter { entry ->
+                entry.sourceUrl != null && (keepTokens.isEmpty() || entry.token in keepTokens)
+            }.take(StickerUrlFetch.MAX_BATCH_ITEMS)
+            if (targets.isEmpty()) error("这批里没有可用的原图链接")
+            val runner = OriginalBatchRunner(fetcher, onProgress, targets.size)
+            targets.forEach { entry -> runner.run(entry) }
+            val failures = runner.failures
+            val replaced = runner.replaced
+            Logger.i("StickerLibraryRepository", "downloadDraftOriginals: 替换 $replaced 张，失败 ${failures.size}")
+            replaced to failures
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "downloadDraftOriginals 失败: $msg", t) }
+    }
+
     /** 用户取消：整个草稿目录删掉。 */
     fun cancelDraft(draftId: String) {
         draftStore.delete(draftId)
+    }
+
+    /**
+     * 一批原图的取数过程。
+     *
+     * 做成小对象是为了把"预算、计数、失败记录"集中一处，而不是在循环里堆嵌套。
+     * **单条失败不影响整批**：一条坏链接不该让另外二十张白费，
+     * 也不该让整个动作看起来全失败。
+     */
+    private class OriginalBatchRunner(
+        private val fetcher: (String, File) -> String?,
+        private val onProgress: ((phase: String, done: Int, total: Int?) -> Unit)?,
+        private val total: Int,
+    ) {
+        val failures = mutableListOf<String>()
+        var replaced = 0
+            private set
+        private var budget = StickerUrlFetch.MAX_BATCH_BYTES
+        private var done = 0
+
+        fun run(entry: StickerDraftEntry) {
+            done++
+            if (budget <= 0L) {
+                if (done < total) failures += "体积已达上限，后面未继续"
+                return
+            }
+            onProgress?.invoke("正在下载", done, total)
+            val url = entry.sourceUrl ?: return
+            val bytes = takeOne(url, entry)
+            if (bytes != null) {
+                budget -= bytes
+                replaced++
+            } else {
+                failures += "第 $done 张取原图失败"
+            }
+        }
+
+        /** 取一张并接进草稿；成功返回字节数，失败返回 null。 */
+        private fun takeOne(url: String, entry: StickerDraftEntry): Long? {
+            val temp = File(entry.file.parentFile, "dl_" + entry.token + ".tmp")
+            val reason = runCatching { fetcher(url, temp) }.getOrDefault("读取失败")
+            val size = temp.length()
+            if (reason != null || size <= 0L || size > StickerUrlFetch.MAX_ITEM_BYTES) {
+                runCatching { temp.delete() }
+                return null
+            }
+            // 先覆盖再删临时文件：反过来做的话，中途失败会把草稿里原有的图弄没
+            val ok = runCatching { temp.copyTo(entry.file, overwrite = true) }.isSuccess
+            runCatching { temp.delete() }
+            return if (ok) size else null
+        }
     }
 
     /** 向导显示用的草稿内容。 */
@@ -985,6 +1071,8 @@ class StickerLibraryRepository(private val appContext: Context) {
         val stagingFile: File,
         /** 配文（文档导入才有；zip 路径为 null）。 */
         val caption: String? = null,
+        /** 原图直链（文档正文里带出来的，用户点了才会下载）。 */
+        val sourceUrl: String? = null,
     )
 
     /** 读取清单文件(调用方需持锁)。清单不存在或解析失败返回空列表。 */

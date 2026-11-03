@@ -28,6 +28,14 @@ data class DraftItemMeta(
     val token: String,
     val fileName: String,
     val caption: String? = null,
+    /**
+     * 图旁边那条原图直链（docx/pdf 正文里常见）。
+     *
+     * 为什么要留着：文档里的嵌入图往往**已经被压过一遍**，
+     * 而链接指向的是图床原图。用户想拿清晰的，就得能按链接重下——
+     * 但这件事必须他自己点，不能在导入时自动联网。
+     */
+    val sourceUrl: String? = null,
 )
 
 /** 一个草稿的元数据（draft.json）。 */
@@ -52,6 +60,7 @@ data class StickerDraftEntry(
     val fileName: String,
     val caption: String?,
     val file: File,
+    val sourceUrl: String? = null,
 )
 
 /** 建草稿时的输入：一条待确认的图。 */
@@ -59,6 +68,7 @@ data class DraftSeed(
     val fileName: String,
     val sourceFile: File,
     val caption: String? = null,
+    val sourceUrl: String? = null,
 )
 
 /**
@@ -93,7 +103,7 @@ class StickerDraftStore(private val draftsRoot: File) {
                 val token = UUID.randomUUID().toString().take(8)
                 val target = File(dir, token + "_" + seed.fileName.substringAfterLast('/'))
                 seed.sourceFile.copyTo(target, overwrite = false)
-                DraftItemMeta(token, seed.fileName, seed.caption)
+                DraftItemMeta(token, seed.fileName, seed.caption, seed.sourceUrl)
             }
             val record = DraftRecord(id, category, System.currentTimeMillis(), metas)
             File(dir, RECORD_FILE).writeText(AppJson.encodeToString(DraftRecord.serializer(), record))
@@ -111,7 +121,7 @@ class StickerDraftStore(private val draftsRoot: File) {
         } ?: return null
         val entries = record.items.mapNotNull { meta ->
             val file = dir.listFiles()?.firstOrNull { it.name.startsWith(meta.token + "_") } ?: return@mapNotNull null
-            StickerDraftEntry(meta.token, meta.fileName, meta.caption, file)
+            StickerDraftEntry(meta.token, meta.fileName, meta.caption, file, meta.sourceUrl)
         }
         return StickerDraft(record.id, record.category, entries)
     }

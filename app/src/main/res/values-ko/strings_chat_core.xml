@@ -425,6 +425,8 @@
     <string name="settings_sticker_review_title">%1$d 개 미리보기</string>
     <string name="settings_sticker_review_hint">자동 선택과自動 자르기는 틀릴 수 있습니다. 탭으로 선택 해제. 팩: %2$s</string>
     <string name="settings_sticker_review_import">%1$d 개 가져오기</string>
+    <string name="settings_sticker_download_originals">링크로 원본 내려받기 (%1$d개)</string>
+    <string name="settings_sticker_download_result">%1$d개 교체, 실패 %2$d</string>
     <string name="settings_sticker_rename_pack">이 팩 이름 변경</string>
     <string name="settings_sticker_rename_title">스티커 팩 이름 변경</string>
     <string name="settings_sticker_action_saved">업데이트됨</string>

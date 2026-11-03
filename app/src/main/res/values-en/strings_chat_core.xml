@@ -445,6 +445,8 @@
     <string name="settings_sticker_review_title">Review %1$d stickers</string>
     <string name="settings_sticker_review_hint">Auto-picking and auto-cutting can be wrong; tap to uncheck. Pack: %2$s</string>
     <string name="settings_sticker_review_import">Import %1$d</string>
+    <string name="settings_sticker_download_originals">Fetch originals from links (%1$d)</string>
+    <string name="settings_sticker_download_result">Replaced %1$d, failed %2$d</string>
     <string name="settings_sticker_rename_pack">Rename this pack</string>
     <string name="settings_sticker_rename_title">Rename sticker pack</string>
     <string name="settings_sticker_action_saved">Updated</string>

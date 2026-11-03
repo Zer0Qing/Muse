@@ -158,6 +158,8 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
     // 导入预览：文档/PDF 先解析成草稿，勾过再入库（表情包重做 P3）
     var reviewDraft by remember { mutableStateOf<io.zer0.muse.data.sticker.StickerDraft?>(null) }
     var reviewKept by remember { mutableStateOf(setOf<String>()) }
+    // 原图下载必须是**用户点出来的**：导入本身不联网
+    var downloadingOriginals by remember { mutableStateOf(false) }
     val importLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
@@ -728,6 +730,41 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                                 }
                             }
                         }
+                    }
+                    val linkCount = draft.items.count { it.sourceUrl != null }
+                    if (linkCount > 0) {
+                        Spacer(Modifier.height(8.dp))
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_sticker_download_originals, linkCount),
+                            onClick = {
+                                downloadingOriginals = true
+                                scope.launch {
+                                    stickerRepo.downloadDraftOriginals(draft.id, kept)
+                                        .onSuccess { (replaced, failures) ->
+                                            MuseToast.show(
+                                                context.getString(
+                                                    R.string.settings_sticker_download_result,
+                                                    replaced,
+                                                    failures.size,
+                                                ),
+                                                3000,
+                                            )
+                                            // 重新加载草稿：缩略图要换成刚下的原图
+                                            reviewDraft = stickerRepo.draftOf(draft.id)
+                                        }
+                                        .onError { msg, _ ->
+                                            MuseToast.show(
+                                                context.getString(R.string.settings_sticker_import_failed, msg),
+                                                3500,
+                                            )
+                                        }
+                                    downloadingOriginals = false
+                                }
+                            },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                            enabled = !downloadingOriginals,
+                        )
                     }
                 }
             },

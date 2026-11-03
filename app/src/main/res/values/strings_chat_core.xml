@@ -483,6 +483,8 @@
     <string name="settings_sticker_review_title">预览要导入的 %1$d 张</string>
     <string name="settings_sticker_review_hint">自动挑图与切格可能出错，点一下取消勾选。分类：%2$s</string>
     <string name="settings_sticker_review_import">导入 %1$d 张</string>
+    <string name="settings_sticker_download_originals">按原图链接下载（%1$d 张）</string>
+    <string name="settings_sticker_download_result">已替换 %1$d 张，失败 %2$d</string>
     <string name="settings_sticker_rename_pack">重命名此包</string>
     <string name="settings_sticker_rename_title">重命名表情包</string>
     <string name="settings_sticker_action_saved">已更新</string>
