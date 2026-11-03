@@ -423,6 +423,14 @@
     <string name="settings_sticker_upload_subtitle">Acepta zip, documentos docx/pptx e imagenes; un archivo a la vez</string>
     <string name="settings_sticker_add_from_gallery">Anadir desde la galeria</string>
     <string name="settings_sticker_add_from_gallery_subtitle">Puedes elegir varias; van al paquete que estas viendo</string>
+    <string name="settings_sticker_rename_pack">Renombrar este paquete</string>
+    <string name="settings_sticker_rename_title">Renombrar paquete</string>
+    <string name="settings_sticker_action_saved">Actualizado</string>
+    <string name="settings_sticker_action_failed">No se cambio: %1$s</string>
+    <string name="settings_sticker_actions_title">Este sticker</string>
+    <string name="settings_sticker_actions_hint">Esta en “%1$s”</string>
+    <string name="settings_sticker_caption_label">Texto</string>
+    <string name="settings_sticker_move_target_label">Mover a otro paquete (un nombre nuevo crea uno)</string>
     <string name="settings_sticker_upload_zip">Importar ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Elija un archivo ZIP;</string>
     <string name="settings_sticker_imported">Pegatinas %1$d importadas</string>

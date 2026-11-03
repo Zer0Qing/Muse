@@ -423,6 +423,14 @@
     <string name="settings_sticker_upload_subtitle">Aceita zip, documentos docx/pptx e imagens; um arquivo por vez</string>
     <string name="settings_sticker_add_from_gallery">Adicionar da galeria</string>
     <string name="settings_sticker_add_from_gallery_subtitle">Escolha varias de uma vez; vao para o pacote aberto</string>
+    <string name="settings_sticker_rename_pack">Renomear este pacote</string>
+    <string name="settings_sticker_rename_title">Renomear pacote</string>
+    <string name="settings_sticker_action_saved">Atualizado</string>
+    <string name="settings_sticker_action_failed">Nao alterado: %1$s</string>
+    <string name="settings_sticker_actions_title">Este adesivo</string>
+    <string name="settings_sticker_actions_hint">Esta em “%1$s”</string>
+    <string name="settings_sticker_caption_label">Texto</string>
+    <string name="settings_sticker_move_target_label">Mover para outro pacote (nome novo cria um)</string>
     <string name="settings_sticker_upload_zip">Importar ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Escolha um arquivo ZIP;</string>
     <string name="settings_sticker_imported">Adesivos %1$d importados</string>

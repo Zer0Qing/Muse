@@ -442,6 +442,14 @@
     <string name="settings_sticker_upload_subtitle">Accepts zip, docx/pptx documents and images; one file at a time</string>
     <string name="settings_sticker_add_from_gallery">Add from gallery</string>
     <string name="settings_sticker_add_from_gallery_subtitle">Pick several at once; added to the pack you are viewing</string>
+    <string name="settings_sticker_rename_pack">Rename this pack</string>
+    <string name="settings_sticker_rename_title">Rename sticker pack</string>
+    <string name="settings_sticker_action_saved">Updated</string>
+    <string name="settings_sticker_action_failed">Not changed: %1$s</string>
+    <string name="settings_sticker_actions_title">This sticker</string>
+    <string name="settings_sticker_actions_hint">Currently in “%1$s”</string>
+    <string name="settings_sticker_caption_label">Caption</string>
+    <string name="settings_sticker_move_target_label">Move to another pack (a new name creates one)</string>
     <string name="settings_sticker_upload_zip">Import ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Pick a ZIP file; categories are derived from folder structure</string>
     <string name="settings_sticker_imported">Imported %1$d stickers</string>

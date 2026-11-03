@@ -54,6 +54,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.common.settings.ChevronRight
@@ -147,6 +148,13 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
     var importingSticker by remember { mutableStateOf(false) }
     var stickerImportProgress by remember { mutableStateOf<Float?>(null) }
     var stickerImportText by remember { mutableStateOf("") }
+    // 重命名此包：只有正在看某个包时才有意义（包=分类=目录）
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameText by remember { mutableStateOf("") }
+    // 长按某张：一个面板里给出配文、挪包、删除三件事
+    var itemActions by remember { mutableStateOf<StickerItem?>(null) }
+    var actionCaption by remember { mutableStateOf("") }
+    var actionTarget by remember { mutableStateOf("") }
     val importLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
@@ -365,6 +373,18 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                         label = cat,
                     )
                 }
+                if (selectedCategory.isNotBlank()) {
+                    item(key = "rename") {
+                        MuseChip(
+                            selected = false,
+                            onClick = {
+                                renameText = selectedCategory
+                                showRenameDialog = true
+                            },
+                            label = stringResource(R.string.settings_sticker_rename_pack),
+                        )
+                    }
+                }
             }
         }
 
@@ -442,7 +462,11 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                                     }
                                 },
                                 onLongClick = {
-                                    if (!batchDeleteMode) pendingDelete = item
+                                    if (!batchDeleteMode) {
+                                        itemActions = item
+                                        actionCaption = item.caption.orEmpty()
+                                        actionTarget = item.category
+                                    }
                                 },
                             ),
                         contentAlignment = Alignment.Center,
@@ -580,6 +604,86 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showClearAllConfirm = false },
             destructive = true,
+        )
+    }
+
+    // 重命名表情包（改的是分类名 = 目录名）
+    if (showRenameDialog) {
+        val from = selectedCategory
+        MuseDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = stringResource(R.string.settings_sticker_rename_title),
+            content = {
+                MuseTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    label = { Text(stringResource(R.string.settings_sticker_rename_pack)) },
+                    singleLine = true,
+                )
+            },
+            confirmText = stringResource(R.string.common_confirm),
+            onConfirm = {
+                showRenameDialog = false
+                scope.launch {
+                    stickerRepo.renameCategory(from, renameText)
+                        .onSuccess {
+                            selectedCategory = renameText.trim()
+                            MuseToast.show(context.getString(R.string.settings_sticker_action_saved))
+                            refreshTrigger++
+                        }
+                        .onError { msg, _ ->
+                            MuseToast.show(context.getString(R.string.settings_sticker_action_failed, msg), 3500)
+                        }
+                }
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showRenameDialog = false },
+        )
+    }
+
+    // 单张操作：改配文、挪到别的包（填新名字等于新建包）、删除
+    itemActions?.let { target ->
+        MuseDialog(
+            onDismissRequest = { itemActions = null },
+            title = stringResource(R.string.settings_sticker_actions_title),
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.settings_sticker_actions_hint, target.category),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    MuseTextField(
+                        value = actionCaption,
+                        onValueChange = { actionCaption = it },
+                        label = { Text(stringResource(R.string.settings_sticker_caption_label)) },
+                        singleLine = true,
+                    )
+                    MuseTextField(
+                        value = actionTarget,
+                        onValueChange = { actionTarget = it },
+                        label = { Text(stringResource(R.string.settings_sticker_move_target_label)) },
+                        singleLine = true,
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.common_confirm),
+            onConfirm = {
+                itemActions = null
+                scope.launch {
+                    stickerRepo.setCaption(target.id, actionCaption)
+                    if (actionTarget.trim().isNotEmpty() && actionTarget.trim() != target.category) {
+                        stickerRepo.moveSticker(target.id, actionTarget)
+                    }
+                    MuseToast.show(context.getString(R.string.settings_sticker_action_saved))
+                    refreshTrigger++
+                }
+            },
+            dismissText = stringResource(R.string.common_delete),
+            onDismiss = {
+                itemActions = null
+                pendingDelete = target
+            },
         )
     }
 }

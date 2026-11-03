@@ -425,6 +425,14 @@
     <string name="settings_sticker_upload_subtitle">Поддерживаются zip, документы docx/pptx и картинки; по одному файлу</string>
     <string name="settings_sticker_add_from_gallery">Добавить из галереи</string>
     <string name="settings_sticker_add_from_gallery_subtitle">Можно выбрать сразу несколько; попадут в открытую коллекцию</string>
+    <string name="settings_sticker_rename_pack">Переименовать набор</string>
+    <string name="settings_sticker_rename_title">Переименовать набор стикеров</string>
+    <string name="settings_sticker_action_saved">Обновлено</string>
+    <string name="settings_sticker_action_failed">Не изменено: %1$s</string>
+    <string name="settings_sticker_actions_title">Этот стикер</string>
+    <string name="settings_sticker_actions_hint">Сейчас в «%1$s»</string>
+    <string name="settings_sticker_caption_label">Подпись</string>
+    <string name="settings_sticker_move_target_label">Перенести в другой набор (новое имя создаёт набор)</string>
     <string name="settings_sticker_upload_zip">Импортировать ZIP-файл</string>
     <string name="settings_sticker_upload_zip_subtitle">Выберите ZIP-файл;</string>
     <string name="settings_sticker_imported">Импортированные стикеры %1$d</string>
