@@ -15,6 +15,7 @@ import io.zer0.muse.automation.core.AutomationExecutor
 import io.zer0.muse.automation.core.PermissionLevel
 import io.zer0.muse.automation.core.ScreenInfo
 import io.zer0.muse.automation.core.UiNode
+import io.zer0.muse.automation.core.screenReadIssue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
@@ -90,9 +91,12 @@ class AccessibilityExecutor(
         try {
             // B-33: collectNodes 遍历期间控件树可能被系统回收(AbandonedNodeException),
             // 捕获后保留已收集的部分节点并记录日志,不向上抛导致整次读取失败崩溃。
+            val collectState = CollectState()
+            var collectError: String? = null
             try {
-                collectNodes(root, nodes, depth = 0)
+                collectNodes(root, nodes, depth = 0, collectState)
             } catch (e: Exception) {
+                collectError = e.message ?: e.javaClass.simpleName
                 Logger.w(TAG, "readScreen collectNodes 中断(返回部分结果): ${e.message}")
             }
             return ScreenInfo(
@@ -102,6 +106,14 @@ class AccessibilityExecutor(
                 screenWidth = metrics.widthPixels,
                 screenHeight = metrics.heightPixels,
                 source = "accessibility",
+                // 部分结果与深度截断都要写进数据里（toSummary 会排在控件清单之前），
+                // 只写日志等于没写 —— 读数据的是模型，它看不见 logcat。
+                incompleteReason = screenReadIssue(
+                    depthTruncated = collectState.depthTruncated,
+                    error = collectError,
+                    collected = nodes.size,
+                    maxDepth = MAX_TREE_DEPTH,
+                ),
             )
         } finally {
             // B-33: root 需显式 recycle 释放 native 资源,防内存泄漏。
@@ -192,8 +204,18 @@ class AccessibilityExecutor(
 
     // ── 内部实现 ──────────────────────────────────────────────
 
-    private fun collectNodes(node: AccessibilityNodeInfo, out: MutableList<UiNode>, depth: Int) {
-        if (depth > MAX_TREE_DEPTH) return
+    /** 遍历过程的状态：深度上限有没有把控件截掉（丢弃本身是静默的，得记下来）。 */
+    private class CollectState {
+        var depthTruncated = false
+    }
+
+    private fun collectNodes(node: AccessibilityNodeInfo, out: MutableList<UiNode>, depth: Int, state: CollectState) {
+        if (depth > MAX_TREE_DEPTH) {
+            // 以前这里静默 return：模型看到的是「一棵完整的树」，
+            // 于是把「没读到」当成「屏幕上没有」，找不到控件或误点。
+            state.depthTruncated = true
+            return
+        }
         val text = AccessibilityPathUtils.textForModel(node.text, node.isPassword)
         val description = AccessibilityPathUtils.textForModel(node.contentDescription, node.isPassword)
         val hasUsefulInfo = !text.isNullOrBlank() ||
@@ -223,7 +245,7 @@ class AccessibilityExecutor(
         for (i in 0 until node.childCount) {
             node.getChild(i)?.let { child ->
                 try {
-                    collectNodes(child, out, depth + 1)
+                    collectNodes(child, out, depth + 1, state)
                 } finally {
                     child.recycle()
                 }
