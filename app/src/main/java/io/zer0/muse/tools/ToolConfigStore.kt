@@ -90,7 +90,10 @@ class ToolConfigStore(private val context: Context) {
     suspend fun resolveApprovalState(toolName: String): ToolApprovalState {
         return when (getConfiguredPolicy(toolName)) {
             null, ToolApprovalPolicy.ALWAYS_ALLOW -> ToolApprovalState.Auto
-            ToolApprovalPolicy.ALWAYS_DENY -> ToolApprovalState.Denied("Tool disabled by user")
+            ToolApprovalPolicy.ALWAYS_DENY -> ToolApprovalState.Denied(
+            "Tool disabled by user",
+            source = DenySource.POLICY,
+        )
             ToolApprovalPolicy.ASK_EVERY_TIME -> ToolApprovalState.Pending
         }
     }

@@ -75,7 +75,10 @@ class ToolCallGate(
                 argsPreview = argumentsJson.take(ARGS_PREVIEW_CHARS),
                 args = args,
             )
-        } ?: ToolApprovalState.Denied("审批等待超时(${APPROVAL_TIMEOUT_MS / 1000}s)")
+        } ?: ToolApprovalState.Denied(
+            "审批等待超时(${APPROVAL_TIMEOUT_MS / 1000}s)",
+            source = DenySource.TIMEOUT,
+        )
         return when (approval) {
             is ToolApprovalState.Auto, is ToolApprovalState.Approved -> Outcome.ALLOWED
             is ToolApprovalState.Denied ->
@@ -98,7 +101,10 @@ class ToolCallGate(
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             // 判定本身出错时按最保守方向处理：拒绝，不放行。
             Logger.w(TAG, "工具审批判定异常,按拒绝处理: tool=$toolName", e)
-            ToolApprovalState.Denied("审批判定异常(${e.message ?: e.javaClass.simpleName})")
+            ToolApprovalState.Denied(
+                "审批判定异常(${e.message ?: e.javaClass.simpleName})",
+                source = DenySource.SYSTEM,
+            )
         }
         return when (resolved) {
             is ToolApprovalState.Auto, is ToolApprovalState.Approved -> Outcome.ALLOWED

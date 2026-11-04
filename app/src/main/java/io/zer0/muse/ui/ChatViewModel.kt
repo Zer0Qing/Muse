@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.tools.DenySource
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -4597,7 +4598,7 @@ class ChatViewModel(
     private fun cancelAllPendingApprovals() {
         _state.update { it.copy(pendingToolApprovals = emptyList()) }
         for ((toolCallId, deferred) in toolApprovalResults) {
-            deferred.complete(ToolApprovalState.Denied("Generation stopped"))
+            deferred.complete(ToolApprovalState.Denied("Generation stopped", source = DenySource.SYSTEM))
             viewModelScope.launch {
                 resultOf { PendingToolCallStore.updateState(toolCallId, "ABORTED", "generation_stopped") }
                     .onError { msg, _ -> Logger.w("ChatVM", "审批取消状态落盘失败: $msg") }
@@ -4624,7 +4625,9 @@ class ChatViewModel(
             )
         }
         ids.forEach { toolCallId ->
-            toolApprovalResults.remove(toolCallId)?.complete(ToolApprovalState.Denied("Generation stopped"))
+            toolApprovalResults.remove(toolCallId)?.complete(
+                ToolApprovalState.Denied("Generation stopped", source = DenySource.SYSTEM),
+            )
             viewModelScope.launch {
                 resultOf { PendingToolCallStore.updateState(toolCallId, "ABORTED", "generation_stopped") }
                     .onError { msg, _ -> Logger.w("ChatVM", "审批取消状态落盘失败: $msg") }
@@ -4660,7 +4663,7 @@ class ChatViewModel(
     ): ToolApprovalState {
         val sessionId =
             currentSessionIdForApproval()
-                ?: return ToolApprovalState.Denied("No active chat session")
+                ?: return ToolApprovalState.Denied("No active chat session", source = DenySource.SYSTEM)
         return requestToolApprovalForSession(sessionId, toolName, toolCallId, argsPreview, args)
     }
 

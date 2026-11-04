@@ -2094,7 +2094,7 @@ class ToolOrchestrator(
         }
 
         if (approvalState is ToolApprovalState.Denied) {
-            val deniedResult = """{"error": "Tool denied by user", "reason": "${approvalState.reason}"}"""
+            val deniedResult = """{"error": "${denialErrorLabel(approvalState.source)}", "reason": "${approvalState.reason}"}"""
             withTurnLock(stateLock) {
                 taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
                     s.copy(
@@ -2106,7 +2106,7 @@ class ToolOrchestrator(
                 PendingToolCallStore.updateState(
                     tc.id,
                     PendingToolCallStore.ABORTED,
-                    "user_denied",
+                    denialAuditNote(approvalState.source),
                 )
             }
             cleanupPendingToolCall(tc.id)

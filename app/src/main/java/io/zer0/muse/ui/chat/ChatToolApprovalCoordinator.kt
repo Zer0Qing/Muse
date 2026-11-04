@@ -1,4 +1,5 @@
 package io.zer0.muse.ui.chat
+import io.zer0.muse.tools.DenySource
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutonomousAccessibilityApproval
@@ -168,7 +169,7 @@ internal class ChatToolApprovalCoordinator(
                     // 审批已从等待注册表注销(会话被删 / 生成被停 / 同一 toolCallId 重新登记),
                     // 不会再有结论回来 —— 立刻收尾,不留悬挂协程。
                     Logger.d("ToolApproval", "abandoned | tool=$toolName | call=$toolCallId")
-                    ToolApprovalState.Denied("Generation stopped")
+                    ToolApprovalState.Denied("Generation stopped", source = DenySource.SYSTEM)
                 }
                 ApprovalWaitOutcome.TimedOut -> {
                     // P2-1: 超时后清掉残留审批卡,避免「点了允许也没反应」;并提示用户
@@ -180,7 +181,7 @@ internal class ChatToolApprovalCoordinator(
                     MuseToast.show(
                         host.appContext.getString(R.string.tool_approval_timeout_hint, toolName),
                     )
-                    ToolApprovalState.Denied("Approval timed out")
+                    ToolApprovalState.Denied("Approval timed out", source = DenySource.TIMEOUT)
                 }
             }
         } finally {

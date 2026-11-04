@@ -41,7 +41,10 @@ object ParamPolicies {
             when {
                 url.startsWith("http://") || url.startsWith("https://") -> ToolApprovalState.Auto
                 url.startsWith("file://") ->
-                    ToolApprovalState.Denied("不允许打开本地文件链接(file://),已拦截")
+                    ToolApprovalState.Denied(
+                    "不允许打开本地文件链接(file://),已拦截",
+                    source = DenySource.POLICY,
+                )
                 else -> ToolApprovalState.Pending
             }
         }
@@ -57,7 +60,10 @@ object ParamPolicies {
                 "document.cookie",
             ).any { code.contains(it) }
             if (dangerous) {
-                ToolApprovalState.Denied("代码包含危险操作(rm -rf/进程执行/敏感信息外传),已拦截")
+                ToolApprovalState.Denied(
+                    "代码包含危险操作(rm -rf/进程执行/敏感信息外传),已拦截",
+                    source = DenySource.POLICY,
+                )
             } else {
                 null
             }

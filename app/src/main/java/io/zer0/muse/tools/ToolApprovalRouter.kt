@@ -63,7 +63,10 @@ class ToolApprovalRouter {
         argsPreview: String,
         args: Map<String, Any?> = emptyMap(),
     ): ToolApprovalState {
-        val bridge = backingDelegate ?: return ToolApprovalState.Denied("审批通道未就绪")
+        val bridge = backingDelegate ?: return ToolApprovalState.Denied(
+            "审批通道未就绪",
+            source = DenySource.SYSTEM,
+        )
         inFlight.incrementAndGet()
         return try {
             bridge.requestToolApproval(toolName, toolCallId, argsPreview, args)

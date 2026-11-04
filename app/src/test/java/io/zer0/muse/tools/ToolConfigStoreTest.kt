@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,9 +50,16 @@ class ToolConfigStoreTest {
 
         assertEquals(ToolApprovalPolicy.ALWAYS_DENY, store.getConfiguredPolicy("probe_deny"))
         assertEquals(ToolApprovalPolicy.ASK_EVERY_TIME, store.getConfiguredPolicy("probe_ask"))
+        // 断字段而不是 toString()：toString 把数据类的形状当契约，加一个字段就红一片，
+        // 而这里真正要钉的是"原因文本"和"这是谁决定的"。
+        val denied = store.resolveApprovalState("probe_deny")
+        assertTrue("ALWAYS_DENY 必须给终态", denied is ToolApprovalState.Denied)
+        denied as ToolApprovalState.Denied
+        assertEquals("Tool disabled by user", denied.reason)
         assertEquals(
-            ToolApprovalState.Denied("Tool disabled by user").toString(),
-            store.resolveApprovalState("probe_deny").toString(),
+            "工具早先被禁用不是本轮用户的动作，来源必须是 POLICY（否则会被算成用户拒绝）",
+            DenySource.POLICY,
+            denied.source,
         )
         assertEquals(ToolApprovalState.Pending, store.resolveApprovalState("probe_ask"))
     }
