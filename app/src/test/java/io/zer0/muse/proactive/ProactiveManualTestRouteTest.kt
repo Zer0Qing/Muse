@@ -1,14 +1,11 @@
 package io.zer0.muse.proactive
 
 import io.zer0.muse.data.ProactiveMessageConfig
-import io.zer0.muse.data.assistant.AssistantEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ProactiveManualTestRouteTest {
-    private val assistant = AssistantEntity(id = "a1", name = "Agent")
-
     @Test
     fun `manual test lands in agent even when plain chats are globally allowed`() = kotlinx.coroutines.runBlocking {
         val route =

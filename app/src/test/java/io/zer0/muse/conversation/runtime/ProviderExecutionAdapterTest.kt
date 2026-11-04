@@ -3,7 +3,6 @@ package io.zer0.muse.conversation.runtime
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.muse.conversation.core.ProviderEvent
 import io.zer0.muse.conversation.core.ProviderEventType
-import io.zer0.muse.conversation.runtime.ProviderStreamMapper
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

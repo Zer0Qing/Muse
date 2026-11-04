@@ -8,9 +8,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import io.zer0.common.resultOf
 import io.zer0.muse.conversation.core.CommandResult
 import io.zer0.muse.conversation.core.ConversationCommand
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 
@@ -31,14 +31,12 @@ fun ConversationHost(
 
     LaunchedEffect(sessionId) {
         state = ConversationHostState(sessionId)
-        state =
-            try {
-                state.copy(model = currentLoadSession(sessionId))
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                state.copy(error = error.message ?: "conversation load failed")
-            }
+        // `resultOf` 是仓库自己的包装：它**照样重抛 CancellationException**（见 common/Result.kt），
+        // 所以取消语义与原来逐字相同；差别只是"每个边界都手写一遍 catch(Throwable)"
+        // 收敛回一处实现。错误文案仍取原始异常的 message，兜底句保持原样。
+        resultOf { state.copy(model = currentLoadSession(sessionId)) }
+            .onSuccess { next -> state = next }
+            .onError { _, error -> state = state.copy(error = error?.message ?: "conversation load failed") }
     }
 
     state.model?.let { model ->
@@ -50,26 +48,27 @@ fun ConversationHost(
                     // （空白文本、空会话 id 等）是 `require` 抛出的，放在外面等于
                     // 把一次"提交没成功"变成协程里的未捕获异常 —— 用户什么也看不到。
                     // 下面那个 catch 本来就负责显示原因，让它有机会工作。
-                    state =
-                        try {
-                            val command =
-                                ConversationCommand.Submit(
-                                    commandId = currentCommandId(sessionId),
-                                    sessionId = sessionId,
-                                    text = text,
-                                    selectionSetId = "legacy:$sessionId",
-                                )
-                            currentSubmit(command)
-                            if (model.state.value.input == text) {
-                                model.updateInput("")
-                            }
-                            state.copy(isSubmitting = false)
-                        } catch (error: CancellationException) {
-                            throw error
-                        } catch (error: Throwable) {
-                            state.copy(
+                    // 命令构造也放进块里：`ConversationCommand.Submit` 的入参校验是 `require`
+                    // 抛出的，放外面等于把一次"提交没成功"变成协程里的未捕获异常 ——
+                    // 用户点下去什么也看不到。现在它落到下面的 onError，原因显示在界面上。
+                    resultOf {
+                        val command =
+                            ConversationCommand.Submit(
+                                commandId = currentCommandId(sessionId),
+                                sessionId = sessionId,
+                                text = text,
+                                selectionSetId = "legacy:$sessionId",
+                            )
+                        currentSubmit(command)
+                        if (model.state.value.input == text) {
+                            model.updateInput("")
+                        }
+                        state.copy(isSubmitting = false)
+                    }.onSuccess { next -> state = next }
+                        .onError { _, error ->
+                            state = state.copy(
                                 isSubmitting = false,
-                                error = error.message ?: "conversation submit failed",
+                                error = error?.message ?: "conversation submit failed",
                             )
                         }
                 }
