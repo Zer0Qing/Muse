@@ -14,7 +14,8 @@ import java.util.Locale
  *
  * Phase 11.3 增强:文件日志能力(便于真机验证后回捞)
  *  - [initFileLog]:在 Application onCreate 调用一次,开启文件日志
- *  - 日志文件:app cacheDir/logs/muse.log(单文件,rolling 100KB)
+ *  - 日志文件:app cacheDir/logs/muse.log(单文件,超过 [MAX_LOG_FILE_BYTES]=约 1MB 轮转为 muse.log.1)
+ *    （此处原写 100KB，与常量不符；常量后来提到 1MB 时没回来改注释）
  *  - 等级:W/E 自动写文件;I/D 可选(由 [fileLogLevel] 控制)
  *  - 线程安全:PrintWriter synchronized
  *
@@ -23,7 +24,9 @@ import java.util.Locale
 object Logger {
     private const val DEFAULT_TAG = "Muse"
     private const val LOG_FILE_NAME = "muse.log"
-    private const val MAX_LOG_FILE_BYTES = 1_000 * 1024L // 1MB rolling
+    private const val MAX_LOG_FILE_BYTES = 1_000 * 1024L // 约 1MB rolling
+    /** 因果链最多展开几层：再多就快到栈顶了，消息也长。 */
+    internal const val MAX_CAUSE_DEPTH = 8
 
     @Volatile
     var enabled: Boolean = true
@@ -91,7 +94,7 @@ object Logger {
      * Phase 11.3: 初始化文件日志。
      *
      * 在 Application.onCreate 调用一次。日志写到 `cacheDir/logs/muse.log`,
-     * 超过 100KB 自动 rolling(旧文件改名为 muse.log.1,新日志继续写 muse.log)。
+     * 超过 [MAX_LOG_FILE_BYTES]（约 1MB）自动 rolling(旧文件改名为 muse.log.1,新日志继续写 muse.log)。
      *
      * @param context Application/Context(用 cacheDir,卸载自动清理)
      */
@@ -139,8 +142,13 @@ object Logger {
     //    refresh_token/client_secret/client_id),分隔符 [=:] 兼容 JSON 中的冒号
     // 3) URL_QUERY_CRED_REGEX:URL query 参数 ?key=xxx / &api_key=xxx,保留前导 ?/& 符号
     private val HEADER_CRED_REGEX = Regex("""(?i)\b(authorization|bearer|x-api-key)\s*[:\s]\s*[^\n,;]+""")
+    // 2026-11-04 实测补两处泄漏（LoggerSanitizeTest 抓到）：
+    //  a) JSON 形式 `"access_token":"xxx"` —— 键后面是**引号再冒号**，原来的 `\s*[=:]`
+    //     要求紧跟 = 或 :，所以整条漏匹配（注释里那句"兼容 JSON 中的冒号"其实没做到）；
+    //  b) 纯文本 `key=xxx` —— 只有 URL query 里的 `?key=` 被覆盖，`sort key=abc` 这类漏了。
+    //  `\b` 放在键名前，避免把 monkey=… 这类普通词也吃掉；`api_key` 排在 `key` 之前。
     private val KV_CRED_REGEX =
-        Regex("""(?i)(token|password|secret|apikey|api_key|access_token|refresh_token|client_secret|client_id)\s*[=:]\s*\S+""")
+        Regex("""(?i)\b(token|password|secret|apikey|api_key|access_token|refresh_token|client_secret|client_id|key)\s*"?\s*[=:]\s*"?\S+""")
     private val URL_QUERY_CRED_REGEX = Regex("""(?i)([?&])(key|token|api_key|apikey)=\S+""")
 
     /**
@@ -150,10 +158,11 @@ object Logger {
      * - H-SEC-2: 身份证号(18位)→ [身份证],银行卡号(16-19位)→ [银行卡],IPv4→ [IP]
      * - 凭据(authorization/bearer/x-api-key/token/password/secret/apikey/api_key/
      *   access_token/refresh_token/client_id/client_secret/key = xxx)→ key=[已脱敏]
+     *   含 `键名="值"` 与 JSON `"键名":"值"` 两种写法（后一种是 2026-11-04 补的漏匹配）
      *
      * v1.114: 拆分为 header / key=value / URL query 三组正则,详见上方注释。
      */
-    private fun sanitizePii(msg: String): String {
+    internal fun sanitizePii(msg: String): String {
         return msg
             .replace(PHONE_REGEX, "[手机号]")
             .replace(EMAIL_REGEX, "[邮箱]")
@@ -187,19 +196,49 @@ object Logger {
     fun w(tag: String = DEFAULT_TAG, msg: String, t: Throwable? = null) {
         if (enabled) {
             val safeMsg = sanitizePii(msg)
-            Log.w(tag, safeMsg, t)
-            maybeWriteFile(Level.WARN, tag, safeMsg, t)
-            dispatchToSink(Level.WARN, tag, safeMsg, t)
+            // 构造一次、三份出口共用：Logcat、muse.log、DebugLogStore（后者会转成字符串
+            // 显示在 DebugScreen 并写进导出文件）。以前这三份拿的都是未脱敏的 throwable。
+            val safeTrace = t?.let(::sanitizedThrowable)
+            Log.w(tag, safeMsg, safeTrace)
+            maybeWriteFile(Level.WARN, tag, safeMsg, safeTrace)
+            dispatchToSink(Level.WARN, tag, safeMsg, safeTrace)
         }
     }
 
     fun e(tag: String = DEFAULT_TAG, msg: String, t: Throwable? = null) {
         if (enabled) {
             val safeMsg = sanitizePii(msg)
-            Log.e(tag, safeMsg, t)
-            maybeWriteFile(Level.ERROR, tag, safeMsg, t)
-            dispatchToSink(Level.ERROR, tag, safeMsg, t)
+            val safeTrace = t?.let(::sanitizedThrowable)
+            Log.e(tag, safeMsg, safeTrace)
+            maybeWriteFile(Level.ERROR, tag, safeMsg, safeTrace)
+            dispatchToSink(Level.ERROR, tag, safeMsg, safeTrace)
         }
+    }
+
+    /**
+     * 脱敏后的 throwable 视图。三份出口都走它：Logcat、`muse.log` 文件、
+     * 以及 app 的 `DebugLogStore`（它把 throwable 转成字符串后显示在 DebugScreen
+     * 并写进导出文件 —— 那是第三份未脱敏堆栈，而它的 KDoc 只声明了 message 已脱敏）。
+     *
+     *
+     * 以前只有 `msg` 过 [sanitizePii]，throwable 是原样交出去的 —— 而本仓库的异常消息里
+     * 常见完整 URL（含 `?key=…`）与上游错误体，`Failed to connect …` 这类也会把请求地址带出来。
+     * 这里保留排查真正需要的三样：**类名与消息文本、调用栈、因果链**，
+     * 只是每一层的消息都过一次脱敏；因果链展开成文本而不是挂回原始 cause
+     * （挂回去等于让 Android 原样打印那条未脱敏的消息）。
+     */
+    internal fun sanitizedThrowable(t: Throwable): Throwable {
+        val chain = buildString {
+            var cur: Throwable? = t
+            var depth = 0
+            while (cur != null && depth < MAX_CAUSE_DEPTH) {
+                if (depth > 0) append("\nCaused by: ")
+                append(sanitizePii(cur.toString()))
+                cur = cur.cause
+                depth += 1
+            }
+        }
+        return Throwable(chain).apply { stackTrace = t.stackTrace }
     }
 
     /** 把 throwable 转成 stack trace 字符串(便于写日志文件)。 */
@@ -246,6 +285,8 @@ object Logger {
                 // 乘 2 是 BMP 字符（3 字节）与代理对（4 字节/2 字符）的折中估计 —— 偏保守，宁可早轮转。
                 writtenBytes += body.length * 2L
                 if (t != null) {
+                    // 进来的已经是脱敏视图（w/e 各出口共用同一份，避免重复构造）；
+                    // 这份 muse.log 要从真机回捞、导出到设备之外，所以绝不能再传原始 throwable。
                     val trace = stackTraceToString(t) + "\n"
                     sink.append(trace)
                     writtenBytes += trace.length * 2L
