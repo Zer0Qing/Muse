@@ -259,7 +259,9 @@ open class MuseAccessibilityService : AccessibilityService() {
                 Logger.d(TAG, "setTextOnNode($nodeId) -> $ok")
                 return ok
             } finally {
-                target.recycle()
+                // `nodeId == "0"` 定位到的就是 root 本身（根路径合法），
+                // 那时下面那个 finally 已经 recycle 过 root —— 同一个节点不能还两次。
+                if (target !== root) target.recycle()
             }
         } finally {
             root.recycle()
@@ -389,14 +391,24 @@ open class MuseAccessibilityService : AccessibilityService() {
         return null
     }
 
-    /** 按路径标识(如 "0.1.2")从 [root] 遍历定位节点。 */
+    /**
+     * 按路径标识(如 "0.1.2")从 [root] 遍历定位节点。
+     *
+     * 中间节点的归还：路径有 k 段就会取 k-1 个中间节点，除最后一个交给调用方外都要 recycle。
+     * **定位失败时手上那个中间节点同样要还** —— 无障碍节点是 binder 引用，
+     * 而 `path` 是模型给的工具参数，"指到一半发现没有"是常态而不是异常；
+     * 以前失败走的是 `?: return null`，每漏一次就少还一个。
+     */
     private fun findNodeByPath(root: AccessibilityNodeInfo, path: String): AccessibilityNodeInfo? {
         val indices = AccessibilityPathUtils.parseNodePath(path)
         if (indices.isEmpty()) return null
         var current: AccessibilityNodeInfo = root
         for (i in 1 until indices.size) {
-            val idx = indices[i]
-            val child = current.getChild(idx) ?: return null
+            val child = current.getChild(indices[i])
+            if (child == null) {
+                if (i > 1) current.recycle()
+                return null
+            }
             if (i > 1) current.recycle()
             current = child
         }
