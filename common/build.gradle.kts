@@ -18,6 +18,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    testOptions {
+        // 单元测试里 `android.util.Log` 是 stub：不开这项，任何走到 Logger/Perf
+        // 的用例都会因 "Stub!" 直接抛，于是这两个全仓共用的件在本模块**根本没法测**
+        // （`:common` 之前 51 例里全是纯函数用例，就是这个原因）。
+        // app / memory / miniphone / ai 四个模块早就这么配了，这里只是对齐。
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {

@@ -61,11 +61,12 @@ object Perf {
      */
     inline fun <T> track(name: String, block: () -> T): T {
         if (!enabled) return block()
-        val start = System.currentTimeMillis()
+        // 耗时走单调钟（见类注释）；inline 里只能用公开 API，所以直接除 1e6。
+        val startNanos = System.nanoTime()
         return try {
             block()
         } finally {
-            val elapsed = System.currentTimeMillis() - start
+            val elapsed = (System.nanoTime() - startNanos) / 1_000_000
             log(name, elapsed)
         }
     }
@@ -79,11 +80,11 @@ object Perf {
      */
     suspend inline fun <T> trackSuspend(name: String, crossinline block: suspend () -> T): T {
         if (!enabled) return block()
-        val start = System.currentTimeMillis()
+        val startNanos = System.nanoTime()
         return try {
             block()
         } finally {
-            val elapsed = System.currentTimeMillis() - start
+            val elapsed = (System.nanoTime() - startNanos) / 1_000_000
             log(name, elapsed)
         }
     }
@@ -136,8 +137,12 @@ object Perf {
      * 分段计时器。
      */
     class Timer internal constructor(private val name: String) {
-        private val startTime = System.currentTimeMillis()
-        private var lastSplitTime = startTime
+        // 耗时一律用单调钟 `System.nanoTime()`：挂钟会被 NTP 校时、用户改时间、
+        // 休眠唤醒拉动，`currentTimeMillis` 相减就会给出**负数或巨大的耗时**，
+        // 而这些数字是要进 ANR 诊断与性能报表的（`PerfRecord.timestamp` 仍用挂钟，
+        // 那个字段表达的是"什么时候发生"，本来就该是挂钟）。
+        private val startNanos = System.nanoTime()
+        private var lastSplitNanos = startNanos
         private val splits = mutableListOf<Pair<String, Long>>()
 
         /**
@@ -161,9 +166,9 @@ object Perf {
          */
         fun split(splitName: String) {
             if (!enabled) return
-            val now = System.currentTimeMillis()
-            splits.add(splitName to (now - lastSplitTime))
-            lastSplitTime = now
+            val now = System.nanoTime()
+            splits.add(splitName to (now - lastSplitNanos) / 1_000_000)
+            lastSplitNanos = now
         }
 
         /**
@@ -171,7 +176,7 @@ object Perf {
          */
         fun end() {
             if (!enabled) return
-            val total = System.currentTimeMillis() - startTime
+            val total = (System.nanoTime() - startNanos) / 1_000_000
             if (splits.isEmpty()) {
                 log(name, total)
             } else {

@@ -32,8 +32,17 @@ object FileSizeFormatter {
         if (unitIndex == 0) return "$bytes B"
         // 显式指定 Locale.US：默认区域下小数点可能是逗号（如 de-DE 的 1,5），
         // 会让 "1,5 MB" 这类文本在设置页/日志里出现两种写法，也不好解析。
-        val rounded = String.format(java.util.Locale.US, "%.${decimals}f", value)
+        var shown = value
+        var shownIndex = unitIndex
+        var rounded = String.format(java.util.Locale.US, "%.${decimals}f", shown)
+        // 四舍五入能把 1023.95 MB 推成 "1024.0" —— 以前会原样显示 "1024 MB"，
+        // 用户看到的是"为什么不是 1 GB"。这里进位到下一级单位再格式化一次。
+        while (rounded.toDouble() >= 1024.0 && shownIndex < UNITS.lastIndex) {
+            shown /= 1024.0
+            shownIndex++
+            rounded = String.format(java.util.Locale.US, "%.${decimals}f", shown)
+        }
         val trimmed = if (rounded.contains('.')) rounded.trimEnd('0').trimEnd('.') else rounded
-        return "$trimmed ${UNITS[unitIndex]}"
+        return "$trimmed ${UNITS[shownIndex]}"
     }
 }
