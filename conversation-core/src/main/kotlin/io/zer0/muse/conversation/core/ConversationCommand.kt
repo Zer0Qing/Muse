@@ -28,7 +28,11 @@ abstract class ConversationCommand internal constructor(
     ) : ConversationCommand(requireCommandId(commandId)) {
         init {
             require(sessionId.isNotBlank()) { "session id must not be blank" }
-            require(text.isNotEmpty()) { "submitted text must not be empty" }
+            // 原先只查 `isNotEmpty()`，是全类唯一一条"空白也算内容"的校验 ——
+            // 光发一串空格过去，会话里就多出一条看着是空的用户消息：占位、难认，
+            // 要删还得先找到它。真要支持"只发附件不发字"，该给本命令加附件字段
+            // 并在这里明确放宽，而不是靠空白文本绕开。
+            require(text.isNotBlank()) { "submitted text must not be blank" }
             require(selectionSetId.isNotBlank()) { "selection set id must not be blank" }
         }
     }
@@ -68,6 +72,9 @@ abstract class ConversationCommand internal constructor(
         init {
             require(sessionId.isNotBlank()) { "session id must not be blank" }
             require(messageId.isNotBlank()) { "message id must not be blank" }
+            // 编成空白等于把这条消息变成空气泡：用户本意通常是"删掉它"，
+            // 而空气泡既占位又难认，删除入口还得再找一次。
+            require(content.isNotBlank()) { "edited content must not be blank" }
         }
     }
 
@@ -80,6 +87,9 @@ abstract class ConversationCommand internal constructor(
         init {
             require(sessionId.isNotBlank()) { "session id must not be blank" }
             require(messageId.isNotBlank()) { "message id must not be blank" }
+            // 编成空白等于把这条消息变成空气泡：用户本意通常是"删掉它"，
+            // 而空气泡既占位又难认，删除入口还得再找一次。
+            require(content.isNotBlank()) { "edited content must not be blank" }
         }
     }
 
