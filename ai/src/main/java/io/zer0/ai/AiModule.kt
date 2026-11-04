@@ -4,6 +4,8 @@ import io.zer0.ai.anthropic.AnthropicProvider
 import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.ChatRequestMode
+import io.zer0.ai.core.AbortSignal
+import io.zer0.ai.core.abortedOnCancel
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.withIdleWatchdog
@@ -212,7 +214,7 @@ class ChatService(
             timeoutMs = model?.firstEventTimeoutMs() ?: DEFAULT_FIRST_EVENT_TIMEOUT_MS,
             fallback = { provider.completeText(request) },
             abortCheck = { request.abortSignal.aborted },
-        )
+        ).abortedOnCancel(request.abortSignal)
     }
 
     /**
@@ -346,6 +348,12 @@ class ChatService(
             mode = mode,
             topP = topP?.coerceIn(0f, 1f),
             sessionId = sessionId,
+            /**
+             * 每次请求一个独立信号：以前生产链路从不置位（app/src/main 对 AbortSignal 引用为 0），
+             * Provider 里几十处 aborted 判定恒为 false。这里给一个真值，由 streamChat 在
+             * 下游取消时置位（见 abortedOnCancel）。
+             */
+            abortSignal = AbortSignal(),
         )
         return Pair(provider, request)
     }
