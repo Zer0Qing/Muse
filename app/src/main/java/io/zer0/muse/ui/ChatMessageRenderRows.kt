@@ -114,6 +114,38 @@ object ChatMessageRenderRows {
             (prefs.quickActionDelete && (hasContent || hasReasoning))
     }
 
+    /**
+     * 「这条消息除正文之外还带着什么」的判定项：任一项成立，就不能把它拆成
+     * header / body / footer 三段 —— 拆了之后交互外壳与页脚的归属会错位
+     * （表现为按钮跑到中间、引用块丢失、工具卡片位置不对）。
+     *
+     * 为什么写成清单而不是原来那一串 19 个字段判定（外加 `hasRichContent`）的 `&&`：
+     * 以后给 [UIMessage] 新增一种部件（投票、表单…）时，在这里补一行，
+     * 比在一条长链里找位置插入更不容易漏；而**漏掉的表现是那条消息渲染错位，
+     * 不会编译失败** —— 正是最难发现的那类。
+     */
+    private val partsBeyondBody: List<(UIMessage) -> Boolean> = listOf(
+        { !it.quotedContent.isNullOrBlank() },
+        { it.imageUrls.isNotEmpty() },
+        { it.imageBase64List.isNotEmpty() },
+        { !it.videoFileUri.isNullOrBlank() },
+        { !it.voiceUri.isNullOrBlank() },
+        { it.attachments.isNotEmpty() },
+        { it.artifactIds.isNotEmpty() },
+        { it.toolCallInfo != null },
+        { !it.toolCalls.isNullOrEmpty() },
+        { it.translations.isNotEmpty() },
+        { !it.reasoning.isNullOrBlank() },
+        { !it.mood.isNullOrBlank() },
+        { !it.reflection.isNullOrBlank() },
+        { it.citationUrls.isNotEmpty() },
+        { !it.moodSkin.isNullOrBlank() },
+        { it.ragCitations.isNotEmpty() },
+        { it.variantGroupId != null },
+        { it.parentGroupId != null },
+        { it.reaction != null },
+    )
+
     fun project(
         message: UIMessage,
         isStreaming: Boolean,
@@ -125,26 +157,7 @@ object ChatMessageRenderRows {
     ): List<ChatMessageRenderRow> {
         val messageId = message.id.toString()
         val ownsInteractionShell =
-            !hasRichContent &&
-                message.quotedContent.isNullOrBlank() &&
-                message.imageUrls.isEmpty() &&
-                message.imageBase64List.isEmpty() &&
-                message.videoFileUri.isNullOrBlank() &&
-                message.voiceUri.isNullOrBlank() &&
-                message.attachments.isEmpty() &&
-                message.artifactIds.isEmpty() &&
-                message.toolCallInfo == null &&
-                message.toolCalls.isNullOrEmpty() &&
-                message.translations.isEmpty() &&
-                message.reasoning.isNullOrBlank() &&
-                message.mood.isNullOrBlank() &&
-                message.reflection.isNullOrBlank() &&
-                message.citationUrls.isEmpty() &&
-                message.moodSkin.isNullOrBlank() &&
-                message.ragCitations.isEmpty() &&
-                message.variantGroupId == null &&
-                message.parentGroupId == null &&
-                message.reaction == null
+            !hasRichContent && partsBeyondBody.none { carriesExtra -> carriesExtra(message) }
         val chunks =
             ChatRenderChunks.project(
                 messageId = messageId,
