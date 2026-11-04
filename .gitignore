@@ -37,6 +37,8 @@ Thumbs.db
 !/docs/memory/**
 !/docs/conversation-core/
 !/docs/conversation-core/**
+!/docs/ai/
+!/docs/ai/**
 !/docs/assets/
 !/docs/assets/readme/
 !/docs/assets/readme/**
