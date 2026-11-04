@@ -2070,6 +2070,12 @@ class ToolOrchestrator(
                 s.copy(progressText = APPROVAL_WAIT_LABEL)
             }
         }
+        // 同一个时机也要告诉通知栏：`onToolCallRequested` 在审批之前就已触发，
+        // 于是切出应用的用户看到挂着「正在执行：shell」——那是错话，它其实在等自己按批准，
+        // 30 秒后还会静默变成拒绝。这里不写界面状态，只派发投影，因此不占 stateLock。
+        hookRegistry?.executeNoResult(io.zer0.muse.hook.ToolLifecycleHook::class) { hook ->
+            hook.onToolApprovalRequested(tc.name)
+        }
         // Phase 3: 并发轮中审批提示逐个弹出(approvalLock),避免多个审批对话框同时挂起;
         // 等待用户期间不持有 stateLock,其它工具的状态写入不被阻塞。
         val approvalState =

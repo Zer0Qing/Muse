@@ -29,6 +29,25 @@ class TaskStageNotificationHook(
         return ToolCallAction.Allow
     }
 
+    /**
+     * 审批挂起时改口说「等你批准」。
+     *
+     * 上面那条 `onToolCallRequested` 在审批**之前**就触发了，所以整个等待期间通知栏挂着
+     * 「正在执行：X」—— 用户切出应用看到的是错话：卡住的不是机器，是他自己；
+     * 30 秒后这条调用还会静默变成拒绝，而他一直被指着"正在执行"。
+     */
+    override suspend fun onToolApprovalRequested(toolName: String) {
+        notificationManager.updateTaskStage("等你批准：$toolName")
+    }
+
+    /**
+     * 批准了才回到「正在执行」；没批准（含超时）就撤掉通知。
+     * 那件事已经不会再发生了，留一条"正在执行"比不通知更坏。
+     */
+    override suspend fun onToolPermissionChecked(toolName: String, approved: Boolean) {
+        notificationManager.updateTaskStage(if (approved) "正在执行：$toolName" else null)
+    }
+
     override suspend fun onToolExecutionResult(result: ToolExecutionResult) {
         notificationManager.updateTaskStage(null)
     }

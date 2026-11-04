@@ -206,6 +206,16 @@ interface ToolLifecycleHook : SkillHook {
     }
 
     /**
+     * 已发出审批请求、**正在等用户答复**时调用。
+     *
+     * 为什么单开一个派发点：`onToolCallRequested` 在审批之前就已经触发，
+     * 通知栏于是写着「正在执行：shell」，而它其实卡在等人按批准 ——
+     * 用户切出应用时看到的那句话是错的，30 秒后还会静默变成拒绝。
+     * 界面有 `progressText` 可以表达"等待审批"，通知这条通道此前没有对应时机。
+     */
+    suspend fun onToolApprovalRequested(toolName: String) {}
+
+    /**
      * 权限检查完成后调用。
      */
     suspend fun onToolPermissionChecked(toolName: String, approved: Boolean) {}
