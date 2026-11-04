@@ -2,6 +2,7 @@ package io.zer0.muse.tools
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -56,9 +57,21 @@ class DelegationModifySeedTest {
     }
 
     @Test
-    fun `预填不能留空白串 否则确认按钮一直按不动`() {
-        val seed = delegationModifySeed(request(taskDescription = "整理会议纪要", intermediateResult = ""))
+    fun `中间结果是空串时退回任务原文 预填不会是空白`() {
+        val task = "整理会议纪要"
 
-        assertFalse("预填成了空白串，确认按钮会一直处于不可点: '$seed'", seed.isBlank())
+        val seed = delegationModifySeed(request(taskDescription = task, intermediateResult = ""))
+
+        assertEquals("中间结果是空串（不是缺失），该用任务原文", task, seed)
+        assertFalse("预填成空白会让确认按钮一直按不动: '$seed'", seed.isBlank())
+    }
+
+    @Test
+    fun `任务与中间结果都没有内容时给空串 由界面把按钮按住`() {
+        // 这种暂停点本来就不该出现（无任务又无结果），但预填不能瞎造内容：
+        // 给空串，界面据此把按钮按住、并且看得出来是按住的状态
+        val seed = delegationModifySeed(request(taskDescription = "", intermediateResult = null))
+
+        assertTrue("两处都空应给空串: '$seed'", seed.isEmpty())
     }
 }
