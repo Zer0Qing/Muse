@@ -3,6 +3,7 @@ package io.zer0.muse.data.skill
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.util.SafePaths
+import io.zer0.muse.util.isStrictlyInside
 import io.zer0.muse.util.copyZipEntryWithLimit
 import io.zer0.muse.util.readZipEntryWithLimit
 import java.io.File
@@ -75,7 +76,7 @@ class SkillPackageStore(context: Context) {
         if (!SafePaths.isSafeRelative(relativeManifestPath)) return null
         val base = appContext.filesDir
         val file = SafePaths.safeResolve(base, relativeManifestPath) ?: return null
-        if (!file.isFile || !file.canonicalPath.startsWith(File(base, RELATIVE_ROOT).canonicalPath)) return null
+        if (!file.isFile || !isStrictlyInside(file.canonicalPath, File(base, RELATIVE_ROOT).canonicalPath)) return null
         return SkillPackage.parse(file.readText()).getOrNull()?.body
     }
 

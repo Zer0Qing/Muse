@@ -8,6 +8,7 @@ import io.zer0.common.Logger
 import io.zer0.common.Result
 import io.zer0.common.resultOf
 import io.zer0.muse.util.readZipEntryWithLimit
+import io.zer0.muse.util.isStrictlyInside
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -385,7 +386,7 @@ class StickerLibraryRepository(private val appContext: Context) {
             val targetDir = File(rootDir, pe.category).apply { mkdirs() }
             val targetFile = uniqueTargetFile(targetDir, pe.fileName)
             // Zip Slip / 路径穿越防护：目标必须仍在 stickers 根内
-            if (!targetFile.canonicalPath.startsWith(rootDir.canonicalPath + File.separator)) {
+            if (!isStrictlyInside(targetFile.canonicalPath, rootDir.canonicalPath)) {
                 Logger.w("StickerLibraryRepository", "跳过越界条目: ${pe.category}/${pe.fileName}")
                 continue
             }

@@ -3,6 +3,7 @@ package io.zer0.muse.runtime
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.tools.TOOL_OUTPUTS_DIR
+import io.zer0.muse.util.isStrictlyInside
 import io.zer0.muse.tools.ToolOutputCapture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -141,8 +142,7 @@ object PythonRuntime {
                     var entry = zip.nextEntry
                     while (entry != null) {
                         val target = File(rt, entry.name)
-                        val rootPath = rt.canonicalPath + File.separator
-                        if (!target.canonicalPath.startsWith(rootPath)) {
+                        if (!isStrictlyInside(target.canonicalPath, rt.canonicalPath)) {
                             throw SecurityException("zip 条目越界: ${entry.name}")
                         }
                         if (entry.isDirectory) {
