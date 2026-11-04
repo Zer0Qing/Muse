@@ -37,7 +37,6 @@
     <ID>CyclomaticComplexMethod:AssistantScreen.kt$@Composable fun AssistantScreen(onBack: () -&gt; Unit, onOpenDetail: (String) -&gt; Unit, viewModel: ChatViewModel = koinViewModel())</ID>
     <ID>CyclomaticComplexMethod:AuditLogPage.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun AuditLogPage(onBack: () -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:AuditLogger.kt$AuditLogger$private fun toJsonElement(v: Any): JsonElement</ID>
-    <ID>CyclomaticComplexMethod:AutomationSettingsPage.kt$@Suppress("LongMethod", "FunctionNaming") @Composable fun AutomationSettingsPage( manager: AutomationManager, onBack: () -&gt; Unit = {}, /** v1.xxx: F-24 编排入口 — 跳到定时任务页编排自动化动作。 */ onOpenScheduledTasks: () -&gt; Unit = {}, /** v2.x: 权限配置向导入口。 */ onOpenPermissionWizard: () -&gt; Unit = {}, /** Tasker/外部自动化开关；可选以保持 Robolectric 页面测试不依赖 Koin。 */ settings: SettingsRepository? = null, )</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private fun Backup.hasAnyData(): Boolean</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyBackupInternal(backup: Backup): Pair&lt;Int, Int&gt;</ID>
     <ID>CyclomaticComplexMethod:BackupService.kt$BackupService$private suspend fun applyNdJsonStreaming(lines: Sequence&lt;String&gt;, allowEmptyBackup: Boolean = false): Pair&lt;Int, Int&gt;</ID>

@@ -288,68 +288,17 @@ fun AutomationSettingsPage(
         }
 
         item(key = "autonomous-accessibility") {
-            if (autonomousLoaded) {
-                AutonomousAccessibilitySettingsCard(
-                    draft = autonomousDraft,
-                    packageEditor = packageEditor,
-                    taskPreview = taskPreview,
-                    grant = taskGrant,
-                    onDraftChange = { autonomousDraft = it },
-                    onPackageEditorChange = { packageEditor = it },
-                    onSave = {
-                        autonomousDraft = autonomousDraft.copy(
-                            allowedPackages = parseAutonomousPackages(packageEditor),
-                        )
-                        scope.launch {
-                            runCatching {
-                                automationSettingsStore.saveAutonomousAccessibilityWindow(
-                                    autonomousDraft.copy(
-                                        allowedPackages = parseAutonomousPackages(packageEditor),
-                                    ).toWindow(),
-                                )
-                            }.onSuccess {
-                                MuseToast.show(context.getString(R.string.automation_autonomous_saved))
-                            }.onFailure {
-                                Logger.w("AutomationSettings", "save autonomous plan failed: ${it.message}")
-                            }
-                        }
-                    },
-                    onConfirmTask = {
-                        val preview = taskPreview
-                        val targetPackage = autonomousDraft.allowedPackages.firstOrNull()
-                        if (preview == null || targetPackage == null) {
-                            MuseToast.show(context.getString(R.string.automation_autonomous_confirm_required))
-                        } else {
-                            scope.launch {
-                                val grant =
-                                    buildAutonomousGrant(
-                                        sessionId = preview.sessionId,
-                                        latestUserMessage = preview.message,
-                                        packageName = targetPackage,
-                                        nowMillis = System.currentTimeMillis(),
-                                    )
-                                if (grant == null) {
-                                    MuseToast.show(context.getString(R.string.automation_autonomous_confirm_required))
-                                } else {
-                                    automationSettingsStore.saveAutonomousAccessibilityGrant(grant)
-                                    taskGrant = grant
-                                    MuseToast.show(context.getString(R.string.automation_autonomous_task_confirmed))
-                                }
-                            }
-                        }
-                    },
-                    onClearTask = {
-                        val current = taskGrant
-                        if (current != null) {
-                            scope.launch {
-                                automationSettingsStore.clearAutonomousAccessibilityGrant(expected = current)
-                                taskGrant = null
-                                MuseToast.show(context.getString(R.string.automation_autonomous_task_cleared))
-                            }
-                        }
-                    },
-                )
-            }
+            AutonomousAccessibilityItem(
+                loaded = autonomousLoaded,
+                draft = autonomousDraft,
+                packageEditor = packageEditor,
+                taskPreview = taskPreview,
+                grant = taskGrant,
+                store = automationSettingsStore,
+                onDraftChange = { autonomousDraft = it },
+                onPackageEditorChange = { packageEditor = it },
+                onGrantChange = { taskGrant = it },
+            )
         }
 
         // v1.xxx: F-24 自动化动作如何编排 — 说明 + 一键跳转到定时任务页
@@ -577,6 +526,84 @@ private fun VirtualDisplayHandoffSection(
             onClose = { onClose(first.displayId) },
         )
     }
+}
+
+/**
+ * 自主无障碍那一整块（从 [AutomationSettingsPage] 外提）。
+ *
+ * 为什么要外提：那一块里有"没加载完不显示 / 预览或目标包缺失 / 授权建不出来 / 已有授权"
+ * 四个判定，全留在页面函数里会让它复杂到没人敢改。外提后页面只负责**决定放不放这一块**，
+ * 判定留在自己的函数里，各自的复杂度都能被读得下。
+ *
+ * `scope`/`context` 在这里自取而不是当参数传：两者本来就是组合作用域内的东西
+ * （`rememberCoroutineScope()` / `LocalContext.current`），传参反而多两个可传错的入口。
+ */
+@Composable
+private fun AutonomousAccessibilityItem(
+    loaded: Boolean,
+    draft: AutonomousAccessibilityDraftState,
+    packageEditor: String,
+    taskPreview: ChatViewModel.AutonomousAccessibilityTaskPreview?,
+    grant: io.zer0.muse.automation.core.AutonomousAccessibilityGrant?,
+    store: AutomationSettingsStore,
+    onDraftChange: (AutonomousAccessibilityDraftState) -> Unit,
+    onPackageEditorChange: (String) -> Unit,
+    onGrantChange: (io.zer0.muse.automation.core.AutonomousAccessibilityGrant?) -> Unit,
+) {
+    if (!loaded) return
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    AutonomousAccessibilitySettingsCard(
+        draft = draft,
+        packageEditor = packageEditor,
+        taskPreview = taskPreview,
+        grant = grant,
+        onDraftChange = onDraftChange,
+        onPackageEditorChange = onPackageEditorChange,
+        onSave = {
+            val next = draft.copy(allowedPackages = parseAutonomousPackages(packageEditor))
+            onDraftChange(next)
+            scope.launch {
+                runCatching { store.saveAutonomousAccessibilityWindow(next.toWindow()) }
+                    .onSuccess { MuseToast.show(context.getString(R.string.automation_autonomous_saved)) }
+                    .onFailure { Logger.w("AutomationSettings", "save autonomous plan failed: ${it.message}") }
+            }
+        },
+        onConfirmTask = {
+            val preview = taskPreview
+            val targetPackage = draft.allowedPackages.firstOrNull()
+            if (preview == null || targetPackage == null) {
+                MuseToast.show(context.getString(R.string.automation_autonomous_confirm_required))
+            } else {
+                scope.launch {
+                    val newGrant = buildAutonomousGrant(
+                        sessionId = preview.sessionId,
+                        latestUserMessage = preview.message,
+                        packageName = targetPackage,
+                        nowMillis = System.currentTimeMillis(),
+                    )
+                    if (newGrant == null) {
+                        MuseToast.show(context.getString(R.string.automation_autonomous_confirm_required))
+                    } else {
+                        store.saveAutonomousAccessibilityGrant(newGrant)
+                        onGrantChange(newGrant)
+                        MuseToast.show(context.getString(R.string.automation_autonomous_task_confirmed))
+                    }
+                }
+            }
+        },
+        onClearTask = {
+            val current = grant
+            if (current != null) {
+                scope.launch {
+                    store.clearAutonomousAccessibilityGrant(expected = current)
+                    onGrantChange(null)
+                    MuseToast.show(context.getString(R.string.automation_autonomous_task_cleared))
+                }
+            }
+        },
+    )
 }
 
 /** 页面顶部该显示哪一条拦截说明。 */
