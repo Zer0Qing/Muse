@@ -130,7 +130,16 @@ fun AutomationSettingsPage(
 
         // 总闸关闭时，页面顶部先给一条醒目提示：否则用户只会看到「开关是关的」，
         // 却不知道这意味着所有屏幕自动化工具此刻都在拒绝执行。
-        if (!automationEnabled) {
+        // 两条横幅**必须互斥**：一条说「为什么现在不能用」，一条说「去哪儿开回来」；
+        // 同时出现只会让用户读到两句互相矛盾的话。
+        // 以前这个互斥只靠两句手写条件（`!enabled` 与 `enabled && !a11y`）维持，
+        // 谁改一句就可能同时点亮 —— 所以把判定抽出来，见文件末尾的 [automationBannerKind]。
+        val bannerKind = automationBannerKind(
+            automationEnabled = automationEnabled,
+            accessibilityEnabled = permissionState.accessibilityEnabled,
+        )
+        when (bannerKind) {
+            AutomationBannerKind.MASTER_OFF -> {
             item(key = "master-off-banner") {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -159,7 +168,7 @@ fun AutomationSettingsPage(
 
         // R1: 总闸开着、但无障碍服务当前不可用（多半是被系统回收/用户关了开关）。
         // 与上面的「总闸关闭」横幅互斥：那条说「为什么不能用」，这条说「去哪开回来」。
-        if (automationEnabled && !permissionState.accessibilityEnabled) {
+            AutomationBannerKind.A11Y_OFF -> {
             item(key = "a11y-off-banner") {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -200,6 +209,9 @@ fun AutomationSettingsPage(
                     }
                 }
             }
+        }
+
+            AutomationBannerKind.NONE -> Unit
         }
 
         // v2.x: 三通道权限配置已收敛到「权限配置向导」(消除两页逐层重复)
@@ -565,4 +577,22 @@ private fun VirtualDisplayHandoffSection(
             onClose = { onClose(first.displayId) },
         )
     }
+}
+
+/** 页面顶部该显示哪一条拦截说明。 */
+internal enum class AutomationBannerKind { NONE, MASTER_OFF, A11Y_OFF }
+
+/**
+ * 总闸与无障碍权限两条横幅的**互斥判定**（纯函数，所以能被测）。
+ *
+ * 规则：总闸关着时只说「为什么现在不能用」—— 那时候去开无障碍是没意义的，
+ * 两句同时冒出来只会互相矛盾。因此总闸优先，且三者互斥。
+ */
+internal fun automationBannerKind(
+    automationEnabled: Boolean,
+    accessibilityEnabled: Boolean,
+): AutomationBannerKind = when {
+    !automationEnabled -> AutomationBannerKind.MASTER_OFF
+    !accessibilityEnabled -> AutomationBannerKind.A11Y_OFF
+    else -> AutomationBannerKind.NONE
 }

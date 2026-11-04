@@ -160,6 +160,33 @@ class AutomationSettingsPageTest {
             .assertDoesNotExist()
     }
 
+    /**
+     * 两条横幅**不能同时出现**。
+     *
+     * 各自单独存在都有测试了，但"总闸关着 + 服务也断了"这一格才是互斥规则真正管的情形：
+     * 这时候只该说「总闸关着，所以现在什么都不跑」，
+     * 不该同时催用户去开无障碍（两句放一起只会让人以为开了无障碍就能用）。
+     */
+    @Test
+    fun `master off and a11y off never light up together`() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                AutomationSettingsPage(
+                    manager = managerMock(accessibilityEnabled = false),
+                    onBack = {},
+                    settings = settingsMock(automationEnabled = false),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.automation_master_off_banner))
+            .assertExists()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.automation_a11y_off_banner))
+            .assertDoesNotExist()
+    }
+
     @Test
     fun `a11y off banner action opens system accessibility settings`() {
         val manager = managerMock(accessibilityEnabled = false)
