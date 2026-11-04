@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import io.zer0.common.Logger
 import java.io.ByteArrayOutputStream
 import java.io.File
 
@@ -54,14 +55,10 @@ internal object ChatBackgroundStore {
         } else {
             base
         }
-        // 清理同 slot 的旧文件（含带时间戳的历史文件），避免无限堆积
-        runCatching {
-            val stem = base.substringBeforeLast('.')
-            context.filesDir.listFiles()?.forEach { f ->
-                val n = f.name
-                if (n == base || (n.startsWith("${stem}_") && n.endsWith(".jpg"))) f.delete()
-            }
-        }
+        // 清理同 slot 的旧文件（含带时间戳的历史文件），避免无限堆积。
+        // 归属判定统一走 isSlotFile：这里以前抄了一份"前缀匹配"，
+        // 于是清/换全局背景会连 chat_background_dark.jpg 一起删（详见 isSlotFile 注释）。
+        deleteSlotFiles(context, slot)
         val target = File(context.filesDir, fileName)
         target.writeBytes(out.toByteArray())
         out.close()
@@ -70,13 +67,29 @@ internal object ChatBackgroundStore {
 
     /** 删除某个 slot 对应的背景文件（清除背景时调用，包含带时间戳的历史文件）。 */
     fun deleteSlot(context: Context, slot: String?) {
+        deleteSlotFiles(context, slot)
+    }
+
+    /**
+     * 删掉属于该 slot 的背景文件（当前名 + 带时间戳的历史名）。
+     *
+     * 单个文件删不掉不影响其余（继续遍历），但**要留下日志**：
+     * 用户看不到"文件还在盘上"这件事，只有排查磁盘占用时会撞上。
+     */
+    private fun deleteSlotFiles(context: Context, slot: String?) {
         runCatching {
             val base = if (slot.isNullOrBlank()) GLOBAL_FILE else "$slot.jpg"
             val stem = base.substringBeforeLast('.')
+            var failed = 0
             context.filesDir.listFiles()?.forEach { f ->
-                val n = f.name
-                if (n == base || (n.startsWith("${stem}_") && n.endsWith(".jpg"))) f.delete()
+                if (!isSlotFile(f.name, base, stem)) return@forEach
+                if (!f.delete()) failed += 1
             }
+            if (failed > 0) {
+                Logger.w("ChatBackgroundStore", "清理聊天背景文件未全部成功 slot=${slot ?: "全局"} 失败 $failed 个")
+            }
+        }.onFailure { e ->
+            Logger.w("ChatBackgroundStore", "清理聊天背景文件异常 slot=${slot ?: "全局"}: ${e.message}", e)
         }
     }
 
@@ -89,3 +102,23 @@ internal object ChatBackgroundStore {
     /** 文件名安全化：只保留字母数字下划线连字符。 */
     private fun String.sanitized(): String = replace(Regex("[^A-Za-z0-9_-]"), "_")
 }
+
+/**
+ * 某个文件名是否属于该 slot 自己的背景文件（当前名或带时间戳的历史名）。
+ *
+ * 这里曾经写成 `name.startsWith("${stem}_")`，看着无害，实际**会越界删文件**：
+ * 全局背景的 stem 是 `chat_background`，而深色槽位的文件叫 `chat_background_dark.jpg` ——
+ * 它同样满足这个前缀，于是**清掉或重选浅色背景会把深色背景的文件一起删掉**，
+ * 深色那边存的 `file://` 路径就此指向不存在的文件（表现为深色模式没有背景，且无从解释）。
+ *
+ * 时间戳历史文件的后缀只会是数字（`${stem}_${millis}.jpg`），所以按"后缀全是数字"判定归属。
+ */
+internal fun isSlotFile(name: String, base: String, stem: String): Boolean {
+    if (name == base) return true
+    val prefix = "${stem}_"
+    if (!name.startsWith(prefix) || !name.endsWith(JPG_SUFFIX)) return false
+    val tail = name.substring(prefix.length, name.length - JPG_SUFFIX.length)
+    return tail.isNotEmpty() && tail.all(Char::isDigit)
+}
+
+private const val JPG_SUFFIX = ".jpg"
