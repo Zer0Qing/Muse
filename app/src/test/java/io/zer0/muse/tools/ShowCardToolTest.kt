@@ -50,6 +50,13 @@ class ShowCardToolTest {
         )
 
         assertFalse(result.contains("Card bound to message"))
-        assertTrue(result.contains("rendered"))
+        assertTrue("卡片仍然要给出渲染回执", result.contains("rendered"))
+        // 这里补的是历史事故的形状：工具曾自己造过一次性 id（`c_<时间戳>_<序号>`）
+        // 并拿它当数据绑定的 key，于是渲染层按消息 id 查、工具按 c_xxx 写，
+        // **读到的永远是 null 而且不报错**。身份只能有一个来源 —— 工具不该产 id。
+        assertFalse(
+            "回执里出现了工具自造的一次性 id，正是当年那个双身份 bug 的形状：$result",
+            Regex("""\bc_\d+_\d+\b""").containsMatchIn(result),
+        )
     }
 }
