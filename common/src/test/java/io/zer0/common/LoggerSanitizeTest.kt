@@ -58,6 +58,43 @@ class LoggerSanitizeTest {
     }
 
     @Test
+    fun `裸密钥形状与PEM私钥块整段吃掉`() {
+        // 这两类以前只有 PiiEngine 认得，而 Logger 谁都能调：
+        // Logger.e("chat", "请求失败 sk-proj-…") 会原样进 muse.log 并被导出到设备之外。
+        val bare = Logger.sanitizePii("请求失败 sk-proj-AbCdEfGhIjKlMnOpQrStUvWx 已重试 3 次")
+        assertFalse("裸 sk- 密钥没被抹掉：$bare", bare.contains("AbCdEfGhIjKlMnOpQrStUvWx"))
+        assertTrue("要留下类别标记，好让人知道这里曾经有密钥", bare.contains("[密钥]"))
+
+        val aws = Logger.sanitizePii("AWS AKIAIOSFODNN7EXAMPLE 被拒绝")
+        assertFalse("AKIA 形状漏了：$aws", aws.contains("AKIAIOSFODNN7EXAMPLE"))
+
+        val pem = Logger.sanitizePii(
+            "启动加载失败 " +
+                "-----BEGIN OPENSSH PRIVATE KEY----- b3BlbnNzaC1rZXktdjEAAAAA " +
+                "-----END OPENSSH PRIVATE KEY----- 已跳过",
+        )
+        assertFalse("PEM 正文漏了：$pem", pem.contains("b3BlbnNzaC1rZXk"))
+        assertTrue("要留下块标记：$pem", pem.contains("[私钥块]"))
+    }
+
+    @Test
+    fun `短一点的sk前缀词不该被误当密钥`() {
+        // 反向钉住：形状规则必须够长才算密钥，否则 sk-foo 这种正常写法在日志里会变成标记
+        val benign = "模型别名 sk-foo 与配置项 sk_short 保持不变"
+
+        assertEquals(benign, Logger.sanitizePii(benign))
+    }
+
+    @Test
+    fun `十五位老身份证也盖住`() {
+        // PiiEngine 一直覆盖 15 位与 18 位，Logger 以前只有 18 位（对表见 docs/common）
+        val out = Logger.sanitizePii("老证件 110101900307457 已归档")
+
+        assertTrue("15 位漏了：$out", out.contains("[身份证]"))
+        assertFalse(out.contains("110101900307457"))
+    }
+
+    @Test
     fun `正常内容不被误改`() {
         // 误伤会让日志变成没法读的东西：这条是"别把普通数字都当卡号"的下限守护
         val benign = "模型 gpt-4o-mini 处理 1500 tokens 用时 3.2 秒 (attempt 2/3)"

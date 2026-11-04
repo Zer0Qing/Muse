@@ -120,7 +120,12 @@ object Logger {
     private val EMAIL_REGEX = Regex("""\b[\w.-]+@[\w.-]+\.\w+\b""")
 
     // 18位身份证(含15位兼容): 地区码+生日+顺序码+校验位
-    private val ID_CARD_REGEX = Regex("""\b[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]\b""")
+    // 18 位与 15 位老式都盖：`PiiEngine` 的两条都覆盖，这边以前只有 18 位（对表见
+    // docs/common/地基模块体检.md 的覆盖矩阵）。
+    private val ID_CARD_REGEX = Regex(
+        """\b(?:[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]""" +
+            """|[1-9]\d{5}\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3})\b""",
+    )
 
     // 银行卡号: 16-19位连续数字,或 4-4-4-4 分隔格式
     private val BANK_CARD_REGEX = Regex("""\b\d{16,19}\b|\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4,7}\b""")
@@ -139,7 +144,8 @@ object Logger {
     // 1) HEADER_CRED_REGEX:HTTP header 格式(authorization/bearer/x-api-key),分隔符为冒号或空格,
     //    值部分用 [^\n,;]+ 匹配到行尾/逗号/分号,确保 "Bearer xxx" 中的 token 也被一并脱敏
     // 2) KV_CRED_REGEX:key=value 格式(token/password/secret/apikey/api_key/access_token/
-    //    refresh_token/client_secret/client_id),分隔符 [=:] 兼容 JSON 中的冒号
+    //    refresh_token/client_secret/client_id),分隔符 [=:]
+    //    （原注释在这里写着"兼容 JSON 中的冒号"—— 2026-11-04 实测**并不兼容**，见下方补记）
     // 3) URL_QUERY_CRED_REGEX:URL query 参数 ?key=xxx / &api_key=xxx,保留前导 ?/& 符号
     private val HEADER_CRED_REGEX = Regex("""(?i)\b(authorization|bearer|x-api-key)\s*[:\s]\s*[^\n,;]+""")
     // 2026-11-04 实测补两处泄漏（LoggerSanitizeTest 抓到）：
@@ -151,6 +157,17 @@ object Logger {
         Regex("""(?i)\b(token|password|secret|apikey|api_key|access_token|refresh_token|client_secret|client_id|key)\s*"?\s*[=:]\s*"?\S+""")
     private val URL_QUERY_CRED_REGEX = Regex("""(?i)([?&])(key|token|api_key|apikey)=\S+""")
 
+    // 2026-11-04 与 `PiiEngine` 对表后补上（矩阵见 docs/common/地基模块体检.md）：
+    // 这两类以前只有 `PiiEngine` 认得，而 `Logger` 谁都能调 —— 于是一条
+    // `Logger.e("chat", "请求失败 sk-proj-abcdef…")` 会**原样**进 muse.log 并被导出到设备之外。
+    // 它们对排查毫无价值（看不出是哪把钥匙），所以直接整段换掉。
+    private val BARE_SECRET_REGEX = Regex(
+        """(?i)\b(?:sk-[a-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|gsk_[a-z0-9_]{20,}|ghp_[a-z0-9]{36}|glpat-[a-z0-9_-]{20,}|xoxb-[0-9a-z]+)\b""",
+    )
+    private val PRIVATE_KEY_BLOCK_REGEX = Regex(
+        """-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----""",
+    )
+
     /**
      * M5: 过滤日志中的 PII(手机号/邮箱/身份证/银行卡/IP/凭据),避免敏感信息输出到 Logcat 或日志文件。
      * - 手机号(11 位,1 开头)→ [手机号]
@@ -159,11 +176,20 @@ object Logger {
      * - 凭据(authorization/bearer/x-api-key/token/password/secret/apikey/api_key/
      *   access_token/refresh_token/client_id/client_secret/key = xxx)→ key=[已脱敏]
      *   含 `键名="值"` 与 JSON `"键名":"值"` 两种写法（后一种是 2026-11-04 补的漏匹配）
+     * - 裸密钥形状（sk-/AKIA/gsk_/ghp_/glpat-/xoxb-）与 PEM 私钥块 → [密钥] / [私钥块]
+     *
+     * 与 `PiiEngine` 的分工（2026-11-04 对表）：**互不包含**。
+     * `PiiEngine` 认得裸密钥形状、PEM、SSN、姓名、中文地址；
+     * 这边认得传输形状的凭据（HTTP header、URL query、JSON 键值）。
+     * 日志里**不**抹姓名与地址：那会吃掉排查真正需要的上下文，而聊天/记忆链路已有 `PiiEngine` 兜住。
      *
      * v1.114: 拆分为 header / key=value / URL query 三组正则,详见上方注释。
      */
     internal fun sanitizePii(msg: String): String {
         return msg
+            // 私钥块与裸密钥先走：它们是整段/整串替换，不该被后面的键值规则切碎
+            .replace(PRIVATE_KEY_BLOCK_REGEX, "[私钥块]")
+            .replace(BARE_SECRET_REGEX, "[密钥]")
             .replace(PHONE_REGEX, "[手机号]")
             .replace(EMAIL_REGEX, "[邮箱]")
             .replace(ID_CARD_REGEX, "[身份证]")

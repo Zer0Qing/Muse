@@ -63,10 +63,13 @@ object PiiEngine {
     private data class Rule(val label: String, val regex: Regex, val protected: Boolean = false)
     private val rules by lazy {
         listOf(
+            // `sk-` 后面必须允许连字符：OpenAI 项目钥匙是 `sk-proj-…`、Anthropic 是 `sk-ant-…`，
+            // 原来的 `sk-[a-z0-9_]{20,}` 会在第一个 `-` 处断掉，于是聊天里贴的这类密钥
+            // **原样进记忆**（2026-11-04 由 LoggerSanitizeTest 的同一条用例抓到）。
             Rule(
                 "api_key",
                 Regex(
-                    "(?i)(?:sk-[a-z0-9_]{20,}|AKIA[0-9A-Z]{16}|gsk_[a-z0-9_]{20,}|ghp_[a-z0-9]{36}|glpat-[a-z0-9_-]{20,}|xoxb-[0-9a-z]+)",
+                    "(?i)(?:sk-[a-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|gsk_[a-z0-9_]{20,}|ghp_[a-z0-9]{36}|glpat-[a-z0-9_-]{20,}|xoxb-[0-9a-z]+)",
                 ),
             ),
             Rule(
