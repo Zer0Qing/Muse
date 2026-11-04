@@ -539,12 +539,35 @@ def check_entry_code(manifest: dict, entry_bytes: bytes, runtime: str = RUNTIME_
     except UnicodeDecodeError as error:
         fail(f"入口文件不是合法 UTF-8: {error}")
 
-    declaration = r"def\s+" if runtime == RUNTIME_PYTHON else r"function\s+"
     for tool in manifest["tools"]:
         function_name = tool["functionName"]
-        pattern = re.compile(r"(^|\n)[ \t]*" + declaration + re.escape(function_name) + r"\s*\(")
-        if not pattern.search(text):
+        if not entry_defines_function(text, function_name, runtime=runtime):
             fail(f"入口未定义工具函数 {function_name}（manifest 工具 {tool['name']}）")
+
+
+# 入口里的函数定义写法必须按**实际语言形态**认，不能只认最朴素的一种：
+# App 的 node 引擎要求 ESM 导出，所以自家示例写的就是 `export function noteSave(...)`；
+# 以前这里只匹配行首 `function NAME(`，`export ` 一挡就判"未定义"——
+# 结果是签名工具签不出 docs/plugin/samples 里的官方示例（而 App 侧完全能装能跑）。
+_JS_NAME = r"[A-Za-z_$][A-Za-z0-9_$]*"
+
+
+def entry_defines_function(text: str, function_name: str, runtime: str = RUNTIME_JS) -> bool:
+    """manifest 声明的工具函数是否真的在入口里定义（JS 认四种写法，Python 认 def）。"""
+    escaped = re.escape(function_name)
+    if runtime == RUNTIME_PYTHON:
+        candidates = [r"(^|\n)[ \t]*def\s+" + escaped + r"\s*\("]
+    else:
+        candidates = [
+            # function noteSave(...) / async function / export function / export async function
+            r"(^|\n)[ \t]*(export\s+)?(async\s+)?function\s+" + escaped + r"\s*\(",
+            # export const noteSave = (args) => ... / const noteSave = function ...
+            r"(^|\n)[ \t]*(export\s+)?(?:const|let|var)\s+" + escaped +
+            r"\s*=\s*(async\s+)?(function\b|\([^)]*\)\s*=>|" + _JS_NAME + r"\s*=>)",
+            # 全局赋值：noteSave = function / noteSave = (...) =>
+            r"(^|\n)[ \t]*" + escaped + r"\s*=\s*(async\s+)?(function\b|\([^)]*\)\s*=>)",
+        ]
+    return any(re.search(pattern, text) for pattern in candidates)
 
     # 可疑片段表是按 JS 写法列的，Python 入口不套用，避免误报。
     if runtime == RUNTIME_JS:
