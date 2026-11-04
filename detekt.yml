@@ -16,6 +16,10 @@ complexity:
     active: true
     functionThreshold: 8
     constructorThreshold: 10
+    # @Composable 的参数表就是它的 API：modifier、回调、展示数据各占一项。
+    # 为了凑阈值把参数塞进一个数据袋，只会让调用方看不出这张卡需要什么 —— 那是把
+    # lint 的偏好当设计。故规则级豁免 Compose，非 Composable 的长参数表照常报。
+    ignoreAnnotated: ['Composable']
 
   # 一屏放得下的分支比强行抽函数好读。超过 20 通常说明这段逻辑确实该拆了。
   CyclomaticComplexMethod:

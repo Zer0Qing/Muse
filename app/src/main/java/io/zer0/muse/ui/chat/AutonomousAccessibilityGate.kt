@@ -45,6 +45,10 @@ object AutonomousAccessibilityGate {
         }
     }
 
+    // 守卫链：每个提前返回都带一条**不同的**人类可读原因（策略/谓词的共同形状）。
+    // 拧成单一返回会把原因塞进可空值再层层解包，读的人反而看不出谁在挡 ——
+    // 这是规则的已知误报（阈值 4），逐点豁免并把理由留在这里。
+    @Suppress("ReturnCount")
     fun resolve(
         sessionId: String,
         toolName: String,

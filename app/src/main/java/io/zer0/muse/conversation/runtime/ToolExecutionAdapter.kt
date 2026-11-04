@@ -1,5 +1,7 @@
 package io.zer0.muse.conversation.runtime
 
+import io.zer0.common.Result
+import io.zer0.common.resultOf
 import io.zer0.muse.conversation.core.ToolExecutor
 import io.zer0.muse.conversation.core.ToolInvocation
 import io.zer0.muse.conversation.core.ToolOutcome
@@ -19,22 +21,24 @@ class ToolExecutionAdapter(
     override suspend fun execute(invocation: ToolInvocation): ToolOutcome {
         val args = parseArguments(invocation.argumentsJson)
             ?: return ToolOutcome.Failed("invalid tool arguments")
-        return try {
-            val result =
-                if (context == null) {
-                    registry.execute(invocation.toolName, args)
-                } else {
-                    registry.execute(invocation.toolName, args, context)
-                }
-            if (result.isError) {
-                ToolOutcome.Failed(result.content)
+        // `resultOf` 与原来的手写 try/catch 等价：它同样**重抛 CancellationException**，
+        // 其它异常带 message 转成 Failed，兜底句保持原样。区别只是把"边界捕获"交回
+        // 仓库里那一处实现，而不是每个适配器各写一遍（各写一遍迟早有人漏掉重抛）。
+        val executed = resultOf {
+            if (context == null) {
+                registry.execute(invocation.toolName, args)
             } else {
-                ToolOutcome.Succeeded(result.content)
+                registry.execute(invocation.toolName, args, context)
             }
-        } catch (error: kotlinx.coroutines.CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            ToolOutcome.Failed(error.message ?: "tool execution failed")
+        }
+        if (executed is Result.Error) {
+            return ToolOutcome.Failed(executed.throwable?.message ?: "tool execution failed")
+        }
+        val toolResult = executed.getOrThrow()
+        return if (toolResult.isError) {
+            ToolOutcome.Failed(toolResult.content)
+        } else {
+            ToolOutcome.Succeeded(toolResult.content)
         }
     }
 
