@@ -24,7 +24,10 @@ import java.util.Locale
 object Logger {
     private const val DEFAULT_TAG = "Muse"
     private const val LOG_FILE_NAME = "muse.log"
-    private const val MAX_LOG_FILE_BYTES = 1_000 * 1024L // 约 1MB rolling
+    /** 约 1MB rolling。`internal` 是为了让轮转测试引用同一个数，而不是抄一份字面量。 */
+    internal const val MAX_LOG_FILE_BYTES = 1_000 * 1024L
+    /** 轮转失败后的重试冷却：避免每条日志都去"关句柄 + 删备份 + 改名"。 */
+    private const val ROLL_RETRY_COOLDOWN_MS = 60_000L
     /** 因果链最多展开几层：再多就快到栈顶了，消息也长。 */
     internal const val MAX_CAUSE_DEPTH = 8
 
@@ -61,6 +64,12 @@ object Logger {
      */
     private var fileWriter: java.io.Writer? = null
     private var writtenBytes: Long = 0L
+
+    /**
+     * 上次**尝试**轮转的时间戳。轮转失败时不能每条日志都重试：
+     * 那会把缓冲写变成逐行落盘（每次都要开关句柄），比不轮转更伤。
+     */
+    private var lastRollAttemptAt: Long = 0L
 
     /** 日志等级枚举(用于 [fileLogLevel] 阈值控制)。 */
     enum class Level { DEBUG, INFO, WARN, ERROR }
@@ -102,6 +111,13 @@ object Logger {
         synchronized(lock) {
             val dir = File(context.cacheDir, "logs")
             if (!dir.exists()) dir.mkdirs()
+            // 换文件时必须一起复位轮转状态：
+            //  1. 旧句柄不关，日志会继续写进**上一个**文件（logFile 已经指向新路径，没人知道）；
+            //  2. `writtenBytes` 是"当前这个文件写了多少字节"的记账，沿用上一个文件的大值
+            //     会让新文件第一行就触发轮转 —— 实测表现为两个测试类互相打红。
+            closeWriterLocked()
+            writtenBytes = 0L
+            lastRollAttemptAt = 0L
             logDir = dir
             logFile = File(dir, LOG_FILE_NAME)
             fileLogEnabled = true
@@ -217,12 +233,27 @@ object Logger {
                 // Rolling:超 1MB 备份为 .1,新建空文件。轮转前必须先关句柄，
                 // 否则重命名后句柄仍指向被改名的那份文件，新日志会写进备份。
                 if (writtenBytes > MAX_LOG_FILE_BYTES || fileWriter == null) {
-                    if (writtenBytes > MAX_LOG_FILE_BYTES) {
+                    // 轮转失败时要**有冷却**：`writerLocked` 会把 writtenBytes 读回真实大小，
+                    // 于是每一条日志都会重新触发一次"关句柄 + 删备份 + 改名"——
+                    // 缓冲失效、逐行落盘，比不轮转还糟。
+                    val now = System.currentTimeMillis()
+                    if (writtenBytes > MAX_LOG_FILE_BYTES && now - lastRollAttemptAt > ROLL_RETRY_COOLDOWN_MS) {
+                        lastRollAttemptAt = now
                         closeWriterLocked()
                         val backup = File(logDir, "$LOG_FILE_NAME.1")
                         if (backup.exists()) backup.delete()
-                        file.renameTo(backup)
-                        writtenBytes = 0L
+                        if (!file.renameTo(backup)) {
+                            // 与全仓 12 处原子写同一约定：改名不行就复制+截断，
+                            // 至少备份留得住、当前文件回到可控大小。
+                            val salvaged = runCatching {
+                                file.copyTo(backup, overwrite = true)
+                                java.io.FileWriter(file, false).close()
+                                true
+                            }.getOrDefault(false)
+                            if (!salvaged) {
+                                android.util.Log.w("Logger", "日志轮转失败(改名与复制都不行)，冷却 ${ROLL_RETRY_COOLDOWN_MS / 1000}s 后重试；期间日志文件会继续增长")
+                            }
+                        }
                     }
                 }
                 val timestamp = dateFormat.format(Date())
