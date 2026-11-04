@@ -110,25 +110,40 @@ $requirements
 
     private fun normalizeTitle(title: String): String = title.trim().lowercase()
 
-    /** 提取 markdown 中第一个命中标题段的正文(到下一个同级或更高级标题为止)。 */
+    /**
+     * 提取 markdown 中**所有**命中标题段的正文（每段收到下一个同级或更高级标题为止）。
+     *
+     * 为什么不是"取第一段"：模型确实会把模板标题重复一遍（补一段「重要事实」）。
+     * 只取第一段时，后面那段里的事实会被**静默丢掉**，而写前校验发现不了
+     * —— 第一段非空，`validate` 就认为结构没问题。用户侧的表现是"我明明说过，它不记得"。
+     * 重复的条目按行去重后保留首次出现的顺序，避免同一句话被记成两条。
+     */
     fun extractMarkdownSection(markdown: String, titles: List<String>): String {
         if (markdown.isEmpty()) return ""
         val wanted = titles.map(::normalizeTitle).toHashSet()
         val lines = markdown.split(LINE_BREAK_RE)
-
-        for (i in lines.indices) {
-            val heading = parseMarkdownHeading(lines[i]) ?: continue
-            if (normalizeTitle(heading.title) !in wanted) continue
-
+        val collected = linkedSetOf<String>()
+        var i = 0
+        while (i < lines.size) {
+            val heading = parseMarkdownHeading(lines[i])
+            if (heading == null || normalizeTitle(heading.title) !in wanted) {
+                i += 1
+                continue
+            }
             val body = mutableListOf<String>()
-            for (j in (i + 1) until lines.size) {
+            var j = i + 1
+            while (j < lines.size) {
                 val next = parseMarkdownHeading(lines[j])
                 if (next != null && next.level <= heading.level) break
                 body.add(lines[j])
+                j += 1
             }
-            return body.joinToString("\n").trim()
+            body.map { line -> line.trim() }
+                .filter { line -> line.isNotEmpty() }
+                .forEach { line -> collected.add(line) }
+            i = j
         }
-        return ""
+        return collected.joinToString("\n")
     }
 
     /** 摘要里是否存在 facts 段标题(不要求正文非空)。 */
