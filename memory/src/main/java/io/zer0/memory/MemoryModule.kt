@@ -4,7 +4,6 @@ import androidx.room.Room
 import io.zer0.memory.compile.MemoryCompiler
 import io.zer0.memory.deep.DeepMemoryProcessor
 import io.zer0.memory.fact.FactDb
-import io.zer0.memory.fact.FactStore
 import io.zer0.memory.summary.MEMORY_DB_VERSION
 import io.zer0.memory.summary.MemoryDb
 import io.zer0.memory.summary.MemoryDbArchiveRecovery
@@ -99,17 +98,12 @@ val memoryModule: Module = module {
             compileContext = io.zer0.memory.compile.MemoryCompileContext(),
         )
     } // legacy sectionDao + llmClient + fileWriter + factStore + scoped DAO
-    single {
-        FactStore(
-            get(),
-            get(),
-            java.io.File(androidContext().filesDir, "fact_tombstones.json"),
-            get<io.zer0.memory.fact.FactDedupJudge>(),
-            get(),
-            assistantId = "default",
-            clearLegacyTombstonesOnReset = true,
-        )
-    }
+    // 默认助手的 FactStore **必须复用 FactDbProvider 缓存的那一份**。
+    // 原先这里手工 new 了一个，于是同一个 "default" 助手存在两个 FactStore 实例：
+    // 各自的 `reconcileJob`（写后对账的节流窗口）与 `dedupMutex`（同实体去重的串行闸）
+    // 互不相干 —— 同一次写入能被两边各排一次对账，两条并发写也能同时进去重判定。
+    // **锁只在实例内有效，双实例等于把它悄悄废掉**，而这种错要跑很久才在数据上显形。
+    single { get<io.zer0.memory.fact.FactDbProvider>().getFactStore("default") }
     single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) } // factDbProvider + llmClient
 
     // v2.6.2（用户反馈）: 通知 → 记忆 梳理器（大工具模型梳理/整合/去重后落库）。
