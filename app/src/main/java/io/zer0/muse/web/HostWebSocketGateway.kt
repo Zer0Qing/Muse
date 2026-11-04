@@ -821,9 +821,19 @@ internal class HostWebSocketGateway(
     ): HostEvent {
         val sequenced = event.copy(
             connectionId = context.id,
-            eventSeq = context.eventSeq++,
+            eventSeq = context.eventSeq,
+            /*
+             * `cursor` 的语义是"这条我已经给你了"，所以它**必须等于本条自己的序号**。
+             *
+             * 以前写的是 `eventSeq = context.eventSeq++` 之后再 `cursor = context.eventSeq`，
+             * 于是 cursor 恒等于 seq+1：客户端照实回传"我到这里"，服务端按 `eventSeq > cursor`
+             * 过滤 —— 正好**稳定漏掉紧随其后的那一条**（补拉一可达就少一条）。
+             * 今天多数时候走的是全量快照分支，所以这个洞被掩盖着；一旦跨连接续传做实，
+             * 它就是"消息看着齐、其实中间缺一块"。
+             */
             cursor = context.eventSeq,
         )
+        context.eventSeq += 1
         context.history.addLast(sequenced)
         while (context.history.size > MAX_EVENT_HISTORY) context.history.removeFirst()
         sendMutex.withLock { connection.send(Frame.Text(AppJson.encodeToString(sequenced))) }
