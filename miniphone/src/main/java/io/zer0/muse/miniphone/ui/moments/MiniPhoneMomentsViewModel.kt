@@ -12,6 +12,7 @@ import io.zer0.muse.miniphone.data.moment.MP_LOCAL_ACTOR_ID
 import io.zer0.muse.miniphone.data.moment.MpCharacterMaterial
 import io.zer0.muse.miniphone.data.moment.MpMomentsRepository
 import io.zer0.muse.miniphone.data.settings.MpMomentAutoStore
+import io.zer0.muse.miniphone.ui.launchGuarded
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +39,9 @@ import kotlin.random.Random
  * @param onlyMine 只看自己发的动态:时间线只查本机用户的,下拉刷新也不再去叫角色生成
  * @param random 挑角色的随机源:每次刷新随机取一个启用角色,测试可钉死
  */
+// 日志里认出「这一页的失败」用的稳定 tag；具体动作名写在调用处。
+private const val LOG_TAG = "MiniPhoneMoments"
+
 class MiniPhoneMomentsViewModel(
     private val repository: MpMomentsRepository,
     private val host: MiniPhoneHost,
@@ -61,7 +65,7 @@ class MiniPhoneMomentsViewModel(
 
     init {
         observeHost()
-        viewModelScope.launch { reloadFirstPage() }
+        viewModelScope.launchGuarded(LOG_TAG, "打开朋友圈首屏") { reloadFirstPage() }
     }
 
     /** 滚到底时加载更老的一页。没有更多、或上一页还在路上,直接忽略。 */
@@ -69,7 +73,12 @@ class MiniPhoneMomentsViewModel(
         val current = mutableState.value
         if (!current.hasMore || current.isLoadingMore) return
         mutableState.update { it.copy(isLoadingMore = true) }
-        viewModelScope.launch { appendPage() }
+        viewModelScope.launchGuarded(
+            LOG_TAG,
+            "加载更老的一页",
+            // 失败时必须收起「加载中」，否则这一行会永远卡在转圈，用户以为还在跑
+            onError = { mutableState.update { it.copy(isLoadingMore = false) } },
+        ) { appendPage() }
     }
 
     /**
@@ -82,7 +91,7 @@ class MiniPhoneMomentsViewModel(
     fun refresh() {
         if (mutableState.value.isRefreshing) return
         mutableState.update { it.copy(isRefreshing = true) }
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(LOG_TAG, "下拉刷新朋友圈") {
             try {
                 if (!onlyMine) generateMoment()
                 reloadFirstPage()
@@ -94,13 +103,13 @@ class MiniPhoneMomentsViewModel(
 
     /** 发一条自己的动态:文字 + 最多九张图;发布成功后插到时间线最上面。 */
     fun publish(content: String, imageUris: List<Uri>, visibleToSelf: Boolean = false) {
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(LOG_TAG, "发一条动态") {
             val moment = repository.publish(
                 content = content,
                 imageUris = imageUris,
                 authorName = selfName,
                 visibleTo = if (visibleToSelf) MP_LOCAL_ACTOR_ID else "",
-            ) ?: return@launch
+            ) ?: return@launchGuarded
             val row = buildRow(moment)
             mutableState.update { it.copy(moments = listOf(row) + it.moments) }
         }
@@ -108,7 +117,7 @@ class MiniPhoneMomentsViewModel(
 
     /** 点赞或取消点赞,顺手把这一行的点赞人列表与计数换成库里的最新结果。 */
     fun toggleLike(momentId: String) {
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(LOG_TAG, "点赞/取消点赞") {
             val liked = repository.toggleLike(momentId, MpActorType.USER, MP_LOCAL_ACTOR_ID, selfName)
             val likes = repository.likesOf(momentId)
             updateRow(momentId) { row ->
@@ -125,7 +134,7 @@ class MiniPhoneMomentsViewModel(
      */
     fun comment(momentId: String, parentId: String?, content: String) {
         if (content.isBlank()) return
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(LOG_TAG, "写评论") {
             repository.addComment(
                 momentId = momentId,
                 parentId = parentId,
@@ -133,7 +142,7 @@ class MiniPhoneMomentsViewModel(
                 senderId = MP_LOCAL_ACTOR_ID,
                 senderName = selfName,
                 content = content,
-            ) ?: return@launch
+            ) ?: return@launchGuarded
             val comments = repository.commentsOf(momentId)
             updateRow(momentId) { row -> row.copy(comments = buildCommentTree(comments)) }
         }
@@ -141,9 +150,9 @@ class MiniPhoneMomentsViewModel(
 
     /** 删掉自己发的动态;别人的动态不在这里处理。 */
     fun deleteMoment(momentId: String) {
-        viewModelScope.launch {
-            val row = mutableState.value.moments.firstOrNull { moment -> moment.id == momentId } ?: return@launch
-            if (!row.isMine) return@launch
+        viewModelScope.launchGuarded(LOG_TAG, "删自己发的动态") {
+            val row = mutableState.value.moments.firstOrNull { moment -> moment.id == momentId } ?: return@launchGuarded
+            if (!row.isMine) return@launchGuarded
             repository.deleteMoment(momentId)
             mutableState.update { state ->
                 state.copy(moments = state.moments.filterNot { moment -> moment.id == momentId })
@@ -158,7 +167,7 @@ class MiniPhoneMomentsViewModel(
      * 免得界面上留着一行已经不存在的回复。
      */
     fun deleteComment(momentId: String, commentId: String) {
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(LOG_TAG, "删自己写的评论") {
             repository.deleteComment(momentId, commentId)
             val comments = repository.commentsOf(momentId)
             updateRow(momentId) { row -> row.copy(comments = buildCommentTree(comments)) }
