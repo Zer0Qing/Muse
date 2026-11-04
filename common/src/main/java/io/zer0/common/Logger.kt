@@ -114,92 +114,20 @@ object Logger {
      */
     fun getLogFile(): File? = logFile?.takeIf { it.exists() }
 
-    // M5: PII 过滤正则(缓存到 object 级 val,避免每次调用重新编译)
-    // H-SEC-2: 扩展覆盖身份证号、银行卡号、IPv4 地址,与 app.privacy.PiiGuard 对齐
-    private val PHONE_REGEX = Regex("""\b1[3-9]\d{9}\b""")
-    private val EMAIL_REGEX = Regex("""\b[\w.-]+@[\w.-]+\.\w+\b""")
-
-    // 18位身份证(含15位兼容): 地区码+生日+顺序码+校验位
-    // 18 位与 15 位老式都盖：`PiiEngine` 的两条都覆盖，这边以前只有 18 位（对表见
-    // docs/common/地基模块体检.md 的覆盖矩阵）。
-    private val ID_CARD_REGEX = Regex(
-        """\b(?:[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]""" +
-            """|[1-9]\d{5}\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3})\b""",
-    )
-
-    // 银行卡号: 16-19位连续数字,或 4-4-4-4 分隔格式
-    private val BANK_CARD_REGEX = Regex("""\b\d{16,19}\b|\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4,7}\b""")
-
-    // IPv4 地址
-    private val IPV4_REGEX = Regex("""\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b""")
-
-    // v1.114 安全修复:原 CREDENTIAL_REGEX (?i)(token|password|apikey|api_key|secret)\s*[=:]\s*\S+
-    // 关键词不全且要求 [=:] 后紧跟非空白,导致以下常见凭据格式漏匹配:
-    //   - "Authorization: Bearer xxx"(authorization 不在关键词列表)
-    //   - "x-api-key: sk-xxx"(x-api-key 不在列表)
-    //   - JSON "access_token":"xxx"(access_token 不在列表,冒号在引号内)
-    //   - URL ?key=xxx(key 不在列表)
-    // 拆分为三组正则分别覆盖不同格式,新增关键词:authorization, bearer, x-api-key, key,
-    //   access_token, refresh_token, client_id, client_secret
-    // 1) HEADER_CRED_REGEX:HTTP header 格式(authorization/bearer/x-api-key),分隔符为冒号或空格,
-    //    值部分用 [^\n,;]+ 匹配到行尾/逗号/分号,确保 "Bearer xxx" 中的 token 也被一并脱敏
-    // 2) KV_CRED_REGEX:key=value 格式(token/password/secret/apikey/api_key/access_token/
-    //    refresh_token/client_secret/client_id),分隔符 [=:]
-    //    （原注释在这里写着"兼容 JSON 中的冒号"—— 2026-11-04 实测**并不兼容**，见下方补记）
-    // 3) URL_QUERY_CRED_REGEX:URL query 参数 ?key=xxx / &api_key=xxx,保留前导 ?/& 符号
-    private val HEADER_CRED_REGEX = Regex("""(?i)\b(authorization|bearer|x-api-key)\s*[:\s]\s*[^\n,;]+""")
-    // 2026-11-04 实测补两处泄漏（LoggerSanitizeTest 抓到）：
-    //  a) JSON 形式 `"access_token":"xxx"` —— 键后面是**引号再冒号**，原来的 `\s*[=:]`
-    //     要求紧跟 = 或 :，所以整条漏匹配（注释里那句"兼容 JSON 中的冒号"其实没做到）；
-    //  b) 纯文本 `key=xxx` —— 只有 URL query 里的 `?key=` 被覆盖，`sort key=abc` 这类漏了。
-    //  `\b` 放在键名前，避免把 monkey=… 这类普通词也吃掉；`api_key` 排在 `key` 之前。
-    private val KV_CRED_REGEX =
-        Regex("""(?i)\b(token|password|secret|apikey|api_key|access_token|refresh_token|client_secret|client_id|key)\s*"?\s*[=:]\s*"?\S+""")
-    private val URL_QUERY_CRED_REGEX = Regex("""(?i)([?&])(key|token|api_key|apikey)=\S+""")
-
-    // 2026-11-04 与 `PiiEngine` 对表后补上（矩阵见 docs/common/地基模块体检.md）：
-    // 这两类以前只有 `PiiEngine` 认得，而 `Logger` 谁都能调 —— 于是一条
-    // `Logger.e("chat", "请求失败 sk-proj-abcdef…")` 会**原样**进 muse.log 并被导出到设备之外。
-    // 它们对排查毫无价值（看不出是哪把钥匙），所以直接整段换掉。
-    private val BARE_SECRET_REGEX = Regex(
-        """(?i)\b(?:sk-[a-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|gsk_[a-z0-9_]{20,}|ghp_[a-z0-9]{36}|glpat-[a-z0-9_-]{20,}|xoxb-[0-9a-z]+)\b""",
-    )
-    private val PRIVATE_KEY_BLOCK_REGEX = Regex(
-        """-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----""",
-    )
-
     /**
-     * M5: 过滤日志中的 PII(手机号/邮箱/身份证/银行卡/IP/凭据),避免敏感信息输出到 Logcat 或日志文件。
-     * - 手机号(11 位,1 开头)→ [手机号]
-     * - 邮箱 → [邮箱]
-     * - H-SEC-2: 身份证号(18位)→ [身份证],银行卡号(16-19位)→ [银行卡],IPv4→ [IP]
-     * - 凭据(authorization/bearer/x-api-key/token/password/secret/apikey/api_key/
-     *   access_token/refresh_token/client_id/client_secret/key = xxx)→ key=[已脱敏]
-     *   含 `键名="值"` 与 JSON `"键名":"值"` 两种写法（后一种是 2026-11-04 补的漏匹配）
-     * - 裸密钥形状（sk-/AKIA/gsk_/ghp_/glpat-/xoxb-）与 PEM 私钥块 → [密钥] / [私钥块]
+     * M5: 过滤日志中的 PII 与凭据（手机号 / 邮箱 / 证件 / 卡号 / IP / 各种形状的密钥）。
      *
-     * 与 `PiiEngine` 的分工（2026-11-04 对表）：**互不包含**。
-     * `PiiEngine` 认得裸密钥形状、PEM、SSN、姓名、中文地址；
-     * 这边认得传输形状的凭据（HTTP header、URL query、JSON 键值）。
-     * 日志里**不**抹姓名与地址：那会吃掉排查真正需要的上下文，而聊天/记忆链路已有 `PiiEngine` 兜住。
+     * **模式表已经合到 `PiiEngine.scrubForLogs`**（同一模块里的一处真源）。
+     * 以前 `Logger` 自带一份，和 `PiiEngine` 那份互有覆盖、又都不是全集：
+     * 这里认得 header / URL query / JSON 键值形状的凭据，那边认得裸密钥形状与 PEM，
+     * 于是"改一处忘另一处"是必然 —— `sk-proj-…` 那次翻车就是**两边同时漏**。
+     * 现在只留入口，不再写第二份规则。
      *
-     * v1.114: 拆分为 header / key=value / URL query 三组正则,详见上方注释。
+     * 名字保持 `internal`：三份出口（Logcat / muse.log / DebugLogStore）都走它，
+     * 且 `sanitizedThrowable` 的因果链也过同一份规则。
+     * 日志里**不**抹姓名与中文地址，这个取舍写在 `PiiEngine.scrubForLogs` 的注释里。
      */
-    internal fun sanitizePii(msg: String): String {
-        return msg
-            // 私钥块与裸密钥先走：它们是整段/整串替换，不该被后面的键值规则切碎
-            .replace(PRIVATE_KEY_BLOCK_REGEX, "[私钥块]")
-            .replace(BARE_SECRET_REGEX, "[密钥]")
-            .replace(PHONE_REGEX, "[手机号]")
-            .replace(EMAIL_REGEX, "[邮箱]")
-            .replace(ID_CARD_REGEX, "[身份证]")
-            .replace(BANK_CARD_REGEX, "[银行卡]")
-            .replace(IPV4_REGEX, "[IP]")
-            // v1.114: 三组凭据正则分别替换,保留 key 名便于排查
-            .replace(HEADER_CRED_REGEX, "$1: [已脱敏]")
-            .replace(KV_CRED_REGEX, "$1=[已脱敏]")
-            .replace(URL_QUERY_CRED_REGEX, "$1$2=[已脱敏]")
-    }
+    internal fun sanitizePii(msg: String): String = PiiEngine.scrubForLogs(msg)
 
     fun d(tag: String = DEFAULT_TAG, msg: String) {
         if (enabled) {

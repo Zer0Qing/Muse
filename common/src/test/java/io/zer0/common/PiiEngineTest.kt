@@ -42,6 +42,28 @@ class PiiEngineTest {
     }
 
     @Test
+    fun logScrubCoversTransportShapesAndDeliberatelyKeepsNamesAndAddresses() {
+        // 2026-11-04：`Logger` 自带的那份正则表合到这里了（一处真源）。
+        // 这几条是搬过来的形状，必须在**新家**也有直接用例，不能只靠 Logger 的测试隔着看。
+        val header = PiiEngine.scrubForLogs("请求头 Authorization: Bearer sk-live-ABCDEFGHIJKLMNOP 被拒")
+        assertFalse("header 形状的凭据没抹：$header", header.contains("ABCDEFGHIJKLMNOP"))
+
+        val json = PiiEngine.scrubForLogs("""{"access_token":"zzz-secret-9999"}""")
+        assertFalse("JSON 键值形状没抹：$json", json.contains("zzz-secret-9999"))
+
+        val url = PiiEngine.scrubForLogs("https://api.example/v1/chat?key=SECRET123&model=x")
+        assertFalse("URL query 形状没抹：$url", url.contains("SECRET123"))
+
+        val ids = PiiEngine.scrubForLogs("手机 13812345678 邮箱 a@b.com 源 10.1.2.3")
+        assertTrue("标识类要留类别标记：$ids", ids.contains("[手机号]") && ids.contains("[邮箱]") && ids.contains("[IP]"))
+
+        // 与 scrubMemory 的差别是刻意的：日志保留姓名与地址（抹掉会让排查看不出是谁的哪件事），
+        // 记忆链路才抹。这条断言防止以后有人"顺手统一"把日志也抹干净。
+        val kept = PiiEngine.scrubForLogs("张伟的收货地址是北京市朝阳区幸福路 12 号")
+        assertTrue("日志不该抹姓名/地址（取舍见 scrubForLogs 注释）：$kept", kept.contains("张伟"))
+    }
+
+    @Test
     fun memoryEngineRemovesResidualTokensAfterUnmask() {
         val masked = PiiEngine.maskMemory("电话 13800138000")
         val restored = PiiEngine.unmaskMemory("[PHONE_1] [PHONE_2]", masked.map)
