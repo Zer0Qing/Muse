@@ -57,7 +57,7 @@ class SubagentCancellation {
  *  - 工具白名单:只允许 SAFE + NORMAL 风险工具,禁止 HIGH
  *  - 递归防护:禁止 subagent_run / subagent_task / delegate_agent(避免子 agent 再委派导致递归爆炸)
  *  - 配额限制:maxToolCalls 上限(默认 8,硬上限 20),达到后强制停止并让 LLM 总结
- *  - 超时限制:整体执行超时(默认 120s)
+ *  - 超时限制:整体执行超时(默认 240s，可被 timeout_ms 覆盖到 900s)
  *
  * @param chatService LLM 调用服务(非流式 completeText)
  * @param toolRegistry 工具注册表(执行工具 + 生成 ToolDefinition)
@@ -202,7 +202,7 @@ class SubagentRunner(
         val targetPaths: List<String>? = null,
         /** 最大工具调用次数(默认 8,硬上限 20)。 */
         val maxToolCalls: Int = DEFAULT_MAX_TOOL_CALLS,
-        /** 整体执行超时毫秒(默认 120s)。 */
+        /** 整体执行超时毫秒(默认 240s；下限 30s、上限 900s，见 SubagentRunSkill)。 */
         val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
         /** 温度(默认 0.3,子 agent 偏向确定性执行)。 */
         val temperature: Float = 0.3f,
@@ -600,8 +600,12 @@ class SubagentRunner(
                     summary = lastText,
                     // v2.x（技术债项目 E）: error 附进展信息——主 Agent 能判断是"无进展卡死"
                     // 还是"有成果但超时"，后者可基于 lastText 续接而非全部重来。
-                    error = "子 agent 执行超时(${params.timeoutMs}ms)，已执行 $rounds 轮、" +
-                        "$totalToolCalls 次工具调用${if (lastText.isNotBlank()) "，已产出部分总结" else "，无任何产出"}",
+                    error = subagentTimeoutError(
+                        timeoutMs = params.timeoutMs,
+                        rounds = rounds,
+                        toolCalls = totalToolCalls,
+                        hasPartialOutput = lastText.isNotBlank(),
+                    ),
                     rounds = rounds,
                     toolCalls = totalToolCalls,
                     budgetExhausted = budgetExhausted,
@@ -881,4 +885,28 @@ class SubagentRunner(
             true
         }
     }
+}
+/**
+ * 子 agent 超时时要交出去的那句话。
+ *
+ * 不把毫秒直接贴出去：仓里给用户看的超时文案统一用秒（`ShellService` 两条就是
+ * `执行超时(${TIMEOUT_MS / 1000}s)`），而这里原先写的是 `240000ms` —— 一串没人能心算的数字，
+ * 而主 Agent 恰恰要靠这句判断"要不要续接"。抽成纯函数也让它能被直接测到。
+ */
+internal fun subagentTimeoutError(
+    timeoutMs: Long,
+    rounds: Int,
+    toolCalls: Int,
+    hasPartialOutput: Boolean,
+): String {
+    val totalSeconds = (timeoutMs / 1000L).coerceAtLeast(0L)
+    val span = if (totalSeconds < 60) {
+        "${totalSeconds} 秒"
+    } else {
+        val minutes = totalSeconds / 60
+        val rest = totalSeconds % 60
+        if (rest == 0L) "${minutes} 分钟" else "${minutes} 分 ${rest} 秒"
+    }
+    val outcome = if (hasPartialOutput) "，已产出部分总结" else "，无任何产出"
+    return "子 agent 执行超时($span)，已执行 $rounds 轮、$toolCalls 次工具调用$outcome"
 }
