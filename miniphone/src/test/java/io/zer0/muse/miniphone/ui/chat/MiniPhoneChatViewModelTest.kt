@@ -59,14 +59,21 @@ class MiniPhoneChatViewModelTest {
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        Dispatchers.setMain(mainDispatcher)
         db = newInMemoryMiniPhoneDb()
         idCounter = 0
     }
 
     @After
     fun tearDown() {
-        createdVmStore.clear()
+        // 先让刚被取消的协程跑完最后一步，再换全局 Main。
+        // 反过来做就会在"还有人读 Main"的瞬间 resetMain —— kotlinx 直接抛
+        // `Dispatchers.Main is used concurrently with setting it`。
+        // 这个窗口是上一轮加 clear() 时我自己引进来的：修泄漏的动作本身也要讲顺序。
+        runBlocking {
+            createdVmStore.clear()
+            mainDispatcher.scheduler.advanceUntilIdle()
+        }
         Dispatchers.resetMain()
         db.close()
     }
@@ -343,6 +350,9 @@ class MiniPhoneChatViewModelTest {
      * 先 clear 再 resetMain：治的是**泄漏本身**，不去动全局 Main 的安装策略 ——
      * 后者会和 Compose 测试规则抢 Main（已验证过是错的改法）。
      */
+    /** 自己留着 Main 那个调度器：收尾时要先把它排空，再换掉全局 Main。 */
+    private val mainDispatcher = UnconfinedTestDispatcher()
+
     private val createdVmStore = ViewModelStore()
     private var trackedCount = 0
 

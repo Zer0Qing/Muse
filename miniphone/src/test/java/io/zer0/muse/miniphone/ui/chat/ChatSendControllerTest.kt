@@ -92,12 +92,16 @@ class ChatSendControllerTest {
         var respondCalls = 0
             private set
 
+        /** 每次应答问的是哪个角色：群里选人要看这个，光数次数看不出选错人。 */
+        val asked = mutableListOf<String>()
+
         override fun observeCharacters(): Flow<List<MpCharacter>> = flowOf(emptyList())
 
         override fun observeProfile(): Flow<MpProfile> = flowOf(MpProfile(nickname = "我"))
 
         override fun respond(characterId: String, history: List<MpChatTurn>): Flow<MpReplyEvent> = flow {
             respondCalls += 1
+            asked += characterId
             gate?.await()
             emit(MpReplyEvent.Text("好的"))
         }
@@ -123,7 +127,8 @@ class ChatSendControllerTest {
     private fun box(
         host: MiniPhoneHost,
         group: Boolean = false,
-        groupCandidates: suspend () -> List<GroupResponderCandidate> = { emptyList() },
+        groupMembers: List<GroupResponderCandidate> = emptyList(),
+        recentSpeakers: List<String> = emptyList(),
     ): Box {
         val state = MutableStateFlow(
             ChatUiState(
@@ -167,7 +172,7 @@ class ChatSendControllerTest {
                 state = state,
                 scope = scope,
                 pauseBetweenResponders = { },
-                groupCandidates = groupCandidates,
+                groupContext = { GroupResponderContext(members = groupMembers, recentSpeakers = recentSpeakers) },
             ),
         )
     }
@@ -212,10 +217,54 @@ class ChatSendControllerTest {
     }
 
     @Test
+    fun `群里最近发言的人按库算 不等界面画出来`() {
+        // 不挡闸门：两个人是**串行**应答的，第一句没结束就不会问第二个，
+        // 挡着只能看到一次调用，选没选对人反而看不出来。
+        val host = RecordingHost()
+        // 界面状态里一条消息都没有（刚进会话就发第一句的时序），库里却有 c4 刚说过话
+        val box = box(
+            host,
+            group = true,
+            groupMembers = listOf(
+                GroupResponderCandidate(characterId = "c2", name = "小美"),
+                GroupResponderCandidate(characterId = "c4", name = "阿力"),
+                GroupResponderCandidate(characterId = "c5", name = "大毛"),
+            ),
+            recentSpeakers = listOf("c4"),
+        )
+        box.controller.start()
+
+        box.controller.send("小美你怎么看")
+        settleUntil { host.asked.size == 2 }
+
+        assertEquals("点名的在前，刚说过话的补上", listOf("c2", "c4"), host.asked)
+    }
+
+    @Test
+    fun `库里也没有最近发言时由其余成员补位`() {
+        val host = RecordingHost()
+        val box = box(
+            host,
+            group = true,
+            groupMembers = listOf(
+                GroupResponderCandidate(characterId = "c2", name = "小美"),
+                GroupResponderCandidate(characterId = "c4", name = "阿力"),
+            ),
+        )
+        box.controller.start()
+
+        box.controller.send("小美你说")
+        settleUntil { host.asked.size == 2 }
+
+        assertEquals("点名的人一定在", "c2", host.asked.first())
+        assertEquals("两个名额填满且不重复", 2, host.asked.distinct().size)
+    }
+
+    @Test
     fun `群里没人可接时消息定稿而不是卡住`() {
         val host = RecordingHost()
         // 群状态里没有成员，库里也补不到候选 → 没人可接
-        val box = box(host, group = true, groupCandidates = { emptyList() })
+        val box = box(host, group = true)
         box.controller.start()
 
         box.controller.send("随便说点什么")

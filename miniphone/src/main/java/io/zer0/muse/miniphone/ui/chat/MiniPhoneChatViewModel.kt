@@ -8,6 +8,7 @@ import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.data.chat.MpGroupActions
 import io.zer0.muse.miniphone.data.db.dao.MpMessageDao
+import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadMemberDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadMemberEntity
@@ -121,7 +122,7 @@ class MiniPhoneChatViewModel(
         state = mutableState,
         scope = viewModelScope,
         pauseBetweenResponders = pauseBetweenResponders,
-        groupCandidates = ::responderCandidates,
+        groupContext = ::groupResponderContext,
     )
 
     init {
@@ -286,6 +287,25 @@ class MiniPhoneChatViewModel(
             )
         }
     }
+
+    /** 选人的一份上下文：成员名单 + 库里最近发言的人。 */
+    private suspend fun groupResponderContext(): GroupResponderContext = GroupResponderContext(
+        members = responderCandidates(),
+        recentSpeakers = recentSpeakerIdsFromStore(),
+    )
+
+    /**
+     * 最近发言的人：以库为准，不以"界面画到哪"为准。
+     *
+     * `pageMessages` 本身就是新→旧，直接筛角色即可。这里不套分页那把写锁：
+     * 那把锁要防的是"读游标与查询之间插一条"导致窗口错位，这里没有游标，
+     * 多读到刚落库的一条只会更准。
+     */
+    private suspend fun recentSpeakerIdsFromStore(): List<String> =
+        messageDao.pageMessages(threadId, GROUP_RECENT_SPEAKER_WINDOW, offset = 0)
+            .filter { message -> message.sender == MpActorType.CHARACTER && message.characterId.isNotEmpty() }
+            .map { message -> message.characterId }
+            .distinct()
 
     /**
      * 把群成员行配上名字与头像。

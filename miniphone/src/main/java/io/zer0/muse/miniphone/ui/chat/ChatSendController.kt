@@ -49,7 +49,17 @@ internal class ChatSendController(
     private val state: MutableStateFlow<ChatUiState>,
     private val scope: CoroutineScope,
     private val pauseBetweenResponders: suspend () -> Unit = { delay(responderGapMillis()) },
-    private val groupCandidates: suspend () -> List<GroupResponderCandidate> = { emptyList() },
+    /**
+     * 群里选人的一份上下文：成员名单 + 最近发言的人。
+     *
+     * 合成一个参数而不是拆两个：它们是同一件事的两半（"这个群里现在谁在、谁刚说过话"），
+     * 拆两个入口就会各兜各的库、也各漏各的时序（顺带也不会把构造推到 11 个参数）。
+     *
+     * "最近发言"为什么以库为准：原先只看 `state.messages` —— 那是**界面已经画出来的那段**。
+     * 刚进会话就发第一句时首屏可能还没落地，这一层直接空掉，补位变成随机，
+     * 用户看到的是「刚在说话的人反而不接话」。规则不该取决于渲染快慢。
+     */
+    private val groupContext: suspend () -> GroupResponderContext = { GroupResponderContext() },
 ) {
 
     /** 待生成的应答:单消费者顺序消费,[Channel.UNLIMITED] 让发送不必等上一条回复。 */
@@ -151,14 +161,15 @@ internal class ChatSendController(
     private suspend fun respondersFor(content: String, messageId: String): List<String> {
         val current = state.value
         if (!current.isGroup) return listOfNotNull(resolveCharacterId().takeIf(String::isNotEmpty))
-        val members = current.members
-            .map { GroupResponderCandidate(characterId = it.characterId, name = it.name) }
-            // 刚进群、成员还没到界面上时,从库里补一次,不能因此让这条消息没人接
-            .ifEmpty { groupCandidates() }
+        val context = groupContext()
         return selectGroupResponders(
-            members = members,
+            // 刚进群、成员还没到界面上时按库里那份补，不能因此让这条消息没人接
+            members = current.members
+                .map { GroupResponderCandidate(characterId = it.characterId, name = it.name) }
+                .ifEmpty { context.members },
             text = content,
-            recentSenderIds = recentSpeakerIdsOf(current.messages),
+            // 先取界面上已经画出来的那段；还没落地时用库里那份（同一规则，两种来源）
+            recentSenderIds = recentSpeakerIdsOf(current.messages).ifEmpty { context.recentSpeakers },
             seed = responderSeedOf(threadId, messageId),
         )
     }
@@ -363,3 +374,14 @@ internal fun responderGapMillis(): Long = Random.nextLong(RESPONDER_GAP_MIN_MS, 
  * 「我说的」会被读成「他说的」。谁接话由 [selectGroupResponders] 另行挑。
  */
 internal fun storedCharacterIdOf(thread: MpThreadEntity?): String = if (thread?.isGroup == true) "" else thread?.characterId.orEmpty()
+
+/**
+ * 群里选人的一份上下文（见 [ChatSendController.groupContext]）。
+ *
+ * 两个字段都允许为空：界面成员与库兜底都可能暂时啥也没有，
+ * 那种情况下 [selectGroupResponders] 会给出更少的人或空，由上层把消息定稿。
+ */
+internal data class GroupResponderContext(
+    val members: List<GroupResponderCandidate> = emptyList(),
+    val recentSpeakers: List<String> = emptyList(),
+)
