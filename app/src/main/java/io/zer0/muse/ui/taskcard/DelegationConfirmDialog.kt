@@ -42,6 +42,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.tools.DelegationPauseManager
+import io.zer0.muse.tools.delegationModifySeed
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -144,7 +145,8 @@ private fun DelegationConfirmDialogContent(
 ) {
     // MODIFY 编辑模式状态
     var modifyMode by remember(pauseRequest.requestId) { mutableStateOf(false) }
-    var modifiedInput by remember(pauseRequest.requestId) { mutableStateOf("") }
+    // 预填要改的那段原文（任务或中间结果）：从空串开始等于让用户从零重打一整段
+    var modifiedInput by remember(pauseRequest.requestId) { mutableStateOf(delegationModifySeed(pauseRequest)) }
     // 中间结果展开状态
     var intermediateExpanded by remember(pauseRequest.requestId) { mutableStateOf(false) }
 
@@ -289,6 +291,8 @@ private fun DelegationConfirmDialogContent(
                     text = stringResource(R.string.delegation_option_approve),
                     backgroundColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
+                    // 空内容时按不动并且看得出来（原来是点了静默不提交）
+                    enabled = modifiedInput.isNotBlank(),
                     onClick = {
                         val input = modifiedInput.trim()
                         if (input.isNotEmpty()) {
@@ -364,7 +368,13 @@ private fun InfoLabelBlock(label: String, value: String) {
  * 全宽胶囊按钮(复用 MuseDialog 按钮视觉风格:48dp 高 + 24dp 圆角 + 按压透明度变化)。
  */
 @Composable
-private fun DelegationDialogButton(text: String, backgroundColor: Color, contentColor: Color, onClick: () -> Unit) {
+private fun DelegationDialogButton(
+    text: String,
+    backgroundColor: Color,
+    contentColor: Color,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -383,12 +393,15 @@ private fun DelegationDialogButton(text: String, backgroundColor: Color, content
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
+                enabled = enabled,
                 role = Role.Button,
                 onClick = onClick,
             )
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                // 被按住时也要看得出来：原先内容清空后点按钮是静默什么都不做
+                alpha = if (enabled) 1f else DISABLED_ALPHA
             },
         contentAlignment = Alignment.Center,
     ) {
@@ -402,3 +415,6 @@ private fun DelegationDialogButton(text: String, backgroundColor: Color, content
         )
     }
 }
+
+/** 不可点状态的透明度：让"这颗现在按不动"是看得见的，而不是按了没反应。 */
+private const val DISABLED_ALPHA: Float = 0.38f

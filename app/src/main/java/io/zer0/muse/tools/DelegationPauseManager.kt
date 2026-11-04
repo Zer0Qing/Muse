@@ -307,3 +307,18 @@ class DelegationPauseManager {
         private const val SECONDS_PER_MINUTE: Int = 60
     }
 }
+
+/**
+ * 「修改后继续」编辑框该预填什么。
+ *
+ * 原先从空串开始：委派任务往往是一整段多行文本，用户想改一个词却要从零重打，
+ * 这个选项实际上不好用。两处暂停点语义不同，预填来源也不同：
+ *
+ *  - 改**任务**（委派开始前）：`taskDescription` 正是将被替换掉的那段任务文本；
+ *  - 改**中间结果**（子 agent 跑完之后）：编辑的是 `intermediateResult`，
+ *    消费方拿它当最终结果文本，替换的是产出而不是任务。
+ *
+ * 有中间结果就编辑结果，否则编辑任务；两者都空时返回空串，由界面把按钮按住。
+ */
+internal fun delegationModifySeed(request: DelegationPauseManager.PauseRequest): String =
+    request.intermediateResult?.takeIf { value -> value.isNotBlank() } ?: request.taskDescription
