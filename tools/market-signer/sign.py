@@ -69,7 +69,11 @@ OPTIONAL_MANIFEST_FIELDS = ("contributes", "uiPanel", "uiView", "hooks", "toolCa
 UNSIGNED_MANIFEST_FIELDS = ("runtime",)
 RUNTIME_JS = "js"
 RUNTIME_PYTHON = "python"
-KNOWN_RUNTIMES = (RUNTIME_JS, RUNTIME_PYTHON)
+# App 侧三档：js / node / python（PluginFunctionInvoker 按 manifest.runtime 分派，
+# 且交互面板强制 node）。以前这里没有 node —— 三个官方示例都写 runtime=node，
+# 结果 sign.py pack 第一步就把自家示例拒了。
+RUNTIME_NODE = "node"
+KNOWN_RUNTIMES = (RUNTIME_JS, RUNTIME_NODE, RUNTIME_PYTHON)
 MANIFEST_DEFAULTS = {
     "version": "0.1.0",
     "description": "",
@@ -108,11 +112,21 @@ SHA256_REGEX = re.compile(r"^[0-9a-f]{64}$")
 # 外部插件允许声明的能力名。App 安装侧已改为开放声明（仅用于安装预览展示，
 # 不再是拒绝条件），这里同步放宽到 App 清单文档列出的集合，
 # 避免作者声明 network 等常用能力时被签名工具单方面拒绝。
+# 与 App 的能力键对齐（PluginCapabilityGateway.CAPABILITY_ACTIONS 的键 + 事件/钩子/调度常量）。
+# 以前这张表是手抄的，抄漏的都在 App 里真实存在：ui.interactive 与 storage 是官方示例声明的，
+# 结果作者照示例打包会被签名工具单方面拒绝。新增条目由 PluginCapabilityVocabularyTest 盯住两侧一致。
 ALLOWED_CAPABILITIES = {
     "resource.read", "resource.write", "network",
     "storage.read", "storage.write", "clipboard.read", "clipboard.write",
-    "notify", "device.info", "ui", "ui.mood", "ui.skin",
+    "notify", "device.info", "ui", "ui.mood", "ui.skin", "clipboard",
+    "storage", "config.write", "host.tool.invoke", "chat.read", "host.model.call",
+    "app.navigate", "app.messages", "app.theme", "app.settings",
+    "ui.interactive", "ui.slot", "network.local",
+    "event.onMessage", "event.onToolCall", "hook.toolCallBefore", "hook.systemPrompt",
+    "schedule", "runtime.long", "runtime.service",
 }
+# 共享空间声明是带冒号的前缀形式，不能逐项枚举：名字空间允许中文（见 PluginSharedStorage）。
+SHARED_CAPABILITY_PREFIX = "storage.shared:"
 LOADED_EXTENSIONS = (".js", ".py", ".json", ".md")
 UI_SKIN_KIND = "ui-skin"
 UI_SKIN_ENTRY = "skin.json"
@@ -387,7 +401,12 @@ def validate_manifest(manifest: dict, runtime: str = RUNTIME_JS) -> None:
         if not manifest["entry"].lower().endswith(expected_suffix):
             fail(f"runtime={runtime} 的入口必须是 {expected_suffix} 文件: {manifest['entry']}")
     for capability in manifest["capabilities"] + manifest["permissions"]:
-        if capability not in ALLOWED_CAPABILITIES:
+        if capability.startswith(SHARED_CAPABILITY_PREFIX):
+            # 具体名字空间由 App 判（能不能安全当目录名）；签名工具只认这个形状，
+            # 免得在这里再抄一套 ASCII 规则、把中文名字空间挡掉。
+            if not capability[len(SHARED_CAPABILITY_PREFIX):].strip():
+                fail(f"共享空间声明缺少名字空间: {capability}")
+        elif capability not in ALLOWED_CAPABILITIES:
             fail(f"能力不在白名单内: {capability}")
     for tool in manifest["tools"]:
         if not TOOL_NAME_REGEX.match(tool["name"]) or not FUNCTION_NAME_REGEX.match(tool["functionName"]):

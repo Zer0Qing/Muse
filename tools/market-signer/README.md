@@ -132,7 +132,13 @@ node tools/market-signer/verify-plugins.js
 1. 复制 `plugins/time-toolkit/` 为新目录，改 `manifest.json`（id/name/tools/entry）与 `main.js`。
 2. JS 契约：每个工具一个函数，接收参数对象并返回普通对象；出错返回 `{ error: "原因" }`。
    宿主会对返回值做 `JSON.stringify`，因此不要自己再返回字符串化结果。
-3. 能力白名单只有 `resource.read` / `ui` / `ui.mood` / `ui.skin`；纯计算插件留空即可。
+3. 能力名要与 App 的能力键一致（`resource.read` / `storage` / `clipboard.read` /
+   `chat.read` / `ui.interactive` / `event.onMessage` / `hook.systemPrompt` / `schedule` 等，
+   完整集合见 `sign.py` 的 `ALLOWED_CAPABILITIES`）；共享空间写 `storage.shared:<名字>`，
+   名字允许中文。纯计算插件留空即可。
+   **两侧一致性有测试钉住**：`PluginCapabilityVocabularyTest` 会解析本工具的
+   `ALLOWED_CAPABILITIES` 与 `KNOWN_RUNTIMES`，逐项对照 App 的字法与能力键 ——
+   任何一边单方面收紧或放宽都会红。（以前这行写"白名单只有 4 项"，与代码和 App 都不符。）
 4. 跑 `pack`（会做结构与签名自校验）→ 跑 `catalog` → 上传 → App 里点刷新。
 
 ## 新增一个气泡皮肤包（kind: ui-skin）

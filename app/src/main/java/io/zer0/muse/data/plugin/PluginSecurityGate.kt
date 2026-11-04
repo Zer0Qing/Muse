@@ -45,7 +45,10 @@ object PluginSecurityGate {
     /**
      * 能力名格式约束（仅校验字符合法性，不限定具体能力）。
      */
-    private val CAPABILITY_NAME_REGEX = Regex("^[a-z][a-z0-9._-]{0,63}$")
+    // 段内允许大写：网关自己的规范能力名就是 camelCase 的（event.onMessage、hook.toolCallBefore、
+    // hook.systemPrompt）。以前这里只收小写，于是**作者在文档里被要求写的名字，安装门判非法**
+    // —— 而市场目录校验用的也是这个函数，一条这样的条目会让整份目录失效。
+    private val CAPABILITY_NAME_REGEX = Regex("^[a-z][a-zA-Z0-9._-]{0,63}$")
 
     /** 声明式 UI 皮肤插件类型;该类插件允许无 tools、且不得携带可执行 JS。 */
     const val UI_SKIN_KIND = "ui-skin"
@@ -508,7 +511,26 @@ object PluginSecurityGate {
      * v2.x（沙盒放开）：校验能力名格式（不强求具体能力名在白名单内）。
      * 能力声明现仅用于安装预览展示，不再作为硬性拒绝条件。
      */
-    fun isValidCapabilityName(name: String): Boolean = CAPABILITY_NAME_REGEX.matches(name)
+    /**
+     * 能力名字法。两条接受规则，缺一不可：
+     *
+     *  1. 常规名：小写开头、段内可含大写（`event.onMessage` / `hook.systemPrompt` 等
+     *     [PluginCapabilityGateway] 自己的常量就是这个形状）；
+     *  2. 共享空间声明 `storage.shared:<名字>`：带冒号，且名字**允许中文** ——
+     *     [PluginSharedStorage] 判的是“能不能安全当目录名”而不是“像不像英文标识符”，
+     *     这个应用是中文优先的。以前这条一律被拒，而网关的报错文案还在教作者这么写。
+     */
+    fun isValidCapabilityName(name: String): Boolean =
+        CAPABILITY_NAME_REGEX.matches(name) || isSharedNamespaceDeclaration(name)
+
+    /** `storage.shared:<名字>` 形式，且名字空间本身合法。 */
+    fun isSharedNamespaceDeclaration(name: String): Boolean {
+        val trimmed = name.trim()
+        if (!trimmed.startsWith(PluginSharedStorage.CAPABILITY_PREFIX)) return false
+        return PluginSharedStorage.isValidNamespace(
+            trimmed.removePrefix(PluginSharedStorage.CAPABILITY_PREFIX).trim(),
+        )
+    }
 
     private fun publicKeyBytes(encoded: String): Result<ByteArray> = decodeBase64(encoded, MAX_PUBLIC_KEY_BYTES).map { bytes ->
         require(bytes.isNotEmpty()) { "公钥为空" }
