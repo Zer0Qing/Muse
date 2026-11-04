@@ -262,6 +262,27 @@ class AutomationManager(
         return ok
     }
 
+    /**
+     * 屏幕尺寸（像素）：走 `resources.displayMetrics`，**不读控件树**，
+     * 所以比 `readScreen()` 便宜得多，适合每次动作前都查一遍坐标。
+     * 拿不到时是 0x0 —— 那种情况调用方必须放行（见 `boundsIssue`）。
+     */
+    fun screenSize(): Pair<Int, Int> = context.resources.displayMetrics.let {
+        it.widthPixels to it.heightPixels
+    }
+
+    /** 单点越界的确定原因；`null` = 在界内或尺寸未知。 */
+    fun coordinateIssue(x: Int, y: Int): String? {
+        val (w, h) = screenSize()
+        return boundsIssue(x, y, w, h)
+    }
+
+    /** 多点动作（滑动/缩放/路径）的越界原因。 */
+    fun coordinatesIssue(points: List<Pair<Int, Int>>): String? {
+        val (w, h) = screenSize()
+        return pointsBoundsIssue(points, w, h)
+    }
+
     /** 点击:优先无障碍,再按真实授权降级到 Shizuku/Root。 */
     suspend fun tap(x: Int, y: Int): Boolean = mutex.withLock {
         runOnTier("tap", { accessibility.tap(x, y) }, { shell.tap(x, y) }, { root.tap(x, y) })

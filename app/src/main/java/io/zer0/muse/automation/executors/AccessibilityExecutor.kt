@@ -339,11 +339,49 @@ class AccessibilityExecutor(
     }
 
     /**
+     * 手势所有笔画并集的外接框越界时的原因。
+     *
+     * 屏幕尺寸未知（0）时**放行**：把"没量到"当成"全都越界"会让自动化彻底点不动，
+     * 那是把保护变成故障（与 `boundsIssue` 同一判据）。
+     */
+    private fun gestureBoundsIssue(gesture: GestureDescription, width: Int, height: Int): String? {
+        if (width <= 0 || height <= 0) return null
+        val union = android.graphics.RectF()
+        var seen = false
+        for (i in 0 until gesture.strokeCount) {
+            val box = android.graphics.RectF()
+            gesture.getStroke(i).path.computeBounds(box, true)
+            // 空路径（没有可测量的点）不参与判定，也不拦 —— 交给系统去拒收
+            if (box.isEmpty) continue
+            if (!seen) {
+                union.set(box)
+                seen = true
+            } else {
+                union.union(box)
+            }
+        }
+        if (!seen) return null
+        if (union.left < 0f || union.top < 0f || union.right > width - 1 || union.bottom > height - 1) {
+            return "手势范围 (${union.left.toInt()},${union.top.toInt()})→" +
+                "(${union.right.toInt()},${union.bottom.toInt()}) 超出屏幕 ${width}x$height"
+        }
+        return null
+    }
+
+    /**
      * 手势注入**必须有超时**：`dispatchGesture` 的完成回调由系统发起，
      * 服务被回收 / 输入法抢占 / 系统异常时可能永远不回调。这个 suspend 函数一旦挂住，
      * 外层 `AutomationManager.mutex` 就被永久占用 —— 所有后续点击读屏全部排队等死。
      */
     private suspend fun dispatchGesture(svc: MuseAccessibilityService, gesture: GestureDescription): Boolean {
+        // 兜底闸（所有手势都汇流到这里，所以一处就覆盖工具/工作流/UI 技能三条入口）：
+        // 越界时 Android 直接拒收、不回调，上层只看到"手势未被接受"而查不到原因。
+        // 这里先判一次：省掉一次注定失败的手势，并把具体坐标问题落到日志。
+        val metrics = getScreenMetrics()
+        gestureBoundsIssue(gesture, metrics.widthPixels, metrics.heightPixels)?.let { issue ->
+            Logger.w(TAG, "手势被拒绝: $issue")
+            return false
+        }
         val result = withTimeoutOrNull(gestureTimeoutMs) {
             suspendCancellableCoroutine { cont ->
                 val accepted = runCatching {

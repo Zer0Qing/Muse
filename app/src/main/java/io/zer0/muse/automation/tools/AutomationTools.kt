@@ -226,8 +226,13 @@ class AutomationTools(
                 // 带了这个 id 却已失效，说明模型看到的是过时画面：拒绝点击比点错安全得多
                 return@registerGuarded "画面已变化（observation_id 已失效）：请先 screen_read 重新确认界面，再决定是否点击"
             }
+            // 先在发出手势之前判一次：越界与通道未就绪是两件完全不同的事，
+            // 混成一句"坐标越界或通道未就绪"会让模型拿同一组坐标反复重试。
+            manager.coordinateIssue(x, y)?.let { issue ->
+                return@registerGuarded "点击被拒绝($issue) —— 坐标必须来自最近一次 screen_read 的真实像素；重新读屏后再点"
+            }
             if (!manager.tap(x, y)) {
-                return@registerGuarded "点击失败(坐标越界或通道未就绪 —— 先 screen_read 取真实坐标)"
+                return@registerGuarded "点击失败(通道未就绪或手势未被接受 —— 先 screen_permission_status 查权限，或 screen_read 确认前台界面)"
             }
             // 只有调用方明确带了 observation_id（说明它在意"点了有没有用"）才多读一次屏：
             // 每次读屏都是一次 UI dump，无条件加会把所有点击都拖慢。
@@ -301,10 +306,14 @@ class AutomationTools(
             val x2 = args["x2"]?.toIntOrNull() ?: return@registerGuarded "错误:x2 必须是整数"
             val y2 = args["y2"]?.toIntOrNull() ?: return@registerGuarded "错误:y2 必须是整数"
             val dur = args["duration_ms"]?.toLongOrNull() ?: 400L
+            // 越界检查放在读屏**之前**：坐标错了却先做两次 UI dump，白付两次代价。
+            manager.coordinatesIssue(listOf(x1 to y1, x2 to y2))?.let { issue ->
+                return@registerGuarded "滑动被拒绝($issue) —— 起止坐标都要来自最近一次 screen_read"
+            }
             // 滑动前先记指纹：否则"滑到边界"和"翻页成功"在结果里长得一模一样
             val before = runCatching { ScreenChange.fingerprintOf(manager.readScreen()) }.getOrNull()
             if (!manager.swipe(x1, y1, x2, y2, dur)) {
-                return@registerGuarded "滑动失败(坐标越界或通道未就绪)"
+                return@registerGuarded "滑动失败(通道未就绪或手势未被接受 —— 查 screen_permission_status)"
             }
             val after = runCatching { ScreenChange.fingerprintOf(manager.readScreen()) }.getOrNull()
             after?.let { fresh -> rememberObservation(fresh) }
@@ -334,6 +343,16 @@ class AutomationTools(
             // 以 300px 为基准指距,按 scale 换算起止指距(有界,防越界)
             val base = 300
             val end = (base * scale).toInt().coerceIn(60, 2000)
+            // 中心在界内**不等于**两指在界内：半距最大 1000px，
+            // 靠边缩放时指尖会甩到屏幕外，那 Android 直接拒收整个手势。
+            manager.coordinatesIssue(
+                listOf(
+                    cx - base / 2 to cy, cx + base / 2 to cy,
+                    cx - end / 2 to cy, cx + end / 2 to cy,
+                ),
+            )?.let { issue ->
+                return@registerGuarded "缩放被拒绝($issue) —— 两指指尖都要在屏内，把 center_x 往中间挪或减小 scale"
+            }
             if (manager.pinch(cx, cy, base, end, dur)) "已缩放 (scale=$scale)" + viaSuffix() else "缩放失败(需要无障碍通道；Shell/Root 无多指注入能力)"
         }
 
