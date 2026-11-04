@@ -110,6 +110,13 @@ sealed interface DraftApplyResult {
 enum class RejectionReason {
     NotStarted,
     IdentityMismatch,
+
+    /**
+     * 同一个 run 已经开过头了。**不能报成 [IdentityMismatch]**：
+     * 身份此刻是完全相等的，报"身份不匹配"会把排查的人指向完全错误的方向
+     * （和这个仓库里刚修过的几处"把系统行为说成用户的动作"是同一类错）。
+     */
+    AlreadyStarted,
     Finished,
     InvalidSequence,
     InvalidPart,
@@ -145,6 +152,8 @@ class DraftStore(
             when {
                 currentIdentity != null && currentIdentity == event.identity && appliedRevision == 0L ->
                     DraftApplyResult.Duplicate(snapshot())
+                currentIdentity != null && currentIdentity == event.identity ->
+                    DraftApplyResult.Rejected(RejectionReason.AlreadyStarted)
                 currentIdentity != null -> DraftApplyResult.Rejected(RejectionReason.IdentityMismatch)
                 event.sequence <= 0 -> DraftApplyResult.Rejected(RejectionReason.InvalidSequence)
                 else -> null
@@ -233,8 +242,16 @@ class DraftStore(
     }
 
     private fun setMetadataPart(event: DraftEvent.SetMetadataPart): DraftApplyResult {
-        require(event.kind in METADATA_PART_KINDS) { "unsupported metadata part kind" }
+        // 这里原来用 `require(...)`：整个 apply 的其它非法输入都走 `Rejected(reason)` 这一条
+        // 类型化通道，只有它往外抛 IllegalArgumentException —— 流式投影里没人接这个异常，
+        // 接上生产路径之后就是一次崩溃；而 `InvalidPart` 本来就是为这种情况准备的。
+        if (event.kind !in METADATA_PART_KINDS) return DraftApplyResult.Rejected(RejectionReason.InvalidPart)
         val index = parts.indexOfFirst { it.partId == event.partId }
+        // 也不能把已经存在的正文/思考段就地改成"带 metadata 的段"：kind 不匹配同样拒绝，
+        // 与 appendText / replaceText 的 kind 守卫保持一致。
+        if (index >= 0 && parts[index].kind !in METADATA_PART_KINDS) {
+            return DraftApplyResult.Rejected(RejectionReason.InvalidPart)
+        }
         if (index < 0) {
             parts += MessagePart(
                 partId = event.partId,
