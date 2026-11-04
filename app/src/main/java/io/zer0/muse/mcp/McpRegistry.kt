@@ -133,7 +133,7 @@ class McpRegistry(
                     assistantRepository?.removeOrphanMcpServerBindings(saved.map { it.id }.toSet())
                 }.onFailure { Logger.w(TAG, "清理孤儿 MCP 绑定失败: ${it.message}", it) }
                 // 自动连接所有启用的 server(尚未连接的)
-                saved.filter { it.enabled && it.url.isNotBlank() }.forEach { cfg ->
+                saved.filter { it.isConnectable() }.forEach { cfg ->
                     if (!clients.containsKey(cfg.id)) {
                         connectServer(cfg)
                     }
@@ -160,7 +160,7 @@ class McpRegistry(
         val newList = current + config
         persist(newList)
         _servers.value = newList
-        if (config.enabled && config.url.isNotBlank()) {
+        if (config.isConnectable()) {
             connectServer(config)
         }
         return true
@@ -173,7 +173,7 @@ class McpRegistry(
         _servers.value = newList
         // 断开旧连接,用新配置重连
         disconnectServer(config.id)
-        if (config.enabled && config.url.isNotBlank()) {
+        if (config.isConnectable()) {
             connectServer(config)
         }
     }
@@ -231,7 +231,7 @@ class McpRegistry(
             // 不依赖 init collector 的调度顺序,显式读取一次持久化配置后再连接。
             val saved = settings.mcpServersFlow.first()
             _servers.value = saved
-            saved.filter { it.enabled && it.url.isNotBlank() }.forEach { connectServer(it) }
+            saved.filter { it.isConnectable() }.forEach { connectServer(it) }
         }
     }
 
@@ -685,7 +685,7 @@ class McpRegistry(
         _servers.value = savedServers
         val configuredServerIds = savedServers
             .asSequence()
-            .filter { it.enabled && it.url.isNotBlank() }
+            .filter { it.isConnectable() }
             .map { it.id }
             .toSet()
         if (!serverIds.all { it in configuredServerIds }) return false

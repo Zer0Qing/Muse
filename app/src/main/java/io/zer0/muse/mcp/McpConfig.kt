@@ -193,6 +193,17 @@ data class McpServerConfig(
     val toolsReadyTimeoutMs: Long = 5_000L,
 ) {
     /**
+     * 这条配置**现在是否可以发起连接** —— 必填字段按传输类型选。
+     *
+     * 以前五处判定一律写死 `url.isNotBlank()`，而 STDIO 的合法形状恰恰是
+     * `command` 非空 + `url` 为空（见 [validate] 的 stdio 分支与 SSRF 豁免），
+     * 于是 stdio server 在"自动连接 / 添加 / 更新 / 就绪判断 / 等待工具"五条路径上
+     * 全被当成没配置 —— 只有 `reconnect()` 不带这个判定。
+     */
+    fun isConnectable(): Boolean =
+        enabled && if (transportType == McpTransportType.STDIO) command.isNotBlank() else url.isNotBlank()
+
+    /**
      * 合并 headers 和 authToken,Authorization 优先用 headers 里的。
      *
      * Phase 10.4: OAuth token 由 [McpClient] 在请求前动态注入(不在此方法处理),
