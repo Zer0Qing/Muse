@@ -13,6 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
+import io.zer0.muse.miniphone.util.logOnlyExceptionHandler
 
 /**
  * 语音条的播放状态。
@@ -136,7 +137,10 @@ class MiniPhoneVoicePlaybackController(
     private var player: MpVoiceAudioPlayer? = null
 
     /** 惰性创建:从不播放的进程(含多数单测)不会触碰 Main 调度器。 */
-    private val scope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
+    // 播放推进是后台长活：意料外的异常不该把应用带掉，也不该让整个播放器失联后无声无息。
+    private val scope by lazy {
+        CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + logOnlyExceptionHandler(TAG))
+    }
 
     private var ticker: Job? = null
 
@@ -224,6 +228,9 @@ class MiniPhoneVoicePlaybackController(
 
     private companion object {
         /** 进度采样间隔:语音条不需要逐帧,10 fps 足够顺,也省电。 */
-        private const val PROGRESS_INTERVAL_MS = 100L
+        // 日志里认出是哪条后台任务/动作失败了。
+private const val TAG = "MiniPhoneVoicePlayback"
+
+private const val PROGRESS_INTERVAL_MS = 100L
     }
 }

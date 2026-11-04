@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
@@ -176,7 +175,9 @@ class MiniPhoneMomentsViewModel(
 
     /** 宿主的角色名单与本机资料:一个补头像,一个补封面与昵称。 */
     private fun observeHost() {
-        viewModelScope.launch {
+        // 收集体的 `.catch` 只管上游流；`applyAvatars()` 这类本地改写抛了照样会崩整应用，
+        // 所以这里也要有兜底（与本页其它用户动作同一套约束：取消照常传播）。
+        viewModelScope.launchGuarded(LOG_TAG, "接宿主角色名单（补头像）") {
             host.observeCharacters()
                 .catch { emit(emptyList()) }
                 .collect { list ->
@@ -184,7 +185,7 @@ class MiniPhoneMomentsViewModel(
                     applyAvatars()
                 }
         }
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(LOG_TAG, "接本机资料（补昵称与封面）") {
             host.observeProfile()
                 .catch { emit(MpProfile(nickname = "")) }
                 .collect { profile ->

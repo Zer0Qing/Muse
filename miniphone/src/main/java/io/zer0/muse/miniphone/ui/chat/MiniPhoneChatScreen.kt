@@ -52,6 +52,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 聊天页入口:取会话自己的 ViewModel,把返回值挂到系统返回键上,并负责拉起系统图片选择器。
@@ -113,6 +114,9 @@ internal fun MiniPhoneChatRoute(threadId: String, onBack: () -> Unit, modifier: 
  * @param messageActions 单条消息上的重发与删除
  * @param groupActions 群成员页的管理动作(改名 / 加人 / 移出 / 解散);私信里用不到
  */
+// 日志里认出是哪条后台任务/动作失败了。
+private const val TAG_CHAT_UI = "MiniPhoneChatScreen"
+
 @Composable
 internal fun MiniPhoneChatScreen(
     state: ChatUiState,
@@ -177,7 +181,7 @@ internal fun MiniPhoneChatScreen(
                         onClick = {
                             // 先收起胶囊再滚:滚动过程中人已经在回底部的路上,不必等动画结束
                             newMessageCount = 0
-                            scope.launch { listState.animateScrollToItem(0) }
+                            scope.launchGuarded(TAG_CHAT_UI, "回到最新消息") { listState.animateScrollToItem(0) }
                         },
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
