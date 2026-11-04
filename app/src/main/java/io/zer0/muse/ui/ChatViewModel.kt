@@ -2428,6 +2428,14 @@ class ChatViewModel(
             try {
                 sessionRepository.observeSessions().collect { sessions ->
                     _state.update { it.copy(sessions = sessions, isSessionsLoading = false, sessionsError = null) }
+                    // 会话缓存的自我纠正：会话表就是事实来源，
+                    // 表里已经没有的会话，缓存里那份消息副本必须一起丢。
+                    // 单靠删除路径各自记得 remove 是不够的——「清除全部聊天」这类
+                    // 不走 deleteSession 的路径以前就没记得（见 SessionArtifactCleanup）。
+                    val dropped = sessionMemoryCache.pruneAbsent(sessions.map { it.id })
+                    if (dropped > 0) {
+                        Logger.i("ChatVM", "会话缓存丢弃 $dropped 个已不存在的会话副本")
+                    }
                     // 首次加载:无会话则新建,有则切换到最近一个
                     // Phase 8.5 修复: 用 initializing flag 防止 observeSessions 在 createNewSession
                     // 异步设置 currentSessionId 前再次发射时重复创建多个会话

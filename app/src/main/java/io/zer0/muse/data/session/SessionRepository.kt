@@ -330,23 +330,29 @@ class SessionRepository(
         }
     }
 
-    /** v2.0: 清空全部会话(硬删除,替代原 deleteAll 用于数据管理页)。 */
-    suspend fun hardDeleteAllSessions() {
-        withContext(Dispatchers.IO) {
-            val (allSessionIds, messageIds) = database.withTransaction {
-                val sessionIds = sessionDao.listAllIds()
-                val deletedMessageIds = messageDao.getAllMessageIds()
-                syncFtsClear()
-                sessionDao.deleteAll()
-                sessionIds to deletedMessageIds
-            }
-            deleteMessageImages(messageIds)
-            cleanSessionMemory(allSessionIds)
-            auditLogger?.log(
-                category = "user_action",
-                action = "delete_all_sessions",
-            )
+    /**
+     * v2.0: 清空全部会话(硬删除,替代原 deleteAll 用于数据管理页)。
+     *
+     * **返回被删掉的会话 id 列表**：调用方还得拿这些 id 去清会话级残留
+     * （对话树快照、附件索引、待办、工具装载——见 `SessionArtifactCleanup`）。
+     * 以前这里返回 Unit，那些残留在批量路径上就没人能清了：仓库层不该认识 UI 单例，
+     * 但"哪些会话没了"这件事只有这里知道。
+     */
+    suspend fun hardDeleteAllSessions(): List<String> = withContext(Dispatchers.IO) {
+        val (allSessionIds, messageIds) = database.withTransaction {
+            val sessionIds = sessionDao.listAllIds()
+            val deletedMessageIds = messageDao.getAllMessageIds()
+            syncFtsClear()
+            sessionDao.deleteAll()
+            sessionIds to deletedMessageIds
         }
+        deleteMessageImages(messageIds)
+        cleanSessionMemory(allSessionIds)
+        auditLogger?.log(
+            category = "user_action",
+            action = "delete_all_sessions",
+        )
+        allSessionIds
     }
 
     /** 观察会话总数(统计面板用)。 */

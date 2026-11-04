@@ -6,7 +6,6 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.session.SessionRepository
-import io.zer0.muse.rag.SessionAttachmentService
 import io.zer0.muse.tools.BrowserManagerRegistry
 import io.zer0.muse.tools.WeakToolUseDetector
 import io.zer0.muse.ui.ChatStreamPhase
@@ -80,45 +79,16 @@ internal class ChatSessionController(
                 resultOf { registry.closeSession(sessionId) }
                     .onError { msg, _ -> Logger.w("ChatVM", "closeSession browser 失败: $msg") }
             }
-            // 实验性:会话附件检索 —— 会话删除时一并清掉该会话的附件索引,避免 chunk 残留
-            runCatching {
-                GlobalContext.get().get<SessionAttachmentService>()
-                    .dropSessionAttachments(sessionId = sessionId, keepIndex = false)
-            }.onFailure { Logger.w("ChatVM", "清理会话附件索引失败: ${it.message}") }
             // v1.93+: 从内存 LRU 缓存移除,避免持有已删除会话的消息副本(防止内存泄漏与脏读)
             sessionMemoryCache.remove(sessionId)
-            // v2.6.0 (AUD-UI-F13): 清掉该会话的待办快照 —— TodoTool.sessionTodos(单例)里的
-            // TodoList 永不释放,长期使用每个用过 todo_write 的会话都留一份,且已删会话
-            // 仍可经 getTodos 读到。此处与会话删除同步清理。
-            resultOf { io.zer0.muse.tools.TodoTool.clearSession(sessionId) }
-                .onError { msg, _ -> Logger.w("ChatVM", "清理会话待办失败: $msg") }
-            // v2.6.7: 库里那一份也要删，否则重建同名会话会读到已删会话的旧待办。
-            runCatching {
-                org.koin.core.context.GlobalContext.get()
-                    .get<io.zer0.muse.data.todo.SessionTodoRepository>()
-                    .delete(sessionId)
-            }.onFailure { Logger.w("ChatVM", "删除待办记录失败: ${it.message}") }
-            // v2.6.7 fix (AUDIT F14): 会话态工具注册表也要清。
-            // 旧实现只清了 clearSearchableSkills（会话结束时调），
-            // 而 clearVisibleTools 与 SessionToolLoadRegistry.clear 全仓零调用 ——
-            // 删掉的会话仍在内存里留一份工具可见集，同名会话重建时开局就继承了旧装载。
-            runCatching {
-                org.koin.core.context.GlobalContext.get()
-                    .get<io.zer0.muse.tools.ToolRegistry>()
-                    .clearVisibleTools(sessionId)
-            }.onFailure { Logger.w("ChatVM", "清理工具可见集失败: ${it.message}") }
-            runCatching { io.zer0.muse.tools.SessionToolLoadRegistry.clear(sessionId) }
-                .onFailure { Logger.w("ChatVM", "清理工具装载记录失败: ${it.message}") }
-            // 对话树选择快照也要跟着会话删。以前 store.delete() 全仓**零调用**：
-            // 每删一条会话就在 filesDir 留一个孤儿快照文件，而重建同名会话时 load
-            // 会把上一个会话的分支选中状态读回来。（清单里待办/附件/工具装载都清了，唯独漏了它。）
-            sessionDeps.treeSnapshotStore?.let { store ->
-                resultOf { store.delete(sessionId) }
-                    .onError { msg, _ -> Logger.w("ChatVM", "清理对话树快照失败: $msg") }
-                    .onSuccess { gone ->
-                        if (!gone) Logger.w("ChatVM", "对话树快照未能清除，会话 $sessionId 的快照文件仍在磁盘上")
-                    }
-            }
+            // 其余会话级残留（附件索引、待办的内存与库、工具可见集与装载记录、对话树快照）
+            // 统一走 SessionArtifactCleanup：**清单只有一处定义**，
+            // 这样"清除全部聊天"和单条删除不会再各自维护一份、然后其中一份漏项。
+            SessionArtifactCleanup.purge(
+                sessionIds = listOf(sessionId),
+                snapshotStore = sessionDeps.treeSnapshotStore,
+                reason = "删除会话",
+            )
             if (accessor.snapshot.currentSessionId == sessionId) {
                 val remaining = sessionRepository.observeSessions().first()
                 val target = remaining.firstOrNull()

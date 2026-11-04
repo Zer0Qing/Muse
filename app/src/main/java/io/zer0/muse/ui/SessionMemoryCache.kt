@@ -114,6 +114,25 @@ class SessionMemoryCache(
     }
 
     /**
+     * 丢弃"已经不存在的会话"的缓存条目，返回丢掉了几个。
+     *
+     * 这是给会话列表订阅处用的**自我纠正**：删除会话的路径不止一条
+     * （单条删除、「清除全部聊天」、恢复备份覆盖、外部导入清理…），
+     * 只靠每条调用方都记得 `remove(id)` 就一定会有人漏 ——
+     * 漏掉的那份消息副本会一直赖在 LRU 里，而本类存在的目的正是
+     * 防"持有已删除会话的消息副本（内存泄漏与脏读）"。
+     */
+    @Synchronized
+    fun pruneAbsent(existingSessionIds: Collection<String>): Int {
+        val live = existingSessionIds.toSet()
+        // 先把要删的挑出来再删：cache 是 accessOrder 的 LinkedHashMap，
+        // 边遍历 keys 边 remove 会 ConcurrentModificationException
+        val stale = cache.keys.filterNot { it in live }
+        stale.forEach { cache.remove(it) }
+        return stale.size
+    }
+
+    /**
      * 清空全部缓存条目。
      */
     @Synchronized

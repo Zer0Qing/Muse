@@ -36,6 +36,8 @@ import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.summary.SessionSummaryManager
 import io.zer0.muse.R
+import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
+import io.zer0.muse.ui.chat.SessionArtifactCleanup
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -156,7 +158,17 @@ fun DataManagementScreen(
             onConfirm = {
                 showClearChatsDialog = false
                 scope.launch {
-                    withContext(Dispatchers.IO) { sessionRepository.hardDeleteAllSessions() }
+                    val deletedIds = withContext(Dispatchers.IO) { sessionRepository.hardDeleteAllSessions() }
+                    // 会话级残留要跟着清：对话树快照、附件索引、待办（内存与库）、工具装载。
+                    // 以前批量路径只做到 DB 层，单条删除做了七八件、这里一件都没做。
+                    val snapshotStore = runCatching {
+                        org.koin.core.context.GlobalContext.get().get<ConversationTreeSnapshotStore>()
+                    }.getOrNull()
+                    SessionArtifactCleanup.purge(
+                        sessionIds = deletedIds,
+                        snapshotStore = snapshotStore,
+                        reason = "清除全部聊天",
+                    )
                     MuseToast.show(context.getString(R.string.data_management_clear_chats_done))
                     sessionCount = 0
                     messageCount = 0
