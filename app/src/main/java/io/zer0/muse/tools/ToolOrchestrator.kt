@@ -2067,7 +2067,7 @@ class ToolOrchestrator(
             // Make the wait visible on the task card: otherwise a pending approval looks
             // identical to a running tool until the 30s timeout silently denies it.
             taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
-                s.copy(progressText = "等待审批…")
+                s.copy(progressText = APPROVAL_WAIT_LABEL)
             }
         }
         // Phase 3: 并发轮中审批提示逐个弹出(approvalLock),避免多个审批对话框同时挂起;
@@ -2079,7 +2079,7 @@ class ToolOrchestrator(
         withTurnLock(stateLock) {
             PendingToolCallStore.updateState(tc.id, PendingToolCallStore.EXECUTING)
             taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
-                if (s.progressText == "等待审批…") s.copy(progressText = null) else s
+                if (s.progressText == APPROVAL_WAIT_LABEL) s.copy(progressText = null) else s
             }
         }
 

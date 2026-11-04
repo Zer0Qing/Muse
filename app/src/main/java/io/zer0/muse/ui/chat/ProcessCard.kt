@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.tools.APPROVAL_WAIT_LABEL
 import io.zer0.muse.ui.common.animation.MuseInkGlyph
 import io.zer0.muse.ui.common.animation.MuseThinkingGlyphSize
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -154,6 +155,24 @@ internal fun ProcessCard(
     }
 }
 
+/**
+ * 折叠态那一行该显示什么（纯函数，不装 Context 就能直接测）。
+ *
+ * 最关键的一条顺序：**审批等待排在步骤标题前面**。
+ * 原先写的是 `title.ifBlank { progressText }`，工具名永远赢，于是编排器特意写进去的
+ * 「等待审批…」在折叠态根本看不见 —— 而折叠态恰恰是用户最常停留的样子：
+ * 卡片显示"正在跑 shell"，实际是**在等他按批准**，30 秒后还会静默变成拒绝。
+ */
+internal fun pickRunningStepText(
+    title: String,
+    stepProgress: String?,
+    runningFallback: String,
+): String {
+    val waiting = stepProgress?.takeIf { value -> value == APPROVAL_WAIT_LABEL }
+    if (waiting != null) return waiting
+    return title.ifBlank { stepProgress.orEmpty() }.ifBlank { runningFallback }
+}
+
 /** 摘要文案：优先用外部进度，其次当前步骤标题，最后是步数概况。 */
 private fun resolveSummaryText(
     context: android.content.Context,
@@ -165,9 +184,11 @@ private fun resolveSummaryText(
 ): String =
     when {
         progressText != null -> progressText
-        runningStep != null ->
-            runningStep.title.ifBlank { runningStep.progressText.orEmpty() }
-                .ifBlank { context.getString(R.string.chat_process_running) }
+        runningStep != null -> pickRunningStepText(
+            title = runningStep.title,
+            stepProgress = runningStep.progressText,
+            runningFallback = context.getString(R.string.chat_process_running),
+        )
         totalSteps > 0 && doneSteps == totalSteps ->
             context.getString(R.string.chat_process_steps_completed, totalSteps)
         totalSteps > 0 -> context.getString(R.string.chat_process_steps_progress, doneSteps, totalSteps)

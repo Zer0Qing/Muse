@@ -56,6 +56,14 @@ sealed class ToolApprovalState {
 }
 
 /**
+ * 审批挂起期间显示在任务卡上的那句话。
+ *
+ * 必须是单一出处：原先写入方（`ToolOrchestrator`）与撤销方各硬写一遍同一个字面量，
+ * 折叠态的读取方（`ProcessCard`）还要再猜一次 —— 三处任一改动就悄悄失联。
+ */
+internal const val APPROVAL_WAIT_LABEL: String = "等待审批…"
+
+/**
  * 拒绝是**谁**决定的。
  *
  * 只有 USER 才是用户的动作。其余三类都是系统行为，写成「用户拒绝」等于把账算到用户头上：
