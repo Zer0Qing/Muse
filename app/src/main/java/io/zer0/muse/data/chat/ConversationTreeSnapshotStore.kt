@@ -92,8 +92,31 @@ class ConversationTreeSnapshotStore(private val context: Context) {
         }.getOrNull()
     }
 
-    suspend fun delete(sessionId: String) = withContext(Dispatchers.IO) {
-        File(dir, fileName(sessionId)).delete()
+    /**
+     * 删除某个会话的对话树快照。
+     *
+     * 这条以前是 `File(...).delete()` 一句话：返回值没人接、失败也没痕迹。
+     * 而它是**状态转换**（会话删了，快照就该跟着没）—— 删不掉的后果是
+     * 同名会话重建时 `load` 会读回**上一个会话**的分支选择：用户看到的
+     * "新会话怎么自带了一堆选中状态"完全无从解释。
+     *
+     * @return 快照现在确实不存在了（本来就没有也算，幂等）
+     */
+    suspend fun delete(sessionId: String): Boolean = withContext(Dispatchers.IO) {
+        val file = File(dir, fileName(sessionId))
+        if (!file.exists()) return@withContext true
+        runCatching { file.delete() }
+            .onFailure { e ->
+                Logger.w("TreeSnapshotStore", "删除对话树快照异常 sessionId=$sessionId: ${e.message}", e)
+            }
+        val gone = !file.exists()
+        if (!gone) {
+            Logger.w(
+                "TreeSnapshotStore",
+                "对话树快照没被删掉 sessionId=$sessionId path=${file.absolutePath}（同名会话重建会读回旧选择）",
+            )
+        }
+        gone
     }
 
     private fun TreeSnapshot.toTree(): ConversationTree {

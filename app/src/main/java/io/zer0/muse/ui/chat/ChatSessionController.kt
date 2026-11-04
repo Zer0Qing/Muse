@@ -109,6 +109,16 @@ internal class ChatSessionController(
             }.onFailure { Logger.w("ChatVM", "清理工具可见集失败: ${it.message}") }
             runCatching { io.zer0.muse.tools.SessionToolLoadRegistry.clear(sessionId) }
                 .onFailure { Logger.w("ChatVM", "清理工具装载记录失败: ${it.message}") }
+            // 对话树选择快照也要跟着会话删。以前 store.delete() 全仓**零调用**：
+            // 每删一条会话就在 filesDir 留一个孤儿快照文件，而重建同名会话时 load
+            // 会把上一个会话的分支选中状态读回来。（清单里待办/附件/工具装载都清了，唯独漏了它。）
+            sessionDeps.treeSnapshotStore?.let { store ->
+                resultOf { store.delete(sessionId) }
+                    .onError { msg, _ -> Logger.w("ChatVM", "清理对话树快照失败: $msg") }
+                    .onSuccess { gone ->
+                        if (!gone) Logger.w("ChatVM", "对话树快照未能清除，会话 $sessionId 的快照文件仍在磁盘上")
+                    }
+            }
             if (accessor.snapshot.currentSessionId == sessionId) {
                 val remaining = sessionRepository.observeSessions().first()
                 val target = remaining.firstOrNull()

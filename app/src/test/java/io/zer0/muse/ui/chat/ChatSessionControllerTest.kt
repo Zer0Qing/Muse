@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -61,6 +62,7 @@ class ChatSessionControllerTest {
         repo: SessionRepository,
         state: ChatUiState = ChatUiState(),
         bridge: SessionFlowBridge = FakeBridge(),
+        treeSnapshotStore: io.zer0.muse.data.chat.ConversationTreeSnapshotStore? = null,
     ) = ChatSessionController(
         accessor = ScopedAccessor(state, scope),
         sessionRepository = repo,
@@ -85,7 +87,7 @@ class ChatSessionControllerTest {
             chatGenerationManager = mockk(relaxed = true),
             onClearDelegation = {},
             onCancelPendingApprovals = {},
-            treeSnapshotStore = null,
+            treeSnapshotStore = treeSnapshotStore,
             restorePendingApprovalsForSession = {},
             activeProviderForSession = { null },
             selectedModelForSession = { null },
@@ -149,6 +151,40 @@ class ChatSessionControllerTest {
         coVerify { repo.softDeleteSession("s1") }
         assertEquals(listOf("s1"), bridge.stoppedSessions)
         assertEquals(listOf("s1"), bridge.suppressedSessions)
+    }
+
+    /**
+     * 删会话要**连对话树选择快照一起清掉**。
+     *
+     * 以前 `ConversationTreeSnapshotStore.delete()` 全仓零调用：每删一条会话就在
+     * `filesDir/conversation_tree_snapshots/` 留一个孤儿文件，而重建同名会话时 `load`
+     * 会把上一个会话的分支选中状态读回来 —— 用户看到"新会话自带一堆选中"且无从解释。
+     * 这里用真 store（Robolectric 给的是真 filesDir），断言文件确实消失。
+     */
+    @Test
+    fun `deleteSession also removes the conversation tree snapshot`() = runTest {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dir = java.io.File(context.filesDir, "conversation_tree_snapshots").apply { mkdirs() }
+        val snapshotFile = java.io.File(dir, "s1.json").apply { writeText("{}") }
+        assertTrue("前置条件：快照文件应当先存在", snapshotFile.exists())
+
+        val repo = mockk<SessionRepository>(relaxed = true)
+        controller(
+            this,
+            repo,
+            treeSnapshotStore = io.zer0.muse.data.chat.ConversationTreeSnapshotStore(context),
+        ).deleteSession("s1")
+        advanceUntilIdle()
+
+        coVerify { repo.softDeleteSession("s1") }
+        // store 里是 `withContext(Dispatchers.IO)`，跑在真实 IO 线程上；
+        // runTest 的 advanceUntilIdle 只推进虚拟时钟，不等真线程 —— 所以要显式等一会儿，
+        // 否则这条断言会跑在删除完成之前（第一次就这么红的）。
+        val deadline = System.currentTimeMillis() + 3_000
+        while (snapshotFile.exists() && System.currentTimeMillis() < deadline) {
+            kotlinx.coroutines.delay(20)
+        }
+        assertFalse("删会话后快照文件必须跟着没（否则同名会话会读回旧选择）", snapshotFile.exists())
     }
 
     @Test
