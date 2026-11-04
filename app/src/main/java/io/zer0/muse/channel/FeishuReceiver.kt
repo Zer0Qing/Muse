@@ -120,10 +120,31 @@ class FeishuReceiver(
         val disconnected = CompletableDeferred<Unit>()
         val socketRef = AtomicReference<WebSocket?>(null)
         val pingJob = appScope.launch {
+            // 连续失败计数：`send()` 失败是返回 false 而不是抛异常，原来的
+            // `runCatching { … }` 把返回值丢了，于是"发不出去"这件事完全静默。
+            var pingFailures = 0
             while (isActive) {
                 delay(endpoint.pingIntervalSeconds * 1000L)
-                val webSocket = socketRef.get() ?: continue
-                runCatching { webSocket.send(pingFrame(serviceId).toByteString()) }
+                val webSocket = socketRef.get()
+                if (webSocket != null) {
+                    val outcome = runCatching { webSocket.send(pingFrame(serviceId).toByteString()) }
+                    val issue = feishuSendIssue(outcome.getOrDefault(false), outcome.exceptionOrNull())
+                    if (issue == null) {
+                        pingFailures = 0
+                    } else {
+                        pingFailures++
+                        Logger.w(TAG, "飞书心跳写入失败(连续第 $pingFailures 次, service=$serviceId): $issue")
+                        if (shouldReconnectOnPingFailure(pingFailures)) {
+                            Logger.w(
+                                TAG,
+                                "飞书心跳连续 $pingFailures 次发不出去，判定这条连接已失效，主动断开重连 | " +
+                                    "继续干等只会让「看似已连接、实则收不到消息」的时间变长",
+                            )
+                            disconnected.complete(Unit)
+                            break
+                        }
+                    }
+                }
             }
         }
         val request = Request.Builder().url(endpoint.url).build()
@@ -186,7 +207,12 @@ class FeishuReceiver(
                 headers = frame.headers + FeishuPbbp2.Header("biz_rt", "0"),
                 payload = "{\"code\":200}".toByteArray(Charsets.UTF_8),
             )
-            runCatching { webSocket.send(FeishuPbbp2.encode(ackFrame).toByteString()) }
+            // ACK 同样不能静默失败：没确认成功，平台会按未投递重发该事件，
+            // 用户侧的表现是"同一条消息回了两次" —— 至少要让日志能对上这个成因。
+            val ackOutcome = runCatching { webSocket.send(FeishuPbbp2.encode(ackFrame).toByteString()) }
+            feishuSendIssue(ackOutcome.getOrDefault(false), ackOutcome.exceptionOrNull())?.let { issue ->
+                Logger.w(TAG, "飞书事件 ACK 写入失败(message_id=$messageId): $issue | 平台可能重投该事件（重复回复的成因之一）")
+            }
         }
     }
 
