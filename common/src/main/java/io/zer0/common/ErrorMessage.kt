@@ -7,10 +7,12 @@ package io.zer0.common
  * i18n 迁移指南(必读)
  * ============================================================================
  *
- * 背景:
- *   v1.90 在 ai / memory / app 三层共留下约 800 处 `// TODO i18n` 标注,
- *   根因是 ai / memory 是独立 Gradle 模块,ViewModel 无 context,无法直接引用
- *   app 的 R.string,导致硬编码中文消息散落各处。
+ * 背景(现状已核对，别照旧文案理解):
+ *   这段 originally 写的是"v1.90 在 ai / memory / app 三层留下约 800 处 `// TODO i18n`"。
+ *   实测那些标注**已经清到 0 处**（`Select-String 'TODO i18n'` 在 app/ai/memory 全为 0），
+ *   留着旧数字会让后来的人以为还有一场大迁移要做。
+ *   仍在的是**结构性原因**：ai / memory 是独立 Gradle 模块，拿不到 app 的 `R.string`，
+ *   所以错误在下游只产出代码 + 英文兜底，翻译发生在 app/ui 层。
  *
  * 本文件作用:
  *   提供"错误代码 → UI 字符串"解耦的骨架。所有跨模块错误统一表达为
@@ -34,7 +36,9 @@ package io.zer0.common
  *
  * 注意事项:
  *   - [code] 一旦发布不可变更(UI / 日志 / 埋点 / 服务端联调都会引用)
- *   - [defaultMessage] 必须为英文(用作品质兜底,避免 locale 缺失时显示空白)
+ *   - [defaultMessage] 必须为英文：它**只进日志**（[toLogString]）。界面文案由 app/ui 的
+ *     `ErrorMessageMapper.toLocalizedString` 用穷尽 `when` 从 `R.string` 取，
+ *     新增子类不补分支就编译失败 —— 所以这条英文不会漏到用户眼前。
  *   - 带可变参数的错误(如 RATE_LIMIT 的 retryAfter)用 data class 而非 object
  *   - 与 [io.zer0.common.ErrorCode] 旧枚举共存:新代码优先用 [ErrorMessage],
  *     旧枚举将在全部 TODO 清理完毕后废弃(详见 [ErrorCode] 顶部注释)
@@ -203,30 +207,3 @@ sealed class ErrorMessage {
     }
 }
 
-/**
- * 把 [Throwable] 启发式映射为 [ErrorMessage]。
- *
- * 用于在尚未改造的旧 catch 块中临时把异常转换为 [ErrorMessage],
- * 后续逐步替换为显式的 [ErrorMessage] 构造。仅基于异常类型做粗粒度归类,
- * 不保证语义精确——精确定义请直接返回具体 [ErrorMessage] 子类。
- */
-fun Throwable.toErrorMessage(): ErrorMessage = when (this) {
-    is java.net.UnknownHostException -> ErrorMessage.NetworkError.DNS_FAILED
-    is java.net.SocketTimeoutException -> ErrorMessage.NetworkError.TIMEOUT
-    is java.net.ConnectException -> ErrorMessage.NetworkError.NO_CONNECTION
-    is android.database.sqlite.SQLiteFullException -> ErrorMessage.StorageError.DB_FULL
-    is android.database.sqlite.SQLiteException -> ErrorMessage.StorageError.IO_ERROR
-    is IllegalArgumentException -> ErrorMessage.ValidationError.INVALID_FORMAT
-    else -> {
-        val msg = message.orEmpty()
-        when {
-            msg.contains("timeout", ignoreCase = true) -> ErrorMessage.NetworkError.TIMEOUT
-            msg.contains("unauthorized", ignoreCase = true) ||
-                msg.contains("401", ignoreCase = true) -> ErrorMessage.AuthError.UNAUTHORIZED
-            msg.contains("rate limit", ignoreCase = true) ||
-                msg.contains("429", ignoreCase = true) -> ErrorMessage.ApiError.RATE_LIMIT()
-            msg.contains("context length", ignoreCase = true) -> ErrorMessage.ApiError.CONTEXT_LENGTH
-            else -> ErrorMessage.GenericError.UNKNOWN
-        }
-    }
-}
