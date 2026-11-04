@@ -46,15 +46,19 @@ fun ConversationHost(
             if (!state.isSubmitting) {
                 state = state.copy(isSubmitting = true, error = null)
                 scope.launch {
-                    val command =
-                        ConversationCommand.Submit(
-                            commandId = currentCommandId(sessionId),
-                            sessionId = sessionId,
-                            text = text,
-                            selectionSetId = "legacy:$sessionId",
-                        )
+                    // 命令构造要放在 try 里面：`ConversationCommand.Submit` 的入参校验
+                    // （空白文本、空会话 id 等）是 `require` 抛出的，放在外面等于
+                    // 把一次"提交没成功"变成协程里的未捕获异常 —— 用户什么也看不到。
+                    // 下面那个 catch 本来就负责显示原因，让它有机会工作。
                     state =
                         try {
+                            val command =
+                                ConversationCommand.Submit(
+                                    commandId = currentCommandId(sessionId),
+                                    sessionId = sessionId,
+                                    text = text,
+                                    selectionSetId = "legacy:$sessionId",
+                                )
                             currentSubmit(command)
                             if (model.state.value.input == text) {
                                 model.updateInput("")
