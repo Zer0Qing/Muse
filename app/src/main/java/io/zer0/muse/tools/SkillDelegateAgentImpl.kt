@@ -198,10 +198,17 @@ class SkillDelegateAgentImpl(
             )
             val resp = pauseManager.awaitPauseDecision(pauseReq, policy)
             when (resp.decision) {
-                DelegationPauseManager.PauseDecision.CANCEL ->
-                    return errorResult("用户取消委派")
+                DelegationPauseManager.PauseDecision.CANCEL,
                 DelegationPauseManager.PauseDecision.REJECT ->
-                    return errorResult("用户拒绝委派")
+                    return errorResult(
+                        pauseManager.rejectionText(
+                            resp,
+                            policy,
+                            subject = "委派",
+                            userRejected = "用户拒绝委派",
+                            userCancelled = "用户取消委派",
+                        ),
+                    )
                 DelegationPauseManager.PauseDecision.MODIFY -> {
                     // 不递归,直接用修改后的任务继续执行(避免 onDelegationStarted 重复触发)
                     effectiveTask = resp.modifiedInput?.takeIf { it.isNotBlank() } ?: effectiveTask
@@ -429,10 +436,17 @@ class SkillDelegateAgentImpl(
                 )
                 val resp = pauseManager.awaitPauseDecision(pauseReq, policy)
                 when (resp.decision) {
-                    DelegationPauseManager.PauseDecision.CANCEL ->
-                        return errorResult("用户取消委派")
+                    DelegationPauseManager.PauseDecision.CANCEL,
                     DelegationPauseManager.PauseDecision.REJECT ->
-                        return errorResult("用户拒绝中间结果")
+                        return errorResult(
+                            pauseManager.rejectionText(
+                                resp,
+                                policy,
+                                subject = "中间结果",
+                                userRejected = "用户拒绝中间结果",
+                                userCancelled = "用户取消委派",
+                            ),
+                        )
                     DelegationPauseManager.PauseDecision.APPROVE -> { /* 接受中间结果 */ }
                     DelegationPauseManager.PauseDecision.MODIFY -> {
                         // 用户修改了中间结果,采用修改后的版本

@@ -179,8 +179,16 @@ class TeamWorkflowExecutor(
                 when (resp.decision) {
                     DelegationPauseManager.PauseDecision.CANCEL,
                     DelegationPauseManager.PauseDecision.REJECT,
-                    ->
-                        return errorResult(parentRequestId, "用户取消团队工作流", startedAt)
+                    -> {
+                        val text = pauseManager.rejectionText(
+                            resp,
+                            pausePolicy,
+                            subject = "团队工作流",
+                            userRejected = "用户拒绝团队工作流",
+                            userCancelled = "用户取消团队工作流",
+                        )
+                        return errorResult(parentRequestId, text, startedAt)
+                    }
                     DelegationPauseManager.PauseDecision.APPROVE,
                     DelegationPauseManager.PauseDecision.MODIFY,
                     -> { /* 继续 */ }
@@ -286,7 +294,13 @@ class TeamWorkflowExecutor(
                                 // 跳过该节点,标记为失败
                                 executed[node.id] = errorResult(
                                     "$parentRequestId/${node.id}",
-                                    "用户拒绝执行该节点",
+                                    pauseManager.rejectionText(
+                                        resp,
+                                        pausePolicy,
+                                        subject = "该节点",
+                                        userRejected = "用户拒绝执行该节点",
+                                        userCancelled = "用户取消团队工作流",
+                                    ),
                                     System.currentTimeMillis(),
                                 )
                                 pending.remove(node)

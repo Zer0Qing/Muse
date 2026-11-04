@@ -86,6 +86,37 @@ class DelegationPauseManager {
         val reason: String? = null,
     )
 
+    /**
+     * 暂停点没走到"批准"时，给用户的那句话。
+     *
+     * 超时**不能写成「用户拒绝」**：`PausePolicy` 默认等 300 秒就自动拒绝，
+     * 人只是离开了一会儿，回来看见"你拒绝了委派"，既不知道真实原因（超时），
+     * 也不知道其实可以直接重试 —— 把系统行为算到用户头上，是最伤信任的一种文案错。
+     *
+     * 三处委派入口共用这一个函数：各写一遍迟早漂成三种说法。
+     *
+     * @param subject 被拒的是什么，如「委派」「中间结果」「团队工作流」「该节点」
+     * @param userRejected 用户**真的**点了拒绝时各处原本的说法（本函数不改写它）
+     * @param userCancelled 用户**真的**点了取消时各处原本的说法
+     */
+    fun rejectionText(
+        response: PauseResponse,
+        policy: PausePolicy,
+        subject: String,
+        userRejected: String,
+        userCancelled: String,
+    ): String {
+        val minutes = (policy.autoTimeoutSec.coerceAtLeast(0) + SECONDS_PER_MINUTE - 1) / SECONDS_PER_MINUTE
+        // 不足一分钟就别写"0 分钟"：那句读起来像 bug，不如只说超时
+        val waited = if (minutes >= 1) "确认等待超过 $minutes 分钟" else "确认等待超时"
+        return when {
+            response.outcome == PauseOutcome.TIMED_OUT ->
+                "$waited，已自动拒绝$subject（可直接重试）"
+            response.decision == PauseDecision.CANCEL -> userCancelled
+            else -> userRejected
+        }
+    }
+
     /** 暂停点配置策略。 */
     @Serializable
     data class PausePolicy(
@@ -273,5 +304,6 @@ class DelegationPauseManager {
 
     private companion object {
         private const val MILLIS_PER_SECOND = 1_000L
+        private const val SECONDS_PER_MINUTE: Int = 60
     }
 }
