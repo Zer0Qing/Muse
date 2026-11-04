@@ -235,7 +235,6 @@
     <ID>LongMethod:AssistantScreen.kt$@Composable fun AssistantScreen(onBack: () -&gt; Unit, onOpenDetail: (String) -&gt; Unit, viewModel: ChatViewModel = koinViewModel())</ID>
     <ID>LongMethod:AuditLogPage.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun AuditLogPage(onBack: () -&gt; Unit)</ID>
     <ID>LongMethod:AutomationInitializer.kt$AutomationInitializer$fun initialize(context: Context, toolRegistry: ToolRegistry)</ID>
-    <ID>LongMethod:AutonomousAccessibilitySettingsCard.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun AutonomousAccessibilitySettingsCard( draft: AutonomousAccessibilityDraftState, packageEditor: String, taskPreview: ChatViewModel.AutonomousAccessibilityTaskPreview?, grant: AutonomousAccessibilityGrant?, onDraftChange: (AutonomousAccessibilityDraftState) -&gt; Unit, onPackageEditorChange: (String) -&gt; Unit, onSave: () -&gt; Unit, onConfirmTask: () -&gt; Unit, onClearTask: () -&gt; Unit, )</ID>
     <ID>LongMethod:BackupService.kt$BackupService$private suspend fun applyBackupInternal(backup: Backup): Pair&lt;Int, Int&gt;</ID>
     <ID>LongMethod:BackupService.kt$BackupService$private suspend fun applyNdJsonStreaming(lines: Sequence&lt;String&gt;, allowEmptyBackup: Boolean = false): Pair&lt;Int, Int&gt;</ID>
     <ID>LongMethod:BackupService.kt$BackupService$private suspend fun buildBackup(includeSecrets: Boolean = false): Backup</ID>
