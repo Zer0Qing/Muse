@@ -1,5 +1,9 @@
 package io.zer0.memory.state
 
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
+import io.zer0.common.Logger
 import io.zer0.memory.format.RollingSummaryFormat
 
 /**
@@ -15,6 +19,8 @@ object CompiledMemoryState {
     /** 编译产物文件名常量。 */
     val COMPILED_FILES = listOf("memory.md", "facts.md", "today.md", "week.md", "longterm.md")
 
+    private const val TAG: String = "CompiledMemoryState"
+
     // 2026-11-01 性能整改:这些正则原先在函数体里现场构造。
     // normalizeSectionBody 每次调用要新建 3 个、stripLeadingHeadings 1 个、
     // normalizeLlmOutput 3 个；而 readCompiledMemoryMarkdown 一次读会调
@@ -22,7 +28,6 @@ object CompiledMemoryState {
     // 记忆就重新编译十几个 Pattern。全部提成常量后只编译一次。
     private val JSON_STRING_ARRAY_RE =
         Regex("""^\s*\[\s*("(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")*)\s*]\s*$""", RegexOption.MULTILINE)
-    private val JSON_QUOTED_RE = Regex(""""(?:[^"\\]|\\.)*"""")
     private val MANY_BLANK_LINES_RE = Regex("\n{3,}")
     private val LINE_BREAK_RE = Regex("\\r?\\n")
     private val FENCED_BLOCK_RE = Regex("""^\s*```(?:markdown|md|text)?\s*\n([\s\S]*?)\n```\s*$""")
@@ -30,6 +35,15 @@ object CompiledMemoryState {
     private val THINK_OPEN_TAIL_RE = Regex("<think(?:ing)?>[\\s\\S]*$", RegexOption.IGNORE_CASE)
     private val THINK_OPEN_RE = Regex("<think(?:ing)?>", RegexOption.IGNORE_CASE)
     private val THINK_CLOSE_RE = Regex("</think(?:ing)?>", RegexOption.IGNORE_CASE)
+
+    /** 段标题词表：正文里出现这些就是"外层标题被复述了一遍"，剥掉。 */
+    private val SECTION_TITLES: Set<String> =
+        (RollingSummaryFormat.FACT_SECTION_TITLES + RollingSummaryFormat.TIMELINE_SECTION_TITLES)
+            .map { title -> title.trim().lowercase() }
+            .toSet()
+
+    /** 到这个层级及以下的开头标题当作模型开场白，不是内容。 */
+    private const val DOCUMENT_HEADING_MAX_LEVEL: Int = 2
 
     /**
      * 规范化 section body:
@@ -50,11 +64,14 @@ object CompiledMemoryState {
         // JSON 字符串数组 → bullet list (["a","b"] → "- a\n- b")
         val jsonArrMatch = JSON_STRING_ARRAY_RE.find(s)
         if (jsonArrMatch != null) {
-            val items = JSON_QUOTED_RE.findAll(jsonArrMatch.groupValues[1])
-                .map { it.value.trim('"') }
-                .toList()
+            // 必须走真正的 JSON 解码：旧实现只把外层引号 trim 掉，
+            // 数组里 `"喜欢\"美式\""` 会变成 `喜欢\"美式\"` —— 反斜杠被原样带进记忆，
+            // 用户在记忆页看到的就是这串转义符，注入给模型的上下文里也带着。
+            val items = runCatching {
+                Json.decodeFromString(ListSerializer(String.serializer()), jsonArrMatch.value)
+            }.getOrNull().orEmpty()
             if (items.isNotEmpty()) {
-                s = items.joinToString("\n") { "- $it" }
+                s = items.joinToString("\n") { item -> "- ${item.trim()}" }
             }
         }
         // 压缩 3+ 换行为 2 换行
@@ -64,19 +81,29 @@ object CompiledMemoryState {
 
     /**
      * 剥离开头的连续标题行(允许标题行之间有空行)。
-     * 遇到第一个非标题、非空行即停止,后续内容(含子标题)原样保留。
+     *
+     * **只剥两类**，其余标题当正文留着：
+     *
+     *  - 命中段标题本身（`重要事实` / `Key Facts` / `事情经过` / `Timeline`）——
+     *    模型常把外层标题再复述一遍，而它在提取时已经被消费过一次，留着会在装配时重复；
+     *  - 1~2 级的文档级前言（`# 摘要`、`## Overview`）—— 那不是内容，是模型的开场白。
+     *
+     * 为什么不能"开头标题一律剥掉"：本层注释里自己举的例子就是
+     * facts 段内的 `### Work` / `### Personal` 子分类 —— 正文以子分类开头时，
+     * 一律剥会把**分类名丢掉**，事实被摊平成一大片，用户看不出哪条属于哪类。
+     * 那是内容损失，比留着一条前言标题严重得多。
      */
     private fun stripLeadingHeadings(value: String): String {
         val lines = value.split(LINE_BREAK_RE)
         var idx = 0
-        // 跳过开头的空行 + 标题行
         while (idx < lines.size) {
             val line = lines[idx]
             if (line.isBlank()) {
                 idx++
                 continue
             }
-            if (RollingSummaryFormat.parseMarkdownHeading(line) != null) {
+            val heading = RollingSummaryFormat.parseMarkdownHeading(line)
+            if (heading != null && isStrippableHeading(heading)) {
                 idx++
                 continue
             }
@@ -85,20 +112,39 @@ object CompiledMemoryState {
         return lines.drop(idx).joinToString("\n")
     }
 
+    private fun isStrippableHeading(heading: RollingSummaryFormat.Heading): Boolean =
+        heading.level <= DOCUMENT_HEADING_MAX_LEVEL ||
+            heading.title.trim().lowercase() in SECTION_TITLES
+
     /**
      * 规范化 LLM 输出:
      *  - 去除 ```markdown / ``` 围栏
      *  - 去除前置 <think> 块
      *  - trim
+     *
+     * [source] 是调用方给的环节名（`compileFacts` / `compileToday` …）。
+     * 去掉围栏或思考块**说明模型没守提示词的输出契约**，属于要能查到的事：
+     * 记忆"看着怪"时，这一行能直接定位是哪一步、哪个环节产出的。
      */
     fun normalizeLlmResult(value: String, source: String = ""): String {
         if (value.isEmpty()) return ""
         var s = value
         // 去 ```markdown\n...\n``` 围栏
         val fenceMatch = FENCED_BLOCK_RE.find(s)
-        if (fenceMatch != null) s = fenceMatch.groupValues[1]
-        s = stripThinkTagBlocks(s)
+        if (fenceMatch != null) {
+            logContractBreak(source, "markdown 围栏")
+            s = fenceMatch.groupValues[1]
+        }
+        val withoutThink = stripThinkTagBlocks(s)
+        if (withoutThink != s) {
+            logContractBreak(source, "think 标签")
+        }
+        s = withoutThink
         return s.trim()
+    }
+
+    private fun logContractBreak(source: String, what: String) {
+        Logger.w(TAG, "$source 的产出带了$what，不符合输出契约，已剥除后继续")
     }
 
     /** 去除 <think>...</think> / <thinking>...</thinking> 块。 */
