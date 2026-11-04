@@ -380,9 +380,16 @@ internal class ChatGenerationController(
                         } catch (c: kotlinx.coroutines.CancellationException) {
                             // 取消是正常控制流，原样抛回，不该被当成"发送失败"报给用户
                             throw c
-                        } catch (e: Exception) {
+                        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                            // 这里有意兜住任意 Exception，理由：
+                            // 建会话（Room/SQLite）、分页载入（还带 JSON 解析）、入队（队列满时抛
+                            // IllegalStateException）三段的失败类型是开放的，列不全；
+                            // 而列不全的代价不是"少记一条日志"，是**用户按了发送却什么都没发生**。
+                            // 规则想防的是"用宽 catch 掩盖本该分开处理的问题"，
+                            // 这里唯一的处理就是：留痕 + 告知用户 + 不假装发送成功。
+                            // 仓库里同样取舍的先例：DeviceCapabilityHook、ShellExecutor、BackupService。
                             // 这段以前只有 finally：建会话 / 载入历史 / 入队任一环节抛异常，
-                            // 都会冒到 coroutineScope（崩或无声丢弃），而用户刚刚明明按了"发送"。
+                            // 都会冒到 coroutineScope（崩或无声丢弃）。
                             // 现在：原因进日志 + 界面如实告知，并且不假装发送成功。
                             Logger.w(
                                 "ChatVM",
