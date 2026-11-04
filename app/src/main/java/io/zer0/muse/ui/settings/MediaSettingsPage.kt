@@ -621,7 +621,6 @@ private fun AdvancedTtsParamsSection(config: MediaConfig, settings: SettingsRepo
             SettingsSliderRow(
                 icon = MuseIcons.shield,
                 title = stringResource(R.string.settings_media_tts_stability),
-                subtitle = stringResource(R.string.settings_media_tts_stability),
                 value = stability,
                 valueRange = 0f..1f,
                 steps = 9,
@@ -632,7 +631,6 @@ private fun AdvancedTtsParamsSection(config: MediaConfig, settings: SettingsRepo
             SettingsSliderRow(
                 icon = MuseIcons.waveSine,
                 title = stringResource(R.string.settings_media_tts_similarity),
-                subtitle = stringResource(R.string.settings_media_tts_similarity),
                 value = similarity,
                 valueRange = 0f..1f,
                 steps = 9,
@@ -664,7 +662,6 @@ private fun AdvancedTtsParamsSection(config: MediaConfig, settings: SettingsRepo
             SettingsSliderRow(
                 icon = MuseIcons.play,
                 title = stringResource(R.string.settings_media_tts_cloud_speed),
-                subtitle = stringResource(R.string.settings_media_tts_cloud_speed),
                 value = speed,
                 valueRange = 0.25f..4.0f,
                 steps = 14,
