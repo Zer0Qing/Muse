@@ -124,7 +124,12 @@ class TelegramReceiver(
     @Suppress("TooGenericExceptionCaught", "ReturnCount")
     private suspend fun pollOnce(config: ChannelConfig, cursor: TelegramCursor): TelegramCursor {
         val next = nextCursorFor(config, cursor) ?: return cursor
-        val updates = TelegramClient.getUpdates(config.appSecret, next.offset).getOrNull()
+        // 以前是 `.getOrNull() ?: return next`：拉取失败被当成"这轮没有新消息"，
+        // 一句日志都不留。同函数里图片失败、写库失败都有日志，只有这条最要命的没有 ——
+        // 它坏了的表现是"用户从 Telegram 发消息永远没反应"，而日志查不到任何线索。
+        val updates = TelegramClient.getUpdates(config.appSecret, next.offset)
+            .onFailure { e -> Logger.w(TAG, telegramPollIssue(config.id, e), e) }
+            .getOrNull()
             ?: return next
         return try {
             updates.messages.forEach { msg -> recordInbound(config, msg) }

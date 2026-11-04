@@ -84,6 +84,14 @@ object PiiEngine {
         Regex("""(?i)\b(token|password|secret|apikey|api_key|access_token|refresh_token|client_secret|client_id|key)\s*"?\s*[=:]\s*"?\S+""")
     private val URL_QUERY_CREDENTIAL = Regex("""(?i)([?&])(key|token|api_key|apikey)=\S+""")
 
+    /**
+     * **路径里**的机器人令牌：Telegram Bot API 的 URL 形如
+     * `https://api.telegram.org/bot123456:AAAA…/getUpdates`，令牌在段里而不是查询串，
+     * 所以上面那三条凭据规则一条都盖不住它 —— 而 Telegram/上游的报错文本经常把整个 URL 打出来。
+     * 日志文件要从真机导出，这一形状必须一起处理（2026-11-05 加）。
+     */
+    private val BOT_PATH_TOKEN = Regex("/bot\\d+:[^/\\s]+/")
+
     private data class Rule(val label: String, val regex: Regex, val protected: Boolean = false)
     private val rules by lazy {
         listOf(
@@ -160,6 +168,7 @@ object PiiEngine {
         return text
             .replace(PRIVATE_KEY_BLOCK, "[私钥块]")
             .replace(BARE_API_KEY, "[密钥]")
+            .replace(BOT_PATH_TOKEN, "/bot<已隐藏>/")
             .replace(PHONE, "[手机号]")
             .replace(EMAIL, "[邮箱]")
             .replace(ID_CARD, "[身份证]")

@@ -64,6 +64,21 @@ class PiiEngineTest {
     }
 
     @Test
+    fun `路径里的机器人令牌也要被隐去`() {
+        // Telegram Bot API 的 URL 把令牌放在**路径段**里，
+        // 而 header / key= / ?token= 三条规则都只认查询串与头部形状 —— 上游报错常带整个 URL，
+        // 不处理就等于把机器人钥匙写进要导出的日志文件。
+        val raw = "HTTP 401 https://api.telegram.org/bot123456789:AAHsecretTOKEN-abc/getUpdates 401 Unauthorized"
+
+        val scrubbed = PiiEngine.scrubForLogs(raw)
+
+        assertFalse("令牌段仍可见：$scrubbed", scrubbed.contains("AAHsecretTOKEN-abc"))
+        assertFalse("数字 id 与冒号段一起隐去：$scrubbed", scrubbed.contains("123456789:"))
+        assertTrue("要保留可定位信息（接口名与状态码）：$scrubbed", scrubbed.contains("getUpdates"))
+        assertTrue("要写明是已隐藏而不是删掉整句：$scrubbed", scrubbed.contains("bot<已隐藏>"))
+    }
+
+    @Test
     fun memoryEngineRemovesResidualTokensAfterUnmask() {
         val masked = PiiEngine.maskMemory("电话 13800138000")
         val restored = PiiEngine.unmaskMemory("[PHONE_1] [PHONE_2]", masked.map)
