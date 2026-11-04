@@ -2,10 +2,10 @@ package io.zer0.muse.miniphone.ui.chat
 
 import io.zer0.muse.miniphone.data.db.dao.MpMessageDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
+import io.zer0.muse.miniphone.ui.launchGuarded
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 /**
  * 一个会话的消息窗口:进页、首屏、向上翻页、未读清零。
@@ -20,6 +20,9 @@ import kotlinx.coroutines.launch
  * @param state 界面状态;窗口相关的三个字段(messages / hasMore / isLoadingMore)由本类写
  * @param onThreadOpened 会话行读出来之后回调,界面据此补角色名、头像与群成员
  */
+// 日志里区分是哪个用户动作失败了（动作名写在调用处）。
+private const val TAG_CHAT_PAGING = "MiniPhoneChatPaging"
+
 internal class ChatPagingController(
     private val threadId: String,
     private val messageDao: MpMessageDao,
@@ -32,7 +35,7 @@ internal class ChatPagingController(
 
     /** 进页:取会话里的角色 id、清未读、拉最新一页。 */
     fun open() {
-        scope.launch { openThread() }
+        scope.launchGuarded(TAG_CHAT_PAGING, "打开会话首屏") { openThread() }
     }
 
     /** 滚到顶时加载更早的一页。没有更多、或上一页还在路上,直接忽略。 */
@@ -40,7 +43,7 @@ internal class ChatPagingController(
         val current = state.value
         if (!current.hasMore || current.isLoadingMore) return
         state.update { it.copy(isLoadingMore = true) }
-        scope.launch { loadOlderPage() }
+        scope.launchGuarded(TAG_CHAT_PAGING, "加载更早的消息") { loadOlderPage() }
     }
 
     /**
@@ -50,7 +53,7 @@ internal class ChatPagingController(
      * 所以「进页清未读」不能只靠打开时那一次。
      */
     fun markRead() {
-        scope.launch { threadDao.clearUnread(threadId) }
+        scope.launchGuarded(TAG_CHAT_PAGING, "清未读计数") { threadDao.clearUnread(threadId) }
     }
 
     private suspend fun openThread() {

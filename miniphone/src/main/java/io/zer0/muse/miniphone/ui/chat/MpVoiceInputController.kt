@@ -7,7 +7,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 语音输入的三个状态。
@@ -50,6 +50,9 @@ internal sealed interface MpVoiceInputState {
  * @param canRecord 当前设置能不能录音;不能时 [start] 直接不动录音器
  * @param scope 计时与转写作业挂在这里,随页面一起结束
  */
+// 日志里区分是哪个用户动作失败了（动作名写在调用处）。
+private const val TAG_VOICE_INPUT = "MiniPhoneVoiceInput"
+
 internal class MpVoiceInputController(
     private val recorder: MpVoiceCapture,
     private val transcribe: suspend (ByteArray) -> String?,
@@ -81,7 +84,7 @@ internal class MpVoiceInputController(
             return
         }
         mutableState.value = MpVoiceInputState.Recording(elapsedSeconds = 0)
-        ticker = scope.launch { tick() }
+        ticker = scope.launchGuarded(TAG_VOICE_INPUT, "语音录制计时") { tick() }
     }
 
     /** 停止录音并转写。只在 [MpVoiceInputState.Recording] 生效。 */
@@ -90,7 +93,7 @@ internal class MpVoiceInputController(
         ticker?.cancel()
         ticker = null
         mutableState.value = MpVoiceInputState.Transcribing
-        scope.launch { finishTranscription() }
+        scope.launchGuarded(TAG_VOICE_INPUT, "结束录音并转写") { finishTranscription() }
     }
 
     /** 取消这一次录音:音频丢掉,不转写。 */

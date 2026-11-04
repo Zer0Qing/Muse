@@ -41,7 +41,7 @@ import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.moments.MiniPhoneMomentsRoute
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 小手机外壳。
@@ -63,6 +63,9 @@ import kotlinx.coroutines.launch
  *   返回 null 表示没法开(角色 id 为空),外壳停在原页。导航在本壳,不交给上层
  * @param actions 页面上的用户动作(开关、会话动作、清空、开我的朋友圈、建群),由入口接到 ViewModel
  */
+// 日志里区分是哪个用户动作失败了（动作名写在调用处）。
+private const val TAG_SHELL_UI = "MiniPhoneShellUi"
+
 @Composable
 fun MiniPhoneShell(
     state: ShellUiState,
@@ -93,13 +96,13 @@ fun MiniPhoneShell(
     // 通讯录点击要先问会话 id(可能要新建一条),所以得带一层协程作用域
     val scope = rememberCoroutineScope()
     val openContact: (String) -> Unit = { characterId ->
-        scope.launch {
+        scope.launchGuarded(TAG_SHELL_UI, "从通讯录打开某个角色的会话") {
             onOpenCharacterChat(characterId)?.let { threadId -> currentThreadId = threadId }
         }
     }
     // 建群同样要等库里写完才拿得到会话 id,不能同步打开
     val createGroup: () -> Unit = {
-        scope.launch {
+        scope.launchGuarded(TAG_SHELL_UI, "建群") {
             actions.onCreateGroup(groupSelection)?.let { created ->
                 groupCreateOpen = false
                 groupSelection = emptyList()

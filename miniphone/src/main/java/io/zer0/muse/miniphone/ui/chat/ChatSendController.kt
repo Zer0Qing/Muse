@@ -13,8 +13,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlin.random.Random
+import io.zer0.common.Logger
+import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 发消息与收回复。
@@ -40,6 +41,9 @@ import kotlin.random.Random
  * @param state 界面状态;本类只往里写「生成中」「谁在打字」「角色在做什么」,标题与头像由 ViewModel 管
  * @param pauseBetweenResponders 两个角色之间的停顿;默认 600–1200ms,注入成空实现可以让测试不等待
  */
+// 日志里认出「小手机发消息这条路」的失败。
+private const val TAG = "MiniPhoneChatSend"
+
 internal class ChatSendController(
     private val threadId: String,
     private val writer: ChatMessageWriter,
@@ -73,7 +77,7 @@ internal class ChatSendController(
 
     /** 开始消费应答队列;ViewModel 接好状态之后调一次。 */
     fun start() {
-        scope.launch { consumeReplies() }
+        scope.launchGuarded(TAG, "接住角色回复队列") { consumeReplies() }
     }
 
     /** ViewModel 销毁时收尾:关掉队列,消费循环随之结束。 */
@@ -90,7 +94,7 @@ internal class ChatSendController(
     fun send(text: String) {
         val content = text.trim()
         if (content.isEmpty()) return
-        scope.launch {
+        scope.launchGuarded(TAG, "发一条消息") {
             val thread = currentThread()
             val messageId = writer.append(
                 ChatOutgoingMessage(
@@ -105,7 +109,7 @@ internal class ChatSendController(
             // 上一轮还没结束又提交了一模一样的一句:当成重复提交,不再起一轮
             if (isDuplicateSubmission(content, messageId)) {
                 writer.updateStatus(messageId, MpMessageStatus.SENT)
-                return@launch
+                return@launchGuarded
             }
             val started = startRound(messageId, respondersFor(content, messageId))
             when (started) {
@@ -128,8 +132,8 @@ internal class ChatSendController(
     fun resend(messageId: String) {
         val message = state.value.messages.firstOrNull { it.id == messageId } ?: return
         if (!message.canResend) return
-        scope.launch {
-            if (startRound(messageId, respondersFor(message.content, messageId)) != RoundStart.STARTED) return@launch
+        scope.launchGuarded(TAG, "重发一条消息") {
+            if (startRound(messageId, respondersFor(message.content, messageId)) != RoundStart.STARTED) return@launchGuarded
             writer.updateStatus(messageId, MpMessageStatus.SENDING)
         }
     }
@@ -142,7 +146,7 @@ internal class ChatSendController(
      */
     fun sendImages(uris: List<Uri>) {
         if (uris.isEmpty()) return
-        scope.launch { media.storePickedImages(uris, storedCharacterIdOf(currentThread())) }
+        scope.launchGuarded(TAG, "发若干张图") { media.storePickedImages(uris, storedCharacterIdOf(currentThread())) }
     }
 
     /** 库里的会话行:发言人与群标记都以它为准,状态还没填上也拿得到。 */
@@ -233,7 +237,13 @@ internal class ChatSendController(
             showTyping(characterId)
             // 宿主约定失败发 Failed;再兜一层,免得某个实现抛异常把整条队列带停
             delivered += runCatching { collectReply(characterId) }
-                .onFailure { state.update { current -> current.copy(activity = null) } }
+                .onFailure { e ->
+                    // 原来这里只把「正在输入」那行文案收掉，异常本身被丢掉：
+                    // 用户看到的是「没人回我」，日志里连一句都没有。降级照旧
+                    // （这一轮跳过、由条数决定要不要补系统提示），但要留下是哪个角色、为什么没落进来。
+                    Logger.w(TAG, "角色 $characterId 这一轮生成失败（本轮跳过）: ${e.message ?: e.javaClass.simpleName}", e)
+                    state.update { current -> current.copy(activity = null) }
+                }
                 .getOrDefault(0)
         }
         state.update { it.copy(typingName = null, typingAvatarUri = null) }

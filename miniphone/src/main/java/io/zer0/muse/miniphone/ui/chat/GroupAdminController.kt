@@ -8,10 +8,10 @@ import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadMemberDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
 import io.zer0.muse.miniphone.ui.shell.UNKNOWN_CHARACTER_NAME
+import io.zer0.muse.miniphone.ui.launchGuarded
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 /**
  * 群成员管理的四个写入口:改名、加人、移出、解散。
@@ -24,6 +24,9 @@ import kotlinx.coroutines.launch
  *
  * @param characters 宿主给的角色名单;拼默认群名要拿名字
  */
+// 日志里区分是哪个用户动作失败了（动作名写在调用处）。
+private const val TAG_GROUP_ADMIN = "MiniPhoneGroupAdmin"
+
 internal class GroupAdminController(
     private val threadId: String,
     private val threadDao: MpThreadDao,
@@ -38,8 +41,8 @@ internal class GroupAdminController(
     fun renameGroup(title: String) {
         val normalized = normalizeGroupTitle(title)
         if (normalized.isEmpty()) return
-        scope.launch {
-            if (!store.renameGroup(threadId, normalized)) return@launch
+        scope.launchGuarded(TAG_GROUP_ADMIN, "改群名") {
+            if (!store.renameGroup(threadId, normalized)) return@launchGuarded
             state.update { it.copy(groupTitle = normalized) }
         }
     }
@@ -48,33 +51,33 @@ internal class GroupAdminController(
     fun addMembers(characterIds: List<String>) {
         val ids = characterIds.map(String::trim).filter(String::isNotEmpty).distinct()
         if (ids.isEmpty()) return
-        scope.launch {
-            val thread = groupThread() ?: return@launch
+        scope.launchGuarded(TAG_GROUP_ADMIN, "往群里加人") {
+            val thread = groupThread() ?: return@launchGuarded
             val existing = memberDao.membersOf(threadId).map { member -> member.characterId }
             val fresh = ids.filterNot { characterId -> characterId in existing }
-            if (fresh.isEmpty()) return@launch
+            if (fresh.isEmpty()) return@launchGuarded
             val autoTitle = autoTitleOf(thread, existing + fresh)
-            if (!store.addMembers(threadId, fresh, autoTitle)) return@launch
+            if (!store.addMembers(threadId, fresh, autoTitle)) return@launchGuarded
             if (autoTitle != null) state.update { it.copy(groupTitle = autoTitle) }
         }
     }
 
     /** 把一个人移出群:他说过的话留着;只剩一个人时写入层会拒绝。 */
     fun removeMember(characterId: String) {
-        scope.launch {
-            val thread = groupThread() ?: return@launch
+        scope.launchGuarded(TAG_GROUP_ADMIN, "把一个人移出群") {
+            val thread = groupThread() ?: return@launchGuarded
             val remaining = memberDao.membersOf(threadId)
                 .map { member -> member.characterId }
                 .filterNot { id -> id == characterId }
             val autoTitle = autoTitleOf(thread, remaining)
-            if (!store.removeMember(threadId, characterId, autoTitle)) return@launch
+            if (!store.removeMember(threadId, characterId, autoTitle)) return@launchGuarded
             if (autoTitle != null) state.update { it.copy(groupTitle = autoTitle) }
         }
     }
 
     /** 解散:会话、成员、消息一起没。界面自己负责退出这一页。 */
     fun disbandGroup() {
-        scope.launch { store.disbandGroup(threadId) }
+        scope.launchGuarded(TAG_GROUP_ADMIN, "解散群") { store.disbandGroup(threadId) }
     }
 
     /** 私信走到这里一律不处理:这几个动作只对群有意义。 */

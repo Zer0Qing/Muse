@@ -12,11 +12,11 @@ import io.zer0.muse.miniphone.data.chat.groupTitleOf
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
 import io.zer0.muse.miniphone.data.settings.MpMomentAutoStore
+import io.zer0.muse.miniphone.ui.launchGuarded
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -34,6 +34,9 @@ import java.util.UUID
  * 订阅方全部离场后保留 [KEEP_ALIVE_MS] 再停上游:切到聊天页再回来时,
  * 不必等四条上游重新跑一遍。
  */
+// 日志里区分是哪个用户动作失败了（动作名写在调用处）。
+private const val LOG_TAG = "MiniPhoneShell"
+
 class MiniPhoneShellViewModel(
     private val threadDao: MpThreadDao,
     private val store: MpConversationActions,
@@ -123,7 +126,7 @@ class MiniPhoneShellViewModel(
      * 定时任务本身不取消 —— 重新打开时立刻恢复,不必等宿主再调一次注册。
      */
     fun setAutoMomentEnabled(enabled: Boolean) {
-        viewModelScope.launch { settings.setEnabled(enabled) }
+        viewModelScope.launchGuarded(LOG_TAG, "切「自动发朋友圈」") { settings.setEnabled(enabled) }
     }
 
     /**
@@ -132,27 +135,27 @@ class MiniPhoneShellViewModel(
      * 同样只写设置:Worker 每轮先读这个开关,关着就整轮跳过。默认关,所以用户不开就永远不会被打扰。
      */
     fun setChatProactiveEnabled(enabled: Boolean) {
-        viewModelScope.launch { settings.setChatProactiveEnabled(enabled) }
+        viewModelScope.launchGuarded(LOG_TAG, "切「角色主动私信」") { settings.setChatProactiveEnabled(enabled) }
     }
 
     /** 置顶 / 取消置顶一条会话。 */
     fun setThreadPinned(threadId: String, pinned: Boolean) {
-        viewModelScope.launch { store.setPinned(threadId, pinned) }
+        viewModelScope.launchGuarded(LOG_TAG, "置顶/取消置顶会话") { store.setPinned(threadId, pinned) }
     }
 
     /** 未读清零:会话行上的「标记已读」。 */
     fun markThreadRead(threadId: String) {
-        viewModelScope.launch { store.markRead(threadId) }
+        viewModelScope.launchGuarded(LOG_TAG, "标记会话已读") { store.markRead(threadId) }
     }
 
     /** 删一个会话及其全部消息。 */
     fun deleteThread(threadId: String) {
-        viewModelScope.launch { store.deleteThread(threadId) }
+        viewModelScope.launchGuarded(LOG_TAG, "删一个会话及其全部消息") { store.deleteThread(threadId) }
     }
 
     /** 清空聊天记录(所有会话与消息);朋友圈等其它数据不动。 */
     fun clearConversations() {
-        viewModelScope.launch { store.clearAll() }
+        viewModelScope.launchGuarded(LOG_TAG, "清空聊天记录") { store.clearAll() }
     }
 
     private companion object {

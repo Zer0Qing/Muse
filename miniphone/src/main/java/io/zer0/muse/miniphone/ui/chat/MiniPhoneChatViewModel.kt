@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 单个会话的聊天页状态。
@@ -38,6 +38,9 @@ import kotlinx.coroutines.launch
  * @param clock 拼消息行用的两个可替换来源:现在几点、下一批 id
  * @param pauseBetweenResponders 群里两个角色之间的停顿;默认 600–1200ms,测试注入空实现就不必等
  */
+// 日志里区分是哪个用户动作失败了（动作名写在调用处）。
+private const val TAG_CHAT_VM = "MiniPhoneChat"
+
 class MiniPhoneChatViewModel(
     private val threadId: String,
     private val messageDao: MpMessageDao,
@@ -127,7 +130,7 @@ class MiniPhoneChatViewModel(
 
     init {
         // 宿主的两条流:角色名单用来补名字与头像,本机资料用来补自己那侧的头像
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "接宿主角色名单") {
             host.observeCharacters()
                 .catch { emit(emptyList()) }
                 .collect { characters ->
@@ -138,7 +141,7 @@ class MiniPhoneChatViewModel(
                 }
         }
         // 群成员行:私信会话没有行,这条流直接是空的,不需要另走一条分支
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "接群成员行") {
             memberDao.observeMembers(threadId)
                 .catch { emit(emptyList()) }
                 .collect { rows ->
@@ -146,7 +149,7 @@ class MiniPhoneChatViewModel(
                     applyMembers()
                 }
         }
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "接本机资料") {
             host.observeProfile()
                 .catch { emit(MpProfile(nickname = "")) }
                 .collect { profile ->
@@ -159,7 +162,7 @@ class MiniPhoneChatViewModel(
                 }
         }
         // 语音输入能不能用只问一次:进页时问、整个停留期间不变,不必跟设置页实时联动
-        viewModelScope.launch {
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "探测语音输入能力") {
             val supported = host.supportsVoiceTranscription()
             mutableState.update { it.copy(voiceInputAvailable = supported) }
         }
@@ -188,7 +191,7 @@ class MiniPhoneChatViewModel(
     fun setVisible(visible: Boolean) {
         markReadJob?.cancel()
         markReadJob = if (visible) {
-            viewModelScope.launch {
+            viewModelScope.launchGuarded(TAG_CHAT_VM, "标记已读并跟随消息数") {
                 paging.markRead()
                 messageDao.observeMessages(threadId)
                     .map { messages -> messages.size }
@@ -217,7 +220,7 @@ class MiniPhoneChatViewModel(
 
     /** 本机删掉一条消息;会话本身不动。 */
     fun deleteMessage(messageId: String) {
-        viewModelScope.launch { writer.delete(messageId) }
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "删除一条消息") { writer.delete(messageId) }
     }
 
     /**
