@@ -123,4 +123,43 @@ class CompiledSectionSearchTest {
         assertEquals(2, hits.size)
         assertTrue("命中三个词的行应排在前面: $hits", hits.first().text.contains("文档"))
     }
+
+    @Test
+    fun `中文连写的查询不该因为没打空格就搜不到`() {
+        // 上面的用例查的是"子奇 代码 文档"—— 带空格。真实中文几乎不打空格，
+        // 整串成一个词去 contains，措辞一不同就什么都捞不到：
+        // 用户以为"它不记得了"，其实摘要里就写着。
+        val sections = listOf(
+            "longterm" to "- 用户最近在给一个笔记工具做同步层，反复调整冲突合并策略",
+        )
+
+        val hits = scanCompiledSections(sections, "笔记工具同步", limit = 5)
+
+        assertTrue("连写查询也该捞到相关散文: $hits", hits.isNotEmpty())
+        assertTrue(hits.single().text.contains("笔记工具"))
+    }
+
+    @Test
+    fun `连写兜底只在整串搜不到时才启用`() {
+        val sections = listOf(
+            "today" to "- 用户上午开会讨论了预算\n- 用户下午修了同步层",
+        )
+
+        // 整串能命中时，不该退化成两字切分去扩大命中面
+        val direct = scanCompiledSections(sections, "上午开会讨论了预算", limit = 5)
+
+        assertEquals(1, direct.size)
+        assertTrue(direct.single().text.contains("预算"))
+    }
+
+    @Test
+    fun `确实无关的连写查询仍然不给命中`() {
+        val sections = listOf(
+            "today" to "- 用户上午开会讨论了预算",
+        )
+
+        val hits = scanCompiledSections(sections, "深海潜水装备采购", limit = 5)
+
+        assertTrue("兜底不能变成乱匹配: $hits", hits.isEmpty())
+    }
 }
