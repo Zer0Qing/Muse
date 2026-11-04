@@ -74,6 +74,12 @@ class MemorySpaceRepository(
             Logger.w("MemorySpaceRepository", "createSpace: name is empty")
             return@withContext null
         }
+        // 同名拒绝：列表、切换器与「助手 · 空间」那行元数据都**只显示名字**，
+        // 两个都叫「工作」的空间用户分不出来，只能靠逐个改名去猜哪个是哪个。
+        if (findByName(trimmedName, excludeId = null) != null) {
+            Logger.w("MemorySpaceRepository", "createSpace: name already used: $trimmedName")
+            return@withContext null
+        }
         val id = UUID.randomUUID().toString()
         val now = Instant.now().toString()
         val maxSortIndex = spaceDao.listAll().maxOfOrNull { it.sortIndex } ?: 0
@@ -97,12 +103,23 @@ class MemorySpaceRepository(
     suspend fun renameSpace(id: String, name: String): Boolean = withContext(Dispatchers.IO) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return@withContext false
+        // 改成一个已经存在的名字，等于把两个空间变成同一个标签：拒绝，而不是让用户去猜。
+        if (findByName(trimmed, excludeId = id) != null) {
+            Logger.w("MemorySpaceRepository", "renameSpace: name already used: $trimmed")
+            return@withContext false
+        }
         spaceDao.rename(id, trimmed) > 0
     }
 
     /**
      * 更新 Space 描述。
      */
+    /** 按显示名找空间（去首尾空白、忽略大小写）；[excludeId] 用于改名时放过自己。 */
+    private suspend fun findByName(name: String, excludeId: String?): MemorySpaceEntity? =
+        spaceDao.listAll().firstOrNull { space ->
+            space.id != excludeId && space.name.trim().equals(name, ignoreCase = true)
+        }
+
     suspend fun updateDescription(id: String, description: String): Boolean = withContext(Dispatchers.IO) {
         val existing = spaceDao.getById(id) ?: return@withContext false
         spaceDao.upsert(existing.copy(description = description.trim())) > 0
@@ -153,10 +170,27 @@ class MemorySpaceRepository(
      */
     suspend fun reorderSpaces(orderedIds: List<String>): Boolean = withContext(Dispatchers.IO) {
         if (orderedIds.isEmpty()) return@withContext false
-        orderedIds.forEachIndexed { index, id ->
-            spaceDao.updateSortIndex(id, index)
+        val existing = spaceDao.listAll().associateBy({ it.id }, { it })
+        var index = 0
+        orderedIds.forEach { id ->
+            // 传进来的 id 可能已经不存在（别的窗口刚删掉）。写它没有意义，
+            // 也会把序号白占一格，让后面的空间跟着错位。
+            if (id in existing) {
+                spaceDao.updateSortIndex(id, index)
+                index += 1
+            }
         }
-        true
+        // 没被点到的空间不能留在旧序号上：那会和新写的撞车，
+        // 而列表是按 `sort_index, created_at` 排的 —— 撞车时顺序取决于建得早晚，
+        // 用户看到的就是"我拖好了，一刷新又弹回原位"。
+        existing.values
+            .filterNot { space -> orderedIds.contains(space.id) }
+            .sortedBy { space -> space.sortIndex }
+            .forEach { space ->
+                spaceDao.updateSortIndex(space.id, index)
+                index += 1
+            }
+        index > 0
     }
 
     /**
