@@ -1,6 +1,7 @@
 package io.zer0.muse.web
 
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
@@ -140,13 +141,21 @@ data class HostEvent(
     val sessionDetail: HostSessionDetail? = null,
     /** assistants.detail 载荷;助手不存在时为空并带 error。 */
     val assistantDetail: HostAssistantDetail? = null,
-    /** memory.list 载荷(正文已截断、已按页裁剪)。 */
+    /**
+     * `memory.list` 与 `memory.search` 的载荷(正文已截断、已按页裁剪;搜索命中额外带 snippet)。
+     *
+     * **线上键必须是 `items`**：网页客户端只读 `items`（`api.ts` 的 `HostEvent.items`，
+     * list 与 search 走同一分支 `event.items ?? []`）。以前这里叫 `memory`、
+     * 搜索另发一个 `memoryHits`，两个键客户端都不读 ⇒ 记忆页永远显示"没有条目"，
+     * 而两侧测试各自闭环（Kotlin 只测同类型 round-trip），谁都发现不了。
+     */
+    @SerialName("items")
     val memory: List<HostMemoryEntry> = emptyList(),
-    /** memory.search 载荷(条目 + 命中片段)。 */
-    val memoryHits: List<HostMemoryHit> = emptyList(),
+    /** knowledge.list 载荷:知识库一览。 */
     /** memory.list 之后是否还有下一页。 */
     val hasMore: Boolean? = null,
     /** knowledge.list 载荷:知识库一览。 */
+    @SerialName("bases")
     val knowledgeBases: List<HostKnowledgeBase> = emptyList(),
     /** knowledge.documents 回显的目标知识库 id。 */
     val kbId: String? = null,
@@ -155,6 +164,7 @@ data class HostEvent(
     /** tasks.list 载荷:定时任务一览。 */
     val tasks: List<HostScheduledTask> = emptyList(),
     /** system.status 载荷:应用与设备的只读状态快照。 */
+    @SerialName("system")
     val systemStatus: HostSystemStatus? = null,
 )
 
@@ -457,7 +467,10 @@ data class HostAssistantDetail(
  * 一条记忆条目。
  *
  * [content] 已截断:列表页只画两三行,整段下发会让一页 30 条的回执膨胀到几百 KB。
- * 需要看命中位置就用 `memory.search` 的 [HostMemoryHit.snippet]。
+ *
+ * [snippet] 只有 `memory.search` 才填：命中片段挂在条目自己身上（扁平一条），
+ * 而不是再套一层 `HostMemoryHit` —— 客户端的类型 `HostMemoryItem` 就是扁平形状，
+ * 嵌套会让它在 `item.content` 上取到 undefined。
  */
 @Serializable
 data class HostMemoryEntry(
@@ -470,13 +483,8 @@ data class HostMemoryEntry(
     val source: String = HostMemorySourceKind.AUTO,
     /** 是否被用户置顶。 */
     val pinned: Boolean = false,
-)
-
-/** `memory.search` 的一条命中:[entry] 与 [memory.list] 同结构,[snippet] 是命中位置附近的片段。 */
-@Serializable
-data class HostMemoryHit(
-    val entry: HostMemoryEntry,
-    val snippet: String,
+    /** 搜索命中时"命中位置附近的片段";列表页为 null（AppJson 不输出 null 字段）。 */
+    val snippet: String? = null,
 )
 
 /** [HostMemoryEntry.source] 的取值。 */

@@ -129,8 +129,8 @@ class HostWebSocketGatewayMemoryTest {
 
         val hit = browser.events.single { it.type == HostMemoryReads.TYPE_SEARCH }
         assertEquals("req-search", hit.requestId)
-        assertTrue(hit.memoryHits.isNotEmpty())
-        assertTrue(hit.memoryHits.single().snippet.contains("书店"))
+        assertTrue(hit.memory.isNotEmpty())
+        assertTrue(hit.memory.single().snippet?.contains("书店") == true)
 
         browser.send("""{"protocolVersion":1,"type":"memory.search","requestId":"req-blank","query":"   "}""")
         advanceUntilIdle()

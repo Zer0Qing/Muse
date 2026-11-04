@@ -129,13 +129,17 @@ class HostMemoryReadsTest {
         )
 
         assertEquals(HostMemoryReads.TYPE_SEARCH, event.type)
-        val hit = event.memoryHits.single()
-        assertTrue("片段应包含命中词: ${hit.snippet}", hit.snippet.contains("旧书店"))
-        assertTrue(hit.snippet.length <= HostMemoryReads.SNIPPET_LIMIT)
-        assertEquals("7", hit.entry.id)
-        assertTrue(hit.entry.pinned)
+        val hit = event.memory.single()
+        // 命中片段现在**扁平挂在条目上**（客户端的 HostMemoryItem 就是扁平形状）；
+        // 用 requireNotNull 而不是 `?.` + `== true`：后者在 snippet 为 null 时只会静默失败，
+        // 给不出"扁平化没生效"这条信息。
+        val snippet = requireNotNull(hit.snippet) { "搜索命中必须自带片段，实际=$hit" }
+        assertTrue("片段应包含命中词: $snippet", snippet.contains("旧书店"))
+        assertTrue(snippet.length <= HostMemoryReads.SNIPPET_LIMIT)
+        assertEquals("7", hit.id)
+        assertTrue(hit.pinned)
         // 条目结构与列表同一套(正文按 200 字截断)。
-        assertTrue(hit.entry.content.length <= HostMemoryReads.CONTENT_LIMIT)
+        assertTrue(hit.content.length <= HostMemoryReads.CONTENT_LIMIT)
     }
 
     @Test
@@ -143,7 +147,7 @@ class HostMemoryReadsTest {
         val event = HostMemoryReads.searchEvent(query = "不存在的东西", records = emptyList(), requestId = "req-miss")
 
         assertEquals(HostMemoryReads.TYPE_SEARCH, event.type)
-        assertTrue(event.memoryHits.isEmpty())
+        assertTrue(event.memory.isEmpty())
         assertNull(event.error)
     }
 

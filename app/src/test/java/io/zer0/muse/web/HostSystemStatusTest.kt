@@ -149,7 +149,7 @@ class HostSystemStatusTest {
 
         // 网页端读到的是 JSON:七个顶层字段一个不少,capabilities 六项都是布尔字面量。
         val raw = browser.rawEvents.first { it.contains(HostSystemStatusReads.TYPE) }
-        val wire = AppJson.parseToJsonElement(raw).jsonObject["systemStatus"]!!.jsonObject
+        val wire = AppJson.parseToJsonElement(raw).jsonObject["system"]!!.jsonObject
         assertEquals(
             setOf("appVersion", "appVersionCode", "uptimeMs", "storage", "backup", "capabilities", "battery"),
             wire.keys,
@@ -201,7 +201,7 @@ class HostSystemStatusTest {
         assertNull(payload.backup.lastBackupAt)
 
         val raw = browser.rawEvents.first { it.contains(HostSystemStatusReads.TYPE) }
-        val capabilities = AppJson.parseToJsonElement(raw).jsonObject["systemStatus"]!!
+        val capabilities = AppJson.parseToJsonElement(raw).jsonObject["system"]!!
             .jsonObject["capabilities"]!!.jsonObject
         assertEquals(CAPABILITY_KEYS, capabilities.keys)
         capabilities.forEach { (key, value) ->

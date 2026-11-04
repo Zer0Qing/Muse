@@ -77,8 +77,8 @@ internal object HostMemoryReads {
     ): HostEvent = HostEvent(
         type = TYPE_SEARCH,
         requestId = requestId,
-        memoryHits = records.map { record ->
-            HostMemoryHit(entry = record.toEntry(), snippet = snippetOf(record.content, query))
+        memory = records.map { record ->
+            record.toEntry().copy(snippet = snippetOf(record.content, query))
         },
     )
 
