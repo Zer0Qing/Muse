@@ -1,6 +1,7 @@
 package io.zer0.muse.data.plugin
 
 import android.content.Context
+import io.zer0.common.Logger
 import java.io.File
 
 /**
@@ -31,6 +32,9 @@ object PluginKillSwitch {
     /** 关闭时给用户看的原因（工具结果、命令输出共用）。 */
     const val DISABLED_MESSAGE = "所有插件已在安全模式中停用（插件管理页可恢复）"
 
+    /** 日志标签：总闸这种"用户以为关掉了"的东西，失败必须查得到。 */
+    private const val TAG = "PluginKillSwitch"
+
     fun flagFile(context: Context): File = File(context.applicationContext.filesDir, FLAG_FILE)
 
     /**
@@ -57,9 +61,16 @@ object PluginKillSwitch {
             runCatching {
                 file.parentFile?.mkdirs()
                 file.writeText(System.currentTimeMillis().toString())
+            }.onFailure { e ->
+                // 总闸没落下去是**最不该无声**的一种失败：用户以为所有插件已经停用，
+                // 实际它们还在跑。返回值虽然会如实显示"没关上"，但原因只有日志知道。
+                Logger.w(TAG, "插件总闸写入失败（想关却没关上）path=${file.absolutePath} | ${e.message ?: e.javaClass.simpleName}", e)
             }
         } else {
             runCatching { if (file.exists()) file.delete() }
+                .onFailure { e ->
+                    Logger.w(TAG, "插件总闸解除失败（标志文件删不掉）path=${file.absolutePath} | ${e.message ?: e.javaClass.simpleName}", e)
+                }
         }
         return isDisabled(context)
     }
