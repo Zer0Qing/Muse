@@ -468,9 +468,54 @@ public final class ServerService extends IVirtualDisplayService.Stub {
                         return encoded[0].length;
                     },
                     MAX_JPEG_BYTES);
-            return encoded[0];
+            if (encoded[0].length <= MAX_JPEG_BYTES) {
+                return encoded[0];
+            }
+            // 质量退到底还超限：接着缩尺寸。不能把超限帧直接回给客户端 ——
+            // Binder 单事务上限约 1MB，塞过去是事务失败而不是"慢一点"，
+            // 而客户端只会把异常当成"屏失效"去重建兼容屏，然后同样失败。
+            final Bitmap[] holder = new Bitmap[1];
+            try {
+                final float scale = JpegQualityLadder.chooseScale(
+                        size -> {
+                            // 探针每档调一次，上一张不回收就漏 native 内存
+                            if (holder[0] != null && holder[0] != cropped) {
+                                holder[0].recycle();
+                            }
+                            holder[0] = scaleOf(cropped, size);
+                            encoded[0] = compress(
+                                    holder[0],
+                                    JpegQualityLadder.QUALITIES[JpegQualityLadder.QUALITIES.length - 1]);
+                            return encoded[0].length;
+                        },
+                        MAX_JPEG_BYTES);
+                if (scale <= 0f) {
+                    // 怎么缩都超限：按契约返回 null（协议注释写的就是"超时/失败返回 null"），
+                    // 让客户端明确知道"这帧拿不到"，而不是收一个注定失败的事务。
+                    Main.log("screenshot dropped: still " + encoded[0].length
+                            + " bytes after the whole ladder (cap " + MAX_JPEG_BYTES + ")");
+                    return null;
+                }
+                Main.log("screenshot downscaled to " + (int) (scale * 100) + "% to fit "
+                        + MAX_JPEG_BYTES + " bytes");
+                return encoded[0];
+            } finally {
+                if (holder[0] != null && holder[0] != cropped) {
+                    holder[0].recycle();
+                }
+            }
         } finally {
             cropped.recycle();
         }
+    }
+
+    /** 按系数等比缩小（最低质量仍超限时用；缩完再编一次）。 */
+    private static Bitmap scaleOf(Bitmap src, float scale) {
+        if (scale >= 1f) {
+            return src;
+        }
+        int w = Math.max(1, Math.round(src.getWidth() * scale));
+        int h = Math.max(1, Math.round(src.getHeight() * scale));
+        return Bitmap.createScaledBitmap(src, w, h, true);
     }
 }

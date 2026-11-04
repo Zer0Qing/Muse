@@ -41,4 +41,34 @@ final class JpegQualityLadder {
         }
         return QUALITIES[QUALITIES.length - 1];
     }
+
+    /**
+     * 质量退到底仍超限时，再往下缩尺寸（2026-11-04 补）。
+     *
+     * 原来这里有个自相矛盾的地方：注释说"宁可糊一点也要给图，因为拿不到图会毁掉整步任务"，
+     * 可 `createDisplay` 允许到 1920x2560 —— 那种帧在最低质量下仍可能超过
+     * {@link #MAX_BYTES}，而超尺寸的 byte[] 过 Binder 会直接事务失败，
+     * 客户端只会把异常当成"屏失效"去重建兼容屏，然后同样失败 ——
+     * 结果既没给到图，还多烧掉一次重建。
+     * 所以"始终给一张图"要成立，必须连尺寸一起退。
+     */
+    static final float[] SCALE_STEPS = {0.75f, 0.6f, 0.5f};
+
+    /** 缩放后的体积探针（与 {@link SizeProbe} 同理：编码由调用方做，这里只做判断）。 */
+    interface ScaledSizeProbe {
+        int sizeAt(float scale);
+    }
+
+    /**
+     * 选出第一个能放进上限的缩放系数；怎么缩都超限时返回 `0f`，
+     * 由调用方按契约放弃（返回 null）而不是把超限帧硬塞进 Binder。
+     */
+    static float chooseScale(ScaledSizeProbe probe, int maxBytes) {
+        for (float scale : SCALE_STEPS) {
+            if (probe.sizeAt(scale) <= maxBytes) {
+                return scale;
+            }
+        }
+        return 0f;
+    }
 }
