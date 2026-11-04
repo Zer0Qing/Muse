@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.plugin.PluginCommandRegistry
+import androidx.compose.ui.platform.LocalContext
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.tools.SkillMediaToolsImpl
 import io.zer0.muse.ui.theme.MusePaddings
@@ -82,9 +83,16 @@ fun rememberPluginCommandHost(setInput: (String) -> Unit): PluginCommandHost {
     val pluginManager: PluginManager = koinInject()
     val settings: SettingsRepository = koinInject()
     val mediaTools: SkillMediaToolsImpl = koinInject()
-    return remember(pluginManager, settings, mediaTools) {
+    val context = LocalContext.current
+    return remember(pluginManager, settings, mediaTools, context) {
         PluginCommandHost(
-            registry = PluginCommandRegistry(pluginManager) { settings.arePluginsGloballyEnabled() },
+            // 与执行侧同一把闸：设置总开关 **且** 安全模式的文件标志。
+            // 只查设置项会造成"命令照常列出、按下去被拒"的割裂；
+            // 而执行侧（SkillMediaToolsImpl.prepareDeclaredCall）查的是并了文件标志的那个谓词。
+            registry = PluginCommandRegistry(pluginManager) {
+                !io.zer0.muse.data.plugin.PluginKillSwitch.isDisabled(context) &&
+                    settings.arePluginsGloballyEnabled()
+            },
             mediaTools = mediaTools,
             setInput = setInput,
         )

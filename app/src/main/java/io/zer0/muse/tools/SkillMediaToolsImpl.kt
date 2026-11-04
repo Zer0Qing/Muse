@@ -389,7 +389,7 @@ class SkillMediaToolsImpl(
      * [forInteractiveUi] 只影响两条 UI 专属规则（`ui.interactive` 授权 + node 运行时）：
      * 命令没有这两条限制 —— js 档单轮桥接也能返回一段文本，没必要为此拒绝。
      */
-    private fun prepareDeclaredCall(
+    private suspend fun prepareDeclaredCall(
         pluginId: String,
         handlerName: String,
         forInteractiveUi: Boolean,
@@ -400,6 +400,14 @@ class SkillMediaToolsImpl(
         val function = manager?.loadVerifiedFunction(pluginId, handlerName)
         val ledger = PluginCapabilityLedgers.shared(context)
         val reason = when {
+            // 总闸必须在这里也查一遍。以前只有工具路径（execPluginTool）查，
+            // 于是"安全模式已停用所有插件"的界面承诺对**斜杠命令**与**面板提交**不成立：
+            // 那两条路一路走到这里，只看插件自己的 enabled 标志，插件代码照样执行。
+            // 判的是同一个注入谓词（生产接线里它=设置总开关 ∧ 安全模式文件标志），
+            // 所以三条执行入口现在共用一把闸，不会各留一份。
+            !pluginsGloballyEnabled() ->
+                "插件总闸处于关闭状态（设置 → 工具与扩展 → 插件，或安全模式里的「停用所有插件」），" +
+                    "本次不执行插件代码。"
             manager == null || plugin == null -> "插件未安装: $pluginId"
             !plugin.enabled -> "插件已禁用: ${plugin.name}"
             verified == null -> "插件入口校验失败: $pluginId"
