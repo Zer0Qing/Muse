@@ -199,16 +199,16 @@ sealed class ProviderError {
             // IOException 优先归为 Network(即使 code 非 null,如 SSE 中断后 IOException)。
             throwable is IOException ->
                 Network(
-                    displayMessage = safeErrorDetail(throwable.message.orEmpty()) ?: "network error",
+                    displayMessage = safeErrorDetail(throwable.message.orEmpty()) ?: "网络错误",
                     cause = throwable,
                 )
             code != null -> fromHttpStatus(code, body, retryAfterSec)
             throwable != null ->
                 Unknown(
-                    displayMessage = safeErrorDetail(throwable.message.orEmpty()) ?: "unknown error",
+                    displayMessage = safeErrorDetail(throwable.message.orEmpty()) ?: "未知错误",
                     cause = throwable,
                 )
-            else -> Unknown(displayMessage = body.ifBlank { "unknown error" })
+            else -> Unknown(displayMessage = body.ifBlank { "未知错误" })
         }
 
         private fun fromHttpStatus(code: Int, body: String, retryAfterSec: Int?): ProviderError = when {

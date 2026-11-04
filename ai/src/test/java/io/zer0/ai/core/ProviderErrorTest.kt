@@ -52,6 +52,19 @@ class ProviderErrorTest {
     }
 
     @Test
+    fun `没有可展示的细节时用中文兜底句而不是英文`() {
+        // 这些句子会原样进界面（如「视觉分析失败: …」）。以前留的是
+        // "network error" / "unknown error" —— 中文用户看到一句没头没尾的英文，
+        // 而本模块别处的兜底早就是中文（"流式响应为空，正在切换请求方式"）。
+        val network = ProviderError.from(java.io.IOException(""))
+        val unknown = ProviderError.from(code = null, body = "")
+
+        assertEquals("网络错误", network.displayMessage)
+        assertEquals("未知错误", unknown.displayMessage)
+        assertTrue("不能退化成裸英文", !network.displayMessage.contains("network error"))
+    }
+
+    @Test
     fun throwableMessagesDoNotCopyCredentialQueryParameters() {
         val error = ProviderError.from(
             java.io.IOException("https://provider.example/v1?api_key=sk-live-query-secret"),

@@ -398,7 +398,7 @@ class AnthropicProvider(
                         }
                         // H-ANT4: error 事件
                         "error" -> {
-                            val errMsg = chunk.error?.message ?: "Anthropic stream error"
+                            val errMsg = chunk.error?.message ?: "Anthropic 流式响应出错"
                             Logger.w("AnthropicProvider", "streamChat error event: ${chunk.error?.type}: $errMsg")
                             finished.set(true)
                             trySend(ChatStreamEvent.Error(errMsg))

@@ -160,7 +160,7 @@ class ImageService(
                 when (pollResult.status) {
                     PollStatus.SUCCESS -> return pollResult.images
                     PollStatus.FAILED -> {
-                        val msg = pollResult.errorMessage ?: "image generation failed"
+                        val msg = pollResult.errorMessage ?: "图片生成失败"
                         error(ErrorCode.IMAGE_GEN_FAILED.toMessage(msg))
                     }
                     PollStatus.PENDING -> {

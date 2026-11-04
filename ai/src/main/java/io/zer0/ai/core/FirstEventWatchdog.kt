@@ -178,7 +178,7 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
             }
             if (!finished.get()) {
                 finished.set(true)
-                trySend(ChatStreamEvent.Error(t.message ?: "stream failed", t))
+                trySend(ChatStreamEvent.Error(t.message ?: "流式请求失败", t))
                 close()
             }
         }
