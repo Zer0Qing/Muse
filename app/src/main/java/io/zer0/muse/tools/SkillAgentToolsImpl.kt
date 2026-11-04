@@ -265,7 +265,20 @@ class SkillAgentToolsImpl(
         if (message.isBlank()) return context.getString(R.string.skill_message_blank)
 
         val scheduler = groupChatSchedulerProvider?.invoke()
-            ?: return context.getString(R.string.skill_agent_phone_not_configured)
+        if (scheduler == null) {
+            // 两种 null 的排查方向不同，必须分开说：
+            //  provider 为 null 是**装配漏接**（这句归因只能在这里给出）；
+            //  provider 给了但取不到，原因由 lookupOrNull 记在上游日志里，这里只补一句定位。
+            Logger.w(
+                "SkillAgentTools",
+                if (groupChatSchedulerProvider == null) {
+                    "agent_phone 不可用：未注入 groupChatSchedulerProvider（装配漏接，检查 Koin 里 SkillAgentTools 的构造参数）"
+                } else {
+                    "agent_phone 不可用：GroupChatScheduler 取不到（原因见上一条 LazyLookup 日志）"
+                },
+            )
+            return context.getString(R.string.skill_agent_phone_not_configured)
+        }
 
         val target = resultOf { assistantRepository.getById(targetAssistantId) }
             .onError { msg, _ -> Logger.w("SkillAgentTools", "agent_phone getById 失败: $msg") }

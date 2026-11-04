@@ -873,7 +873,12 @@ val appModule = module {
             agentTools = get(),
             delegateTools = get(),
             groupChatSchedulerProvider = {
-                runCatching { get<io.zer0.muse.schedule.GroupChatScheduler>() }.getOrNull()
+                // 降级行为不变（取不到就返回 null，工具报「未配置」），
+                // 但**失败原因必须留在日志里**：以前这句是裸 runCatching，
+                // 生产上装配出错也一声不响，排查时只知道"没配上"、不知道为什么。
+                io.zer0.muse.util.lookupOrNull("GroupChatScheduler") {
+                    get<io.zer0.muse.schedule.GroupChatScheduler>()
+                }
             },
         )
     }
