@@ -33,6 +33,8 @@ Thumbs.db
 !/docs/sticker/**
 !/docs/miniphone/
 !/docs/miniphone/**
+!/docs/memory/
+!/docs/memory/**
 !/docs/assets/
 !/docs/assets/readme/
 !/docs/assets/readme/**
