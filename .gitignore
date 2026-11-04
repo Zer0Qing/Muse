@@ -41,6 +41,8 @@ Thumbs.db
 !/docs/ai/**
 !/docs/common/
 !/docs/common/**
+!/docs/accessibility/
+!/docs/accessibility/**
 !/docs/assets/
 !/docs/assets/readme/
 !/docs/assets/readme/**
