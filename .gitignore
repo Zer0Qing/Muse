@@ -35,6 +35,8 @@ Thumbs.db
 !/docs/miniphone/**
 !/docs/memory/
 !/docs/memory/**
+!/docs/conversation-core/
+!/docs/conversation-core/**
 !/docs/assets/
 !/docs/assets/readme/
 !/docs/assets/readme/**
