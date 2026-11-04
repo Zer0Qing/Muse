@@ -993,7 +993,6 @@
     <ID>TooManyFunctions:PluginManager.kt$PluginManager : PluginSkinSource</ID>
     <ID>TooManyFunctions:PluginSecurityGate.kt$PluginSecurityGate</ID>
     <ID>TooManyFunctions:PresetProviders.kt$PresetProviders</ID>
-    <ID>TooManyFunctions:ProactiveContextLoader.kt$ProactiveContextLoader</ID>
     <ID>TooManyFunctions:QuickCaptureOverlayService.kt$QuickCaptureOverlayService : Service</ID>
     <ID>TooManyFunctions:QuickNoteDao.kt$QuickNoteDao</ID>
     <ID>TooManyFunctions:QuickNotesViewModel.kt$QuickNotesViewModel : ViewModel</ID>
