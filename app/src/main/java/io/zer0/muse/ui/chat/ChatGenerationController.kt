@@ -41,6 +41,7 @@ import io.zer0.muse.ui.buildSendText
 import io.zer0.muse.ui.canContinueGeneration
 import io.zer0.muse.ui.canRegenerate
 import io.zer0.muse.ui.canStartGeneration
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.resumeFromInterrupted
 import io.zer0.muse.util.ErrorMessages
 import io.zer0.muse.util.MessageTokenCache
@@ -376,6 +377,19 @@ internal class ChatGenerationController(
                                 it.copy(hasMoreHistory = hasMore, isLoadingMore = false, lastHistoryLoadCount = 0)
                             }
                             enqueueSend(text, images, id, attachments)
+                        } catch (c: kotlinx.coroutines.CancellationException) {
+                            // 取消是正常控制流，原样抛回，不该被当成"发送失败"报给用户
+                            throw c
+                        } catch (e: Exception) {
+                            // 这段以前只有 finally：建会话 / 载入历史 / 入队任一环节抛异常，
+                            // 都会冒到 coroutineScope（崩或无声丢弃），而用户刚刚明明按了"发送"。
+                            // 现在：原因进日志 + 界面如实告知，并且不假装发送成功。
+                            Logger.w(
+                                "ChatVM",
+                                "Agent 会话创建失败，本次发送已取消: ${e.message ?: e.javaClass.simpleName}",
+                                e,
+                            )
+                            MuseToast.show(deps.appContext.getString(R.string.err_chat_agent_session_failed))
                         } finally {
                             deps.generationState.isCreatingAgentSession = false
                         }
