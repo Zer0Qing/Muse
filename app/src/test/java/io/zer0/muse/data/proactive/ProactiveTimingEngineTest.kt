@@ -149,6 +149,54 @@ class ProactiveTimingEngineTest {
         assertEquals(ProactiveTimingEngine.Verdict.NO_BUDGET, decision.verdict)
     }
 
+    /**
+     * 顺序契约（`ProactiveTimingEngine.evaluate` 上方注释：「顺序不能调换」）。
+     *
+     * 时机类硬闸必须排在额度之前：两者同时成立时，如果报成「没额度」，
+     * 日志写的是「今天说满了」，而真相是「现在本来就不该说」——
+     * 排查方向完全相反（一个去看配额，一个去看免打扰时段），所以值得单独钉住。
+     */
+    @Test
+    fun `免打扰时段与额度耗尽同时成立时报时机不报额度`() {
+        val decision = ProactiveTimingEngine.evaluate(
+            input().copy(
+                // 23:30 在默认免打扰时段内
+                now = localMillis(2026, 10, 25, 23, 30),
+                relation = relation().copy(
+                    spentToday = 15,
+                    intimacy = 0.15f,
+                    intensity = ProactiveIntensity.STANDARD.name,
+                ),
+            ),
+        )
+
+        assertEquals(
+            "预算为 0 但此刻也不该说话时，结论必须是时机类拦截（否则日志会把人带去查配额）",
+            ProactiveTimingEngine.Verdict.QUIET_HOUR,
+            decision.verdict,
+        )
+        assertFalse(decision.shouldSend)
+        // 额度信息仍要如实带出，方便一眼看到「其实也没额度了」——只是不作为结论
+        assertTrue("剩余预算要如实报告，实际 ${decision.remainingBudget}", decision.remainingBudget < 1f)
+    }
+
+    @Test
+    fun `冷却与额度耗尽同时成立时报冷却`() {
+        val decision = ProactiveTimingEngine.evaluate(
+            input().copy(
+                relation = relation().copy(
+                    // 冷却还没结束 + 今天已经发满
+                    cooldownUntil = baseNow + 60_000L,
+                    spentToday = 15,
+                    intimacy = 0.15f,
+                    intensity = ProactiveIntensity.STANDARD.name,
+                ),
+            ),
+        )
+
+        assertEquals(ProactiveTimingEngine.Verdict.COOLDOWN, decision.verdict)
+    }
+
     @Test
     fun `标准档发到第 14 条时仍有额度`() {
         val decision = ProactiveTimingEngine.evaluate(
