@@ -6,6 +6,7 @@ import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.withIdleWatchdog
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
 import io.zer0.ai.core.ModelOutputPolicy
@@ -203,7 +204,11 @@ class ChatService(
         // B3-01: SSE 建立后长时间无首事件(默认 45s,推理/超长上下文档 90s),自动降级为非流式重试一次
         // v2.x: 15s→45s — 慢模型首 token 常在 15s 之后,过早降级导致“整段弹出”+ 双倍等待
         // 审计修复 (7.8): 用户已停止时不再 fallback(省一次计费请求)
-        return provider.streamChat(request).withFirstEventWatchdog(
+        //
+        // 帧间看门狗挂在**原始流**上、首事件看门狗之内：
+        // 外层的非流式回退可以合法地几分钟不吐事件(callTimeout 600s),
+        // 套在外面会把正常回退误杀成死流 —— 顺序是有意的。
+        return provider.streamChat(request).withIdleWatchdog().withFirstEventWatchdog(
             timeoutMs = model?.firstEventTimeoutMs() ?: DEFAULT_FIRST_EVENT_TIMEOUT_MS,
             fallback = { provider.completeText(request) },
             abortCheck = { request.abortSignal.aborted },
