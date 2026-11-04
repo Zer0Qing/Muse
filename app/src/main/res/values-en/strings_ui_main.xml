@@ -963,6 +963,8 @@
     <string name="workspace_mount_read_only">Read-only</string>
     <string name="workspace_mount_remove">Remove</string>
     <string name="workspace_mount_added">Mounted %1$s</string>
+    <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
+    <string name="workspace_mount_remove_failed">Couldn’t remove “%1$s” — it is still in the list</string>
     <string name="workspace_mount_failed">Mount failed: %1$s</string>
     <string name="workspace_read_only_hint">Read-only mount, contents can\'t be changed</string>
 </resources>

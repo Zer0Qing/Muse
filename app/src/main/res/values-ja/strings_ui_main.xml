@@ -860,6 +860,8 @@
     <string name="workspace_mount_read_only">読み取り専用</string>
     <string name="workspace_mount_remove">削除</string>
     <string name="workspace_mount_added">%1$s をマウントしました</string>
+    <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
+    <string name="workspace_mount_remove_failed">「%1$s」を削除できませんでした。一覧に残っています</string>
     <string name="workspace_mount_failed">マウント失敗：%1$s</string>
     <string name="workspace_read_only_hint">読み取り専用のため変更できません</string>
 </resources>

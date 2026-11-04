@@ -859,6 +859,8 @@
     <string name="workspace_mount_read_only">읽기 전용</string>
     <string name="workspace_mount_remove">제거</string>
     <string name="workspace_mount_added">%1$s 마운트됨</string>
+    <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
+    <string name="workspace_mount_remove_failed">“%1$s”을(를) 제거하지 못했습니다. 목록에 남아 있습니다</string>
     <string name="workspace_mount_failed">마운트 실패: %1$s</string>
     <string name="workspace_read_only_hint">읽기 전용 마운트라 수정할 수 없습니다</string>
 </resources>

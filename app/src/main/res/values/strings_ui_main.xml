@@ -974,6 +974,8 @@
     <string name="workspace_mount_read_only">只读</string>
     <string name="workspace_mount_remove">移除</string>
     <string name="workspace_mount_added">已挂载 %1$s</string>
+    <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
+    <string name="workspace_mount_remove_failed">没能移除「%1$s」，它还在列表里</string>
     <string name="workspace_mount_failed">挂载失败：%1$s</string>
     <string name="workspace_read_only_hint">只读挂载，不能修改里面的内容</string>
 </resources>

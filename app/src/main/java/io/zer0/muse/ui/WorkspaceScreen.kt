@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.common.FileSizeFormatter
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -670,9 +671,24 @@ fun WorkspaceScreen(
                                 androidx.compose.material3.TextButton(
                                     onClick = {
                                         scope.launch {
-                                            workspaceManager.removeMount(mount.id)
+                                            // removeMount 会返回"是否真删掉一条"：以前直接丢掉返回值，
+                                            // 失败时下面的 mounts() 刷新会把原条目重新画出来 ——
+                                            // 用户按下"移除"却什么都没变，也没有任何一句话。
+                                            val removed = workspaceManager.removeMount(mount.id)
                                             mounts = workspaceManager.mounts()
                                             if (currentMountId == mount.id) currentPath = ""
+                                            if (!removed) {
+                                                Logger.w(
+                                                    "WorkspaceScreen",
+                                                    "移除挂载失败 id=${mount.id} label=${mount.label}（列表未变）",
+                                                )
+                                                MuseToast.show(
+                                                    context.getString(
+                                                        R.string.workspace_mount_remove_failed,
+                                                        mount.label,
+                                                    ),
+                                                )
+                                            }
                                         }
                                     },
                                 ) {
