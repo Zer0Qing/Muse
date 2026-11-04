@@ -395,7 +395,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
-                android:resource="@xml/muse_accessibility_service" />
+                android:resource="@xml/accessibility_service_config" />
         </service>
         <!-- 系统数字助理入口（P1-04）：用户在系统设置里把 Muse 设为默认助理后，
              长按 Home/电源键会走这里。BIND_VOICE_INTERACTION 由系统持有，普通应用绑不上。 -->

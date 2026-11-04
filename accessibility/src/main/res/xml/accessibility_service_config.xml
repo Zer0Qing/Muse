@@ -9,10 +9,18 @@
     - notificationTimeout: 事件节流 100ms
     - packageNames: 不声明 = 监听所有应用。注意不能写空串——空串会被解析成“空包名”过滤器,
       导致零事件送达(窗口缓存为空,getCurrentActivityName 恒空、rootInActiveWindow 为 null)。
+
+    v2.6.22: 这份是**两个组件的唯一真源** —— 主应用内的无障碍服务与
+    :accessibility-provider APK 里的服务都指向它。以前主应用另有一份
+    `app/res/xml/muse_accessibility_service.xml`，两边已经漂了：那份多了
+    `flagReportViewIds` 与 `typeViewTextChanged`。
+    漂移目前不至于出事（读 `viewIdResourceName` 的代码只在主应用进程内跑，而它用的是自己那份），
+    但“同一个服务配置写两处”就是下一次漂移的种子，而那种漂移的表现是
+    「provider 授权了、按 resource-id 却点不动」——极难查。
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewClicked|typeViewScrolled"
-    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewClicked|typeViewScrolled|typeViewTextChanged"
+    android:accessibilityFlags="flagDefault|flagReportViewIds|flagRetrieveInteractiveWindows"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
