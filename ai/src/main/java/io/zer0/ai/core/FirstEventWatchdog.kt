@@ -9,14 +9,34 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
+ * 首事件超时的**唯一真源**。
+ *
+ * 原先这个数散在三处：`firstEventTimeoutMs` 的默认参数、`withFirstEventWatchdog` 的默认参数
+ * （**还停在 15s**）、以及 app 侧 `AiModule` 里又抄的一份 `45_000L`。
+ * 15s 正是下面注释里写明"过短、害用户等双倍时间"的那个旧值 —— 它留在默认参数上，
+ * 等于给任何一个省略参数的新调用方发一张**已知有坑的**默认档。
+ */
+const val DEFAULT_FIRST_EVENT_TIMEOUT_MS: Long = 45_000L
+
+/** 深度推理 / 超长上下文模型的放宽档：首 token 天然慢，按普通档会误判死流。 */
+const val RELAXED_FIRST_EVENT_TIMEOUT_MS: Long = 90_000L
+
+/** 超过这个上下文规模就按放宽档算（大窗口首包通常明显更慢）。 */
+const val LARGE_CONTEXT_WINDOW: Int = 200_000
+
+/**
  * R-AI-04: 深度推理/超长上下文模型放宽首事件超时,普通模型保持默认。
  *
  * v2.x: 默认 15s→45s、推理/超长上下文档 60s→90s。15s 对慢队列/冷启动模型过短 —
  * 首 token 稍慢就被误判为死流、取消流式并重发非流式请求:用户被迫等待双倍时间,
  * 且回复以“整段一次性弹出”的方式出现(用户反馈)。
  */
-internal fun Model.firstEventTimeoutMs(defaultMs: Long = 45_000L): Long =
-    if (supportsReasoning() || (contextWindow ?: 0) > 200_000) 90_000L else defaultMs
+internal fun Model.firstEventTimeoutMs(defaultMs: Long = DEFAULT_FIRST_EVENT_TIMEOUT_MS): Long =
+    if (supportsReasoning() || (contextWindow ?: 0) > LARGE_CONTEXT_WINDOW) {
+        RELAXED_FIRST_EVENT_TIMEOUT_MS
+    } else {
+        defaultMs
+    }
 
 /**
  * B3-01: 首事件看门狗。
@@ -30,7 +50,7 @@ internal fun Model.firstEventTimeoutMs(defaultMs: Long = 45_000L): Long =
  * UNLIMITED,与 OpenAIProvider 的 C-35 修复同一方案。
  */
 fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
-    timeoutMs: Long = 15_000L,
+    timeoutMs: Long = DEFAULT_FIRST_EVENT_TIMEOUT_MS,
     fallback: suspend () -> ChatCompletion,
     // 审计修复 (7.8): 可选取消检查 — 调用方传入"用户是否已停止"的判断,
     // fallback 触发前检查,避免用户停止后仍发一次计费请求。

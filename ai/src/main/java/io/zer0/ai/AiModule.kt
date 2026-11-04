@@ -17,6 +17,7 @@ import io.zer0.ai.core.ProviderType
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
+import io.zer0.ai.core.DEFAULT_FIRST_EVENT_TIMEOUT_MS
 import io.zer0.ai.core.firstEventTimeoutMs
 import io.zer0.ai.core.withFirstEventWatchdog
 import io.zer0.ai.gemini.GeminiProvider
@@ -203,7 +204,7 @@ class ChatService(
         // v2.x: 15s→45s — 慢模型首 token 常在 15s 之后,过早降级导致“整段弹出”+ 双倍等待
         // 审计修复 (7.8): 用户已停止时不再 fallback(省一次计费请求)
         return provider.streamChat(request).withFirstEventWatchdog(
-            timeoutMs = model?.firstEventTimeoutMs() ?: 45_000L,
+            timeoutMs = model?.firstEventTimeoutMs() ?: DEFAULT_FIRST_EVENT_TIMEOUT_MS,
             fallback = { provider.completeText(request) },
             abortCheck = { request.abortSignal.aborted },
         )

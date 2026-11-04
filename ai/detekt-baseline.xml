@@ -3,13 +3,7 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ComplexCondition:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$code == 429 &amp;&amp; !anyDeltaSent.get() &amp;&amp; retryCount &lt; maxRetries &amp;&amp; !request.abortSignal.aborted &amp;&amp; !producerScope.isClosedForSend &amp;&amp; switchToNextKey()</ID>
-    <ID>ComplexCondition:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$isRetryable &amp;&amp; !anyDeltaSent.get() &amp;&amp; retryCount &lt; maxRetries &amp;&amp; !producerScope.isClosedForSend</ID>
-    <ID>ComplexCondition:GeminiProvider.kt$GeminiProvider$specific is ProviderSpecificConfig.Gemini &amp;&amp; specific.useVertexAI &amp;&amp; specific.useServiceAccount &amp;&amp; specific.serviceAccountEmail.isNotBlank() &amp;&amp; specific.privateKey.isNotBlank()</ID>
     <ID>ComplexCondition:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$code == 429 &amp;&amp; !anyDeltaSent.get() &amp;&amp; attempt.get() &lt; MAX_RETRIES &amp;&amp; !request.abortSignal.aborted &amp;&amp; !scope.isClosedForSend &amp;&amp; switchToNextKey()</ID>
-    <ID>ComplexCondition:OpenAIProvider.kt$OpenAIProvider$code == 429 &amp;&amp; !request.abortSignal.aborted &amp;&amp; keySwitchDepth &lt; MAX_KEY_SWITCHES &amp;&amp; switchToNextKey()</ID>
-    <ID>ComplexCondition:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$code == 429 &amp;&amp; !anyDeltaSent.get() &amp;&amp; retryCount.get() &lt; MAX_RETRIES &amp;&amp; !request.abortSignal.aborted &amp;&amp; switchToNextKey()</ID>
-    <ID>ComplexCondition:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$isRetryable &amp;&amp; !anyDeltaSent.get() &amp;&amp; retryCount.incrementAndGet() &lt;= MAX_RETRIES &amp;&amp; !request.abortSignal.aborted</ID>
-    <ID>ComplexCondition:ProviderTemplateEngine.kt$ProviderTemplateEngine$value is JsonPrimitive &amp;&amp; value.isString &amp;&amp; (leadingQuote == "\"" || trailingQuote == "\"")</ID>
     <ID>ConstructorParameterNaming:AnthropicDto.kt$AnthropicCompletionResponse$val stop_reason: String? = null</ID>
     <ID>ConstructorParameterNaming:AnthropicDto.kt$AnthropicContentBlockStart$val content_block: AnthropicContentBlock? = null</ID>
     <ID>ConstructorParameterNaming:AnthropicDto.kt$AnthropicDelta$val partial_json: String? = null</ID>
@@ -47,31 +41,22 @@
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesUsage$val total_tokens: Int? = null</ID>
     <ID>CyclomaticComplexMethod:AgnesImageProvider.kt$AgnesImageProvider$override suspend fun submit(request: ImageGenRequest): ImageSubmitResult</ID>
     <ID>CyclomaticComplexMethod:AgnesImageProvider.kt$AgnesImageProvider.Companion$suspend fun resolveReferenceImage(ref: String, urlValidator: RefImageUrlValidator? = null): String</ID>
-    <ID>CyclomaticComplexMethod:AgnesVideoProvider.kt$AgnesVideoProvider$override suspend fun poll(taskId: String): VideoPollResult</ID>
-    <ID>CyclomaticComplexMethod:AnthropicProvider.kt$AnthropicProvider$private fun parseErrorMessage(code: Int, body: String): String</ID>
     <ID>CyclomaticComplexMethod:AnthropicProvider.kt$AnthropicProvider$private fun splitSystem(messages: List&lt;UIMessage&gt;, model: Model): Pair&lt;List&lt;AnthropicSystemBlock&gt;?, List&lt;AnthropicMessage&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:AnthropicProvider.kt$AnthropicProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
-    <ID>CyclomaticComplexMethod:FirstEventWatchdog.kt$fun Flow&lt;ChatStreamEvent&gt;.withFirstEventWatchdog( timeoutMs: Long = 15_000L, fallback: suspend () -&gt; ChatCompletion, // 审计修复 (7.8): 可选取消检查 — 调用方传入"用户是否已停止"的判断, // fallback 触发前检查,避免用户停止后仍发一次计费请求。 abortCheck: () -&gt; Boolean = { false }, ): Flow&lt;ChatStreamEvent&gt;</ID>
+    <ID>CyclomaticComplexMethod:FirstEventWatchdog.kt$fun Flow&lt;ChatStreamEvent&gt;.withFirstEventWatchdog( timeoutMs: Long = DEFAULT_FIRST_EVENT_TIMEOUT_MS, fallback: suspend () -&gt; ChatCompletion, // 审计修复 (7.8): 可选取消检查 — 调用方传入"用户是否已停止"的判断, // fallback 触发前检查,避免用户停止后仍发一次计费请求。 abortCheck: () -&gt; Boolean = { false }, ): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:GeminiImageProvider.kt$GeminiImageProvider$override suspend fun submit(request: ImageGenRequest): ImageSubmitResult</ID>
     <ID>CyclomaticComplexMethod:GeminiProvider.kt$GeminiProvider$private fun splitSystem(messages: List&lt;UIMessage&gt;): Pair&lt;String?, List&lt;GeminiContent&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:GeminiProvider.kt$GeminiProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:GeminiProvider.kt$GeminiProvider$suspend fun uploadFile(bytes: ByteArray, mimeType: String, displayName: String? = null): String</ID>
-    <ID>CyclomaticComplexMethod:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$override suspend fun poll(taskId: String): VideoPollResult</ID>
-    <ID>CyclomaticComplexMethod:ImageService.kt$ImageService$suspend fun generate(prompt: String, params: ImageGenParams = ImageGenParams(), providerConfig: ProviderConfig? = null): List&lt;String&gt;</ID>
     <ID>CyclomaticComplexMethod:KlingVideoProvider.kt$KlingVideoProvider$override suspend fun poll(taskId: String): VideoPollResult</ID>
-    <ID>CyclomaticComplexMethod:KlingVideoProvider.kt$KlingVideoProvider$override suspend fun submit(request: VideoGenRequest): VideoSubmitResult</ID>
-    <ID>CyclomaticComplexMethod:ModelCapabilityQuery.kt$ModelCapabilityQuery$fun snapshot( modelId: String, compat: ProviderCompat? = null, providerSupportsNonStreaming: Boolean? = null, providerId: String? = null, ): ModelCapabilitySnapshot</ID>
     <ID>CyclomaticComplexMethod:ModelContextWindowRegistry.kt$ModelContextWindowRegistry$fun lookup(modelId: String): Int?</ID>
     <ID>CyclomaticComplexMethod:ModelRegistry.kt$ModelRegistry$fun enhanceModel(model: Model): Model</ID>
     <ID>CyclomaticComplexMethod:ModelRegistry.kt$ModelRegistry$fun enrich(model: Model): Model</ID>
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$override suspend fun submit(request: ImageGenRequest): ImageSubmitResult</ID>
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$private fun inferImageMime(bytes: ByteArray): String</ID>
-    <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$private suspend fun resolveImageBytes(uri: String): ByteArray?</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$@OptIn(ExperimentalCoroutinesApi::class) // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义) private fun streamChatCompletions(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$@OptIn(ExperimentalCoroutinesApi::class) // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义) private fun streamChatResponses(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
-    <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null, carriesTools: Boolean = false): OpenAIMessage</ID>
-    <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun inferMimeType(base64: String): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun injectThinkingFormat(payload: OpenAIRequest, format: ThinkingFormat, level: io.zer0.ai.core.ReasoningLevel): String</ID>
@@ -81,43 +66,25 @@
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByModelId(modelId: String, hostKnown: Boolean): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderError.kt$@Deprecated( "Provider 应直接抛 ProviderException,用 (throwable as? ProviderException)?.providerError 替代字符串推断", ReplaceWith("(throwable as? ProviderException)?.providerError"), ) fun inferFromMessage(message: String, throwable: Throwable?): ProviderError?</ID>
-    <ID>CyclomaticComplexMethod:ProviderHttpSupport.kt$ProviderHttpSupport$protected fun warnIfBaseUrlLooksInternal(baseUrl: String)</ID>
-    <ID>CyclomaticComplexMethod:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
-    <ID>CyclomaticComplexMethod:ToolCallSanitizer.kt$ToolCallSanitizer$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
-    <ID>CyclomaticComplexMethod:VideoGenerationService.kt$VideoGenerationService$private suspend fun pollUntilCompletion( provider: VideoProvider, taskId: String, onProgress: ((elapsedSec: Long) -&gt; Unit)?, timeoutMs: Long, ): String</ID>
     <ID>InstanceOfCheckForException:AnthropicProvider.kt$AnthropicProvider$t is RuntimeException</ID>
     <ID>InstanceOfCheckForException:FirstEventWatchdog.kt$t is kotlinx.coroutines.CancellationException</ID>
     <ID>InstanceOfCheckForException:OpenAIProvider.kt$OpenAIProvider$t is OpenAIHttpException</ID>
     <ID>InstanceOfCheckForException:OpenAIProvider.kt$OpenAIProvider$t is kotlin.coroutines.cancellation.CancellationException</ID>
     <ID>InstanceOfCheckForException:Provider.kt$Provider$t is kotlinx.coroutines.CancellationException</ID>
     <ID>InstanceOfCheckForException:ProviderCompat.kt$ProviderCompatRules$t is kotlin.coroutines.cancellation.CancellationException</ID>
-    <ID>LargeClass:GeminiProvider.kt$GeminiProvider : ProviderHttpSupport</ID>
     <ID>LargeClass:KnownModels.kt$KnownModels</ID>
     <ID>LargeClass:OpenAIProvider.kt$OpenAIProvider : ProviderHttpSupport</ID>
     <ID>LongMethod:AnthropicProvider.kt$AnthropicProvider$fun connect()</ID>
     <ID>LongMethod:AnthropicProvider.kt$AnthropicProvider$private fun splitSystem(messages: List&lt;UIMessage&gt;, model: Model): Pair&lt;List&lt;AnthropicSystemBlock&gt;?, List&lt;AnthropicMessage&gt;&gt;</ID>
-    <ID>LongMethod:AnthropicProvider.kt$AnthropicProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
-    <ID>LongMethod:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String)</ID>
-    <ID>LongMethod:FirstEventWatchdog.kt$fun Flow&lt;ChatStreamEvent&gt;.withFirstEventWatchdog( timeoutMs: Long = 15_000L, fallback: suspend () -&gt; ChatCompletion, // 审计修复 (7.8): 可选取消检查 — 调用方传入"用户是否已停止"的判断, // fallback 触发前检查,避免用户停止后仍发一次计费请求。 abortCheck: () -&gt; Boolean = { false }, ): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>LongMethod:GeminiProvider.kt$GeminiProvider$fun startStream()</ID>
-    <ID>LongMethod:GeminiProvider.kt$GeminiProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
-    <ID>LongMethod:GeminiProvider.kt$GeminiProvider$suspend fun uploadFile(bytes: ByteArray, mimeType: String, displayName: String? = null): String</ID>
-    <ID>LongMethod:ModelRegistry.kt$ModelRegistry$fun enhanceModel(model: Model): Model</ID>
-    <ID>LongMethod:OpenAIImageProvider.kt$OpenAIImageProvider$override suspend fun submit(request: ImageGenRequest): ImageSubmitResult</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$fun connect()</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$fun emitDoneWithStreamGuard(finishReason: String?)</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
-    <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
-    <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
-    <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextResponses(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String)</ID>
-    <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?)</ID>
-    <ID>LongMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
     <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, toolChoice: String? = null, nativeWebSearch: Boolean = false, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, resumeFromText: String? = null, topP: Float? = null, sessionId: String? = null, )</ID>
     <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, toolChoice: String? = null, nativeWebSearch: Boolean = false, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.UTILITY, topP: Float? = null, sessionId: String? = null, )</ID>
     <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model?, temperature: Float?, maxTokens: Int?, tools: List&lt;ToolDefinition&gt;?, toolChoice: String?, nativeWebSearch: Boolean, reasoningLevel: ReasoningLevel, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, topP: Float? = null, sessionId: String? = null, )</ID>
     <ID>LongParameterList:AnthropicProvider.kt$AnthropicProvider$( model: String, system: List&lt;AnthropicSystemBlock&gt;?, messages: List&lt;AnthropicMessage&gt;, temperature: Float?, maxTokens: Int?, stream: Boolean, reasoningLevel: ReasoningLevel? = null, tools: List&lt;ToolDefinition&gt;? = null, )</ID>
-    <ID>LongParameterList:GeminiProvider.kt$GeminiProvider$( system: String?, contents: List&lt;GeminiContent&gt;, temperature: Float?, maxTokens: Int?, reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO, supportsImageOutput: Boolean = false, tools: List&lt;ToolDefinition&gt;? = null, nativeWebSearch: Boolean = false, )</ID>
     <ID>LoopWithTooManyJumpStatements:ContextHistoryDigest.kt$ContextHistoryDigest$for</ID>
     <ID>LoopWithTooManyJumpStatements:OpenAIProvider.kt$OpenAIProvider$for</ID>
     <ID>LoopWithTooManyJumpStatements:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$while</ID>
@@ -127,62 +94,23 @@
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars, toolCalls=${toolCalls.size})"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$val hasEmptyNameToolCall = toolCallAccMap.values.any { !it.recoveredAsContent &amp;&amp; it.name.isNullOrBlank() &amp;&amp; it.args.isNotEmpty() }</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$"stream-guard: 空 name tool call 超过 $MAX_EMPTY_NAME_TOOL_CALLS 条,按正文增量恢复 (localIndex=$localIndex)"</ID>
-    <ID>MaxLineLength:ProviderRetryGenerationWiringTest.kt$ProviderRetryGenerationWiringTest$val anthropic = read("src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt", "ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt")</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_1","function":{"name":"","arguments":"{\"city\":\"北京\"}"}}]},"finish_reason":null}]}"""</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"tool_calls":[{"index":$index,"id":"call_bad_$index","function":{"name":"","arguments":"{\"chunk\":\"$index-very-long\"}"}}]},"finish_reason":null}]}"""</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"message":{"role":"assistant","content":"","tool_calls":[{"id":"call_fallback","type":"function","function":{"name":"echo","arguments":"{\"text\":\"ok\"}"}}]},"finish_reason":"tool_calls"}]}"""</ID>
     <ID>MaxLineLength:ToolTraceProjection.kt$ToolTraceProjection$"""(?i)(?:\berror\b|\bfail(?:ed|ure)?\b|\btimeout\b|\btimed out\b|\bdenied\b|\bblocked\b|\babort(?:ed)?\b|\bcancel(?:led|ed)?\b|\bexception\b|\bunavailable\b|\binvalid\b|\bpermission\b|\brate limit\b|\bhttp\s*[45][0-9][0-9]\b|失败|错误|超时|拒绝|阻止|未执行|中断|取消|异常|不可用|无权限|限流)"""</ID>
     <ID>NestedBlockDepth:AgnesImageProvider.kt$AgnesImageProvider.Companion$suspend fun resolveReferenceImage(ref: String, urlValidator: RefImageUrlValidator? = null): String</ID>
-    <ID>NestedBlockDepth:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$private fun extractVideoUrl(root: JsonObject): String?</ID>
-    <ID>NestedBlockDepth:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>NestedBlockDepth:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$fun readBodyCappedStreaming(response: Response, maxBytes: Int): Pair&lt;String, Boolean&gt;</ID>
-    <ID>NestedBlockDepth:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$private fun stripOrphanToolMessages(messages: List&lt;UIMessage&gt;): List&lt;UIMessage&gt;</ID>
-    <ID>NestedBlockDepth:VideoProviderRegistry.kt$VideoProviderRegistry$fun selectFor(config: ProviderConfig): VideoProvider</ID>
-    <ID>ReturnCount:AgnesImageProvider.kt$AgnesImageProvider.Companion$fun resolveSize(size: String?): String</ID>
-    <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String)</ID>
-    <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?)</ID>
-    <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onOpen(eventSource: EventSource, response: Response)</ID>
-    <ID>ReturnCount:ContextHistoryDigest.kt$ContextHistoryDigest$fun build(dropped: List&lt;UIMessage&gt;, maxChars: Int = DEFAULT_MAX_CHARS): UIMessage?</ID>
-    <ID>ReturnCount:GeminiProvider.kt$GeminiProvider$internal fun buildUrl(model: String, stream: Boolean): String</ID>
-    <ID>ReturnCount:GeminiProvider.kt$GeminiProvider$private fun isRetryableError(code: Int?, t: Throwable?): Boolean</ID>
-    <ID>ReturnCount:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String)</ID>
-    <ID>ReturnCount:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?)</ID>
     <ID>ReturnCount:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$override fun onOpen(eventSource: EventSource, response: Response)</ID>
-    <ID>ReturnCount:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$private fun extractVideoUrl(root: JsonObject): String?</ID>
     <ID>ReturnCount:ImageProviderRegistry.kt$ImageProviderRegistry$fun selectFor(config: ProviderConfig): ImageProvider?</ID>
-    <ID>ReturnCount:KeyRoulette.kt$KeyRoulette$fun pick(providerId: String, keysString: String): String</ID>
     <ID>ReturnCount:KnownModels.kt$KnownModels$fun lookup(modelId: String): KnownModelInfo?</ID>
-    <ID>ReturnCount:KnownModels.kt$KnownModels$fun lookupProvider(provider: String, modelId: String): KnownModelInfo?</ID>
     <ID>ReturnCount:ModelContextWindowRegistry.kt$ModelContextWindowRegistry$fun lookup(modelId: String): Int?</ID>
-    <ID>ReturnCount:ModelListCache.kt$ModelListCache$fun get(config: ProviderConfig, forceFresh: Boolean = false): List&lt;Model&gt;?</ID>
-    <ID>ReturnCount:ModelRegistry.kt$ModelRegistry$fun resolveDefinitions(modelId: String): List&lt;ModelDefinition&gt;</ID>
-    <ID>ReturnCount:ModelRegistry.kt$ModelRegistry$private fun catalogEntryFor(providerId: String, modelId: String): io.zer0.ai.core.ModelCatalogEntry?</ID>
-    <ID>ReturnCount:ModelRegistry.kt$ModelRegistry.TokenSequenceMatcher$override fun score(modelId: String, tokens: List&lt;String&gt;): Int?</ID>
-    <ID>ReturnCount:ModelRegistryDsl.kt$OrderedTokenRule$override fun evaluate(modelId: String, tokens: List&lt;String&gt;): Int?</ID>
-    <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$fun emitDoneWithStreamGuard(finishReason: String?)</ID>
-    <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.computeReasoningContentForReplay(compat: ProviderCompat?, carriesTools: Boolean): String?</ID>
-    <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$private fun mergeCustomBody(body: String): String</ID>
-    <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onClosed(eventSource: EventSource)</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String)</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?)</ID>
-    <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onOpen(eventSource: EventSource, response: Response)</ID>
-    <ID>ReturnCount:OpenAIProvider.kt$internal fun assignToolCallLocalIndex( apiIndex: Int, id: String?, name: String?, indexMap: MutableMap&lt;Int, Int&gt;, nextLocalIndex: Int, ): ToolCallIndexAssignment</ID>
     <ID>ReturnCount:ProviderError.kt$ProviderError.Companion$fun parseRetryAfter(headerValue: String?): Int?</ID>
-    <ID>ReturnCount:ProviderHttpSupport.kt$ProviderHttpSupport$protected fun warnIfBaseUrlLooksInternal(baseUrl: String)</ID>
-    <ID>ReturnCount:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$private fun stripOrphanToolMessages(messages: List&lt;UIMessage&gt;): List&lt;UIMessage&gt;</ID>
-    <ID>ReturnCount:ProviderPromptPatches.kt$ProviderPromptPatches$private fun isDeepSeekReasoningModel(model: Model, baseUrl: String, thinkingFormat: ThinkingFormat?): Boolean</ID>
-    <ID>ReturnCount:ProviderSpecMerger.kt$ProviderSpecMerger$fun enrichConfig(config: ProviderConfig, spec: ProviderConfig?): ProviderConfig</ID>
-    <ID>ReturnCount:ProviderSpecMerger.kt$ProviderSpecMerger$fun mergeModels(specModels: List&lt;Model&gt;, userModels: List&lt;Model&gt;): List&lt;Model&gt;</ID>
-    <ID>ReturnCount:ProviderTemplateEngine.kt$ProviderTemplateEngine$fun extractByPath(json: JsonElement, path: String): JsonElement?</ID>
-    <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$fun append(fragment: String?)</ID>
-    <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
     <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun tryMergeConcatenatedObjects(raw: String): JsonObject?</ID>
     <ID>ReturnCount:ToolCallSanitizer.kt$ToolCallSanitizer$internal fun repairArguments(raw: String): String?</ID>
-    <ID>ReturnCount:ToolTraceProjection.kt$ToolTraceProjection$fun project(messages: List&lt;UIMessage&gt;, keepRecentRounds: Int = DEFAULT_KEEP_RECENT_ROUNDS): List&lt;UIMessage&gt;</ID>
-    <ID>ReturnCount:ToolTraceProjection.kt$ToolTraceProjection$private fun findCompletedRoundAt(messages: List&lt;UIMessage&gt;, startIndex: Int): CompletedRound?</ID>
     <ID>ReturnCount:ToolTraceProjection.kt$ToolTraceProjection$private fun findProtocolRound( messages: List&lt;UIMessage&gt;, startIndex: Int, assistant: UIMessage, calls: List&lt;ToolCall&gt;, ): CompletedRound?</ID>
     <ID>ReturnCount:ToolTraceProjection.kt$ToolTraceProjection$private fun isFailureResult(result: UIMessage): Boolean</ID>
-    <ID>ReturnCount:VideoProviderRegistry.kt$VideoProviderRegistry$fun selectFor(config: ProviderConfig): VideoProvider</ID>
     <ID>SwallowedException:GeminiProvider.kt$GeminiProvider$e: Exception</ID>
     <ID>SwallowedException:OpenAIProvider.kt$OpenAIProvider$e: Exception</ID>
     <ID>SwallowedException:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$e: IllegalStateException</ID>
@@ -206,14 +134,9 @@
     <ID>TooGenericExceptionCaught:ToolTraceProjection.kt$ToolTraceProjection$error: Exception</ID>
     <ID>TooGenericExceptionCaught:VertexAiAuthToken.kt$VertexAiAuthToken$e: Exception</ID>
     <ID>TooGenericExceptionCaught:VideoGenerationService.kt$VideoGenerationService$e: Exception</ID>
-    <ID>TooManyFunctions:AgnesVideoProvider.kt$AgnesVideoProvider : VideoProvider</ID>
-    <ID>TooManyFunctions:AnthropicProvider.kt$AnthropicProvider : ProviderHttpSupport</ID>
     <ID>TooManyFunctions:GeminiProvider.kt$GeminiProvider : ProviderHttpSupport</ID>
     <ID>TooManyFunctions:ModelRegistry.kt$ModelRegistry</ID>
-    <ID>TooManyFunctions:ModelRegistry.kt$ModelRegistry$ModelDefinitionBuilder</ID>
-    <ID>TooManyFunctions:ModelRegistryDsl.kt$ModelDefinitionBuilder</ID>
     <ID>TooManyFunctions:OpenAIProvider.kt$OpenAIProvider : ProviderHttpSupport</ID>
-    <ID>UnusedParameter:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$model: Model</ID>
     <ID>UnusedPrivateProperty:ProviderError.kt$ProviderError.Companion$private const val TAG = "ProviderError"</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -154,8 +154,28 @@ class FirstEventWatchdogTest {
         val largeContext = Model(id = "l1", name = "l1", providerId = "p", contextWindow = 300_000)
         val normal = Model(id = "n1", name = "n1", providerId = "p")
 
-        assertEquals(90_000L, reasoning.firstEventTimeoutMs())
-        assertEquals(90_000L, largeContext.firstEventTimeoutMs())
-        assertEquals(45_000L, normal.firstEventTimeoutMs())
+        // 断言引用常量而不是再抄一遍数字：抄的那份会在有人改档位时悄悄留下旧值
+        assertEquals(RELAXED_FIRST_EVENT_TIMEOUT_MS, reasoning.firstEventTimeoutMs())
+        assertEquals(RELAXED_FIRST_EVENT_TIMEOUT_MS, largeContext.firstEventTimeoutMs())
+        assertEquals(DEFAULT_FIRST_EVENT_TIMEOUT_MS, normal.firstEventTimeoutMs())
+    }
+
+    @Test
+    fun `省略 timeoutMs 的新调用方不该拿到那个已知过短的 15 秒档`() = runTest {
+        // 必须用"一直挂着不吐事件"的流：空流会走"立即回退"那条快路径，
+        // 量不到看门狗的默认档（这里要的正是那个默认值）。
+        val hanging = flow<ChatStreamEvent> { kotlinx.coroutines.awaitCancellation() }
+
+        val startedAt = testScheduler.currentTime
+        val events = hanging
+            .withFirstEventWatchdog(fallback = { ChatCompletion(text = "回退内容", finishReason = "stop") })
+            .toList()
+        val waitedMs = testScheduler.currentTime - startedAt
+
+        assertTrue("最终仍要回退出内容", events.any { it is ChatStreamEvent.FallbackNotice })
+        assertTrue(
+            "默认档应是 $DEFAULT_FIRST_EVENT_TIMEOUT_MS ms，而不是旧的 15000ms；实际等了 $waitedMs ms",
+            waitedMs >= DEFAULT_FIRST_EVENT_TIMEOUT_MS,
+        )
     }
 }
