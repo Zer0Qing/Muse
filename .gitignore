@@ -45,6 +45,8 @@ Thumbs.db
 !/docs/accessibility/**
 !/docs/material3/
 !/docs/material3/**
+!/docs/virtual-display/
+!/docs/virtual-display/**
 !/docs/assets/
 !/docs/assets/readme/
 !/docs/assets/readme/**
