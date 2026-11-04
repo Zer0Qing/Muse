@@ -39,58 +39,79 @@ object ChatMessageRenderRows {
             message.role == io.zer0.ai.core.MessageRole.ASSISTANT &&
             message.content.length > ChatRenderChunks.maxChunkCharacters
 
-    fun hasRenderableFooter(
-        message: UIMessage,
-        isStreaming: Boolean,
-        isTranslating: Boolean,
-        isLastAssistant: Boolean,
-        chatPreferences: ChatPreferences,
-        showsModelName: Boolean,
-        showsTokenStats: Boolean,
-        branchCount: Int,
-        canContinue: Boolean,
-    ): Boolean {
-        if (isStreaming || isTranslating) return false
-        if (message.role != io.zer0.ai.core.MessageRole.ASSISTANT) return false
-        if (showsModelName || showsTokenStats || branchCount > 1 || canContinue) return true
-        val content = message.content
-        val hasContent = content.isNotEmpty()
-        val hasReasoning = !message.reasoning.isNullOrBlank()
-        if (chatPreferences.quickActionOrder.isNotEmpty()) {
-            return chatPreferences.quickActionOrder
-                .mapNotNull(QuickAction::fromId)
-                .any { action ->
-                    when (action) {
-                        QuickAction.COPY, QuickAction.TRANSLATE, QuickAction.SHARE -> hasContent
-                        QuickAction.REASONING ->
-                            hasReasoning && (chatPreferences.quickActionReasoning || !hasContent)
-                        QuickAction.REGENERATE -> isLastAssistant
-                        QuickAction.DELETE, QuickAction.FAVORITE -> hasContent || hasReasoning
-                        QuickAction.TTS -> hasContent
-                        QuickAction.EDIT -> false
-                        QuickAction.QUOTE,
-                        QuickAction.ANNOTATE,
-                        QuickAction.DELEGATE,
-                        QuickAction.FORK,
-                        QuickAction.MULTI_SELECT,
-                        QuickAction.INFO,
-                        QuickAction.FORWARD,
-                        -> true
-                    }
-                }
+    /**
+     * 决定「这条消息要不要留页脚」所需的全部事实。
+     *
+     * 以前这 9 个参数是一个个传的：调用方看不出哪些属于这条消息、哪些属于全局设置，
+     * 而判定逻辑也因为参数太多没法单独测。收成一处之后，「页脚由什么决定」第一次
+     * 成为一个能单独说清、单独构造的对象。
+     */
+    data class FooterFacts(
+        val message: UIMessage,
+        val isStreaming: Boolean,
+        val isTranslating: Boolean,
+        val isLastAssistant: Boolean,
+        val chatPreferences: ChatPreferences,
+        val showsModelName: Boolean,
+        val showsTokenStats: Boolean,
+        val branchCount: Int,
+        val canContinue: Boolean,
+    )
+
+    fun hasRenderableFooter(facts: FooterFacts): Boolean {
+        if (facts.isStreaming || facts.isTranslating) return false
+        if (facts.message.role != io.zer0.ai.core.MessageRole.ASSISTANT) return false
+        // 只要有一块别的信息要显示（模型名 / token 统计 / 多个分支 / 可继续），页脚就得存在
+        if (facts.showsModelName || facts.showsTokenStats || facts.branchCount > 1 || facts.canContinue) {
+            return true
         }
-        return (chatPreferences.quickActionCopy && hasContent) ||
-            (chatPreferences.quickActionTranslate && hasContent) ||
-            (chatPreferences.quickActionShare && hasContent) ||
-            (
-                (chatPreferences.quickActionReasoning || !hasContent) &&
-                    hasReasoning
-                ) ||
-            (chatPreferences.quickActionRegenerate && isLastAssistant) ||
-            (
-                chatPreferences.quickActionDelete &&
-                    (hasContent || hasReasoning)
-                )
+        val hasContent = facts.message.content.isNotEmpty()
+        val hasReasoning = !facts.message.reasoning.isNullOrBlank()
+        val ordered = facts.chatPreferences.quickActionOrder.mapNotNull(QuickAction::fromId)
+        return if (ordered.isNotEmpty()) {
+            ordered.any { action -> rendersFor(action, facts, hasContent, hasReasoning) }
+        } else {
+            legacyFlagsNeedFooter(facts, hasContent, hasReasoning)
+        }
+    }
+
+    /** 某个快捷动作在这条消息上**按得动吗** —— 按不动的动作不该把页脚撑出来。 */
+    private fun rendersFor(
+        action: QuickAction,
+        facts: FooterFacts,
+        hasContent: Boolean,
+        hasReasoning: Boolean,
+    ): Boolean = when (action) {
+        QuickAction.COPY, QuickAction.TRANSLATE, QuickAction.SHARE -> hasContent
+        QuickAction.REASONING ->
+            hasReasoning && (facts.chatPreferences.quickActionReasoning || !hasContent)
+        QuickAction.REGENERATE -> facts.isLastAssistant
+        QuickAction.DELETE, QuickAction.FAVORITE -> hasContent || hasReasoning
+        QuickAction.TTS -> hasContent
+        QuickAction.EDIT -> false
+        QuickAction.QUOTE,
+        QuickAction.ANNOTATE,
+        QuickAction.DELEGATE,
+        QuickAction.FORK,
+        QuickAction.MULTI_SELECT,
+        QuickAction.INFO,
+        QuickAction.FORWARD,
+        -> true
+    }
+
+    /** 老口径：没有 `quickActionOrder` 时，按各个独立开关判断。 */
+    private fun legacyFlagsNeedFooter(
+        facts: FooterFacts,
+        hasContent: Boolean,
+        hasReasoning: Boolean,
+    ): Boolean {
+        val prefs = facts.chatPreferences
+        return (prefs.quickActionCopy && hasContent) ||
+            (prefs.quickActionTranslate && hasContent) ||
+            (prefs.quickActionShare && hasContent) ||
+            ((prefs.quickActionReasoning || !hasContent) && hasReasoning) ||
+            (prefs.quickActionRegenerate && facts.isLastAssistant) ||
+            (prefs.quickActionDelete && (hasContent || hasReasoning))
     }
 
     fun project(

@@ -301,6 +301,7 @@ class ChatMessageRenderRowsTest {
 
         val hasFooter =
             ChatMessageRenderRows.hasRenderableFooter(
+                ChatMessageRenderRows.FooterFacts(
                 message = message,
                 isStreaming = false,
                 isTranslating = false,
@@ -319,6 +320,7 @@ class ChatMessageRenderRowsTest {
                 showsTokenStats = false,
                 branchCount = 1,
                 canContinue = false,
+                )
             )
 
         assertFalse(hasFooter)

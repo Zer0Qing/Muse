@@ -712,29 +712,31 @@ fun ChatScreen(
                             hasRichContent = hasRichContent,
                         ) ||
                             ChatMessageRenderRows.hasRenderableFooter(
-                                message = message,
-                                isStreaming = isStreaming,
-                                isTranslating =
-                                    state.isTranslating &&
-                                        state.translatingMessageId == message.id,
-                                isLastAssistant =
-                                    message.id == lastVisibleMessageId &&
-                                        message.role == MessageRole.ASSISTANT,
-                                chatPreferences = state.chatPreferences,
-                                showsModelName = state.chatPreferences.showModelName,
-                                showsTokenStats =
-                                    message.id == lastVisibleMessageId &&
-                                        state.tokenEstimateEnabled,
-                                branchCount = message.variantCount,
-                                canContinue =
-                                    message.id == lastVisibleMessageId &&
-                                        (
-                                            message.content.contains("[已中断]") ||
-                                                (
-                                                    truncatedMarker.isNotBlank() &&
-                                                        message.content.contains(truncatedMarker)
-                                                    )
-                                            ),
+                                ChatMessageRenderRows.FooterFacts(
+                                    message = message,
+                                    isStreaming = isStreaming,
+                                    isTranslating =
+                                        state.isTranslating &&
+                                            state.translatingMessageId == message.id,
+                                    isLastAssistant =
+                                        message.id == lastVisibleMessageId &&
+                                            message.role == MessageRole.ASSISTANT,
+                                    chatPreferences = state.chatPreferences,
+                                    showsModelName = state.chatPreferences.showModelName,
+                                    showsTokenStats =
+                                        message.id == lastVisibleMessageId &&
+                                            state.tokenEstimateEnabled,
+                                    branchCount = message.variantCount,
+                                    canContinue =
+                                        message.id == lastVisibleMessageId &&
+                                            (
+                                                message.content.contains("[已中断]") ||
+                                                    (
+                                                        truncatedMarker.isNotBlank() &&
+                                                            message.content.contains(truncatedMarker)
+                                                        )
+                                ),
+                            ),
                             ),
                 )
             }
