@@ -97,17 +97,24 @@ internal object CardScript {
   // 只允许在用户最近一次点击后的短暂窗口内回传，防止卡片加载时静默注入消息。
   function withinGesture(){ return Date.now() - lastTap <= 1500; }
 
+  // 桥调用失败要报回宿主，否则“点了卡片按钮没反应”这件事在两边都没有痕迹。
+  function reportBridgeFailure(where, err){
+    try {
+      bridge && bridge.reportError(where + ': ' + ((err && err.message) ? err.message : String(err)));
+    } catch (ignored) {}
+  }
+  
   window.muse.send = function(text, state){
     if (!bridge || !withinGesture()) return;
     var body = String(text == null ? '' : text);
     if (state === undefined || state === null) {
-      try { bridge.send(body); } catch (e) { }
+      try { bridge.send(body); } catch (e) { reportBridgeFailure('send', e); }
       return;
     }
     var payload;
     try { payload = (typeof state === 'string') ? state : JSON.stringify(state); }
     catch (e) { payload = null; }
-    try { bridge.sendWithData(body, payload); } catch (e) { }
+    try { bridge.sendWithData(body, payload); } catch (e) { reportBridgeFailure('sendWithData', e); }
   };
 
   // 声明式回传：元素上写 data-m-invoke="要发的话"，点一下就走 send。

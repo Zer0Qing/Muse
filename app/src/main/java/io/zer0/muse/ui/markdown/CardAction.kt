@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
 import org.json.JSONObject
+import io.zer0.common.Logger
 
 /**
  * v1.0.92: 卡片回传动作 — 富内容卡片(HTML/SVG)与宿主之间的最小契约。
@@ -68,7 +69,9 @@ sealed interface CardAction {
  * `window.muse.send(text)`(引导脚本封装,见 [CARD_BRIDGE_BOOTSTRAP_JS])回传动作。
  *
  * 安全边界:
- *  - 仅暴露 [send] / [getData] 两个方法,不允许脚本读取任何宿主数据;
+ *  - 只暴露 [send] / [sendWithData] / [getData] 与**只写不读**的 [reportError]；
+ *    脚本读不到任何宿主数据，也拿不走任何回调 —— [reportError] 唯一的作用是
+ *    把卡片内部的失败写进宿主日志（长度截断，防止刷日志）;
  *    卡片只能拿到宿主主动注入的 [cardId];
  *  - 回调切回主线程执行;空文本丢弃;
  *  - 桥仅在调用方提供回传回调的卡片上注入(聊天消息场景),其余场景(如工件查看)
@@ -111,6 +114,21 @@ internal class MuseCardBridge(
         if (trimmed.isEmpty() && payload == null) return
         // 纯状态、无摘要时留空串，由 ViewModel 侧补本地化文案。
         mainHandler.post { onAction(CardAction.Send(trimmed, cardId, payload)) }
+    }
+
+    /**
+     * 卡片内部失败的唯一出口：把异常文本写进宿主日志。
+     *
+     * 为什么需要它：桥是**单向**的 —— JS 调宿主失败时（桥被回收、参数不合法、
+     * WebView 正在销毁），卡片脚本只能 `catch` 住然后什么都不做。
+     * 用户看到的就是"点了卡片上的按钮没反应"，而宿主这边**一行日志都没有**。
+     *
+     * 这里只记日志、不改变任何行为，也不回任何东西给脚本（所以不构成新的读取面）。
+     */
+    @JavascriptInterface
+    fun reportError(message: String) {
+        val detail = message.trim().take(MAX_REPORT_LENGTH).ifBlank { "卡片未提供原因" }
+        Logger.w(TAG, "卡片内部报错 cardId=${cardId ?: "无"} | $detail")
     }
 
     /**
@@ -187,7 +205,11 @@ internal class MuseCardBridge(
         const val BRIDGE_NAME = "MuseCardBridge"
 
         /** 单次回传文本上限(字符),防止脚本滥用注入超长消息。 */
+        private const val TAG = "MuseCardBridge"
         private const val MAX_ACTION_TEXT_LENGTH = 4000
+        // 上报文本的上限：桥的方法可以被卡片脚本任意次调用，
+        // 不限长度就等于让一张写坏的卡把日志刷满。
+        private const val MAX_REPORT_LENGTH = 500
 
         /** 单次回传状态上限(字符)。状态是结构化数据，比摘要允许更长，但仍需设上限。 */
         private const val MAX_ACTION_DATA_LENGTH = 16_000
@@ -224,19 +246,27 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
   document.addEventListener('touchend', function(){ __museLastTap = Date.now(); }, true);
   // v2.6.7: 卡片身份。宿主注入，只读；无桥或未注入时为 null。
   try { window.muse.cardId = MuseCardBridge.getCardId(); } catch (e) { window.muse.cardId = null; }
+  // 桥调用失败不是“可以忽略”：用户看到的“点了没反应”只有这一层能报出来。
+  // 再套一层 try：桥本身都没了的时候，报错这件事也不能把脚本带崩。
+  function reportBridgeFailure(where, err){
+    try {
+      MuseCardBridge.reportError(where + ': ' + ((err && err.message) ? err.message : String(err)));
+    } catch (ignored) {}
+  }
+  
   window.muse.send = function(text, state){
     // 安全守卫:仅允许在用户最近一次点击/触摸后的短暂窗口内回传,
     // 防止卡片脚本在加载时静默注入消息。
     if (Date.now() - __museLastTap > 1500) return;
     var body = String(text == null ? '' : text);
     if (state === undefined || state === null) {
-      try { MuseCardBridge.send(body); } catch (e) { /* bridge send failures are non-fatal */ }
+      try { MuseCardBridge.send(body); } catch (e) { reportBridgeFailure('send', e); }
       return;
     }
     var payload;
     try { payload = typeof state === 'string' ? state : JSON.stringify(state); }
     catch (e) { payload = null; }
-    try { MuseCardBridge.sendWithData(body, payload); } catch (e) { /* non-fatal */ }
+    try { MuseCardBridge.sendWithData(body, payload); } catch (e) { reportBridgeFailure('sendWithData', e); }
   };
   // v2.0: 卡片数据绑定 — 按 cardId 读取宿主绑定的 JSON 数据
   // 不传参时默认读自己这张卡。

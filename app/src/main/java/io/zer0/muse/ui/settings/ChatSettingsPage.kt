@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.ChatGradient
 import io.zer0.muse.data.ChatPreferences
@@ -230,7 +231,17 @@ fun ChatSettingsPage(
                                         out.close()
                                         // 兼容旧值:已存 base64 的继续用,新值存路径(以 file:// 开头区分)
                                         "file://" + target.absolutePath
-                                    }.getOrNull()
+                                    }
+                                        // toast 只说"失败了"，原因只有日志知道：
+                                        // 读不到所选文件、解不出位图、写不进 filesDir 是三种不同修法。
+                                        .onFailure { e ->
+                                            Logger.w(
+                                                "ChatSettings",
+                                                "设置聊天背景失败 uri=$picked | 原因: ${e.message ?: e.javaClass.simpleName}",
+                                                e,
+                                            )
+                                        }
+                                        .getOrNull()
                                 }
                             if (savedPath != null) {
                                 settings.saveChatBackground(savedPath)

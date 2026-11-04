@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -165,7 +166,17 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                         context.contentResolver.openOutputStream(uri)?.use { output ->
                             output.write(artifact.content.toByteArray(Charsets.UTF_8))
                         } != null
-                    }.getOrDefault(false)
+                    }
+                        // 界面会 toast「保存失败」，但**原因只有日志知道**：
+                        // 权限被收回、目标卷已满、SAF 拒写是三种完全不同的修法。
+                        .onFailure { e ->
+                            Logger.w(
+                                "ArtifactViewer",
+                                "导出产物失败 uri=$uri | 原因: ${e.message ?: e.javaClass.simpleName}",
+                                e,
+                            )
+                        }
+                        .getOrDefault(false)
                 }
                 MuseToast.show(
                     context.getString(
