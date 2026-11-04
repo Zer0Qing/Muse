@@ -104,15 +104,24 @@ internal suspend fun importArchiveBundle(archiveUri: Uri, archiveName: String, f
             reader.use { scanArchiveEntries(it, format, archiveName, kbId, deps) }
         }
     } catch (e: Exception) {
-        resultOf { deps.kbDao.delete(kbId) }
+        // 半途失败：删掉刚建的空知识库，再把原异常继续抛给调用方（报错由它负责）。
+        rollbackKnowledgeBase(deps.kbDao, kbId, "导入失败回滚")
         throw e
     } finally {
         stagedArchive?.let { resultOf { it.delete() } }
     }
 
     if (result.imported <= 0) {
-        resultOf { deps.kbDao.delete(kbId) }
-        MuseToast.show(deps.context.getString(R.string.knowledge_zip_empty))
+        val cleaned = rollbackKnowledgeBase(deps.kbDao, kbId, "压缩包内无可导入内容")
+        // 没清干净就要说得出下一步：列表里会留一个点开什么都没有的条目，
+        // 而只说「没有可导入的文档」会让用户两句对不上，以为程序坏了。
+        MuseToast.show(
+            if (cleaned) {
+                deps.context.getString(R.string.knowledge_zip_empty)
+            } else {
+                deps.context.getString(R.string.knowledge_zip_empty_leftover, kbName)
+            },
+        )
     } else {
         MuseToast.show(
             deps.context.getString(
@@ -123,6 +132,27 @@ internal suspend fun importArchiveBundle(archiveUri: Uri, archiveName: String, f
             ),
         )
     }
+}
+
+/**
+ * 删掉导入过程中临时建出来的知识库条目，返回**是否真删干净**。
+ *
+ * 以前这里是 `resultOf { … }` 直接把结果丢掉：回滚失败没人知道，
+ * 于是列表里留下一个"刚建好、点开什么都没有"的条目，
+ * 而用户看到的提示是「压缩包内没有可导入的文档」——两句对不上，只能以为程序坏了。
+ *
+ * 失败一定留痕（带 kbId 与原因）；成功保持安静：这是清理路径，不是业务动作。
+ */
+internal suspend fun rollbackKnowledgeBase(kbDao: KnowledgeBaseDao, kbId: String, reason: String): Boolean {
+    val outcome = resultOf { kbDao.delete(kbId) }
+    outcome.onError { message, throwable ->
+        Logger.w(
+            "KbArchiveImport",
+            "$reason 时清理临时知识库失败 kbId=$kbId | 原因: $message",
+            throwable,
+        )
+    }
+    return outcome.isSuccess
 }
 
 private fun stageArchive(uri: Uri, format: ArchiveFormat, context: Context): File {

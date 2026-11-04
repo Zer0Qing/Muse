@@ -279,6 +279,8 @@
     <string name="knowledge_zip_progress">Extracting and importing… (%1$d imported)</string>
     <string name="knowledge_zip_done">Created knowledge base %1$s: %2$d documents imported, %3$d skipped</string>
     <string name="knowledge_zip_empty">No importable documents found in the archive</string>
+    <!-- 回滚没清干净时说这句：否则列表里留着一个打不开的条目，而提示只说「没有可导入的文档」，用户两句对不上 -->
+    <string name="knowledge_zip_empty_leftover">No importable documents in the archive, and the temporary entry was not removed: delete “%1$s” from the list manually</string>
     <string name="knowledge_import_empty">Import failed: file content is empty</string>
     <!-- v1.0.47 P7-3: File size friendly prompt -->
     <string name="knowledge_file_too_large_title">File Too Large</string>

@@ -252,6 +252,8 @@
     <string name="knowledge_zip_progress">Extrayendo e importando… (%1$d importados)</string>
     <string name="knowledge_zip_done">Se creó la base de conocimientos %1$s: %2$d documentos importados, %3$d omitidos</string>
     <string name="knowledge_zip_empty">No se encontraron documentos importables en el archivo</string>
+    <!-- 回滚没清干净时说这句：否则列表里留着一个打不开的条目，而提示只说「没有可导入的文档」，用户两句对不上 -->
+    <string name="knowledge_zip_empty_leftover">No hay documentos importables en el archivo, y la entrada temporal no se eliminó: elimina «%1$s» de la lista manualmente</string>
     <string name="knowledge_import_empty">Falló la importación: el contenido del archivo está vacío</string>
     <!-- v1.0.47 P7-3: File size friendly prompt -->
     <string name="knowledge_file_too_large_title">Archivo demasiado grande</string>

@@ -252,6 +252,8 @@
     <string name="knowledge_zip_progress">解凍してインポート中…(インポート済み %1$d 件)</string>
     <string name="knowledge_zip_done">ナレッジベース %1$s を作成:文書 %2$d 件をインポート、%3$d 件をスキップ</string>
     <string name="knowledge_zip_empty">インポート可能な文書が見つかりませんでした</string>
+    <!-- 回滚没清干净时说这句：否则列表里留着一个打不开的条目，而提示只说「没有可导入的文档」，用户两句对不上 -->
+    <string name="knowledge_zip_empty_leftover">インポート可能な文書がなく、一時エントリの削除にも失敗しました：一覧から「%1$s」を手動で削除してください</string>
     <string name="knowledge_import_empty">インポートに失敗しました: ファイルの内容が空です</string>
     <!-- v1.0.47 P7-3: File size friendly prompt -->
     <string name="knowledge_file_too_large_title">ファイルが大きすぎます</string>

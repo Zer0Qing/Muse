@@ -252,6 +252,8 @@
     <string name="knowledge_zip_progress">Извлечение и импорт… (импортировано: %1$d)</string>
     <string name="knowledge_zip_done">Создана база знаний %1$s: импортировано документов: %2$d, пропущено: %3$d</string>
     <string name="knowledge_zip_empty">В архиве нет документов для импорта</string>
+    <!-- 回滚没清干净时说这句：否则列表里留着一个打不开的条目，而提示只说「没有可导入的文档」，用户两句对不上 -->
+    <string name="knowledge_zip_empty_leftover">В архиве нет импортируемых документов, а временная запись не удалена: удалите «%1$s» из списка вручную</string>
     <string name="knowledge_import_empty">Не удалось импортировать: содержимое файла пусто.</string>
     <!-- v1.0.47 P7-3: File size friendly prompt -->
     <string name="knowledge_file_too_large_title">Файл слишком большой</string>

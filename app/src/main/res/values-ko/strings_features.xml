@@ -252,6 +252,8 @@
     <string name="knowledge_zip_progress">압축 해제 후 가져오는 중…(%1$d개 완료)</string>
     <string name="knowledge_zip_done">기술 자료 %1$s 생성: 문서 %2$d개 가져옴, %3$d개 건너뜀</string>
     <string name="knowledge_zip_empty">가져올 수 있는 문서가 없습니다</string>
+    <!-- 回滚没清干净时说这句：否则列表里留着一个打不开的条目，而提示只说「没有可导入的文档」，用户两句对不上 -->
+    <string name="knowledge_zip_empty_leftover">가져올 수 있는 문서가 없으며 임시 항목도 삭제되지 않았습니다. 목록에서 “%1$s”를 수동으로 삭제하세요</string>
     <string name="knowledge_import_empty">가져오기 실패: 파일 콘텐츠가 비어 있습니다.</string>
     <!-- v1.0.47 P7-3: File size friendly prompt -->
     <string name="knowledge_file_too_large_title">파일이 너무 큼</string>

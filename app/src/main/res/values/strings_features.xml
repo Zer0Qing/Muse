@@ -419,6 +419,8 @@
     <string name="knowledge_zip_progress">正在解压导入…(已导入 %1$d 个)</string>
     <string name="knowledge_zip_done">已创建知识库「%1$s」：导入 %2$d 个文档，跳过 %3$d 个</string>
     <string name="knowledge_zip_empty">压缩包内没有可导入的文档</string>
+    <!-- 回滚没清干净时说这句：否则列表里留着一个打不开的条目，而提示只说「没有可导入的文档」，用户两句对不上 -->
+    <string name="knowledge_zip_empty_leftover">压缩包内没有可导入的文档，且临时条目未能自动清理：请在列表里手动删除「%1$s」</string>
     <string name="knowledge_import_empty">导入失败： 文件内容为空</string>
     <!-- v1.0.47 P7-3: 文件大小友好提示 -->
     <string name="knowledge_file_too_large_title">文件过大</string>
