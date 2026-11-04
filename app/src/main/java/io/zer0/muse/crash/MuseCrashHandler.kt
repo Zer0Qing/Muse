@@ -141,6 +141,9 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
     companion object {
         private const val TAG = "MuseCrashHandler"
         private const val SAFE_MODE_FLAG = "safe_mode.flag"
+        /** 标记内容：旧版本一直写的是 "1"，所以按内容判仍然兼容旧文件。 */
+        internal const val SAFE_MODE_MARK_ON = "1"
+        internal const val SAFE_MODE_MARK_OFF = "0"
         private const val MAX_CRASH_LOGS = 5
 
         // L4-1: 崩溃日志时间戳格式串
@@ -284,14 +287,48 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
             MuseCrashHandler(appContext).install()
         }
 
-        /**
-         * 检查是否应进入 Safe Mode(上次崩溃)。
+/**
+         * 安全模式标记是否**有效**。
          *
-         * v2.0+: 同时检查文件 flag 和 SP safe_mode_pending,任一存在即返回 true。
-         * 双检保证旧版本(只写文件)升级后仍能识别 Safe Mode 状态。
+         * 以前判的是"文件存在"，于是清除**只能靠删文件**；而 `File.delete()` 失败是
+         * 返回 false 不抛异常（目录项被占用等情形就会失败）。删不掉的结果是用户
+         * **永远卡在安全模式**：点了"继续正常启动"，下次照旧进来，而且看不出为什么。
+         *
+         * 现在按内容判：旧版本写的本来就是 "1"（三处写入点都一样），所以读得到 "1" 才算标记在；
+         * 清除时仍优先删文件，删不掉改成写 "0" —— 写文件只需要文件可写，比删目录项容易得多。
          */
-        fun checkSafeMode(appContext: Context): Boolean = File(appContext.filesDir, SAFE_MODE_FLAG).exists() ||
-            safeModeSp(appContext).getBoolean(SP_KEY_PENDING, false)
+        internal fun hasSafeModeMark(file: File): Boolean = runCatching {
+            file.isFile && file.readText().trim() == SAFE_MODE_MARK_ON
+        }.getOrDefault(false)
+
+        /**
+         * 清除标记：先删，删不掉再写 "0"。
+         *
+         * @param deleter 删除动作，默认 `File.delete()`；留成参数是为了能让
+         *                "删不掉"这条分支被测出来（真造一个不可删的文件跨平台不稳定）。
+         * @return "deleted" / "cleared" / null（两种办法都没生效）
+         */
+        internal fun clearSafeModeMark(
+            flagFile: File,
+            deleter: (File) -> Boolean = { it.delete() },
+        ): String? {
+            if (!flagFile.exists()) return "deleted"
+            val removed = runCatching { deleter(flagFile) }.getOrDefault(false)
+            if (removed) return "deleted"
+            val overwritten = runCatching { flagFile.writeText(SAFE_MODE_MARK_OFF); true }.getOrDefault(false)
+            return if (overwritten && !hasSafeModeMark(flagFile)) "cleared" else null
+        }
+
+        /**
+        * 检查是否应进入 Safe Mode(上次崩溃)。
+        *
+        * v2.0+: 同时检查文件 flag 和 SP safe_mode_pending,任一存在即返回 true。
+        * 双检保证旧版本(只写文件)升级后仍能识别 Safe Mode 状态。
+        */
+
+        fun checkSafeMode(appContext: Context): Boolean =
+            hasSafeModeMark(File(appContext.filesDir, SAFE_MODE_FLAG)) ||
+                safeModeSp(appContext).getBoolean(SP_KEY_PENDING, false)
 
         /**
          * 清除 Safe Mode 标记(用户确认后调用,下次正常启动)。
@@ -309,13 +346,25 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
          *     回退展示旧崩溃堆栈(即使 SP 已清空,文件残留仍会让用户看到旧崩溃信息)
          */
         fun clearSafeModeFlag(appContext: Context) {
-            File(appContext.filesDir, SAFE_MODE_FLAG).delete()
+            val flagFile = File(appContext.filesDir, SAFE_MODE_FLAG)
+            when (clearSafeModeMark(flagFile)) {
+                null -> Logger.w(
+                    TAG,
+                    "安全模式标记既删不掉也改写不了：下次启动仍会进安全模式 path=${flagFile.absolutePath}",
+                )
+                "cleared" -> Logger.i(TAG, "安全模式标记删不掉，已改写为 0 生效")
+                else -> Unit
+            }
             // commit() 同步落盘:后续立即 killProcess,apply() 异步写可能未完成,
             // 导致下次启动 SP 中 safe_mode_pending 仍为 true,反复进入安全模式
             safeModeSp(appContext).edit().clear().commit()
-            // 同步清除崩溃日志文件:SafeModeScreen 在 SP 无 crash_trace 时会回退读文件,
-            // 不清理会导致下次启动仍展示旧崩溃堆栈
-            listCrashLogs(appContext).forEach { it.delete() }
+            // 崩溃日志删不掉要留数：SafeModeScreen 在 SP 无 crash_trace 时会回退读文件，
+            // 残留文件会让用户下次仍看到**上一次**的崩溃堆栈
+            var failed = 0
+            listCrashLogs(appContext).forEach { f ->
+                if (!runCatching { f.delete() }.getOrDefault(false)) failed += 1
+            }
+            if (failed > 0) Logger.w(TAG, "崩溃日志有 ${failed} 个没删掉，SafeModeScreen 可能仍展示旧堆栈")
         }
 
         /**
