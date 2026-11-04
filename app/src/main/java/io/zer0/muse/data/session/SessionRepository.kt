@@ -520,6 +520,12 @@ class SessionRepository(
     /** 删除会话(级联删消息 + FTS 索引)。 */
     suspend fun deleteSession(id: String) {
         // Phase 10.3: 先删 FTS 索引(依赖 messages 表子查询,必须在 messages 被级联删之前)
+        //   这个顺序在 fts4 模式下是硬要求，而 `MessageFtsRuntime.useFts5` 默认就是 false（生产默认路径）：
+        //   `deleteFtsBySession` 写的是 `message_id IN (SELECT id FROM messages WHERE sessionId=…)`，
+        //   等级联删完再跑就一行也删不掉 —— 表现是「会话删了、搜索还搜得到它的消息」，
+        //   点进去是一个不存在的会话（不崩，但会误导）。
+        //   fts5 模式下这些 sync* 全是空操作，索引由 DDL 的 AFTER DELETE 触发器维护，顺序无所谓。
+        //   2026-11-04 用 SessionFtsDeleteOrderTest 做过「调换顺序」的实验，两种表现都已确认。
         // H-SESS1: 跨表(FTS + sessions)用事务包裹,保证一致性
         withContext(Dispatchers.IO) {
             val messageIds = database.withTransaction {
@@ -1498,6 +1504,8 @@ class SessionRepository(
     /** truncateFrom 的非事务版本,供已在事务内的调用方(如 [deleteLastMessage])复用。 */
     private suspend fun truncateFromInternal(sessionId: String, fromCreatedAt: Long) {
         // Phase 10.3: 先删 FTS(依赖 messages 子查询,必须在 messages 删除之前)
+        //   同 deleteSession 里的说明：fts4 模式下这条顺序是硬要求，fts5 由触发器代劳。
+        //   守卫见 SessionFtsDeleteOrderTest（截断路径的顺序同理，改这里先看那条）。
         syncFtsDeleteBySessionAndCreatedAt(sessionId, fromCreatedAt)
         messageDao.deleteFromCreatedAt(sessionId, fromCreatedAt)
         database.generationCheckpointDao().deleteBySessionAndCreatedAtFrom(sessionId, fromCreatedAt)
