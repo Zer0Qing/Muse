@@ -3,6 +3,7 @@ package io.zer0.muse.mcp
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.muse.runtime.classifyProcessExit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1016,9 +1017,22 @@ class McpClient(
         }
     }
 
-    /** P1-A: stdio 进程退出 — 非主动关闭时走重连。 */
+    /**
+     * P1-A: stdio 进程退出 — 非主动关闭时走重连。
+     *
+     * 日志按"退出时是否已经连上过"分类：**从没连上**说明命令本身起不来
+     * （命令不存在、依赖缺失、权限被拒），这种重试没意义，该去修环境；
+     * **连上过之后掉线**才是运行期故障。以前两种在日志里都是同一句
+     * `stdio 进程退出: code=N`，排查时根本分不开。
+     * 重连决策不在这里改（MCP 已有自己的预算与状态机），只补可读原因。
+     */
     private fun handleStdioExit(code: Int) {
-        Logger.w(TAG, "[${config.name}] stdio 进程退出: code=$code")
+        val kind = classifyProcessExit(
+            exitCode = code,
+            everReady = _state.value == McpConnectionState.CONNECTED,
+            userRequestedStop = closed,
+        )
+        Logger.w(TAG, "[${config.name}] stdio 进程退出: code=$code 原因=${kind.summary}")
         stdioTransport = null
         if (!closed) scheduleReconnect()
     }

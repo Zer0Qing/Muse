@@ -4,6 +4,7 @@ import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.runtime.MuseRuntime
+import io.zer0.muse.runtime.classifyProcessExit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -255,17 +256,27 @@ class NodePluginEngine(private val context: Context) {
         val streamEnded: Boolean = false,
     )
 
-    /** 解析结果行协议。 */
+    /**
+     * 解析结果行协议。
+     *
+     * 失败原因统一走 [classifyProcessExit]：以前"超时"和"没产出结果"是两句话，
+     * 而**环境根本起不来**、**插件被系统杀掉**、**磁盘写满**这三件事都挤在
+     * "没有产出结果（exit=N）"里 —— 模型拿到这句话没法决定该重试、该装运行时还是该改插件。
+     */
     internal fun interpret(stdout: String, stderr: String, exitCode: Int, timedOut: Boolean): SkillEngineResult {
         val line = stdout.lineSequence().lastOrNull { it.trim().startsWith("{") }?.trim()
-        return when {
-            timedOut -> SkillEngineResult.Error("执行超时（子进程已终止）" + tail(stderr), logsOf(stdout))
-            line == null -> SkillEngineResult.Error(
-                message = "Node 插件没有产出结果（exit=$exitCode）" + tail(stderr),
-                consoleLogs = logsOf(stdout),
-            )
-            else -> interpretLine(line, stderr)
-        }
+        if (line != null) return interpretLine(line, stderr)
+        val kind = classifyProcessExit(
+            // 有输出就说明进程确实起来了；一行都没输出＝没跑起来（另一类原因）
+            everReady = stdout.isNotBlank(),
+            exitCode = exitCode,
+            outputTail = stderr,
+            timedOut = timedOut,
+        )
+        return SkillEngineResult.Error(
+            message = "Node 插件执行失败（${kind.summary}；exit=$exitCode）" + tail(stderr),
+            consoleLogs = logsOf(stdout),
+        )
     }
 
     private fun interpretLine(line: String, stderr: String): SkillEngineResult {
