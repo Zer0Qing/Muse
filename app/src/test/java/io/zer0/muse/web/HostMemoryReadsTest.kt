@@ -169,4 +169,21 @@ class HostMemoryReadsTest {
         assertEquals(2, decoded.memory.size)
         assertEquals(true, decoded.hasMore)
     }
+
+    /** 时间转换的边界：三种历史形态都要认，认不出的必须留空而不是编一个日期。 */
+    @Test
+    fun `memory createdAt converts known shapes and falls back to zero`() {
+        assertTrue(
+            "Instant 形态应转出毫秒",
+            memoryCreatedAtToMillis("2024-01-02T03:04:05Z") > 0,
+        )
+        assertEquals(
+            "同一时刻的两种写法必须给出同一个毫秒数",
+            memoryCreatedAtToMillis("2024-01-02T03:04:05Z"),
+            memoryCreatedAtToMillis("2024-01-02T11:04:05+08:00"),
+        )
+        assertEquals("纯毫秒数字串原样接受", 1_700_000_000_000L, memoryCreatedAtToMillis("1700000000000"))
+        assertEquals("空串按未知时间", 0L, memoryCreatedAtToMillis("   "))
+        assertEquals("乱码不得编出一个日期", 0L, memoryCreatedAtToMillis("昨天下午三点"))
+    }
 }

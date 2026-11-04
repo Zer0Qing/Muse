@@ -1,5 +1,7 @@
 package io.zer0.muse.web
 
+import io.zer0.common.Logger
+
 /**
  * 记忆只读命令(`memory.list` / `memory.search`)的载荷投影。
  *
@@ -124,7 +126,7 @@ internal object HostMemoryReads {
     private fun HostMemoryRecord.toEntry(): HostMemoryEntry = HostMemoryEntry(
         id = id,
         content = content.prefixOf(CONTENT_LIMIT),
-        createdAt = createdAt,
+        createdAt = memoryCreatedAtToMillis(createdAt),
         source = source,
         pinned = pinned,
     )
@@ -138,4 +140,33 @@ internal object HostMemoryReads {
 
     /** 事实表里"用户明确陈述"的来源值。 */
     private const val FACT_SOURCE_USER_EXPLICIT = "user_explicit"
+}
+
+/**
+ * 记忆入库时间：ISO 串 → **epoch 毫秒**。
+ *
+ * 客户端 `HostMemoryItem.createdAt` 声明的是 `number`，而 `i18n/format.ts` 的
+ * `toMillis` 对非有限值一律判为「没有时间」——所以以前发 ISO 串的后果不是报错，
+ * 而是**记忆页的时间标签静默变空**。
+ *
+ * 记忆侧写的是 `Instant.now().toString()`（见 `FactStore`），但历史行可能带偏移量、
+ * 也可能是纯毫秒数字串，所以三种都试；**解析不出就返回 0 并留一条日志**。
+ * 0 会让客户端留空 —— 比编一个 1970 年的日期诚实。
+ */
+internal fun memoryCreatedAtToMillis(raw: String): Long {
+    val text = raw.trim()
+    // 一条解析链，三种历史形态依次试；不成就是 null，最后统一出口
+    // （写成三个 `return` 会撞上仓库的 ReturnCount 判据，也不是更清楚的写法）。
+    val millis = if (text.isEmpty()) {
+        null
+    } else {
+        runCatching { java.time.Instant.parse(text).toEpochMilli() }
+            .recoverCatching { java.time.OffsetDateTime.parse(text).toInstant().toEpochMilli() }
+            .recoverCatching { text.toLong() }
+            .getOrNull()
+    }
+    if (millis == null && text.isNotEmpty()) {
+        Logger.w("HostMemoryReads", "记忆时间字段无法解析，按未知时间处理: [$raw]")
+    }
+    return millis ?: 0L
 }

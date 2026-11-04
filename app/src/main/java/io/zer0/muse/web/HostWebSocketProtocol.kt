@@ -477,8 +477,16 @@ data class HostMemoryEntry(
     /** 条目 id(十进制字符串,与 `memory.list` 的 cursor 同一套编号)。 */
     val id: String,
     val content: String,
-    /** 入库时间 ISO 8601。 */
-    val createdAt: String,
+    /**
+     * 入库时间的 **epoch 毫秒**（不是 ISO 串）。
+     *
+     * 客户端 `HostMemoryItem.createdAt` 声明的是 `number`，
+     * 并且 `i18n/format.ts` 的 `toMillis` 会把非有限值判为"没有时间"——
+     * 所以这里发 ISO 串的后果不是报错，而是**时间标签静默变空**：
+     * 用户看到一条没有时间、也没有任何错误提示的记忆条目。
+     * 解析不出来时给 0（客户端同样留空），宁缺勿假：不能编一个日期糊上去。
+     */
+    val createdAt: Long,
     /** 来源类别,取值见 [HostMemorySourceKind]。 */
     val source: String = HostMemorySourceKind.AUTO,
     /** 是否被用户置顶。 */

@@ -1,7 +1,9 @@
 package io.zer0.muse.web
 
+import io.zer0.common.AppJson
 import kotlinx.serialization.descriptors.SerialDescriptor
 import org.junit.Assert.assertFalse
+import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -70,6 +72,34 @@ class HostWebSocketWireContractTest {
         assertTrue("客户端读的是 event.items", hook.contains("event.items"))
         assertTrue("客户端读的是 event.bases", hook.contains("event.bases"))
         assertTrue("客户端读的是 event.system", hook.contains("event.system"))
+    }
+
+    /**
+     * `createdAt` 在线上必须是**数字**（epoch 毫秒），不能是 ISO 字符串。
+     *
+     * 客户端类型声明 `number`，而 `i18n/format.ts` 的 `toMillis` 对非有限值判为「没有时间」：
+     * 发 ISO 串的后果不是异常，而是**时间标签静默变空** —— 用户看到一条没有时间的记忆条目，
+     * 界面、日志、控制台都没有任何提示。这种"看起来正常"的错必须用线格式断言来拦。
+     */
+    @Test
+    fun `记忆条目的 createdAt 在线上必须是数字`() {
+        val event = HostEvent(
+            type = "memory.list",
+            memory = listOf(
+                HostMemoryEntry(
+                    id = "7",
+                    content = "用户在讨论后端优化",
+                    createdAt = 1_700_000_000_000L,
+                ),
+            ),
+        )
+        val json = AppJson.encodeToString(HostEvent.serializer(), event)
+
+        assertTrue(
+            "createdAt 必须原样是数字（一旦退回 ISO 串，网页端时间标签会静默变空）：$json",
+            json.contains("\"createdAt\":1700000000000"),
+        )
+        assertFalse("不得变成带引号的时间串：$json", json.contains("\"createdAt\":\""))
     }
 
     private fun readClientSource(relative: String): String {
