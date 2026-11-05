@@ -66,6 +66,7 @@ class QqReceiver(
         job = null
     }
 
+    @Suppress("TooGenericExceptionCaught") // 连接实现会抛 IO/SSL/协议异常，统一记录后退避重连；取消已单独放行。
     private suspend fun connectLoop() {
         while (currentCoroutineContext().isActive) {
             channelManager.refresh()
