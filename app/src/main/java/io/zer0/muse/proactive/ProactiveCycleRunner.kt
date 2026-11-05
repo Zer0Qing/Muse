@@ -70,6 +70,9 @@ class ProactiveCycleRunner(
     /** 此刻是否已经有一轮巡检在跑。供调度器与 Worker 做廉价预判。 */
     val isInFlight: Boolean get() = guard.isInFlight
 
+    /** v2.6.23(P2): 连续被模型 Skip 的轮数，供调度器拉长复查间隔（见 [ProactiveScheduler]）。 */
+    val consecutiveSkips: Int get() = guard.consecutiveSkips
+
     /** 准备阶段的产物。任一为 null 说明这轮不该继续。 */
     private data class Prepared(
         val config: ProactiveMessageConfig,
@@ -141,12 +144,57 @@ class ProactiveCycleRunner(
         // 发送概率：所有硬闸都过了才掷骰子。放在生成之前，
         // 被概率放弃的这一轮就不该再花一次模型调用。
         // 手动测试（force）不走这里：那是排查工具，不是日常节奏。
-        if (!force && !ProactiveSendProbability.allows(ready.config.sendProbability, rollPercent())) {
-            val detail = "按发送概率跳过（${ready.config.sendProbability}%）"
-            Logger.i(TAG, "巡检不发送（$trigger）: $detail | verdict=${decision.verdict}")
-            return Outcome(decision.verdict, false, hasOpenThoughts(ready), detail)
+        // v2.6.23(P1): 「智能时机」开关决定掷骰前是否先按最近反馈折算有效概率;
+        // 关闭时与 2.6.22 逐字同路径(纯 [ProactiveSendProbability])。
+        if (!force) {
+            if (ready.config.sendTimingScoringEnabled) {
+                val signals = collectScoringSignals(ready, decision)
+                val scored = ProactiveSendScoring.evaluate(signals, rollPercent())
+                if (!scored.send) {
+                    val detail = buildString {
+                        append("按智能时机跳过（${signals.configuredPercent}%→${scored.effectivePercent}%")
+                        if (scored.reasons.isNotEmpty()) {
+                            append("；${scored.reasons.joinToString("；")}")
+                        }
+                        append("）")
+                    }
+                    Logger.i(TAG, "巡检不发送（$trigger）: $detail | verdict=${decision.verdict}")
+                    return Outcome(decision.verdict, false, hasOpenThoughts(ready), detail)
+                }
+                if (scored.reasons.isNotEmpty()) {
+                    Logger.i(TAG, "智能时机放行（$trigger）: ${scored.effectivePercent}% ← ${scored.reasons.joinToString("；")}")
+                }
+            } else if (!ProactiveSendProbability.allows(ready.config.sendProbability, rollPercent())) {
+                val detail = "按发送概率跳过（${ready.config.sendProbability}%）"
+                Logger.i(TAG, "巡检不发送（$trigger）: $detail | verdict=${decision.verdict}")
+                return Outcome(decision.verdict, false, hasOpenThoughts(ready), detail)
+            }
         }
         return publishResult(trigger, decision, ready)
+    }
+
+    /**
+     * 采集 [ProactiveSendScoring] 的现场信号。
+     *
+     * 全部是只读旁路：任何一项读失败按「无该信号」处理（不加修正、不误杀发送），
+     * 与 [skipContext] 同源。hourOfDay 用系统本地钟点——判定「深夜」看的就是用户的表。
+     */
+    private suspend fun collectScoringSignals(ready: Prepared, decision: ProactiveTimingEngine.Decision): ProactiveSendScoring.Signals {
+        val now = System.currentTimeMillis()
+        val lastOutcome = runCatching { stores.outcomes.getRecent(ready.assistant.id, 1).firstOrNull() }.getOrNull()
+        val unread = runCatching { runtime.sessions.getSessionById(ready.sessionId) }
+            .getOrNull()
+            ?.let { (it.messageCount - it.lastReadCount).coerceAtLeast(0) }
+            ?: 0
+        val openThoughts = runCatching { stores.thoughts.getOpen(ready.assistant.id).isNotEmpty() }.getOrDefault(false)
+        return ProactiveSendScoring.Signals(
+            configuredPercent = ready.config.sendProbability,
+            lastOutcomeState = lastOutcome?.stateEnum(),
+            minutesSinceLastProactive = lastOutcome?.let { (now - it.sentAt).coerceAtLeast(0L) / 60_000L },
+            userUnreadCount = unread,
+            hasOpenThoughts = openThoughts || decision.dailyGuarantee,
+            hourOfDay = decision.hourOfDay,
+        )
     }
 
     /**
@@ -186,6 +234,7 @@ class ProactiveCycleRunner(
                 // 这是模型自己的判断，它看到的是对话，看不到自己上一条有没有被读。
                 // 把外部事实一起记上，才能分清「没东西可说」和「说了没人应」。
                 Logger.i(TAG, "判定跳过 | reason=${produced.reason} | ${skipContext(ready)}")
+                guard.recordSkip()
                 Outcome(
                     decision.verdict,
                     false,
@@ -199,6 +248,7 @@ class ProactiveCycleRunner(
                     "主动消息候选生成 | assistantId=${ready.assistant.id} | len=${produced.content.length} | trigger=$trigger",
                 )
                 val ok = publish(trigger, ready, produced)
+                if (ok) guard.recordSent()
                 Outcome(
                     decision.verdict,
                     ok,
@@ -350,6 +400,13 @@ class ProactiveCycleRunner(
         // 先登记再调模型：结果账要等消息落库才写，而这次调用最长要几十秒。
         // 不登记的话，这段时间里巡检在数据层看起来「什么都没发生过」。
         guard.markAttempt(System.currentTimeMillis())
+        // v2.6.23(P3): 时间跨度事实。读不到一律传 null,提示词回到改动前的措辞。
+        val nowForFacts = System.currentTimeMillis()
+        val minutesSinceChat = ready.context.recentMessages.maxOfOrNull { it.createdAt }
+            ?.let { (nowForFacts - it).coerceAtLeast(0L) / 60_000L }
+        val minutesSinceProactive = runCatching {
+            stores.outcomes.getRecent(ready.assistant.id, 1).firstOrNull()
+        }.getOrNull()?.let { (nowForFacts - it.sentAt).coerceAtLeast(0L) / 60_000L }
         return withTimeoutOrNull(COMPOSE_TIMEOUT_MS) {
             GenerationGate.withPermit {
                 composer.compose(
@@ -359,7 +416,9 @@ class ProactiveCycleRunner(
                         sessionId = ready.sessionId,
                         recentMessages = ready.context.recentMessages,
                         recentProactiveMessages = ready.context.recentProactiveTexts,
-                        now = System.currentTimeMillis(),
+                        now = nowForFacts,
+                        minutesSinceLastChat = minutesSinceChat,
+                        minutesSinceLastProactive = minutesSinceProactive,
                         intensity = intensity,
                     ),
                     model = route?.second,

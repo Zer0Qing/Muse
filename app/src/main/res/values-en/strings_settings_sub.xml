@@ -787,4 +787,6 @@
     <string name="profile_section_interaction">Interaction preferences</string>
     <string name="profile_section_recent">Recent interactions</string>
     <string name="profile_section_uncertain">Uncertain notes</string>
+    <string name="settings_agent_timing_scoring_title">Smart timing</string>
+    <string name="settings_agent_timing_scoring_subtitle">Before speaking it weighs recent feedback: an unanswered last message, unread backlog or late-night hours lower the odds; a due thought restores them. Intervals, budget and quiet hours are unaffected.</string>
 </resources>

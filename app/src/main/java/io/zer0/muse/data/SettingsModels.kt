@@ -488,6 +488,14 @@ data class ProactiveMessageConfig(
      */
     val sendProbability: Int = 100,
     /**
+     * v2.6.23(P1): 智能时机 —— 掷骰前先按最近反馈折算有效发送概率。
+     *
+     * **默认关**:关闭时行为与 2.6.22 逐字一致(纯掷骰)。开启后只改「概率闸」这一层:
+     * 上一条没人回、消息堆着没读、深夜时段会压低概率,账上有到点的事会回补;
+     * 间隔/额度/免打扰/每日保底等硬闸不受影响,设置页的 [sendProbability] 仍是基准值。
+     */
+    val sendTimingScoringEnabled: Boolean = false,
+    /**
      * A-08: 最近一次 LLM 调用失败时间戳(0=无失败)。
      *
      * 决策/生成阶段 LLM 失败时写入;此后至少间隔一个 baseInterval 才允许再次尝试,

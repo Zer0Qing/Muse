@@ -377,6 +377,22 @@ fun AgentSettingsPage(
                             ChevronRight()
                         }
                         SettingsGroupDivider()
+                        // v2.6.23(P1): 智能时机 —— 掷骰前先按最近反馈折算有效概率。默认关:
+                        // 开着等于改变用户已调好的「发送概率」语义,必须他自己同意。
+                        SettingsSwitchRow(
+                            icon = MuseIcons.clock,
+                            title = stringResource(R.string.settings_agent_timing_scoring_title),
+                            subtitle = stringResource(R.string.settings_agent_timing_scoring_subtitle),
+                            checked = proactiveConfig.sendTimingScoringEnabled,
+                            onCheckedChange = { v ->
+                                scope.launch {
+                                    settings.saveProactiveMessageConfig(
+                                        proactiveConfig.copy(sendTimingScoringEnabled = v),
+                                    )
+                                }
+                            },
+                        )
+                        SettingsGroupDivider()
                         // P0 收敛: 「允许时段开始 / 结束」两个滑块合并为一个「免打扰时段」范围
                         // 允许窗口为空（起止相同）时红色提示:这种配置一条都不会发，
                         // 不能让用户只能等到自己发现“怎么没动静”。

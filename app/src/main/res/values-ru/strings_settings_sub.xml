@@ -762,4 +762,6 @@
     <string name="profile_section_interaction">Предпочтения общения</string>
     <string name="profile_section_recent">Недавние взаимодействия</string>
     <string name="profile_section_uncertain">Неуверенные заметки</string>
+    <string name="settings_agent_timing_scoring_title">Умный момент</string>
+    <string name="settings_agent_timing_scoring_subtitle">Перед сообщением учитывает свежие реакции: нет ответа на прошлое, непрочитанное или ночное время снижают вероятность; назревшая тема повышает. Интервалы, лимит и тихие часы не меняются.</string>
 </resources>

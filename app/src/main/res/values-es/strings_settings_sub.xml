@@ -762,4 +762,6 @@
     <string name="profile_section_interaction">Preferencias de interacción</string>
     <string name="profile_section_recent">Interacciones recientes</string>
     <string name="profile_section_uncertain">Notas inciertas</string>
+    <string name="settings_agent_timing_scoring_title">Sintonía inteligente</string>
+    <string name="settings_agent_timing_scoring_subtitle">Antes de hablar valora las reacciones recientes: sin respuesta previa, mensajes sin leer o madrugada bajan la probabilidad; un asunto pendiente la recupera. Intervalos, cupo y silencio no cambian.</string>
 </resources>

@@ -762,4 +762,6 @@
     <string name="profile_section_interaction">응답 선호</string>
     <string name="profile_section_recent">최근 상호작용</string>
     <string name="profile_section_uncertain">불확실한 메모</string>
+    <string name="settings_agent_timing_scoring_title">스마트 타이밍</string>
+    <string name="settings_agent_timing_scoring_subtitle">말 걸기 전 최근 반응을 봅니다: 이전 메시지 무응답, 읽지 않음 누적, 심야엔 확률이 낮아지고 마감 된 할 일이 있으면 회복됩니다. 주기·한도·방해 금지 시간은 그대로입니다.</string>
 </resources>

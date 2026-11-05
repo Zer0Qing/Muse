@@ -762,4 +762,6 @@
     <string name="profile_section_interaction">応答の好み</string>
     <string name="profile_section_recent">最近のやり取り</string>
     <string name="profile_section_uncertain">不確実なメモ</string>
+    <string name="settings_agent_timing_scoring_title">スマートタイミング</string>
+    <string name="settings_agent_timing_scoring_subtitle">发言前に最近の反応を踏まえます：前回の無反応・未読の积压・深夜は確率を下げ、期限迎えの話題は戻します。間隔・上限・おやすみ時間帯は影響しません。</string>
 </resources>

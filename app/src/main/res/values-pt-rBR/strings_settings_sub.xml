@@ -762,4 +762,6 @@
     <string name="profile_section_interaction">Preferências de interação</string>
     <string name="profile_section_recent">Interações recentes</string>
     <string name="profile_section_uncertain">Notas incertas</string>
+    <string name="settings_agent_timing_scoring_title">Momento inteligente</string>
+    <string name="settings_agent_timing_scoring_subtitle">Antes de falar, pondera reações recentes: última mensagem sem resposta, backlog não lido ou madrugada reduzem a probabilidade; um assunto pendente a recupera. Intervalos, limite e silêncio não mudam.</string>
 </resources>

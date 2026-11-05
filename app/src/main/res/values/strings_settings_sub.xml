@@ -792,4 +792,6 @@
     <string name="profile_section_interaction">交互偏好</string>
     <string name="profile_section_recent">近期互动</string>
     <string name="profile_section_uncertain">不确定笔记</string>
+    <string name="settings_agent_timing_scoring_title">智能时机</string>
+    <string name="settings_agent_timing_scoring_subtitle">开口前先看最近反馈：上一条没回应、消息堆着没读、深夜时段会压低概率；账上有到点的事会回补。间隔、额度、免打扰不受影响。</string>
 </resources>
