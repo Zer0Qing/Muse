@@ -150,7 +150,10 @@
     <string name="memory_center_filter_time_7">Последние 7 дней</string>
     <string name="memory_center_filter_time_90">Последние 90 дней</string>
     <string name="memory_center_filter_time_all">За всё время</string>
-    <string name="memory_contradictions_dismiss_cd">Подтвердить и удалить</string>
+    <string name="memory_contradictions_dismiss_cd">Не сейчас</string>
+    <string name="memory_contradictions_keep_a">Оставить первую</string>
+    <string name="memory_contradictions_keep_b">Оставить вторую</string>
+    <string name="memory_evidence_line">Основание: %1$s</string>
     <string name="memory_contradictions_title">Противоречивые воспоминания, ожидающие подтверждения</string>
     <string name="memory_delete_confirm_title">Удалить воспоминание</string>
     <string name="memory_menu_multi_select">Выбрать несколько</string>

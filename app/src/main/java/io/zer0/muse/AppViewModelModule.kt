@@ -37,8 +37,7 @@ val appViewModelModule = module {
             pinnedMemoryStore = get(),
             // P0-4: 注入 FactDbProvider — 记忆中心按 scope 路由到生产侧分库(facts_<id>.db)
             factDbProvider = get(),
-            // P2-32: 矛盾清单存储(每日反思检测 → 记忆中心可读可清)
-            contradictionStore = get(),
+            // v2.6.23(M2): 矛盾改在 facts 行上落 pending,VM 直接走 FactStore;JSON 清单 store 不再注入 VM。
             // v1.0.92: LLM 记忆整合器(手动"整理记忆"与每日自动整合共用同一实现)
             factConsolidator = get(),
         )

@@ -59,14 +59,27 @@ enum class MemoryTimeRange(val days: Long?) {
     LAST_90(90),
 }
 
+/**
+ * v2.6.23(M2): 一对未裁决矛盾(事实级,带双方 id 与所属 scope)。
+ *
+ * 取代旧的纯文本 JSON 清单:文本对无法裁决"哪条是对的",只能"清除"再等下轮重报;
+ * 带 id 后记忆中心可以真正"保留这一句",另一方按 v18 supersedes 让位。
+ */
+data class MemoryConflictUi(
+    val idA: Long,
+    val idB: Long,
+    val a: String,
+    val b: String,
+    val scope: String,
+)
+
 data class MemoryUiState(
     val isLoading: Boolean = true,
     val query: String = "",
     val factItems: List<MemoryItem> = emptyList(),
     val summaryItems: List<MemoryItem> = emptyList(),
     val compileItems: List<MemoryItem> = emptyList(),
-    /** P2-32: 当前 scope/space 的矛盾记忆清单(每日反思检测,用户确认后可清除)。 */
-    val contradictions: List<io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair> = emptyList(),
+    val contradictions: List<MemoryConflictUi> = emptyList(),
     val searchResults: List<MemoryItem> = emptyList(),
     val isSearching: Boolean = false,
     val factCount: Int = 0,
@@ -168,6 +181,15 @@ data class MemoryItem(
     val suppressed: Boolean = false,
     /** 被别的记忆取代(内容被新记忆推翻)。 */
     val superseded: Boolean = false,
+    /**
+     * v2.6.23(M1): 证据摘录 —— 该事实出处的用户原话片段。
+     * null/空白 = 没有可回看的出处(早期数据或推断所得),UI 不显示「依据」。
+     */
+    val evidenceQuote: String? = null,
+    /** v2.6.23(M1): 证据所在消息 id;仅用于「跳回原话」,可空。 */
+    val evidenceMessageId: String? = null,
+    /** v2.6.23(M2): 与另一条事实存在未裁决矛盾(UI 显示「两种说法」徽标与裁决入口)。 */
+    val pendingConflictWith: Long? = null,
 ) {
     /** 列表徽章与详情说明共用的状态投影(三种状态互相独立,可同时命中)。 */
     val status: MemoryFactStatus
@@ -320,8 +342,6 @@ class MemoryViewModel(
      * 才能读到/改到 AI 真正使用的库。子助手 scope 的增删改此前落在默认库,对 AI 无效。
      */
     private val factDbProvider: io.zer0.memory.fact.FactDbProvider,
-    /** P2-32: 矛盾清单存储(每日反思检测结果;null = 测试/未装配时降级为空)。 */
-    private val contradictionStore: io.zer0.memory.reflection.MemoryContradictionStore? = null,
     /**
      * v1.0.92: LLM 记忆整合器 — 手动"整理记忆"与每日自动整合共用同一实现
      * (相似簇交给大模型合并)。null = 测试/未装配时跳过 LLM 整合。
@@ -508,10 +528,9 @@ class MemoryViewModel(
     /**
      * 事实条目所属作用域:优先用条目自带 scope,缺失时回退当前选择(与删除路径同一口径)。
      */
-    private fun mergeScopeOf(item: MemoryItem): String =
-        item.scope?.takeIf { it.isNotBlank() }
-            ?: _selectedScope.value?.takeIf { it.isNotBlank() }
-            ?: "main"
+    private fun mergeScopeOf(item: MemoryItem): String = item.scope?.takeIf { it.isNotBlank() }
+        ?: _selectedScope.value?.takeIf { it.isNotBlank() }
+        ?: "main"
 
     /** 事实条目所属记忆空间:优先用条目自带 spaceId,缺失时回退当前选择。 */
     private fun mergeSpaceOf(item: MemoryItem): String =
@@ -979,15 +998,20 @@ class MemoryViewModel(
                         .onError { msg, t -> Logger.w("MemoryViewModel", "readCompiledMemoryMarkdown 失败: $msg", t) }
                         .getOrNull() ?: ""
                 }
-                // P2-32: 读取当前 scope/space 的矛盾记忆清单(每日反思落库)
-                val contradictions = withContext(Dispatchers.IO) {
-                    if (contradictionStore == null) {
-                        emptyList<io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair>()
-                    } else {
-                        resultOf { contradictionStore.list(sectionScope, spaceId) }
-                            .onError { msg, t -> Logger.w("MemoryViewModel", "读矛盾清单失败: $msg", t) }
-                            .getOrNull() ?: emptyList()
-                    }
+                // v2.6.23(M2): 未裁决矛盾改读 facts 行上的 pending 标记(事实级、可裁决)。
+                // 旧 JSON 文本清单(只能"清除")不再读取;反思任务已改走 DB 落库。
+                val pendingConflicts = withContext(Dispatchers.IO) {
+                    val pendingStore = storeForScope(sectionScope)
+                    resultOf { pendingStore.listPendingContradictions(sectionScope, spaceId) }
+                        .onError { msg, t -> Logger.w("MemoryViewModel", "读待裁决矛盾失败: $msg", t) }
+                        .getOrNull() ?: emptyList()
+                }
+                // 每对矛盾在两行上各挂一次 pending;只从 id 小的一方生成一条展示项
+                val contradictions = pendingConflicts.mapNotNull { row ->
+                    val otherId = row.conflictWithId ?: return@mapNotNull null
+                    if (row.id >= otherId) return@mapNotNull null
+                    val other = pendingConflicts.firstOrNull { it.id == otherId } ?: return@mapNotNull null
+                    MemoryConflictUi(row.id, otherId, row.fact, other.fact, row.scope)
                 }
 
                 // 状态徽章: 「被取代」= 本行被别的行的 supersedes_id 指向,需要反查一次。
@@ -1031,6 +1055,10 @@ class MemoryViewModel(
                         mergedIntoId = fact.mergedIntoId,
                         suppressed = status.suppressed,
                         superseded = status.superseded,
+                        // v2.6.23(M1/M2): 证据与未裁决矛盾透传给卡片
+                        evidenceQuote = fact.evidenceQuote,
+                        evidenceMessageId = fact.evidenceMessageId,
+                        pendingConflictWith = fact.conflictWithId.takeIf { fact.conflictStatus == "pending" },
                     )
                 }
                 val summaryItems = projectConversationMemoryItems(
@@ -1568,15 +1596,35 @@ class MemoryViewModel(
     }
 
     /**
-     * P2-32: 用户确认/清除一对矛盾记忆(从清单移除;不自动删事实,尊重用户判断)。
+     * v2.6.23(M2): 「暂不处理」——清掉双方的 pending,不动内容。
+     * 下一轮反思若仍检测到矛盾会重新登记(数据没变,矛盾确实还在)。
      */
-    fun dismissContradiction(pair: io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair) {
-        val store = contradictionStore ?: return
+    fun dismissConflict(conflict: MemoryConflictUi) {
         viewModelScope.launch {
-            val scope = _selectedScope.value ?: "main"
             withContext(Dispatchers.IO) {
-                resultOf { store.removePair(scope, _selectedSpaceId.value, pair) }
-                    .onError { msg, t -> Logger.w("MemoryViewModel", "清除矛盾清单失败: $msg", t) }
+                resultOf {
+                    storeForScope(conflict.scope).dismissPendingConflict(conflict.idA, conflict.idB)
+                }
+                    .onError { msg, t -> Logger.w("MemoryViewModel", "矛盾暂不处理失败: $msg", t) }
+            }
+            loadAll(silent = true)
+        }
+    }
+
+    /**
+     * v2.6.23(M2): 用户裁决 —— [keepId] 一句是对的,另一方按 v18 让位(不删行,可回退)。
+     *
+     * scope 由调用方(UI 拿冲突项的 scope)传入,跨分库时定位到正确的 store。
+     */
+    fun resolveConflict(keepId: Long, scope: String) {
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                resultOf { storeForScope(scope).resolveContradiction(keepId) }
+                    .onError { msg, t -> Logger.w("MemoryViewModel", "矛盾裁决失败: $msg", t) }
+                    .getOrNull() ?: false
+            }
+            if (!ok) {
+                _state.update { it.copy(errorTrace = "矛盾裁决未生效(记录可能已被整理或删除)") }
             }
             loadAll(silent = true)
         }

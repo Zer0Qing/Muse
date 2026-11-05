@@ -88,15 +88,15 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodySmallEmphasis
+import io.zer0.muse.ui.theme.labelLargeStrong
+import io.zer0.muse.ui.theme.titleSmallStrong
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import java.time.Instant
 import java.time.ZoneId
-import io.zer0.muse.ui.theme.labelLargeStrong
-import io.zer0.muse.ui.theme.titleSmallStrong
-import io.zer0.muse.ui.theme.bodySmallEmphasis
 
 /**
  * 记忆观测站。
@@ -402,7 +402,10 @@ fun MemoryScreen(
                                 onDelete = { deleteTarget = it },
                                 onPin = { viewModel.toggleFactPinned(it.id, it.scope) },
                                 onImportance = { importanceItem = it },
-                                onDismissContradiction = viewModel::dismissContradiction,
+                                onDismissConflict = viewModel::dismissConflict,
+                                onResolveConflict = { conflict, keepId ->
+                                    viewModel.resolveConflict(keepId, conflict.scope)
+                                },
                                 selectionMode = selectionMode,
                                 isSelected = { factKeyOf(it) in selectedFactKeys },
                                 onLongPressItem = {
@@ -1239,7 +1242,10 @@ private fun LazyListScope.memoryFactsItems(
     onDelete: (MemoryItem) -> Unit,
     onPin: (MemoryItem) -> Unit,
     onImportance: (MemoryItem) -> Unit,
-    onDismissContradiction: (io.zer0.memory.reflection.MemoryContradictionStore.ContradictionPair) -> Unit,
+    /** v2.6.23(M2): 「暂不处理」一对矛盾(清 pending,不动内容)。 */
+    onDismissConflict: (MemoryConflictUi) -> Unit,
+    /** v2.6.23(M2): 裁决 —— 保留指定 id 那句,另一方按 supersedes 让位。 */
+    onResolveConflict: (MemoryConflictUi, Long) -> Unit,
     selectionMode: Boolean,
     isSelected: (MemoryItem) -> Boolean,
     onLongPressItem: (MemoryItem) -> Unit,
@@ -1268,7 +1274,7 @@ private fun LazyListScope.memoryFactsItems(
                         text = stringResource(R.string.memory_contradictions_title),
                         style = MaterialTheme.typography.titleSmallStrong,
                     )
-                    state.contradictions.forEach { pair ->
+                    state.contradictions.forEach { conflict ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1276,7 +1282,7 @@ private fun LazyListScope.memoryFactsItems(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = pair.a,
+                                    text = conflict.a,
                                     style = MaterialTheme.typography.bodySmall,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
@@ -1287,15 +1293,31 @@ private fun LazyListScope.memoryFactsItems(
                                     color = MaterialTheme.colorScheme.error,
                                 )
                                 Text(
-                                    text = pair.b,
+                                    text = conflict.b,
                                     style = MaterialTheme.typography.bodySmall,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                 )
+                                // v2.6.23(M2): 保留哪句,另一句让位(行保留、可回退,见 supersedes 语义)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.memory_contradictions_keep_a),
+                                        onClick = { onResolveConflict(conflict, conflict.idA) },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.memory_contradictions_keep_b),
+                                        onClick = { onResolveConflict(conflict, conflict.idB) },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
                             }
                             MuseTactileButton(
                                 icon = MuseIcons.x,
-                                onClick = { onDismissContradiction(pair) },
+                                onClick = { onDismissConflict(conflict) },
                                 contentDescription = stringResource(R.string.memory_contradictions_dismiss_cd),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1584,73 +1606,77 @@ internal fun MemoryFactRow(
                 modifier = Modifier.padding(16.dp).weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-            // v2.2.1: 长记忆点击展开 — 点标题/正文或「展开/收起」即可查看全文
-            var expanded by remember(item.id) { mutableStateOf(false) }
-            val titleText = item.title.ifBlank { item.content }
-            val bodyText = item.content.takeIf { item.title != item.content }
-            val canExpand =
-                titleText.length > EXPAND_TEXT_THRESHOLD || titleText.contains('\n') ||
-                    bodyText?.let { it.length > EXPAND_TEXT_THRESHOLD || it.contains('\n') } == true
-            val toggleExpand = { if (canExpand) expanded = !expanded }
+                // v2.2.1: 长记忆点击展开 — 点标题/正文或「展开/收起」即可查看全文
+                var expanded by remember(item.id) { mutableStateOf(false) }
+                val titleText = item.title.ifBlank { item.content }
+                val bodyText = item.content.takeIf { item.title != item.content }
+                val canExpand =
+                    titleText.length > EXPAND_TEXT_THRESHOLD || titleText.contains('\n') ||
+                        bodyText?.let { it.length > EXPAND_TEXT_THRESHOLD || it.contains('\n') } == true
+                val toggleExpand = { if (canExpand) expanded = !expanded }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = titleText,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = if (expanded) Int.MAX_VALUE else 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier =
-                    Modifier
-                        .weight(1f)
-                        .clickable(enabled = canExpand) { toggleExpand() },
-                )
-                if (onOpenSession != null && item.sessionId != null) {
-                    MuseTactileButton(
-                        icon = MuseIcons.chat,
-                        onClick = { onOpenSession(item.sessionId) },
-                        contentDescription = stringResource(R.string.memory_open_conversation),
-                    )
-                }
-                // LAYOUT-01: 纯装饰分隔符 — 只限行，保证永不被压成多行
-                if (item.pinnedAt != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "•",
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        modifier = Modifier.padding(start = 8.dp),
+                        text = titleText,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = if (expanded) Int.MAX_VALUE else 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier =
+                        Modifier
+                            .weight(1f)
+                            .clickable(enabled = canExpand) { toggleExpand() },
+                    )
+                    if (onOpenSession != null && item.sessionId != null) {
+                        MuseTactileButton(
+                            icon = MuseIcons.chat,
+                            onClick = { onOpenSession(item.sessionId) },
+                            contentDescription = stringResource(R.string.memory_open_conversation),
+                        )
+                    }
+                    // LAYOUT-01: 纯装饰分隔符 — 只限行，保证永不被压成多行
+                    if (item.pinnedAt != null) {
+                        Text(
+                            "•",
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+                bodyText?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = if (expanded) Int.MAX_VALUE else 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable(enabled = canExpand) { toggleExpand() },
                     )
                 }
-            }
-            bodyText?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (expanded) Int.MAX_VALUE else 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable(enabled = canExpand) { toggleExpand() },
+                if (canExpand) {
+                    Text(
+                        text = stringResource(if (expanded) R.string.memory_screen_collapse else R.string.memory_screen_expand),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier =
+                        Modifier
+                            .clickable { toggleExpand() }
+                            .padding(vertical = 2.dp),
+                    )
+                }
+                // v2.6.23(M1): 「依据」——这条事实出处的用户原话(写证据才显示;早期数据无)。
+                // 判定分支收进组件内部:MemoryFactRow 的复杂度按签名登记在 detekt 基线,
+                // 在这里内联 ?.let 会把整卡函数顶过阈值。
+                MemoryEvidenceLine(item = item, expanded = expanded)
+                MemoryFactRowFooter(
+                    item = item,
+                    sourceMeta = sourceMeta,
+                    onEdit = onEdit,
+                    onDelete = onDelete,
+                    onPin = onPin,
+                    onImportance = onImportance,
+                    onHistory = onHistory,
                 )
-            }
-            if (canExpand) {
-                Text(
-                    text = stringResource(if (expanded) R.string.memory_screen_collapse else R.string.memory_screen_expand),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier =
-                    Modifier
-                        .clickable { toggleExpand() }
-                        .padding(vertical = 2.dp),
-                )
-            }
-            MemoryFactRowFooter(
-                item = item,
-                sourceMeta = sourceMeta,
-                onEdit = onEdit,
-                onDelete = onDelete,
-                onPin = onPin,
-                onImportance = onImportance,
-                onHistory = onHistory,
-            )
             }
         }
     }
@@ -1722,6 +1748,25 @@ private fun memoryStatusNote(item: MemoryItem): String? {
 }
 
 /**
+ * v2.6.23(M1): 记忆卡片的「依据」行 —— 该事实出处的用户原话摘录。
+ *
+ * 只有写入时匹配到原话的事实才有这行(见 UserEvidenceMatcher);无证据时整行不出现,
+ * 不是显示"依据:无" —— 缺证据是数据状态,不该占用每条记忆的视觉。
+ * 折叠 1 行、展开至多 3 行,与正文同一交互心智,不另设弹层。
+ */
+@Composable
+private fun MemoryEvidenceLine(item: MemoryItem, expanded: Boolean) {
+    val quote = item.evidenceQuote?.takeIf { it.isNotBlank() } ?: return
+    Text(
+        text = stringResource(R.string.memory_evidence_line, quote),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.outline,
+        maxLines = if (expanded) 3 else 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/**
  * 记忆卡片的底部一行：来源/分类/时间 + 「更多」操作菜单。
  *
  * 从 [MemoryFactRow] 里拆出来的：卡片主体只负责「这条记忆是什么」，
@@ -1737,110 +1782,110 @@ private fun MemoryFactRowFooter(
     onImportance: (() -> Unit)?,
     onHistory: (() -> Unit)?,
 ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            sourceMeta?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            // 状态徽章（已合并/已出场/被取代）:放在来源之后、分类之前 ——
-            // “这条还生效吗”比“它属于哪个分类”更需要被一眼看到。
-            MemoryStatusBadges(status = item.status)
-            item.category?.takeIf {
-                it.isNotBlank()
-            }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
-            item.time?.takeIf {
-                it.isNotBlank()
-            }?.let { Text(it.take(10), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline) }
-            // F-9: 来源会话可追溯
-            item.sessionId?.takeIf { it.isNotBlank() }?.let { sid ->
-                Text(
-                    text = sid.take(MEMORY_FACT_ROW_SESSION_ID_MAX),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            // MEM-06: 操作收进「更多」菜单 — 不再一行挤 4 个文字按钮;菜单项触摸区满足 48dp
-            var showMore by remember { mutableStateOf(false) }
-            Box {
-                MuseTactileButton(
-                    icon = MuseIcons.chevronDown,
-                    onClick = { showMore = true },
-                    contentDescription = stringResource(R.string.action_more),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    size = MuseIconSizes.touchTarget,
-                    iconSize = MuseIconSizes.iconSmall,
-                )
-                MuseAnchoredMenu(
-                    expanded = showMore,
-                    onDismissRequest = { showMore = false },
-                    alignEnd = true,
-                    minWidth = 196.dp,
-                    maxWidth = 240.dp,
-                ) {
-                    onImportance?.let {
-                        MuseActionSheetRow(
-                            icon = MuseIcons.star,
-                            onClick = {
-                                showMore = false
-                                it()
-                            },
-                            text = stringResource(R.string.memory_menu_importance),
-                        )
-                    }
-                    onPin?.let {
-                        MuseActionSheetRow(
-                            icon = MuseIcons.pin,
-                            onClick = {
-                                showMore = false
-                                it()
-                            },
-                            text = stringResource(
-                                if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin,
-                            ),
-                        )
-                    }
-                    onEdit?.let {
-                        MuseActionSheetRow(
-                            icon = MuseIcons.edit,
-                            onClick = {
-                                showMore = false
-                                it()
-                            },
-                            text = stringResource(R.string.memory_menu_edit),
-                        )
-                    }
-                    onHistory?.let {
-                        MuseActionSheetRow(
-                            icon = MuseIcons.history,
-                            onClick = {
-                                showMore = false
-                                it()
-                            },
-                            text = stringResource(R.string.memory_menu_history),
-                        )
-                    }
-                    onDelete?.let {
-                        MuseActionSheetRow(
-                            icon = MuseIcons.trash,
-                            contentColor = MaterialTheme.colorScheme.error,
-                            onClick = {
-                                showMore = false
-                                it()
-                            },
-                            text = stringResource(R.string.memory_menu_delete),
-                        )
-                    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        sourceMeta?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // 状态徽章（已合并/已出场/被取代）:放在来源之后、分类之前 ——
+        // “这条还生效吗”比“它属于哪个分类”更需要被一眼看到。
+        MemoryStatusBadges(status = item.status)
+        item.category?.takeIf {
+            it.isNotBlank()
+        }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+        item.time?.takeIf {
+            it.isNotBlank()
+        }?.let { Text(it.take(10), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline) }
+        // F-9: 来源会话可追溯
+        item.sessionId?.takeIf { it.isNotBlank() }?.let { sid ->
+            Text(
+                text = sid.take(MEMORY_FACT_ROW_SESSION_ID_MAX),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        // MEM-06: 操作收进「更多」菜单 — 不再一行挤 4 个文字按钮;菜单项触摸区满足 48dp
+        var showMore by remember { mutableStateOf(false) }
+        Box {
+            MuseTactileButton(
+                icon = MuseIcons.chevronDown,
+                onClick = { showMore = true },
+                contentDescription = stringResource(R.string.action_more),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconSmall,
+            )
+            MuseAnchoredMenu(
+                expanded = showMore,
+                onDismissRequest = { showMore = false },
+                alignEnd = true,
+                minWidth = 196.dp,
+                maxWidth = 240.dp,
+            ) {
+                onImportance?.let {
+                    MuseActionSheetRow(
+                        icon = MuseIcons.star,
+                        onClick = {
+                            showMore = false
+                            it()
+                        },
+                        text = stringResource(R.string.memory_menu_importance),
+                    )
+                }
+                onPin?.let {
+                    MuseActionSheetRow(
+                        icon = MuseIcons.pin,
+                        onClick = {
+                            showMore = false
+                            it()
+                        },
+                        text = stringResource(
+                            if (item.pinnedAt != null) R.string.memory_menu_unpin else R.string.memory_menu_pin,
+                        ),
+                    )
+                }
+                onEdit?.let {
+                    MuseActionSheetRow(
+                        icon = MuseIcons.edit,
+                        onClick = {
+                            showMore = false
+                            it()
+                        },
+                        text = stringResource(R.string.memory_menu_edit),
+                    )
+                }
+                onHistory?.let {
+                    MuseActionSheetRow(
+                        icon = MuseIcons.history,
+                        onClick = {
+                            showMore = false
+                            it()
+                        },
+                        text = stringResource(R.string.memory_menu_history),
+                    )
+                }
+                onDelete?.let {
+                    MuseActionSheetRow(
+                        icon = MuseIcons.trash,
+                        contentColor = MaterialTheme.colorScheme.error,
+                        onClick = {
+                            showMore = false
+                            it()
+                        },
+                        text = stringResource(R.string.memory_menu_delete),
+                    )
                 }
             }
         }
+    }
 }
 
 /**
@@ -1941,7 +1986,6 @@ private fun LazyListScope.memoryStreamTimeline(
             }
         }
     }
-
 }
 
 // F-9: 来源会话 id 展示的最大长度(避免长 id 撑爆行布局)。
@@ -2059,12 +2103,7 @@ internal fun MemoryBulkDeleteDialog(count: Int, onConfirm: () -> Unit, onDismiss
  * 内容可能很长，但不做另一层滚动：MuseDialog 的正文区本身已按可视高度滚动。
  */
 @Composable
-internal fun MemoryMergeDialog(
-    draft: MemoryMergeDraft,
-    running: Boolean,
-    onCancel: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
+internal fun MemoryMergeDialog(draft: MemoryMergeDraft, running: Boolean, onCancel: () -> Unit, onConfirm: (String) -> Unit) {
     var edited by remember(draft) { mutableStateOf(draft.mergedText) }
     MuseDialog(
         onDismissRequest = { if (!running) onCancel() },

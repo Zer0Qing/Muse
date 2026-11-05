@@ -150,7 +150,10 @@
     <string name="memory_center_filter_time_7">최근 7일</string>
     <string name="memory_center_filter_time_90">최근 90일</string>
     <string name="memory_center_filter_time_all">전체 기간</string>
-    <string name="memory_contradictions_dismiss_cd">확인 후 지우기</string>
+    <string name="memory_contradictions_dismiss_cd">나중에</string>
+    <string name="memory_contradictions_keep_a">위 문장 유지</string>
+    <string name="memory_contradictions_keep_b">아래 문장 유지</string>
+    <string name="memory_evidence_line">근거: %1$s</string>
     <string name="memory_contradictions_title">확인 대기 중인 모순 메모리</string>
     <string name="memory_delete_confirm_title">메모리 삭제</string>
     <string name="memory_menu_multi_select">여러 개 선택</string>

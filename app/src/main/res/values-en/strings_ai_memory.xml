@@ -96,7 +96,10 @@
 
     <!-- 前端修复 (i18n-3.x): Group chat memory tab + timeline filters -->
     <string name="memory_contradictions_title">Contradictory memories to review</string>
-    <string name="memory_contradictions_dismiss_cd">Confirm and dismiss</string>
+    <string name="memory_contradictions_dismiss_cd">Not now</string>
+    <string name="memory_contradictions_keep_a">Keep the first</string>
+    <string name="memory_contradictions_keep_b">Keep the second</string>
+    <string name="memory_evidence_line">Basis: %1$s</string>
     <string name="memory_timeline_filter_all">All</string>
     <string name="memory_timeline_filter_fact">Facts</string>
     <string name="memory_timeline_filter_summary">Summaries</string>

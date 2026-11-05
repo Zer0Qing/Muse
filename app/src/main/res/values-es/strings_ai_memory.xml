@@ -150,7 +150,10 @@
     <string name="memory_center_filter_time_7">Últimos 7 días</string>
     <string name="memory_center_filter_time_90">Últimos 90 días</string>
     <string name="memory_center_filter_time_all">Todo el tiempo</string>
-    <string name="memory_contradictions_dismiss_cd">Confirmar y borrar</string>
+    <string name="memory_contradictions_dismiss_cd">Ahora no</string>
+    <string name="memory_contradictions_keep_a">Conservar la primera</string>
+    <string name="memory_contradictions_keep_b">Conservar la segunda</string>
+    <string name="memory_evidence_line">Base: %1$s</string>
     <string name="memory_contradictions_title">Recuerdos contradictorios pendientes de confirmar</string>
     <string name="memory_delete_confirm_title">Eliminar recuerdo</string>
     <string name="memory_menu_multi_select">Seleccionar varios</string>

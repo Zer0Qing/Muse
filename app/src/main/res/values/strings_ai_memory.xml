@@ -174,7 +174,10 @@
 
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n -->
     <string name="memory_contradictions_title">待确认的矛盾记忆</string>
-    <string name="memory_contradictions_dismiss_cd">确认并清除</string>
+    <string name="memory_contradictions_dismiss_cd">暂不处理</string>
+    <string name="memory_contradictions_keep_a">保留上面这句</string>
+    <string name="memory_contradictions_keep_b">保留下面这句</string>
+    <string name="memory_evidence_line">依据：%1$s</string>
     <string name="memory_timeline_filter_all">全部</string>
     <string name="memory_timeline_filter_fact">元事实</string>
     <string name="memory_timeline_filter_summary">摘要</string>

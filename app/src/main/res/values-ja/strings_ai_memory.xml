@@ -150,7 +150,10 @@
     <string name="memory_center_filter_time_7">最近7日</string>
     <string name="memory_center_filter_time_90">最近90日</string>
     <string name="memory_center_filter_time_all">すべての期間</string>
-    <string name="memory_contradictions_dismiss_cd">確認して削除</string>
+    <string name="memory_contradictions_dismiss_cd">あとで考える</string>
+    <string name="memory_contradictions_keep_a">上を保持</string>
+    <string name="memory_contradictions_keep_b">下を保持</string>
+    <string name="memory_evidence_line">根拠：%1$s</string>
     <string name="memory_contradictions_title">確認待ちの矛盾する記憶</string>
     <string name="memory_delete_confirm_title">記憶を削除</string>
     <string name="memory_menu_multi_select">複数選択</string>
