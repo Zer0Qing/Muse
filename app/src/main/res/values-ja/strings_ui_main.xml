@@ -334,6 +334,13 @@
     <string name="channel_type_c2c">個人チャット</string>
     <string name="channel_auto_reply">自動返信</string>
     <string name="channel_auto_reply_desc">受信メッセージに対してアシスタントを自動実行し返信します(1 回ごとにモデル枠を消費)</string>
+    <string name="channel_policy_label">会話先のポリシー</string>
+    <string name="channel_policy_open">全員（制限なし）</string>
+    <string name="channel_policy_allowlist">リスト内のみ許可</string>
+    <string name="channel_policy_denylist">リスト内をミュート</string>
+    <string name="channel_policy_hint">着信の自動返信と送信の両方に適用（チャネル送信／転送ツールを含む）。リスト外はポリシーで拒否され、モデルのquotaを消費しません</string>
+    <string name="channel_policy_targets_label">対象リスト（chat_id / openid）</string>
+    <string name="channel_policy_targets_hint">カンマまたは改行区切り。グループは群chat_id、1対1は相手のopenid</string>
     <string name="channel_err_ai_timeout">AI 呼び出しがタイムアウトしました</string>
     <string name="channel_err_no_assistant">利用可能なアシスタントがなく、自動返信を生成できません</string>
     <string name="channel_weclaw_bind_title">WeChat ClawBot を連携</string>

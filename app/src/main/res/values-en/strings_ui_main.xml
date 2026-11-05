@@ -371,6 +371,13 @@
     <string name="channel_type_c2c">Direct</string>
     <string name="channel_auto_reply">Auto reply</string>
     <string name="channel_auto_reply_desc">Run the assistant automatically on incoming messages and reply back (each round consumes model quota)</string>
+    <string name="channel_policy_label">Conversation target policy</string>
+    <string name="channel_policy_open">Everyone (no restriction)</string>
+    <string name="channel_policy_allowlist">Allow only listed targets</string>
+    <string name="channel_policy_denylist">Block listed targets</string>
+    <string name="channel_policy_hint">Applies to inbound auto-replies and outbound sends (including channel send/relay tools); blocked targets are rejected by policy, no model quota spent</string>
+    <string name="channel_policy_targets_label">Target list (chat_id / openid)</string>
+    <string name="channel_policy_targets_hint">Comma- or newline-separated; group chat_id for groups, peer openid for direct chats</string>
     <!-- v2.0.1: Assistant bound to auto reply -->
     <string name="channel_field_assistant">Reply assistant</string>
     <string name="channel_assistant_default">Default assistant</string>

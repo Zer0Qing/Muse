@@ -314,6 +314,65 @@ internal class ChannelInboxJournal(
         return claimed
     }
 
+    /**
+     * v2.6.23(C2): 带去抖窗口的批量领取。
+     *
+     * 真人连发是常态(一句一行、想到就补一句)。逐条各跑一轮模型有两个后果:
+     * 「只回复了半句的前半」和「同一段对话被回复两遍」。本方法把同一渠道同一来话者、
+     * 时间相邻的连续**纯文本**消息合成一批交给自动回复,整批只生成一条回复。
+     *
+     * 规则:
+     *  - 队头是媒体消息 → 单条返回,不等待(媒体消息通常独立成条,内容也无法与文本拼接);
+     *  - 同源的连发还没静默满窗口(now - 最新一条 < windowMs) → 把队头的 retryAt 推到窗口末尾,
+     *    本次返回空 —— 不吞掉任何消息,只是等它把话说完;
+     *  - 窗口已满 → 按时间序领取文本批(封顶 maxBatch),逐条转 PROCESSING 落盘。
+     * 吸收进来的每一条仍是独立派发:回复成功一起 COMPLETED,重试/拦截各按自己的 dispatchId 记账。
+     */
+    @Synchronized
+    fun claimPendingBatch(windowMs: Long, maxBatch: Int): List<ChannelInbox.Inbound> {
+        val now = nowMillis()
+        val current = messages.value
+        // 队头 = 最早入队的可领取项(record 把新事件放在表头,列表尾部才是「先来」)。
+        val headIndex = current.indexOfLast {
+            it.dispatchState == ChannelInbox.DispatchState.PENDING && it.retryAtMillis <= now
+        }
+        if (headIndex < 0) return emptyList()
+        val head = current[headIndex]
+        if (head.mediaKind.isNotEmpty() || head.mediaPath.isNotEmpty()) {
+            return listOf(claimOne(current, headIndex))
+        }
+        val sameOrigin = current.withIndex().filter { (index, item) ->
+            index != headIndex &&
+                item.dispatchState == ChannelInbox.DispatchState.PENDING &&
+                item.retryAtMillis <= now &&
+                item.sourceChannelId == head.sourceChannelId &&
+                item.from == head.from &&
+                item.mediaKind.isEmpty() &&
+                item.mediaPath.isEmpty()
+        }
+        val newest = (sameOrigin.map { it.value.timestamp } + head.timestamp).maxOrNull() ?: head.timestamp
+        // 窗口未满就连单条也等:来话者随时可能补一句,提前回复等于只答半句。
+        if (now - newest < windowMs) {
+            // 连发还没停:队头推迟到「最后一句说完」,不领取任何一条
+            val deferredHead = head.copy(retryAtMillis = newest + windowMs)
+            check(persistItem(deferredHead)) { "Channel inbox could not persist debounce deferral" }
+            messages.value = current.toMutableList().also { it[headIndex] = deferredHead }
+            return emptyList()
+        }
+        val batch = (listOf(IndexedValue(headIndex, head)) + sameOrigin)
+            .sortedBy { it.value.timestamp }
+            .take(maxBatch.coerceAtLeast(1))
+        return batch.map { (index, _) -> claimOne(current, index) }
+    }
+
+    /** 把第 [index] 条转 PROCESSING 并落盘,返回领取后的条目。调用方必须已持有 [Synchronized]。 */
+    private fun claimOne(snapshot: List<ChannelInbox.Inbound>, index: Int): ChannelInbox.Inbound {
+        val claimed = snapshot[index].copy(dispatchState = ChannelInbox.DispatchState.PROCESSING)
+        check(persistItem(claimed)) { "Channel inbox could not persist dispatch claim" }
+        messages.value = messages.value.toMutableList().also { it[index] = claimed }
+        return claimed
+    }
+
     @Synchronized
     fun savePreparedReply(dispatchId: String, reply: String): Boolean {
         if (reply.isBlank()) return false
@@ -604,7 +663,9 @@ internal class ChannelInboxJournal(
     }
 
     /** 删除 [dropped] 里所有条目的分片（裁剪 / 清空历史用）。 */
-    private fun deleteDropped(dropped: List<ChannelInbox.Inbound>) { dropped.forEach { deleteItem(it) } }
+    private fun deleteDropped(dropped: List<ChannelInbox.Inbound>) {
+        dropped.forEach { deleteItem(it) }
+    }
 
     private fun notifyPendingListener() {
         runCatching { pendingListener?.invoke() }

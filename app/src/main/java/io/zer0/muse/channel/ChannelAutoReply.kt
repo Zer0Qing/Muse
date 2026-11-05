@@ -180,27 +180,49 @@ class ChannelAutoReply(
     }
 
     @Suppress("TooGenericExceptionCaught")
-    private suspend fun claimNextPendingOrDelay(): ChannelInbox.Inbound? = try {
-        ChannelInbox.journal.claimNextPending()
+    private suspend fun claimNextPendingOrDelay(): List<ChannelInbox.Inbound> = try {
+        // v2.6.23(C2): 去抖合批 —— 同人连发等话说完再答,整批一条回复。
+        ChannelInbox.journal.claimPendingBatch(DEBOUNCE_WINDOW_MS, DEBOUNCE_MAX_BATCH)
     } catch (error: Exception) {
         Logger.e(TAG, "领取渠道入站事件失败: ${error.message}", error)
         kotlinx.coroutines.delay(DISPATCH_STATE_RETRY_DELAY_MS)
-        null
+        emptyList()
     }
 
     @Suppress("TooGenericExceptionCaught") // Convert unexpected handler failures to a durable retry outcome.
     private suspend fun drainOnePending(): Boolean {
-        val inbound = claimNextPendingOrDelay() ?: return false
+        val batch = claimNextPendingOrDelay()
+        if (batch.isEmpty()) return false
+        val head = batch.first()
         val outcome = try {
-            handle(inbound)
+            handleBatch(batch)
         } catch (error: CancellationException) {
-            runCatching { ChannelInbox.journal.releaseDispatch(inbound.dispatchId) }
+            runCatching { ChannelInbox.journal.releaseDispatch(head.dispatchId) }
             throw error
         } catch (error: Exception) {
             Logger.w(TAG, "自动回复处理异常,稍后重试: ${error.message}", error)
             HandleResult.Retry
         }
-        return persistOutcome(inbound, outcome)
+        return persistOutcomeBatch(batch, outcome)
+    }
+
+    /** 批内每一条都按同一结论记账:回复成功一起完成,重试/拦截各按自己的派发落盘。 */
+    private suspend fun persistOutcomeBatch(batch: List<ChannelInbox.Inbound>, outcome: HandleResult): Boolean {
+        var allOk = true
+        for (item in batch) {
+            if (!persistOutcome(item, outcome)) allOk = false
+        }
+        return allOk
+    }
+
+    /** 多条连发拼成一段用户输入(保留说话顺序);单条时与逐字一致。 */
+    internal fun joinBatchTexts(batch: List<ChannelInbox.Inbound>): String =
+        batch.map { it.summary.trim() }.filter { it.isNotEmpty() }.joinToString("\n")
+
+    private suspend fun handleBatch(batch: List<ChannelInbox.Inbound>): HandleResult {
+        val head = batch.first()
+        val text = joinBatchTexts(batch)
+        return if (text.isBlank()) HandleResult.Ignored else handleMessage(head, text)
     }
 
     @Suppress("TooGenericExceptionCaught")
@@ -223,20 +245,19 @@ class ChannelAutoReply(
         false
     }
 
-    private suspend fun handle(inbound: ChannelInbox.Inbound): HandleResult {
-        val text = inbound.summary.trim()
-        return if (text.isBlank()) HandleResult.Ignored else handleMessage(inbound, text)
-    }
-
-    private suspend fun handleMessage(inbound: ChannelInbox.Inbound, text: String): HandleResult {
-        channelManager.refresh()
-        val config = selectAutoReplyConfig(channelManager.channels.value, inbound)
-        if (config == null) return HandleResult.Ignored
-        // 每轮处理开始前清零转发计数:限定「一轮里最多转几条」。
-        ChannelRelayLedger.beginTurn()
-        // 排队超窗预检：窗口判断原本只在 runAgent 里做，消息在队列里排过窗口之后
-        // 仍会先跑完一轮模型，才发现根本发不出去。
-        // 必须早于 appendTurn：否则会话里会留下一条没有回复的用户消息，污染后续上下文。
+    /**
+     * 回复前的预检,返回非 null 表示本轮到此为止:
+     *  - v2.6.23(C1) 对话目标策略:名单外不回应。消息仍留在收件箱(可排查),
+     *    但不进会话上下文 —— 策略拦截和"没听懂"不是一回事,后者才需要留下对话痕迹;
+     *  - 排队超窗:窗口判断原本只在 runAgent 里做,消息排过窗口之后仍会先跑完一轮模型
+     *    才发现发不出去。两者都必须早于 appendTurn,否则会话里会留下一条没有回复的
+     *    用户消息,污染后续上下文。
+     */
+    private fun preDispatchBlock(inbound: ChannelInbox.Inbound, config: ChannelConfig): HandleResult? {
+        if (!ChannelPolicy.allows(config, inbound.from)) {
+            Logger.i(TAG, "入站被渠道策略拦截(platform=${inbound.platform}, from=${inbound.from.take(16)})")
+            return HandleResult.Ignored
+        }
         val now = System.currentTimeMillis()
         if (queuedReplyWindowExpired(inbound, now)) {
             val deadline = replyDeadline(inbound)
@@ -247,6 +268,17 @@ class ChannelAutoReply(
             )
             return HandleResult.Blocked(REPLY_WINDOW_EXPIRED_BY_QUEUE)
         }
+        return null
+    }
+
+    private suspend fun handleMessage(inbound: ChannelInbox.Inbound, text: String): HandleResult {
+        channelManager.refresh()
+        val config = selectAutoReplyConfig(channelManager.channels.value, inbound)
+        if (config == null) return HandleResult.Ignored
+        // 每轮处理开始前清零转发计数:限定「一轮里最多转几条」。
+        ChannelRelayLedger.beginTurn()
+        // 回复前的两道预检(策略 + 排队超窗),都必须早于 appendTurn。
+        preDispatchBlock(inbound, config)?.let { return it }
         ChannelConversationStore.appendTurn(
             config.id,
             inbound.from,
@@ -967,6 +999,12 @@ class ChannelAutoReply(
         /** 回发文本上限,防止超长内容超出各平台消息限制。 */
         private const val MAX_REPLY_LENGTH = 4_000
         private const val DISPATCH_STATE_RETRY_DELAY_MS = 1_000L
+
+        /** v2.6.23(C2): 同人连发的静默窗口 —— 最后一句过这么久才回复。 */
+        internal const val DEBOUNCE_WINDOW_MS = 2_000L
+
+        /** v2.6.23(C2): 单批最多合并的连发条数(再多就该分轮了)。 */
+        internal const val DEBOUNCE_MAX_BATCH = 8
 
         /** v2.0.1: 提供给模型的最近轮次上限。 */
         private const val CONTEXT_TURNS = 30

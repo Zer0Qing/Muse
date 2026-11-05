@@ -334,6 +334,13 @@
     <string name="channel_type_c2c">Direto</string>
     <string name="channel_auto_reply">Resposta automática</string>
     <string name="channel_auto_reply_desc">Executa o assistente automaticamente ao receber mensagens e responde (cada rodada consome cota do modelo)</string>
+    <string name="channel_policy_label">Política de destinos</string>
+    <string name="channel_policy_open">Todos (sem restrição)</string>
+    <string name="channel_policy_allowlist">Apenas a lista</string>
+    <string name="channel_policy_denylist">Bloquear a lista</string>
+    <string name="channel_policy_hint">Vale para autorrespostas e envios (incl. ferramentas de canal); destinos bloqueados são recusados por política, sem gastar cota do modelo</string>
+    <string name="channel_policy_targets_label">Lista de destinos (chat_id / openid)</string>
+    <string name="channel_policy_targets_hint">Separados por vírgula ou linha; chat_id de grupo, openid do contato no privado</string>
     <string name="channel_err_ai_timeout">Tempo esgotado na chamada de IA</string>
     <string name="channel_err_no_assistant">Nenhum assistente disponível para gerar resposta automática</string>
     <string name="channel_weclaw_bind_title">Vincular WeChat ClawBot</string>

@@ -63,6 +63,16 @@ data class ChannelConfig(
      * v2.0.1: 自动回复绑定的助手 id — 空串表示默认助手;继承其人设/模型/参数。
      */
     val assistantId: String = "",
+    /**
+     * v2.6.23(C1): 对话目标策略 — "open"(默认,全部可对话)/
+     * "allowlist"(只有 [policyTargets] 内的群/用户可对话)/"denylist"(名单内禁言)。
+     *
+     * 入站自动回复与出站发送在同一处判定(见 [ChannelPolicy]);
+     * 名单外是"策略拦截"而不是"发送失败"——把策略当故障会让人去改凭据,方向就错了。
+     */
+    val policyMode: String = "open",
+    /** v2.6.23(C1): 策略名单:群 chat_id / 用户 openid;录入以逗号或换行分隔。 */
+    val policyTargets: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
 ) {
     /** v2.0.1: 钉钉 API Base — 留空回退官方默认;去除尾斜杠避免拼接问题。 */

@@ -73,6 +73,7 @@ class ChannelReplyWindowPrecheckTest {
     /**
      * 预检位置靠源码顺序锁定：拦截必须早于 appendTurn（否则会话里留一条没有回复的用户消息），
      * 也必须早于 prepareReply（runAgent 只在那里被调用）。
+     * v2.6.23(C1) 把策略与超窗合并为 preDispatchBlock 后,守卫随之改锁新结构,不变量不变。
      */
     @Test
     fun `预检拦截早于写会话库与调用模型`() {
@@ -82,13 +83,24 @@ class ChannelReplyWindowPrecheckTest {
         val end = source.indexOf("private suspend fun prepareReply(", start)
         val body = source.substring(start, if (end > start) end else source.length)
 
-        val blockIdx = body.indexOf("return HandleResult.Blocked(REPLY_WINDOW_EXPIRED_BY_QUEUE)")
+        val blockIdx = body.indexOf("preDispatchBlock(inbound, config)")
         val appendIdx = body.indexOf("ChannelConversationStore.appendTurn")
         val prepareIdx = body.indexOf("prepareReply(inbound, config)")
 
-        assertTrue("handleMessage 里必须有排队超窗拦截", blockIdx >= 0)
+        assertTrue("handleMessage 必须有回复前预检", blockIdx >= 0)
         assertTrue("预检必须在 appendTurn 之前", blockIdx < appendIdx)
         assertTrue("预检必须在 prepareReply(即 runAgent) 之前", blockIdx < prepareIdx)
         assertEquals("handleMessage 不应直接调用模型", -1, body.indexOf("runAgent("))
+
+        // 超窗终态仍真实存在于预检实现中:重构不许把拦截改成静默放过。
+        val preStart = source.indexOf("private fun preDispatchBlock(")
+        assertTrue("未找到 preDispatchBlock", preStart >= 0)
+        val preEnd = source.indexOf("private suspend fun handleMessage(", preStart)
+        val preBody = source.substring(preStart, if (preEnd > preStart) preEnd else source.length)
+        assertTrue(
+            "预检必须同时包含策略拦截与排队超窗拦截",
+            preBody.contains("return HandleResult.Blocked(REPLY_WINDOW_EXPIRED_BY_QUEUE)") &&
+                preBody.contains("ChannelPolicy.allows(config, inbound.from)"),
+        )
     }
 }

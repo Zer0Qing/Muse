@@ -41,6 +41,7 @@ import io.zer0.muse.channel.ChannelConfig
 import io.zer0.muse.channel.ChannelInbox
 import io.zer0.muse.channel.ChannelManager
 import io.zer0.muse.channel.ChannelPlatform
+import io.zer0.muse.channel.ChannelPolicy
 import io.zer0.muse.channel.DingtalkReceiver
 import io.zer0.muse.channel.FeishuReceiver
 import io.zer0.muse.channel.QqReceiver
@@ -389,6 +390,11 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
     var region by remember { mutableStateOf(initial?.region ?: "cn") }
     var autoReply by remember { mutableStateOf(initial?.autoReply ?: false) }
     var assistantId by remember { mutableStateOf(initial?.assistantId.orEmpty()) }
+    // v2.6.23(C1): 对话目标策略草稿。名单以多行/逗号录入,保存时规范化。
+    var policyMode by remember { mutableStateOf(initial?.policyMode ?: "open") }
+    var policyTargetsRaw by remember {
+        mutableStateOf((initial?.policyTargets ?: emptyList()).joinToString("\n"))
+    }
     var showBind by remember { mutableStateOf(false) }
     var showTutorial by remember { mutableStateOf(false) }
     var showSecret by remember { mutableStateOf(false) }
@@ -823,6 +829,33 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
+                // ── v2.6.23(C1): 对话目标策略(入站自动回复与出站发送共用同一判定) ──
+                val policyOptions = listOf(
+                    "open" to stringResource(R.string.channel_policy_open),
+                    "allowlist" to stringResource(R.string.channel_policy_allowlist),
+                    "denylist" to stringResource(R.string.channel_policy_denylist),
+                )
+                MuseDropdown(
+                    value = policyMode,
+                    onValueChange = { policyMode = it },
+                    label = stringResource(R.string.channel_policy_label),
+                    options = policyOptions,
+                )
+                Text(
+                    text = stringResource(R.string.channel_policy_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                if (policyMode != "open") {
+                    MuseTextField(
+                        value = policyTargetsRaw,
+                        onValueChange = { policyTargetsRaw = it },
+                        label = { Text(stringResource(R.string.channel_policy_targets_label)) },
+                        supportingText = { Text(stringResource(R.string.channel_policy_targets_hint)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                    )
+                }
             }
         },
         confirmText = stringResource(R.string.channel_save),
@@ -852,6 +885,8 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                     region = region,
                     autoReply = autoReply,
                     assistantId = assistantId,
+                    policyMode = policyMode,
+                    policyTargets = ChannelPolicy.normalizeTargets(policyTargetsRaw),
                     createdAt = initial?.createdAt ?: System.currentTimeMillis(),
                 ),
             )

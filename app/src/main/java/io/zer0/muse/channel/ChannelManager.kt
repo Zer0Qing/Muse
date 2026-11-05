@@ -74,6 +74,16 @@ class ChannelManager(context: Context) {
     suspend fun sendText(channelId: String, text: String, targetOverride: String? = null): ChannelSendResult =
         sendTextWithOptions(channelId, text, ChannelSendOptions(targetOverride = targetOverride))
 
+    /** v2.6.23(C1): 本层能确定的发送目标:显式 override 优先,否则渠道默认目标。 */
+    private fun sendTarget(config: ChannelConfig, targetOverride: String?): String =
+        targetOverride?.trim()?.takeIf { it.isNotEmpty() } ?: config.targetId.trim()
+
+    /** 目标不可见(WeClaw 信用 reply token)时不在这里拦 — 入站闸已覆盖,空串误判成 allowlist 不命中是错的。 */
+    private fun policyAllowsAtSend(config: ChannelConfig, targetOverride: String?): Boolean {
+        val target = sendTarget(config, targetOverride)
+        return target.isEmpty() || ChannelPolicy.allows(config, target)
+    }
+
     internal suspend fun sendTextWithOptions(channelId: String, text: String, options: ChannelSendOptions): ChannelSendResult {
         val config = _channels.value.firstOrNull { it.id == channelId }
         val sender = config?.let { senders[it.platform] }
@@ -82,6 +92,12 @@ class ChannelManager(context: Context) {
             !config.enabled -> ChannelSendResult(false, "渠道已停用: ${config.name.ifBlank { channelId }}")
             text.isBlank() -> ChannelSendResult(false, "发送内容为空")
             sender == null -> ChannelSendResult(false, "平台未支持: ${config.platform}")
+            // v2.6.23(C1): 出站策略。只对「这里能确定的目标」判定:
+            //  - 工具/手动发送一定有 targetOverride 或 config.targetId → 判;
+            //  - WeClaw 回信用的是入站 context token,目标在本层不可见 → 交给入站那道闸
+            //    (ChannelAutoReply),不在这里误拦成"目标是空串"。
+            !policyAllowsAtSend(config, options.targetOverride) ->
+                ChannelSendResult(false, ChannelPolicy.blockReason(config, sendTarget(config, options.targetOverride)))
             else -> sender.sendText(
                 config,
                 text,

@@ -334,6 +334,13 @@
     <string name="channel_type_c2c">Личный чат</string>
     <string name="channel_auto_reply">Автоответ</string>
     <string name="channel_auto_reply_desc">Автоматически запускает ассистента при получении сообщений и отвечает (каждый запуск расходует квоту модели)</string>
+    <string name="channel_policy_label">Политика адресатов</string>
+    <string name="channel_policy_open">Все (без ограничений)</string>
+    <string name="channel_policy_allowlist">Разрешить только список</string>
+    <string name="channel_policy_denylist">Заглушить список</string>
+    <string name="channel_policy_hint">Действует на автоответы и отправку (включая инструменты канала); заблокированные отклоняются политикой, квота модели не тратится</string>
+    <string name="channel_policy_targets_label">Список адресатов (chat_id / openid)</string>
+    <string name="channel_policy_targets_hint">Через запятую или перенос; для групп chat_id, для личных — openid</string>
     <string name="channel_err_ai_timeout">Тайм-аут вызова ИИ</string>
     <string name="channel_err_no_assistant">Нет доступного ассистента для создания автоответа</string>
     <string name="channel_weclaw_bind_title">Привязка WeChat ClawBot</string>

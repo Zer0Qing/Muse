@@ -414,6 +414,13 @@
     <string name="channel_type_c2c">单聊</string>
     <string name="channel_auto_reply">自动回复</string>
     <string name="channel_auto_reply_desc">收到该渠道消息时自动运行助手并回发（每轮消耗模型额度）</string>
+    <string name="channel_policy_label">对话目标策略</string>
+    <string name="channel_policy_open">全部（不限制）</string>
+    <string name="channel_policy_allowlist">只允许名单内</string>
+    <string name="channel_policy_denylist">名单内禁言</string>
+    <string name="channel_policy_hint">对入站自动回复与出站发送同时生效（含渠道发送/转发工具）；名单外按策略拒绝，不会消耗模型额度</string>
+    <string name="channel_policy_targets_label">目标名单（chat_id / openid）</string>
+    <string name="channel_policy_targets_hint">逗号或换行分隔；群填群 chat_id，单聊填对方 openid</string>
     <!-- v2.0.1: 自动回复绑定的助手 -->
     <string name="channel_field_assistant">自动回复助手</string>
     <string name="channel_assistant_default">默认助手</string>
