@@ -1866,7 +1866,7 @@ private fun ArchivedSessionsList(
             )
             Text(
                 text = stringResource(R.string.chat_list_archived_entry, archived.size),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(start = 4.dp),
             )

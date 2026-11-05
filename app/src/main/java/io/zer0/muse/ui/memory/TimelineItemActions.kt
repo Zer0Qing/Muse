@@ -65,7 +65,7 @@ internal fun TimelineItemActions(
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = memoryItemNameHint(target.content),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

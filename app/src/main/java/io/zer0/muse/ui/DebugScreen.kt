@@ -823,7 +823,7 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
                                     } else {
                                         stringResource(R.string.debug_db_status_error)
                                     },
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    style = MaterialTheme.typography.titleMedium,
                                     color = if (isOk) {
                                         MaterialTheme.colorScheme.onSurface
                                     } else {

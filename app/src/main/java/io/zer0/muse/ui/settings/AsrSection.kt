@@ -126,7 +126,7 @@ internal fun AsrSection(
                 )
                 Text(
                     text = asrProviderName(asrConfig.provider),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
@@ -521,7 +521,7 @@ internal fun AsrSection(
         MuseBottomSheet(onDismissRequest = { enginePickerOpen = false }) {
             Text(
                 text = stringResource(R.string.settings_asr_pick_title),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = MusePaddings.itemGap),
             )

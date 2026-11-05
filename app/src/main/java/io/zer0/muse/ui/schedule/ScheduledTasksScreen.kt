@@ -1590,7 +1590,7 @@ private fun BackgroundWakeSheet(onDismiss: () -> Unit) {
     MuseBottomSheet(onDismissRequest = onDismiss) {
         Text(
             text = stringResource(R.string.wake_diagnostics_title),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.size(4.dp))

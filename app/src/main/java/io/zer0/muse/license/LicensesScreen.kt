@@ -196,7 +196,7 @@ private fun HeaderSummary(manifest: LicenseManifest) {
         ) {
             Text(
                 text = "${manifest.appName} v${manifest.appVersion}",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(Modifier.height(6.dp))

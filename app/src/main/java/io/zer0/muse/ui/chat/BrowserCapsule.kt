@@ -148,7 +148,7 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 6.dp),
@@ -427,7 +427,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                 )
                                 Text(
                                     text = stringResource(R.string.browser_viewer_blank_title),
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.padding(top = 12.dp),
                                 )
                                 Text(

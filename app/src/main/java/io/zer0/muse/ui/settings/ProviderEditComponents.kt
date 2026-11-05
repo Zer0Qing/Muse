@@ -424,7 +424,7 @@ internal fun ConfigTab(
                                     }
                                     Text(
                                         text = stringResource(R.string.oauth_login),
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                        style = MaterialTheme.typography.labelMedium,
                                         color = oauthBtnContentColor,
                                     )
                                 }
@@ -462,7 +462,7 @@ internal fun ConfigTab(
                                         )
                                         Text(
                                             text = stringResource(R.string.oauth_revoke),
-                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                            style = MaterialTheme.typography.labelMedium,
                                             color = revokeBtnContentColor,
                                         )
                                     }
@@ -530,7 +530,7 @@ internal fun ConfigTab(
                                     // F-12: 端点测试(仅调 /models)与模型测试(完整链路)语义区分
                                     Text(
                                         text = stringResource(R.string.settings_provider_test_connection_endpoint),
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                        style = MaterialTheme.typography.labelMedium,
                                         color = testBtnContentColor,
                                     )
                                 }

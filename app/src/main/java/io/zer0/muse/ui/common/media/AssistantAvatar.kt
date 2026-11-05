@@ -93,7 +93,7 @@ fun AssistantAvatar(
                     } else {
                         Text(
                             text = assistant.name.firstOrNull()?.toString()?.ifBlank { "A" } ?: "A",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -136,7 +136,7 @@ fun AssistantAvatar(
             ) {
                 Text(
                     text = assistant.name.firstOrNull()?.toString()?.ifBlank { "A" } ?: "A",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

@@ -406,7 +406,7 @@ fun SettingsModelPage(
                     ) {
                         Text(
                             text = userCode,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+                            style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.fillMaxWidth().padding(vertical = MusePaddings.itemGap),
                             textAlign = TextAlign.Center,
@@ -890,7 +890,7 @@ fun SettingsAboutPage(
                 ) {
                     Text(
                         text = "muse",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(

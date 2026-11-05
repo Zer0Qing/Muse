@@ -59,7 +59,7 @@ fun ProactiveLedgerSheet(
         ) {
             Text(
                 text = stringResource(R.string.settings_proactive_v2_ledger),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.size(MusePaddings.contentGap))

@@ -433,7 +433,7 @@ fun MemoryGraphView(
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = node.title,
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+                        style = MaterialTheme.typography.titleSmall,
                         color = colors.onSurface,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,

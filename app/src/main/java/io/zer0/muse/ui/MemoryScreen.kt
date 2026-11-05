@@ -683,7 +683,7 @@ fun MemoryScreen(
             ) {
                 Text(
                     text = stringResource(R.string.memory_center_filter_title),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 // U-11: "作用域/记忆空间"为技术化筛选,整体收进可展开的"高级筛选"折叠区(默认收起)
                 var advancedFilterExpanded by remember { mutableStateOf(false) }
@@ -862,7 +862,7 @@ private fun MemoryOverviewCard(
                 // 再给数字加 weight 会与它平分空间、把右侧过滤入口挤走）
                 Text(
                     text = factCount.toString(),
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                 )
@@ -1311,7 +1311,7 @@ private fun LazyListScope.memoryFactsItems(
             // LAYOUT-01: 分区标题取剩余宽度（右侧仅一个固定宽新增按钮），长标题不再逐字换行
             Text(
                 text = stringResource(R.string.memory_center_library_title),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -1593,7 +1593,7 @@ internal fun MemoryFactRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = titleText,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.titleSmall,
                     maxLines = if (expanded) Int.MAX_VALUE else 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier =

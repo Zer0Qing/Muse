@@ -277,7 +277,7 @@ private fun UserProfileEntryCard(onClick: () -> Unit, modifier: Modifier = Modif
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.account_user_profile_title),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
@@ -474,7 +474,7 @@ fun AccountCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = accountState.userName.ifBlank { stringResource(R.string.account_default_user) },
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
