@@ -58,6 +58,22 @@ internal class HostWebSocketGateway(
     /** F-39: 多客户端串行 / 焦点隔离令牌。 */
     private val focus = HostFocusTokenHolder()
 
+    /**
+     * 已完成命令的 requestId 集合。**刻意是网关级而不是连接级**。
+     *
+     * 原来它挂在 `ConnectionContext` 上，随连接一起消失：浏览器标签页恢复、以后若加离线重试队列，
+     * 或用户在结果未知时按同一个 requestId 再发一次，服务端会把它当**新命令再执行一遍**——
+     * 而对写操作来说"再执行一遍"可能就是多删一条、多发一条。
+     *
+     * 共享是安全的：requestId 由客户端用 `crypto.randomUUID()` 生成，
+     * 跨连接撞车的概率可以忽略，因此这张表只会挡住重复，不会挡住正常请求。
+     * 参照同一层的 [focus]：那本来也是跨连接状态。
+     *
+     * 另有更强的一层在存储里：`ConversationDraft.deterministicEventId()` 刻意排除 createdAt，
+     * 使重发的逻辑事件在会话事件表里天然去重；这条管的是**非会话类写命令**的重复执行。
+     */
+    private val completedRequestIds = LinkedHashSet<String>()
+
     /** settings.snapshot / settings.update 的实现(白名单、类型校验与文案解析在里面)。 */
     private val settingsCommands = HostSettingsCommands(RepositorySettingsAccess(settingsRepo), settingsStrings)
 
@@ -78,7 +94,6 @@ internal class HostWebSocketGateway(
         val id: String = UUID.randomUUID().toString(),
         var eventSeq: Long = 0L,
         val history: ArrayDeque<HostEvent> = ArrayDeque(),
-        val completedRequestIds: LinkedHashSet<String> = linkedSetOf(),
     )
 
     private companion object {
@@ -145,7 +160,7 @@ internal class HostWebSocketGateway(
                     if (command.protocolVersion != CURRENT_PROTOCOL_VERSION) {
                         throw HostProtocolException("unsupported host protocol version: ${command.protocolVersion}")
                     }
-                    if (command.requestId != null && command.requestId in context.completedRequestIds) {
+                    if (command.requestId != null && isCompletedRequest(command.requestId)) {
                         sendEvent(
                             connection,
                             HostEvent(type = "command.duplicate", requestId = command.requestId),
@@ -154,7 +169,7 @@ internal class HostWebSocketGateway(
                         )
                     } else {
                         handle(command, connection, context, sendMutex)
-                        command.requestId?.let { rememberCompletedRequest(context, it) }
+                        command.requestId?.let { rememberCompletedRequest(it) }
                     }
                 } catch (error: HostProtocolException) {
                     Logger.w("HostWebSocket", "协议命令失败: ${error.message}", error)
@@ -802,10 +817,17 @@ internal class HostWebSocketGateway(
         )
     }
 
-    private fun rememberCompletedRequest(context: ConnectionContext, requestId: String) {
-        context.completedRequestIds += requestId
-        while (context.completedRequestIds.size > MAX_COMPLETED_REQUESTS) {
-            context.completedRequestIds.remove(context.completedRequestIds.first())
+    /** 只增不查的单键判重；锁住是因为多个连接会在不同协程里同时进来。 */
+    private fun isCompletedRequest(requestId: String): Boolean = synchronized(this) {
+        completedRequestIds.contains(requestId)
+    }
+
+    private fun rememberCompletedRequest(requestId: String) {
+        synchronized(this) {
+            completedRequestIds += requestId
+            while (completedRequestIds.size > MAX_COMPLETED_REQUESTS) {
+                completedRequestIds.remove(completedRequestIds.first())
+            }
         }
     }
 
