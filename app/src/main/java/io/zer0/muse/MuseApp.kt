@@ -90,6 +90,7 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val dingtalkReceiver: io.zer0.muse.channel.DingtalkReceiver by inject()
     private val qqReceiver: io.zer0.muse.channel.QqReceiver by inject()
     private val feishuReceiver: io.zer0.muse.channel.FeishuReceiver by inject()
+
     /** v2.6.9: 主动消息重建版调度器（牵挂账本模型）。 */
     private val proactiveScheduler: io.zer0.muse.proactive.ProactiveScheduler by inject()
     private val modelCatalogRepository: io.zer0.muse.data.catalog.ModelCatalogRepository by inject()
@@ -498,11 +499,11 @@ class MuseApp : Application(), ImageLoaderFactory {
                     ).start()
                 }.onError { msg, t -> Logger.w("MuseApp", "PluginHookBridge 启动失败: $msg", t) }
                 // 插件激活会在启动时评估插件脚本，而 JsSandbox 原先只在工具被调用时才 init，
-        // 导致所有带 JS 入口的插件在开机第一次激活时必然报「JsSandbox 未初始化」。
-        // 在派发激活事件之前先把 sandbox 就绪（init 幂等）。
-        resultOf { io.zer0.muse.tools.JsSandbox.init(applicationContext) }
-            .onError { msg, t -> Logger.w("MuseApp", "JsSandbox init 失败: $msg", t) }
-        // v2.6.13: 插件激活事件（activationEvents）派发。
+                // 导致所有带 JS 入口的插件在开机第一次激活时必然报「JsSandbox 未初始化」。
+                // 在派发激活事件之前先把 sandbox 就绪（init 幂等）。
+                resultOf { io.zer0.muse.tools.JsSandbox.init(applicationContext) }
+                    .onError { msg, t -> Logger.w("MuseApp", "JsSandbox init 失败: $msg", t) }
+                // v2.6.13: 插件激活事件（activationEvents）派发。
                 // 之前这个字段只被展示、从不派发，作者写了 onStartup 也不会被叫到。
                 resultOf {
                     val bridge = io.zer0.muse.data.plugin.PluginActivationBridge(
@@ -1044,7 +1045,6 @@ class MuseApp : Application(), ImageLoaderFactory {
         Logger.d("MuseApp", "StrictMode 已启用(debug): detectDiskReads/detectDiskWrites/detectNetwork + penaltyLog")
     }
 
-
     /**
      * R-SVC-05: 仅生成任务活跃期间申请/释放 PARTIAL_WAKE_LOCK。
      *
@@ -1162,6 +1162,42 @@ class MuseApp : Application(), ImageLoaderFactory {
      * - GIF: 用于动图表情 / 动态贴纸(minSdk 26 ≥ api19,GifDecoder 可用;
      *   api28+ 系统会自动走 ImageDecoderDecoder,性能更优)
      */
+    /**
+     * 内存压力回调：只释放“可重建”的图片缓存。
+     *
+     * 本应用有三套独立的图片内存缓存：Coil 全局缓存（堆的 25%）、data-URI 位图缓存
+     * （[io.zer0.muse.perf.DataUriImageCache]，min(48MB, 堆/8)）、消息图片的 base64 字符串
+     * 缓存（[io.zer0.muse.data.session.MessageImageStore]，单实例 64MB）。三者各自按比例定容，
+     * 在 256MB 堆的设备上可占到大半；此前没有任何 trim 入口，系统已逼近上限时也不让出。
+     *
+     * 只响应 RUNNING_LOW / RUNNING_CRITICAL / COMPLETE，**不处理 UI_HIDDEN**：
+     * 切后台就清空会让每次回来重新解码所有图片，观感退化成“图一直闪”。
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        val tight = level == android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+            level == android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+            level == android.content.ComponentCallbacks2.TRIM_MEMORY_COMPLETE
+        if (tight) releaseImageCaches("onTrimMemory($level)")
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        releaseImageCaches("onLowMemory")
+    }
+
+    /** 清空图片内存缓存（位图与 data-URI 缓存），下一次组合会从磁盘/网络重建。 */
+    private fun releaseImageCaches(reason: String) {
+        val bitmapHits = runCatching {
+            val size = io.zer0.muse.perf.DataUriImageCache.size()
+            io.zer0.muse.perf.DataUriImageCache.clear()
+            size
+        }.getOrDefault(0)
+        runCatching { coil.Coil.imageLoader(this).memoryCache?.clear() }
+            .onFailure { Logger.w("MuseApp", "清空 Coil 内存缓存失败: ${it.message}") }
+        Logger.i("MuseApp", "内存压力($reason)：已释放图片缓存，data-URI 条目 $bitmapHits 个")
+    }
+
     override fun newImageLoader(): ImageLoader = ImageLoader.Builder(this)
         .components {
             add(SvgDecoder.Factory())
@@ -1176,10 +1212,15 @@ class MuseApp : Application(), ImageLoaderFactory {
                 add(GifDecoder.Factory())
             }
         }
-        // v0.36 性能优化:限制内存缓存为可用内存 25%,避免大图OOM;添加磁盘缓存减少重复下载。
+        // v2.6.22: 内存预算 - 25% → 15%。
+        // 本应用同时有三套图片缓存：Coil（本处）、data-URI 位图（DataUriImageCache）、
+        // 消息 base64 字符串（MessageImageStore 64MB）。三者各自按堆比例定容、互不知情，
+        // 在 256MB 堆的机型上占到约 160MB，留给 Compose、请求体、渲染缓冲的空间不够，
+        // 表现为随机位置的 OOM（Compose 快照、协程调度器、厂商回调都在同一堆里分配）。
+        // 15% 仍在 Coil 推荐区间内；配合 MuseApp.onTrimMemory 的释放，图片能回来。
         .memoryCache {
             MemoryCache.Builder(this)
-                .maxSizePercent(0.25)
+                .maxSizePercent(0.15)
                 .build()
         }
         .diskCache {

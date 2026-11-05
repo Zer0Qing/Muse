@@ -213,7 +213,9 @@ class MessageImageStore(
         /** LRU 缓存条目数上限。 */
         private const val MAX_CACHE_ENTRIES = 64
 
-        /** LRU 缓存字节上限(约 64MB),防止 base64 大图滞留数百 MB。 */
-        private const val MAX_CACHE_BYTES = 64L * 1024 * 1024
+        /** LRU 缓存字节上限(约 32MB),防止 base64 大图滞留数百 MB。
+         *  v2.6.22: 64MB → 32MB。堆只有 256MB 的机型上,这份 base64 与 Coil 位图缓存、
+         *  data-URI 位图缓存会同时存在;淘汰后只需重读文件,代价远低于一次 OOM。 */
+        private const val MAX_CACHE_BYTES = 32L * 1024 * 1024
     }
 }

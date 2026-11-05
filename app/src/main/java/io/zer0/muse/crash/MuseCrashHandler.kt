@@ -104,6 +104,12 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
             pw.println("Model: ${Build.MODEL}")
             pw.println("Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
             pw.println("ABIs: ${Build.SUPPORTED_ABIS.joinToString(",")}")
+            // v2.6.22: OOM 类崩溃靠堆数字才能区分「一次大分配」还是「整体已满」。
+            val runtime = Runtime.getRuntime()
+            val maxMb = runtime.maxMemory() / (1024 * 1024)
+            val usedMb = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024)
+            pw.println("Heap: used ${usedMb}MB / max ${maxMb}MB")
+            pw.println("OutOfMemory: ${e is OutOfMemoryError}")
             pw.println()
             pw.println("----- Stack Trace -----")
             e.printStackTrace(pw)
@@ -141,6 +147,7 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
     companion object {
         private const val TAG = "MuseCrashHandler"
         private const val SAFE_MODE_FLAG = "safe_mode.flag"
+
         /** 标记内容：旧版本一直写的是 "1"，所以按内容判仍然兼容旧文件。 */
         internal const val SAFE_MODE_MARK_ON = "1"
         internal const val SAFE_MODE_MARK_OFF = "0"
@@ -308,27 +315,26 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
          *                "删不掉"这条分支被测出来（真造一个不可删的文件跨平台不稳定）。
          * @return "deleted" / "cleared" / null（两种办法都没生效）
          */
-        internal fun clearSafeModeMark(
-            flagFile: File,
-            deleter: (File) -> Boolean = { it.delete() },
-        ): String? {
+        internal fun clearSafeModeMark(flagFile: File, deleter: (File) -> Boolean = { it.delete() }): String? {
             if (!flagFile.exists()) return "deleted"
             val removed = runCatching { deleter(flagFile) }.getOrDefault(false)
             if (removed) return "deleted"
-            val overwritten = runCatching { flagFile.writeText(SAFE_MODE_MARK_OFF); true }.getOrDefault(false)
+            val overwritten = runCatching {
+                flagFile.writeText(SAFE_MODE_MARK_OFF)
+                true
+            }.getOrDefault(false)
             return if (overwritten && !hasSafeModeMark(flagFile)) "cleared" else null
         }
 
         /**
-        * 检查是否应进入 Safe Mode(上次崩溃)。
-        *
-        * v2.0+: 同时检查文件 flag 和 SP safe_mode_pending,任一存在即返回 true。
-        * 双检保证旧版本(只写文件)升级后仍能识别 Safe Mode 状态。
-        */
+         * 检查是否应进入 Safe Mode(上次崩溃)。
+         *
+         * v2.0+: 同时检查文件 flag 和 SP safe_mode_pending,任一存在即返回 true。
+         * 双检保证旧版本(只写文件)升级后仍能识别 Safe Mode 状态。
+         */
 
-        fun checkSafeMode(appContext: Context): Boolean =
-            hasSafeModeMark(File(appContext.filesDir, SAFE_MODE_FLAG)) ||
-                safeModeSp(appContext).getBoolean(SP_KEY_PENDING, false)
+        fun checkSafeMode(appContext: Context): Boolean = hasSafeModeMark(File(appContext.filesDir, SAFE_MODE_FLAG)) ||
+            safeModeSp(appContext).getBoolean(SP_KEY_PENDING, false)
 
         /**
          * 清除 Safe Mode 标记(用户确认后调用,下次正常启动)。
@@ -364,7 +370,7 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
             listCrashLogs(appContext).forEach { f ->
                 if (!runCatching { f.delete() }.getOrDefault(false)) failed += 1
             }
-            if (failed > 0) Logger.w(TAG, "崩溃日志有 ${failed} 个没删掉，SafeModeScreen 可能仍展示旧堆栈")
+            if (failed > 0) Logger.w(TAG, "崩溃日志有 $failed 个没删掉，SafeModeScreen 可能仍展示旧堆栈")
         }
 
         /**

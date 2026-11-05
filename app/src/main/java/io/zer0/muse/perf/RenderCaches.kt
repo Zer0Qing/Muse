@@ -75,11 +75,7 @@ internal class BoundedLruCache<K : Any, V : Any>(
  *
  * 抽成独立函数是为了让「命中不重算」这条性质可以脱离 Android 位图直接验证。
  */
-internal fun <T : Any> cachedDecode(
-    cache: BoundedLruCache<String, T>,
-    key: String,
-    decode: () -> T?,
-): T? {
+internal fun <T : Any> cachedDecode(cache: BoundedLruCache<String, T>, key: String, decode: () -> T?): T? {
     cache.get(key)?.let { return it }
     val decoded = decode() ?: return null
     cache.put(key, decoded)
@@ -115,11 +111,7 @@ internal object MarkdownParseCache {
      * @param content 待解析正文
      * @param parse 解析函数,默认全量解析
      */
-    fun getOrParse(
-        messageId: String?,
-        content: String,
-        parse: (String) -> List<MarkdownBlock> = ::parseMarkdown,
-    ): List<MarkdownBlock> {
+    fun getOrParse(messageId: String?, content: String, parse: (String) -> List<MarkdownBlock> = ::parseMarkdown): List<MarkdownBlock> {
         val key = keyOf(messageId, content)
         cache.get(key)?.let { return it }
         val parsed = parse(content)
@@ -128,12 +120,11 @@ internal object MarkdownParseCache {
     }
 
     /** 计算缓存 key;测试与调用方共用同一套算法,避免两边漂移。 */
-    fun keyOf(messageId: String?, content: String): String =
-        if (messageId.isNullOrBlank()) {
-            "content#${content.hashCode()}"
-        } else {
-            MessagePaginator.contentCacheKey(messageId, content)
-        }
+    fun keyOf(messageId: String?, content: String): String = if (messageId.isNullOrBlank()) {
+        "content#${content.hashCode()}"
+    } else {
+        MessagePaginator.contentCacheKey(messageId, content)
+    }
 
     fun containsKey(key: String): Boolean = cache.containsKey(key)
 
@@ -143,8 +134,8 @@ internal object MarkdownParseCache {
 }
 
 /** 位图缓存按堆大小自适应:堆越宽裕留得越多,但不超过 [IMAGE_CACHE_MAX_BYTES_CEILING]。 */
-private const val IMAGE_CACHE_MAX_BYTES_CEILING = 48 * 1024 * 1024
-private const val IMAGE_CACHE_HEAP_FRACTION = 8
+private const val IMAGE_CACHE_MAX_BYTES_CEILING = 32 * 1024 * 1024
+private const val IMAGE_CACHE_HEAP_FRACTION = 10
 
 /**
  * data-URI 图片的解码结果缓存(进程级,按字节计上限)。
