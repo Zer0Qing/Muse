@@ -327,58 +327,8 @@ class AutoWebSearchService(
         return emptyList()
     }
 
-    private fun buildProviderChain(cfg: WebSearchConfig): List<WebSearchService> {
-        // 带引擎名建链：名字是用户顺序的对照键，没有它就排不了序
-        val chain = mutableListOf<Pair<String, WebSearchService>>()
-
-        // v2.6.10: 用户自定义引擎排最前。
-        // 这是他自己配的检索服务，比任何内置抓取都更贴近需求；
-        // 停用的引擎保留配置但不进链路。
-        cfg.customEngines
-            .filter { it.enabled && it.endpoint.isNotBlank() }
-            .forEach { engine -> chain.add(customSearchOrderKey(engine.name) to GenericSearchProvider(client, engine)) }
-
-        // 用户配置的搜索 API 优先于免费抓取。apiKeys 是新格式，apiKey 是旧格式；
-        // 旧格式仅在 providerName 指向该 provider 时回退，避免把一个 key 误发给其他供应商。
-        fun keyFor(provider: String): String = cfg.apiKeys[provider].orEmpty().ifBlank {
-            cfg.apiKey.takeIf { cfg.providerName.equals(provider, ignoreCase = true) }.orEmpty()
-        }
-        fun addIfConfigured(provider: String, factory: (String) -> WebSearchService) {
-            keyFor(provider).takeIf { it.isNotBlank() }?.let { chain.add(provider to factory(it)) }
-        }
-        addIfConfigured("Tavily") { TavilyProvider(client, it) }
-        addIfConfigured("Perplexity") { PerplexitySearchProvider(client, it) }
-        addIfConfigured("Brave") { BraveSearchProvider(client, it) }
-        addIfConfigured("Serper") { SerperSearchProvider(client, it) }
-        addIfConfigured("Zhipu") { ZhipuSearchProvider(client, it) }
-        addIfConfigured("Bocha") { BochaSearchProvider(client, it) }
-        addIfConfigured("Metaso") { MetasoSearchProvider(client, it) }
-        addIfConfigured("Exa") { ExaSearchProvider(client, it) }
-        addIfConfigured("Firecrawl") { FirecrawlProvider(client, it) }
-        addIfConfigured("Jina") { JinaProvider(client, it) }
-        // v2.6.10: DeepSeek 搜索同样接进 Auto 链
-        keyFor("DeepSeek").takeIf { it.isNotBlank() }?.let { key ->
-            chain.add("DeepSeek" to GenericSearchProvider(client, DEEPSEEK_SEARCH_ENGINE.copy(apiKey = key)))
-        }
-        // 自托管 SearXNG 属于用户自己的搜索服务，优先于公共免费抓取。
-        if (cfg.endpoint.isNotBlank() && cfg.providerName.equals("SearXNG", ignoreCase = true)) {
-            chain.add("SearXNG" to SearXNGProvider(client, cfg.endpoint))
-        }
-        if (cfg.providerName.equals("Custom API", ignoreCase = true) && cfg.apiKey.isNotBlank()) {
-            chain.add("Custom API" to TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" }))
-        }
-
-        // 最后才走免费 HTTP 抓取。这里不启动 Android WebView，也不使用手机浏览器内核。
-        chain.add("Bing" to BingProvider(client))
-        chain.add("Baidu" to BaiduProvider(client))
-
-        // 用户顺序作用于整条链（含自定义引擎与免费抓取）：
-        // 谁家的 API 更稳、更快，用户比这段硬编码清楚。
-        val ordered = orderWebSearchChain(chain, cfg.providerOrder).map { it.second }
-        // 允许高级用户关闭自动 fallback；默认开启，普通用户无需配置即可使用整条免费链。
-        // 关掉时取的是"用户排第一的那个"，不再是硬编码的第一位。
-        return if (cfg.fallbackEnabled) ordered else ordered.take(1)
-    }
+    private fun buildProviderChain(cfg: WebSearchConfig): List<WebSearchService> =
+        buildSearchChain(client, cfg)
 
     companion object {
         /** 已知低质量域名(日期计算器、单位换算等工具站)。 */
@@ -1265,6 +1215,124 @@ class PerplexitySearchProvider(
     }
 }
 
+
+/**
+ * Auto 链的**内置顺序**（引擎名，按尝试先后）。
+ *
+ * 这张表是**唯一的一份**：链的构造按它逐个建 provider，设置页的「搜索顺序」列表也按它渲染。
+ * 以前顺序只以"代码书写顺序"的形式存在，界面想给用户调序就得自己抄一份 —— 抄的那一份
+ * 一旦和这里不同步，用户看到的就是假顺序（这条比"没有排序功能"更坏）。
+ *
+ * 自定义引擎不在表里：它们由用户自己创建，排在链首（见 `customSearchOrderKey`），
+ * 顺序表在 UI 侧动态拼在最前面。
+ */
+internal val AUTO_CHAIN_PROVIDER_KEYS: List<String> = listOf(
+    "Tavily",
+    "Perplexity",
+    "Brave",
+    "Serper",
+    "Zhipu",
+    "Bocha",
+    "Metaso",
+    "Exa",
+    "Firecrawl",
+    "Jina",
+    "DeepSeek",
+    "SearXNG",
+    "Custom API",
+    "Bing",
+    "Baidu",
+)
+
+/**
+ * 按配置构造 Auto 回退链，返回 `(引擎名, 服务)`，顺序 = 用户顺序（未设置时 = 内置顺序）。
+ *
+ * 提成顶层函数是为了**可测**：类里的版本要走 Koin 与运行时配置，
+ * 而"配了哪几家、按什么顺序试、关掉回退时取谁"这三条判据不该靠真机或联网验证。
+ */
+internal fun buildSearchChain(
+    client: OkHttpClient,
+    cfg: WebSearchConfig,
+): List<WebSearchService> {
+    val chain = mutableListOf<Pair<String, WebSearchService>>()
+
+    // v2.6.10: 用户自定义引擎排最前。
+    // 这是他自己配的检索服务，比任何内置抓取都更贴近需求；停用的引擎保留配置但不进链路。
+    cfg.customEngines
+        .filter { it.enabled && it.endpoint.isNotBlank() }
+        .forEach { engine -> chain.add(customSearchOrderKey(engine.name) to GenericSearchProvider(client, engine)) }
+
+    // 用户配置的搜索 API 优先于免费抓取。apiKeys 是新格式，apiKey 是旧格式；
+    // 旧格式仅在 providerName 指向该 provider 时回退，避免把一个 key 误发给其他供应商。
+    fun keyFor(provider: String): String = cfg.apiKeys[provider].orEmpty().ifBlank {
+        cfg.apiKey.takeIf { cfg.providerName.equals(provider, ignoreCase = true) }.orEmpty()
+    }
+
+    AUTO_CHAIN_PROVIDER_KEYS.forEach { key ->
+        // 工厂可以返回 null（该引擎这次不进链），所以先取值再判空，
+        // 不能在 let 里直接组 Pair —— 那会把 WebSearchService? 塞进非空的 Pair。
+        val built = AUTO_CHAIN_BUILDERS[key]?.invoke(client, cfg, ::keyFor)
+        if (built != null) chain.add(key to built)
+    }
+
+    // 用户顺序作用于整条链（含自定义引擎与免费抓取）：谁家的 API 更稳、更快，用户比硬编码清楚。
+    val ordered = orderWebSearchChain(chain, cfg.providerOrder).map { it.second }
+    // 允许高级用户关闭自动 fallback；默认开启，普通用户无需配置即可使用整条免费链。
+    // 关掉时取的是"用户排第一的那个"，不再是硬编码的第一位。
+    return if (cfg.fallbackEnabled) ordered else ordered.take(1)
+}
+
+/**
+ * 每个引擎键怎么建：一张表，而不是一个 15 支的 `when`。
+ *
+ * 写成表有两个理由：
+ *  - 复杂度：`when` 版把 `buildSearchChain` 顶到 39/20（detekt 的圈复杂度判据），
+ *    说明它已经不是一个能一眼看完的函数了；
+ *  - 顺序与构造**同源**：表里有哪些键、`AUTO_CHAIN_PROVIDER_KEYS` 就是什么顺序，
+ *    不会出现"表里加了新引擎，链里忘加"或反过来。
+ *
+ * 返回 null 表示"这次不进链"（没配密钥的内置 API 不该空转一次请求）。
+ */
+internal val AUTO_CHAIN_BUILDERS: Map<
+    String,
+    (OkHttpClient, WebSearchConfig, (String) -> String) -> WebSearchService?,
+    > = mapOf(
+    "Tavily" to { client, _, keyFor -> keyFor("Tavily").takeIf { it.isNotBlank() }?.let { TavilyProvider(client, it) } },
+    "Perplexity" to { client, _, keyFor ->
+        keyFor("Perplexity").takeIf { it.isNotBlank() }?.let { PerplexitySearchProvider(client, it) }
+    },
+    "Brave" to { client, _, keyFor -> keyFor("Brave").takeIf { it.isNotBlank() }?.let { BraveSearchProvider(client, it) } },
+    "Serper" to { client, _, keyFor -> keyFor("Serper").takeIf { it.isNotBlank() }?.let { SerperSearchProvider(client, it) } },
+    "Zhipu" to { client, _, keyFor -> keyFor("Zhipu").takeIf { it.isNotBlank() }?.let { ZhipuSearchProvider(client, it) } },
+    "Bocha" to { client, _, keyFor -> keyFor("Bocha").takeIf { it.isNotBlank() }?.let { BochaSearchProvider(client, it) } },
+    "Metaso" to { client, _, keyFor -> keyFor("Metaso").takeIf { it.isNotBlank() }?.let { MetasoSearchProvider(client, it) } },
+    "Exa" to { client, _, keyFor -> keyFor("Exa").takeIf { it.isNotBlank() }?.let { ExaSearchProvider(client, it) } },
+    "Firecrawl" to { client, _, keyFor -> keyFor("Firecrawl").takeIf { it.isNotBlank() }?.let { FirecrawlProvider(client, it) } },
+    "Jina" to { client, _, keyFor -> keyFor("Jina").takeIf { it.isNotBlank() }?.let { JinaProvider(client, it) } },
+    "DeepSeek" to { client, _, keyFor ->
+        keyFor("DeepSeek").takeIf { it.isNotBlank() }?.let {
+            GenericSearchProvider(client, DEEPSEEK_SEARCH_ENGINE.copy(apiKey = it))
+        }
+    },
+    // 自托管 SearXNG 属于用户自己的搜索服务，优先于公共免费抓取。
+    "SearXNG" to { client, cfg, _ ->
+        if (cfg.endpoint.isNotBlank() && cfg.providerName.equals("SearXNG", ignoreCase = true)) {
+            SearXNGProvider(client, cfg.endpoint)
+        } else {
+            null
+        }
+    },
+    "Custom API" to { client, cfg, _ ->
+        if (cfg.providerName.equals("Custom API", ignoreCase = true) && cfg.apiKey.isNotBlank()) {
+            TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" })
+        } else {
+            null
+        }
+    },
+    // 最后才走免费 HTTP 抓取。这里不启动 Android WebView，也不使用手机浏览器内核。
+    "Bing" to { client, _, _ -> BingProvider(client) },
+    "Baidu" to { client, _, _ -> BaiduProvider(client) },
+)
 
 /**
  * 按用户给的顺序重排回退链。**稳定**且**容错**：

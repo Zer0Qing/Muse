@@ -395,6 +395,18 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         }
     }
 
+    // 「搜索顺序」：Auto 回退链的尝试顺序可调，且与链构造共用同一份顺序表
+    // （AUTO_CHAIN_PROVIDER_KEYS）—— 界面自己抄一份顺序的话，用户拖完看到的是假顺序。
+    Spacer(Modifier.height(12.dp))
+    WebSearchOrderSection(
+        webSearchConfig = webSearchConfig,
+        onSave = { order ->
+            scope.launch {
+                settings.saveWebSearchConfig(webSearchConfig.copy(providerOrder = order))
+            }
+        },
+    )
+
     // v2.6.10: 自定义搜索引擎 —— 用户自己的检索服务，接进 Auto 链路最前面。
     CustomSearchEnginesSection(
         webSearchConfig = webSearchConfig,

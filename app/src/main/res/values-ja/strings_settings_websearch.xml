@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 联网设置页「搜索顺序」区块的文案（与引擎顺序表配套）。
+     单独成文件而不是塞进 strings_settings_sub.xml，是为了让新增条目
+     不必去动那份正被并行修改的文件。 -->
+<resources>
+    <string name="settings_web_search_order_title">検索順序</string>
+    <string name="settings_web_search_order_subtitle">この順に検索サービスを試します。未設定のものは自動的にスキップされます。</string>
+    <string name="settings_web_search_order_move_up">上へ移動</string>
+    <string name="settings_web_search_order_move_down">下へ移動</string>
+    <string name="settings_web_search_order_reset">既定の順序に戻す</string>
+</resources>

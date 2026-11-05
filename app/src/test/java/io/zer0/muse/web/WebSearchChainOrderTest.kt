@@ -1,6 +1,7 @@
 package io.zer0.muse.web
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -75,6 +76,49 @@ class WebSearchChainOrderTest {
             listOf("Tavily", "custom:Tavily"),
             keysOf(orderWebSearchChain(mixed, listOf("Tavily"))),
         )
+    }
+
+    /**
+     * 集成角度的一条：设置页存的 `providerOrder` 必须真的改变实际尝试顺序。
+     *
+     * 界面与链之间最容易出的事故是"两边各有一份顺序"：拖完列表看起来变了，
+     * 请求却还是按硬编码走。这里直接用链的构造函数验证，覆盖那条路径。
+     * 构造 provider 本身不发请求，所以不需要联网。
+     */
+    @Test
+    fun `配置里的顺序决定链的实际顺序`() {
+        val client = okhttp3.OkHttpClient()
+        val cfg = WebSearchConfig(
+            enabled = true,
+            apiKeys = mapOf("Tavily" to "t-key", "Brave" to "b-key"),
+            providerOrder = listOf("Brave", "Tavily"),
+        )
+        val names = buildSearchChain(client, cfg).map { it.name }
+        assertEquals("用户把 Brave 排前面，第一个就应该是它", "Brave", names.first())
+        assertEquals("第二才是 Tavily（两家都配了 Key）", "Tavily", names[1])
+    }
+
+    @Test
+    fun `没配密钥的引擎不进链`() {
+        val client = okhttp3.OkHttpClient()
+        val names = buildSearchChain(client, WebSearchConfig(enabled = true, apiKeys = mapOf("Brave" to "b-key")))
+            .map { it.name }
+        assertTrue("配了 Key 的 Brave 必须在链上", names.contains("Brave"))
+        assertFalse("没配 Key 的 Tavily 不该占一次空转请求", names.contains("Tavily"))
+        assertTrue("免费抓取始终兜底", names.contains("Bing") && names.contains("Baidu"))
+    }
+
+    @Test
+    fun `关掉回退时只用用户排第一的那家`() {
+        val client = okhttp3.OkHttpClient()
+        val cfg = WebSearchConfig(
+            enabled = true,
+            apiKeys = mapOf("Tavily" to "t-key", "Brave" to "b-key"),
+            providerOrder = listOf("Brave", "Tavily"),
+            fallbackEnabled = false,
+        )
+        val names = buildSearchChain(client, cfg).map { it.name }
+        assertEquals(listOf("Brave"), names)
     }
 
     @Test
