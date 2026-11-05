@@ -13,16 +13,16 @@ import io.zer0.muse.data.agentdm.AgentMessageDao
 import io.zer0.muse.data.agentdm.AgentMessageEntity
 import io.zer0.muse.data.artifact.ArtifactDao
 import io.zer0.muse.data.artifact.ArtifactEntity
+import io.zer0.muse.data.assistant.AssistantDao
+import io.zer0.muse.data.assistant.AssistantEntity
+import io.zer0.muse.data.audit.AuditLogDao
+import io.zer0.muse.data.audit.AuditLogEntity
 import io.zer0.muse.data.conversation.ConversationCommandReceiptDao
 import io.zer0.muse.data.conversation.ConversationCommandReceiptEntity
 import io.zer0.muse.data.conversation.ConversationDisplaySlotDao
 import io.zer0.muse.data.conversation.ConversationDisplaySlotEntity
 import io.zer0.muse.data.conversation.ConversationSelectionDao
 import io.zer0.muse.data.conversation.ConversationSelectionEntity
-import io.zer0.muse.data.assistant.AssistantDao
-import io.zer0.muse.data.assistant.AssistantEntity
-import io.zer0.muse.data.audit.AuditLogDao
-import io.zer0.muse.data.audit.AuditLogEntity
 import io.zer0.muse.data.experience.ExperienceDao
 import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.groupchat.GroupChatDao
@@ -303,6 +303,7 @@ abstract class MuseDb : RoomDatabase() {
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
         const val LATEST_SCHEMA_VERSION = 124
+
         @Volatile
         private var dbInstance: MuseDb? = null
 
@@ -386,7 +387,9 @@ abstract class MuseDb : RoomDatabase() {
          * 注：`SELECT * FROM pragma_compile_options` 这种表函数形式在旧实现里不存在，
          *    实测会 `no such table`，所以只能用 PRAGMA 形式。
          */
-        private fun fts5Available(db: SupportSQLiteDatabase): Boolean {
+        // internal 而非 private：两阶语义（先读编译选项、读不到才建表探针）需要被回归测试钉住 ——
+        // 谁把它退回单步建表探针，那条随机红就会回来，而这个后果在测试里看不见（见 Fts5ProbeTest）。
+        internal fun fts5Available(db: SupportSQLiteDatabase): Boolean {
             val options = runCatching {
                 db.query("PRAGMA compile_options").use { cursor ->
                     buildList {
@@ -3710,7 +3713,7 @@ private fun ensureMessageColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
         "cachedTokens INTEGER DEFAULT NULL",
         // H11: 译文消息的源消息 id(原文对照折叠)
         "translationSourceId TEXT DEFAULT NULL",
-                        // v2.6.15: 缓存写入 token（与 cachedTokens 分列；旧行为 NULL = 未知）
+        // v2.6.15: 缓存写入 token（与 cachedTokens 分列；旧行为 NULL = 未知）
         "cacheWriteTokens INTEGER DEFAULT NULL",
         // v2.6.16: 语音消息音频引用 + 时长（旧行 NULL / 0 = 非语音消息）
         "voiceUri TEXT DEFAULT NULL",
