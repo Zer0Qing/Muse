@@ -127,6 +127,18 @@ ALLOWED_CAPABILITIES = {
 }
 # 共享空间声明是带冒号的前缀形式，不能逐项枚举：名字空间允许中文（见 PluginSharedStorage）。
 SHARED_CAPABILITY_PREFIX = "storage.shared:"
+
+# ── commands / schedules 的判据：与 App 端**同一套数字**，不是这里另定一套 ──
+# 见 io.zer0.muse.data.plugin.PluginCommandRegistry（NAME_REGEX / MAX_COMMANDS_PER_PLUGIN /
+# MAX_DESCRIPTION_CHARS）与 PluginScheduleDue.MIN_INTERVAL_MINUTES。
+# 这些限制在 App 侧的表现是「静默」的：超过 20 条的命令被 take() 截掉、
+# 间隔小于 15 分钟被 coerceAtLeast 抬高、名字非法的那条整条不注册。
+# 作者在打包机上什么都看不见，到设备上才发现「命令少了两条」——所以在这里提前拒。
+COMMAND_NAME_REGEX = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+MAX_COMMANDS_PER_PLUGIN = 20
+MAX_COMMAND_DESCRIPTION_CHARS = 120
+MIN_SCHEDULE_INTERVAL_MINUTES = 15
+MAX_SCHEDULES_PER_PLUGIN = 10
 LOADED_EXTENSIONS = (".js", ".py", ".json", ".md")
 UI_SKIN_KIND = "ui-skin"
 UI_SKIN_ENTRY = "skin.json"
@@ -379,6 +391,63 @@ def declared_runtime(raw: dict) -> str:
     return value
 
 
+def validate_extensions(manifest: dict) -> None:
+    """commands / schedules 的结构判据（与 App 端同源，见上面的常量注释）。
+
+    刻意**不**检查 handler 是否真的定义在入口代码里：工具那类有 App 侧硬要求，
+    而命令与定时任务常被写成路由表动态分发（`handlers[name](args)`），
+    在这里强制存在性会误杀合法插件。宁可漏判，不造新墙。
+    """
+    commands = manifest.get("commands") or []
+    if len(commands) > MAX_COMMANDS_PER_PLUGIN:
+        fail(
+            f"commands 超过上限 {MAX_COMMANDS_PER_PLUGIN} 条（当前 {len(commands)}）："
+            "App 装载时只取前 20 条，多出来的会在设备上静默消失"
+        )
+    seen_names = set()
+    for command in commands:
+        name = command.get("name", "")
+        if not COMMAND_NAME_REGEX.match(name):
+            fail(
+                f"命令名 {name!r} 不合法：需小写字母开头，只含小写字母/数字/_/-，最长 32 字符"
+                "（与 App 的 PluginCommandRegistry.NAME_REGEX 同一判据）"
+            )
+        if name in seen_names:
+            fail(f"命令名重复: {name}")
+        seen_names.add(name)
+        if not (command.get("handler") or "").strip():
+            fail(f"命令 /{name} 缺 handler（装载后这条命令不会被注册）")
+        description = command.get("description") or ""
+        if len(description) > MAX_COMMAND_DESCRIPTION_CHARS:
+            fail(
+                f"命令 /{name} 的说明 {len(description)} 字，超过上限 {MAX_COMMAND_DESCRIPTION_CHARS}："
+                "它要进命令列表，属于上下文预算而不是排版偏好"
+            )
+
+    schedules = manifest.get("schedules") or []
+    if len(schedules) > MAX_SCHEDULES_PER_PLUGIN:
+        fail(f"schedules 超过上限 {MAX_SCHEDULES_PER_PLUGIN} 条（当前 {len(schedules)}）")
+    seen_schedule_names = set()
+    for schedule in schedules:
+        sname = schedule.get("name", "")
+        if not sname.strip():
+            fail("定时任务缺 name（同一插件内用它记录上次执行时间）")
+        if sname in seen_schedule_names:
+            fail(f"定时任务名重复: {sname}（App 按名字记录上次执行时间，重名会互相顶掉）")
+        seen_schedule_names.add(sname)
+        if not (schedule.get("handler") or "").strip():
+            fail(f"定时任务 {sname} 缺 handler")
+        interval = schedule.get("intervalMinutes", 60)
+        if not isinstance(interval, int) or isinstance(interval, bool):
+            fail(f"定时任务 {sname} 的 intervalMinutes 必须是整数（当前 {interval!r}）")
+        if interval < MIN_SCHEDULE_INTERVAL_MINUTES:
+            fail(
+                f"定时任务 {sname} 的 intervalMinutes={interval} 低于下限 "
+                f"{MIN_SCHEDULE_INTERVAL_MINUTES}：App 会 coerceAtLeast 抬到 15，"
+                "作者以为设的是 1 分钟、实际跑的是 15 分钟"
+            )
+
+
 def validate_manifest(manifest: dict, runtime: str = RUNTIME_JS) -> None:
     if not PLUGIN_ID_REGEX.match(manifest["id"]):
         fail(f"插件 id 非法: {manifest['id']}")
@@ -400,6 +469,7 @@ def validate_manifest(manifest: dict, runtime: str = RUNTIME_JS) -> None:
         expected_suffix = ".py" if runtime == RUNTIME_PYTHON else ".js"
         if not manifest["entry"].lower().endswith(expected_suffix):
             fail(f"runtime={runtime} 的入口必须是 {expected_suffix} 文件: {manifest['entry']}")
+    validate_extensions(manifest)
     for capability in manifest["capabilities"] + manifest["permissions"]:
         if capability.startswith(SHARED_CAPABILITY_PREFIX):
             # 具体名字空间由 App 判（能不能安全当目录名）；签名工具只认这个形状，

@@ -140,6 +140,13 @@ node tools/market-signer/verify-plugins.js
    `ALLOWED_CAPABILITIES` 与 `KNOWN_RUNTIMES`，逐项对照 App 的字法与能力键 ——
    任何一边单方面收紧或放宽都会红。（以前这行写"白名单只有 4 项"，与代码和 App 都不符。）
 4. 跑 `pack`（会做结构与签名自校验）→ 跑 `catalog` → 上传 → App 里点刷新。
+   `pack` 现在还会镜像 App 端对 `commands` / `schedules` 的判据（命令名
+   `^[a-z][a-z0-9_-]{0,31}$`、每插件最多 20 条、说明最多 120 字、定时任务间隔不少于
+   15 分钟且名字不得重复）。这些限制在 App 侧是**静默**处理的
+   （超出 20 条被截掉、间隔被抬到 15 分钟、非法那条不注册），
+   以前只能等装上设备才发现"命令少了两条"；现在打包阶段就报错。
+   判据与上限有门禁守着：`py -3 ci/script/check_market_lints.py`（逐条构造违规输入去撞它，
+   并确认合法清单不被误杀）。
 
 ## 新增一个气泡皮肤包（kind: ui-skin）
 
