@@ -111,7 +111,9 @@ internal fun MuseFloatingActionMenu(
                         if (glassActive) {
                             Modifier.fakeGlassSurface(
                                 shape = MuseShapes.extraLarge,
-                                surfaceColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                                // 带 alpha 才叫玻璃：不透明基色即使颜色对了，也只是"实心深色卡片"，
+                                // 背景一点都透不上来（用户反馈的"气泡底"另一半原因）。
+                                surfaceColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.86f),
                             )
                         } else {
                             Modifier

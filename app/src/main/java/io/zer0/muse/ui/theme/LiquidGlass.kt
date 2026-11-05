@@ -318,20 +318,51 @@ fun Modifier.glassEdgeHighlight(shape: Shape, config: LiquidGlassConfig): Modifi
 }
 
 /**
+ * 假玻璃的色阶（纯函数，便于把"暗色不许变灰白"钉成断言）。
+ *
+ * **暗色必须向黑压深，不能向白提亮**：`lerp(base, White, 0.4~0.7)` 会把
+ * `surfaceContainerLowest`(#0F0D13) 这种近黑底提成中灰→浅灰，
+ * 在深色页面上就是一块突兀的"气泡底"（2026-11-06 用户截图指出菜单与底部面板都是这样）。
+ * 暗色下的玻璃观感应当是：**整体仍是深色**，只有顶边一丝环境光 + 底部压深表达体积。
+ */
+internal fun fakeGlassStops(base: Color, config: LiquidGlassConfig): List<Pair<Float, Color>> {
+    val p = resolveGlass(config)
+    val lift = 0.10f * (p.highlightAlpha / 0.55f).coerceIn(0.3f, 1f)
+    val depth = ((p.baseAlpha + p.tintAlpha) * 0.5f).coerceIn(0f, 0.55f)
+    fun lerpTo(target: Color, alpha: Float) = androidx.compose.ui.graphics.lerp(base, target, alpha.coerceIn(0f, 1f))
+    return if (base.luminance() < 0.5f) {
+        // 两步，缺一不可：
+        // ① 先把近黑底抬到"看得见的深灰"（最多 12% 白）。纯黑上做体积渐变是看不见的，
+        //    面板会变成一块死黑板；而旧实现是 43.5%~70.5% 白 —— 那才是用户截图里的灰白"气泡"。
+        // ② 再在深灰上表达体积：顶边一丝环境光、底部压深。
+        val lifted = androidx.compose.ui.graphics.lerp(base, Color.White, 0.12f)
+        fun onLifted(target: Color, alpha: Float) = androidx.compose.ui.graphics.lerp(lifted, target, alpha.coerceIn(0f, 1f))
+        listOf(
+            0f to onLifted(Color.White, 0.05f + lift * 0.06f),
+            0.45f to onLifted(Color.Black, depth * 0.35f),
+            1f to onLifted(Color.Black, depth * 0.70f),
+        )
+    } else {
+        listOf(
+            0f to lerpTo(Color.White, p.baseAlpha + lift),
+            0.55f to lerpTo(Color.White, p.baseAlpha + p.tintAlpha * 0.6f),
+            1f to lerpTo(Color.White, p.baseAlpha + p.tintAlpha),
+        )
+    }
+}
+
+/**
  * v2.5.2: 假玻璃底 —— 给气泡这类高频、滚动中的表面用（不跑模糊）。
  *
  * 用垂直渐变替代模糊：顶部略亮（环境光）、底部略深（体积），叠加在基调色上。
  * 配合 [glassEdgeHighlight] 即可获得近似玻璃观感，成本几乎为零。
+ * 明暗分向见 [fakeGlassStops]。
  */
 fun glassFakeSurfaceColor(base: Color, config: LiquidGlassConfig): Brush {
-    val p = resolveGlass(config)
-    val lift = 0.10f * (p.highlightAlpha / 0.55f).coerceIn(0.3f, 1f)
-    fun mix(alpha: Float) = androidx.compose.ui.graphics.lerp(base, Color.White, alpha)
-    return Brush.verticalGradient(
-        0f to mix(p.baseAlpha + lift),
-        0.55f to mix(p.baseAlpha + p.tintAlpha * 0.6f),
-        1f to mix(p.baseAlpha + p.tintAlpha),
-    )
+    // 色阶恒为三段（FakeGlassStopsTest 有断言），直接解构传参：
+    // 不用 `*...toTypedArray()`，那会每次重组多分配一个数组（detekt 的 SpreadOperator 也指这条）。
+    val (top, mid, bottom) = fakeGlassStops(base, config)
+    return Brush.verticalGradient(top, mid, bottom)
 }
 
 /**
