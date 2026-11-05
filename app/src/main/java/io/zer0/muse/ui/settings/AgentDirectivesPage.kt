@@ -25,7 +25,6 @@ import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.assistant.DirectivePolarity
-import io.zer0.muse.proactive.AgentDirectivesPrompt
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -46,7 +45,7 @@ import org.koin.compose.koinInject
  * 三个刻意的设计：
  *  - **按助手分键**：这是"我对这个人的长期要求"。全局共享会把 A 的规矩套到 B 身上；
  *    按会话分又容易今天设了明天没 —— 跟人设走最符合直觉。
- *  - **不做任何客户端硬拦截**：这里只写进系统提示（`AgentDirectivesPrompt`）。
+ *  - **不做任何客户端硬拦截**：这里只写进系统提示（`AgentDirectivesUiState`（内部再调装配层同名逻辑））。
  *    真去拦输出会变成"我明明要求了却没生效，还不知道为什么"。
  *  - **超量要说出来**：装不进预算的条目在页面上点名，不静默丢。
  *
@@ -65,14 +64,19 @@ fun AgentDirectivesPage(onBack: () -> Unit) {
     var selectedAgent by remember { mutableStateOf<String?>(null) }
     var drafting by remember { mutableStateOf<DirectivePolarity?>(null) }
 
-    val agentId = selectedAgent ?: assistants.firstOrNull()?.id ?: ""
-    val mine = allDirectives.filter { it.agentId == agentId }
-    val forbidden = mine.filter { it.polarity == DirectivePolarity.MUST_NOT }.sortedBy { it.position }
-    val desired = mine.filter { it.polarity == DirectivePolarity.SHOULD }.sortedBy { it.position }
-    // 与真正注入提示词用的是同一个函数：界面说的"没生效"必须和模型那侧一致，
-    // 两份口径正是本项目反复出问题的地方。
-    val omittedCount = remember(mine) {
-        AgentDirectivesPrompt.build(mine, AgentDirectiveStore.MAX_TOTAL_CHARS).omitted.size
+    // 作用域解析、分组、未生效计数都在这里（纯函数），页面只负责渲染与派发：
+    // 这样这三条判断能被单测钉住，而不是必须起一整套 Koin + Room 才能验证。
+    val agentId = AgentDirectivesUiState.resolveAgentId(
+        selected = selectedAgent,
+        assistantIds = assistants.map { it.id },
+    )
+    val sections = remember(allDirectives, agentId) {
+        AgentDirectivesUiState.sectionsFor(allDirectives, agentId)
+    }
+    val forbidden = sections.forbidden
+    val desired = sections.desired
+    val omittedCount = remember(forbidden, desired) {
+        AgentDirectivesUiState.omittedCount(forbidden + desired)
     }
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_screen_agent_directives), onBack = onBack) {
