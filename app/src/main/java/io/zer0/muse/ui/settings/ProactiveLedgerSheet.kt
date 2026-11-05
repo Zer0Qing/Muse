@@ -201,8 +201,10 @@ internal fun intensityHandleFraction(index: Int, count: Int): Float {
  *  - M3 Slider 的把手只能拖动、不能"点某档直达"，而这里五档是离散选择，点才是主交互。
  * 所以是自建轨道 + 五个 `weight(1f)`、高 56dp 的点击格（点击区 ≥48dp，满足 touch target 门禁）。
  */
+// internal 而非 private：本仓测试需要单独驱动它（结构重复、把手错位这类缺陷
+// 只有在真实渲染下才看得见；页面级测试见 `ProactiveIntensityRowTest`）。
 @Composable
-private fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveIntensity) -> Unit) {
+internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveIntensity) -> Unit) {
     val levels = ProactiveIntensity.entries
     val selectedIndex = levels.indexOf(current).coerceAtLeast(0)
 
@@ -263,15 +265,17 @@ private fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveIntens
                             )
                         }
                     } else {
-                        // 非选中档留一个刻度点：让人知道这里还有别的选择，而不是只有一格能按
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .padding(top = 12.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                                    RoundedCornerShape(4.dp),
-                                ),
+                        // 其余档位**照样要显示名字**：我第一版只画了一个刻度点，测试
+                        // `ProactiveIntensityRowTest` 当场抓到文字总数从 5 掉到 1 ——
+                        // 四个档位变成"不知道是什么的东西"，可发现性直接倒退。
+                        // 保留轨道与填充的隐喻，但每格都得说清自己是什么档。
+                        Text(
+                            text = stringResource(level.labelRes()),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 12.dp),
                         )
                     }
                 }
