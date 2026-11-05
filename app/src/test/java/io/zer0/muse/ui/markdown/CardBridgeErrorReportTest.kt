@@ -93,7 +93,7 @@ class CardBridgeErrorReportTest {
         assertNotNull(log)
         assertTrue(
             "message 为空时不能只留「卡片内部报错 | 」这种没有信息量的行：${log!!.second}",
-            log.second.contains("卡片未提供原因"),
+            log.second.contains("card reported no reason"),
         )
     }
 

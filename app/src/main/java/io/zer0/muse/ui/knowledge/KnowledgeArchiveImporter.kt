@@ -105,14 +105,14 @@ internal suspend fun importArchiveBundle(archiveUri: Uri, archiveName: String, f
         }
     } catch (e: Exception) {
         // 半途失败：删掉刚建的空知识库，再把原异常继续抛给调用方（报错由它负责）。
-        rollbackKnowledgeBase(deps.kbDao, kbId, "导入失败回滚")
+        rollbackKnowledgeBase(deps.kbDao, kbId, "import failed rollback")
         throw e
     } finally {
         stagedArchive?.let { resultOf { it.delete() } }
     }
 
     if (result.imported <= 0) {
-        val cleaned = rollbackKnowledgeBase(deps.kbDao, kbId, "压缩包内无可导入内容")
+        val cleaned = rollbackKnowledgeBase(deps.kbDao, kbId, "archive has no importable content")
         // 没清干净就要说得出下一步：列表里会留一个点开什么都没有的条目，
         // 而只说「没有可导入的文档」会让用户两句对不上，以为程序坏了。
         MuseToast.show(

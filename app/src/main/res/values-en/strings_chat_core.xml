@@ -463,6 +463,7 @@
     <string name="settings_sticker_upload_zip_subtitle">Pick a ZIP file; categories are derived from folder structure</string>
     <string name="settings_sticker_imported">Imported %1$d stickers</string>
     <string name="settings_sticker_import_failed">Import failed: %1$s</string>
+    <string name="settings_sticker_export_location_failed">Cannot write to the selected location</string>
     <string name="settings_sticker_empty_title">No stickers yet</string>
     <string name="settings_sticker_empty_subtitle">Tap \"Import ZIP\" above to add a ZIP file</string>
     <string name="settings_sticker_delete_confirm">Delete this sticker?</string>

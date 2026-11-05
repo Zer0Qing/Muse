@@ -351,6 +351,7 @@
     <string name="settings_sticker_upload_zip_subtitle">ZIP ファイルを選択します。</string>
     <string name="settings_sticker_imported">輸入された%1$dステッカー</string>
     <string name="settings_sticker_import_failed">インポートに失敗しました: %1$s</string>
+    <string name="settings_sticker_export_location_failed">選択した場所に書き込めません</string>
     <string name="settings_sticker_empty_title">ステッカーはまだありません</string>
     <string name="settings_sticker_empty_subtitle">上の「ZIP をインポート」をタップして ZIP ファイルを追加します</string>
     <string name="settings_sticker_delete_confirm">このステッカーを削除しますか?</string>

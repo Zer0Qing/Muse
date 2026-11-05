@@ -127,7 +127,7 @@ internal class MuseCardBridge(
      */
     @JavascriptInterface
     fun reportError(message: String) {
-        val detail = message.trim().take(MAX_REPORT_LENGTH).ifBlank { "卡片未提供原因" }
+        val detail = message.trim().take(MAX_REPORT_LENGTH).ifBlank { "card reported no reason" }
         Logger.w(TAG, "卡片内部报错 cardId=${cardId ?: "无"} | $detail")
     }
 

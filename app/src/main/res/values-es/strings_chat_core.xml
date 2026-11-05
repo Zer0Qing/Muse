@@ -444,6 +444,7 @@
     <string name="settings_sticker_upload_zip_subtitle">Elija un archivo ZIP;</string>
     <string name="settings_sticker_imported">Pegatinas %1$d importadas</string>
     <string name="settings_sticker_import_failed">Error de importación: %1$s</string>
+    <string name="settings_sticker_export_location_failed">No se puede escribir en la ubicación seleccionada</string>
     <string name="settings_sticker_empty_title">Aún no hay pegatinas</string>
     <string name="settings_sticker_empty_subtitle">Toca \"Importar ZIP\" arriba para agregar un archivo ZIP</string>
     <string name="settings_sticker_delete_confirm">¿Eliminar esta pegatina?</string>

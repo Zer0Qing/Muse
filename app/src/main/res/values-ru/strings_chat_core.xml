@@ -446,6 +446,7 @@
     <string name="settings_sticker_upload_zip_subtitle">Выберите ZIP-файл;</string>
     <string name="settings_sticker_imported">Импортированные стикеры %1$d</string>
     <string name="settings_sticker_import_failed">Не удалось импортировать: %1$s</string>
+    <string name="settings_sticker_export_location_failed">Не удалось записать в выбранное место</string>
     <string name="settings_sticker_empty_title">Наклеек пока нет</string>
     <string name="settings_sticker_empty_subtitle">Нажмите «Импортировать ZIP» выше, чтобы добавить ZIP-файл.</string>
     <string name="settings_sticker_delete_confirm">Удалить эту наклейку?</string>

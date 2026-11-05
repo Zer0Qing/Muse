@@ -169,7 +169,7 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                 runCatching {
                     context.contentResolver.openOutputStream(uri)?.use { stream ->
                         stickerRepo.exportCategoryZip(category, stream).getOrThrow()
-                    } ?: error("无法写入所选位置")
+                    } ?: error(context.getString(R.string.settings_sticker_export_location_failed))
                 }.onSuccess { count ->
                     MuseToast.show(context.getString(R.string.settings_sticker_export_done, category, count))
                 }.onFailure { error ->

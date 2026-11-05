@@ -501,6 +501,7 @@
     <string name="settings_sticker_upload_zip_subtitle">选取 zip 文件，按文件夹结构自动分类</string>
     <string name="settings_sticker_imported">已导入 %1$d 个表情包</string>
     <string name="settings_sticker_import_failed">导入失败：%1$s</string>
+    <string name="settings_sticker_export_location_failed">无法写入所选位置</string>
     <string name="settings_sticker_empty_title">还没有表情包</string>
     <string name="settings_sticker_empty_subtitle">点击上方"导入压缩包"添加 zip 文件</string>
     <string name="settings_sticker_delete_confirm">删除该表情包？</string>

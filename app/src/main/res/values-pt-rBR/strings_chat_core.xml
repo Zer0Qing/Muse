@@ -444,6 +444,7 @@
     <string name="settings_sticker_upload_zip_subtitle">Escolha um arquivo ZIP;</string>
     <string name="settings_sticker_imported">Adesivos %1$d importados</string>
     <string name="settings_sticker_import_failed">Falha na importação: %1$s</string>
+    <string name="settings_sticker_export_location_failed">Não é possível gravar no local selecionado</string>
     <string name="settings_sticker_empty_title">Ainda não há adesivos</string>
     <string name="settings_sticker_empty_subtitle">Toque em \"Importar ZIP\" acima para adicionar um arquivo ZIP</string>
     <string name="settings_sticker_delete_confirm">Excluir este adesivo?</string>
