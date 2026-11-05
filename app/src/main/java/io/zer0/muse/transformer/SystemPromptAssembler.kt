@@ -28,6 +28,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.data.assistant.VoiceReplyPolicy
+import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 
 /** Stable labels used to constrain visible reasoning language to the app interface locale. */
 internal fun thinkingLanguageName(locale: String): String = when (locale.lowercase()) {
@@ -243,6 +246,12 @@ class SystemPromptAssembler(
                 if (stickerGuide.isNotBlank()) {
                     if (isNotEmpty()) append("\n\n---\n\n")
                     append(stickerGuide)
+                }
+                // 整改计划 第 4 条④：语音回复频率。默认档返回空串 ⇒ 提示词与上线前逐字相同。
+                val voicePolicy = if (forSubagent) "" else buildVoicePolicySection(assistant)
+                if (voicePolicy.isNotBlank()) {
+                    if (isNotEmpty()) append("\n\n---\n\n")
+                    append(voicePolicy)
                 }
             }
 
@@ -683,6 +692,24 @@ class SystemPromptAssembler(
      * 每次 build 实时读取(不走静态快照缓存),导入新库/改档位后下一条消息即生效。
      * 模型只看到分类名清单(看不到图片内容),按语境选择并在正文里写 [[sticker:分类名]]。
      */
+    /**
+     * 「多常用语音回你」（整改计划 第 4 条④）。
+     *
+     * 为什么不是客户端开关而是提示词政策：主聊天的语音回复由模型自己调用「发语音」工具产生
+     * （见 `tools/MediaGenToolsRegistrar` 的工具描述），客户端没有可拦的东西；
+     * 真去拦会变成"用户明确要语音却没发出来"的黑箱，所以这里只改约定文案。
+     *
+     * 默认档（`RARELY`）**必须返回空串**：否则这个功能一上线就等于悄悄改了所有人的系统提示。
+     * 走 `VoiceReplyPolicyStore` 而不是 `ChatPreferences`：后者的定义文件此刻被并行修改占用，
+     * 且这一项本来就是助手级长期偏好，与用户约定同族。
+     */
+    suspend fun buildVoicePolicySection(assistant: AssistantEntity?): String {
+        val agentId = assistant?.id ?: return ""
+        val frequency = runCatching { VoiceReplyPolicyStore.of(context).frequencyFor(agentId) }.getOrNull()
+            ?: VoiceReplyFrequency.RARELY
+        return VoiceReplyPolicy.instruction(frequency)
+    }
+
     suspend fun buildStickerGuideSection(): String {
         val repo = stickerRepository ?: return ""
         if (!settings.stickerEnabledCache) return ""
