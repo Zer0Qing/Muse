@@ -57,6 +57,17 @@ data class ParsedEntity(
     val title: String = "",
     val content: String = "",
     /**
+     * v20(M1): 本轮对话中能坐实该条的用户原话摘录与消息 id。
+     *
+     * 不是 LLM 输出字段、不参与序列化 —— 由 [UserEvidenceMatcher] 在解析成功后回填。
+     * 「依据」必须来自对真实用户消息的匹配,不能让模型自己"报告"出处。
+     */
+    @kotlinx.serialization.Transient
+    var evidenceQuote: String? = null,
+
+    @kotlinx.serialization.Transient
+    var evidenceMessageId: String? = null,
+    /**
      * 事实说话者: USER 才能进入用户事实库; ASSISTANT/OTHER 保留为非用户信息。
      *
      * 缺省必须 fail-closed：模型漏输出 speaker 时不能把助手自述误记成用户事实。

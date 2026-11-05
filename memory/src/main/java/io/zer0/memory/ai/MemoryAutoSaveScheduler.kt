@@ -91,6 +91,9 @@ class MemoryAutoSaveScheduler(
         /** 触发 autoSave 的对话轮数间隔。 */
         const val AUTO_SAVE_TURN_INTERVAL = 10
 
+        /** v20(M1): 事实至少这么长才允许做证据子串匹配(短事实必然误配)。 */
+        const val EVIDENCE_MIN_FACT_CHARS = 6
+
         /** v2.6.2: 会话结束补边时视为“新事实”的最近条数。 */
         private const val EDGE_NEW_FACTS_LIMIT = 20
     }
@@ -285,7 +288,7 @@ class MemoryAutoSaveScheduler(
         val analysis = extractEntities(history, existingPreview, model, locale)
             ?: return@withContext null
 
-        // 3. 落库
+        // 3. 落库(证据已由 extractEntities 回填进 analysis,applyAnalysis 不需要原始消息)
         val result = applyAnalysis(analysis, factStore, linkDao, sessionId, spaceId, scope, assistantId)
         // v2.6.2（用户反馈）: 落库后补边 —— 让本次新增/更新的事实与存量连成网络。
         // 增量策略：取“最近创建的一批事实”作为新事实（补边本就是增量的，不必精确追踪）。
@@ -352,7 +355,16 @@ class MemoryAutoSaveScheduler(
         val parsed = parseAnalysisResult(PiiGuard.unmask(raw, maskedInput.map))
             ?: return@withContext null
         // v2.x: 示例泄漏防护 — 照抄提示词示例且对话未提及的条目直接剔除,不落库
-        PromptExampleGuard.sanitize(parsed, userContent)
+        val sanitized = PromptExampleGuard.sanitize(parsed, userContent)
+        // v20(M1): 给保留下来的条目回填"用户原话证据"(见 UserEvidenceMatcher 的从严判定)。
+        // 放在 sanitize 之后:被剔除的示例条目不需要证据;放在解析之后:出处来自真实消息而非模型输出。
+        sanitized?.extractedEntities?.forEach { entity ->
+            UserEvidenceMatcher.find(history, entity.content, EVIDENCE_MIN_FACT_CHARS)?.let { (quote, messageId) ->
+                entity.evidenceQuote = quote
+                entity.evidenceMessageId = messageId
+            }
+        }
+        sanitized
     }
 
     /**
@@ -431,6 +443,9 @@ class MemoryAutoSaveScheduler(
                         source = "inferred",
                         // v12: 提取阶段给出的实体归一化键,写入时按实体键精确去重
                         entityKey = entity.entityKey,
+                        // v20(M1): 出处由 extractEntities 对用户原话的匹配回填(见 ParsedEntity)
+                        evidenceQuote = entity.evidenceQuote,
+                        evidenceMessageId = entity.evidenceMessageId,
                     )
                 }
             extracted = if (facts.isEmpty()) 0 else factStore.addBatch(facts, scope, spaceId)

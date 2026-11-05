@@ -144,9 +144,20 @@ class FactStore(
         /**
          * v19: 本条记忆被合并进了哪条记忆,null 表示未被合并(见 [FactEntity.mergedIntoId])。
          * 与 [supersedesId] 是两种关系: 那条是内容取代(矛盾),本列是重复聚合;
-         * 带本值的行仍在库里、记忆页可见,只是不参与自动召回与编译投影。
+         * 带本值的行仍在库里、记忆页可见,只是不参与自动召回、不进编译投影。
          */
         val mergedIntoId: Long? = null,
+        /**
+         * v20(M1): 证据摘录 —— 该出处可核对的用户原话片段(已脱敏,≤200 字)。
+         * 只有调用方**明确给出处**时才写入;LLM 转述不算证据。
+         */
+        val evidenceQuote: String? = null,
+        /** v20(M1): 证据所在消息 id;null = 仅摘录可看、无跳转目标。 */
+        val evidenceMessageId: String? = null,
+        /** v20(M2): 'none' / 'pending'(见 [FactEntity.conflictStatus])。 */
+        val conflictStatus: String = "none",
+        /** v20(M2): 未决矛盾的对方事实 id。 */
+        val conflictWithId: Long? = null,
         val matchCount: Int? = null,
     )
 
@@ -579,6 +590,106 @@ class FactStore(
         return pa != 0 && pb != 0 && pa * pb < 0
     }
 
+    // ── v20(M2): 矛盾落库与用户裁决回路 ────────────────────────────────
+
+    /**
+     * v20(M2): 把 [detectContradictions] 的结果落成「待裁决」对(幂等,可反复调)。
+     *
+     * 只处理双方都还是 'none' 的行:已经挂过 pending、或一方已置顶/被取代的对不再重复登记。
+     * 检测到的矛盾**不自动站队** —— 写入时 [findSupersededFact] 只裁决证据充分的新冲突,
+     * 存量矛盾与证据不足的都走这里,最终由用户在记忆页二选一。
+     *
+     * @return 新登记的矛盾对数
+     */
+    suspend fun markPendingContradictions(scope: String, spaceId: String, maxPairs: Int = 20): Int = withContext(Dispatchers.IO) {
+        markDetectedContradictions(detectContradictions(scope, spaceId).take(maxPairs))
+    }
+
+    /**
+     * v2.6.23(M2): 登记**调用方已检测到**的矛盾对(反思任务用 —— 任务已经跑过检测,
+     * 不再重复扫库)。规则同上:只登记双方都还是 'none' 的行。
+     *
+     * @return 新登记的矛盾对数
+     */
+    suspend fun markDetectedContradictions(pairs: List<Pair<Fact, Fact>>, maxPairs: Int = 20): Int = withContext(Dispatchers.IO) {
+        if (pairs.isEmpty()) return@withContext 0
+        var marked = 0
+        db.withTransaction {
+            for ((a, b) in pairs.take(maxPairs)) {
+                val ra = dao.getById(a.id) ?: continue
+                val rb = dao.getById(b.id) ?: continue
+                if (ra.conflictStatus != "none" || rb.conflictStatus != "none") continue
+                dao.setConflict(ra.id, "pending", rb.id)
+                dao.setConflict(rb.id, "pending", ra.id)
+                marked++
+            }
+        }
+        if (marked > 0) {
+            Logger.i("FactStore", "矛盾登记待裁决: $marked 对")
+        }
+        marked
+    }
+
+    /** v20(M2): 当前待裁决事实(UI 每行取对方内容做「两种说法」展示)。 */
+    suspend fun listPendingContradictions(scope: String?, spaceId: String?): List<Fact> = withContext(Dispatchers.IO) {
+        dao.getPendingConflicts(scope, spaceId).map { it.toDomainFact() }
+    }
+
+    /**
+     * v20(M2): 「暂不处理」—— 清掉双方的 pending,不动内容。
+     *
+     * 这不是解决:下一轮反思检测到同一矛盾会重新登记(数据没变,矛盾就还在)。
+     * 真要终结矛盾走 [resolveContradiction] 选一个保留。
+     */
+    suspend fun dismissPendingConflict(factIdA: Long, factIdB: Long): Boolean = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            dao.clearConflict(factIdA)
+            dao.clearConflict(factIdB) > 0
+        }
+    }
+
+    /**
+     * v20(M2): 用户裁决 —— [keepId] 一方是对的,对方按 v18 语义让位(supersedes 指向保留方)。
+     *
+     * 落选行不删:记忆页仍可见、可回退;只是退出编译上下文,与写入时自动取代完全同构。
+     * 修订记录写一行 reason='conflict_resolved',让「谁在什么时候被谁否掉」可审计。
+     *
+     * @return 是否完成裁决(行不存在/不在 pending 状态时 false,不动数据)
+     */
+    suspend fun resolveContradiction(keepId: Long): Boolean = withContext(Dispatchers.IO) {
+        val kept = dao.getById(keepId) ?: return@withContext false
+        if (kept.conflictStatus != "pending") return@withContext false
+        val loserId = kept.conflictWithId ?: return@withContext false
+        val loser = dao.getById(loserId) ?: return@withContext false
+        val changed = db.withTransaction {
+            if (dao.resolveConflictAsSupersede(loserId, keepId) <= 0) return@withTransaction false
+            dao.clearConflict(keepId)
+            true
+        }
+        if (changed) {
+            recordRevisionIfKey(
+                factId = loserId,
+                oldContent = loser.fact,
+                newContent = kept.fact,
+                reason = "conflict_resolved",
+            )
+            // 让位改变「在场集合」,编译产物要立即对齐,否则 FACTS 段还会注入被否掉的那句
+            scheduleReconcile(
+                listOf(Fact(id = keepId, fact = kept.fact, scope = kept.scope, spaceId = kept.spaceId)),
+                kept.scope,
+                kept.spaceId,
+            )
+        }
+        changed
+    }
+
+    /** v20(M1): 证据规范化 —— 脱敏 + 压缩空白 + 截断;无有效内容返回 null。 */
+    private fun normalizeEvidence(raw: String?): String? {
+        val trimmed = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val scrubbed = PiiGuard.scrub(trimmed).cleaned.trim().replace(WHITESPACE_RE, " ")
+        return scrubbed.takeIf { it.isNotEmpty() }?.take(EVIDENCE_MAX_CHARS)
+    }
+
     /**
      * v18: 写入时判定“本条新记忆取代了哪条旧记忆”。
      *
@@ -975,6 +1086,17 @@ class FactStore(
                     merged.entityKey,
                 )
                 syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
+                // v20(M1): 合并行原本没有证据、这次写入带出处 → 补记一次。
+                // 已有证据不覆盖:最早那句原话才是这条事实的出生现场。
+                if (existingSimilar.evidenceQuote.isNullOrBlank()) {
+                    normalizeEvidence(newEntry.evidenceQuote)?.let { quote ->
+                        dao.setEvidence(
+                            merged.id,
+                            quote,
+                            newEntry.evidenceMessageId?.trim()?.takeIf { it.isNotEmpty() },
+                        )
+                    }
+                }
             }
             io.zer0.common.Logger.d(
                 "FactStore",
@@ -1017,6 +1139,9 @@ class FactStore(
             entityKey = entityKey,
             // v18: 被本条取代的旧记忆
             supersedesId = superseded?.id,
+            // v20(M1): 证据只在调用方明确给出处时落库(见 normalizeEvidence)
+            evidenceQuote = normalizeEvidence(newEntry.evidenceQuote),
+            evidenceMessageId = newEntry.evidenceMessageId?.trim()?.takeIf { it.isNotEmpty() },
         )
         // 审查修复 (B-22): 单条 add 的事务化 — facts 与 facts_fts 两表写入包进同一事务,
         // 与 addBatch 对齐,避免 insertFts 失败时留下 facts 表有数据但 FTS 缺失的半完成状态。
@@ -1094,8 +1219,16 @@ class FactStore(
                             entityKey = entityKey,
                             // v18: 同 add 的保守冲突判定
                             supersedesId = findSupersededFact(
-                                cleaned, newEntry.source, importance, entityKey, scope, spaceId,
+                                cleaned,
+                                newEntry.source,
+                                importance,
+                                entityKey,
+                                scope,
+                                spaceId,
                             )?.id,
+                            // v20(M1): 同 add —— 调用方给出处才写证据
+                            evidenceQuote = normalizeEvidence(newEntry.evidenceQuote),
+                            evidenceMessageId = newEntry.evidenceMessageId?.trim()?.takeIf { it.isNotEmpty() },
                         ),
                     )
                     dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
@@ -1114,8 +1247,7 @@ class FactStore(
      * v6: 全文搜索。优先 FTS4 MATCH(ngram 预处理),单字/异常时回退 LIKE。
      * B-06: 结果同样过滤已过期事实(expires_at < now),与 getAll/getByScope 口径一致。
      */
-    suspend fun searchFullText(query: String, limit: Int = 20): List<Fact> =
-        searchFullTextWithMode(query, limit, MatchMode.EXACT)
+    suspend fun searchFullText(query: String, limit: Int = 20): List<Fact> = searchFullTextWithMode(query, limit, MatchMode.EXACT)
 
     /**
      * 按指定匹配语义做全文搜索。
@@ -1178,24 +1310,20 @@ class FactStore(
      * 事实通常散落在多行里,而 FTS4 的默认连接是 AND —— 一个句子里同时出现所有词才算命中。
      * 精确优先保证“整句命中”排在前面;任一命中兜底保证散落的单条事实不会被整体漏掉。
      */
-    suspend fun searchFullTextScopedTwoStage(
-        query: String,
-        scope: String,
-        spaceId: String,
-        limit: Int = 20,
-    ): List<Fact> = withContext(Dispatchers.IO) {
-        if (query.isBlank()) return@withContext emptyList()
-        ensureFtsIndexConsistent()
-        val trimmed = query.trim()
-        val exact = runFtsOrLikeSearchScoped(trimmed, limit, scope, spaceId, MatchMode.EXACT).filterNot { it.isExpired() }
-        val merged = if (exact.size >= limit) {
-            exact
-        } else {
-            val broad = runFtsOrLikeSearchScoped(trimmed, limit, scope, spaceId, MatchMode.ANY).filterNot { it.isExpired() }
-            mergeDistinct(exact, broad, limit)
+    suspend fun searchFullTextScopedTwoStage(query: String, scope: String, spaceId: String, limit: Int = 20): List<Fact> =
+        withContext(Dispatchers.IO) {
+            if (query.isBlank()) return@withContext emptyList()
+            ensureFtsIndexConsistent()
+            val trimmed = query.trim()
+            val exact = runFtsOrLikeSearchScoped(trimmed, limit, scope, spaceId, MatchMode.EXACT).filterNot { it.isExpired() }
+            val merged = if (exact.size >= limit) {
+                exact
+            } else {
+                val broad = runFtsOrLikeSearchScoped(trimmed, limit, scope, spaceId, MatchMode.ANY).filterNot { it.isExpired() }
+                mergeDistinct(exact, broad, limit)
+            }
+            merged.also { reviveSuppressed(it) }
         }
-        merged.also { reviveSuppressed(it) }
-    }
 
     /** 合并两段结果:保留第一段顺序,第二段只补第一段没有的 fact,总体不超过 [limit]。 */
     private fun mergeDistinct(primary: List<Fact>, secondary: List<Fact>, limit: Int): List<Fact> {
@@ -1338,11 +1466,7 @@ class FactStore(
      *
      * @param query 逐词执行的查询体,由调用方决定作用域/空间过滤
      */
-    private suspend fun likeByWords(
-        trimmed: String,
-        limit: Int,
-        query: suspend (String) -> List<FactEntity>,
-    ): List<FactEntity> {
+    private suspend fun likeByWords(trimmed: String, limit: Int, query: suspend (String) -> List<FactEntity>): List<FactEntity> {
         val terms = FactFtsManager.toQueryTerms(trimmed)
         if (terms.size < 2) return emptyList()
         val matched = LinkedHashMap<Long, Pair<FactEntity, Int>>()
@@ -1382,11 +1506,7 @@ class FactStore(
     }
 
     /** 先尝试 FTS4 MATCH，单字或异常时回退 LIKE。 */
-    private suspend fun runFtsOrLikeSearch(
-        trimmed: String,
-        limit: Int,
-        mode: MatchMode = MatchMode.EXACT,
-    ): List<Fact> {
+    private suspend fun runFtsOrLikeSearch(trimmed: String, limit: Int, mode: MatchMode = MatchMode.EXACT): List<Fact> {
         val like: suspend () -> List<Fact> = {
             val whole = dao.likeSearch(trimmed, limit)
             val rows = if (whole.isNotEmpty()) whole else likeByWords(trimmed, limit) { term -> dao.likeSearch(term, limit) }
@@ -1707,67 +1827,63 @@ class FactStore(
      * @param spaceId 归属校验:非 null 时只接受该空间的源
      * @return 新事实 id;无可用源(空列表 / 全部不存在或已被合并 / 正文为空)时返回 null
      */
-    suspend fun mergeFacts(
-        sourceIds: List<Long>,
-        mergedText: String,
-        scope: String? = null,
-        spaceId: String? = null,
-    ): Long? = withContext(Dispatchers.IO) {
-        val trimmed = mergedText.trim()
-        if (trimmed.isEmpty()) return@withContext null
-        val ids = sourceIds.filter { it > 0L }.distinct()
-        if (ids.isEmpty()) return@withContext null
-        val scrubbed = PiiGuard.scrub(trimmed).cleaned
-        var mergedFact: Fact? = null
-        var newId: Long? = null
-        db.withTransaction {
-            val candidates = ids.mapNotNull { dao.getById(it) }
-                .filter { candidate ->
-                    candidate.mergedIntoId == null &&
-                        (scope == null || candidate.scope == scope) &&
-                        (spaceId == null || candidate.spaceId == spaceId)
-                }
-            val owner = candidates.firstOrNull() ?: return@withTransaction
-            // 同一批选择必须落在同一个 scope + space: 跨边界的行不并入,避免源行指向另一个作用域的新行
-            val sources = candidates
-                .filter { it.scope == owner.scope && it.spaceId == owner.spaceId }
-                .sortedBy { it.id }
-            if (sources.isEmpty()) return@withTransaction
-            val now = Instant.now().toString()
-            val entity = FactEntity(
-                fact = scrubbed,
-                tags = json.encodeToString(ListSerializer(String.serializer()), inheritedTags(sources)),
-                time = sources.firstNotNullOfOrNull { it.time },
-                sessionId = sources.firstNotNullOfOrNull { it.sessionId },
-                createdAt = now,
-                importance = sources.maxOf { it.importance }.coerceIn(0, 2),
-                category = sources.firstOrNull { it.category.isNotBlank() && it.category != "general" }?.category
-                    ?: "general",
-                confidence = sources.maxOf { it.confidence }.coerceIn(0f, 1f),
-                source = if (sources.any { it.source == "user_explicit" }) "user_explicit" else owner.source,
-                expiresAt = sources.firstNotNullOfOrNull { it.expiresAt },
-                lastConfirmedAt = sources.firstNotNullOfOrNull { it.lastConfirmedAt },
-                lastHitAt = now,
-                hitCount = sources.sumOf { it.hitCount },
-                scope = owner.scope,
-                spaceId = owner.spaceId,
-                pinnedAt = sources.mapNotNull { it.pinnedAt }.minOrNull(),
-                entityKey = sources.firstNotNullOfOrNull { it.entityKey },
-                score = sources.maxOf { it.score },
-                scoreUpdatedAt = now,
-                suppressedAt = null,
-                supersedesId = sources.mapNotNull { it.supersedesId }.minOrNull(),
-            )
-            val id = dao.insert(entity)
-            syncFtsRow(id, FactFtsManager.toNgram(scrubbed))
-            dao.updateMergedInto(sources.map { it.id }, id)
-            newId = id
-            mergedFact = entity.copy(id = id).toDomainFact()
+    suspend fun mergeFacts(sourceIds: List<Long>, mergedText: String, scope: String? = null, spaceId: String? = null): Long? =
+        withContext(Dispatchers.IO) {
+            val trimmed = mergedText.trim()
+            if (trimmed.isEmpty()) return@withContext null
+            val ids = sourceIds.filter { it > 0L }.distinct()
+            if (ids.isEmpty()) return@withContext null
+            val scrubbed = PiiGuard.scrub(trimmed).cleaned
+            var mergedFact: Fact? = null
+            var newId: Long? = null
+            db.withTransaction {
+                val candidates = ids.mapNotNull { dao.getById(it) }
+                    .filter { candidate ->
+                        candidate.mergedIntoId == null &&
+                            (scope == null || candidate.scope == scope) &&
+                            (spaceId == null || candidate.spaceId == spaceId)
+                    }
+                val owner = candidates.firstOrNull() ?: return@withTransaction
+                // 同一批选择必须落在同一个 scope + space: 跨边界的行不并入,避免源行指向另一个作用域的新行
+                val sources = candidates
+                    .filter { it.scope == owner.scope && it.spaceId == owner.spaceId }
+                    .sortedBy { it.id }
+                if (sources.isEmpty()) return@withTransaction
+                val now = Instant.now().toString()
+                val entity = FactEntity(
+                    fact = scrubbed,
+                    tags = json.encodeToString(ListSerializer(String.serializer()), inheritedTags(sources)),
+                    time = sources.firstNotNullOfOrNull { it.time },
+                    sessionId = sources.firstNotNullOfOrNull { it.sessionId },
+                    createdAt = now,
+                    importance = sources.maxOf { it.importance }.coerceIn(0, 2),
+                    category = sources.firstOrNull { it.category.isNotBlank() && it.category != "general" }?.category
+                        ?: "general",
+                    confidence = sources.maxOf { it.confidence }.coerceIn(0f, 1f),
+                    source = if (sources.any { it.source == "user_explicit" }) "user_explicit" else owner.source,
+                    expiresAt = sources.firstNotNullOfOrNull { it.expiresAt },
+                    lastConfirmedAt = sources.firstNotNullOfOrNull { it.lastConfirmedAt },
+                    lastHitAt = now,
+                    hitCount = sources.sumOf { it.hitCount },
+                    scope = owner.scope,
+                    spaceId = owner.spaceId,
+                    pinnedAt = sources.mapNotNull { it.pinnedAt }.minOrNull(),
+                    entityKey = sources.firstNotNullOfOrNull { it.entityKey },
+                    score = sources.maxOf { it.score },
+                    scoreUpdatedAt = now,
+                    suppressedAt = null,
+                    supersedesId = sources.mapNotNull { it.supersedesId }.minOrNull(),
+                )
+                val id = dao.insert(entity)
+                syncFtsRow(id, FactFtsManager.toNgram(scrubbed))
+                dao.updateMergedInto(sources.map { it.id }, id)
+                newId = id
+                mergedFact = entity.copy(id = id).toDomainFact()
+            }
+            // 写后增量对账: 投影取“在场且未被合并”的行,下一次注入就是合并后的文本(源行自动退场)
+            mergedFact?.let { scheduleReconcile(listOf(it), it.scope, it.spaceId) }
+            newId
         }
-        // 写后增量对账: 投影取“在场且未被合并”的行,下一次注入就是合并后的文本(源行自动退场)
-        mergedFact?.let { scheduleReconcile(listOf(it), it.scope, it.spaceId) }
-        newId
-    }
 
     /**
      * v19: 撤销合并 —— 删除合并产物,把指向它的源行的 merged_into_id 清空。
@@ -2128,6 +2244,9 @@ class FactStore(
         /** D6 第 2 期: “多断言实体”默认阈值 —— 同实体 ≥3 条不同断言才值得提示整合。 */
         const val DEFAULT_MIN_ASSERTIONS = 3
 
+        /** v20(M1): 证据摘录长度上限(字) —— 够回看原话即可,画像/日志不背整段对话。 */
+        const val EVIDENCE_MAX_CHARS = 200
+
         /**
          * 全文检索的匹配语义。
          *
@@ -2277,36 +2396,35 @@ class FactStore(
      *
      * @return 本轮新出场(即不再参与召回)的 fact 数
      */
-    suspend fun applyDecay(config: MemoryConfig, scope: String? = null, spaceId: String? = null): Int =
-        withContext(Dispatchers.IO) {
-            val now = Instant.now()
-            val nowIso = now.toString()
-            // B-18: 先清理已到期事实(expires_at < now) — 时效性事实由显式 TTL 决定,不属于衰减
-            dao.deleteExpired(nowIso, scope, spaceId)
-            // v2.6.2（记忆审计）: 批量删除后统一清孤儿边/修订。
-            db.memoryLinkDao().deleteOrphans()
-            revisionDao?.deleteOrphans()
+    suspend fun applyDecay(config: MemoryConfig, scope: String? = null, spaceId: String? = null): Int = withContext(Dispatchers.IO) {
+        val now = Instant.now()
+        val nowIso = now.toString()
+        // B-18: 先清理已到期事实(expires_at < now) — 时效性事实由显式 TTL 决定,不属于衰减
+        dao.deleteExpired(nowIso, scope, spaceId)
+        // v2.6.2（记忆审计）: 批量删除后统一清孤儿边/修订。
+        db.memoryLinkDao().deleteOrphans()
+        revisionDao?.deleteOrphans()
 
-            val candidates = dao.getDecayCandidates(scope, spaceId)
-            var outOfRecall = 0
-            db.withTransaction {
-                for (candidate in candidates) {
-                    // 时间戳无法解析时本轮不结算该行:宁可不衰减,不能误判成低分出场
-                    val elapsed = elapsedDays(candidate.refAt, now) ?: continue
-                    var next = decayedScore(candidate.score, elapsed, config)
-                    if (candidate.hitSinceDecay != 0) {
-                        next = minOf(next + config.hitBonus, revivalCeiling(config))
-                    }
-                    dao.updateDecayedScore(candidate.id, next, nowIso)
+        val candidates = dao.getDecayCandidates(scope, spaceId)
+        var outOfRecall = 0
+        db.withTransaction {
+            for (candidate in candidates) {
+                // 时间戳无法解析时本轮不结算该行:宁可不衰减,不能误判成低分出场
+                val elapsed = elapsedDays(candidate.refAt, now) ?: continue
+                var next = decayedScore(candidate.score, elapsed, config)
+                if (candidate.hitSinceDecay != 0) {
+                    next = minOf(next + config.hitBonus, revivalCeiling(config))
                 }
-                outOfRecall = dao.suppressBelowThreshold(nowIso, config.compileThreshold, scope, spaceId)
-                dao.releaseAboveThreshold(config.compileThreshold, scope, spaceId)
+                dao.updateDecayedScore(candidate.id, next, nowIso)
             }
-            if (outOfRecall > 0) {
-                Logger.d("FactStore", "applyDecay: $outOfRecall 条事实分数低于阈值,已退出召回(行保留)")
-            }
-            outOfRecall
+            outOfRecall = dao.suppressBelowThreshold(nowIso, config.compileThreshold, scope, spaceId)
+            dao.releaseAboveThreshold(config.compileThreshold, scope, spaceId)
         }
+        if (outOfRecall > 0) {
+            Logger.d("FactStore", "applyDecay: $outOfRecall 条事实分数低于阈值,已退出召回(行保留)")
+        }
+        outOfRecall
+    }
 
     /** 一天的毫秒数(衰减结算用)。 */
     private val millisPerDay = 86_400_000.0
@@ -2356,10 +2474,9 @@ class FactStore(
      * 与 [supersededIds] 同样容错: 读不到时返回空集 —— 宁可多注入一条重复记忆,
      * 也不能因为一次读失败把正常记忆挡在上下文外。
      */
-    private suspend fun mergedIds(scope: String?, spaceId: String?): Set<Long> =
-        runCatching { dao.getMergedIds(scope, spaceId).toSet() }
-            .onFailure { Logger.w("FactStore", "读取已合并记忆失败(本次不剔除): ${it.message}") }
-            .getOrDefault(emptySet())
+    private suspend fun mergedIds(scope: String?, spaceId: String?): Set<Long> = runCatching { dao.getMergedIds(scope, spaceId).toSet() }
+        .onFailure { Logger.w("FactStore", "读取已合并记忆失败(本次不剔除): ${it.message}") }
+        .getOrDefault(emptySet())
 
     /**
      * v18/v19: 注入上下文用的可见性过滤 —— 已出场的不进,已被取代的不进,
@@ -2514,6 +2631,11 @@ class FactStore(
         supersedesId = supersedesId,
         // v19: 透传“被合并进了哪条记忆”
         mergedIntoId = mergedIntoId,
+        // v20: 透传证据与矛盾状态
+        evidenceQuote = evidenceQuote,
+        evidenceMessageId = evidenceMessageId,
+        conflictStatus = conflictStatus,
+        conflictWithId = conflictWithId,
     )
 
     private fun FactTagSearchRow.toDomainFact(): Fact = Fact(

@@ -114,6 +114,9 @@ val memoryModule: Module = module {
 
     // v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)
     // P2-32: 注入矛盾清单落库(不再只打日志,记忆中心可读可清)
+    // v2.6.23(M2): 落库改为 facts 行上的 pending 标记(带双方 id)。旧 JSON 清单只有文本对、
+    // 用户只能「清除」;DB 化后记忆中心能真正「保留这一句」,另一方按 v18 让位。
+    // store 仍注册:SessionMemoryCleanup 删助手时清历史 JSON 文件用,不再写新数据。
     single {
         io.zer0.memory.reflection.MemoryContradictionStore(
             java.io.File(androidContext().filesDir, "memory_contradictions.json"),
@@ -122,9 +125,12 @@ val memoryModule: Module = module {
     single {
         io.zer0.memory.reflection.MemoryReflectionRunner(
             factStore = get(),
-            contradictionSink = { scope, spaceId, pairs ->
-                get<io.zer0.memory.reflection.MemoryContradictionStore>()
-                    .save(scope, spaceId, pairs.map { it.first.fact to it.second.fact })
+            contradictionSink = { scope, _, pairs ->
+                // pairs 来自 storeResolver 解析出的同一库,按同一映射落库即可
+                val assistantId = scope.takeIf { it.isNotBlank() && it != "main" } ?: "default"
+                get<io.zer0.memory.fact.FactDbProvider>()
+                    .getFactStore(assistantId)
+                    .markDetectedContradictions(pairs)
             },
             // v2.6.2（记忆审计）: 按 scope 解析对应助手的 FactStore（scope=="main" → 默认库），
             // 否则子助手/其它 Space 的反思会落到默认库。
