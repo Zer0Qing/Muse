@@ -151,6 +151,18 @@ data class WebSearchConfig(
     val maxResults: Int = 5,
     /** v2: provider 失败后是否继续走免费备用链。 */
     val fallbackEnabled: Boolean = true,
+
+        /**
+         * Auto 回退链的**用户顺序**（引擎名，按用户想要的先后排列）。
+         *
+         * 空 = 沿用内置顺序（旧行为，一条都不变），所以老配置不需要迁移。
+         * 列出的引擎按这里的顺序排在前面；没列出的保持它们原本的相对顺序跟在后面；
+         * 写了不存在或没配置的引擎名会被忽略（不是错误——用户改了插件配置不该让搜索挂掉）。
+         *
+         * 为什么值得做：内置顺序是"自定义引擎 → 配了 Key 的 API → 免费抓取"，
+         * 但谁家的 API 更稳、谁更快，用户比代码清楚；以前这层只能看不能调。
+         */
+        val providerOrder: List<String> = emptyList(),
     /** 搜索策略配置版本，旧配置缺失时由设置仓库迁移到当前默认值。 */
     val policyVersion: Int = 0,
     /**

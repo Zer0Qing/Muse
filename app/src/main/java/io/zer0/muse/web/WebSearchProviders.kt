@@ -328,14 +328,15 @@ class AutoWebSearchService(
     }
 
     private fun buildProviderChain(cfg: WebSearchConfig): List<WebSearchService> {
-        val chain = mutableListOf<WebSearchService>()
+        // 带引擎名建链：名字是用户顺序的对照键，没有它就排不了序
+        val chain = mutableListOf<Pair<String, WebSearchService>>()
 
         // v2.6.10: 用户自定义引擎排最前。
         // 这是他自己配的检索服务，比任何内置抓取都更贴近需求；
         // 停用的引擎保留配置但不进链路。
         cfg.customEngines
             .filter { it.enabled && it.endpoint.isNotBlank() }
-            .forEach { engine -> chain.add(GenericSearchProvider(client, engine)) }
+            .forEach { engine -> chain.add(customSearchOrderKey(engine.name) to GenericSearchProvider(client, engine)) }
 
         // 用户配置的搜索 API 优先于免费抓取。apiKeys 是新格式，apiKey 是旧格式；
         // 旧格式仅在 providerName 指向该 provider 时回退，避免把一个 key 误发给其他供应商。
@@ -343,7 +344,7 @@ class AutoWebSearchService(
             cfg.apiKey.takeIf { cfg.providerName.equals(provider, ignoreCase = true) }.orEmpty()
         }
         fun addIfConfigured(provider: String, factory: (String) -> WebSearchService) {
-            keyFor(provider).takeIf { it.isNotBlank() }?.let { chain.add(factory(it)) }
+            keyFor(provider).takeIf { it.isNotBlank() }?.let { chain.add(provider to factory(it)) }
         }
         addIfConfigured("Tavily") { TavilyProvider(client, it) }
         addIfConfigured("Perplexity") { PerplexitySearchProvider(client, it) }
@@ -357,22 +358,26 @@ class AutoWebSearchService(
         addIfConfigured("Jina") { JinaProvider(client, it) }
         // v2.6.10: DeepSeek 搜索同样接进 Auto 链
         keyFor("DeepSeek").takeIf { it.isNotBlank() }?.let { key ->
-            chain.add(GenericSearchProvider(client, DEEPSEEK_SEARCH_ENGINE.copy(apiKey = key)))
+            chain.add("DeepSeek" to GenericSearchProvider(client, DEEPSEEK_SEARCH_ENGINE.copy(apiKey = key)))
         }
         // 自托管 SearXNG 属于用户自己的搜索服务，优先于公共免费抓取。
         if (cfg.endpoint.isNotBlank() && cfg.providerName.equals("SearXNG", ignoreCase = true)) {
-            chain.add(SearXNGProvider(client, cfg.endpoint))
+            chain.add("SearXNG" to SearXNGProvider(client, cfg.endpoint))
         }
         if (cfg.providerName.equals("Custom API", ignoreCase = true) && cfg.apiKey.isNotBlank()) {
-            chain.add(TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" }))
+            chain.add("Custom API" to TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" }))
         }
 
         // 最后才走免费 HTTP 抓取。这里不启动 Android WebView，也不使用手机浏览器内核。
-        chain.add(BingProvider(client))
-        chain.add(BaiduProvider(client))
+        chain.add("Bing" to BingProvider(client))
+        chain.add("Baidu" to BaiduProvider(client))
 
+        // 用户顺序作用于整条链（含自定义引擎与免费抓取）：
+        // 谁家的 API 更稳、更快，用户比这段硬编码清楚。
+        val ordered = orderWebSearchChain(chain, cfg.providerOrder).map { it.second }
         // 允许高级用户关闭自动 fallback；默认开启，普通用户无需配置即可使用整条免费链。
-        return if (cfg.fallbackEnabled) chain else chain.take(1)
+        // 关掉时取的是"用户排第一的那个"，不再是硬编码的第一位。
+        return if (cfg.fallbackEnabled) ordered else ordered.take(1)
     }
 
     companion object {
@@ -1259,3 +1264,30 @@ class PerplexitySearchProvider(
         }.getOrElse { "Perplexity Citation" }
     }
 }
+
+
+/**
+ * 按用户给的顺序重排回退链。**稳定**且**容错**：
+ *
+ *  - `order` 里出现且链上有的键，按 `order` 的先后排前面；
+ *  - 其余项保持原本的相对顺序跟在后面（包括用户没提到的引擎）；
+ *  - `order` 里写了链上不存在/没配置的键直接忽略——用户改了别家的配置不该让搜索整条挂掉；
+ *  - `order` 为空 ⇒ 原样返回（等于旧行为，不需要任何数据迁移）。
+ *
+ * 抽成纯函数是为了能被单独测：链的构造要拉 OkHttp 与真实 provider，
+ * 而"顺序到底有没有被尊重"这条判据不该靠联网测试来证明。
+ */
+internal fun orderWebSearchChain(
+    chain: List<Pair<String, WebSearchService>>,
+    order: List<String>,
+): List<Pair<String, WebSearchService>> {
+    if (order.isEmpty() || chain.size <= 1) return chain
+    val byKey = chain.toMap()
+    val wanted = order.mapNotNull { key -> byKey.entries.firstOrNull { it.key == key }?.toPair() }
+        .distinctBy { it.second }
+    val wantedServices = wanted.map { it.second }.toSet()
+    return wanted + chain.filterNot { wantedServices.contains(it.second) }
+}
+
+/** 自定义引擎在顺序表里的键：带前缀，避免和内置引擎同名时互相顶掉。 */
+internal fun customSearchOrderKey(engineName: String): String = "custom:$engineName"
