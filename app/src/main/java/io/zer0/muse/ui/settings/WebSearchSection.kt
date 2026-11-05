@@ -31,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
@@ -345,23 +347,48 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
                 // 此处排除两种写法,同一 Key 不再出现两个输入入口。
                 .filter { it !in WebSearchConfig.CUSTOM_PROVIDER_NAMES }
                 .forEach { provider ->
-                    var keyDraft by remember(provider, webSearchConfig.apiKeys[provider]) {
-                        mutableStateOf(webSearchConfig.apiKeys[provider].orEmpty())
-                    }
+                    val savedKey = webSearchConfig.apiKeys[provider].orEmpty()
+                    // 草稿与「有没有动过」分开记：动过才可能删除。
+                    // 以前这里直接把已保存的 Key 回填进输入框，一打开设置页每个引擎的
+                    // 密钥都明文摆在屏幕上；改成默认掩码后，"留空"就再也不能被读成"清空"，
+                    // 否则用户什么都没做、只按一次保存就会把密钥删掉。
+                    var keyDraft by remember(provider) { mutableStateOf("") }
+                    var keyEdited by remember(provider) { mutableStateOf(false) }
+                    var keyRevealed by remember(provider) { mutableStateOf(false) }
                     Spacer(Modifier.height(10.dp))
                     SettingField(
                         label = provider,
-                        value = keyDraft,
-                        onValueChange = { keyDraft = it },
+                        value = WebSearchKeyFieldState.displayValue(savedKey, keyDraft, keyEdited),
+                        onValueChange = {
+                            keyDraft = it
+                            keyEdited = true
+                        },
+                        visualTransformation =
+                        if (WebSearchKeyFieldState.shouldMask(savedKey, keyRevealed)) {
+                            PasswordVisualTransformation()
+                        } else {
+                            VisualTransformation.None
+                        },
                     )
-                    SavePill(stringResource(R.string.settings_web_search_save_api_key)) {
-                        scope.launch {
-                            val key = keyDraft.trim()
-                            val keys = webSearchConfig.apiKeys.toMutableMap().apply {
-                                if (key.isNotEmpty()) put(provider, key) else remove(provider)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (WebSearchKeyFieldState.canToggleVisibility(savedKey)) {
+                            SavePill(
+                                stringResource(
+                                    if (keyRevealed) R.string.channel_secret_hide else R.string.channel_secret_show,
+                                ),
+                            ) { keyRevealed = !keyRevealed }
+                        }
+                        SavePill(stringResource(R.string.settings_web_search_save_api_key)) {
+                            scope.launch {
+                                val value = WebSearchKeyFieldState.valueToSave(savedKey, keyDraft, keyEdited)
+                                val keys = webSearchConfig.apiKeys.toMutableMap().apply {
+                                    if (value.isNullOrEmpty()) remove(provider) else put(provider, value)
+                                }
+                                settings.saveWebSearchConfig(webSearchConfig.copy(apiKeys = keys))
+                                keyDraft = ""
+                                keyEdited = false
+                                MuseToast.show(savedText)
                             }
-                            settings.saveWebSearchConfig(webSearchConfig.copy(apiKeys = keys))
-                            MuseToast.show(savedText)
                         }
                     }
                 }
