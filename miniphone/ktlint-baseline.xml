@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<baseline version="1.0">
+    <file name="src/main/java/io/zer0/muse/miniphone/data/voice/MpVoiceRecorder.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="67" column="1" source="standard:indent" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/miniphone/ui/chat/ChatSendController.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/miniphone/ui/chat/GroupAdminController.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/miniphone/ui/chat/MiniPhoneChatScreen.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/miniphone/ui/chat/MiniPhoneChatViewModel.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/miniphone/ui/chat/MiniPhoneVoicePlaybackController.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="232" column="1" source="standard:indent" />
+        <error line="234" column="1" source="standard:indent" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/miniphone/ui/chat/MpVoiceInputController.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/miniphone/ui/shell/MiniPhoneShell.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/main/java/io/zer0/muse/miniphone/util/LogOnlyExceptionHandler.kt">
+        <error line="21" column="79" source="standard:function-signature" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/chat/ChatMessageWriterTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/chat/ChatPagingControllerTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/chat/ChatSendControllerTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/chat/MiniPhoneChatImageSendTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/chat/MiniPhoneChatInputBarUiTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/chat/MiniPhoneChatTextRulesTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/moments/MiniPhoneMomentsViewModelTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/moments/MomentPublishUiTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/moments/MomentReplyTextTest.kt">
+        <error line="16" column="9" source="standard:function-signature" />
+        <error line="17" column="9" source="standard:function-signature" />
+        <error line="18" column="9" source="standard:function-signature" />
+        <error line="19" column="9" source="standard:function-signature" />
+        <error line="19" column="27" source="standard:function-signature" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/ui/shell/MiniPhoneShellViewModelTest.kt">
+        <error line="68" column="31" source="standard:wrapping" />
+        <error line="82" column="9" source="standard:wrapping" />
+        <error line="95" column="31" source="standard:wrapping" />
+        <error line="101" column="9" source="standard:wrapping" />
+        <error line="112" column="31" source="standard:wrapping" />
+        <error line="118" column="9" source="standard:wrapping" />
+        <error line="133" column="31" source="standard:wrapping" />
+        <error line="139" column="9" source="standard:wrapping" />
+        <error line="152" column="31" source="standard:wrapping" />
+        <error line="158" column="9" source="standard:wrapping" />
+        <error line="172" column="31" source="standard:wrapping" />
+        <error line="178" column="9" source="standard:wrapping" />
+        <error line="187" column="31" source="standard:wrapping" />
+        <error line="200" column="9" source="standard:wrapping" />
+        <error line="214" column="31" source="standard:wrapping" />
+        <error line="220" column="9" source="standard:wrapping" />
+        <error line="231" column="31" source="standard:wrapping" />
+        <error line="237" column="9" source="standard:wrapping" />
+        <error line="252" column="31" source="standard:wrapping" />
+        <error line="258" column="9" source="standard:wrapping" />
+    </file>
+    <file name="src/test/java/io/zer0/muse/miniphone/util/LogOnlyExceptionHandlerTest.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+    </file>
+</baseline>
