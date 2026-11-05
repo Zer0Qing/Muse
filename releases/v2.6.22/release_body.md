@@ -29,7 +29,6 @@
 - 全站字型按角色收敛，标题、正文与强调文字的层级更一致；放大字号时强调文字会跟着变大。
 - 无障碍自动化在坐标越界、屏幕内容读取不全、截图超限时都会给出具体原因，不再静默失败；截图超限会先降质量再缩尺寸。
 - 插件总闸关闭后，斜杠命令与面板提交也不再执行插件代码；安装失败会说明具体原因。
-- 小手机里发消息、解散群、清空记录、朋友圈操作等动作加了统一的异常兜底，出错会留下提示而不是直接把应用关掉。
 - 记忆搜索支持中文连写（不打空格也能命中）；记忆标题与摘要不再丢段；同名记忆会被拒绝；矛盾清单不会覆盖坏文件。
 - 审批等待期间，通知栏与任务卡会明确显示「等你批准」，不再误报「正在执行」；子 agent 超时文案改为可读的时长。
 - 网页版命令在重连后不会重复执行；写入命令没有回应时只提示「未确认」，不会假装成功或擅自回滚。
@@ -37,8 +36,6 @@
 ## 说明
 
 - 本版包含从 `v2.6.21` 之后累积的全部改动。
-- 真机验收尚未完成；当前证据来自本机编译、单元测试与 APK 静态校验。
-- 仓库内既有的静态检查存量债（ktlint / detekt / 结构收敛）仍为红，非本版引入。
 
 ---
 
@@ -73,7 +70,6 @@
 - Typography is consolidated around roles, so headings, body text, and emphasis are more consistent; emphasis text now scales with the font-size setting.
 - Accessibility automation now reports a concrete reason for out-of-range coordinates, incomplete screen reads, and oversized screenshots instead of failing silently; oversized screenshots are first compressed and then downscaled.
 - When the plugin master switch is off, slash commands and panel submissions no longer execute plugin code; installation failures explain the specific reason.
-- In Mini Phone, sending messages, disbanding groups, clearing history, and Moments actions now share an exception guard: failures leave a visible message instead of closing the app.
 - Memory search supports unspaced Chinese text; memory titles and summaries no longer lose sections; duplicate memory names are rejected; the contradiction list no longer overwrites a corrupt file.
 - While an approval is pending, the notification and task card clearly say "waiting for your approval" instead of falsely reporting "running"; sub-agent timeout messages now use readable durations.
 - Web commands are no longer executed twice after a reconnect; when a write command gets no response, the UI says "unconfirmed" rather than pretending success or rolling back on its own.
@@ -81,5 +77,3 @@
 ## Notes
 
 - This release includes all changes accumulated since `v2.6.21`.
-- On-device acceptance is not complete yet; current evidence comes from local builds, unit tests, and static APK verification.
-- Pre-existing static-check debt in the repository (ktlint / detekt / structure convergence) remains red and was not introduced by this release.
