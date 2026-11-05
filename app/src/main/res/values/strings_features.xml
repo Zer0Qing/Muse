@@ -768,6 +768,8 @@
     <string name="plugin_permission_python_warning">Python 插件运行在与本应用同一 UID 的子进程中，可直接读写应用数据目录，不受上面的能力开关与文件沙盒约束。仅在插件来源可信时允许。</string>
     <string name="plugin_row_python_trusted">Python 运行时 · 已允许</string>
     <string name="plugin_row_python_locked">Python 运行时 · 需高信任授权</string>
+    <string name="plugin_row_circuit_cooling">熔断中，剩余 %1$d 秒</string>
+    <string name="plugin_row_circuit_probing">半开探测中</string>
     <string name="plugin_permission_node_note">Node 档：跑在内置 Node 的子进程里，能力必须逐项授权；超时会被真正打断，不会连累其它插件。</string>
     <string name="plugin_cap_resource_read">读取文件（只能读到插件自己沙盒目录里的内容）</string>
     <string name="plugin_cap_resource_write">写入文件（只能写进插件自己的沙盒目录，动不到你其它数据）</string>

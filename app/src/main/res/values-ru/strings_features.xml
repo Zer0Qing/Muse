@@ -843,6 +843,8 @@
     <string name="plugin_permission_python_warning">Плагины Python работают в дочернем процессе с тем же UID, что и приложение, и могут напрямую читать и писать данные приложения, минуя перечисленные переключатели и файловую песочницу. Включайте только для доверенных источников.</string>
     <string name="plugin_row_python_trusted">Среда Python · разрешено</string>
     <string name="plugin_row_python_locked">Среда Python · требуется высокое доверие</string>
+    <string name="plugin_row_circuit_cooling">Изолирован: осталось %1$d с</string>
+    <string name="plugin_row_circuit_probing">Полуоткрытая проверка</string>
     <string name="plugin_permission_node_note">Среда Node: работает в дочернем процессе встроенного Node; возможности проверяются по отдельности; таймауты действительно прерываются и не блокируют другие плагины.</string>
     <string name="plugin_cap_resource_read">Чтение файлов (только в изолированной папке плагина)</string>
     <string name="plugin_cap_resource_write">Запись файлов (только в изолированную папку плагина)</string>

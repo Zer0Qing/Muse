@@ -56,6 +56,7 @@ import io.zer0.muse.data.plugin.ConfigItemType
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
 import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginManager
+import io.zer0.muse.data.plugin.PluginRuntimeHealth
 import io.zer0.muse.data.plugin.PluginSecurityGate
 import io.zer0.muse.data.plugin.PluginVersion
 import io.zer0.muse.data.plugin.market.CatalogRefreshResult
@@ -93,9 +94,11 @@ import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.titleSmallStrong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
@@ -104,7 +107,6 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import org.koin.compose.koinInject
 import java.io.File
-import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * 统一「插件管理」页（v1.0.62）。
@@ -1283,6 +1285,31 @@ private fun InstalledPluginRow(
                             MaterialTheme.colorScheme.error
                         },
                     )
+                }
+                // PL1 收尾:熔断窗口要在插件页看得见,而且必须自己走表。
+                // 停在一个不再变化的「剩余 300 秒」上等于骗人:用户据此判断「还要等多久」,
+                // 数字不动他就会一直等下去。因此冷却中每秒重读一次,解冻即停表。
+                val health = PluginRuntimeHealth.shared
+                // 这里读计数是为了让本行订阅它:计数 +1 → 本行重组 → 视图重新取值。
+                // 视图本身不 remember,否则冷却中的秒数会被冻在第一次取值上。
+                val circuitTick = remember(plugin.id) { mutableIntStateOf(0) }
+                val circuit = circuitTick.intValue.let { health.circuitView(plugin.id) }
+                if (circuit.status != PluginRuntimeHealth.CircuitStatus.None) {
+                    Text(
+                        text = when (circuit.status) {
+                            PluginRuntimeHealth.CircuitStatus.Probing -> stringResource(R.string.plugin_row_circuit_probing)
+                            else -> stringResource(R.string.plugin_row_circuit_cooling, circuit.remainingSeconds)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                LaunchedEffect(plugin.id, circuit.status) {
+                    // 循环里读的是真状态,不是重组时抓到的那份快照,否则冷却结束后这个循环永远停不下来。
+                    while (health.circuitView(plugin.id).status != PluginRuntimeHealth.CircuitStatus.None) {
+                        delay(1_000L)
+                        circuitTick.intValue += 1
+                    }
                 }
                 Text(
                     // ST-04: 面向用户只显示版本/工具数;插件 id/指纹/sha256 收进「开发者信息」折叠区

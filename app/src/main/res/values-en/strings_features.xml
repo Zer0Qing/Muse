@@ -746,6 +746,8 @@
     <string name="plugin_permission_python_warning">Python plugins run in a subprocess sharing this app\'s UID and can read or write app data directly, bypassing the capability switches and file sandbox above. Enable only for sources you trust.</string>
     <string name="plugin_row_python_trusted">Python runtime · allowed</string>
     <string name="plugin_row_python_locked">Python runtime · needs high trust</string>
+    <string name="plugin_row_circuit_cooling">Isolated — %1$d s left</string>
+    <string name="plugin_row_circuit_probing">Half-open probe in flight</string>
     <string name="plugin_permission_node_note">Node runtime: runs in a built-in Node subprocess; capabilities are checked per action; timeouts are actually interrupted and never block other plugins.</string>
     <string name="plugin_cap_resource_read">Read files (only inside the plugin own sandbox folder)</string>
     <string name="plugin_cap_resource_write">Write files (only inside the plugin own sandbox folder)</string>

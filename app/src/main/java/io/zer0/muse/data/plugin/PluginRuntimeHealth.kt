@@ -81,6 +81,33 @@ class PluginRuntimeHealth(
     /** 仅供测试与 UI 展示当前窗口。 */
     fun stateOf(pluginId: String): PluginState? = states[pluginId]
 
+    /** 插件页的熔断档位(PL1 收尾)。 */
+    enum class CircuitStatus {
+        /** 正常放行:页面什么都不该多显示。 */
+        None,
+
+        /** 冷却中,还有 [PluginCircuitView.remainingSeconds] 秒。 */
+        CoolingDown,
+
+        /** 冷却已到期,下一条请求会真实执行(半开探测)。 */
+        Probing,
+    }
+
+    /** 展示用的不可变视图;剩余秒数与 [blockReason] 同一套算法,不另写一份。 */
+    data class PluginCircuitView(
+        val status: CircuitStatus,
+        val remainingSeconds: Int,
+        val consecutiveFailures: Int,
+    )
+
+    /**
+     * 页面展示用:**纯读**,绝不改状态。
+     *
+     * 这条必须与 [blockReason] 分开 —— 后者在到期时会把状态翻成半开(那是放行的记账动作),
+     * 一个只是「看一眼」的列表如果调它,就等于用户打开插件页替插件消耗掉了一次探测机会。
+     */
+    fun circuitView(pluginId: String): PluginCircuitView = viewOf(states[pluginId], nowMillis())
+
     fun clear(pluginId: String) {
         states.remove(pluginId)
     }
@@ -98,6 +125,32 @@ class PluginRuntimeHealth(
         internal const val MAX_COOLDOWN_MS = 5 * 60_000L
 
         private const val MAX_COOLDOWN_EXPONENT = 3
+
+        /**
+         * 状态 + 当下时刻 → 展示视图(纯函数,便于用固定时钟把边界钉死)。
+         *
+         * 剩余秒数**向上取整**:还剩 1ms 时显示「剩余 0 秒」会让人以为已经解冻;
+         * 显示「剩余 1 秒」到真的解冻最多差一秒,是可以接受的读法。
+         */
+        internal fun viewOf(state: PluginState?, nowMs: Long): PluginCircuitView = when {
+            state == null || state.openUntilMs <= 0L -> PluginCircuitView(
+                status = if (state?.probing == true) CircuitStatus.Probing else CircuitStatus.None,
+                remainingSeconds = 0,
+                consecutiveFailures = state?.consecutiveFailures ?: 0,
+            )
+
+            nowMs >= state.openUntilMs -> PluginCircuitView(
+                status = CircuitStatus.Probing,
+                remainingSeconds = 0,
+                consecutiveFailures = state.consecutiveFailures,
+            )
+
+            else -> PluginCircuitView(
+                status = CircuitStatus.CoolingDown,
+                remainingSeconds = ((state.openUntilMs - nowMs + 999) / 1000).toInt(),
+                consecutiveFailures = state.consecutiveFailures,
+            )
+        }
 
         /** 全宿主共享单实例:三处调用点(工具/Hook/激活)必须看到同一份账。 */
         val shared: PluginRuntimeHealth by lazy { PluginRuntimeHealth() }
