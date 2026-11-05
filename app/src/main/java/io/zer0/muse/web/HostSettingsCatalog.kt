@@ -162,9 +162,10 @@ internal object HostSettingsCatalog {
             link("tutorial", "settings_screen_tutorial", "settings_screen_tutorial_desc", "school"),
             link("about", "settings_screen_about", "settings_screen_about_desc", "info"),
             action("check_update", "settings_screen_check_update", "settings_screen_check_update_desc", "refresh"),
-            // v2.6.23(S4): App 端新增「运行诊断」子页,1:1 投影要求这里同步有镜像条目。
-            // 先标 disabled:S5 在 Web 端补出「运行」三 Tab 页之前,不留一个点了只有占位说明的假入口。
-            link("diagnostics", "settings_screen_diagnostics", "settings_screen_diagnostics_desc", "bug", enabled = false),
+            // v2.6.23(S4/S5): App 端「运行诊断」子页的 1:1 镜像条目。
+            // S5 已在 Web 端补出「运行」三 Tab 页(runtime.logs / runtime.diagnostics / runtime.stats),
+            // 因此点亮;标题与说明沿用 App 侧同一组字符串,不再造第二个叫法。
+            link("diagnostics", "settings_screen_diagnostics", "settings_screen_diagnostics_desc", "bug"),
         ),
         group(
             "settings_group_developer",

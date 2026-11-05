@@ -169,6 +169,15 @@ data class HostEvent(
     /** system.status 载荷:应用与设备的只读状态快照。 */
     @SerialName("system")
     val systemStatus: HostSystemStatus? = null,
+    /** runtime.logs 载荷:日志文件的尾部若干行,单行已按上限截断(见 [HostRuntimeReads])。 */
+    @SerialName("logs")
+    val runtimeLogs: List<String> = emptyList(),
+    /** runtime.diagnostics 载荷:诊断快照的脱敏 JSON;采集不出快照时为 null(不是空串)。 */
+    @SerialName("diagnostics")
+    val runtimeDiagnostics: String? = null,
+    /** runtime.stats 载荷:Web Host 延迟与主线程卡顿的窗口统计。 */
+    @SerialName("stats")
+    val runtimeStats: HostRuntimeStats? = null,
 )
 
 /**
@@ -260,6 +269,35 @@ data class HostBatteryStatus(
     val level: Int? = null,
     /** 是否在充电;系统没给出明确状态时为 null。 */
     val charging: Boolean? = null,
+)
+
+/**
+ * 运行统计(「运行」页统计 Tab 的载荷):Web Host 请求延迟 + 主线程卡顿的当前窗口。
+ *
+ * 两边都是**窗口内**的计数,不是自开机以来的累计:卡顿计数器每 [HOST_STATS_WINDOW_MS] 翻转一次,
+ * 延迟样本是环形缓冲的最近 512 条。窗口口径写在这里,是为了让网页端不必猜「这个数字是多久内的」。
+ *
+ * [webP95Reliable] 是数据源自己给出的判断:样本少于 20 条时 p95 只是噪声的一个排序,
+ * 与其让网页端复制这个阈值,不如连判断一起下发。
+ */
+@Serializable
+data class HostRuntimeStats(
+    /** 环形缓冲里的请求样本数。 */
+    val webSamples: Int = 0,
+    /** /api 请求延迟的 p95(毫秒);无样本为 null。 */
+    val webP95Ms: Long? = null,
+    /** 样本是否足够多到可以报一个精确的 p95。 */
+    val webP95Reliable: Boolean = false,
+    /** 可感知掉帧(≥64ms)次数。 */
+    val jankCount: Int = 0,
+    /** 明显卡顿(≥256ms)次数。 */
+    val slowCount: Int = 0,
+    /** 接近 ANR(≥1s)次数。 */
+    val blockCount: Int = 0,
+    /** 窗口内最慢一条主线程消息的耗时。 */
+    val worstMs: Long = 0,
+    /** 当前窗口已走过的秒数。 */
+    val windowSeconds: Long = 0,
 )
 
 /**

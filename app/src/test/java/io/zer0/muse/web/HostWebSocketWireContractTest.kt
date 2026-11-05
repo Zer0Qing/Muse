@@ -3,6 +3,7 @@ package io.zer0.muse.web
 import io.zer0.common.AppJson
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encodeToString
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -119,6 +120,46 @@ class HostWebSocketWireContractTest {
         assertFalse("delta 从未被赋值；本协议没有增量帧", eventNames.contains("delta"))
         // 真正在用的那条通道必须还在，否则上面两条会变成"删干净就行"而不成立
         assertTrue("cursor 才是事件续传的口径", commandNames.contains("cursor"))
+    }
+
+    /**
+     * S5「运行」页的三处键名，两侧必须一字不差。
+     *
+     * 这里连**统计 DTO 的每个字段**都拿去客户端类型里查一遍：契约测试最容易漏的正是
+     * 「外层键对了、里层字段少了一个」—— 那种漂移的表现不是报错，而是网页上某一行
+     * 永远是 `undefined`，而 Kotlin 侧测试依旧全绿。
+     */
+    @Test
+    fun `运行页三条命令的键与统计字段两侧一致`() {
+        assertEquals("runtime.logs", HostRuntimeReads.LOGS_TYPE)
+        assertEquals("runtime.diagnostics", HostRuntimeReads.DIAGNOSTICS_TYPE)
+        assertEquals("runtime.stats", HostRuntimeReads.STATS_TYPE)
+
+        listOf("logs", "diagnostics", "stats").forEach { key ->
+            assertTrue("运行回执的线上键应有 $key，实际=$eventNames", eventNames.contains(key))
+        }
+
+        val api = readClientSource("api.ts")
+        listOf(
+            "\"runtime.logs\"",
+            "\"runtime.diagnostics\"",
+            "\"runtime.stats\"",
+            "readonly logs?:",
+            "readonly diagnostics?:",
+            "readonly stats?:",
+        ).forEach { needle ->
+            assertTrue("客户端 api.ts 里找不到 $needle —— 契约变了就要同步这里", api.contains(needle))
+        }
+
+        val hook = readClientSource("host/useHostConnection.ts")
+        listOf("event.logs", "event.diagnostics", "event.stats").forEach { needle ->
+            assertTrue("客户端 $hook 应读 $needle", hook.contains(needle))
+        }
+
+        // 统计载荷的每个字段都要在客户端类型里出现，少一个就是网页上一行空白。
+        HostRuntimeStats.serializer().descriptor.wireNames().forEach { field ->
+            assertTrue("客户端 HostRuntimeStats 缺字段 $field", api.contains("readonly $field"))
+        }
     }
 
     private fun readClientSource(relative: String): String {

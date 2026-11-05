@@ -37,8 +37,9 @@ class HostSettingsEntryAvailabilityTest {
         "miniphone" to "由 FeatureFlags.MINI_PHONE 决定的实验功能，关闸时只展示",
         // 用户约定的编辑与注入都只在 App 侧；Web 端要能进，得先在客户端补子页并登记 entryIds。
         "agent_directives" to "「它该做与不该做的事」只有 App 侧编辑页，网页端列出但不进子页",
-        // S4 给 App 侧「运行诊断」补的 1:1 镜像条目；S5 在 Web 端补出「运行」三 Tab 页后点亮（点亮不算失败，见许可清单说明）。
-        "diagnostics" to "运行诊断当前只有 App 侧子页；Web 端补出对应页前只展示不进子页",
+        // S4 加的 1:1 镜像条目；S5 已在 Web 端补出「运行」三 Tab 页并点亮。
+        // 留在许可清单里只表示「若哪天 Web 页被摘掉，退回禁用是允许的」，不代表当前是禁用态。
+        "diagnostics" to "运行页当前已点亮；若 Web 端子页被摘掉，允许退回只展示不进子页",
     )
 
     @Test

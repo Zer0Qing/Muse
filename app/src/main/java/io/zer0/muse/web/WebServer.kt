@@ -123,6 +123,8 @@ class WebServer(
     private val scheduledTaskExecutionDao: io.zer0.muse.data.schedule.ScheduledTaskExecutionDao,
     /** 系统状态只读命令的数据源(体积 / 备份 / 能力位 / 电量)。 */
     private val systemStatusSource: HostSystemStatusSource = HostSystemStatusSource.Empty,
+    /** 「运行」页三条只读命令的数据源(日志尾部 / 诊断快照 / 窗口统计)。 */
+    private val runtimeSource: HostRuntimeSource = HostRuntimeSource.Empty,
 ) {
     private val hostMediaStore = HostMediaStore(
         imageDir = File(context.filesDir, IMAGE_MEDIA_DIR),
@@ -156,6 +158,7 @@ class WebServer(
             knowledge = hostKnowledgeSource,
             tasks = hostTaskSource,
             system = systemStatusSource,
+            runtime = runtimeSource,
         ),
     )
 

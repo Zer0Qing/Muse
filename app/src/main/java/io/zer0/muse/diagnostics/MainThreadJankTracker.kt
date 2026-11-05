@@ -26,7 +26,10 @@ class MainThreadJankTracker(
         val worstMs: Long,
         val windowStartedMs: Long,
         val nowMs: Long,
-    )
+    ) {
+        /** 当前窗口已走过的秒数;诊断卡与「运行」页统计都从这里取,免得两处各算一份对不上。 */
+        val windowSeconds: Long get() = ((nowMs - windowStartedMs) / 1000L).coerceAtLeast(0L)
+    }
 
     private val lock = Any()
     private var windowStart = nowMs()

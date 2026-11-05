@@ -168,7 +168,7 @@ export async function appendMessage(session: ClientSession, sessionId: string, m
 
 export interface HostCommand {
   readonly protocolVersion?: number;
-  readonly type: "hello" | "state.sync" | "session.select" | "session.new" | "session.rename" | "session.archive" | "session.delete" | "chat.send" | "chat.stop" | "chat.retry" | "chat.regenerate" | "chat.continue" | "tool.approval.resolve" | "history.page" | "history.search" | "message.copy" | "message.quote" | "message.delete" | "message.favorite" | "settings.snapshot" | "settings.update" | "assistants.list" | "assistants.detail" | "memory.list" | "memory.search" | "knowledge.list" | "knowledge.documents" | "tasks.list" | "system.status" | "providers.list" | "sessions.detail";
+  readonly type: "hello" | "state.sync" | "session.select" | "session.new" | "session.rename" | "session.archive" | "session.delete" | "chat.send" | "chat.stop" | "chat.retry" | "chat.regenerate" | "chat.continue" | "tool.approval.resolve" | "history.page" | "history.search" | "message.copy" | "message.quote" | "message.delete" | "message.favorite" | "settings.snapshot" | "settings.update" | "assistants.list" | "assistants.detail" | "memory.list" | "memory.search" | "knowledge.list" | "knowledge.documents" | "tasks.list" | "system.status" | "runtime.logs" | "runtime.diagnostics" | "runtime.stats" | "providers.list" | "sessions.detail";
   readonly requestId?: string;
   readonly sessionId?: string;
   /** session.new 的目标助手 id；不传则 Host 用默认助手。 */
@@ -323,6 +323,23 @@ export interface HostSystemStatus {
   readonly battery: { readonly level?: number | undefined; readonly charging?: boolean | undefined };
 }
 
+/**
+ * runtime.stats 的载荷：Web Host 请求延迟与主线程卡顿的当前窗口。
+ *
+ * 都是**窗口内**计数（卡顿计数器每 5 分钟翻转、延迟样本是最近 512 条），
+ * `webP95Reliable` 由 Host 判定，网页端不再自己复制阈值。
+ */
+export interface HostRuntimeStats {
+  readonly webSamples: number;
+  readonly webP95Ms?: number | undefined;
+  readonly webP95Reliable: boolean;
+  readonly jankCount: number;
+  readonly slowCount: number;
+  readonly blockCount: number;
+  readonly worstMs: number;
+  readonly windowSeconds: number;
+}
+
 /** 一个知识库。 */
 export interface HostKnowledgeBase {
   readonly id: string;
@@ -434,7 +451,7 @@ export interface HostMessage {
 }
 
 export interface HostEvent {
-  readonly type: "state.snapshot" | "command.accepted" | "command.duplicate" | "error" | "history.page" | "history.search" | "message.copy" | "message.quote" | "settings.snapshot" | "assistants.list" | "assistants.detail" | "memory.list" | "memory.search" | "knowledge.list" | "knowledge.documents" | "tasks.list" | "system.status" | "providers.list" | "sessions.detail";
+  readonly type: "state.snapshot" | "command.accepted" | "command.duplicate" | "error" | "history.page" | "history.search" | "message.copy" | "message.quote" | "settings.snapshot" | "assistants.list" | "assistants.detail" | "memory.list" | "memory.search" | "knowledge.list" | "knowledge.documents" | "tasks.list" | "system.status" | "runtime.logs" | "runtime.diagnostics" | "runtime.stats" | "providers.list" | "sessions.detail";
   readonly protocolVersion?: number;
   readonly requestId?: string;
   readonly connectionId?: string;
@@ -476,6 +493,12 @@ export interface HostEvent {
   readonly tasks?: readonly HostScheduledTask[];
   /** system.status 的载荷。 */
   readonly system?: HostSystemStatus;
+  /** runtime.logs 的载荷：日志尾部若干行，单行已由 Host 截断。 */
+  readonly logs?: readonly string[];
+  /** runtime.diagnostics 的载荷：诊断快照的脱敏 JSON；采不出快照时为空（不是空串）。 */
+  readonly diagnostics?: string | undefined;
+  /** runtime.stats 的载荷。 */
+  readonly stats?: HostRuntimeStats;
 }
 
 function hostBase(): string {

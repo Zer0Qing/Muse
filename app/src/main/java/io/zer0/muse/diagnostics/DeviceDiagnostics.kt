@@ -122,7 +122,7 @@ data class DiagnosticsSnapshot(
                     slowCount = jank.slowCount,
                     blockCount = jank.blockCount,
                     worstMs = jank.worstMs,
-                    windowSeconds = ((jank.nowMs - jank.windowStartedMs) / 1000L).coerceAtLeast(0L),
+                    windowSeconds = jank.windowSeconds,
                 ),
                 webHost = WebHostSection(
                     latencySamples = webSamples.first,

@@ -16,6 +16,8 @@ internal data class HostReadSources(
     val tasks: HostTaskSource = HostTaskSource.Empty,
     /** 系统状态只读命令的数据源；未装配时下发全默认状态。 */
     val system: HostSystemStatusSource = HostSystemStatusSource.Empty,
+    /** 「运行」页三条只读命令的数据源（日志尾部 / 诊断快照 / 窗口统计）；未装配时下发空值。 */
+    val runtime: HostRuntimeSource = HostRuntimeSource.Empty,
 ) {
     companion object {
         /** 全部未装配：只用于测试与最小可用装配。 */

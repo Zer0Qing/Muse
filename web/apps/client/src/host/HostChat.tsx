@@ -71,7 +71,7 @@ export function HostChat({ onLogout }: HostChatProps) {
   // 真正的语言解析出来后只换实现，转发函数本身的引用不变。
   const translatorRef = useRef(createTranslator(DEFAULT_LOCALE));
   const translate: Translate = useCallback((key, params) => translatorRef.current(key, params), []);
-  const { status, reconnectAttempt, ready, snapshot, previews, assistants, providers, assistantDetails, assistantDetailUnsupported, memory, knowledge, knowledgeDocuments, tasks, system, settings, send, sendOptimistic, requestPreviews, requestAssistants, requestProviders, requestAssistantDetail, requestMemory, requestKnowledge, requestKnowledgeDocuments, requestTasks, requestSystemStatus, requestSettings, updateSetting, updateSettingValue, retry } = useHostConnection({
+  const { status, reconnectAttempt, ready, snapshot, previews, assistants, providers, assistantDetails, assistantDetailUnsupported, memory, knowledge, knowledgeDocuments, tasks, system, runtime, settings, send, sendOptimistic, requestPreviews, requestAssistants, requestProviders, requestAssistantDetail, requestMemory, requestKnowledge, requestKnowledgeDocuments, requestTasks, requestSystemStatus, requestRuntimeLogs, requestRuntimeDiagnostics, requestRuntimeStats, requestSettings, updateSetting, updateSettingValue, retry } = useHostConnection({
     onError: pushToast,
     // perf 计时：快照落地时刻（只在 ?perf=1 时用到）。
     onSnapshot: () => {
@@ -581,6 +581,7 @@ export function HostChat({ onLogout }: HostChatProps) {
             knowledgeDocuments={knowledgeDocuments}
             tasks={tasks}
             system={system}
+            runtime={runtime}
             capabilityFlags={snapshot.capabilities}
             onRequestAssistantDetail={requestAssistantDetail}
             onRequestProviders={requestProviders}
@@ -589,6 +590,9 @@ export function HostChat({ onLogout }: HostChatProps) {
             onRequestKnowledgeDocuments={requestKnowledgeDocuments}
             onRequestTasks={requestTasks}
             onRequestSystemStatus={requestSystemStatus}
+            onRequestRuntimeLogs={requestRuntimeLogs}
+            onRequestRuntimeDiagnostics={requestRuntimeDiagnostics}
+            onRequestRuntimeStats={requestRuntimeStats}
             onStartSession={startSessionWith}
             onBack={() => setView("chat")}
             onRetry={requestSettings}

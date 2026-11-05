@@ -12,6 +12,7 @@ import {
   type HostMemoryItem,
   type HostMessage,
   type HostProviderSummary,
+  type HostRuntimeStats,
   type HostScheduledTask,
   type HostSettingsSnapshot,
   type HostSystemStatus,
@@ -80,6 +81,33 @@ export interface HostSystemState {
 }
 
 const EMPTY_SYSTEM: HostSystemState = { status: undefined, loading: false, error: undefined, unsupported: false };
+
+/**
+ * 「运行」页三条命令的读取状态。
+ *
+ * 三个 loading 各自独立：三个 Tab 各自刷新，共用一个开关会让「只看日志」把诊断和统计也拖进转圈。
+ */
+export interface HostRuntimeState {
+  readonly logs: readonly string[] | undefined;
+  readonly logsLoading: boolean;
+  readonly diagnostics: string | undefined;
+  readonly diagnosticsLoading: boolean;
+  readonly stats: HostRuntimeStats | undefined;
+  readonly statsLoading: boolean;
+  readonly error: string | undefined;
+  readonly unsupported: boolean;
+}
+
+const EMPTY_RUNTIME: HostRuntimeState = {
+  logs: undefined,
+  logsLoading: false,
+  diagnostics: undefined,
+  diagnosticsLoading: false,
+  stats: undefined,
+  statsLoading: false,
+  error: undefined,
+  unsupported: false,
+};
 
 const EMPTY_KNOWLEDGE: HostKnowledgeState = { bases: [], loading: false, error: undefined, unsupported: false };
 const EMPTY_DOCUMENTS: HostKnowledgeDocumentsState = {
@@ -187,6 +215,11 @@ export interface HostConnectionApi {
   /** 系统状态（存储/备份/平台能力）。 */
   readonly system: HostSystemState;
   readonly requestSystemStatus: () => void;
+  /** 「运行」页：日志尾部 / 诊断快照 / 窗口统计，全部只读。 */
+  readonly runtime: HostRuntimeState;
+  readonly requestRuntimeLogs: (limit?: number) => void;
+  readonly requestRuntimeDiagnostics: () => void;
+  readonly requestRuntimeStats: () => void;
   /** 乐观改开关并发 settings.update；被 Host 拒绝时自动回滚。 */
   readonly updateSetting: (key: string, enabled: boolean) => void;
   /** 子页的通用写入：boolean / number / enum 文本统一走这里，失败原因交给 toast。 */
@@ -226,6 +259,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
   const [knowledgeDocuments, setKnowledgeDocuments] = useState<HostKnowledgeDocumentsState>(EMPTY_DOCUMENTS);
   const [tasks, setTasks] = useState<HostTasksState>(EMPTY_TASKS);
   const [system, setSystem] = useState<HostSystemState>(EMPTY_SYSTEM);
+  const [runtime, setRuntime] = useState<HostRuntimeState>(EMPTY_RUNTIME);
   const [settings, setSettings] = useState<HostSettingsState>(EMPTY_SETTINGS);
   const [ready, setReady] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
@@ -235,8 +269,20 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
   const pendingMemory = useRef(new Map<string, { readonly reset: boolean; readonly query?: string | undefined }>());
   /** 助手详情的待回请求：requestId → assistantId。 */
   const pendingDetails = useRef(new Map<string, string>());
-  /** 知识库 / 文档 / 定时任务的待回请求：requestId → 用途。 */
-  const pendingQueries = useRef(new Map<string, { readonly kind: "knowledge" | "documents" | "tasks" | "system"; readonly reset: boolean }>());
+  /** 知识库 / 文档 / 定时任务 / 系统状态 / 运行三条命令的待回请求：requestId → 用途。 */
+  const pendingQueries = useRef(
+    new Map<string, {
+      readonly kind:
+        | "knowledge"
+        | "documents"
+        | "tasks"
+        | "system"
+        | "runtimeLogs"
+        | "runtimeDiagnostics"
+        | "runtimeStats";
+      readonly reset: boolean;
+    }>(),
+  );
   const pendingSettings = useRef(new Set<string>());
   const pendingWrites = useRef(new Map<string, { key: string; previous: unknown }>());
   /** 乐观消息写的回滚动作：requestId → 撤销函数。 */
@@ -285,6 +331,10 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
         else if (query.kind === "documents")
           setKnowledgeDocuments((current) => ({ ...current, loading: false, error: message }));
         else if (query.kind === "tasks") setTasks((current) => ({ ...current, loading: false, error: message }));
+        else if (query.kind === "runtimeLogs") setRuntime((current) => ({ ...current, logsLoading: false, error: message }));
+        else if (query.kind === "runtimeDiagnostics")
+          setRuntime((current) => ({ ...current, diagnosticsLoading: false, error: message }));
+        else if (query.kind === "runtimeStats") setRuntime((current) => ({ ...current, statsLoading: false, error: message }));
         else setSystem((current) => ({ ...current, loading: false, error: message }));
         return;
       }
@@ -422,6 +472,25 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
             setSystem((current) => ({ status: event.system, loading: false, error: undefined, unsupported: current.unsupported }));
             return;
           }
+          if (event.type === "runtime.logs") {
+            const requestId = event.requestId;
+            if (requestId !== undefined) pendingQueries.current.delete(requestId);
+            setRuntime((current) => ({ ...current, logs: event.logs ?? [], logsLoading: false, error: undefined }));
+            return;
+          }
+          if (event.type === "runtime.diagnostics") {
+            const requestId = event.requestId;
+            if (requestId !== undefined) pendingQueries.current.delete(requestId);
+            // 载荷缺失 = Host 采不出快照，保持「没有诊断」而不是编一个空串出来
+            setRuntime((current) => ({ ...current, diagnostics: event.diagnostics, diagnosticsLoading: false, error: undefined }));
+            return;
+          }
+          if (event.type === "runtime.stats") {
+            const requestId = event.requestId;
+            if (requestId !== undefined) pendingQueries.current.delete(requestId);
+            setRuntime((current) => ({ ...current, stats: event.stats, statsLoading: false, error: undefined }));
+            return;
+          }
           if (event.type === "tasks.list") {
             const requestId = event.requestId;
             if (requestId !== undefined) pendingQueries.current.delete(requestId);
@@ -492,6 +561,17 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
                 setKnowledgeDocuments((current) => ({ ...current, loading: false, error: message, unsupported: current.unsupported || unsupported }));
               } else if (queryPending.kind === "tasks") {
                 setTasks((current) => ({ ...current, loading: false, error: message, unsupported: current.unsupported || unsupported }));
+              } else if (queryPending.kind === "runtimeLogs") {
+                setRuntime((current) => ({ ...current, logsLoading: false, error: message, unsupported: current.unsupported || unsupported }));
+              } else if (queryPending.kind === "runtimeDiagnostics") {
+                setRuntime((current) => ({
+                  ...current,
+                  diagnosticsLoading: false,
+                  error: message,
+                  unsupported: current.unsupported || unsupported,
+                }));
+              } else if (queryPending.kind === "runtimeStats") {
+                setRuntime((current) => ({ ...current, statsLoading: false, error: message, unsupported: current.unsupported || unsupported }));
               } else {
                 setSystem((current) => ({ ...current, loading: false, error: message, unsupported: current.unsupported || unsupported }));
               }
@@ -586,6 +666,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
       setKnowledgeDocuments((current) => ({ ...current, loading: false }));
       setTasks((current) => ({ ...current, loading: false }));
       setSystem((current) => ({ ...current, loading: false }));
+      setRuntime((current) => ({ ...current, logsLoading: false, diagnosticsLoading: false, statsLoading: false }));
       setSettings((current) => ({ ...current, loading: false }));
       connectionRef.current?.close();
       connectionRef.current = undefined;
@@ -798,7 +879,66 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     }
   }, [tt]);
 
-  const requestSettings = useCallback(() => {    const connection = connectionRef.current;
+  /**
+   * 日志尾部（默认 200 行、上限 500，由 Host 夹）。
+   * 单行截断也归 Host 做：网页端拿到的是已经定好口径的行，不再各自裁一遍。
+   */
+  const requestRuntimeLogs = useCallback(
+    (limit?: number) => {
+      const connection = connectionRef.current;
+      if (!connection) return;
+      const requestId = crypto.randomUUID();
+      pendingQueries.current.set(requestId, { kind: "runtimeLogs", reset: true });
+      armPendingTimeout(requestId);
+      setRuntime((current) => ({ ...current, logsLoading: true, error: undefined }));
+      try {
+        connection.send({ type: "runtime.logs", requestId, ...(limit === undefined ? {} : { limit }) });
+      } catch (cause) {
+        pendingQueries.current.delete(requestId);
+        setRuntime((current) => ({ ...current, logsLoading: false, error: cause instanceof Error ? cause.message : tt("error.sendFailed") }));
+      }
+    },
+    [tt],
+  );
+
+  /** 诊断快照的脱敏 JSON；与 App 诊断卡同一份导出契约。 */
+  const requestRuntimeDiagnostics = useCallback(() => {
+    const connection = connectionRef.current;
+    if (!connection) return;
+    const requestId = crypto.randomUUID();
+    pendingQueries.current.set(requestId, { kind: "runtimeDiagnostics", reset: true });
+    armPendingTimeout(requestId);
+    setRuntime((current) => ({ ...current, diagnosticsLoading: true, error: undefined }));
+    try {
+      connection.send({ type: "runtime.diagnostics", requestId });
+    } catch (cause) {
+      pendingQueries.current.delete(requestId);
+      setRuntime((current) => ({
+        ...current,
+        diagnosticsLoading: false,
+        error: cause instanceof Error ? cause.message : tt("error.sendFailed"),
+      }));
+    }
+  }, [tt]);
+
+  /** 窗口统计：Web Host 延迟 p95 + 主线程卡顿三档计数。 */
+  const requestRuntimeStats = useCallback(() => {
+    const connection = connectionRef.current;
+    if (!connection) return;
+    const requestId = crypto.randomUUID();
+    pendingQueries.current.set(requestId, { kind: "runtimeStats", reset: true });
+    armPendingTimeout(requestId);
+    setRuntime((current) => ({ ...current, statsLoading: true, error: undefined }));
+    try {
+      connection.send({ type: "runtime.stats", requestId });
+    } catch (cause) {
+      pendingQueries.current.delete(requestId);
+      setRuntime((current) => ({ ...current, statsLoading: false, error: cause instanceof Error ? cause.message : tt("error.sendFailed") }));
+    }
+  }, [tt]);
+
+  const requestSettings = useCallback(() => {
+    const connection = connectionRef.current;
     if (!connection) {
       setSettings((current) => settingsWithError(current, tt("error.notConnected")));
       return;
@@ -864,6 +1004,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     knowledgeDocuments,
     tasks,
     system,
+    runtime,
     settings,
     send,
     sendOptimistic,
@@ -876,6 +1017,9 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     requestKnowledgeDocuments,
     requestTasks,
     requestSystemStatus,
+    requestRuntimeLogs,
+    requestRuntimeDiagnostics,
+    requestRuntimeStats,
     requestSettings,
     updateSetting,
     updateSettingValue,

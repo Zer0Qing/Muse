@@ -600,6 +600,26 @@ internal class HostWebSocketGateway(
                 context,
                 sendMutex,
             )
+            // 「运行」页三条只读命令:日志尾部 / 诊断快照 / 窗口统计。与 system.status 同级,
+            // 全部不参与焦点锁 —— 它们不改变设备状态,读的人不该因为别人正在操作而被挡。
+            HostRuntimeReads.LOGS_TYPE -> sendEvent(
+                connection,
+                HostRuntimeReads.logsEvent(readSources.runtime.logs(HostRuntimeReads.logLimit(command.limit)), requestId),
+                context,
+                sendMutex,
+            )
+            HostRuntimeReads.DIAGNOSTICS_TYPE -> sendEvent(
+                connection,
+                HostRuntimeReads.diagnosticsEvent(readSources.runtime.diagnosticsJson(), requestId),
+                context,
+                sendMutex,
+            )
+            HostRuntimeReads.STATS_TYPE -> sendEvent(
+                connection,
+                HostRuntimeReads.statsEvent(readSources.runtime.stats(), requestId),
+                context,
+                sendMutex,
+            )
             else -> throw HostProtocolException("unsupported host command: ${command.type}")
         }
     }
@@ -917,6 +937,9 @@ internal class HostWebSocketGateway(
                 "knowledge",
                 "tasks",
                 "system_status",
+                "runtime_logs",
+                "runtime_diagnostics",
+                "runtime_stats",
             ),
         )
     }

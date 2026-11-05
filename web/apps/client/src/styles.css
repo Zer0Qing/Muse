@@ -1761,3 +1761,13 @@ button.quiet.host-memory-clear { color: var(--accent); font-size: var(--muse-typ
 .host-platform-state.is-available { background: var(--accent); }
 .host-platform-state.is-notEnabled { background: var(--warning); }
 .host-platform-state.is-unavailable { background: var(--ui-outline); }
+
+/* ── 运行页：三 Tab / 日志尾部 / 诊断 JSON ─────────────────────
+   高度不设上限，跟着页面一起滚：日志块自己再套一层滚动区，
+   在手机上就是「两指打架」，而且短窗口会把行截成看不全的样子。 */
+.host-runtime-tabs { display: flex; align-items: center; gap: var(--muse-space-tight-gap); }
+.host-runtime-tab { padding: var(--muse-space-tiny-gap) var(--muse-space-aux-gap); border: var(--host-hairline) solid var(--border); border-radius: var(--muse-radius-pill); color: var(--ink-muted); background: transparent; font-family: var(--font-ui); font-size: var(--muse-type-scale-label-medium-font-size); }
+.host-runtime-tab.is-selected { color: var(--ink); border-color: var(--ui-primary); background: var(--host-veil); }
+.host-runtime-action { margin-inline-start: auto; padding: var(--muse-space-tiny-gap) var(--muse-space-aux-gap); border: var(--host-hairline) solid var(--border); border-radius: var(--muse-radius-pill); color: var(--ui-primary); background: transparent; font-family: var(--font-ui); font-size: var(--muse-type-scale-label-medium-font-size); }
+.host-runtime-logs { max-inline-size: 100%; margin: 0; padding: var(--muse-space-aux-gap); border-radius: var(--radius-sm); color: var(--code-ink); background: var(--code-bg); font-family: var(--font-mono); font-size: var(--muse-type-web-caption); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.host-runtime-log-line { display: block; }

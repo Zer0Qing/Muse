@@ -71,11 +71,16 @@ val appInfraModule = module {
             autoBackupLogDao = get(),
         )
     }
+    // 「运行」页三条只读命令的数据源:日志尾部(Logger) + 诊断快照(S4) + 窗口统计(S4 的两个计数器)。
+    single<io.zer0.muse.web.HostRuntimeSource> {
+        io.zer0.muse.web.AndroidHostRuntimeSource(context = androidContext())
+    }
     single {
         io.zer0.muse.web.WebServer(
             get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(),
             systemStatusSource = get(),
+            runtimeSource = get(),
         )
     }
 

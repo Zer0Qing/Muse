@@ -12,6 +12,13 @@ export const MEMORY_FLAGS: readonly string[] = ["memory", "memory_list"];
 export const KNOWLEDGE_FLAGS: readonly string[] = ["knowledge", "knowledge_base"];
 export const TASK_FLAGS: readonly string[] = ["tasks", "scheduled_tasks"];
 export const SYSTEM_STATUS_FLAGS: readonly string[] = ["system_status"];
+/**
+ * 「运行」页三条命令的能力位。
+ *
+ * 用「任一即可」而不是要求三条齐全：日志与统计是两条独立的数据源，
+ * 哪天其中一条没能装配，页面剩下的 Tab 照样有用，不该整页判死。
+ */
+export const RUNTIME_FLAGS: readonly string[] = ["runtime_logs", "runtime_diagnostics", "runtime_stats"];
 export const ASSISTANT_WRITE_FLAGS: readonly string[] = ["assistant_write", "assistants_write"];
 
 export function supportsFlag(flags: readonly string[] | undefined, tokens: readonly string[]): boolean {

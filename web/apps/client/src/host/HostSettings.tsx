@@ -4,19 +4,20 @@ import { CardGroup, ErrorStateBox, ListRow, ListSkeleton, Screen, SettingsIcon, 
 import type { HostCapabilities } from "./capabilities.js";
 import { AssistantsPage } from "./AssistantsPage.js";
 import { useI18n } from "../i18n/I18nProvider.js";
-import { MEMORY_FLAGS, KNOWLEDGE_FLAGS, TASK_FLAGS, SYSTEM_STATUS_FLAGS, platformAvailability, platformKeysForEntry, supportsFlag } from "./featureCapabilities.js";
+import { MEMORY_FLAGS, KNOWLEDGE_FLAGS, RUNTIME_FLAGS, TASK_FLAGS, SYSTEM_STATUS_FLAGS, platformAvailability, platformKeysForEntry, supportsFlag } from "./featureCapabilities.js";
 import { HostPlaceholder } from "./HostPlaceholder.js";
 import { MemoryPage } from "./MemoryPage.js";
 import { KnowledgePage } from "./KnowledgePage.js";
 import { TasksPage } from "./TasksPage.js";
 import { DataPrivacyPage } from "./DataPrivacyPage.js";
+import { HostRuntimePage } from "./HostRuntimePage.js";
 import { PlatformPage } from "./PlatformPage.js";
 import { pageForEntry, SETTINGS_PAGE_SPECS, type SettingsPageSpec } from "./settingsPages.js";
 import { settingsPageTitle, type SettingsSearchHit } from "./settingsQuery.js";
 import { SettingsSearch } from "./SettingsSearch.js";
 import { SettingsValueCard, SettingsValuePage } from "./SettingsValuePage.js";
 import { useDelayedFlag } from "./useDelayedFlag.js";
-import type { HostKnowledgeDocumentsState, HostKnowledgeState, HostMemoryState, HostSettingsState, HostSystemState, HostTasksState } from "./useHostConnection.js";
+import type { HostKnowledgeDocumentsState, HostKnowledgeState, HostMemoryState, HostRuntimeState, HostSettingsState, HostSystemState, HostTasksState } from "./useHostConnection.js";
 import { valuesForPage } from "./settingsPages.js";
 
 export interface HostSettingsProps {
@@ -56,6 +57,11 @@ export interface HostSettingsProps {
   /** 系统状态（数据与隐私页 / 平台专有页共用）。 */
   readonly system: HostSystemState;
   readonly onRequestSystemStatus: () => void;
+  /** 「运行」页：日志尾部 / 诊断快照 / 窗口统计。 */
+  readonly runtime: HostRuntimeState;
+  readonly onRequestRuntimeLogs: (limit?: number) => void;
+  readonly onRequestRuntimeDiagnostics: () => void;
+  readonly onRequestRuntimeStats: () => void;
 }
 
 /** 当前打开的子页：目录条目，或搜索结果里的某条值（附带要高亮的那一行）。 */
@@ -98,6 +104,10 @@ export function HostSettings({
   onRequestTasks,
   system,
   onRequestSystemStatus,
+  runtime,
+  onRequestRuntimeLogs,
+  onRequestRuntimeDiagnostics,
+  onRequestRuntimeStats,
 }: HostSettingsProps) {
   const { t } = useI18n();
   const [openPage, setOpenPage] = useState<OpenPage | undefined>(undefined);
@@ -206,6 +216,19 @@ export function HostSettings({
           onRequest={onRequestSystemStatus}
           pii={piiGuardState(snapshot)}
           onTogglePii={(enabled) => onToggle(PII_GUARD_KEY, enabled)}
+          onBack={back}
+        />
+      );
+    }
+    if (openPage.kind === "entry" && openPage.entry.id === "diagnostics") {
+      return (
+        <HostRuntimePage
+          title={openPage.entry.title}
+          runtime={runtime}
+          supported={supportsFlag(capabilityFlags, RUNTIME_FLAGS) && !runtime.unsupported}
+          onRequestLogs={onRequestRuntimeLogs}
+          onRequestDiagnostics={onRequestRuntimeDiagnostics}
+          onRequestStats={onRequestRuntimeStats}
           onBack={back}
         />
       );
