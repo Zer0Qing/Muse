@@ -7,4 +7,6 @@
     <string name="voice_reply_rarely">Occasionally (default)</string>
     <string name="voice_reply_often">Often</string>
     <string name="voice_reply_always">Always</string>
+    <string name="voice_timbre_entry">Voice timbre and speed</string>
+    <string name="voice_timbre_entry_desc">Configured once in Settings → Media; nothing is stored twice</string>
 </resources>

@@ -510,7 +510,11 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        AgentDirectivesPage(onBack = { navController.popBackStack() })
+        AgentDirectivesPage(
+            onBack = { navController.popBackStack() },
+            // 音色沿用「设置 → 多媒体」那一处配置，这里只是跳过去，不另存一份
+            onOpenVoiceSettings = { navController.navigate(SettingsMediaRoute) },
+        )
     }
     // 内置浏览器设置 — 地址栏搜索引擎 / Cookies 行为
     composable<SettingsBrowserRoute>(

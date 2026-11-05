@@ -7,4 +7,6 @@
     <string name="voice_reply_rarely">Às vezes (padrão)</string>
     <string name="voice_reply_often">Frequentemente</string>
     <string name="voice_reply_always">Sempre</string>
+    <string name="voice_timbre_entry">Timbre e velocidade da voz</string>
+    <string name="voice_timbre_entry_desc">Configurado uma vez em Ajustes → Mídia; não há segunda cópia</string>
 </resources>

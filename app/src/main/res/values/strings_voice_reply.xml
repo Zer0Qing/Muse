@@ -7,4 +7,6 @@
     <string name="voice_reply_rarely">偶尔（默认）</string>
     <string name="voice_reply_often">常用</string>
     <string name="voice_reply_always">总是</string>
+    <string name="voice_timbre_entry">语音音色与语速</string>
+    <string name="voice_timbre_entry_desc">在「设置 → 多媒体」里统一配置，这里不另存一份</string>
 </resources>

@@ -7,4 +7,6 @@
     <string name="voice_reply_rarely">가끔 (기본값)</string>
     <string name="voice_reply_often">자주</string>
     <string name="voice_reply_always">항상</string>
+    <string name="voice_timbre_entry">음성 음색과 속도</string>
+    <string name="voice_timbre_entry_desc">‘설정 → 멀티미디어’에서 한 번에 지정, 여기선 중복 저장하지 않음</string>
 </resources>

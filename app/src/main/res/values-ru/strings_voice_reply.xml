@@ -7,4 +7,6 @@
     <string name="voice_reply_rarely">Иногда (по умолчанию)</string>
     <string name="voice_reply_often">Часто</string>
     <string name="voice_reply_always">Всегда</string>
+    <string name="voice_timbre_entry">Тембр и скорость речи</string>
+    <string name="voice_timbre_entry_desc">Настраивается один раз в «Медиа» — второй копии нет</string>
 </resources>

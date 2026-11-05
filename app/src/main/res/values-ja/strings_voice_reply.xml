@@ -7,4 +7,6 @@
     <string name="voice_reply_rarely">たまに（デフォルト）</string>
     <string name="voice_reply_often">よく</string>
     <string name="voice_reply_always">毎回</string>
+    <string name="voice_timbre_entry">声の音色と速度</string>
+    <string name="voice_timbre_entry_desc">「設定 → マルチメディア」で一元設定。ここでは重複して持ちません</string>
 </resources>

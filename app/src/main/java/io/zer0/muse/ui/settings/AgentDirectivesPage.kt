@@ -56,7 +56,11 @@ import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
  * `LazyListScope`（非组合上下文），提前解析根本编不过 —— 我第一版就踩在这里。
  */
 @Composable
-fun AgentDirectivesPage(onBack: () -> Unit) {
+fun AgentDirectivesPage(
+    onBack: () -> Unit,
+    /** 跳到既有的「设置 → 多媒体」页配置音色；这里**不再存一份**。 */
+    onOpenVoiceSettings: () -> Unit = {},
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember { AgentDirectiveStore.of(context) }
@@ -127,6 +131,7 @@ fun AgentDirectivesPage(onBack: () -> Unit) {
             VoiceFrequencySection(
                 current = AgentDirectivesUiState.voiceFrequency(voiceSnapshot, agentId),
                 onSelect = { level -> scope.launch { voiceStore.set(agentId, level) } },
+                onOpenTimbre = onOpenVoiceSettings,
             )
         }
     }
@@ -269,7 +274,11 @@ private fun DirectiveEditor(
  * 档位只改提示词政策，不做硬拦截（见 `VoiceReplyPolicy` 的说明）。
  */
 @Composable
-private fun VoiceFrequencySection(current: VoiceReplyFrequency, onSelect: (VoiceReplyFrequency) -> Unit) {
+private fun VoiceFrequencySection(
+    current: VoiceReplyFrequency,
+    onSelect: (VoiceReplyFrequency) -> Unit,
+    onOpenTimbre: () -> Unit,
+) {
     val labels = mapOf(
         VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
         VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),
@@ -298,6 +307,15 @@ private fun VoiceFrequencySection(current: VoiceReplyFrequency, onSelect: (Voice
                     )
                 }
             }
+            SettingsGroupDivider()
+            // 音色只留一个入口：跳既有的「设置 → 多媒体」页。
+            // 在这页再放一份音色选择器，就会出现"两处都能改、值却可能不一致"的老毛病。
+            SettingsItemRow(
+                icon = MuseIcons.microphone,
+                title = stringResource(R.string.voice_timbre_entry),
+                subtitle = stringResource(R.string.voice_timbre_entry_desc),
+                onClick = onOpenTimbre,
+            )
         }
     }
 }
