@@ -88,6 +88,50 @@ fun AgentDirectivesPage(
         AgentDirectivesUiState.omittedCount(forbidden + desired)
     }
 
+    AgentDirectivesContent(
+        assistants = assistants,
+        agentId = agentId,
+        forbidden = forbidden,
+        desired = desired,
+        omittedCount = omittedCount,
+        voiceFrequency = AgentDirectivesUiState.voiceFrequency(voiceSnapshot, agentId),
+        onBack = onBack,
+        onSelectAgent = { selectedAgent = it },
+        onSave = { polarity, text -> scope.launch { store.add(agentId, polarity, text) } },
+        onToggle = { id, enabled -> scope.launch { store.setEnabled(id, enabled) } },
+        onMove = { id, delta -> scope.launch { store.move(id, delta) } },
+        onDelete = { id -> scope.launch { store.remove(id) } },
+        onVoiceFrequencyChange = { level -> scope.launch { voiceStore.set(agentId, level) } },
+        onOpenTimbre = onOpenVoiceSettings,
+    )
+}
+
+/**
+ * 无状态的渲染层：数据与动作全部由外壳传进来。
+ *
+ * 为什么要拆：外壳 `koinInject(AssistantRepository)`，要整体测渲染就得连 Room 一起起；
+ * 拆开之后这一层可以用假数据直接渲染出来测（分段顺序、空态、超量提示、语音档位哪颗被选中），
+ * 而外壳薄到只剩"取数据 + 派发"，不值得为它搭脚手架 —— 与 `WebSearchOrderSection` 同形状。
+ */
+@Composable
+internal fun AgentDirectivesContent(
+    assistants: List<io.zer0.muse.data.assistant.AssistantEntity>,
+    agentId: String,
+    forbidden: List<AgentDirective>,
+    desired: List<AgentDirective>,
+    omittedCount: Int,
+    voiceFrequency: VoiceReplyFrequency,
+    onBack: () -> Unit,
+    onSelectAgent: (String) -> Unit,
+    onSave: (DirectivePolarity, String) -> Unit,
+    onToggle: (String, Boolean) -> Unit,
+    onMove: (String, Int) -> Unit,
+    onDelete: (String) -> Unit,
+    onVoiceFrequencyChange: (VoiceReplyFrequency) -> Unit,
+    onOpenTimbre: () -> Unit,
+) {
+    var drafting by remember { mutableStateOf<DirectivePolarity?>(null) }
+
     SettingsSubPageScaffold(title = stringResource(R.string.settings_screen_agent_directives), onBack = onBack) {
         if (assistants.size > 1) {
             item {
@@ -101,7 +145,7 @@ fun AgentDirectivesPage(
                             MuseChip(
                                 label = assistant.name,
                                 selected = assistant.id == agentId,
-                                onClick = { selectedAgent = assistant.id },
+                                onClick = { onSelectAgent(assistant.id) },
                             )
                         }
                     }
@@ -112,26 +156,26 @@ fun AgentDirectivesPage(
             titleRes = R.string.agent_directives_forbidden_section,
             rows = forbidden,
             onAdd = { drafting = DirectivePolarity.MUST_NOT },
-            onToggle = { id, enabled -> scope.launch { store.setEnabled(id, enabled) } },
-            onMove = { id, delta -> scope.launch { store.move(id, delta) } },
-            onDelete = { id -> scope.launch { store.remove(id) } },
+            onToggle = onToggle,
+            onMove = onMove,
+            onDelete = onDelete,
         )
         directiveSection(
             titleRes = R.string.agent_directives_desired_section,
             rows = desired,
             onAdd = { drafting = DirectivePolarity.SHOULD },
-            onToggle = { id, enabled -> scope.launch { store.setEnabled(id, enabled) } },
-            onMove = { id, delta -> scope.launch { store.move(id, delta) } },
-            onDelete = { id -> scope.launch { store.remove(id) } },
+            onToggle = onToggle,
+            onMove = onMove,
+            onDelete = onDelete,
         )
         item {
             DirectiveFootnote(omittedCount = omittedCount)
         }
         item {
             VoiceFrequencySection(
-                current = AgentDirectivesUiState.voiceFrequency(voiceSnapshot, agentId),
-                onSelect = { level -> scope.launch { voiceStore.set(agentId, level) } },
-                onOpenTimbre = onOpenVoiceSettings,
+                current = voiceFrequency,
+                onSelect = onVoiceFrequencyChange,
+                onOpenTimbre = onOpenTimbre,
             )
         }
     }
@@ -142,7 +186,7 @@ fun AgentDirectivesPage(
             onDismiss = { drafting = null },
             onSave = { text ->
                 drafting = null
-                scope.launch { store.add(agentId, polarity, text) }
+                onSave(polarity, text)
             },
         )
     }
@@ -165,11 +209,11 @@ private fun LazyListScope.directiveSection(
         SectionLabel(stringResource(titleRes))
         SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
             if (rows.isEmpty()) {
+                // 空态只说"还没有"，不再重复一遍"添加"：段尾本来就有一行添加入口，
+                // 两处写同一个标签会让用户以为是两个不同的动作（这条是渲染测试实测出来的，不是我想出来的）。
                 SettingsItemRow(
-                    icon = MuseIcons.plus,
                     title = stringResource(R.string.agent_directives_empty),
-                    subtitle = stringResource(addRes),
-                    onClick = onAdd,
+                    subtitle = stringResource(R.string.agent_directives_text_limit),
                 )
             } else {
                 rows.forEachIndexed { index, directive ->
