@@ -125,6 +125,12 @@
     <string name="settings_task_routing_aux_models_label">Utility Models</string>
     <string name="settings_task_routing_main_models_label">Main Chat Model</string>
     <string name="settings_task_routing_utility_small_desc">Simple tasks like titles and light classification</string>
+    <string name="settings_task_routing_utility_failed_title">Helper model call failed</string>
+    <string name="settings_task_routing_utility_failed_desc">The last call to %1$s returned: %2$s. Background tasks such as memory extraction and summaries are affected; chat is not. Pick a working model, or leave it empty to use the main model.</string>
+    <string name="settings_agent_daily_guarantee">Daily guarantee</string>
+    <string name="settings_agent_daily_guarantee_hint">If no proactive message has gone out for this long, one is forced. Quiet hours, cooldown, recent activity and the daily budget still apply.</string>
+    <string name="settings_agent_daily_guarantee_hours">%1$d h</string>
+    <string name="settings_agent_daily_guarantee_off">Off</string>
     <string name="settings_task_routing_utility_large_desc">Context compression, memory extraction, task breakdown</string>
     <string name="settings_crash_anr_title">ANR Detection</string>
     <string name="settings_crash_anr_subtitle">Detect app not responding and record it in crash/audit logs</string>

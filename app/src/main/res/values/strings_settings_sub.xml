@@ -161,6 +161,12 @@
     <string name="settings_task_routing_aux_models_label">辅助模型</string>
     <string name="settings_task_routing_main_models_label">主对话模型</string>
     <string name="settings_task_routing_utility_small_desc">生成标题、轻量分类等简单任务</string>
+    <string name="settings_task_routing_utility_failed_title">辅助模型调用失败</string>
+    <string name="settings_task_routing_utility_failed_desc">最近一次 %1$s 的调用返回：%2$s。受影响的是记忆抽取、摘要这类后台任务，聊天不受影响。可以换一个能用的模型，或留空沿用主对话模型。</string>
+    <string name="settings_agent_daily_guarantee">每日保底</string>
+    <string name="settings_agent_daily_guarantee_hint">距上一条主动消息超过这么久就强制发一条。免打扰时段、冷却期、你刚说过话、当天额度用完时仍然不发。</string>
+    <string name="settings_agent_daily_guarantee_hours">%1$d 小时</string>
+    <string name="settings_agent_daily_guarantee_off">关闭</string>
     <string name="settings_task_routing_utility_large_desc">压缩、记忆提取、任务拆解等需要理解力的场景</string>
     <string name="settings_crash_anr_title">ANR 检测</string>
     <string name="settings_crash_anr_subtitle">检测应用无响应并记录到崩溃/审计日志</string>

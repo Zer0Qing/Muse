@@ -119,6 +119,12 @@
     <string name="settings_task_routing_aux_models_label">Modelos auxiliares</string>
     <string name="settings_task_routing_main_models_label">Modelo de chat principal</string>
     <string name="settings_task_routing_utility_small_desc">Tareas simples como títulos y clasificación ligera</string>
+    <string name="settings_task_routing_utility_failed_title">Falló la llamada al modelo auxiliar</string>
+    <string name="settings_task_routing_utility_failed_desc">La última llamada a %1$s devolvió: %2$s. Afecta a tareas en segundo plano como la extracción de memoria y los resúmenes; el chat no se ve afectado. Elige un modelo que funcione o déjalo vacío para usar el modelo principal.</string>
+    <string name="settings_agent_daily_guarantee">Garantía diaria</string>
+    <string name="settings_agent_daily_guarantee_hint">Si no se ha enviado ningún mensaje proactivo durante este tiempo, se fuerza uno. Las horas de silencio, el enfriamiento, tu actividad reciente y el presupuesto diario siguen aplicándose.</string>
+    <string name="settings_agent_daily_guarantee_hours">%1$d h</string>
+    <string name="settings_agent_daily_guarantee_off">Desactivado</string>
     <string name="settings_task_routing_utility_large_desc">Compresión, extracción de memoria, desglose de tareas</string>
     <string name="settings_crash_anr_title">Detección de ANR</string>
     <string name="settings_crash_anr_subtitle">Detecta que la app no responde y lo registra en registros de fallos/auditoría</string>

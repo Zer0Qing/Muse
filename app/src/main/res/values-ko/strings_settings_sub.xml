@@ -119,6 +119,12 @@
     <string name="settings_task_routing_aux_models_label">유틸리티 모델</string>
     <string name="settings_task_routing_main_models_label">메인 채팅 모델</string>
     <string name="settings_task_routing_utility_small_desc">제목 생성, 경량 분류 등 간단한 작업</string>
+    <string name="settings_task_routing_utility_failed_title">보조 모델 호출 실패</string>
+    <string name="settings_task_routing_utility_failed_desc">최근 %1$s 호출 결과: %2$s. 기억 추출·요약 같은 백그라운드 작업에 영향을 주며 채팅은 영향받지 않습니다. 사용 가능한 모델로 바꾸거나 비워 두면 메인 모델을 사용합니다.</string>
+    <string name="settings_agent_daily_guarantee">일일 보장</string>
+    <string name="settings_agent_daily_guarantee_hint">이 시간 동안 능동 메시지가 없으면 강제로 한 번 보냅니다. 방해 금지 시간, 쿨다운, 최근 발언, 일일 한도는 그대로 적용됩니다.</string>
+    <string name="settings_agent_daily_guarantee_hours">%1$d시간</string>
+    <string name="settings_agent_daily_guarantee_off">끔</string>
     <string name="settings_task_routing_utility_large_desc">압축, 기억 추출, 작업 분해 등 이해력이 필요한 장면</string>
     <string name="settings_crash_anr_title">ANR 감지</string>
     <string name="settings_crash_anr_subtitle">앱 응답 없음을 감지하고 충돌/감사 로그에 기록합니다</string>

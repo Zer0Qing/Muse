@@ -119,6 +119,12 @@
     <string name="settings_task_routing_aux_models_label">Вспомогательные модели</string>
     <string name="settings_task_routing_main_models_label">Основная модель чата</string>
     <string name="settings_task_routing_utility_small_desc">Простые задачи: заголовки, лёгкая классификация</string>
+    <string name="settings_task_routing_utility_failed_title">Сбой вызова вспомогательной модели</string>
+    <string name="settings_task_routing_utility_failed_desc">Последний вызов %1$s вернул: %2$s. Это влияет на фоновые задачи (извлечение памяти, сводки), чат не затронут. Выберите рабочую модель или оставьте пусто, чтобы использовать основную.</string>
+    <string name="settings_agent_daily_guarantee">Ежедневная гарантия</string>
+    <string name="settings_agent_daily_guarantee_hint">Если за это время не было ни одного инициативного сообщения, оно будет отправлено принудительно. Тихие часы, пауза, ваша недавняя активность и дневной лимит по-прежнему действуют.</string>
+    <string name="settings_agent_daily_guarantee_hours">%1$d ч</string>
+    <string name="settings_agent_daily_guarantee_off">Выкл.</string>
     <string name="settings_task_routing_utility_large_desc">Сжатие, извлечение памяти, декомпозиция задач</string>
     <string name="settings_crash_anr_title">Обнаружение ANR</string>
     <string name="settings_crash_anr_subtitle">Определяет, что приложение не отвечает, и записывает это в журналы сбоев/аудита</string>

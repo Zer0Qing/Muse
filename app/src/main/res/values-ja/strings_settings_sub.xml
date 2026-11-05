@@ -119,6 +119,12 @@
     <string name="settings_task_routing_aux_models_label">ユーティリティモデル</string>
     <string name="settings_task_routing_main_models_label">メインチャットモデル</string>
     <string name="settings_task_routing_utility_small_desc">タイトル生成・軽量分類などの簡単なタスク</string>
+    <string name="settings_task_routing_utility_failed_title">補助モデルの呼び出しに失敗しました</string>
+    <string name="settings_task_routing_utility_failed_desc">直近の %1$s の呼び出し結果：%2$s。記憶の抽出や要約などのバックグラウンド処理に影響します（チャットは影響を受けません）。使えるモデルに変更するか、空欄にしてメインモデルを使えます。</string>
+    <string name="settings_agent_daily_guarantee">毎日の保証</string>
+    <string name="settings_agent_daily_guarantee_hint">この時間を超えて主動メッセージが送られていない場合、強制的に1件送ります。静かな時間帯、クールダウン、直近の発言、1日の上限は引き続き有効です。</string>
+    <string name="settings_agent_daily_guarantee_hours">%1$d 時間</string>
+    <string name="settings_agent_daily_guarantee_off">オフ</string>
     <string name="settings_task_routing_utility_large_desc">圧縮・記憶抽出・タスク分解など理解力が必要な場面</string>
     <string name="settings_crash_anr_title">ANR 検出</string>
     <string name="settings_crash_anr_subtitle">アプリの無応答を検出してクラッシュ/監査ログに記録します</string>
