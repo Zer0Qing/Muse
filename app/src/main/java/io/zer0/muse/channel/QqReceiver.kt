@@ -3,6 +3,7 @@ package io.zer0.muse.channel
 import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -87,8 +88,16 @@ class QqReceiver(
                 continue
             }
             Logger.i(TAG, "QQ 接收循环: 找到渠道 ${config.id},建立连接…")
-            runCatching { connectOnce(config) }
-                .onFailure { e -> Logger.w(TAG, "QQ 连接异常: ${e.message}") }
+            try {
+                connectOnce(config)
+            } catch (cancel: CancellationException) {
+                // 渠道被重启/停止时会取消连接,这是正常收尾,不是连接故障。
+                throw cancel
+            } catch (e: Exception) {
+                // 带上异常类型:此前只打 message,日志里会出现「ynk was cancelled」这种
+                // 看不出是取消还是真断连的孤零零一句话。
+                Logger.w(TAG, "QQ 连接异常: ${e::class.simpleName}: ${e.message}")
+            }
             if (!currentCoroutineContext().isActive) return
             delay(RECONNECT_DELAY_MS)
         }
@@ -297,8 +306,6 @@ class QqReceiver(
 
         /** 默认心跳周期(Hello 帧会覆盖)。 */
         private const val DEFAULT_HEARTBEAT_MS = 45_000L
-
-
     }
 }
 
@@ -309,9 +316,9 @@ private const val GROUP_AND_C2C_INTENT = 1 shl 25
 private fun resumePayload(accessToken: String, sessionId: String, seq: Long): String = buildJsonObject {
     put("op", 6)
     putJsonObject("d") {
-            put("token", "QQBot $accessToken")
-            put("session_id", sessionId)
-            put("seq", seq)
+        put("token", "QQBot $accessToken")
+        put("session_id", sessionId)
+        put("seq", seq)
     }
 }.toString()
 
@@ -319,17 +326,17 @@ private fun resumePayload(accessToken: String, sessionId: String, seq: Long): St
 private fun identifyPayload(accessToken: String): String = buildJsonObject {
     put("op", 2)
     putJsonObject("d") {
-            put("token", "QQBot $accessToken")
-            put("intents", GROUP_AND_C2C_INTENT)
-            putJsonArray("shard") {
-                // [shard_id, shard_count] — 单分片必须是 [0, 1](count=0 会被拒: shard count error)。
-                add(0)
-                add(1)
-            }
-            putJsonObject("properties") {
-                put("\$os", "android")
-                put("\$browser", "muse")
-                put("\$device", "muse")
-            }
+        put("token", "QQBot $accessToken")
+        put("intents", GROUP_AND_C2C_INTENT)
+        putJsonArray("shard") {
+            // [shard_id, shard_count] — 单分片必须是 [0, 1](count=0 会被拒: shard count error)。
+            add(0)
+            add(1)
+        }
+        putJsonObject("properties") {
+            put("\$os", "android")
+            put("\$browser", "muse")
+            put("\$device", "muse")
+        }
     }
 }.toString()

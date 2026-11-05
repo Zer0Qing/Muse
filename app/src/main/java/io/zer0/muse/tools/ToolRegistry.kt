@@ -403,24 +403,23 @@ class ToolRegistry(
      *
      * @param enabledToolIds 启用的工具 id 列表;null 或空列表表示全部启用
      */
-    fun listToolsAsToolDefinitions(enabledToolIds: List<String>? = null): List<ToolDefinition> =
-        synchronized(definitionsLock) {
-            val revision = _revision.value
-            if (definitionsRevision != revision) {
-                definitionsAll = buildToolDefinitions()
-                definitionsRevision = revision
-                definitionsByFilter.clear()
-            }
-            val all = definitionsAll
-            if (enabledToolIds.isNullOrEmpty()) {
-                all
-            } else {
-                definitionsByFilter.getOrPut(enabledToolIds.toList()) {
-                    if (definitionsByFilter.size >= MAX_FILTERED_DEFINITIONS) definitionsByFilter.clear()
-                    all.filter { it.name in enabledToolIds }
-                }
+    fun listToolsAsToolDefinitions(enabledToolIds: List<String>? = null): List<ToolDefinition> = synchronized(definitionsLock) {
+        val revision = _revision.value
+        if (definitionsRevision != revision) {
+            definitionsAll = buildToolDefinitions()
+            definitionsRevision = revision
+            definitionsByFilter.clear()
+        }
+        val all = definitionsAll
+        if (enabledToolIds.isNullOrEmpty()) {
+            all
+        } else {
+            definitionsByFilter.getOrPut(enabledToolIds.toList()) {
+                if (definitionsByFilter.size >= MAX_FILTERED_DEFINITIONS) definitionsByFilter.clear()
+                all.filter { it.name in enabledToolIds }
             }
         }
+    }
 
     /** 全量重建 [ToolDefinition] 列表（缓存未命中时才走）。 */
     private fun buildToolDefinitions(): List<ToolDefinition> = listTools().map { def ->
@@ -854,7 +853,7 @@ class ToolRegistry(
                 "browser_extract", "browser_scroll_bottom", "browser_get_html",
                 "browser_snapshot",
                 // v1.0.92: 消息渠道工具(外部 IM 发送,ChannelToolsRegistrar 注册)
-                "send_channel_message", "channel_list",
+                "send_channel_message", "relay_channel_message", "channel_list",
                 // v2.0: OAuth 连接器工具(ConnectorToolsRegistrar 注册)
                 "connector_list", "call_connector",
                 // P2-7: 工作区文件管理工具(WorkspaceToolsRegistrar 注册)

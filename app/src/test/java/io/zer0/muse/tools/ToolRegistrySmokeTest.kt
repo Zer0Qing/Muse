@@ -317,7 +317,7 @@ class ToolRegistrySmokeTest {
             "browser_navigate", "browser_click", "browser_type", "browser_extract",
             "browser_scroll_bottom", "browser_get_html", "browser_snapshot",
             // 消息渠道(网络依赖)
-            "send_channel_message", "channel_list",
+            "send_channel_message", "relay_channel_message", "channel_list",
             // OAuth 连接器(网络依赖)
             "connector_list", "call_connector",
             // 工作区文件(依赖文件系统)

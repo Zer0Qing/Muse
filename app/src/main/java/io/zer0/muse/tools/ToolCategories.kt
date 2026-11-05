@@ -223,6 +223,7 @@ object ToolCategories {
             "browser_screenshot",
             // 消息渠道(v1.0.92)
             "send_channel_message",
+            "relay_channel_message",
             "channel_list",
             // OAuth 连接器(v2.0)
             "connector_list",

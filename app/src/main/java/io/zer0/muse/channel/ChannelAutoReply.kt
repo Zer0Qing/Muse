@@ -232,6 +232,8 @@ class ChannelAutoReply(
         channelManager.refresh()
         val config = selectAutoReplyConfig(channelManager.channels.value, inbound)
         if (config == null) return HandleResult.Ignored
+        // 每轮处理开始前清零转发计数:限定「一轮里最多转几条」。
+        ChannelRelayLedger.beginTurn()
         // 排队超窗预检：窗口判断原本只在 runAgent 里做，消息在队列里排过窗口之后
         // 仍会先跑完一轮模型，才发现根本发不出去。
         // 必须早于 appendTurn：否则会话里会留下一条没有回复的用户消息，污染后续上下文。
@@ -257,6 +259,12 @@ class ChannelAutoReply(
                 dispatchId = inbound.dispatchId,
             ),
         )
+        // 回声防护:本机刚通过某个渠道转出去的内容,如果原样回来了(对方也是自动回复机器人),
+        // 就只入库不回应,避免两个机器人互相转述刷屏。人写的回复不会一字不差地撞上。
+        if (ChannelRelayLedger.isEcho(config.id, text, System.currentTimeMillis())) {
+            Logger.i(TAG, "忽略回声消息(与本机刚转发的同一份内容): channel=${config.id}")
+            return HandleResult.Ignored
+        }
         return when (val reply = prepareReply(inbound, config)) {
             is ReplyPreparation.Ready -> sendPreparedReply(inbound, config, reply.text)
             ReplyPreparation.Ignored -> HandleResult.Ignored
@@ -354,8 +362,7 @@ class ChannelAutoReply(
     }
 
     /** 本次回复必须在此之前发出，否则被动回复窗口已关。 */
-    private fun replyDeadline(inbound: ChannelInbox.Inbound): Long =
-        replyWindowDeadlineMillis(inbound.platform, inbound.timestamp)
+    private fun replyDeadline(inbound: ChannelInbox.Inbound): Long = replyWindowDeadlineMillis(inbound.platform, inbound.timestamp)
 
     /** 根据实际发出了几段决定终态，并把“用户真正收到的内容”写回会话。 */
     private suspend fun finishDelivery(
@@ -384,8 +391,8 @@ class ChannelAutoReply(
                 dispatchId = inbound.dispatchId,
             ),
         )
-        val partial = if (sent < segments.size) "（${sent}/${segments.size} 段）" else ""
-        Logger.i(TAG, "自动回复已发送${partial}(${inbound.platform} ← ${inbound.from})")
+        val partial = if (sent < segments.size) "（$sent/${segments.size} 段）" else ""
+        Logger.i(TAG, "自动回复已发送$partial(${inbound.platform} ← ${inbound.from})")
         return HandleResult.Sent(config, inbound.from)
     }
 
@@ -446,12 +453,7 @@ class ChannelAutoReply(
 
     /** 跑一轮对话(渠道对话上下文 + 工具循环);失败按可恢复/不可恢复分类。 */
     @Suppress("CyclomaticComplexMethod", "ReturnCount", "TooGenericExceptionCaught")
-    private suspend fun runAgent(
-        config: ChannelConfig,
-        from: String,
-        dispatchId: String,
-        deadlineAt: Long,
-    ): ChannelAgentRunResult {
+    private suspend fun runAgent(config: ChannelConfig, from: String, dispatchId: String, deadlineAt: Long): ChannelAgentRunResult {
         val restoredCheckpoint = try {
             loadAgentCheckpoint(dispatchId)
         } catch (error: ChannelAgentCheckpointUnreadableException) {
@@ -833,13 +835,24 @@ class ChannelAutoReply(
             appendLine("请把上述内容合并成一段简洁的中文对话摘要，保留关键信息、称呼与待办。只输出摘要正文。")
         }
         val summary = withTimeoutOrNull(COMPRESS_TIMEOUT_MS) {
-            chatService.completeText(
-                messages = listOf(UIMessage(role = MessageRole.USER, content = prompt)),
-                model = model,
-                providerConfig = providerConfig,
-                maxTokens = SUMMARY_MAX_TOKENS,
-                mode = ChatRequestMode.UTILITY,
-            )
+            runCatching {
+                chatService.completeText(
+                    messages = listOf(UIMessage(role = MessageRole.USER, content = prompt)),
+                    model = model,
+                    providerConfig = providerConfig,
+                    maxTokens = SUMMARY_MAX_TOKENS,
+                    mode = ChatRequestMode.UTILITY,
+                )
+            }.onFailure { e ->
+                // 小工具档失败也要记账：这条摘要不影响聊天，但用户需要知道它挂了。
+                if (e !is CancellationException) {
+                    io.zer0.muse.data.routing.UtilityModelHealth.record(
+                        providerId = if (routed != null) routed.first.id else providerConfig?.id,
+                        modelId = model?.id.orEmpty(),
+                        message = e.message ?: e::class.simpleName.orEmpty(),
+                    )
+                }
+            }.getOrThrow()
         }?.text?.let { io.zer0.muse.transformer.stripThinkTags(it).trim() } ?: return
         if (summary.isBlank()) return
         // v2.3.2: 条件回写 —— 压缩期间新到的轮次必须保留(原实现整份覆盖会把它们丢掉),
@@ -933,11 +946,11 @@ class ChannelAutoReply(
         /** 单轮 AI 调用超时(与定时任务一致,毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
 
-    /** QQ 被动回复窗口（官方值，群聊与单聊一致）。 */
-    private const val QQ_PASSIVE_WINDOW_MS = 5 * 60 * 1000L
+        /** QQ 被动回复窗口（官方值，群聊与单聊一致）。 */
+        private const val QQ_PASSIVE_WINDOW_MS = 5 * 60 * 1000L
 
-    /** 给发送本身预留的余量，避免生成到最后一秒才发才发现窗口已关。 */
-    private const val SEND_MARGIN_MS = 15_000L
+        /** 给发送本身预留的余量，避免生成到最后一秒才发才发现窗口已关。 */
+        private const val SEND_MARGIN_MS = 15_000L
 
         /**
          * 被动回复窗口的截止时刻（毫秒）。
@@ -945,12 +958,11 @@ class ChannelAutoReply(
          * 只对 QQ 有意义：其它平台没有被动回复窗口，返回 [Long.MAX_VALUE] 表示永不超窗。
          * 发送前判断与排队超窗预检共用这一份计算，避免两处阈值走偏。
          */
-        internal fun replyWindowDeadlineMillis(platform: String, receivedAtMillis: Long): Long =
-            if (platform == ChannelPlatform.QQ.name) {
-                receivedAtMillis + QQ_PASSIVE_WINDOW_MS - SEND_MARGIN_MS
-            } else {
-                Long.MAX_VALUE
-            }
+        internal fun replyWindowDeadlineMillis(platform: String, receivedAtMillis: Long): Long = if (platform == ChannelPlatform.QQ.name) {
+            receivedAtMillis + QQ_PASSIVE_WINDOW_MS - SEND_MARGIN_MS
+        } else {
+            Long.MAX_VALUE
+        }
 
         /** 回发文本上限,防止超长内容超出各平台消息限制。 */
         private const val MAX_REPLY_LENGTH = 4_000

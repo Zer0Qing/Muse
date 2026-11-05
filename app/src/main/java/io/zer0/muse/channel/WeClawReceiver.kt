@@ -54,7 +54,14 @@ class WeClawReceiver(
     private val appScope: CoroutineScope,
 ) {
     private var job: Job? = null
-    private data class PollCursor(val channelId: String = "", val buffer: String = "")
+    private data class PollCursor(
+        val channelId: String = "",
+        val buffer: String = "",
+        /** 这份游标属于哪个 bot token;凭据一变旧游标就不能再用。 */
+        val secretFingerprint: String = "",
+        /** 连续失败次数,用于失效游标的自愈。 */
+        val failures: Int = 0,
+    )
 
     /**
      * 启动入口:先按持久化配置判定一次,再跟随后续的渠道变化起停。
@@ -133,54 +140,90 @@ class WeClawReceiver(
     }
 
     @Suppress("TooGenericExceptionCaught") // Transport, Keystore, and inbox failures all require retrying the same cursor.
-    private suspend fun pollOnce(config: ChannelConfig, previousCursor: PollCursor): PollCursor = try {
-        val cursor = if (previousCursor.channelId == config.id) {
+    private suspend fun pollOnce(config: ChannelConfig, previousCursor: PollCursor): PollCursor {
+        val fingerprint = weClawSecretFingerprint(config.appSecret)
+        val cursor = if (previousCursor.channelId == config.id && previousCursor.secretFingerprint == fingerprint) {
             previousCursor
         } else {
-            PollCursor(channelId = config.id, buffer = loadBuffer(config.id))
-        }
-        val updates = WeClawClient.getUpdates(config.appSecret, cursor.buffer).getOrThrow()
-        val nextBuffer = updates.buffer.ifBlank { cursor.buffer }
-        updates.messages.forEachIndexed { index, msg ->
-            WeClawContextCache.put(msg.fromUserId, msg.contextToken)
-            val eventId = weClawBatchEventId(cursor.buffer, nextBuffer, index, msg)
-            val source = ChannelInbox.Source(
-                platform = "WECLAW",
-                from = msg.fromUserId,
+            PollCursor(
                 channelId = config.id,
-                eventId = eventId,
-                encryptedReplyContextToken = protectWeClawReplyContextToken(msg.contextToken),
+                buffer = loadBuffer(config.id, fingerprint),
+                secretFingerprint = fingerprint,
             )
-            val media = msg.media
-            if (media == null) {
-                ChannelInbox.record(source, msg.text, "")
-            } else {
-                handleMediaMessage(msg, media, source)
-            }
         }
-        if (nextBuffer != cursor.buffer) saveBuffer(config.id, nextBuffer)
-        PollCursor(channelId = config.id, buffer = nextBuffer)
-    } catch (error: CancellationException) {
-        throw error
-    } catch (error: Exception) {
-        Logger.w(TAG, "WeClaw 更新未能可靠入队,保留轮询游标: ${error.message}")
-        delay(RETRY_DELAY_MS)
-        previousCursor
+        return try {
+            val updates = WeClawClient.getUpdates(config.appSecret, cursor.buffer).getOrThrow()
+            val nextBuffer = updates.buffer.ifBlank { cursor.buffer }
+            updates.messages.forEachIndexed { index, msg ->
+                WeClawContextCache.put(msg.fromUserId, msg.contextToken)
+                val eventId = weClawBatchEventId(cursor.buffer, nextBuffer, index, msg)
+                val source = ChannelInbox.Source(
+                    platform = "WECLAW",
+                    from = msg.fromUserId,
+                    channelId = config.id,
+                    eventId = eventId,
+                    encryptedReplyContextToken = protectWeClawReplyContextToken(msg.contextToken),
+                )
+                val media = msg.media
+                if (media == null) {
+                    ChannelInbox.record(source, msg.text, "")
+                } else {
+                    handleMediaMessage(msg, media, source)
+                }
+            }
+            if (nextBuffer != cursor.buffer) saveBuffer(config.id, fingerprint, nextBuffer)
+            PollCursor(channelId = config.id, buffer = nextBuffer, secretFingerprint = fingerprint)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            val failures = cursor.failures + 1
+            Logger.w(TAG, "WeClaw 更新未能可靠入队(第 $failures 次): ${error.message}")
+            if (cursor.buffer.isNotBlank() && failures >= MAX_CONSECUTIVE_FAILURES) {
+                // 游标可能已失效(服务端会话重置/绑定后台数据被清)。带着它只会永远失败,
+                // 清空后重新同步一次,好过让用户以为「只能发不能收」而去重装。
+                saveBuffer(config.id, fingerprint, "")
+                Logger.w(TAG, "WeClaw 连续失败 $failures 次,已丢弃本地游标重新同步")
+                delay(RETRY_DELAY_MS)
+                return PollCursor(channelId = config.id, secretFingerprint = fingerprint)
+            }
+            delay(RETRY_DELAY_MS)
+            cursor.copy(failures = failures)
+        }
     }
 
-    private suspend fun loadBuffer(channelId: String): String {
+    private suspend fun loadBuffer(channelId: String, secretFingerprint: String): String {
+        val marker = fingerprintFile(channelId)
+        val stored = if (marker.exists()) marker.readText().trim() else ""
+        if (stored != secretFingerprint) {
+            // 凭据变了(解绑后重新扫码、换了 bot token):旧游标属于上一个会话。
+            // 继续带着它,服务端会认为「你已经读到那个位置」——只能发不能收,且不会自愈。
+            cursorFile(channelId).delete()
+            AtomicFileStore.writeText(marker, secretFingerprint)
+            Logger.i(TAG, "WeClaw 凭据已变更,本地游标已重置")
+            return ""
+        }
         val cursorFile = cursorFile(channelId)
         if (!cursorFile.exists()) return ""
         return restoreWeClawCursor(cursorFile.readText())
     }
 
-    private suspend fun saveBuffer(channelId: String, buffer: String) {
+    private suspend fun saveBuffer(channelId: String, secretFingerprint: String, buffer: String) {
         AtomicFileStore.writeText(cursorFile(channelId), protectWeClawCursor(buffer))
+        AtomicFileStore.writeText(fingerprintFile(channelId), secretFingerprint)
     }
 
     private fun cursorFile(channelId: String): File {
         val digest = channelDigest(channelId)
         return File(context.filesDir, "channel_weclaw_cursor_$digest.txt")
+    }
+
+    /**
+     * 游标归属指纹:记录这份游标属于哪个 bot token。
+     * 凭据一变就作废旧游标,避免解绑重新绑定后永久收不到消息。
+     */
+    private fun fingerprintFile(channelId: String): File {
+        val digest = channelDigest(channelId)
+        return File(context.filesDir, "channel_weclaw_cursor_$digest.fp")
     }
 
     /**
@@ -306,6 +349,9 @@ class WeClawReceiver(
         /** 出错重试退避(毫秒)。 */
         private const val RETRY_DELAY_MS = 5_000L
 
+        /** 连续失败多少次后丢弃可能有问题的本地游标。 */
+        private const val MAX_CONSECUTIVE_FAILURES = 3
+
         /** v2.0.1: 媒体下载超时(毫秒)。 */
         private const val MEDIA_DOWNLOAD_TIMEOUT_MS = 60_000L
 
@@ -333,8 +379,7 @@ internal fun weClawPollAction(available: Boolean, running: Boolean): WeClawPollA
 internal enum class WeClawPollAction { START, STOP, NONE }
 
 /** 这条渠道配置能不能撑起 WECLAW 长轮询(enabled + 平台匹配 + 有密钥)。 */
-private fun ChannelConfig.isUsableWeClaw(): Boolean =
-    enabled && platform == ChannelPlatform.WECLAW && appSecret.isNotBlank()
+private fun ChannelConfig.isUsableWeClaw(): Boolean = enabled && platform == ChannelPlatform.WECLAW && appSecret.isNotBlank()
 
 /**
  * 渠道列表里有没有能跑 WECLAW 长轮询的那一条。
@@ -396,3 +441,6 @@ internal fun weClawBatchEventId(requestBuffer: String, responseBuffer: String, i
 private fun channelDigest(value: String): String = MessageDigest.getInstance("SHA-256")
     .digest(value.toByteArray(Charsets.UTF_8))
     .joinToString("") { byte -> (byte.toInt() and 0xff).toString(16).padStart(2, '0') }
+
+/** 凭据指纹:只用于判定游标是否属于同一个 bot token,不可逆且只取前 16 位。 */
+private fun weClawSecretFingerprint(secret: String): String = channelDigest(secret).take(16)

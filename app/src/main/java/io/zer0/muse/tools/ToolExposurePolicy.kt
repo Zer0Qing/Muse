@@ -344,7 +344,7 @@ object ToolExposurePolicy {
                 setOf(
                     "subagent_task", "subagent_run", "subagent_close", "delegate_agent",
                     "channel_pass", "channel_read_context", "channel_reply", "list_stickers", "send_sticker",
-                    "send_channel_message", "channel_list",
+                    "send_channel_message", "relay_channel_message", "channel_list",
                 ),
             ),
             ToolFamily(
