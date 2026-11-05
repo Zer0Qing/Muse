@@ -53,6 +53,13 @@ import kotlin.coroutines.resume
  */
 class BrowserManager(private val context: Context) {
 
+    /**
+     * 浏览器设置。懒建：`getSharedPreferences` 第一次访问会读盘，
+     * 挂在类构造上就等于把磁盘 I/O 塞进可能的主线程路径（本仓有 ANR 前例）。
+     */
+    internal val browserSettings: BrowserSettingsStore by lazy { BrowserSettingsStore(context) }
+
+
     companion object {
         private const val TAG = "BrowserManager"
 
@@ -477,6 +484,21 @@ class BrowserManager(private val context: Context) {
         }
     }
 
+    /**
+     * 把设置里的 Cookie 接受策略应用到 WebView 全局 CookieManager。
+     *
+     * 第三方 Cookie 一律不开：那不是用户能承担的选项，也不是这次要暴露的开关。
+     * 关掉「接受 Cookies」＝之后不再保存，不等于清空既有登录态——那由 [clearCookies] 负责，
+     * 两者分开才不会出现"关了开关结果把账号登出了"的意外。
+     */
+    fun applyCookiePolicy() {
+        runCatching {
+            android.webkit.CookieManager.getInstance().setAcceptCookie(browserSettings.acceptCookies.value)
+        }.onFailure { e ->
+            Logger.w(TAG, "应用 Cookie 策略失败: ${e.message}")
+        }
+    }
+
     /** 同步前进/后退可用性到 UI 状态(WebView 历史变化时调用)。 */
     private fun syncNavState(view: WebView?) {
         _canGoBack.value = view?.canGoBack() == true
@@ -547,6 +569,10 @@ class BrowserManager(private val context: Context) {
         val wv = WebView(context.applicationContext).apply {
             // ── WebSettings:启用 JS + 浏览器必需功能 + 严格安全限制 ──
             settings.javaScriptEnabled = true
+
+        // Cookies 接受策略来自设置（默认 true＝与改动前的 WebView 行为一致，
+        // 不顺手改变用户已有的登录态习惯）。见 [applyCookiePolicy]。
+        applyCookiePolicy()
             // 严格安全:禁用 file/content access(防止 file:// 跨域读取)
             settings.allowContentAccess = false
             settings.allowFileAccess = false
@@ -678,19 +704,15 @@ class BrowserManager(private val context: Context) {
     )
 
     /** URL 规范化:补全 scheme,空串降级为 about:blank。 */
-    private fun normalizeUrl(url: String): String {
-        val trimmed = url.trim()
-        if (trimmed.isEmpty()) return "about:blank"
-        if (
-            trimmed.startsWith("http://") ||
-            trimmed.startsWith("https://") ||
-            trimmed.startsWith("about:") ||
-            trimmed.startsWith("file:")
-        ) {
-            return trimmed
-        }
-        return "https://$trimmed"
-    }
+    /**
+     * 地址栏输入 → 可导航目标。判定本身是纯函数 [resolveBrowserTarget]（可单测）。
+     *
+     * 以前这里只做"没协议就补 https://"，于是输入关键词会变成 `https://天气`——
+     * 用户看到的是一个打不开的页面。现在关键词交给用户选的搜索引擎，
+     * 完整网址仍然直接打开（含 `localhost:8080` 这类本机地址不强迫用户写协议）。
+     */
+    private fun normalizeUrl(url: String): String =
+        resolveBrowserTarget(url, browserSettings.engine.value)
 
     /**
      * 解析 evaluateJavascript 回调返回的 JSON-encoded 字符串。
