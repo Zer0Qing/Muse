@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -168,38 +169,112 @@ data class LedgerUiState(
     val now: Long,
 )
 
-/** 五档等级横向排开。点一下即生效，不需要确认。 */
+/**
+ * 填充比例：第 [index] 档占轨道的多少。整条轨道代表"额度全部用完"，
+ * 所以是 `(index + 1) / count` 而不是 `index / (count - 1)` —— 最左一档也该有可见的填充，
+ * 否则用户会以为"安静"= 一格都没有（等于关掉），语义就糊了。
+ */
+internal fun intensityFillFraction(index: Int, count: Int): Float {
+    if (count <= 0) return 0f
+    return (index.coerceIn(0, count - 1) + 1f) / count.toFloat()
+}
+
+/**
+ * 把手中心落在哪：第 [index] 档那一格的**中点**，不是右边界。
+ *
+ * 用右边界的话最右档的把手会贴边被裁，最左档则跑到起点外面 ——
+ * 参照平台是把把手停在格子中间，读起来才像"当前在这格"。
+ */
+internal fun intensityHandleFraction(index: Int, count: Int): Float {
+    if (count <= 0) return 0f
+    return (index.coerceIn(0, count - 1) + 0.5f) / count.toFloat()
+}
+
+/**
+ * 主动程度选择器（整改计划 第 4 条差异①）。
+ *
+ * 参照形态是一条**连续轨道 + 已填充段 + 带当前档位名的把手**，而不是一排各自独立的按钮：
+ * 五档是同一根"热情度"刻度上的位置，用分离按钮表达会读成五个互不相干的开关。
+ *
+ * 实现上刻意**不用 Material3 的 `Slider`**：
+ *  - `check_component_convergence` 禁止业务页直接写裸 M3 `Slider`（必须先有 Muse 封装）；
+ *  - M3 Slider 的把手只能拖动、不能"点某档直达"，而这里五档是离散选择，点才是主交互。
+ * 所以是自建轨道 + 五个 `weight(1f)`、高 56dp 的点击格（点击区 ≥48dp，满足 touch target 门禁）。
+ */
 @Composable
 private fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveIntensity) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    val levels = ProactiveIntensity.entries
+    val selectedIndex = levels.indexOf(current).coerceAtLeast(0)
+
+    // 轨道 + 把手 + 点击格叠在同一块里：把手要压在轨道上，只能同层定位。
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
     ) {
-        ProactiveIntensity.entries.forEach { level ->
-            val selected = level == current
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(
-                        if (selected) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                        RoundedCornerShape(10.dp),
-                    ).clickable { if (!selected) onSelect(level) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(level.labelRes()),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
+        // 轨道底：一整条 surfaceVariant
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxWidth()
+                .height(6.dp)
+                .padding(top = 12.dp)
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    RoundedCornerShape(3.dp),
+                ),
+        )
+        // 已填充段：primary，长度由纯函数算出（可测）
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxWidth(intensityFillFraction(selectedIndex, levels.size))
+                .height(6.dp)
+                .padding(top = 12.dp)
+                .background(
+                    MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(3.dp),
+                ),
+        )
+        // 五个等宽点击格：档位名只在选中格上显示（就是参照里那颗把手）
+        Row(modifier = Modifier.fillMaxWidth()) {
+            levels.forEachIndexed { index, level ->
+                val selected = index == selectedIndex
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                        .clickable { if (!selected) onSelect(level) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (selected) {
+                        // 把手胶囊：档位名写在里面，用户不用猜"这一格是什么"
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    RoundedCornerShape(14.dp),
+                                ).padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = stringResource(level.labelRes()),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
                     } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
+                        // 非选中档留一个刻度点：让人知道这里还有别的选择，而不是只有一格能按
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .padding(top = 12.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                                    RoundedCornerShape(4.dp),
+                                ),
+                        )
+                    }
+                }
             }
         }
     }
