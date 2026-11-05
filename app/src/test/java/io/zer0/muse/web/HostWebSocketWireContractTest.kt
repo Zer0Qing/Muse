@@ -102,6 +102,26 @@ class HostWebSocketWireContractTest {
         assertFalse("不得变成带引号的时间串：$json", json.contains("\"createdAt\":\""))
     }
 
+    /**
+     * 协议里不许留"声明了但没人实现"的字段。
+     *
+     * 摘掉的两个都是这一类：`HostCommand.sinceEventSeq` 没有任何一端读它
+     * （续传口径统一在 `cursor`）；`HostEvent.delta` 从来没被赋值
+     * （本协议的流式是**每 token 重发整份快照**，不是增量帧）。
+     * 留着它们比没有更坏：读协议的人会以为存在第二套续传或增量通道，
+     * 照着写出来的客户端会**静默收不到东西**。
+     */
+    @Test
+    fun `协议不得保留未实现的字段`() {
+        val commandNames = HostCommand.serializer().descriptor.wireNames()
+        val eventNames = HostEvent.serializer().descriptor.wireNames()
+
+        assertFalse("sinceEventSeq 无人读，出现即说明死字段又回来了", commandNames.contains("sinceEventSeq"))
+        assertFalse("delta 从未被赋值；本协议没有增量帧", eventNames.contains("delta"))
+        // 真正在用的那条通道必须还在，否则上面两条会变成"删干净就行"而不成立
+        assertTrue("cursor 才是事件续传的口径", commandNames.contains("cursor"))
+    }
+
     private fun readClientSource(relative: String): String {
         val candidates = listOf(
             File("../../web/apps/client/src/$relative"),

@@ -41,7 +41,9 @@ data class HostCommand(
      */
     @Serializable(with = HostCursorValueSerializer::class)
     val cursor: String? = null,
-    val sinceEventSeq: Long? = null,
+    // 以前这里另有一个 `sinceEventSeq: Long?`：全仓**没有任何一端读它**，
+    // 事件续传的口径已经统一在 `cursor`（`state.sync` 传事件序号）。
+    // 保留一个没人实现的字段比没有字段更坏——读协议的人会以为有第二套续传机制。
     /** F-38: history.page 分页参数(offset=跳过最近多少条,limit=每页条数)。 */
     val offset: Int? = null,
     /** 每页条数:`history.page` 与 `memory.list` / `memory.search` 共用。 */
@@ -118,7 +120,9 @@ data class HostEvent(
     val title: String? = null,
     val content: String? = null,
     val reasoning: String? = null,
-    val delta: String? = null,
+    // 以前这里有 `delta: String?`，但从没被赋过值：本协议的流式是
+    // **每个 token 重发整份快照**（见 HostWebSocketGateway 的 combine + distinctUntilChanged），
+    // 不是增量帧。声明一个不实现的增量通道，会让人照着它去写合并逻辑然后静默失效。
     val error: String? = null,
     val isStreaming: Boolean? = null,
     val sessions: List<HostSession> = emptyList(),
