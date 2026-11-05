@@ -1,0 +1,6 @@
+{
+  "name": "fs-write",
+  "capabilities": [
+    "resource.write"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "probe-subprocess",
+  "name": "扫描探针",
+  "version": "1.0.0",
+  "description": "静态扫描语料",
+  "author": "ci",
+  "entry": "main.js",
+  "runtime": "node",
+  "kind": "tool",
+  "trust": "sandboxed",
+  "capabilities": [
+    "runtime.long"
+  ],
+  "activationEvents": [],
+  "tools": [
+    {
+      "name": "run",
+      "description": "跑",
+      "parametersJson": "{}",
+      "requiredJson": "[]",
+      "functionName": "run"
+    }
+  ]
+}

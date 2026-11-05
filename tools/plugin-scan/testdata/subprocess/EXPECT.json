@@ -1,0 +1,6 @@
+{
+  "name": "subprocess",
+  "capabilities": [
+    "runtime.long"
+  ]
+}

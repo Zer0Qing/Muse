@@ -1,0 +1,1 @@
+{"name":"probe-native","scripts":{"postinstall":"node build.js"}}

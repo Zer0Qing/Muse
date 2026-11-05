@@ -1,0 +1,6 @@
+{
+  "name": "network-declared",
+  "capabilities": [
+    "network"
+  ]
+}
