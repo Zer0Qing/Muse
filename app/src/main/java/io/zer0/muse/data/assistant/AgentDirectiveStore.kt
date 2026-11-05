@@ -152,19 +152,17 @@ class AgentDirectiveStore private constructor(context: Context) {
         }
     }
 
-    private suspend fun mutate(block: (List<AgentDirective>) -> List<AgentDirective>): Result<Unit> =
-        withContext(Dispatchers.IO) {
-            mutex.withLock {
-                resultOf<Unit> {
-                    val next = block(current())
-                    writeToDisk(next)
-                    _all.value = next
-                }
+    private suspend fun mutate(block: (List<AgentDirective>) -> List<AgentDirective>): Result<Unit> = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            resultOf<Unit> {
+                val next = block(current())
+                writeToDisk(next)
+                _all.value = next
             }
         }
+    }
 
-    private suspend fun current(): List<AgentDirective> =
-        _all.value.ifEmpty { readFromDisk().also { _all.value = it } }
+    private suspend fun current(): List<AgentDirective> = _all.value.ifEmpty { readFromDisk().also { _all.value = it } }
 
     private fun readFromDisk(): List<AgentDirective> {
         if (!file.isFile) return emptyList()

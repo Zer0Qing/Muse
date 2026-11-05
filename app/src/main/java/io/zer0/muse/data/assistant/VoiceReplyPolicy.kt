@@ -39,8 +39,7 @@ enum class VoiceReplyFrequency {
 
     companion object {
         /** 存不认识的值（比如降级安装、别人手改文件）要回落默认档，不能抛。 */
-        fun fromName(raw: String?): VoiceReplyFrequency =
-            entries.firstOrNull { it.name.equals(raw?.trim(), ignoreCase = true) } ?: RARELY
+        fun fromName(raw: String?): VoiceReplyFrequency = entries.firstOrNull { it.name.equals(raw?.trim(), ignoreCase = true) } ?: RARELY
     }
 }
 
@@ -66,7 +65,6 @@ internal object VoiceReplyPolicy {
     }
 
     const val SEPARATOR: String = "\n\n---\n\n"
-
 
     fun instruction(frequency: VoiceReplyFrequency): String = when (frequency) {
         VoiceReplyFrequency.RARELY -> ""
@@ -105,22 +103,19 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
         runCatching { _byAgent.value = readFromDisk() }
     }
 
-    suspend fun frequencyFor(agentId: String): VoiceReplyFrequency =
-        VoiceReplyFrequency.fromName(current()[agentId])
+    suspend fun frequencyFor(agentId: String): VoiceReplyFrequency = VoiceReplyFrequency.fromName(current()[agentId])
 
-    suspend fun set(agentId: String, frequency: VoiceReplyFrequency): Result<Unit> =
-        withContext(Dispatchers.IO) {
-            mutex.withLock {
-                resultOf<Unit> {
-                    val next = current().toMutableMap().apply { put(agentId, frequency.name) }
-                    writeToDisk(next)
-                    _byAgent.value = next
-                }
+    suspend fun set(agentId: String, frequency: VoiceReplyFrequency): Result<Unit> = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            resultOf<Unit> {
+                val next = current().toMutableMap().apply { put(agentId, frequency.name) }
+                writeToDisk(next)
+                _byAgent.value = next
             }
         }
+    }
 
-    private suspend fun current(): Map<String, String> =
-        _byAgent.value.ifEmpty { readFromDisk().also { _byAgent.value = it } }
+    private suspend fun current(): Map<String, String> = _byAgent.value.ifEmpty { readFromDisk().also { _byAgent.value = it } }
 
     private fun readFromDisk(): Map<String, String> {
         if (!file.isFile) return emptyMap()

@@ -3,8 +3,8 @@ package io.zer0.muse.ui.settings
 import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
 import io.zer0.muse.data.assistant.DirectivePolarity
-import io.zer0.muse.proactive.AgentDirectivesPrompt
 import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.proactive.AgentDirectivesPrompt
 
 /**
  * 约定页的可测内核（纯函数，不碰 Compose 也不碰 Koin）。
@@ -47,6 +47,5 @@ internal object AgentDirectivesUiState {
     fun voiceFrequency(snapshot: Map<String, String>, agentId: String): VoiceReplyFrequency =
         VoiceReplyFrequency.fromName(snapshot[agentId])
 
-    fun omittedCount(mine: List<AgentDirective>): Int =
-        AgentDirectivesPrompt.build(mine, AgentDirectiveStore.MAX_TOTAL_CHARS).omitted.size
+    fun omittedCount(mine: List<AgentDirective>): Int = AgentDirectivesPrompt.build(mine, AgentDirectiveStore.MAX_TOTAL_CHARS).omitted.size
 }

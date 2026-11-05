@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,8 @@ import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.assistant.DirectivePolarity
+import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -38,9 +41,6 @@ import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import androidx.compose.foundation.layout.fillMaxWidth
-import io.zer0.muse.data.assistant.VoiceReplyFrequency
-import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 
 /**
  * 「希望它做的事 / 不希望它做的事」（整改计划 第 4 条 ③，参照图 4 底部那张卡）。
@@ -234,17 +234,16 @@ private fun DirectiveFootnote(omittedCount: Int) {
 }
 
 @Composable
-private fun DirectiveEditor(
-    polarity: DirectivePolarity,
-    onDismiss: () -> Unit,
-    onSave: (String) -> Unit,
-) {
+private fun DirectiveEditor(polarity: DirectivePolarity, onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var text by remember(polarity) { mutableStateOf("") }
     MuseDialog(
         onDismissRequest = onDismiss,
         title = stringResource(
-            if (polarity == DirectivePolarity.MUST_NOT) R.string.agent_directives_add_forbidden
-            else R.string.agent_directives_add_desired,
+            if (polarity == DirectivePolarity.MUST_NOT) {
+                R.string.agent_directives_add_forbidden
+            } else {
+                R.string.agent_directives_add_desired
+            },
         ),
         confirmEnabled = text.isNotBlank(),
         onConfirm = { onSave(text.trim()) },
@@ -274,11 +273,7 @@ private fun DirectiveEditor(
  * 档位只改提示词政策，不做硬拦截（见 `VoiceReplyPolicy` 的说明）。
  */
 @Composable
-private fun VoiceFrequencySection(
-    current: VoiceReplyFrequency,
-    onSelect: (VoiceReplyFrequency) -> Unit,
-    onOpenTimbre: () -> Unit,
-) {
+private fun VoiceFrequencySection(current: VoiceReplyFrequency, onSelect: (VoiceReplyFrequency) -> Unit, onOpenTimbre: () -> Unit) {
     val labels = mapOf(
         VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
         VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),
