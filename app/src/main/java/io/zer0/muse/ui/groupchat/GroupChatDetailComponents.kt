@@ -134,6 +134,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import java.io.ByteArrayOutputStream
+import io.zer0.muse.ui.theme.bodyMediumStrong
 
 /**
  * 群聊消息气泡 — 区分 user(右侧)/ assistant(左侧 + 头像)。
@@ -1948,7 +1949,7 @@ private fun GroupMediaCard(
             Spacer(Modifier.height(6.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.bodyMediumStrong,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
             )

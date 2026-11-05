@@ -67,6 +67,7 @@ import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.theme.bodyLargeStrong
 
 /**
  * 群聊列表页 — 展示全部群聊,卡片点击进入详情。
@@ -212,7 +213,7 @@ fun GroupChatListScreen(onOpenChat: (String) -> Unit, viewModel: GroupChatViewMo
                                     Spacer(Modifier.width(12.dp))
                                     Text(
                                         text = stringResource(R.string.groupchat_create_cd),
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                        style = MaterialTheme.typography.bodyLargeStrong,
                                         color = MaterialTheme.colorScheme.primary,
                                     )
                                 }

@@ -12,7 +12,7 @@ app/src/main/java/io/zer0/muse/ui/AssistantDetailPages.kt:
 app/src/main/java/io/zer0/muse/ui/AssistantScreen.kt:
   inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/ChatListScreen.kt:
-  inline_font_weight 12
+  inline_font_weight 8
 app/src/main/java/io/zer0/muse/ui/ChatRenderContinuationRow.kt:
   inline_letter_spacing 1
   inline_line_height 1
@@ -27,7 +27,7 @@ app/src/main/java/io/zer0/muse/ui/CoverManagerScreen.kt:
 app/src/main/java/io/zer0/muse/ui/DataManagementScreen.kt:
   inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/DebugAnalyticsSheet.kt:
-  inline_font_weight 3
+  inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/DebugCrashLogSheet.kt:
   inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/DebugScreen.kt:
@@ -41,7 +41,7 @@ app/src/main/java/io/zer0/muse/ui/LorebookScreen.kt:
 app/src/main/java/io/zer0/muse/ui/MemoryDialogsDashboard.kt:
   inline_font_weight 9
 app/src/main/java/io/zer0/muse/ui/MemoryScreen.kt:
-  inline_font_weight 5
+  inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/MemorySearchComponents.kt:
   inline_font_weight 5
 app/src/main/java/io/zer0/muse/ui/MessageBubble.kt:
@@ -58,7 +58,7 @@ app/src/main/java/io/zer0/muse/ui/MilestoneScreen.kt:
 app/src/main/java/io/zer0/muse/ui/ModelSwitchSheet.kt:
   inline_font_weight 4
 app/src/main/java/io/zer0/muse/ui/MuseToolSheet.kt:
-  inline_font_weight 2
+  inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/NotificationListenerScreen.kt:
   inline_font_weight 7
 app/src/main/java/io/zer0/muse/ui/PromptInjectionScreen.kt:
@@ -70,7 +70,7 @@ app/src/main/java/io/zer0/muse/ui/RecentlyDeletedScreen.kt:
 app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt:
   inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/SearchScreen.kt:
-  inline_font_weight 6
+  inline_font_weight 3
 app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt:
   inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/SkillScreen.kt:
@@ -80,7 +80,7 @@ app/src/main/java/io/zer0/muse/ui/ToolsScreen.kt:
 app/src/main/java/io/zer0/muse/ui/VideoGenerationPage.kt:
   inline_font_weight 8
 app/src/main/java/io/zer0/muse/ui/WorkspaceScreen.kt:
-  inline_font_weight 2
+  inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/account/AccountScreen.kt:
   inline_font_weight 6
 app/src/main/java/io/zer0/muse/ui/agentdm/AgentDmScreen.kt:
@@ -119,15 +119,15 @@ app/src/main/java/io/zer0/muse/ui/common/settings/SectionLabel.kt:
 app/src/main/java/io/zer0/muse/ui/common/settings/SettingsSliderRow.kt:
   inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt:
-  inline_font_weight 4
+  inline_font_weight 3
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt:
   inline_font_weight 7
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatListScreen.kt:
-  inline_font_weight 2
+  inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeComponents.kt:
   inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt:
-  inline_font_weight 5
+  inline_font_weight 3
 app/src/main/java/io/zer0/muse/ui/markdown/CodeHighlighter.kt:
   inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/markdown/DataCardRenderer.kt:
@@ -169,11 +169,11 @@ app/src/main/java/io/zer0/muse/ui/settings/ImageGenSection.kt:
 app/src/main/java/io/zer0/muse/ui/settings/McpSection.kt:
   inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/settings/ModelDiffSheet.kt:
-  inline_font_weight 2
+  inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/settings/MultiAgentSettingsPage.kt:
   inline_font_weight 4
 app/src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt:
-  inline_font_weight 7
+  inline_font_weight 5
 app/src/main/java/io/zer0/muse/ui/settings/PluginPermissionPanel.kt:
   inline_font_weight 5
 app/src/main/java/io/zer0/muse/ui/settings/PresetProviderPickerDialog.kt:

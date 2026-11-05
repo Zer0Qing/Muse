@@ -94,6 +94,8 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import java.time.Instant
 import java.time.ZoneId
+import io.zer0.muse.ui.theme.labelLargeStrong
+import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * 记忆观测站。
@@ -697,7 +699,7 @@ fun MemoryScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.memory_center_filter_advanced),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.labelLargeStrong,
                         color = MaterialTheme.colorScheme.onSurface,
                         // LAYOUT-01: 已取宽的折叠标题补限行，剩余宽度极小时不再逐字换行
                         maxLines = 1,
@@ -1263,7 +1265,7 @@ private fun LazyListScope.memoryFactsItems(
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = stringResource(R.string.memory_contradictions_title),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.titleSmallStrong,
                     )
                     state.contradictions.forEach { pair ->
                         Row(
@@ -2074,7 +2076,7 @@ internal fun MemoryMergeDialog(
             ) {
                 Text(
                     text = stringResource(R.string.memory_center_merge_sources_title, draft.sources.size),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.labelLargeStrong,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 draft.sources.forEach { source ->

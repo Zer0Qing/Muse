@@ -84,6 +84,7 @@ import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import io.zer0.muse.ui.theme.bodyMediumStrong
 
 /** B7-07: 加号工具面板的数据驱动条目。 */
 internal data class ToolEntry(
@@ -677,7 +678,7 @@ private fun ToolMediaCard(icon: ImageVector, label: String, modifier: Modifier =
             Spacer(Modifier.height(MusePaddings.auxGap))
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.bodyMediumStrong,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }

@@ -46,6 +46,7 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.theme.bodyMediumStrong
 
 /**
  * Phase 13: 开源许可页。
@@ -310,7 +311,7 @@ private fun DependencyRow(entry: LicenseEntry, onClickUrl: (String) -> Unit) {
             ) {
                 Text(
                     text = entry.displayName,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.bodyMediumStrong,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(

@@ -72,6 +72,7 @@ import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * P2-7: 工作区文件管理器 UI。
@@ -892,7 +893,7 @@ private fun ParentRow(onClick: () -> Unit) {
             Spacer(Modifier.size(MusePaddings.contentGap))
             Text(
                 text = "..",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleSmallStrong,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }

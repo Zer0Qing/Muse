@@ -63,6 +63,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import io.zer0.muse.ui.theme.bodyMediumStrong
 
 /**
  * v0.45: 独立全局搜索页。
@@ -184,7 +185,7 @@ fun SearchScreen(
                     }
                     Text(
                         text = stringResource(R.string.search_cancel),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        style = MaterialTheme.typography.bodyMediumStrong,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.clickable { onBack() },
                     )
@@ -483,7 +484,7 @@ private fun SessionResultRow(title: String, preview: String, updatedAt: Long, on
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.bodyMediumStrong,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -704,7 +705,7 @@ private fun MessageSearchResultRow(
             ) {
                 Text(
                     text = sessionTitle.ifBlank { stringResource(R.string.search_new_session) },
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.bodyMediumStrong,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

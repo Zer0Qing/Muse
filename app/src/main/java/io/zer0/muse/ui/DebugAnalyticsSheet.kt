@@ -39,6 +39,7 @@ import io.zer0.muse.ui.common.safeFraction
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.theme.bodySmallStrong
 
 // ════════════════════════════════════════════════════════════════════════════
 // P3-2:本地数据分析面板 — 把 LocalAnalyticsTracker 已采集但未 UI 化的指标透出
@@ -301,7 +302,7 @@ private fun StatusRow(label: String, value: String) {
         // LAYOUT-01: 取值靠右固定（SpaceBetween），只限行、不取宽
         Text(
             text = value,
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.bodySmallStrong,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

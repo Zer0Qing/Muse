@@ -111,6 +111,8 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
+import io.zer0.muse.ui.theme.labelLargeStrong
+import io.zer0.muse.ui.theme.bodyLargeStrong
 
 /** v1.x: 问候语个性化提醒通知 ID(与其它通知 ID 错开)。 */
 private const val GREETING_NOTIFY_ID = 1010
@@ -1919,7 +1921,7 @@ private fun ArchivedSessionRow(session: SessionEntity, onRestore: () -> Unit, on
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = sessionTitleText(session),
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.bodyLargeStrong,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -1933,7 +1935,7 @@ private fun ArchivedSessionRow(session: SessionEntity, onRestore: () -> Unit, on
         Spacer(Modifier.width(MusePaddings.contentGap))
         Text(
             text = stringResource(R.string.chat_list_archived_restore),
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelLargeStrong,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .clip(MuseShapes.medium)
@@ -2056,7 +2058,7 @@ private fun EditModeRow(session: SessionEntity, selected: Boolean, onClick: () -
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = sessionTitleText(session),
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.bodyLargeStrong,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2075,7 +2077,7 @@ private fun EditModeRow(session: SessionEntity, selected: Boolean, onClick: () -
 private fun ChatListEditAction(label: String, enabled: Boolean, onClick: () -> Unit) {
     Text(
         text = label,
-        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+        style = MaterialTheme.typography.labelLargeStrong,
         color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
         modifier = Modifier
             .clip(MuseShapes.medium)

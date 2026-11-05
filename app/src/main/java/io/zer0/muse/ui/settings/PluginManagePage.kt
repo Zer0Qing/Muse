@@ -104,6 +104,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import org.koin.compose.koinInject
 import java.io.File
+import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * 统一「插件管理」页（v1.0.62）。
@@ -575,7 +576,7 @@ fun PluginManagePage(onBack: () -> Unit) {
                     ) {
                         Text(
                             text = stringResource(R.string.muse_plugins_market_title),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            style = MaterialTheme.typography.titleSmallStrong,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),
                             // LAYOUT-01: Row 内文本取宽 + 限行，防放大字号下被右侧刷新/更多按钮挤成一列
@@ -1224,7 +1225,7 @@ private data class PendingExternalInstall(
 private fun SectionHeader(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+        style = MaterialTheme.typography.titleSmallStrong,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
     )

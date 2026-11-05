@@ -44,6 +44,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.ui.theme.labelLargeStrong
 
 /**
  * P2-2: 上游模型差异 Sheet。
@@ -323,7 +324,7 @@ private fun DiffActionButton(
             Spacer(Modifier.size(MusePaddings.iconPadding))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.labelLargeStrong,
                 color = contentColor,
             )
         }

@@ -97,6 +97,8 @@ import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.theme.bodyMediumStrong
+import io.zer0.muse.ui.theme.bodyLargeStrong
 
 // L-KUI1: 内容截断上限,防止超大文档导致 OOM
 private const val MAX_CONTENT_LENGTH = 500_000
@@ -1878,7 +1880,7 @@ private fun KnowledgeFolderCard(
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.bodyLargeStrong,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -2010,7 +2012,7 @@ private fun DocCard(doc: KnowledgeDocEntity, highlight: String?, onClick: () -> 
             Column(Modifier.weight(1f)) {
                 Text(
                     doc.title,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.bodyMediumStrong,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
