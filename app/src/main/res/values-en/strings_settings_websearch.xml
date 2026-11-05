@@ -8,4 +8,9 @@
     <string name="settings_web_search_order_move_up">Move up</string>
     <string name="settings_web_search_order_move_down">Move down</string>
     <string name="settings_web_search_order_reset">Reset to default order</string>
+    <string name="settings_web_search_key_verify">Verify</string>
+    <string name="settings_web_search_key_verify_ok">Working: returned %1$d results</string>
+    <string name="settings_web_search_key_verify_failed">Verification failed: %1$s</string>
+    <string name="settings_web_search_key_verify_no_key">This engine has no usable key yet</string>
+    <string name="settings_web_search_key_verify_empty">Reached the service, but it returned no results</string>
 </resources>

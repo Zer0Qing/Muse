@@ -8,4 +8,9 @@
     <string name="settings_web_search_order_move_up">위로 이동</string>
     <string name="settings_web_search_order_move_down">아래로 이동</string>
     <string name="settings_web_search_order_reset">기본 순서로 복원</string>
+    <string name="settings_web_search_key_verify">확인</string>
+    <string name="settings_web_search_key_verify_ok">사용 가능: 결과 %1$d개를 반환했습니다</string>
+    <string name="settings_web_search_key_verify_failed">확인 실패: %1$s</string>
+    <string name="settings_web_search_key_verify_no_key">이 엔진에 사용 가능한 키가 없습니다</string>
+    <string name="settings_web_search_key_verify_empty">연결은 되었으나 결과를 반환하지 않았습니다</string>
 </resources>

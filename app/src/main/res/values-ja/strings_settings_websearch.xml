@@ -8,4 +8,9 @@
     <string name="settings_web_search_order_move_up">上へ移動</string>
     <string name="settings_web_search_order_move_down">下へ移動</string>
     <string name="settings_web_search_order_reset">既定の順序に戻す</string>
+    <string name="settings_web_search_key_verify">検証</string>
+    <string name="settings_web_search_key_verify_ok">利用可能：%1$d 件を返しました</string>
+    <string name="settings_web_search_key_verify_failed">検証に失敗しました：%1$s</string>
+    <string name="settings_web_search_key_verify_no_key">このエンジンに利用可能な Key がありません</string>
+    <string name="settings_web_search_key_verify_empty">接続できたが結果は返されませんでした</string>
 </resources>

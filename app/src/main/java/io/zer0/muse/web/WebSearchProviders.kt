@@ -1226,6 +1226,112 @@ class PerplexitySearchProvider(
  * 自定义引擎不在表里：它们由用户自己创建，排在链首（见 `customSearchOrderKey`），
  * 顺序表在 UI 侧动态拼在最前面。
  */
+/** 单个引擎的验证结果（只报事实，不改配置、不自造结论文案）。 */
+internal data class WebSearchProbeResult(
+    val providerKey: String,
+    val ok: Boolean,
+    val results: Int,
+    val elapsedMs: Long,
+    /** 失败原因类别；文案由界面按用户语言取，主源码里不留中文字面量。 */
+    val reason: WebSearchProbeReason = WebSearchProbeReason.OK,
+    /** 只承载底层自带的信息（服务端/网络原文），不是我自己编的句子。 */
+    val detail: String? = null,
+)
+
+/** 探测失败的原因分类：界面要能对每一类给出不同的可读说明。 */
+internal enum class WebSearchProbeReason {
+    OK,
+
+    /** 没配 Key 或键不存在：这种情况**不该发出请求**。 */
+    NOT_USABLE,
+
+    /** 请求通了但零结果：多半是 Key 权限或配额问题。 */
+    EMPTY,
+
+    /** 请求本身失败（网络 / HTTP / 解析）。 */
+    REQUEST_FAILED,
+}
+
+/** 单独验证时用的探测词：只要"能不能出结果"，不需要真实语料。 */
+internal const val PROBE_QUERY = "hello"
+
+/** 单独验证只取一条，避免为一次健不健康的检查把对方打满。 */
+internal const val PROBE_MAX_RESULTS = 1
+
+/**
+ * 把"界面上刚输入、还没保存的 Key"叠进配置用于验证。
+ *
+ * 两个刻意的点：
+ *  - 草稿为空时**原样返回**：那一行显示的是已保存的 Key，用户没改就不该被空串顶掉；
+ *  - 只覆盖这一家，其它引擎的 Key 保持不动（一次验证不该顺手改别人的配置）。
+ */
+internal fun verifyConfigFor(cfg: WebSearchConfig, providerKey: String, apiKeyDraft: String): WebSearchConfig {
+    val key = apiKeyDraft.trim()
+    if (key.isEmpty()) return cfg
+    return cfg.copy(apiKeys = cfg.apiKeys + (providerKey to key))
+}
+
+/**
+ * 只验一家引擎（用户点「验证」时用）。
+ *
+ * 复用 `AUTO_CHAIN_BUILDERS` 而不是另写一遍"每家怎么建"：
+ * 那份重复正是这一片代码一直出问题的根因（顺序、能力、上限都因为抄第二份而漂移过）。
+ * 自定义引擎走 `custom:<名字>` 键，与设置页列表同一套标识。
+ */
+internal suspend fun probeSearchProvider(
+    client: OkHttpClient,
+    cfg: WebSearchConfig,
+    providerKey: String,
+    apiKeyDraft: String,
+): WebSearchProbeResult {
+    val effective = verifyConfigFor(cfg, providerKey, apiKeyDraft)
+    val service: WebSearchService? = if (providerKey.startsWith("custom:")) {
+        val name = providerKey.removePrefix("custom:")
+        effective.customEngines.firstOrNull { it.name == name }
+            ?.let { GenericSearchProvider(client, it) }
+    } else {
+        AUTO_CHAIN_BUILDERS[providerKey]?.invoke(client, effective, { key -> effective.apiKeys[key].orEmpty() })
+    }
+    if (service == null) {
+        // 没配 Key / 键不存在：直接判不可用，且**刻意不发请求** ——
+        // 否则打开设置页就可能对外打出十几次无效请求（配额与隐私都不该这么花）。
+        return WebSearchProbeResult(
+            providerKey = providerKey,
+            ok = false,
+            results = 0,
+            elapsedMs = 0L,
+            reason = WebSearchProbeReason.NOT_USABLE,
+        )
+    }
+    val started = System.currentTimeMillis()
+    val attempt = runCatching { service.search(PROBE_QUERY, PROBE_MAX_RESULTS) }
+    val elapsed = System.currentTimeMillis() - started
+    return attempt.fold(
+        onSuccess = { found ->
+            WebSearchProbeResult(
+                providerKey = providerKey,
+                ok = found.isNotEmpty(),
+                results = found.size,
+                elapsedMs = elapsed,
+                reason = if (found.isEmpty()) WebSearchProbeReason.EMPTY else WebSearchProbeReason.OK,
+            )
+        },
+        onFailure = { cause ->
+            // runCatching 连取消也吞，必须显式抛回：验证按钮随页面回收时，
+            // 不能把协程取消伪装成一次"网络失败"留给用户看。
+            if (cause is kotlinx.coroutines.CancellationException) throw cause
+            WebSearchProbeResult(
+                providerKey = providerKey,
+                ok = false,
+                results = 0,
+                elapsedMs = elapsed,
+                reason = WebSearchProbeReason.REQUEST_FAILED,
+                detail = cause.message ?: cause.javaClass.simpleName,
+            )
+        },
+    )
+}
+
 internal val AUTO_CHAIN_PROVIDER_KEYS: List<String> = listOf(
     "Tavily",
     "Perplexity",

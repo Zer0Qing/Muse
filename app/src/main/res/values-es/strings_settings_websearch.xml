@@ -8,4 +8,9 @@
     <string name="settings_web_search_order_move_up">Subir</string>
     <string name="settings_web_search_order_move_down">Bajar</string>
     <string name="settings_web_search_order_reset">Restablecer el orden predeterminado</string>
+    <string name="settings_web_search_key_verify">Verificar</string>
+    <string name="settings_web_search_key_verify_ok">Funciona: devolvió %1$d resultados</string>
+    <string name="settings_web_search_key_verify_failed">Error de verificación: %1$s</string>
+    <string name="settings_web_search_key_verify_no_key">Este motor aún no tiene una clave utilizable</string>
+    <string name="settings_web_search_key_verify_empty">Se contactó el servicio, pero no devolvió resultados</string>
 </resources>

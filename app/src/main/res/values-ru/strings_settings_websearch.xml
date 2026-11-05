@@ -8,4 +8,9 @@
     <string name="settings_web_search_order_move_up">Выше</string>
     <string name="settings_web_search_order_move_down">Ниже</string>
     <string name="settings_web_search_order_reset">Вернуть порядок по умолчанию</string>
+    <string name="settings_web_search_key_verify">Проверить</string>
+    <string name="settings_web_search_key_verify_ok">Работает: получено %1$d результатов</string>
+    <string name="settings_web_search_key_verify_failed">Проверка не удалась: %1$s</string>
+    <string name="settings_web_search_key_verify_no_key">У этого движка нет пригодного ключа</string>
+    <string name="settings_web_search_key_verify_empty">Соединение есть, но результатов нет</string>
 </resources>

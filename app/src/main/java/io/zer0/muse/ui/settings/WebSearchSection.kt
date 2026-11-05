@@ -54,6 +54,8 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.web.CompositeWebSearchService
 import io.zer0.muse.web.WebSearchConfig
+import io.zer0.muse.web.WebSearchProbeReason
+import io.zer0.muse.web.probeSearchProvider
 import io.zer0.muse.web.WebSearchCoordinator
 import io.zer0.muse.web.WebSearchMode
 import kotlinx.coroutines.launch
@@ -66,6 +68,11 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
     val context = LocalContext.current
     val savedText = stringResource(R.string.settings_saved)
     val coordinator: WebSearchCoordinator = org.koin.compose.koinInject()
+    // 验证单个引擎要用搜索侧那个独立 OkHttpClient（Koin 里以 named("webSearch") 绑定，
+    // 与 SSE 长连接分开）；在 UI 里自己新建会白占一套连接池。
+    val webSearchClient: okhttp3.OkHttpClient = org.koin.compose.koinInject(
+        org.koin.core.qualifier.named("webSearch"),
+    )
     val lastSearch by coordinator.lastResponse.collectAsStateWithLifecycle()
     var wsProviderExpanded by remember { mutableStateOf(false) }
     var apiKeyText by remember(webSearchConfig.providerName) {
@@ -355,6 +362,8 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
                     var keyDraft by remember(provider) { mutableStateOf("") }
                     var keyEdited by remember(provider) { mutableStateOf(false) }
                     var keyRevealed by remember(provider) { mutableStateOf(false) }
+                    var verifying by remember(provider) { mutableStateOf(false) }
+                    var verifyText by remember(provider) { mutableStateOf<String?>(null) }
                     Spacer(Modifier.height(10.dp))
                     SettingField(
                         label = provider,
@@ -378,6 +387,45 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
                                 ),
                             ) { keyRevealed = !keyRevealed }
                         }
+                        SavePill(
+                            stringResource(
+                                if (verifying) R.string.settings_web_search_testing
+                                else R.string.settings_web_search_key_verify,
+                            ),
+                        ) {
+                            if (verifying) return@SavePill
+                            verifying = true
+                            // 清掉上一次的结论：留着它会让人以为这次也还没点
+                            verifyText = null
+                            scope.launch {
+                                val outcome = probeSearchProvider(
+                                    client = webSearchClient,
+                                    cfg = webSearchConfig,
+                                    providerKey = provider,
+                                    apiKeyDraft =
+                                        if (keyEdited) keyDraft
+                                        else savedKey, // 没编辑就用已存的那把 Key 去验，不误用空串
+                                )
+                                verifyText = when {
+                                    outcome.ok -> context.getString(
+                                        R.string.settings_web_search_key_verify_ok,
+                                        outcome.results,
+                                    )
+
+                                    outcome.reason == WebSearchProbeReason.NOT_USABLE ->
+                                        context.getString(R.string.settings_web_search_key_verify_no_key)
+
+                                    outcome.reason == WebSearchProbeReason.EMPTY ->
+                                        context.getString(R.string.settings_web_search_key_verify_empty)
+
+                                    else -> context.getString(
+                                        R.string.settings_web_search_key_verify_failed,
+                                        outcome.detail ?: "",
+                                    )
+                                }
+                                verifying = false
+                            }
+                        }
                         SavePill(stringResource(R.string.settings_web_search_save_api_key)) {
                             scope.launch {
                                 val value = WebSearchKeyFieldState.valueToSave(savedKey, keyDraft, keyEdited)
@@ -390,6 +438,14 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
                                 MuseToast.show(savedText)
                             }
                         }
+                    }
+                    verifyText?.let { text ->
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
                     }
                 }
         }
