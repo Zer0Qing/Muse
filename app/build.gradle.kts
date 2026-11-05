@@ -184,17 +184,20 @@ android {
         //          入口清单数据化，首页/分类页/搜索共用一份；
         //          Web 端与 App 的组件几何对齐并纳入校验（40 个几何令牌 + CSS 裸值扫描）；
         //          网页端字体/配色改为与 App 一致；WebServer 只在绑定字段变化时重启（之前改 PIN 也会重启、搞断连接）。
+        // v2.6.22: 深色模式假玻璃修正（菜单/底部面板/消息气泡不再被提亮成灰白"气泡"，改为深色玻璃）；
+        //          用户约定「希望/不希望它做的事」+ 语音回复频率与音色入口（设置→自动化）；
+        //          搜索顺序表与强度控件补渲染测试；FTS5 探针改读编译选项（修跨用例随机红）。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
             // 默认值跟随当前发行线；正式构建仍显式注入并与 tag 核对。
-            ?: 284
+            ?: 285
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
             // 名称与编号保持同一发行线，防止本地构建无意产生错配。
-            ?: "2.6.21"
+            ?: "2.6.22"
     }
 
     signingConfigs {
@@ -543,7 +546,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 284/2.6.21。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 285/2.6.22。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()
