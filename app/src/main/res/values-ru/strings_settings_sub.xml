@@ -750,4 +750,16 @@
     <string name="settings_chat_carry_over_count_hint">Примерно %1$d реплик</string>
     <string name="connection_skills_title">Навыки и пакеты навыков</string>
     <string name="connection_skills_subtitle">Пользовательских навыков: %1$d, из пакетов SKILL.md: %2$d</string>
+    <string name="settings_user_profile_auto_section">Профиль из переписки</string>
+    <string name="settings_user_profile_auto_switch">Обновлять профиль автоматически</string>
+    <string name="settings_user_profile_auto_desc">Периодически извлекается из диалогов и добавляется как ориентир; введённые вами поля всегда приоритетнее.</string>
+    <string name="settings_user_profile_auto_empty">Пока ничего не извлечено — появится после новых диалогов.</string>
+    <string name="settings_user_profile_auto_override">Переопределить группу</string>
+    <string name="settings_user_profile_auto_revert">Вернуть авто</string>
+    <string name="profile_section_identity">Личность и обращение</string>
+    <string name="profile_section_relationship">Отношения</string>
+    <string name="profile_section_stable">Устойчивые факты</string>
+    <string name="profile_section_interaction">Предпочтения общения</string>
+    <string name="profile_section_recent">Недавние взаимодействия</string>
+    <string name="profile_section_uncertain">Неуверенные заметки</string>
 </resources>

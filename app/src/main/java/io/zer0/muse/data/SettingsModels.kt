@@ -260,6 +260,14 @@ data class ChatPreferences(
      * 字段保留仅为兼容旧版本已持久化的 JSON 数据,新代码不再读写。
      */
     val chatGesturesHintShown: Boolean = false,
+    /**
+     * v2.6.23(M3): 画像自动更新 —— 从事实账本定期生成「画像快照」并注入系统提示词。
+     *
+     * 手填的 [UserProfile] 字段永远优先;本开关只控制系统**提炼**的那部分是否注入。
+     * 默认开:提炼规则是确定性的(分组+截断),不经后台 LLM,不额外耗电;
+     * 用户可在「设置 → 用户画像」里关掉,关掉后注入立即回到仅手填字段。
+     */
+    val profileSnapshotEnabled: Boolean = true,
 )
 
 /**

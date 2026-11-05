@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +30,7 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -377,6 +377,9 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 )
             }
         }
+
+        // ── v2.6.23(M3): 系统提炼的画像(自动快照 + 开关 + 逐段覆盖) ──
+        item { ProfileSnapshotSection() }
 
         // 底部留白
         item { Spacer(Modifier.height(MusePaddings.screen)) }

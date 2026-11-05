@@ -780,4 +780,16 @@
     <string name="settings_agent_agent_session_enabled_subtitle">关闭后不会把主动消息发到 Agent 会话，也不会为此新建 Agent 会话</string>
     <string name="connection_skills_title">技能与技能包</string>
     <string name="connection_skills_subtitle">共 %1$d 个自定义技能，其中 %2$d 个来自 SKILL.md 能力包</string>
+    <string name="settings_user_profile_auto_section">系统提炼的画像</string>
+    <string name="settings_user_profile_auto_switch">自动更新画像</string>
+    <string name="settings_user_profile_auto_desc">定期从对话中提炼，按规则分组注入，供 AI 参考；你手动填写的字段永远优先。</string>
+    <string name="settings_user_profile_auto_empty">还没有提炼出内容，多聊一段时间后自动出现。</string>
+    <string name="settings_user_profile_auto_override">覆盖这一组</string>
+    <string name="settings_user_profile_auto_revert">恢复自动</string>
+    <string name="profile_section_identity">身份与称呼</string>
+    <string name="profile_section_relationship">关系设定</string>
+    <string name="profile_section_stable">稳定事实</string>
+    <string name="profile_section_interaction">交互偏好</string>
+    <string name="profile_section_recent">近期互动</string>
+    <string name="profile_section_uncertain">不确定笔记</string>
 </resources>

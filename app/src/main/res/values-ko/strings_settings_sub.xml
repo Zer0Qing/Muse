@@ -750,4 +750,16 @@
     <string name="settings_chat_carry_over_count_hint">약 %1$d턴 분량</string>
     <string name="connection_skills_title">스킬 및 스킬 패키지</string>
     <string name="connection_skills_subtitle">사용자 스킬 %1$d개, 그중 SKILL.md 패키지 %2$d개</string>
+    <string name="settings_user_profile_auto_section">대화에서 학습한 프로필</string>
+    <string name="settings_user_profile_auto_switch">프로필 자동 갱신</string>
+    <string name="settings_user_profile_auto_desc">대화에서 주기적으로 추출해 참고용으로 삽입합니다. 직접 입력한 항목이 항상 우선합니다.</string>
+    <string name="settings_user_profile_auto_empty">아직 학습 결과가 없습니다. 대화를 이어가면 자동으로 표시됩니다.</string>
+    <string name="settings_user_profile_auto_override">이 항목 재정의</string>
+    <string name="settings_user_profile_auto_revert">자동으로 복원</string>
+    <string name="profile_section_identity">신분과 호칭</string>
+    <string name="profile_section_relationship">관계 설정</string>
+    <string name="profile_section_stable">안정적 사실</string>
+    <string name="profile_section_interaction">응답 선호</string>
+    <string name="profile_section_recent">최근 상호작용</string>
+    <string name="profile_section_uncertain">불확실한 메모</string>
 </resources>

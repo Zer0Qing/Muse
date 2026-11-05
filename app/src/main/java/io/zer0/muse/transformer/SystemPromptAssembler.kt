@@ -7,6 +7,7 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactDbProvider
+import io.zer0.memory.fact.ProfileSnapshotRefresher
 import io.zer0.memory.ticker.MemoryTicker
 import io.zer0.muse.data.ExperimentsConfig
 import io.zer0.muse.data.MultiAgentConfig
@@ -16,6 +17,9 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantMemoryAccessPolicy
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.data.assistant.VoiceReplyPolicy
+import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.groupchat.GroupChatMemoryRepository
 import io.zer0.muse.data.session.SessionRepository
@@ -28,9 +32,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import io.zer0.muse.data.assistant.VoiceReplyFrequency
-import io.zer0.muse.data.assistant.VoiceReplyPolicy
-import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 
 /** Stable labels used to constrain visible reasoning language to the app interface locale. */
 internal fun thinkingLanguageName(locale: String): String = when (locale.lowercase()) {
@@ -415,7 +416,11 @@ class SystemPromptAssembler(
                 )
             }
             val profile =
-                if (!skipMemorySections && memoryEnabled && canReadGlobalMemory) buildUserProfileSection() else ""
+                if (!skipMemorySections && memoryEnabled && canReadGlobalMemory) {
+                    buildUserProfileSection(chatPrefs?.profileSnapshotEnabled ?: true)
+                } else {
+                    ""
+                }
             if (profile.isNotBlank()) sections.add(profile)
             perfTimer.split("profile")
 
@@ -871,13 +876,16 @@ class SystemPromptAssembler(
     /**
      * 3. 用户画像 — 从设置读(若用户未填则跳过)。
      * 字段:年龄/城市/职业/专业领域/兴趣(均为可选)。
+     *
+     * v2.6.23(M3): 追加**自动画像快照**(从事实账本按规则提炼,手填字段永远优先)。
+     * 快照是"参考",不是指令:段落标题标明来源,末尾声明与当前对话冲突时以对话为准。
      */
-    private suspend fun buildUserProfileSection(): String {
+    private suspend fun buildUserProfileSection(profileSnapshotEnabled: Boolean): String {
         // H-ASM1: settings.getUserProfile() 为 suspend,用 resultOf 正确重抛 CancellationException
         val profile =
             resultOf { settings.getUserProfile() }
                 .onError { _, t -> Logger.w(TAG, "getUserProfile 失败", t) }
-                .getOrNull() ?: return ""
+                .getOrNull() ?: return buildProfileSnapshotText(profileSnapshotEnabled)
         val parts = mutableListOf<String>()
         // v1.76: 称呼信息优先注入(最高优先级,影响 AI 自称与对用户的称呼)
         profile.userNickName?.takeIf { it.isNotBlank() }?.let { parts.add("用户称呼: 请称呼用户为「$it」") }
@@ -903,8 +911,61 @@ class SystemPromptAssembler(
         profile.preferredTone?.takeIf { it.isNotBlank() }?.let { parts.add("偏好语气: $it") }
         profile.preferredLanguage?.takeIf { it.isNotBlank() }?.let { parts.add("偏好回复语言: $it") }
         profile.avoidTopics?.takeIf { it.isNotBlank() }?.let { parts.add("忌讳话题: $it(请主动避开这些话题,如必须提及需谨慎处理)") }
-        if (parts.isEmpty()) return ""
-        return "用户画像\n${parts.joinToString("\n") { "- $it" }}"
+        val snapshot = buildProfileSnapshotText(profileSnapshotEnabled)
+        if (parts.isEmpty()) return snapshot
+        val manual = "用户画像\n${parts.joinToString("\n") { "- $it" }}"
+        return if (snapshot.isEmpty()) manual else "$manual\n$snapshot"
+    }
+
+    /**
+     * v2.6.23(M3): 自动画像快照段。TTL 内只做读表 + 指纹短路,不重算、不调 LLM。
+     *
+     * 手填画像与快照共用一个 section:快照追加在「用户画像」之后,标题区分来源,
+     * 用户关掉开关([io.zer0.muse.data.ChatPreferences.profileSnapshotEnabled])后只剩手填部分。
+     */
+    private suspend fun buildProfileSnapshotText(enabled: Boolean): String {
+        if (!enabled) return ""
+        val provider = factDbProvider ?: return ""
+        val rows = resultOf {
+            val db = provider.getFactDb("main")
+            val dao = db.profileSnapshotDao()
+            val store = factStore ?: provider.getFactStore("main")
+            val facts = store.getByScope(scope = "main", includeSuppressed = false)
+                .filter { it.spaceId == "default" }
+            ProfileSnapshotRefresher(dao).refresh(scope = "main", spaceId = "default", facts = facts)
+            dao.getByScopeAndSpace("main", "default").associateBy { it.section }
+        }.onError { _, t -> Logger.w(TAG, "画像快照读取失败(本轮只注手填)", t) }
+            .getOrNull() ?: return ""
+        return renderProfileSnapshotText(rows)
+    }
+
+    /**
+     * 纯渲染:六段 → 注入文本,预算 [SNAPSHOT_MAX_CHARS]。
+     *
+     * internal 是为了单测钉住两条边界:
+     *  - 段按整段取舍 —— 超预算的直接不注入,半截画像比没有更误导;
+     *  - 全空(或所有段都超预算)时返回空串,不注入只剩标题和免责声明的空壳。
+     */
+    internal fun renderProfileSnapshotText(rows: Map<String, io.zer0.memory.fact.ProfileSnapshotEntity>): String {
+        if (rows.isEmpty()) return ""
+        val blocks = io.zer0.memory.fact.ProfileSection.ORDER.mapNotNull { section ->
+            val row = rows[section] ?: return@mapNotNull null
+            val body = (row.manualContent?.takeIf { it.isNotBlank() } ?: row.autoContent).trim()
+            if (body.isEmpty()) return@mapNotNull null
+            val block = "\n[${SNAPSHOT_SECTION_TITLES.getValue(section)}]\n$body"
+            block to block.length
+        }
+        val kept = StringBuilder()
+        var used = 0
+        for ((block, length) in blocks) {
+            if (used + length <= SNAPSHOT_MAX_CHARS) {
+                kept.append(block)
+                used += length
+            }
+        }
+        if (kept.isEmpty()) return ""
+        return "用户画像(系统从对话中提炼,仅供参考)" + kept +
+            "\n以上提炼若与当前对话冲突,一律以当前对话为准;[不确定笔记] 只作提问线索,不得当作事实陈述。"
     }
 
     /**
@@ -1328,8 +1389,7 @@ class SystemPromptAssembler(
     }
 
     /** P2-34: 文本切词(字母/数字连续段,小写化;空输入返回空)。 */
-    private fun tokenizeExperience(text: String): List<String> =
-        experienceTokenRegex.findAll(text.lowercase()).map { it.value }.toList()
+    private fun tokenizeExperience(text: String): List<String> = experienceTokenRegex.findAll(text.lowercase()).map { it.value }.toList()
 
     /** P2-34: 经验条目对当前问题的相关性打分 — 命中词计词长,标签命中额外加权。 */
     private fun experienceRelevance(exp: ExperienceEntity, tokens: List<String>): Int {
@@ -1647,6 +1707,19 @@ class SystemPromptAssembler(
 
     companion object {
 
+        /** v2.6.23(M3): 自动画像段的总注入预算(字符)——画像膨胀会挤掉真正的对话上下文。 */
+        private const val SNAPSHOT_MAX_CHARS = 900
+
+        /** v2.6.23(M3): 六段的注入标题(提示词是模型面,固定中文,不随界面语言切换)。 */
+        private val SNAPSHOT_SECTION_TITLES = mapOf(
+            io.zer0.memory.fact.ProfileSection.IDENTITY_SETTINGS to "身份与称呼",
+            io.zer0.memory.fact.ProfileSection.RELATIONSHIP_SETTINGS to "关系设定",
+            io.zer0.memory.fact.ProfileSection.STABLE_FACTS to "稳定事实",
+            io.zer0.memory.fact.ProfileSection.INTERACTION_PREFERENCES to "交互偏好",
+            io.zer0.memory.fact.ProfileSection.RECENT_INTERACTIONS to "近期互动",
+            io.zer0.memory.fact.ProfileSection.UNCERTAIN_NOTES to "不确定笔记",
+        )
+
         /**
          * 工具索引头部的计数文案（纯函数，便于单测）。
          *
@@ -1654,10 +1727,7 @@ class SystemPromptAssembler(
          * （分类分布与 N 出自同一次筛选，built-in 数即其中 built-in 类的条目数）；另说明 find_tools
          * 的会话可见档更大，避免模型把两处数字当成同一个口径。
          */
-        internal fun toolManifestCountSection(
-            counts: io.zer0.muse.tools.ToolCounts,
-            categoryCounts: Map<String, Int>,
-        ): String =
+        internal fun toolManifestCountSection(counts: io.zer0.muse.tools.ToolCounts, categoryCounts: Map<String, Int>): String =
             buildString {
                 append("- 本轮可调用工具共 ${counts.callableInSchema} 个（含技能）")
                 val distribution =
@@ -1790,14 +1860,14 @@ class SystemPromptAssembler(
         /** v1.0.52: Recent Chats Reference 注入条目上限,避免历史会话堆积撑爆 system prompt。 */
         private const val RECENT_CHATS_MAX_ENTRIES = 10
 
-    /** 跨会话衔接：单条消息最大字符数，超出截断，避免单条长回复撑爆上下文。 */
-    private const val CARRY_OVER_MAX_CHARS_PER_MESSAGE = 600
+        /** 跨会话衔接：单条消息最大字符数，超出截断，避免单条长回复撑爆上下文。 */
+        private const val CARRY_OVER_MAX_CHARS_PER_MESSAGE = 600
 
-    /** 跨会话衔接：条数上限（用户 + 助手各算一条）。 */
-    private const val CARRY_OVER_MAX_MESSAGES = 40
+        /** 跨会话衔接：条数上限（用户 + 助手各算一条）。 */
+        private const val CARRY_OVER_MAX_MESSAGES = 40
 
-    /** 跨会话衔接：条数下限，低于此值没有衔接意义。 */
-    private const val CARRY_OVER_MIN_MESSAGES = 4
+        /** 跨会话衔接：条数下限，低于此值没有衔接意义。 */
+        private const val CARRY_OVER_MIN_MESSAGES = 4
 
         /** v1.0.52: 单条会话预览字符上限,避免长预览拖慢 system prompt 构建。 */
         private const val RECENT_CHATS_PREVIEW_CHARS = 80

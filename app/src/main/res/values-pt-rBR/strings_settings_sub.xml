@@ -750,4 +750,16 @@
     <string name="settings_chat_carry_over_count_hint">Cerca de %1$d turnos</string>
     <string name="connection_skills_title">Habilidades e pacotes de habilidades</string>
     <string name="connection_skills_subtitle">%1$d habilidades personalizadas, %2$d de pacotes SKILL.md</string>
+    <string name="settings_user_profile_auto_section">Perfil aprendido das conversas</string>
+    <string name="settings_user_profile_auto_switch">Atualizar o perfil automaticamente</string>
+    <string name="settings_user_profile_auto_desc">Destilado das conversas periodicamente e injetado como referência; os campos preenchidos por você sempre têm prioridade.</string>
+    <string name="settings_user_profile_auto_empty">Nada aprendido ainda — aparece após mais conversas.</string>
+    <string name="settings_user_profile_auto_override">Substituir este grupo</string>
+    <string name="settings_user_profile_auto_revert">Restaurar automático</string>
+    <string name="profile_section_identity">Identidade e tratamento</string>
+    <string name="profile_section_relationship">Relacionamento</string>
+    <string name="profile_section_stable">Fatos estáveis</string>
+    <string name="profile_section_interaction">Preferências de interação</string>
+    <string name="profile_section_recent">Interações recentes</string>
+    <string name="profile_section_uncertain">Notas incertas</string>
 </resources>

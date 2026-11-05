@@ -750,4 +750,16 @@
     <string name="settings_chat_carry_over_count_hint">およそ %1$d ターン分</string>
     <string name="connection_skills_title">スキルとスキルパック</string>
     <string name="connection_skills_subtitle">カスタムスキル %1$d 件、うち SKILL.md パック %2$d 件</string>
+    <string name="settings_user_profile_auto_section">会話から学習したプロファイル</string>
+    <string name="settings_user_profile_auto_switch">プロファイルを自動更新</string>
+    <string name="settings_user_profile_auto_desc">会話から定期的に抽出し、参考として注入します。手入力した項目が常に優先されます。</string>
+    <string name="settings_user_profile_auto_empty">まだ学習結果はありません。会話を重ねると自動で表示されます。</string>
+    <string name="settings_user_profile_auto_override">この項目を上書き</string>
+    <string name="settings_user_profile_auto_revert">自動に戻す</string>
+    <string name="profile_section_identity">身分と呼び方</string>
+    <string name="profile_section_relationship">関係設定</string>
+    <string name="profile_section_stable">安定した事実</string>
+    <string name="profile_section_interaction">応答の好み</string>
+    <string name="profile_section_recent">最近のやり取り</string>
+    <string name="profile_section_uncertain">不確実なメモ</string>
 </resources>

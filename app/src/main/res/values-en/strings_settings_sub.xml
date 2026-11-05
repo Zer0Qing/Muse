@@ -775,4 +775,16 @@
     <string name="settings_agent_agent_session_enabled_subtitle">When off, proactive messages are not sent to Agent sessions, and no Agent session is created for them</string>
     <string name="connection_skills_title">Skills &amp; skill packages</string>
     <string name="connection_skills_subtitle">%1$d custom skills, %2$d from SKILL.md packages</string>
+    <string name="settings_user_profile_auto_section">Profile learned from chats</string>
+    <string name="settings_user_profile_auto_switch">Auto-update profile</string>
+    <string name="settings_user_profile_auto_desc">Distilled from conversations on a schedule and injected as reference; fields you fill in always take priority.</string>
+    <string name="settings_user_profile_auto_empty">Nothing learned yet — it appears after more conversations.</string>
+    <string name="settings_user_profile_auto_override">Override this group</string>
+    <string name="settings_user_profile_auto_revert">Restore auto</string>
+    <string name="profile_section_identity">Identity and naming</string>
+    <string name="profile_section_relationship">Relationship</string>
+    <string name="profile_section_stable">Stable facts</string>
+    <string name="profile_section_interaction">Interaction preferences</string>
+    <string name="profile_section_recent">Recent interactions</string>
+    <string name="profile_section_uncertain">Uncertain notes</string>
 </resources>
