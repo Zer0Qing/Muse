@@ -63,6 +63,26 @@ class ProactiveComposer(
          * 600 字能容下一次完整的情绪表达，又不会让 40 条消息把窗口撑爆。
          */
         private const val MESSAGE_CLIP = 600
+
+        /**
+         * 「距上次聊天 / 距上次主动开口」事实行（v2.6.23 P3）。
+         *
+         * 两个都没有 → 返回 null，提示词与改动前逐字一致（P3 只加事实，不改无信息时的措辞）。
+         * 小时/天取整从粗：精确到分钟只会把模型带成做算术，而不是理解「隔挺久了」。
+         */
+        internal fun timeFactsLine(input: Input): String? {
+            val parts = listOfNotNull(
+                input.minutesSinceLastChat?.let { "你们上次聊天距今${humanElapsed(it)}" },
+                input.minutesSinceLastProactive?.let { "你上次主动找他距今${humanElapsed(it)}" },
+            )
+            return parts.takeIf { it.isNotEmpty() }?.joinToString("，", postfix = "。")
+        }
+
+        private fun humanElapsed(minutes: Long): String = when {
+            minutes < 60 -> "${minutes.coerceAtLeast(1)} 分钟"
+            minutes < 48 * 60 -> "${minutes / 60} 小时"
+            else -> "${minutes / (24 * 60)} 天"
+        }
     }
 
     /** 一次生成所需的全部输入。 */
@@ -76,6 +96,15 @@ class ProactiveComposer(
         /** 最近几条主动消息的正文，用来提醒「这些已经说过了」。 */
         val recentProactiveMessages: List<String> = emptyList(),
         val now: Long,
+        /**
+         * v2.6.23(P3): 距上次聊天的分钟数；null = 没有近期消息。
+         *
+         * 作为**事实**写进提示词，让模型自己掂量「隔了这么久突然提旧事是不是尬聊」，
+         * 而不是只靠事后那句「不要翻旧账」。两者都为 null 时提示词与改动前逐字一致。
+         */
+        val minutesSinceLastChat: Long? = null,
+        /** v2.6.23(P3): 距上一条主动消息的分钟数；null = 从没主动过。 */
+        val minutesSinceLastProactive: Long? = null,
         /**
          * 用户选的主动等级。
          *
@@ -152,7 +181,7 @@ class ProactiveComposer(
             appendLine()
             appendLine("---")
             appendLine()
-            append(proactiveInstruction(input.intensity))
+            append(proactiveInstruction(input))
             directives?.block?.takeIf { it.isNotBlank() }?.let { block ->
                 appendLine()
                 appendLine()
@@ -222,11 +251,13 @@ class ProactiveComposer(
      *
      * 上面那一大段是聊天时也在用的通用人格，这里只补「主动开口」这个场景特有的东西。
      */
-    private fun proactiveInstruction(intensity: ProactiveIntensity): String = buildString {
+    private fun proactiveInstruction(input: Input): String = buildString {
         appendLine("现在的情况：你们有一阵没说话了。你想接着上次的话往下说一句。")
+        // v2.6.23(P3): 时间跨度事实行;拿不到跨度时整行不出现(与旧行为逐字一致)。
+        timeFactsLine(input)?.let { appendLine(it) }
         appendLine("他不是在问你问题，也没在等你回复——但你有点话想说，或者只是想知道他那件事怎么样了。")
         appendLine()
-        append(intensityGuidance(intensity))
+        append(intensityGuidance(input.intensity))
         appendLine("【最要紧的一条】")
         appendLine("**不要翻旧账。** 真人不会记着一件事，然后隔了两三天突然发消息提起。")
         appendLine("你说的话要和「最近聊的」直接连着，中间不要跨越好几天的话题。")

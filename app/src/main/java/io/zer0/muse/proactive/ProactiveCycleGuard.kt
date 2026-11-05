@@ -48,6 +48,26 @@ class ProactiveCycleGuard {
     @Volatile
     private var attemptAt = 0L
 
+    /**
+     * v2.6.23(P2): 连续「走到生成却被模型 Skip」的轮数。
+     *
+     * 只计 Skip：被硬闸(免打扰/额度…)拦下的轮次什么都没做,不该改变节奏;
+     * 发送成功即清零。调度器据此拉长复查间隔,避免「没话说还每小时醒一次」。
+     */
+    @Volatile
+    var consecutiveSkips = 0
+        private set
+
+    /** 本轮模型说了「没什么可接的」:记一笔,供调度器退避。 */
+    fun recordSkip() {
+        consecutiveSkips++
+    }
+
+    /** 真的发出去了:节奏回到正常。 */
+    fun recordSent() {
+        consecutiveSkips = 0
+    }
+
     /** 此刻是否已经有一轮巡检在跑。 */
     val isInFlight: Boolean get() = inFlight.get()
 

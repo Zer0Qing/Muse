@@ -41,6 +41,20 @@ class ProactiveScheduler(
          */
         private const val CHECK_RETRY_MS = 5 * 60 * 1000L
 
+        /** v2.6.23(P2): 连续 Skip 退避的天花板（6 小时）。再长就和每日保底/Worker 唤醒脱节了。 */
+        internal const val MAX_SKIP_BACKOFF_MS = 6 * 60 * 60 * 1000L
+
+        /**
+         * v2.6.23(P2): 按连续 Skip 轮数指数拉长复查间隔，封顶 [MAX_SKIP_BACKOFF_MS]。
+         *
+         * internal 纯函数:被钉死可测。位移封顶 4(×16),防止 skips 很大时溢出。
+         */
+        internal fun backoffForSkips(baseMs: Long, consecutiveSkips: Int): Long {
+            if (consecutiveSkips <= 0) return baseMs
+            val shifted = baseMs shl minOf(consecutiveSkips, 4)
+            return minOf(shifted, MAX_SKIP_BACKOFF_MS)
+        }
+
         const val TRIGGER_STARTUP = "startup"
         const val TRIGGER_TIMER = "timer"
         const val TRIGGER_WORKER = "worker"
@@ -91,12 +105,16 @@ class ProactiveScheduler(
                 //  · null 只可能来自抛异常（被别的触发源占着时会返回 alreadyRunning=true 的对象），
                 //    异常后立刻重试容易变成热循环，按「没事」睡一小时；
                 //  · alreadyRunning 才是「被占着」—— 等前一轮跑完再看，所以是短间隔。
+                // v2.6.23(P2): 连续被模型 Skip 时指数拉长（上限 6 小时）——
+                // 「没话说」是持续状态，不该每小时醒一次重复同一次空判断。
                 delay(
                     when {
                         outcome == null -> CHECK_IDLE_MS
                         outcome.alreadyRunning -> CHECK_RETRY_MS
-                        outcome.ledgerNotEmpty -> CHECK_WITH_WORK_MS
-                        else -> CHECK_IDLE_MS
+                        outcome.ledgerNotEmpty ->
+                            backoffForSkips(CHECK_WITH_WORK_MS, cycle.consecutiveSkips)
+
+                        else -> backoffForSkips(CHECK_IDLE_MS, cycle.consecutiveSkips)
                     },
                 )
             }
