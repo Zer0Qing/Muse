@@ -1,0 +1,29 @@
+{
+  "versionName": "2.6.22",
+  "versionCode": 285,
+  "dbVersion": 124,
+  "apkFile": "Muse_v2.6.22_arm64-v8a.apk",
+  "apkSizeBytes": 103769328,
+  "apkSha256": "e1aaa4a8a3b1f4059a485e544aec140d3df07c96945eb8377443b4210e163da4",
+  "apkArtifacts": [
+    {
+      "name": "Muse_v2.6.22_arm64-v8a.apk",
+      "sizeBytes": 103769328,
+      "sha256": "e1aaa4a8a3b1f4059a485e544aec140d3df07c96945eb8377443b4210e163da4"
+    },
+    {
+      "name": "Muse_v2.6.22_armeabi-v7a.apk",
+      "sizeBytes": 59701787,
+      "sha256": "3745333f3d5f9baddec63267a5f7d0bde4bb9c8842deaa875c71da3e3416fa14"
+    },
+    {
+      "name": "Muse_v2.6.22_universal.apk",
+      "sizeBytes": 187772337,
+      "sha256": "061385701f6329d89632640fcc0ac952addc96cdecbb23d5a07a67f69bc0551a"
+    }
+  ],
+  "releaseNotesRef": "releases/v2.6.22/release_body.md",
+  "sourceCommit": "47a72195c87f96b8b113e6cbffd9d43b74472719",
+  "sourceRef": "v2.6.22",
+  "generatedAt": "2026-11-05T18:13:48+00:00"
+}

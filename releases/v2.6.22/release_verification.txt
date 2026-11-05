@@ -1,0 +1,82 @@
+Muse v2.6.22 发布校验
+生成时间: 2026-11-06 02:15 +08:00
+versionName=2.6.22  versionCode=285  applicationId=io.zer0.muse
+
+## 版本号（aapt2 dump badging）
+package: name='io.zer0.muse' versionCode='285' versionName='2.6.22'
+minSdkVersion 26  targetSdk 36  compileSdk 36
+
+## 签名（apksigner verify --print-certs）
+Signer #1 certificate DN: CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN
+Signer #1 certificate SHA-256 digest: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+Signer #1 certificate SHA-1 digest: 8230c9b7150676e322457c588fff81764e02ee0c
+Signer #1 certificate MD5 digest: 3f6d42436cac25c25053c2ea58a1d134
+（与此前正式发行同一证书：可覆盖升级）
+
+## 产物（公开三包，x86_64 不进入分发）
+Muse_v2.6.22_arm64-v8a.apk   103769328 bytes  sha256=e1aaa4a8a3b1f4059a485e544aec140d3df07c96945eb8377443b4210e163da4
+Muse_v2.6.22_armeabi-v7a.apk  59701787 bytes  sha256=3745333f3d5f9baddec63267a5f7d0bde4bb9c8842deaa875c71da3e3416fa14
+Muse_v2.6.22_universal.apk   187772337 bytes  sha256=061385701f6329d89632640fcc0ac952addc96cdecbb23d5a07a67f69bc0551a
+
+ABI 目录核对：
+- arm64-v8a 包：lib/arm64-v8a
+- armeabi-v7a 包：lib/armeabi-v7a
+- universal 包：lib/arm64-v8a、lib/armeabi-v7a、lib/x86、lib/x86_64
+- 原生运行时条目数与 2.6.22 测试包一致：lib/ 84 项；assets/ 仅网页 bundle 因从源码重建而哈希不同。
+
+## 构建来源与工作区状态
+sourceCommit: 47a72195c87f96b8b113e6cbffd9d43b74472719
+sourceRef: v2.6.22
+说明: manifest 与 verification 在本构建之后提交；tag 将指向包含这两份材料的文档提交。
+      两者与 sourceCommit 的差异只在 `releases/v2.6.22/` 文档，无 app 源码差异。
+构建方式: `git worktree add --detach` 在 HEAD 上新建隔离树，执行
+  `:app:assembleRelease -PversionName=2.6.22 -PversionCode=285`
+
+隔离树中与提交内容的差异（已核对）：
+- `material3/build.gradle.kts`、`material3/ktlint-baseline.xml`、`memory/build.gradle.kts`、
+  `releases/v2.5.1/manifest.json`、`releases/v2.5.2/manifest.json` 仅行尾差异；
+  `git diff --ignore-space-at-eol --stat` 为空，无语义改动。
+- 主工作树仅保留 74 个旧发行归档删除（`D releases/v*`），未提交、未进入本次基线，也不影响构建。
+
+构建输入中不在 git 的部分（已逐项复制进隔离树）：
+- `app/src/main/jniLibs/`：148 个文件（Node/Python 运行时；`libmuse_node.so` 等）。
+  首轮漏复制时 APK 只有 53MB、lib/ 仅 10 项；补齐后 lib/ 84 项，与测试包一致。
+- `app/src/main/assets/muse-python-assets.zip`
+  sha256=4c1acad499da6c5baea2641ec6615589fc49545e89919171d0a437913d9bdd23
+- `app/src/main/assets/muse-runtime-assets.zip`
+  sha256=9da1f85b291a4d1a412bab3ea8de2788f96fd617c6010a4f3eadf654169a70f1
+- `web/apps/client/dist/`：由本提交的网页源码重新构建（`npm run build`），未复用旧产物。
+- `local.properties`、`keystore.properties`、`muse-release.keystore`（签名，不公开）。
+
+## 本机验证
+- APK 签名校验：PASS（3 个公开包，validate_release_apks.py）。
+- 包名/versionName/versionCode/ABI：PASS（逐个 aapt2 dump badging + zip 目录核对）。
+- 单元测试（unit lane，全模块）：
+  app 854 类 / 4859 例 / 0 失败（1 跳过）
+  ai 78 类 / 496 例 / 0 失败
+  memory 56 类 / 414 例 / 0 失败
+  common 9 类 / 74 例 / 0 失败
+  accessibility 3 类 / 13 例 / 0 失败
+  material3 1 类 / 4 例 / 0 失败
+- 网页端：`npm run lint` 0 错；`npm test` 810 条断言全过；`npm run build` 通过。
+  顺带修掉两个依赖运行时刻的用例（午夜后「2 小时前」跨成「昨天」）。
+- `:app:detekt`：PASS。
+- `ci-scripts` lane：PASS（修掉 row_text_width 门禁自测暴露的早退分支）。
+- `lanes` lane：PASS（仓库卫生/纪律/文案/迁移/布局等脚本全过）。
+- `debug` lane：PASS（assembleDebug）。
+- release_body 双语格式：PASS（check_release_body_bilingual.py）。
+
+## 未完成/风险（不伪报为通过）
+1. `static` lane **未通过**：全仓 ktlint 基线漂移（`app/ktlint-baseline.xml` 长期过期），
+   以及 `conversation-core` 测试源码两条明确格式违规：
+   `ConversationCommandValidationTest.kt:19`、`DraftStoreRejectionTest.kt:29`
+   （“First line of body expression fits on same line as function signature”）。
+   本次没有重建全仓基线：那会把约 2400 条存量一次性固化成新基线，需单独决策；
+   本次改动的 32 个 Kotlin 文件 ktlint 违规为 0。
+2. 物理真机验收未执行：当前证据来自本机编译、JVM/Robolectric 单测、网页端检查与 APK 静态校验。
+   安装覆盖、DB 升级、运行时 Node/Python 沙盒、渠道收发等仍需设备验证。
+3. `generate_release_manifest.py` 没有 dirty 指纹参数；本文件用上面的隔离树状态与输入哈希提供可复核证据。
+4. 74 个旧发行归档删除仍留在主工作树，未随本版提交；`v2.6.20` 在 GitHub 没有对应 Release，
+   删除前需要确认是否保留仓内唯一副本。
+5. R8 minify 已开启，mapping 位于
+   `1muse/app/build/outputs/mapping/release/mapping.txt`（146 MB，仅本地留存，不上传）。
