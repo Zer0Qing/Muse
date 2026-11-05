@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "purpose": "三端共同消费的唯一词表：App 的 Kotlin 常量、作者侧 sign.py 的校验数字、以及（经由 Kotlin 测试读源码断言的）网页客户端 Host WS 键名。改任何一端都必须与这份表同时对齐 —— 靠人记得同步才是过去漂移的真正来源。",
+  "provenance": {
+    "app": [
+      "io.zer0.muse.data.plugin.PluginCapabilityGateway",
+      "io.zer0.muse.data.plugin.PluginAuthoring",
+      "io.zer0.muse.data.plugin.PluginSecurityGate",
+      "io.zer0.muse.data.plugin.PluginCommandRegistry",
+      "io.zer0.muse.data.plugin.PluginScheduleDue",
+      "io.zer0.muse.web.HostWebSocketProtocol"
+    ],
+    "signer": ["tools/market-signer/sign.py"],
+    "client": ["web/apps/client/src/api.ts", "web/apps/client/src/host/useHostConnection.ts"]
+  },
+  "plugins": {
+    "runtimes": ["js", "node", "python"],
+    "capabilities": [
+      "resource.read",
+      "resource.write",
+      "network",
+      "network.local",
+      "clipboard",
+      "clipboard.read",
+      "clipboard.write",
+      "notify",
+      "device.info",
+      "storage",
+      "config.write",
+      "host.tool.invoke",
+      "chat.read",
+      "host.model.call",
+      "app.navigate",
+      "app.messages",
+      "app.theme",
+      "app.settings",
+      "ui.slot",
+      "ui.skin",
+      "ui.interactive",
+      "runtime.long",
+      "runtime.service",
+      "runtime.python",
+      "schedule",
+      "schedule.background",
+      "event.onMessage",
+      "event.onToolCall",
+      "hook.toolCallBefore",
+      "hook.systemPrompt"
+    ],
+    "capabilityAliases": {
+      "storage.read": "resource.read",
+      "storage.write": "resource.write"
+    },
+    "capabilityNameGrammar": "^[a-z][a-zA-Z0-9._-]{0,63}$",
+    "sharedCapabilityPrefix": "storage.shared:",
+    "signerOnlyNamesNotDefinedByApp": ["ui", "ui.mood"],
+    "limits": {
+      "maxTools": 32,
+      "maxCodeBytes": 262144,
+      "maxCommandsPerPlugin": 20,
+      "maxCommandDescriptionChars": 120,
+      "minScheduleIntervalMinutes": 15
+    },
+    "regexes": {
+      "commandName": "^[a-z][a-z0-9_-]{0,31}$"
+    }
+  },
+  "hostWs": {
+    "protocolVersion": 1,
+    "wireKeyRenames": {
+      "memory": "items",
+      "knowledgeBases": "bases",
+      "systemStatus": "system"
+    },
+    "memoryEntry": {
+      "createdAtWireType": "number",
+      "snippetIsFlatOnEntry": true
+    },
+    "cursorEqualsOwnEventSeq": true,
+    "clientMustHandleEventTypes": ["command.accepted", "command.duplicate", "error"],
+    "removedDeadFields": ["HostCommand.sinceEventSeq", "HostEvent.delta"]
+  },
+  "samples": ["hello", "notes", "form"]
+}

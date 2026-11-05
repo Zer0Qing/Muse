@@ -123,7 +123,7 @@ ALLOWED_CAPABILITIES = {
     "app.navigate", "app.messages", "app.theme", "app.settings",
     "ui.interactive", "ui.slot", "network.local",
     "event.onMessage", "event.onToolCall", "hook.toolCallBefore", "hook.systemPrompt",
-    "schedule", "runtime.long", "runtime.service",
+    "schedule", "schedule.background", "runtime.long", "runtime.service", "runtime.python",
 }
 # 共享空间声明是带冒号的前缀形式，不能逐项枚举：名字空间允许中文（见 PluginSharedStorage）。
 SHARED_CAPABILITY_PREFIX = "storage.shared:"
@@ -138,7 +138,6 @@ COMMAND_NAME_REGEX = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 MAX_COMMANDS_PER_PLUGIN = 20
 MAX_COMMAND_DESCRIPTION_CHARS = 120
 MIN_SCHEDULE_INTERVAL_MINUTES = 15
-MAX_SCHEDULES_PER_PLUGIN = 10
 LOADED_EXTENSIONS = (".js", ".py", ".json", ".md")
 UI_SKIN_KIND = "ui-skin"
 UI_SKIN_ENTRY = "skin.json"
@@ -148,6 +147,47 @@ MAX_SIGNATURE_BYTES = 256
 def fail(message: str) -> None:
     print(f"ERROR: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+# ── 装载即对账：本工具镜像的数字必须等于共享夹具 ─────────────────────────
+# 夹具 docs/plugin/parity/protocol-vocabulary.json 是三端唯一的表：
+# App 侧由 PluginParityVocabularyTest 核对，签名工具这边由下面这段核对。
+# 之所以不在运行时读夹具、而是核对"已写死的常量"，是因为 pack 要能在离线/裁剪环境下跑；
+# 但只要两边任何一处改动而忘了同步，这里就会拒绝打包，而不是产出一个装不上的包。
+PARITY_FIXTURE = Path(__file__).resolve().parents[2] / "docs" / "plugin" / "parity" / "protocol-vocabulary.json"
+
+
+def check_parity_fixture() -> None:
+    """与共享夹具逐条对账；不符就 fail。夹具缺失时报错而不是静默跳过。"""
+    if not PARITY_FIXTURE.is_file():
+        fail(f"找不到共享夹具 {PARITY_FIXTURE}（三端对账的前提，不接受静默跳过）")
+    fixture = json.loads(PARITY_FIXTURE.read_text(encoding="utf-8"))
+    plugins = fixture["plugins"]
+    limits = plugins["limits"]
+
+    expected = [
+        ("KNOWN_RUNTIMES", set(KNOWN_RUNTIMES), set(plugins["runtimes"])),
+        ("MAX_COMMANDS_PER_PLUGIN", MAX_COMMANDS_PER_PLUGIN, limits["maxCommandsPerPlugin"]),
+        ("MAX_COMMAND_DESCRIPTION_CHARS", MAX_COMMAND_DESCRIPTION_CHARS, limits["maxCommandDescriptionChars"]),
+        ("MIN_SCHEDULE_INTERVAL_MINUTES", MIN_SCHEDULE_INTERVAL_MINUTES, limits["minScheduleIntervalMinutes"]),
+        ("COMMAND_NAME_REGEX.pattern", COMMAND_NAME_REGEX.pattern, plugins["regexes"]["commandName"]),
+    ]
+    for name, mine, theirs in expected:
+        if mine != theirs:
+            fail(f"与共享夹具不符：{name} 本工具={mine} 夹具={theirs}（改一端必须同步夹具与另一端）")
+
+    # App 定义的能力必须能被本工具签出（历史上就是这里漏了 clipboard / storage / ui.interactive）
+    missing_caps = [name for name in plugins["capabilities"] if name not in ALLOWED_CAPABILITIES]
+    if missing_caps:
+        fail(f"夹具里的 App 能力本工具不认，作者照文档写就会被自家工具拒：{missing_caps}")
+
+    # 别名表也要一致：App 把 storage.read 归一化成 resource.read，本工具必须同样放行
+    for alias in plugins["capabilityAliases"]:
+        if alias not in ALLOWED_CAPABILITIES:
+            fail(f"App 的能力别名 {alias} 本工具不认（会拒掉合法清单）")
+
+
+check_parity_fixture()
 
 
 def openssl_binary() -> str:
@@ -425,8 +465,8 @@ def validate_extensions(manifest: dict) -> None:
             )
 
     schedules = manifest.get("schedules") or []
-    if len(schedules) > MAX_SCHEDULES_PER_PLUGIN:
-        fail(f"schedules 超过上限 {MAX_SCHEDULES_PER_PLUGIN} 条（当前 {len(schedules)}）")
+    # 没有「schedules 数量上限」这条：App 侧只是 forEach 全跑（PluginScheduleRunner.kt:81），
+    # 在这里造一个上限就是"工具比 App 严"，会拒掉本来能正常工作的插件。
     seen_schedule_names = set()
     for schedule in schedules:
         sname = schedule.get("name", "")
