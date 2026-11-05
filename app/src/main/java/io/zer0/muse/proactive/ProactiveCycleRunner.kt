@@ -174,43 +174,39 @@ class ProactiveCycleRunner(
     }
 
     /** 账本里还有没有没说的。只影响下次复查的间隔，不再是能不能说的前提。 */
-    private suspend fun hasOpenThoughts(ready: Prepared): Boolean =
-        stores.thoughts.getOpen(ready.assistant.id).isNotEmpty()
+    private suspend fun hasOpenThoughts(ready: Prepared): Boolean = stores.thoughts.getOpen(ready.assistant.id).isNotEmpty()
 
-    private suspend fun publishResult(
-        trigger: String,
-        decision: ProactiveTimingEngine.Decision,
-        ready: Prepared,
-    ): Outcome = when (val produced = produce(ready)) {
-        is ProactiveReplyParser.Result.Failed -> {
-            Logger.w(TAG, "生成失败: ${produced.reason}")
-            Outcome(decision.verdict, false, hasOpenThoughts(ready), "生成失败：${produced.reason}")
+    private suspend fun publishResult(trigger: String, decision: ProactiveTimingEngine.Decision, ready: Prepared): Outcome =
+        when (val produced = produce(ready)) {
+            is ProactiveReplyParser.Result.Failed -> {
+                Logger.w(TAG, "生成失败: ${produced.reason}")
+                Outcome(decision.verdict, false, hasOpenThoughts(ready), "生成失败：${produced.reason}")
+            }
+            is ProactiveReplyParser.Result.Skip -> {
+                // 这是模型自己的判断，它看到的是对话，看不到自己上一条有没有被读。
+                // 把外部事实一起记上，才能分清「没东西可说」和「说了没人应」。
+                Logger.i(TAG, "判定跳过 | reason=${produced.reason} | ${skipContext(ready)}")
+                Outcome(
+                    decision.verdict,
+                    false,
+                    hasOpenThoughts(ready),
+                    "它觉得这会儿没什么可接的（${produced.reason}）",
+                )
+            }
+            is ProactiveReplyParser.Result.Message -> {
+                Logger.i(
+                    TAG,
+                    "主动消息候选生成 | assistantId=${ready.assistant.id} | len=${produced.content.length} | trigger=$trigger",
+                )
+                val ok = publish(trigger, ready, produced)
+                Outcome(
+                    decision.verdict,
+                    ok,
+                    hasOpenThoughts(ready),
+                    if (ok) "已发送" else "落库失败，下次再试",
+                )
+            }
         }
-        is ProactiveReplyParser.Result.Skip -> {
-            // 这是模型自己的判断，它看到的是对话，看不到自己上一条有没有被读。
-            // 把外部事实一起记上，才能分清「没东西可说」和「说了没人应」。
-            Logger.i(TAG, "判定跳过 | reason=${produced.reason} | ${skipContext(ready)}")
-            Outcome(
-                decision.verdict,
-                false,
-                hasOpenThoughts(ready),
-                "它觉得这会儿没什么可接的（${produced.reason}）",
-            )
-        }
-        is ProactiveReplyParser.Result.Message -> {
-            Logger.i(
-                TAG,
-                "主动消息候选生成 | assistantId=${ready.assistant.id} | len=${produced.content.length} | trigger=$trigger",
-            )
-            val ok = publish(trigger, ready, produced)
-            Outcome(
-                decision.verdict,
-                ok,
-                hasOpenThoughts(ready),
-                if (ok) "已发送" else "落库失败，下次再试",
-            )
-        }
-    }
 
     // ══════════════════════════════════════════════════════════════
     // 准备
@@ -221,11 +217,7 @@ class ProactiveCycleRunner(
         data class Blocked(val outcome: Outcome) : Preparation
     }
 
-    private suspend fun prepare(
-        trigger: String,
-        force: Boolean,
-        entry: ProactiveCycleGuard.Entry,
-    ): Preparation {
+    private suspend fun prepare(trigger: String, force: Boolean, entry: ProactiveCycleGuard.Entry): Preparation {
         val gate = gateBlock(force)
         return gate ?: assemble(trigger, entry)
     }
@@ -292,18 +284,23 @@ class ProactiveCycleRunner(
                         randomOffsetMinutes = config.randomOffsetMinutes,
                         assistantId = assistant.id,
                     ),
+                    // 日保底由用户设置，0 = 关闭。
+                    dailyGuaranteeMs = config.dailyGuaranteeHours.coerceIn(0, 72) * 3_600_000L,
                 ),
             ).also { d ->
                 Logger.d(
                     TAG,
                     "判定[$trigger]: ${d.verdict} interval=${d.effectiveIntervalMinutes}min " +
-                        "budget=${d.remainingBudget}",
+                        "guarantee=${d.dailyGuarantee} budget=${d.remainingBudget}",
                 )
             }
         }
 
         return when {
             // 账本为空不再阻断：素材是最近对话，没有牵挂照样能接话。
+            sessionId == null && trigger == ProactiveScheduler.TRIGGER_MANUAL &&
+                !config.agentSessionEnabled && !config.allowPlainChatSession ->
+                blocked("没有可用落点:Agent 会话与普通对话都关着")
             sessionId == null || context == null || decision == null -> blocked("没有可用会话")
             else -> Preparation.Ready(
                 Prepared(
@@ -318,11 +315,8 @@ class ProactiveCycleRunner(
         }
     }
 
-    private fun blocked(
-        detail: String,
-        verdict: ProactiveTimingEngine.Verdict? = null,
-        ledgerNotEmpty: Boolean = false,
-    ): Preparation = Preparation.Blocked(Outcome(verdict, false, ledgerNotEmpty, detail))
+    private fun blocked(detail: String, verdict: ProactiveTimingEngine.Verdict? = null, ledgerNotEmpty: Boolean = false): Preparation =
+        Preparation.Blocked(Outcome(verdict, false, ledgerNotEmpty, detail))
 
     // ══════════════════════════════════════════════════════════════
     // 生成
@@ -347,7 +341,8 @@ class ProactiveCycleRunner(
 
         // 安静档：没有具体事由就不开口。连模型都不调，
         // 既省一次调用，也避免它在「只允许说事」的约束下硬凑出一句寒暄。
-        if (intensity.onlyWhenNeeded && candidates.isEmpty()) {
+        // 日保底这一轮例外：用户明确要「每天都收到」，这时候宁可寒暄也不能哑着。
+        if (intensity.onlyWhenNeeded && candidates.isEmpty() && !ready.decision.dailyGuarantee) {
             return ProactiveReplyParser.Result.Skip("安静档：账本里没有具体的事")
         }
 
@@ -386,11 +381,7 @@ class ProactiveCycleRunner(
      * 落库失败时什么都不动，这轮当作没发生，下次重试 ——
      * 宁可重试也不丢消息，更不能扣了额度却没发出去。
      */
-    private suspend fun publish(
-        trigger: String,
-        ready: Prepared,
-        message: ProactiveReplyParser.Result.Message,
-    ): Boolean {
+    private suspend fun publish(trigger: String, ready: Prepared, message: ProactiveReplyParser.Result.Message): Boolean {
         val now = System.currentTimeMillis()
         val written = runCatching {
             runtime.sessions.appendMessage(

@@ -49,6 +49,14 @@ object ProactiveTimingEngine {
     private const val MINUTE_MS = 60_000L
 
     /**
+     * 日保底窗口：距上一条主动消息超过这么久，就认为「今天这条还欠着」。
+     *
+     * 用户要的是「每天都能收到」，而不是「有事才发」。卡 22 小时而不是 24，
+     * 是因为巡检不是准点任务：按 24 算，连续两轮抖动就会变成隔一天多。
+     */
+    const val DAILY_GUARANTEE_MS = 22L * 60 * 60 * 1000L
+
+    /**
      * 一次判定的全部输入。
      *
      * 刻意做成扁平的数据类而不是一堆参数：调用方必须显式准备每一件事，
@@ -84,6 +92,13 @@ object ProactiveTimingEngine {
          * 也会让调用方以为它们彼此无关。
          */
         val pacing: Pacing = Pacing(),
+        /**
+         * 日保底窗口（毫秒），0 表示关闭。
+         *
+         * 默认跟着 [DAILY_GUARANTEE_MS]；由上层按用户设置传入，
+         * 这样引擎不认识配置类型，配置改了也不用改判定。
+         */
+        val dailyGuaranteeMs: Long = DAILY_GUARANTEE_MS,
     )
 
     /**
@@ -132,6 +147,8 @@ object ProactiveTimingEngine {
         val hourOfDay: Int,
         /** 本次判定实际使用的间隔（含当日偏移），排查「为什么还没到点」时先看它。 */
         val effectiveIntervalMinutes: Int = DEFAULT_INTERVAL_MINUTES,
+        /** 本次放行是否来自「日保底」（只越过「间隔还没到」这一道闸）。 */
+        val dailyGuarantee: Boolean = false,
     ) {
         val shouldSend: Boolean get() = verdict == Verdict.OK
     }
@@ -149,16 +166,39 @@ object ProactiveTimingEngine {
         val intervalMinutes = effectiveIntervalMinutes(input)
 
         // Q1：时机
+        val quiet = !input.allDayAllowed &&
+            isInQuietHours(hour, input.allowedHourStart, input.allowedHourEnd)
+
         val timingBlock = checkTiming(input, hour, intervalMinutes * MINUTE_MS)
 
+        // 日保底：距上一条超过保底窗口（或从未发过）时，只越过「间隔还没到」这一道闸。
+        // 不越过冷却、不越过「用户刚说过话」、不越过「正在生成」、也不越过额度 ——
+        // 那些是「别打扰人」的规矩，把它们一起压掉就成了闹钟。
+        //
+        // 另外：如果上一轮已经真正开跑过（有过尝试），也不能压 —— 那是防成本风暴的闸，
+        // 压过去就变成每隔几分钟尝试一次。
+        val intervalMs = intervalMinutes * MINUTE_MS
+        val attemptedRecently = tooSoon(input.now, input.lastProactiveAttemptAt, intervalMs)
+        val usedGuarantee = input.dailyGuaranteeMs > 0L && !quiet && !attemptedRecently &&
+            remaining >= 1f &&
+            timingBlock == Verdict.TOO_SOON &&
+            (
+                input.lastProactiveSentAt <= 0L ||
+                    input.now - input.lastProactiveSentAt >= input.dailyGuaranteeMs
+                )
+
         // Q2：额度。放在时机之后，是因为「现在不能打扰」和「没额度」的排查方向不同。
-        val verdict = timingBlock ?: if (remaining < 1f) Verdict.NO_BUDGET else Verdict.OK
+        val verdict = when {
+            usedGuarantee -> Verdict.OK
+            else -> timingBlock ?: if (remaining < 1f) Verdict.NO_BUDGET else Verdict.OK
+        }
 
         return Decision(
             verdict = verdict,
             remainingBudget = remaining,
             hourOfDay = hour,
             effectiveIntervalMinutes = intervalMinutes,
+            dailyGuarantee = usedGuarantee,
         )
     }
 
@@ -184,8 +224,7 @@ object ProactiveTimingEngine {
     }
 
     /** 距 [timestamp] 不足 [intervalMs] 就算太近；0 表示从未发生，不参与判定。 */
-    private fun tooSoon(now: Long, timestamp: Long, intervalMs: Long): Boolean =
-        timestamp > 0 && now - timestamp < intervalMs
+    private fun tooSoon(now: Long, timestamp: Long, intervalMs: Long): Boolean = timestamp > 0 && now - timestamp < intervalMs
 
     /**
      * 本次判定真正使用的间隔：用户配的基础间隔 + 当日偏移。
@@ -265,8 +304,7 @@ object ProactiveTimingEngine {
      * true 表示调用方应当先把预算计数清零再继续。
      * 放在这里而不是 DAO 里，是因为「跨日」是业务语义，不是存储语义。
      */
-    fun needsBudgetReset(relation: ProactiveRelationEntity, todayDate: String): Boolean =
-        relation.budgetDate != todayDate
+    fun needsBudgetReset(relation: ProactiveRelationEntity, todayDate: String): Boolean = relation.budgetDate != todayDate
 
     // ══════════════════════════════════════════════════════════════
     // 工具

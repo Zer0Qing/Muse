@@ -432,10 +432,10 @@ data class ProactiveMessageConfig(
     /**
      * **已废弃**：v1.95 的「仅 Agent 会话」开关。全仓从来没有读取方（只在设置页画了个开关），
      * 用户实测「打开/关闭都没区别」。保留字段只为旧配置反序列化兼容，逻辑请用 [agentSessionEnabled]。
+     * 默认值也从 true 改成 false：它没有任何读取方，留着 true 只会让后来者
+     * 以为「默认只发 Agent 会话」——那正好是这次要消灭的误解。
      */
     @Deprecated("无读取方，改用 agentSessionEnabled")
-    // 默认值也从 true 改成 false：它没有任何读取方，留着 true 只会让后来者
-    // 以为「默认只发 Agent 会话」——那正好是这次要消灭的误解。
     val agentOnly: Boolean = false,
 
     /**
@@ -444,6 +444,13 @@ data class ProactiveMessageConfig(
      * false 时仅阻止 Agent 落点；普通对话仍需 [allowPlainChatSession] 显式允许。
      */
     val agentSessionEnabled: Boolean = true,
+    /**
+     * 每日保底：距上一条主动消息超过这么多小时就强制发一条（0 = 关闭）。
+     *
+     * 只越过「间隔还没到」这一道闸，不越过免打扰、冷却、「用户刚说过话」、
+     * 「上一轮已经尝试过」与当天额度 —— 那些是别打扰人的规矩。
+     */
+    val dailyGuaranteeHours: Int = 22,
     /**
      * 普通对话是否接收主动消息。默认 false：日常问候不污染任务对话框。
      *

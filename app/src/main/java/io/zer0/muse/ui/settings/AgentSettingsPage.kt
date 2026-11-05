@@ -129,6 +129,7 @@ fun AgentSettingsPage(
 
     var showAssistantPicker by remember { mutableStateOf(false) }
     var showOffsetPicker by remember { mutableStateOf(false) }
+    var showGuaranteePicker by remember { mutableStateOf(false) }
     // v1.xxx: 每日总结时段输入弹窗
     var showSlotsDialog by remember { mutableStateOf(false) }
     // v1.xxx: AI 朋友圈每日条数选择弹窗
@@ -992,6 +993,18 @@ fun AgentSettingsPage(
                         )
                         SettingsGroupDivider()
                         SettingsItemRow(
+                            icon = MuseIcons.clock,
+                            title = stringResource(R.string.settings_agent_daily_guarantee),
+                            subtitle = guaranteeLabel(proactiveConfig.dailyGuaranteeHours),
+                            onClick = {
+                                showAdvancedDialog = false
+                                showGuaranteePicker = true
+                            },
+                        ) {
+                            ChevronRight()
+                        }
+                        SettingsGroupDivider()
+                        SettingsItemRow(
                             icon = MuseIcons.switch,
                             title = stringResource(R.string.settings_agent_temperature),
                             subtitle = "%.1f".format(proactiveConfig.temperature),
@@ -1192,6 +1205,50 @@ fun AgentSettingsPage(
         )
     }
 
+    if (showGuaranteePicker) {
+        var hours by rememberSaveable { mutableStateOf(proactiveConfig.dailyGuaranteeHours) }
+        MuseDialog(
+            onDismissRequest = { showGuaranteePicker = false },
+            title = stringResource(R.string.settings_agent_daily_guarantee),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = guaranteeLabel(hours),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_agent_daily_guarantee_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+                    MuseSlider(
+                        value = hours.toFloat(),
+                        onValueChange = { hours = it.toInt() },
+                        valueRange = 0f..48f,
+                        // 滑块内的格式化器不是 composable 上下文，只能给纯数字；
+                        // 带单位的文案由上方标题展示。
+                        valueFormatter = { it.toInt().toString() },
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                scope.launch {
+                    settings.saveProactiveMessageConfig(
+                        proactiveConfig.copy(dailyGuaranteeHours = hours),
+                    )
+                }
+                showGuaranteePicker = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showGuaranteePicker = false },
+        )
+    }
+
     // ── v2.0 5.9: 生成温度选择弹窗(0.0 ~ 2.0,步长 0.1)──
     if (showTemperaturePicker) {
         var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.temperature) }
@@ -1337,6 +1394,13 @@ private fun offsetLabel(minutes: Int): String {
         minutes % 60 == 0 -> stringResource(R.string.settings_agent_offset_hours, minutes / 60)
         else -> stringResource(R.string.settings_agent_offset_hours_minutes, minutes / 60, minutes % 60)
     }
+}
+
+/** 日保底的显示文案：0 表示关闭，其余显示小时数。 */
+@Composable
+private fun guaranteeLabel(hours: Int): String {
+    if (hours <= 0) return stringResource(R.string.settings_agent_daily_guarantee_off)
+    return stringResource(R.string.settings_agent_daily_guarantee_hours, hours)
 }
 
 /** UI-FIX: 主动消息组内的子分组标签，给平铺的开关建立层级。 */

@@ -50,8 +50,8 @@ class ProactiveSessionPicker(private val runtime: ProactiveRuntime) {
     }
 
     /**
-     * Manual "test send" is a diagnostic path. It must not borrow a normal task
-     * chat even when plain-chat delivery is enabled in settings.
+     * Manual "test send" 跟真实巡检用同一套落点规则，否则用户无法用它验证设置。
+     * 唯一区别：普通对话落点只复用现有会话，不为测试新建一个会话。
      */
     suspend fun resolveManualTestRoute(assistant: AssistantEntity): SessionPick? {
         val config =
@@ -64,14 +64,14 @@ class ProactiveSessionPicker(private val runtime: ProactiveRuntime) {
                 createAgentSession(assistant)
                     ?: error("无法创建 Agent 会话")
             },
+            plainSession = { pickPlainSession(assistant) },
         )
     }
 
     /** 普通对话落点必须显式允许，且当前会话未被静音。 */
-    private suspend fun pickPlainSession(assistant: AssistantEntity): SessionPick? =
-        pickRecentChat(assistant)
-            ?: pickRecentAny(assistant, agentAllowed = false)
-            ?: pickViewed(assistant, agentAllowed = false)
+    private suspend fun pickPlainSession(assistant: AssistantEntity): SessionPick? = pickRecentChat(assistant)
+        ?: pickRecentAny(assistant, agentAllowed = false)
+        ?: pickViewed(assistant, agentAllowed = false)
 
     private suspend fun isMuted(sessionId: String): Boolean =
         runCatching { runtime.proactiveSessionPreferences.isMuted(sessionId) }.getOrDefault(false)
