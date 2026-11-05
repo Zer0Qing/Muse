@@ -4,6 +4,8 @@ import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.memory.fact.FACT_DB_VERSION
+import io.zer0.memory.fact.FactAuditReport
+import io.zer0.memory.fact.MemoryAuditSource
 import io.zer0.memory.summary.MEMORY_DB_VERSION
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.data.session.MuseDb
@@ -32,6 +34,11 @@ data class DiagnosticsSnapshot(
     val mainThread: MainThreadSection,
     val webHost: WebHostSection,
     val background: WakeDiagnostics,
+    /**
+     * M4 记忆账本审计。默认全零:诊断卡在没有装配审计源时也要能打开,
+     * 且「没装配」与「账本干净」是两件事 —— 前者由 [FactAuditReport.databasesChecked] 为 0 区分。
+     */
+    val memory: FactAuditReport = FactAuditReport.EMPTY,
 ) {
     data class AppSection(
         val versionName: String,
@@ -79,6 +86,16 @@ data class DiagnosticsSnapshot(
             background = ExportedBackground(
                 background.entries.map { ExportedWake(it.kind.name, it.state.name, it.stopReason.name) },
             ),
+            memory = ExportedMemory(
+                databasesChecked = memory.databasesChecked,
+                totalFacts = memory.totalFacts,
+                withoutEvidence = memory.withoutEvidence,
+                duplicateEntities = memory.duplicateEntities,
+                danglingSupersedes = memory.danglingSupersedes,
+                danglingMergedInto = memory.danglingMergedInto,
+                pendingConflicts = memory.pendingConflicts,
+                expiredNotSwept = memory.expiredNotSwept,
+            ),
         ),
     )
 
@@ -98,55 +115,63 @@ data class DiagnosticsSnapshot(
          * 收集一次快照。所有读取都是只读且容错:
          * 单个来源失败表现为该段为空/零,而不是整卡打不开 —— 诊断工具自己崩溃
          * 是最讽刺的失效形态。
+         *
+         * [memoryAudit] 缺省为空实现:此时导出里 `databasesChecked` 会是 0,
+         * 读导出的人据此能分辨「没装配审计」与「账本干净」(M4)。
          */
-        suspend fun collect(context: Context): DiagnosticsSnapshot = withContext(Dispatchers.IO) {
-            val jank = MainThreadJankTracker.shared.snapshot()
-            val webSamples = WebHostLatencyStats.shared.snapshot()
-            val databases = DatabaseFootprint.collect(context)
-            DiagnosticsSnapshot(
-                collectedAt = Instant.now().toString(),
-                app = AppSection(
-                    versionName = BuildConfig.VERSION_NAME,
-                    versionCode = BuildConfig.VERSION_CODE,
-                    museDbVersion = MuseDb.LATEST_SCHEMA_VERSION,
-                    factDbVersion = FACT_DB_VERSION,
-                    memoryDbVersion = MEMORY_DB_VERSION,
-                ),
-                storage = StorageSection(
-                    databases = databases,
-                    logBytes = Logger.getLogFile()?.length() ?: 0L,
-                    totalBytes = databases.sumOf { it.mainBytes + it.walBytes + it.shmBytes },
-                ),
-                mainThread = MainThreadSection(
-                    jankCount = jank.jankCount,
-                    slowCount = jank.slowCount,
-                    blockCount = jank.blockCount,
-                    worstMs = jank.worstMs,
-                    windowSeconds = jank.windowSeconds,
-                ),
-                webHost = WebHostSection(
-                    latencySamples = webSamples.first,
-                    p95Ms = webSamples.second,
-                    p95Reliable = webSamples.first >= WebHostLatencyStats.MIN_RELIABLE_SAMPLES,
-                ),
-                background = runCatching {
-                    BackgroundWakeDiagnostics.collectWithSettings(context)
-                }.getOrElse {
-                    Logger.w(TAG, "后台唤醒快照采集失败: ${it.message}")
-                    // 失败也要出整卡:以 error 字段呈现,其余为空
-                    WakeDiagnostics(
-                        entries = emptyList(),
-                        backgroundWorkEnabled = null,
-                        batteryOptimizationExempt = false,
-                        exportedAtMillis = 0L,
-                        appVersion = "",
-                        androidVersion = "",
-                        device = "",
-                        error = it.message ?: "collect failed",
-                    )
-                },
-            )
-        }
+        suspend fun collect(context: Context, memoryAudit: MemoryAuditSource = MemoryAuditSource.EMPTY): DiagnosticsSnapshot =
+            withContext(Dispatchers.IO) {
+                val jank = MainThreadJankTracker.shared.snapshot()
+                val webSamples = WebHostLatencyStats.shared.snapshot()
+                val databases = DatabaseFootprint.collect(context)
+                DiagnosticsSnapshot(
+                    collectedAt = Instant.now().toString(),
+                    app = AppSection(
+                        versionName = BuildConfig.VERSION_NAME,
+                        versionCode = BuildConfig.VERSION_CODE,
+                        museDbVersion = MuseDb.LATEST_SCHEMA_VERSION,
+                        factDbVersion = FACT_DB_VERSION,
+                        memoryDbVersion = MEMORY_DB_VERSION,
+                    ),
+                    storage = StorageSection(
+                        databases = databases,
+                        logBytes = Logger.getLogFile()?.length() ?: 0L,
+                        totalBytes = databases.sumOf { it.mainBytes + it.walBytes + it.shmBytes },
+                    ),
+                    mainThread = MainThreadSection(
+                        jankCount = jank.jankCount,
+                        slowCount = jank.slowCount,
+                        blockCount = jank.blockCount,
+                        worstMs = jank.worstMs,
+                        windowSeconds = jank.windowSeconds,
+                    ),
+                    webHost = WebHostSection(
+                        latencySamples = webSamples.first,
+                        p95Ms = webSamples.second,
+                        p95Reliable = webSamples.first >= WebHostLatencyStats.MIN_RELIABLE_SAMPLES,
+                    ),
+                    background = runCatching {
+                        BackgroundWakeDiagnostics.collectWithSettings(context)
+                    }.getOrElse {
+                        Logger.w(TAG, "后台唤醒快照采集失败: ${it.message}")
+                        // 失败也要出整卡:以 error 字段呈现,其余为空
+                        WakeDiagnostics(
+                            entries = emptyList(),
+                            backgroundWorkEnabled = null,
+                            batteryOptimizationExempt = false,
+                            exportedAtMillis = 0L,
+                            appVersion = "",
+                            androidVersion = "",
+                            device = "",
+                            error = it.message ?: "collect failed",
+                        )
+                    },
+                    memory = runCatching { memoryAudit.audit() }.getOrElse {
+                        Logger.w(TAG, "记忆账本审计失败: ${it.message}")
+                        FactAuditReport.EMPTY
+                    },
+                )
+            }
     }
 }
 
@@ -161,6 +186,7 @@ internal data class ExportedDiagnostics(
     val jank: ExportedJank,
     val web: ExportedWeb,
     val background: ExportedBackground,
+    val memory: ExportedMemory,
 )
 
 @kotlinx.serialization.Serializable
@@ -206,4 +232,22 @@ internal data class ExportedWake(
     val kind: String,
     val state: String,
     val stopReason: String,
+)
+
+/**
+ * M4 记忆账本审计的导出形状:八个整数,没有任何事实文本。
+ *
+ * `databasesChecked` 与其余计数一起导出是故意的 —— 「一个库都没读到」和
+ * 「读到三个库且全都干净」必须能被区分开,否则未装配会被读成账本没问题。
+ */
+@kotlinx.serialization.Serializable
+internal data class ExportedMemory(
+    val databasesChecked: Int,
+    val totalFacts: Int,
+    val withoutEvidence: Int,
+    val duplicateEntities: Int,
+    val danglingSupersedes: Int,
+    val danglingMergedInto: Int,
+    val pendingConflicts: Int,
+    val expiredNotSwept: Int,
 )

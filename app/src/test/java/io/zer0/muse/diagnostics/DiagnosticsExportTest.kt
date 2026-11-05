@@ -1,5 +1,6 @@
 package io.zer0.muse.diagnostics
 
+import io.zer0.memory.fact.FactAuditReport
 import io.zer0.muse.schedule.WakeDiagnostics
 import io.zer0.muse.schedule.WakeState
 import io.zer0.muse.schedule.WakeStopReason
@@ -54,6 +55,16 @@ class DiagnosticsExportTest {
             androidVersion = "",
             device = "",
         ),
+        memory = FactAuditReport(
+            databasesChecked = 3,
+            totalFacts = 128,
+            withoutEvidence = 17,
+            duplicateEntities = 2,
+            danglingSupersedes = 1,
+            danglingMergedInto = 0,
+            pendingConflicts = 4,
+            expiredNotSwept = 9,
+        ),
     )
 
     @Test
@@ -62,9 +73,20 @@ class DiagnosticsExportTest {
         val parsed = kotlinx.serialization.json.Json.parseToJsonElement(json)
             .let { it as kotlinx.serialization.json.JsonObject }
         assertEqualsKeys(
-            setOf("collectedAt", "app", "databases", "logBytes", "jank", "web", "background"),
+            setOf("collectedAt", "app", "databases", "logBytes", "jank", "web", "background", "memory"),
             parsed.keys.toSet(),
         )
+    }
+
+    @Test
+    fun `记忆审计只以计数出现在导出里`() {
+        // M4:审计是内部设施。导出里必须给得出「有几个库、多少条没依据」,
+        // 但绝不该出现任何事实文本 —— 这份 JSON 是被粘贴给人看的。
+        val json = sample().sanitizedJson()
+        for (field in listOf("databasesChecked", "totalFacts", "withoutEvidence", "duplicateEntities")) {
+            assertTrue("导出缺审计字段 $field\n$json", json.contains("\"$field\""))
+        }
+        assertFalse("审计不该带出事实原文\n$json", json.contains("手冲"))
     }
 
     @Test

@@ -72,8 +72,15 @@ val appInfraModule = module {
         )
     }
     // 「运行」页三条只读命令的数据源:日志尾部(Logger) + 诊断快照(S4) + 窗口统计(S4 的两个计数器)。
+    // M4:诊断快照里的记忆审计段走这一份装配源,与 App 诊断卡同一个入口 —— 两侧导出必须一模一样。
+    single<io.zer0.memory.fact.MemoryAuditSource> {
+        io.zer0.memory.fact.ProviderMemoryAuditSource(get())
+    }
     single<io.zer0.muse.web.HostRuntimeSource> {
-        io.zer0.muse.web.AndroidHostRuntimeSource(context = androidContext())
+        io.zer0.muse.web.AndroidHostRuntimeSource(
+            context = androidContext(),
+            memoryAudit = get(),
+        )
     }
     single {
         io.zer0.muse.web.WebServer(

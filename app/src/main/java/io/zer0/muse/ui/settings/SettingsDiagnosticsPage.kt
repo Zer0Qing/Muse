@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.memory.fact.MemoryAuditSource
 import io.zer0.muse.R
 import io.zer0.muse.diagnostics.DiagnosticsSnapshot
 import io.zer0.muse.diagnostics.MainThreadJankTracker
@@ -30,6 +31,7 @@ import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -45,10 +47,13 @@ import java.util.Locale
 fun SettingsDiagnosticsPage(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // M4: 审计源走装配,页面自己不开库、不猜 id;未装配时导出给 databasesChecked=0,
+    // 读导出的人能分辨「没装配」与「账本干净」。
+    val memoryAudit = koinInject<MemoryAuditSource>()
     var snapshot by remember { mutableStateOf<DiagnosticsSnapshot?>(null) }
     var reload by remember { mutableStateOf(0) }
     LaunchedEffect(reload) {
-        snapshot = runCatching { DiagnosticsSnapshot.collect(context) }.getOrNull()
+        snapshot = runCatching { DiagnosticsSnapshot.collect(context, memoryAudit) }.getOrNull()
     }
 
     SettingsSubPageScaffold(

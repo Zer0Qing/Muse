@@ -64,6 +64,51 @@ interface FactDao {
     @Query("SELECT COUNT(*) FROM facts")
     suspend fun count(): Int
 
+    // ── M4 记忆审计(M4):只读计数,不改数据、不返回内容 ──────────────
+    //
+    // 这一组查询是审计器的全部依赖:每个都只出一个整数。
+    // 不 SELECT 行内容 —— 审计结果要能安全地出现在诊断导出 JSON 里(那是要贴给开发者的),
+    // 计数没有隐私代价,内容(hasEvidence 的具体是哪条)有。
+
+    /** 没有任何原话证据的事实条数(`evidence_quote` 为空)。 */
+    @Query("SELECT COUNT(*) FROM facts WHERE evidence_quote IS NULL")
+    suspend fun countWithoutEvidence(): Int
+
+    /** 同一 entity_key 下存在多条**不同**断言的实体数 —— 重复/打架的候选。 */
+    @Query(
+        """
+        SELECT COUNT(*) FROM (
+            SELECT entity_key FROM facts
+            WHERE entity_key IS NOT NULL AND entity_key <> ''
+            GROUP BY entity_key HAVING COUNT(DISTINCT fact) > 1
+        )
+        """,
+    )
+    suspend fun countDuplicateEntities(): Int
+
+    /** `supersedes_id` 指向已不存在的行 —— 覆盖链上的孤儿。 */
+    @Query("SELECT COUNT(*) FROM facts WHERE supersedes_id IS NOT NULL AND supersedes_id NOT IN (SELECT id FROM facts)")
+    suspend fun countDanglingSupersedes(): Int
+
+    /** `merged_into_id` 指向已不存在的行 —— 合并后目标被删,子事实失去归属。 */
+    @Query("SELECT COUNT(*) FROM facts WHERE merged_into_id IS NOT NULL AND merged_into_id NOT IN (SELECT id FROM facts)")
+    suspend fun countDanglingMergedInto(): Int
+
+    /** 等待用户裁决的矛盾条数。 */
+    @Query("SELECT COUNT(*) FROM facts WHERE conflict_status = 'pending'")
+    suspend fun countPendingConflicts(): Int
+
+    /**
+     * 已过 `expires_at` 但仍在表里的条数(清扫器没跑或跑失败)。
+     *
+     * 这里**不在 SQL 里比时间**:写入侧用 `Instant.now().toString()`,
+     * 它的秒小数位长度不固定(`...:25Z` 与 `...:25.486Z` 都出现过),
+     * 字符串比较会把其中一种排在错误的位置。取回时间戳列在 Kotlin 侧按 Instant 判定,
+     * 既与 `FactStore.isExpired` 同一口径,也依然不碰事实文本。
+     */
+    @Query("SELECT expires_at FROM facts WHERE expires_at IS NOT NULL")
+    suspend fun allExpiryTimestamps(): List<String>
+
     @Query("DELETE FROM facts WHERE id = :id")
     suspend fun deleteById(id: Long): Int
 

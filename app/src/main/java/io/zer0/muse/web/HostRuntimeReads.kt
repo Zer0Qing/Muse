@@ -2,6 +2,7 @@ package io.zer0.muse.web
 
 import android.content.Context
 import io.zer0.common.Logger
+import io.zer0.memory.fact.MemoryAuditSource
 import io.zer0.muse.diagnostics.DiagnosticsSnapshot
 import io.zer0.muse.diagnostics.MainThreadJankTracker
 import io.zer0.muse.diagnostics.WebHostLatencyStats
@@ -125,6 +126,8 @@ internal class AndroidHostRuntimeSource(
     private val logFile: () -> File? = { Logger.getLogFile() },
     private val jankSnapshot: () -> MainThreadJankTracker.Snapshot = { MainThreadJankTracker.shared.snapshot() },
     private val latencySnapshot: () -> Pair<Int, Long?> = { WebHostLatencyStats.shared.snapshot() },
+    /** M4 记忆账本审计源;未装配时导出的 memory 段 databasesChecked=0。 */
+    private val memoryAudit: MemoryAuditSource = MemoryAuditSource.EMPTY,
 ) : HostRuntimeSource {
 
     override suspend fun logs(limit: Int): List<String> = withContext(Dispatchers.IO) {
@@ -141,7 +144,7 @@ internal class AndroidHostRuntimeSource(
     }
 
     override suspend fun diagnosticsJson(): String? = runCatching {
-        DiagnosticsSnapshot.collect(context).sanitizedJson()
+        DiagnosticsSnapshot.collect(context, memoryAudit).sanitizedJson()
     }.getOrElse {
         Logger.w(TAG, "诊断快照采集失败", it)
         null
