@@ -142,7 +142,9 @@ try {
   assert(/host-memory-more/.test(readFileSync(join(ROOT, "src", "host", "KnowledgePage.tsx"), "utf8")), "还有更多时给加载按钮");
 
   // ── 3. 定时任务 ─────────────────────────────────────────────
-  const now = Date.now();
+  // 固定基准时间：用 Date.now() 时，午夜后两小时内「2 小时前」会跨到昨天，
+  // 按设计显示「昨天」，断言必红。这里不测时区语义，只测相对时间有没有接上。
+  const now = new Date(2026, 9, 25, 14, 0).getTime();
   const task = {
     id: "t1",
     name: "PROTO-每日简报",
@@ -152,7 +154,7 @@ try {
     lastRunAt: now - 2 * 60 * 60 * 1000,
     lastResult: "PROTO-上次结果",
   };
-  const tasksHtml = tasksPage({ tasks: { items: [task], loading: false, error: undefined, unsupported: false } });
+  const tasksHtml = tasksPage({ tasks: { items: [task], loading: false, error: undefined, unsupported: false }, now });
   assert(tasksHtml.includes("PROTO-每日简报"), "任务名");
   assert(tasksHtml.includes("0 8 * * *"), "cron 原样展示");
   assert(tasksHtml.includes("已启用"), "启用状态");

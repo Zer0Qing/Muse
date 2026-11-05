@@ -58,6 +58,9 @@ const HOST_SETTINGS = readFileSync(join(ROOT, "src", "host", "HostSettings.tsx")
 const CONNECTION = readFileSync(join(ROOT, "src", "host", "useHostConnection.ts"), "utf8");
 const CSS = readFileSync(join(ROOT, "src", "styles.css"), "utf8");
 
+// 固定基准时间：用 Date.now() 时，午夜后两小时内「2 小时前」会跨到昨天。
+const NOW = new Date(2026, 9, 25, 14, 0).getTime();
+
 const STATUS = {
   appVersion: "2.6.10",
   appVersionCode: 20610,
@@ -70,7 +73,7 @@ const STATUS = {
     cacheBytes: 1024 * 1024,
     totalAppBytes: 20 * 1024 * 1024,
   },
-  backup: { lastBackupAt: Date.now() - 2 * 60 * 60 * 1000, lastBackupBytes: 8 * 1024 * 1024, autoBackupEnabled: true, cloudBackupEnabled: false },
+  backup: { lastBackupAt: NOW - 2 * 60 * 60 * 1000, lastBackupBytes: 8 * 1024 * 1024, autoBackupEnabled: true, cloudBackupEnabled: false },
   capabilities: { accessibility: true, shell: false, virtualDisplay: undefined, notificationListener: true, root: undefined, shizuku: undefined },
   battery: { level: 72, charging: false },
 };
@@ -85,6 +88,7 @@ const dataPage = (overrides = {}) =>
       pii: { checked: true, writable: true },
       onTogglePii: () => undefined,
       onBack: () => undefined,
+      now: NOW,
       ...overrides,
     }),
   );

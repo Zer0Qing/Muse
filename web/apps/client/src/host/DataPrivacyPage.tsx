@@ -15,6 +15,8 @@ interface DataPrivacyPageProps {
   readonly pii: { readonly checked: boolean; readonly writable: boolean } | undefined;
   readonly onTogglePii: (enabled: boolean) => void;
   readonly onBack: () => void;
+  /** 当前时间；测试注入固定值，避免「2 小时前」跨午夜时变成「昨天」。 */
+  readonly now?: number;
 }
 
 /** 存储条的分段顺序与配色（顺序即展示顺序）。 */
@@ -32,7 +34,7 @@ const STORAGE_SEGMENTS = [
  * 存储占用用一条横向堆叠条 + 明细行；备份与开关都是只读回显（写入口在手机上），
  * 只有 PII 守护走现有的 `settings.update` 白名单，可以直接在网页上开关。
  */
-export function DataPrivacyPage({ title, system, supported, onRequest, pii, onTogglePii, onBack }: DataPrivacyPageProps) {
+export function DataPrivacyPage({ title, system, supported, onRequest, pii, onTogglePii, onBack, now = Date.now() }: DataPrivacyPageProps) {
   const { t, locale } = useI18n();
   const status = system.status;
 
@@ -124,7 +126,7 @@ export function DataPrivacyPage({ title, system, supported, onRequest, pii, onTo
               <span className="host-setting-value">
                 {backup.lastBackupAt === undefined
                   ? t("data.neverBackedUp")
-                  : formatRelativeTime(backup.lastBackupAt, Date.now(), locale)}
+                  : formatRelativeTime(backup.lastBackupAt, now, locale)}
               </span>
             }
             divider={backup.lastBackupBytes === undefined ? false : true}

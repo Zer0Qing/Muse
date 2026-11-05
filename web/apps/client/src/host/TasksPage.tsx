@@ -10,6 +10,8 @@ interface TasksPageProps {
   readonly supported: boolean;
   readonly onRequest: () => void;
   readonly onBack: () => void;
+  /** 当前时间；测试注入固定值，避免「2 小时前」跨午夜时变成「昨天」。 */
+  readonly now?: number;
 }
 
 /**
@@ -18,14 +20,12 @@ interface TasksPageProps {
  * 一行一个任务：名字 + 启用状态、cron 原样展示、下次执行（未来时间，走相对时间）、
  * 上次执行与上次结果。本批不做启停与编辑，页面底部写明在手机上管理。
  */
-export function TasksPage({ tasks, supported, onRequest, onBack }: TasksPageProps) {
+export function TasksPage({ tasks, supported, onRequest, onBack, now = Date.now() }: TasksPageProps) {
   const { t, locale } = useI18n();
 
   useEffect(() => {
     if (supported) onRequest();
   }, [supported, onRequest]);
-
-  const now = Date.now();
 
   return (
     <Screen fill topBar={<TopBar title={t("tasks.title")} largeTitle onBack={onBack} />}>
