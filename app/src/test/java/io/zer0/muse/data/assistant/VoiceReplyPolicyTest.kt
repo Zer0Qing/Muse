@@ -111,4 +111,42 @@ class VoiceReplyPolicyTest {
             assertTrue(injected.contains(VoiceReplyPolicy.instruction(VoiceReplyFrequency.ALWAYS)))
         }
     }
+
+    @Test
+    fun `默认档拼接后与传入的提示词逐字相同`() {
+        val base = "人格设定…\n\n---\n\n主动消息约定…"
+        assertEquals(
+            "默认档必须一个字都不加：拼接处多出空行或分隔符，就等于上线时改了所有人提示词",
+            base,
+            VoiceReplyPolicy.inject(base, VoiceReplyFrequency.RARELY),
+        )
+        // 非默认档才加分隔符，且不能把原文改掉
+        val withPolicy = VoiceReplyPolicy.inject(base, VoiceReplyFrequency.OFTEN)
+        assertTrue("原文要完整保留在前", withPolicy.startsWith(base))
+        assertTrue("要用统一分隔符接上去", withPolicy.contains(VoiceReplyPolicy.SEPARATOR))
+        assertEquals("空白基底时不该留下一串分隔符", VoiceReplyPolicy.instruction(VoiceReplyFrequency.OFTEN),
+            VoiceReplyPolicy.inject("", VoiceReplyFrequency.OFTEN))
+    }
+
+    /**
+     * 装配侧的接线不变式（读源码断言）。
+     *
+     * 整体构造 `SystemPromptAssembler` 要六个依赖，测不动；本仓对这类情况已有先例
+     * （`PromptInvariantTest` / `ExperienceTextCacheTest` 都是读源文件断言）。
+     * 这里只钉两件真会错事：政策是否真被调用、子代理是否被排除。
+     */
+    @Test
+    fun `装配器确实调用了政策并且子代理不注入`() {
+        val src = java.io.File("src/main/java/io/zer0/muse/transformer/SystemPromptAssembler.kt").readText()
+        assertTrue("build() 里必须真的拼接政策", src.contains("VoiceReplyPolicy.inject(combined, voiceFrequencyFor(assistant))"))
+        assertTrue("子代理不注入（另有人设简报，多一段会稀释）", src.contains("if (forSubagent) combined else"))
+        assertContainsSafely(src)
+    }
+
+    private fun assertContainsSafely(src: String) {
+        // 政策段不能同时存在两条拼接路径（旧的 buildString 内拼接必须已经删掉）
+        val appends = Regex("append\\(voicePolicy\\)").findAll(src).count() +
+            Regex("buildVoicePolicySection").findAll(src).count()
+        assertEquals("拼接路径必须只有一条：$appends", 0, appends)
+    }
 }

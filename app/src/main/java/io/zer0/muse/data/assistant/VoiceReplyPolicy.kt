@@ -52,6 +52,22 @@ enum class VoiceReplyFrequency {
  */
 internal object VoiceReplyPolicy {
 
+    /**
+     * 把政策段拼到已组装好的提示词末尾。
+     *
+     * 做成纯函数是要能断言这一条：**默认档返回的串与传进来的串完全相同**。
+     * 只在字符串函数上测"空串"是不够的 —— 拼接处若加了空行或分隔符，
+     * 上线时所有用户的提示词尾端都会多出东西，而功能默认是关的。
+     */
+    fun inject(base: String, frequency: VoiceReplyFrequency): String {
+        val section = instruction(frequency)
+        if (section.isBlank()) return base
+        return if (base.isBlank()) section else "$base$SEPARATOR$section"
+    }
+
+    const val SEPARATOR: String = "\n\n---\n\n"
+
+
     fun instruction(frequency: VoiceReplyFrequency): String = when (frequency) {
         VoiceReplyFrequency.RARELY -> ""
         VoiceReplyFrequency.NEVER ->

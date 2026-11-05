@@ -247,13 +247,11 @@ class SystemPromptAssembler(
                     if (isNotEmpty()) append("\n\n---\n\n")
                     append(stickerGuide)
                 }
-                // 整改计划 第 4 条④：语音回复频率。默认档返回空串 ⇒ 提示词与上线前逐字相同。
-                val voicePolicy = if (forSubagent) "" else buildVoicePolicySection(assistant)
-                if (voicePolicy.isNotBlank()) {
-                    if (isNotEmpty()) append("\n\n---\n\n")
-                    append(voicePolicy)
-                }
             }
+
+        // 整改计划 第 4 条④：语音回复频率。走纯函数拼接 ⇒ 默认档逐字不改（有断言钉）。
+        // 子代理不注入：它有自己的简报，多一段人设级习惯只会稀释。
+        combined = if (forSubagent) combined else VoiceReplyPolicy.inject(combined, voiceFrequencyFor(assistant))
 
         // P1-1: 调用 SystemPromptComposeHook,追加 Hook 返回的内容
         if (hookRegistry != null) {
@@ -699,15 +697,14 @@ class SystemPromptAssembler(
      * （见 `tools/MediaGenToolsRegistrar` 的工具描述），客户端没有可拦的东西；
      * 真去拦会变成"用户明确要语音却没发出来"的黑箱，所以这里只改约定文案。
      *
-     * 默认档（`RARELY`）**必须返回空串**：否则这个功能一上线就等于悄悄改了所有人的系统提示。
+     * 默认档（`RARELY`）**必须一个字都不加**：否则这个功能一上线就等于悄悄改了所有人的系统提示。
      * 走 `VoiceReplyPolicyStore` 而不是 `ChatPreferences`：后者的定义文件此刻被并行修改占用，
      * 且这一项本来就是助手级长期偏好，与用户约定同族。
      */
-    suspend fun buildVoicePolicySection(assistant: AssistantEntity?): String {
-        val agentId = assistant?.id ?: return ""
-        val frequency = runCatching { VoiceReplyPolicyStore.of(context).frequencyFor(agentId) }.getOrNull()
-            ?: VoiceReplyFrequency.RARELY
-        return VoiceReplyPolicy.instruction(frequency)
+    internal suspend fun voiceFrequencyFor(assistant: AssistantEntity?): VoiceReplyFrequency {
+        val agentId = assistant?.id ?: return VoiceReplyFrequency.RARELY
+        return runCatching { VoiceReplyPolicyStore.of(context).frequencyFor(agentId) }
+            .getOrDefault(VoiceReplyFrequency.RARELY)
     }
 
     suspend fun buildStickerGuideSection(): String {
