@@ -69,7 +69,9 @@ class WebSearchProviderProbeTest {
     @Test
     fun `探测只取一条结果，不把对方打满`() {
         assertEquals(1, PROBE_MAX_RESULTS)
-        assertTrue("探测词不该是空串（空查询常被服务端直接拒绝，会把好端端的 Key 判成坏）",
-            PROBE_QUERY.isNotBlank())
+        assertTrue(
+            "探测词不该是空串（空查询常被服务端直接拒绝，会把好端端的 Key 判成坏）",
+            PROBE_QUERY.isNotBlank(),
+        )
     }
 }

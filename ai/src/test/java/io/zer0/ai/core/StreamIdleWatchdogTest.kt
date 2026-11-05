@@ -1,6 +1,5 @@
 package io.zer0.ai.core
 
-import java.io.IOException
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
@@ -10,6 +9,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.IOException
 
 /**
  * 流式**帧间静默**看门狗。
@@ -28,13 +28,15 @@ class StreamIdleWatchdogTest {
     fun `吐过一个字节后静默，到阈值就报中断且带 IOException`() = runTest {
         val events = flow<ChatStreamEvent> {
             emit(ChatStreamEvent.ContentDelta("半截回答"))
-            awaitCancellation()   // 上游永不结束、也永不报错：正是 readTimeout 要 300s 才抓住的那种
+            awaitCancellation() // 上游永不结束、也永不报错：正是 readTimeout 要 300s 才抓住的那种
         }.withIdleWatchdog(idleMs = 100).toList()
 
         assertEquals("应只剩 半截 + 一条中断：${events.map { it::class.simpleName } }", 2, events.size)
         val last = events.last()
-        assertTrue("必须是 StreamInterrupted，上层才会保留已显示内容：$last",
-            last is ChatStreamEvent.StreamInterrupted)
+        assertTrue(
+            "必须是 StreamInterrupted，上层才会保留已显示内容：$last",
+            last is ChatStreamEvent.StreamInterrupted,
+        )
         assertTrue(
             "throwable 要是 IOException，上层据此判定为网络类错误并走续传分支",
             (last as ChatStreamEvent.StreamInterrupted).throwable is IOException,
@@ -44,7 +46,10 @@ class StreamIdleWatchdogTest {
     @Test
     fun `事件持续到达时不误伤`() = runTest {
         val events = flow<ChatStreamEvent> {
-            repeat(3) { emit(ChatStreamEvent.ContentDelta("x")); delay(40) }
+            repeat(3) {
+                emit(ChatStreamEvent.ContentDelta("x"))
+                delay(40)
+            }
             emit(ChatStreamEvent.Done())
         }.withIdleWatchdog(idleMs = 100).toList()
 

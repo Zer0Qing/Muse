@@ -21,11 +21,8 @@ class WebSearchChainOrderTest {
 
     private class FakeProvider(override val name: String) : WebSearchService {
         override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = emptyList()
-        override suspend fun searchWithOptions(
-            query: String,
-            maxResults: Int,
-            options: Map<String, String>,
-        ): List<WebSearchResult> = emptyList()
+        override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+            emptyList()
     }
 
     private val defaultChainKeys = listOf("custom:我的引擎", "Tavily", "Brave", "Serper", "SearXNG", "Bing", "Baidu")

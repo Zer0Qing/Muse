@@ -37,8 +37,7 @@ class PluginParityVocabularyTest {
         AppJson.parseToJsonElement(file.readText()).jsonObject
     }
 
-    private fun SerialDescriptor.wireNames(): Set<String> =
-        (0 until elementsCount).map { getElementName(it) }.toSet()
+    private fun SerialDescriptor.wireNames(): Set<String> = (0 until elementsCount).map { getElementName(it) }.toSet()
 
     private fun obj(vararg path: String): JsonObject =
         path.fold(fixture as Any) { acc, key -> (acc as JsonObject).getValue(key) } as JsonObject
@@ -133,8 +132,10 @@ class PluginParityVocabularyTest {
         val renames = obj("hostWs", "wireKeyRenames").mapValues { (_, v) -> (v as JsonPrimitive).content }
         val eventNames = HostEvent.serializer().descriptor.wireNames()
         renames.forEach { (kotlinName, wireName) ->
-            assertTrue("客户端读的线上键 $wireName 必须由序列化器吐出（事件名集合=$eventNames）",
-                eventNames.contains(wireName))
+            assertTrue(
+                "客户端读的线上键 $wireName 必须由序列化器吐出（事件名集合=$eventNames）",
+                eventNames.contains(wireName),
+            )
             assertFalse("Kotlin 属性名 $kotlinName 不得再泄漏到线上", eventNames.contains(kotlinName))
         }
     }

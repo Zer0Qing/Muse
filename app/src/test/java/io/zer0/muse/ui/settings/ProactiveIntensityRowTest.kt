@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.core.app.ApplicationProvider
+import io.zer0.muse.R
 import io.zer0.muse.data.proactive.ProactiveIntensity
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -12,7 +13,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import io.zer0.muse.R
 
 /**
  * 强度控件（整改计划 第 4 条差异①）的渲染结构。
@@ -34,8 +34,7 @@ class ProactiveIntensityRowTest {
 
     private val context get() = ApplicationProvider.getApplicationContext<android.content.Context>()
 
-    private fun labels(): List<String> =
-        ProactiveIntensity.entries.map { context.getString(labelResOf(it)) }
+    private fun labels(): List<String> = ProactiveIntensity.entries.map { context.getString(labelResOf(it)) }
 
     /** 与控件同一份映射；测试里复刻是为了断言"五个名字都在场"，不是抄第二份业务表。 */
     private fun labelResOf(level: ProactiveIntensity): Int = when (level) {
@@ -55,8 +54,7 @@ class ProactiveIntensityRowTest {
         composeTestRule.waitForIdle()
     }
 
-    private fun countOf(text: String): Int =
-        composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().size
+    private fun countOf(text: String): Int = composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().size
 
     @Test
     fun `五个档位名各出现一次不重复`() {

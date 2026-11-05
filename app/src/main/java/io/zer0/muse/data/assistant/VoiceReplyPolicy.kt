@@ -49,6 +49,9 @@ enum class VoiceReplyFrequency {
  * 关键约束：`RARELY`（默认）返回空串。否则这个功能一上线就等于悄悄改了所有用户的系统提示，
  * 而用户什么都没做 —— 这类"上线即变更行为"是我在本项目里反复避免的（浏览器设置默认值同理）。
  */
+/** 政策段与既有提示词之间的统一分隔符（顶层常量；放 object 里会被 ktlint 的 property-naming 判成驼峰违规）。 */
+internal const val VOICE_POLICY_SEPARATOR = "\n\n---\n\n"
+
 internal object VoiceReplyPolicy {
 
     /**
@@ -61,10 +64,8 @@ internal object VoiceReplyPolicy {
     fun inject(base: String, frequency: VoiceReplyFrequency): String {
         val section = instruction(frequency)
         if (section.isBlank()) return base
-        return if (base.isBlank()) section else "$base$SEPARATOR$section"
+        return if (base.isBlank()) section else "$base$VOICE_POLICY_SEPARATOR$section"
     }
-
-    const val SEPARATOR: String = "\n\n---\n\n"
 
     fun instruction(frequency: VoiceReplyFrequency): String = when (frequency) {
         VoiceReplyFrequency.RARELY -> ""
@@ -94,13 +95,14 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
         prettyPrint = true
     }
 
-    private val _byAgent = MutableStateFlow(emptyMap<String, String>())
+    // 反例字段没用 `_x` 前缀：ktlint 的 property-naming 不容忍下划线开头（Compose 惯例在此让位于门禁）。
+    private val byAgentState = MutableStateFlow(emptyMap<String, String>())
 
     /** 原始映射（供界面显示当前档位）；坏文件当空表处理。 */
-    val snapshot: StateFlow<Map<String, String>> = _byAgent.asStateFlow()
+    val snapshot: StateFlow<Map<String, String>> = byAgentState.asStateFlow()
 
     init {
-        runCatching { _byAgent.value = readFromDisk() }
+        runCatching { byAgentState.value = readFromDisk() }
     }
 
     suspend fun frequencyFor(agentId: String): VoiceReplyFrequency = VoiceReplyFrequency.fromName(current()[agentId])
@@ -110,12 +112,12 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
             resultOf<Unit> {
                 val next = current().toMutableMap().apply { put(agentId, frequency.name) }
                 writeToDisk(next)
-                _byAgent.value = next
+                byAgentState.value = next
             }
         }
     }
 
-    private suspend fun current(): Map<String, String> = _byAgent.value.ifEmpty { readFromDisk().also { _byAgent.value = it } }
+    private suspend fun current(): Map<String, String> = byAgentState.value.ifEmpty { readFromDisk().also { byAgentState.value = it } }
 
     private fun readFromDisk(): Map<String, String> {
         if (!file.isFile) return emptyMap()

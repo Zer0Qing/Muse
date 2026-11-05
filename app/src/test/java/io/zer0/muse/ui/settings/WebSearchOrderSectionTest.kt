@@ -4,8 +4,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import io.zer0.muse.web.AUTO_CHAIN_PROVIDER_KEYS
-import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.CustomSearchEngine
+import io.zer0.muse.web.WebSearchConfig
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -41,8 +41,7 @@ class WebSearchOrderSectionTest {
         composeTestRule.waitForIdle()
     }
 
-    private fun countOf(text: String): Int =
-        composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().size
+    private fun countOf(text: String): Int = composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().size
 
     @Test
     fun `默认渲染的行数恰好等于内置顺序表`() {

@@ -19,12 +19,10 @@ package io.zer0.muse.ui.settings
 internal object WebSearchKeyFieldState {
 
     /** 输入框里该显示什么：已编辑用草稿，否则用已保存值（由 UI 决定是否掩码）。 */
-    fun displayValue(saved: String, draft: String, edited: Boolean): String =
-        if (edited) draft else saved
+    fun displayValue(saved: String, draft: String, edited: Boolean): String = if (edited) draft else saved
 
     /** 默认掩码；只有用户显式揭示，或这一行根本还没有密钥时才明文。 */
-    fun shouldMask(saved: String, revealed: Boolean): Boolean =
-        saved.isNotBlank() && !revealed
+    fun shouldMask(saved: String, revealed: Boolean): Boolean = saved.isNotBlank() && !revealed
 
     /** 没有已保存密钥时不必提供“显示/隐藏”按钮（掩码一串空字符串毫无意义）。 */
     fun canToggleVisibility(saved: String): Boolean = saved.isNotBlank()

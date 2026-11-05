@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.common.Logger
 import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,7 +14,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
-import kotlinx.coroutines.runBlocking
 
 /**
  * 会话残留清理器的契约：**每一项都得真做，做不成都要留痕**。
@@ -55,8 +55,7 @@ class SessionArtifactCleanupTest {
         return File(context.filesDir, "conversation_tree_snapshots").apply { mkdirs() }
     }
 
-    private fun store(): ConversationTreeSnapshotStore =
-        ConversationTreeSnapshotStore(ApplicationProvider.getApplicationContext())
+    private fun store(): ConversationTreeSnapshotStore = ConversationTreeSnapshotStore(ApplicationProvider.getApplicationContext())
 
     @Test
     fun `删会话要真的把对话树快照文件清掉`() {

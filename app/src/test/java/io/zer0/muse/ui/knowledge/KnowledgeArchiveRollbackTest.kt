@@ -47,10 +47,14 @@ class KnowledgeArchiveRollbackTest {
         override fun observeAll(): Flow<List<KnowledgeBaseEntity>> = flowOf(emptyList())
         override suspend fun getAll(): List<KnowledgeBaseEntity> = emptyList()
         override suspend fun getById(id: String): KnowledgeBaseEntity? = null
-        override suspend fun upsert(kb: KnowledgeBaseEntity) { upserted += kb }
+        override suspend fun upsert(kb: KnowledgeBaseEntity) {
+            upserted += kb
+        }
         override suspend fun count(): Int = 0
         var deleteAllCalled = false
-        override suspend fun deleteAll() { deleteAllCalled = true }
+        override suspend fun deleteAll() {
+            deleteAllCalled = true
+        }
 
         override suspend fun delete(id: String) {
             if (failOnDelete) error("DB is locked")

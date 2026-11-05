@@ -1,12 +1,12 @@
 package io.zer0.ai.core
 
 import io.zer0.common.Logger
-import java.io.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.produceIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.produceIn
 import kotlinx.coroutines.withTimeoutOrNull
+import java.io.IOException
 
 /**
  * 流式**帧间静默**阈值。
@@ -36,9 +36,7 @@ internal const val STREAM_IDLE_TIMEOUT_MS = 90_000L
  * 到点之后取消上游、发出一次中断事件并结束，不重试（重试由上层统一管预算）。
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-internal fun Flow<ChatStreamEvent>.withIdleWatchdog(
-    idleMs: Long = STREAM_IDLE_TIMEOUT_MS,
-): Flow<ChatStreamEvent> = channelFlow {
+internal fun Flow<ChatStreamEvent>.withIdleWatchdog(idleMs: Long = STREAM_IDLE_TIMEOUT_MS): Flow<ChatStreamEvent> = channelFlow {
     val source = this@withIdleWatchdog.produceIn(this)
     try {
         // 用状态位收口成单一出口（仓库里 break/continue 堆在循环里会被 detekt 拦，
@@ -56,7 +54,7 @@ internal fun Flow<ChatStreamEvent>.withIdleWatchdog(
                     send(
                         ChatStreamEvent.StreamInterrupted(
                             "响应中断：${idleMs / 1000} 秒没有新的内容",
-                            IOException("stream idle for ${idleMs} ms"),
+                            IOException("stream idle for $idleMs ms"),
                         ),
                     )
                     finished = true

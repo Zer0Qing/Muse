@@ -14,19 +14,15 @@ import org.junit.Test
  */
 class AgentDirectivesPromptTest {
 
-    private fun d(
-        text: String,
-        polarity: DirectivePolarity = DirectivePolarity.SHOULD,
-        enabled: Boolean = true,
-        position: Int = 0,
-    ) = AgentDirective(
-        id = "$polarity-$position-$text",
-        agentId = "a1",
-        polarity = polarity,
-        text = text,
-        position = position,
-        enabled = enabled,
-    )
+    private fun d(text: String, polarity: DirectivePolarity = DirectivePolarity.SHOULD, enabled: Boolean = true, position: Int = 0) =
+        AgentDirective(
+            id = "$polarity-$position-$text",
+            agentId = "a1",
+            polarity = polarity,
+            text = text,
+            position = position,
+            enabled = enabled,
+        )
 
     @Test
     fun `没有约定时不产出任何文本块`() {

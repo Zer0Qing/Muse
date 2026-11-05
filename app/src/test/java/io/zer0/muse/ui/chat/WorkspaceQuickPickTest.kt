@@ -1,11 +1,11 @@
 package io.zer0.muse.ui.chat
 
 import io.zer0.muse.workspace.WorkspaceManager
+import io.zer0.muse.workspace.WorkspacePathParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.workspace.WorkspacePathParser
 
 /**
  * 对话顶栏「更多 → 工作区」下钻选择器的纯逻辑（整改计划 第 5 条）。

@@ -2,8 +2,8 @@ package io.zer0.muse.web
 
 import io.zer0.common.AppJson
 import kotlinx.serialization.descriptors.SerialDescriptor
-import org.junit.Assert.assertFalse
 import kotlinx.serialization.encodeToString
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -26,8 +26,7 @@ import java.io.File
 class HostWebSocketWireContractTest {
 
     /** 只用稳定 API：按元素下标取名（`serialNames` 那个扩展属性依赖版本，不用）。 */
-    private fun SerialDescriptor.wireNames(): Set<String> =
-        (0 until elementsCount).map { getElementName(it) }.toSet()
+    private fun SerialDescriptor.wireNames(): Set<String> = (0 until elementsCount).map { getElementName(it) }.toSet()
 
     private val eventNames: Set<String> by lazy {
         HostEvent.serializer().descriptor.wireNames()

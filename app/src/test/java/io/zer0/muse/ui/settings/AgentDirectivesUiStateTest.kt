@@ -2,9 +2,9 @@ package io.zer0.muse.ui.settings
 
 import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
-import io.zer0.muse.proactive.AgentDirectivesPrompt
 import io.zer0.muse.data.assistant.DirectivePolarity
 import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.proactive.AgentDirectivesPrompt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -17,12 +17,7 @@ import org.junit.Test
  */
 class AgentDirectivesUiStateTest {
 
-    private fun d(
-        agentId: String,
-        polarity: DirectivePolarity,
-        position: Int,
-        text: String = "t$position",
-    ) = AgentDirective(
+    private fun d(agentId: String, polarity: DirectivePolarity, position: Int, text: String = "t$position") = AgentDirective(
         id = "$agentId-$polarity-$position",
         agentId = agentId,
         polarity = polarity,

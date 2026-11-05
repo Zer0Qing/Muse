@@ -2,7 +2,6 @@ package io.zer0.muse.data.assistant
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -12,6 +11,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 
 /**
  * 「多常用语音回你」的档位政策与存储（整改计划 第 4 条④）。
@@ -123,9 +123,12 @@ class VoiceReplyPolicyTest {
         // 非默认档才加分隔符，且不能把原文改掉
         val withPolicy = VoiceReplyPolicy.inject(base, VoiceReplyFrequency.OFTEN)
         assertTrue("原文要完整保留在前", withPolicy.startsWith(base))
-        assertTrue("要用统一分隔符接上去", withPolicy.contains(VoiceReplyPolicy.SEPARATOR))
-        assertEquals("空白基底时不该留下一串分隔符", VoiceReplyPolicy.instruction(VoiceReplyFrequency.OFTEN),
-            VoiceReplyPolicy.inject("", VoiceReplyFrequency.OFTEN))
+        assertTrue("要用统一分隔符接上去", withPolicy.contains(VOICE_POLICY_SEPARATOR))
+        assertEquals(
+            "空白基底时不该留下一串分隔符",
+            VoiceReplyPolicy.instruction(VoiceReplyFrequency.OFTEN),
+            VoiceReplyPolicy.inject("", VoiceReplyFrequency.OFTEN),
+        )
     }
 
     /**

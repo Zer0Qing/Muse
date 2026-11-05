@@ -91,9 +91,8 @@ class HostWebSocketIdempotencyScopeTest {
         return gateway to chat
     }
 
-    private fun sendCommand(requestId: String): String =
-        "{\"protocolVersion\":1,\"type\":\"chat.send\",\"requestId\":\"$requestId\"," +
-            "\"sessionId\":\"$SESSION_ID\",\"text\":\"你好\"}"
+    private fun sendCommand(requestId: String): String = "{\"protocolVersion\":1,\"type\":\"chat.send\",\"requestId\":\"$requestId\"," +
+        "\"sessionId\":\"$SESSION_ID\",\"text\":\"你好\"}"
 
     @Test
     fun `重连后同一 requestId 不会被第二次执行`() {

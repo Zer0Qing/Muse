@@ -43,11 +43,7 @@ internal object SessionArtifactCleanup {
      * @param reason 写进日志的来路（"删除会话"/"清除全部聊天"…），排查时能分清是谁触发的。
      * @return 未完成的项数（0 = 全部清干净）
      */
-    suspend fun purge(
-        sessionIds: Collection<String>,
-        snapshotStore: ConversationTreeSnapshotStore?,
-        reason: String,
-    ): Int {
+    suspend fun purge(sessionIds: Collection<String>, snapshotStore: ConversationTreeSnapshotStore?, reason: String): Int {
         if (sessionIds.isEmpty()) return 0
         var failures = 0
         sessionIds.forEach { id ->
@@ -70,11 +66,7 @@ internal object SessionArtifactCleanup {
         return failures
     }
 
-    private suspend fun step(
-        sessionId: String,
-        name: String,
-        block: suspend () -> Unit,
-    ): Int = runCatching { block() }
+    private suspend fun step(sessionId: String, name: String, block: suspend () -> Unit): Int = runCatching { block() }
         .onFailure { e ->
             Logger.w(
                 TAG,
