@@ -35,15 +35,36 @@ for _stream in (sys.stdout, sys.stderr):
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 OWNER = "tools/BrowserSettings.kt"
-# 扫描范围是整个仓库的 main 源，不只是 app：任何模块（ai / memory / conversation-core / sdk 插件宿主…）
-# 将来加了 WebView 都可能顺手写一句进程级全清，那正是要拦的东西。
-# test 源被排除：测试里可以造全局清理来验证行为，不该算越权。
-MODULES = ("app", "ai", "common", "memory", "conversation-core", "material3", "accessibility", "sdk")
-SRC_ROOTS = [
-    PROJECT_ROOT / m / "src" / "main" / "java" for m in MODULES
-]
-SRC_ROOTS = [p for p in SRC_ROOTS if p.is_dir()]
-assert SRC_ROOTS, "一个源目录都没找到，门禁会退化成永远通过"
+
+
+def discover_source_roots() -> list[Path]:
+    """扫描范围靠**动态发现**，不写模块名单，也不假设源目录叫 `java`。
+
+    为什么不列名单：我上一版硬写了 9 个模块名，结果既漏了 `miniphone`/`virtual-display-*`/
+    `accessibility-provider`，又把三个**没有 java 源目录**的模块当存在列着 ——
+    那种列表不会报错，只会安静地少扫一片。新增模块时更没人会想起来改这里。
+    现规则：仓库里任意 `src/main/java` **或** `src/main/kotlin` 都算
+    （`conversation-core`、`material3` 用的就是 kotlin 目录，只认 java 会整个漏掉）。
+    排除 build 产物；测试源不在范围内：测试里可以造全局清理验证行为，那不算越权。
+    """
+    roots: list[Path] = []
+    for src_dir in ("java", "kotlin"):
+        for path in PROJECT_ROOT.rglob(f"src/main/{src_dir}"):
+            if not path.is_dir():
+                continue
+            parts = set(path.parts)
+            if {"build", ".git", ".gradle", "node_modules"} & parts:
+                continue
+            roots.append(path)
+    return sorted(set(roots))
+
+
+SRC_ROOTS = discover_source_roots()
+# 一个源目录都没找到就直接失败：否则扫描退化成"永远通过"（P4-1 当初修的就是这种假绿）。
+assert SRC_ROOTS, "未发现任何 src/main 源目录，门禁无法验证任何东西"
+# 数量下限：发现逻辑若被改坏（少扫一片），宁可让它红，也不要安静地少判。
+_SCANNED = sum(1 for root in SRC_ROOTS for _ in root.rglob("*.kt"))
+assert _SCANNED >= 300, f"只扫到 {_SCANNED} 个 .kt，源目录发现逻辑多半坏了"
 PATTERNS = {
     "webstorage_delete_all_data": re.compile(r"WebStorage\s*\.\s*getInstance\s*\(\s*\)\s*\.\s*deleteAllData\s*\("),
     # 注意：owner 是在 `CookieManager.getInstance().apply { removeAllCookies(null) }` 块内调用的，
