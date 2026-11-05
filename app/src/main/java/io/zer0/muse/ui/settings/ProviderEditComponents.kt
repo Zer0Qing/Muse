@@ -37,7 +37,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -64,6 +63,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.ui.theme.labelLargeStrong
 
 @Composable
 internal fun ProviderEditBottomBar(
@@ -124,7 +124,7 @@ internal fun ProviderEditBottomBar(
                     Spacer(Modifier.size(MusePaddings.contentGap))
                     Text(
                         text = stringResource(R.string.settings_provider_fetch),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.labelLargeStrong,
                         color = fetchContentColor,
                     )
                 }
@@ -157,7 +157,7 @@ internal fun ProviderEditBottomBar(
                     Spacer(Modifier.size(MusePaddings.contentGap))
                     Text(
                         text = stringResource(R.string.settings_provider_add_new_model),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.labelLargeStrong,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }

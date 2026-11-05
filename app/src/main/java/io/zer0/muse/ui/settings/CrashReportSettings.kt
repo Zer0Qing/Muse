@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
@@ -44,6 +43,7 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.koin.compose.koinInject
 import org.koin.core.qualifier.named
+import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * 崩溃上报页 — 一个按钮，没有需要用户填的东西。
@@ -172,7 +172,7 @@ fun CrashReportSettingsPage(onBack: () -> Unit) {
                 ) {
                     Text(
                         text = stringResource(R.string.settings_crash_privacy_title),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.titleSmallStrong,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.size(8.dp))

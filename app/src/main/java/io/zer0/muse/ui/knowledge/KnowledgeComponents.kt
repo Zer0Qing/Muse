@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
@@ -37,6 +36,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.settings.SettingField
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodyLargeStrong
 
 /**
  * v2.4.6: KB 行操作集合 — 聚合成一个参数,避免 LongParameterList。
@@ -79,7 +79,7 @@ fun KbRow(kb: KnowledgeBaseEntity, actions: KbRowActions) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     kb.name,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.bodyLargeStrong,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

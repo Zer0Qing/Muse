@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,6 +47,7 @@ import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.theme.bodySmallStrong
 
 /**
  * v1.126: Agent 私信收件箱 — 展示所有 Agent 间的私信往来。
@@ -226,7 +226,7 @@ private fun AgentMessageCard(
                 }
                 Text(
                     text = fromName,
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodySmallStrong,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(

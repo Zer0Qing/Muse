@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.markdown.DataCardParser
@@ -29,6 +28,7 @@ import io.zer0.muse.ui.markdown.DataCardRenderer
 import io.zer0.muse.ui.theme.MusePaddings
 import org.json.JSONArray
 import org.json.JSONObject
+import io.zer0.muse.ui.theme.bodySmallStrong
 
 /**
  * v1.205 D2: 工具结果专用渲染 — 自动识别结果类型并选择视图:
@@ -201,7 +201,7 @@ private fun JsonToggleRow(key: String?, preview: String, expanded: Boolean, dept
         if (key != null) {
             Text(
                 text = "\"$key\": ",
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.bodySmallStrong,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
@@ -221,7 +221,7 @@ private fun JsonLeafRow(key: String?, value: Any) {
         if (key != null) {
             Text(
                 text = "\"$key\": ",
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.bodySmallStrong,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
@@ -302,7 +302,7 @@ private fun TableView(tableText: String, modifier: Modifier) {
                     Text(
                         text = cell,
                         style = if (index == 0) {
-                            MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                            MaterialTheme.typography.bodySmallStrong
                         } else {
                             MaterialTheme.typography.bodySmall
                         },

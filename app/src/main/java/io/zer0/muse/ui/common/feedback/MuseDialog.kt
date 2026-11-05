@@ -38,7 +38,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -54,6 +53,7 @@ import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
+import io.zer0.muse.ui.theme.labelLargeStrong
 
 internal const val MUSE_DIALOG_SCRIM_TAG = "muse-dialog-scrim"
 internal const val MUSE_DIALOG_CARD_TAG = "muse-dialog-card"
@@ -214,7 +214,7 @@ private fun MuseDialogButton(
         ) {
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.labelLargeStrong,
                 color = contentColor,
                 textAlign = TextAlign.Center,
             )

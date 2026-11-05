@@ -29,7 +29,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,6 +63,7 @@ import io.zer0.muse.update.UpdateNotifier
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.theme.titleSmallStrong
 
 // M-CS7: tabs 列表提为文件级 val,避免每次 recomposition 重新创建(原在 Composable 内 listOf)
 // 存资源 id(Int) 与页面序号,UI 层统一用 stringResource 解析。
@@ -562,7 +562,7 @@ private fun UpdateAvailableBanner(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = publishedText,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleSmallStrong,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 if (release.name.isNotBlank()) {
