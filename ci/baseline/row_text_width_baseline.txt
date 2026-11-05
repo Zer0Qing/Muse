@@ -3,4 +3,14 @@
 # 收紧: py -3 ci/script/check_row_text_width.py --update-baseline
 # 说明: 空基线 = 全仓零容忍。用户正文（ui/markdown/MarkdownText.kt）由脚本 EXEMPT_FILES 永久豁免，
 #       卡片装饰（DataCardRenderer / RichContentCard 的标题与语言标签）已在调用处限行。
+# 2026-11-06: 门禁自测抓到 check_row_text_width.py 的 WIDTH_SAFE 早退分支会漏掉
+#   「有 weight 但无 maxLines」；修好后暴露 10 处既有写法（v2.6.18–v2.6.22）。
+#   其中 PluginUiRenderer 的列表正文本就该多行，不能强行 maxLines；故先按实际
+#   存量入账，**不代表已修**。后续逐屏判断该限行还是该保留多行，修一处收紧一处。
 
+app/src/main/java/io/zer0/muse/ui/SkillScreen.kt:1
+app/src/main/java/io/zer0/muse/ui/plugin/PluginInteractiveUiView.kt:1
+app/src/main/java/io/zer0/muse/ui/plugin/PluginUiRenderer.kt:2
+app/src/main/java/io/zer0/muse/ui/schedule/ScheduledTasksScreen.kt:1
+app/src/main/java/io/zer0/muse/ui/settings/PluginPermissionPanel.kt:4
+app/src/main/java/io/zer0/muse/ui/settings/WebSearchOrderSection.kt:1
