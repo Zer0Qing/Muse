@@ -46,4 +46,19 @@ class ChatGenerationServiceKoinGuardTest {
         assertTrue("onStartCommand 也要判 Koin", onStart.contains("GlobalContext.getOrNull()"))
         assertTrue("判空后应 stopSelf", onStart.contains("stopSelf()"))
     }
+
+    /**
+     * onDestroy 是最容易漏的一处：它没有返回值、不能失败，但会在崩溃后的 Safe Mode 进程里被调用。
+     * 那里 Koin 没启动，直接用 `by inject` 的字段会把“停止服务”变成新的崩溃。
+     */
+    @Test
+    fun `onDestroy never touches injected fields directly`() {
+        val onDestroy = source.substringAfter("override fun onDestroy()").substringBefore("companion object")
+        assertTrue(
+            "onDestroy 不能直接访问 by inject 字段（Koin 未启动时会抛 Unable to stop service）",
+            !onDestroy.contains("notificationManager.clearLiveProgress()"),
+        )
+        assertTrue("onDestroy 应走可空取用", onDestroy.contains("notificationManagerOrNull()"))
+        assertTrue("清理失败不能从 onDestroy 抛出去", onDestroy.contains("runCatching"))
+    }
 }

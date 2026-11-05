@@ -1,6 +1,5 @@
 package io.zer0.muse.schedule
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.Notification
 import android.app.Service
 import android.content.Context
@@ -13,6 +12,7 @@ import androidx.annotation.RequiresApi
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -252,8 +252,18 @@ class ChatGenerationService : Service() {
         serviceScope.cancel()
         // v2.5.0 fix: 兼底清理进度通知 —— 服务被系统强杀时 stopService 不会执行,
         // 通知栏会残留一条字数不变的动态进度条(用户实测"退出应用也一直在")。
-        notificationManager.clearLiveProgress()
+        // v2.6.22 fix: 不能直接用 by inject 的字段。崩溃后下次启动会进 Safe Mode
+        // (MuseApp 跳过 startKoin),系统仍会重建本服务并在停止时走 onDestroy;
+        // 此时访问注入属性抛 "KoinApplication has not been started",被
+        // ActivityThread.handleStopService 包成 "Unable to stop service" 再崩一次,
+        // 于是每次崩溃都附带一条二次崩溃,真正的 OOM 反而更难看到。
+        runCatching { notificationManagerOrNull()?.clearLiveProgress() }
+            .onFailure { Logger.w("ChatGenService", "onDestroy 清理进度通知失败", it) }
     }
+
+    /** Koin 未启动时返回 null,不抛异常(供 onDestroy 这类无法失败的回调使用)。 */
+    private fun notificationManagerOrNull(): MuseNotificationManager? =
+        runCatching { org.koin.core.context.GlobalContext.getOrNull()?.get<MuseNotificationManager>() }.getOrNull()
 
     companion object {
         private const val NOTIFICATION_ID = 2001
