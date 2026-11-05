@@ -203,6 +203,9 @@ data object ConnectionCenterRoute
 data object SettingsWebAccessRoute
 
 @Serializable
+data object SettingsBrowserRoute
+
+@Serializable
 data object PluginManageRoute
 
 @Serializable

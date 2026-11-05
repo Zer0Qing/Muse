@@ -93,7 +93,7 @@ private fun isBareIp(host: String): Boolean =
  * 设置读写。默认值刻意与"改之前"的行为一致（Bing 搜索、接受 Cookies），
  * 这样这次改动只会新增"关键词能搜了"，不会顺手改掉用户已有的 Cookie 习惯。
  */
-internal class BrowserSettingsStore(context: Context) {
+internal class BrowserSettingsStore private constructor(context: Context) {
 
     private val prefs = context.applicationContext.getSharedPreferences(KEY_STORE, Context.MODE_PRIVATE)
 
@@ -113,9 +113,48 @@ internal class BrowserSettingsStore(context: Context) {
         _acceptCookies.value = accept
     }
 
-    private companion object {
-        const val KEY_STORE = "browser_settings"
-        const val KEY_ENGINE = "search_engine"
-        const val KEY_COOKIES = "accept_cookies"
+    companion object {
+        private const val KEY_STORE = "browser_settings"
+        private const val KEY_ENGINE = "search_engine"
+        private const val KEY_COOKIES = "accept_cookies"
+
+        @Volatile
+        private var shared: BrowserSettingsStore? = null
+
+        /**
+         * 全应用共用一个实例。
+         *
+         * 注册表里可能同时存在多个 BrowserManager（sharedManager + 每会话一个），
+         * 各建一份就会各存一份内存态 StateFlow：设置页改了引擎，正在用的 manager
+         * 还读着旧值 —— 这类"看起来保存了但没生效"的 bug 只能靠单一实例堵住。
+         */
+        fun of(context: Context): BrowserSettingsStore {
+            shared?.let { return it }
+            return synchronized(this) {
+                shared ?: BrowserSettingsStore(context.applicationContext).also { shared = it }
+            }
+        }
+
+        /** 仅测试用：清掉进程内单例，避免用例之间互相污染。 */
+        internal fun resetForTests() {
+            synchronized(this) { shared = null }
+        }
+    }
+}
+
+/**
+ * 清掉内置浏览器保存的站点数据（Cookies + DOM Storage + 已访问 URL 记录）。
+ *
+ * 这是**一处定义**：`BrowserManager.clearCookies()` 与设置页的「清除 Cookies」都调它，
+ * 免得两处各自决定"清除"到底清什么 —— 那种分叉会让用户按了按钮却还有半份登录态留着。
+ * WebView 自己的渲染缓存是实例级的，由 `BrowserManager` 额外清。
+ */
+internal fun clearBrowserSiteData() {
+    runCatching {
+        android.webkit.CookieManager.getInstance().apply {
+            removeAllCookies(null)
+            flush()
+        }
+        android.webkit.WebStorage.getInstance().deleteAllData()
     }
 }

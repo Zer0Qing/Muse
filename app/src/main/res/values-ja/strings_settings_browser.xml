@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 内置浏览器设置页（地址栏搜索引擎 / Cookies）。单独成文件，不去碰并行修改中的 strings 文件。 -->
+<resources>
+    <string name="settings_screen_browser">ブラウザ</string>
+    <string name="settings_screen_browser_desc">内蔵ブラウザの検索と Cookies の動作</string>
+    <string name="settings_browser_search_title">アドレスバー検索</string>
+    <string name="settings_browser_search_hint">アドレスバーにキーワードを入力したときはこのエンジンを使い、完全な URL はそのまま開きます。</string>
+    <string name="settings_browser_cookies_title">Cookies</string>
+    <string name="settings_browser_accept_cookies">Cookies を許可</string>
+    <string name="settings_browser_accept_cookies_hint">オンにすると内蔵ブラウザは通常のブラウザのように Cookies を保存・送信します。オフにしても今後の保存が止まるだけで、既存のログインは消えません。</string>
+    <string name="settings_browser_clear">Cookies とサイトデータ消去</string>
+    <string name="settings_browser_clear_hint">内蔵ブラウザが保存した Cookies、DOM Storage、キャッシュを消去します。ログイン済みのサイトは再ログインが必要です。</string>
+    <string name="settings_browser_cleared">Cookies とサイトデータを消去しました</string>
+    <string name="settings_browser_engine_bing">Bing</string>
+    <string name="settings_browser_engine_baidu">Baidu</string>
+    <string name="settings_browser_engine_sogou">Sogou</string>
+    <string name="settings_browser_engine_360">360 Search</string>
+    <string name="settings_browser_engine_google">Google</string>
+    <string name="settings_browser_engine_duckduckgo">DuckDuckGo</string>
+</resources>

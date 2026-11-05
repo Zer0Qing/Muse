@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 内置浏览器设置页（地址栏搜索引擎 / Cookies）。单独成文件，不去碰并行修改中的 strings 文件。 -->
+<resources>
+    <string name="settings_screen_browser">浏览器</string>
+    <string name="settings_screen_browser_desc">内置浏览器的搜索与 Cookies 行为</string>
+    <string name="settings_browser_search_title">地址栏搜索</string>
+    <string name="settings_browser_search_hint">在地址栏输入关键词时用这个引擎；输入完整网址仍然直接打开该网站。</string>
+    <string name="settings_browser_cookies_title">Cookies</string>
+    <string name="settings_browser_accept_cookies">接受 Cookies</string>
+    <string name="settings_browser_accept_cookies_hint">打开后，内置浏览器会像普通浏览器一样保存和发送网站 Cookies。关闭只影响之后是否继续保存，不会清掉已有登录态。</string>
+    <string name="settings_browser_clear">清除 Cookies 与站点数据</string>
+    <string name="settings_browser_clear_hint">清除内置浏览器已保存的 Cookies、DOM Storage 与缓存；已登录的站点需要重新登录。</string>
+    <string name="settings_browser_cleared">已清除 Cookies 与站点数据</string>
+    <string name="settings_browser_engine_bing">必应</string>
+    <string name="settings_browser_engine_baidu">百度</string>
+    <string name="settings_browser_engine_sogou">搜狗</string>
+    <string name="settings_browser_engine_360">360 搜索</string>
+    <string name="settings_browser_engine_google">Google</string>
+    <string name="settings_browser_engine_duckduckgo">DuckDuckGo</string>
+</resources>

@@ -57,7 +57,7 @@ class BrowserManager(private val context: Context) {
      * 浏览器设置。懒建：`getSharedPreferences` 第一次访问会读盘，
      * 挂在类构造上就等于把磁盘 I/O 塞进可能的主线程路径（本仓有 ANR 前例）。
      */
-    internal val browserSettings: BrowserSettingsStore by lazy { BrowserSettingsStore(context) }
+    internal val browserSettings: BrowserSettingsStore by lazy { BrowserSettingsStore.of(context) }
 
 
     companion object {
@@ -472,15 +472,10 @@ class BrowserManager(private val context: Context) {
      * 把会话态清干净,让后续抓取回到未登录状态。
      */
     fun clearCookies() {
-        runCatching {
-            android.webkit.CookieManager.getInstance().apply {
-                removeAllCookies(null)
-                flush()
-            }
-            webViewRef?.clearCache(true)
-            android.webkit.WebStorage.getInstance().deleteAllData()
-        }.onFailure { e ->
-            Logger.w(TAG, "清除 Cookie 失败: ${e.message}")
+        // 站点数据清理走共享定义（与设置页同一个口径），这里只额外清 WebView 实例级缓存。
+        clearBrowserSiteData()
+        runCatching { webViewRef?.clearCache(true) }.onFailure { e ->
+            Logger.w(TAG, "清除浏览器缓存失败: ${e.message}")
         }
     }
 

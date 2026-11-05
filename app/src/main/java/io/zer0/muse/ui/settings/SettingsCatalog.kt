@@ -41,6 +41,7 @@ import io.zer0.muse.ui.navigation.SettingsSecurityRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.SettingsTutorialRoute
 import io.zer0.muse.ui.navigation.SettingsVisionRoute
+import io.zer0.muse.ui.navigation.SettingsBrowserRoute
 import io.zer0.muse.ui.navigation.SettingsWebAccessRoute
 import io.zer0.muse.ui.navigation.SettingsWebSearchRoute
 import io.zer0.muse.ui.navigation.StatsRoute
@@ -122,6 +123,7 @@ enum class SettingsEntryId {
     ARCHIVED_CHATS,
     PII_GUARD,
     PROXY,
+    BROWSER,
     TUTORIAL,
     ABOUT,
     CHECK_UPDATE,
@@ -519,6 +521,17 @@ object SettingsCatalog {
                         "消息渠道", "渠道", "平台互通", "桥接", "社交平台", "飞书", "QQ", "微信", "IM",
                         "channel", "feishu", "bridge", "xiaoxi", "qidao", "weixin", "xxqd",
                         "pingtaihutong", "qiaojie",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.BROWSER,
+                    R.string.settings_screen_browser,
+                    R.string.settings_screen_browser_desc,
+                    MuseIcons.globe,
+                    SettingsEntryAction.Navigate(SettingsBrowserRoute),
+                    keywords = listOf(
+                        "浏览器", "内置浏览器", "搜索引擎", "地址栏", "Cookies", "Cookie", "网站数据",
+                        "liulanqi", "neizhiliulanqi", "sousuoyinqing", "dizhilan", "cookies", "zhandianshuju",
                     ),
                 ),
                 entry(

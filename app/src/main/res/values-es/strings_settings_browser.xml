@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 内置浏览器设置页（地址栏搜索引擎 / Cookies）。单独成文件，不去碰并行修改中的 strings 文件。 -->
+<resources>
+    <string name="settings_screen_browser">Navegador</string>
+    <string name="settings_screen_browser_desc">Comportamiento de búsqueda y cookies del navegador integrado</string>
+    <string name="settings_browser_search_title">Búsqueda desde la barra de direcciones</string>
+    <string name="settings_browser_search_hint">Las palabras escritas en la barra de direcciones se buscan aquí; una URL completa se abre igual.</string>
+    <string name="settings_browser_cookies_title">Cookies</string>
+    <string name="settings_browser_accept_cookies">Aceptar cookies</string>
+    <string name="settings_browser_accept_cookies_hint">Si está activado, el navegador integrado guarda y envía cookies como uno normal. Desactivarlo solo frena el almacenamiento futuro; no cierra sesiones.</string>
+    <string name="settings_browser_clear">Borrar cookies y datos del sitio</string>
+    <string name="settings_browser_clear_hint">Elimina cookies, almacenamiento DOM y caché guardados por el navegador integrado; habrá que volver a iniciar sesión.</string>
+    <string name="settings_browser_cleared">Cookies y datos del sitio eliminados</string>
+    <string name="settings_browser_engine_bing">Bing</string>
+    <string name="settings_browser_engine_baidu">Baidu</string>
+    <string name="settings_browser_engine_sogou">Sogou</string>
+    <string name="settings_browser_engine_360">360 Búsqueda</string>
+    <string name="settings_browser_engine_google">Google</string>
+    <string name="settings_browser_engine_duckduckgo">DuckDuckGo</string>
+</resources>

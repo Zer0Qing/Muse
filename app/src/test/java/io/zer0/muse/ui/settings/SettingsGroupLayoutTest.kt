@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config
 /**
  * 设置入口清单的结构回归锁定。
  *
- * 首页 14 个分类、每类的条目与顺序、全局 48 项的完整性全部写在 [SettingsCatalog] 里，
+ * 首页 14 个分类、每类的条目与顺序、全局 49 项的完整性全部写在 [SettingsCatalog] 里，
  * 首页 / 分类页 / 搜索索引都从这份清单取数据。这里直接断言清单本身：
  * 换类、换顺序、把某一项贴到两类里、加一项漏一项，都会让下面的断言失败。
  */
@@ -60,6 +60,7 @@ class SettingsGroupLayoutTest {
         SettingsGroupKind.CONNECTION to listOf(
             SettingsEntryId.CONNECTION_CENTER,
             SettingsEntryId.CHANNEL,
+            SettingsEntryId.BROWSER,
             SettingsEntryId.WEB_ACCESS,
             SettingsEntryId.MCP,
             SettingsEntryId.PROXY,
@@ -134,7 +135,7 @@ class SettingsGroupLayoutTest {
         val ids = SettingsCatalog.entries.map { it.id }
         val duplicates = ids.groupBy { it }.filterValues { it.size > 1 }.keys
 
-        assertEquals("全部条目应为 48 项，实际 ${ids.size} 项: $ids", EXPECTED_ENTRY_COUNT, ids.size)
+        assertEquals("全部条目应为 ${EXPECTED_ENTRY_COUNT} 项，实际 ${ids.size} 项: $ids", EXPECTED_ENTRY_COUNT, ids.size)
         assertTrue("同一入口出现在多个分类里: $duplicates", duplicates.isEmpty())
         assertEquals(
             "清单必须覆盖全部条目 id，不能加也不能漏",
@@ -192,9 +193,9 @@ class SettingsGroupLayoutTest {
 
     private companion object {
         const val SETTINGS_GROUP_COUNT = 14
-        const val EXPECTED_ENTRY_COUNT = 48
+        const val EXPECTED_ENTRY_COUNT = 49
 
         /** 与上方 expectedLayout 一一对应的条目数，用来锁住分布均衡、没有过大的单类。 */
-        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 3, 3, 3, 3, 3, 2, 5, 5, 2, 5, 2, 3, 5)
+        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 3, 3, 3, 3, 3, 2, 6, 5, 2, 5, 2, 3, 5)
     }
 }

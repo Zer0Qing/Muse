@@ -46,6 +46,7 @@ import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.UserPreferencePage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.VisionSettingsPage
+import io.zer0.muse.ui.settings.BrowserSettingsPage
 import io.zer0.muse.ui.settings.WebAccessPage
 import io.zer0.muse.ui.terminal.TerminalScreen
 import org.koin.compose.koinInject
@@ -500,6 +501,13 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         WebAccessPage(onBack = { navController.popBackStack() })
+    }
+    // 内置浏览器设置 — 地址栏搜索引擎 / Cookies 行为
+    composable<SettingsBrowserRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        BrowserSettingsPage(onBack = { navController.popBackStack() })
     }
     // 统一插件管理页（外部插件 + Provider 插件合并），旧入口已收敛到 PluginManageRoute
     composable<PluginManageRoute>(

@@ -97,6 +97,9 @@ internal object HostSettingsCatalog {
             "settings_group_connection",
             link("connection_center", "connection_center_title", "connection_center_desc", "link"),
             link("channel", "channel_page_title", "settings_screen_desc_channel", "wifi"),
+            // 内置浏览器设置只有 App 侧有页面（WebView 的引擎与 Cookies 行为没法从网页驱动），
+            // 所以这里 enabled = false：Web 端列出但不进子页，不造一个点了没反应的假入口。
+            link("browser", "settings_screen_browser", "settings_screen_browser_desc", "globe", enabled = false),
             link("web_access", "settings_screen_web_access", "settings_screen_web_access_desc", "router"),
             link("mcp", "settings_screen_mcp", "settings_screen_mcp_desc", "plug"),
             // 代理条目的说明由运行时拼(未启用 / type host:port),没有固定资源。

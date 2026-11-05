@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 内置浏览器设置页（地址栏搜索引擎 / Cookies）。单独成文件，不去碰并行修改中的 strings 文件。 -->
+<resources>
+    <string name="settings_screen_browser">브라우저</string>
+    <string name="settings_screen_browser_desc">내장 브라우저의 검색 및 쿠키 동작</string>
+    <string name="settings_browser_search_title">주소 표시줄 검색</string>
+    <string name="settings_browser_search_hint">주소 표시줄에 단어를 입력하면 이 엔진으로 검색하며, 전체 URL은 바로 엽니다.</string>
+    <string name="settings_browser_cookies_title">쿠키</string>
+    <string name="settings_browser_accept_cookies">쿠키 허용</string>
+    <string name="settings_browser_accept_cookies_hint">켜면 내장 브라우저가 일반 브라우저처럼 쿠키를 저장하고 전송합니다. 끄면 이후 저장만 중단되며 기존 로그인까지 지워지지는 않습니다.</string>
+    <string name="settings_browser_clear">쿠키 및 사이트 데이터 지우기</string>
+    <string name="settings_browser_clear_hint">내장 브라우저가 저장한 쿠키, DOM 저장소, 캐시를 지웁니다. 로그인된 사이트는 다시 로그인해야 합니다.</string>
+    <string name="settings_browser_cleared">쿠키 및 사이트 데이터를 지웠습니다</string>
+    <string name="settings_browser_engine_bing">Bing</string>
+    <string name="settings_browser_engine_baidu">Baidu</string>
+    <string name="settings_browser_engine_sogou">Sogou</string>
+    <string name="settings_browser_engine_360">360 검색</string>
+    <string name="settings_browser_engine_google">Google</string>
+    <string name="settings_browser_engine_duckduckgo">DuckDuckGo</string>
+</resources>
