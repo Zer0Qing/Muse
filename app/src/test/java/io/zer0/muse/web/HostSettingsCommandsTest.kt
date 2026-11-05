@@ -2,6 +2,7 @@ package io.zer0.muse.web
 
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -15,8 +16,7 @@ class HostSettingsCommandsTest {
         private val initialValues = initial
         val writes = mutableListOf<Pair<String, String>>()
 
-        override suspend fun readValues(): HostSettingsValues =
-            initialValues.copy(raw = initialValues.raw + overrides)
+        override suspend fun readValues(): HostSettingsValues = initialValues.copy(raw = initialValues.raw + overrides)
 
         override suspend fun write(key: String, value: String) {
             writes += key to value
@@ -29,8 +29,7 @@ class HostSettingsCommandsTest {
 
     private fun commands(access: HostSettingsAccess) = HostSettingsCommands(access, strings)
 
-    private fun HostSettingsSnapshot.value(key: String): HostSettingValue =
-        values.single { it.key == key }
+    private fun HostSettingsSnapshot.value(key: String): HostSettingValue = values.single { it.key == key }
 
     // ── values 覆盖 ──────────────────────────────────────────────
 
@@ -344,5 +343,100 @@ class HostSettingsCommandsTest {
         assertTrue("解析不到也不能把资源名当文案", snapshot.groups.all { it.groupTitle.isEmpty() })
         assertTrue(snapshot.groups.flatMap { it.entries }.all { it.title.isEmpty() && it.desc == null })
         assertTrue("枚举候选的显示名同样不能退回资源名", snapshot.values.all { item -> item.options.all { it.label.isEmpty() } })
+    }
+
+    // ── S2：写入事务（校验通过 ≠ 写成功）────────────────────────
+
+    /** 能在写入时按条件抛错的假仓储；抛出的文本刻意带上提交的值，用来验脱敏。 */
+    private class FlakyAccess(
+        private val initial: HostSettingsValues,
+        private val boom: (key: String, value: String) -> Throwable?,
+    ) : HostSettingsAccess {
+        val writes = mutableListOf<Pair<String, String>>()
+
+        override suspend fun readValues(): HostSettingsValues = initial
+
+        override suspend fun write(key: String, value: String) {
+            writes += key to value
+            boom(key, value)?.let { throw it }
+        }
+    }
+
+    @Test
+    fun `写入失败必须回执 Rejected 而不是 Applied`() = runTest {
+        val access = FlakyAccess(
+            HostSettingsValues(raw = mapOf("themeMode" to "dark")),
+        ) { _, value -> IllegalStateException("DataStore failed while applying $value") }
+
+        val result = commands(access).update("themeMode", "system")
+
+        assertTrue("写失败了却回执 Applied,网页端会以为保存好了: $result", result is HostSettingsUpdateResult.Rejected)
+    }
+
+    @Test
+    fun `失败后回到写入前的值`() = runTest {
+        val access = FlakyAccess(
+            HostSettingsValues(raw = mapOf("themeMode" to "dark")),
+        ) { _, value -> if (value == "system") IllegalStateException("boom") else null }
+
+        commands(access).update("themeMode", "system")
+
+        assertEquals(
+            "第一次写入 + 一次回滚,顺序与值都必须是这个",
+            listOf("themeMode" to "system", "themeMode" to "dark"),
+            access.writes,
+        )
+    }
+
+    @Test
+    fun `失败原因不回显提交的值`() = runTest {
+        // 底层异常经常把输入原样写进 message(NumberFormatException 那类)。
+        // 设置项以后会有密钥型文本值,而这段文本会被网页端显示、被用户截图求助。
+        val access = FlakyAccess(
+            HostSettingsValues(raw = mapOf("themeMode" to "dark")),
+        ) { _, value -> IllegalStateException("rejected input: $value") }
+
+        val reason = (commands(access).update("themeMode", "system") as HostSettingsUpdateResult.Rejected).reason
+
+        assertFalse("原因里出现了提交的原值: $reason", reason.contains("system"))
+        assertTrue("原值应被替换成占位符: $reason", reason.contains("<value>"))
+        assertTrue("仍然要说清是哪一项: $reason", reason.contains("themeMode"))
+    }
+
+    @Test
+    fun `写入侧预先拒绝时不声称已回滚`() = runTest {
+        // SettingsWriteReject 的含义是「没碰过任何数据」。这时说「已回滚到写入前的值」是撒谎,
+        // 而用户会去核对一个根本没被改过的开关。
+        val access = FlakyAccess(
+            HostSettingsValues(raw = mapOf("liquidGlassStrength" to "40")),
+        ) { _, _ -> SettingsWriteReject("settings.update rejected: 'liquidGlassStrength' expects a whole number") }
+
+        val reason = (commands(access).update("liquidGlassStrength", "12.5") as HostSettingsUpdateResult.Rejected).reason
+
+        assertFalse("没有发生回滚却写了回滚文案: $reason", reason.contains("回滚"))
+        assertEquals("被预先拒绝的写入不该有第二次落库动作", 1, access.writes.size)
+    }
+
+    @Test
+    fun `回滚也失败时说出来而不是假装恢复`() = runTest {
+        val access = FlakyAccess(
+            HostSettingsValues(raw = mapOf("themeMode" to "dark")),
+        ) { _, value -> if (value == "dark") IllegalStateException("restore failed") else IllegalStateException("write failed") }
+
+        val reason = (commands(access).update("themeMode", "system") as HostSettingsUpdateResult.Rejected).reason
+
+        assertTrue("回滚失败必须明说: $reason", reason.contains("回滚也失败"))
+    }
+
+    @Test
+    fun `读不到原值时不声称已回滚`() = runTest {
+        val access = FlakyAccess(
+            HostSettingsValues(raw = emptyMap()),
+        ) { _, _ -> IllegalStateException("disk full") }
+
+        val reason = (commands(access).update("themeMode", "system") as HostSettingsUpdateResult.Rejected).reason
+
+        assertTrue("读不到原值就要说「未改动」: $reason", reason.contains("原值未能读出"))
+        assertEquals(1, access.writes.size)
     }
 }

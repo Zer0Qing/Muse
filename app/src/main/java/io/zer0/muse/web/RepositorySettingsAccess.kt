@@ -83,7 +83,13 @@ internal class RepositorySettingsAccess(private val settings: SettingsRepository
             "themeMode" -> settings.saveThemeMode(value)
             "fontSizeScale" -> settings.saveFontSizeScale(value)
             "liquidGlassMode" -> settings.saveLiquidGlassMode(value)
-            "liquidGlassStrength" -> value.toIntOrNull()?.let { settings.saveLiquidGlassStrength(it) }
+            // S2:类型校验放行的小数(如 0.5)在这里以前会静默什么都不做,
+            // 而调用方已经回执 Applied —— 那是「以为存上了结果没存」。现在必须说出来。
+            "liquidGlassStrength" -> settings.saveLiquidGlassStrength(
+                value.toIntOrNull() ?: throw SettingsWriteReject(
+                    "settings.update rejected: 'liquidGlassStrength' expects a whole number",
+                ),
+            )
             "dynamicColor" -> settings.saveDynamicColor(flag)
             "highContrast" -> settings.saveHighContrast(flag)
             HostSettingKeys.PII_GUARD -> settings.savePiiGuardEnabled(flag)
@@ -93,7 +99,7 @@ internal class RepositorySettingsAccess(private val settings: SettingsRepository
             HostSettingKeys.MEMORY -> settings.saveMemoryEnabled(flag)
             "notificationMemoryEnabled" -> settings.saveNotificationMemoryEnabled(flag)
             "language" -> settings.saveLanguage(value)
-            else -> throw IllegalArgumentException("setting '$key' has no repository writer")
+            else -> throw SettingsWriteReject("setting '$key' has no repository writer")
         }
     }
 
@@ -119,10 +125,14 @@ internal class RepositorySettingsAccess(private val settings: SettingsRepository
         val current = settings.mediaConfigFlow.first()
         val updated = when (key) {
             "mediaConfig.ttsEngine" -> current.copy(ttsEngine = value)
-            "mediaConfig.ttsSpeechRate" -> value.toFloatOrNull()?.let { current.copy(ttsSpeechRate = it) }
-            else -> throw IllegalArgumentException("setting '$key' has no repository writer")
+            "mediaConfig.ttsSpeechRate" -> current.copy(
+                ttsSpeechRate = value.toFloatOrNull() ?: throw SettingsWriteReject(
+                    "settings.update rejected: 'mediaConfig.ttsSpeechRate' expects a number",
+                ),
+            )
+            else -> throw SettingsWriteReject("setting '$key' has no repository writer")
         }
-        updated?.let { settings.saveMediaConfig(it) }
+        settings.saveMediaConfig(updated)
     }
 
     private companion object {

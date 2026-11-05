@@ -147,4 +147,46 @@ class HostSettingsPersistenceTest {
             values.getValue("model.configured").value,
         )
     }
+
+    /**
+     * S2:类型校验放行的小数强度必须**说出来**,而不是静默什么都不做。
+     *
+     * 这一条是本类里唯一不能被假仓储替代的断言:[HostSettingsCommandsTest] 用假仓储只能验到
+     * 「字符串被规范化成什么」,而缺陷发生在下一步 —— `liquidGlassStrength` 是 Int,
+     * 校验器认 12.5 是合法数字,写入器却写成 `toIntOrNull()?.let { … }`;
+     * 于是 12.5 谁也没落地,调用方还拿到了 Applied。
+     * 用户视角就是「滑块松手保存了,重开设置又弹回原值」。
+     */
+    @Test
+    fun `fractional strength is rejected instead of silently dropped`() = runBlocking {
+        val settings = repository()
+        val api = commands(settings)
+
+        api.update("liquidGlassStrength", "40")
+        assertEquals(40, settings.liquidGlassStrengthFlow.first())
+
+        val result = api.update("liquidGlassStrength", "12.5")
+        assertTrue(
+            "小数强度必须被拒绝,不能回执 Applied 却不写: $result",
+            result is HostSettingsUpdateResult.Rejected,
+        )
+        assertEquals("被拒绝的写入不许动原值 —— 失败不能丢配置", 40, settings.liquidGlassStrengthFlow.first())
+
+        // 反向对照:同一项的整数写入仍要照常落地(收紧不能顺手把好路径也堵死)。
+        assertEquals(HostSettingsUpdateResult.Applied("liquidGlassStrength"), api.update("liquidGlassStrength", "55"))
+        assertEquals(55, settings.liquidGlassStrengthFlow.first())
+    }
+
+    @Test
+    fun `tts speech rate lands and keeps its value when rejected`() = runBlocking {
+        val settings = repository()
+        val api = commands(settings)
+
+        api.update("mediaConfig.ttsSpeechRate", "1.2")
+        assertEquals("校验通过的数值要真的落到整份对象里", 1.2f, settings.mediaConfigFlow.first().ttsSpeechRate, 0.001f)
+
+        val rejected = api.update("mediaConfig.ttsSpeechRate", "99")
+        assertTrue("超出范围必须拒绝而不是截断保存: $rejected", rejected is HostSettingsUpdateResult.Rejected)
+        assertEquals("拒绝之后原值不动", 1.2f, settings.mediaConfigFlow.first().ttsSpeechRate, 0.001f)
+    }
 }

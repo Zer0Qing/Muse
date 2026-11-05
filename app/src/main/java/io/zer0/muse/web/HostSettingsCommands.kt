@@ -33,6 +33,16 @@ internal interface HostSettingsAccess {
     suspend fun write(key: String, value: String)
 }
 
+/**
+ * S2:写入侧在**动任何数据之前**就拒绝了这个键/值。
+ *
+ * 单独一个类型是为了让 [HostSettingsCommands] 能分辨两件事:
+ *  - 这一类异常 → 数据没被碰过,不需要也不该声称「已回滚」;
+ *  - 其它异常 → 可能改到一半,必须按回滚处理。
+ * 用 IllegalArgumentException 混在里面会让回滚逻辑对前者也说「已回滚」,那就是在撒谎。
+ */
+internal class SettingsWriteReject(message: String) : IllegalStateException(message)
+
 internal sealed class HostSettingsUpdateResult {
     data class Applied(val key: String) : HostSettingsUpdateResult()
 
@@ -91,31 +101,81 @@ internal class HostSettingsCommands(
         }
         return when (val parsed = definition.parse(rawValue)) {
             is HostSettingParseResult.Rejected -> HostSettingsUpdateResult.Rejected(parsed.reason)
-            is HostSettingParseResult.Ok -> {
-                access.write(definition.key, parsed.canonical)
-                HostSettingsUpdateResult.Applied(definition.key)
-            }
+            is HostSettingParseResult.Ok -> writeWithRollback(definition, parsed.canonical)
         }
     }
 
+    /**
+     * S2:一次被受理的写入要么落地,要么回到写入前的样子,而且**说得出为什么没落地**。
+     *
+     * 三条纪律:
+     *  1. 校验通过不等于写成功。写入侧抛出来的问题必须回执 Rejected,
+     *     否则网页端已经把开关拨过去了,还以为保存好了;
+     *  2. 通用异常按「可能改到一半」处理:先回滚再报告,回滚本身失败也要说出来;
+     *     [SettingsWriteReject] 表示写入侧在动任何数据之前就拒绝了,不回滚也不假装回滚过。
+     *  3. 失败原因里不许出现提交的值。设置项以后会有密钥类的文本值(中继密钥、Webhook secret),
+     *     底层异常的 message 经常把输入原样带出来(`NumberFormatException: For input string: "sk-…"`),
+     *     而这些文本会被网页端显示、被用户截图求助 —— 泄漏就是这么走的。
+     */
+    @Suppress("TooGenericExceptionCaught") // 写入侧可能是 DataStore IO、序列化、仓库内部任何一种失败;漏掉任何一种都会把回滚跳过
+    private suspend fun writeWithRollback(definition: HostSettingDefinition, canonical: String): HostSettingsUpdateResult {
+        val previous = runCatching { access.readValues().wireValueOf(definition) }.getOrNull()
+        return try {
+            access.write(definition.key, canonical)
+            HostSettingsUpdateResult.Applied(definition.key)
+        } catch (error: SettingsWriteReject) {
+            HostSettingsUpdateResult.Rejected(describeFailure(definition, error.message, canonical, ""))
+        } catch (error: Exception) {
+            val tail = when {
+                previous == null -> " (原值未能读出,配置未改动)"
+                runCatching { access.write(definition.key, previous) }.isSuccess -> " (已回滚到写入前的值)"
+                else -> " (回滚也失败,请用手机端检查这一项)"
+            }
+            HostSettingsUpdateResult.Rejected(describeFailure(definition, error.message, canonical, tail))
+        }
+    }
+
+    /**
+     * 组装失败原因:说得出哪一项 + 底层给的理由 + 回滚结果,且不含提交的值。
+     *
+     * 底层理由里已经带键名的([SettingsWriteReject] 那一类)不再重复冠一遍,
+     * 否则同一条消息里会出现两次 `liquidGlassStrength`。
+     */
+    private fun describeFailure(definition: HostSettingDefinition, rawReason: String?, canonical: String, tail: String): String {
+        val scrubbed = scrubValue(rawReason ?: "settings.update failed", canonical)
+        val withKey = if (scrubbed.contains(definition.key)) scrubbed else "settings.update failed for '${definition.key}': $scrubbed"
+        return withKey + tail
+    }
+
+    /** 把提交值从原因文本里抹掉;短值(布尔、小整数)不抹,否则会把话说没。 */
+    private fun scrubValue(reason: String, value: String): String = if (value.length >= MIN_SCRUB_CHARS && reason.contains(value)) {
+        reason.replace(value, "<value>")
+    } else {
+        reason
+    }
+
+    /** 当前这一项在线上的文本值(布尔在 toggles,其余在 raw)。 */
+    private fun HostSettingsValues.wireValueOf(definition: HostSettingDefinition): String? = when {
+        definition.type == HostSettingType.BOOLEAN -> toggles[definition.key]?.toString() ?: raw[definition.key]
+        else -> raw[definition.key]
+    }
+
     /** 拼成协议里的一项：值 + 类型 + 本地化候选。 */
-    private fun HostSettingDefinition.toProtocol(raw: Map<String, String>, language: String): HostSettingValue =
-        HostSettingValue(
-            key = key,
-            type = type.wireName,
-            value = raw[key] ?: defaultWireValue(),
-            options = options.map { (value, labelResource) ->
-                HostSettingOption(value = value, label = strings.resolve(labelResource, language).orEmpty())
-            },
-            writable = writable,
-            min = min,
-            max = max,
-            step = step,
-        )
+    private fun HostSettingDefinition.toProtocol(raw: Map<String, String>, language: String): HostSettingValue = HostSettingValue(
+        key = key,
+        type = type.wireName,
+        value = raw[key] ?: defaultWireValue(),
+        options = options.map { (value, labelResource) ->
+            HostSettingOption(value = value, label = strings.resolve(labelResource, language).orEmpty())
+        },
+        writable = writable,
+        min = min,
+        max = max,
+        step = step,
+    )
 
     /** 取不到值时布尔按 false 回填，其余留空——和 toggles 的兜底同口径。 */
-    private fun HostSettingDefinition.defaultWireValue(): String =
-        if (type == HostSettingType.BOOLEAN) "false" else ""
+    private fun HostSettingDefinition.defaultWireValue(): String = if (type == HostSettingType.BOOLEAN) "false" else ""
 
     private fun HostSettingsEntry.withChecked(toggles: Map<String, Boolean>): HostSettingsEntry {
         val toggleKey = toggleKey ?: return this
@@ -128,4 +188,14 @@ internal class HostSettingsCommands(
         // 没声明 descKey 的条目(说明由运行时拼,如代理状态)不下发说明。
         desc = descKey?.let { key -> strings.resolve(key, language) },
     )
+
+    private companion object {
+        /**
+         * 短于这个长度的提交值不从失败原因里抹掉。
+         *
+         * 「true」「5」这类值出现在 message 里不构成泄漏,抹掉反而把话说没;
+         * 而能构成密钥的值不会短到这个以下。
+         */
+        const val MIN_SCRUB_CHARS = 6
+    }
 }
