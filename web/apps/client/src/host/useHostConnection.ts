@@ -18,6 +18,7 @@ import {
 } from "../api.js";
 import { describeHostError } from "./hostErrors.js";
 import { isUnsupportedCommandError } from "./featureCapabilities.js";
+import { PENDING_TIMEOUT_MS, settlePolicyFor } from "./pendingTimeout.js";
 import { mergeMessages } from "./messageEqual.js";
 import { DEFAULT_LOCALE } from "../i18n/locale.js";
 import type { MessageKey } from "../i18n/messages.js";
@@ -250,6 +251,68 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     (key: MessageKey, params?: TranslateParams) => translateRef.current(key, params),
     [],
   );
+
+  /** 按 requestId 挂的超时定时器；收到任何带该 id 的事件就撤掉。 */
+  const pendingTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  const clearPendingTimeout = useCallback((requestId: string) => {
+    const timer = pendingTimers.current.get(requestId);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      pendingTimers.current.delete(requestId);
+    }
+  }, []);
+
+  /**
+   * 到点结算。读与写必须不同，判据取自 pendingTimeout（可单测）：
+   *  - 读：停掉转圈、给一句「没有回应」，用户可以直接重试；
+   *  - 写：**不回滚、不丢待办**。命令可能已经执行成功，回滚等于向用户宣布「没保存上」，
+   *    而真相是不知道；留着待办才能让迟到的 error 事件仍然把乐观写撤掉。
+   */
+  const settlePendingTimeout = useCallback(
+    (requestId: string) => {
+      const isWrite = pendingWrites.current.has(requestId) || pendingRollbacks.current.has(requestId);
+      const policy = settlePolicyFor(isWrite ? "write" : "read");
+      if (policy.messageKey === "error.writeUnconfirmed") {
+        optionsRef.current.onError(tt("error.writeUnconfirmed"));
+        return;
+      }
+      const message = tt("error.noResponse");
+      const query = pendingQueries.current.get(requestId);
+      if (query !== undefined) {
+        pendingQueries.current.delete(requestId);
+        if (query.kind === "knowledge") setKnowledge((current) => ({ ...current, loading: false, error: message }));
+        else if (query.kind === "documents")
+          setKnowledgeDocuments((current) => ({ ...current, loading: false, error: message }));
+        else if (query.kind === "tasks") setTasks((current) => ({ ...current, loading: false, error: message }));
+        else setSystem((current) => ({ ...current, loading: false, error: message }));
+        return;
+      }
+      if (pendingMemory.current.has(requestId)) {
+        pendingMemory.current.delete(requestId);
+        setMemory((current) => ({ ...current, loading: false, error: message }));
+        return;
+      }
+      pendingDetails.current.delete(requestId);
+      pendingPreviews.current.delete(requestId);
+      pendingSettings.current.delete(requestId);
+    },
+    [tt],
+  );
+
+  const armPendingTimeout = useCallback(
+    (requestId: string) => {
+      clearPendingTimeout(requestId);
+      pendingTimers.current.set(
+        requestId,
+        setTimeout(() => {
+          pendingTimers.current.delete(requestId);
+          settlePendingTimeout(requestId);
+        }, PENDING_TIMEOUT_MS),
+      );
+    },
+    [clearPendingTimeout, settlePendingTimeout],
+  );
   // 读「最新设置」用：开关写入前要先知道上一份值才能回滚。
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -280,6 +343,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
         });
         unsubscribeEvents = connection.subscribe((event) => {
           if (!active) return;
+          if (event.requestId !== undefined) clearPendingTimeout(event.requestId);
           if (event.type === "state.snapshot") {
             setReady(true);
             // 合并：没变的消息复用旧对象，memo 才能真正生效（见 messageEqual.ts）。
@@ -507,6 +571,8 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
       // 以前这里只清 5 个映射，漏了 pendingQueries / pendingMemory / pendingDetails，
       // 而且没有任何地方复位 loading：连接一断，知识库/文档/任务/系统状态/记忆页
       // 就永远停在「加载中」，用户只能整页刷新才能再看到数据。
+      pendingTimers.current.forEach((timer) => clearTimeout(timer));
+      pendingTimers.current.clear();
       pendingPreviews.current.clear();
       pendingSettings.current.clear();
       pendingWrites.current.clear();
@@ -550,6 +616,9 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
       const requestId = crypto.randomUUID();
       pendingRollbacks.current.set(requestId, onReject);
       if (onAccepted !== undefined) pendingAccepts.current.set(requestId, onAccepted);
+      // 两次登记都落地后再上表：这个函数里 requestId 的结局由 accepted / error / duplicate 决定，
+      // 三条都没来（服务端卡死、被系统杀掉、协议分支没走到）就必须由超时收口。
+      armPendingTimeout(requestId);
       try {
         connection.send({ ...command, requestId });
       } catch (cause) {
@@ -568,6 +637,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     for (const sessionId of sessionIds) {
       const requestId = crypto.randomUUID();
       pendingPreviews.current.set(requestId, sessionId);
+      armPendingTimeout(requestId);
       try {
         connection.send({ type: "history.page", sessionId, limit: 1, offset: 0, requestId });
       } catch {
@@ -606,6 +676,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     if (!connection) return;
     const requestId = crypto.randomUUID();
     pendingDetails.current.set(requestId, assistantId);
+    armPendingTimeout(requestId);
     try {
       connection.send({ type: "assistants.detail", assistantId, requestId });
     } catch {
@@ -625,6 +696,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
       const requestId = crypto.randomUUID();
       const reset = options?.reset === true || options?.cursor === undefined;
       pendingMemory.current.set(requestId, { reset, query });
+      armPendingTimeout(requestId);
       setMemory((current) => ({
         ...current,
         loading: true,
@@ -652,6 +724,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     if (!connection) return;
     const requestId = crypto.randomUUID();
     pendingQueries.current.set(requestId, { kind: "knowledge", reset: true });
+    armPendingTimeout(requestId);
     setKnowledge((current) => ({ ...current, loading: true, error: undefined }));
     try {
       connection.send({ type: "knowledge.list", requestId });
@@ -669,6 +742,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
       const requestId = crypto.randomUUID();
       const reset = options.reset === true || options.cursor === undefined;
       pendingQueries.current.set(requestId, { kind: "documents", reset });
+      armPendingTimeout(requestId);
       setKnowledgeDocuments((current) => ({
         ...current,
         kbId: options.kbId,
@@ -698,6 +772,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     if (!connection) return;
     const requestId = crypto.randomUUID();
     pendingQueries.current.set(requestId, { kind: "tasks", reset: true });
+    armPendingTimeout(requestId);
     setTasks((current) => ({ ...current, loading: true, error: undefined }));
     try {
       connection.send({ type: "tasks.list", requestId });
@@ -713,6 +788,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     if (!connection) return;
     const requestId = crypto.randomUUID();
     pendingQueries.current.set(requestId, { kind: "system", reset: true });
+    armPendingTimeout(requestId);
     setSystem((current) => ({ ...current, loading: true, error: undefined }));
     try {
       connection.send({ type: "system.status", requestId });
@@ -729,6 +805,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     }
     const requestId = crypto.randomUUID();
     pendingSettings.current.add(requestId);
+    armPendingTimeout(requestId);
     setSettings(settingsLoading);
     try {
       connection.send({ type: "settings.snapshot", requestId });
@@ -755,6 +832,7 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
     const previous = settingValueOf(current, key);
     const requestId = crypto.randomUUID();
     pendingWrites.current.set(requestId, { key, previous });
+    armPendingTimeout(requestId);
     setSettings((state) => (state.snapshot === undefined ? state : { ...state, snapshot: applySettingValue(state.snapshot, key, value) }));
     try {
       connection.send({ type: "settings.update", key, value: typeof value === "boolean" ? (value ? "true" : "false") : value, requestId });

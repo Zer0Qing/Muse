@@ -16,9 +16,11 @@
  * 「交互与请求接线按源码断言」）。它证明的是"接线存在且顺序正确"，
  * 不是端到端行为；行为层要等浏览器/真机验收。
  */
+import { build } from "esbuild";
 import { readFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const source = readFileSync(join(ROOT, "src/host/useHostConnection.ts"), "utf8");
@@ -70,9 +72,59 @@ const acceptedAt = source.indexOf('if (event.type === "command.accepted")');
 must("accepted 分支必须存在", acceptedAt >= 0);
 must("accepted 在 duplicate 之前处理", acceptedAt >= 0 && dupStart >= 0 && acceptedAt < dupStart);
 
+// ── 5) pending 超时：接线必须覆盖每一个登记点 ───────────────────────
+// 逐个登记点检查：同一处可能连着登记两个映射（回滚 + accepted），
+// 上表一次即可覆盖，所以规则是「登记行之后的三行内出现 arm」，而不是数量相等。
+const lines = source.split("\n");
+const unArmed = [];
+for (let index = 0; index < lines.length; index += 1) {
+  if (!/pending\w+\.current\.(?:set|add)\(requestId/.test(lines[index])) continue;
+  const window = lines.slice(index, index + 6).join("\n");
+  if (!window.includes("armPendingTimeout(requestId);")) unArmed.push(`${index + 1}: ${lines[index].trim()}`);
+}
+must("每个登记待办的点都要被超时覆盖（登记后六行内上表）", unArmed.length === 0, `漏表：${unArmed.join(" | ")}`);
+must("收到带 requestId 的事件要撤表", source.includes("clearPendingTimeout(event.requestId)"));
+must("事件分发入口就撤表（而不是各分支各自记着）", source.indexOf("clearPendingTimeout(event.requestId)") < source.indexOf('if (event.type === "state.snapshot")'));
+must("teardown 要撤掉全部定时器", cleanup.includes("pendingTimers.current.forEach((timer) => clearTimeout(timer))"));
+
+// ── 6) 超时**策略**：真把模块导进来跑，不是读源码猜 ──────────────────
+const TEMP = join(ROOT, ".host-resync-behavior.mjs");
+try {
+  const entry = [
+    `export { PENDING_TIMEOUT_MS, settlePolicyFor } from ${JSON.stringify(join(ROOT, "src/host/pendingTimeout.ts").replace(/\\/g, "/"))};`,
+    "",
+  ].join("\n");
+  await writeTempEntry(entry);
+  const mod = await import(pathToFileURL(TEMP).href);
+  const read = mod.settlePolicyFor("read");
+  const write = mod.settlePolicyFor("write");
+  must("读超时必须停掉转圈", read.resetLoading === true);
+  must("读超时要丢掉待办（可以直接重试）", read.forgetRequest === true);
+  must("写超时**不得**回滚乐观写（结果未知不能假装失败）", write.rollback === false);
+  must("写超时必须保留待办，让迟到的 error 事件仍能回滚", write.forgetRequest === false);
+  must("写超时不得停掉读的转圈语义（另有文案）", write.messageKey === "error.writeUnconfirmed");
+  must("读超时用「没有回应」词条", read.messageKey === "error.noResponse");
+  must("超时必须是个正数", mod.PENDING_TIMEOUT_MS > 0 && mod.PENDING_TIMEOUT_MS < 5 * 60_000);
+} finally {
+  await rm(TEMP, { force: true }).catch(() => {});
+}
+
 if (failures.length > 0) {
   console.error("FAIL: Host 连接收尾/结算断言未通过：");
   for (const failure of failures) console.error(`  - ${failure}`);
   process.exit(1);
 }
-console.log(`OK: Host 连接收尾与结算 ${PENDING_MAPS.length + LOADING_SLICES.length + 6} 条断言全部通过。`);
+console.log(`OK: Host 连接收尾、结算与超时 ${PENDING_MAPS.length + LOADING_SLICES.length + 4 + 7 + 7} 条断言全部通过。`);
+
+/** 把入口写成临时文件并用 esbuild 打包成可直接 import 的 .mjs（同其它 check 脚本的做法）。 */
+async function writeTempEntry(entry) {
+  await build({
+    stdin: { contents: entry, resolveDir: ROOT, loader: "ts", sourcefile: "resync-entry.ts" },
+    bundle: true,
+    format: "esm",
+    platform: "node",
+    jsx: "automatic",
+    outfile: TEMP,
+    logLevel: "silent",
+  });
+}

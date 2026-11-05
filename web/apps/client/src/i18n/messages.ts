@@ -276,6 +276,8 @@ export const ZH: MessageDict = {
   "error.operationFailed": "操作没有完成",
   "error.commandFailed": "Host 命令失败",
   "error.notConnected": "手机 Muse 尚未连接",
+    "error.noResponse": "手机 Muse 没有回应，请重试",
+    "error.writeUnconfirmed": "写入状态未确认（命令可能已执行），请刷新查看",
   "error.connectFailed": "无法连接手机 Muse",
   "error.sendFailed": "命令发送失败",
 
@@ -578,6 +580,8 @@ export const EN: MessageDict = {
   "error.operationFailed": "The action didn't complete",
   "error.commandFailed": "Host command failed",
   "error.notConnected": "Muse isn't connected yet",
+    "error.noResponse": "Muse didn't respond — please try again",
+    "error.writeUnconfirmed": "Write status unconfirmed (it may have applied) — refresh to check",
   "error.connectFailed": "Can't reach Muse on your phone",
   "error.sendFailed": "Couldn't send the command",
 
@@ -880,6 +884,8 @@ export const JA: MessageDict = {
   "error.operationFailed": "操作が完了しませんでした",
   "error.commandFailed": "Host コマンドに失敗しました",
   "error.notConnected": "スマートフォンの Muse にまだ接続していません",
+    "error.noResponse": "Muse から応答がありません。もう一度お試しください",
+    "error.writeUnconfirmed": "書き込み状態は未確認です（すでに反映済みの可能性があります）。更新して確認してください",
   "error.connectFailed": "スマートフォンの Muse に接続できません",
   "error.sendFailed": "コマンドを送信できませんでした",
 
@@ -1182,6 +1188,8 @@ export const KO: MessageDict = {
   "error.operationFailed": "작업이 완료되지 않았습니다",
   "error.commandFailed": "Host 명령 실패",
   "error.notConnected": "휴대폰 Muse에 아직 연결되지 않았습니다",
+    "error.noResponse": "Muse 응답이 없습니다. 다시 시도해 주세요",
+    "error.writeUnconfirmed": "쓰기 상태가 확인되지 않았습니다(이미 적용됐을 수 있습니다). 새로 고침하여 확인하세요",
   "error.connectFailed": "휴대폰의 Muse에 연결할 수 없습니다",
   "error.sendFailed": "명령을 보내지 못했습니다",
 
@@ -1484,6 +1492,8 @@ export const RU: MessageDict = {
   "error.operationFailed": "Действие не выполнено",
   "error.commandFailed": "Команда Host не выполнена",
   "error.notConnected": "Muse на телефоне ещё не подключён",
+    "error.noResponse": "Muse не отвечает — повторите попытку",
+    "error.writeUnconfirmed": "Состояние записи не подтверждено (возможно, уже применилось) — обновите, чтобы проверить",
   "error.connectFailed": "Не удаётся подключиться к Muse на телефоне",
   "error.sendFailed": "Не удалось отправить команду",
 
