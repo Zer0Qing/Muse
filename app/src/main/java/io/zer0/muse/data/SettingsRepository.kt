@@ -1,6 +1,5 @@
 package io.zer0.muse.data
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -31,6 +30,7 @@ import io.zer0.muse.data.routing.UtilityModelBinding
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.theme.CustomTheme
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebServerConfig
 import kotlinx.coroutines.CancellationException
@@ -264,20 +264,28 @@ class SettingsRepository(
             val raw = prefs[KEY_PROVIDERS]?.let { json -> decodeProviders(json) } ?: emptyList()
             // v1.0.7: 三层合并 — specId 非空时,把 spec 默认模型列表与用户 overlay 合并
             raw.map { config ->
+                // 免费额度上游从 SiliconFlow 迁到 agnes 网关：老配置里存的是旧域名与旧模型，
+                // 只改代码不动数据，这些用户会一直拿着旧地址打不通。
+                // 判定不再依赖具体模型 id（模型会随平台变动），只认「可空 key + 旧免费域名 + 免费字样」。
                 val isLegacyFreeProvider =
                     config.allowMissingApiKey &&
                         config.baseUrl.contains("siliconflow.cn", ignoreCase = true) &&
                         (
                             config.displayName.contains("免费", ignoreCase = true) ||
                                 config.displayName.contains("free", ignoreCase = true)
-                            ) &&
-                        config.models.any { it.id in io.zer0.ai.core.FreeModelConfig.FREE_MODEL_IDS }
-                val internalized =
-                    if (
-                        config.id == SiliconFlowFreeModels.PROVIDER_ID ||
+                            )
+                val isFreeSlot =
+                    config.id == SiliconFlowFreeModels.PROVIDER_ID ||
+                        config.id in io.zer0.ai.core.FreeModelConfig.LEGACY_FREE_PROVIDER_IDS ||
                         isLegacyFreeProvider
-                    ) {
-                        config.copy(hiddenFromSettings = true)
+                val internalized =
+                    if (isFreeSlot) {
+                        config.copy(
+                            baseUrl = SiliconFlowFreeModels.BASE_URL,
+                            models = SiliconFlowFreeModels.MODELS,
+                            allowMissingApiKey = true,
+                            hiddenFromSettings = true,
+                        )
                     } else {
                         config
                     }
@@ -2217,11 +2225,7 @@ class SettingsRepository(
         writeNullablePreference(prefs, KEY_VISION_MODEL_ID, references.visionModelId)
     }
 
-    private fun writeModelBinding(
-        prefs: MutablePreferences,
-        key: Preferences.Key<String>,
-        binding: UtilityModelBinding?,
-    ) {
+    private fun writeModelBinding(prefs: MutablePreferences, key: Preferences.Key<String>, binding: UtilityModelBinding?) {
         if (binding == null) {
             prefs.remove(key)
         } else {
@@ -2594,8 +2598,7 @@ class SettingsRepository(
      * 停用的供应商等同于不存在:调用方拿到 null 后走各自的"未配置"分支,
      * 而不是拿一份用户已经关掉的配置继续发请求。
      */
-    suspend fun getProviderById(id: String): ProviderConfig? =
-        providersFlow.first().firstOrNull { it.id == id && it.enabled }
+    suspend fun getProviderById(id: String): ProviderConfig? = providersFlow.first().firstOrNull { it.id == id && it.enabled }
 
     suspend fun markOnboardingShown() = appearance.markOnboardingShown()
 
@@ -3001,7 +3004,7 @@ class SettingsRepository(
         /** AUD-20261011-TASKER-ABUSE: Tasker 广播联动开关(默认关闭)。 */
         private val KEY_TASKER_TRIGGER_ENABLED = booleanPreferencesKey("tasker_trigger_enabled")
 
-    private val KEY_AUTOMATION_ENABLED = booleanPreferencesKey("automation_enabled")
+        private val KEY_AUTOMATION_ENABLED = booleanPreferencesKey("automation_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_ENABLED = booleanPreferencesKey("quick_capture_overlay_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED =
             booleanPreferencesKey("quick_capture_overlay_default_migrated")

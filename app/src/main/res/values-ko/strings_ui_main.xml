@@ -591,7 +591,7 @@
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow">SiliconFlow</string>
-    <string name="preset_siliconflow_free">SiliconFlow 무료 모델</string>
+    <string name="preset_siliconflow_free">내장 무료 모델</string>
     <string name="free_model_service_unavailable">무료 할당량 서비스를 사용할 수 없습니다. API Key를 추가하거나 나중에 다시 시도하세요.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->

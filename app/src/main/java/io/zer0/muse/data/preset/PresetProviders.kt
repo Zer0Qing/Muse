@@ -254,6 +254,9 @@ class PresetProviders(
         contextWindow = contextWindow,
         maxOutputTokens = maxOutputTokens,
         supportsVision = supportsVision,
+        // 视觉模型同时声明图像输入模态：两个字段用途不同，
+        // supportsVision 用于能力判断，inputModalities 用于展示与兼容层。
+        inputModalities = if (supportsVision) setOf("text", "image") else setOf("text"),
         abilities = buildSet {
             if (reasoning) add(ModelAbility.REASONING)
             if (supportsTools) add(ModelAbility.TOOL)
@@ -855,19 +858,15 @@ class PresetProviders(
         category = ProviderCategory.OFFICIAL,
         allowMissingApiKey = true, // v1.0.18: 允许不填 key,由 fallback key 兜底
         models = listOf(
-            // v1.0.18: 与 FreeModelConfig.FREE_MODEL_IDS 保持一致
+            // 与 FreeModelConfig.FREE_MODEL_IDS 保持一致：两边不同步会让用户选到没有额度的模型。
             chatModel(
                 SiliconFlowFreeModels.PROVIDER_ID,
-                "THUDM/GLM-4-9B-0414",
-                "GLM-4-9B 0414 (免费)",
-                contextWindow = 32_768,
-                supportsTools = true,
-            ),
-            chatModel(
-                SiliconFlowFreeModels.PROVIDER_ID,
-                "Qwen/Qwen3-8B",
-                "Qwen3-8B (免费)",
-                contextWindow = 32_768,
+                "agnes-2.5-flash",
+                "agnes-2.5-flash (免费)",
+                contextWindow = 512_000,
+                maxOutputTokens = 65_536,
+                supportsVision = true,
+                reasoning = true,
                 supportsTools = true,
             ),
         ),

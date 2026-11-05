@@ -743,7 +743,7 @@
 
     <!-- ===== P2-5: SiliconFlow 免费模型兜底(PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow">硅基流动</string>
-    <string name="preset_siliconflow_free">SiliconFlow 免费模型</string>
+    <string name="preset_siliconflow_free">内置免费模型</string>
     <string name="free_model_service_unavailable">免费额度服务不可用，请填写 API Key 或等待服务恢复</string>
 
     <!-- ===== P2-10: Provider 插件管理(ProviderPluginPage) ===== -->

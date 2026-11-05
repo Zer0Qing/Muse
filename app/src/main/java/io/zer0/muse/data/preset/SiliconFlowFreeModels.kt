@@ -5,108 +5,46 @@ import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
 
 /**
- * P2-5: SiliconFlow 平台免费模型兜底清单。
+ * 内置免费额度的模型清单。
  *
- * 背景:
- *  - SiliconFlow 在 `https://api.siliconflow.cn/v1` 提供 OpenAI 兼容端点,
- *    并对部分开源模型标注 `:free` 后缀(免费可用,但通常有 RPM/QPS 上限)。
- *  - 用户拿到 SiliconFlow 的 apiKey 后,常因不知道"哪些模型免费"而逐个尝试,
- *    体验较差。本对象预置一份当前已知免费可用的模型清单,
- *    在 ProviderEditPage(当 baseUrl 命中 siliconflow.cn 时)提供「一键填入免费模型」入口。
+ * 历史说明：本对象原名「SiliconFlow 免费模型」，免费额度已迁到 agnes 网关
+ * （`apihub.agnes-ai.com`），类名保留是为了不动 12 处调用点；
+ * 真正的供应商 id 与 base url 一律读 [FreeModelConfig]，不要在别处另写一份。
  *
- * 设计:
- *  - 仅记录模型 [Model.id] 与基础能力(supportsVision / abilities / contextWindow),
- *    不含定价信息(平台策略会变动,以官网为准)。
- *  - [PROVIDER_ID] 用预设 Provider 的固定 id,确保预设阶段 Model.providerId 不为空;
- *    用户保存为真实 Provider 后,ModelRegistry.enrich / ProviderConfig 持久化时
- *    会按 Provider.id 同步 providerId,无需此处关心。
- *  - supportsVision 仅对真实支持图像输入的模型(如 Qwen2.5-VL 系列)置 true;
- *    本清单目前不含 VL 变体,故全部为 false,保留字段以便后续扩展。
- *  - supportsTools 通过 [ModelAbility.TOOL] 标记;DeepSeek-R1 为纯推理模型,
- *    标 [ModelAbility.REASONING] 而不开 TOOL。
+ * 用途有两处，必须保持一致：
+ *  1. 预设供应商预填的模型（用户未填 key 时直接可用）；
+ *  2. 供应商编辑页「一键填入免费模型」。
  *
- * 维护:
- *  - 模型清单会随 SiliconFlow 平台策略变动(新增 / 下架 / 限速调整),
- *    定期对照 `https://siliconflow.cn/zh-cn/models` 校对一次即可。
+ * 与 [FreeModelConfig.FREE_MODEL_IDS] 的关系：那份是「谁可以用内置 key」的白名单，
+ * 这里是「界面上展示哪些模型」。两边不一致时，用户会选中一个列表里没有额度的模型，
+ * 请求带着空 key 出去 —— 所以改动时两处一起改。
  */
 object SiliconFlowFreeModels {
 
-    /** SiliconFlow 平台 OpenAI 兼容端点。 */
-    const val BASE_URL = "https://api.siliconflow.cn/v1"
+    /** 免费额度上游 OpenAI 兼容端点。 */
+    const val BASE_URL = FreeModelConfig.AGNES_BASE_URL
 
     /** 预设 Provider 的固定 id(与 PresetProviders.siliconFlowFree 中保持一致)。 */
     const val PROVIDER_ID = FreeModelConfig.FREE_PROVIDER_ID
 
     /**
-     * SiliconFlow 平台当前免费可用的模型列表(不含定价,会随平台策略变动)。
+     * 免费额度可用模型。
      *
-     * 说明:
-     *  - contextWindow 取各家厂商公布的官方上下文长度(单位:token);
-     *    如有歧义保守取较小值,避免 UI 上的"上下文占用小圈"显示过大。
-     *  - 不含 maxOutputTokens(留空让运行时按上游 /models 自行声明)。
-     *  - 输入/输出模态默认 ["text"](非视觉模型),视觉模型按需补 "image"。
+     * 能力按上游实测填：agnes-2.5-flash 接受图文输入，单请求 max_tokens 到 65536
+     * 不被拒，返回里带 reasoning_content，因此同时标 REASONING 与 TOOL。
+     * 上下文长度按平台声明填 512k；它只影响 UI 上的占用提示与裁剪预算，
+     * 填小了会提前截断，填大了只是显示乐观。
      */
     val MODELS: List<Model> = listOf(
-        // ── Qwen2.5 Instruct 系列(支持 tool calling,无视觉)──
         Model(
-            id = "Qwen/Qwen2.5-7B-Instruct",
-            name = "Qwen2.5 7B (Free)",
+            id = "agnes-2.5-flash",
+            name = "agnes-2.5-flash (免费)",
             providerId = PROVIDER_ID,
-            contextWindow = 32_768,
-            abilities = setOf(ModelAbility.TOOL),
-        ),
-        Model(
-            id = "Qwen/Qwen2.5-14B-Instruct",
-            name = "Qwen2.5 14B (Free)",
-            providerId = PROVIDER_ID,
-            contextWindow = 32_768,
-            abilities = setOf(ModelAbility.TOOL),
-        ),
-        Model(
-            id = "Qwen/Qwen2.5-32B-Instruct",
-            name = "Qwen2.5 32B (Free)",
-            providerId = PROVIDER_ID,
-            contextWindow = 32_768,
-            abilities = setOf(ModelAbility.TOOL),
-        ),
-        Model(
-            id = "Qwen/Qwen2.5-72B-Instruct",
-            name = "Qwen2.5 72B (Free)",
-            providerId = PROVIDER_ID,
-            contextWindow = 32_768,
-            abilities = setOf(ModelAbility.TOOL),
-        ),
-        // ── DeepSeek 系列(V2.5 支持 tool calling;R1 为纯推理模型)──
-        Model(
-            id = "deepseek-ai/DeepSeek-V2.5",
-            name = "DeepSeek V2.5 (Free)",
-            providerId = PROVIDER_ID,
-            contextWindow = 32_768,
-            abilities = setOf(ModelAbility.TOOL),
-        ),
-        Model(
-            id = "deepseek-ai/DeepSeek-R1",
-            name = "DeepSeek R1 (Free)",
-            providerId = PROVIDER_ID,
-            contextWindow = 65_536,
-            // R1 为推理模型,不支持 tool calling(空 abilities 不进入 TOOL 分支)
-            abilities = setOf(ModelAbility.REASONING),
-        ),
-        // ── 智谱 GLM-4-9B-Chat(支持 tool calling,无视觉)──
-        Model(
-            id = "THUDM/glm-4-9b-chat",
-            name = "GLM-4 9B (Free)",
-            providerId = PROVIDER_ID,
-            contextWindow = 32_768,
-            abilities = setOf(ModelAbility.TOOL),
-        ),
-        // ── Meta Llama 3.1 8B Instruct(支持 tool calling,无视觉)──
-        Model(
-            id = "meta-llama/Meta-Llama-3.1-8B-Instruct",
-            name = "Llama 3.1 8B (Free)",
-            providerId = PROVIDER_ID,
-            contextWindow = 131_072,
-            abilities = setOf(ModelAbility.TOOL),
+            contextWindow = 512_000,
+            maxOutputTokens = 65_536,
+            supportsVision = true,
+            inputModalities = setOf("text", "image"),
+            abilities = setOf(ModelAbility.TOOL, ModelAbility.REASONING),
         ),
     )
 }
