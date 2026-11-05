@@ -80,7 +80,10 @@ class SessionArtifactCleanupTest {
 
         val logged = logs.count { it.contains("会话残留清理失败") }
         assertEquals("计数与留痕不一致：有失败没被记下来", failures, logged)
-        assertTrue("没有 Koin 时依赖项应当算失败：$logs", failures > 0)
+        // 这里**不**再断言 failures > 0：那句实际假设"整个测试 JVM 里没人启动过 Koin"，
+        // 而 Robolectric 共享 JVM 下前一个类完全可能已经装好全局上下文 —— 那时依赖可用、
+        // 计数合法地为 0，断言就变成随机红（第 148 轮实测到）。
+        // "依赖不可用要算失败"这件事由下面那条显式传 null 的用例负责，它不依赖环境。
     }
 
     @Test
