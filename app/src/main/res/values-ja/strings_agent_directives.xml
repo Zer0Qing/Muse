@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
+<resources>
+    <string name="settings_screen_agent_directives">してよいこと・してはいけないこと</string>
+    <string name="settings_screen_agent_directives_desc">主動メッセージと通常会話の両方で守る長期的な約束</string>
+    <string name="agent_directives_hint">ここに書いた内容は一般的な話し方の設定より優先されます。両者が矛盾する場合は「絶対しないこと」が優先です。</string>
+    <string name="agent_directives_forbidden_section">絶対しないこと</string>
+    <string name="agent_directives_desired_section">できるだけしてほしいこと</string>
+    <string name="agent_directives_empty">まだありません。例：「あだ名で呼ばないで」</string>
+    <string name="agent_directives_add_forbidden">「しないこと」を追加</string>
+    <string name="agent_directives_add_desired">「してほしいこと」を追加</string>
+    <string name="agent_directives_editor_placeholder">例：朝、朝食を思い出させて</string>
+    <string name="agent_directives_text_limit">1件あたり最大200文字</string>
+    <string name="agent_directives_move_up">上へ移動</string>
+    <string name="agent_directives_move_down">下へ移動</string>
+    <string name="agent_directives_delete">削除</string>
+    <string name="agent_directives_omitted">多すぎて、今回はこれらが反映されませんでした：%1$s</string>
+    <string name="agent_directives_switch">この約束を有効にする</string>
+</resources>

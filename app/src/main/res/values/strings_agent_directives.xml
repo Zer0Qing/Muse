@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
+<resources>
+    <string name="settings_screen_agent_directives">它该做与不该做的事</string>
+    <string name="settings_screen_agent_directives_desc">给它立的长期规矩，主动消息和聊天都会遵守</string>
+    <string name="agent_directives_hint">这里写的是你的具体要求，比一般语气设定更优先。两类冲突时，以「绝对不要」为准。</string>
+    <string name="agent_directives_forbidden_section">绝对不要</string>
+    <string name="agent_directives_desired_section">尽量做到</string>
+    <string name="agent_directives_empty">还没有写过。比如：别叫我宝贝</string>
+    <string name="agent_directives_add_forbidden">添加一条「不要做」</string>
+    <string name="agent_directives_add_desired">添加一条「要做」</string>
+    <string name="agent_directives_editor_placeholder">例如：早上提醒我吃早饭</string>
+    <string name="agent_directives_text_limit">单条最多 200 字</string>
+    <string name="agent_directives_move_up">上移</string>
+    <string name="agent_directives_move_down">下移</string>
+    <string name="agent_directives_delete">删除</string>
+    <string name="agent_directives_omitted">写得太多了，这几条这次没生效：%1$s</string>
+    <string name="agent_directives_switch">启用这条约定</string>
+</resources>

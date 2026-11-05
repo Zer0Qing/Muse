@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
+<resources>
+    <string name="settings_screen_agent_directives">Что делать и чего не делать</string>
+    <string name="settings_screen_agent_directives_desc">Долгосрочные правила, которые он соблюдает в том числе в инициативе</string>
+    <string name="agent_directives_hint">Это ваши явные требования, они важнее общих настроек тона. При конфликте приоритет у списка «никогда не».</string>
+    <string name="agent_directives_forbidden_section">Никогда не</string>
+    <string name="agent_directives_desired_section">Пожалуйста, делай</string>
+    <string name="agent_directives_empty">Пока пусто. Например: не зови меня ласково</string>
+    <string name="agent_directives_add_forbidden">Добавить «никогда не»</string>
+    <string name="agent_directives_add_desired">Добавить «делай»</string>
+    <string name="agent_directives_editor_placeholder">Например: напомни мне позавтракать</string>
+    <string name="agent_directives_text_limit">Не более 200 символов на пункт</string>
+    <string name="agent_directives_move_up">Вверх</string>
+    <string name="agent_directives_move_down">Вниз</string>
+    <string name="agent_directives_delete">Удалить</string>
+    <string name="agent_directives_omitted">Слишком много; на этот раз не применилось: %1$s</string>
+    <string name="agent_directives_switch">Включить это правило</string>
+</resources>

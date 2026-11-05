@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
+<resources>
+    <string name="settings_screen_agent_directives">O que fazer e o que não fazer</string>
+    <string name="settings_screen_agent_directives_desc">Regras de longo prazo que ele segue em conversas normais e proativas</string>
+    <string name="agent_directives_hint">São requisitos seus explícitos e vêm antes do tom geral. Em conflito, vale a lista de “nunca”.</string>
+    <string name="agent_directives_forbidden_section">Nunca faça</string>
+    <string name="agent_directives_desired_section">Por favor, faça</string>
+    <string name="agent_directives_empty">Nada ainda. Exemplo: não me chame de amor</string>
+    <string name="agent_directives_add_forbidden">Adicionar um “nunca”</string>
+    <string name="agent_directives_add_desired">Adicionar um “faça”</string>
+    <string name="agent_directives_editor_placeholder">Exemplo: me lembre de tomar café da manhã</string>
+    <string name="agent_directives_text_limit">Até 200 caracteres por regra</string>
+    <string name="agent_directives_move_up">Mover para cima</string>
+    <string name="agent_directives_move_down">Mover para baixo</string>
+    <string name="agent_directives_delete">Excluir</string>
+    <string name="agent_directives_omitted">Conteúdo demais; desta vez não valeram: %1$s</string>
+    <string name="agent_directives_switch">Ativar esta regra</string>
+</resources>

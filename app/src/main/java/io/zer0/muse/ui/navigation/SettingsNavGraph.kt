@@ -50,6 +50,7 @@ import io.zer0.muse.ui.settings.BrowserSettingsPage
 import io.zer0.muse.ui.settings.WebAccessPage
 import io.zer0.muse.ui.terminal.TerminalScreen
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.settings.AgentDirectivesPage
 
 /**
  * 设置域 NavGraph — 包含设置主页 + 31 个二级/三级设置页(账户/模型/外观/代理/多 Agent/
@@ -503,6 +504,13 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         WebAccessPage(onBack = { navController.popBackStack() })
+    }
+    // 它该做与不该做的事（用户约定）— 设置 → 自动化 分组
+    composable<SettingsAgentDirectivesRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        AgentDirectivesPage(onBack = { navController.popBackStack() })
     }
     // 内置浏览器设置 — 地址栏搜索引擎 / Cookies 行为
     composable<SettingsBrowserRoute>(

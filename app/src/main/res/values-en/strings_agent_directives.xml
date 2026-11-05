@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
+<resources>
+    <string name="settings_screen_agent_directives">Do’s and don’ts</string>
+    <string name="settings_screen_agent_directives_desc">Long-term rules it follows in proactive and normal chats</string>
+    <string name="agent_directives_hint">These are your explicit requests and take priority over general tone settings. When they conflict, the don’t list wins.</string>
+    <string name="agent_directives_forbidden_section">Never do</string>
+    <string name="agent_directives_desired_section">Please do</string>
+    <string name="agent_directives_empty">Nothing yet. For example: don’t call me darling</string>
+    <string name="agent_directives_add_forbidden">Add a don’t</string>
+    <string name="agent_directives_add_desired">Add a do</string>
+    <string name="agent_directives_editor_placeholder">For example: remind me to eat breakfast</string>
+    <string name="agent_directives_text_limit">Up to 200 characters each</string>
+    <string name="agent_directives_move_up">Move up</string>
+    <string name="agent_directives_move_down">Move down</string>
+    <string name="agent_directives_delete">Delete</string>
+    <string name="agent_directives_omitted">Too much to fit; these didn’t apply this time: %1$s</string>
+    <string name="agent_directives_switch">Enable this rule</string>
+</resources>

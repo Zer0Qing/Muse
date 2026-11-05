@@ -34,6 +34,7 @@ import io.zer0.muse.ui.navigation.SettingsMediaRoute
 import io.zer0.muse.ui.navigation.SettingsMemoryRoute
 import io.zer0.muse.ui.navigation.SettingsModelRoute
 import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
+import io.zer0.muse.ui.navigation.SettingsAgentDirectivesRoute
 import io.zer0.muse.ui.navigation.SettingsProactiveRoute
 import io.zer0.muse.ui.navigation.SettingsProxyRoute
 import io.zer0.muse.ui.navigation.SettingsRagRoute
@@ -110,6 +111,7 @@ enum class SettingsEntryId {
     WEB_ACCESS,
     MCP,
     PROACTIVE,
+    AGENT_DIRECTIVES,
     SCHEDULED_TASKS,
     NOTIFICATION_LISTENER,
     UI_AUTOMATION,
@@ -583,6 +585,17 @@ object SettingsCatalog {
                     keywords = listOf(
                         "主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong",
                         "tuisong", "dingshifasong", "zdxx", "zd", "ts",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.AGENT_DIRECTIVES,
+                    R.string.settings_screen_agent_directives,
+                    R.string.settings_screen_agent_directives_desc,
+                    MuseIcons.bell,
+                    SettingsEntryAction.Navigate(SettingsAgentDirectivesRoute),
+                    keywords = listOf(
+                        "约定", "规矩", "希望", "不希望", "别叫我", "directive",
+                        "yueding", "guiju", "xiwang", "buwang", "biejiaowozhenming",
                     ),
                 ),
                 entry(

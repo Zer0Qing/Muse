@@ -108,6 +108,15 @@ internal object HostSettingsCatalog {
         group(
             "settings_group_automation",
             link("proactive", "settings_agent_proactive_title", "settings_agent_proactive_subtitle", "bell"),
+            // 用户约定只有 App 侧有页面（编辑与注入都在 App 内），Web 端列出但不进子页，
+            // 不留一个点了没反应的死行；理由同步登记在 HostSettingsEntryAvailabilityTest。
+            link(
+                "agent_directives",
+                "settings_screen_agent_directives",
+                "settings_screen_agent_directives_desc",
+                "bell",
+                enabled = false,
+            ),
             link("scheduled_tasks", "schedule_title", "settings_screen_desc_schedule", "clock"),
             link(
                 "notification_listener",

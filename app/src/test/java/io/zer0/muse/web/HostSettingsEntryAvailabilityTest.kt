@@ -35,6 +35,8 @@ class HostSettingsEntryAvailabilityTest {
         "browser" to "浏览器设置是 App 侧 WebView 行为，网页端没有对应子页",
         // 小手机由编译期总闸决定：关掉时保留展示但不可进入（既有约定，不是我新加的规则）。
         "miniphone" to "由 FeatureFlags.MINI_PHONE 决定的实验功能，关闸时只展示",
+        // 用户约定的编辑与注入都只在 App 侧；Web 端要能进，得先在客户端补子页并登记 entryIds。
+        "agent_directives" to "「它该做与不该做的事」只有 App 侧编辑页，网页端列出但不进子页",
     )
 
     @Test

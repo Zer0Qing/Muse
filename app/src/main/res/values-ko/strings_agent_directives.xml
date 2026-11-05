@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
+<resources>
+    <string name="settings_screen_agent_directives">해도 되는 일과 안 되는 일</string>
+    <string name="settings_screen_agent_directives_desc">능동 메시지와 일반 대화 모두에서 지키는 장기 규칙</string>
+    <string name="agent_directives_hint">여기에 적으면 일반적인 말투 설정보다 우선합니다. 두 항목이 충돌하면 ’절대 하지 말 것’이 우선입니다.</string>
+    <string name="agent_directives_forbidden_section">절대 하지 말 것</string>
+    <string name="agent_directives_desired_section">가급적 해줄 것</string>
+    <string name="agent_directives_empty">아직 없습니다. 예: 애칭으로 부르지 말기</string>
+    <string name="agent_directives_add_forbidden">‘하지 말 것’ 추가</string>
+    <string name="agent_directives_add_desired">‘할 것’ 추가</string>
+    <string name="agent_directives_editor_placeholder">예: 아침에 식사 챙겨 주기</string>
+    <string name="agent_directives_text_limit">항목당 최대 200자</string>
+    <string name="agent_directives_move_up">위로 이동</string>
+    <string name="agent_directives_move_down">아래로 이동</string>
+    <string name="agent_directives_delete">삭제</string>
+    <string name="agent_directives_omitted">분량이 많아 이번에는 다음 항목이 반영되지 않았습니다: %1$s</string>
+    <string name="agent_directives_switch">이 규칙 사용</string>
+</resources>

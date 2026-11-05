@@ -175,6 +175,9 @@ data object SettingsAgentRoute
 data object SettingsProactiveRoute
 
 @Serializable
+data object SettingsAgentDirectivesRoute
+
+@Serializable
 data object LicensesRoute
 
 @Serializable

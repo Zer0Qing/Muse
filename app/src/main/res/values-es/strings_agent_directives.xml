@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
+<resources>
+    <string name="settings_screen_agent_directives">Lo que debe y no debe hacer</string>
+    <string name="settings_screen_agent_directives_desc">Reglas de largo plazo que cumple en chats proactivos y normales</string>
+    <string name="agent_directives_hint">Son requisitos explícitos tuyos y pesan más que el tono general. Ante conflicto gana la lista de «nunca».</string>
+    <string name="agent_directives_forbidden_section">Nunca hagas</string>
+    <string name="agent_directives_desired_section">Por favor, haz</string>
+    <string name="agent_directives_empty">Aún no hay nada. Por ejemplo: no me llames cariño</string>
+    <string name="agent_directives_add_forbidden">Añadir un «nunca»</string>
+    <string name="agent_directives_add_desired">Añadir un «haz»</string>
+    <string name="agent_directives_editor_placeholder">Por ejemplo: recuérdame desayunar</string>
+    <string name="agent_directives_text_limit">Hasta 200 caracteres por regla</string>
+    <string name="agent_directives_move_up">Subir</string>
+    <string name="agent_directives_move_down">Bajar</string>
+    <string name="agent_directives_delete">Eliminar</string>
+    <string name="agent_directives_omitted">Demasiado contenido; esto no se aplicó esta vez: %1$s</string>
+    <string name="agent_directives_switch">Activar esta regla</string>
+</resources>

@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config
 /**
  * 设置入口清单的结构回归锁定。
  *
- * 首页 14 个分类、每类的条目与顺序、全局 49 项的完整性全部写在 [SettingsCatalog] 里，
+ * 首页 14 个分类、每类的条目与顺序、全局 50 项的完整性全部写在 [SettingsCatalog] 里，
  * 首页 / 分类页 / 搜索索引都从这份清单取数据。这里直接断言清单本身：
  * 换类、换顺序、把某一项贴到两类里、加一项漏一项，都会让下面的断言失败。
  */
@@ -67,6 +67,7 @@ class SettingsGroupLayoutTest {
         ),
         SettingsGroupKind.AUTOMATION to listOf(
             SettingsEntryId.PROACTIVE,
+            SettingsEntryId.AGENT_DIRECTIVES,
             SettingsEntryId.SCHEDULED_TASKS,
             SettingsEntryId.NOTIFICATION_LISTENER,
             SettingsEntryId.UI_AUTOMATION,
@@ -193,9 +194,9 @@ class SettingsGroupLayoutTest {
 
     private companion object {
         const val SETTINGS_GROUP_COUNT = 14
-        const val EXPECTED_ENTRY_COUNT = 49
+        const val EXPECTED_ENTRY_COUNT = 50
 
         /** 与上方 expectedLayout 一一对应的条目数，用来锁住分布均衡、没有过大的单类。 */
-        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 3, 3, 3, 3, 3, 2, 6, 5, 2, 5, 2, 3, 5)
+        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 3, 3, 3, 3, 3, 2, 6, 6, 2, 5, 2, 3, 5)
     }
 }
