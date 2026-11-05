@@ -53,6 +53,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             onOpenChat = { navController.navigate(ChatDetailRoute) },
             // v0.45: 右上角搜索 → 独立全局搜索页
             onOpenSearch = { navController.navigate(SearchRoute) },
+            onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
             // v1.30: 群聊卡片点击 → 群聊详情页(右滑入场)
             onOpenGroupChat = { chatId ->
                 navController.navigate(GroupChatDetailRoute(chatId))

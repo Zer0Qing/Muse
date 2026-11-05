@@ -64,6 +64,7 @@ import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.theme.titleSmallStrong
+import io.zer0.muse.ui.chat.WorkspaceQuickPickDialog
 
 // M-CS7: tabs 列表提为文件级 val,避免每次 recomposition 重新创建(原在 Composable 内 listOf)
 // 存资源 id(Int) 与页面序号,UI 层统一用 stringResource 解析。
@@ -100,6 +101,14 @@ fun HomeScreen(
     onOpenChat: () -> Unit = {},
     /** v0.45: 打开独立全局搜索页。 */
     onOpenSearch: () -> Unit = {},
+    /**
+     * 打开工作区到指定相对目录（顶栏「更多 → 工作区」用）。
+     *
+     * 为什么首页也要这一项：Agent 标签页模式下 `ChatScreen` 自带顶栏是隐藏的
+     * （`isAgentMode` / `ChatSurface.AGENT`），三点菜单由本文件提供 ——
+     * 只做在聊天页里，这个模式就完全点不到。
+     */
+    onOpenWorkspace: (String?) -> Unit = {},
     /** v1.30: 群聊 Tab 中点击群聊卡片 → 跳转群聊详情页(参数为 chatId)。 */
     onOpenGroupChat: (String) -> Unit = {},
     /** v2.0: 打开最近删除页。 */
@@ -142,6 +151,7 @@ fun HomeScreen(
     val reducedMotion = MuseMotion.isReducedMotion()
     // C1: 全局命令面板可见性(搜索按钮 / Ctrl+K 唤起)
     var showCommandPalette by rememberSaveable { mutableStateOf(false) }
+    var showWorkspacePick by rememberSaveable { mutableStateOf(false) }
     // C4: 宽屏自适应双栏 — Expanded(≥840dp) 时任务 tab 会话列表+消息同屏,
     // 窄屏保持原单栏 + push 详情页交互
     val widthClass = rememberWindowWidthClass()
@@ -236,29 +246,53 @@ fun HomeScreen(
                 val showMiniPhone = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY
                 // v1.0.90: 小手机没开时，右上角直接就是搜索图标本身 —— 只有一项的菜单
                 // 等于多点一层。开了小手机才收起成三点菜单（搜索 + 小手机）。
-                if (showMiniPhone) {
-                    MuseTopBarMenu(
-                        contentDescription = stringResource(R.string.action_more),
-                        items = listOf(
-                            MuseFloatingActionItem(
-                                key = "search",
-                                icon = MuseIcons.search,
-                                label = stringResource(R.string.home_search_cd),
-                                onClick = { showCommandPalette = true },
-                            ),
+                // 菜单项按当前配置现拼：小手机总闸关掉时（`MINI_PHONE_ENTRY = false`，也就是
+                // 现在的出厂形态）这里原本是「裸搜索图标」，因为没有第二项可放。
+                // 加了「工作区」之后恒有 ≥2 项，所以统一收成三点菜单 ——
+                // 与该文件原来的判断（只有一项就别让用户多点一层）并不矛盾，是它的前提变了。
+                val searchLabel = stringResource(R.string.home_search_cd)
+                val miniPhoneLabel = stringResource(R.string.home_miniphone_cd)
+                val workspaceLabel = stringResource(R.string.workspace_title)
+                val topMenuItems = buildList {
+                    add(
+                        MuseFloatingActionItem(
+                            key = "search",
+                            icon = MuseIcons.search,
+                            label = searchLabel,
+                            onClick = { showCommandPalette = true },
+                        ),
+                    )
+                    if (showMiniPhone) {
+                        add(
                             MuseFloatingActionItem(
                                 key = "miniphone",
                                 icon = MuseIcons.deviceMobile,
-                                label = stringResource(R.string.home_miniphone_cd),
+                                label = miniPhoneLabel,
                                 onClick = onOpenMiniPhone,
                             ),
+                        )
+                    }
+                    add(
+                        MuseFloatingActionItem(
+                            key = "workspace",
+                            icon = MuseIcons.folderOpen,
+                            label = workspaceLabel,
+                            onClick = { showWorkspacePick = true },
                         ),
                     )
-                } else {
-                    MuseTopBarIconButton(
-                        icon = MuseIcons.search,
-                        contentDescription = stringResource(R.string.home_search_cd),
-                        onClick = { showCommandPalette = true },
+                }
+                MuseTopBarMenu(
+                    contentDescription = stringResource(R.string.action_more),
+                    items = topMenuItems,
+                )
+                // 工作区下钻选择器（与聊天页同一组件，不另写一份）
+                if (showWorkspacePick) {
+                    WorkspaceQuickPickDialog(
+                        onOpen = { pickPath ->
+                            showWorkspacePick = false
+                            onOpenWorkspace(pickPath)
+                        },
+                        onDismiss = { showWorkspacePick = false },
                     )
                 }
             }
