@@ -40,6 +40,9 @@ import java.time.format.DateTimeFormatter
  *   仅退出编译上下文。历史数据为 NULL,行为与升级前一致。
  * v19 schema: 新增 merged_into_id 列 —— 本条被合并进了哪条记忆(重复聚合);被指向的新行承载
  *   整合后的正文,指向方保留可查但不参与召回、不进投影。历史数据为 NULL,行为与升级前一致。
+ * v20 schema（能力增强 M1/M2/M3）: facts 新增 evidence_quote / evidence_message_id /
+ *   conflict_status / conflict_with_id 四列(证据溯源 + 矛盾落库),并新建
+ *   profile_snapshots 表(画像快照)。历史行四列取默认值 = 无证据、无未决矛盾,行为与升级前一致。
  *
  * FTS4 选型说明:
  *  - 部分国产 ROM(如 OPPO Android 16)的 SQLite 未编译 FTS5 模块,
@@ -55,7 +58,7 @@ import java.time.format.DateTimeFormatter
  * 版本守卫 [FactDb.archiveUnknownVersionDatabase] 也引用本常量。
  * 历史缺陷正是守卫写死旧值(13)导致 v14 真库被误判为"未知高版本"反复归档清空。
  */
-internal const val FACT_DB_VERSION = 19
+internal const val FACT_DB_VERSION = 20
 
 @Database(
     entities = [
@@ -65,6 +68,7 @@ internal const val FACT_DB_VERSION = 19
         MemoryLinkEntity::class,
         FactRevisionEntity::class,
         FactTombstoneEntity::class,
+        ProfileSnapshotEntity::class,
     ],
     version = FACT_DB_VERSION,
     // v1.78 (H4): 开启 schema 导出,未来 v4+ 升级时编写 Migration 替代 destructive
@@ -84,6 +88,9 @@ abstract class FactDb : RoomDatabase() {
 
     /** v10: 记忆知识图谱边 DAO(P2-3)。 */
     abstract fun memoryLinkDao(): io.zer0.memory.ai.MemoryLinkDao
+
+    /** v20(M3): 画像快照 DAO。 */
+    abstract fun profileSnapshotDao(): ProfileSnapshotDao
 
     companion object {
         /**
@@ -427,6 +434,51 @@ abstract class FactDb : RoomDatabase() {
             }
 
         /**
+         * v19→v20(能力增强 M1/M2/M3):
+         *  - facts 加四列:证据摘录/证据消息 id/矛盾状态/矛盾对方 id;
+         *  - 新建 profile_snapshots 表(画像快照,一行一段)。
+         *
+         * 全部是"新增列 + 新增表",不触碰任何既有行:历史事实默认
+         * 「无证据、无未决矛盾」,行为与升级前完全一致;新列的默认值/类型
+         * 必须与 [FactEntity] / [ProfileSnapshotEntity] 注解一致,否则 Room schema 校验失败。
+         *
+         * 回退方案(降级/返工时在备份副本上执行,不在代码里跑):
+         *  1) 旧版本 APK 打开 v20 库会被 [archiveUnknownVersionDatabase] 整库归档为
+         *     `facts.db.pre-destructive.bak`,数据不丢,可人工迁回;
+         *  2) 退出特性:`ALTER TABLE facts DROP COLUMN evidence_quote; …` 逐列删除,
+         *     `DROP TABLE profile_snapshots`,把 user_version 置回 19。
+         */
+        val MIGRATION_19_20 =
+            object : Migration(19, 20) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE facts ADD COLUMN evidence_quote TEXT DEFAULT NULL")
+                    db.execSQL("ALTER TABLE facts ADD COLUMN evidence_message_id TEXT DEFAULT NULL")
+                    db.execSQL("ALTER TABLE facts ADD COLUMN conflict_status TEXT NOT NULL DEFAULT 'none'")
+                    db.execSQL("ALTER TABLE facts ADD COLUMN conflict_with_id INTEGER DEFAULT NULL")
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS profile_snapshots (
+                            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                            scope TEXT NOT NULL,
+                            space_id TEXT NOT NULL,
+                            section TEXT NOT NULL,
+                            auto_content TEXT NOT NULL DEFAULT '',
+                            manual_content TEXT DEFAULT NULL,
+                            source_fact_ids TEXT NOT NULL DEFAULT '[]',
+                            evidence_fingerprint TEXT NOT NULL DEFAULT '',
+                            updated_at TEXT NOT NULL,
+                            last_refresh_at TEXT DEFAULT NULL
+                        )
+                        """.trimIndent(),
+                    )
+                    db.execSQL(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS index_profile_snapshots_scope_space_section " +
+                            "ON profile_snapshots(scope, space_id, section)",
+                    )
+                }
+            }
+
+        /**
          * R-DB-03: 归档早期 v1/v2 或损坏的 facts 数据库。
          * 归档为 <name>.bak 后由 Room 重建空库,避免打开时崩溃。
          */
@@ -613,6 +665,7 @@ abstract class FactDb : RoomDatabase() {
                     MIGRATION_16_17,
                     MIGRATION_17_18,
                     MIGRATION_18_19,
+                    MIGRATION_19_20,
                 )
                 .addCallback(
                     object : Callback() {

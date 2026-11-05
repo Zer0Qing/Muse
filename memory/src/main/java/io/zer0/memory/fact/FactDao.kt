@@ -584,6 +584,41 @@ interface FactDao {
      */
     @Query("SELECT COUNT(*) FROM facts WHERE space_id = :spaceId")
     suspend fun countBySpace(spaceId: String): Int
+
+    // ── v20(M1/M2): 证据溯源与矛盾落库 ────────────────────────────────
+
+    /**
+     * v20(M1): 写入一条事实的证据(用户原话摘录 + 消息 id)。
+     *
+     * 只在新增路径与「用户纠正」路径调用;[updateEntity] 的全字段更新**不**触碰本组列 ——
+     * 合并去重改写正文时,原证据仍指向最初那句话,不能跟着新措辞走。
+     */
+    @Query("UPDATE facts SET evidence_quote = :quote, evidence_message_id = :messageId WHERE id = :id")
+    suspend fun setEvidence(id: Long, quote: String?, messageId: String?): Int
+
+    /** v20(M2): 给一对事实挂/解「待裁决矛盾」。withId 为 null 表示解除。 */
+    @Query("UPDATE facts SET conflict_status = :status, conflict_with_id = :withId WHERE id = :id")
+    suspend fun setConflict(id: Long, status: String, withId: Long?): Int
+
+    /** v20(M2): 某作用域内全部待裁决事实(含对方行,供 UI 成对展示)。 */
+    @Query(
+        """
+        SELECT * FROM facts
+        WHERE conflict_status = 'pending'
+          AND (:scope IS NULL OR scope = :scope)
+          AND (:spaceId IS NULL OR space_id = :spaceId)
+        ORDER BY created_at DESC
+        """,
+    )
+    suspend fun getPendingConflicts(scope: String?, spaceId: String?): List<FactEntity>
+
+    /** v20(M2): 裁决落地 —— 保留方清状态,落选方写 supersedes(复用 v18 让位机制)。 */
+    @Query("UPDATE facts SET supersedes_id = :keeperId, conflict_status = 'none', conflict_with_id = NULL WHERE id = :loserId")
+    suspend fun resolveConflictAsSupersede(loserId: Long, keeperId: Long): Int
+
+    /** v20(M2): 保留方解除未决状态。 */
+    @Query("UPDATE facts SET conflict_status = 'none', conflict_with_id = NULL WHERE id = :id")
+    suspend fun clearConflict(id: Long): Int
 }
 
 /** 标签搜索结果(带 matchCount)。v4: 含 importance 字段。 */

@@ -160,6 +160,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_16_17,
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
+                FactDb.MIGRATION_19_20,
             )
             .allowMainThreadQueries()
             .build()
@@ -235,6 +236,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_16_17,
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
+                FactDb.MIGRATION_19_20,
             )
             .allowMainThreadQueries()
             .build()
@@ -396,6 +398,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_16_17,
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
+                FactDb.MIGRATION_19_20,
             )
             .allowMainThreadQueries()
             .build()
@@ -565,6 +568,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_16_17,
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
+                FactDb.MIGRATION_19_20,
             )
             .allowMainThreadQueries()
             .build()
@@ -642,6 +646,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_16_17,
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
+                FactDb.MIGRATION_19_20,
             )
             .allowMainThreadQueries()
             .build()
@@ -903,5 +908,94 @@ class FactDbMigrationTest {
                 `supersedes_id` INTEGER DEFAULT NULL
             )
         """.trimIndent()
+    }
+
+    /**
+     * v2.6.23(M1/M2/M3): 19→20 迁移 —— facts 加证据/矛盾四列 + 新建 profile_snapshots 表。
+     *
+     * 只验本迁移的 DDL 语义:用最小库建 v19 facts(Room 开库会因其余表缺失做整库校验),
+     * 直接调 migrate 后断言——新列有默认、历史行无损、新表可写且唯一约束生效。
+     */
+    @Test
+    fun migrate19To20_addsEvidenceConflictColumnsAndSnapshotTable() {
+        val v19CreateFacts = """
+            CREATE TABLE IF NOT EXISTS `facts` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `fact` TEXT NOT NULL,
+                `tags` TEXT NOT NULL DEFAULT '[]',
+                `time` TEXT,
+                `session_id` TEXT,
+                `created_at` TEXT NOT NULL,
+                `importance` INTEGER NOT NULL DEFAULT 0,
+                `category` TEXT NOT NULL DEFAULT 'general',
+                `confidence` REAL NOT NULL DEFAULT 1.0,
+                `source` TEXT NOT NULL DEFAULT 'inferred',
+                `expires_at` TEXT,
+                `last_confirmed_at` TEXT,
+                `last_hit_at` TEXT DEFAULT NULL,
+                `hit_count` INTEGER NOT NULL DEFAULT 0,
+                `scope` TEXT NOT NULL DEFAULT 'main',
+                `space_id` TEXT NOT NULL DEFAULT 'default',
+                `pinned_at` TEXT DEFAULT NULL,
+                `entity_key` TEXT,
+                `score` REAL NOT NULL DEFAULT 10.0,
+                `score_updated_at` TEXT DEFAULT NULL,
+                `suppressed_at` TEXT DEFAULT NULL,
+                `supersedes_id` INTEGER DEFAULT NULL,
+                `merged_into_id` INTEGER DEFAULT NULL
+            )
+        """.trimIndent()
+        val dbFile = newDbFile()
+        val factory = FrameworkSQLiteOpenHelperFactory()
+        val helper = factory.create(
+            configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbFile.absolutePath)
+                .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(19) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(v19CreateFacts)
+                    }
+
+                    override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
+                        // 交给被测迁移
+                    }
+                })
+                .build(),
+        ).writableDatabase
+        helper.execSQL(
+            "INSERT INTO facts (id, fact, created_at) VALUES (1, '用户偏好深色模式', '2026-07-28T00:00:00Z')",
+        )
+
+        FactDb.MIGRATION_19_20.migrate(helper)
+
+        helper.query(
+            "SELECT conflict_status, conflict_with_id, evidence_quote, evidence_message_id FROM facts WHERE id = 1",
+        ).use { cursor ->
+            assertTrue("迁移后历史行应仍可读", cursor.moveToFirst())
+            assertEquals("历史事实默认无未决矛盾", "none", cursor.getString(0))
+            assertTrue(cursor.isNull(1))
+            assertTrue("历史证据为 null(宁缺毋滥)", cursor.isNull(2))
+            assertTrue(cursor.isNull(3))
+        }
+        helper.execSQL(
+            "INSERT INTO profile_snapshots (scope, space_id, section, auto_content, updated_at) " +
+                "VALUES ('main', 'default', 'stable_facts', '- 用户偏好深色模式', '2026-11-01T00:00:00Z')",
+        )
+        helper.query("SELECT source_fact_ids, evidence_fingerprint, manual_content FROM profile_snapshots").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("[]", cursor.getString(0))
+            assertEquals("", cursor.getString(1))
+            assertTrue(cursor.isNull(2))
+        }
+        var duplicateRejected = false
+        try {
+            helper.execSQL(
+                "INSERT INTO profile_snapshots (scope, space_id, section, auto_content, updated_at) " +
+                    "VALUES ('main', 'default', 'stable_facts', 'dup', '2026-11-01T00:00:01Z')",
+            )
+        } catch (expected: android.database.SQLException) {
+            duplicateRejected = true
+        }
+        assertTrue("unique index 应拒绝同 scope+space+section 的重复插入", duplicateRejected)
+        helper.close()
     }
 }

@@ -25,6 +25,11 @@ import kotlinx.serialization.Serializable
  *   只在编译上下文里让位;证据不足时不写入本列,两条都留在上下文由模型判断。
  * v19 schema: 新增 merged_into_id 字段 —— 本条被合并进了哪条记忆。被指向的新记忆承载
  *   去重后整合的正文,指向方(原始行)保留可查,但不参与自动召回、不进编译投影。
+ * v20 schema（能力增强 M1/M2）: 新增 evidence_quote / evidence_message_id 两列 ——
+ *   「这条事实来自哪句原话」;历史数据为 NULL,行为与升级前一致。
+ *   同时新增 conflict_status / conflict_with_id 两列 —— 已检测到但尚未被用户裁决的
+ *   矛盾对落库('none'/'pending'),记忆页据此显示「两种说法,选一个」;
+ *   裁决后沿用 v18 的 supersedes_id 机制让位,不自成一套。
  *
  * Phase 7: @Serializable 用于备份导出/导入。id 自增主键在导入时清表后重新分配。
  */
@@ -216,4 +221,35 @@ data class FactEntity(
      */
     @ColumnInfo(name = "merged_into_id", defaultValue = "NULL")
     val mergedIntoId: Long? = null,
+
+    /**
+     * v20(M1): 证据摘录 —— 该事实出处的用户原话片段(已 PII 脱敏,≤200 字)。
+     *
+     * 只有**用户自己说的话**能作为证据:LLM 转述、助手回复、邻近上下文都不算,
+     * 否则「记错了」时无法回到可核对的原点。无可靠出处时为 NULL ——
+     * 宁缺毋滥,记忆卡据此不显示「依据」。
+     */
+    @ColumnInfo(name = "evidence_quote", defaultValue = "NULL")
+    val evidenceQuote: String? = null,
+
+    /**
+     * v20(M1): 证据所在的会话消息 id;NULL = 证据是历史回填或手工录入,只有摘录没有跳转目标。
+     * 记忆页「依据」点击后按此 id 定位原消息;消息已删除时降级为只显示摘录。
+     */
+    @ColumnInfo(name = "evidence_message_id", defaultValue = "NULL")
+    val evidenceMessageId: String? = null,
+
+    /**
+     * v20(M2): 矛盾状态。'none' = 无未决矛盾;'pending' = 检测到与另一条断言相反,待用户裁决。
+     *
+     * 与 v18 supersedes 的分工:supersedes 是**写入时证据充分**的自动取代(旧行直接让位);
+     * 判定不足或存量数据里的历史矛盾只在库里挂 pending,由用户点选后**才**写 supersedes ——
+     * 不让模型替用户在「青霉素过不过敏」这种事上自动站队。
+     */
+    @ColumnInfo(name = "conflict_status", defaultValue = "none")
+    val conflictStatus: String = "none",
+
+    /** v20(M2): 与哪条事实构成未决矛盾(conflict_status='pending' 时非空)。 */
+    @ColumnInfo(name = "conflict_with_id", defaultValue = "NULL")
+    val conflictWithId: Long? = null,
 )
