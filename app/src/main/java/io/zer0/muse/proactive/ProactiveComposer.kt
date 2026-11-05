@@ -35,6 +35,13 @@ class ProactiveComposer(
      * 没有任何来自用户的消息帮忙把人格「拉」到位，全靠系统提示撑着。
      */
     private val promptAssembler: io.zer0.muse.transformer.SystemPromptAssembler,
+    /**
+     * 用户自己立的规矩（「希望 / 不希望它做的事」）。
+     *
+     * 必需注入而不是内部 `of(context)`：本类不持 `Context`，
+     * 且测试要能塞一份内存实现进来验优先级与预算。
+     */
+    private val directiveStoreProvider: () -> io.zer0.muse.data.assistant.AgentDirectiveStore,
 ) {
 
     companion object {
@@ -132,12 +139,25 @@ class ProactiveComposer(
         }.getOrDefault("")
         // 组装失败时退回最小人格，不能因为系统提示出问题就让主动消息说不出人话。
         val persona = full.ifBlank { fallbackPersona(input.assistant) }
+        // 用户自己立的规矩（「希望/不希望它做的事」）。读不到就整段不加：
+        // 空清单必须与改动前逐字一致，否则这个功能上线就等于悄悄改了所有人的提示词。
+        val directives = runCatching {
+            AgentDirectivesPrompt.build(
+                directives = directiveStoreProvider().directivesFor(input.assistant.id),
+                totalBudgetChars = io.zer0.muse.data.assistant.AgentDirectiveStore.MAX_TOTAL_CHARS,
+            )
+        }.getOrNull()
         return buildString {
             appendLine(persona)
             appendLine()
             appendLine("---")
             appendLine()
             append(proactiveInstruction(input.intensity))
+            directives?.block?.takeIf { it.isNotBlank() }?.let { block ->
+                appendLine()
+                appendLine()
+                append(block)
+            }
         }
     }
 

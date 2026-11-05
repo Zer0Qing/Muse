@@ -278,7 +278,15 @@ val appModule = module {
             proactiveSessionPreferences = get(),
         )
     }
-    single { io.zer0.muse.proactive.ProactiveComposer(chatService = get(), promptAssembler = get()) }
+    single { io.zer0.muse.data.assistant.AgentDirectiveStore.of(androidContext()) }
+    single {
+        io.zer0.muse.proactive.ProactiveComposer(
+            chatService = get(),
+            promptAssembler = get(),
+            // 传取用器而不是实例：装配时才算，避免这里把读盘提前到 Koin 建图阶段。
+            directiveStoreProvider = { get() },
+        )
+    }
     // 四路触发源(定时 / Worker / 回前台 / 手动)共用这一份单飞闸。
     // 必须是单例：各拿一份就等于各有一道闸,等于没有闸。
     single { io.zer0.muse.proactive.ProactiveCycleGuard() }
