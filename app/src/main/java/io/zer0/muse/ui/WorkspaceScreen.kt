@@ -92,6 +92,8 @@ import java.util.Locale
 @Composable
 fun WorkspaceScreen(
     onBack: () -> Unit,
+    /** 从对话顶栏「更多 → 工作区」带进来的目标目录；为空表示沿用上次位置。 */
+    initialPath: String? = null,
     /** v2.0.1: 打开产物中心（顶栏入口）。 */
     onOpenArtifacts: () -> Unit = {},
 ) {
@@ -103,6 +105,14 @@ fun WorkspaceScreen(
     // 当前所在目录的相对路径(空串 = 根目录)
     // 前端修复 (持久化-1): currentPath 改 rememberSaveable,旋转/进程重建不丢当前目录
     var currentPath by rememberSaveable { mutableStateOf("") }
+    // 只播种一次：之后用户在工作区页里自己翻目录，返回不该被拉回进来时的位置。
+    var seeded by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(initialPath, seeded) {
+        if (!seeded && !initialPath.isNullOrBlank()) {
+            currentPath = initialPath.trim().trim('/')
+            seeded = true
+        }
+    }
     // 当前目录下的条目列表
     // 前端修复 (持久化-1): WorkspaceEntry 为自定义复杂类型,列表无法直接 saveable,保持 remember(重建后由 reload() 重新加载)
     var entries by remember { mutableStateOf<List<WorkspaceManager.WorkspaceEntry>>(emptyList()) }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 对话「更多 → 工作区」下钻选择器的文案（单独成文件）。 -->
+<resources>
+    <string name="workspace_pick_hint">逐层进入文件夹，选定后在下面打开</string>
+    <string name="workspace_pick_open_here">在此处打开工作区</string>
+    <string name="workspace_pick_empty">这里没有可进入的子文件夹</string>
+    <string name="workspace_pick_failed">读不到这个目录</string>
+</resources>

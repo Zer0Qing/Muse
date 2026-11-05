@@ -189,8 +189,13 @@ data object ComponentGalleryRoute
 @Serializable
 data object AuditLogRoute
 
+/**
+ * 工作区页。[initialPath] 是相对路径（与 `WorkspaceManager.listDir` 同口径），
+ * 供对话顶栏「更多 → 工作区」的下钻选择器直接打开某个挂载或子目录；
+ * 从设置进入时不传（保持原来的行为：留在上次浏览的位置）。
+ */
 @Serializable
-data object WorkspaceRoute
+data class WorkspaceRoute(val initialPath: String? = null)
 
 @Serializable
 data object ArtifactCenterRoute

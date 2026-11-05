@@ -466,8 +466,10 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
     composable<WorkspaceRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
+    ) { entry ->
+        val route = entry.toRoute<WorkspaceRoute>()
         WorkspaceScreen(
+            initialPath = route.initialPath,
             onBack = { navController.popBackStack() },
             onOpenArtifacts = { navController.navigate(ArtifactCenterRoute) },
         )

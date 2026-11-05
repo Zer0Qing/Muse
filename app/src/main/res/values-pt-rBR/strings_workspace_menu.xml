@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 对话「更多 → 工作区」下钻选择器的文案（单独成文件）。 -->
+<resources>
+    <string name="workspace_pick_hint">Entre nas pastas por níveis e abra abaixo</string>
+    <string name="workspace_pick_open_here">Abrir o espaço de trabalho aqui</string>
+    <string name="workspace_pick_empty">Nenhuma subpasta aqui</string>
+    <string name="workspace_pick_failed">Não foi possível ler esta pasta</string>
+</resources>

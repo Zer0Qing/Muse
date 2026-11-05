@@ -217,6 +217,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                             navController.navigate(HtmlPreviewRoute(html))
                         },
                         onOpenSkills = { navController.navigate(SkillsRoute) },
+                        onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
                         onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
                     )
                 }
@@ -241,6 +242,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                     navController.navigate(HtmlPreviewRoute(html))
                 },
                 onOpenSkills = { navController.navigate(SkillsRoute) },
+                onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
                 onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
             )
         }

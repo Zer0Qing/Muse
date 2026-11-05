@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 对话「更多 → 工作区」下钻选择器的文案（单独成文件）。 -->
+<resources>
+    <string name="workspace_pick_hint">Go into folders level by level, then open below</string>
+    <string name="workspace_pick_open_here">Open workspace here</string>
+    <string name="workspace_pick_empty">No subfolders here</string>
+    <string name="workspace_pick_failed">This folder cannot be read</string>
+</resources>

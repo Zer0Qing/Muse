@@ -155,6 +155,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.chat.WorkspaceQuickPickDialog
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =
@@ -336,6 +337,8 @@ fun ChatScreen(
     onHtmlPreview: (String) -> Unit = {},
     /** 加号菜单 → 技能入口。 */
     onOpenSkills: () -> Unit = {},
+    /** 打开工作区到指定相对目录（对话顶栏「更多 → 工作区」用）。 */
+    onOpenWorkspace: (String?) -> Unit = {},
     /** B0-07: 打开提示词模板管理页。 */
     onOpenPromptTemplateManager: () -> Unit = {},
     /** C4: 双栏嵌入模式(宽屏任务 tab 右栏)时传入栏级布局修饰符。 */
@@ -1529,6 +1532,17 @@ fun ChatScreen(
 
                                     // ── 右岛:三点菜单(共享圆形组件,收纳"选择供应商"/"压缩上下文"等) ──
                                     var showTopMenu by remember { mutableStateOf(false) }
+                                    var showWorkspacePick by remember { mutableStateOf(false) }
+                                    // 「更多 → 工作区」的下钻选择器；Dialog 是独立窗口，就近声明处渲染即可。
+                                    if (showWorkspacePick) {
+                                        WorkspaceQuickPickDialog(
+                                            onOpen = { path ->
+                                                showWorkspacePick = false
+                                                onOpenWorkspace(path)
+                                            },
+                                            onDismiss = { showWorkspacePick = false },
+                                        )
+                                    }
                                     LaunchedEffect(isStreaming) {
                                         showTopMenu = false
                                     }
@@ -1619,6 +1633,15 @@ fun ChatScreen(
                                                         },
                                                     ),
                                                     // v2.0.1: 工具调用记录（浮标改为仅生成中显示，历史入口收到菜单）
+                                                    MuseFloatingActionItem(
+                                                        key = "workspace",
+                                                        icon = MuseIcons.folderOpen,
+                                                        label = stringResource(R.string.workspace_title),
+                                                        onClick = {
+                                                            showTopMenu = false
+                                                            showWorkspacePick = true
+                                                        },
+                                                    ),
                                                     MuseFloatingActionItem(
                                                         key = "tool_history",
                                                         icon = MuseIcons.wrench,

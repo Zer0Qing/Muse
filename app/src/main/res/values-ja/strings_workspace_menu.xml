@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 对话「更多 → 工作区」下钻选择器的文案（单独成文件）。 -->
+<resources>
+    <string name="workspace_pick_hint">フォルダーを順に選び、下から開けます</string>
+    <string name="workspace_pick_open_here">ここで作成スペースを開く</string>
+    <string name="workspace_pick_empty">ここにサブフォルダーはありません</string>
+    <string name="workspace_pick_failed">このフォルダーを読み取れません</string>
+</resources>

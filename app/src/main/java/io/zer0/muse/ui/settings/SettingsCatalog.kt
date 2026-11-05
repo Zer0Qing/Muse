@@ -683,7 +683,7 @@ object SettingsCatalog {
                     R.string.workspace_title,
                     R.string.workspace_desc,
                     MuseIcons.folder,
-                    SettingsEntryAction.Navigate(WorkspaceRoute),
+                    SettingsEntryAction.Navigate(WorkspaceRoute()),
                     keywords = listOf(
                         "工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli",
                         "wenjian", "mulu", "gzq", "wjgl", "wj", "ml",
