@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.webkit.WebResourceRequest
-import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -81,8 +80,15 @@ fun HtmlPreviewScreen(
                 it.destroy()
                 webViewRef[0] = null
             }
-            // 清理 DOM storage,避免 SVG/HTML demo 累积残留
-            WebStorage.getInstance().deleteAllData()
+            // 以前这里跟着调 `WebStorage.getInstance().deleteAllData()`，注释写的是
+            // "避免 SVG/HTML demo 累积残留"。但那句是**进程级全清**：本预览用
+            // `loadDataWithBaseURL("about:blank", …)` 加载（见下面 164 行），
+            // about:blank 是不透明 origin，localStorage 本来就会抛 SecurityError、
+            // 什么也不会攒下来 —— 所以它保护不了任何东西，反而会顺手擦掉
+            // Agent 内置浏览器里所有站点的 localStorage/IndexedDB（现代网站的会话票据多数存这里），
+            // 用户预览一张卡片就被登出，而且完全不知道是谁干的。
+            // 离开组合时真正需要做的只是销毁这个实例（上面 `it.destroy()`），
+            // 全局站点数据的清理只有一个入口：设置 → 浏览器 →「清除 Cookies 与站点数据」。
         }
     }
 
