@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「多常用语音回你」档位文案（独立文件，避开并行修改中的 strings）。 -->
+<resources>
+    <string name="agent_directives_voice_section">Frequência de respostas por voz</string>
+    <string name="agent_directives_voice_hint">Ajusta apenas o hábito; não bloqueia um pedido explícito de voz.</string>
+    <string name="voice_reply_never">Nunca por iniciativa própria</string>
+    <string name="voice_reply_rarely">Às vezes (padrão)</string>
+    <string name="voice_reply_often">Frequentemente</string>
+    <string name="voice_reply_always">Sempre</string>
+</resources>

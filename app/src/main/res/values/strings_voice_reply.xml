@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「多常用语音回你」档位文案（独立文件，避开并行修改中的 strings）。 -->
+<resources>
+    <string name="agent_directives_voice_section">语音回复频率</string>
+    <string name="agent_directives_voice_hint">这只调整它的习惯，不做硬拦截：你当场要语音，它仍会发。</string>
+    <string name="voice_reply_never">从不主动</string>
+    <string name="voice_reply_rarely">偶尔（默认）</string>
+    <string name="voice_reply_often">常用</string>
+    <string name="voice_reply_always">总是</string>
+</resources>

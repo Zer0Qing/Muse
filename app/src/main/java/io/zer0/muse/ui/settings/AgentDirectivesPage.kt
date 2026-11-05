@@ -38,6 +38,9 @@ import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import androidx.compose.foundation.layout.fillMaxWidth
+import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 
 /**
  * 「希望它做的事 / 不希望它做的事」（整改计划 第 4 条 ③，参照图 4 底部那张卡）。
@@ -57,6 +60,8 @@ fun AgentDirectivesPage(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember { AgentDirectiveStore.of(context) }
+    val voiceStore = remember { VoiceReplyPolicyStore.of(context) }
+    val voiceSnapshot by voiceStore.snapshot.collectAsStateWithLifecycle(initialValue = emptyMap())
     val assistantRepository: AssistantRepository = koinInject()
 
     val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -117,6 +122,12 @@ fun AgentDirectivesPage(onBack: () -> Unit) {
         )
         item {
             DirectiveFootnote(omittedCount = omittedCount)
+        }
+        item {
+            VoiceFrequencySection(
+                current = AgentDirectivesUiState.voiceFrequency(voiceSnapshot, agentId),
+                onSelect = { level -> scope.launch { voiceStore.set(agentId, level) } },
+            )
         }
     }
 
@@ -248,4 +259,45 @@ private fun DirectiveEditor(
             }
         },
     )
+}
+
+/**
+ * 「多常用语音回你」（整改计划 第 4 条④）。
+ *
+ * 放在这一页而不是主动消息页，是因为主动消息那一页此刻被并行改动占用；
+ * 语义上也同族 —— 都是"用户对助手行为的长期偏好"。
+ * 档位只改提示词政策，不做硬拦截（见 `VoiceReplyPolicy` 的说明）。
+ */
+@Composable
+private fun VoiceFrequencySection(current: VoiceReplyFrequency, onSelect: (VoiceReplyFrequency) -> Unit) {
+    val labels = mapOf(
+        VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
+        VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),
+        VoiceReplyFrequency.OFTEN to stringResource(R.string.voice_reply_often),
+        VoiceReplyFrequency.ALWAYS to stringResource(R.string.voice_reply_always),
+    )
+    SectionLabel(stringResource(R.string.agent_directives_voice_section))
+    SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
+        Column(Modifier.padding(MusePaddings.cardInner)) {
+            Text(
+                text = stringResource(R.string.agent_directives_voice_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                VoiceReplyFrequency.entries.forEach { level ->
+                    MuseChip(
+                        label = labels.getValue(level),
+                        selected = level == current,
+                        onClick = { if (level != current) onSelect(level) },
+                    )
+                }
+            }
+        }
+    }
 }

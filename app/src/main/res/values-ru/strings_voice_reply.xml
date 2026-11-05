@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「多常用语音回你」档位文案（独立文件，避开并行修改中的 strings）。 -->
+<resources>
+    <string name="agent_directives_voice_section">Частота голосовых ответов</string>
+    <string name="agent_directives_voice_hint">Это только привычка: явную просьбу о голосе он не отклонит.</string>
+    <string name="voice_reply_never">Не по своей инициативе</string>
+    <string name="voice_reply_rarely">Иногда (по умолчанию)</string>
+    <string name="voice_reply_often">Часто</string>
+    <string name="voice_reply_always">Всегда</string>
+</resources>

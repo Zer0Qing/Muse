@@ -4,6 +4,7 @@ import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
 import io.zer0.muse.proactive.AgentDirectivesPrompt
 import io.zer0.muse.data.assistant.DirectivePolarity
+import io.zer0.muse.data.assistant.VoiceReplyFrequency
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -76,5 +77,18 @@ class AgentDirectivesUiStateTest {
     @Test
     fun `空清单时未生效计数为零`() {
         assertEquals(0, AgentDirectivesUiState.omittedCount(emptyList()))
+    }
+
+    @Test
+    fun `语音频率读不到时回落默认档而不是当成总是`() {
+        val snapshot = mapOf("a1" to "OFTEN", "a2" to "乱写的值")
+        assertEquals("配过的要按配置来", VoiceReplyFrequency.OFTEN, AgentDirectivesUiState.voiceFrequency(snapshot, "a1"))
+        assertEquals(
+            "没配过的助手必须回落默认档（默认档不注入任何文案）；写成 ALWAYS 就等于用户什么都没做却改了形态",
+            VoiceReplyFrequency.RARELY,
+            AgentDirectivesUiState.voiceFrequency(snapshot, "missing"),
+        )
+        assertEquals("存了不认识的值也要回落", VoiceReplyFrequency.RARELY, AgentDirectivesUiState.voiceFrequency(snapshot, "a2"))
+        assertEquals(VoiceReplyFrequency.RARELY, AgentDirectivesUiState.voiceFrequency(emptyMap(), ""))
     }
 }

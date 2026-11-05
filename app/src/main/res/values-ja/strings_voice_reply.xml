@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「多常用语音回你」档位文案（独立文件，避开并行修改中的 strings）。 -->
+<resources>
+    <string name="agent_directives_voice_section">音声返信の頻度</string>
+    <string name="agent_directives_voice_hint">習慣の調整だけで、音声の明示的な頼みを遮ることはありません。</string>
+    <string name="voice_reply_never">進んでしない</string>
+    <string name="voice_reply_rarely">たまに（デフォルト）</string>
+    <string name="voice_reply_often">よく</string>
+    <string name="voice_reply_always">毎回</string>
+</resources>

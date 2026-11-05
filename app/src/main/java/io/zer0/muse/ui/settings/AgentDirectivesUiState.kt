@@ -4,6 +4,7 @@ import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
 import io.zer0.muse.data.assistant.DirectivePolarity
 import io.zer0.muse.proactive.AgentDirectivesPrompt
+import io.zer0.muse.data.assistant.VoiceReplyFrequency
 
 /**
  * 约定页的可测内核（纯函数，不碰 Compose 也不碰 Koin）。
@@ -37,6 +38,15 @@ internal object AgentDirectivesUiState {
      * **必须复用装配层同一个函数**：界面说"都生效了"而模型那边被截断，
      * 是这个功能最坏的失败模式（用户以为自己提了要求）。
      */
+    /**
+     * 当前助手这一档语音频率。
+     *
+     * 单独抽出来测，是因为**读不到/没配过时必须回落默认档**（不注入任何文案）；
+     * 若这里写成 ALWAYS 或抛异常，用户什么都没动就变了回复形态。
+     */
+    fun voiceFrequency(snapshot: Map<String, String>, agentId: String): VoiceReplyFrequency =
+        VoiceReplyFrequency.fromName(snapshot[agentId])
+
     fun omittedCount(mine: List<AgentDirective>): Int =
         AgentDirectivesPrompt.build(mine, AgentDirectiveStore.MAX_TOTAL_CHARS).omitted.size
 }
