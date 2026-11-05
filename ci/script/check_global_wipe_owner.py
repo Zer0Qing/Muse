@@ -34,8 +34,16 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "app" / "src" / "main" / "java"
 OWNER = "tools/BrowserSettings.kt"
+# 扫描范围是整个仓库的 main 源，不只是 app：任何模块（ai / memory / conversation-core / sdk 插件宿主…）
+# 将来加了 WebView 都可能顺手写一句进程级全清，那正是要拦的东西。
+# test 源被排除：测试里可以造全局清理来验证行为，不该算越权。
+MODULES = ("app", "ai", "common", "memory", "conversation-core", "material3", "accessibility", "sdk")
+SRC_ROOTS = [
+    PROJECT_ROOT / m / "src" / "main" / "java" for m in MODULES
+]
+SRC_ROOTS = [p for p in SRC_ROOTS if p.is_dir()]
+assert SRC_ROOTS, "一个源目录都没找到，门禁会退化成永远通过"
 PATTERNS = {
     "webstorage_delete_all_data": re.compile(r"WebStorage\s*\.\s*getInstance\s*\(\s*\)\s*\.\s*deleteAllData\s*\("),
     # 注意：owner 是在 `CookieManager.getInstance().apply { removeAllCookies(null) }` 块内调用的，
@@ -61,13 +69,15 @@ def strip_comments(text: str) -> str:
 
 def scan() -> list[tuple[str, int, str]]:
     hits: list[tuple[str, int, str]] = []
-    for path in sorted(SRC_ROOT.rglob("*.kt")):
-        rel = path.relative_to(SRC_ROOT).as_posix()
-        body = strip_comments(path.read_text(encoding="utf-8", errors="replace"))
-        for line_no, line in enumerate(body.split("\n"), start=1):
-            for name, pattern in PATTERNS.items():
-                if pattern.search(line):
-                    hits.append((rel, line_no, name))
+    for src_root in SRC_ROOTS:
+        for path in sorted(src_root.rglob("*.kt")):
+            # 相对到仓库根，报告里能一眼看出是哪个模块（parents[1] 会只剩 main/java/…，看不出模块）
+            rel = path.relative_to(PROJECT_ROOT).as_posix()
+            body = strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+            for line_no, line in enumerate(body.split("\n"), start=1):
+                for name, pattern in PATTERNS.items():
+                    if pattern.search(line):
+                        hits.append((rel, line_no, name))
     return hits
 
 
