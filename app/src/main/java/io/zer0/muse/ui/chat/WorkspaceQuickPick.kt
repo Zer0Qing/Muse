@@ -13,8 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -32,10 +32,7 @@ internal fun workspacePickFolders(entries: List<WorkspaceManager.WorkspaceEntry>
  * 所以这里不再另写一份挂载列表（本项目反复出的问题就是抄第二份）。
  */
 @Composable
-internal fun WorkspaceQuickPickDialog(
-    onOpen: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
+internal fun WorkspaceQuickPickDialog(onOpen: (String) -> Unit, onDismiss: () -> Unit) {
     val manager: WorkspaceManager = org.koin.compose.koinInject()
     val stack = remember { WorkspacePickStack() }
     var path by remember { mutableStateOf(WorkspacePickStack.ROOT) }

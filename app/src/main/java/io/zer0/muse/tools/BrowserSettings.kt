@@ -29,7 +29,8 @@ internal enum class BrowserSearchEngine(
     SOGOU("sogou", "https://www.sogou.com/web?query=%s"),
     THREE_SIX_ZERO("360", "https://www.so.com/s?q=%s"),
     GOOGLE("google", "https://www.google.com/search?q=%s"),
-    DUCKDUCKGO("duckduckgo", "https://duckduckgo.com/?q=%s");
+    DUCKDUCKGO("duckduckgo", "https://duckduckgo.com/?q=%s"),
+    ;
 
     companion object {
         fun of(id: String?): BrowserSearchEngine = entries.firstOrNull { it.id == id } ?: BING
@@ -53,10 +54,13 @@ internal fun resolveBrowserTarget(raw: String, engine: BrowserSearchEngine): Str
     if (text.isEmpty()) return "about:blank"
     val lowered = text.lowercase()
     if (SCHEME_PREFIXES.any { lowered.startsWith(it) }) return text
-    if (looksLikeHost(text)) return if (isLocalTarget(text)) {
-        "http://$text" // 本机与局域网地址常被省略协议，这里不强迫用户写 http://
-    } else {
-        "https://$text"
+    if (looksLikeHost(text)) {
+        return if (isLocalTarget(text)) {
+            // 本机与局域网地址常被省略协议，这里不强迫用户写 http://
+            "http://$text"
+        } else {
+            "https://$text"
+        }
     }
     val query = java.net.URLEncoder.encode(text, "UTF-8").replace("+", "%20")
     return engine.searchTemplate.replace("%s", query)
@@ -86,8 +90,8 @@ private fun looksLikeHost(text: String): Boolean {
     return hostPart.contains('.') && !hostPart.startsWith('.')
 }
 
-private fun isBareIp(host: String): Boolean =
-    host.split('.').size == 4 && host.split('.').all { it.isNotEmpty() && it.all(Char::isDigit) }
+private fun isBareIp(host: String): Boolean = host.split('.').size == 4 &&
+    host.split('.').all { it.isNotEmpty() && it.all(Char::isDigit) }
 
 /**
  * 设置读写。默认值刻意与"改之前"的行为一致（Bing 搜索、接受 Cookies），

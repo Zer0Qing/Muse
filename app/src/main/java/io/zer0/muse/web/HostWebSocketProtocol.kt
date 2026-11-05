@@ -155,7 +155,6 @@ data class HostEvent(
      */
     @SerialName("items")
     val memory: List<HostMemoryEntry> = emptyList(),
-    /** knowledge.list 载荷:知识库一览。 */
     /** memory.list 之后是否还有下一页。 */
     val hasMore: Boolean? = null,
     /** knowledge.list 载荷:知识库一览。 */

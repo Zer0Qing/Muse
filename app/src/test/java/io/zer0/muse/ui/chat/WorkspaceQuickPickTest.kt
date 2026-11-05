@@ -14,23 +14,21 @@ import org.junit.Test
  */
 class WorkspaceQuickPickTest {
 
-    private fun dir(name: String, path: String) =
-        WorkspaceManager.WorkspaceEntry(
-            name = name,
-            relativePath = path,
-            isDirectory = true,
-            size = 0L,
-            lastModified = 0L,
-        )
+    private fun dir(name: String, path: String) = WorkspaceManager.WorkspaceEntry(
+        name = name,
+        relativePath = path,
+        isDirectory = true,
+        size = 0L,
+        lastModified = 0L,
+    )
 
-    private fun file(name: String, path: String) =
-        WorkspaceManager.WorkspaceEntry(
-            name = name,
-            relativePath = path,
-            isDirectory = false,
-            size = 12L,
-            lastModified = 0L,
-        )
+    private fun file(name: String, path: String) = WorkspaceManager.WorkspaceEntry(
+        name = name,
+        relativePath = path,
+        isDirectory = false,
+        size = 12L,
+        lastModified = 0L,
+    )
 
     @Test
     fun `根层级没有上一级可回`() {
@@ -57,7 +55,8 @@ class WorkspaceQuickPickTest {
     fun `重复进入同一目录不会在返回链上留空台阶`() {
         val stack = WorkspacePickStack()
         stack.enter("notes")
-        stack.enter("/notes/")  // 斜杠噪声要被吃掉，仍是同一个目录
+        // 斜杠噪声要被吃掉，仍是同一个目录
+        stack.enter("/notes/")
         stack.enter("notes")
         assertTrue(stack.canGoBack)
         stack.back()

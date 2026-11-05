@@ -424,7 +424,7 @@ object PluginSecurityGate {
         "contributes", "uiPanel", "toolCards",
         "uiView",
         "commands",
-    "schedules",
+        "schedules",
     )
 
     /**
@@ -520,8 +520,7 @@ object PluginSecurityGate {
      *     [PluginSharedStorage] 判的是“能不能安全当目录名”而不是“像不像英文标识符”，
      *     这个应用是中文优先的。以前这条一律被拒，而网关的报错文案还在教作者这么写。
      */
-    fun isValidCapabilityName(name: String): Boolean =
-        CAPABILITY_NAME_REGEX.matches(name) || isSharedNamespaceDeclaration(name)
+    fun isValidCapabilityName(name: String): Boolean = CAPABILITY_NAME_REGEX.matches(name) || isSharedNamespaceDeclaration(name)
 
     /** `storage.shared:<名字>` 形式，且名字空间本身合法。 */
     fun isSharedNamespaceDeclaration(name: String): Boolean {

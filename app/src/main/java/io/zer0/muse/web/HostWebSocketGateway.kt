@@ -83,8 +83,7 @@ internal class HostWebSocketGateway(
         mutations = object : HostSessionMutations {
             override fun rename(sessionId: String, title: String) = chatViewModel.renameSession(sessionId, title)
 
-            override fun archive(sessionId: String, archived: Boolean) =
-                chatViewModel.setSessionArchived(sessionId, archived)
+            override fun archive(sessionId: String, archived: Boolean) = chatViewModel.setSessionArchived(sessionId, archived)
 
             override fun delete(sessionId: String) = chatViewModel.deleteSession(sessionId)
         },

@@ -30,11 +30,13 @@ class ProcessFailureClassificationTest {
 
     @Test
     fun `用户主动停止优先于一切其他信号`() {
+        // 即使同时满足超时与「用户请求停止」，也必须报「用户停的」：
+        // 把用户主动停止说成异常退出，会让人以为进程又崩了。
         val kind = classifyProcessExit(
             exitCode = 137,
             everReady = true,
-            timedOut = true,          // 即使同时满足超时
-            userRequestedStop = true, // 也必须报"用户停的"
+            timedOut = true,
+            userRequestedStop = true,
         )
         assertEquals(ProcessFailureKind.USER_STOPPED, kind)
         assertFalse(kind.autoRetry)

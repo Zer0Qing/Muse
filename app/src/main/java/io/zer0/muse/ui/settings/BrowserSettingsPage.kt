@@ -60,11 +60,7 @@ fun BrowserSettingsPage(onBack: () -> Unit) {
     }
 }
 
-private fun LazyListScope.browserSearchSection(
-    store: BrowserSettingsStore,
-    engine: BrowserSearchEngine,
-    scope: CoroutineScope,
-) {
+private fun LazyListScope.browserSearchSection(store: BrowserSettingsStore, engine: BrowserSearchEngine, scope: CoroutineScope) {
     item {
         SectionLabel(stringResource(R.string.settings_browser_search_title))
         SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
@@ -93,11 +89,7 @@ private fun LazyListScope.browserSearchSection(
     }
 }
 
-private fun LazyListScope.browserCookiesSection(
-    store: BrowserSettingsStore,
-    acceptCookies: Boolean,
-    scope: CoroutineScope,
-) {
+private fun LazyListScope.browserCookiesSection(store: BrowserSettingsStore, acceptCookies: Boolean, scope: CoroutineScope) {
     item {
         Spacer(Modifier.height(12.dp))
         SectionLabel(stringResource(R.string.settings_browser_cookies_title))
