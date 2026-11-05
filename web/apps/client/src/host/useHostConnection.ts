@@ -395,6 +395,25 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
             if (accepted !== undefined) accepted(event);
             return;
           }
+          if (event.type === "command.duplicate") {
+            // 服务端认得这个 requestId 已经执行过，**不再重复执行**。
+            // 客户端在这里要的是「结算」而不是「重放」：
+            //  清掉所有按 requestId 挂着的待办，让按钮/开关不再等；
+            //  但绝不能再调 accepted 的回调 —— 乐观写第一次就落地了，
+            //  重放会把同一份改动二次应用（比如把消息再插一遍）。
+            const requestId = event.requestId;
+            if (requestId !== undefined) {
+              pendingPreviews.current.delete(requestId);
+              pendingSettings.current.delete(requestId);
+              pendingWrites.current.delete(requestId);
+              pendingRollbacks.current.delete(requestId);
+              pendingAccepts.current.delete(requestId);
+              pendingQueries.current.delete(requestId);
+              pendingMemory.current.delete(requestId);
+              pendingDetails.current.delete(requestId);
+            }
+            return;
+          }
           if (event.type === "error") {
             const requestId = event.requestId;
             // 记忆 / 助手详情：失败就地显示，没实现就切成「暂不支持」提示，不弹 toast。
@@ -484,11 +503,24 @@ export function useHostConnection(options: UseHostConnectionOptions): HostConnec
       active = false;
       unsubscribeEvents?.();
       unsubscribeStatus?.();
+      // 断开/重连要把**所有**待办清掉，并把还在转圈的只读切片停下来。
+      // 以前这里只清 5 个映射，漏了 pendingQueries / pendingMemory / pendingDetails，
+      // 而且没有任何地方复位 loading：连接一断，知识库/文档/任务/系统状态/记忆页
+      // 就永远停在「加载中」，用户只能整页刷新才能再看到数据。
       pendingPreviews.current.clear();
       pendingSettings.current.clear();
       pendingWrites.current.clear();
       pendingRollbacks.current.clear();
       pendingAccepts.current.clear();
+      pendingQueries.current.clear();
+      pendingMemory.current.clear();
+      pendingDetails.current.clear();
+      setMemory((current) => ({ ...current, loading: false }));
+      setKnowledge((current) => ({ ...current, loading: false }));
+      setKnowledgeDocuments((current) => ({ ...current, loading: false }));
+      setTasks((current) => ({ ...current, loading: false }));
+      setSystem((current) => ({ ...current, loading: false }));
+      setSettings((current) => ({ ...current, loading: false }));
       connectionRef.current?.close();
       connectionRef.current = undefined;
     };
