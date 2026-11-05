@@ -43,6 +43,18 @@ clearly easier? If not, keep it plain text.
 - To update a card's data later, call update_card_data(cardId, data); the card script re-reads it.
 - Never let a card send messages automatically — only on user tap.
 
+## Script rules (easy to break — follow exactly)
+
+- If the card needs no interaction, write **no JavaScript at all**. Static HTML + CSS never hits this class of bug.
+- The same rules apply to HTML inside an artifact — it renders through the same pipeline, so scripts still show up as plain text.
+- Interactive logic goes in **one** `<script>` block and binds with `addEventListener`.
+- **Never put JS in tag attributes** (no `onclick="..."`, no `onchange="..."`). Nested quotes inside an attribute
+  easily break the tag, and the broken remainder is rendered as plain text — the user ends up staring at
+  `text.innerHTML = "..."` code inside the card.
+- Write no JS statements outside tags; no `document.write`; no building DOM from concatenated strings.
+- To change content, toggle a class, set `textContent`, or render several static blocks and show/hide them.
+- No navigation inside cards: do not use `<a href>` pointing outside. Show the address as text instead.
+
 ## Division of labor with artifact
 
 - artifact: complete content blocks that need to be viewed / copied / reused on their own
