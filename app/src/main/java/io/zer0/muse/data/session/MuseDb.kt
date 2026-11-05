@@ -371,8 +371,32 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
-        /** R-DB-05: 探测当前 SQLite 是否支持 FTS5(temp 表探针)。 */
+        /**
+         * R-DB-05: 探测当前 SQLite 是否支持 FTS5。
+         *
+         * 先读 `PRAGMA compile_options`：这条路**不建虚表**，因此不会触发
+         * Robolectric 旧版 SQLite shadow 在后台线程释放语句缓存时抛
+         * `no such module: fts5` —— 那条异常没人捕获，会毒化同一个测试 JVM 里
+         * 下一个用 `runTest` 的类（`UncaughtExceptionsBeforeTest`，随机红且单跑必绿）。
+         *
+         * 顺序是刻意的，不降级：
+         *  - 读到内容但不含 `ENABLE_FTS5` ⇒ 明确不支持（Robolectric 下正是这种，实测 8 行里没有它）；
+         *  - 一行都没读到（老版本 Android 未实现该 PRAGMA）⇒ **退回原来的建表探针**，
+         *    所以真机行为与改动前一致，不会因这个改动把支持的机型误判成不支持。
+         * 注：`SELECT * FROM pragma_compile_options` 这种表函数形式在旧实现里不存在，
+         *    实测会 `no such table`，所以只能用 PRAGMA 形式。
+         */
         private fun fts5Available(db: SupportSQLiteDatabase): Boolean {
+            val options = runCatching {
+                db.query("PRAGMA compile_options").use { cursor ->
+                    buildList {
+                        while (cursor.moveToNext()) add(cursor.getString(0))
+                    }
+                }
+            }.getOrNull().orEmpty()
+            if (options.isNotEmpty()) {
+                return options.any { it.contains("ENABLE_FTS5", ignoreCase = true) }
+            }
             val ok = runCatching {
                 db.execSQL("DROP TABLE IF EXISTS temp.muse_fts5_probe")
                 db.execSQL("CREATE VIRTUAL TABLE temp.muse_fts5_probe USING fts5(x)")
