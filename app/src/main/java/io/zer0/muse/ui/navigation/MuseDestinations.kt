@@ -91,6 +91,10 @@ data object SettingsAssistantResourcesRoute
 @Serializable
 data object UserProfileEditRoute
 
+// v2.6.23(S4): 运行诊断子页(存储/卡顿/WebHost/后台任务 + 脱敏 JSON 导出)
+@Serializable
+data object SettingsDiagnosticsRoute
+
 @Serializable
 data object SettingsDataRoute
 

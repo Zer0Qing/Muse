@@ -175,6 +175,9 @@ class MuseApp : Application(), ImageLoaderFactory {
         io.zer0.muse.data.SettingsStoreContextHolder.applicationContext = applicationContext
         // Phase 11.3: 文件日志(便于真机验证后回捞,cacheDir 卸载自动清理)
         Logger.initFileLog(this)
+        // v2.6.23(S4): 主线程卡顿计数(诊断卡数据源)。Printer 只做时间戳差值,
+        // 不在消息路径上分配对象;安装必须在首帧之前,否则窗口统计缺头部消息。
+        io.zer0.muse.diagnostics.MainThreadJankTracker.install()
         val displayMetrics = resources.displayMetrics
         val configuration = resources.configuration
         Logger.i(

@@ -162,6 +162,9 @@ internal object HostSettingsCatalog {
             link("tutorial", "settings_screen_tutorial", "settings_screen_tutorial_desc", "school"),
             link("about", "settings_screen_about", "settings_screen_about_desc", "info"),
             action("check_update", "settings_screen_check_update", "settings_screen_check_update_desc", "refresh"),
+            // v2.6.23(S4): App 端新增「运行诊断」子页,1:1 投影要求这里同步有镜像条目。
+            // 先标 disabled:S5 在 Web 端补出「运行」三 Tab 页之前,不留一个点了只有占位说明的假入口。
+            link("diagnostics", "settings_screen_diagnostics", "settings_screen_diagnostics_desc", "bug", enabled = false),
         ),
         group(
             "settings_group_developer",
@@ -179,28 +182,18 @@ internal object HostSettingsCatalog {
     private fun group(key: String, vararg entries: HostSettingsEntry): HostSettingsGroup =
         HostSettingsGroup(key = key, entries = entries.map { it.copy(groupKey = key) })
 
-    private fun link(
-        id: String,
-        titleKey: String,
-        descKey: String?,
-        iconKey: String,
-        enabled: Boolean = true,
-    ): HostSettingsEntry = HostSettingsEntry(
-        id = id,
-        titleKey = titleKey,
-        descKey = descKey,
-        groupKey = "",
-        iconKey = iconKey,
-        kind = KIND_LINK,
-        enabled = enabled,
-    )
+    private fun link(id: String, titleKey: String, descKey: String?, iconKey: String, enabled: Boolean = true): HostSettingsEntry =
+        HostSettingsEntry(
+            id = id,
+            titleKey = titleKey,
+            descKey = descKey,
+            groupKey = "",
+            iconKey = iconKey,
+            kind = KIND_LINK,
+            enabled = enabled,
+        )
 
-    private fun action(
-        id: String,
-        titleKey: String,
-        descKey: String?,
-        iconKey: String,
-    ): HostSettingsEntry = HostSettingsEntry(
+    private fun action(id: String, titleKey: String, descKey: String?, iconKey: String): HostSettingsEntry = HostSettingsEntry(
         id = id,
         titleKey = titleKey,
         descKey = descKey,
@@ -209,21 +202,16 @@ internal object HostSettingsCatalog {
         kind = KIND_ACTION,
     )
 
-    private fun toggle(
-        id: String,
-        titleKey: String,
-        descKey: String?,
-        iconKey: String,
-        settingKey: String,
-    ): HostSettingsEntry = HostSettingsEntry(
-        id = id,
-        titleKey = titleKey,
-        descKey = descKey,
-        groupKey = "",
-        iconKey = iconKey,
-        kind = KIND_SWITCH,
-        toggleKey = settingKey,
-    )
+    private fun toggle(id: String, titleKey: String, descKey: String?, iconKey: String, settingKey: String): HostSettingsEntry =
+        HostSettingsEntry(
+            id = id,
+            titleKey = titleKey,
+            descKey = descKey,
+            groupKey = "",
+            iconKey = iconKey,
+            kind = KIND_SWITCH,
+            toggleKey = settingKey,
+        )
 
     const val KIND_LINK = "link"
     const val KIND_SWITCH = "switch"

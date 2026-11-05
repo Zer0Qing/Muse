@@ -15,8 +15,10 @@ import io.zer0.muse.ui.WorkspaceScreen
 import io.zer0.muse.ui.account.AccountScreen
 import io.zer0.muse.ui.dev.ComponentGalleryScreen
 import io.zer0.muse.ui.knowledge.KnowledgeScreen
+import io.zer0.muse.ui.settings.AgentDirectivesPage
 import io.zer0.muse.ui.settings.AgentSettingsPage
 import io.zer0.muse.ui.settings.AuditLogPage
+import io.zer0.muse.ui.settings.BrowserSettingsPage
 import io.zer0.muse.ui.settings.ChatSettingsPage
 import io.zer0.muse.ui.settings.CloudBackupPage
 import io.zer0.muse.ui.settings.ExperimentsSettingsPage
@@ -36,6 +38,7 @@ import io.zer0.muse.ui.settings.SettingsAsrPage
 import io.zer0.muse.ui.settings.SettingsAssistantResourcesPage
 import io.zer0.muse.ui.settings.SettingsDataImportPage
 import io.zer0.muse.ui.settings.SettingsDataPage
+import io.zer0.muse.ui.settings.SettingsDiagnosticsPage
 import io.zer0.muse.ui.settings.SettingsGroupPage
 import io.zer0.muse.ui.settings.SettingsMcpPage
 import io.zer0.muse.ui.settings.SettingsModelPage
@@ -46,11 +49,9 @@ import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.UserPreferencePage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.VisionSettingsPage
-import io.zer0.muse.ui.settings.BrowserSettingsPage
 import io.zer0.muse.ui.settings.WebAccessPage
 import io.zer0.muse.ui.terminal.TerminalScreen
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.settings.AgentDirectivesPage
 
 /**
  * 设置域 NavGraph — 包含设置主页 + 31 个二级/三级设置页(账户/模型/外观/代理/多 Agent/
@@ -223,6 +224,15 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onOpenLicenses = { navController.navigate(LicensesRoute) },
             // v2.x: 崩溃上报设置页入口(此前页面存在但无任何入口)
             onOpenCrashReport = { navController.navigate(SettingsCrashReportRoute) },
+        )
+    }
+    // v2.6.23(S4): 运行诊断子页 —「关于」组入口 + 搜索直达
+    composable<SettingsDiagnosticsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        SettingsDiagnosticsPage(
+            onBack = { navController.popBackStack() },
         )
     }
     // v2.x: 崩溃上报设置页 — 从「关于 → 反馈」进入,搜索索引同名可达

@@ -58,7 +58,8 @@ import java.time.format.DateTimeFormatter
  * 版本守卫 [FactDb.archiveUnknownVersionDatabase] 也引用本常量。
  * 历史缺陷正是守卫写死旧值(13)导致 v14 真库被误判为"未知高版本"反复归档清空。
  */
-internal const val FACT_DB_VERSION = 20
+// v2.6.23(S4): public —— 诊断卡(DiagnosticsSnapshot.AppSection)要展示当前 schema 版本。
+const val FACT_DB_VERSION = 20
 
 @Database(
     entities = [

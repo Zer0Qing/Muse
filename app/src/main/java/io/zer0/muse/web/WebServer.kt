@@ -11,9 +11,9 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
+import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.cio.CIO
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.origin
@@ -308,6 +308,7 @@ class WebServer(
                 configureSerialization()
                 configureCors(config.allowLan)
                 configureStatusPages()
+                configureLatencyStats()
                 museRoutes(password, jwtSecret, pin, sessionRepo, settings, config.allowLan)
             }
             candidate.start(wait = false)
@@ -458,6 +459,31 @@ class WebServer(
                 )
             }
         }
+    }
+
+    /**
+     * v2.6.23(S4): 请求延迟统计 —— 诊断卡 p95 的数据源。
+     *
+     * 只计 `/api/` 业务路由:静态资源(web-client 打包)是毫秒级批量命中,
+     * 混进来会把 p95 稀释到失真。样本不足由诊断卡自己标注,不在这里截断。
+     */
+    private fun Application.configureLatencyStats() {
+        val startKey = io.ktor.util.AttributeKey<Long>("web.request.start.ms")
+        val plugin = io.ktor.server.application.createApplicationPlugin(name = "RequestLatencyStats") {
+            onCall { call ->
+                // 用 local.uri 判定业务路由:与文件内其它 request.local 读取同族,不依赖额外扩展 import
+                if (call.request.local.uri.startsWith("/api/")) {
+                    call.attributes.put(startKey, android.os.SystemClock.elapsedRealtime())
+                }
+            }
+            onCallRespond { call, _ ->
+                val start = call.attributes.getOrNull(startKey) ?: return@onCallRespond
+                io.zer0.muse.diagnostics.WebHostLatencyStats.shared.record(
+                    android.os.SystemClock.elapsedRealtime() - start,
+                )
+            }
+        }
+        install(plugin)
     }
 
     // ── 路由 ──────────────────────────────────────────────────────────────

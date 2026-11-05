@@ -19,22 +19,24 @@ import io.zer0.muse.ui.navigation.PluginManageRoute
 import io.zer0.muse.ui.navigation.QuickNotesRoute
 import io.zer0.muse.ui.navigation.ScheduledTasksRoute
 import io.zer0.muse.ui.navigation.SettingsAboutRoute
+import io.zer0.muse.ui.navigation.SettingsAgentDirectivesRoute
 import io.zer0.muse.ui.navigation.SettingsAgentRoute
 import io.zer0.muse.ui.navigation.SettingsAppearanceRoute
 import io.zer0.muse.ui.navigation.SettingsAsrRoute
 import io.zer0.muse.ui.navigation.SettingsAssistantResourcesRoute
 import io.zer0.muse.ui.navigation.SettingsAutomationRoute
+import io.zer0.muse.ui.navigation.SettingsBrowserRoute
 import io.zer0.muse.ui.navigation.SettingsChatRoute
+import io.zer0.muse.ui.navigation.SettingsCrashReportRoute
 import io.zer0.muse.ui.navigation.SettingsDataImportRoute
 import io.zer0.muse.ui.navigation.SettingsDataRoute
-import io.zer0.muse.ui.navigation.SettingsCrashReportRoute
+import io.zer0.muse.ui.navigation.SettingsDiagnosticsRoute
 import io.zer0.muse.ui.navigation.SettingsExperimentsRoute
 import io.zer0.muse.ui.navigation.SettingsMcpRoute
 import io.zer0.muse.ui.navigation.SettingsMediaRoute
 import io.zer0.muse.ui.navigation.SettingsMemoryRoute
 import io.zer0.muse.ui.navigation.SettingsModelRoute
 import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
-import io.zer0.muse.ui.navigation.SettingsAgentDirectivesRoute
 import io.zer0.muse.ui.navigation.SettingsProactiveRoute
 import io.zer0.muse.ui.navigation.SettingsProxyRoute
 import io.zer0.muse.ui.navigation.SettingsRagRoute
@@ -42,7 +44,6 @@ import io.zer0.muse.ui.navigation.SettingsSecurityRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.SettingsTutorialRoute
 import io.zer0.muse.ui.navigation.SettingsVisionRoute
-import io.zer0.muse.ui.navigation.SettingsBrowserRoute
 import io.zer0.muse.ui.navigation.SettingsWebAccessRoute
 import io.zer0.muse.ui.navigation.SettingsWebSearchRoute
 import io.zer0.muse.ui.navigation.StatsRoute
@@ -128,6 +129,7 @@ enum class SettingsEntryId {
     BROWSER,
     TUTORIAL,
     ABOUT,
+    DIAGNOSTICS,
     CHECK_UPDATE,
     STATS,
     EXPERIMENTS,
@@ -791,6 +793,17 @@ object SettingsCatalog {
                     MuseIcons.refresh,
                     SettingsEntryAction.Action(SettingsActionId.CHECK_UPDATE),
                     keywords = listOf("检查更新", "更新", "update", "版本", "升级", "jianchagengxin", "gengxin", "shengji", "jcgc", "gx", "sj"),
+                ),
+                // v2.6.23(S4): 运行诊断 —— 「记忆页慢/后台没跑」不再靠猜;导出不含内容只含体积与计数。
+                entry(
+                    SettingsEntryId.DIAGNOSTICS,
+                    R.string.settings_screen_diagnostics,
+                    R.string.settings_screen_diagnostics_desc,
+                    MuseIcons.bug,
+                    SettingsEntryAction.Navigate(SettingsDiagnosticsRoute),
+                    keywords = listOf(
+                        "诊断", "运行", "卡顿", "存储", "日志", "diagnostics", "zhenduan", "yunhang", "kadun", "cunchu", "rizhi", "zd",
+                    ),
                 ),
             ),
         ),

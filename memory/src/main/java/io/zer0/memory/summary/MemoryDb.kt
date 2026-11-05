@@ -5,7 +5,8 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-internal const val MEMORY_DB_VERSION = 5
+// v2.6.23(S4): public —— 诊断卡(DiagnosticsSnapshot.AppSection)要展示当前 schema 版本。
+const val MEMORY_DB_VERSION = 5
 
 /**
  * Memory 模块的 Room 数据库。

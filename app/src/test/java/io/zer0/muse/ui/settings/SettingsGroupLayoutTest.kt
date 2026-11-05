@@ -92,6 +92,7 @@ class SettingsGroupLayoutTest {
             SettingsEntryId.TUTORIAL,
             SettingsEntryId.ABOUT,
             SettingsEntryId.CHECK_UPDATE,
+            SettingsEntryId.DIAGNOSTICS,
         ),
         SettingsGroupKind.DEVELOPER to listOf(
             SettingsEntryId.STATS,
@@ -162,6 +163,7 @@ class SettingsGroupLayoutTest {
                 SettingsEntryId.TUTORIAL,
                 SettingsEntryId.ABOUT,
                 SettingsEntryId.CHECK_UPDATE,
+                SettingsEntryId.DIAGNOSTICS,
             ),
             SettingsGroupKind.DEVELOPER to listOf(
                 SettingsEntryId.STATS,
@@ -194,9 +196,9 @@ class SettingsGroupLayoutTest {
 
     private companion object {
         const val SETTINGS_GROUP_COUNT = 14
-        const val EXPECTED_ENTRY_COUNT = 50
+        const val EXPECTED_ENTRY_COUNT = 51
 
         /** 与上方 expectedLayout 一一对应的条目数，用来锁住分布均衡、没有过大的单类。 */
-        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 3, 3, 3, 3, 3, 2, 6, 6, 2, 5, 2, 3, 5)
+        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 3, 3, 3, 3, 3, 2, 6, 6, 2, 5, 2, 4, 5)
     }
 }
