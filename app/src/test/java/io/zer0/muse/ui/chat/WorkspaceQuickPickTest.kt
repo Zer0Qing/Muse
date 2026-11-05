@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.workspace.WorkspacePathParser
 
 /**
  * 对话顶栏「更多 → 工作区」下钻选择器的纯逻辑（整改计划 第 5 条）。
@@ -72,6 +73,31 @@ class WorkspaceQuickPickTest {
         )
         val picked = workspacePickFolders(entries)
         assertEquals("文件与隐藏目录都不该出现", listOf("notes"), picked.map { it.name })
+    }
+
+    /**
+     * 跨挂载的那一层最容易坏在"我削掉了什么"：
+     * `listDir("")` 给出的非主挂载条目路径是 `挂载标识:/`（见 WorkspaceManager.otherMountEntries），
+     * 而本栈会把它归一化成 `挂载标识:`（吃掉尾斜杠）。
+     * 这条断言钉住：**两种写法都必须被 `WorkspacePathParser` 解析成同一个挂载根**，
+     * 否则用户点进第二个挂载就会看到空目录或报错。
+     */
+    @Test
+    fun `归一化后的跨挂载路径仍能被工作区解析器接受`() {
+        val ids = setOf("docs", "photos")
+        val stack = WorkspacePickStack()
+        stack.enter(WorkspacePickStack.normalize("docs:/"))
+        assertEquals("栈内应存成 docs:（尾斜杠被吃掉）", "docs:", stack.current)
+
+        val parsed = WorkspacePathParser.parse(stack.current, ids)
+        assertEquals("必须解析到 docs 挂载，而不是当成主挂载下的一个叫 docs: 的目录", "docs", parsed.mountId)
+        assertTrue("且必须是该挂载的根目录", parsed.isMountRoot)
+
+        // 更深一层也一样可回传
+        stack.enter(WorkspacePickStack.normalize("docs:/2026/一月"))
+        val deep = WorkspacePathParser.parse(stack.current, ids)
+        assertEquals("docs", deep.mountId)
+        assertEquals("2026/一月", deep.relative)
     }
 
     @Test
