@@ -1,0 +1,256 @@
+# 就地覆盖字重/字距/行高的基线（棘轮：只准降不准升）。
+# 生成：py -3 ci/script/check_typography_overrides.py --update-baseline
+# 每段第一行是文件路径，缩进行是 `规则名 次数`。
+app/src/main/java/io/zer0/muse/ui/AgentModeHintCard.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/ArchivedChatsScreen.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/AssistantAdvancedPage.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/AssistantDetailPages.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/AssistantScreen.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/ChatListScreen.kt:
+  inline_font_weight 13
+app/src/main/java/io/zer0/muse/ui/ChatRenderContinuationRow.kt:
+  inline_letter_spacing 1
+  inline_line_height 1
+app/src/main/java/io/zer0/muse/ui/ChatScreen.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/ChatSheets.kt:
+  inline_font_weight 10
+app/src/main/java/io/zer0/muse/ui/CommandPalette.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/CoverManagerScreen.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/DataManagementScreen.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/DebugAnalyticsSheet.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/DebugCrashLogSheet.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/DebugScreen.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/HomeScreen.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/InputBar.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/LorebookScreen.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/MemoryDialogsDashboard.kt:
+  inline_font_weight 9
+app/src/main/java/io/zer0/muse/ui/MemoryScreen.kt:
+  inline_font_weight 9
+app/src/main/java/io/zer0/muse/ui/MemorySearchComponents.kt:
+  inline_font_weight 5
+app/src/main/java/io/zer0/muse/ui/MessageBubble.kt:
+  inline_font_weight 3
+  inline_letter_spacing 1
+  inline_line_height 1
+app/src/main/java/io/zer0/muse/ui/MessageBubbleExtras.kt:
+  inline_font_weight 9
+  inline_letter_spacing 2
+app/src/main/java/io/zer0/muse/ui/MessageBubbleTail.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/MilestoneScreen.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/ModelSwitchSheet.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/MuseToolSheet.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/NotificationListenerScreen.kt:
+  inline_font_weight 7
+app/src/main/java/io/zer0/muse/ui/PromptInjectionScreen.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/QuickMessageScreen.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/RecentlyDeletedScreen.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/SearchScreen.kt:
+  inline_font_weight 6
+app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/SkillScreen.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/ToolsScreen.kt:
+  inline_font_weight 5
+app/src/main/java/io/zer0/muse/ui/VideoGenerationPage.kt:
+  inline_font_weight 8
+app/src/main/java/io/zer0/muse/ui/WorkspaceScreen.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/account/AccountScreen.kt:
+  inline_font_weight 8
+app/src/main/java/io/zer0/muse/ui/agentdm/AgentDmScreen.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/artifact/ArtifactCard.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/chat/BrowserCapsule.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/chat/MessageTextStyles.kt:
+  inline_font_weight 4
+  inline_letter_spacing 2
+app/src/main/java/io/zer0/muse/ui/chat/ProcessCard.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/chat/SessionTodoBar.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/chat/TokenCountMenu.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/chat/ToolApprovalCard.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/chat/ToolResultRenderer.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/common/feedback/MuseDialog.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/common/form/MuseCapsuleButton.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/common/form/MuseCapsuleTab.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/common/form/MuseChip.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/common/form/MuseSelectionSheet.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/common/form/MuseSlider.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/common/media/AssistantAvatar.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/common/media/DesktopContextMenu.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/common/navigation/MuseTopBar.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/common/settings/SectionLabel.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/common/settings/SettingsSliderRow.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt:
+  inline_font_weight 7
+app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatListScreen.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeComponents.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt:
+  inline_font_weight 5
+app/src/main/java/io/zer0/muse/ui/markdown/CodeHighlighter.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/markdown/DataCardRenderer.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/markdown/MarkdownText.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/memory/MemoryGraphView.kt:
+  inline_font_weight 1
+  inline_letter_spacing 2
+app/src/main/java/io/zer0/muse/ui/memory/TimelineItemActions.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/onboarding/OnboardingScreen.kt:
+  inline_font_weight 9
+app/src/main/java/io/zer0/muse/ui/plugin/PluginSlotHost.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/quicknotes/QuickNoteComponents.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/quicknotes/QuickNotesScreen.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/schedule/ScheduledTasksScreen.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/settings/AgentSettingsPage.kt:
+  inline_font_weight 11
+app/src/main/java/io/zer0/muse/ui/settings/AsrSection.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/settings/AuditLogPage.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/BubblePreviewPanel.kt:
+  inline_font_weight 1
+  inline_letter_spacing 1
+  inline_line_height 1
+app/src/main/java/io/zer0/muse/ui/settings/BubbleSkinSection.kt:
+  inline_line_height 1
+app/src/main/java/io/zer0/muse/ui/settings/ChannelSettingsPage.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/settings/ChatSettingsPage.kt:
+  inline_font_weight 8
+app/src/main/java/io/zer0/muse/ui/settings/ConnectorSettingsPage.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/CrashReportSettings.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/ImageGenSection.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/settings/McpSection.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/ModelDiffSheet.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/settings/MultiAgentSettingsPage.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt:
+  inline_font_weight 7
+app/src/main/java/io/zer0/muse/ui/settings/PluginPermissionPanel.kt:
+  inline_font_weight 5
+app/src/main/java/io/zer0/muse/ui/settings/PresetProviderPickerDialog.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/settings/ProactiveLedgerSheet.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/PromptTemplateManagerPage.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/ProviderBrandAssets.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/ProviderEditComponents.kt:
+  inline_font_weight 5
+app/src/main/java/io/zer0/muse/ui/settings/ProviderEditPage.kt:
+  inline_font_weight 2
+  inline_letter_spacing 1
+app/src/main/java/io/zer0/muse/ui/settings/ProviderModelsComponents.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/ProviderSection.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/settings/RelationshipSettingsPage.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/SettingsSubPages.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/settings/SettingsTutorialPage.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/settings/TaskRoutingSettingsPage.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/settings/ThemeSection.kt:
+  inline_font_weight 1
+  inline_line_height 1
+app/src/main/java/io/zer0/muse/ui/settings/ToolsSettingsPage.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/settings/VideoGenSection.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/settings/WebAccessPage.kt:
+  inline_font_weight 1
+  inline_line_height 1
+app/src/main/java/io/zer0/muse/ui/settings/WebSearchSection.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/settings/WebServerSection.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/speech/TtsControllerWidget.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/speech/VoiceCloningPage.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/speech/VoiceConversationMode.kt:
+  inline_font_weight 3
+app/src/main/java/io/zer0/muse/ui/stats/StatsPage.kt:
+  inline_font_weight 11
+app/src/main/java/io/zer0/muse/ui/taskcard/DelegationChainCard.kt:
+  inline_font_weight 5
+app/src/main/java/io/zer0/muse/ui/taskcard/DelegationConfirmDialog.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/taskcard/PlanCard.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/taskcard/SubagentTaskListCard.kt:
+  inline_font_weight 6
+app/src/main/java/io/zer0/muse/ui/taskcard/TaskCard.kt:
+  inline_font_weight 5
+app/src/main/java/io/zer0/muse/ui/taskcard/TaskStepRow.kt:
+  inline_font_weight 1
+app/src/main/java/io/zer0/muse/ui/translate/TranslateDialogs.kt:
+  inline_font_weight 4
+app/src/main/java/io/zer0/muse/ui/translate/TranslateHistorySection.kt:
+  inline_font_weight 2
+app/src/main/java/io/zer0/muse/ui/translate/TranslateScreen.kt:
+  inline_font_weight 5
+app/src/main/java/io/zer0/muse/ui/worldbook/WorldBookScreen.kt:
+  inline_font_weight 1
