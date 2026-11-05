@@ -60,16 +60,22 @@ internal class PluginFunctionInvoker(private val context: Context) {
                     "请在 设置 → 工具与扩展 → 插件 → 能力与权限 中允许后重试",
             )
         }
-        return when {
+        // v2.6.23(PL1): 运行期熔断。坏插件在连续失败后被短路一段时间 ——
+        // 三处触发点(工具/Hook/启动激活)共享同一份账,到期自动放一条真实执行探测。
+        PluginRuntimeHealth.shared.blockReason(manifest.id)?.let { reason ->
+            Logger.w(TAG, "插件被运行期健康度短路: ${manifest.id}/$functionName — $reason")
+            return SkillEngineResult.Error(message = reason)
+        }
+        val result = when {
             isPython(manifest) ->
-            PythonSkillEngine(context).callPluginFunction(
-                entryCode = entryCode,
-                functionName = functionName,
-                argsJson = argsJson,
-                timeoutMs = effectiveTimeoutMs,
-                scopeKey = manifest.id,
-                pluginConfigJson = configJson,
-            )
+                PythonSkillEngine(context).callPluginFunction(
+                    entryCode = entryCode,
+                    functionName = functionName,
+                    argsJson = argsJson,
+                    timeoutMs = effectiveTimeoutMs,
+                    scopeKey = manifest.id,
+                    pluginConfigJson = configJson,
+                )
             isNode(manifest) -> NodePluginEngine(context).callPluginFunction(
                 entryCode = entryCode,
                 functionName = functionName,
@@ -90,6 +96,13 @@ internal class PluginFunctionInvoker(private val context: Context) {
                 pluginConfigJson = configJson,
             )
         }
+        // v2.6.23(PL1): 记账。Success(包括插件业务层自己返回错误文本的成功执行)都算引擎可用;
+        // Error 一律计入连续失败 —— 持续失败的插件(不管原因)就该被止损,而不是刷屏重试。
+        when (result) {
+            is SkillEngineResult.Success -> PluginRuntimeHealth.shared.recordSuccess(manifest.id)
+            else -> PluginRuntimeHealth.shared.recordFailure(manifest.id)
+        }
+        return result
     }
 
     companion object {
@@ -101,8 +114,7 @@ internal class PluginFunctionInvoker(private val context: Context) {
         const val RUNTIME_NODE = "node"
 
         /** 该插件是否跑在 Python 运行时上。 */
-        fun isPython(manifest: PluginManifest): Boolean =
-            manifest.runtime.equals(RUNTIME_PYTHON, ignoreCase = true)
+        fun isPython(manifest: PluginManifest): Boolean = manifest.runtime.equals(RUNTIME_PYTHON, ignoreCase = true)
 
         /**
          * 该插件是否跑在 Node 子进程上。
@@ -111,7 +123,6 @@ internal class PluginFunctionInvoker(private val context: Context) {
          * （真机实测见 `PERF_LEDGER.md` §12.8），Node 子进程既可 `timeout` 打断同步死循环，
          * 也能被 `destroyForcibly()` 兜底。
          */
-        fun isNode(manifest: PluginManifest): Boolean =
-            manifest.runtime.equals(RUNTIME_NODE, ignoreCase = true)
+        fun isNode(manifest: PluginManifest): Boolean = manifest.runtime.equals(RUNTIME_NODE, ignoreCase = true)
     }
 }
