@@ -126,6 +126,7 @@ import io.zer0.muse.ui.theme.tiny
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import io.zer0.muse.ui.theme.titleMediumStrong
 
 internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。
@@ -1678,7 +1679,7 @@ internal fun MessageBubble(
                                     titleText?.let {
                                         Text(
                                             text = it,
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            style = MaterialTheme.typography.titleMediumStrong,
                                             color = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.fillMaxWidth(),
                                         )

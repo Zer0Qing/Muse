@@ -55,7 +55,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,6 +80,7 @@ import io.zer0.muse.ui.theme.tiny
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import io.zer0.muse.ui.theme.labelSmallStrong
 
 /** data-URI 图片前缀:只有这种图必须先解码才知道比例。 */
 private const val DATA_URI_IMAGE_PREFIX = "data:image/"
@@ -642,7 +642,7 @@ internal fun TtsAudioPlayer(modifier: Modifier = Modifier) {
                 // 倍速选择
                 Text(
                     text = "${speeds[speedIndex]}x",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.labelSmallStrong,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .clickable {

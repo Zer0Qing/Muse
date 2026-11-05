@@ -22,6 +22,10 @@ class MuseTypeStrongTest {
         "titleSmallStrong" to { t -> t.titleSmallStrong },
         "bodyLargeStrong" to { t -> t.bodyLargeStrong },
         "bodySmallStrong" to { t -> t.bodySmallStrong },
+        "labelSmallStrong" to { t -> t.labelSmallStrong },
+        "titleMediumStrong" to { t -> t.titleMediumStrong },
+        "bodyLargeEmphasis" to { t -> t.bodyLargeEmphasis },
+        "bodySmallEmphasis" to { t -> t.bodySmallEmphasis },
     )
 
     private val bases: Map<String, (androidx.compose.material3.Typography) -> androidx.compose.ui.text.TextStyle> = mapOf(
@@ -30,6 +34,10 @@ class MuseTypeStrongTest {
         "titleSmallStrong" to { t -> t.titleSmall },
         "bodyLargeStrong" to { t -> t.bodyLarge },
         "bodySmallStrong" to { t -> t.bodySmall },
+        "labelSmallStrong" to { t -> t.labelSmall },
+        "titleMediumStrong" to { t -> t.titleMedium },
+        "bodyLargeEmphasis" to { t -> t.bodyLarge },
+        "bodySmallEmphasis" to { t -> t.bodySmall },
     )
 
     @Test

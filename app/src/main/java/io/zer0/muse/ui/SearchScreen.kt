@@ -64,6 +64,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import io.zer0.muse.ui.theme.bodyMediumStrong
+import io.zer0.muse.ui.theme.labelSmallStrong
 
 /**
  * v0.45: 独立全局搜索页。
@@ -446,7 +447,7 @@ private fun SearchResults(
 private fun SectionTitle(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+        style = MaterialTheme.typography.labelSmallStrong,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
     )

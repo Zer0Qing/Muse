@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,6 +67,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import io.zer0.muse.ui.theme.bodyLargeStrong
+import io.zer0.muse.ui.theme.bodyLargeEmphasis
 
 /**
  * 群聊列表页 — 展示全部群聊,卡片点击进入详情。
@@ -309,7 +309,7 @@ private fun GroupChatCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = chat.name,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodyLargeEmphasis,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

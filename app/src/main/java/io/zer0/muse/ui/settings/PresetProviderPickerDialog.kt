@@ -46,6 +46,7 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.theme.bodyLargeEmphasis
 
 /**
  * v1.38: 预置供应商选择器 — 全屏页面(替代原 ModalBottomSheet,根治关闭后卡死 bug)。
@@ -304,7 +305,7 @@ private fun PresetItem(preset: ProviderConfig, onClick: () -> Unit) {
             ) {
                 Text(
                     text = preset.displayName,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodyLargeEmphasis,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -405,7 +406,7 @@ private fun CustomItem(onClick: () -> Unit, highlighted: Boolean = false) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.settings_preset_custom),
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodyLargeEmphasis,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(2.dp))

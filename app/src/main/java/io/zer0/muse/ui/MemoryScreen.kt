@@ -96,6 +96,7 @@ import java.time.Instant
 import java.time.ZoneId
 import io.zer0.muse.ui.theme.labelLargeStrong
 import io.zer0.muse.ui.theme.titleSmallStrong
+import io.zer0.muse.ui.theme.bodySmallEmphasis
 
 /**
  * 记忆观测站。
@@ -1282,7 +1283,7 @@ private fun LazyListScope.memoryFactsItems(
                                 )
                                 Text(
                                     text = "↔",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.bodySmallEmphasis,
                                     color = MaterialTheme.colorScheme.error,
                                 )
                                 Text(

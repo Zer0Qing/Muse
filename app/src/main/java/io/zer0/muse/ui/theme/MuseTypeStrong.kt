@@ -38,3 +38,25 @@ val Typography.bodyLargeStrong: TextStyle
 /** `bodySmall` 的强调档：说明行里需要被看见的那一句。 */
 val Typography.bodySmallStrong: TextStyle
     get() = bodySmall.copy(fontWeight = FontWeight.SemiBold)
+
+/**
+ * 下面 4 个是 `*Emphasis` 档：**同一角色的强调档里再重一级**（`base < Strong < Emphasis` 单调）。
+ * 为什么允许三档而不是统一两档：这几处位置要的是"比 Strong 更醒目"，
+ * 把它们塞进 `*Strong` 会让 Strong 在不同角色间表示不同重量，规范反而更糊。
+ */
+
+/** `labelSmall` 的强调档（脚注里的标签词）。 */
+val Typography.labelSmallStrong: TextStyle
+    get() = labelSmall.copy(fontWeight = FontWeight.SemiBold)
+
+/** `titleMedium` 的强调档：本身已是 SemiBold，需要更重时到 Bold。 */
+val Typography.titleMediumStrong: TextStyle
+    get() = titleMedium.copy(fontWeight = FontWeight.Bold)
+
+/** `bodyLarge` 的再强调档：比 `bodyLargeStrong`(Medium) 更醒目。 */
+val Typography.bodyLargeEmphasis: TextStyle
+    get() = bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+
+/** `bodySmall` 的再强调档：比 `bodySmallStrong`(SemiBold) 更醒目。 */
+val Typography.bodySmallEmphasis: TextStyle
+    get() = bodySmall.copy(fontWeight = FontWeight.Bold)

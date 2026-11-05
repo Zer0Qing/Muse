@@ -109,6 +109,7 @@ import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
+import io.zer0.muse.ui.theme.titleMediumStrong
 
 /**
  * 群聊详情页 — 消息流 + 输入栏 + Agent 轮转回复。
@@ -522,7 +523,7 @@ fun GroupChatDetailScreen(
                                 ) {
                                     Text(
                                         text = chatName,
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        style = MaterialTheme.typography.titleMediumStrong,
                                         color = MaterialTheme.colorScheme.onSurface,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,

@@ -39,18 +39,16 @@ app/src/main/java/io/zer0/muse/ui/LorebookScreen.kt:
 app/src/main/java/io/zer0/muse/ui/MemoryDialogsDashboard.kt:
   inline_font_weight 9
 app/src/main/java/io/zer0/muse/ui/MemoryScreen.kt:
-  inline_font_weight 2
+  inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/MemorySearchComponents.kt:
   inline_font_weight 5
 app/src/main/java/io/zer0/muse/ui/MessageBubble.kt:
-  inline_font_weight 3
+  inline_font_weight 2
   inline_letter_spacing 1
   inline_line_height 1
 app/src/main/java/io/zer0/muse/ui/MessageBubbleExtras.kt:
   inline_font_weight 9
   inline_letter_spacing 2
-app/src/main/java/io/zer0/muse/ui/MessageBubbleTail.kt:
-  inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/MilestoneScreen.kt:
   inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/ModelSwitchSheet.kt:
@@ -68,7 +66,7 @@ app/src/main/java/io/zer0/muse/ui/RecentlyDeletedScreen.kt:
 app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt:
   inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/SearchScreen.kt:
-  inline_font_weight 3
+  inline_font_weight 2
 app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt:
   inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/SkillScreen.kt:
@@ -111,9 +109,7 @@ app/src/main/java/io/zer0/muse/ui/common/settings/SettingsSliderRow.kt:
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt:
   inline_font_weight 3
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt:
-  inline_font_weight 7
-app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatListScreen.kt:
-  inline_font_weight 1
+  inline_font_weight 6
 app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt:
   inline_font_weight 3
 app/src/main/java/io/zer0/muse/ui/markdown/CodeHighlighter.kt:
@@ -161,7 +157,7 @@ app/src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt:
 app/src/main/java/io/zer0/muse/ui/settings/PluginPermissionPanel.kt:
   inline_font_weight 5
 app/src/main/java/io/zer0/muse/ui/settings/PresetProviderPickerDialog.kt:
-  inline_font_weight 3
+  inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/settings/PromptTemplateManagerPage.kt:
   inline_font_weight 1
 app/src/main/java/io/zer0/muse/ui/settings/ProviderBrandAssets.kt:
