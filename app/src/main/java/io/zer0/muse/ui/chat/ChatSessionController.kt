@@ -712,7 +712,10 @@ internal class ChatSessionController(
                 ""
             } else {
                 val draft = resultOf { sessionRepository.loadInputDraft(sessionId) }.getOrNull().orEmpty()
-                if (draft.isBlank() || draftAlreadySent(sessionId, draft)) "" else draft
+                val pendingTexts = resultOf { sessionRepository.getPendingOutbox(sessionId) }.getOrNull()
+                    ?.map { it.text }
+                    .orEmpty()
+                dropAlreadySentDraft(draft, pendingTexts)
             }
             accessor.update {
                 sessionDeps.stateStore.messages.value = messages
@@ -781,15 +784,14 @@ internal class ChatSessionController(
         }
     }
 
-    /**
-     * 崩溃正好落在「outbox 已落库」与「草稿已清空」之间时，库里那条草稿就是已经发出去的那句话；
-     * 恢复回去等于邀请用户再发一次，所以按 outbox 里待发的原文认出来并丢弃。
-     */
-    private suspend fun draftAlreadySent(sessionId: String, draft: String): Boolean =
-        resultOf { sessionRepository.getPendingOutbox(sessionId) }.getOrNull()
-            ?.any { it.text == draft } == true
-
     companion object {
         private const val MESSAGE_PAGE_SIZE = 50
     }
 }
+
+/**
+ * 崩溃正好落在「outbox 已落库」与「草稿已清空」之间时，库里那条草稿就是已经发出去的那句话；
+ * 恢复回去等于邀请用户再发一次，所以按 outbox 里待发的原文认出来并丢弃。
+ */
+internal fun dropAlreadySentDraft(draft: String, pendingOutboxTexts: List<String>): String =
+    if (draft.isBlank() || draft in pendingOutboxTexts) "" else draft
