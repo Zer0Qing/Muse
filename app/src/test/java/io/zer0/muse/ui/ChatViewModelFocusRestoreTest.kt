@@ -1,9 +1,8 @@
 package io.zer0.muse.ui
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.cancel
+import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -46,6 +45,7 @@ import io.zer0.muse.vision.VisionProgress
 import io.zer0.muse.web.WebSearchService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -259,12 +259,23 @@ class ChatViewModelFocusRestoreTest {
      * 恢复挂在会话流首次发射上，单次 advanceUntilIdle 不保证发射已经排上，
      * 所以多泵几次；上限到了就返回当前值，交给调用方断言。
      */
+    /**
+     * 等焦点恢复稳定。
+     *
+     * 原来的写法只推**虚拟**时间(20 × advanceTimeBy(50))。但恢复链路里有一次真实的
+     * DataStore 读取(不在测试调度器上),虚拟时间推得再快也不会让它先完成 —— 全量 5000 例
+     * 同时压磁盘时,这一条就稳定地读到 null(单独跑、只跑相邻几包时都是绿的)。
+     * 现在每一轮既推虚拟时间也让出真实时间,上限仍是有限的,不会把超时变成永久等待。
+     */
     private suspend fun awaitFocusSettled(): String? {
-        repeat(20) {
+        repeat(40) { round ->
             testDispatcher.scheduler.advanceUntilIdle()
             viewModel.state.value.currentSessionId?.let { return it }
             testDispatcher.scheduler.advanceTimeBy(50)
+            // 每 5 轮给真实 IO 一点时间;这不是"重跑掩盖问题",而是等待的对象本来就在另一个调度器上。
+            if (round % 5 == 4) Thread.sleep(25)
         }
+        testDispatcher.scheduler.advanceUntilIdle()
         return viewModel.state.value.currentSessionId
     }
 }
