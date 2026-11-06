@@ -362,6 +362,15 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                                 if (assistant.id == state.currentAssistant?.id) {
                                                     CurrentIndicator(text = currentText)
                                                 }
+                                                if (!assistant.enabled) {
+                                                    // 停用后助手从候选列表消失,列表里却不留痕迹 ——
+                                                    // 用户只会以为它被删了。这里挂一枚"已停用"标签说明去向。
+                                                    Text(
+                                                        text = stringResource(R.string.settings_preference_disabled_tag),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                }
                                             }
                                         },
                                         supportingContent = {
