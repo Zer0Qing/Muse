@@ -172,6 +172,9 @@ internal class HostSettingsCommands(
         min = min,
         max = max,
         step = step,
+        advanced = advanced,
+        widget = widgetName(),
+        dependsOn = dependsOnKey?.let { HostSettingDependency(key = it, values = dependsOnValues) },
     )
 
     /** 取不到值时布尔按 false 回填，其余留空——和 toggles 的兜底同口径。 */

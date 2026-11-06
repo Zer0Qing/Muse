@@ -14,6 +14,7 @@ import {
   type SettingsPageSpec,
 } from "./settingsPages.js";
 import { useI18n } from "../i18n/I18nProvider.js";
+import { dependencyMet, splitAdvanced, widgetOf } from "./settingsMetadata.js";
 import { useDelayedFlag } from "./useDelayedFlag.js";
 
 export interface SettingsValuePageProps {
@@ -141,31 +142,79 @@ export function SettingsValueCard({
   readonly onWrite: (key: string, value: string | number | boolean) => void;
   readonly focusKey?: string | undefined;
 }) {
+  const { t } = useI18n();
   const entries = titledEntries(snapshot);
   const titles = new Map(Array.from(entries, ([key, info]) => [key, info.title] as const));
   const rows = valuesForPage(page, snapshot.values);
   if (rows.length === 0) return null;
+
+  // S1：依赖判断要读其它项的当前值，而其它项可能不属于本页 —— 所以在整份 values 里找。
+  const allValues = snapshot.values ?? [];
+  const valueByKey = new Map(allValues.map((item) => [item.key, item] as const));
+  const valueOf = (key: string): string | undefined => {
+    const found = valueByKey.get(key);
+    return found === undefined ? undefined : String(found.value);
+  };
+  // 标题先用本页已渲染的行（Host 本地化过），再退回整份 values 派生，最后才是裸键名。
+  const rowTitles = new Map(rows.map((row) => [row.key, resolveValueTitle(row, titles)] as const));
+  const blockedByOf = (value: HostSettingValue): string | undefined => {
+    const dependsOn = value.dependsOn;
+    if (dependsOn === undefined || dependencyMet(value, valueOf)) return undefined;
+    const known = rowTitles.get(dependsOn.key);
+    if (known !== undefined && known.length > 0) return known;
+    const elsewhere = valueByKey.get(dependsOn.key);
+    const resolved = elsewhere === undefined ? "" : resolveValueTitle(elsewhere, titles);
+    return resolved.length > 0 ? resolved : dependsOn.key;
+  };
+
+  const { plain, advanced } = splitAdvanced(rows);
+  // 搜索直达命中高级项时必须自动展开，否则「搜到 → 点进去 → 找不到」等于没搜到。
+  const [showAdvanced, setShowAdvanced] = useState(advanced.some((value) => value.key === focusKey));
+
+  const renderRow = (value: HostSettingValue, last: boolean) => {
+    const row = (
+      <ValueRow
+        key={value.key}
+        value={value}
+        last={last}
+        info={rowInfo(value, entries, titles)}
+        blockedBy={blockedByOf(value)}
+        onWrite={onWrite}
+      />
+    );
+    return focusKey !== undefined && value.key === focusKey ? (
+      <div className="host-setting-highlight" key={value.key}>
+        {row}
+      </div>
+    ) : (
+      row
+    );
+  };
+
   return (
     <CardGroup>
-      {rows.map((value, index) => {
-        const row = (
-          <ValueRow
-            key={value.key}
-            value={value}
-            last={index === rows.length - 1}
-            info={rowInfo(value, entries, titles)}
-            onWrite={onWrite}
+      {plain.map((value, index) => renderRow(value, advanced.length === 0 && index === plain.length - 1))}
+      {advanced.length > 0 && (
+        <>
+          <ListRow
+            title={t("settings.advanced", { count: advanced.length })}
+            subtitle={showAdvanced ? t("settings.advancedOpen") : t("settings.advancedClosed")}
+            divider={showAdvanced}
+            trailing={
+              <button
+                type="button"
+                className="host-advanced-toggle"
+                aria-expanded={showAdvanced}
+                onClick={() => setShowAdvanced((current) => !current)}
+              >
+                {showAdvanced ? t("settings.advancedHide") : t("settings.advancedShow")}
+              </button>
+            }
           />
-        );
-        // 从搜索直达：把目标行标出来，否则用户进来还得自己找。
-        return focusKey !== undefined && value.key === focusKey ? (
-          <div className="host-setting-highlight" key={value.key}>
-            {row}
-          </div>
-        ) : (
-          row
-        );
-      })}
+          {showAdvanced &&
+            advanced.map((value, index) => renderRow(value, index === advanced.length - 1))}
+        </>
+      )}
     </CardGroup>
   );
 }
@@ -174,15 +223,35 @@ interface ValueRowProps {
   readonly value: HostSettingValue;
   readonly last: boolean;
   readonly info: { readonly title: string; readonly subtitle?: string | undefined };
+  /**
+   * S1：依赖还没满足时，这里是被依赖项的标题。
+   *
+   * 处理方式是**照常显示这一行、只回显值不给写入口**，而不是把行藏掉：
+   * 藏起来的后果是用户以为这个功能不存在，而他搜得到它、别人也在讨论它。
+   */
+  readonly blockedBy?: string | undefined;
   readonly onWrite: (key: string, value: string | number | boolean) => void;
 }
 
-function ValueRow({ value, last, info, onWrite }: ValueRowProps) {
+function ValueRow({ value, last, info, blockedBy, onWrite }: ValueRowProps) {
   const { t } = useI18n();
   const text = {
     title: info.title,
     ...(info.subtitle === undefined || info.subtitle === "" ? {} : { subtitle: info.subtitle }),
   };
+
+  // S1：依赖未满足。说清「要先打开哪一项」，并且不给写入口 ——
+  // 留一个能点但点了没反应的开关，比不给开关更坏。
+  if (blockedBy !== undefined) {
+    return (
+      <ListRow
+        title={text.title}
+        subtitle={t("settings.dependencyHint", { title: blockedBy })}
+        divider={!last}
+        trailing={<span className="host-setting-value">{valueText(value)}</span>}
+      />
+    );
+  }
 
   // 只读键：回显状态，不给任何写入口。
   if (isReadOnlyKey(value.key)) {
@@ -216,6 +285,38 @@ function ValueRow({ value, last, info, onWrite }: ValueRowProps) {
 
   if (value.type === "number") {
     const current = readNumber(value.value);
+    // S1：有完整范围与步进的数字项按元数据画滑杆；其余仍是 −/＋。
+    // 控件由元数据决定，所以 Host 新加一项时不必再改一次前端。
+    if (widgetOf(value) === "slider" && value.min !== undefined && value.max !== undefined) {
+      const bounded = Number.isFinite(current) ? Math.min(Math.max(current, value.min), value.max) : value.min;
+      return (
+        <ListRow
+          {...text}
+          divider={!last}
+          trailing={
+            <span className="host-slider-wrap">
+              <input
+                className="host-slider"
+                type="range"
+                min={value.min}
+                max={value.max}
+                step={value.step ?? 1}
+                value={bounded}
+                aria-label={info.title}
+                onChange={(event) => onWrite(value.key, Number(event.target.value))}
+              />
+              <span className="host-slider-value">{String(bounded)}</span>
+            </span>
+          }
+        />
+      );
+    }
+    const clamp = (next: number): number => {
+      // 步进按钮以前只管下限 0，元数据里的 min/max 根本不参与 —— 于是可以一路加出范围，
+      // 提交后被 Host 拒绝，看起来像「这个设置坏了」。
+      const withMin = value.min === undefined ? next : Math.max(value.min, next);
+      return value.max === undefined ? withMin : Math.min(value.max, withMin);
+    };
     return (
       <ListRow
         {...text}
@@ -226,7 +327,7 @@ function ValueRow({ value, last, info, onWrite }: ValueRowProps) {
               className="quiet host-stepper-button"
               type="button"
               aria-label={t("settings.decrease", { title: info.title })}
-              onClick={() => onWrite(value.key, stepNumber(current, -1))}
+              onClick={() => onWrite(value.key, clamp(stepNumber(current, -1)))}
             >
               −
             </button>
@@ -235,7 +336,7 @@ function ValueRow({ value, last, info, onWrite }: ValueRowProps) {
               className="quiet host-stepper-button"
               type="button"
               aria-label={t("settings.increase", { title: info.title })}
-              onClick={() => onWrite(value.key, stepNumber(current, 1))}
+              onClick={() => onWrite(value.key, clamp(stepNumber(current, 1)))}
             >
               ＋
             </button>

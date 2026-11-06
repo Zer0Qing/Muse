@@ -289,8 +289,11 @@ try {
   // ── 5. 写入接线：每种控件都调用 onWrite（源码级） ────────────────
   const pageSource = readFileSync(join(ROOT, "src", "host", "SettingsValuePage.tsx"), "utf8");
   assert(/onWrite\(value\.key, next\)/.test(pageSource), "开关写入走 onWrite(key, boolean)");
-  assert(/onWrite\(value\.key, stepNumber\(current, -1\)\)/.test(pageSource), "数字 − 写入走 onWrite(key, number)");
-  assert(/onWrite\(value\.key, stepNumber\(current, 1\)\)/.test(pageSource), "数字 ＋ 写入走 onWrite(key, number)");
+  // 意图是「步进按钮写入的是数字而不是字符串」。以前这里连表达式一起匹配，
+  // 于是 S1 给步进加上范围夹取时被当成契约变更 —— 断言应当钉住意图，不是钉住写法。
+  assert(/onWrite\(value\.key, (?:clamp\()?stepNumber\(current, -1\)\)?\)/.test(pageSource), "数字 − 写入走 onWrite(key, number)");
+  assert(/onWrite\(value\.key, (?:clamp\()?stepNumber\(current, 1\)\)?\)/.test(pageSource), "数字 ＋ 写入走 onWrite(key, number)");
+  assert(/onWrite\(value\.key, Number\(event\.target\.value\)\)/.test(pageSource), "滑杆写入同样走 onWrite(key, number)");
   assert(/onWrite\(value\.key, option\.value\)/.test(pageSource), "枚举选项写入走 onWrite(key, optionValue)");
   const hostSettingsSource = readFileSync(join(ROOT, "src", "host", "HostSettings.tsx"), "utf8");
   assert(/onWrite=\{onWrite\}/.test(hostSettingsSource), "主页把 onWrite 透传给子页");

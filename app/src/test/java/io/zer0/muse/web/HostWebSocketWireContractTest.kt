@@ -162,6 +162,30 @@ class HostWebSocketWireContractTest {
         }
     }
 
+    /**
+     * S1 设置元数据两侧的键。
+     *
+     * `min/max/step` 以前只在 Kotlin 侧下发，客户端类型里根本没有这三个字段 ——
+     * 也就是说网页端收到了却被 TypeScript 当作不存在，滑杆因此画不出来。
+     * 这类「一侧发了、另一侧没声明」的漂移，只有把键名拿去对面查一遍才拦得住。
+     */
+    @Test
+    fun `设置元数据的键两侧一致`() {
+        val settingNames = HostSettingValue.serializer().descriptor.wireNames()
+        listOf("min", "max", "step", "advanced", "widget", "dependsOn").forEach { key ->
+            assertTrue("Kotlin 侧应下发 $key，实际=$settingNames", settingNames.contains(key))
+        }
+
+        val api = readClientSource("api.ts")
+        listOf("readonly min?:", "readonly max?:", "readonly step?:", "readonly advanced?:", "readonly widget?:", "readonly dependsOn?:")
+            .forEach { needle ->
+                assertTrue("客户端 api.ts 里找不到 $needle —— 元数据发了但没人声明", api.contains(needle))
+            }
+
+        val dependencyNames = HostSettingDependency.serializer().descriptor.wireNames()
+        assertTrue("依赖结构应有 key 与 values：$dependencyNames", dependencyNames.containsAll(setOf("key", "values")))
+    }
+
     private fun readClientSource(relative: String): String {
         val candidates = listOf(
             File("../../web/apps/client/src/$relative"),

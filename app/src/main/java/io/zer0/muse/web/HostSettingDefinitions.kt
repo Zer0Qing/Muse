@@ -11,10 +11,29 @@ internal enum class HostSettingType(val wireName: String) {
 }
 
 /**
- * 一个设置项的完整定义：键、类型、可写性、枚举候选（值 id → 显示名的字符串资源名）、数值范围。
+ * S1：控件类型名。下发给网页端的是这些字符串，客户端据此选控件。
+ *
+ * 单独一个对象而不是 enum：控件不是类型（同一个 number 类型可能是滑杆也可能是输入框），
+ * 做成 enum 会让人误以为它与 [HostSettingType] 一一对应。
+ */
+internal object HostSettingWidget {
+    const val SWITCH = "switch"
+    const val SELECT = "select"
+    const val SLIDER = "slider"
+    const val NUMBER = "number"
+    const val TEXT = "text"
+}
+
+/**
+ * 一个设置项的完整定义：键、类型、可写性、枚举候选（值 id → 显示名的字符串资源名）、数值范围，
+ * 以及 S1 加的三项元数据：高级标记、控件类型、依赖关系。
  *
  * 下发（[HostSettingValue]）与写入白名单都由这一份定义派生，不另维护键表：
  * 新增一项只改这里，白名单、校验、快照三处自动跟上。
+ *
+ * 元数据为什么放在服务端而不是网页端各自判断：网页端有 Host 页、以后还可能有别的客户端，
+ * 「哪一项算高级」「哪个开关关着时该把哪一行收起」是产品判断，不是渲染细节。
+ * 写在这里一次，所有客户端拿到的是同一个结论。
  */
 internal data class HostSettingDefinition(
     val key: String,
@@ -32,7 +51,29 @@ internal data class HostSettingDefinition(
     val step: Double? = null,
     /** text 的最大长度；0 表示不限。 */
     val maxLength: Int = 0,
+    /** S1：高级项。默认在子页里折叠，搜索结果命中它时自动展开。 */
+    val advanced: Boolean = false,
+    /**
+     * S1：控件类型。null 表示按类型与范围派生（见 [widgetName]）。
+     *
+     * 只允许显式覆盖确实需要特殊控件的项，能派生的一律派生 ——
+     * 每一项都手写 widget 的话，它与 type/min/max 迟早会互相矛盾。
+     */
+    val widget: String? = null,
+    /** S1：依赖的另一项键名；那一项的值不在 [dependsOnValues] 里时，本项不该出现在界面上。 */
+    val dependsOnKey: String? = null,
+    /** S1：满足依赖的取值集合（字符串口径，与线上值一致）。空集合 + 有 key 表示「只要有值就行」。 */
+    val dependsOnValues: List<String> = emptyList(),
 ) {
+
+    /** 实际使用的控件名。 */
+    fun widgetName(): String = widget ?: when (type) {
+        HostSettingType.BOOLEAN -> HostSettingWidget.SWITCH
+        HostSettingType.ENUM -> if (options.size >= 2) HostSettingWidget.SELECT else HostSettingWidget.TEXT
+        // 有上下界与步进才是滑杆；只有一个界的数字仍然是输入框，滑杆没有可画的行程。
+        HostSettingType.NUMBER -> if (min != null && max != null && step != null) HostSettingWidget.SLIDER else HostSettingWidget.NUMBER
+        HostSettingType.TEXT -> HostSettingWidget.TEXT
+    }
 
     /** 把外部提交的字符串按本项类型规范化；失败时带上可直接展示的原因。 */
     fun parse(raw: String?): HostSettingParseResult {
@@ -147,13 +188,21 @@ internal object HostSettingDefinitions {
         ),
     )
 
-    /** 外观：玻璃强度（0..100 整数百分比）。 */
+    /**
+     * 外观：玻璃强度（0..100 整数百分比）。
+     *
+     * S1 标为高级并声明依赖：玻璃模式为 off 时这个数值根本不生效，
+     * 把它留在首屏就是在问一个无意义的问题。
+     */
     private val LIQUID_GLASS_STRENGTH = HostSettingDefinition(
         key = "liquidGlassStrength",
         type = HostSettingType.NUMBER,
         min = 0.0,
         max = 100.0,
         step = 5.0,
+        advanced = true,
+        dependsOnKey = "liquidGlassMode",
+        dependsOnValues = listOf("water", "frost"),
     )
 
     private val DYNAMIC_COLOR = HostSettingDefinition(key = "dynamicColor", type = HostSettingType.BOOLEAN)
@@ -188,9 +237,17 @@ internal object HostSettingDefinitions {
     )
 
     /** 聊天：思考强度。 */
+    /**
+     * 聊天：思考强度。
+     *
+     * S1 声明依赖:文件上面那句「思考强度只在开启后生效」第一次变成机器可读 ——
+     * 之前它只是一条注释，网页端照旧把这一行摆在首屏。
+     */
     private val CHAT_REASONING_LEVEL = HostSettingDefinition(
         key = "chatPreferences.reasoningLevel",
         type = HostSettingType.ENUM,
+        dependsOnKey = "chatPreferences.forceReasoning",
+        dependsOnValues = listOf("true"),
         options = listOf(
             "OFF" to "reasoning_level_off",
             "AUTO" to "reasoning_level_auto",
@@ -221,10 +278,11 @@ internal object HostSettingDefinitions {
         ),
     )
 
-    /** 语音：播报语速（0.5..2.0 倍，1.0 为正常）。 */
+    /** 语音：播报语速（0.5..2.0 倍，1.0 为正常）。S1：细调项，默认收进高级。 */
     private val TTS_SPEECH_RATE = HostSettingDefinition(
         key = "mediaConfig.ttsSpeechRate",
         type = HostSettingType.NUMBER,
+        advanced = true,
         min = 0.5,
         max = 2.0,
         step = 0.1,

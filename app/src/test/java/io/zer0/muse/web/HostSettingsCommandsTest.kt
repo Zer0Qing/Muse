@@ -439,4 +439,64 @@ class HostSettingsCommandsTest {
         assertTrue("读不到原值就要说「未改动」: $reason", reason.contains("原值未能读出"))
         assertEquals(1, access.writes.size)
     }
+
+    // ── S1：设置元数据 ────────────────────────────────────────
+
+    @Test
+    fun `元数据随快照下发`() = runTest {
+        val byKey = commands(FakeAccess()).snapshot().values.associateBy { it.key }
+
+        val strength = byKey.getValue("liquidGlassStrength")
+        assertTrue("玻璃强度是高级项", strength.advanced)
+        assertEquals("有上下界与步进就该是滑杆", "slider", strength.widget)
+        assertEquals("liquidGlassMode", strength.dependsOn?.key)
+        assertEquals(setOf("water", "frost"), strength.dependsOn?.values?.toSet())
+
+        val level = byKey.getValue("chatPreferences.reasoningLevel")
+        assertEquals("chatPreferences.forceReasoning", level.dependsOn?.key)
+        assertEquals(listOf("true"), level.dependsOn?.values)
+        assertFalse("思考强度本身不是高级项，它只是有前置条件", level.advanced)
+
+        assertEquals("select", byKey.getValue("themeMode").widget)
+        assertEquals("switch", byKey.getValue(HostSettingKeys.CHAT_ENTER_TO_SEND).widget)
+        assertFalse("派生展示值不许被标成高级", byKey.getValue("model.configured").advanced)
+    }
+
+    @Test
+    fun `控件名由类型与范围派生而不是逐项手写`() {
+        assertEquals(
+            HostSettingWidget.SLIDER,
+            HostSettingDefinition("k", HostSettingType.NUMBER, min = 0.0, max = 1.0, step = 0.1).widgetName(),
+        )
+        // 只有一个界画不出滑杆的行程,仍然是输入框
+        assertEquals(HostSettingWidget.NUMBER, HostSettingDefinition("k", HostSettingType.NUMBER, min = 0.0).widgetName())
+        assertEquals(HostSettingWidget.NUMBER, HostSettingDefinition("k", HostSettingType.NUMBER).widgetName())
+        assertEquals(HostSettingWidget.SWITCH, HostSettingDefinition("k", HostSettingType.BOOLEAN).widgetName())
+        assertEquals(
+            HostSettingWidget.SELECT,
+            HostSettingDefinition("k", HostSettingType.ENUM, options = listOf("a" to "x", "b" to "y")).widgetName(),
+        )
+        assertEquals(
+            "只剩一个候选的 enum 画单选列表没有意义,退回文本",
+            HostSettingWidget.TEXT,
+            HostSettingDefinition("k", HostSettingType.ENUM, options = listOf("a" to "x")).widgetName(),
+        )
+        assertEquals(
+            "显式覆盖优先于派生",
+            "stepper",
+            HostSettingDefinition("k", HostSettingType.NUMBER, min = 0.0, max = 1.0, step = 0.1, widget = "stepper").widgetName(),
+        )
+    }
+
+    @Test
+    fun `范围三件套真的下发到线上`() = runTest {
+        // 客户端要画滑杆就得拿到 min/max/step;这三个字段以前只在 Kotlin 侧存在,
+        // TypeScript 那边没声明,于是收到也被当成不存在。
+        val rate = commands(FakeAccess()).snapshot().values.single { it.key == "mediaConfig.ttsSpeechRate" }
+
+        assertEquals(0.5, rate.min ?: 0.0, 0.0001)
+        assertEquals(2.0, rate.max ?: 0.0, 0.0001)
+        assertEquals(0.1, rate.step ?: 0.0, 0.0001)
+        assertTrue("语速是细调项", rate.advanced)
+    }
 }

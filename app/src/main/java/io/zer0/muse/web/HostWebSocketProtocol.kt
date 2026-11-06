@@ -407,6 +407,24 @@ data class HostSettingValue(
     val min: Double? = null,
     val max: Double? = null,
     val step: Double? = null,
+    /** S1：高级项 —— 网页端默认折叠，搜索直达时自动展开。 */
+    val advanced: Boolean = false,
+    /** S1：控件名（switch / select / slider / number / text）。 */
+    val widget: String = HostSettingWidget.TEXT,
+    /** S1：依赖关系；为 null 表示任何情况下都该显示。 */
+    val dependsOn: HostSettingDependency? = null,
+)
+
+/**
+ * S1：一项对另一项的依赖（如「推理强度」只在「强制推理」打开时才有意义）。
+ *
+ * [values] 是满足依赖的取值集合，字符串口径与线上值一致；
+ * 客户端按当前快照判断，不需要复制任何产品规则。
+ */
+@Serializable
+data class HostSettingDependency(
+    val key: String,
+    val values: List<String> = emptyList(),
 )
 
 /** 枚举候选：稳定 value + 已按应用语言本地化的显示名。 */

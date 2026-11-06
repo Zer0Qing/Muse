@@ -251,6 +251,16 @@ export interface HostSettingValue {
   readonly value: unknown;
   /** 仅 type=enum：可选项，顺序即展示顺序。 */
   readonly options?: readonly HostSettingOption[];
+  /** S1：number 的范围与步进（老 Host 不下发）。 */
+  readonly min?: number | undefined;
+  readonly max?: number | undefined;
+  readonly step?: number | undefined;
+  /** S1：高级项，子页里默认折叠。 */
+  readonly advanced?: boolean | undefined;
+  /** S1：控件名（switch / select / slider / number / text）。 */
+  readonly widget?: string | undefined;
+  /** S1：依赖的另一项；那一项取值不在 values 里时，本项当前无意义。 */
+  readonly dependsOn?: { readonly key: string; readonly values?: readonly string[] } | undefined;
 }
 
 export interface HostSettingsSnapshot {

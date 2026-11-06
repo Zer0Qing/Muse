@@ -1771,6 +1771,14 @@ button.quiet.host-memory-clear { color: var(--accent); font-size: var(--muse-typ
 .host-runtime-action { margin-inline-start: auto; padding: var(--muse-space-tiny-gap) var(--muse-space-aux-gap); border: var(--host-hairline) solid var(--border); border-radius: var(--muse-radius-pill); color: var(--ui-primary); background: transparent; font-family: var(--font-ui); font-size: var(--muse-type-scale-label-medium-font-size); }
 .host-runtime-logs { max-inline-size: 100%; margin: 0; padding: var(--muse-space-aux-gap); border-radius: var(--radius-sm); color: var(--code-ink); background: var(--code-bg); font-family: var(--font-mono); font-size: var(--muse-type-web-caption); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .host-runtime-log-line { display: block; }
+/* ── S1：高级设置折叠 / 滑杆 ─────────────────────────────
+   折叠与滑杆都是元数据驱动的渲染结果。宽度用令牌倍数而不是裸 px：
+   滑杆要跟着字号缩放走，写死的轨道在大字号下会溢出成两行。 */
+.host-advanced-toggle { padding: var(--muse-space-tiny-gap) var(--muse-space-aux-gap); border: var(--host-hairline) solid var(--border); border-radius: var(--muse-radius-pill); color: var(--ui-primary); background: transparent; font-family: var(--font-ui); font-size: var(--muse-type-scale-label-medium-font-size); }
+.host-slider-wrap { display: flex; align-items: center; gap: var(--muse-space-tight-gap); }
+.host-slider { inline-size: calc(var(--muse-space-aux-gap) * 9); accent-color: var(--ui-primary); }
+.host-slider-value { min-inline-size: calc(var(--muse-space-aux-gap) * 3); color: var(--ink-soft); font-size: var(--muse-type-scale-label-medium-font-size); text-align: end; }
+
 /* ── S6：网页资源与 App 协议不匹配的提示条 ─────────────────
    只在真的不匹配时出现（组件层判的），所以这里不准备「隐藏态」样式。
    边框走 --host-warning-line：与断线条同色系，用户已经认识这个颜色意味着「先看一下」。 */
