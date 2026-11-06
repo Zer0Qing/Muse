@@ -613,6 +613,10 @@
     <string name="oauth_login">OAuth Login</string>
     <string name="oauth_login_success">OAuth login successful</string>
     <string name="oauth_login_failed">OAuth login failed: %1$s</string>
+    <string name="oauth_reason_no_browser">Cannot open the browser</string>
+    <string name="oauth_reason_no_activity">No current screen context; please try again</string>
+    <string name="oauth_reason_not_configured">OAuth is not configured</string>
+    <string name="provider_test_no_api_key">No API key entered</string>
     <string name="oauth_activity_context_unavailable">Unable to obtain Activity context</string>
     <string name="oauth_device_code_prompt">Visit %1$s and enter code: %2$s</string>
     <string name="oauth_polling">Waiting for authorization...</string>

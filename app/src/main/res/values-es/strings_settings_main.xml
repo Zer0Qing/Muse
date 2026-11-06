@@ -68,7 +68,7 @@
     <string name="settings_provider_tab_models">Modelos</string>
     <string name="settings_provider_file_picker_failed">No se puede abrir el selector de archivos: %1$s</string>
     <string name="settings_provider_delete_title">Eliminar proveedor</string>
-    <string name="settings_provider_delete_consequence">La clave de API y la lista de modelos configurada tambien se eliminaran.</string>
+    <string name="settings_provider_delete_consequence">La clave de API y la lista de modelos configurada también se eliminarán.</string>
     <string name="settings_provider_delete_content">¿Está seguro de que desea eliminar %1$s?</string>
     <string name="settings_provider_action_activate">Establecer como actual</string>
     <string name="settings_model_catalog_refresh">Buscar actualizaciones</string>
@@ -385,7 +385,7 @@
     <string name="cloud_backup_config_saved">Configuración guardada</string>
     <string name="cloud_backup_config_save_failed">No se pudo guardar</string>
     <string name="cloud_backup_delete_failed">Error al eliminar</string>
-    <string name="cloud_backup_delete_consequence">Esta version en la nube se elimina de forma permanente. Si es la unica copia, pierdes el respaldo en la nube.</string>
+    <string name="cloud_backup_delete_consequence">Esta versión en la nube se elimina de forma permanente. Si es la única copia, pierdes el respaldo en la nube.</string>
     <string name="cloud_backup_delete_success">Eliminado</string>
     <string name="cloud_backup_delete_this">Eliminar</string>
     <string name="cloud_backup_enable">Activar copia de seguridad en la nube</string>

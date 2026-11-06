@@ -716,14 +716,9 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                     if (showToolSheet) {
                         val deepThinkingLabel = stringResource(R.string.chat_deep_thinking_cd)
                         val deepThinkingTitle = if (isDeepThinkingEnabled) {
-                            val levelLabel = when (deepThinkingLevel) {
-                                // v1.0.72: 思考等级改中文(低/中/高/极高)
-                                io.zer0.ai.core.ReasoningLevel.LOW -> "低"
-                                io.zer0.ai.core.ReasoningLevel.MEDIUM -> "中"
-                                io.zer0.ai.core.ReasoningLevel.HIGH -> "高"
-                                io.zer0.ai.core.ReasoningLevel.XHIGH -> "极高"
-                                else -> "自动"
-                            }
+                            // 等级名与助手设置页同一套词汇与资源:此前这里是裸中文字面量,
+                            // 非中文环境加号菜单会显示「深度思考 · 高」。
+                            val levelLabel = stringResource(reasoningLevelLabelRes(deepThinkingLevel))
                             "$deepThinkingLabel · $levelLabel"
                         } else {
                             deepThinkingLabel

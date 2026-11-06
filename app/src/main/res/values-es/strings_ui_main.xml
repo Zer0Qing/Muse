@@ -514,6 +514,10 @@
     <string name="oauth_login">Iniciar sesión OAuth</string>
     <string name="oauth_login_success">Inicio de sesión de OAuth exitoso</string>
     <string name="oauth_login_failed">Error al iniciar sesión en OAuth: %1$s</string>
+    <string name="oauth_reason_no_browser">No se puede abrir el navegador</string>
+    <string name="oauth_reason_no_activity">No se obtiene el contexto de la pantalla; inténtalo de nuevo</string>
+    <string name="oauth_reason_not_configured">OAuth no está configurado</string>
+    <string name="provider_test_no_api_key">Falta la clave de API</string>
     <string name="oauth_activity_context_unavailable">No se pudo obtener el contexto de Activity</string>
     <string name="oauth_device_code_prompt">Visite %1$s e ingrese el código: %2$s</string>
     <string name="oauth_polling">Esperando autorización...</string>

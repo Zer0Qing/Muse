@@ -1875,7 +1875,7 @@ fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
 
 /** v2.0.1: 推理等级本地化显示名（value 匹配仍用枚举 name）。 */
 @androidx.annotation.StringRes
-private fun reasoningLevelLabelRes(level: ReasoningLevel): Int = when (level) {
+internal fun reasoningLevelLabelRes(level: ReasoningLevel): Int = when (level) {
     ReasoningLevel.OFF -> R.string.reasoning_level_off
     ReasoningLevel.AUTO -> R.string.reasoning_level_auto
     ReasoningLevel.LOW -> R.string.reasoning_level_low
