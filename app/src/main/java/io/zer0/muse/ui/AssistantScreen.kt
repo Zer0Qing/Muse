@@ -50,6 +50,8 @@ import io.zer0.muse.data.assistant.AssistantCardImportBridge
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.assistant.CharacterCardImporter
+import io.zer0.muse.data.assistant.PersonaDiff
+import io.zer0.muse.data.assistant.PersonaFieldChange
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -678,7 +680,15 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
     }
 
     // v2.x: 导入预览确认对话框(解析完成后弹出,确认才写入)
+    // E3: 预览内容从「一张名片的样子」换成「将改哪些项」的差分,并明说不会切换助手。
     pendingImportCard?.let { card ->
+        // 同名助手已存在时,差分是拿它做基准的(用户最关心的就是"会不会覆盖我在用的那份")。
+        val sameName = state.assistants.firstOrNull { it.name == card.persona.name }
+        val changes: List<PersonaFieldChange> = if (sameName == null) {
+            emptyList()
+        } else {
+            PersonaDiff.changes(sameName, card.persona)
+        }
         MuseDialog(
             onDismissRequest = { pendingImportCard = null },
             title = importPreviewTitle,
@@ -695,13 +705,47 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    val previewText = card.entity.systemPrompt.trim()
-                    if (previewText.isNotEmpty()) {
+                    Spacer(Modifier.height(MusePaddings.auxGap))
+                    // 差分头部:新建 / 有改动 / 无改动 三种说法各不相同,
+                    // 不给一个"看起来都一样"的通用文案。
+                    Text(
+                        text = if (sameName == null) {
+                            context.getString(R.string.assistant_diff_will_create)
+                        } else {
+                            context.getString(R.string.assistant_diff_will_change, changes.size)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (card.legacy) {
                         Spacer(Modifier.height(MusePaddings.auxGap))
                         Text(
-                            text = previewText.take(160),
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = context.getString(R.string.assistant_diff_legacy_pack),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    Spacer(Modifier.height(MusePaddings.auxGap))
+                    Text(
+                        text = context.getString(R.string.assistant_diff_no_switch),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    changes.take(8).forEach { change ->
+                        Spacer(Modifier.height(MusePaddings.tightGap))
+                        Text(
+                            text = stringResource(change.labelRes) + ": " + change.from + " → " + change.to,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (changes.size > 8) {
+                        Text(
+                            text = context.getString(R.string.assistant_diff_more, changes.size - 8),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
                         )
                     }
                 }

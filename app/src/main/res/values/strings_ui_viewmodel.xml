@@ -186,4 +186,24 @@
     <string name="assistant_toast_sillytavern_import_failed">SillyTavern 角色卡导入失败： %1$s</string>
     <string name="assistant_toast_sillytavern_exported">已导出 SillyTavern 角色卡</string>
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern 角色卡导出失败： %1$s</string>
+    <string name="assistant_diff_name">名称</string>
+    <string name="assistant_diff_summary">简介</string>
+    <string name="assistant_diff_system_prompt">系统提示词</string>
+    <string name="assistant_diff_persona_definition">人设定义</string>
+    <string name="assistant_diff_thinking_chain">思考链</string>
+    <string name="assistant_diff_message_template">消息模板</string>
+    <string name="assistant_diff_preset_messages">开场白</string>
+    <string name="assistant_diff_temperature">温度</string>
+    <string name="assistant_diff_top_p">Top P</string>
+    <string name="assistant_diff_max_tokens">最长回复</string>
+    <string name="assistant_diff_context_size">上下文条数</string>
+    <string name="assistant_diff_reasoning_level">推理强度</string>
+    <string name="assistant_diff_memory_enabled">记忆开关</string>
+    <string name="assistant_diff_use_global_memory">使用全局记忆</string>
+    <string name="assistant_diff_allow_group_chat">允许群聊</string>
+    <string name="assistant_diff_will_create">将新建一个助手（不影响正在使用的助手）</string>
+    <string name="assistant_diff_will_change">与同名助手相比，将改动 %1$d 项</string>
+    <string name="assistant_diff_legacy_pack">旧版角色包：只取人设，密钥、模型绑定与使用统计不会带过来</string>
+    <string name="assistant_diff_no_switch">导入不会切换当前助手，也不会改动会话归属</string>
+    <string name="assistant_diff_more">…另有 %1$d 项</string>
 </resources>

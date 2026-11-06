@@ -184,4 +184,24 @@
     <string name="assistant_disable_cd">Disable assistant</string>
     <string name="assistant_enable">Enable</string>
     <string name="assistant_enable_cd">Enable assistant</string>
+    <string name="assistant_diff_name">Name</string>
+    <string name="assistant_diff_summary">Summary</string>
+    <string name="assistant_diff_system_prompt">System prompt</string>
+    <string name="assistant_diff_persona_definition">Persona</string>
+    <string name="assistant_diff_thinking_chain">Thinking chain</string>
+    <string name="assistant_diff_message_template">Message template</string>
+    <string name="assistant_diff_preset_messages">Greeting</string>
+    <string name="assistant_diff_temperature">Temperature</string>
+    <string name="assistant_diff_top_p">Top P</string>
+    <string name="assistant_diff_max_tokens">Max tokens</string>
+    <string name="assistant_diff_context_size">Context messages</string>
+    <string name="assistant_diff_reasoning_level">Reasoning level</string>
+    <string name="assistant_diff_memory_enabled">Memory</string>
+    <string name="assistant_diff_use_global_memory">Global memory</string>
+    <string name="assistant_diff_allow_group_chat">Group chat</string>
+    <string name="assistant_diff_will_create">A new assistant will be created (your current one is untouched)</string>
+    <string name="assistant_diff_will_change">Compared with the assistant of the same name, %1$d fields change</string>
+    <string name="assistant_diff_legacy_pack">Legacy card: only the persona is taken - keys, model bindings and usage stats are not carried over</string>
+    <string name="assistant_diff_no_switch">Importing does not switch the current assistant or reassign chats</string>
+    <string name="assistant_diff_more">...and %1$d more</string>
 </resources>

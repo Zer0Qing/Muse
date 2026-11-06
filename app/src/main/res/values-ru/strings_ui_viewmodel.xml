@@ -184,4 +184,24 @@
     <string name="assistant_disable_cd">Отключить ассистента</string>
     <string name="assistant_enable">Включить</string>
     <string name="assistant_enable_cd">Включить ассистента</string>
+    <string name="assistant_diff_name">Имя</string>
+    <string name="assistant_diff_summary">Описание</string>
+    <string name="assistant_diff_system_prompt">Системный промпт</string>
+    <string name="assistant_diff_persona_definition">Персона</string>
+    <string name="assistant_diff_thinking_chain">Цепочка размышлений</string>
+    <string name="assistant_diff_message_template">Шаблон сообщения</string>
+    <string name="assistant_diff_preset_messages">Приветствие</string>
+    <string name="assistant_diff_temperature">Температура</string>
+    <string name="assistant_diff_top_p">Top P</string>
+    <string name="assistant_diff_max_tokens">Макс. токенов</string>
+    <string name="assistant_diff_context_size">Сообщений в контексте</string>
+    <string name="assistant_diff_reasoning_level">Уровень размышлений</string>
+    <string name="assistant_diff_memory_enabled">Память</string>
+    <string name="assistant_diff_use_global_memory">Глобальная память</string>
+    <string name="assistant_diff_allow_group_chat">Групповой чат</string>
+    <string name="assistant_diff_will_create">Будет создан новый ассистент (текущий не изменится)</string>
+    <string name="assistant_diff_will_change">По сравнению с ассистентом с таким же именем меняется полей: %1$d</string>
+    <string name="assistant_diff_legacy_pack">Старая карта: берётся только персона — ключи, привязки моделей и статистика не переносятся</string>
+    <string name="assistant_diff_no_switch">Импорт не переключает текущего ассистента и не переносит чаты</string>
+    <string name="assistant_diff_more">…и ещё %1$d</string>
 </resources>

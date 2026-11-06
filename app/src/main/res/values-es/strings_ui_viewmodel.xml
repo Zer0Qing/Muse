@@ -184,4 +184,24 @@
     <string name="assistant_disable_cd">Desactivar asistente</string>
     <string name="assistant_enable">Activar</string>
     <string name="assistant_enable_cd">Activar asistente</string>
+    <string name="assistant_diff_name">Nombre</string>
+    <string name="assistant_diff_summary">Resumen</string>
+    <string name="assistant_diff_system_prompt">Prompt del sistema</string>
+    <string name="assistant_diff_persona_definition">Persona</string>
+    <string name="assistant_diff_thinking_chain">Cadena de razonamiento</string>
+    <string name="assistant_diff_message_template">Plantilla de mensaje</string>
+    <string name="assistant_diff_preset_messages">Saludo</string>
+    <string name="assistant_diff_temperature">Temperatura</string>
+    <string name="assistant_diff_top_p">Top P</string>
+    <string name="assistant_diff_max_tokens">Tokens max.</string>
+    <string name="assistant_diff_context_size">Mensajes de contexto</string>
+    <string name="assistant_diff_reasoning_level">Nivel de razonamiento</string>
+    <string name="assistant_diff_memory_enabled">Memoria</string>
+    <string name="assistant_diff_use_global_memory">Memoria global</string>
+    <string name="assistant_diff_allow_group_chat">Chat grupal</string>
+    <string name="assistant_diff_will_create">Se creara un asistente nuevo (el actual no cambia)</string>
+    <string name="assistant_diff_will_change">Frente al asistente con el mismo nombre, cambian %1$d campos</string>
+    <string name="assistant_diff_legacy_pack">Tarjeta antigua: solo se toma la persona; claves, modelos y estadisticas no se transfieren</string>
+    <string name="assistant_diff_no_switch">Importar no cambia el asistente actual ni reasigna chats</string>
+    <string name="assistant_diff_more">...y %1$d mas</string>
 </resources>

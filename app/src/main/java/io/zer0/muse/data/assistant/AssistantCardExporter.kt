@@ -34,6 +34,12 @@ object AssistantCardExporter {
 
     private const val TAG = "AssistantCardExporter"
     private const val ENTRY_JSON = "assistant.json"
+
+    /**
+     * E3:人设卡条目。导出只写这一份(严格 schema、不含凭据与本地绑定);
+     * `assistant.json` 保留为**只读**的历史条目。
+     */
+    private const val ENTRY_PERSONA = "persona.json"
     private const val ENTRY_AVATAR_PREFIX = "avatar."
 
     /** v2.x: 角色包 MIME — 与 AndroidManifest 的 VIEW intent-filter 对齐(分享/接收唯一标识)。 */
@@ -60,18 +66,24 @@ object AssistantCardExporter {
      * 供导入预览确认使用:用户确认后由 [commitParsed] 落盘入库。
      */
     class ParsedCard(
+        /** 已经是「可入库」的形状:凭据、模型绑定、使用统计都是空的,不是原样搬过来的实体。 */
         val entity: AssistantEntity,
         val avatarBytes: ByteArray?,
         val avatarExt: String?,
+        /** 解析出来的人设(差分预览要用)。 */
+        val persona: PersonaCard,
+        /** true = 旧版整份实体包;导入时只取人设,并要在预览里说清楚。 */
+        val legacy: Boolean,
     )
 
     // ── 打包(导出与一键分享共用) ─────────────────────────────────────────
 
     /** 把 [assistant] 打包为角色包 zip 写入 [os](导出副本:id 清空;头像字节随包)。 */
     private fun writeZip(os: OutputStream, assistant: AssistantEntity) {
-        // 导出副本:清除 id
-        val exportEntity = assistant.copy(id = "")
-        val json = AppJson.encodeToString(AssistantEntity.serializer(), exportEntity)
+        // E3:导出的是人设卡,不是实体副本。id / providerId / modelId / toolModelId /
+        // customHeadersJson(常见放法是 Authorization)/ 使用统计都不再进入包 ——
+        // 角色卡会被转发到群聊,以前"敏感字段不清除"的注释等于在教人泄漏。
+        val json = PersonaCardCodec.encode(PersonaCardCodec.fromEntity(assistant))
 
         // 头像字节(可选):仅当 avatarImageUrl 指向存在的本地文件时打包
         var avatarExt: String? = null
@@ -86,7 +98,7 @@ object AssistantCardExporter {
         }
 
         ZipOutputStream(os).use { zos ->
-            zos.putNextEntry(ZipEntry(ENTRY_JSON))
+            zos.putNextEntry(ZipEntry(ENTRY_PERSONA))
             zos.write(json.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
             val bytes = avatarBytes
@@ -158,7 +170,8 @@ object AssistantCardExporter {
      * @return 解析结果;格式无效或解析失败返回 null
      */
     suspend fun parse(context: Context, inputUri: Uri): ParsedCard? = withContext(Dispatchers.IO) {
-        var jsonStr: String? = null
+        var personaStr: String? = null
+        var legacyStr: String? = null
         var avatarExt: String? = null
         var avatarBytes: ByteArray? = null
 
@@ -168,8 +181,12 @@ object AssistantCardExporter {
                 while (entry != null) {
                     val name = entry.name
                     when {
+                        name == ENTRY_PERSONA -> {
+                            personaStr = readZipEntryWithLimit(zis, MAX_ENTRY_BYTES, name).toString(Charsets.UTF_8)
+                        }
+                        // 历史包:仍然能导入,但只取人设字段
                         name == ENTRY_JSON -> {
-                            jsonStr = readZipEntryWithLimit(zis, MAX_ENTRY_BYTES, name).toString(Charsets.UTF_8)
+                            legacyStr = readZipEntryWithLimit(zis, MAX_ENTRY_BYTES, name).toString(Charsets.UTF_8)
                         }
                         name.startsWith(ENTRY_AVATAR_PREFIX) -> {
                             // M-EXP1: 恶意卡片可能塞 avatar.exe 等条目,扩展名经白名单清洗后再写盘
@@ -183,19 +200,44 @@ object AssistantCardExporter {
             }
         } ?: return@withContext null
 
-        val json = jsonStr ?: run {
-            Logger.w(TAG, "no assistant.json in $inputUri")
+        // 新卡优先:严格 schema 解析,失败就拒绝,不退回"尽力解释"。
+        personaStr?.let { text ->
+            return@withContext when (val outcome = PersonaCardCodec.decode(text)) {
+                is PersonaParse.Ok -> ParsedCard(
+                    entity = PersonaCardCodec.toNewEntity(outcome.card),
+                    avatarBytes = avatarBytes,
+                    avatarExt = avatarExt,
+                    persona = outcome.card,
+                    legacy = false,
+                )
+
+                is PersonaParse.Invalid -> {
+                    Logger.w(TAG, "persona.json 被拒绝 ${outcome.reason} (field=${outcome.field})")
+                    null
+                }
+            }
+        }
+
+        val json = legacyStr ?: run {
+            Logger.w(TAG, "neither persona.json nor assistant.json in $inputUri")
             return@withContext null
         }
 
-        val parsed = runCatching {
+        val legacyEntity = runCatching {
             AppJson.decodeFromString(AssistantEntity.serializer(), json)
         }.getOrElse {
             Logger.w(TAG, "parse assistant.json failed: ${it.message}")
             return@withContext null
         }
-
-        ParsedCard(entity = parsed, avatarBytes = avatarBytes, avatarExt = avatarExt)
+        // 旧包同样只取人设:凭据与本地绑定不会被一次导入带进来。
+        val card = PersonaCardCodec.fromEntity(legacyEntity)
+        ParsedCard(
+            entity = PersonaCardCodec.toNewEntity(card),
+            avatarBytes = avatarBytes,
+            avatarExt = avatarExt,
+            persona = card,
+            legacy = true,
+        )
     }
 
     /**

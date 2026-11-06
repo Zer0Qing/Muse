@@ -184,4 +184,24 @@
     <string name="assistant_disable_cd">어시스턴트 비활성화</string>
     <string name="assistant_enable">활성화</string>
     <string name="assistant_enable_cd">어시스턴트 활성화</string>
+    <string name="assistant_diff_name">이름</string>
+    <string name="assistant_diff_summary">소개</string>
+    <string name="assistant_diff_system_prompt">시스템 프롬프트</string>
+    <string name="assistant_diff_persona_definition">페르소나 정의</string>
+    <string name="assistant_diff_thinking_chain">사고 체인</string>
+    <string name="assistant_diff_message_template">메시지 템플릿</string>
+    <string name="assistant_diff_preset_messages">인사말</string>
+    <string name="assistant_diff_temperature">온도</string>
+    <string name="assistant_diff_top_p">Top P</string>
+    <string name="assistant_diff_max_tokens">최대 토큰</string>
+    <string name="assistant_diff_context_size">컨텍스트 개수</string>
+    <string name="assistant_diff_reasoning_level">추론 강도</string>
+    <string name="assistant_diff_memory_enabled">기억</string>
+    <string name="assistant_diff_use_global_memory">전역 기억</string>
+    <string name="assistant_diff_allow_group_chat">그룹 채팅</string>
+    <string name="assistant_diff_will_create">새 어시스턴트를 생성합니다 (사용 중인 어시스턴트는 그대로)</string>
+    <string name="assistant_diff_will_change">같은 이름의 어시스턴트와 비교해 %1$d개 항목이 변경됩니다</string>
+    <string name="assistant_diff_legacy_pack">이전 형식 카드: 페르소나만 가져오며 키·모델 연결·사용 통계는 넘어오지 않습니다</string>
+    <string name="assistant_diff_no_switch">가져와도 현재 어시스턴트는 전환되지 않고 대화 소유도 바뀌지 않습니다</string>
+    <string name="assistant_diff_more">… 외 %1$d개</string>
 </resources>

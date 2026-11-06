@@ -184,4 +184,24 @@
     <string name="assistant_disable_cd">アシスタントを無効にする</string>
     <string name="assistant_enable">有効にする</string>
     <string name="assistant_enable_cd">アシスタントを有効にする</string>
+    <string name="assistant_diff_name">名前</string>
+    <string name="assistant_diff_summary">概要</string>
+    <string name="assistant_diff_system_prompt">システムプロンプト</string>
+    <string name="assistant_diff_persona_definition">ペルソナ定義</string>
+    <string name="assistant_diff_thinking_chain">思考チェーン</string>
+    <string name="assistant_diff_message_template">メッセージテンプレ</string>
+    <string name="assistant_diff_preset_messages">冒頭メッセージ</string>
+    <string name="assistant_diff_temperature">温度</string>
+    <string name="assistant_diff_top_p">Top P</string>
+    <string name="assistant_diff_max_tokens">最大トークン</string>
+    <string name="assistant_diff_context_size">コンテキスト件数</string>
+    <string name="assistant_diff_reasoning_level">推論強度</string>
+    <string name="assistant_diff_memory_enabled">記憶</string>
+    <string name="assistant_diff_use_global_memory">グローバル記憶</string>
+    <string name="assistant_diff_allow_group_chat">グループチャット</string>
+    <string name="assistant_diff_will_create">新しいアシスタントを作成します（使用中のものは変わりません）</string>
+    <string name="assistant_diff_will_change">同名のアシスタントと比較し、%1$d 項目が変更</string>
+    <string name="assistant_diff_legacy_pack">旧形式カード：ペルソナのみ取り込み、鍵・モデル紐付け・利用統計は持ち込みません</string>
+    <string name="assistant_diff_no_switch">取り込んでも現在のアシスタントは切り替わらず、会話の帰属も変わりません</string>
+    <string name="assistant_diff_more">…ほか %1$d 項目</string>
 </resources>
