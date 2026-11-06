@@ -105,15 +105,19 @@ private sealed class TestStatus {
  * 设计令牌：使用 [MuseShapes]（圆角）与 [MusePaddings]（间距令牌），
  * 全程 Material Icons（无 emoji），Material 3 组件。
  */
-// onRestoreFromBackup:老用户换机场景,引导里就给出去备份恢复页的出口,不必走完 8 步再去设置里找。
+// onOpenSection:引导关掉后由宿主导航 —— 老用户换机在完成页就有「从备份恢复」出口,
+// 四张「接下来可以试试」卡片也各自直达。
 @Composable
-fun OnboardingScreen(onComplete: () -> Unit, onRestoreFromBackup: () -> Unit = {}) {
+fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {}) {
     val settings: SettingsRepository = koinInject()
     val assistantRepo: AssistantRepository = koinInject()
     val presetProviders: PresetProviders = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val pagerState = rememberPagerState(pageCount = { 8 })
+    // 引导走到第几步存几步:中途按返回退出后再进来,不该从第 1 步重来。
+    var lastPage by rememberSaveable { mutableStateOf(0) }
+    val pagerState = rememberPagerState(initialPage = lastPage, pageCount = { 8 })
+
     val keyboardController = LocalSoftwareKeyboardController.current
 
     // ── 各步骤状态 ──
@@ -134,13 +138,15 @@ fun OnboardingScreen(onComplete: () -> Unit, onRestoreFromBackup: () -> Unit = {
     // v2.x: 记忆系统开关(新增步骤;默认开,切换即时落库)
     var memoryEnabled by rememberSaveable { mutableStateOf(true) }
 
-    // 翻页时收起键盘
+    // 翻页时收起键盘,并记住走到第几步
     LaunchedEffect(pagerState.currentPage) {
         keyboardController?.hide()
+        lastPage = pagerState.currentPage
     }
 
-    // 后退目标:模型步(5)在供应商被跳过时是空态死角 —— 从它后退应回到接入步的前一格(3)。
-    fun previousPage(from: Int): Int = if (from == 5 && providerSkipped) 3 else from - 1
+    // 后退目标:跳过供应商后,模型步(5)是空态死角;而前进时被整体跳过(4→6),
+    // 所以从外观步(6)后退同样不能落回那一页 —— 两处一起跳过,回到记忆步(3)。
+    fun previousPage(from: Int): Int = if (providerSkipped && (from == 5 || from == 6)) 3 else from - 1
 
     // 引导期误触系统返回不该直接退应用:非首页先回上一步,首页才交回系统默认行为。
     BackHandler(enabled = pagerState.currentPage > 0) {
@@ -303,11 +309,11 @@ fun OnboardingScreen(onComplete: () -> Unit, onRestoreFromBackup: () -> Unit = {
                     },
                 )
                 7 -> StepComplete(
-                    onRestoreFromBackup = {
+                    onOpenSection = { route ->
                         scope.launch {
                             // 走这条路也要落"引导已完成":否则下次冷启动又从头再来一遍。
                             settings.saveOnboardingShown()
-                            onRestoreFromBackup()
+                            onOpenSection(route)
                         }
                     },
                 )
@@ -539,6 +545,14 @@ private fun StepWelcome() {
                 )
             }
         }
+        // 轮播的是各语言的问候,不是"当前界面语言"的提示 —— 不加这句,
+        // 刚切过语言的用户会以为界面没换成功。
+        Text(
+            text = stringResource(R.string.onboarding_welcome_greetings_caption),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -546,6 +560,8 @@ private data class FeatureItem(
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val title: String,
     val description: String,
+    /** 卡片点进去的去处:引导关掉后由宿主导航。 */
+    val route: String,
 )
 
 // ── 步骤 1：语言 ────────────────────────────────────────────────
@@ -958,7 +974,7 @@ private fun StepProviderConfig(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(24.dp)
+                    .height(36.dp)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
@@ -1121,7 +1137,18 @@ private fun StepProviderConfig(
                     )
                 }
             }
-            else -> {}
+            else -> {
+                // 置灰的"下一步"必须说清为什么灰:此前用户只看到按钮点不动,
+                // 不知道该先做哪一步。
+                if (!canTest) {
+                    Spacer(modifier = Modifier.height(MusePaddings.contentGap))
+                    Text(
+                        text = stringResource(R.string.onboarding_provider_next_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
@@ -1270,27 +1297,31 @@ private fun ModelItem(model: Model, selected: Boolean, onClick: () -> Unit) {
 
 // ── 步骤 5：完成页 ──────────────────────────────────────────────
 @Composable
-private fun StepComplete(onRestoreFromBackup: () -> Unit) {
+private fun StepComplete(onOpenSection: (String) -> Unit) {
     val tutorials = listOf(
         FeatureItem(
             MuseIcons.chat,
             stringResource(R.string.onboarding_tutorial_chat_title),
             stringResource(R.string.onboarding_tutorial_chat_desc),
+            route = "chat",
         ),
         FeatureItem(
             MuseIcons.user,
             stringResource(R.string.onboarding_tutorial_assistant_title),
             stringResource(R.string.onboarding_tutorial_assistant_desc),
+            route = "assistants",
         ),
         FeatureItem(
             MuseIcons.wrench,
             stringResource(R.string.onboarding_tutorial_tools_title),
             stringResource(R.string.onboarding_tutorial_tools_desc),
+            route = "tools",
         ),
         FeatureItem(
             MuseIcons.cloudUpload,
             stringResource(R.string.onboarding_tutorial_backup_title),
             stringResource(R.string.onboarding_tutorial_backup_desc),
+            route = "backup",
         ),
     )
 
@@ -1333,12 +1364,12 @@ private fun StepComplete(onRestoreFromBackup: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
         tutorials.forEach { item ->
-            TutorialCard(item = item)
+            TutorialCard(item = item, onClick = { onOpenSection(item.route) })
             Spacer(modifier = Modifier.height(MusePaddings.itemGap))
         }
         MuseCapsuleButton(
             text = stringResource(R.string.onboarding_restore_from_backup),
-            onClick = onRestoreFromBackup,
+            onClick = { onOpenSection("backup") },
             variant = IosCapsuleButtonVariant.Secondary,
             fillWidth = false,
         )
@@ -1346,8 +1377,9 @@ private fun StepComplete(onRestoreFromBackup: () -> Unit) {
 }
 
 @Composable
-private fun TutorialCard(item: FeatureItem) {
+private fun TutorialCard(item: FeatureItem, onClick: () -> Unit) {
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = MuseShapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,

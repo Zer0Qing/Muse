@@ -105,7 +105,7 @@
     <ID>CyclomaticComplexMethod:NetworkTextToolsRegistrar.kt$NetworkTextToolsRegistrar$fun registerAll()</ID>
     <ID>CyclomaticComplexMethod:NotificationListenerScreen.kt$@Composable fun NotificationListenerScreen(onBack: () -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:OAuthManager.kt$OAuthManager$suspend fun launchDeviceFlow(config: OAuthConfig, providerId: String = ""): Result&lt;String&gt;</ID>
-    <ID>CyclomaticComplexMethod:OnboardingScreen.kt$@Composable fun OnboardingScreen(onComplete: () -&gt; Unit, onRestoreFromBackup: () -&gt; Unit = {})</ID>
+    <ID>CyclomaticComplexMethod:OnboardingScreen.kt$@Composable fun OnboardingScreen(onComplete: () -&gt; Unit, onOpenSection: (String) -&gt; Unit = {})</ID>
     <ID>CyclomaticComplexMethod:PebbleTemplateEngine.kt$Evaluator$private fun applyFilter(input: Any?, name: String, args: List&lt;Any?&gt;): Any?</ID>
     <ID>CyclomaticComplexMethod:PermissionWizardScreen.kt$@Composable fun PermissionWizardScreen(onBack: () -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:PluginManagePage.kt$@Composable fun PluginManagePage(onBack: () -&gt; Unit)</ID>
@@ -306,7 +306,7 @@
     <ID>LongMethod:MuseToolSheet.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun QuickAttachTab( icon: ImageVector, label: String, isActive: Boolean = false, onClick: () -&gt; Unit, onLongClick: (() -&gt; Unit)? = null, compact: Boolean = false, dense: Boolean = false, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:NetworkTextToolsRegistrar.kt$NetworkTextToolsRegistrar$fun registerAll()</ID>
     <ID>LongMethod:NotificationListenerScreen.kt$@Composable fun NotificationListenerScreen(onBack: () -&gt; Unit)</ID>
-    <ID>LongMethod:OnboardingScreen.kt$@Composable fun OnboardingScreen(onComplete: () -&gt; Unit, onRestoreFromBackup: () -&gt; Unit = {})</ID>
+    <ID>LongMethod:OnboardingScreen.kt$@Composable fun OnboardingScreen(onComplete: () -&gt; Unit, onOpenSection: (String) -&gt; Unit = {})</ID>
     <ID>LongMethod:OnboardingScreen.kt$@Composable private fun StepProviderConfig( presetProviders: PresetProviders, selectedPresetId: String, onPresetSelected: (String) -&gt; Unit, apiKey: String, onApiKeyChange: (String) -&gt; Unit, customBaseUrl: String, onCustomBaseUrlChange: (String) -&gt; Unit, apiKeyVisible: Boolean, onToggleApiKeyVisible: () -&gt; Unit, testStatus: TestStatus, onTestConnection: () -&gt; Unit, onSkip: () -&gt; Unit, )</ID>
     <ID>LongMethod:PermissionWizardScreen.kt$@Composable fun PermissionWizardScreen(onBack: () -&gt; Unit)</ID>
     <ID>LongMethod:PhoneToolsRegistrar.kt$PhoneToolsRegistrar$fun registerAll()</ID>

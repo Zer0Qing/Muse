@@ -57,6 +57,8 @@
 
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">準備完了。</string>
+    <string name="onboarding_provider_next_hint">プロバイダーを選び、キーを入れて接続テストに合格すると続けられます。後で設定も可能です。</string>
+    <string name="onboarding_welcome_greetings_caption">ひとつの歓迎を、7つの言語で</string>
     <string name="onboarding_complete_subtitle">さっそく試してみましょう</string>
     <string name="onboarding_restore_from_backup">バックアップからデータを復元</string>
     <string name="onboarding_tutorial_chat_title">デイリーチャット</string>

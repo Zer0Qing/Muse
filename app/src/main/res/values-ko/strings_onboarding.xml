@@ -57,6 +57,8 @@
 
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">준비됐어요.</string>
+    <string name="onboarding_provider_next_hint">제공자를 선택하고 키를 입력한 뒤 연결 테스트를 통과하면 계속할 수 있습니다. 나중에 설정해도 됩니다.</string>
+    <string name="onboarding_welcome_greetings_caption">하나의 인사를 7개 언어로</string>
     <string name="onboarding_complete_subtitle">이런 것부터 해보세요</string>
     <string name="onboarding_restore_from_backup">백업에서 데이터 복원</string>
     <string name="onboarding_tutorial_chat_title">일일채팅</string>
