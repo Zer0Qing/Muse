@@ -725,6 +725,18 @@ class WebServer(
     private suspend fun servePackagedAsset(call: ApplicationCall, assetPath: String): Boolean {
         if (assetPath.contains("..") || assetPath.startsWith("/") || assetPath.contains("\\")) return false
         val bytes = resultOf { context.assets.open(assetPath).use { it.readBytes() } }.getOrNull() ?: return false
+        // S6: HTML 入口要带上「这台 App 的版本 + 协议」,否则资源与 App 不同步时
+        // 网页端只会一直转圈,用户拿不到任何线索。只改 HTML,不碰 JS/CSS。
+        if (assetPath.endsWith(".html", ignoreCase = true)) {
+            val html = bytes.toString(Charsets.UTF_8)
+            val tagged = if (HostVersionTag.isAlreadyInjected(html)) {
+                html
+            } else {
+                HostVersionTag.inject(html, io.zer0.muse.BuildConfig.VERSION_NAME, CURRENT_PROTOCOL_VERSION)
+            }
+            call.respondBytes(tagged.toByteArray(Charsets.UTF_8), ContentType.Text.Html)
+            return true
+        }
         val contentType = when {
             assetPath.endsWith(".html", ignoreCase = true) -> ContentType.Text.Html
             assetPath.endsWith(".js", ignoreCase = true) -> ContentType.Application.JavaScript

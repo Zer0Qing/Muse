@@ -1,5 +1,8 @@
 import type { ChatMessage, ChatStreamEvent, ProviderConfig } from "@muse/contracts";
 import { FetchProviderTransport } from "@muse/provider";
+// S6：发命令时声明的协议版本与「资源 ↔ App 是否匹配」的判断共用同一个常量，
+// 两处各写一个 1 的话，升到协议 2 时必然只改到一边。
+import { CLIENT_PROTOCOL_VERSION } from "./host/hostBuildGuard.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 
@@ -604,8 +607,8 @@ export class HostConnection {
       throw new Error("Muse Host 正在重新连接");
     }
     const enriched = command.type === "state.sync" && command.cursor === undefined
-      ? { ...command, protocolVersion: 1, cursor: this.lastCursor }
-      : { ...command, protocolVersion: 1 };
+      ? { ...command, protocolVersion: CLIENT_PROTOCOL_VERSION, cursor: this.lastCursor }
+      : { ...command, protocolVersion: CLIENT_PROTOCOL_VERSION };
     this.socket.send(JSON.stringify(enriched));
   }
 

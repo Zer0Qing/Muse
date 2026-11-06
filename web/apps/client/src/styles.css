@@ -1771,3 +1771,9 @@ button.quiet.host-memory-clear { color: var(--accent); font-size: var(--muse-typ
 .host-runtime-action { margin-inline-start: auto; padding: var(--muse-space-tiny-gap) var(--muse-space-aux-gap); border: var(--host-hairline) solid var(--border); border-radius: var(--muse-radius-pill); color: var(--ui-primary); background: transparent; font-family: var(--font-ui); font-size: var(--muse-type-scale-label-medium-font-size); }
 .host-runtime-logs { max-inline-size: 100%; margin: 0; padding: var(--muse-space-aux-gap); border-radius: var(--radius-sm); color: var(--code-ink); background: var(--code-bg); font-family: var(--font-mono); font-size: var(--muse-type-web-caption); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .host-runtime-log-line { display: block; }
+/* ── S6：网页资源与 App 协议不匹配的提示条 ─────────────────
+   只在真的不匹配时出现（组件层判的），所以这里不准备「隐藏态」样式。
+   边框走 --host-warning-line：与断线条同色系，用户已经认识这个颜色意味着「先看一下」。 */
+.host-version-banner { display: grid; gap: var(--muse-space-tiny-gap); padding: var(--muse-space-aux-gap); border: var(--host-hairline) solid var(--host-warning-line); border-radius: var(--radius-sm); background: var(--host-warning-veil); color: var(--ink); }
+.host-version-title { margin: 0; font-size: var(--muse-type-scale-body-medium-font-size); line-height: var(--muse-type-scale-body-medium-line-height); }
+.host-version-detail { margin: 0; color: var(--ink-muted); font-size: var(--muse-type-scale-label-medium-font-size); }

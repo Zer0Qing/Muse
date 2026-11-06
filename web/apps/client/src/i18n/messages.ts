@@ -238,6 +238,8 @@ export const ZH: MessageDict = {
   "runtime.jank": "掉帧 / 卡顿 / 阻塞",
   "runtime.worst": "最慢一条",
   "runtime.window": "统计窗口",
+  "host.version.mismatch": "网页资源与 App 的协议版本不一致（资源协议 {hostProtocol}，本页需要 {clientProtocol}），部分功能可能不可用。请更新 App，或在 App 内重新打包网页资源。",
+  "host.version.appLabel": "App 版本 {version}",
 
   "platform.status": "当前状态",
   "platform.available": "可用",
@@ -560,6 +562,8 @@ export const EN: MessageDict = {
   "runtime.jank": "Jank / slow / blocked",
   "runtime.worst": "Slowest message",
   "runtime.window": "Stats window",
+  "host.version.mismatch": "These web assets speak protocol {hostProtocol} but this page needs {clientProtocol}; some features may not work. Update the app, or rebuild the web bundle inside it.",
+  "host.version.appLabel": "App version {version}",
 
   "platform.status": "Status",
   "platform.available": "Available",
@@ -882,6 +886,8 @@ export const JA: MessageDict = {
   "runtime.jank": "カクつき / 遅延 / ブロック",
   "runtime.worst": "最遅の1件",
   "runtime.window": "集計窓口",
+  "host.version.mismatch": "ウェブ資産のプロトコル({hostProtocol})がこのページの要求({clientProtocol})と合いません。一部の機能が使えない可能性があります。アプリを更新するか、アプリ内でウェブ資産を再ビルドしてください。",
+  "host.version.appLabel": "アプリバージョン {version}",
 
   "platform.status": "現在の状態",
   "platform.available": "利用可能",
@@ -1204,6 +1210,8 @@ export const KO: MessageDict = {
   "runtime.jank": "프레임 지연 / 멈춤 / 차단",
   "runtime.worst": "가장 느린 한 건",
   "runtime.window": "집계 구간",
+  "host.version.mismatch": "웹 자산의 프로토콜({hostProtocol})이 이 페이지가 필요로 하는 버전({clientProtocol})과 다릅니다. 일부 기능이 동작하지 않을 수 있습니다. 앱을 업데이트하거나 앱 안에서 웹 자산을 다시 빌드하세요.",
+  "host.version.appLabel": "앱 버전 {version}",
 
   "platform.status": "현재 상태",
   "platform.available": "사용 가능",
@@ -1526,6 +1534,8 @@ export const RU: MessageDict = {
   "runtime.jank": "Фреймы / задержки / блокировки",
   "runtime.worst": "Самый долгий",
   "runtime.window": "Окно статистики",
+  "host.version.mismatch": "Веб-ресурсы говорят на протоколе {hostProtocol}, а этой странице нужен {clientProtocol}; часть функций может не работать. Обновите приложение или пересоберите веб-бандл в нём.",
+  "host.version.appLabel": "Версия приложения: {version}",
 
   "platform.status": "Текущее состояние",
   "platform.available": "Доступно",

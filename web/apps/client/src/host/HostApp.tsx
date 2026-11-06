@@ -3,6 +3,7 @@ import { hostPinLogin } from "../api.js";
 import { I18nProvider, useI18n } from "../i18n/I18nProvider.js";
 import { navigatorLanguages, resolveLocale } from "../i18n/locale.js";
 import { HostChat } from "./HostChat.js";
+import { HostVersionBanner } from "./HostVersionBanner.js";
 import { clearHostAuthenticated, isHostAuthenticated, markHostAuthenticated, switchToSaas } from "./host-mode.js";
 
 function HostLogin({ onLogin }: { readonly onLogin: () => void }) {
@@ -34,6 +35,7 @@ function HostLogin({ onLogin }: { readonly onLogin: () => void }) {
         <p className="eyebrow">{t("login.eyebrow")}</p>
         <h1>{t("login.title")}</h1>
         <p className="lede">{t("login.lede")}</p>
+        <HostVersionBanner />
         <input
           className="host-pin-input"
           aria-label="Host PIN"

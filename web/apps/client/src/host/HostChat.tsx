@@ -4,6 +4,7 @@ import { ArrowDownIcon, CloseIcon, MenuIcon, SendIcon, StopIcon } from "../compo
 import { ApprovalCards } from "./ApprovalCards.js";
 import { AssistantPicker } from "./AssistantPicker.js";
 import { BlockBoundary } from "./BlockBoundary.js";
+import { HostVersionBanner } from "./HostVersionBanner.js";
 import { readCapabilities } from "./capabilities.js";
 import { buildStreamItems, toolStatusOf } from "./chatStream.js";
 import { copyTextToClipboard } from "./clipboard.js";
@@ -545,6 +546,7 @@ export function HostChat({ onLogout }: HostChatProps) {
   const bannerModel = connectionBanner({ online, status, attempt: reconnectAttempt, everConnected });
   const composerHintKey = composerDisabledHint({ online, status });
   const composerHint = composerHintKey === undefined ? undefined : t(composerHintKey);
+  const versionBanner = <HostVersionBanner />;
   const banner = bannerModel.visible && (
     <div className={`host-banner is-${bannerModel.tone}`} role="status" aria-live="polite">
       <span>{t(bannerModel.textKey, bannerModel.params)}</span>
@@ -567,6 +569,7 @@ export function HostChat({ onLogout }: HostChatProps) {
     return (
       <I18nProvider locale={locale}>
       <div className="host-root host-scope is-settings">
+        {versionBanner}
         {banner}
         <BlockBoundary name={t("block.settings")}>
           <HostSettings
@@ -696,6 +699,7 @@ export function HostChat({ onLogout }: HostChatProps) {
         </header>
         )}
 
+        {versionBanner}
         {banner}
 
         {switchingTo !== undefined && switchingTo !== sessionId && (
