@@ -870,4 +870,9 @@
     <string name="workspace_mount_remove_failed">“%1$s”을(를) 제거하지 못했습니다. 목록에 남아 있습니다</string>
     <string name="workspace_mount_failed">마운트 실패: %1$s</string>
     <string name="workspace_read_only_hint">읽기 전용 마운트라 수정할 수 없습니다</string>
+    <string name="muse_plugins_market_advice_downgrade">카탈로그 버전이 기기가 사용하는 버전보다 오래되었습니다. 설치하면 내려갑니다</string>
+    <string name="muse_plugins_market_advice_unknown_version">버전 문자열을 알아볼 수 없습니다. 설치하지 마세요</string>
+    <string name="muse_plugins_market_advice_needs_newer_app">이 플러그인은 더 새로운 앱 버전을 요구합니다</string>
+    <string name="muse_plugins_market_advice_compat_unconfirmed">호환 여부는 내려받은 후 매니페스트로 확인됩니다. 지금은 판단할 수 없습니다</string>
+    <string name="muse_plugins_market_advice_retained">이 버전들의 사본이 남아 있습니다: %1$s (설치 목록에서 전환)</string>
 </resources>

@@ -871,4 +871,9 @@
     <string name="workspace_mount_remove_failed">Não foi possível remover “%1$s” — ainda está na lista</string>
     <string name="workspace_mount_failed">Falha ao montar: %1$s</string>
     <string name="workspace_read_only_hint">Montagem somente leitura, não é possível alterar</string>
+    <string name="muse_plugins_market_advice_downgrade">A versao do catalogo e mais antiga que a instalada; isso seria rebaixar</string>
+    <string name="muse_plugins_market_advice_unknown_version">A versao nao e reconhecida; nao instale ainda</string>
+    <string name="muse_plugins_market_advice_needs_newer_app">Este plugin exige uma versao mais nova do app</string>
+    <string name="muse_plugins_market_advice_compat_unconfirmed">A compatibilidade e conferida no manifest apos o download; ainda nao da para afirmar</string>
+    <string name="muse_plugins_market_advice_retained">Ha copias locais destas versoes: %1$s (troca pela lista instalada)</string>
 </resources>

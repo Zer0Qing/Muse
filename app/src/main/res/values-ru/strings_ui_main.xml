@@ -826,4 +826,9 @@
     <string name="workspace_mount_remove_failed">Не удалось удалить «%1$s» — запись всё ещё в списке</string>
     <string name="workspace_mount_failed">Не удалось смонтировать: %1$s</string>
     <string name="workspace_read_only_hint">Монтирование только для чтения, изменения невозможны</string>
+    <string name="muse_plugins_market_advice_downgrade">Версия из каталога старше установленной — это будет понижение</string>
+    <string name="muse_plugins_market_advice_unknown_version">Версию не удалось распознать; пока не устанавливайте</string>
+    <string name="muse_plugins_market_advice_needs_newer_app">Этот плагин требует более новой версии приложения</string>
+    <string name="muse_plugins_market_advice_compat_unconfirmed">Совместимость проверяется по манифесту после загрузки; сейчас утверждать нельзя</string>
+    <string name="muse_plugins_market_advice_retained">Локально хранятся эти версии: %1$s (переключение в списке установленных)</string>
 </resources>

@@ -61,6 +61,8 @@ import io.zer0.muse.data.plugin.PluginSecurityGate
 import io.zer0.muse.data.plugin.PluginVersion
 import io.zer0.muse.data.plugin.market.CatalogRefreshResult
 import io.zer0.muse.data.plugin.market.InstallPlanResult
+import io.zer0.muse.data.plugin.market.MarketVersionAdvice
+import io.zer0.muse.data.plugin.market.MarketVersionView
 import io.zer0.muse.data.plugin.market.PluginCatalogEntry
 import io.zer0.muse.data.plugin.market.PluginCatalogRepository
 import io.zer0.muse.data.plugin.market.PluginDownloadClient
@@ -69,6 +71,7 @@ import io.zer0.muse.data.plugin.market.PluginInstallPlan
 import io.zer0.muse.data.plugin.market.PluginMarketDefaults
 import io.zer0.muse.data.plugin.market.PluginMarketInstaller
 import io.zer0.muse.data.plugin.market.PluginMarketTrustRoots
+import io.zer0.muse.data.plugin.market.PluginMarketVersions
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -652,6 +655,9 @@ fun PluginManagePage(onBack: () -> Unit) {
                                         phase = marketInstall?.takeIf { it.entryId == entry.id }?.phase,
                                         onClick = { marketDetailEntry = entry },
                                         modifier = Modifier.weight(1f),
+                                        // PL3:可切回的版本来自本机留档,不是市场目录(目录只有一个版本,
+                                        // 而且要等签名三端对账完才可能带 versions[])。
+                                        retainedVersions = pluginManager.listRetainedVersions(entry.id).map { it.record.version },
                                     )
                                 }
                                 if (pair.size == 1) {
@@ -1027,15 +1033,22 @@ fun PluginManagePage(onBack: () -> Unit) {
     // 市场目录设置：默认使用安装包内置的官方目录，这里只处理“自定义覆盖”。
     marketDetailEntry?.let { entry ->
         val detailId = entry.id
+        val detailInstalled = externalPlugins.firstOrNull { it.id == detailId }?.version
         MarketEntryDetailSheet(
             entry = entry,
-            installedVersion = externalPlugins.firstOrNull { it.id == detailId }?.version,
+            installedVersion = detailInstalled,
             phase = marketInstall?.takeIf { it.entryId == detailId }?.phase,
             onInstall = { startMarketInstall(entry) },
             onCancel = { dismissMarketInstall() },
             onRetry = { startMarketInstall(entry) },
             onDismissFailure = { dismissMarketInstall() },
             onDismiss = { marketDetailEntry = null },
+            versionView = PluginMarketVersions.view(
+                catalogVersion = entry.version,
+                installedVersion = detailInstalled,
+                retainedVersions = pluginManager.listRetainedVersions(detailId).map { it.record.version },
+                appVersion = io.zer0.muse.BuildConfig.VERSION_NAME,
+            ),
         )
     }
 
@@ -1850,7 +1863,17 @@ private fun MarketEntryCell(
     phase: MarketInstallPhase?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** PL3:本机留档的版本号(可切回的历史版本),由调用方从 PluginVersionStore 取。 */
+    retainedVersions: List<String> = emptyList(),
+    appVersion: String = io.zer0.muse.BuildConfig.VERSION_NAME,
 ) {
+    // PL3:结论只由纯函数算,这里不重复比版本 —— 重复一遍就会有两套答案。
+    val versionView = PluginMarketVersions.view(
+        catalogVersion = entry.version,
+        installedVersion = installedVersion,
+        retainedVersions = retainedVersions,
+        appVersion = appVersion,
+    )
     MuseSurface(
         onClick = onClick,
         modifier = modifier,
@@ -1896,6 +1919,7 @@ private fun MarketEntryCell(
                 entryVersion = entry.version,
                 installedVersion = installedVersion,
                 phase = phase,
+                advice = versionView.advice,
             )
         }
     }
@@ -1903,7 +1927,12 @@ private fun MarketEntryCell(
 
 /** 卡片上的状态行（下载中 / 安装中 / 已安装 / 失败 / 可安装）。 */
 @Composable
-private fun MarketEntryStateLine(entryVersion: String, installedVersion: String?, phase: MarketInstallPhase?) {
+private fun MarketEntryStateLine(
+    entryVersion: String,
+    installedVersion: String?,
+    phase: MarketInstallPhase?,
+    advice: MarketVersionAdvice,
+) {
     val (label, color) = when {
         phase == MarketInstallPhase.Downloading || phase == MarketInstallPhase.Preparing ->
             stringResource(R.string.muse_plugins_market_downloading) to MuseActionColors.mutedContent
@@ -1911,6 +1940,13 @@ private fun MarketEntryStateLine(entryVersion: String, installedVersion: String?
             stringResource(R.string.muse_plugins_market_installing) to MuseActionColors.mutedContent
         phase is MarketInstallPhase.Failed ->
             stringResource(R.string.muse_plugins_market_install_failed, phase.reason) to MaterialTheme.colorScheme.error
+        // PL3:版本号认不出来 / 目录更旧 / 要求更新的 App —— 这些比"可安装"更要紧,先说。
+        advice == MarketVersionAdvice.UnknownVersion ->
+            stringResource(R.string.muse_plugins_market_advice_unknown_version) to MaterialTheme.colorScheme.error
+        advice == MarketVersionAdvice.NeedsNewerApp ->
+            stringResource(R.string.muse_plugins_market_advice_needs_newer_app) to MaterialTheme.colorScheme.error
+        advice == MarketVersionAdvice.DowngradeAvailable ->
+            stringResource(R.string.muse_plugins_market_advice_downgrade) to MuseActionColors.mutedContent
         installedVersion == entryVersion ->
             stringResource(R.string.muse_plugins_market_installed) to MaterialTheme.colorScheme.primary
         else -> stringResource(
@@ -1943,6 +1979,8 @@ private fun MarketEntryDetailSheet(
     onRetry: () -> Unit,
     onDismissFailure: () -> Unit,
     onDismiss: () -> Unit,
+    /** PL3:同一套判定,面板与列表行不许各算一次。 */
+    versionView: MarketVersionView,
 ) {
     MuseBottomSheet(onDismissRequest = onDismiss) {
         Text(
@@ -1956,6 +1994,41 @@ private fun MarketEntryDetailSheet(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // PL3:面板要说清"能不能装、装了是什么"。未安装时不谎称兼容 ——
+        // 兼容要求写在插件 manifest 里,而 manifest 要下载后才拿得到。
+        Spacer(Modifier.height(MusePaddings.tightGap))
+        Text(
+            text = when (versionView.advice) {
+                MarketVersionAdvice.DowngradeAvailable ->
+                    stringResource(R.string.muse_plugins_market_advice_downgrade)
+
+                MarketVersionAdvice.NeedsNewerApp ->
+                    stringResource(R.string.muse_plugins_market_advice_needs_newer_app)
+
+                MarketVersionAdvice.UnknownVersion ->
+                    stringResource(R.string.muse_plugins_market_advice_unknown_version)
+
+                else -> stringResource(R.string.muse_plugins_market_advice_compat_unconfirmed)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (
+                versionView.advice == MarketVersionAdvice.NeedsNewerApp ||
+                versionView.advice == MarketVersionAdvice.UnknownVersion
+            ) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.outline
+            },
+        )
+        val switchable = PluginMarketVersions.switchableVersions(versionView.installedVersion, versionView.retainedVersions)
+        if (switchable.isNotEmpty()) {
+            Spacer(Modifier.height(MusePaddings.tightGap))
+            Text(
+                text = stringResource(R.string.muse_plugins_market_advice_retained, switchable.joinToString(" · ")),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (entry.description.isNotBlank()) {
             Spacer(Modifier.height(MusePaddings.contentGap))
             Text(

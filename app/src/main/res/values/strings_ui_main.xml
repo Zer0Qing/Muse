@@ -985,4 +985,9 @@
     <string name="workspace_mount_remove_failed">没能移除「%1$s」，它还在列表里</string>
     <string name="workspace_mount_failed">挂载失败：%1$s</string>
     <string name="workspace_read_only_hint">只读挂载，不能修改里面的内容</string>
+    <string name="muse_plugins_market_advice_downgrade">目录版本比本机旧，装上属于降级</string>
+    <string name="muse_plugins_market_advice_unknown_version">版本号无法识别，先不要装</string>
+    <string name="muse_plugins_market_advice_needs_newer_app">这个插件要求更新的 App 版本</string>
+    <string name="muse_plugins_market_advice_compat_unconfirmed">兼容要求会在下载后按插件 manifest 确认，当前无法判定</string>
+    <string name="muse_plugins_market_advice_retained">本机还留有这些版本的存档：%1$s（在已安装列表里可切回）</string>
 </resources>

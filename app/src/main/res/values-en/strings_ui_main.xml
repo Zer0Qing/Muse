@@ -974,4 +974,9 @@
     <string name="workspace_mount_remove_failed">Couldn’t remove “%1$s” — it is still in the list</string>
     <string name="workspace_mount_failed">Mount failed: %1$s</string>
     <string name="workspace_read_only_hint">Read-only mount, contents can\'t be changed</string>
+    <string name="muse_plugins_market_advice_downgrade">Catalog version is older than installed; this would downgrade</string>
+    <string name="muse_plugins_market_advice_unknown_version">Version string is not recognizable; do not install yet</string>
+    <string name="muse_plugins_market_advice_needs_newer_app">This plugin requires a newer app version</string>
+    <string name="muse_plugins_market_advice_compat_unconfirmed">Compatibility is checked against the manifest after download; not decided yet</string>
+    <string name="muse_plugins_market_advice_retained">Local archives kept for these versions: %1$s (switch from the installed list)</string>
 </resources>

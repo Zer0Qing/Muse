@@ -871,4 +871,9 @@
     <string name="workspace_mount_remove_failed">No se pudo quitar «%1$s»: sigue en la lista</string>
     <string name="workspace_mount_failed">Error al montar: %1$s</string>
     <string name="workspace_read_only_hint">Montaje de solo lectura, no se puede modificar</string>
+    <string name="muse_plugins_market_advice_downgrade">La version del catalogo es mas antigua que la instalada; seria una bajada</string>
+    <string name="muse_plugins_market_advice_unknown_version">No se reconoce la version; no instales todavia</string>
+    <string name="muse_plugins_market_advice_needs_newer_app">Este plugin necesita una version mas nueva de la app</string>
+    <string name="muse_plugins_market_advice_compat_unconfirmed">La compatibilidad se comprueba con el manifest al descargar; aun no se puede afirmar</string>
+    <string name="muse_plugins_market_advice_retained">Hay copias locales de estas versiones: %1$s (se cambian desde la lista instalada)</string>
 </resources>
