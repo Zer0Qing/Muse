@@ -8,6 +8,7 @@
     <string name="translate_page_paste">Paste</string>
     <string name="translate_page_clear">Clear</string>
     <string name="translate_page_source_language">Source language</string>
+    <string name="translate_page_source_text">Source text</string>
     <string name="translate_page_target_language">Target language</string>
     <string name="translate_page_error_failed">Translation failed: %1$s</string>
     <string name="translate_page_copied">Copied to clipboard</string>

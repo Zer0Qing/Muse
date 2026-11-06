@@ -721,6 +721,7 @@
 
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">Workspace</string>
+    <string name="workspace_tool_outputs">Tool outputs</string>
     <string name="workspace_desc">Local file management and temporary storage</string>
     <string name="workspace_empty">Workspace is empty</string>
     <string name="workspace_new_file">New File</string>

@@ -624,6 +624,7 @@
 
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">Espacio de trabajo</string>
+    <string name="workspace_tool_outputs">Salidas de herramientas</string>
     <string name="workspace_desc">Gestión de archivos locales y almacenamiento temporal.</string>
     <string name="workspace_empty">El espacio de trabajo está vacío</string>
     <string name="workspace_new_file">Nuevo archivo</string>

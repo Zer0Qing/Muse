@@ -8,6 +8,7 @@
     <string name="translate_page_paste">Pasta</string>
     <string name="translate_page_clear">Claro</string>
     <string name="translate_page_source_language">Idioma de origen</string>
+    <string name="translate_page_source_text">Texto original</string>
     <string name="translate_page_target_language">Lengua de llegada</string>
     <string name="translate_page_error_failed">Error de traducción: %1$s</string>
     <string name="translate_page_copied">Copiado al portapapeles</string>

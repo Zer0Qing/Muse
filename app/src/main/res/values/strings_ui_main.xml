@@ -871,6 +871,7 @@
 
     <!-- ===== P2-7: 工作区(WorkspaceScreen + 工具描述) ===== -->
     <string name="workspace_title">工作区</string>
+    <string name="workspace_tool_outputs">工具输出</string>
     <string name="workspace_desc">本地文件管理与临时存储</string>
     <string name="workspace_empty">工作区为空</string>
     <string name="workspace_new_file">新建文件</string>

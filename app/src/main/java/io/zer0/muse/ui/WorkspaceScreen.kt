@@ -101,6 +101,8 @@ fun WorkspaceScreen(
     val workspaceManager: WorkspaceManager = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val mainMountLabel = stringResource(R.string.workspace_title)
+    val toolOutputsMountLabel = stringResource(R.string.workspace_tool_outputs)
     val widthClass = rememberWindowWidthClass()
 
     // 当前所在目录的相对路径(空串 = 根目录)
@@ -271,7 +273,8 @@ fun WorkspaceScreen(
     val currentName = when {
         currentPath.isEmpty() -> stringResource(R.string.workspace_title)
         currentPath.endsWith(":/") || currentPath.endsWith(":") ->
-            currentMount?.label ?: stringResource(R.string.workspace_title)
+            currentMount?.let { mountDisplayName(it, mainMountLabel, toolOutputsMountLabel) }
+                ?: stringResource(R.string.workspace_title)
         else -> currentPath.substringAfterLast('/')
     }
 
@@ -660,7 +663,7 @@ fun WorkspaceScreen(
                             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                         ) {
                             Text(
-                                text = mount.label,
+                                text = mountDisplayName(mount, mainMountLabel, toolOutputsMountLabel),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (selected) {
                                     MaterialTheme.colorScheme.primary
@@ -1070,3 +1073,16 @@ private fun QuickSwitchChip(icon: androidx.compose.ui.graphics.vector.ImageVecto
  * 字节数格式化为人类可读字符串(B/KB/MB)。
  */
 private fun formatSize(bytes: Long): String = FileSizeFormatter.format(bytes)
+
+/**
+ * 内置挂载的展示名跟着界面语言走。
+ *
+ * 原来 "工作区 / 工具输出" 是写死在挂载表里的中文，英文界面里同一个目录出现三个名字
+ * （tool_outputs、工具输出、Workspace），用户会以为是三个地方。用户自己命名的挂载仍按原样显示。
+ */
+internal fun mountDisplayName(mount: io.zer0.muse.workspace.WorkspaceMount, mainLabel: String, toolOutputsLabel: String): String =
+    when (mount.id) {
+        io.zer0.muse.workspace.WorkspaceMount.MAIN_ID -> mainLabel
+        io.zer0.muse.workspace.WorkspaceMountStore.TOOL_OUTPUTS_MOUNT_ID -> toolOutputsLabel
+        else -> mount.label
+    }

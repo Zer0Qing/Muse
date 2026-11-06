@@ -546,6 +546,9 @@ private fun LanguagePickerDialog(
         confirmText = stringResource(R.string.common_cancel),
         onConfirm = onDismiss,
         onDismiss = onDismiss,
+        // 选语言只需要一个出口：MuseDialog 的 dismissText 默认也是一颗 Cancel，
+        // 两颗同名按钮并排等于让用户猜哪颗才是"不选"
+        dismissText = null,
     )
 }
 
@@ -591,7 +594,8 @@ private fun SourceInputCard(
             ) {
                 // LAYOUT-01: 标题取剩余宽度 + 限行,字数标注是定宽短文本,限 1 行。
                 Text(
-                    text = stringResource(R.string.translate_page_source_language),
+                    // 这里是输入原文的框，不是"源语言"——同一屏已经出现过两次源语言标签
+                    text = stringResource(R.string.translate_page_source_text),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,

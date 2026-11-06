@@ -624,6 +624,7 @@
 
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">ワークスペース</string>
+    <string name="workspace_tool_outputs">ツールの出力</string>
     <string name="workspace_desc">ローカルファイル管理と一時ストレージ</string>
     <string name="workspace_empty">ワークスペースが空です</string>
     <string name="workspace_new_file">新しいファイル</string>

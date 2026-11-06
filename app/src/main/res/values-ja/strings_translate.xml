@@ -8,6 +8,7 @@
     <string name="translate_page_paste">ペースト</string>
     <string name="translate_page_clear">クリア</string>
     <string name="translate_page_source_language">ソース言語</string>
+    <string name="translate_page_source_text">原文</string>
     <string name="translate_page_target_language">対象言語</string>
     <string name="translate_page_error_failed">翻訳に失敗しました: %1$s</string>
     <string name="translate_page_copied">クリップボードにコピーされました</string>
