@@ -1,10 +1,7 @@
 package io.zer0.muse.ui.common.surface
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -30,6 +27,7 @@ import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MuseSpringTier
 
 /**
  * 卡片按压效果 — 触觉交互核心组件。
@@ -37,8 +35,8 @@ import io.zer0.muse.ui.theme.MuseMotion
  * 按下时:
  *  - 背景颜色渐变 (200ms easeOutCubic): 浅色提亮 55%,深色模式轻微提亮 18%
  *  - 可选缩放 (0.98): 轻微缩小营造"陷入"感
- *    v1.0.23: 缩放曲线从 tween 改为 spring(MediumBouncy + StiffnessMediumLow),
- *    按下与回弹自带轻微过冲,呈现弹性反馈
+ *    缩放取统一弹簧档位 BOUNCY(回弹档),按下与回弹自带轻微过冲;
+ *    系统关闭动画时由档位工厂统一降级为即时完成
  *  - 可选触觉反馈: 轻击
  *
  * 无涟漪效果 (indication = null), 替代标准 `clickable {}` 的 Surface。
@@ -75,7 +73,6 @@ fun MuseCardPress(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val reducedMotion = MuseMotion.isReducedMotion()
     val haptic = LocalHapticFeedback.current
 
     // 按压颜色渐变: 两种主题都只做轻微提亮,避免白色横条和强烈闪烁。
@@ -109,14 +106,7 @@ fun MuseCardPress(
     // 颜色渐变保留 MuseMotion.tween(触觉色彩变化不需要弹性,线性更稳)。
     val animatedScale by animateFloatAsState(
         targetValue = if (isPressed && enableScale) 0.98f else 1f,
-        animationSpec = if (reducedMotion) {
-            snap()
-        } else {
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-            )
-        },
+        animationSpec = MuseMotion.spring(MuseSpringTier.BOUNCY),
         label = "card_press_scale",
     )
 

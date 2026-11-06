@@ -13,10 +13,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -78,6 +75,7 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
@@ -409,18 +407,9 @@ private fun QuickAttachTab(
     // v2.x: 交互动效重做 — 按压缩放 + 颜色弹性过渡(自绘反馈,无 ripple)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    // v2.x: reduced-motion 降级 — 系统"关闭动画"时用 snap 直切,不做弹簧
-    val reducedMotion = MuseMotion.isReducedMotion()
     val pressScale by animateFloatAsState(
         targetValue = if (pressed) 0.93f else 1f,
-        animationSpec = if (reducedMotion) {
-            snap()
-        } else {
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium,
-            )
-        },
+        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
         label = "quickTabPress",
     )
     val containerColor by animateColorAsState(

@@ -45,11 +45,11 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.theme.MuseActionColors
-import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDialogSizes
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
@@ -190,7 +190,7 @@ private fun MuseDialogButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
+        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
         label = "dialogBtnScale",
     )
     Box(

@@ -1,9 +1,6 @@
 package io.zer0.muse.ui.common.form
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -29,6 +26,7 @@ import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 
@@ -73,19 +71,11 @@ fun MuseFloatingButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val reducedMotion = MuseMotion.isReducedMotion()
 
-    // 按下时 0.92 缩放(弹簧曲线),模拟按压反馈
+    // 按下时 0.92 缩放(跟手档弹簧),模拟按压反馈
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = if (reducedMotion) {
-            snap()
-        } else {
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium,
-            )
-        },
+        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
         label = "ios_fab_scale",
     )
 

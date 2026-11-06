@@ -32,10 +32,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseActionColors
-import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseCapsuleButtonSizes
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
@@ -78,7 +78,7 @@ fun MuseCapsuleButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) MuseCapsuleButtonSizes.pressScale else 1f,
-        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
+        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
         label = "capsuleBtnScale",
     )
 

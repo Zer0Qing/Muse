@@ -27,6 +27,7 @@ import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MuseSpringTier
 
 /**
  * 图标按钮统一件 — 全应用所有「只有图标、没有文字」的按钮都用它。
@@ -111,7 +112,7 @@ fun MuseTactileButton(
     val hasContainer = container != MuseIconContainer.None
     val scale by animateFloatAsState(
         targetValue = if (isPressed && hasContainer) 0.92f else 1f,
-        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
+        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
         label = "tactile_scale",
     )
 
