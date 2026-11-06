@@ -80,3 +80,30 @@
 ### 自动护栏
 
 `ci/script/check_horizontal_inset.py` 拦截显式清零：`horizontalPadding = 0.dp`、`padding(horizontal = 0.dp)`、`PaddingValues(horizontal = 0.dp)`、`contentPadding = 0.dp`。确需贴边的行尾加 `// inset-guard: allow` 并说明原因，否则 CI 直接失败。
+
+## 流体动效与凝光令牌（2026-11 新增）
+
+### 弹簧档位（唯一动效词汇表）
+
+- 三档物理参数定义在 `ui/theme/DesignTokens.kt`（`MuseSpringTier` + 六常量），web 侧 `tokens.json` 的 `motion.springs` 与之由 `DesignTokenParityTest` 双向锁定；改一处必须同步另一处。
+- 选用规则：跟手（按压缩放、小状态翻转、内容块位移）用 `RESPONSIVE`；明显过冲的弹出回弹用 `BOUNCY`；导航页位移、尺寸展开这类"终点必须停稳"用 `STEADY`。
+- 透明度分量一律继续走 tween（`ENTER_MS/EXIT_MS` 等时长令牌不变）——弹簧会让 alpha 越过 [0,1]，时长令牌仍有消费方。
+- 降级契约集中在 `MuseMotion.spring()/springSpec()`：系统动画缩放 ≤0 时统一 snap。业务组件不得再自带 `if (reducedMotion) snap() else spring(...)` 的局部特判。
+
+### 边缘凝光
+
+- 按压反馈只有一种合法形态：沿组件轮廓的双层描边 + 触点方向偏置，**任何圆形扩散遮罩都不允许**（含自定义 ripple 变体）。
+- 全局入口是 `Theme.kt` 的 `LocalIndication provides edgeGlowIndication()`；组件需要自己的轮廓时包 `MuseGlowShapeProvider(shape)`，不要自绘按压层。
+- 强度参数在 `MuseGlowTokens`（浅/深两套 peakAlpha 已入 `tokens.json` `colors.alpha.edgeGlow*` 并锁 parity）。
+- 保持 `indication = null` 的白名单只有：消息气泡（性能边界）与自绘反馈的 `MuseCardPress`（缩放+色彩已构成完整反馈，不叠加）。
+
+### 共享元素
+
+- 全应用只允许 `MainActivity` 一处 `MuseFluidSharedHost`（内含唯一 `SharedTransitionLayout`）；多 scope 并存会让 key 互不相认。
+- 业务侧只写 `Modifier.museSharedElement(key = ...)`，key 用稳定业务 id（如 `assistant-avatar-<id>`、`session-title-<id>`），两端必须一致。
+- 跨窗口弹层（Dialog 类）不能参与共享元素；需要连贯形变的查看器必须先改成树内浮层，不要试图跨窗口接线。
+
+### 越界与玻璃高光
+
+- 越界回弹交回平台默认效果（API 31+ 橡皮筋、更低版本硬停自然降级），不再全局禁用；如某滚动容器确需关闭，写行内注释说明原因。
+- 玻璃高光参数唯一来源 `MuseGlassLight`；真玻璃与假玻璃消费点不得各自维护同义常数。

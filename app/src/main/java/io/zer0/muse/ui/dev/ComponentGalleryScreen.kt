@@ -668,6 +668,19 @@ private fun SurfacesSection() {
                 Text(text = "MuseCardPress", style = MaterialTheme.typography.bodyMedium)
             }
         }
+        // F3.1 流体化对照：轮廓形状不同 → 凝光描边贴合各自的边（点按/长按观察）。
+        io.zer0.muse.ui.theme.MuseGlowShapeProvider(shape = MuseShapes.pill) {
+            MuseSurface(
+                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
+                shape = MuseShapes.pill,
+                color = MuseActionColors.neutralContainer,
+            ) {
+                Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+                    Text(text = "Edge glow · pill outline variant", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
         Column {
             MuseListItem(
                 onClick = {},
