@@ -102,8 +102,8 @@ class SettingsGroupScreenTest {
             }
         }
 
-        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(2)
-        listOf(SettingsEntryId.MEMORY, SettingsEntryId.RAG).forEach { id ->
+        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(3)
+        listOf(SettingsEntryId.MEMORY, SettingsEntryId.RAG, SettingsEntryId.SESSION_TERMS).forEach { id ->
             val title = string(SettingsCatalog.entries.first { it.id == id }.titleRes)
             composeTestRule.onNode(hasTestTag(SETTINGS_ENTRY_ROW_TAG) and hasText(title)).assertIsDisplayed()
         }

@@ -770,12 +770,14 @@ class MuseDbMigrationTest {
                 val raw = db.openHelper.writableDatabase
                 raw.query("PRAGMA user_version").use {
                     assertTrue(it.moveToFirst())
-                    assertEquals(124, it.getInt(0))
+                    // 断言到"最新版"而不是某个具体号:这一条的名字承诺的是
+                    // "v123 起点能一路升到最新并通过 Room 校验"，写死 124 会在每次加表时准时腐坏。
+                    assertEquals(MuseDb.LATEST_SCHEMA_VERSION, it.getInt(0))
                 }
                 raw.query("SELECT muted FROM session_proactive_preferences").use {
                     assertTrue("v124 proactive preference table must be usable", it.count >= 0)
                 }
-                assertRoomValidatedLatestSchema(raw, "v123→124", expectedVersion = 124)
+                assertRoomValidatedLatestSchema(raw, "v123→latest", expectedVersion = MuseDb.LATEST_SCHEMA_VERSION)
             } finally {
                 db.close()
             }

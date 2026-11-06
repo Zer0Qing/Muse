@@ -796,4 +796,22 @@
     <string name="settings_diagnostics_background">バックグラウンドジョブ</string>
     <string name="settings_diagnostics_bg_error">取得失敗</string>
     <string name="settings_diagnostics_bg_none">登録ジョブはありません(バックグラウンド実行が未設定の可能性)</string>
+    <string name="settings_screen_session_terms">アシスタント用語</string>
+    <string name="settings_screen_session_terms_desc">会話で使った新しい言葉や隠語。確定したものだけが既定の言い方として扱われます</string>
+    <string name="settings_session_terms_loading">用語を読み込み中…</string>
+    <string name="settings_session_terms_empty">まだ用語がありません。会話で説明した言葉はここに自動で現れます。</string>
+    <string name="settings_session_terms_awaiting">確認待ち %1$d 件</string>
+    <string name="settings_session_terms_awaiting_hint">これらは会話から抽出した候補です。確定したものだけを既定の言い方として注入し、未確定のは「不確定」と明記して渡します。</string>
+    <string name="settings_session_terms_no_meaning">説明未入力</string>
+    <string name="settings_session_terms_occurrences">%1$d 回出現</string>
+    <string name="settings_session_terms_manage">処理</string>
+    <string name="settings_session_terms_action_title">「%1$s」を処理</string>
+    <string name="settings_session_terms_action_body">この語はこのアシスタントで %1$d 回出現し、現在の解釈は %2$s です。確定後に既定の言い方として扱われます。</string>
+    <string name="settings_session_terms_confirm">確定</string>
+    <string name="settings_session_terms_promote">アシスタント級に昇格</string>
+    <string name="settings_session_terms_toast_confirmed">「%1$s」を確定しました</string>
+    <string name="settings_session_terms_toast_promoted">「%1$s」をアシスタント級に昇格しました</string>
+    <string name="settings_session_terms_scope_assistant">アシスタント級</string>
+    <string name="settings_session_terms_scope_confirmed">確定済み</string>
+    <string name="settings_session_terms_scope_candidate">確認待ち</string>
 </resources>

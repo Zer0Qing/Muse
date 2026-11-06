@@ -40,6 +40,9 @@ class HostSettingsEntryAvailabilityTest {
         // S4 加的 1:1 镜像条目；S5 已在 Web 端补出「运行」三 Tab 页并点亮。
         // 留在许可清单里只表示「若哪天 Web 页被摘掉，退回禁用是允许的」，不代表当前是禁用态。
         "diagnostics" to "运行页当前已点亮；若 Web 端子页被摘掉，允许退回只展示不进子页",
+        // v2.7.x(E2): 术语页要读写本机 Room，Web 端还没有对应子页。
+        // 目录必须有这一条(1:1 镜像)，但在网页侧补出页面前只展示、不进子页。
+        "session_terms" to "助手术语目前只有 App 侧子页；Web 端补出对应页前只展示不进子页",
     )
 
     @Test

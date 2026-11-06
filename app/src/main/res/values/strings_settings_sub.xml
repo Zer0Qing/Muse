@@ -826,4 +826,22 @@
     <string name="settings_diagnostics_background">后台周期任务</string>
     <string name="settings_diagnostics_bg_error">采集失败</string>
     <string name="settings_diagnostics_bg_none">没有在册任务(可能从未打开过后台调度)</string>
+    <string name="settings_screen_session_terms">助手术语</string>
+    <string name="settings_screen_session_terms_desc">你在对话里用的新词与黑话，确认后才被当成既定说法</string>
+    <string name="settings_session_terms_loading">正在读取术语…</string>
+    <string name="settings_session_terms_empty">还没有收录任何术语。你在对话里解释过的词会自动出现在这里。</string>
+    <string name="settings_session_terms_awaiting">等待确认 %1$d 条</string>
+    <string name="settings_session_terms_awaiting_hint">这些是系统从对话里抽出来的候选。只有确认过的才会作为既定说法注入；未确认的会标注「不确定」，模型不会当成你的既定用法。</string>
+    <string name="settings_session_terms_no_meaning">未给出解释</string>
+    <string name="settings_session_terms_occurrences">出现过 %1$d 次</string>
+    <string name="settings_session_terms_manage">处理</string>
+    <string name="settings_session_terms_action_title">处理「%1$s」</string>
+    <string name="settings_session_terms_action_body">这个词在本助手下出现过 %1$d 次，目前的理解是：%2$s。确认之后才会作为既定说法注入。</string>
+    <string name="settings_session_terms_confirm">确认</string>
+    <string name="settings_session_terms_promote">提升为助手级</string>
+    <string name="settings_session_terms_toast_confirmed">已确认「%1$s」</string>
+    <string name="settings_session_terms_toast_promoted">「%1$s」已提升为助手级</string>
+    <string name="settings_session_terms_scope_assistant">助手级</string>
+    <string name="settings_session_terms_scope_confirmed">已确认</string>
+    <string name="settings_session_terms_scope_candidate">待确认</string>
 </resources>

@@ -796,4 +796,22 @@
     <string name="settings_diagnostics_background">Tarefas em segundo plano</string>
     <string name="settings_diagnostics_bg_error">Falha na coleta</string>
     <string name="settings_diagnostics_bg_none">Sem tarefas registradas (o agendamento em segundo plano talvez nunca tenha sido ativado)</string>
+    <string name="settings_screen_session_terms">Termos do assistente</string>
+    <string name="settings_screen_session_terms_desc">Palavras novas e jargão das suas conversas; só os confirmados viram uso estabelecido</string>
+    <string name="settings_session_terms_loading">Carregando termos…</string>
+    <string name="settings_session_terms_empty">Nenhum termo ainda. Palavras que você explicar na conversa aparecem aqui sozinhas.</string>
+    <string name="settings_session_terms_awaiting">%1$d aguardando confirmação</string>
+    <string name="settings_session_terms_awaiting_hint">São candidatos extraídos das conversas. Só os confirmados entram como uso estabelecido; os demais são injetados marcados como incertos.</string>
+    <string name="settings_session_terms_no_meaning">Sem definição</string>
+    <string name="settings_session_terms_occurrences">Apareceu %1$d vezes</string>
+    <string name="settings_session_terms_manage">Gerenciar</string>
+    <string name="settings_session_terms_action_title">Gerenciar “%1$s”</string>
+    <string name="settings_session_terms_action_body">Este termo apareceu %1$d vezes neste assistente. Leitura atual: %2$s. Vira uso estabelecido só depois de confirmado.</string>
+    <string name="settings_session_terms_confirm">Confirmar</string>
+    <string name="settings_session_terms_promote">Promover ao assistente</string>
+    <string name="settings_session_terms_toast_confirmed">“%1$s” confirmado</string>
+    <string name="settings_session_terms_toast_promoted">“%1$s” promovido ao assistente</string>
+    <string name="settings_session_terms_scope_assistant">Nível assistente</string>
+    <string name="settings_session_terms_scope_confirmed">Confirmado</string>
+    <string name="settings_session_terms_scope_candidate">A confirmar</string>
 </resources>

@@ -42,6 +42,7 @@ import io.zer0.muse.ui.settings.SettingsDiagnosticsPage
 import io.zer0.muse.ui.settings.SettingsGroupPage
 import io.zer0.muse.ui.settings.SettingsMcpPage
 import io.zer0.muse.ui.settings.SettingsModelPage
+import io.zer0.muse.ui.settings.SettingsSessionTermsPage
 import io.zer0.muse.ui.settings.SettingsTutorialPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
 import io.zer0.muse.ui.settings.TaskRoutingSettingsPage
@@ -224,6 +225,15 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onOpenLicenses = { navController.navigate(LicensesRoute) },
             // v2.x: 崩溃上报设置页入口(此前页面存在但无任何入口)
             onOpenCrashReport = { navController.navigate(SettingsCrashReportRoute) },
+        )
+    }
+    // v2.7.x(E2): 助手术语页 —「记忆」组入口 + 搜索直达
+    composable<SettingsSessionTermsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        SettingsSessionTermsPage(
+            onBack = { navController.popBackStack() },
         )
     }
     // v2.6.23(S4): 运行诊断子页 —「关于」组入口 + 搜索直达

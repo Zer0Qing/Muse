@@ -821,4 +821,22 @@
     <string name="settings_diagnostics_background">Background jobs</string>
     <string name="settings_diagnostics_bg_error">Collect failed</string>
     <string name="settings_diagnostics_bg_none">No registered jobs (background scheduling may never have been enabled)</string>
+    <string name="settings_screen_session_terms">Assistant terms</string>
+    <string name="settings_screen_session_terms_desc">New words and jargon from your chats; only confirmed ones become established usage</string>
+    <string name="settings_session_terms_loading">Loading terms…</string>
+    <string name="settings_session_terms_empty">No terms yet. Words you explain in conversation appear here automatically.</string>
+    <string name="settings_session_terms_awaiting">%1$d awaiting confirmation</string>
+    <string name="settings_session_terms_awaiting_hint">These are candidates extracted from conversations. Only confirmed terms are injected as established usage; unconfirmed ones are injected labeled as uncertain.</string>
+    <string name="settings_session_terms_no_meaning">No definition given</string>
+    <string name="settings_session_terms_occurrences">Seen %1$d times</string>
+    <string name="settings_session_terms_manage">Handle</string>
+    <string name="settings_session_terms_action_title">Handle “%1$s”</string>
+    <string name="settings_session_terms_action_body">This term appeared %1$d times for this assistant. Current reading: %2$s. It becomes established usage only after you confirm.</string>
+    <string name="settings_session_terms_confirm">Confirm</string>
+    <string name="settings_session_terms_promote">Promote to assistant</string>
+    <string name="settings_session_terms_toast_confirmed">Confirmed “%1$s”</string>
+    <string name="settings_session_terms_toast_promoted">“%1$s” promoted to assistant level</string>
+    <string name="settings_session_terms_scope_assistant">Assistant level</string>
+    <string name="settings_session_terms_scope_confirmed">Confirmed</string>
+    <string name="settings_session_terms_scope_candidate">To confirm</string>
 </resources>

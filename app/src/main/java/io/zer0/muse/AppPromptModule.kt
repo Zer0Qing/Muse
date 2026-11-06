@@ -27,6 +27,10 @@ val appPromptModule = module {
         )
     }
 
+    // v2.7.x(E2): 会话术语的读写面。装配器与术语页共用同一个实例,
+    // 免得两处各建一个 store 后，注入侧与页面看到的次数对不上。
+    single { io.zer0.muse.data.terms.SessionTermStore(get<io.zer0.muse.data.session.MuseDb>().sessionTermDao()) }
+
     // P1-1: Hook 注册表(全局单例,所有 Hook 通过此注册)
     single { io.zer0.muse.hook.HookRegistry() }
 
@@ -53,6 +57,8 @@ val appPromptModule = module {
             // (用 <recent_chats> 标签包裹最近会话标题+预览,提供对话连续性上下文)
             sessionRepository = get(),
             // v12 (T2-2): 透传 factStore,主助手构建 system prompt 时按当前问题 FTS 召回相关记忆
+            // v2.7.x(E2): 会话术语注入（未确认条目标「不确定」，最多 5 条）
+            sessionTermStore = get(),
             factStore = get(),
             // v1.0.86: 相关记忆按当前 Assistant 选择独立 facts.db
             factDbProvider = get(),

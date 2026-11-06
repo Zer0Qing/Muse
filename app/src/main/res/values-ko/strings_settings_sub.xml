@@ -796,4 +796,22 @@
     <string name="settings_diagnostics_background">백그라운드 작업</string>
     <string name="settings_diagnostics_bg_error">수집 실패</string>
     <string name="settings_diagnostics_bg_none">등록된 작업 없음(백그라운드 실행이 켜진 적 없음)</string>
+    <string name="settings_screen_session_terms">어시스턴트 용어</string>
+    <string name="settings_screen_session_terms_desc">대화에서 쓰는 새 단어와 은어. 확인한 것만 정해진 표현으로 씁니다</string>
+    <string name="settings_session_terms_loading">용어 불러오는 중…</string>
+    <string name="settings_session_terms_empty">아직 용어가 없습니다. 대화에서 설명한 단어가 자동으로 여기에 나타납니다.</string>
+    <string name="settings_session_terms_awaiting">확인 대기 %1$d개</string>
+    <string name="settings_session_terms_awaiting_hint">대화에서 뽑아낸 후보입니다. 확인한 항목만 정해진 표현으로 삽입되고, 나머지는「불확실」 표시와 함께 전달됩니다.</string>
+    <string name="settings_session_terms_no_meaning">설명 없음</string>
+    <string name="settings_session_terms_occurrences">%1$d회 등장</string>
+    <string name="settings_session_terms_manage">처리</string>
+    <string name="settings_session_terms_action_title">“%1$s” 처리</string>
+    <string name="settings_session_terms_action_body">이 단어는 이 어시스턴트에서 %1$d회 등장했고, 현재 이해는 %2$s입니다. 확인해야 정해진 표현으로 사용됩니다.</string>
+    <string name="settings_session_terms_confirm">확인</string>
+    <string name="settings_session_terms_promote">어시스턴트 수준으로 승격</string>
+    <string name="settings_session_terms_toast_confirmed">“%1$s” 확인됨</string>
+    <string name="settings_session_terms_toast_promoted">“%1$s”가 어시스턴트 수준으로 승격됨</string>
+    <string name="settings_session_terms_scope_assistant">어시스턴트 수준</string>
+    <string name="settings_session_terms_scope_confirmed">확인됨</string>
+    <string name="settings_session_terms_scope_candidate">확인 대기</string>
 </resources>

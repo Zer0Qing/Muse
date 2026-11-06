@@ -192,6 +192,7 @@ import java.io.File
         io.zer0.muse.data.proactive.ProactiveOutcomeEntity::class,
         io.zer0.muse.data.proactive.ProactiveRelationEntity::class,
         io.zer0.muse.proactive.SessionProactivePreferenceEntity::class,
+        io.zer0.muse.data.terms.SessionTermEntity::class,
     ],
     version = MuseDb.LATEST_SCHEMA_VERSION,
     exportSchema = true,
@@ -300,9 +301,12 @@ abstract class MuseDb : RoomDatabase() {
     /** v2.6.9: 关系亲密度与当日预算。 */
     abstract fun proactiveRelationDao(): io.zer0.muse.data.proactive.ProactiveRelationDao
 
+    /** v2.7.x(E2): 会话术语表。 */
+    abstract fun sessionTermDao(): io.zer0.muse.data.terms.SessionTermDao
+
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 124
+        const val LATEST_SCHEMA_VERSION = 125
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -1527,6 +1531,33 @@ abstract class MuseDb : RoomDatabase() {
                     "CREATE UNIQUE INDEX IF NOT EXISTS " +
                         "`index_session_proactive_preferences_sessionId` " +
                         "ON `session_proactive_preferences` (`sessionId`)",
+                )
+            }
+        }
+
+        /**
+         * v2.7.x(E2): 会话术语表。
+         *
+         * 只建表,不动任何既有行。列名与默认值逐项对齐 `SessionTermEntity`,
+         * 索引名沿用 Room 的命名规则(`index_<表>_<列...>`)—— 名字不一致时
+         * Room 会在升级后校验阶段报"unexpected index",而不是安静通过。
+         */
+        val MIGRATION_124_125 = object : Migration(124, 125) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `session_terms` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`term` TEXT NOT NULL, `meaning` TEXT, " +
+                        "`session_id` TEXT NOT NULL, `assistant_id` TEXT NOT NULL, " +
+                        "`scope` TEXT NOT NULL DEFAULT 'session', " +
+                        "`occurrences` INTEGER NOT NULL DEFAULT 1, " +
+                        "`confirmed` INTEGER NOT NULL DEFAULT 0, " +
+                        "`first_seen_at` INTEGER NOT NULL, `last_seen_at` INTEGER NOT NULL)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_terms_assistant_id` ON `session_terms` (`assistant_id`)")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_session_terms_scope_session_id_term` " +
+                        "ON `session_terms` (`scope`, `session_id`, `term`)",
                 )
             }
         }
@@ -3567,6 +3598,7 @@ abstract class MuseDb : RoomDatabase() {
             MIGRATION_121_122,
             MIGRATION_122_123,
             MIGRATION_123_124,
+            MIGRATION_124_125,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

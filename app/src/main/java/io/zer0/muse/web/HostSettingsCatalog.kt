@@ -92,6 +92,10 @@ internal object HostSettingsCatalog {
             "settings_group_memory",
             link("memory", "settings_screen_memory_notification", "settings_screen_memory_notification_desc", "atom"),
             link("rag", "settings_screen_rag", "settings_screen_rag_desc", "book"),
+            // v2.7.x(E2): 术语页目前只有 App 侧子页(要读写本机 Room)。
+            // 1:1 镜像要求这里同步有条目，但 Web 端补出对应页之前保持 enabled = false，
+            // 不造一个点了没反应的假入口(S4 的 diagnostics 走的正是同一套做法)。
+            link("session_terms", "settings_screen_session_terms", "settings_screen_session_terms_desc", "book", enabled = false),
         ),
         group(
             "settings_group_connection",

@@ -65,6 +65,8 @@ class BackupNdJsonFolderRestoreTest {
         "proactiveOutcome" to "proactiveOutcomeBuf",
         "proactiveRelation" to "proactiveRelationBuf",
         "sessionProactivePreference" to "sessionProactivePreferenceBuf",
+        // v2.7.x(E2): 术语表。用户的确认不可从历史重新推导，恢复分支必须有对应缓冲。
+        "sessionTerm" to "sessionTermBuf",
     )
 
     /** 从源码提取导出侧 writeTypedLines 的全部行类型。 */

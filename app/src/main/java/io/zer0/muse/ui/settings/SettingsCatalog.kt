@@ -41,6 +41,7 @@ import io.zer0.muse.ui.navigation.SettingsProactiveRoute
 import io.zer0.muse.ui.navigation.SettingsProxyRoute
 import io.zer0.muse.ui.navigation.SettingsRagRoute
 import io.zer0.muse.ui.navigation.SettingsSecurityRoute
+import io.zer0.muse.ui.navigation.SettingsSessionTermsRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.SettingsTutorialRoute
 import io.zer0.muse.ui.navigation.SettingsVisionRoute
@@ -130,6 +131,9 @@ enum class SettingsEntryId {
     TUTORIAL,
     ABOUT,
     DIAGNOSTICS,
+
+    /** v2.7.x(E2): 助手术语页。 */
+    SESSION_TERMS,
     CHECK_UPDATE,
     STATS,
     EXPERIMENTS,
@@ -494,6 +498,17 @@ object SettingsCatalog {
                     keywords = listOf(
                         "RAG", "知识库", "rag", "检索", "向量", "文档", "zhishiku", "jiansuo",
                         "xiangliang", "wendang", "zsk", "js", "xl", "wd",
+                    ),
+                ),
+                // v2.7.x(E2): 术语页 —— 黑话与新词由用户确认后才进上下文,不确认就当没说。
+                entry(
+                    SettingsEntryId.SESSION_TERMS,
+                    R.string.settings_screen_session_terms,
+                    R.string.settings_screen_session_terms_desc,
+                    MuseIcons.book,
+                    SettingsEntryAction.Navigate(SettingsSessionTermsRoute),
+                    keywords = listOf(
+                        "术语", "黑话", "新词", "称呼", "terms", "shiyu", "heihua", "xinci", "chenghu", "sy", "hh",
                     ),
                 ),
             ),

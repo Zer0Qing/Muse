@@ -229,6 +229,13 @@ class BackupService(
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity> = emptyList(),
         /** v2.6.21: 单个会话的主动消息静音偏好。 */
         val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity> = emptyList(),
+        /**
+         * v2.7.x(E2): 术语表 —— 用户确认过的黑话与新词。
+
+         * 词本身可以从历史消息里重抽，"这条我确认过"不能。不接备份等于
+         * 换机后助手把用户的既定说法全忘掉，而那正是术语这个功能的全部价值。
+         */
+        val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity> = emptyList(),
         val groupChatMemories: List<GroupChatMemoryEntity> = emptyList(),
         /**
          * v2.6.8: 卡片实体（`card_entities`）。
@@ -269,7 +276,7 @@ class BackupService(
         toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || assistantRelationships.isNotEmpty() ||
         sessionTodos.isNotEmpty() ||
         pendingThoughts.isNotEmpty() || proactiveOutcomes.isNotEmpty() || proactiveRelations.isNotEmpty() ||
-        sessionProactivePreferences.isNotEmpty() ||
+        sessionProactivePreferences.isNotEmpty() || sessionTerms.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
         cardEntities.isNotEmpty() ||
         settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty()
@@ -527,6 +534,7 @@ class BackupService(
                 proactiveOutcomes = db.proactiveOutcomeDao().getAll(),
                 proactiveRelations = db.proactiveRelationDao().getAll(),
                 sessionProactivePreferences = db.sessionProactivePreferenceDao().getAll(),
+                sessionTerms = db.sessionTermDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8: 卡片实体（NDJSON 导出，与单 JSON 同一定序）。
                 // v2.6.9: 走 DAO 全量查询，不再手写列清单（见 CardEntityBackup.kt）。
@@ -579,6 +587,7 @@ class BackupService(
         val proactiveOutcomes = muse.proactiveOutcomes
         val proactiveRelations = muse.proactiveRelations
         val sessionProactivePreferences = muse.sessionProactivePreferences
+        val sessionTerms = muse.sessionTerms
         val groupChatMemories = muse.groupChatMemories
         // v2.6.8: 卡片实体。
         val cardEntities = muse.cardEntities
@@ -640,6 +649,7 @@ class BackupService(
             put("pendingThoughts", pendingThoughts.size)
             put("proactiveOutcomes", proactiveOutcomes.size)
             put("proactiveRelations", proactiveRelations.size)
+            put("sessionTerms", sessionTerms.size)
             put("sessionProactivePreferences", sessionProactivePreferences.size)
             put("assistantRelationships", assistantRelationships.size)
             put("groupChatMemories", groupChatMemories.size)
@@ -823,6 +833,12 @@ class BackupService(
         )
         writeTypedLines(
             writer,
+            "sessionTerm",
+            sessionTerms,
+            io.zer0.muse.data.terms.SessionTermEntity.serializer(),
+        )
+        writeTypedLines(
+            writer,
             "proactiveOutcome",
             proactiveOutcomes,
             io.zer0.muse.data.proactive.ProactiveOutcomeEntity.serializer(),
@@ -968,6 +984,8 @@ class BackupService(
         val proactiveOutcomes: List<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>,
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity>,
         val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity>,
+        /** v2.7.x(E2): 术语表。 */
+        val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity>,
         /** v2.6.8: 卡片实体（`card_entities`）—— 停靠卡离开消息流后唯一的存身处。 */
         val cardEntities: List<CardEntityRecord>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
@@ -1092,6 +1110,7 @@ class BackupService(
             val sessionTodoBuf = mutableListOf<io.zer0.muse.data.todo.SessionTodoEntity>()
             // v2.6.9: 主动消息三表恢复缓冲。
             val pendingThoughtBuf = mutableListOf<io.zer0.muse.data.proactive.PendingThoughtEntity>()
+            val sessionTermBuf = mutableListOf<io.zer0.muse.data.terms.SessionTermEntity>()
             val proactiveOutcomeBuf = mutableListOf<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>()
             val proactiveRelationBuf = mutableListOf<io.zer0.muse.data.proactive.ProactiveRelationEntity>()
             val sessionProactivePreferenceBuf =
@@ -1141,6 +1160,7 @@ class BackupService(
                 db.proactiveOutcomeDao().deleteAll()
                 db.proactiveRelationDao().deleteAll()
                 db.sessionProactivePreferenceDao().deleteAll()
+                db.sessionTermDao().deleteAll()
                 db.assistantRelationshipDao().deleteAll()
                 db.subagentThreadDao().deleteAll()
                 db.toolRoundDao().deleteAll()
@@ -1562,6 +1582,19 @@ class BackupService(
                                 }
                             }
                         }
+                        "sessionTerm" -> obj["data"]?.let {
+                            sessionTermBuf.add(
+                                json.decodeFromJsonElement(
+                                    io.zer0.muse.data.terms.SessionTermEntity.serializer(),
+                                    it,
+                                ),
+                            )
+                            if (sessionTermBuf.size >= IMPORT_BATCH) {
+                                flushBatch(sessionTermBuf) { batch ->
+                                    db.withTransaction { batch.forEach { db.sessionTermDao().upsert(it) } }
+                                }
+                            }
+                        }
                         "pendingThought" -> obj["data"]?.let {
                             pendingThoughtBuf.add(
                                 json.decodeFromJsonElement(
@@ -1684,7 +1717,7 @@ class BackupService(
                 if (skippedMiniPhoneSessions > 0) {
                     Logger.w(
                         "BackupService",
-                        "跳过 ${skippedMiniPhoneSessions} 条旧小手机会话及其 ${skippedMiniPhoneMessages} 条消息" +
+                        "跳过 $skippedMiniPhoneSessions 条旧小手机会话及其 $skippedMiniPhoneMessages 条消息" +
                             "（该功能已下线，不再作为普通会话恢复）",
                     )
                 }
@@ -1745,6 +1778,8 @@ class BackupService(
                 // v2.6.7 fix (AUDIT F1): 尾部 flush 待办与角色关系。
                 flushBatch(sessionTodoBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } } }
                 // v2.6.9: 主动消息三表尾部 flush。
+                // v2.7.x(E2): 术语尾部 flush —— 分批读到的尾巴必须落库，否则末批术语会丢。
+                flushBatch(sessionTermBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTermDao().upsert(it) } } }
                 flushBatch(pendingThoughtBuf) { batch ->
                     db.withTransaction { batch.forEach { db.pendingThoughtDao().upsert(it) } }
                 }
@@ -2603,6 +2638,8 @@ class BackupService(
         val proactiveOutcomes: List<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>,
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity>,
         val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity>,
+        /** v2.7.x(E2): 术语表。 */
+        val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity>,
         /** v2.6.8: 卡片实体。 */
         val cardEntities: List<CardEntityRecord>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
@@ -2690,6 +2727,7 @@ class BackupService(
                 proactiveOutcomes = db.proactiveOutcomeDao().getAll(),
                 proactiveRelations = db.proactiveRelationDao().getAll(),
                 sessionProactivePreferences = db.sessionProactivePreferenceDao().getAll(),
+                sessionTerms = db.sessionTermDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8 / v2.6.9: 卡片实体。走 DAO 全量查询（Room 生成的映射，
                 // 实体加列不会再静默丢字段）。导出即按停靠顺序定序。
@@ -2744,6 +2782,7 @@ class BackupService(
         // 单 JSON 导出会丢；且本函数同时是恢复失败回滚的快照来源。
         val sessionTodos = snap.sessionTodos
         val sessionProactivePreferences = snap.sessionProactivePreferences
+        val sessionTerms = snap.sessionTerms
         val groupChatMemories = snap.groupChatMemories
         // v2.6.8: 卡片实体（停靠卡 / 悬浮卡）。buildBackup 同时是恢复失败回滚的 recovery point
         // 来源，漏传就会在回滚时清空用户全部卡片。
@@ -2804,6 +2843,7 @@ class BackupService(
             sessionBranchHeads = sessionBranchHeads,
             assistantRelationships = assistantRelationships,
             sessionTodos = sessionTodos,
+            sessionTerms = sessionTerms,
             sessionProactivePreferences = sessionProactivePreferences,
             groupChatMemories = groupChatMemories,
             cardEntities = cardEntities,
@@ -3104,6 +3144,7 @@ class BackupService(
             db.proactiveOutcomeDao().deleteAll()
             db.proactiveRelationDao().deleteAll()
             db.sessionProactivePreferenceDao().deleteAll()
+            db.sessionTermDao().deleteAll()
             db.assistantRelationshipDao().deleteAll()
             db.subagentThreadDao().deleteAll()
             db.toolRoundDao().deleteAll()
@@ -3154,6 +3195,8 @@ class BackupService(
             backup.proactiveOutcomes.forEach { db.proactiveOutcomeDao().upsert(it) }
             backup.proactiveRelations.forEach { db.proactiveRelationDao().upsert(it) }
             backup.sessionProactivePreferences.forEach { db.sessionProactivePreferenceDao().upsert(it) }
+            // v2.7.x(E2): 只导出不恢复等于"备份了但没用"。
+            backup.sessionTerms.forEach { db.sessionTermDao().upsert(it) }
             // v2.6.7: 角色关系此前只导出不恢复（既有缺口），换机后亲密度/关系标签全丢。
             backup.assistantRelationships.forEach { db.assistantRelationshipDao().upsert(it) }
             backup.subagentThreads.forEach { db.subagentThreadDao().upsert(it) }
@@ -3253,10 +3296,7 @@ class BackupService(
      * （事务尚未提交，抛出会让整个 MuseDb 事务回滚）。取数失败不阻断导入，
      * 只记日志——对账是增益，不能因为统计接口异常让合法备份无法恢复。
      */
-    private suspend fun verifyInsertedCounts(
-        expectedCounts: Map<String, Int>,
-        skippedSessionCount: Int = 0,
-    ) {
+    private suspend fun verifyInsertedCounts(expectedCounts: Map<String, Int>, skippedSessionCount: Int = 0) {
         expectedCounts.forEach { (key, expected) ->
             // 旧小手机会话在写入前就被跳过:对账基数要扣除它们,否则会把"按规则跳过"误判成"丢行"
             val base = if (key == "sessions") expected - skippedSessionCount else expected
@@ -3334,6 +3374,7 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "proactiveOutcome" to "proactiveOutcomes",
     "proactiveRelation" to "proactiveRelations",
     "sessionProactivePreference" to "sessionProactivePreferences",
+    "sessionTerm" to "sessionTerms",
     "assistantRelationship" to "assistantRelationships",
     "cardEntity" to "cardEntities",
     "groupChatMemory" to "groupChatMemories",

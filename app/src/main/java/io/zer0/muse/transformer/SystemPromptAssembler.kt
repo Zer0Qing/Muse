@@ -111,6 +111,10 @@ class SystemPromptAssembler(
      *  - [ExperimentsConfig.selfReflection]:追加 SELF_REFLECTION_SECTION,
      *    要求 LLM 在每轮回复末尾输出 `<reflection>...</reflection>` 块。
      */
+    // v2.7.x(E2): 会话术语表。默认 null —— 老调用方与测试仍能构造装配器;
+    // 缺省时术语段整节不注入,而不是注入一个空标签。
+    // (用行评论而不是 KDoc:参数列表上的 KDoc 会被 ktlint 判为放错位置的注释)
+    private val sessionTermStore: io.zer0.muse.data.terms.SessionTermStore? = null,
     private val getExperiments: () -> ExperimentsConfig = { ExperimentsConfig() },
     /**
      * v1.25: 同步读取 [MultiAgentConfig] 的闭包。
@@ -233,6 +237,10 @@ class SystemPromptAssembler(
         val relationship = if (forSubagent) "" else buildRelationshipSection(assistant)
         // v2.x: 表情包使用指南(动态读取库分类;库为空/开关关闭时为空串;子代理不注入)
         val stickerGuide = if (forSubagent) "" else buildStickerGuideSection()
+        // v2.7.x(E2): 术语段。子代理不注入:一个词的解释只在原会话里成立,
+        // 交给子代理去用更容易用错地方。
+        val sessionTerms =
+            if (forSubagent) "" else buildSessionTermsSection(sessionId = sessionId, assistantId = assistant?.id)
         var combined =
             buildString {
                 if (static.isNotBlank()) append(static)
@@ -247,6 +255,10 @@ class SystemPromptAssembler(
                 if (stickerGuide.isNotBlank()) {
                     if (isNotEmpty()) append("\n\n---\n\n")
                     append(stickerGuide)
+                }
+                if (sessionTerms.isNotBlank()) {
+                    if (isNotEmpty()) append("\n\n---\n\n")
+                    append(sessionTerms)
                 }
             }
 
@@ -710,6 +722,21 @@ class SystemPromptAssembler(
         val agentId = assistant?.id ?: return VoiceReplyFrequency.RARELY
         return runCatching { VoiceReplyPolicyStore.of(context).frequencyFor(agentId) }
             .getOrDefault(VoiceReplyFrequency.RARELY)
+    }
+
+    /**
+     * v2.7.x(E2): 术语注入段。
+     *
+     * 条数上限与"未确认必须标注"都由 SessionTerms 决定,这里只负责取数与拼装 ——
+     * 规则在装配器里重写一遍,就会变成两个人各改一处、两套答案。
+     */
+    suspend fun buildSessionTermsSection(sessionId: String?, assistantId: String?): String {
+        val store = sessionTermStore ?: return ""
+        if (sessionId.isNullOrBlank()) return ""
+        val terms = runCatching { store.termsForContext(sessionId = sessionId, assistantId = assistantId ?: "default") }
+            .getOrNull()
+            .orEmpty()
+        return io.zer0.muse.data.terms.SessionTerms.renderInjectionBlock(terms)
     }
 
     suspend fun buildStickerGuideSection(): String {

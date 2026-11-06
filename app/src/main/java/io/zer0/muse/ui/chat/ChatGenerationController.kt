@@ -18,6 +18,9 @@ import io.zer0.muse.data.chat.rewrite.ConversationEventType
 import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
 import io.zer0.muse.data.chat.rewrite.sha256
 import io.zer0.muse.data.session.MessageOutboxEntity
+import io.zer0.muse.data.session.MuseDb
+import io.zer0.muse.data.terms.SessionTermStore
+import io.zer0.muse.data.terms.SessionTerms
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.schedule.ChatGenerationManager
@@ -562,6 +565,21 @@ internal class ChatGenerationController(
         val newHistory = (listOf(text) + accessor.snapshot.inputHistory.filter { it != text }).take(MAX_INPUT_HISTORY)
         val userMsg =
             UIMessage(role = MessageRole.USER, content = text, imageBase64List = images, attachments = attachments)
+
+        // v2.7.x(E2): 记录术语候选。放在发送侧而不是提示词装配侧 ——
+        // 装配会被重试与 outbox 回放重复执行，而次数正好决定"要不要打扰用户确认"，
+        // 被重复计一次就会把没怎么用过的词推去确认，或反过来把该问的一直压着。
+        // 失败只丢日志：术语是增强，不该决定这条消息能不能发出去。
+        accessor.coroutineScope.launch(Dispatchers.IO) {
+            runCatching {
+                val hits = SessionTerms.extract(text)
+                if (hits.isEmpty()) return@runCatching
+                val assistantId =
+                    deps.sessionRepository.getSessionById(sessionId)?.assistantId?.takeIf { it.isNotBlank() } ?: "default"
+                SessionTermStore(MuseDb.get(deps.appContext).sessionTermDao())
+                    .recordObserved(sessionId = sessionId, assistantId = assistantId, hits = hits)
+            }.onFailure { Logger.w("ChatVM", "术语候选记录失败(不影响发送)", it) }
+        }
         // P0 修复: 强制 assistantMsg.createdAt 严格晚于 userMsg.createdAt(+1ms),避免 DB 排序不稳定。
         // v2.6.15: 记下产出模型 —— 思考块回放的同模型守卫以它判定来源（见 ProviderPayloadNormalizer
         // 里的 stripCrossModelReasoning）。这里用的是本次发送实际会走的模型（任务路由已写回快照）；

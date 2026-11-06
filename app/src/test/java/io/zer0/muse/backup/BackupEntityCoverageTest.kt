@@ -64,6 +64,8 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.data.proactive.ProactiveRelationEntity" to "proactiveRelations",
         // v2.6.21: 单个对话的主动消息静音偏好，换机后必须保留。
         "io.zer0.muse.proactive.SessionProactivePreferenceEntity" to "sessionProactivePreferences",
+        // v2.7.x(E2): 术语表 —— 用户确认过的既定说法，不可从历史重新推导
+        "io.zer0.muse.data.terms.SessionTermEntity" to "sessionTerms",
         "ConversationCommandReceiptEntity" to "conversationCommandReceipts",
         "ConversationSelectionEntity" to "conversationSelections",
         "ConversationDisplaySlotEntity" to "conversationDisplaySlots",

@@ -796,4 +796,22 @@
     <string name="settings_diagnostics_background">Tareas en segundo plano</string>
     <string name="settings_diagnostics_bg_error">Fallo al recoger</string>
     <string name="settings_diagnostics_bg_none">Sin tareas registradas (puede que la programación en segundo plano nunca se activó)</string>
+    <string name="settings_screen_session_terms">Términos del asistente</string>
+    <string name="settings_screen_session_terms_desc">Palabras nuevas y jerga de tus chats; solo las confirmadas pasan a usarse como dadas</string>
+    <string name="settings_session_terms_loading">Cargando términos…</string>
+    <string name="settings_session_terms_empty">Aún no hay términos. Las palabras que expliques en la conversación aparecerán aquí.</string>
+    <string name="settings_session_terms_awaiting">%1$d esperando confirmación</string>
+    <string name="settings_session_terms_awaiting_hint">Son candidatos extraídos de la conversación. Solo los confirmados se inyectan como uso establecido; los demás entran marcados como inciertos.</string>
+    <string name="settings_session_terms_no_meaning">Sin definición</string>
+    <string name="settings_session_terms_occurrences">Apareció %1$d veces</string>
+    <string name="settings_session_terms_manage">Gestionar</string>
+    <string name="settings_session_terms_action_title">Gestionar «%1$s»</string>
+    <string name="settings_session_terms_action_body">Este término apareció %1$d veces en este asistente. Lectura actual: %2$s. Se usará como establecido solo tras confirmarlo.</string>
+    <string name="settings_session_terms_confirm">Confirmar</string>
+    <string name="settings_session_terms_promote">Promover al asistente</string>
+    <string name="settings_session_terms_toast_confirmed">«%1$s» confirmado</string>
+    <string name="settings_session_terms_toast_promoted">«%1$s» promovido al asistente</string>
+    <string name="settings_session_terms_scope_assistant">Nivel asistente</string>
+    <string name="settings_session_terms_scope_confirmed">Confirmado</string>
+    <string name="settings_session_terms_scope_candidate">Por confirmar</string>
 </resources>

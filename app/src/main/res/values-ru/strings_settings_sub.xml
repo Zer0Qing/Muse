@@ -796,4 +796,22 @@
     <string name="settings_diagnostics_background">Фоновые задачи</string>
     <string name="settings_diagnostics_bg_error">Сбор не удался</string>
     <string name="settings_diagnostics_bg_none">Нет зарегистрированных задач (фоновая отправка, вероятно, не включалась)</string>
+    <string name="settings_screen_session_terms">Термины ассистента</string>
+    <string name="settings_screen_session_terms_desc">Новые слова и жаргон из переписки: подтверждённые становятся принятым употреблением</string>
+    <string name="settings_session_terms_loading">Загрузка терминов…</string>
+    <string name="settings_session_terms_empty">Терминов пока нет. Слова, которые вы объясняете в переписке, появятся здесь сами.</string>
+    <string name="settings_session_terms_awaiting">Ждут подтверждения: %1$d</string>
+    <string name="settings_session_terms_awaiting_hint">Это кандидаты, извлечённые из переписки. Как принятое употребление подставляются только подтверждённые; остальные — с пометкой «неопределённо».</string>
+    <string name="settings_session_terms_no_meaning">Пояснение не задано</string>
+    <string name="settings_session_terms_occurrences">Появлялось %1$d раз</string>
+    <string name="settings_session_terms_manage">Обработать</string>
+    <string name="settings_session_terms_action_title">Обработать «%1$s»</string>
+    <string name="settings_session_terms_action_body">Этот термин встречался у этого ассистента %1$d раз; текущее прочтение: %2$s. Принятым он станет только после подтверждения.</string>
+    <string name="settings_session_terms_confirm">Подтвердить</string>
+    <string name="settings_session_terms_promote">Поднять до уровня ассистента</string>
+    <string name="settings_session_terms_toast_confirmed">«%1$s» подтверждено</string>
+    <string name="settings_session_terms_toast_promoted">«%1$s» поднято до уровня ассистента</string>
+    <string name="settings_session_terms_scope_assistant">Уровень ассистента</string>
+    <string name="settings_session_terms_scope_confirmed">Подтверждено</string>
+    <string name="settings_session_terms_scope_candidate">Ждет подтверждения</string>
 </resources>
