@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.R
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,6 +36,23 @@ class SettingsSearchIndexTest {
             assertTrue(
                 "分类清单里的条目「${text(titleRes)}」没有进搜索索引",
                 records.any { it.titleRes == titleRes },
+            )
+        }
+    }
+
+    /**
+     * 开关类命中必须带上能定位到行的条目 id:只把用户丢进分类页,等于让他自己再翻一遍,
+     * 而"直达"正是设置搜索的价值所在。id 丢了,分类页的高亮与滚动就无从计算。
+     */
+    @Test
+    fun `toggle records carry the entry id used for locate`() {
+        val toggles = records.filter { it.action is SettingsEntryAction.Toggle }
+        assertTrue("索引里至少要有一个开关条目", toggles.isNotEmpty())
+        toggles.forEach { record ->
+            assertNotNull("开关条目「${text(record.titleRes)}」缺少定位用的条目 id", record.entryId)
+            assertTrue(
+                "开关条目的 id 必须能在分类清单里找到对应行",
+                SettingsCatalog.entries.any { it.id == record.entryId },
             )
         }
     }

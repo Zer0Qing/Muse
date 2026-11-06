@@ -35,6 +35,8 @@ data class SettingsSearchRecord(
     val action: SettingsEntryAction,
     /** 结果行的图标：条目自带图标，只做搜索直达的页内设置用所属分类的图标。 */
     val icon: ImageVector,
+    /** 分类页里对应行的 id:搜索命中开关时用它做定位与高亮;页内附加项没有对应行,留空。 */
+    val entryId: SettingsEntryId? = null,
 )
 
 /** 面包屑分隔符：分类 › 条目。 */
@@ -77,6 +79,7 @@ object SettingsSearchCatalog {
                     group = group.kind,
                     action = entry.action,
                     icon = entry.icon,
+                    entryId = entry.id,
                 )
             }
         } + SettingsSearchExtras.records

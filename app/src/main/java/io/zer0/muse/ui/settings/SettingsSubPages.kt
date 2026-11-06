@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -99,11 +100,21 @@ import org.koin.compose.koinInject
  * Expanded 模式下 LazyColumn 居中限宽 720dp,避免大屏上列表项过度拉伸。
  */
 @Composable
-fun SettingsSubPageScaffold(title: String, onBack: (() -> Unit)? = null, content: LazyListScope.() -> Unit) {
+fun SettingsSubPageScaffold(
+    title: String,
+    onBack: (() -> Unit)? = null,
+    /** 搜索直达时先滚到的 item 下标(null 表示普通进组,保持顶部)。 */
+    focusItemIndex: Int? = null,
+    content: LazyListScope.() -> Unit,
+) {
     // v2.0.1: 滚动头部 — 大标题（item 0）随滚动推出（保留返回键）。
     // 搜索栏只保留在一级设置页；二三级子页不再放置搜索栏。
     // 大标题推出后，左上角渐显吸顶返回键（MuseStickyBackButton），保证随时可返回。
     val listState = rememberLazyListState()
+    // 搜索直达开关时:进组即滚到那张卡片,剩下的"看哪一行"交给行内短暂高亮。
+    LaunchedEffect(focusItemIndex) {
+        focusItemIndex?.let { listState.scrollToItem(it) }
+    }
     val isHeaderStuck by remember {
         derivedStateOf { listState.firstVisibleItemIndex >= 1 }
     }

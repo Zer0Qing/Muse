@@ -1,12 +1,19 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -20,6 +27,9 @@ import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -32,6 +42,9 @@ private data class ResolvedEntryRow(
     val title: String,
     val subtitle: String?,
 )
+
+/** 搜索直达后高亮保持时长:够看清,又不至于变成常驻状态。 */
+private const val FOCUS_FLASH_MS = 1600L
 
 /** 开关条目的当前值与写回回调。 */
 data class SettingsToggleUiState(val checked: Boolean, val onCheckedChange: (Boolean) -> Unit)
@@ -47,6 +60,8 @@ fun SettingsGroupPage(
     kind: SettingsGroupKind,
     onBack: () -> Unit,
     onNavigate: (Any) -> Unit,
+    /** 搜索命中开关类条目时带来的行 id:进组后定位到它并短暂高亮。 */
+    focusEntry: String? = null,
 ) {
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
@@ -63,6 +78,7 @@ fun SettingsGroupPage(
 
     SettingsGroupScreen(
         kind = kind,
+        focusEntryId = focusEntry,
         onBack = onBack,
         onNavigate = onNavigate,
         onAction = actionHost.run,
@@ -88,6 +104,7 @@ fun SettingsGroupPage(
 fun SettingsGroupScreen(
     kind: SettingsGroupKind,
     onBack: () -> Unit,
+    focusEntryId: String? = null,
     onNavigate: (Any) -> Unit,
     onAction: (SettingsActionId) -> Unit = {},
     busyAction: SettingsActionId? = null,
@@ -95,7 +112,15 @@ fun SettingsGroupScreen(
     toggleState: (SettingsToggleKey) -> SettingsToggleUiState = { SettingsToggleUiState(false) {} },
 ) {
     val group = SettingsCatalog.group(kind)
-    SettingsSubPageScaffold(title = stringResource(group.titleRes), onBack = onBack) {
+    // 每个分区在滚动列表里是一张卡片 item(大标题占 index 0),所以定位索引 = 分区下标 + 1。
+    val sectionIndex = group.sections.indexOfFirst { section ->
+        section.entries.any { entry -> entry.isAvailable() && entry.id.name == focusEntryId }
+    }
+    SettingsSubPageScaffold(
+        title = stringResource(group.titleRes),
+        onBack = onBack,
+        focusItemIndex = sectionIndex.takeIf { it >= 0 }?.plus(1),
+    ) {
         group.sections.forEach { section ->
             item(key = "settings_section_${kind.name}_${section.labelRes ?: 0}") {
                 SettingsEntryCard(
@@ -106,6 +131,7 @@ fun SettingsGroupScreen(
                     busyAction = busyAction,
                     subtitles = subtitles,
                     toggleState = toggleState,
+                    focusEntryId = focusEntryId,
                 )
             }
         }
@@ -125,6 +151,7 @@ private fun SettingsEntryCard(
     busyAction: SettingsActionId?,
     subtitles: Map<SettingsEntryId, String>,
     toggleState: (SettingsToggleKey) -> SettingsToggleUiState,
+    focusEntryId: String? = null,
 ) {
     // CardGroup 的内容块是普通 DSL，不是组合上下文：标题/说明先在这里解析成字符串。
     val rows = entries.map { entry ->
@@ -134,6 +161,20 @@ private fun SettingsEntryCard(
             subtitle = subtitles[entry.id] ?: entry.descRes?.let { stringResource(it) },
         )
     }
+    // 高亮只在"这次带着搜索命中进来"的那段时间里存在,之后回到常态:
+    // 不做常显选中态,否则分类页会多出一套与开关本身无关的视觉状态。
+    var flashFocused by remember(focusEntryId) { mutableStateOf(focusEntryId != null) }
+    LaunchedEffect(focusEntryId) {
+        if (focusEntryId != null) {
+            delay(FOCUS_FLASH_MS)
+            flashFocused = false
+        }
+    }
+    val focusTint by animateColorAsState(
+        targetValue = if (flashFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS),
+        label = "settingsFocusFlash",
+    )
     CardGroup(
         modifier = Modifier.fillMaxWidth(),
         title = label?.let { text ->
@@ -151,7 +192,9 @@ private fun SettingsEntryCard(
             val action = entry.action
             item(
                 key = entry.id,
-                modifier = Modifier.testTag(SETTINGS_ENTRY_ROW_TAG),
+                modifier = Modifier
+                    .testTag(SETTINGS_ENTRY_ROW_TAG)
+                    .background(if (flashFocused && row.entry.id.name == focusEntryId) focusTint else Color.Transparent),
                 onClick = when (action) {
                     is SettingsEntryAction.Navigate -> ({ onNavigate(action.route) })
                     is SettingsEntryAction.Toggle -> null

@@ -48,7 +48,7 @@ class SettingsGroupScreenTest {
     fun `home shows fourteen category rows`() {
         composeTestRule.setContent {
             MaterialTheme {
-                SettingsGroupCards(onOpenGroup = {})
+                SettingsGroupCards(onOpenGroup = { _, _ -> })
             }
         }
 
@@ -62,7 +62,7 @@ class SettingsGroupScreenTest {
     fun `home keeps sub page entries inside their category`() {
         composeTestRule.setContent {
             MaterialTheme {
-                SettingsGroupCards(onOpenGroup = {})
+                SettingsGroupCards(onOpenGroup = { _, _ -> })
             }
         }
 
@@ -84,7 +84,7 @@ class SettingsGroupScreenTest {
         var opened: SettingsGroupKind? = null
         composeTestRule.setContent {
             MaterialTheme {
-                SettingsGroupCards(onOpenGroup = { opened = it })
+                SettingsGroupCards(onOpenGroup = { kind, _ -> opened = kind })
             }
         }
 

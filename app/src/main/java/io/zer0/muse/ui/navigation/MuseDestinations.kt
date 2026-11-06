@@ -68,7 +68,11 @@ data object SettingsRoute
  * 字符串 id 不依赖类名，目标页里再自己映射回枚举。
  */
 @Serializable
-data class SettingsGroupRoute(val kind: String)
+data class SettingsGroupRoute(
+    val kind: String,
+    /** 搜索命中开关时直达的条目行 id;空串表示普通进组。 */
+    val focusEntry: String = "",
+)
 
 @Serializable
 data object AccountRoute

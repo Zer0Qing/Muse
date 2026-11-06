@@ -66,6 +66,7 @@ import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.settings.SettingsCatalog
 import io.zer0.muse.ui.settings.SettingsEntryAction
+import io.zer0.muse.ui.settings.SettingsEntryId
 import io.zer0.muse.ui.settings.SettingsGroupKind
 import io.zer0.muse.ui.settings.SettingsGroupSpec
 import io.zer0.muse.ui.settings.SettingsSearchCatalog
@@ -95,7 +96,7 @@ internal const val SETTINGS_GROUP_ROW_TAG: String = "settings-group-row"
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenAccount: () -> Unit = {},
-    onOpenGroup: (SettingsGroupKind) -> Unit = {},
+    onOpenGroup: (SettingsGroupKind, SettingsEntryId?) -> Unit = { _, _ -> },
     onNavigate: (Any) -> Unit = {},
 ) {
     val actionHost = rememberSettingsActionHost()
@@ -123,7 +124,7 @@ fun SettingsScreen(
                 when (val action = record.action) {
                     is SettingsEntryAction.Navigate -> onNavigate(action.route)
                     // 开关没有独立页面，落到它所在的分类页，用户在那里翻。
-                    is SettingsEntryAction.Toggle -> onOpenGroup(record.group)
+                    is SettingsEntryAction.Toggle -> onOpenGroup(record.group, record.entryId)
                     is SettingsEntryAction.Action -> actionHost.run(action.id)
                 }
             },
@@ -142,7 +143,7 @@ fun SettingsScreen(
 private fun SettingsHomeList(
     onBack: () -> Unit,
     onOpenAccount: () -> Unit,
-    onOpenGroup: (SettingsGroupKind) -> Unit,
+    onOpenGroup: (SettingsGroupKind, SettingsEntryId?) -> Unit,
     onOpenSearch: () -> Unit,
 ) {
     val settingsListState = rememberLazyListState()
@@ -264,7 +265,7 @@ private fun SettingsStickySearchBar(progress: Float, onOpenSearch: () -> Unit) {
  */
 @Composable
 internal fun SettingsGroupCards(
-    onOpenGroup: (SettingsGroupKind) -> Unit,
+    onOpenGroup: (SettingsGroupKind, SettingsEntryId?) -> Unit,
     modifier: Modifier = Modifier,
     groups: List<SettingsGroupSpec> = SettingsCatalog.groups,
 ) {
@@ -273,7 +274,7 @@ internal fun SettingsGroupCards(
             item(
                 key = group.kind,
                 modifier = Modifier.testTag(SETTINGS_GROUP_ROW_TAG),
-                onClick = { onOpenGroup(group.kind) },
+                onClick = { onOpenGroup(group.kind, null) },
                 leadingContent = { MuseSettingsIcon(group.icon) },
                 headlineContent = { Text(stringResource(group.titleRes)) },
                 supportingContent = { Text(stringResource(group.subtitleRes)) },

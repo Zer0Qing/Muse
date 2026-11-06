@@ -70,7 +70,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         SettingsScreen(
             onBack = { navController.popBackStack() },
             onOpenAccount = { navController.navigate(AccountRoute) },
-            onOpenGroup = { kind -> navController.navigate(SettingsGroupRoute(kind.name)) },
+            onOpenGroup = { kind, focus -> navController.navigate(SettingsGroupRoute(kind.name, focus?.name.orEmpty())) },
             onNavigate = { route -> navController.navigate(route) },
         )
     }
@@ -88,6 +88,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         } else {
             SettingsGroupPage(
                 kind = kind,
+                focusEntry = route.focusEntry.ifBlank { null },
                 onBack = { navController.popBackStack() },
                 onNavigate = { target -> navController.navigate(target) },
             )
