@@ -68,6 +68,7 @@ import io.zer0.muse.data.sharing.CharacterSharer
 import io.zer0.muse.data.sharing.ShareableAssistant
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -281,7 +282,12 @@ fun AssistantDetailPage(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                AssistantAvatar(assistant = assistant ?: placeholderAssistant(), avatarSize = 80.dp)
+                AssistantAvatar(
+                    assistant = assistant ?: placeholderAssistant(),
+                    avatarSize = 80.dp,
+                    // F2 链路 A 终点：与助手列表行头像同源共享（key 用路由 id，加载前后一致）
+                    modifier = Modifier.museSharedElement(key = "assistant-avatar-$assistantId"),
+                )
                 Text(
                     text = assistant?.name?.ifBlank { stringResource(R.string.assistant_detail_unnamed) }
                         ?: stringResource(R.string.assistant_detail_loading),

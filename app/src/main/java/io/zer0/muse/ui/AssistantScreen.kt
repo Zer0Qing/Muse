@@ -52,6 +52,7 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.assistant.CharacterCardImporter
 import io.zer0.muse.data.assistant.PersonaDiff
 import io.zer0.muse.data.assistant.PersonaFieldChange
+import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -347,7 +348,12 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                         onClick = { onOpenDetail(assistant.id) },
                                         onLongClick = { actionSheetAssistantId = assistant.id },
                                         leadingContent = {
-                                            AssistantAvatar(assistant = assistant, avatarSize = 44.dp)
+                                            // F2 链路 A：与助手详情页头 80dp 头像同源共享
+                                            AssistantAvatar(
+                                                assistant = assistant,
+                                                avatarSize = 44.dp,
+                                                modifier = Modifier.museSharedElement(key = "assistant-avatar-${assistant.id}"),
+                                            )
                                         },
                                         headlineContent = {
                                             Row(

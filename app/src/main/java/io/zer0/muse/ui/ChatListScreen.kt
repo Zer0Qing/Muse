@@ -90,6 +90,7 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.horizontalGestureExclusion
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.museAnimateItem
+import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseDivider
@@ -642,6 +643,8 @@ private fun PartnerRow(
                 io.zer0.muse.ui.common.media.AssistantAvatar(
                     assistant = assistant,
                     avatarSize = 52.dp,
+                    // F2 链路 A：伙伴头像与助手详情/聊天顶栏同源（key 全站唯一约定 assistant-avatar-<id>）
+                    modifier = Modifier.museSharedElement(key = "assistant-avatar-${assistant.id}"),
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -1266,6 +1269,8 @@ private fun TaskItem(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    // F2 链路 B：会话标题与聊天页顶栏标题同源共享
+                    modifier = Modifier.museSharedElement(key = "session-title-${session.id}"),
                 )
                 val preview = InternalMarkupSanitizer.stripForDisplay(session.lastMessagePreview)
                     // v2.0.1: 清洗 [artifact:...] 内部标记 — 列表预览不再露出 "…[artifact:7b7a65c4-…]"

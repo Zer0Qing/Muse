@@ -3,6 +3,7 @@ package io.zer0.muse.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -15,6 +16,7 @@ import io.zer0.muse.ui.ArchivedChatsScreen
 import io.zer0.muse.ui.ChatListScreen
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.HomeScreen
 import io.zer0.muse.ui.HtmlPreviewScreen
 import io.zer0.muse.ui.RecentlyDeletedScreen
@@ -41,6 +43,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popEnterTransition = { MuseTransitions.verticalPopEnter() },
         popExitTransition = { MuseTransitions.verticalPushPopExit() },
     ) {
+        CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
         HomeScreen(
             onOpenSettings = { navController.navigate(SettingsRoute) },
             onOpenAssistants = { navController.navigate(AssistantsRoute) },
@@ -67,6 +70,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             onOpenSkills = { navController.navigate(SkillsRoute) },
             onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
         )
+        } // 关闭共享元素作用域注入（目的地级 AnimatedVisibilityScope，见 F2 基建）
     }
     // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入,右滑入场)
     // v1.0.80: 纯 slide 无淡入淡出 — 避免半透明透出深色背景形成"黑色遮罩"
@@ -162,6 +166,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
+        CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
         val state by sharedViewModel.state.collectAsStateWithLifecycle()
         val widthClass = rememberWindowWidthClass()
         if (widthClass == WindowWidthClass.Expanded) {
@@ -247,6 +252,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
             )
         }
+        } // 关闭共享元素作用域注入
     }
     // v1.30: 群聊详情页 — 从群聊列表 push 进入,右滑入场 + 左滑返回
     // B0-07: 提示词模板管理页(从聊天/群聊模板弹窗进入)

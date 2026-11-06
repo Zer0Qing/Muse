@@ -3,6 +3,7 @@ package io.zer0.muse.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,6 +22,7 @@ import io.zer0.muse.ui.AssistantMemoryPage
 import io.zer0.muse.ui.AssistantPromptPage
 import io.zer0.muse.ui.AssistantScreen
 import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.FavoritesScreen
 import io.zer0.muse.ui.LorebookScreen
 import io.zer0.muse.ui.MemoryScreen
@@ -45,6 +47,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
+        CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
         // P1-4 平板适配:Expanded 模式下双列布局(左 AssistantScreen 40% + 右 AssistantDetailPage 60%)
         val widthClass = rememberWindowWidthClass()
         if (widthClass == WindowWidthClass.Expanded) {
@@ -89,6 +92,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
                 onOpenDetail = { id -> navController.navigate(AssistantDetailRoute(id)) },
             )
         }
+        } // 关闭共享元素作用域注入
     }
     // v0.37: 助手详情聚合页(头部 + 5 个子页入口)
     composable<AssistantDetailRoute>(
@@ -96,6 +100,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
         val assistantId = backStackEntry.arguments?.getString("assistantId").orEmpty()
+        CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
         AssistantDetailPage(
             assistantId = assistantId,
             onBack = { navController.popBackStack() },
@@ -105,6 +110,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
             onOpenMemory = { navController.navigate(AssistantMemoryRoute(assistantId)) },
             onOpenAdvanced = { navController.navigate(AssistantAdvancedRoute(assistantId)) },
         )
+        } // 关闭共享元素作用域注入
     }
     // v0.37: 助手基础子页
     composable<AssistantBasicRoute>(

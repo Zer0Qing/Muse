@@ -53,6 +53,7 @@ import io.zer0.muse.data.session.MigrationProgressBus
 import io.zer0.muse.intent.ShareIntentHandler
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.MuseRoutes
+import io.zer0.muse.ui.common.animation.MuseFluidSharedHost
 import io.zer0.muse.ui.SafeModeScreen
 import io.zer0.muse.ui.common.feedback.MuseToastHost
 import io.zer0.muse.ui.common.media.DesktopShortcuts
@@ -712,7 +713,7 @@ private fun MuseNavGraph(
                     // 子页面由导航栈回退，根页面没有可回退栈时交给 Activity 默认行为退出。
                     // 页面级 BackHandler、Dialog 和 Popup 仍按 Compose 的内层优先级先消费。
 
-                    NavHost(
+                    MuseFluidSharedHost { NavHost(
                         navController = navController,
                         startDestination = startDestination,
                         modifier = Modifier
@@ -743,6 +744,7 @@ private fun MuseNavGraph(
                             sharedViewModel = sharedViewModel,
                         )
                     }
+                    } // 关闭共享元素宿主（全应用唯一 SharedTransitionLayout）
                 } // 关闭 else(showOnboarding) 分支
             }
 

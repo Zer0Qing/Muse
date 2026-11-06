@@ -117,6 +117,7 @@ import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.animation.SendFlight
 import io.zer0.muse.ui.common.animation.SendFlightWindow
 import io.zer0.muse.ui.common.animation.computeSendFlight
+import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -1524,6 +1525,8 @@ fun ChatScreen(
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis,
+                                                        // F2 链路 B 终点：与任务列表会话行标题同源共享
+                                                        modifier = Modifier.museSharedElement(key = "session-title-${currentSession.id}"),
                                                     )
                                                 }
                                             }
