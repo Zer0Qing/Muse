@@ -391,7 +391,9 @@
     <string name="cloud_backup_enable">Включить облачное резервное копирование</string>
     <string name="cloud_backup_hide_secret">Скрыть</string>
     <string name="cloud_backup_interval_hint">Чем короче интервал, тем чаще загрузки и больше расход трафика и батареи; для больших баз знаний рекомендуется ≥ 3 дней</string>
-    <string name="cloud_backup_interval_days">%1$d дн.</string>
+    <plurals name="cloud_backup_interval_days">
+        <item quantity="other">%1$d дн.</item>
+    </plurals>
     <string name="cloud_backup_interval_label">Интервал резервного копирования (дней)</string>
     <string name="cloud_backup_list_empty">Нет удаленных резервных копий</string>
     <string name="cloud_backup_list_load_failed">Ошибка загрузки; проверьте конфигурацию и повторите</string>

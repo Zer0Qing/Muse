@@ -43,7 +43,9 @@
     <string name="onboarding_provider_apikey_show">显示密钥</string>
     <string name="onboarding_provider_apikey_hide">隐藏密钥</string>
     <string name="onboarding_provider_test_button">测试连接</string>
-    <string name="onboarding_provider_test_success">连接成功，共 %1$d 个可用模型</string>
+    <plurals name="onboarding_provider_test_success">
+        <item quantity="other">连接成功，共 %1$d 个可用模型</item>
+    </plurals>
     <string name="onboarding_provider_skip">稍后在设置里配置</string>
     <string name="onboarding_provider_custom">自定义（OpenAI 兼容）</string>
     <string name="onboarding_provider_custom_baseurl_label">自定义接口地址</string>

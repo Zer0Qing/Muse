@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -457,7 +458,11 @@ private fun SettingsSearchResults(
             ) {
                 item(key = "count") {
                     Text(
-                        text = stringResource(R.string.settings_search_result_count, results.size),
+                        text = pluralStringResource(
+                            R.plurals.settings_search_result_count,
+                            results.size,
+                            results.size,
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,

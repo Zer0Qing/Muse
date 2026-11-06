@@ -710,7 +710,10 @@
     <string name="settings_screen_archived_desc">Ver e restaurar conversas arquivadas</string>
     <string name="settings_screen_share">Compartilhar</string>
     <string name="settings_share_page_title">Compartilhar</string>
-    <string name="settings_search_result_count">%1$d resultados encontrados</string>
+    <plurals name="settings_search_result_count">
+        <item quantity="one">%1$d resultado encontrado</item>
+        <item quantity="other">%1$d resultados encontrados</item>
+    </plurals>
     <string name="settings_screen_miniphone_desc">Versão inicial de um recurso experimental</string>
     <string name="model_diff_clear_add">Limpar modelos novos</string>
     <string name="model_diff_clear_remove">Limpar modelos removidos</string>
@@ -726,8 +729,14 @@
     <string name="chat_list_edit">Editar</string>
     <string name="chat_list_edit_archive">Arquivar</string>
     <string name="chat_list_edit_delete">Excluir</string>
-    <string name="chat_list_edit_delete_confirm">Excluir %1$d conversas selecionadas e todas as mensagens delas? Esta ação não pode ser desfeita.</string>
-    <string name="chat_list_edit_done">%1$d itens processados</string>
+    <plurals name="chat_list_edit_delete_confirm">
+        <item quantity="one">Excluir %1$d conversa selecionada e todas as mensagens dela? Esta ação não pode ser desfeita.</item>
+        <item quantity="other">Excluir %1$d conversas selecionadas e todas as mensagens delas? Esta ação não pode ser desfeita.</item>
+    </plurals>
+    <plurals name="chat_list_edit_done">
+        <item quantity="one">%1$d item processado</item>
+        <item quantity="other">%1$d itens processados</item>
+    </plurals>
     <string name="chat_list_edit_exit">Sair</string>
     <string name="chat_list_edit_select_all">Selecionar tudo</string>
     <string name="chat_list_restored_toast">Restaurada</string>

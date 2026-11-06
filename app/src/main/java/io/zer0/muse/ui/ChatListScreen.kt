@@ -54,6 +54,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -1905,7 +1906,7 @@ private fun ChatListEditMode(
     modifier: Modifier = Modifier,
 ) {
     val archivedToast = stringResource(R.string.chat_list_archived_toast)
-    val doneToast = stringResource(R.string.chat_list_edit_done, selectedIds.size)
+    val doneToast = pluralStringResource(R.plurals.chat_list_edit_done, selectedIds.size, selectedIds.size)
     val allSelected = sessions.isNotEmpty() && selectedIds.size == sessions.size
     // 批量删除一次毁掉多条会话及其消息,且不可撤销 — 与单条左滑删除同等对待,必须先确认。
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -1916,7 +1917,11 @@ private fun ChatListEditMode(
             title = stringResource(R.string.chat_list_delete_session_title),
             content = {
                 Text(
-                    text = stringResource(R.string.chat_list_edit_delete_confirm, selectedCount),
+                    text = pluralStringResource(
+                        R.plurals.chat_list_edit_delete_confirm,
+                        selectedCount,
+                        selectedCount,
+                    ),
                 )
             },
             confirmText = stringResource(R.string.action_delete),

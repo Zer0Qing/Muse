@@ -818,7 +818,10 @@
     <!-- v1.x: share settings page (formerly "Security & Sharing"; app lock / search engine removed) -->
     <string name="settings_screen_share">Share</string>
     <string name="settings_share_page_title">Share</string>
-    <string name="settings_search_result_count">%1$d results found</string>
+    <plurals name="settings_search_result_count">
+        <item quantity="one">%1$d result found</item>
+        <item quantity="other">%1$d results found</item>
+    </plurals>
     <string name="settings_screen_miniphone_desc">Early version of an experimental feature</string>
     <string name="model_diff_clear_add">Clear new models</string>
     <string name="model_diff_clear_remove">Clear removed models</string>
@@ -830,8 +833,14 @@
     <string name="chat_list_edit">Edit</string>
     <string name="chat_list_edit_archive">Archive</string>
     <string name="chat_list_edit_delete">Delete</string>
-    <string name="chat_list_edit_delete_confirm">Delete %1$d selected conversations and all of their messages? This action cannot be undone.</string>
-    <string name="chat_list_edit_done">%1$d items processed</string>
+    <plurals name="chat_list_edit_delete_confirm">
+        <item quantity="one">Delete %1$d selected conversation and all of its messages? This action cannot be undone.</item>
+        <item quantity="other">Delete %1$d selected conversations and all of their messages? This action cannot be undone.</item>
+    </plurals>
+    <plurals name="chat_list_edit_done">
+        <item quantity="one">%1$d item processed</item>
+        <item quantity="other">%1$d items processed</item>
+    </plurals>
     <string name="chat_list_edit_exit">Exit</string>
     <string name="chat_list_edit_select_all">Select all</string>
     <string name="chat_list_restored_toast">Restored</string>

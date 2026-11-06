@@ -392,7 +392,10 @@
     <string name="cloud_backup_enable">Enable cloud backup</string>
     <string name="cloud_backup_hide_secret">Hide</string>
     <string name="cloud_backup_interval_hint">Shorter intervals mean more frequent uploads, using more data and battery; for large knowledge bases, ≥ 3 days is recommended</string>
-    <string name="cloud_backup_interval_days">%1$d days</string>
+    <plurals name="cloud_backup_interval_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
     <string name="cloud_backup_interval_label">Backup interval (days)</string>
     <string name="cloud_backup_list_empty">No remote backups yet</string>
     <string name="cloud_backup_list_load_failed">Failed to load; check configuration and retry</string>

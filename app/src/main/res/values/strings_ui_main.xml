@@ -513,7 +513,9 @@
     <!-- v1.132: 设置搜索 + 分组重排 -->
     <string name="settings_search_hint">搜索设置项…</string>
     <string name="settings_search_no_results">个匹配项</string>
-    <string name="settings_search_result_count">找到 %1$d 项结果</string>
+    <plurals name="settings_search_result_count">
+        <item quantity="other">找到 %1$d 项结果</item>
+    </plurals>
 
     <!-- v1.97 gap8: 工具分组(独立翻译页入口) -->
     <string name="settings_screen_translate">AI 翻译</string>
@@ -570,8 +572,12 @@
     <string name="chat_list_edit_delete">删除</string>
     <string name="chat_list_edit_archive">归档</string>
     <string name="chat_list_edit_exit">退出</string>
-    <string name="chat_list_edit_done">已处理 %1$d 项</string>
-    <string name="chat_list_edit_delete_confirm">将删除选中的 %1$d 个会话及其所有消息，此操作不可撤销。确认删除？</string>
+    <plurals name="chat_list_edit_done">
+        <item quantity="other">已处理 %1$d 项</item>
+    </plurals>
+    <plurals name="chat_list_edit_delete_confirm">
+        <item quantity="other">将删除选中的 %1$d 个会话及其所有消息，此操作不可撤销。确认删除？</item>
+    </plurals>
     <string name="chat_fork_success">已从当前对话创建新会话</string>
 
     <!-- v1.0.4: P1 反馈补全 — 视频生成占位 / 草稿恢复提示 / 历史加载更多 -->

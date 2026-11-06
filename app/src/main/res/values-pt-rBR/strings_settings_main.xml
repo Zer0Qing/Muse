@@ -391,7 +391,10 @@
     <string name="cloud_backup_enable">Ativar backup na nuvem</string>
     <string name="cloud_backup_hide_secret">Ocultar</string>
     <string name="cloud_backup_interval_hint">Intervalos menores significam envios mais frequentes, consumindo mais dados e bateria; para bases grandes, recomenda-se ≥ 3 dias</string>
-    <string name="cloud_backup_interval_days">%1$d dias</string>
+    <plurals name="cloud_backup_interval_days">
+        <item quantity="one">%1$d dia</item>
+        <item quantity="other">%1$d dias</item>
+    </plurals>
     <string name="cloud_backup_interval_label">Intervalo de backup (dias)</string>
     <string name="cloud_backup_list_empty">Nenhum backup remoto ainda</string>
     <string name="cloud_backup_list_load_failed">Falha ao carregar; verifique a configuração e tente novamente</string>

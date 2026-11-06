@@ -710,7 +710,9 @@
     <string name="settings_screen_archived_desc">アーカイブした会話の表示と復元</string>
     <string name="settings_screen_share">共有</string>
     <string name="settings_share_page_title">共有</string>
-    <string name="settings_search_result_count">%1$d 件の結果が見つかりました</string>
+    <plurals name="settings_search_result_count">
+        <item quantity="other">%1$d 件の結果が見つかりました</item>
+    </plurals>
     <string name="settings_screen_miniphone_desc">実験機能の初期バージョン</string>
     <string name="model_diff_clear_add">新規モデルを解除</string>
     <string name="model_diff_clear_remove">削除モデルを解除</string>
@@ -726,8 +728,12 @@
     <string name="chat_list_edit">編集</string>
     <string name="chat_list_edit_archive">アーカイブ</string>
     <string name="chat_list_edit_delete">削除</string>
-    <string name="chat_list_edit_delete_confirm">選択した %1$d 件の会話とそのメッセージをすべて削除します。この操作は元に戻せません。削除しますか？</string>
-    <string name="chat_list_edit_done">%1$d 件を処理しました</string>
+    <plurals name="chat_list_edit_delete_confirm">
+        <item quantity="other">選択した %1$d 件の会話とそのメッセージをすべて削除します。この操作は元に戻せません。削除しますか？</item>
+    </plurals>
+    <plurals name="chat_list_edit_done">
+        <item quantity="other">%1$d 件を処理しました</item>
+    </plurals>
     <string name="chat_list_edit_exit">終了</string>
     <string name="chat_list_edit_select_all">すべて選択</string>
     <string name="chat_list_restored_toast">復元しました</string>

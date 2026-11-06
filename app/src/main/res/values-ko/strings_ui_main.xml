@@ -710,7 +710,9 @@
     <string name="settings_screen_archived_desc">보관된 대화 보기 및 복원</string>
     <string name="settings_screen_share">공유</string>
     <string name="settings_share_page_title">공유</string>
-    <string name="settings_search_result_count">%1$d개의 결과를 찾았습니다</string>
+    <plurals name="settings_search_result_count">
+        <item quantity="other">%1$d개의 결과를 찾았습니다</item>
+    </plurals>
     <string name="settings_screen_miniphone_desc">실험 기능 초기 버전</string>
     <string name="model_diff_clear_add">새 모델 선택 해제</string>
     <string name="model_diff_clear_remove">삭제 모델 선택 해제</string>
@@ -726,8 +728,12 @@
     <string name="chat_list_edit">편집</string>
     <string name="chat_list_edit_archive">보관</string>
     <string name="chat_list_edit_delete">삭제</string>
-    <string name="chat_list_edit_delete_confirm">선택한 %1$d개의 대화와 모든 메시지를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 삭제하시겠습니까?</string>
-    <string name="chat_list_edit_done">%1$d개 처리됨</string>
+    <plurals name="chat_list_edit_delete_confirm">
+        <item quantity="other">선택한 %1$d개의 대화와 모든 메시지를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 삭제하시겠습니까?</item>
+    </plurals>
+    <plurals name="chat_list_edit_done">
+        <item quantity="other">%1$d개 처리됨</item>
+    </plurals>
     <string name="chat_list_edit_exit">종료</string>
     <string name="chat_list_edit_select_all">전체 선택</string>
     <string name="chat_list_restored_toast">복원했습니다</string>

@@ -43,7 +43,10 @@
     <string name="onboarding_provider_apikey_show">Mostrar clave</string>
     <string name="onboarding_provider_apikey_hide">Ocultar clave</string>
     <string name="onboarding_provider_test_button">Conexión de prueba</string>
-    <string name="onboarding_provider_test_success">Conexión exitosa. Modelos disponibles: %1$d.</string>
+    <plurals name="onboarding_provider_test_success">
+        <item quantity="one">Conexión exitosa. Modelo disponible: %1$d.</item>
+        <item quantity="other">Conexión exitosa. Modelos disponibles: %1$d.</item>
+    </plurals>
     <string name="onboarding_provider_skip">Configurar más tarde en Ajustes</string>
     <string name="onboarding_provider_custom">Personalizado (compatible con OpenAI)</string>
     <string name="onboarding_provider_custom_baseurl_label">URL base personalizada</string>

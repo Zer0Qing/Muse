@@ -519,7 +519,7 @@ fun CloudBackupPage(onBack: () -> Unit) {
                         }
                         Spacer(Modifier.height(MusePaddings.contentGap))
                         // 单位走资源:硬编码"天"会让英文界面出现"3 天"这种半中半英的读数。
-                        val intervalDaysFormat = stringResource(R.string.cloud_backup_interval_days)
+                        val intervalDaysPlural = R.plurals.cloud_backup_interval_days
                         MuseSlider(
                             value = sliderValue,
                             onValueChange = { intervalDaysDraft = it },
@@ -527,7 +527,8 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             // 1..30 共 30 个取值,steps = 30-2 = 28
                             steps = 28,
                             valueFormatter = { v ->
-                                String.format(java.util.Locale.getDefault(), intervalDaysFormat, v.toInt())
+                                val days = v.toInt()
+                                context.resources.getQuantityString(intervalDaysPlural, days, days)
                             },
                         )
                         Spacer(Modifier.height(MusePaddings.contentGap))

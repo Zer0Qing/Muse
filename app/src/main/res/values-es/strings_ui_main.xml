@@ -710,7 +710,10 @@
     <string name="settings_screen_archived_desc">Ver y restaurar conversaciones archivadas</string>
     <string name="settings_screen_share">Compartir</string>
     <string name="settings_share_page_title">Compartir</string>
-    <string name="settings_search_result_count">%1$d resultados encontrados</string>
+    <plurals name="settings_search_result_count">
+        <item quantity="one">%1$d resultado encontrado</item>
+        <item quantity="other">%1$d resultados encontrados</item>
+    </plurals>
     <string name="settings_screen_miniphone_desc">Versión inicial de una función experimental</string>
     <string name="model_diff_clear_add">Limpiar modelos nuevos</string>
     <string name="model_diff_clear_remove">Limpiar modelos eliminados</string>
@@ -726,8 +729,14 @@
     <string name="chat_list_edit">Editar</string>
     <string name="chat_list_edit_archive">Archivar</string>
     <string name="chat_list_edit_delete">Eliminar</string>
-    <string name="chat_list_edit_delete_confirm">Se eliminarán %1$d conversaciones seleccionadas y todos sus mensajes. Esta acción no se puede deshacer. ¿Confirmar?</string>
-    <string name="chat_list_edit_done">%1$d elementos procesados</string>
+    <plurals name="chat_list_edit_delete_confirm">
+        <item quantity="one">Se eliminará %1$d conversación seleccionada y todos sus mensajes. Esta acción no se puede deshacer. ¿Confirmar?</item>
+        <item quantity="other">Se eliminarán %1$d conversaciones seleccionadas y todos sus mensajes. Esta acción no se puede deshacer. ¿Confirmar?</item>
+    </plurals>
+    <plurals name="chat_list_edit_done">
+        <item quantity="one">%1$d elemento procesado</item>
+        <item quantity="other">%1$d elementos procesados</item>
+    </plurals>
     <string name="chat_list_edit_exit">Salir</string>
     <string name="chat_list_edit_select_all">Seleccionar todo</string>
     <string name="chat_list_restored_toast">Restaurado</string>

@@ -52,6 +52,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -1105,7 +1106,11 @@ private fun StepProviderConfig(
                     )
                     Spacer(modifier = Modifier.width(MusePaddings.iconPadding))
                     Text(
-                        text = stringResource(R.string.onboarding_provider_test_success, testStatus.models.size),
+                        text = pluralStringResource(
+                            R.plurals.onboarding_provider_test_success,
+                            testStatus.models.size,
+                            testStatus.models.size,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )

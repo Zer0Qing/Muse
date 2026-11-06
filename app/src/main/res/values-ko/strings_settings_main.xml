@@ -391,7 +391,9 @@
     <string name="cloud_backup_enable">클라우드 백업 활성화</string>
     <string name="cloud_backup_hide_secret">숨기기</string>
     <string name="cloud_backup_interval_hint">간격이 짧을수록 업로드가 잦아져 데이터와 배터리를 더 소모합니다. 대규모 지식 기반은 ≥ 3일 권장</string>
-    <string name="cloud_backup_interval_days">%1$d일</string>
+    <plurals name="cloud_backup_interval_days">
+        <item quantity="other">%1$d일</item>
+    </plurals>
     <string name="cloud_backup_interval_label">백업 간격(일)</string>
     <string name="cloud_backup_list_empty">원격 백업이 없습니다</string>
     <string name="cloud_backup_list_load_failed">불러오기 실패. 구성을 확인한 후 다시 시도하세요</string>

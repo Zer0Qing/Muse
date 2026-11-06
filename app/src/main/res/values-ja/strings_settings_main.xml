@@ -391,7 +391,9 @@
     <string name="cloud_backup_enable">クラウドバックアップを有効化</string>
     <string name="cloud_backup_hide_secret">非表示</string>
     <string name="cloud_backup_interval_hint">間隔が短いほどアップロードが頻繁になり、データ通信量と電池を消費します。大規模ナレッジベースでは ≥ 3 日を推奨</string>
-    <string name="cloud_backup_interval_days">%1$d 日</string>
+    <plurals name="cloud_backup_interval_days">
+        <item quantity="other">%1$d 日</item>
+    </plurals>
     <string name="cloud_backup_interval_label">バックアップ間隔(日)</string>
     <string name="cloud_backup_list_empty">リモートにバックアップはまだありません</string>
     <string name="cloud_backup_list_load_failed">読み込み失敗。設定を確認して再試行してください</string>

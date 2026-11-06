@@ -707,7 +707,11 @@
     <string name="settings_screen_archived_desc">Просмотр и восстановление архивных диалогов</string>
     <string name="settings_screen_share">Поделиться</string>
     <string name="settings_share_page_title">Поделиться</string>
-    <string name="settings_search_result_count">Найдено результатов: %1$d</string>
+    <plurals name="settings_search_result_count">
+        <item quantity="one">Найден %1$d результат</item>
+        <item quantity="few">Найдено %1$d результата</item>
+        <item quantity="other">Найдено %1$d результатов</item>
+    </plurals>
     <string name="settings_screen_miniphone_desc">Ранняя версия экспериментальной функции</string>
     <string name="model_diff_clear_add">Очистить новые модели</string>
     <string name="model_diff_clear_remove">Очистить удалённые модели</string>
@@ -723,8 +727,16 @@
     <string name="chat_list_edit">Изменить</string>
     <string name="chat_list_edit_archive">В архив</string>
     <string name="chat_list_edit_delete">Удалить</string>
-    <string name="chat_list_edit_delete_confirm">Удалить %1$d выбранных бесед и все их сообщения? Это действие необратимо.</string>
-    <string name="chat_list_edit_done">Обработано элементов: %1$d</string>
+    <plurals name="chat_list_edit_delete_confirm">
+        <item quantity="one">Удалить %1$d выбранную беседу и все её сообщения? Это действие необратимо.</item>
+        <item quantity="few">Удалить %1$d выбранные беседы и все их сообщения? Это действие необратимо.</item>
+        <item quantity="other">Удалить %1$d выбранных бесед и все их сообщения? Это действие необратимо.</item>
+    </plurals>
+    <plurals name="chat_list_edit_done">
+        <item quantity="one">Обработан элемент: %1$d</item>
+        <item quantity="few">Обработано элемента: %1$d</item>
+        <item quantity="other">Обработано элементов: %1$d</item>
+    </plurals>
     <string name="chat_list_edit_exit">Выйти</string>
     <string name="chat_list_edit_select_all">Выбрать всё</string>
     <string name="chat_list_restored_toast">Восстановлено</string>
