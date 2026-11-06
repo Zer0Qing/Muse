@@ -403,6 +403,24 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
     var validationResult by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     // null = 未改动；空字符串 = 明确解除绑定；非空 = 新扫码得到的 token。
     var weclawTokenOverride by remember { mutableStateOf<String?>(null) }
+    var confirmWeclawUnbind by remember { mutableStateOf(false) }
+    // 解绑会丢掉只有扫码才能再得到的令牌,而同页删除渠道早有确认 —— 补齐同一道闸门。
+    if (confirmWeclawUnbind) {
+        MuseDialog(
+            onDismissRequest = { confirmWeclawUnbind = false },
+            title = stringResource(R.string.channel_weclaw_unbind),
+            content = { Text(stringResource(R.string.channel_weclaw_unbind_confirm)) },
+            confirmText = stringResource(R.string.channel_weclaw_unbind),
+            onConfirm = {
+                confirmWeclawUnbind = false
+                weclawTokenOverride = ""
+                targetId = ""
+            },
+            dismissText = stringResource(R.string.settings_common_cancel),
+            onDismiss = { confirmWeclawUnbind = false },
+            destructive = true,
+        )
+    }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val manager: ChannelManager = koinInject()
@@ -550,10 +568,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                                     color = MaterialTheme.colorScheme.error,
                                     modifier =
                                     Modifier
-                                        .clickable {
-                                            weclawTokenOverride = ""
-                                            targetId = ""
-                                        }
+                                        .clickable { confirmWeclawUnbind = true }
                                         .padding(4.dp),
                                 )
                             }

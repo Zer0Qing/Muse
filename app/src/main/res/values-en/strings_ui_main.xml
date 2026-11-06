@@ -442,6 +442,7 @@
     <string name="channel_weclaw_scan">Scan to Login</string>
     <string name="channel_weclaw_rescan">Re-login</string>
     <string name="channel_weclaw_unbind">Unbind</string>
+    <string name="channel_weclaw_unbind_confirm">Unbinding clears the token and the target conversation. Rebinding requires scanning the QR code again.</string>
     <string name="channel_weclaw_hint">Connect via WeChat iLink protocol</string>
     <string name="channel_weclaw_exclusive">Each WeChat account can only be bound to one channel. Binding a new one invalidates the previous one.</string>
     <string name="channel_weclaw_reply_window">Proactive WeChat notifications require a recent incoming message or reply window. If reminders do not arrive, send this channel a WeChat message to activate that window.</string>

@@ -47,6 +47,7 @@ import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -108,6 +109,7 @@ fun CloudBackupPage(onBack: () -> Unit) {
     // U-4: 云端恢复覆盖确认开关(恢复最新 / 按版本,RESTORE 前先弹确认,确认后才执行)
     var confirmRestoreLatest by remember { mutableStateOf(false) }
     var confirmRestoreFile by remember { mutableStateOf<String?>(null) }
+    var confirmDeleteFile by remember { mutableStateOf<String?>(null) }
 
     // v1.141 F1: 恢复失败专项 UX — 记录失败的操作类型与目标文件,弹出可重试的失败对话框
     var restoreFailKind by remember { mutableStateOf<RestoreFailKind?>(null) }
@@ -448,25 +450,9 @@ fun CloudBackupPage(onBack: () -> Unit) {
                                 backup = backup,
                                 onDelete = {
                                     if (deleting != null || restoring || backingUp) return@RemoteBackupRow
-                                    deleting = backup.fileName
-                                    scope.launch {
-                                        val ok = cloudBackupService.deleteBackup(cloudConfig, backup.fileName)
-                                        deleting = null
-                                        MuseToast.show(
-                                            context.getString(
-                                                if (ok) {
-                                                    R.string.cloud_backup_delete_success
-                                                } else {
-                                                    R.string.cloud_backup_delete_failed
-                                                },
-                                            ),
-                                        )
-                                        if (ok) {
-                                            remoteBackups = resultOf {
-                                                cloudBackupService.listBackups(cloudConfig)
-                                            }.getOrNull() ?: emptyList()
-                                        }
-                                    }
+                                    // 远端归档是不可逆数据,若删的恰好是唯一一份,用户会在无意间
+                                    // 失去全部云端退路 —— 与本页"恢复""覆盖导入"同等对待,先点名确认。
+                                    confirmDeleteFile = backup.fileName
                                 },
                                 onRestore = {
                                     if (deleting != null || restoring || backingUp) return@RemoteBackupRow
@@ -602,6 +588,40 @@ fun CloudBackupPage(onBack: () -> Unit) {
             },
             onConfirm = null,
             dismissText = null,
+        )
+    }
+
+    val pendingDeleteFile = confirmDeleteFile
+    if (pendingDeleteFile != null) {
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.cloud_backup_delete_this),
+            itemName = pendingDeleteFile,
+            consequence = stringResource(R.string.cloud_backup_delete_consequence),
+            onConfirm = {
+                confirmDeleteFile = null
+                if (deleting == null && !restoring && !backingUp) {
+                    deleting = pendingDeleteFile
+                    scope.launch {
+                        val ok = cloudBackupService.deleteBackup(cloudConfig, pendingDeleteFile)
+                        deleting = null
+                        MuseToast.show(
+                            context.getString(
+                                if (ok) {
+                                    R.string.cloud_backup_delete_success
+                                } else {
+                                    R.string.cloud_backup_delete_failed
+                                },
+                            ),
+                        )
+                        if (ok) {
+                            remoteBackups = resultOf {
+                                cloudBackupService.listBackups(cloudConfig)
+                            }.getOrNull() ?: emptyList()
+                        }
+                    }
+                }
+            },
+            onDismiss = { confirmDeleteFile = null },
         )
     }
 

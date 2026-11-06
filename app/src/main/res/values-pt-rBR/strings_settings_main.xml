@@ -68,6 +68,7 @@
     <string name="settings_provider_tab_models">Modelos</string>
     <string name="settings_provider_file_picker_failed">Não é possível abrir o seletor de arquivos: %1$s</string>
     <string name="settings_provider_delete_title">Excluir provedor</string>
+    <string name="settings_provider_delete_consequence">A chave de API e a lista de modelos configurada tambem serao excluidas.</string>
     <string name="settings_provider_delete_content">Tem certeza de que deseja excluir %1$s?</string>
     <string name="settings_provider_action_activate">Definir como atual</string>
     <string name="settings_model_catalog_refresh">Verificar atualizações</string>
@@ -383,6 +384,7 @@
     <string name="cloud_backup_backup_success">Enviado para a nuvem</string>
     <string name="cloud_backup_config_saved">Configuração salva</string>
     <string name="cloud_backup_delete_failed">Falha ao excluir</string>
+    <string name="cloud_backup_delete_consequence">Esta versao na nuvem sera excluida permanentemente. Se for a unica copia, voce perde a alternativa de recuperacao na nuvem.</string>
     <string name="cloud_backup_delete_success">Excluído</string>
     <string name="cloud_backup_delete_this">Excluir</string>
     <string name="cloud_backup_enable">Ativar backup na nuvem</string>

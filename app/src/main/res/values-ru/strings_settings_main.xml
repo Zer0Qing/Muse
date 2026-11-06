@@ -68,6 +68,7 @@
     <string name="settings_provider_tab_models">Модели</string>
     <string name="settings_provider_file_picker_failed">Невозможно открыть средство выбора файлов: %1$s</string>
     <string name="settings_provider_delete_title">Удалить поставщика</string>
+    <string name="settings_provider_delete_consequence">Ключ API и настроенный список моделей также будут удалены.</string>
     <string name="settings_provider_delete_content">Вы уверены, что хотите удалить %1$s?</string>
     <string name="settings_provider_action_activate">Сделать текущим</string>
     <string name="settings_model_catalog_refresh">Проверить обновления</string>
@@ -383,6 +384,7 @@
     <string name="cloud_backup_backup_success">Загружено в облако</string>
     <string name="cloud_backup_config_saved">Конфигурация сохранена</string>
     <string name="cloud_backup_delete_failed">Ошибка удаления</string>
+    <string name="cloud_backup_delete_consequence">Эта облачная версия будет удалена безвозвратно. Если она единственная, вы потеряете облачный запасной вариант.</string>
     <string name="cloud_backup_delete_success">Удалено</string>
     <string name="cloud_backup_delete_this">Удалить</string>
     <string name="cloud_backup_enable">Включить облачное резервное копирование</string>

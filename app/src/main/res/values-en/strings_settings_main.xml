@@ -69,6 +69,7 @@
     <string name="settings_provider_tab_models">Models</string>
     <string name="settings_provider_file_picker_failed">Cannot open file picker: %1$s</string>
     <string name="settings_provider_delete_title">Delete Provider</string>
+    <string name="settings_provider_delete_consequence">Its API key and its configured model list are deleted too.</string>
     <string name="settings_provider_delete_content">Are you sure you want to delete %1$s? This action cannot be undone.</string>
     <string name="settings_provider_action_activate">Set as current</string>
     <string name="settings_model_catalog_refresh">Check for updates</string>
@@ -384,6 +385,7 @@
     <string name="cloud_backup_backup_success">Uploaded to cloud</string>
     <string name="cloud_backup_config_saved">Configuration saved</string>
     <string name="cloud_backup_delete_failed">Delete failed</string>
+    <string name="cloud_backup_delete_consequence">This cloud version is removed permanently. If it is your only copy, you lose the cloud fallback.</string>
     <string name="cloud_backup_delete_success">Deleted</string>
     <string name="cloud_backup_delete_this">Delete</string>
     <string name="cloud_backup_enable">Enable cloud backup</string>

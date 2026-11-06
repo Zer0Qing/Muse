@@ -88,6 +88,7 @@
     <string name="settings_provider_tab_models">模型</string>
     <string name="settings_provider_file_picker_failed">无法打开文件选择器： %1$s</string>
     <string name="settings_provider_delete_title">删除供应商</string>
+    <string name="settings_provider_delete_consequence">其 API Key 与已配置的模型清单会一并删除。</string>
     <string name="settings_provider_delete_content">确定删除 %1$s？该操作不可恢复。</string>
     <string name="settings_provider_action_activate">设为当前</string>
     <string name="settings_model_catalog_refresh">检查更新</string>
@@ -256,6 +257,7 @@
     <string name="cloud_backup_backup_failed">上传失败，请检查配置</string>
     <string name="cloud_backup_delete_success">已删除</string>
     <string name="cloud_backup_delete_failed">删除失败</string>
+    <string name="cloud_backup_delete_consequence">该云端版本会被永久移除；若它是唯一一份，将失去云端退路。</string>
     <string name="cloud_backup_list_empty">远端暂无备份</string>
     <string name="cloud_backup_list_loading">正在加载...</string>
     <string name="cloud_backup_list_load_failed">加载失败，请检查配置后重试</string>

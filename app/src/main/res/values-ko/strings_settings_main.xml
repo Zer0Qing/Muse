@@ -68,6 +68,7 @@
     <string name="settings_provider_tab_models">모델</string>
     <string name="settings_provider_file_picker_failed">파일 선택기를 열 수 없습니다: %1$s</string>
     <string name="settings_provider_delete_title">공급자 삭제</string>
+    <string name="settings_provider_delete_consequence">API 키와 설정된 모델 목록도 함께 삭제됩니다.</string>
     <string name="settings_provider_delete_content">%1$s을 삭제하시겠습니까?</string>
     <string name="settings_provider_action_activate">현재로 설정</string>
     <string name="settings_model_catalog_refresh">업데이트 확인</string>
@@ -383,6 +384,7 @@
     <string name="cloud_backup_backup_success">클라우드에 업로드됨</string>
     <string name="cloud_backup_config_saved">구성이 저장되었습니다</string>
     <string name="cloud_backup_delete_failed">삭제 실패</string>
+    <string name="cloud_backup_delete_consequence">이 클라우드 백업은 완전히 삭제됩니다. 유일한 사본이면 클라우드 복구 수단을 잃게 됩니다.</string>
     <string name="cloud_backup_delete_success">삭제됨</string>
     <string name="cloud_backup_delete_this">삭제</string>
     <string name="cloud_backup_enable">클라우드 백업 활성화</string>

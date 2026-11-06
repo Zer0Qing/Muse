@@ -38,6 +38,7 @@ import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
@@ -392,6 +393,20 @@ internal fun ProviderRow(
     testStatus: ProviderTestStatus = ProviderTestStatus.Idle,
 ) {
     var actionsOpen by remember { mutableStateOf(false) }
+    // 删除供应商会连带丢掉 API Key 与模型清单,且不可恢复 —— 与所有破坏性操作一样先确认。
+    var confirmDelete by remember { mutableStateOf(false) }
+    if (confirmDelete) {
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.settings_provider_delete_title),
+            itemName = config.displayName.ifBlank { config.id },
+            consequence = stringResource(R.string.settings_provider_delete_consequence),
+            onConfirm = {
+                confirmDelete = false
+                onDelete()
+            },
+            onDismiss = { confirmDelete = false },
+        )
+    }
 
     Row(
         modifier = Modifier
@@ -477,7 +492,7 @@ internal fun ProviderRow(
                     MuseListItem(
                         onClick = {
                             actionsOpen = false
-                            onDelete()
+                            confirmDelete = true
                         },
                         headlineContent = {
                             Text(stringResource(R.string.settings_provider_delete_title))

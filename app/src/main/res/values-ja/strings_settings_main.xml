@@ -68,6 +68,7 @@
     <string name="settings_provider_tab_models">モデル</string>
     <string name="settings_provider_file_picker_failed">ファイルピッカーを開けません: %1$s</string>
     <string name="settings_provider_delete_title">プロバイダーの削除</string>
+    <string name="settings_provider_delete_consequence">API キーと設定済みのモデル一覧もあわせて削除されます。</string>
     <string name="settings_provider_delete_content">%1$s を削除してもよろしいですか?</string>
     <string name="settings_provider_action_activate">現在に設定</string>
     <string name="settings_model_catalog_refresh">更新を確認</string>
@@ -383,6 +384,7 @@
     <string name="cloud_backup_backup_success">クラウドにアップロードしました</string>
     <string name="cloud_backup_config_saved">設定を保存しました</string>
     <string name="cloud_backup_delete_failed">削除に失敗しました</string>
+    <string name="cloud_backup_delete_consequence">このクラウドバックアップは完全に削除されます。唯一のコピーの場合、クラウド上の退路を失います。</string>
     <string name="cloud_backup_delete_success">削除しました</string>
     <string name="cloud_backup_delete_this">削除</string>
     <string name="cloud_backup_enable">クラウドバックアップを有効化</string>

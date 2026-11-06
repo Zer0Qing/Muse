@@ -447,6 +447,7 @@
     <string name="channel_weclaw_scan">扫码登录</string>
     <string name="channel_weclaw_rescan">重新登录</string>
     <string name="channel_weclaw_unbind">解除绑定</string>
+    <string name="channel_weclaw_unbind_confirm">解绑会清空令牌与目标会话，重新绑定需要再次扫码。确认解绑？</string>
     <string name="channel_weclaw_hint">通过微信 iLink 协议接入个人号</string>
     <string name="channel_weclaw_exclusive">一个微信号只能绑定一个渠道，绑定新渠道后旧的会自动失效</string>
     <string name="channel_weclaw_reply_window">微信主动通知依赖最近一次收到消息后的回复窗口。如果提醒没有送达，可以先给这个渠道发一条微信来激活窗口。</string>
