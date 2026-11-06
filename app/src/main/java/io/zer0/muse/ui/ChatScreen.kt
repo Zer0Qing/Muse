@@ -3469,7 +3469,10 @@ fun ChatScreen(
                                             )
                                             Spacer(Modifier.width(MusePaddings.tightGap))
                                             Text(
-                                                text = s.title.ifBlank { stringResource(R.string.session_repo_default_title) },
+                                                text = io.zer0.muse.data.session.displaySessionTitle(
+                                                    s.title,
+                                                    stringResource(R.string.chat_new_session),
+                                                ),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,

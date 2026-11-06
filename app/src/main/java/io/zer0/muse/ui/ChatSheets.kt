@@ -311,7 +311,10 @@ internal fun ChatSheetHost(
                             MuseListItem(
                                 headlineContent = {
                                     Text(
-                                        text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                                        text = io.zer0.muse.data.session.displaySessionTitle(
+                                            session.title,
+                                            stringResource(R.string.chat_new_session),
+                                        ),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = if (isCurrent) {
                                             MaterialTheme.colorScheme.primary

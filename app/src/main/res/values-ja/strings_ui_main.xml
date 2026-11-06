@@ -403,7 +403,6 @@
     <string name="search_try_other">他のキーワードを試してください</string>
     <string name="search_section_sessions">セッション</string>
     <string name="search_section_messages">メッセージ</string>
-    <string name="search_new_session">新しいセッション</string>
     <string name="search_time_today">今日 %1$s</string>
     <string name="search_time_yesterday">昨日 %1$s</string>
 

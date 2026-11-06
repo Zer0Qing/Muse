@@ -403,7 +403,6 @@
     <string name="search_try_other">Experimente outras palavras-chave</string>
     <string name="search_section_sessions">Sessões</string>
     <string name="search_section_messages">Mensagens</string>
-    <string name="search_new_session">Nova sessão</string>
     <string name="search_time_today">Hoje %1$s</string>
     <string name="search_time_yesterday">Ontem %1$s</string>
 

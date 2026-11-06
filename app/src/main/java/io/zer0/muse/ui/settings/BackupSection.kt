@@ -159,7 +159,10 @@ internal fun BackupSection(
                     ConversationExporter.exportToJson(
                         sessionId = session.id,
                         messages = messages,
-                        chatTitle = session.title.ifBlank { context.getString(R.string.session_repo_default_title) },
+                        chatTitle = io.zer0.muse.data.session.displaySessionTitle(
+                            session.title,
+                            context.getString(R.string.chat_new_session),
+                        ),
                         locale = Locale.getDefault(),
                     )
                 withContext(kotlinx.coroutines.Dispatchers.IO) {

@@ -403,7 +403,6 @@
     <string name="search_try_other">다른 키워드로 시도해 보세요</string>
     <string name="search_section_sessions">세션</string>
     <string name="search_section_messages">메시지</string>
-    <string name="search_new_session">새 세션</string>
     <string name="search_time_today">오늘 %1$s</string>
     <string name="search_time_yesterday">어제 %1$s</string>
 

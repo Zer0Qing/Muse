@@ -502,7 +502,6 @@
     <string name="search_try_other">Try other keywords</string>
     <string name="search_section_sessions">Sessions</string>
     <string name="search_section_messages">Messages</string>
-    <string name="search_new_session">New Session</string>
     <string name="search_time_today">Today %1$s</string>
     <string name="search_time_yesterday">Yesterday %1$s</string>
 

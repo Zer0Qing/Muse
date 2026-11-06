@@ -633,7 +633,8 @@ class ChatStreamCoordinator(
         with(state) {
             // 通知:启动流式进度通知(LOW importance,不发声)
             sessionTitle = accessor.snapshot.sessions
-                .firstOrNull { it.id == sessionId }?.title ?: appContext.getString(R.string.chat_new_session)
+                .firstOrNull { it.id == sessionId }?.title
+                    .let { io.zer0.muse.data.session.displaySessionTitle(it, appContext.getString(R.string.chat_new_session)) }
             runCatching {
                 notificationManager.updateLiveProgress(
                     sessionTitle,

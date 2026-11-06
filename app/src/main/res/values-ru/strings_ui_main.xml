@@ -403,7 +403,6 @@
     <string name="search_try_other">Попробуйте другие ключевые слова</string>
     <string name="search_section_sessions">Сессии</string>
     <string name="search_section_messages">Сообщения</string>
-    <string name="search_new_session">Новая сессия</string>
     <string name="search_time_today">Сегодня %1$s</string>
     <string name="search_time_yesterday">Вчера %1$s</string>
 

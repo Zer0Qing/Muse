@@ -143,7 +143,10 @@ private fun DeletedSessionCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                    text = io.zer0.muse.data.session.displaySessionTitle(
+                        session.title,
+                        stringResource(R.string.chat_new_session),
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,

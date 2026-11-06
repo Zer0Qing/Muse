@@ -413,7 +413,7 @@ private fun SearchResults(
                     SessionResultRow(
                         title = meaningfulTitle
                             ?: fallbackPreview
-                            ?: stringResource(R.string.search_new_session),
+                            ?: stringResource(R.string.chat_new_session),
                         preview = session.lastMessagePreview,
                         updatedAt = session.updatedAt,
                         onClick = { onOpenSession(session.id) },
@@ -705,7 +705,10 @@ private fun MessageSearchResultRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = sessionTitle.ifBlank { stringResource(R.string.search_new_session) },
+                    text = io.zer0.muse.data.session.displaySessionTitle(
+                        sessionTitle,
+                        stringResource(R.string.chat_new_session),
+                    ),
                     style = MaterialTheme.typography.bodyMediumStrong,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
