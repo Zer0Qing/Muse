@@ -187,17 +187,23 @@ android {
         // v2.6.22: 深色模式假玻璃修正（菜单/底部面板/消息气泡不再被提亮成灰白"气泡"，改为深色玻璃）；
         //          用户约定「希望/不希望它做的事」+ 语音回复频率与音色入口（设置→自动化）；
         //          搜索顺序表与强度控件补渲染测试；FTS5 探针改读编译选项（修跨用例随机红）。
+        // v2.6.23: 前端流体化翻新（弹簧档位统一动效词汇表、边缘凝光替代圆形涟漪遮罩、
+        //          弹层跟手拖拽与弹簧回弹、共享元素试点、玻璃高光参数收敛为令牌）；
+        //          体验整改 U1–U8（归档/文件夹/多选入口接通、破坏性操作点名确认、凭据退出 saved state、
+        //          二维码默认不含密钥、引导语言与返回策略修复、数量文案改复数、15 处裸 Toast 收敛、
+        //          长表单改底部面板）；实机走查 X 批（无可用模型服务不再静默空回合、通知权限改按需请求、
+        //          主题名与 PII 的机翻硬伤纠正、会话标题口径全链路统一、完成页卡片可直达、跳过态后退补全）。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
             // 默认值跟随当前发行线；正式构建仍显式注入并与 tag 核对。
-            ?: 285
+            ?: 286
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
             // 名称与编号保持同一发行线，防止本地构建无意产生错配。
-            ?: "2.6.22"
+            ?: "2.6.23"
     }
 
     signingConfigs {
