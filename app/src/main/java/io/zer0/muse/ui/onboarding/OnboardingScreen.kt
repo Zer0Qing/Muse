@@ -829,7 +829,8 @@ private fun StepMemory(memoryEnabled: Boolean, onMemoryEnabledChange: (Boolean) 
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = MuseIcons.atom,
+                    // 记忆功能的图形统一为 brain(助手详情/数据管理/进程列表同一口径),不再借 atom。
+                    imageVector = MuseIcons.brain,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

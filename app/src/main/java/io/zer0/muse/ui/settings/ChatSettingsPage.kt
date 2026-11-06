@@ -501,7 +501,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = MuseIcons.atom,
+                    icon = MuseIcons.moodSmile,
                     title = stringResource(R.string.settings_chat_show_mood),
                     subtitle = stringResource(R.string.settings_chat_show_mood_subtitle),
                     checked = prefs.showMoodBlock,
@@ -509,7 +509,8 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = MuseIcons.atom,
+                    // 思考过程的图形早已定为 brain(进程列表 think/reasoning 同一口径),atom 留给"反思"。
+                    icon = MuseIcons.brain,
                     title = stringResource(R.string.settings_chat_show_reasoning),
                     subtitle = stringResource(R.string.settings_chat_show_reasoning_subtitle),
                     checked = prefs.showReasoning,
@@ -829,7 +830,8 @@ fun ChatSettingsPage(
                         else -> 1
                     }
                 SettingsSegmentedRow(
-                    icon = MuseIcons.atom,
+                    // 回复风格是"怎么说"的文字类设置,与字号/字体同族;atom 是思考/原子的语义,借错了。
+                    icon = MuseIcons.typography,
                     title = stringResource(R.string.settings_chat_style),
                     subtitle = stringResource(R.string.settings_chat_style_subtitle),
                     options = styleOptions,
