@@ -120,7 +120,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     var userName by rememberSaveable { mutableStateOf("") }
     var agentName by rememberSaveable { mutableStateOf("Muse") }
     var selectedPresetId by rememberSaveable { mutableStateOf("") }
-    var apiKey by rememberSaveable { mutableStateOf("") }
+    // 密钥不进 saved state:部分 ROM 会把 Bundle 落盘,引导期填的 key 不该留下磁盘痕迹。
+    var apiKey by remember { mutableStateOf("") }
     var customBaseUrl by rememberSaveable { mutableStateOf("") }
     var apiKeyVisible by rememberSaveable { mutableStateOf(false) }
     var testStatus by remember { mutableStateOf<TestStatus>(TestStatus.Idle) }

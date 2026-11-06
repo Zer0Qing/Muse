@@ -93,9 +93,10 @@ fun VoiceCloningPage(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // ── 表单状态(rememberSaveable 保证旋转/配置变更后保留;Uri 用 remember 避免序列化兼容问题)──
+    // ── 表单状态(rememberSaveable 保证旋转/配置变更后保留;Uri 用 remember 避免序列化兼容问题;
+    // apiKey 同样用 remember —— 凭据不进 saved state,部分 ROM 会把 Bundle 落盘)──
     var selectedProvider by rememberSaveable { mutableStateOf("elevenlabs") }
-    var apiKey by rememberSaveable { mutableStateOf("") }
+    var apiKey by remember { mutableStateOf("") }
     var apiKeyVisible by rememberSaveable { mutableStateOf(false) }
     var voiceName by rememberSaveable { mutableStateOf("") }
     var selectedAudioUri by remember { mutableStateOf<Uri?>(null) }

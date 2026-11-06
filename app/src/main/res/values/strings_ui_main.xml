@@ -124,6 +124,8 @@
     <string name="qr_share_title">分享供应商二维码</string>
     <string name="qr_share_cd">供应商配置二维码</string>
     <string name="qr_share_warning">此二维码包含 API Key 明文，请仅分享给信任的接收方</string>
+    <string name="qr_share_warning_no_key">此二维码不含 API Key，接收方需在对端自行填写密钥。</string>
+    <string name="qr_share_include_key">二维码包含 API Key</string>
     <string name="qr_scan_title">扫描二维码</string>
     <string name="qr_scan_pick_image">从相册选择二维码图片</string>
     <string name="qr_scan_scanning">正在识别…</string>

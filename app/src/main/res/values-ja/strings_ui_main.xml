@@ -475,6 +475,8 @@
     <string name="qr_share_title">プロバイダーの QR コードを共有する</string>
     <string name="qr_share_cd">プロバイダー構成 QR コード</string>
     <string name="qr_share_warning">この QR コードには、プレーンテキストの API キーが含まれています。</string>
+    <string name="qr_share_warning_no_key">この QR コードには API キーが含まれていません。受け取り側で手動入力してください。</string>
+    <string name="qr_share_include_key">QR コードに API キーを含める</string>
     <string name="qr_share_btn">QRコードをシェアする</string>
     <string name="qr_scan_title">QR コードをスキャン</string>
     <string name="qr_scan_pick_image">ギャラリーから QR コード画像を選択します</string>

@@ -574,6 +574,8 @@
     <string name="qr_share_title">Share provider QR code</string>
     <string name="qr_share_cd">Provider config QR code</string>
     <string name="qr_share_warning">This QR code contains the API Key in plain text. Only share it with trusted recipients.</string>
+    <string name="qr_share_warning_no_key">This QR code contains no API key. The receiving side must enter it manually.</string>
+    <string name="qr_share_include_key">Include the API key in the QR code</string>
     <string name="qr_share_btn">Share QR code</string>
     <string name="qr_scan_title">Scan QR code</string>
     <string name="qr_scan_pick_image">Pick a QR code image from gallery</string>

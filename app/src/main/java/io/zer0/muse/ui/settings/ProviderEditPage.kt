@@ -90,7 +90,9 @@ internal fun ProviderEditPage(
     var displayName by rememberSaveable { mutableStateOf(config.displayName) }
     var type by rememberSaveable(stateSaver = ProviderTypeSaver) { mutableStateOf(config.type) }
     var baseUrl by rememberSaveable { mutableStateOf(config.baseUrl) }
-    var apiKey by rememberSaveable { mutableStateOf(config.apiKey) }
+    // 凭据编辑期的值只活在本次编辑:进 saved state 会被部分 ROM 落盘,而这里的值
+    // 本来就来自已加密存储,回填一次即可,不需要跨进程恢复。
+    var apiKey by remember { mutableStateOf(config.apiKey) }
     var apiKeyVisible by rememberSaveable { mutableStateOf(false) }
     // modelsState 为 Model 列表,需自定义 Saver,且旋转后可从 config 重建,保持 remember
     val modelsState = remember { mutableStateListOf<Model>().apply { addAll(config.models) } }
@@ -110,7 +112,8 @@ internal fun ProviderEditPage(
     var useVertexAi by rememberSaveable { mutableStateOf(geminiSpecific.useVertexAI) }
     var useServiceAccount by rememberSaveable { mutableStateOf(geminiSpecific.useServiceAccount) }
     var serviceAccountEmail by rememberSaveable { mutableStateOf(geminiSpecific.serviceAccountEmail) }
-    var privateKey by rememberSaveable { mutableStateOf(geminiSpecific.privateKey) }
+    // 服务账号私钥同理:只在本次编辑期内存在。
+    var privateKey by remember { mutableStateOf(geminiSpecific.privateKey) }
     var privateKeyVisible by rememberSaveable { mutableStateOf(false) }
     var vertexLocation by rememberSaveable { mutableStateOf(geminiSpecific.location) }
     var vertexProjectId by rememberSaveable { mutableStateOf(geminiSpecific.projectId) }
@@ -903,6 +906,7 @@ internal fun ProviderEditPage(
     var showDiscardConfirm by remember { mutableStateOf(false) }
     // v1.97: 二维码分享弹窗
     var showQrShareDialog by remember { mutableStateOf(false) }
+    var qrIncludeKey by remember { mutableStateOf(false) }
     // v1.134 P1-2: 用 buildCurrentConfig() == config 全字段比对,
     // 覆盖 specific / Vertex / OpenAI / Anthropic / Custom / balanceApiPath 等高级字段。
     val hasUnsavedChanges by remember {
@@ -1147,9 +1151,15 @@ internal fun ProviderEditPage(
 
     // v1.97: 二维码分享弹窗(分享当前编辑状态的 ProviderConfig)
     if (showQrShareDialog) {
-        val qrContent = io.zer0.muse.ui.qrcode.QrCodeGenerator.encodeProvider(buildCurrentConfig())
+        // 默认不含密钥:屏幕展示/截图不再等于交出 API Key,对端手填一次即可;
+        // 只有在信任的设备之间才由用户显式切到含密钥档。
+        val qrContent = io.zer0.muse.ui.qrcode.QrCodeGenerator.encodeProvider(
+            if (qrIncludeKey) buildCurrentConfig() else buildCurrentConfig().copy(apiKey = ""),
+        )
         io.zer0.muse.ui.qrcode.QrCodeShareDialog(
             content = qrContent,
+            includesSecret = qrIncludeKey,
+            onIncludesSecretChange = { qrIncludeKey = it },
             onDismiss = { showQrShareDialog = false },
         )
     }

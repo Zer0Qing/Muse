@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
@@ -26,6 +28,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
@@ -55,7 +58,9 @@ fun ProxySettingsPage(onBack: () -> Unit) {
     var host by rememberSaveable(proxyConfig.host) { mutableStateOf(proxyConfig.host) }
     var portText by rememberSaveable(proxyConfig.port) { mutableStateOf(proxyConfig.port.toString()) }
     var username by rememberSaveable(proxyConfig.username) { mutableStateOf(proxyConfig.username) }
-    var password by rememberSaveable(proxyConfig.password) { mutableStateOf(proxyConfig.password) }
+    // 口令不进 saved state(部分 ROM 会落盘);其余字段仍走 rememberSaveable 保草稿。
+    var password by remember(proxyConfig.password) { mutableStateOf(proxyConfig.password) }
+    var passwordVisible by remember { mutableStateOf(false) }
     // v2.6.9: 不走代理的域名（逗号分隔）
     var bypass by rememberSaveable(proxyConfig.bypassHosts) { mutableStateOf(proxyConfig.bypassHosts) }
     var saving by rememberSaveable { mutableStateOf(false) }
@@ -135,7 +140,22 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(R.string.proxy_password)) },
-                    visualTransformation = PasswordVisualTransformation(),
+                    // 口令默认打码但要能核对:填错无从发现的问题,和 TTS/克隆密钥页一样用一只眼睛解决。
+                    visualTransformation = if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        MuseTactileButton(
+                            icon = if (passwordVisible) MuseIcons.eyeOff else MuseIcons.eye,
+                            onClick = { passwordVisible = !passwordVisible },
+                            contentDescription = stringResource(
+                                if (passwordVisible) R.string.settings_common_hide else R.string.settings_common_show,
+                            ),
+                        )
+                    },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()

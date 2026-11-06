@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +32,7 @@ import coil.request.ImageRequest
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.icons.MuseIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,10 +44,17 @@ import kotlinx.coroutines.withContext
  * 生成二维码 Bitmap 并居中显示,提示用户"包含 apiKey,请谨慎分享"。
  *
  * @param content 编码后的二维码字符串(由 QrCodeGenerator.encodeProvider 生成)
+ * @param includesSecret 当前这枚码是否把 API Key 编了进去 — 决定警示语与开关状态
+ * @param onIncludesSecretChange 切换"含密钥 / 不含密钥"两种分享
  * @param onDismiss 关闭回调
  */
 @Composable
-fun QrCodeShareDialog(content: String, onDismiss: () -> Unit) {
+fun QrCodeShareDialog(
+    content: String,
+    onDismiss: () -> Unit,
+    includesSecret: Boolean,
+    onIncludesSecretChange: (Boolean) -> Unit,
+) {
     var bitmap by remember(content) { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(content) {
         bitmap = withContext(Dispatchers.Default) {
@@ -76,10 +85,38 @@ fun QrCodeShareDialog(content: String, onDismiss: () -> Unit) {
                         tint = MaterialTheme.colorScheme.outline,
                     )
                 }
+                // 屏幕展示或截图就等于交出密钥,所以"不含密钥"是默认档:
+                // 预设信息(端点/模型清单)同样值得分享,而密钥可以在对端手填。
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(R.string.qr_share_include_key),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    MuseSwitch(
+                        checked = includesSecret,
+                        onCheckedChange = onIncludesSecretChange,
+                        contentDescription = stringResource(R.string.qr_share_include_key),
+                    )
+                }
                 Text(
-                    text = stringResource(R.string.qr_share_warning),
+                    text = stringResource(
+                        if (includesSecret) {
+                            R.string.qr_share_warning
+                        } else {
+                            R.string.qr_share_warning_no_key
+                        },
+                    ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = if (includesSecret) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     textAlign = TextAlign.Center,
                 )
             }

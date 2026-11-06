@@ -475,6 +475,8 @@
     <string name="qr_share_title">Compartir código QR del proveedor</string>
     <string name="qr_share_cd">Código QR de configuración del proveedor</string>
     <string name="qr_share_warning">Este código QR contiene la clave API en texto sin formato.</string>
+    <string name="qr_share_warning_no_key">Este código QR no incluye la clave de API. El receptor deberá escribirla a mano.</string>
+    <string name="qr_share_include_key">Incluir la clave de API en el código QR</string>
     <string name="qr_share_btn">Compartir código QR</string>
     <string name="qr_scan_title">Escanear código QR</string>
     <string name="qr_scan_pick_image">Elija una imagen de código QR de la galería</string>

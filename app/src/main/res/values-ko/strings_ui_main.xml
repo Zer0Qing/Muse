@@ -475,6 +475,8 @@
     <string name="qr_share_title">프로바이더 QR 코드 공유</string>
     <string name="qr_share_cd">프로바이더 설정 QR 코드</string>
     <string name="qr_share_warning">이 QR 코드에는 API Key가 평문으로 포함되어 있습니다. 신뢰할 수 있는 수신자에게만 공유하세요</string>
+    <string name="qr_share_warning_no_key">이 QR 코드에는 API 키가 없습니다. 받는 쪽에서 직접 입력해야 합니다.</string>
+    <string name="qr_share_include_key">QR 코드에 API 키 포함</string>
     <string name="qr_share_btn">QR 코드 공유</string>
     <string name="qr_scan_title">QR 코드 스캔</string>
     <string name="qr_scan_pick_image">갤러리에서 QR 이미지 선택</string>
