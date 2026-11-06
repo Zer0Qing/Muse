@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">No providers yet</string>
     <string name="settings_provider_empty_subtitle">Add a provider first so the assistant can start working</string>
     <string name="settings_provider_empty_action">Add Provider</string>
+    <string name="settings_provider_free_ready_title">Built-in free models are ready</string>
+    <string name="settings_provider_free_ready_subtitle">Chat works right now. Adding your own provider is optional and unlocks more quota and capabilities.</string>
     <string name="settings_provider_category_official">Official</string>
     <string name="settings_provider_category_relay">Relay</string>
     <string name="settings_provider_category_custom">Custom</string>

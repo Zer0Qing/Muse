@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">まだプロバイダーがありません</string>
     <string name="settings_provider_empty_subtitle">プロバイダーを追加すると、アシスタントが使い始められます</string>
     <string name="settings_provider_empty_action">プロバイダーの追加</string>
+    <string name="settings_provider_free_ready_title">内蔵の無料モデルが利用できます</string>
+    <string name="settings_provider_free_ready_subtitle">そのまま会話できます。独自プロバイダーの追加は任意で、枠と機能を拡張できます。</string>
     <string name="settings_provider_category_official">正式</string>
     <string name="settings_provider_category_relay">リレー</string>
     <string name="settings_provider_category_custom">カスタム</string>

@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">Ainda não há provedores</string>
     <string name="settings_provider_empty_subtitle">Adicione um provedor para o assistente começar a funcionar</string>
     <string name="settings_provider_empty_action">Adicionar provedor</string>
+    <string name="settings_provider_free_ready_title">Os modelos gratuitos integrados estão prontos</string>
+    <string name="settings_provider_free_ready_subtitle">Já dá para conversar. Adicionar seu próprio provedor é opcional e amplia cota e recursos.</string>
     <string name="settings_provider_category_official">Oficial</string>
     <string name="settings_provider_category_relay">Relé</string>
     <string name="settings_provider_category_custom">Personalizado</string>

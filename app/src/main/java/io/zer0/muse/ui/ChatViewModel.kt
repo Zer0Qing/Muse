@@ -1753,10 +1753,7 @@ class ChatViewModel(
         generationController.enqueueSend(text, images, sessionId)
         // 已发出去的内容不再是草稿，清空该会话的草稿，
         // 避免下次切回来还看到已经发送过的文字。
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching { sessionRepository.saveInputDraft(sessionId, "") }
-                .onFailure { Logger.w("ChatVM", "清空输入草稿失败: ${it.message}") }
-        }
+        clearInputDraft(sessionId)
         // v2.6.7: 记录一次真实互动（亲密度 + 最后互动时间）。
         // 之前只有小手机主动私信会调 recordInteraction，用户在正常对话里
         // 说再多话关系也不动，关系系统实际只活了一半。
@@ -2965,6 +2962,20 @@ class ChatViewModel(
      *
      * 现在：输入变化就落盘（非空防抖 500ms，清空立即写），草稿始终等于用户最后看到的输入框内容。
      */
+    /**
+     * 发送成功后丢弃草稿。
+     *
+     * 必须先取消还在排队的防抖写：那段文字刚刚被提交，迟到的 debounce 会把它原样写回库里，
+     * 下次进这个会话就看到"已经发出去的话又躺在输入框里"，再点一次就是重复发送。
+     */
+    private fun clearInputDraft(sessionId: String) {
+        draftPersistJob?.cancel()
+        draftPersistJob = viewModelScope.launch(Dispatchers.IO) {
+            runCatching { sessionRepository.saveInputDraft(sessionId, "") }
+                .onFailure { Logger.w("ChatVM", "清空输入草稿失败: ${it.message}") }
+        }
+    }
+
     private fun persistDraftDebounced(text: String) {
         val st = _state.value
         if (st.isAgentMode) return

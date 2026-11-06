@@ -58,6 +58,7 @@ import io.zer0.muse.auth.OAuthManager
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.ui.chat.usableProviderPresent
 import io.zer0.muse.ui.common.feedback.MuseAlertDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -555,6 +556,7 @@ fun SettingsModelPage(
             // Provider 列表(同包 internal LazyListScope 扩展,直接调用)
             providerListSection(
                 providers = providersList,
+                hasUsableProvider = usableProviderPresent(providers.orEmpty()),
                 activeProviderId = activeProviderId,
                 onActivate = { id -> scope.launch { settings.setActiveProvider(id) } },
                 onEdit = { config ->

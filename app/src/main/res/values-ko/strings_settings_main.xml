@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">아직 제공업체가 없습니다.</string>
     <string name="settings_provider_empty_subtitle">공급자를 추가하면 어시스턴트가 작동하기 시작합니다</string>
     <string name="settings_provider_empty_action">공급자 추가</string>
+    <string name="settings_provider_free_ready_title">내장 무료 모델이 준비됨</string>
+    <string name="settings_provider_free_ready_subtitle">지금 바로 대화할 수 있습니다. 자체 제공자 추가는 선택이며 용량과 기능이 늘어납니다.</string>
     <string name="settings_provider_category_official">공식적인</string>
     <string name="settings_provider_category_relay">계전기</string>
     <string name="settings_provider_category_custom">관습</string>

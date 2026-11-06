@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">Пока нет поставщиков</string>
     <string name="settings_provider_empty_subtitle">Добавьте поставщика, чтобы ассистент мог начать работу</string>
     <string name="settings_provider_empty_action">Добавить поставщика</string>
+    <string name="settings_provider_free_ready_title">Встроенные бесплатные модели готовы</string>
+    <string name="settings_provider_free_ready_subtitle">Уже можно общаться. Свой провайдер необязателен, но даёт больше лимитов и возможностей.</string>
     <string name="settings_provider_category_official">Официальный</string>
     <string name="settings_provider_category_relay">Реле</string>
     <string name="settings_provider_category_custom">Обычай</string>

@@ -34,6 +34,8 @@
     <string name="settings_provider_empty_title">还没有供应商</string>
     <string name="settings_provider_empty_subtitle">先添加一个供应商，助手才能开始工作</string>
     <string name="settings_provider_empty_action">添加供应商</string>
+    <string name="settings_provider_free_ready_title">内置免费模型已就绪</string>
+    <string name="settings_provider_free_ready_subtitle">现在就能开始聊天；接入自己的供应商是可选的，额度和能力更全</string>
     <string name="settings_provider_category_official">官方厂商</string>
     <string name="settings_provider_category_relay">中转站</string>
     <string name="settings_provider_category_custom">自定义</string>

@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">Aún no hay proveedores</string>
     <string name="settings_provider_empty_subtitle">Añade un proveedor para que el asistente pueda empezar</string>
     <string name="settings_provider_empty_action">Agregar proveedor</string>
+    <string name="settings_provider_free_ready_title">Los modelos gratuitos integrados ya están listos</string>
+    <string name="settings_provider_free_ready_subtitle">Ya puedes chatear. Añadir tu propio proveedor es opcional y da más cuota y capacidades.</string>
     <string name="settings_provider_category_official">Oficial</string>
     <string name="settings_provider_category_relay">Relé</string>
     <string name="settings_provider_category_custom">Costumbre</string>
