@@ -1733,13 +1733,6 @@ private fun WakeEntryRow(entry: WakeWorkEntry) {
             )
         }
         Text(
-            text = entry.uniqueName,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
             text = stringResource(
                 R.string.wake_diagnostics_next_run,
                 formatWakeTime(entry.nextRunAtMillis) ?: stringResource(R.string.wake_diagnostics_next_run_none),
@@ -1748,7 +1741,7 @@ private fun WakeEntryRow(entry: WakeWorkEntry) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         val extras = buildList {
-            add(stringResource(R.string.wake_diagnostics_attempts, entry.runAttemptCount))
+            if (entry.runAttemptCount > 0) add(stringResource(R.string.wake_diagnostics_attempts, entry.runAttemptCount))
             if (entry.historyCount > 1) add(stringResource(R.string.wake_diagnostics_history, entry.historyCount - 1))
             if (entry.constrained) add(stringResource(R.string.wake_diagnostics_constrained))
         }

@@ -729,7 +729,7 @@
     <!-- バックグラウンド起動の診断:システムが実際に Muse の起動を予約しているか(読み取り専用) -->
     <string name="wake_diagnostics_open">バックグラウンド起動状態</string>
     <string name="wake_diagnostics_title">バックグラウンド起動状態</string>
-    <string name="wake_diagnostics_subtitle">システムのキューにある実際のスケジュールを表示します。読み取り専用で、スケジュールは変更しません。</string>
+    <string name="wake_diagnostics_subtitle">システムが実際に予約しているバックグラウンドジョブの一覧です。内蔵のバックアップや要約も含まれ、あなたが作成したタスクとは別ものです。読み取り専用で、予約は変わりません。</string>
     <string name="wake_diagnostics_refresh">再読み込み</string>
     <string name="wake_diagnostics_copy">スナップショットをコピー</string>
     <string name="wake_diagnostics_copied">スナップショットをコピーしました</string>
@@ -750,14 +750,14 @@
     <string name="wake_diagnostics_empty">読み取れるバックグラウンドタスクがありません</string>
     <string name="wake_diagnostics_read_failed">読み取り失敗: %1$s</string>
     <!-- 状態名は翻訳しない:WorkInfo.State の英語名のままにする（検索・報告で使われるため）。 -->
-    <string name="wake_state_enqueued">ENQUEUED</string>
-    <string name="wake_state_running">RUNNING</string>
-    <string name="wake_state_blocked">BLOCKED</string>
-    <string name="wake_state_succeeded">SUCCEEDED</string>
-    <string name="wake_state_failed">FAILED</string>
-    <string name="wake_state_cancelled">CANCELLED</string>
-    <string name="wake_state_not_registered">NOT_REGISTERED</string>
-    <string name="wake_state_unknown">UNKNOWN</string>
+    <string name="wake_state_enqueued">予約済み</string>
+    <string name="wake_state_running">実行中</string>
+    <string name="wake_state_blocked">システムにより保留</string>
+    <string name="wake_state_succeeded">完了</string>
+    <string name="wake_state_failed">失敗</string>
+    <string name="wake_state_cancelled">キャンセル済み</string>
+    <string name="wake_state_not_registered">未予約</string>
+    <string name="wake_state_unknown">不明</string>
     <string name="wake_kind_scheduled_task">定期タスク</string>
     <string name="wake_kind_moment">モーメンツ</string>
     <string name="wake_kind_proactive">自発メッセージ</string>

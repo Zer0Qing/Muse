@@ -730,7 +730,7 @@
     <!-- Diagnóstico de activación en segundo plano: si el sistema realmente tiene activaciones en cola para Muse (solo lectura) -->
     <string name="wake_diagnostics_open">Estado de activación en segundo plano</string>
     <string name="wake_diagnostics_title">Estado de activación en segundo plano</string>
-    <string name="wake_diagnostics_subtitle">Lee la programación real de la cola del sistema. Solo lectura, no se reprograma nada.</string>
+    <string name="wake_diagnostics_subtitle">Aquí están los trabajos en segundo plano tal como el sistema los programó, incluidos los de copia y resumen integrados; no son las tareas que creaste. Solo lectura: no se reprograma nada.</string>
     <string name="wake_diagnostics_refresh">Volver a leer</string>
     <string name="wake_diagnostics_copy">Copiar instantánea</string>
     <string name="wake_diagnostics_copied">Instantánea copiada</string>
@@ -751,14 +751,14 @@
     <string name="wake_diagnostics_empty">No hay tareas en segundo plano que leer</string>
     <string name="wake_diagnostics_read_failed">Error de lectura: %1$s</string>
     <!-- Los nombres de estado no se traducen: se buscan y se reportan con los nombres de WorkInfo.State. -->
-    <string name="wake_state_enqueued">ENQUEUED</string>
-    <string name="wake_state_running">RUNNING</string>
-    <string name="wake_state_blocked">BLOCKED</string>
-    <string name="wake_state_succeeded">SUCCEEDED</string>
-    <string name="wake_state_failed">FAILED</string>
-    <string name="wake_state_cancelled">CANCELLED</string>
-    <string name="wake_state_not_registered">NOT_REGISTERED</string>
-    <string name="wake_state_unknown">UNKNOWN</string>
+    <string name="wake_state_enqueued">Programada</string>
+    <string name="wake_state_running">En ejecución</string>
+    <string name="wake_state_blocked">Bloqueada por el sistema</string>
+    <string name="wake_state_succeeded">Completada</string>
+    <string name="wake_state_failed">Fallida</string>
+    <string name="wake_state_cancelled">Cancelada</string>
+    <string name="wake_state_not_registered">Sin programar</string>
+    <string name="wake_state_unknown">Desconocido</string>
     <string name="wake_kind_scheduled_task">Tareas programadas</string>
     <string name="wake_kind_moment">Momentos</string>
     <string name="wake_kind_proactive">Mensajes proactivos</string>

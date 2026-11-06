@@ -682,7 +682,7 @@
     <!-- Background wake diagnostics: whether the system actually has wakeups queued for Muse (read-only). -->
     <string name="wake_diagnostics_open">Background wake status</string>
     <string name="wake_diagnostics_title">Background wake status</string>
-    <string name="wake_diagnostics_subtitle">Reads the real schedule in the system queue. Read-only, nothing is rescheduled.</string>
+    <string name="wake_diagnostics_subtitle">These are the app's background jobs as the system actually scheduled them, including built-in backup and summary work - they are not the tasks you created. Read-only; nothing is rescheduled.</string>
     <string name="wake_diagnostics_refresh">Reload</string>
     <string name="wake_diagnostics_copy">Copy snapshot</string>
     <string name="wake_diagnostics_copied">Snapshot copied</string>
@@ -703,14 +703,14 @@
     <string name="wake_diagnostics_empty">No background work to read</string>
     <string name="wake_diagnostics_read_failed">Read failed: %1$s</string>
     <!-- State names are intentionally untranslated: people search and report with the WorkInfo.State names. -->
-    <string name="wake_state_enqueued">ENQUEUED</string>
-    <string name="wake_state_running">RUNNING</string>
-    <string name="wake_state_blocked">BLOCKED</string>
-    <string name="wake_state_succeeded">SUCCEEDED</string>
-    <string name="wake_state_failed">FAILED</string>
-    <string name="wake_state_cancelled">CANCELLED</string>
-    <string name="wake_state_not_registered">NOT_REGISTERED</string>
-    <string name="wake_state_unknown">UNKNOWN</string>
+    <string name="wake_state_enqueued">Scheduled</string>
+    <string name="wake_state_running">Running</string>
+    <string name="wake_state_blocked">Blocked by system</string>
+    <string name="wake_state_succeeded">Completed</string>
+    <string name="wake_state_failed">Failed</string>
+    <string name="wake_state_cancelled">Cancelled</string>
+    <string name="wake_state_not_registered">Not scheduled</string>
+    <string name="wake_state_unknown">Unknown</string>
     <string name="wake_kind_scheduled_task">Scheduled tasks</string>
     <string name="wake_kind_moment">Moments</string>
     <string name="wake_kind_proactive">Proactive messages</string>
