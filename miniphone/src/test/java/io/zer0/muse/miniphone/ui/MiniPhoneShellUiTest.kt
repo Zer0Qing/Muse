@@ -67,6 +67,15 @@ class MiniPhoneShellUiTest {
         db?.close()
     }
 
+
+    /**
+     * 断言绑资源而不是中文串：小手机的界面文案已经进了 strings 资源，
+     * 换语言或改文案时这条测试不该跟着红（模块文档本来就是这么约定的）。
+     */
+    private fun tabTitle(tab: io.zer0.muse.miniphone.ui.shell.MiniPhoneTab): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getString(tab.titleRes)
+
     @Test
     fun tabBarSwitchesBetweenFourPages() {
         compose.setContent {
@@ -80,21 +89,21 @@ class MiniPhoneShellUiTest {
         compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertDoesNotExist()
 
         compose.onNodeWithTag(MiniPhoneTags.tab(MiniPhoneTab.MESSAGES)).performClick()
-        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals("消息")
+        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals(tabTitle(MiniPhoneTab.MESSAGES))
         compose.onNodeWithTag(MiniPhoneTags.EMPTY_THREADS).assertExists()
 
         compose.onNodeWithTag(MiniPhoneTags.tab(MiniPhoneTab.CONTACTS)).performClick()
-        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals("通讯录")
+        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals(tabTitle(MiniPhoneTab.CONTACTS))
         compose.onNodeWithTag(MiniPhoneTags.EMPTY_CONTACTS).assertExists()
         compose.onNodeWithTag(MiniPhoneTags.EMPTY_THREADS).assertDoesNotExist()
 
         compose.onNodeWithTag(MiniPhoneTags.tab(MiniPhoneTab.DISCOVER)).performClick()
-        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals("发现")
+        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals(tabTitle(MiniPhoneTab.DISCOVER))
         compose.onNodeWithTag(MiniPhoneTags.MOMENTS_ENTRY).assertExists()
         compose.onNodeWithTag(MiniPhoneTags.EMPTY_CONTACTS).assertDoesNotExist()
 
         compose.onNodeWithTag(MiniPhoneTags.tab(MiniPhoneTab.ME)).performClick()
-        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals("我")
+        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals(tabTitle(MiniPhoneTab.ME))
         compose.onNodeWithTag(MiniPhoneTags.MOMENTS_ENTRY).assertDoesNotExist()
         compose.onNodeWithText(MeProfile.nickname).assertExists()
     }
@@ -159,7 +168,7 @@ class MiniPhoneShellUiTest {
         compose.onNodeWithTag(MiniPhoneTags.EMPTY_THREADS_ACTION).performClick()
 
         // 点一下就是「切到通讯录」:消息页连同它的空态一起退场
-        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals("通讯录")
+        compose.onNodeWithTag(MiniPhoneTags.PAGE_TITLE).assertTextEquals(tabTitle(MiniPhoneTab.CONTACTS))
         compose.onNodeWithTag(MiniPhoneTags.EMPTY_CONTACTS).assertExists()
         compose.onNodeWithTag(MiniPhoneTags.EMPTY_THREADS).assertDoesNotExist()
     }

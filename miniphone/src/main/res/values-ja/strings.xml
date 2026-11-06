@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 小手机界面的文案。这个模块原来没有 res 目录，界面文字全是 Kotlin 里的中文字面量，
+         于是英文界面里整个小手机都是中文。键名统一 mp_ 前缀，避免与 :app 的同名资源混淆。 -->
+    <string name="mp_tab_messages">メッセージ</string>
+    <string name="mp_tab_contacts">連絡先</string>
+    <string name="mp_tab_discover">発見</string>
+    <string name="mp_tab_me">自分</string>
+    <string name="mp_home_back_cd">ホームに戻る</string>
+    <string name="mp_group_create_cd">グループチャットを開始</string>
+    <string name="mp_group_create_title">グループチャット作成</string>
+</resources>

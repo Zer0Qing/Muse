@@ -25,9 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.data.chat.MIN_GROUP_MEMBERS
 import io.zer0.muse.miniphone.data.chat.canCreateGroup
@@ -64,7 +66,7 @@ internal fun GroupCreatePage(
             .background(colors.background),
     ) {
         GroupPickHeader(
-            title = GROUP_CREATE_TITLE,
+            title = stringResource(R.string.mp_group_create_title),
             hint = selectedHintOf(selectedIds.size),
             canFinish = canCreateGroup(selectedIds.size),
             tagPrefix = GROUP_CREATE_TAG_PREFIX,
@@ -292,7 +294,6 @@ internal fun selectedHintOf(selectedCount: Int): String = if (selectedCount < MI
     "已选 $selectedCount 人"
 }
 
-private const val GROUP_CREATE_TITLE: String = "发起群聊"
 private const val GROUP_PICK_DONE_LABEL: String = "完成"
 private const val EMPTY_CONTACTS_TITLE: String = "通讯录还是空的"
 private const val EMPTY_CONTACTS_HINT: String = "先有角色,才凑得起一个群"

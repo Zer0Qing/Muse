@@ -1,6 +1,7 @@
 package io.zer0.muse.miniphone.ui.shell
 
 import androidx.compose.ui.graphics.vector.ImageVector
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 
 /**
@@ -10,12 +11,12 @@ import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
  */
 enum class MiniPhoneTab(
     val id: String,
-    val title: String,
+    val titleRes: Int,
 ) {
-    MESSAGES("messages", "消息"),
-    CONTACTS("contacts", "通讯录"),
-    DISCOVER("discover", "发现"),
-    ME("me", "我"),
+    MESSAGES("messages", R.string.mp_tab_messages),
+    CONTACTS("contacts", R.string.mp_tab_contacts),
+    DISCOVER("discover", R.string.mp_tab_discover),
+    ME("me", R.string.mp_tab_me),
 }
 
 /**
@@ -30,7 +31,7 @@ data class MiniPhoneApp(
 ) {
     val id: String get() = tab.id
 
-    val label: String get() = tab.title
+    val labelRes: Int get() = tab.titleRes
 }
 
 /**
