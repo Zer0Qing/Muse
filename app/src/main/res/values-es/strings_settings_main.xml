@@ -383,6 +383,7 @@
     <string name="cloud_backup_backup_now">Hacer copia ahora</string>
     <string name="cloud_backup_backup_success">Subido a la nube</string>
     <string name="cloud_backup_config_saved">Configuración guardada</string>
+    <string name="cloud_backup_config_save_failed">No se pudo guardar</string>
     <string name="cloud_backup_delete_failed">Error al eliminar</string>
     <string name="cloud_backup_delete_consequence">Esta version en la nube se elimina de forma permanente. Si es la unica copia, pierdes el respaldo en la nube.</string>
     <string name="cloud_backup_delete_success">Eliminado</string>
@@ -390,6 +391,7 @@
     <string name="cloud_backup_enable">Activar copia de seguridad en la nube</string>
     <string name="cloud_backup_hide_secret">Ocultar</string>
     <string name="cloud_backup_interval_hint">Intervalos más cortos significan subidas más frecuentes y más consumo de datos y batería; para bases grandes, se recomienda ≥ 3 días</string>
+    <string name="cloud_backup_interval_days">%1$d días</string>
     <string name="cloud_backup_interval_label">Intervalo de copia (días)</string>
     <string name="cloud_backup_list_empty">Aún no hay copias de seguridad remotas</string>
     <string name="cloud_backup_list_load_failed">Error al cargar; comprueba la configuración e inténtalo de nuevo</string>

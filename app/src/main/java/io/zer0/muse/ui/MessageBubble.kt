@@ -2244,10 +2244,12 @@ internal fun MessageBubble(
                                 if (showLanguageSubmenu) {
                                     // 翻译语言子菜单(从主菜单"翻译"项触发)
                                     ActionMenuItem(
-                                        icon = MuseIcons.arrowDown,
+                                        icon = MuseIcons.arrowLeft,
                                         text = stringResource(R.string.action_back),
                                         contentDescription = stringResource(R.string.action_back),
-                                        onClick = { actionSurface = MessageActionSurface.Hidden },
+                                        // 返回是"回到主扩展菜单",不是关掉整个菜单 —— 关闭会让用户
+                                        // 只能重新长按两轮才能找回刚才的位置。
+                                        onClick = { actionSurface = MessageActionSurface.Extended },
                                     )
                                     TranslationLanguages.forEach { lang ->
                                         ActionMenuItem(

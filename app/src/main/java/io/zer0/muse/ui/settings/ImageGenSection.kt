@@ -48,6 +48,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -180,10 +181,12 @@ private fun ModelSelectorCard(provider: ProviderConfig?, model: Model?, onClick:
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
-            Text(
-                text = ">",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.outline,
+            // 全站导航箭头统一走 chevron 图标:ASCII ">" 既不成字形、读屏也读不出语义。
+            Icon(
+                imageVector = MuseIcons.chevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(MuseIconSizes.iconSmall),
             )
         }
     }

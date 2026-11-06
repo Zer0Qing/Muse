@@ -265,8 +265,10 @@
     <string name="cloud_backup_auto_subtitle">按设定间隔自动上传到云端</string>
     <string name="cloud_backup_interval_label">备份间隔（天）</string>
     <string name="cloud_backup_interval_hint">间隔越短上传越频繁，会消耗更多流量与电量；大型知识库建议 ≥ 3 天</string>
+    <string name="cloud_backup_interval_days">%1$d 天</string>
     <string name="cloud_backup_save_config">保存配置</string>
     <string name="cloud_backup_config_saved">配置已保存</string>
+    <string name="cloud_backup_config_save_failed">保存失败</string>
     <string name="cloud_backup_type_none">未配置</string>
     <string name="cloud_backup_type_webdav">WebDAV</string>
     <string name="cloud_backup_type_s3">S3 兼容存储</string>

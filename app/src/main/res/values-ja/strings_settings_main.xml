@@ -383,6 +383,7 @@
     <string name="cloud_backup_backup_now">今すぐバックアップ</string>
     <string name="cloud_backup_backup_success">クラウドにアップロードしました</string>
     <string name="cloud_backup_config_saved">設定を保存しました</string>
+    <string name="cloud_backup_config_save_failed">保存に失敗しました</string>
     <string name="cloud_backup_delete_failed">削除に失敗しました</string>
     <string name="cloud_backup_delete_consequence">このクラウドバックアップは完全に削除されます。唯一のコピーの場合、クラウド上の退路を失います。</string>
     <string name="cloud_backup_delete_success">削除しました</string>
@@ -390,6 +391,7 @@
     <string name="cloud_backup_enable">クラウドバックアップを有効化</string>
     <string name="cloud_backup_hide_secret">非表示</string>
     <string name="cloud_backup_interval_hint">間隔が短いほどアップロードが頻繁になり、データ通信量と電池を消費します。大規模ナレッジベースでは ≥ 3 日を推奨</string>
+    <string name="cloud_backup_interval_days">%1$d 日</string>
     <string name="cloud_backup_interval_label">バックアップ間隔(日)</string>
     <string name="cloud_backup_list_empty">リモートにバックアップはまだありません</string>
     <string name="cloud_backup_list_load_failed">読み込み失敗。設定を確認して再試行してください</string>

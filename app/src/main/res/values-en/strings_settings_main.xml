@@ -384,6 +384,7 @@
     <string name="cloud_backup_backup_now">Back up now</string>
     <string name="cloud_backup_backup_success">Uploaded to cloud</string>
     <string name="cloud_backup_config_saved">Configuration saved</string>
+    <string name="cloud_backup_config_save_failed">Failed to save</string>
     <string name="cloud_backup_delete_failed">Delete failed</string>
     <string name="cloud_backup_delete_consequence">This cloud version is removed permanently. If it is your only copy, you lose the cloud fallback.</string>
     <string name="cloud_backup_delete_success">Deleted</string>
@@ -391,6 +392,7 @@
     <string name="cloud_backup_enable">Enable cloud backup</string>
     <string name="cloud_backup_hide_secret">Hide</string>
     <string name="cloud_backup_interval_hint">Shorter intervals mean more frequent uploads, using more data and battery; for large knowledge bases, ≥ 3 days is recommended</string>
+    <string name="cloud_backup_interval_days">%1$d days</string>
     <string name="cloud_backup_interval_label">Backup interval (days)</string>
     <string name="cloud_backup_list_empty">No remote backups yet</string>
     <string name="cloud_backup_list_load_failed">Failed to load; check configuration and retry</string>

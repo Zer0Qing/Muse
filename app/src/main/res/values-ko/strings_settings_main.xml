@@ -383,6 +383,7 @@
     <string name="cloud_backup_backup_now">지금 백업</string>
     <string name="cloud_backup_backup_success">클라우드에 업로드됨</string>
     <string name="cloud_backup_config_saved">구성이 저장되었습니다</string>
+    <string name="cloud_backup_config_save_failed">저장에 실패했습니다</string>
     <string name="cloud_backup_delete_failed">삭제 실패</string>
     <string name="cloud_backup_delete_consequence">이 클라우드 백업은 완전히 삭제됩니다. 유일한 사본이면 클라우드 복구 수단을 잃게 됩니다.</string>
     <string name="cloud_backup_delete_success">삭제됨</string>
@@ -390,6 +391,7 @@
     <string name="cloud_backup_enable">클라우드 백업 활성화</string>
     <string name="cloud_backup_hide_secret">숨기기</string>
     <string name="cloud_backup_interval_hint">간격이 짧을수록 업로드가 잦아져 데이터와 배터리를 더 소모합니다. 대규모 지식 기반은 ≥ 3일 권장</string>
+    <string name="cloud_backup_interval_days">%1$d일</string>
     <string name="cloud_backup_interval_label">백업 간격(일)</string>
     <string name="cloud_backup_list_empty">원격 백업이 없습니다</string>
     <string name="cloud_backup_list_load_failed">불러오기 실패. 구성을 확인한 후 다시 시도하세요</string>

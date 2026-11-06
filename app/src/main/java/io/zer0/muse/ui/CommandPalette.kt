@@ -52,9 +52,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import compose.icons.tablericons.Search
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SearchResult
+import io.zer0.muse.data.session.displaySessionTitle
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -367,6 +367,8 @@ private fun PaletteResultList(
     onRetrySearch: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
+    // 空标题的历史数据不该露出一串 UUID —— 与任务列表同一兜底口径。
+    val untitledSessionTitle = stringResource(R.string.chat_new_session)
     val listState = rememberLazyListState()
     // CHAT-15: 键盘上下选中时滚动跟随 — 按 LazyColumn 实际条目顺序(含 section 标题)换算索引。
     LaunchedEffect(
@@ -448,7 +450,7 @@ private fun PaletteResultList(
                         Box(museAnimateItem()) {
                             CommandRow(
                                 icon = MuseIcons.search,
-                                label = session.sessionTitle.ifBlank { session.sessionId },
+                                label = displaySessionTitle(session.sessionTitle, untitledSessionTitle),
                                 detail = stringResource(R.string.command_palette_open_session),
                                 selected = selectedIndex == visibleCommands.size + index,
                                 onClick = { onSelect(visibleCommands.size + index) },
@@ -468,7 +470,7 @@ private fun PaletteResultList(
                         Box(museAnimateItem()) {
                             CommandRow(
                                 icon = MuseIcons.search,
-                                label = message.sessionTitle.ifBlank { message.sessionId },
+                                label = displaySessionTitle(message.sessionTitle, untitledSessionTitle),
                                 detail = message.contentSnippet,
                                 selected = selectedIndex == visibleCommands.size + sessionResults.size + index,
                                 onClick = { onSelect(visibleCommands.size + sessionResults.size + index) },

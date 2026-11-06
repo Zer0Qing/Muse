@@ -282,7 +282,11 @@ fun CloudBackupPage(onBack: () -> Unit) {
                                     MuseToast.show(context.getString(R.string.cloud_backup_config_saved))
                                 }
                                 .onError { _, t ->
-                                    MuseToast.show(t?.message ?: "Save failed", 2500)
+                                    // 兜底文案不能是英文裸串:中文环境里"Save failed"既读不出原因也不合语境。
+                                    MuseToast.show(
+                                        t?.message ?: context.getString(R.string.cloud_backup_config_save_failed),
+                                        2500,
+                                    )
                                 }
                         }
                     },
@@ -514,13 +518,17 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             )
                         }
                         Spacer(Modifier.height(MusePaddings.contentGap))
+                        // 单位走资源:硬编码"天"会让英文界面出现"3 天"这种半中半英的读数。
+                        val intervalDaysFormat = stringResource(R.string.cloud_backup_interval_days)
                         MuseSlider(
                             value = sliderValue,
                             onValueChange = { intervalDaysDraft = it },
                             valueRange = 1f..30f,
                             // 1..30 共 30 个取值,steps = 30-2 = 28
                             steps = 28,
-                            valueFormatter = { "${it.toInt()} 天" },
+                            valueFormatter = { v ->
+                                String.format(java.util.Locale.getDefault(), intervalDaysFormat, v.toInt())
+                            },
                         )
                         Spacer(Modifier.height(MusePaddings.contentGap))
                         // v1.134 P2-3: 短间隔警示 — 间隔 ≤ 2 天时显示流量/电量提示
