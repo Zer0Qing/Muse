@@ -52,7 +52,6 @@ import io.zer0.muse.ui.common.navigation.MuseTopBarMenu
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.groupchat.GroupChatListScreen
 import io.zer0.muse.ui.theme.MuseActionColors
-import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -677,8 +676,8 @@ private fun HomeQuickActionCapsule(
             // v1.136 T8: 收起时仅显示 Plus 按钮;展开时显示全部 4 个按钮(长按 Plus 切换)
             AnimatedVisibility(
                 visible = expanded,
-                enter = MuseMotion.horizontalExpandEnter(durationMillis = MuseAnimation.TACTILE_MS),
-                exit = MuseMotion.horizontalExpandExit(durationMillis = MuseAnimation.TACTILE_MS),
+                enter = MuseMotion.horizontalExpandEnter(),
+                exit = MuseMotion.horizontalExpandExit(),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     HomeCapsuleButton(
