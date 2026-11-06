@@ -104,6 +104,8 @@
     <string name="err_chat_vision_fallback">Vision assist failed, a fallback prompt was injected (see logs)</string>
     <!-- 以前 Agent 会话建不起来时异常直接冒出去：用户按下发送什么都没发生，也没有任何告知 -->
     <string name="err_chat_agent_session_failed">Failed to create the Agent session; this send was canceled (see logs)</string>
+    <string name="err_chat_no_reply">The model service did not answer this round. Retry, or check the provider settings.</string>
+    <string name="err_chat_no_provider">No model service is connected yet. Add an API key to continue.</string>
     <string name="err_chat_reply_save_failed">Failed to save reply: %1$s</string>
     <string name="err_chat_unknown">Unknown error</string>
     <string name="err_chat_ref_save_failed">Failed to save quoted message: %1$s</string>

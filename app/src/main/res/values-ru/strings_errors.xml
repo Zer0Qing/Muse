@@ -104,6 +104,8 @@
     <string name="err_chat_vision_fallback">Ошибка системы Vision Assist, было введено резервное приглашение (см. журналы).</string>
     <!-- 以前 Agent 会话建不起来时异常直接冒出去：用户按下发送什么都没发生，也没有任何告知 -->
     <string name="err_chat_agent_session_failed">Не удалось создать сессию агента; эта отправка отменена (см. журналы).</string>
+    <string name="err_chat_no_reply">Сервис моделей не ответил в этом раунде. Повторите попытку или проверьте настройки провайдера.</string>
+    <string name="err_chat_no_provider">Сервис моделей ещё не подключён. Добавьте ключ API, чтобы продолжить.</string>
     <string name="err_chat_reply_save_failed">Не удалось сохранить ответ: %1$s</string>
     <string name="err_chat_unknown">Неизвестная ошибка</string>
     <string name="err_chat_ref_save_failed">Не удалось сохранить цитируемое сообщение: %1$s</string>

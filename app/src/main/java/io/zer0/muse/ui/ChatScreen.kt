@@ -309,6 +309,7 @@ private fun Modifier.onVolumeKeyEvent(onScroll: (Float) -> Unit): Modifier = thi
 @Composable
 fun ChatScreen(
     onOpenAssistants: () -> Unit = {},
+    onOpenProviderSettings: () -> Unit = {},
     /** v0.27: 从任务列表 push 进入时传入返回回调;为 null 时(Tab 模式)不显示返回按钮。 */
     onBack: (() -> Unit)? = null,
     /**
@@ -3358,6 +3359,15 @@ fun ChatScreen(
                                                     MuseCapsuleButton(
                                                         text = stringResource(R.string.chat_retry),
                                                         onClick = { viewModel.regenerateLastAssistant() },
+                                                        variant = IosCapsuleButtonVariant.Text,
+                                                        fillWidth = false,
+                                                    )
+                                                }
+                                                // 凭据类错误重试没有意义,给的是"去哪儿修"。
+                                                if (err.type == ChatErrorType.API_KEY) {
+                                                    MuseCapsuleButton(
+                                                        text = stringResource(R.string.chat_tool_paused_banner_action),
+                                                        onClick = onOpenProviderSettings,
                                                         variant = IosCapsuleButtonVariant.Text,
                                                         fillWidth = false,
                                                     )

@@ -107,6 +107,8 @@
     <string name="err_chat_vision_fallback">视觉辅助失败，已注入降级提示（详见日志）</string>
     <!-- 以前 Agent 会话建不起来时异常直接冒出去：用户按下发送什么都没发生，也没有任何告知 -->
     <string name="err_chat_agent_session_failed">新建 Agent 会话失败，本次发送已取消（详见日志）</string>
+    <string name="err_chat_no_reply">模型服务这一轮没有回应。可以重试，或检查供应商设置。</string>
+    <string name="err_chat_no_provider">还没有连接可用的模型服务，填好 API Key 就能继续。</string>
     <string name="err_chat_reply_save_failed">回复保存失败： %1$s</string>
     <string name="err_chat_unknown">未知错误</string>
     <string name="err_chat_ref_save_failed">引用记录保存失败： %1$s</string>

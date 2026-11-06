@@ -104,6 +104,8 @@
     <string name="err_chat_vision_fallback">A assistência de visão falhou, um prompt de fallback foi injetado (ver registros)</string>
     <!-- 以前 Agent 会话建不起来时异常直接冒出去：用户按下发送什么都没发生，也没有任何告知 -->
     <string name="err_chat_agent_session_failed">Falha ao criar a sessão do Agente; este envio foi cancelado (consulte os registros)</string>
+    <string name="err_chat_no_reply">O serviço de modelos não respondeu nesta rodada. Tente de novo ou revise os ajustes do provedor.</string>
+    <string name="err_chat_no_provider">Nenhum serviço de modelos está conectado ainda. Adicione uma chave de API para continuar.</string>
     <string name="err_chat_reply_save_failed">Falha ao salvar a resposta: %1$s</string>
     <string name="err_chat_unknown">Erro desconhecido</string>
     <string name="err_chat_ref_save_failed">Falha ao salvar a mensagem citada: %1$s</string>

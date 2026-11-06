@@ -119,6 +119,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             popExitTransition = { MuseTransitions.horizontalPushPopExit() },
         ) {
             ChatScreen(
+                onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
                 onBack = { navController.popBackStack() },
                 surface = io.zer0.muse.ui.chat.ChatSurface.MINI_PHONE,
                 viewModel = sharedViewModel,
@@ -213,6 +214,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 // 右列:聊天页(onBack=null,列表常驻无需返回按钮)
                 Box(modifier = Modifier.weight(0.6f).fillMaxSize()) {
                     ChatScreen(
+                        onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
                         onOpenAssistants = { navController.navigate(AssistantsRoute) },
                         onBack = null,
                         isAgentMode = state.isAgentMode,
@@ -228,6 +230,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             }
         } else {
             ChatScreen(
+                onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
                 onOpenAssistants = { navController.navigate(AssistantsRoute) },
                 onBack = {
                     // 退出对话时触发 AI 摘要命名(仅当标题仍为默认值且有至少一轮完整对话)

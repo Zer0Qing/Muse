@@ -104,6 +104,8 @@
     <string name="err_chat_vision_fallback">ビジョンアシストが失敗し、フォールバックプロンプトが挿入されました (ログを参照)</string>
     <!-- 以前 Agent 会话建不起来时异常直接冒出去：用户按下发送什么都没发生，也没有任何告知 -->
     <string name="err_chat_agent_session_failed">Agent セッションの作成に失敗したため、この送信は取り消されました (ログを参照)</string>
+    <string name="err_chat_no_reply">モデルサービスはこのラウンドで応答しませんでした。再試行するか、プロバイダー設定を確認してください。</string>
+    <string name="err_chat_no_provider">モデルサービスがまだ接続されていません。API キーを追加すると続けられます。</string>
     <string name="err_chat_reply_save_failed">返信を保存できませんでした: %1$s</string>
     <string name="err_chat_unknown">不明なエラー</string>
     <string name="err_chat_ref_save_failed">引用されたメッセージを保存できませんでした: %1$s</string>

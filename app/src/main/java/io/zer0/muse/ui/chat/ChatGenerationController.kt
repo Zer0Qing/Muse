@@ -167,6 +167,15 @@ internal suspend fun recoverPreSendOverflow(
 internal fun shouldRollbackOptimisticSend(state: ChatUiState, requestSessionId: String): Boolean =
     effectiveGenerationSessionId(state) == requestSessionId
 
+/**
+ * 是否存在可用模型服务:启用,且要么填了密钥、要么该供应商本就允许无密钥(如免费端点)。
+ *
+ * 判定单独成函数并被单测钉住 —— 发送闸门与将来的可用性提示都读它,
+ * 两处各写一套条件迟早漂移成"这里能发、那里不能发"。
+ */
+internal fun usableProviderPresent(providers: List<io.zer0.ai.core.ProviderConfig>): Boolean =
+    providers.any { it.enabled && (it.apiKey.isNotBlank() || it.allowMissingApiKey) }
+
 @Suppress("LongParameterList", "TooManyFunctions", "LargeClass")
 internal class ChatGenerationController(
     private val deps: GenerationDeps,
@@ -307,6 +316,41 @@ internal class ChatGenerationController(
         }.onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
     }
 
+    /**
+     * 发送前的三道闸门:安全过滤、模型服务可用性。
+     *
+     * 抽出来不只是为降 send 的复杂度 —— 这三条都会"拦下这次发送并告知用户",
+     * 放在一起才看得清"什么情况下按发送不会有反应"。
+     */
+    private fun passesSendGuards(text: String): Boolean {
+        // 输入内容安全过滤(此前 SafetyPolicy 定义完整却全仓零调用 —— 安全网没插电)。
+        // 命中明确违规词时中止发送并提示,不写入会话。
+        val safety = io.zer0.muse.privacy.SafetyPolicy.checkInput(text)
+        if (!safety.safe) {
+            Logger.w("ChatVM", "输入被安全策略拦截: ${safety.reason}")
+            deps.addError(ChatErrorType.UNKNOWN, safety.suggestion ?: "", false)
+            return false
+        }
+        // 没有可用模型服务时,这一轮注定空转:此前消息照样入队,"正在思考"挂到超时才消失,
+        // 界面上既没有回复也没有原因。改为发送前就告知,并且不清空输入框(用户敲的字不能丢)。
+        if (!hasUsableProvider()) {
+            deps.addError(
+                ChatErrorType.API_KEY,
+                deps.appContext.getString(R.string.err_chat_no_provider),
+                false,
+            )
+            return false
+        }
+        return true
+    }
+
+    /**
+     * 是否有可用模型服务:启用,且要么填了密钥、要么该供应商本就允许无密钥(如免费端点)。
+     *
+     * 判定只在这一处;发送闸门与将来的可用性提示都读它,免得两处各写一套条件后漂移。
+     */
+    private fun hasUsableProvider(): Boolean = usableProviderPresent(accessor.snapshot.providers)
+
     /** 发送当前输入。空文本(且无图片)或正在流式时忽略;isDrawMode 走图片生成。 */
     @Suppress("ReturnCount")
     fun send() {
@@ -341,12 +385,7 @@ internal class ChatGenerationController(
         if (!canStart) {
             return
         }
-        // 输入内容安全过滤(此前 SafetyPolicy 定义完整却全仓零调用 —— 安全网没插电)。
-        // 命中明确违规词时中止发送并提示,不写入会话。
-        val safety = io.zer0.muse.privacy.SafetyPolicy.checkInput(text)
-        if (!safety.safe) {
-            Logger.w("ChatVM", "输入被安全策略拦截: ${safety.reason}")
-            deps.addError(ChatErrorType.UNKNOWN, safety.suggestion ?: "", false)
+        if (!passesSendGuards(text)) {
             return
         }
         // v1.68: 引用回复必须把被引用内容拼进消息体,LLM 才能读到引用原文。
@@ -1680,6 +1719,15 @@ internal class ChatGenerationController(
                     sessionManager.runtime(sessionId)?.markFinished(TurnPhase.COMPLETED, state.turnId)
                 } else {
                     recordDebugSummary(state, "failed")
+                    // 工具轮说"这一轮没成"而界面什么都不说,用户看到的就是"发了没人理"。
+                    // 已经吐出半句时不报:那时界面上有内容,报错反而像把话说断了。
+                    if (state.builder.isEmpty() && state.reasoningBuilder.isEmpty()) {
+                        deps.addError(
+                            ChatErrorType.UNKNOWN,
+                            deps.appContext.getString(R.string.err_chat_no_reply),
+                            true,
+                        )
+                    }
                     sessionManager.runtime(sessionId)?.markFinished(TurnPhase.FAILED, state.turnId)
                 }
             } catch (ce: kotlinx.coroutines.CancellationException) {
