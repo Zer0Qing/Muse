@@ -7,7 +7,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -140,11 +140,11 @@ fun SafeModeScreen() {
                     // 不依赖 Koin：直接写标志文件，再冷启动让插件加载路径按新状态走。
                     val nowDisabled = io.zer0.muse.data.plugin.PluginKillSwitch
                         .setDisabled(context, !pluginsDisabled)
-                    Toast.makeText(
-                        context,
-                        if (nowDisabled) R.string.plugin_kill_switch_title else R.string.plugin_kill_switch_restore,
-                        Toast.LENGTH_SHORT,
-                    ).show()
+                    MuseToast.show(
+                        context.getString(
+                            if (nowDisabled) R.string.plugin_kill_switch_title else R.string.plugin_kill_switch_restore,
+                        ),
+                    )
                     (context as? Activity)?.finishAffinity()
                     android.os.Process.killProcess(android.os.Process.myPid())
                 },
@@ -442,7 +442,7 @@ private fun shareCrashLog(context: Context) {
     val logs = MuseCrashHandler.listCrashLogs(context)
     val logFile = logs.firstOrNull()
     if (logFile == null) {
-        Toast.makeText(context, R.string.safe_mode_no_crash_log, Toast.LENGTH_SHORT).show()
+        MuseToast.show(context.getString(R.string.safe_mode_no_crash_log))
         return
     }
     runCatching {
@@ -464,7 +464,7 @@ private fun shareCrashLog(context: Context) {
         )
     }.onFailure { e ->
         Logger.w("SafeModeScreen", "shareCrashLog failed", e)
-        Toast.makeText(context, R.string.safe_mode_share_log_failed, Toast.LENGTH_SHORT).show()
+        MuseToast.show(context.getString(R.string.safe_mode_share_log_failed))
     }
 }
 
@@ -524,5 +524,5 @@ private fun copyCrashInfo(context: Context, crashTime: String?, crashTrace: Stri
     }
     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     cm.setPrimaryClip(ClipData.newPlainText("muse crash info", text))
-    Toast.makeText(context, R.string.main_activity_crash_log_copied, Toast.LENGTH_SHORT).show()
+    MuseToast.show(context.getString(R.string.main_activity_crash_log_copied))
 }

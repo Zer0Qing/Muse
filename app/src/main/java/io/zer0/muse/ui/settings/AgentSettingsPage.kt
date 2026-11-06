@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -1064,25 +1065,18 @@ fun AgentSettingsPage(
                                             io.zer0.muse.proactive.ProactiveScheduler.TRIGGER_MANUAL,
                                             force = true,
                                         )
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            // 跳过的原因是「上一轮还在跑」，这句要说给人听，
+                                        MuseToast.show(
+                                            // 跳过的原因是「上一轮还在跑」，这句要说给人听,
                                             // 走资源而不是把日志里的中文短语直接弹出来。
-                                            if (result.alreadyRunning) {
-                                                testAlreadyRunningText
-                                            } else {
-                                                result.detail
-                                            },
-                                            android.widget.Toast.LENGTH_LONG,
-                                        ).show()
+                                            if (result.alreadyRunning) testAlreadyRunningText else result.detail,
+                                            3500,
+                                        )
                                     } catch (e: Exception) {
                                         if (e is kotlin.coroutines.cancellation.CancellationException) throw e
                                         Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            context.getString(R.string.settings_agent_test_failed, e.message),
-                                            android.widget.Toast.LENGTH_SHORT,
-                                        ).show()
+                                        MuseToast.show(
+                                                context.getString(R.string.settings_agent_test_failed, e.message),
+                                        )
                                     } finally {
                                         testSending = false
                                     }

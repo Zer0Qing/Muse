@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.worldbook
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseActionSheetRow
@@ -109,7 +109,7 @@ fun WorldBookScreen(onBack: () -> Unit, viewModel: WorldBookViewModel = koinView
     // 导入/导出反馈
     LaunchedEffect(state.importMessage) {
         state.importMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            MuseToast.show(it)
             viewModel.clearImportMessage()
         }
     }
@@ -127,11 +127,10 @@ fun WorldBookScreen(onBack: () -> Unit, viewModel: WorldBookViewModel = koinView
                                 scope.launch {
                                     val file = java.io.File(context.cacheDir, "worldbook_export.json")
                                     file.writeText(json)
-                                    Toast.makeText(
-                                        context,
+                                    MuseToast.show(
                                         context.getString(R.string.worldbook_exported_to, file.absolutePath),
-                                        Toast.LENGTH_LONG,
-                                    ).show() // 前端修复 (i18n-8)
+                                        3500,
+                                    ) // 前端修复 (i18n-8)
                                 }
                             }
                         },

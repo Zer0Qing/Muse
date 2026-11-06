@@ -94,13 +94,7 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
             contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
         ) { granted ->
             if (!granted) {
-                android.widget.Toast
-                    .makeText(
-                        context,
-                        context.getString(R.string.permission_termux_grant_denied_hint),
-                        android.widget.Toast.LENGTH_LONG,
-                    )
-                    .show()
+                MuseToast.show(context.getString(R.string.permission_termux_grant_denied_hint), 3500)
             }
         }
     var termuxInstalled by remember { mutableStateOf(false) }
@@ -340,22 +334,10 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                         tryStart(android.provider.Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS, null)
 
                     if (!ok) {
-                        android.widget.Toast
-                            .makeText(
-                                context,
-                                context.getString(R.string.permission_termux_grant_manual_hint),
-                                android.widget.Toast.LENGTH_LONG,
-                            )
-                            .show()
+                        MuseToast.show(context.getString(R.string.permission_termux_grant_manual_hint), 3500)
                     } else {
                         // 跳转成功也要给逐步指引 —— 应用信息首屏看不到这个开关。
-                        android.widget.Toast
-                            .makeText(
-                                context,
-                                context.getString(R.string.permission_termux_grant_toast),
-                                android.widget.Toast.LENGTH_LONG,
-                            )
-                            .show()
+                        MuseToast.show(context.getString(R.string.permission_termux_grant_toast), 3500)
                     }
                 },
                 onOpenApp = {
@@ -635,7 +617,6 @@ private fun TermuxChannelCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(6.dp))
-                    val toastCtx = androidx.compose.ui.platform.LocalContext.current
                     // lint LocalContextGetResourceValueCall: 资源取值必须在组合期完成,
                     // 不能在点击回调里调 getString。这里文案无占位符,用无参 stringResource。
                     val copyDoneText = stringResource(R.string.permission_termux_copy_cmd_done)
@@ -643,13 +624,7 @@ private fun TermuxChannelCard(
                         text = stringResource(R.string.permission_termux_copy_cmd),
                         onClick = {
                             clipboard.setText(androidx.compose.ui.text.AnnotatedString(termuxCmd))
-                            android.widget.Toast
-                                .makeText(
-                                    toastCtx,
-                                    copyDoneText,
-                                    android.widget.Toast.LENGTH_SHORT,
-                                )
-                                .show()
+                            MuseToast.show(copyDoneText)
                         },
                         variant = IosCapsuleButtonVariant.Secondary,
                         fillWidth = false,

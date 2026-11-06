@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.data.ProviderCollisionDetector
 import io.zer0.muse.data.catalog.ModelCatalogRepository
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -370,7 +371,7 @@ private fun ModelCatalogRow() {
                         }
                         status = repository.status()
                         refreshing = false
-                        android.widget.Toast.makeText(context, result.message, android.widget.Toast.LENGTH_SHORT).show()
+                        MuseToast.show(result.message)
                     }
                 }
             },

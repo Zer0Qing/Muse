@@ -40,7 +40,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import compose.icons.tablericons.Search
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
 import io.zer0.ai.core.ModelContextWindowRegistry
