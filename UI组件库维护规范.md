@@ -81,6 +81,22 @@
 
 `ci/script/check_horizontal_inset.py` 拦截显式清零：`horizontalPadding = 0.dp`、`padding(horizontal = 0.dp)`、`PaddingValues(horizontal = 0.dp)`、`contentPadding = 0.dp`。确需贴边的行尾加 `// inset-guard: allow` 并说明原因，否则 CI 直接失败。
 
+## 文案与图标语义（2026-11 实机走查后新增）
+
+这些条目都是"静态扫不出来、只有真机肉眼可见"的类别，所以既立规则也配断言。
+
+| 规则 | 理由 | 护栏 |
+| --- | --- | --- |
+| 数量文案一律用 `<plurals>`，不许 `%1$d` 拼单条 `<string>` | 西/葡/俄有单复数变化，1 配复数名词直接读错（实机出现过 "Se eliminarán 1 conversaciones"） | `CountPluralsTest` |
+| 专有名词与缩写不得机翻：`translatable="false"` 或保留原名 | mono 被翻成"传染性单核细胞增多症"、PII 被翻成 IIP；安全开关的名字翻错会让人不敢开 | `MistranslationGuardTest`、`check_translation_residue` |
+| 语言名一律用自称（简体中文 / English / 日本語 / 한국어 / Русский / Español / Português） | 同一列表里既有译名又有自称，看着像漏翻译；自称最利于用户找到自己的语言 | 资源标 `translatable="false"` |
+| 历史数据里的"默认标题"字面量算无意义占位 | 按当时语言写进库的默认标题切语言后原样挂着，同一条会话在不同页面出现两个名字 | `SessionTitleDisplayTest`、`SessionTitleDefaultLiteralTest` |
+| 导航箭头必须是图标（`MuseIcons.chevronRight`），禁止 ASCII `>` `›` | 不成字形、读屏念成符号、与全站视觉基准漂移 | `check_component_convergence` |
+| 图标按"同义同图、异义异图"分配；新增语义先补图标集再改引用 | 一枚 `atom` 同时表示心情/思考/反思/风格/记忆，等于没有信息 | `muse-icons` 源仓 + 生成器 |
+| 破坏性操作与"未保存离开"必须有确认，且点名对象 | 无确认即毁数据（删供应商、删云端备份、解绑、批量删除、草稿丢弃） | `ConfirmDeleteDialog` 唯一件 |
+| 运行时权限按需请求，不在冷启动第一帧 | 第一帧就要通知权限，只会换来条件反射的拒绝 | `NotificationPermissionBus` |
+| 依赖外部配置的功能（模型服务等）不可用时，必须在动作前告知并给出口 | 静默空回合等于"App 坏了" | `usableProviderPresent` + 错误条「去设置」 |
+
 ## 流体动效与凝光令牌（2026-11 新增）
 
 ### 弹簧档位（唯一动效词汇表）
