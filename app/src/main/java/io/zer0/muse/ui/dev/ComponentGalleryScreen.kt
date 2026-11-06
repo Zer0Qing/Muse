@@ -97,6 +97,7 @@ import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 
 /**
