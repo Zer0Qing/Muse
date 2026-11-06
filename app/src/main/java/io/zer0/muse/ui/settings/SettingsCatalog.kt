@@ -292,7 +292,7 @@ object SettingsCatalog {
                     SettingsEntryId.STICKERS,
                     R.string.settings_chat_sticker_section,
                     R.string.settings_screen_sticker_desc,
-                    MuseIcons.image,
+                    MuseIcons.sticker,
                     SettingsEntryAction.Navigate(StickerSettingsRoute),
                     keywords = listOf(
                         "表情包", "表情", "贴纸", "表情包库", "sticker", "emoji", "biaoqingbao",

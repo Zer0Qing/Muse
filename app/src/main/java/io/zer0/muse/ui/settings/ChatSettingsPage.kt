@@ -527,7 +527,8 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = MuseIcons.atom,
+                    // 反思 = 助手回看自己的输出,用 reflect 的"绕回自身"图形;atom 留给真正的原子/模型类语义。
+                    icon = MuseIcons.reflect,
                     title = stringResource(R.string.settings_chat_show_reflection),
                     subtitle = stringResource(R.string.settings_chat_show_reflection_subtitle),
                     checked = prefs.showReflectionBlock,
@@ -889,7 +890,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = MuseIcons.maximize,
+                    icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_mood_expand),
                     subtitle = stringResource(R.string.settings_chat_mood_expand_subtitle),
                     checked = prefs.moodExpandedByDefault,
@@ -897,7 +898,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = MuseIcons.maximize,
+                    icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_expand_button),
                     subtitle = stringResource(R.string.settings_chat_expand_button_subtitle),
                     checked = prefs.showExpandButton,
@@ -905,7 +906,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = MuseIcons.maximize,
+                    icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_reasoning_expand),
                     subtitle = stringResource(R.string.settings_chat_reasoning_expand_subtitle),
                     checked = prefs.reasoningExpandedByDefault,
@@ -913,7 +914,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = MuseIcons.maximize,
+                    icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_reflection_expand),
                     subtitle = stringResource(R.string.settings_chat_reflection_expand_subtitle),
                     checked = prefs.reflectionExpandedByDefault,

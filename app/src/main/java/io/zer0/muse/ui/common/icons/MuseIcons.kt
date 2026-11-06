@@ -55,10 +55,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7.5 16.5h-1a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-6." +
-                        "3l-3 2.5c-.4.33-1 .04-1-.48z",
-                ),
+                    addPathNodes(
+                        "M7.5 16.5h-1a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-6." +
+                            "3l-3 2.5c-.4.33-1 .04-1-.48z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -149,10 +149,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M20.2 3.8L3.9 10.9a.6.6 0 0 0 .07 1.13l5.9 1.9 1.9 5.9a.6.6 0 0 0 1.13.07L20.2 3" +
-                        ".8z",
-                ),
+                    addPathNodes(
+                        "M20.2 3.8L3.9 10.9a.6.6 0 0 0 .07 1.13l5.9 1.9 1.9 5.9a.6.6 0 0 0 1.13.07L20.2 3" +
+                            ".8z",
+                    ),
                 fill = SolidColor(Color(0xFF000000)),
             )
         }.build()
@@ -169,10 +169,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M16.6 9.4l-6.2 6.2a2.1 2.1 0 0 0 3 3l6.2-6.2a4.1 4.1 0 0 0-5.8-5.8L6.6 13.6a6.1 " +
-                        "6.1 0 0 0 8.6 8.6l5.6-5.5",
-                ),
+                    addPathNodes(
+                        "M16.6 9.4l-6.2 6.2a2.1 2.1 0 0 0 3 3l6.2-6.2a4.1 4.1 0 0 0-5.8-5.8L6.6 13.6a6.1 " +
+                            "6.1 0 0 0 8.6 8.6l5.6-5.5",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -296,9 +296,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7 5.5h10a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-10a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3z",
-                ),
+                    addPathNodes(
+                        "M7 5.5h10a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-10a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -325,10 +325,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M9.5 3.5h5a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1 -2.5 2.5h-5a2.5 2.5 0 0 1 -2.5" +
-                        " -2.5v-12a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M9.5 3.5h5a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1 -2.5 2.5h-5a2.5 2.5 0 0 1 -2.5" +
+                            " -2.5v-12a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -355,10 +355,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7.5 8h9a3 3 0 0 1 3 3v4.5a3 3 0 0 1 -3 3h-9a3 3 0 0 1 -3 -3v-4.5a3 3 0 0 1 3 -3" +
-                        "z",
-                ),
+                    addPathNodes(
+                        "M7.5 8h9a3 3 0 0 1 3 3v4.5a3 3 0 0 1 -3 3h-9a3 3 0 0 1 -3 -3v-4.5a3 3 0 0 1 3 -3" +
+                            "z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -399,10 +399,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 4.2c.42 3.2 2.6 5.38 5.8 5.8-3.2.42-5.38 2.6-5.8 5.8-.42-3.2-2.6-5.38-5.8-5." +
-                        "8 3.2-.42 5.38-2.6 5.8-5.8z",
-                ),
+                    addPathNodes(
+                        "M12 4.2c.42 3.2 2.6 5.38 5.8 5.8-3.2.42-5.38 2.6-5.8 5.8-.42-3.2-2.6-5.38-5.8-5." +
+                            "8 3.2-.42 5.38-2.6 5.8-5.8z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -410,10 +410,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M17.8 14.6c.24 1.8 1.5 3.06 3.3 3.3-1.8.24-3.06 1.5-3.3 3.3-.24-1.8-1.5-3.06-3.3" +
-                        "-3.3 1.8-.24 3.06-1.5 3.3-3.3z",
-                ),
+                    addPathNodes(
+                        "M17.8 14.6c.24 1.8 1.5 3.06 3.3 3.3-1.8.24-3.06 1.5-3.3 3.3-.24-1.8-1.5-3.06-3.3" +
+                            "-3.3 1.8-.24 3.06-1.5 3.3-3.3z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -433,11 +433,11 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M9.4 4.5H6.5a2 2 0 0 0-2 2v2.9h2a1.7 1.7 0 1 1 0 3.4h-2v4.7a2 2 0 0 0 2 2h4.7v-2" +
-                        "a1.7 1.7 0 1 1 3.4 0v2h2.9a2 2 0 0 0 2-2v-4.7h-2a1.7 1.7 0 1 1 0-3.4h2V6.5a2 2 0" +
-                        " 0 0-2-2h-4.7v2a1.7 1.7 0 1 1-3.4 0z",
-                ),
+                    addPathNodes(
+                        "M9.4 4.5H6.5a2 2 0 0 0-2 2v2.9h2a1.7 1.7 0 1 1 0 3.4h-2v4.7a2 2 0 0 0 2 2h4.7v-2" +
+                            "a1.7 1.7 0 1 1 3.4 0v2h2.9a2 2 0 0 0 2-2v-4.7h-2a1.7 1.7 0 1 1 0-3.4h2V6.5a2 2 0" +
+                            " 0 0-2-2h-4.7v2a1.7 1.7 0 1 1-3.4 0z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -457,10 +457,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 6.5C10.6 5.1 8.4 4.5 5.5 4.5v13c2.9 0 5.1.6 6.5 2 1.4-1.4 3.6-2 6.5-2v-13c-2" +
-                        ".9 0-5.1.6-6.5 2z",
-                ),
+                    addPathNodes(
+                        "M12 6.5C10.6 5.1 8.4 4.5 5.5 4.5v13c2.9 0 5.1.6 6.5 2 1.4-1.4 3.6-2 6.5-2v-13c-2" +
+                            ".9 0-5.1.6-6.5 2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -487,10 +487,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M13.3 3.7c.52-.6 1.53-.18 1.46.61l-.5 5.19h4.02c.72 0 1.1.84.63 1.38l-8.21 9.42c" +
-                        "-.52.6-1.53.18-1.46-.61l.5-5.19H5.72c-.72 0-1.1-.84-.63-1.38z",
-                ),
+                    addPathNodes(
+                        "M13.3 3.7c.52-.6 1.53-.18 1.46.61l-.5 5.19h4.02c.72 0 1.1.84.63 1.38l-8.21 9.42c" +
+                            "-.52.6-1.53.18-1.46-.61l.5-5.19H5.72c-.72 0-1.1-.84-.63-1.38z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -768,10 +768,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M11 8.5h6a2.5 2.5 0 0 1 2.5 2.5v6a2.5 2.5 0 0 1 -2.5 2.5h-6a2.5 2.5 0 0 1 -2.5 -" +
-                        "2.5v-6a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M11 8.5h6a2.5 2.5 0 0 1 2.5 2.5v6a2.5 2.5 0 0 1 -2.5 2.5h-6a2.5 2.5 0 0 1 -2.5 -" +
+                            "2.5v-6a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -923,9 +923,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 3.5h0a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h-0a3 3 0 0 1 -3 -3v-5a3 3 0 0 1 3 -3z",
-                ),
+                    addPathNodes(
+                        "M12 3.5h0a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h-0a3 3 0 0 1 -3 -3v-5a3 3 0 0 1 3 -3z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -959,11 +959,11 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M3.5 8A2.5 2.5 0 0 1 6 5.5h1.2a1.5 1.5 0 0 0 1.3-.76l.5-.88a1.5 1.5 0 0 1 1.3-.7" +
-                        "6h3.4a1.5 1.5 0 0 1 1.3.76l.5.88a1.5 1.5 0 0 0 1.3.76H18A2.5 2.5 0 0 1 20.5 8v8a" +
-                        "2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 16z",
-                ),
+                    addPathNodes(
+                        "M3.5 8A2.5 2.5 0 0 1 6 5.5h1.2a1.5 1.5 0 0 0 1.3-.76l.5-.88a1.5 1.5 0 0 1 1.3-.7" +
+                            "6h3.4a1.5 1.5 0 0 1 1.3.76l.5.88a1.5 1.5 0 0 0 1.3.76H18A2.5 2.5 0 0 1 20.5 8v8a" +
+                            "2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 16z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -990,10 +990,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6.5 4.5h11a3 3 0 0 1 3 3v9a3 3 0 0 1 -3 3h-11a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3" +
-                        "z",
-                ),
+                    addPathNodes(
+                        "M6.5 4.5h11a3 3 0 0 1 3 3v9a3 3 0 0 1 -3 3h-11a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3" +
+                            "z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1027,9 +1027,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7.5 5.4a1 1 0 0 1 1.5-.87l9.5 5.6a1 1 0 0 1 0 1.74l-9.5 5.6a1 1 0 0 1-1.5-.87z",
-                ),
+                    addPathNodes(
+                        "M7.5 5.4a1 1 0 0 1 1.5-.87l9.5 5.6a1 1 0 0 1 0 1.74l-9.5 5.6a1 1 0 0 1-1.5-.87z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1049,10 +1049,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M8.6 5h0.4a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1 -1.6 1.6h-0.4a1.6 1.6 0 0 1 " +
-                        "-1.6 -1.6v-10.8a1.6 1.6 0 0 1 1.6 -1.6z",
-                ),
+                    addPathNodes(
+                        "M8.6 5h0.4a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1 -1.6 1.6h-0.4a1.6 1.6 0 0 1 " +
+                            "-1.6 -1.6v-10.8a1.6 1.6 0 0 1 1.6 -1.6z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1060,10 +1060,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M15 5h0.4a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1 -1.6 1.6h-0.4a1.6 1.6 0 0 1 -" +
-                        "1.6 -1.6v-10.8a1.6 1.6 0 0 1 1.6 -1.6z",
-                ),
+                    addPathNodes(
+                        "M15 5h0.4a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1 -1.6 1.6h-0.4a1.6 1.6 0 0 1 -" +
+                            "1.6 -1.6v-10.8a1.6 1.6 0 0 1 1.6 -1.6z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1102,10 +1102,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M3.5 7.5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.4.6l1.1 1.1a2 2 0 0 0 1.4.6h5.2a2 2 0 0 1" +
-                        " 2 2v7.7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z",
-                ),
+                    addPathNodes(
+                        "M3.5 7.5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.4.6l1.1 1.1a2 2 0 0 0 1.4.6h5.2a2 2 0 0 1" +
+                            " 2 2v7.7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1158,10 +1158,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v2a1.5 1.5 0 0 1 -1.5 1.5h-14a1.5 1.5 0 0 1 -1.5 " +
-                        "-1.5v-2a1.5 1.5 0 0 1 1.5 -1.5z",
-                ),
+                    addPathNodes(
+                        "M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v2a1.5 1.5 0 0 1 -1.5 1.5h-14a1.5 1.5 0 0 1 -1.5 " +
+                            "-1.5v-2a1.5 1.5 0 0 1 1.5 -1.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1195,10 +1195,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M9 5.5H8a2.5 2.5 0 0 0-2.5 2.5v10a2.5 2.5 0 0 0 2.5 2.5h8a2.5 2.5 0 0 0 2.5-2.5V" +
-                        "8A2.5 2.5 0 0 0 16 5.5h-1",
-                ),
+                    addPathNodes(
+                        "M9 5.5H8a2.5 2.5 0 0 0-2.5 2.5v10a2.5 2.5 0 0 0 2.5 2.5h8a2.5 2.5 0 0 0 2.5-2.5V" +
+                            "8A2.5 2.5 0 0 0 16 5.5h-1",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1206,10 +1206,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M10.5 3.5h3a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1 -1.5 1.5h-3a1.5 1.5 0 0 1 -1.5" +
-                        " -1.5v-1a1.5 1.5 0 0 1 1.5 -1.5z",
-                ),
+                    addPathNodes(
+                        "M10.5 3.5h3a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1 -1.5 1.5h-3a1.5 1.5 0 0 1 -1.5" +
+                            " -1.5v-1a1.5 1.5 0 0 1 1.5 -1.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1229,9 +1229,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7 18.5a4.25 4.25 0 0 1-.44-8.48 5.5 5.5 0 0 1 10.72.55A3.9 3.9 0 0 1 16.5 18.5z",
-                ),
+                    addPathNodes(
+                        "M7 18.5a4.25 4.25 0 0 1-.44-8.48 5.5 5.5 0 0 1 10.72.55A3.9 3.9 0 0 1 16.5 18.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1277,10 +1277,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M5.5 4.5h13a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-13a2 2 0 0 1 -2 -2v-3a2 2 0 0 1 2 -2" +
-                        "z",
-                ),
+                    addPathNodes(
+                        "M5.5 4.5h13a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-13a2 2 0 0 1 -2 -2v-3a2 2 0 0 1 2 -2" +
+                            "z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1288,10 +1288,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M5.5 12.5h13a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-13a2 2 0 0 1 -2 -2v-3a2 2 0 0 1 2 -" +
-                        "2z",
-                ),
+                    addPathNodes(
+                        "M5.5 12.5h13a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-13a2 2 0 0 1 -2 -2v-3a2 2 0 0 1 2 -" +
+                            "2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1365,10 +1365,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 3.5c2.3 2.3 3.5 5.3 3.5 8.5s-1.2 6.2-3.5 8.5c-2.3-2.3-3.5-5.3-3.5-8.5s1.2-6." +
-                        "2 3.5-8.5z",
-                ),
+                    addPathNodes(
+                        "M12 3.5c2.3 2.3 3.5 5.3 3.5 8.5s-1.2 6.2-3.5 8.5c-2.3-2.3-3.5-5.3-3.5-8.5s1.2-6." +
+                            "2 3.5-8.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1388,10 +1388,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7.5 10.5h9a2.5 2.5 0 0 1 2.5 2.5v4.5a2.5 2.5 0 0 1 -2.5 2.5h-9a2.5 2.5 0 0 1 -2" +
-                        ".5 -2.5v-4.5a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M7.5 10.5h9a2.5 2.5 0 0 1 2.5 2.5v4.5a2.5 2.5 0 0 1 -2.5 2.5h-9a2.5 2.5 0 0 1 -2" +
+                            ".5 -2.5v-4.5a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1458,10 +1458,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6.6 7.5A15 15 0 0 0 3.5 12S6.5 18.5 12 18.5c1.5 0 2.8-.47 3.9-1.1M9.9 5.8A9.4 9" +
-                        ".4 0 0 1 12 5.5c5.5 0 8.5 6.5 8.5 6.5a15.4 15.4 0 0 1-3.4 4.3",
-                ),
+                    addPathNodes(
+                        "M6.6 7.5A15 15 0 0 0 3.5 12S6.5 18.5 12 18.5c1.5 0 2.8-.47 3.9-1.1M9.9 5.8A9.4 9" +
+                            ".4 0 0 1 12 5.5c5.5 0 8.5 6.5 8.5 6.5a15.4 15.4 0 0 1-3.4 4.3",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1613,10 +1613,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 4a5.5 5.5 0 0 0-5.5 5.5c0 3.6-1 4.7-1.8 5.5-.5.5-.1 1.5.6 1.5h13.4c.7 0 1.1-" +
-                        "1 .6-1.5-.8-.8-1.8-1.9-1.8-5.5A5.5 5.5 0 0 0 12 4z",
-                ),
+                    addPathNodes(
+                        "M12 4a5.5 5.5 0 0 0-5.5 5.5c0 3.6-1 4.7-1.8 5.5-.5.5-.1 1.5.6 1.5h13.4c.7 0 1.1-" +
+                            "1 .6-1.5-.8-.8-1.8-1.9-1.8-5.5A5.5 5.5 0 0 0 12 4z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1806,10 +1806,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M20.2 6.3a5 5 0 0 1-6.3 6.3L7 19.5a2.12 2.12 0 0 1-3-3l6.9-6.9a5 5 0 0 1 6.3-6.3" +
-                        "l-3.1 3.1 3 3z",
-                ),
+                    addPathNodes(
+                        "M20.2 6.3a5 5 0 0 1-6.3 6.3L7 19.5a2.12 2.12 0 0 1-3-3l6.9-6.9a5 5 0 0 1 6.3-6.3" +
+                            "l-3.1 3.1 3 3z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1829,10 +1829,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 3.5c3 3.2 5.5 6 5.5 9.6a5.5 5.5 0 1 1-11 0c0-1.7.8-3.3 1.8-4.6.3 1 1 1.8 2 2" +
-                        ".1.1-2.6.9-5 1.7-7.1z",
-                ),
+                    addPathNodes(
+                        "M12 3.5c3 3.2 5.5 6 5.5 9.6a5.5 5.5 0 1 1-11 0c0-1.7.8-3.3 1.8-4.6.3 1 1 1.8 2 2" +
+                            ".1.1-2.6.9-5 1.7-7.1z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1852,11 +1852,11 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M10.4 4.6A2.6 2.6 0 0 0 8.1 7.2c-1.5.4-2.6 1.7-2.6 3.3 0 .7.2 1.3.6 1.9-.4.5-.6 " +
-                        "1.1-.6 1.8 0 1.7 1.2 3.1 2.8 3.3.3 1.2 1.3 2 2.6 2 .9 0 1.7-.4 2.1-1.1V5.7c-.5-." +
-                        "7-1.4-1.1-2.4-1.1z",
-                ),
+                    addPathNodes(
+                        "M10.4 4.6A2.6 2.6 0 0 0 8.1 7.2c-1.5.4-2.6 1.7-2.6 3.3 0 .7.2 1.3.6 1.9-.4.5-.6 " +
+                            "1.1-.6 1.8 0 1.7 1.2 3.1 2.8 3.3.3 1.2 1.3 2 2.6 2 .9 0 1.7-.4 2.1-1.1V5.7c-.5-." +
+                            "7-1.4-1.1-2.4-1.1z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -1864,11 +1864,11 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M13.6 4.6a2.6 2.6 0 0 1 2.3 2.6c1.5.4 2.6 1.7 2.6 3.3 0 .7-.2 1.3-.6 1.9.4.5.6 1" +
-                        ".1.6 1.8 0 1.7-1.2 3.1-2.8 3.3-.3 1.2-1.3 2-2.6 2-.9 0-1.7-.4-2.1-1.1V5.7c.5-.7 " +
-                        "1.4-1.1 2.4-1.1z",
-                ),
+                    addPathNodes(
+                        "M13.6 4.6a2.6 2.6 0 0 1 2.3 2.6c1.5.4 2.6 1.7 2.6 3.3 0 .7-.2 1.3-.6 1.9.4.5.6 1" +
+                            ".1.6 1.8 0 1.7-1.2 3.1-2.8 3.3-.3 1.2-1.3 2-2.6 2-.9 0-1.7-.4-2.1-1.1V5.7c.5-.7 " +
+                            "1.4-1.1 2.4-1.1z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2013,10 +2013,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M9 3.5H5A1.5 1.5 0 0 0 3.5 5v4M15 3.5h4A1.5 1.5 0 0 1 20.5 5v4M15 20.5h4a1.5 1.5" +
-                        " 0 0 0 1.5-1.5v-4M9 20.5H5A1.5 1.5 0 0 1 3.5 19v-4",
-                ),
+                    addPathNodes(
+                        "M9 3.5H5A1.5 1.5 0 0 0 3.5 5v4M15 3.5h4A1.5 1.5 0 0 1 20.5 5v4M15 20.5h4a1.5 1.5" +
+                            " 0 0 0 1.5-1.5v-4M9 20.5H5A1.5 1.5 0 0 1 3.5 19v-4",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2133,10 +2133,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M20 5.5v13.5a1 1 0 0 1-1 1H7.5A2.5 2.5 0 0 1 5 17.5v-11A3 3 0 0 1 8 3.5h11a1 1 0" +
-                        " 0 1 1 1z",
-                ),
+                    addPathNodes(
+                        "M20 5.5v13.5a1 1 0 0 1-1 1H7.5A2.5 2.5 0 0 1 5 17.5v-11A3 3 0 0 1 8 3.5h11a1 1 0" +
+                            " 0 1 1 1z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2208,10 +2208,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M9 4.5c-2 0-3 1-3 3v2.5c0 1.5-1 2-2 2 1 0 2 .5 2 2V17c0 2 1 3 3 3M15 4.5c2 0 3 1" +
-                        " 3 3v2.5c0 1.5 1 2 2 2-1 0-2 .5-2 2V17c0 2-1 3-3 3",
-                ),
+                    addPathNodes(
+                        "M9 4.5c-2 0-3 1-3 3v2.5c0 1.5-1 2-2 2 1 0 2 .5 2 2V17c0 2 1 3 3 3M15 4.5c2 0 3 1" +
+                            " 3 3v2.5c0 1.5 1 2 2 2-1 0-2 .5-2 2V17c0 2-1 3-3 3",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2290,14 +2290,14 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 3.5a8.5 8.5 0 0 0-2.7 16.56c.42.08.58-.18.58-.4v-1.5c-2.37.5-2.87-1.1-2.87-1" +
-                        ".1-.38-.98-.94-1.24-.94-1.24-.77-.52.06-.51.06-.51.85.06 1.3.87 1.3.87.76 1.29 1" +
-                        ".98.92 2.47.7.08-.55.3-.92.53-1.13-1.9-.22-3.9-.95-3.9-4.22 0-.93.33-1.69.87-2.2" +
-                        "9-.09-.22-.38-1.08.08-2.26 0 0 .72-.23 2.35.87a8.1 8.1 0 0 1 4.28 0c1.63-1.1 2.3" +
-                        "5-.87 2.35-.87.46 1.18.17 2.04.08 2.26.54.6.87 1.36.87 2.29 0 3.27-2 4-3.9 4.22." +
-                        "3.26.58.79.58 1.6v2.37c0 .22.15.48.59.4A8.5 8.5 0 0 0 12 3.5z",
-                ),
+                    addPathNodes(
+                        "M12 3.5a8.5 8.5 0 0 0-2.7 16.56c.42.08.58-.18.58-.4v-1.5c-2.37.5-2.87-1.1-2.87-1" +
+                            ".1-.38-.98-.94-1.24-.94-1.24-.77-.52.06-.51.06-.51.85.06 1.3.87 1.3.87.76 1.29 1" +
+                            ".98.92 2.47.7.08-.55.3-.92.53-1.13-1.9-.22-3.9-.95-3.9-4.22 0-.93.33-1.69.87-2.2" +
+                            "9-.09-.22-.38-1.08.08-2.26 0 0 .72-.23 2.35.87a8.1 8.1 0 0 1 4.28 0c1.63-1.1 2.3" +
+                            "5-.87 2.35-.87.46 1.18.17 2.04.08 2.26.54.6.87 1.36.87 2.29 0 3.27-2 4-3.9 4.22." +
+                            "3.26.58.79.58 1.6v2.37c0 .22.15.48.59.4A8.5 8.5 0 0 0 12 3.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2369,10 +2369,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6.5 4.5h11a3 3 0 0 1 3 3v9a3 3 0 0 1 -3 3h-11a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3" +
-                        "z",
-                ),
+                    addPathNodes(
+                        "M6.5 4.5h11a3 3 0 0 1 3 3v9a3 3 0 0 1 -3 3h-11a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3" +
+                            "z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2413,9 +2413,9 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 6.5h0a4 4 0 0 1 4 4v3a4 4 0 0 1 -4 4h-0a4 4 0 0 1 -4 -4v-3a4 4 0 0 1 4 -4z",
-                ),
+                    addPathNodes(
+                        "M12 6.5h0a4 4 0 0 1 4 4v3a4 4 0 0 1 -4 4h-0a4 4 0 0 1 -4 -4v-3a4 4 0 0 1 4 -4z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2449,10 +2449,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M8 3.5h8a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1 -2.5 2.5h-8a2.5 2.5 0 0 1 -2.5 -" +
-                        "2.5v-12a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M8 3.5h8a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1 -2.5 2.5h-8a2.5 2.5 0 0 1 -2.5 -" +
+                            "2.5v-12a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2460,10 +2460,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M9 7.5h6M9 11.5h.01M12 11.5h.01M15 11.5h.01M9 15h.01M12 15h.01M15 15h.01M9 18.5h" +
-                        ".01M12 18.5h.01M15 18.5h.01",
-                ),
+                    addPathNodes(
+                        "M9 7.5h6M9 11.5h.01M12 11.5h.01M15 11.5h.01M9 15h.01M12 15h.01M15 15h.01M9 18.5h" +
+                            ".01M12 18.5h.01M15 18.5h.01",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2483,9 +2483,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7 5.5h10a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-10a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3z",
-                ),
+                    addPathNodes(
+                        "M7 5.5h10a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-10a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2519,10 +2519,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6 5h6a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1 -2.5 2.5h-6a2.5 2.5 0 0 1 -2.5 -2.5" +
-                        "v-8a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M6 5h6a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1 -2.5 2.5h-6a2.5 2.5 0 0 1 -2.5 -2.5" +
+                            "v-8a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2719,10 +2719,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7 17a4 4 0 0 1-.4-7.9A5.5 5.5 0 0 1 9.5 5.6M17.3 8.6a3.9 3.9 0 0 1 1 7.3M14 17h" +
-                        "-7",
-                ),
+                    addPathNodes(
+                        "M7 17a4 4 0 0 1-.4-7.9A5.5 5.5 0 0 1 9.5 5.6M17.3 8.6a3.9 3.9 0 0 1 1 7.3M14 17h" +
+                            "-7",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2794,10 +2794,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6 5h12a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5 -2" +
-                        ".5v-7a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M6 5h12a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5 -2" +
+                            ".5v-7a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2921,10 +2921,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M9.5 3.5v5.2L4.8 17a2.2 2.2 0 0 0 1.9 3.3h10.6a2.2 2.2 0 0 0 1.9-3.3l-4.7-8.3V3." +
-                        "5",
-                ),
+                    addPathNodes(
+                        "M9.5 3.5v5.2L4.8 17a2.2 2.2 0 0 0 1.9 3.3h10.6a2.2 2.2 0 0 0 1.9-3.3l-4.7-8.3V3." +
+                            "5",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2951,10 +2951,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M4 15V6.5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.4.6l1 1a2 2 0 0 0 1.4.6H17a2 2 0 0 1 2 2" +
-                        "V10",
-                ),
+                    addPathNodes(
+                        "M4 15V6.5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.4.6l1 1a2 2 0 0 0 1.4.6H17a2 2 0 0 1 2 2" +
+                            "V10",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2962,10 +2962,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M4.2 16.8l1.7-5.3a1.2 1.2 0 0 1 1.15-.85h13.3a.9.9 0 0 1 .85 1.15l-1.6 5.1a1.6 1" +
-                        ".6 0 0 1-1.5 1.1H5.5a1.2 1.2 0 0 1-1.3-1.2z",
-                ),
+                    addPathNodes(
+                        "M4.2 16.8l1.7-5.3a1.2 1.2 0 0 1 1.15-.85h13.3a.9.9 0 0 1 .85 1.15l-1.6 5.1a1.6 1" +
+                            ".6 0 0 1-1.5 1.1H5.5a1.2 1.2 0 0 1-1.3-1.2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -2985,10 +2985,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M3.5 7.5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.4.6l1.1 1.1a2 2 0 0 0 1.4.6h5.2a2 2 0 0 1" +
-                        " 2 2v7.7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z",
-                ),
+                    addPathNodes(
+                        "M3.5 7.5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.4.6l1.1 1.1a2 2 0 0 0 1.4.6h5.2a2 2 0 0 1" +
+                            " 2 2v7.7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3204,10 +3204,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M10.5 3.5h3a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1 -1.5 1.5h-3a1.5 1.5 0 0 1 -1" +
-                        ".5 -1.5v-1.5a1.5 1.5 0 0 1 1.5 -1.5z",
-                ),
+                    addPathNodes(
+                        "M10.5 3.5h3a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1 -1.5 1.5h-3a1.5 1.5 0 0 1 -1" +
+                            ".5 -1.5v-1.5a1.5 1.5 0 0 1 1.5 -1.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3215,10 +3215,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M4.5 16h3a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1 -1.5 1.5h-3a1.5 1.5 0 0 1 -1.5" +
-                        " -1.5v-1.5a1.5 1.5 0 0 1 1.5 -1.5z",
-                ),
+                    addPathNodes(
+                        "M4.5 16h3a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1 -1.5 1.5h-3a1.5 1.5 0 0 1 -1.5" +
+                            " -1.5v-1.5a1.5 1.5 0 0 1 1.5 -1.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3226,10 +3226,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M16.5 16h3a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1 -1.5 1.5h-3a1.5 1.5 0 0 1 -1." +
-                        "5 -1.5v-1.5a1.5 1.5 0 0 1 1.5 -1.5z",
-                ),
+                    addPathNodes(
+                        "M16.5 16h3a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1 -1.5 1.5h-3a1.5 1.5 0 0 1 -1." +
+                            "5 -1.5v-1.5a1.5 1.5 0 0 1 1.5 -1.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3348,10 +3348,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 12c-1.2 2-2.2 3.2-4 3.2a3.2 3.2 0 0 1 0-6.4c1.8 0 2.8 1.2 4 3.2s2.2 3.2 4 3." +
-                        "2a3.2 3.2 0 0 0 0-6.4c-1.8 0-2.8 1.2-4 3.2z",
-                ),
+                    addPathNodes(
+                        "M12 12c-1.2 2-2.2 3.2-4 3.2a3.2 3.2 0 0 1 0-6.4c1.8 0 2.8 1.2 4 3.2s2.2 3.2 4 3." +
+                            "2a3.2 3.2 0 0 0 0-6.4c-1.8 0-2.8 1.2-4 3.2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3397,10 +3397,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5" +
-                        " -2.5v-10a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5" +
+                            " -2.5v-10a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3493,10 +3493,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6 5.5h12a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5 " +
-                        "-2.5v-8a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M6 5.5h12a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5 " +
+                            "-2.5v-8a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3549,9 +3549,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M8.5 6.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-7a2 2 0 0 1 2 -2z",
-                ),
+                    addPathNodes(
+                        "M8.5 6.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-7a2 2 0 0 1 2 -2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3559,9 +3559,9 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M10.5 9.5h3a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1z",
-                ),
+                    addPathNodes(
+                        "M10.5 9.5h3a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3588,9 +3588,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M17 12.5h1a2.5 2.5 0 0 0 2.5-2.5v-3A2.5 2.5 0 0 0 18 4.5H9A2.5 2.5 0 0 0 6.5 7v1",
-                ),
+                    addPathNodes(
+                        "M17 12.5h1a2.5 2.5 0 0 0 2.5-2.5v-3A2.5 2.5 0 0 0 18 4.5H9A2.5 2.5 0 0 0 6.5 7v1",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3598,10 +3598,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7 9.5h10A2.5 2.5 0 0 1 19.5 12v3a2.5 2.5 0 0 1-2.5 2.5h-4.6l-3.2 2.5c-.4.3-1 .0" +
-                        "4-1-.48v-2.02H7A2.5 2.5 0 0 1 4.5 15v-3A2.5 2.5 0 0 1 7 9.5z",
-                ),
+                    addPathNodes(
+                        "M7 9.5h10A2.5 2.5 0 0 1 19.5 12v3a2.5 2.5 0 0 1-2.5 2.5h-4.6l-3.2 2.5c-.4.3-1 .0" +
+                            "4-1-.48v-2.02H7A2.5 2.5 0 0 1 4.5 15v-3A2.5 2.5 0 0 1 7 9.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3751,10 +3751,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5" +
-                        " -2.5v-10a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5" +
+                            " -2.5v-10a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3840,11 +3840,11 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 3.5c-4.7 0-8.5 3.4-8.5 7.6 0 4.2 3.8 7.6 8.5 7.6.9 0 1.6-.7 1.6-1.6 0-.4-.2-" +
-                        ".8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6h1.9c2.1 0 3.8-1.7 3.8-3.8 0-3.3-" +
-                        "3.6-6-8.1-6z",
-                ),
+                    addPathNodes(
+                        "M12 3.5c-4.7 0-8.5 3.4-8.5 7.6 0 4.2 3.8 7.6 8.5 7.6.9 0 1.6-.7 1.6-1.6 0-.4-.2-" +
+                            ".8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6h1.9c2.1 0 3.8-1.7 3.8-3.8 0-3.3-" +
+                            "3.6-6-8.1-6z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3871,10 +3871,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6.5 3.5h3l1.5 4.5-2 1.5a11.5 11.5 0 0 0 5.5 5.5l1.5-2 4.5 1.5v3a2 2 0 0 1-2 2A1" +
-                        "5.5 15.5 0 0 1 4.5 5.5a2 2 0 0 1 2-2z",
-                ),
+                    addPathNodes(
+                        "M6.5 3.5h3l1.5 4.5-2 1.5a11.5 11.5 0 0 0 5.5 5.5l1.5-2 4.5 1.5v3a2 2 0 0 1-2 2A1" +
+                            "5.5 15.5 0 0 1 4.5 5.5a2 2 0 0 1 2-2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3894,10 +3894,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M10 3.5h8a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1 -2.5 2.5h-8a2.5 2.5 0 0 1 -2.5 -" +
-                        "2.5v-8a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M10 3.5h8a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1 -2.5 2.5h-8a2.5 2.5 0 0 1 -2.5 -" +
+                            "2.5v-8a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -3905,10 +3905,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M16.5 16.5v1a2.5 2.5 0 0 1-2.5 2.5H6a2.5 2.5 0 0 1-2.5-2.5V10A2.5 2.5 0 0 1 6 7." +
-                        "5h1",
-                ),
+                    addPathNodes(
+                        "M16.5 16.5v1a2.5 2.5 0 0 1-2.5 2.5H6a2.5 2.5 0 0 1-2.5-2.5V10A2.5 2.5 0 0 1 6 7." +
+                            "5h1",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4059,10 +4059,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M5 3.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -1" +
-                        ".5v-4a1.5 1.5 0 0 1 1.5 -1.5z",
-                ),
+                    addPathNodes(
+                        "M5 3.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -1" +
+                            ".5v-4a1.5 1.5 0 0 1 1.5 -1.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4070,10 +4070,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M15 3.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -" +
-                        "1.5v-4a1.5 1.5 0 0 1 1.5 -1.5z",
-                ),
+                    addPathNodes(
+                        "M15 3.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -" +
+                            "1.5v-4a1.5 1.5 0 0 1 1.5 -1.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4081,10 +4081,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M5 13.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -" +
-                        "1.5v-4a1.5 1.5 0 0 1 1.5 -1.5z",
-                ),
+                    addPathNodes(
+                        "M5 13.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -" +
+                            "1.5v-4a1.5 1.5 0 0 1 1.5 -1.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4203,10 +4203,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M5.5 13.5h13a2 2 0 0 1 2 2v2.5a2 2 0 0 1 -2 2h-13a2 2 0 0 1 -2 -2v-2.5a2 2 0 0 1" +
-                        " 2 -2z",
-                ),
+                    addPathNodes(
+                        "M5.5 13.5h13a2 2 0 0 1 2 2v2.5a2 2 0 0 1 -2 2h-13a2 2 0 0 1 -2 -2v-2.5a2 2 0 0 1" +
+                            " 2 -2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4344,10 +4344,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7 3.5h10a3.5 3.5 0 0 1 3.5 3.5v10a3.5 3.5 0 0 1 -3.5 3.5h-10a3.5 3.5 0 0 1 -3.5" +
-                        " -3.5v-10a3.5 3.5 0 0 1 3.5 -3.5z",
-                ),
+                    addPathNodes(
+                        "M7 3.5h10a3.5 3.5 0 0 1 3.5 3.5v10a3.5 3.5 0 0 1 -3.5 3.5h-10a3.5 3.5 0 0 1 -3.5" +
+                            " -3.5v-10a3.5 3.5 0 0 1 3.5 -3.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4426,10 +4426,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M18 6l-1.4 1.4" +
-                        "M7.4 16.6L6 18",
-                ),
+                    addPathNodes(
+                        "M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M18 6l-1.4 1.4" +
+                            "M7.4 16.6L6 18",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4449,10 +4449,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7 7.5h10a4.5 4.5 0 0 1 4.5 4.5v0a4.5 4.5 0 0 1 -4.5 4.5h-10a4.5 4.5 0 0 1 -4.5 " +
-                        "-4.5v-0a4.5 4.5 0 0 1 4.5 -4.5z",
-                ),
+                    addPathNodes(
+                        "M7 7.5h10a4.5 4.5 0 0 1 4.5 4.5v0a4.5 4.5 0 0 1 -4.5 4.5h-10a4.5 4.5 0 0 1 -4.5 " +
+                            "-4.5v-0a4.5 4.5 0 0 1 4.5 -4.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4498,10 +4498,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6.5 4h11a2.5 2.5 0 0 1 2.5 2.5v11a2.5 2.5 0 0 1 -2.5 2.5h-11a2.5 2.5 0 0 1 -2.5" +
-                        " -2.5v-11a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M6.5 4h11a2.5 2.5 0 0 1 2.5 2.5v11a2.5 2.5 0 0 1 -2.5 2.5h-11a2.5 2.5 0 0 1 -2.5" +
+                            " -2.5v-11a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4528,10 +4528,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5" +
-                        " -2.5v-10a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5" +
+                            " -2.5v-10a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4558,10 +4558,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M7 10.5V20M7 10.5l3.5-6a1.8 1.8 0 0 1 1.8 1.8V9h5.1a1.8 1.8 0 0 1 1.77 2.13l-1.0" +
-                        "5 6A1.8 1.8 0 0 1 16.35 18.5H7",
-                ),
+                    addPathNodes(
+                        "M7 10.5V20M7 10.5l3.5-6a1.8 1.8 0 0 1 1.8 1.8V9h5.1a1.8 1.8 0 0 1 1.77 2.13l-1.0" +
+                            "5 6A1.8 1.8 0 0 1 16.35 18.5H7",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4692,10 +4692,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M5 6.5h8a2.5 2.5 0 0 1 2.5 2.5v6a2.5 2.5 0 0 1 -2.5 2.5h-8a2.5 2.5 0 0 1 -2.5 -2" +
-                        ".5v-6a2.5 2.5 0 0 1 2.5 -2.5z",
-                ),
+                    addPathNodes(
+                        "M5 6.5h8a2.5 2.5 0 0 1 2.5 2.5v6a2.5 2.5 0 0 1 -2.5 2.5h-8a2.5 2.5 0 0 1 -2.5 -2" +
+                            ".5v-6a2.5 2.5 0 0 1 2.5 -2.5z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4748,10 +4748,10 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M19 8V6.5a1.5 1.5 0 0 0-1.5-1.5H6A2.5 2.5 0 0 0 3.5 7.5V17A2.5 2.5 0 0 0 6 19.5h" +
-                        "11.5a1.5 1.5 0 0 0 1.5-1.5v-1.5",
-                ),
+                    addPathNodes(
+                        "M19 8V6.5a1.5 1.5 0 0 0-1.5-1.5H6A2.5 2.5 0 0 0 3.5 7.5V17A2.5 2.5 0 0 0 6 19.5h" +
+                            "11.5a1.5 1.5 0 0 0 1.5-1.5v-1.5",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4759,10 +4759,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M20.5 10h-4.25a2.75 2.75 0 0 0 0 5.5h4.25a.5.5 0 0 0 .5-.5v-4.5a.5.5 0 0 0-.5-.5" +
-                        "z",
-                ),
+                    addPathNodes(
+                        "M20.5 10h-4.25a2.75 2.75 0 0 0 0 5.5h4.25a.5.5 0 0 0 .5-.5v-4.5a.5.5 0 0 0-.5-.5" +
+                            "z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4827,9 +4827,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M3.5 8.5h9.5a2.5 2.5 0 1 0-2.5-2.5M3.5 12.5h13a2.5 2.5 0 1 1-2.5 2.5M3.5 16.5h7",
-                ),
+                    addPathNodes(
+                        "M3.5 8.5h9.5a2.5 2.5 0 1 0-2.5-2.5M3.5 12.5h13a2.5 2.5 0 1 1-2.5 2.5M3.5 16.5h7",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4882,10 +4882,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M8 15.5c-1 .5-2.5 2-2.8 3.5-.2.9-.9 1.4-1.7 1.7 1.7.4 4 .2 5.2-1.2.9-1 .8-2.5-.7" +
-                        "-4z",
-                ),
+                    addPathNodes(
+                        "M8 15.5c-1 .5-2.5 2-2.8 3.5-.2.9-.9 1.4-1.7 1.7 1.7.4 4 .2 5.2-1.2.9-1 .8-2.5-.7" +
+                            "-4z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4905,9 +4905,9 @@ object MuseIcons {
         ).apply {
             addPath(
                 pathData =
-                addPathNodes(
-                    "M4.5 8h11a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-11a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z",
-                ),
+                    addPathNodes(
+                        "M4.5 8h11a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-11a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -4967,10 +4967,10 @@ object MuseIcons {
             )
             addPath(
                 pathData =
-                addPathNodes(
-                    "M13 10.5V8.75a1.75 1.75 0 0 1 3.5 0v5.25a6.5 6.5 0 0 1-6.5 6.5h-1a6 6 0 0 1-6-6v" +
-                        "-2.25a1.75 1.75 0 0 1 3.5 0",
-                ),
+                    addPathNodes(
+                        "M13 10.5V8.75a1.75 1.75 0 0 1 3.5 0v5.25a6.5 6.5 0 0 1-6.5 6.5h-1a6 6 0 0 1-6-6v" +
+                            "-2.25a1.75 1.75 0 0 1 3.5 0",
+                    ),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,
@@ -5084,6 +5084,109 @@ object MuseIcons {
             )
             addPath(
                 pathData = addPathNodes("M5.5 10l2 2-2 2M18.5 10l-2 2 2 2"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    /** sticker */
+    val sticker: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "sticker",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData =
+                    addPathNodes(
+                        "M8 3.5h8a4.5 4.5 0 0 1 4.5 4.5v8a4.5 4.5 0 0 1 -4.5 4.5h-8a4.5 4.5 0 0 1 -4.5 -4" +
+                            ".5v-8a4.5 4.5 0 0 1 4.5 -4.5z",
+                    ),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M9 10h.01M15 10h.01"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M8.6 13.9a4.4 4.4 0 0 0 6.8 0"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M20.5 15.9a4.6 4.6 0 0 0 -4.6 4.6"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    /** expand */
+    val expand: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "expand",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes("M4.5 9.2L12 4l7.5 5.2"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M4.5 14.8L12 20l7.5-5.2"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
+
+    /** reflect */
+    val reflect: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "reflect",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes("M4.1 12a7.9 7.9 0 1 1 2.32 5.58"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M4 20v-5.5h5.5"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M12 12h.01"),
                 stroke = SolidColor(Color(0xFF000000)),
                 strokeLineWidth = 1.7f,
                 strokeLineCap = StrokeCap.Round,

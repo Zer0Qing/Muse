@@ -248,7 +248,7 @@ Muse 反过来做。它常驻在你的 Android 手机里，模型随你接（40+
 
 - **主题系统**：12 套完整主题（每套含亮 / 暗双模式）+ 8 套色盲友好配色；支持动态取色（Android 12+）、白天 / 夜间定时切换、自定义主题。
 - **气泡与外观**：消息气泡圆角可调；气泡皮肤体系，含插件提供的扩展皮肤（如高对比 / 柔光）。
-- **自绘图标**：176 枚全自绘图标（24dp 栅格 / 1.7dp 圆头笔触 / 深浅自适应），开源在 [muse-icons](https://github.com/Zer0Qing/muse-icons)（MIT）。
+- **自绘图标**：179 枚全自绘图标（24dp 栅格 / 1.7dp 圆头笔触 / 深浅自适应），开源在 [muse-icons](https://github.com/Zer0Qing/muse-icons)（MIT）。
 - **排版与多语言**：字体 / 字号 / 字间距、预测性返回、无障碍适配；界面支持中文 / English / 日本語 / 한국어 / Español / Português / Русский 七种语言。
 - **备份与恢复**：本地一键导出（JSON / 分块 NDJSON，可加密）；每日自动备份（打包 muse.db / memory.db / facts.db 快照）；S3 / WebDAV 云同步；主动消息的牵挂账本、结果账与关系亲密度一并备入；恢复前自动留保护副本，失败自动回滚。
 - **数据导入**：CherryStudio / Chatbox / ChatGPT / RikkaHub / Kelivo 一键迁移；多格式对话记录导入。

@@ -56,7 +56,8 @@ private fun netIcon(n: String): ImageVector? = when {
 /** 记忆、媒体、数据 —— 跟「碰的是什么」有关。 */
 private fun dataIcon(n: String): ImageVector? = when {
     n.contains("memory") || n.contains("remember") || n.contains("recall") -> MuseIcons.brain
-    n.contains("image") || n.contains("photo") || n.contains("video") || n.contains("sticker") -> MuseIcons.image
+    n.contains("sticker") -> MuseIcons.sticker
+    n.contains("image") || n.contains("photo") || n.contains("video") -> MuseIcons.image
     n.contains("db") || n.contains("sql") || n.contains("database") -> MuseIcons.database
     else -> null
 }

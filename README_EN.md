@@ -247,7 +247,7 @@ It does not wait to be spoken to.
 
 - **Themes**: 12 complete themes (each with light / dark variants) + 8 color-blind-friendly palettes; dynamic color (Android 12+), day/night scheduled switching, and custom themes.
 - **Bubbles & appearance**: adjustable bubble corner radius; a bubble skin system including plugin-provided skins (e.g. high-contrast, soft-glow).
-- **Hand-drawn icons**: 176 custom icons (24dp grid, 1.7dp rounded strokes, light/dark adaptive), open-sourced at [muse-icons](https://github.com/Zer0Qing/muse-icons) (MIT).
+- **Hand-drawn icons**: 179 custom icons (24dp grid, 1.7dp rounded strokes, light/dark adaptive), open-sourced at [muse-icons](https://github.com/Zer0Qing/muse-icons) (MIT).
 - **Typography & languages**: font, size and letter spacing, predictive back, accessibility support; the interface ships in Chinese / English / Japanese / Korean / Spanish / Portuguese / Russian.
 - **Backup & restore**: one-tap local export (JSON / chunked NDJSON, optionally encrypted); daily automatic backups (bundling muse.db / memory.db / facts.db snapshots); S3 / WebDAV cloud sync; the proactive ledgers (pending thoughts, outcomes and relationship intimacy) are included; a protective copy is kept before every restore, with automatic rollback on failure.
 - **Data import**: one-click migration from CherryStudio / Chatbox / ChatGPT / RikkaHub / Kelivo; multi-format conversation import.

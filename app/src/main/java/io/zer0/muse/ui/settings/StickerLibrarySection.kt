@@ -263,7 +263,8 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
         SettingsGroup {
             // 启用开关
             SettingsSwitchRow(
-                icon = MuseIcons.image,
+                // 表情包有自己的图形:此前与"图片/绘图"共用 image,同一页里分不清说的是贴纸还是图片。
+                icon = MuseIcons.sticker,
                 title = stringResource(R.string.settings_sticker_enabled),
                 subtitle = stringResource(R.string.settings_sticker_enabled_subtitle),
                 checked = stickerEnabled,
@@ -454,7 +455,8 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = MuseIcons.image,
+                        // 空态说的是"这个包里还没有贴纸",图形就该是贴纸而不是图片。
+                        imageVector = MuseIcons.sticker,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                         modifier = Modifier.size(MuseIconSizes.touchTarget),
