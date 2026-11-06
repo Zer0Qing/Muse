@@ -42,6 +42,7 @@ import io.zer0.muse.tools.system.RootAuthorizer
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import io.zer0.muse.tools.system.ShizukuInstaller
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -814,17 +815,3 @@ private fun StatusLine(done: Boolean, text: String) {
 
 private fun buildGlobalActionsHelp(context: Context): String = context.getString(R.string.permission_action_id_help)
 
-/**
- * v2.6.7: 从 Context 向上找 Activity。
- *
- * 运行时权限请求必须从 Activity 发起（ContextWrapper 链上不一定直挂 Activity）。
- * 找不到时返回 null，由调用方回落到手动引导，不抛异常。
- */
-private fun Context.findActivity(): android.app.Activity? {
-    var ctx: Context? = this
-    while (ctx is android.content.ContextWrapper) {
-        if (ctx is android.app.Activity) return ctx
-        ctx = ctx.baseContext
-    }
-    return null
-}
