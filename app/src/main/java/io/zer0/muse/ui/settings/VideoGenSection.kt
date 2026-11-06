@@ -44,6 +44,7 @@ import io.zer0.muse.data.VideoGenConfig
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
@@ -193,11 +194,8 @@ private fun VideoModelSelectorCard(provider: ProviderConfig?, model: Model?, onC
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = ">",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // 全站导航箭头统一走 chevron 图标:ASCII ">" 既不成字形、读屏也读不出语义。
+            ChevronRight()
         }
     }
 }

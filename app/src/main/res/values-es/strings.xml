@@ -155,7 +155,7 @@
 
     <string name="chat_draft_label">Borrador</string>
     <string name="chat_list_status_in_progress">En curso</string>
-    <string name="chat_list_status_pending">Pendiente</string>
+    <string name="chat_list_status_pending">Sin empezar</string>
     <string name="chat_list_status_completed">Terminado</string>
     <string name="chat_list_time_just_now">Ahora mismo</string>
     <string name="chat_list_time_minutes_ago">Hace %1$d min</string>

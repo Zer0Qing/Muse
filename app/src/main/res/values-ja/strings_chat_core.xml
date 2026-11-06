@@ -350,7 +350,6 @@
     <string name="settings_sticker_move_target_label">別のパックへ移動（新しい名前は新規作成）</string>
     <string name="settings_sticker_move_up">前へ</string>
     <string name="settings_sticker_move_down">後へ</string>
-    <string name="settings_sticker_upload_zip">ZIPをインポート</string>
     <string name="settings_sticker_upload_zip_subtitle">ZIP ファイルを選択します。</string>
     <string name="settings_sticker_imported">輸入された%1$dステッカー</string>
     <string name="settings_sticker_import_failed">インポートに失敗しました: %1$s</string>

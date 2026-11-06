@@ -155,7 +155,7 @@
 
     <string name="chat_draft_label">下書き</string>
     <string name="chat_list_status_in_progress">進行中</string>
-    <string name="chat_list_status_pending">保留中</string>
+    <string name="chat_list_status_pending">未開始</string>
     <string name="chat_list_status_completed">完了</string>
     <string name="chat_list_time_just_now">たった今</string>
     <string name="chat_list_time_minutes_ago">%1$d 分前</string>

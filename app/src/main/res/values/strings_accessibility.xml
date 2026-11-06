@@ -16,7 +16,7 @@
     <string name="accessibility_enable_btn">前往系统设置启用</string>
 
     <!-- Shizuku -->
-    <string name="shizuku_section_title">Shizuku(推荐)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">已授权 Muse 使用 Shizuku</string>
     <string name="shizuku_install_btn">下载安装 Shizuku</string>
     <string name="shizuku_authorize_btn">授权 Muse</string>

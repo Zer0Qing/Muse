@@ -444,7 +444,6 @@
     <string name="settings_sticker_move_target_label">Mover para outro pacote (nome novo cria um)</string>
     <string name="settings_sticker_move_up">Mover para cima</string>
     <string name="settings_sticker_move_down">Mover para baixo</string>
-    <string name="settings_sticker_upload_zip">Importar ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Escolha um arquivo ZIP;</string>
     <string name="settings_sticker_imported">Adesivos %1$d importados</string>
     <string name="settings_sticker_import_failed">Falha na importação: %1$s</string>

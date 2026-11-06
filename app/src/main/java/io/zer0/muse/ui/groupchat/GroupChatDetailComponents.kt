@@ -89,6 +89,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -1735,7 +1736,7 @@ internal fun EditGroupChatDialog(
 
             Spacer(Modifier.height(8.dp))
             Text(
-                text = stringResource(R.string.groupchat_selected_members, selectedMemberIds.size),
+                text = pluralStringResource(R.plurals.groupchat_selected_members, selectedMemberIds.size, selectedMemberIds.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
                 modifier = Modifier.fillMaxWidth(),

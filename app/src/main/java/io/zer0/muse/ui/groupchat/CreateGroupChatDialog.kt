@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -224,7 +225,7 @@ fun CreateGroupChatDialog(
 
             Spacer(Modifier.height(8.dp))
             Text(
-                text = stringResource(R.string.groupchat_selected_members, selectedMemberIds.size),
+                text = pluralStringResource(R.plurals.groupchat_selected_members, selectedMemberIds.size, selectedMemberIds.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,

@@ -78,7 +78,6 @@
     <string name="groupchat_member_required">请至少选择一名成员</string>
     <string name="groupchat_team_optional">关联团队（可选）</string>
     <string name="groupchat_no_team">不关联</string>
-    <string name="groupchat_selected_members">已选 %1$d 个成员</string>
     <string name="groupchat_create_btn">创建</string>
     <string name="groupchat_edit_cd">编辑群聊</string>
     <!-- v1.0.72: 三点菜单 -->
@@ -809,4 +808,7 @@
     <string name="plugin_cap_ui_interactive">显示可提交的表单，并运行插件的界面处理函数（会改动数据，默认关闭）</string>
     <string name="plugin_cap_runtime_python">以 Python 运行代码，能离开沙盒（高信任，请单独确认）</string>
     <string name="video_no_video_model_hint">当前供应商没有支持视频输出的模型。请在「设置 → 模型与供应商」中为模型开启「视频输出」能力。</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="other">已选 %1$d 个成员</item>
+    </plurals>
 </resources>

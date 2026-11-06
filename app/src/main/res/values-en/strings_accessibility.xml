@@ -16,7 +16,7 @@
     <string name="accessibility_enable_btn">Open system settings</string>
 
     <!-- Shizuku -->
-    <string name="shizuku_section_title">Shizuku (Recommended)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse authorized to use Shizuku</string>
     <string name="shizuku_install_btn">Download Shizuku</string>
     <string name="shizuku_authorize_btn">Authorize Muse</string>

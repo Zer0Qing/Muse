@@ -155,7 +155,7 @@
 
     <string name="chat_draft_label">초안</string>
     <string name="chat_list_status_in_progress">진행 중</string>
-    <string name="chat_list_status_pending">보류 중</string>
+    <string name="chat_list_status_pending">시작 전</string>
     <string name="chat_list_status_completed">완전한</string>
     <string name="chat_list_time_just_now">방금</string>
     <string name="chat_list_time_minutes_ago">%1$d분 전</string>

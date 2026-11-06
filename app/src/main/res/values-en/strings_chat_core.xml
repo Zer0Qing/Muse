@@ -463,7 +463,6 @@
     <string name="settings_sticker_move_target_label">Move to another pack (a new name creates one)</string>
     <string name="settings_sticker_move_up">Move up</string>
     <string name="settings_sticker_move_down">Move down</string>
-    <string name="settings_sticker_upload_zip">Import ZIP</string>
     <string name="settings_sticker_upload_zip_subtitle">Pick a ZIP file; categories are derived from folder structure</string>
     <string name="settings_sticker_imported">Imported %1$d stickers</string>
     <string name="settings_sticker_import_failed">Import failed: %1$s</string>

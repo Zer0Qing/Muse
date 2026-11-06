@@ -45,7 +45,6 @@
     <string name="groupchat_member_required">구성원을 하나 이상 선택하십시오.</string>
     <string name="groupchat_team_optional">링크 팀(선택 사항)</string>
     <string name="groupchat_no_team">연결되지 않음</string>
-    <string name="groupchat_selected_members">%1$d 멤버가 선택됨</string>
     <string name="groupchat_create_btn">만들다</string>
 
     <!-- ===== ui/account ===== -->
@@ -610,7 +609,7 @@
     <string name="settings_about_qq_not_installed">QQ를 찾을 수 없습니다. 그룹 번호 905451314가 클립보드에 복사되었습니다</string>
     <string name="shizuku_authorize_btn">Muse 승인</string>
     <string name="shizuku_install_btn">Shizuku 다운로드</string>
-    <string name="shizuku_section_title">Shizuku(권장)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse의 Shizuku 사용 승인됨</string>
     <string name="skill_agent_phone_not_configured">agent_phone 미설정: GroupChatScheduler가 주입되지 않았습니다</string>
     <string name="skill_agent_phone_target_not_found">대상 에이전트가 존재하지 않습니다</string>
@@ -839,4 +838,7 @@
     <string name="permission_optional_channels">기본 권한은 준비됨, 나머지 통로는 선택 사항</string>
     <string name="permission_privacy_notice_title">이 권한은 이 기기에서만 동작합니다</string>
     <string name="permission_privacy_notice_body">화면 읽기와 명령 실행은 이 기기에서 이루어지며 내용은 전송되지 않습니다. Root, Shizuku, Termux는 선택적인 고권한 통로이며, 활성화하면 앱이 기기를 대신 조작할 수 있습니다. 시스템 설정이나 해당 앱에서 언제든지 취소할 수 있습니다.</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="other">%1$d명의 멤버 선택됨</item>
+    </plurals>
 </resources>

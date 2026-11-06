@@ -15,6 +15,6 @@ fun ChevronRight() {
     Icon(
         imageVector = MuseIcons.chevronRight,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.outline,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

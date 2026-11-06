@@ -45,7 +45,6 @@
     <string name="groupchat_member_required">少なくとも 1 人のメンバーを選択してください</string>
     <string name="groupchat_team_optional">リンクチーム（オプション）</string>
     <string name="groupchat_no_team">リンクされていません</string>
-    <string name="groupchat_selected_members">%1$d メンバーが選択されました</string>
     <string name="groupchat_create_btn">作成する</string>
 
     <!-- ===== ui/account ===== -->
@@ -609,7 +608,7 @@
     <string name="settings_about_qq_not_installed">QQ が見つかりません。グループ番号 905451314 をクリップボードにコピーしました</string>
     <string name="shizuku_authorize_btn">Muse を承認</string>
     <string name="shizuku_install_btn">Shizuku をダウンロード</string>
-    <string name="shizuku_section_title">Shizuku（推奨）</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse の Shizuku 使用が承認済み</string>
     <string name="skill_agent_phone_not_configured">agent_phone 未設定: GroupChatScheduler が注入されていません</string>
     <string name="skill_agent_phone_target_not_found">対象エージェントが存在しません</string>
@@ -838,4 +837,7 @@
     <string name="permission_optional_channels">基本の権限は準備済み、その他のチャネルは任意</string>
     <string name="permission_privacy_notice_title">これらの権限はこの端末内でだけ有効です</string>
     <string name="permission_privacy_notice_body">画面読み上げとコマンド実行はこの端末内で行われ、内容は送信されません。Root / Shizuku / Termux は任意の高権限チャネルで、有効にするとアプリが端末を操作できます。システム設定または各アプリからいつでも取り消せます。</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="other">%1$d メンバーを選択中</item>
+    </plurals>
 </resources>

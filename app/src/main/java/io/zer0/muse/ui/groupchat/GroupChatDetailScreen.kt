@@ -788,7 +788,7 @@ fun GroupChatDetailScreen(
                             Text(
                                 text = stringResource(R.string.groupchat_empty_hint),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }

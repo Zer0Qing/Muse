@@ -72,7 +72,6 @@
     <string name="groupchat_member_required">Please select at least one member</string>
     <string name="groupchat_team_optional">Link team (optional)</string>
     <string name="groupchat_no_team">Not linked</string>
-    <string name="groupchat_selected_members">%1$d members selected</string>
     <string name="groupchat_create_btn">Create</string>
 
     <!-- ===== ui/account ===== -->
@@ -787,4 +786,8 @@
     <string name="plugin_cap_ui_interactive">Show a submit form and run the plugin handler (changes data, off by default)</string>
     <string name="plugin_cap_runtime_python">Run Python code outside the sandbox (high trust, confirm separately)</string>
     <string name="video_no_video_model_hint">The current provider has no model with video output. Enable the \"video output\" capability for a model in Settings › Models and Providers.</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="one">%1$d member selected</item>
+        <item quantity="other">%1$d members selected</item>
+    </plurals>
 </resources>

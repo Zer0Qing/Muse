@@ -45,7 +45,6 @@
     <string name="groupchat_member_required">Selecione pelo menos um membro</string>
     <string name="groupchat_team_optional">Equipe de link (opcional)</string>
     <string name="groupchat_no_team">Não vinculado</string>
-    <string name="groupchat_selected_members">%1$d membros selecionados</string>
     <string name="groupchat_create_btn">Criar</string>
 
     <!-- ===== ui/account ===== -->
@@ -610,7 +609,7 @@
     <string name="settings_about_qq_not_installed">QQ não encontrado; o número do grupo 905451314 foi copiado para a área de transferência</string>
     <string name="shizuku_authorize_btn">Autorizar Muse</string>
     <string name="shizuku_install_btn">Baixar Shizuku</string>
-    <string name="shizuku_section_title">Shizuku (recomendado)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse autorizado a usar Shizuku</string>
     <string name="skill_agent_phone_not_configured">agent_phone não configurado: GroupChatScheduler não injetado</string>
     <string name="skill_agent_phone_target_not_found">O agente de destino não existe</string>
@@ -839,4 +838,8 @@
     <string name="permission_optional_channels">O básico já está pronto; os demais canais são opcionais</string>
     <string name="permission_privacy_notice_title">Essas permissões valem só neste dispositivo</string>
     <string name="permission_privacy_notice_body">A leitura de tela e os comandos acontecem neste celular; nada é enviado. Root, Shizuku e Termux são canais opcionais de alto privilégio que permitem ao app agir no dispositivo — revogue quando quiser nas Ajustes ou no app correspondente.</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="one">%1$d membro selecionado</item>
+        <item quantity="other">%1$d membros selecionados</item>
+    </plurals>
 </resources>

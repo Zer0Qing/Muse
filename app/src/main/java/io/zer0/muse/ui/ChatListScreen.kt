@@ -1637,17 +1637,16 @@ private fun sessionTitleText(session: SessionEntity): String {
 private enum class TaskStatus { IN_PROGRESS, PENDING, COMPLETED }
 
 private fun inferTaskStatus(session: SessionEntity, now: Long): TaskStatus {
-    // 空会话 / 仅创建无消息 -> 待确认
+    // 只建了会话、一条消息都没有 -> 还没开始
     if (session.lastMessagePreview.isBlank() || session.messageCount <= 0) return TaskStatus.PENDING
     val dayMillis = TimeUnit.DAYS.toMillis(1)
     val threeDays = dayMillis * 3
-    // 3 天内有更新且消息数 >=2 -> 进行中
     val age = (now - session.updatedAt).coerceAtLeast(0L)
-    if (age < threeDays && session.messageCount >= 2) return TaskStatus.IN_PROGRESS
     // 超过 3 天未更新 -> 已完成
     if (age >= threeDays) return TaskStatus.COMPLETED
-    // 其余 -> 待确认
-    return TaskStatus.PENDING
+    // 有消息又还在三天窗口内 -> 进行中（原来这里还分"消息数 >=2"，
+    // 只发过一句的会话被塞回"待确认"，用户看到的是一个没有来由的状态词）
+    return TaskStatus.IN_PROGRESS
 }
 
 @Composable

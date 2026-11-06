@@ -45,7 +45,6 @@
     <string name="groupchat_member_required">Пожалуйста, выберите хотя бы одного участника</string>
     <string name="groupchat_team_optional">Связать команду (необязательно)</string>
     <string name="groupchat_no_team">Не связано</string>
-    <string name="groupchat_selected_members">%1$d выбрано участников</string>
     <string name="groupchat_create_btn">Создавать</string>
 
     <!-- ===== ui/account ===== -->
@@ -653,7 +652,7 @@
     <string name="settings_about_qq_not_installed">QQ не найден; номер группы 905451314 скопирован в буфер обмена</string>
     <string name="shizuku_authorize_btn">Авторизовать Muse</string>
     <string name="shizuku_install_btn">Скачать Shizuku</string>
-    <string name="shizuku_section_title">Shizuku (рекомендуется)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse авторизован для использования Shizuku</string>
     <string name="skill_agent_phone_not_configured">agent_phone не настроен: GroupChatScheduler не внедрён</string>
     <string name="skill_agent_phone_target_not_found">Целевой агент не существует</string>
@@ -888,4 +887,10 @@
     <string name="permission_optional_channels">Базовое готово; остальные каналы — по желанию</string>
     <string name="permission_privacy_notice_title">Эти разрешения действуют только на этом устройстве</string>
     <string name="permission_privacy_notice_body">Чтение экрана и команды выполняются на этом устройстве, ничего не отправляется. Root, Shizuku и Termux — необязательные каналы с высокими привилегиями: включив их, приложение сможет действовать за вас. Отозвать можно в любой момент в системных настройках или в соответствующем приложении.</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="one">выбран %1$d участник</item>
+        <item quantity="few">выбрано %1$d участника</item>
+        <item quantity="many">выбрано %1$d участников</item>
+        <item quantity="other">выбрано %1$d участника</item>
+    </plurals>
 </resources>
