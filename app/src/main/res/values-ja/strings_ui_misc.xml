@@ -59,12 +59,12 @@
     <string name="html_preview_download_failed">ダウンロードに失敗しました: %1$s</string>
 
     <!-- ===== ui/theme preset theme names ===== -->
-    <string name="theme_warm_paper">温かい紙</string>
+    <string name="theme_warm_paper">暖色の紙</string>
     <string name="theme_sakura">さくら</string>
     <string name="theme_ocean">海</string>
     <string name="theme_spring">春</string>
     <string name="theme_autumn">秋</string>
-    <string name="theme_mono">単核症</string>
+    <string name="theme_mono">モノクロ</string>
     <string name="theme_sumi">墨</string>
     <string name="theme_washi">和紙</string>
     <string name="theme_aizome">藍染（インディゴ）</string>

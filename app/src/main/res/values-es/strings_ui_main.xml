@@ -268,7 +268,7 @@
     <string name="settings_screen_rag">Recuperación de conocimientos</string>
     <string name="settings_screen_rag_desc">Configuración RAG / Incrustación / Parámetros de fragmentos</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
-    <string name="settings_screen_pii_guard">Protección de privacidad de IIP</string>
+    <string name="settings_screen_pii_guard">Protección de privacidad (PII)</string>
     <string name="settings_screen_pii_guard_desc">Enmascarar automáticamente el teléfono/correo electrónico/tarjeta de identificación, etc. antes de enviar</string>
     <string name="settings_screen_provider">Proveedores</string>
     <string name="settings_screen_task_routing_desc">Modelos por niveles para tareas en segundo plano</string>
