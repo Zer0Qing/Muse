@@ -1,0 +1,65 @@
+Muse v2.6.23 发布校验
+生成时间: 2026-11-07 04:06 +08:00
+versionName=2.6.23  versionCode=286  applicationId=io.zer0.muse
+
+## 版本号（aapt2 dump badging）
+package: name='io.zer0.muse' versionCode='286' versionName='2.6.23' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36'
+minSdkVersion 26  targetSdk 36
+
+## 签名（apksigner verify --print-certs）
+Signer #1 certificate DN: CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN
+Signer #1 certificate SHA-256 digest: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+Signer #1 certificate SHA-1 digest: 8230c9b7150676e322457c588fff81764e02ee0c
+Signer #1 certificate MD5 digest: 3f6d42436cac25c25053c2ea58a1d134
+（与 v2.6.22 及此前正式发行同一证书：可覆盖升级）
+签名预检：validate_release_apks.py 对 4 个 release APK 全部 PASS（含不分发的 x86_64）。
+
+## 产物（公开三包，x86_64 不进入分发）
+Muse_v2.6.23_arm64-v8a.apk   104058851 bytes  sha256=448f8c27eb34b4cfae52be557bebde11c7496faa7dfb0f9aff5331706d0b5f14
+Muse_v2.6.23_armeabi-v7a.apk  59991310 bytes  sha256=93b367f724dc4f926fb8c5b2fd0ebc2dc5bd1944643d95c50c23f74b0678d78c
+Muse_v2.6.23_universal.apk   188061860 bytes  sha256=b73e1ce143dfb4fc2595a21efc1654b2eb88307d89d5fd237493aa0906088ff0
+
+ABI 目录核对（与 v2.6.22 逐项对齐）：
+- arm64-v8a 包：lib/arm64-v8a，84 项原生库（2.6.22 同为 84 项）
+- armeabi-v7a 包：lib/armeabi-v7a，10 项（与 2.6.22 完全同名同数；Python/Node 运行时按设计只随 arm64）
+- universal 包：lib/arm64-v8a、lib/armeabi-v7a、lib/x86、lib/x86_64，185 项（2.6.22 同为 185 项）
+- assets 条目 235（与 2.6.22 一致）；总条目 2082 vs 2.6.22 的 2084，少的 2 项是旧构建里按 Sync
+  规则已清理的过期哈希 web bundle 文件（见 app/build.gradle.kts 的 syncMuseWebAssets 注释）。
+- 网页 bundle 为本次在干净树重新构建：assets/muse-web/assets/index-CV-EW85F.js、index-DmLlq4aT.css。
+- 内嵌运行时在包内：libpython3.14.so、libmuse_node.so；无障碍 Provider 资产 assets/a11y/accessibility-provider.apk。
+
+## manifest 校验
+validate_release_manifest.py PASS：版本、DB 版本（MuseDb.kt）、三包摘要与 provenance 全部一致。
+
+## 构建来源与工作区状态
+sourceCommit: 892b653d6d1740f32e4d3dc53f62edb65084056f（= 本地 main，含流体化 F1–F4、体验整改 U1–U8、实机走查 X 批与版本号提交）
+sourceRef: v2.6.23
+构建工作树: build/clean-2.6.23（--detach 干净工作树，不含并行工作线的未提交改动）
+构建命令: ./gradlew :app:assembleRelease -PversionName=2.6.23 -PversionCode=286
+
+工作区状态说明（重要，不隐瞒）：
+1. `app/src/main/jniLibs/`、`app/src/main/assets/muse-python-assets.zip`、`muse-runtime-assets.zip`
+   是 gitignore 的 pack 产物，CI 在 Linux runner 上用 patchelf 生成。本机为 Windows，无法执行该步骤，
+   因此从主工作树复制了已准备好的产物。复制前已核对 `tools/` 与 pack 输入在该提交无未提交改动。
+2. `web/apps/client/dist` 未复制，而是在干净树里 `npm ci && npm run build` 重新构建，
+   因此包内 bundle 与 sourceCommit 严格对应（主树旧 dist 的哈希不同，说明它确实过期了）。
+3. 首次干净树构建缺少上述产物，包体只有 53MB 且缺 Python 运行时与网页 bundle；已重做并复核到
+   与 2.6.22 的条目级一致。这一条留档，是为了下次别再把半成品当成品。
+
+## 门禁与实机验证（本轮已跑的证据）
+- unit lane：`:app` 全量单测 5058 例 / 0 失败（含 X 批新增 UsableProviderPresentTest 7 例、
+  MistranslationGuardTest、CountPluralsTest、SessionTitleDisplayTest、SessionTitleDefaultLiteralTest、
+  NotificationPermissionBusTest、MediaTtsDraftDirtyTest 4 例）。
+- debug lane / ci-scripts lane：PASS。static lane 仍红，逐条点名为全仓 ktlint 存量漂移，本批改动的文件 0 违例。
+- 模拟器实机复验（Android 16 x86_64，软件渲染）：冷启动不再要通知权限、引导语言 7 项自称、
+  跳过供应商后从外观步返回不再落空态、完成页卡片可直达、归档入口常驻、会话标题列表与顶栏一致。
+- release 包模拟器冒烟（x86_64 release APK，卸载 debug 后全新安装）：冷启动 TotalTime 3660ms 无崩溃；
+  走完引导 8 步（含跳过供应商）；发消息后 mood / reasoning / 工具轮正常产出
+  （logcat：provider round request round=1 tools=31 → finalize len=40 reasoning=112 mood=344），
+  说明 R8 没有打断序列化、工具表与网页 bundle 装载路径。
+- 尚未验证（不宣称通过）：release 包的全量功能回归（插件/渠道/小手机/浏览器等 R8 敏感面）、
+  真机动效手感与帧率、TalkBack 全流程、大字号截断、ColorOS 通知/省电/手势行为。
+
+## 发布状态
+本文件与 manifest、release_body 为**本地候选**记录：未 push、未打 tag、未创建 GitHub Release。
+发布动作需另行授权。
