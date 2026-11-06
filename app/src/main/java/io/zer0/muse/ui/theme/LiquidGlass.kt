@@ -157,6 +157,31 @@ internal fun resolveGlass(config: LiquidGlassConfig): ResolvedGlass {
     )
 }
 
+/**
+ * F3.4: 玻璃高光的统一光源参数——真玻璃(Highlight)与假玻璃(边缘画线)共用一套词汇。
+ *
+ * 数值与收敛前逐项相同，纯消灭"两处各自维护同一物理含义常数"的漂移风险；
+ * 光源方向为常量顶部（顶带最亮 + 左上→右下扫过），不做可调项。
+ */
+internal object MuseGlassLight {
+    /** 描边基准宽（dp）：Highlight.width 与假玻璃带共用的"边缘厚度"单位。 */
+    const val EDGE_WIDTH_DP = 1f
+
+    /** 高光模糊相对边宽倍率（kyant Highlight.blurRadius = EDGE * 此值）。 */
+    const val BLUR_FACTOR = 2.4f
+
+    /** 假玻璃顶高光带高度（dp）。 */
+    const val TOP_BAND_DP = 1.5f
+
+    /** 假玻璃底部暗带高度（dp）与相对 alpha 增益（体积感，弱于顶光）。 */
+    const val BOTTOM_BAND_DP = 1f
+    const val BOTTOM_GAIN = 0.35f
+
+    /** 斜向环境光扫过终点（宽的 0.85 × 高）与其相对 alpha 增益。 */
+    const val SWEEP_END_X_FRACTION = 0.85f
+    const val SWEEP_GAIN = 0.55f
+}
+
 /** 玻璃 tint 基调色（描边/假玻璃/Highlight 与底色的一致性来源）。 */
 internal fun ResolvedGlass.surfaceTint(surfaceColor: Color): Color =
     surfaceColor.copy(alpha = (tintAlpha + baseAlpha * 0.35f).coerceIn(0f, 0.85f))
@@ -179,7 +204,7 @@ fun Modifier.frostGlass(backdrop: LayerBackdrop?, shape: Shape, surfaceColor: Co
     // 强度只能改模糊(14→4dp 差距小)与高光 alpha,肉眼几乎看不出。
     // 现在折射、模糊、高光、tint 全部随强度线性变化,且拉开两端差距。
     val s = config.strength.coerceIn(0f, 1f)
-    val edgeWidth = 1.dp
+    val edgeWidth = MuseGlassLight.EDGE_WIDTH_DP.dp
     val refractionHeight = (4f + 20f * s).dp
     val refractionAmount = (4f + 26f * s).dp
     val shadowRadius = (4f + 18f * s).dp
@@ -198,7 +223,7 @@ fun Modifier.frostGlass(backdrop: LayerBackdrop?, shape: Shape, surfaceColor: Co
         highlight = {
             Highlight(
                 width = edgeWidth,
-                blurRadius = edgeWidth * 2.4f,
+                blurRadius = edgeWidth * MuseGlassLight.BLUR_FACTOR,
                 alpha = p.highlightAlpha,
             )
         },
@@ -284,7 +309,7 @@ fun Modifier.glassEdgeHighlight(shape: Shape, config: LiquidGlassConfig): Modifi
     val hi = p.highlightAlpha
 
     // 1. 顶部高光边 —— 1.5dp 内从亮到透明
-    val topBand = 1.5.dp.toPx()
+    val topBand = MuseGlassLight.TOP_BAND_DP.dp.toPx()
     drawRect(
         brush = Brush.verticalGradient(
             0f to Color.White.copy(alpha = hi),
@@ -295,11 +320,11 @@ fun Modifier.glassEdgeHighlight(shape: Shape, config: LiquidGlassConfig): Modifi
         size = Size(w, topBand),
     )
     // 2. 底部暗边 —— 1dp 内从暗到透明（体积感）
-    val bottomBand = 1.dp.toPx()
+    val bottomBand = MuseGlassLight.BOTTOM_BAND_DP.dp.toPx()
     drawRect(
         brush = Brush.verticalGradient(
             0f to Color.Transparent,
-            1f to Color.Black.copy(alpha = hi * 0.35f),
+            1f to Color.Black.copy(alpha = hi * MuseGlassLight.BOTTOM_GAIN),
             startY = h - bottomBand,
             endY = h,
         ),
@@ -309,10 +334,10 @@ fun Modifier.glassEdgeHighlight(shape: Shape, config: LiquidGlassConfig): Modifi
     // 3. 斜向光扫 —— 左上到右下，白色渐隐（环境光）
     drawRect(
         brush = Brush.linearGradient(
-            0f to Color.White.copy(alpha = hi * 0.55f),
+            0f to Color.White.copy(alpha = hi * MuseGlassLight.SWEEP_GAIN),
             0.45f to Color.Transparent,
             start = Offset(0f, 0f),
-            end = Offset(w * 0.85f, h),
+            end = Offset(w * MuseGlassLight.SWEEP_END_X_FRACTION, h),
         ),
     )
 }
