@@ -498,11 +498,11 @@ internal fun ChatSheetHost(
                                                     name,
                                                     current,
                                                 )
-                                                // H-S2: 先检查内容非空再 updateInput + send,避免读到旧空 input 的竞态
+                                                // 委托不再"点击即发送":拼装好的 prompt 先落进输入框停留,
+                                                // 用户看得见将要发什么,可改可删再由自己按下发送。
                                                 if (prompt.isNotBlank()) {
                                                     viewModel.updateInput(prompt)
                                                     sheetState.showDelegateSheet = null
-                                                    viewModel.send()
                                                 }
                                             }
                                             is DelegateSheetMode.Message -> {
@@ -518,11 +518,9 @@ internal fun ChatSheetHost(
                                                 val summary = delegateBody.take(200)
                                                 val prompt = context.getString(R.string.chat_delegate_assistant_prompt_message, name)
                                                 val content = buildQuotedContent(summary, prompt)
-                                                // H-S2: 先检查内容非空再 updateInput + send
                                                 if (content.isNotBlank()) {
                                                     viewModel.updateInput(content)
                                                     sheetState.showDelegateSheet = null
-                                                    viewModel.send()
                                                 }
                                             }
                                         }
@@ -564,11 +562,11 @@ internal fun ChatSheetHost(
                                             is DelegateSheetMode.Input -> {
                                                 val current = viewModel.state.value.input
                                                 val prompt = context.getString(R.string.chat_delegate_team_prompt_input, name, current)
-                                                // H-S2: 先检查内容非空再 updateInput + send,避免读到旧空 input 的竞态
+                                                // 委托不再"点击即发送":拼装好的 prompt 先落进输入框停留,
+                                                // 用户看得见将要发什么,可改可删再由自己按下发送。
                                                 if (prompt.isNotBlank()) {
                                                     viewModel.updateInput(prompt)
                                                     sheetState.showDelegateSheet = null
-                                                    viewModel.send()
                                                 }
                                             }
                                             is DelegateSheetMode.Message -> {
@@ -584,11 +582,9 @@ internal fun ChatSheetHost(
                                                 val summary = delegateBody.take(200)
                                                 val prompt = context.getString(R.string.chat_delegate_team_prompt_message, name)
                                                 val content = buildQuotedContent(summary, prompt)
-                                                // H-S2: 先检查内容非空再 updateInput + send
                                                 if (content.isNotBlank()) {
                                                     viewModel.updateInput(content)
                                                     sheetState.showDelegateSheet = null
-                                                    viewModel.send()
                                                 }
                                             }
                                         }
