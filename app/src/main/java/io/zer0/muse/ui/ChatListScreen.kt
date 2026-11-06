@@ -417,7 +417,9 @@ fun ChatListScreen(
                         }
 
                         // v2.x: 回顾条(候选A) — "上次和 X 聊到「…」",整条可点直进最近会话
-                        if (latestRecallSession != null) {
+                        // 回顾条指的是"最近一条有预览的会话",而它几乎总等于最近列表的第一行 ——
+                        // 同一条信息在首屏占两行。只有它不在列表首位时才值得单独一条。
+                        if (latestRecallSession != null && recent.firstOrNull()?.id != latestRecallSession.id) {
                             item(key = "recall_bar") {
                                 RecallBar(
                                     session = latestRecallSession,
@@ -1719,7 +1721,7 @@ private fun formatTime(timestamp: Long): String {
 /**
  * 列表工具行 — 提供"已归档""新建文件夹""多选编辑"三个入口。
  * 归档入口让右滑归档后的恢复承诺有落点;文件夹与多选入口分别接通分组能力与批量操作。
- * 归档计数为 0 时不显示该入口:没有可恢复内容时,入口只是噪声,而"存在归档项"本身就是它出现的理由。
+ * 归档入口常驻(含 0):它是恢复路径的唯一入口,出现/消失会让人记不住位置。
  */
 @Composable
 private fun ListToolbarRow(
@@ -1733,13 +1735,13 @@ private fun ListToolbarRow(
         modifier = modifier.fillMaxWidth().padding(top = MusePaddings.sectionGap),
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
-        if (archivedCount > 0) {
-            ChatListToolbarAction(
-                icon = MuseIcons.archive,
-                label = stringResource(R.string.chat_list_archived_entry, archivedCount),
-                onClick = onOpenArchived,
-            )
-        }
+        // 入口常驻,不在归档数为 0 时藏起来:右滑归档的 toast 承诺"可到「已归档」中恢复",
+        // 而第一次归档之前那个入口根本不存在,承诺对用户不成立;出现/消失的入口也让人记不住位置。
+        ChatListToolbarAction(
+            icon = MuseIcons.archive,
+            label = stringResource(R.string.chat_list_archived_entry, archivedCount),
+            onClick = onOpenArchived,
+        )
         ChatListToolbarAction(
             icon = MuseIcons.folderPlus,
             label = stringResource(R.string.chat_list_new_folder),

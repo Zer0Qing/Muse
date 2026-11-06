@@ -8,14 +8,6 @@
     <string name="onboarding_language_subtitle">画面の表示に使われます。いつでも変更できます。</string>
     <string name="onboarding_theme_title">好きな見た目に。</string>
     <string name="onboarding_theme_subtitle">テーマは設定からいつでも変更できます。</string>
-    <string name="onboarding_lang_zh">簡体字中国語</string>
-    <string name="onboarding_lang_zh_tw">繁体字中国語</string>
-    <string name="onboarding_lang_en">英語</string>
-    <string name="onboarding_lang_ja">日本語</string>
-    <string name="onboarding_lang_ko">한국어</string>
-    <string name="onboarding_lang_ru">ロシア語</string>
-    <string name="onboarding_lang_es">スペイン語</string>
-    <string name="onboarding_lang_pt_br">ポルトガル語（ブラジル）</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">はじめまして。</string>

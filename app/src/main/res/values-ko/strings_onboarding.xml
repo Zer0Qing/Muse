@@ -8,14 +8,6 @@
     <string name="onboarding_language_subtitle">인터페이스에 사용됩니다. 언제든 바꿀 수 있어요.</string>
     <string name="onboarding_theme_title">마음에 드는 모습으로.</string>
     <string name="onboarding_theme_subtitle">테마는 설정에서 언제든 바꿀 수 있어요.</string>
-    <string name="onboarding_lang_zh">간체 중국어</string>
-    <string name="onboarding_lang_zh_tw">번체 중국어</string>
-    <string name="onboarding_lang_en">영어</string>
-    <string name="onboarding_lang_ja">일본어</string>
-    <string name="onboarding_lang_ko">한국어</string>
-    <string name="onboarding_lang_ru">러시아어</string>
-    <string name="onboarding_lang_es">스페인어</string>
-    <string name="onboarding_lang_pt_br">포르투갈어 (브라질)</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">먼저 인사부터.</string>

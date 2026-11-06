@@ -8,14 +8,6 @@
     <string name="onboarding_language_subtitle">La interfaz lo usará. Cámbialo cuando quieras.</string>
     <string name="onboarding_theme_title">Elige un aspecto que te guste.</string>
     <string name="onboarding_theme_subtitle">Puedes cambiarlo cuando quieras en Ajustes.</string>
-    <string name="onboarding_lang_zh">Chino simplificado</string>
-    <string name="onboarding_lang_zh_tw">Chino tradicional</string>
-    <string name="onboarding_lang_en">Inglés</string>
-    <string name="onboarding_lang_ja">Japonés</string>
-    <string name="onboarding_lang_ko">한국어</string>
-    <string name="onboarding_lang_ru">Ruso</string>
-    <string name="onboarding_lang_es">Español</string>
-    <string name="onboarding_lang_pt_br">Portugués (Brasil)</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">Vamos a conocernos.</string>
@@ -76,7 +68,7 @@
     <!-- Bottom buttons -->
     <string name="onboarding_button_start">Iniciar configuración</string>
     <string name="onboarding_button_previous">Anterior</string>
-    <string name="onboarding_button_next">Próximo</string>
+    <string name="onboarding_button_next">Siguiente</string>
     <string name="onboarding_button_finish">Vamos a charlar</string>
     <string name="onboarding_step_progress">Paso %1$d de %2$d</string>
 </resources>

@@ -8,14 +8,6 @@
     <string name="onboarding_language_subtitle">A interface vai usá-lo. Pode mudar quando quiser.</string>
     <string name="onboarding_theme_title">Escolha um visual que goste.</string>
     <string name="onboarding_theme_subtitle">Temas podem ser trocados nas Configurações.</string>
-    <string name="onboarding_lang_zh">Chinês simplificado</string>
-    <string name="onboarding_lang_zh_tw">Chinês tradicional</string>
-    <string name="onboarding_lang_en">Inglês</string>
-    <string name="onboarding_lang_ja">Japonês</string>
-    <string name="onboarding_lang_ko">한국어</string>
-    <string name="onboarding_lang_ru">Russo</string>
-    <string name="onboarding_lang_es">Espanhol</string>
-    <string name="onboarding_lang_pt_br">Português (Brasil)</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">Vamos nos conhecer.</string>
