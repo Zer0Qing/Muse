@@ -4,7 +4,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +52,8 @@ import io.zer0.muse.data.assistant.PersonaFieldChange
 import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseActionSheetRow
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
@@ -115,15 +114,10 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
     val currentText = stringResource(R.string.assistant_current)
     val moreCd = stringResource(R.string.assistant_more_cd)
     val newActionText = stringResource(R.string.assistant_new_action)
-    val moveUpCd = stringResource(R.string.assistant_move_up_cd)
     val moveUpText = stringResource(R.string.assistant_move_up)
-    val moveDownCd = stringResource(R.string.assistant_move_down_cd)
     val moveDownText = stringResource(R.string.assistant_move_down)
-    val cloneCd = stringResource(R.string.assistant_clone_cd)
     val cloneText = stringResource(R.string.assistant_clone)
-    val exportCardCd = stringResource(R.string.assistant_export_card_cd)
     val exportCardText = stringResource(R.string.assistant_export_card)
-    val deleteCd = stringResource(R.string.assistant_delete_cd)
     val deleteText = stringResource(R.string.assistant_delete)
     val closeText = stringResource(R.string.assistant_close)
     val deleteDialogTitle = stringResource(R.string.assistant_delete_title)
@@ -510,144 +504,138 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
         )
     }
 
-    // 操作菜单(MuseDialog)
+    // 操作菜单
     actionSheetAssistant?.let { assistant ->
         val currentIndex = state.assistants.indexOf(assistant)
         val canMoveUp = currentIndex > 0
         val canMoveDown = currentIndex >= 0 && currentIndex < state.assistants.size - 1
 
-        MuseDialog(
+        // 与任务列表/文件夹/气泡长按同一个件:同一个"行操作菜单"不该有两种弹法、两种动画、两种宽度。
+        MuseBottomSheet(
             onDismissRequest = { actionSheetAssistantId = null },
-            title = assistant.name.ifBlank { unnamedText },
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // 头部头像
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AssistantAvatar(assistant = assistant, avatarSize = 56.dp)
-                    }
-                    Spacer(Modifier.size(12.dp))
+            maxHeightFraction = 0.6f,
+        ) {
+            Text(
+                text = assistant.name.ifBlank { unnamedText },
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // 头部头像
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AssistantAvatar(assistant = assistant, avatarSize = 56.dp)
+            }
+            Spacer(Modifier.size(12.dp))
 
-                    // 上移
-                    if (canMoveUp) {
-                        ActionMenuRow(
-                            icon = MuseIcons.arrowUp,
-                            contentDescription = moveUpCd,
-                            text = moveUpText,
-                            onClick = {
-                                scope.launch {
-                                    val upper = state.assistants[currentIndex - 1]
-                                    // P2-7: 交换真实 sortIndex,而非把列表下标当 sortIndex 写回(≥3 项会错乱)
-                                    repo.upsert(
-                                        assistant.copy(
-                                            sortIndex = upper.sortIndex,
-                                            updatedAt = System.currentTimeMillis(),
-                                        ),
-                                    )
-                                    repo.upsert(
-                                        upper.copy(
-                                            sortIndex = assistant.sortIndex,
-                                            updatedAt = System.currentTimeMillis(),
-                                        ),
-                                    )
-                                }
-                                actionSheetAssistantId = null
-                            },
-                        )
-                    }
+            // 上移
+            if (canMoveUp) {
+                MuseActionSheetRow(
+                    icon = MuseIcons.arrowUp,
+                    text = moveUpText,
+                    onClick = {
+                        scope.launch {
+                            val upper = state.assistants[currentIndex - 1]
+                            // P2-7: 交换真实 sortIndex,而非把列表下标当 sortIndex 写回(≥3 项会错乱)
+                            repo.upsert(
+                                assistant.copy(
+                                    sortIndex = upper.sortIndex,
+                                    updatedAt = System.currentTimeMillis(),
+                                ),
+                            )
+                            repo.upsert(
+                                upper.copy(
+                                    sortIndex = assistant.sortIndex,
+                                    updatedAt = System.currentTimeMillis(),
+                                ),
+                            )
+                        }
+                        actionSheetAssistantId = null
+                    },
+                )
+            }
 
-                    // 下移
-                    if (canMoveDown) {
-                        ActionMenuRow(
-                            icon = MuseIcons.arrowDown,
-                            contentDescription = moveDownCd,
-                            text = moveDownText,
-                            onClick = {
-                                scope.launch {
-                                    val lower = state.assistants[currentIndex + 1]
-                                    // P2-7: 交换真实 sortIndex,而非把列表下标当 sortIndex 写回
-                                    repo.upsert(
-                                        assistant.copy(
-                                            sortIndex = lower.sortIndex,
-                                            updatedAt = System.currentTimeMillis(),
-                                        ),
-                                    )
-                                    repo.upsert(
-                                        lower.copy(
-                                            sortIndex = assistant.sortIndex,
-                                            updatedAt = System.currentTimeMillis(),
-                                        ),
-                                    )
-                                }
-                                actionSheetAssistantId = null
-                            },
-                        )
-                    }
+            // 下移
+            if (canMoveDown) {
+                MuseActionSheetRow(
+                    icon = MuseIcons.arrowDown,
+                    text = moveDownText,
+                    onClick = {
+                        scope.launch {
+                            val lower = state.assistants[currentIndex + 1]
+                            // P2-7: 交换真实 sortIndex,而非把列表下标当 sortIndex 写回
+                            repo.upsert(
+                                assistant.copy(
+                                    sortIndex = lower.sortIndex,
+                                    updatedAt = System.currentTimeMillis(),
+                                ),
+                            )
+                            repo.upsert(
+                                lower.copy(
+                                    sortIndex = assistant.sortIndex,
+                                    updatedAt = System.currentTimeMillis(),
+                                ),
+                            )
+                        }
+                        actionSheetAssistantId = null
+                    },
+                )
+            }
 
-                    // 克隆
-                    ActionMenuRow(
-                        icon = MuseIcons.copy,
-                        contentDescription = cloneCd,
-                        text = cloneText,
-                        onClick = {
-                            cloneAssistant(assistant)
-                            actionSheetAssistantId = null
-                        },
-                    )
+            // 克隆
+            MuseActionSheetRow(
+                icon = MuseIcons.copy,
+                text = cloneText,
+                onClick = {
+                    cloneAssistant(assistant)
+                    actionSheetAssistantId = null
+                },
+            )
 
-                    // U-26: 启用/停用(停用后从候选列表隐藏,不影响既有会话)
-                    ActionMenuRow(
-                        icon = if (assistant.enabled) MuseIcons.eyeOff else MuseIcons.eye,
-                        contentDescription = stringResource(
-                            if (assistant.enabled) R.string.assistant_disable_cd else R.string.assistant_enable_cd,
-                        ),
-                        text = stringResource(
-                            if (assistant.enabled) R.string.assistant_disable else R.string.assistant_enable,
-                        ),
-                        onClick = {
-                            scope.launch { repo.setEnabled(assistant.id, !assistant.enabled) }
-                            actionSheetAssistantId = null
-                        },
-                    )
+            // U-26: 启用/停用(停用后从候选列表隐藏,不影响既有会话)
+            MuseActionSheetRow(
+                icon = if (assistant.enabled) MuseIcons.eyeOff else MuseIcons.eye,
+                text = stringResource(
+                    if (assistant.enabled) R.string.assistant_disable else R.string.assistant_enable,
+                ),
+                onClick = {
+                    scope.launch { repo.setEnabled(assistant.id, !assistant.enabled) }
+                    actionSheetAssistantId = null
+                },
+            )
 
-                    // 导出角色卡
-                    ActionMenuRow(
-                        icon = MuseIcons.upload,
-                        contentDescription = exportCardCd,
-                        text = exportCardText,
-                        onClick = {
-                            exportTargetId = assistant.id
-                            actionSheetAssistantId = null
-                            val safeName = assistant.name
-                                .ifBlank { "assistant" }
-                                .replace(Regex("[\\\\/:*?\"<>|]"), "_")
-                            exportLauncher.launch("$safeName.muse-assistant")
-                        },
-                    )
+            // 导出角色卡
+            MuseActionSheetRow(
+                icon = MuseIcons.upload,
+                text = exportCardText,
+                onClick = {
+                    exportTargetId = assistant.id
+                    actionSheetAssistantId = null
+                    val safeName = assistant.name
+                        .ifBlank { "assistant" }
+                        .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                    exportLauncher.launch("$safeName.muse-assistant")
+                },
+            )
 
-                    // 删除（v2.6.2: 自带/默认助手也可删 —— 底层已有「自动把默认指针切给另一个助手」保护，
-                    // 仅当只剩一个助手时才拦下。旧实现用 `id != "default"` 把入口藏了，用户无法删除自带助手。）
-                    ActionMenuRow(
-                        icon = MuseIcons.trash,
-                        contentDescription = deleteCd,
-                        text = deleteText,
-                        tint = MaterialTheme.colorScheme.error,
-                        onClick = {
-                            deleteTargetId = assistant.id
-                            actionSheetAssistantId = null
-                        },
-                    )
-                }
-            },
-            onConfirm = null,
-            dismissText = closeText,
-            onDismiss = { actionSheetAssistantId = null },
-        )
+            // 删除（v2.6.2: 自带/默认助手也可删 —— 底层已有「自动把默认指针切给另一个助手」保护，
+            // 仅当只剩一个助手时才拦下。旧实现用 `id != "default"` 把入口藏了，用户无法删除自带助手。）
+            MuseActionSheetRow(
+                icon = MuseIcons.trash,
+                text = deleteText,
+                contentColor = MaterialTheme.colorScheme.error,
+                onClick = {
+                    deleteTargetId = assistant.id
+                    actionSheetAssistantId = null
+                },
+            )
+        }
     }
 
     // 删除确认对话框
@@ -800,46 +788,6 @@ private fun CurrentIndicator(text: String, modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Medium,
             )
         }
-    }
-}
-
-/**
- * 操作菜单行:图标 + 文字,无边框,整行可点。
- */
-@Composable
-private fun ActionMenuRow(
-    icon: ImageVector,
-    contentDescription: String,
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            )
-            .heightIn(min = MuseIconSizes.touchTarget)
-            .padding(horizontal = MusePaddings.screen, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = tint,
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = tint,
-        )
     }
 }
 
