@@ -31,7 +31,7 @@
     <string name="onboarding_provider_caps">能力已匹配：视觉 %1$d · 推理 %2$d · 工具 %3$d</string>
     <string name="onboarding_provider_select_label">选择供应商</string>
     <string name="onboarding_provider_apikey_label">API Key</string>
-    <string name="onboarding_provider_apikey_input">输入 API Key</string>
+    <string name="onboarding_provider_apikey_input">在供应商控制台生成，通常形如 sk-…</string>
     <string name="onboarding_provider_apikey_show">显示密钥</string>
     <string name="onboarding_provider_apikey_hide">隐藏密钥</string>
     <string name="onboarding_provider_test_button">测试连接</string>

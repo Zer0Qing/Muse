@@ -31,7 +31,7 @@
     <string name="onboarding_provider_caps">능력 매칭 완료: 비전 %1$d · 추론 %2$d · 도구 %3$d</string>
     <string name="onboarding_provider_select_label">제공업체 선택</string>
     <string name="onboarding_provider_apikey_label">API 키</string>
-    <string name="onboarding_provider_apikey_input">API 키 입력</string>
+    <string name="onboarding_provider_apikey_input">공급자 콘솔에서 생성합니다. 보통 sk- 로 시작</string>
     <string name="onboarding_provider_apikey_show">키 표시</string>
     <string name="onboarding_provider_apikey_hide">키 숨기기</string>
     <string name="onboarding_provider_test_button">연결 테스트</string>
