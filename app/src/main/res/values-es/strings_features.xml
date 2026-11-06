@@ -104,6 +104,13 @@
     <string name="schedule_cancel">Cancelar</string>
     <string name="schedule_msg_cancel">Cancelar mensaje programado</string>
     <string name="schedule_err_name_required">Por favor ingresa un nombre de tarea</string>
+    <string name="schedule_time_daily">Hora diaria</string>
+    <string name="schedule_time_weekly">Hora semanal</string>
+    <string name="schedule_time_once">Ejecutar a las</string>
+    <string name="schedule_time_unset">Toca para elegir la hora</string>
+    <string name="schedule_err_once_time_required">Elige cuándo debe ejecutarse esta tarea única</string>
+    <string name="schedule_status_running">En ejecución</string>
+    <string name="schedule_status_completed">Completada</string>
     <string name="schedule_err_content_required">Por favor ingrese el contenido de ejecución</string>
     <string name="schedule_err_cron_invalid">Expresión cron no válida.</string>
     <string name="schedule_assistant">Asistente</string>

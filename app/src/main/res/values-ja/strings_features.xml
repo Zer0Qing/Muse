@@ -104,6 +104,13 @@
     <string name="schedule_cancel">キャンセル</string>
     <string name="schedule_msg_cancel">スケジュールメッセージをキャンセル</string>
     <string name="schedule_err_name_required">タスク名を入力してください</string>
+    <string name="schedule_time_daily">毎日実行する時刻</string>
+    <string name="schedule_time_weekly">毎週実行する時刻</string>
+    <string name="schedule_time_once">実行時刻</string>
+    <string name="schedule_time_unset">タップして時刻を選択</string>
+    <string name="schedule_err_once_time_required">一度きりのタスクの実行時刻を選択してください</string>
+    <string name="schedule_status_running">実行中</string>
+    <string name="schedule_status_completed">完了</string>
     <string name="schedule_err_content_required">実行内容を入力してください</string>
     <string name="schedule_err_cron_invalid">無効な cron 式です。</string>
     <string name="schedule_assistant">アシスタント</string>

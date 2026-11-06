@@ -104,6 +104,13 @@
     <string name="schedule_cancel">취소</string>
     <string name="schedule_msg_cancel">예약된 메시지 취소</string>
     <string name="schedule_err_name_required">작업 이름을 입력하세요.</string>
+    <string name="schedule_time_daily">매일 실행 시각</string>
+    <string name="schedule_time_weekly">매주 실행 시각</string>
+    <string name="schedule_time_once">실행 시각</string>
+    <string name="schedule_time_unset">탭하여 시각 선택</string>
+    <string name="schedule_err_once_time_required">한 번 실행 작업의 시각을 선택하세요</string>
+    <string name="schedule_status_running">실행 중</string>
+    <string name="schedule_status_completed">완료됨</string>
     <string name="schedule_err_content_required">실행 내용을 입력해주세요</string>
     <string name="schedule_err_cron_invalid">크론 표현식이 잘못되었습니다.</string>
     <string name="schedule_assistant">어시스턴트</string>

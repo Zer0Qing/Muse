@@ -131,6 +131,13 @@
     <string name="schedule_cancel">Cancel</string>
     <string name="schedule_msg_cancel">Cancel scheduled message</string>
     <string name="schedule_err_name_required">Please enter a task name</string>
+    <string name="schedule_time_daily">Daily time</string>
+    <string name="schedule_time_weekly">Weekly time</string>
+    <string name="schedule_time_once">Run at</string>
+    <string name="schedule_time_unset">Tap to pick a time</string>
+    <string name="schedule_err_once_time_required">Pick when this one-off task should run</string>
+    <string name="schedule_status_running">Running</string>
+    <string name="schedule_status_completed">Completed</string>
     <string name="schedule_err_content_required">Please enter run content</string>
     <string name="schedule_err_cron_invalid">Invalid cron expression. Please check or use a preset</string>
     <string name="schedule_assistant">Assistant</string>

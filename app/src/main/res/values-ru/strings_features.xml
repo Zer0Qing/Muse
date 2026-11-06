@@ -104,6 +104,13 @@
     <string name="schedule_cancel">Отмена</string>
     <string name="schedule_msg_cancel">Отменить запланированное сообщение</string>
     <string name="schedule_err_name_required">Пожалуйста, введите название задачи</string>
+    <string name="schedule_time_daily">Время ежедневного запуска</string>
+    <string name="schedule_time_weekly">Время еженедельного запуска</string>
+    <string name="schedule_time_once">Выполнить в</string>
+    <string name="schedule_time_unset">Нажмите, чтобы выбрать время</string>
+    <string name="schedule_err_once_time_required">Выберите, когда выполнить эту одноразовую задачу</string>
+    <string name="schedule_status_running">Выполняется</string>
+    <string name="schedule_status_completed">Завершено</string>
     <string name="schedule_err_content_required">Пожалуйста, введите содержание запуска</string>
     <string name="schedule_err_cron_invalid">Недопустимое выражение cron.</string>
     <string name="schedule_assistant">Ассистент</string>
