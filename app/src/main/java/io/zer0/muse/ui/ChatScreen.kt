@@ -75,6 +75,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -1414,13 +1415,18 @@ fun ChatScreen(
                             if (isAgentMode) {
                                 "Agent"
                             } else {
-                                currentSession?.title
-                                    ?.replace(Regex("(?i)&(?:#10|#xA);"), " ")
-                                    ?.replace(Regex("(?i)<br\\s*/?>"), " ")
-                                    ?.replace(Regex("\\s+"), " ")
-                                    ?.trim()
-                                    ?.takeIf { it.isNotBlank() }
-                                    ?: "muse"
+                                // 顶栏副标题与列表同一口径:历史默认标题(按旧语言写进库的)在这里
+                                // 也该回落成当前语言的「新会话」,否则同一条会话在不同页面两个名字。
+                                currentSession?.let { session ->
+                                    io.zer0.muse.data.session.displaySessionTitle(
+                                        session.title
+                                            ?.replace(Regex("(?i)&(?:#10|#xA);"), " ")
+                                            ?.replace(Regex("(?i)<br\\s*/?>"), " ")
+                                            ?.replace(Regex("\\s+"), " ")
+                                            ?.trim(),
+                                        stringResource(R.string.chat_new_session),
+                                    )
+                                } ?: "muse"
                             }
                         val assistantTitle =
                             state.currentAssistant?.name?.takeIf { it.isNotBlank() }
@@ -1518,7 +1524,11 @@ fun ChatScreen(
                                                         if (days <= 0L) {
                                                             stringResource(R.string.chat_companion_days_zero)
                                                         } else {
-                                                            stringResource(R.string.chat_companion_days, days.toInt())
+                                                            pluralStringResource(
+                                                                R.plurals.chat_companion_days,
+                                                                days.toInt(),
+                                                                days.toInt(),
+                                                            )
                                                         }
                                                     Text(
                                                         text = "$sessionTitle · $daysText",

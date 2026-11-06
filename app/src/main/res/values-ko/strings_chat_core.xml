@@ -130,7 +130,10 @@
     <string name="chat_tool_call_result">결과: %1$s</string>
     <string name="chat_share_failed_no_uri">공유 실패: 파일 URI를 가져올 수 없음</string>
     <string name="chat_companion_days_zero">오늘 막 만났어요</string>
-    <string name="chat_companion_days">%1$d일 동안 함께</string>
+    <plurals name="chat_companion_days">
+        <item quantity="other">%1$d일 동안 함께</item>
+    </plurals>
+
     <string name="chat_thinking">생각…</string>
 
     <!-- Errors and permissions -->

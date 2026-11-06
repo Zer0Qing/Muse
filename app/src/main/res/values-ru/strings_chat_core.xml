@@ -130,7 +130,12 @@
     <string name="chat_tool_call_result">Результат: %1$s</string>
     <string name="chat_share_failed_no_uri">Не удалось поделиться: не удалось получить URI файла</string>
     <string name="chat_companion_days_zero">Только сегодня встретились</string>
-    <string name="chat_companion_days">Вместе %1$d дней</string>
+    <plurals name="chat_companion_days">
+        <item quantity="one">Вместе %1$d день</item>
+        <item quantity="few">Вместе %1$d дня</item>
+        <item quantity="other">Вместе %1$d дней</item>
+    </plurals>
+
     <string name="chat_thinking">Думая…</string>
 
     <!-- Errors and permissions -->

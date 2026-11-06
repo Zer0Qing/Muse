@@ -138,7 +138,10 @@
     <string name="chat_tool_call_result">结果： %1$s</string>
     <string name="chat_share_failed_no_uri">分享失败：无法获取文件 URI</string>
     <string name="chat_companion_days_zero">今天刚认识</string>
-    <string name="chat_companion_days">陪伴 %1$d 天</string>
+    <plurals name="chat_companion_days">
+        <item quantity="other">陪伴 %1$d 天</item>
+    </plurals>
+
     <string name="chat_thinking">正在思考…</string>
 
     <!-- 错误与权限提示 -->

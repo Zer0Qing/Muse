@@ -38,7 +38,10 @@
     <string name="chat_tool_call_result">結果: %1$s</string>
     <string name="chat_share_failed_no_uri">共有に失敗しました:ファイルURIを取得できません</string>
     <string name="chat_companion_days_zero">今日会ったばかりです</string>
-    <string name="chat_companion_days">%1$d 日間一緒に</string>
+    <plurals name="chat_companion_days">
+        <item quantity="other">%1$d 日間一緒に</item>
+    </plurals>
+
     <string name="chat_thinking">考え…</string>
 
     <!-- Errors and permissions -->

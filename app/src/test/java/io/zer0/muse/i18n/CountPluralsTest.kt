@@ -36,6 +36,7 @@ class CountPluralsTest {
         R.plurals.cloud_backup_interval_days,
         R.plurals.onboarding_provider_test_success,
         R.plurals.settings_search_result_count,
+        R.plurals.chat_companion_days,
     )
 
     private fun context(tag: String): Context {

@@ -130,7 +130,11 @@
     <string name="chat_tool_call_result">Resultado: %1$s</string>
     <string name="chat_share_failed_no_uri">Error al compartir: no se pudo obtener la URI del archivo</string>
     <string name="chat_companion_days_zero">Recién nos conocimos hoy</string>
-    <string name="chat_companion_days">Juntos durante %1$d días</string>
+    <plurals name="chat_companion_days">
+        <item quantity="one">Juntos durante %1$d día</item>
+        <item quantity="other">Juntos durante %1$d días</item>
+    </plurals>
+
     <string name="chat_thinking">Pensamiento…</string>
 
     <!-- Errors and permissions -->
