@@ -13,12 +13,17 @@
     <string name="onboarding_lang_en">Английский</string>
     <string name="onboarding_lang_ja">Японский</string>
     <string name="onboarding_lang_ko">한국어</string>
+    <string name="onboarding_lang_ru">Русский</string>
+    <string name="onboarding_lang_es">Испанский</string>
+    <string name="onboarding_lang_pt_br">Португальский (Бразилия)</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">Давайте познакомимся.</string>
     <string name="onboarding_names_subtitle">Ваше имя и его имя — оба можно изменить позже.</string>
     <string name="onboarding_names_user_label">Как вас называть?</string>
     <string name="onboarding_names_agent_label">Дайте ему имя</string>
+    <string name="onboarding_names_user_placeholder">Например, Алекс</string>
+    <string name="onboarding_names_agent_placeholder">Например, Нова</string>
     <string name="onboarding_names_hint">Применяется к помощнику по умолчанию; изменить можно в любой момент.</string>
     <string name="onboarding_memory_title">Позвольте вас запомнить.</string>
     <string name="onboarding_memory_subtitle">Когда включено, разговоры превращаются в долговременную память. Частые обновления памяти снижают попадания в кэш модели (без неё обычно дешевле), зато долгое общение становится намного лучше.</string>

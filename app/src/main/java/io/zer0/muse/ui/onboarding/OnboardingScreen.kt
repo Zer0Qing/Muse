@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -135,6 +136,14 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     // 翻页时收起键盘
     LaunchedEffect(pagerState.currentPage) {
         keyboardController?.hide()
+    }
+
+    // 后退目标:模型步(5)在供应商被跳过时是空态死角 —— 从它后退应回到接入步的前一格(3)。
+    fun previousPage(from: Int): Int = if (from == 5 && providerSkipped) 3 else from - 1
+
+    // 引导期误触系统返回不该直接退应用:非首页先回上一步,首页才交回系统默认行为。
+    BackHandler(enabled = pagerState.currentPage > 0) {
+        scope.launch { pagerState.animateScrollToPage(previousPage(pagerState.currentPage)) }
     }
 
     // 当前选中的预设供应商（自定义时注入用户填写的 baseUrl）
@@ -305,7 +314,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 else -> true
             },
             onPrevious = {
-                scope.launch { pagerState.animateScrollToPage(currentPage - 1) }
+                scope.launch { pagerState.animateScrollToPage(previousPage(currentPage)) }
             },
             onNext = {
                 // 翻页前保存当前步骤数据
@@ -533,12 +542,17 @@ private data class FeatureItem(
 // ── 步骤 1：语言 ────────────────────────────────────────────────
 @Composable
 private fun StepLanguage(selectedLanguage: String, onLanguageSelected: (String) -> Unit) {
+    // 与 AppLocales.parse / values-* 一一对应的 7 种语言。原先列了 zh-TW 却没有繁体资源,
+    // 选中它等于没选(映射返回 null,悄悄回落系统语言);而西/葡/俄已有全量文案却没进选项,
+    // 用户在欢迎页问候轮播里看到自己的语言,到了设置语言这一步却选不到。
     val languages = listOf(
         "zh" to stringResource(R.string.onboarding_lang_zh),
-        "zh-TW" to stringResource(R.string.onboarding_lang_zh_tw),
         "en" to stringResource(R.string.onboarding_lang_en),
         "ja" to stringResource(R.string.onboarding_lang_ja),
         "ko" to stringResource(R.string.onboarding_lang_ko),
+        "ru" to stringResource(R.string.onboarding_lang_ru),
+        "es" to stringResource(R.string.onboarding_lang_es),
+        "pt-rBR" to stringResource(R.string.onboarding_lang_pt_br),
     )
 
     Column(
@@ -739,7 +753,8 @@ private fun StepNames(userName: String, onUserNameChange: (String) -> Unit, agen
         MuseTextField(
             value = userName,
             onValueChange = onUserNameChange,
-            placeholder = { Text(stringResource(R.string.onboarding_names_user_label)) },
+            // 提示语不再重复上方标签,改为给一个示例:用户看到的是"这里该填什么形态的内容"。
+            placeholder = { Text(stringResource(R.string.onboarding_names_user_placeholder)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -753,7 +768,7 @@ private fun StepNames(userName: String, onUserNameChange: (String) -> Unit, agen
         MuseTextField(
             value = agentName,
             onValueChange = onAgentNameChange,
-            placeholder = { Text(stringResource(R.string.onboarding_names_agent_label)) },
+            placeholder = { Text(stringResource(R.string.onboarding_names_agent_placeholder)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -1551,8 +1566,9 @@ private suspend fun saveStepData(
 ) {
     when (currentPage) {
         2 -> {
-            // 保存用户名
-            settings.mockLogin(userName)
+            // 保存用户名 —— 只有真填了才写:空串会把称呼落库成空,
+            // 个人资料页与注入 system prompt 的称呼一起变空。
+            if (userName.isNotBlank()) settings.mockLogin(userName)
             // 更新默认助手名字
             val defaultAssistant = assistantRepo.getById("default")
             if (defaultAssistant != null && agentName.isNotBlank()) {

@@ -13,12 +13,17 @@
     <string name="onboarding_lang_en">English</string>
     <string name="onboarding_lang_ja">Japanese</string>
     <string name="onboarding_lang_ko">한국어</string>
+    <string name="onboarding_lang_ru">Russian</string>
+    <string name="onboarding_lang_es">Spanish</string>
+    <string name="onboarding_lang_pt_br">Portuguese (Brazil)</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">Let\'s get to know each other.</string>
     <string name="onboarding_names_subtitle">Your name and its name — both changeable later.</string>
     <string name="onboarding_names_user_label">What should I call you?</string>
     <string name="onboarding_names_agent_label">Give it a name</string>
+    <string name="onboarding_names_user_placeholder">e.g. Alex</string>
+    <string name="onboarding_names_agent_placeholder">e.g. Nova</string>
     <string name="onboarding_names_hint">It applies to your default assistant; change it anytime.</string>
     <string name="onboarding_memory_title">Let me remember you.</string>
     <string name="onboarding_memory_subtitle">With this on, conversations are organized into long-term memories. Frequent memory updates lower model cache hits (off is usually cheaper), but long-term companionship gets much better.</string>

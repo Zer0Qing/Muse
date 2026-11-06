@@ -13,12 +13,17 @@
     <string name="onboarding_lang_en">英語</string>
     <string name="onboarding_lang_ja">日本語</string>
     <string name="onboarding_lang_ko">한국어</string>
+    <string name="onboarding_lang_ru">ロシア語</string>
+    <string name="onboarding_lang_es">スペイン語</string>
+    <string name="onboarding_lang_pt_br">ポルトガル語（ブラジル）</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">はじめまして。</string>
     <string name="onboarding_names_subtitle">呼び名と名前は、あとからでも変えられます。</string>
     <string name="onboarding_names_user_label">なんて呼べばいい？</string>
     <string name="onboarding_names_agent_label">名前をつけてあげて</string>
+    <string name="onboarding_names_user_placeholder">例：太郎</string>
+    <string name="onboarding_names_agent_placeholder">例：ノヴァ</string>
     <string name="onboarding_names_hint">名前はデフォルトのアシスタントに使われます。あとから変更できます。</string>
     <string name="onboarding_memory_title">あなたを覚えさせて。</string>
     <string name="onboarding_memory_subtitle">オンにすると、会話の終わりに長期記憶として整理されます。記憶の更新が多いとモデルのキャッシュ効率が下がります（オフのほうが安いことも）が、長く寄り添うほど良くなります。</string>

@@ -13,12 +13,17 @@
     <string name="onboarding_lang_en">English</string>
     <string name="onboarding_lang_ja">日本語</string>
     <string name="onboarding_lang_ko">한국어</string>
+    <string name="onboarding_lang_ru">Русский</string>
+    <string name="onboarding_lang_es">Español</string>
+    <string name="onboarding_lang_pt_br">Português (Brasil)</string>
 
     <!-- 步骤 2:你的名字 -->
     <string name="onboarding_names_title">先认识一下。</string>
     <string name="onboarding_names_subtitle">称呼和名字，之后都能改。</string>
     <string name="onboarding_names_user_label">我该怎么称呼你？</string>
     <string name="onboarding_names_agent_label">给它起个名字</string>
+    <string name="onboarding_names_user_placeholder">例：小明</string>
+    <string name="onboarding_names_agent_placeholder">例：Nova</string>
     <string name="onboarding_names_hint">名字会用在默认助手上，随时可改。</string>
     <string name="onboarding_memory_title">让我记住你。</string>
     <string name="onboarding_memory_subtitle">开启后，对话结束会自动整理成长记忆。记忆频繁更新会降低模型缓存命中率（关掉通常更省钱），但长期陪伴会好得多。</string>

@@ -13,12 +13,17 @@
     <string name="onboarding_lang_en">Inglés</string>
     <string name="onboarding_lang_ja">Japonés</string>
     <string name="onboarding_lang_ko">한국어</string>
+    <string name="onboarding_lang_ru">Ruso</string>
+    <string name="onboarding_lang_es">Español</string>
+    <string name="onboarding_lang_pt_br">Portugués (Brasil)</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">Vamos a conocernos.</string>
     <string name="onboarding_names_subtitle">Tu nombre y el suyo — ambos se pueden cambiar después.</string>
     <string name="onboarding_names_user_label">¿Cómo te llamo?</string>
     <string name="onboarding_names_agent_label">Ponle un nombre</string>
+    <string name="onboarding_names_user_placeholder">Por ejemplo, Alex</string>
+    <string name="onboarding_names_agent_placeholder">Por ejemplo, Nova</string>
     <string name="onboarding_names_hint">Se aplica a tu asistente predeterminado; cámbialo cuando quieras.</string>
     <string name="onboarding_memory_title">Déjame recordarte.</string>
     <string name="onboarding_memory_subtitle">Con esto activado, las conversaciones se organizan en memoria a largo plazo. Las actualizaciones frecuentes reducen el acierto de caché del modelo (desactivarlo suele ser más barato), pero la compañía a largo plazo mejora mucho.</string>

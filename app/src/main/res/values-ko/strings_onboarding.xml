@@ -13,12 +13,17 @@
     <string name="onboarding_lang_en">영어</string>
     <string name="onboarding_lang_ja">일본어</string>
     <string name="onboarding_lang_ko">한국어</string>
+    <string name="onboarding_lang_ru">러시아어</string>
+    <string name="onboarding_lang_es">스페인어</string>
+    <string name="onboarding_lang_pt_br">포르투갈어 (브라질)</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">먼저 인사부터.</string>
     <string name="onboarding_names_subtitle">호칭과 이름은 나중에 바꿀 수 있어요.</string>
     <string name="onboarding_names_user_label">뭐라고 부를까요?</string>
     <string name="onboarding_names_agent_label">이름을 지어 주세요</string>
+    <string name="onboarding_names_user_placeholder">예: 철수</string>
+    <string name="onboarding_names_agent_placeholder">예: 노바</string>
     <string name="onboarding_names_hint">이름은 기본 어시스턴트에 적용되며 언제든 바꿀 수 있어요.</string>
     <string name="onboarding_memory_title">당신을 기억하게 해 주세요.</string>
     <string name="onboarding_memory_subtitle">켜면 대화가 끝날 때 장기 기억으로 정리됩니다. 기억이 자주 바뀌면 모델 캐시 적중률이 낮아져요(끄는 쪽이 보통 더 저렴해요). 대신 오래 곁에 있을수록 훨씬 좋아집니다.</string>
