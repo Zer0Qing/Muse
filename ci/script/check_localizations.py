@@ -35,6 +35,12 @@ except Exception:  # noqa: BLE001 - 环境不支持时不应影响检查本身
 # 提取 <string name="key"> 的正则
 STRING_NAME_RE = re.compile(r'<string\s+name="([^"]+)"', re.IGNORECASE)
 
+# 声明为 translatable="false" 的 key 是故意不翻译的(语言自称、专有名词),
+# 不该算进各 locale 的完整性缺口;开标签正则用于把属性和 name 一起认出来。
+STRING_TAG_OPEN_RE = re.compile(r"<string\s[^>]*>", re.IGNORECASE)
+NAME_ATTR_RE = re.compile(r'name="([^"]+)"')
+NOT_TRANSLATABLE_RE = re.compile(r'translatable\s*=\s*"false"', re.IGNORECASE)
+
 # 需要扫描的文件模式
 STRING_FILE_PATTERN = "strings*.xml"
 # 默认 values 目录名(基准)
@@ -53,6 +59,24 @@ def extract_keys_from_file(file_path: Path) -> set:
         print(f"  WARNING: 读取 {file_path} 失败: {e}", file=sys.stderr)
         return set()
     return set(STRING_NAME_RE.findall(content))
+
+
+def extract_untranslatable_keys_from_file(file_path: Path) -> set:
+    """本文件里 translatable="false" 的 string key 集合。"""
+    if not file_path.exists():
+        return set()
+    try:
+        content = file_path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"  WARNING: 读取 {file_path} 失败: {e}", file=sys.stderr)
+        return set()
+    keys = set()
+    for tag in STRING_TAG_OPEN_RE.findall(content):
+        if NOT_TRANSLATABLE_RE.search(tag):
+            name = NAME_ATTR_RE.search(tag)
+            if name:
+                keys.add(name.group(1))
+    return keys
 
 
 def extract_all_keys(values_dir: Path) -> dict:
@@ -102,6 +126,10 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
     """
     default_dir = res_dir / DEFAULT_VALUES_DIR
     baseline = extract_all_keys(default_dir)
+    # 自称/专有名词类 key 只存在于 values/,各 locale 不复制它们,所以不参与缺失比对。
+    baseline_untranslatable = set()
+    for xml_file in sorted(default_dir.glob(STRING_FILE_PATTERN)):
+        baseline_untranslatable |= extract_untranslatable_keys_from_file(xml_file)
     strict_locale_codes = {
         normalize_locale_name(locale) for locale in (strict_locales or set())
     }
@@ -132,7 +160,7 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
         #   资源合并只看 key 唯一性;按文件比对会误报缺失并误导补翻译。
         baseline_all = set().union(*baseline.values())
         locale_all = set().union(*locale_keys.values())
-        missing_keys = baseline_all - locale_all
+        missing_keys = (baseline_all - baseline_untranslatable) - locale_all
         extra_keys = locale_all - baseline_all if verbose else set()
 
         missing_count = len(missing_keys)
