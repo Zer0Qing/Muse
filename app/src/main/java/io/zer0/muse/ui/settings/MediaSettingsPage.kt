@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,7 @@ import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.VoiceInfo
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 
 /**
@@ -76,30 +78,44 @@ fun MediaSettingsPage(
             SettingsGroup(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
+                // 本地草稿 + 400ms 防抖:此前每一步都直接写 DataStore,一次拖动十几次写,
+                // 且两条滑块各持一份旧 config 互相覆盖。合并成一次写入两个字段。
+                var speechRateDraft by remember { mutableStateOf(config.ttsSpeechRate) }
+                var pitchDraft by remember { mutableStateOf(config.ttsPitch) }
+                LaunchedEffect(config.ttsSpeechRate) {
+                    if (config.ttsSpeechRate != speechRateDraft) speechRateDraft = config.ttsSpeechRate
+                }
+                LaunchedEffect(config.ttsPitch) {
+                    if (config.ttsPitch != pitchDraft) pitchDraft = config.ttsPitch
+                }
+                LaunchedEffect(speechRateDraft, pitchDraft) {
+                    if (speechRateDraft != config.ttsSpeechRate || pitchDraft != config.ttsPitch) {
+                        delay(400)
+                        settings.saveMediaConfig(
+                            config.copy(ttsSpeechRate = speechRateDraft, ttsPitch = pitchDraft),
+                        )
+                    }
+                }
                 SettingsSliderRow(
                     icon = MuseIcons.microphone,
                     title = stringResource(R.string.settings_media_speech_rate),
                     subtitle = stringResource(R.string.settings_media_speech_rate_subtitle),
-                    value = config.ttsSpeechRate,
+                    value = speechRateDraft,
                     valueRange = 0.5f..2.0f,
                     steps = 14,
-                    valueText = "%.1fx".format(config.ttsSpeechRate),
-                    onValueChange = { v ->
-                        scope.launch { settings.saveMediaConfig(config.copy(ttsSpeechRate = v)) }
-                    },
+                    valueText = "%.1fx".format(speechRateDraft),
+                    onValueChange = { v -> speechRateDraft = v },
                 )
                 SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.microphone,
                     title = stringResource(R.string.settings_media_pitch),
                     subtitle = stringResource(R.string.settings_media_pitch_subtitle),
-                    value = config.ttsPitch,
+                    value = pitchDraft,
                     valueRange = 0.5f..2.0f,
                     steps = 14,
-                    valueText = "%.1fx".format(config.ttsPitch),
-                    onValueChange = { v ->
-                        scope.launch { settings.saveMediaConfig(config.copy(ttsPitch = v)) }
-                    },
+                    valueText = "%.1fx".format(pitchDraft),
+                    onValueChange = { v -> pitchDraft = v },
                 )
                 // TTS 声音选择
                 SettingsGroupDivider()
