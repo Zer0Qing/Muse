@@ -425,9 +425,6 @@ fun HomeScreen(
                                     onOpenAssistantChat = { id ->
                                         viewModel.createNewSession(assistantIdOverride = id)
                                     },
-                                    onCreateWithText = { text ->
-                                        viewModel.sendToNewChat(text)
-                                    },
                                     isSessionsLoading = state.isSessionsLoading,
                                     sessionsError = state.sessionsError,
                                     onRetryLoadSessions = viewModel::retryLoadSessions,
@@ -490,13 +487,6 @@ fun HomeScreen(
                                 // v2.x: 伙伴横排 — 以指定助手开新聊天并进入聊天页
                                 onOpenAssistantChat = { id ->
                                     viewModel.createNewSession(onReady = onOpenChat, assistantIdOverride = id)
-                                },
-                                onCreateWithText = { text ->
-                                    if (isWideTasks) {
-                                        viewModel.sendToNewChat(text)
-                                    } else {
-                                        viewModel.sendToNewChat(text, onReady = onOpenChat)
-                                    }
                                 },
                                 isSessionsLoading = state.isSessionsLoading,
                                 sessionsError = state.sessionsError,

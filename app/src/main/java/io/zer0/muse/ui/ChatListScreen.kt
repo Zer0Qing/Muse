@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +30,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -47,7 +45,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,7 +99,6 @@ import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.huge
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -123,14 +119,14 @@ private const val GREETING_NOTIFY_ID = 1010
  *
  * 视觉结构:
  *  - 顶部大标题问候语 + 记忆数量副标题
- *  - 全局输入条:输入任何想法,右侧绿色圆形发送按钮
+ *  - 列表工具行:已归档(N) / 新建文件夹 / 多选编辑
  *  - 已置顶:白色圆角卡片,状态圆点 + 标题 + 副标题 + 时间 + 箭头
  *  - 文件夹:文件夹图标 + 名称 + 数量
  *  - 最近:非置顶会话或空状态提示
  *  - 知识库:入口卡片,显示文档数量
  *
  * 所有原有功能保留:
- *  - 置顶、归档、文件夹、重命名、删除
+ *  - 置顶、归档、文件夹、重命名、删除(归档/文件夹/多选均由工具行入口进入)
  *  - 滑动删除(左滑) / 归档(右滑)
  *  - 长按菜单
  */
@@ -145,8 +141,6 @@ fun ChatListScreen(
     currentSessionId: String?,
     onSelect: (String) -> Unit,
     onCreate: () -> Unit,
-    /** v1.0.27: 从任务页输入框直接发送并创建新会话。 */
-    onCreateWithText: (String) -> Unit = {},
     onDelete: (String) -> Unit,
     onRename: (SessionEntity) -> Unit,
     /** v1.48: 重命名(带新名字),修复旧实现传 session.title 导致重命名失效的 bug。 */
@@ -161,7 +155,7 @@ fun ChatListScreen(
     onToggleFolderExpanded: (String, Boolean) -> Unit,
     assistants: List<AssistantEntity> = emptyList(),
     currentAssistant: AssistantEntity? = null,
-    /** v0.45: 已归档会话列表(历史数据保留,当前 UI 不再展示归档入口)。 */
+    /** 已归档会话列表 — 工具行「已归档」入口与恢复视图的数据源。 */
     archivedSessions: List<SessionEntity> = emptyList(),
     /** v0.45: 归档会话(主列表项长按菜单用)。 */
     onArchive: (String) -> Unit = {},
@@ -431,6 +425,18 @@ fun ChatListScreen(
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
                             }
+                        }
+
+                        // 列表工具行 — 归档恢复 / 新建文件夹 / 多选编辑三个入口。
+                        // 这三簇功能的视图与回调早已接好,只缺入口;缺入口时归档 toast
+                        // 承诺的"可到「已归档」中恢复"对用户并不成立。
+                        item(key = "list_toolbar") {
+                            ListToolbarRow(
+                                archivedCount = archivedSessions.size,
+                                onOpenArchived = { showArchived = true },
+                                onCreateFolder = { showCreateFolderDialog = true },
+                                onEdit = { editMode = true },
+                            )
                         }
 
                         // 已置顶(标题 + 每条会话独立 item,平铺懒加载)
@@ -735,88 +741,6 @@ private fun RecallBar(session: SessionEntity, assistantName: String?, onSelect: 
             tint = MaterialTheme.colorScheme.outline,
             modifier = Modifier.size(16.dp),
         )
-    }
-}
-
-/** 全局输入条:浅色圆角背景 + 占位文字 + 绿色圆形发送按钮。 */
-@Composable
-private fun TaskInputBar(onSend: (String) -> Unit, modifier: Modifier = Modifier) {
-    // 前端修复 (持久化-3): 输入内容改 rememberSaveable,旋转/进程重建不丢草稿
-    var text by rememberSaveable { mutableStateOf("") }
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            // v1.137 B5: 56dp → 48dp,降低任务页输入栏高度
-            .heightIn(min = 48.dp),
-        // CHAT-12: 输入岛圆角统一走令牌(48dp 高下 pill=24dp 与 huge 一致,显式用 huge)
-        shape = MuseShapes.huge,
-        // v2.0: 底色加深(用户反馈过淡)——与输入框统一的自适应混色规则
-        color = androidx.compose.ui.graphics.lerp(
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurface,
-            0.06f,
-        ),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            BasicTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
-                ),
-                decorationBox = { innerTextField ->
-                    Box {
-                        if (text.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.chat_list_input_hint),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        innerTextField()
-                    }
-                },
-            )
-            // CHAT-11: 发送按钮统一 — 48dp 触控 + 36dp 主色圆(与单聊输入栏一致)
-            Box(
-                modifier = Modifier
-                    .size(MuseIconSizes.touchTarget)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {
-                            if (text.isNotBlank()) {
-                                onSend(text)
-                                text = ""
-                            }
-                        },
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(MuseIconSizes.stopButton)
-                        .clip(CircleShape)
-                        .background(MuseActionColors.container),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.send,
-                        contentDescription = stringResource(R.string.chat_list_send),
-                        tint = MuseActionColors.content,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -1792,19 +1716,33 @@ private fun formatTime(timestamp: Long): String {
 }
 
 /**
- * U-7: 列表工具行 — 提供"已归档"与"编辑(多选)"两个入口。
- * 归档入口解决归档无入口、不可逆问题;编辑入口解决复数会话逐条长按成本高的问题。
+ * 列表工具行 — 提供"已归档""新建文件夹""多选编辑"三个入口。
+ * 归档入口让右滑归档后的恢复承诺有落点;文件夹与多选入口分别接通分组能力与批量操作。
+ * 归档计数为 0 时不显示该入口:没有可恢复内容时,入口只是噪声,而"存在归档项"本身就是它出现的理由。
  */
 @Composable
-private fun ListToolbarRow(archivedCount: Int, onOpenArchived: () -> Unit, onEdit: () -> Unit, modifier: Modifier = Modifier) {
+private fun ListToolbarRow(
+    archivedCount: Int,
+    onOpenArchived: () -> Unit,
+    onCreateFolder: () -> Unit,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().padding(top = MusePaddings.sectionGap),
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
+        if (archivedCount > 0) {
+            ChatListToolbarAction(
+                icon = MuseIcons.archive,
+                label = stringResource(R.string.chat_list_archived_entry, archivedCount),
+                onClick = onOpenArchived,
+            )
+        }
         ChatListToolbarAction(
-            icon = MuseIcons.archive,
-            label = stringResource(R.string.chat_list_archived_entry, archivedCount),
-            onClick = onOpenArchived,
+            icon = MuseIcons.folderPlus,
+            label = stringResource(R.string.chat_list_new_folder),
+            onClick = onCreateFolder,
         )
         ChatListToolbarAction(
             icon = MuseIcons.edit,
@@ -1969,6 +1907,29 @@ private fun ChatListEditMode(
     val archivedToast = stringResource(R.string.chat_list_archived_toast)
     val doneToast = stringResource(R.string.chat_list_edit_done, selectedIds.size)
     val allSelected = sessions.isNotEmpty() && selectedIds.size == sessions.size
+    // 批量删除一次毁掉多条会话及其消息,且不可撤销 — 与单条左滑删除同等对待,必须先确认。
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    val selectedCount = selectedIds.size
+    if (showDeleteConfirm) {
+        MuseDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = stringResource(R.string.chat_list_delete_session_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.chat_list_edit_delete_confirm, selectedCount),
+                )
+            },
+            confirmText = stringResource(R.string.action_delete),
+            onConfirm = {
+                showDeleteConfirm = false
+                onDeleteSelected(selectedIds)
+                MuseToast.show(doneToast)
+                onExit()
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showDeleteConfirm = false },
+        )
+    }
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -1989,11 +1950,7 @@ private fun ChatListEditMode(
             ChatListEditAction(
                 label = stringResource(R.string.chat_list_edit_delete),
                 enabled = selectedIds.isNotEmpty(),
-                onClick = {
-                    onDeleteSelected(selectedIds)
-                    MuseToast.show(doneToast)
-                    onExit()
-                },
+                onClick = { showDeleteConfirm = true },
             )
             ChatListEditAction(
                 label = stringResource(R.string.chat_list_edit_archive),

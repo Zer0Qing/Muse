@@ -721,6 +721,7 @@
     <string name="chat_list_edit">편집</string>
     <string name="chat_list_edit_archive">보관</string>
     <string name="chat_list_edit_delete">삭제</string>
+    <string name="chat_list_edit_delete_confirm">선택한 %1$d개의 대화와 모든 메시지를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 삭제하시겠습니까?</string>
     <string name="chat_list_edit_done">%1$d개 처리됨</string>
     <string name="chat_list_edit_exit">종료</string>
     <string name="chat_list_edit_select_all">전체 선택</string>

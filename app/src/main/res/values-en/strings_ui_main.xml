@@ -824,6 +824,7 @@
     <string name="chat_list_edit">Edit</string>
     <string name="chat_list_edit_archive">Archive</string>
     <string name="chat_list_edit_delete">Delete</string>
+    <string name="chat_list_edit_delete_confirm">Delete %1$d selected conversations and all of their messages? This action cannot be undone.</string>
     <string name="chat_list_edit_done">%1$d items processed</string>
     <string name="chat_list_edit_exit">Exit</string>
     <string name="chat_list_edit_select_all">Select all</string>

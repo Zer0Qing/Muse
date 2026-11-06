@@ -180,9 +180,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                         currentSessionId = state.currentSessionId,
                         onSelect = { id -> sharedViewModel.switchSession(id) },
                         onCreate = { sharedViewModel.createNewSession() },
-                        // 宽屏双栏遗漏修复:此前未传这两个回调,默认空 lambda 让
-                        // 左列输入条发送被丢弃、置顶拖拽排序松手即失效。
-                        onCreateWithText = { text -> sharedViewModel.sendToNewChat(text) },
                         onDelete = sharedViewModel::deleteSession,
                         onRename = { session ->
                             sharedViewModel.renameSession(session.id, session.title)
@@ -191,6 +188,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                             sharedViewModel.renameSession(session.id, newName)
                         },
                         onTogglePinned = sharedViewModel::togglePinned,
+                        // 宽屏双栏遗漏修复:此前未传该回调,默认空 lambda 让置顶拖拽排序松手即失效。
                         onReorderPinned = sharedViewModel::reorderPinnedSessions,
                         onMoveSessionToFolder = sharedViewModel::moveSessionToFolder,
                         onCreateFolder = sharedViewModel::createFolder,

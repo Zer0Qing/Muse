@@ -721,6 +721,7 @@
     <string name="chat_list_edit">編集</string>
     <string name="chat_list_edit_archive">アーカイブ</string>
     <string name="chat_list_edit_delete">削除</string>
+    <string name="chat_list_edit_delete_confirm">選択した %1$d 件の会話とそのメッセージをすべて削除します。この操作は元に戻せません。削除しますか？</string>
     <string name="chat_list_edit_done">%1$d 件を処理しました</string>
     <string name="chat_list_edit_exit">終了</string>
     <string name="chat_list_edit_select_all">すべて選択</string>

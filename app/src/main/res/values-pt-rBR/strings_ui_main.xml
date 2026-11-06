@@ -721,6 +721,7 @@
     <string name="chat_list_edit">Editar</string>
     <string name="chat_list_edit_archive">Arquivar</string>
     <string name="chat_list_edit_delete">Excluir</string>
+    <string name="chat_list_edit_delete_confirm">Excluir %1$d conversas selecionadas e todas as mensagens delas? Esta ação não pode ser desfeita.</string>
     <string name="chat_list_edit_done">%1$d itens processados</string>
     <string name="chat_list_edit_exit">Sair</string>
     <string name="chat_list_edit_select_all">Selecionar tudo</string>

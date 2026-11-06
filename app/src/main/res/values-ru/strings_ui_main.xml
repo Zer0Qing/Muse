@@ -718,6 +718,7 @@
     <string name="chat_list_edit">Изменить</string>
     <string name="chat_list_edit_archive">В архив</string>
     <string name="chat_list_edit_delete">Удалить</string>
+    <string name="chat_list_edit_delete_confirm">Удалить %1$d выбранных бесед и все их сообщения? Это действие необратимо.</string>
     <string name="chat_list_edit_done">Обработано элементов: %1$d</string>
     <string name="chat_list_edit_exit">Выйти</string>
     <string name="chat_list_edit_select_all">Выбрать всё</string>
