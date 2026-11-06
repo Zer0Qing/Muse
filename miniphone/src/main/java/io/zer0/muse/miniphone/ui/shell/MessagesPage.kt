@@ -37,9 +37,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 
 /**
@@ -160,7 +162,7 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
             }
             Spacer(Modifier.height(3.dp))
             Text(
-                text = thread.preview.ifBlank { EMPTY_PREVIEW_TEXT },
+                text = thread.preview.ifBlank { stringResource(EMPTY_PREVIEW_TEXT_RES) },
                 style = typography.caption.copy(color = colors.textSecondary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -213,17 +215,17 @@ private fun ThreadsEmptyState(onGoContacts: () -> Unit, modifier: Modifier = Mod
         EmptyBubble()
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "还没有聊天",
+            text = stringResource(R.string.mp_msgs_empty_title),
             style = typography.title.copy(color = colors.textPrimary),
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = "去通讯录找个角色开始吧",
+            text = stringResource(R.string.mp_msgs_empty_hint),
             style = typography.caption.copy(color = colors.textSecondary),
         )
         Spacer(Modifier.height(18.dp))
         Text(
-            text = GO_CONTACTS_LABEL,
+            text = stringResource(GO_CONTACTS_LABEL_RES),
             style = typography.caption.copy(color = colors.accent, fontWeight = FontWeight.Medium),
             modifier = Modifier
                 .testTag(MiniPhoneTags.EMPTY_THREADS_ACTION)
@@ -275,5 +277,5 @@ private val ThreadTextGap = 12.dp
 
 private const val MAX_BADGE_COUNT: Int = 99
 private const val FULL_BADGE_TEXT: String = "99+"
-private const val EMPTY_PREVIEW_TEXT: String = "还没有消息"
-private const val GO_CONTACTS_LABEL: String = "去通讯录"
+private val EMPTY_PREVIEW_TEXT_RES: Int = R.string.mp_msgs_empty_preview
+private val GO_CONTACTS_LABEL_RES: Int = R.string.mp_msgs_go_contacts

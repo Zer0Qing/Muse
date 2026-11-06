@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,12 +29,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.data.db.MINI_PHONE_DB_VERSION
+import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 
 /**
@@ -53,6 +59,7 @@ internal fun MePage(
     actions: MePageActions = MePageActions(),
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val colors = MiniPhoneTheme.colors
     val dimens = MiniPhoneTheme.dimens
     val typography = MiniPhoneTheme.typography
@@ -79,14 +86,14 @@ internal fun MePage(
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = profile.nickname.ifBlank { EMPTY_NICKNAME },
+                    text = profile.nickname.ifBlank { stringResource(R.string.mp_me_empty_nickname) },
                     style = typography.title.copy(color = colors.textPrimary),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = profile.signature.orEmpty().ifBlank { EMPTY_SIGNATURE },
+                    text = profile.signature.orEmpty().ifBlank { stringResource(R.string.mp_me_empty_signature) },
                     style = typography.caption.copy(color = colors.textSecondary),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -95,39 +102,39 @@ internal fun MePage(
         }
         Spacer(Modifier.height(SectionGap))
         MeEntryRow(
-            title = MY_MOMENTS_TITLE,
-            description = MY_MOMENTS_DESCRIPTION,
+            title = stringResource(R.string.mp_me_my_moments),
+            description = stringResource(R.string.mp_me_my_moments_desc),
             tag = MiniPhoneTags.MY_MOMENTS_ROW,
             onClick = actions.onOpenMyMoments,
         )
         Spacer(Modifier.height(SectionGap))
         MeSettingRow(
-            title = AUTO_MOMENT_TITLE,
-            description = AUTO_MOMENT_DESCRIPTION,
+            title = stringResource(R.string.mp_me_auto_moments),
+            description = stringResource(R.string.mp_me_auto_moments_desc),
             checked = autoMomentEnabled,
             onCheckedChange = actions.onToggleAutoMoment,
             switchTag = MiniPhoneTags.AUTO_MOMENT_SWITCH,
         )
         Spacer(Modifier.height(SectionGap))
         MeSettingRow(
-            title = CHAT_PROACTIVE_TITLE,
-            description = CHAT_PROACTIVE_DESCRIPTION,
+            title = stringResource(R.string.mp_me_proactive),
+            description = stringResource(R.string.mp_me_proactive_desc),
             checked = chatProactiveEnabled,
             onCheckedChange = actions.onToggleChatProactive,
             switchTag = MiniPhoneTags.CHAT_PROACTIVE_SWITCH,
         )
         Spacer(Modifier.height(SectionGap))
         MeEntryRow(
-            title = CLEAR_CHATS_TITLE,
-            description = CLEAR_CHATS_DESCRIPTION,
+            title = stringResource(R.string.mp_me_clear_chats),
+            description = stringResource(R.string.mp_me_clear_chats_desc),
             tag = MiniPhoneTags.CLEAR_CHATS_ROW,
             titleColor = colors.unreadDot,
             onClick = { confirmingClear = true },
         )
         Spacer(Modifier.height(SectionGap))
         MeEntryRow(
-            title = VERSION_TITLE,
-            description = miniPhoneVersionLabel(dbVersion = MINI_PHONE_DB_VERSION, appVersion = appVersionName),
+            title = stringResource(R.string.mp_me_version),
+            description = miniPhoneVersionLabel(context, dbVersion = MINI_PHONE_DB_VERSION, appVersion = appVersionName),
             tag = MiniPhoneTags.VERSION_ROW,
             labelTag = MiniPhoneTags.VERSION_LABEL,
             onClick = null,
@@ -150,10 +157,11 @@ internal fun MePage(
  * 模块自己的库版本写在常量里,宿主版本是运行时的值 —— 两边都不在这里写死,
  * 宿主没报版本时只留前半段,不补一个假版本号。
  */
-internal fun miniPhoneVersionLabel(dbVersion: Int, appVersion: String): String {
-    val module = "小手机数据 v$dbVersion"
+internal fun miniPhoneVersionLabel(context: android.content.Context, dbVersion: Int, appVersion: String): String {
+    val module = context.getString(R.string.mp_me_version_module, dbVersion)
     val app = appVersion.trim()
-    return if (app.isEmpty()) module else "$module / 应用 $app"
+    if (app.isEmpty()) return module
+    return context.getString(R.string.mp_me_version_label, dbVersion, app)
 }
 
 /** 设置区的一行:左边标题 + 说明,右边开关。两张设置卡长得一样,只是文案与回调不同。 */
@@ -244,9 +252,11 @@ private fun MeEntryRow(
         }
         if (onClick != null) {
             Spacer(Modifier.width(8.dp))
-            Text(
-                text = CHEVRON_TEXT,
-                style = typography.body.copy(color = colors.textSecondary),
+            Icon(
+                imageVector = MiniPhoneIcons.Chevron,
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -270,12 +280,12 @@ private fun ClearChatsConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> Unit
                 .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
             Text(
-                text = CLEAR_CHATS_DIALOG_TITLE,
+                text = stringResource(R.string.mp_me_clear_dialog_title),
                 style = typography.title.copy(color = colors.textPrimary),
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = CLEAR_CHATS_DIALOG_HINT,
+                text = stringResource(R.string.mp_me_clear_dialog_hint),
                 style = typography.caption.copy(color = colors.textSecondary),
             )
             Spacer(Modifier.height(18.dp))
@@ -284,7 +294,7 @@ private fun ClearChatsConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> Unit
                 horizontalArrangement = Arrangement.End,
             ) {
                 Text(
-                    text = CANCEL_LABEL,
+                    text = stringResource(R.string.mp_cancel),
                     style = typography.body.copy(color = colors.textSecondary),
                     modifier = Modifier
                         .testTag(MiniPhoneTags.CLEAR_CHATS_CANCEL)
@@ -295,7 +305,7 @@ private fun ClearChatsConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> Unit
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = CLEAR_LABEL,
+                    text = stringResource(R.string.mp_clear),
                     style = typography.body.copy(color = colors.unreadDot),
                     modifier = Modifier
                         .testTag(MiniPhoneTags.CLEAR_CHATS_CONFIRM)
@@ -309,22 +319,6 @@ private fun ClearChatsConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> Unit
     }
 }
 
-private const val EMPTY_NICKNAME: String = "还没有昵称"
-private const val EMPTY_SIGNATURE: String = "这个人还没写签名"
-private const val AUTO_MOMENT_TITLE: String = "自动发朋友圈"
-private const val AUTO_MOMENT_DESCRIPTION: String = "关掉之后角色不再自己在后台发动态"
-private const val CHAT_PROACTIVE_TITLE: String = "角色主动私信"
-private const val CHAT_PROACTIVE_DESCRIPTION: String = "角色会偶尔主动找你说话，只在 08:00–22:00 之间，默认关闭"
-private const val MY_MOMENTS_TITLE: String = "我的朋友圈"
-private const val MY_MOMENTS_DESCRIPTION: String = "只看自己发过的动态,也可以接着发"
-private const val CLEAR_CHATS_TITLE: String = "清空聊天记录"
-private const val CLEAR_CHATS_DESCRIPTION: String = "删掉全部会话与消息,朋友圈不受影响"
-private const val VERSION_TITLE: String = "版本信息"
-private const val CLEAR_CHATS_DIALOG_TITLE: String = "清空聊天记录?"
-private const val CLEAR_CHATS_DIALOG_HINT: String = "所有会话和消息会被删除,无法恢复。朋友圈动态不会动。"
-private const val CANCEL_LABEL: String = "取消"
-private const val CLEAR_LABEL: String = "清空"
-private const val CHEVRON_TEXT: String = "›"
 
 private val SectionGap = 12.dp
 private val DialogWidth = 280.dp
