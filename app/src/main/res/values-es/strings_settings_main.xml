@@ -44,9 +44,9 @@
     <string name="settings_provider_unable_to_resolve_server">No se puede resolver la dirección del servidor</string>
     <string name="settings_provider_query_timeout">Se agotó el tiempo de espera de la consulta</string>
     <string name="settings_provider_query_failed">Error en la consulta: %1$s</string>
-    <string name="settings_provider_discard_changes_title">¿Descartar cambios?</string>
-    <string name="settings_provider_discard_changes_content">Tienes cambios no guardados que se perderán.</string>
-    <string name="settings_provider_discard">Desechar</string>
+    <string name="settings_unsaved_changes_title">¿Descartar cambios?</string>
+    <string name="settings_unsaved_changes_content">Tienes cambios no guardados que se perderán.</string>
+    <string name="settings_unsaved_discard">Desechar</string>
     <string name="settings_provider_new">Nuevo proveedor</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">Conexión correcta · %1$d modelos</string>

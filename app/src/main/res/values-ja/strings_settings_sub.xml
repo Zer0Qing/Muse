@@ -463,6 +463,7 @@
     <string name="settings_media_tts_save_voice">音声を保存する</string>
     <string name="settings_media_tts_save_model">モデルの保存</string>
     <string name="settings_media_tts_save_endpoint">エンドポイントの保存</string>
+    <string name="settings_media_tts_save_connection">接続設定を保存</string>
     <string name="settings_media_tts_show">見せる</string>
     <string name="settings_media_tts_hide">隠れる</string>
     <string name="settings_media_tts_saved">保存されました</string>

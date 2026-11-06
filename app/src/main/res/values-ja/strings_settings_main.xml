@@ -44,9 +44,9 @@
     <string name="settings_provider_unable_to_resolve_server">サーバーアドレスを解決できません</string>
     <string name="settings_provider_query_timeout">クエリがタイムアウトしました</string>
     <string name="settings_provider_query_failed">クエリが失敗しました: %1$s</string>
-    <string name="settings_provider_discard_changes_title">変更を破棄しますか?</string>
-    <string name="settings_provider_discard_changes_content">保存されていない変更は失われます。</string>
-    <string name="settings_provider_discard">破棄</string>
+    <string name="settings_unsaved_changes_title">変更を破棄しますか?</string>
+    <string name="settings_unsaved_changes_content">保存されていない変更は失われます。</string>
+    <string name="settings_unsaved_discard">破棄</string>
     <string name="settings_provider_new">新しいプロバイダー</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">接続OK・%1$dモデル</string>

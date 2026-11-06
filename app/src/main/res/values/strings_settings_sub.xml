@@ -543,6 +543,7 @@
     <string name="settings_media_tts_save_voice">保存音色</string>
     <string name="settings_media_tts_save_model">保存模型</string>
     <string name="settings_media_tts_save_endpoint">保存接口地址</string>
+    <string name="settings_media_tts_save_connection">保存连接设置</string>
     <string name="settings_media_tts_show">显示</string>
     <string name="settings_media_tts_hide">隐藏</string>
     <string name="settings_media_tts_saved">已保存</string>

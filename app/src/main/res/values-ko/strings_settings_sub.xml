@@ -463,6 +463,7 @@
     <string name="settings_media_tts_save_voice">음성 저장</string>
     <string name="settings_media_tts_save_model">모델 저장</string>
     <string name="settings_media_tts_save_endpoint">엔드포인트 저장</string>
+    <string name="settings_media_tts_save_connection">연결 설정 저장</string>
     <string name="settings_media_tts_show">보여주다</string>
     <string name="settings_media_tts_hide">숨다</string>
     <string name="settings_media_tts_saved">저장됨</string>

@@ -44,9 +44,9 @@
     <string name="settings_provider_unable_to_resolve_server">Não é possível resolver o endereço do servidor</string>
     <string name="settings_provider_query_timeout">A consulta expirou</string>
     <string name="settings_provider_query_failed">Falha na consulta: %1$s</string>
-    <string name="settings_provider_discard_changes_title">Descartar alterações?</string>
-    <string name="settings_provider_discard_changes_content">Você tem alterações não salvas que serão perdidas.</string>
-    <string name="settings_provider_discard">Descartar</string>
+    <string name="settings_unsaved_changes_title">Descartar alterações?</string>
+    <string name="settings_unsaved_changes_content">Você tem alterações não salvas que serão perdidas.</string>
+    <string name="settings_unsaved_discard">Descartar</string>
     <string name="settings_provider_new">Novo provedor</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">Conexão OK · Modelos %1$d</string>

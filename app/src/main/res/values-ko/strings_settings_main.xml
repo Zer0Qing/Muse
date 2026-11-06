@@ -44,9 +44,9 @@
     <string name="settings_provider_unable_to_resolve_server">서버 주소를 확인할 수 없습니다.</string>
     <string name="settings_provider_query_timeout">쿼리 시간이 초과되었습니다.</string>
     <string name="settings_provider_query_failed">쿼리 실패: %1$s</string>
-    <string name="settings_provider_discard_changes_title">변경사항을 취소하시겠습니까?</string>
-    <string name="settings_provider_discard_changes_content">저장되지 않은 변경사항은 손실됩니다.</string>
-    <string name="settings_provider_discard">버리다</string>
+    <string name="settings_unsaved_changes_title">변경사항을 취소하시겠습니까?</string>
+    <string name="settings_unsaved_changes_content">저장되지 않은 변경사항은 손실됩니다.</string>
+    <string name="settings_unsaved_discard">버리다</string>
     <string name="settings_provider_new">새로운 제공자</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">연결 OK · %1$d 모델</string>

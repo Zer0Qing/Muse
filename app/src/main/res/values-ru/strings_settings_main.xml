@@ -44,9 +44,9 @@
     <string name="settings_provider_unable_to_resolve_server">Невозможно определить адрес сервера</string>
     <string name="settings_provider_query_timeout">Время запроса истекло</string>
     <string name="settings_provider_query_failed">Не удалось выполнить запрос: %1$s</string>
-    <string name="settings_provider_discard_changes_title">Отменить изменения?</string>
-    <string name="settings_provider_discard_changes_content">У вас есть несохраненные изменения, которые будут потеряны.</string>
-    <string name="settings_provider_discard">Отказаться</string>
+    <string name="settings_unsaved_changes_title">Отменить изменения?</string>
+    <string name="settings_unsaved_changes_content">У вас есть несохраненные изменения, которые будут потеряны.</string>
+    <string name="settings_unsaved_discard">Отказаться</string>
     <string name="settings_provider_new">Новый провайдер</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">Соединение в порядке · Модели %1$d</string>

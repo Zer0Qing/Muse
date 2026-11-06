@@ -463,6 +463,7 @@
     <string name="settings_media_tts_save_voice">Salvar voz</string>
     <string name="settings_media_tts_save_model">Salvar modelo</string>
     <string name="settings_media_tts_save_endpoint">Salvar ponto final</string>
+    <string name="settings_media_tts_save_connection">Salvar conexão</string>
     <string name="settings_media_tts_show">Mostrar</string>
     <string name="settings_media_tts_hide">Esconder</string>
     <string name="settings_media_tts_saved">Salvo</string>

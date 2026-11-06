@@ -463,6 +463,7 @@
     <string name="settings_media_tts_save_voice">Сохранить голос</string>
     <string name="settings_media_tts_save_model">Сохранить модель</string>
     <string name="settings_media_tts_save_endpoint">Сохранить конечную точку</string>
+    <string name="settings_media_tts_save_connection">Сохранить подключение</string>
     <string name="settings_media_tts_show">Показывать</string>
     <string name="settings_media_tts_hide">Скрывать</string>
     <string name="settings_media_tts_saved">Сохранено</string>

@@ -59,9 +59,9 @@
     <string name="settings_provider_unable_to_resolve_server">无法解析服务器地址</string>
     <string name="settings_provider_query_timeout">查询超时</string>
     <string name="settings_provider_query_failed">查询失败： %1$s</string>
-    <string name="settings_provider_discard_changes_title">放弃修改？</string>
-    <string name="settings_provider_discard_changes_content">当前有未保存的修改，退出将丢失。确认放弃？</string>
-    <string name="settings_provider_discard">放弃</string>
+    <string name="settings_unsaved_changes_title">放弃修改？</string>
+    <string name="settings_unsaved_changes_content">当前有未保存的修改，退出将丢失。确认放弃？</string>
+    <string name="settings_unsaved_discard">放弃</string>
     <string name="settings_provider_new">新增 Provider</string>
     <!-- F-12: 端点测试按钮(仅调 /models 轻量校验连通性) -->
     <string name="settings_provider_test_connection_endpoint">测试连接（接口地址）</string>

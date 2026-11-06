@@ -925,9 +925,9 @@ internal fun ProviderEditPage(
     if (showDiscardConfirm) {
         MuseDialog(
             onDismissRequest = { showDiscardConfirm = false },
-            title = stringResource(R.string.settings_provider_discard_changes_title),
-            content = { Text(stringResource(R.string.settings_provider_discard_changes_content)) },
-            confirmText = stringResource(R.string.settings_provider_discard),
+            title = stringResource(R.string.settings_unsaved_changes_title),
+            content = { Text(stringResource(R.string.settings_unsaved_changes_content)) },
+            confirmText = stringResource(R.string.settings_unsaved_discard),
             onConfirm = {
                 showDiscardConfirm = false
                 onDismiss()

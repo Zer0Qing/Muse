@@ -44,9 +44,9 @@
     <string name="settings_provider_unable_to_resolve_server">Cannot resolve server address</string>
     <string name="settings_provider_query_timeout">Query timed out</string>
     <string name="settings_provider_query_failed">Query failed: %1$s</string>
-    <string name="settings_provider_discard_changes_title">Discard changes?</string>
-    <string name="settings_provider_discard_changes_content">You have unsaved changes that will be lost. Discard them?</string>
-    <string name="settings_provider_discard">Discard</string>
+    <string name="settings_unsaved_changes_title">Discard changes?</string>
+    <string name="settings_unsaved_changes_content">You have unsaved changes that will be lost. Discard them?</string>
+    <string name="settings_unsaved_discard">Discard</string>
     <string name="settings_provider_new">New Provider</string>
     <!-- v2.4: standalone connection test result messages (short, distinct from fetchModels error grading) -->
     <string name="settings_provider_test_success_count">Connection OK · %1$d models</string>

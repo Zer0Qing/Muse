@@ -477,6 +477,7 @@
     <string name="settings_media_tts_save_voice">Save Voice</string>
     <string name="settings_media_tts_save_model">Save Model</string>
     <string name="settings_media_tts_save_endpoint">Save Endpoint</string>
+    <string name="settings_media_tts_save_connection">Save connection</string>
     <string name="settings_media_tts_show">Show</string>
     <string name="settings_media_tts_hide">Hide</string>
     <string name="settings_media_tts_saved">Saved</string>

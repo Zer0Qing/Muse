@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import io.zer0.muse.data.SpeechProviderResolver
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -71,7 +73,34 @@ fun MediaSettingsPage(
     val config by settings.mediaConfigFlow.collectAsStateWithLifecycle(initialValue = MediaConfig())
     val scope = rememberCoroutineScope()
 
-    SettingsSubPageScaffold(title = stringResource(R.string.settings_media_page_title), onBack = onBack) {
+    // 页内草稿分散在几组字段里(Key/接口地址/音色/高级参数),填完直接返回等于白填。
+    // 与供应商编辑页同一保护:任一组有未保存草稿,离开前先确认。各组把脏标记上报到这里。
+    var dirtyGroups by remember { mutableStateOf(emptySet<String>()) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+    val reportDirty: (String, Boolean) -> Unit = { group, isDirty ->
+        dirtyGroups = if (isDirty) dirtyGroups + group else dirtyGroups - group
+    }
+    val requestBack: () -> Unit = {
+        if (dirtyGroups.isNotEmpty()) showDiscardConfirm = true else onBack()
+    }
+    BackHandler(enabled = dirtyGroups.isNotEmpty()) { showDiscardConfirm = true }
+    if (showDiscardConfirm) {
+        MuseDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = stringResource(R.string.settings_unsaved_changes_title),
+            content = { Text(stringResource(R.string.settings_unsaved_changes_content)) },
+            confirmText = stringResource(R.string.settings_unsaved_discard),
+            onConfirm = {
+                showDiscardConfirm = false
+                onBack()
+            },
+            dismissText = stringResource(R.string.settings_common_cancel),
+            onDismiss = { showDiscardConfirm = false },
+            destructive = true,
+        )
+    }
+
+    SettingsSubPageScaffold(title = stringResource(R.string.settings_media_page_title), onBack = requestBack) {
         // ── 1. 语音播报(TTS) ──
         item { SectionLabel(stringResource(R.string.settings_media_tts_section)) }
         item {
@@ -137,6 +166,7 @@ fun MediaSettingsPage(
                 settings = settings,
                 ttsManager = ttsManager,
                 onOpenProviderSettings = onOpenProviderSettings,
+                reportDirty = reportDirty,
             )
         }
 
@@ -147,6 +177,7 @@ fun MediaSettingsPage(
                 AdvancedTtsParamsSection(
                     config = config,
                     settings = settings,
+                    reportDirty = reportDirty,
                 )
             }
         }
@@ -228,7 +259,7 @@ private fun TtsVoiceSelector(ttsManager: TtsManager, currentVoice: String, onVoi
  *
  * 引擎选择(system + 11 家云端 Provider)→ API Key / Voice / Model / Endpoint 表单。
  * system 模式仅显示引擎选择,隐藏表单。
- * 表单交互按 [AsrSection]:OutlinedTextField + 保存按钮 + Toast 反馈。
+ * 表单交互按 [AsrSection] 的分组提交:一组字段一个"保存",保存后 Toast 反馈。
  *
  * v1.99(4.4): 在音色输入下方增加「拉取音色列表」按钮,调用 [TtsManager.listCloudVoices]
  * 动态拉取并展示可选音色,选中后写回 [MediaConfig.ttsVoice]。
@@ -240,6 +271,7 @@ private fun CloudTtsConfigSection(
     settings: SettingsRepository,
     ttsManager: TtsManager,
     onOpenProviderSettings: () -> Unit,
+    reportDirty: (String, Boolean) -> Unit = { _, _ -> },
 ) {
     val scope = rememberCoroutineScope()
     val systemLabel = stringResource(R.string.settings_media_tts_engine_system)
@@ -337,18 +369,6 @@ private fun CloudTtsConfigSection(
                         fillWidth = false,
                     )
                 },
-            )
-            MuseCapsuleButton(
-                text = stringResource(R.string.settings_media_tts_save_api_key),
-                onClick = {
-                    scope.launch {
-                        settings.saveMediaConfig(config.copy(ttsApiKey = apiKey.trim()))
-                        MuseToast.show(savedToast)
-                    }
-                },
-                variant = IosCapsuleButtonVariant.Text,
-                fillWidth = false,
-                enabled = !config.ttsFollowProvider,
             )
         }
 
@@ -475,6 +495,13 @@ private fun CloudTtsConfigSection(
         // 自定义 Endpoint
         SettingsGroupDivider()
         var endpoint by remember(config.ttsEngine) { mutableStateOf(config.ttsEndpoint) }
+        LaunchedEffect(apiKey, endpoint, voice, config) {
+            reportDirty(
+                "connection",
+                apiKey.trim() != config.ttsApiKey || endpoint.trim() != config.ttsEndpoint,
+            )
+            reportDirty("voice", voice.trim() != config.ttsVoice)
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -490,21 +517,78 @@ private fun CloudTtsConfigSection(
                 // 跟随供应商时接口地址由供应商提供,手填值保留但不可编辑
                 enabled = !config.ttsFollowProvider,
             )
-            MuseCapsuleButton(
-                text = stringResource(R.string.settings_media_tts_save_endpoint),
-                onClick = {
-                    scope.launch {
-                        settings.saveMediaConfig(config.copy(ttsEndpoint = endpoint.trim()))
-                        MuseToast.show(savedToast)
-                    }
-                },
-                variant = IosCapsuleButtonVariant.Text,
-                fillWidth = false,
-                enabled = !config.ttsFollowProvider,
-            )
+            // 连接参数一次提交:此前 Key 与接口地址各挂一个"保存",同一页两种心智。
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_media_tts_save_connection),
+                    onClick = {
+                        scope.launch {
+                            settings.saveMediaConfig(
+                                config.copy(
+                                    ttsApiKey = apiKey.trim(),
+                                    ttsEndpoint = endpoint.trim(),
+                                ),
+                            )
+                            MuseToast.show(savedToast)
+                        }
+                    },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                    enabled = !config.ttsFollowProvider,
+                )
+            }
         }
     }
 }
+
+/** 响应格式选择行 — 只在引擎支持时出现;展开态归自己管,页面无需替它记。 */
+@Composable
+private fun ResponseFormatRow(current: String, onPicked: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        SettingsItemRow(
+            icon = MuseIcons.template,
+            title = stringResource(R.string.settings_media_tts_response_format),
+            subtitle = current,
+            onClick = { expanded = true },
+        ) {
+            ChevronRight()
+        }
+        MuseAnchoredMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            listOf("mp3", "opus", "aac", "flac", "wav").forEach { fmt ->
+                MuseListItem(
+                    onClick = {
+                        onPicked(fmt)
+                        expanded = false
+                    },
+                    headlineContent = { Text(fmt) },
+                )
+            }
+        }
+    }
+}
+
+/** 高级参数草稿是否偏离已保存值:构造"草稿态 config"再整体比对,与供应商编辑页同一口径。 */
+internal fun advancedTtsDraftDirty(
+    config: MediaConfig,
+    stability: Float,
+    similarity: Float,
+    emotion: String,
+    speed: Float,
+    responseFormat: String,
+): Boolean = config.copy(
+    ttsStability = stability,
+    ttsSimilarityBoost = similarity,
+    ttsEmotion = emotion.trim(),
+    ttsCloudSpeed = speed,
+    ttsResponseFormat = responseFormat,
+) != config
 
 /**
  * 云端 TTS「跟随供应商配置」区块。
@@ -617,7 +701,11 @@ internal fun speechFollowFallbackReasonRes(reason: String?): Int = when (reason)
  *  - 其他: 仅语速滑块(若支持)
  */
 @Composable
-private fun AdvancedTtsParamsSection(config: MediaConfig, settings: SettingsRepository) {
+private fun AdvancedTtsParamsSection(
+    config: MediaConfig,
+    settings: SettingsRepository,
+    reportDirty: (String, Boolean) -> Unit = { _, _ -> },
+) {
     val scope = rememberCoroutineScope()
     val savedToast = stringResource(R.string.settings_media_tts_saved)
     val engine = config.ttsEngine
@@ -628,7 +716,9 @@ private fun AdvancedTtsParamsSection(config: MediaConfig, settings: SettingsRepo
     var emotion by remember(engine) { mutableStateOf(config.ttsEmotion) }
     var speed by remember(engine) { mutableStateOf(config.ttsCloudSpeed) }
     var responseFormat by remember(engine) { mutableStateOf(config.ttsResponseFormat.ifBlank { "mp3" }) }
-    var formatExpanded by remember { mutableStateOf(false) }
+    LaunchedEffect(stability, similarity, emotion, speed, responseFormat, config) {
+        reportDirty("advanced", advancedTtsDraftDirty(config, stability, similarity, emotion, speed, responseFormat))
+    }
 
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
@@ -688,30 +778,7 @@ private fun AdvancedTtsParamsSection(config: MediaConfig, settings: SettingsRepo
         }
 
         if (supportsResponseFormat(engine)) {
-            Box {
-                SettingsItemRow(
-                    icon = MuseIcons.template,
-                    title = stringResource(R.string.settings_media_tts_response_format),
-                    subtitle = responseFormat,
-                    onClick = { formatExpanded = true },
-                ) {
-                    ChevronRight()
-                }
-                MuseAnchoredMenu(
-                    expanded = formatExpanded,
-                    onDismissRequest = { formatExpanded = false },
-                ) {
-                    listOf("mp3", "opus", "aac", "flac", "wav").forEach { fmt ->
-                        MuseListItem(
-                            onClick = {
-                                responseFormat = fmt
-                                formatExpanded = false
-                            },
-                            headlineContent = { Text(fmt) },
-                        )
-                    }
-                }
-            }
+            ResponseFormatRow(current = responseFormat, onPicked = { responseFormat = it })
             SettingsGroupDivider()
         }
 
