@@ -2292,7 +2292,8 @@ internal fun MessageBubble(
                                         },
                                     )
                                     ActionMenuItem(
-                                        icon = MuseIcons.users,
+                                        // 委托统一用 robot(与加号菜单、进程列表同一口径),users 留给真正的群组/成员。
+                                        icon = MuseIcons.robot,
                                         text = stringResource(R.string.chat_delegate_action),
                                         contentDescription = stringResource(R.string.chat_delegate_action),
                                         onClick = {

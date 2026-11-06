@@ -33,7 +33,8 @@ enum class QuickAction(
     DELETE("delete", io.zer0.muse.R.string.chat_delete_message, MuseIcons.trash, defaultRank = 50),
     QUOTE("quote", io.zer0.muse.R.string.message_action_quote, MuseIcons.reply),
     ANNOTATE("annotate", io.zer0.muse.R.string.message_action_annotate, MuseIcons.edit),
-    DELEGATE("delegate", io.zer0.muse.R.string.chat_delegate_action, MuseIcons.users),
+    // 委托 = 交给另一个助手执行,画成 robot 而非 users:与 ProcessIconMap 的 delegate/agent 口径一致。
+    DELEGATE("delegate", io.zer0.muse.R.string.chat_delegate_action, MuseIcons.robot),
     FORK("fork", io.zer0.muse.R.string.chat_fork_action, MuseIcons.gitMerge),
     MULTI_SELECT("multi_select", io.zer0.muse.R.string.chat_select_messages, MuseIcons.square),
     INFO("info", io.zer0.muse.R.string.msg_info_title, MuseIcons.info),

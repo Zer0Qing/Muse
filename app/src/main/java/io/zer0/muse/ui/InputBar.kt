@@ -824,7 +824,9 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                             if (assistants.isNotEmpty()) {
                                 add(
                                     ToolEntry(
-                                        icon = MuseIcons.users,
+                                        // 委托是把活儿交给另一个助手,与"群组/成员"不是一回事;
+                                        // 进程列表里 delegate/subagent/agent 早已画成 robot,这里同一口径。
+                                        icon = MuseIcons.robot,
                                         title = stringResource(R.string.chat_delegate_action),
                                         subtitle = stringResource(R.string.chat_tool_delegate_subtitle),
                                         onClick = {
