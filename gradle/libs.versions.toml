@@ -17,7 +17,7 @@ composeBom = "2026.02.01"
 # 1.4.0 正式版把 MaterialExpressiveTheme/MotionScheme 移出(官方说明:expressive API 在 1.4.0 stable 起移入 1.5.0-alpha),
 # 项目主题依赖 expressive,因此停在仍保留该 API 的 alpha 线。
 material3 = "1.4.0-alpha04"
-navigationCompose = "2.8.5"
+navigationCompose = "2.9.8"
 koinBom = "4.0.0"
 room = "2.8.4"
 datastore = "1.1.1"
