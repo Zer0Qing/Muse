@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">Эксклюзивная модель</string>
     <string name="assistant_detail_temperature">Температура: %1$s</string>
     <string name="assistant_detail_default">По умолчанию</string>
+    <string name="assistant_detail_default_value">По умолчанию (%1$s)</string>
     <string name="assistant_detail_use_default">Использовать по умолчанию</string>
     <string name="assistant_detail_top_p_label">Top P (пусто для значения по умолчанию, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens (пусто для значения по умолчанию)</string>

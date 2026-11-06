@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">专属模型</string>
     <string name="assistant_detail_temperature">Temperature: %1$s</string>
     <string name="assistant_detail_default">默认</string>
+    <string name="assistant_detail_default_value">默认（%1$s）</string>
     <string name="assistant_detail_use_default">用默认</string>
     <string name="assistant_detail_top_p_label">Top P(留空用默认,0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens(留空用默认)</string>

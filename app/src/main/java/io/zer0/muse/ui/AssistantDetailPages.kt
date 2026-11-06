@@ -55,6 +55,7 @@ import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
 import io.zer0.muse.R
+import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantCardExporter
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -408,12 +409,11 @@ fun AssistantDetailPage(
                 )
             }
         }
-        // SillyTavern 角色卡分享 (PNG/JSON 导出)
-        // 把当前助手导出为业内通用格式, 可在其他支持 SillyTavern 角色卡的 App 中导入
+        // 角色卡文件导出（PNG / JSON），供支持同类角色卡格式的外部工具导入
         item {
             CardGroup(
                 modifier = museAnimateItem(),
-                title = { Text(stringResource(R.string.assistant_detail_share_section)) },
+                title = { Text(stringResource(R.string.assistant_detail_export_section)) },
             ) {
                 item(
                     onClick = {
@@ -671,6 +671,8 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
     val allModels = remember(providers) { providers.flatMap { it.models } }
     // Phase 6: 全局当前选中模型 id,用于显示全局默认模型名称
     val globalSelectedModelId by settings.selectedModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
+    // 助手没单独设温度时，界面要说清「默认」实际是多少，滑块也得落在同一个值上
+    val chatPrefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
     // 模型选择对话框
     var showModelPicker by remember { mutableStateOf(false) }
 
@@ -829,18 +831,6 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                     },
                     trailingContent = { ChevronRight() },
                 )
-                // Phase 6: 新建助手提示 — 未选择专属模型时显示引导提示
-                if (a.modelId == null) {
-                    item(
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.assistant_detail_model_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                        },
-                    )
-                }
                 item(
                     headlineContent = {
                         Column(modifier = Modifier.fillMaxWidth()) {
@@ -848,12 +838,15 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                                 text = stringResource(
                                     R.string.assistant_detail_temperature,
                                     a.temperature?.let { "%.2f".format(it) }
-                                        ?: stringResource(R.string.assistant_detail_default),
+                                        ?: stringResource(
+                                            R.string.assistant_detail_default_value,
+                                            "%.2f".format(chatPrefs.globalTemperature),
+                                        ),
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             MuseSlider(
-                                value = a.temperature ?: 1.0f,
+                                value = a.temperature ?: chatPrefs.globalTemperature,
                                 onValueChange = { v -> update { it.copy(temperature = v) } },
                                 valueRange = 0f..2f,
                                 steps = 39,

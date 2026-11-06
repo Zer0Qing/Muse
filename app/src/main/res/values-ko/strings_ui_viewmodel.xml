@@ -162,6 +162,7 @@
     <string name="assistant_import_sillytavern">SillyTavern 캐릭터 카드 가져오기</string>
     <!-- Assistant detail: character card sharing section -->
     <string name="assistant_detail_share_section">캐릭터 카드 공유</string>
+    <string name="assistant_detail_export_section">캐릭터 카드 파일로 내보내기</string>
     <string name="assistant_detail_export_png">PNG 캐릭터 카드로 내보내기</string>
     <string name="assistant_detail_export_png_desc">SillyTavern 형식(메타데이터 포함)</string>
     <string name="assistant_detail_export_json">JSON 캐릭터 카드로 내보내기</string>

@@ -7,7 +7,7 @@
     <string name="assistant_detail_basic">Basic</string>
     <string name="assistant_detail_basic_desc">Name / Avatar / Model / Sampling</string>
     <string name="assistant_detail_prompt">Prompt</string>
-    <string name="assistant_detail_prompt_desc">systemPrompt / Message Template / Preset Messages</string>
+    <string name="assistant_detail_prompt_desc">Prompt, message template and preset messages</string>
     <string name="assistant_detail_extensions">Extensions</string>
     <string name="assistant_detail_extensions_desc">Quick Messages / Lorebook / Injection / Skills / MCP</string>
     <string name="assistant_detail_memory">Memory</string>
@@ -19,7 +19,7 @@
     <string name="assistant_detail_pick_image">Pick Image</string>
     <string name="assistant_detail_clear">Clear</string>
     <string name="assistant_detail_avatar">Avatar</string>
-    <string name="assistant_detail_avatar_image_set">Image avatar set</string>
+    <string name="assistant_detail_avatar_image_set">Avatar image saved</string>
     <string name="assistant_detail_avatar_emoji">Using Emoji avatar</string>
     <string name="assistant_detail_avatar_initial">Using name initial</string>
     <string name="assistant_detail_name">Name</string>
@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">Exclusive Model</string>
     <string name="assistant_detail_temperature">Temperature: %1$s</string>
     <string name="assistant_detail_default">Default</string>
+    <string name="assistant_detail_default_value">Default (%1$s)</string>
     <string name="assistant_detail_use_default">Use Default</string>
     <string name="assistant_detail_top_p_label">Top P (leave empty for default, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens (leave empty for default)</string>

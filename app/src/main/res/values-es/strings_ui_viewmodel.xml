@@ -162,6 +162,7 @@
     <string name="assistant_import_sillytavern">Importar tarjeta de personaje de SillyTavern</string>
     <!-- Assistant detail: character card sharing section -->
     <string name="assistant_detail_share_section">Compartir tarjeta de personaje</string>
+    <string name="assistant_detail_export_section">Exportar archivos de tarjeta</string>
     <string name="assistant_detail_export_png">Exportar como tarjeta de personaje PNG</string>
     <string name="assistant_detail_export_png_desc">Formato SillyTavern (con metadatos)</string>
     <string name="assistant_detail_export_json">Exportar como tarjeta de personaje JSON</string>

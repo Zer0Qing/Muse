@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">エクスクルーシブモデル</string>
     <string name="assistant_detail_temperature">温度: %1$s</string>
     <string name="assistant_detail_default">デフォルト</string>
+    <string name="assistant_detail_default_value">既定（%1$s）</string>
     <string name="assistant_detail_use_default">デフォルトを使用</string>
     <string name="assistant_detail_top_p_label">トップ P (デフォルトでは空のままにしておきます、0 ～ 1)</string>
     <string name="assistant_detail_max_tokens_label">最大トークン数 (デフォルトでは空のまま)</string>

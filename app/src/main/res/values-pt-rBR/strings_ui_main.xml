@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">Modelo Exclusivo</string>
     <string name="assistant_detail_temperature">Temperatura: %1$s</string>
     <string name="assistant_detail_default">Padrão</string>
+    <string name="assistant_detail_default_value">Padrão (%1$s)</string>
     <string name="assistant_detail_use_default">Usar padrão</string>
     <string name="assistant_detail_top_p_label">P superior (deixe em branco por padrão, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens (deixe em branco por padrão)</string>

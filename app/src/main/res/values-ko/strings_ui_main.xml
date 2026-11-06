@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">전용 모델</string>
     <string name="assistant_detail_temperature">온도: %1$s</string>
     <string name="assistant_detail_default">기본</string>
+    <string name="assistant_detail_default_value">기본값(%1$s)</string>
     <string name="assistant_detail_use_default">기본 사용</string>
     <string name="assistant_detail_top_p_label">Top P(비워두면 기본값, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens(비워두면 기본값)</string>

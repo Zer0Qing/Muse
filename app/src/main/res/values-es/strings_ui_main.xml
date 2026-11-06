@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">Modelo Exclusivo</string>
     <string name="assistant_detail_temperature">Temperatura: %1$s</string>
     <string name="assistant_detail_default">Por defecto</string>
+    <string name="assistant_detail_default_value">Predeterminado (%1$s)</string>
     <string name="assistant_detail_use_default">Usar predeterminado</string>
     <string name="assistant_detail_top_p_label">Top P (dejar vacío por defecto, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Tokens máximos (déjelo vacío por defecto)</string>
