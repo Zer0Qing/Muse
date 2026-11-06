@@ -3,8 +3,6 @@ package io.zer0.muse.ui.theme
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.SpringSpec
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -178,15 +176,51 @@ object MuseAnimation {
      */
     val GrowEase: Easing = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1.0f)
 
-    /**
-     * v2.x: 弹性弹簧规格沉淀 — 按压缩放/卡片回弹场景的物理参数
-     * (原散落各处手写 spring(MediumBouncy, StiffnessMedium);新代码从这里取)。
-     */
-    fun bouncySpring(): SpringSpec<Float> = SpringSpec(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMedium,
-    )
+    // ── 弹簧档位令牌 ──────────────────────────────────────────────────
+    // 数值与 web/apps/client/src/design/tokens.json 的 motion.springs 对齐,
+    // 由 DesignTokenParityTest 校验,两处必须一起改。
+
+    /** 跟手档阻尼比: 按压缩放、小状态翻转、内容块位移。 */
+    const val RESPONSIVE_DAMPING = 0.75f
+
+    /** 跟手档刚度。 */
+    const val RESPONSIVE_STIFFNESS = 1500f
+
+    /** 回弹档阻尼比: 弹层 settle、卡片弹出等需要"弹一下"的场景。 */
+    const val BOUNCY_DAMPING = 0.5f
+
+    /** 回弹档刚度。 */
+    const val BOUNCY_STIFFNESS = 400f
+
+    /** 沉稳档阻尼比: 临界阻尼,导航页位移与尺寸展开用,终点不回弹。 */
+    const val STEADY_DAMPING = 1.0f
+
+    /** 沉稳档刚度。 */
+    const val STEADY_STIFFNESS = 400f
+
+    /** 按档位取阻尼比。 */
+    fun dampingRatio(tier: MuseSpringTier): Float = when (tier) {
+        MuseSpringTier.RESPONSIVE -> RESPONSIVE_DAMPING
+        MuseSpringTier.BOUNCY -> BOUNCY_DAMPING
+        MuseSpringTier.STEADY -> STEADY_DAMPING
+    }
+
+    /** 按档位取刚度。 */
+    fun stiffness(tier: MuseSpringTier): Float = when (tier) {
+        MuseSpringTier.RESPONSIVE -> RESPONSIVE_STIFFNESS
+        MuseSpringTier.BOUNCY -> BOUNCY_STIFFNESS
+        MuseSpringTier.STEADY -> STEADY_STIFFNESS
+    }
 }
+
+/**
+ * 弹簧档位——与 [MuseAnimation] 的三组常量一一对应。
+ *
+ * 取代旧的单一 `bouncySpring()` 入口：该函数从未被调用，且一档参数无法区分
+ * "跟手"（快速收敛）与"回弹"（明显过冲后收束）两种不同的读感。
+ * 数值与 web 端 tokens.json 的 motion.springs 对齐，由 DesignTokenParityTest 校验，两处必须一起改。
+ */
+enum class MuseSpringTier { RESPONSIVE, BOUNCY, STEADY }
 
 /**
  * Muse 设计令牌 — 阴影统一说明 (CMP-01)。

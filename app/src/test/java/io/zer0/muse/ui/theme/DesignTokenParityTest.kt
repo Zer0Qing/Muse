@@ -27,7 +27,7 @@ import kotlin.math.abs
  * 都会让本测试变红——这就是它的唯一职责，不做业务断言。
  *
  * 覆盖范围：全部颜色（含默认预设主题的 colorScheme 槽位）、完整字号阶梯（字号/行高/字重/
- * 字距）、全部圆角、全部动效时长与位移比例、间距、高程、图标尺寸、组件专属几何。
+ * 字距）、全部圆角、全部动效时长与位移比例、弹簧三档参数、间距、高程、图标尺寸、组件专属几何。
  *
  * 注意：`colors.web.*` 是 Web 外壳的历史色板（SaaS 暖米色布局），Android 侧没有对应
  * 常量，因此只做键集守卫、不逐值比对；`motion.easings` 的贝塞尔控制点在 Compose 的
@@ -264,6 +264,19 @@ class DesignTokenParityTest {
             "motion.easings",
             setOf("standard", "easeOutCubic", "easeOutBack", "easeInCubic", "emphasized", "growEase"),
         )
+    }
+
+    @Test
+    fun `motion springs match MuseAnimation`() {
+        listOf(
+            "responsive" to MuseSpringTier.RESPONSIVE,
+            "bouncy" to MuseSpringTier.BOUNCY,
+            "steady" to MuseSpringTier.STEADY,
+        ).forEach { (key, tier) ->
+            assertNumber("motion.springs.$key.dampingRatio", MuseAnimation.dampingRatio(tier).toDouble())
+            assertNumber("motion.springs.$key.stiffness", MuseAnimation.stiffness(tier).toDouble())
+        }
+        assertKeySet("motion.springs", setOf("responsive", "bouncy", "steady"))
     }
 
     // ── 间距 / 高程 / 图标 ──────────────────────────────────────────────
