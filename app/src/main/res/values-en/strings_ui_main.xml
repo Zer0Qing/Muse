@@ -443,9 +443,6 @@
     <string name="channel_weclaw_rescan">Re-login</string>
     <string name="channel_weclaw_unbind">Unbind</string>
     <string name="channel_weclaw_unbind_confirm">Unbinding clears the token and the target conversation. Rebinding requires scanning the QR code again.</string>
-    <string name="channel_weclaw_hint">Connect via WeChat iLink protocol</string>
-    <string name="channel_weclaw_exclusive">Each WeChat account can only be bound to one channel. Binding a new one invalidates the previous one.</string>
-    <string name="channel_weclaw_reply_window">Proactive WeChat notifications require a recent incoming message or reply window. If reminders do not arrive, send this channel a WeChat message to activate that window.</string>
     <string name="channel_telegram_hint">Get the Bot Token from @BotFather; target is the chat_id (leave blank and auto-reply returns to the sender).</string>
     <string name="channel_dingtalk_hint">Corp ID and app credentials use the current token API; Client ID and Client Secret also open the Stream connection. Robot Code sends replies. API Base URL defaults to https://api.dingtalk.com/v1.0</string>
     <string name="channel_feishu_hint">Get from Feishu Open Platform; events use long connection, no local callback URL needed</string>
@@ -1001,4 +998,6 @@
     <string name="audit_log_field_result">Result</string>
     <string name="audit_log_result_ok">Success</string>
     <string name="audit_log_result_fail">Failed</string>
+    <string name="permission_advanced_channels">Advanced channels (Root / Termux)</string>
+    <string name="channel_weclaw_summary">Connects a personal account through the WeChat iLink protocol. One WeChat account can hold only one channel - binding a new one retires the old. Proactive reminders need a reply window opened by a recent incoming message; if one does not arrive, send this channel a WeChat message to reopen it.</string>
 </resources>

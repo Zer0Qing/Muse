@@ -835,4 +835,8 @@
     <string name="plugin_cap_ui_interactive">Mostrar un formulario y ejecutar su controlador (altera datos; desactivado)</string>
     <string name="plugin_cap_runtime_python">Ejecutar Python fuera del entorno aislado (alta confianza)</string>
     <string name="video_no_video_model_hint">El proveedor actual no tiene ningún modelo con salida de vídeo. Activa la capacidad de \"salida de vídeo\" en Ajustes › Modelos y proveedores.</string>
+    <string name="permission_next_step">Próximo paso recomendado: %1$s</string>
+    <string name="permission_optional_channels">Lo básico ya está listo; los demás canales son opcionales</string>
+    <string name="permission_privacy_notice_title">Estos permisos solo actúan en este dispositivo</string>
+    <string name="permission_privacy_notice_body">La lectura de pantalla y los comandos ocurren en este teléfono; nada se sube. Root, Shizuku y Termux son canales opcionales de alto privilegio que dejan a la app actuar por ti: revócalos cuando quieras en Ajustes o en la app correspondiente.</string>
 </resources>

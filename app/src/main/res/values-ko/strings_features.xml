@@ -835,4 +835,8 @@
     <string name="plugin_cap_ui_interactive">제출 양식 표시 및 플러그인 핸들러 실행 (데이터 변경, 기본 꺼짐)</string>
     <string name="plugin_cap_runtime_python">격리 환경 밖에서 Python 실행(신뢰도 높음)</string>
     <string name="video_no_video_model_hint">현재 제공자에 영상 출력 모델이 없습니다. 설정 › 모델 및 제공자에서 “영상 출력” 기능을 활성화해 주세요.</string>
+    <string name="permission_next_step">권장 다음 단계: %1$s</string>
+    <string name="permission_optional_channels">기본 권한은 준비됨, 나머지 통로는 선택 사항</string>
+    <string name="permission_privacy_notice_title">이 권한은 이 기기에서만 동작합니다</string>
+    <string name="permission_privacy_notice_body">화면 읽기와 명령 실행은 이 기기에서 이루어지며 내용은 전송되지 않습니다. Root, Shizuku, Termux는 선택적인 고권한 통로이며, 활성화하면 앱이 기기를 대신 조작할 수 있습니다. 시스템 설정이나 해당 앱에서 언제든지 취소할 수 있습니다.</string>
 </resources>

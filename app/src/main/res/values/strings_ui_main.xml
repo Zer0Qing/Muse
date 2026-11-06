@@ -450,9 +450,6 @@
     <string name="channel_weclaw_rescan">重新登录</string>
     <string name="channel_weclaw_unbind">解除绑定</string>
     <string name="channel_weclaw_unbind_confirm">解绑会清空令牌与目标会话，重新绑定需要再次扫码。确认解绑？</string>
-    <string name="channel_weclaw_hint">通过微信 iLink 协议接入个人号</string>
-    <string name="channel_weclaw_exclusive">一个微信号只能绑定一个渠道，绑定新渠道后旧的会自动失效</string>
-    <string name="channel_weclaw_reply_window">微信主动通知依赖最近一次收到消息后的回复窗口。如果提醒没有送达，可以先给这个渠道发一条微信来激活窗口。</string>
     <string name="channel_telegram_hint">从 @BotFather 获取 Bot Token；发送目标填 chat_id（可留空，自动回复会回发到来源）。</string>
     <string name="channel_dingtalk_hint">Corp ID 和应用凭证用于新版 token 接口；Client ID 与 Client Secret 也用于建立 Stream 长连接，Robot Code 用于发送回复。API Base URL 默认 https://api.dingtalk.com/v1.0</string>
     <string name="channel_feishu_hint">从飞书开放平台获取；使用长连接接收事件，不需要本地回调 URL</string>
@@ -1018,4 +1015,6 @@
     <string name="audit_log_field_result">结果</string>
     <string name="audit_log_result_ok">成功</string>
     <string name="audit_log_result_fail">失败</string>
+    <string name="permission_advanced_channels">高级通道（Root / Termux）</string>
+    <string name="channel_weclaw_summary">通过微信 iLink 协议接入个人号；一个微信号只能绑一个渠道，绑新的会让旧的失效。主动提醒依赖最近收到消息后打开的回复窗口，没送达就先给这个渠道发一条微信激活它。</string>
 </resources>

@@ -884,4 +884,8 @@
     <string name="plugin_cap_ui_interactive">Форма отправки и запуск обработчика плагина (меняет данные, по умолчанию выкл)</string>
     <string name="plugin_cap_runtime_python">Запуск Python вне изоляции (высокое доверие)</string>
     <string name="video_no_video_model_hint">У текущего провайдера нет модели с выводом видео. Включите возможность «вывод видео» для модели в «Настройки › Модели и провайдеры».</string>
+    <string name="permission_next_step">Рекомендуемый следующий шаг: %1$s</string>
+    <string name="permission_optional_channels">Базовое готово; остальные каналы — по желанию</string>
+    <string name="permission_privacy_notice_title">Эти разрешения действуют только на этом устройстве</string>
+    <string name="permission_privacy_notice_body">Чтение экрана и команды выполняются на этом устройстве, ничего не отправляется. Root, Shizuku и Termux — необязательные каналы с высокими привилегиями: включив их, приложение сможет действовать за вас. Отозвать можно в любой момент в системных настройках или в соответствующем приложении.</string>
 </resources>

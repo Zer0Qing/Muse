@@ -83,7 +83,7 @@ internal fun MessageBubbleHeader(
                                 else -> formatMessageTime(message.createdAt, use24Hour = chatPreferences.use24Hour)
                             },
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

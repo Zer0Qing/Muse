@@ -893,4 +893,6 @@
     <string name="audit_log_field_result">결과</string>
     <string name="audit_log_result_ok">성공</string>
     <string name="audit_log_result_fail">실패</string>
+    <string name="permission_advanced_channels">고급 통로 (Root / Termux)</string>
+    <string name="channel_weclaw_summary">WeChat iLink 프로토콜로 개인 계정을 연결합니다. 한 WeChat 계정은 하나의 채널에만 연결되며, 새로 연결하면 기존은 해제됩니다. 능동 알림은 최근 수신 메시지로 열리는 답장 창에 의존하니, 알림이 오지 않으면 이 채널로 WeChat을 보내 창을 열어 주세요.</string>
 </resources>

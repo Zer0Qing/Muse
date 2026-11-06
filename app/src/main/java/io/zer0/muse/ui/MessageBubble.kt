@@ -1214,7 +1214,7 @@ internal fun MessageBubble(
                                     )
                                     else -> Triple(
                                         stringResource(R.string.vision_assist_label),
-                                        MaterialTheme.colorScheme.outline,
+                                        MaterialTheme.colorScheme.onSurfaceVariant,
                                         MuseIcons.eye,
                                     )
                                 }
@@ -1281,7 +1281,7 @@ internal fun MessageBubble(
                     Text(
                         text = formatMessageTime(msg.createdAt, use24Hour = chatPrefs.use24Hour),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp, end = MusePaddings.tinyGap),
                     )
                 }
@@ -1351,7 +1351,7 @@ internal fun MessageBubble(
                                     else -> timeText
                                 },
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -1636,13 +1636,13 @@ internal fun MessageBubble(
                                         Icon(
                                             imageVector = MuseIcons.gitMerge,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.outline,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(14.dp),
                                         )
                                         Text(
                                             text = stringResource(R.string.msg_compressed),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }
@@ -1877,7 +1877,7 @@ internal fun MessageBubble(
                             onCopyMessage(messageCopyText(msg.content, msg.reasoning))
                         },
                         contentDescription = stringResource(R.string.action_copy),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
@@ -1889,7 +1889,7 @@ internal fun MessageBubble(
                                 onRegenerate()
                             },
                             contentDescription = stringResource(R.string.action_retry),
-                            tint = MaterialTheme.colorScheme.outline,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             size = MuseIconSizes.touchTarget,
                             iconSize = MuseIconSizes.iconSmall,
                         )
@@ -1902,7 +1902,7 @@ internal fun MessageBubble(
                             onEdit()
                         },
                         contentDescription = stringResource(R.string.action_edit),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
@@ -1917,7 +1917,7 @@ internal fun MessageBubble(
                             showDeleteConfirm = true
                         },
                         contentDescription = stringResource(R.string.action_delete),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
@@ -2063,7 +2063,7 @@ internal fun MessageBubble(
                             actionSurface = MessageActionSurface.Extended
                         },
                         contentDescription = stringResource(R.string.action_more),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
@@ -2072,7 +2072,7 @@ internal fun MessageBubble(
                     Text(
                         text = modelName,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
                         modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                     )
@@ -2502,7 +2502,7 @@ internal fun MessageBubble(
                                         Text(
                                             stringResource(R.string.chat_translate_in_progress),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 } else {
@@ -2535,7 +2535,7 @@ internal fun MessageBubble(
                     Text(
                         stringResource(R.string.chat_translate_in_progress),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

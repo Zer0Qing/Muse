@@ -894,4 +894,6 @@
     <string name="audit_log_field_result">結果</string>
     <string name="audit_log_result_ok">成功</string>
     <string name="audit_log_result_fail">失敗</string>
+    <string name="permission_advanced_channels">高度なチャネル（Root / Termux）</string>
+    <string name="channel_weclaw_summary">WeChat の iLink プロトコルで個人アカウントを接続します。1 つの WeChat ID は 1 チャネルのみ紐付けでき、新しく紐付けると前は無効になります。能動通知は直近の受信メッセージで開く返信ウィンドウに依存します。届かない場合はこのチャネルへ WeChat を送って窓を開けてください。</string>
 </resources>

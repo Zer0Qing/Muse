@@ -834,4 +834,8 @@
     <string name="plugin_cap_ui_interactive">送信フォームを表示しプラグインのハンドラを実行（データを変更、既定で無効）</string>
     <string name="plugin_cap_runtime_python">沙盒の外で Python を実行（高信頼、個別に確認）</string>
     <string name="video_no_video_model_hint">現在のプロバイダーには動画出力に対応したモデルがありません。設定 › モデルとプロバイダーで「動画出力」を有効にしてください。</string>
+    <string name="permission_next_step">次にやる推奨ステップ：%1$s</string>
+    <string name="permission_optional_channels">基本の権限は準備済み、その他のチャネルは任意</string>
+    <string name="permission_privacy_notice_title">これらの権限はこの端末内でだけ有効です</string>
+    <string name="permission_privacy_notice_body">画面読み上げとコマンド実行はこの端末内で行われ、内容は送信されません。Root / Shizuku / Termux は任意の高権限チャネルで、有効にするとアプリが端末を操作できます。システム設定または各アプリからいつでも取り消せます。</string>
 </resources>

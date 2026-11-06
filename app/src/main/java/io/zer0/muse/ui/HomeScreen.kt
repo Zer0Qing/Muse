@@ -414,12 +414,12 @@ fun HomeScreen(
                                     currentAssistant = state.currentAssistant,
                                     archivedSessions = state.archivedSessions,
                                     onArchive = { id -> viewModel.setSessionArchived(id, true) },
-                                    onUnarchive = { id -> viewModel.setSessionArchived(id, false) },
                                     onOpenScheduledTasks = onOpenScheduledTasks,
                                     onOpenQuickNotes = onOpenQuickNotes,
                                     onOpenQuickTranslate = onOpenQuickTranslate,
                                     onOpenKnowledgeBase = onOpenKnowledgeBase,
                                     onOpenRecentlyDeleted = onOpenRecentlyDeleted,
+                                    onOpenArchivedChats = onOpenArchivedChats,
                                     onOpenAssistants = onOpenAssistants,
                                     // v2.x: 伙伴横排 — 以指定助手开新聊天(宽屏双栏就地切新会话)
                                     onOpenAssistantChat = { id ->
@@ -477,12 +477,12 @@ fun HomeScreen(
                                 currentAssistant = state.currentAssistant,
                                 archivedSessions = state.archivedSessions,
                                 onArchive = { id -> viewModel.setSessionArchived(id, true) },
-                                onUnarchive = { id -> viewModel.setSessionArchived(id, false) },
                                 onOpenScheduledTasks = onOpenScheduledTasks,
                                 onOpenQuickNotes = onOpenQuickNotes,
                                 onOpenQuickTranslate = onOpenQuickTranslate,
                                 onOpenKnowledgeBase = onOpenKnowledgeBase,
                                 onOpenRecentlyDeleted = onOpenRecentlyDeleted,
+                                onOpenArchivedChats = onOpenArchivedChats,
                                 onOpenAssistants = onOpenAssistants,
                                 // v2.x: 伙伴横排 — 以指定助手开新聊天并进入聊天页
                                 onOpenAssistantChat = { id ->

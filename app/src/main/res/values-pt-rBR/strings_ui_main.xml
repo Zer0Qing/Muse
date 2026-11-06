@@ -897,4 +897,6 @@
     <string name="audit_log_field_result">Resultado</string>
     <string name="audit_log_result_ok">Sucesso</string>
     <string name="audit_log_result_fail">Falhou</string>
+    <string name="permission_advanced_channels">Canais avançados (Root / Termux)</string>
+    <string name="channel_weclaw_summary">Conecta uma conta pessoal pelo protocolo iLink do WeChat. A mesma conta do WeChat só pode ter um canal: ao vincular outro, o anterior é desativado. Avisos proativos dependem da janela de resposta aberta por uma mensagem recente; se não chegarem, envie um WeChat a este canal para reabri-la.</string>
 </resources>
