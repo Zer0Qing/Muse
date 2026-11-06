@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -44,18 +45,24 @@ import org.koin.compose.koinInject
  *  - 动图(GIF/WebP)由全局 Coil ImageLoader 的 GifDecoder 自动播放
  */
 @Composable
-internal fun StickerMessageCard(category: String, seed: Long, modifier: Modifier = Modifier) {
+internal fun StickerMessageCard(
+    category: String,
+    seed: Long,
+    modifier: Modifier = Modifier,
+    /** E4:当前对话情绪(小写枚举名)。空列表 = 不按情绪筛,行为与今天完全一致。 */
+    emotions: List<String> = emptyList(),
+) {
     val repo: StickerLibraryRepository = koinInject()
     // 容错解析分类 + 种子选取;分类不存在/为空 → item 为 null → 不渲染
     val item by
-        produceState<StickerItem?>(initialValue = null, category, seed) {
+        produceState<StickerItem?>(initialValue = null, category, seed, emotions) {
             value =
                 resultOf {
                     val resolved = repo.resolveCategory(category)
                     if (resolved == null) {
                         null
                     } else {
-                        repo.pickSticker(repo.snapshot(), resolved, seed)
+                        repo.pickSticker(repo.snapshot(), resolved, seed, emotions)
                     }
                 }.getOrNull()
         }
@@ -64,6 +71,10 @@ internal fun StickerMessageCard(category: String, seed: Long, modifier: Modifier
         remember(sticker) {
             repo.getStickerFileByPath(sticker.relativePath).takeIf { it.exists() }
         } ?: return
+
+    // E4:计数落在「文件真的在、这一张真的要被画出来」之后。
+    // 放在选取处会让选不出的条目也涨次数,低使用退场就再也判不准。
+    LaunchedEffect(sticker.id) { runCatching { repo.recordUse(sticker.id) } }
 
     var previewing by remember { mutableStateOf(false) }
     val painter = rememberAsyncImagePainter(model = file)
@@ -147,6 +158,15 @@ internal fun StickerAwareMarkdownBody(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
+        // E4:情绪取自这条回复自己的正文(标记前后的文字)。
+        // 为什么不用用户那句:同一条用户消息可能引出「安慰」也可能引出「起哄」,
+        // 而真正决定该发哪张图的是助手这句话的语气 —— 它就在手边,不需要跨层传状态。
+        // 检测不到情绪时 emotions 为空,选取退回今天的行为(全库等概率)。
+        val stickerEmotions = remember(segments) {
+            val text = segments.filterIsInstance<StickerMarkup.Segment.Text>()
+                .joinToString("\n") { it.text }
+            StickerEmotionDetector.emotionsOf(text).map { it.name.lowercase() }
+        }
         segments.forEachIndexed { idx, seg ->
             when (seg) {
                 is StickerMarkup.Segment.Text ->
@@ -167,6 +187,7 @@ internal fun StickerAwareMarkdownBody(
                     StickerMessageCard(
                         category = seg.category,
                         seed = stickerSeed + idx,
+                        emotions = stickerEmotions,
                     )
             }
         }

@@ -97,6 +97,27 @@ object StickerEmotionDetector {
         return EmotionResult(dominant, intensity)
     }
 
+    /**
+     * E4:文本 → 命中的情绪集合(按得分降序,只保留有得分的)。
+     *
+     * 与 detectEmotion 的区别只有一个:这里要的是「哪些情绪成立」,不是「最强的是谁」。
+     * 一张「又气又无奈」的表情不该因为打分差 0.5 就丢掉其中一个标签。
+     * 没命中任何词返回空列表 —— NEUTRAL 是缺省,不是一种要打的标签。
+     */
+    fun emotionsOf(rawText: String): List<EmotionType> {
+        val text = rawText.lowercase()
+        if (text.isBlank()) return emptyList()
+        val punctuationBoost = STRONG_PUNCTUATION.count { text.contains(it) } * 0.15f
+        return listOf(
+            EmotionType.ANGRY to score(ANGRY_WORDS, text),
+            EmotionType.SAD to score(SAD_WORDS, text),
+            EmotionType.JOYFUL to score(JOYFUL_WORDS, text),
+            EmotionType.EXCITED to score(EXCITED_WORDS, text),
+        ).filter { (_, value) -> value + punctuationBoost > 0f }
+            .sortedByDescending { (_, value) -> value }
+            .map { (type, _) -> type }
+    }
+
     // ── 内部实现 ─────────────────────────────────────────────────────────
 
     /** 统计文本中命中词典的词数。 */

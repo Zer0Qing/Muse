@@ -7,8 +7,8 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.Result
 import io.zer0.common.resultOf
-import io.zer0.muse.util.readZipEntryWithLimit
 import io.zer0.muse.util.isStrictlyInside
+import io.zer0.muse.util.readZipEntryWithLimit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -19,8 +19,8 @@ import java.io.File
 import java.nio.charset.Charset
 import java.util.UUID
 import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 /**
  * v1.95: 表情包库仓库 — 基于文件存储(不碰 Room/MuseDb)。
@@ -197,6 +197,8 @@ class StickerLibraryRepository(private val appContext: Context) {
                 fileName = finalName,
                 relativePath = "stickers/$category/$finalName",
                 addedAt = now,
+                // E4:注册时打标签。文件名与包名是用户自己写的,这是最便宜的信号。
+                emotions = StickerEmotionTagger.tagOf(finalName, category = category),
             )
             manifestMutex.withLock {
                 val current = readManifest().toMutableList()
@@ -401,6 +403,11 @@ class StickerLibraryRepository(private val appContext: Context) {
                 addedAt = now,
                 order = orderFor(nextOrder, current, pe.category),
                 caption = pe.caption?.takeIf { it.isNotBlank() },
+                emotions = StickerEmotionTagger.tagOf(
+                    fileName = targetFile.name,
+                    caption = pe.caption,
+                    category = pe.category,
+                ),
             )
             current.add(item)
             imported.add(item)
@@ -486,14 +493,13 @@ class StickerLibraryRepository(private val appContext: Context) {
      * 单独开这一步是因为自动挑图会挑错：文档媒体里常有封面、二维码、作者头像，
      * 尺寸规则挡不住所有情况，得让人看一眼再定。
      */
-    suspend fun prepareDocument(uri: Uri, displayName: String): Result<StickerDraft> =
-        withContext(Dispatchers.IO) {
-            resultOf {
-                val (category, pending) = collectDocument(uri, displayName)
-                toDraft(category, pending)
-            }
-                .onError { msg, t -> Logger.w("StickerLibraryRepository", "prepareDocument 失败: $msg", t) }
+    suspend fun prepareDocument(uri: Uri, displayName: String): Result<StickerDraft> = withContext(Dispatchers.IO) {
+        resultOf {
+            val (category, pending) = collectDocument(uri, displayName)
+            toDraft(category, pending)
         }
+            .onError { msg, t -> Logger.w("StickerLibraryRepository", "prepareDocument 失败: $msg", t) }
+    }
 
     /** 读文档、按阅读顺序取图与配文、落到临时暂存区。 */
     private fun collectDocument(uri: Uri, displayName: String): Pair<String, List<PendingEntry>> {
@@ -554,13 +560,12 @@ class StickerLibraryRepository(private val appContext: Context) {
      * （真实目录页量过：切准的格子占页 0.7%、切碎的也是 0.6%），
      * 所以只能入库前给人看一眼再定。
      */
-    suspend fun preparePdf(uri: Uri, displayName: String): Result<StickerDraft> =
-        withContext(Dispatchers.IO) {
-            resultOf {
-                val (category, pending) = collectPdf(uri, displayName)
-                toDraft(category, pending)
-            }.onError { msg, t -> Logger.w("StickerLibraryRepository", "preparePdf 失败: $msg", t) }
-        }
+    suspend fun preparePdf(uri: Uri, displayName: String): Result<StickerDraft> = withContext(Dispatchers.IO) {
+        resultOf {
+            val (category, pending) = collectPdf(uri, displayName)
+            toDraft(category, pending)
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "preparePdf 失败: $msg", t) }
+    }
 
     /**
      * 一页一页渲染切格，收进临时暂存区。
@@ -635,7 +640,6 @@ class StickerLibraryRepository(private val appContext: Context) {
         return picked
     }
 
-
     // ── 导入草稿（P3：解析出来先给人看，再入库）─────────────────────────────
 
     /**
@@ -657,8 +661,7 @@ class StickerLibraryRepository(private val appContext: Context) {
     }
 
     /** 一个新的临时暂存目录（解析中间产物，确认前不进正式库）。 */
-    private fun newStagingDir(): File =
-        File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8)).apply { mkdirs() }
+    private fun newStagingDir(): File = File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8)).apply { mkdirs() }
 
     /** 把暂存条目收进草稿目录，随后把临时目录删掉。 */
     private fun toDraft(category: String, pending: List<PendingEntry>): StickerDraft {
@@ -673,23 +676,22 @@ class StickerLibraryRepository(private val appContext: Context) {
     }
 
     /** 向导里的"就导这些"。keepTokens 为空表示全部。 */
-    suspend fun commitDraft(draftId: String, keepTokens: Set<String> = emptySet()): Result<Int> =
-        withContext(Dispatchers.IO) {
-            resultOf {
-                val draft = draftStore.load(draftId) ?: error("草稿已失效，请重新选取文件")
-                val keep = if (keepTokens.isEmpty()) draft.items else draft.items.filter { it.token in keepTokens }
-                if (keep.isEmpty()) error("一张都没选")
-                val imported = commitStaged(
-                    keep.map { entry ->
-                        PendingEntry(draft.category, entry.fileName, entry.file, entry.caption, entry.sourceUrl)
-                    },
-                    System.currentTimeMillis(),
-                    null,
-                )
-                draftStore.delete(draftId)
-                imported.size
-            }.onError { msg, t -> Logger.w("StickerLibraryRepository", "commitDraft 失败: $msg", t) }
-        }
+    suspend fun commitDraft(draftId: String, keepTokens: Set<String> = emptySet()): Result<Int> = withContext(Dispatchers.IO) {
+        resultOf {
+            val draft = draftStore.load(draftId) ?: error("草稿已失效，请重新选取文件")
+            val keep = if (keepTokens.isEmpty()) draft.items else draft.items.filter { it.token in keepTokens }
+            if (keep.isEmpty()) error("一张都没选")
+            val imported = commitStaged(
+                keep.map { entry ->
+                    PendingEntry(draft.category, entry.fileName, entry.file, entry.caption, entry.sourceUrl)
+                },
+                System.currentTimeMillis(),
+                null,
+            )
+            draftStore.delete(draftId)
+            imported.size
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "commitDraft 失败: $msg", t) }
+    }
 
     /**
      * 按正文里的直链把草稿换成**图床原图**（表情包重做 P5）。
@@ -737,39 +739,38 @@ class StickerLibraryRepository(private val appContext: Context) {
      *
      * @return 写出的图片张数
      */
-    suspend fun exportCategoryZip(category: String, target: java.io.OutputStream): Result<Int> =
-        withContext(Dispatchers.IO) {
-            resultOf {
-                val items = readManifest().filter { it.category == category }
-                if (items.isEmpty()) error("「$category」里没有表情包")
-                ZipOutputStream(target, Charsets.UTF_8).use { zos ->
-                    var written = 0
-                    val captions = LinkedHashMap<String, String>()
-                    for (item in items) {
-                        val file = File(appContext.filesDir, item.relativePath)
-                        if (!file.isFile) continue
-                        zos.putNextEntry(ZipEntry("$category/${item.fileName}"))
-                        file.inputStream().use { it.copyTo(zos) }
-                        zos.closeEntry()
-                        item.caption?.let { captions[item.fileName] = it }
-                        written++
-                    }
-                    if (written == 0) error("「$category」的文件都不在磁盘上")
-                    if (captions.isNotEmpty()) {
-                        zos.putNextEntry(ZipEntry(CAPSIONS_ENTRY_NAME))
-                        zos.write(
-                            AppJson.encodeToString(
-                                CaptionsFile.serializer(),
-                                CaptionsFile(category, captions),
-                            ).toByteArray(Charsets.UTF_8),
-                        )
-                        zos.closeEntry()
-                    }
-                    Logger.i("StickerLibraryRepository", "exportCategoryZip: $category 导出 $written 张")
-                    written
+    suspend fun exportCategoryZip(category: String, target: java.io.OutputStream): Result<Int> = withContext(Dispatchers.IO) {
+        resultOf {
+            val items = readManifest().filter { it.category == category }
+            if (items.isEmpty()) error("「$category」里没有表情包")
+            ZipOutputStream(target, Charsets.UTF_8).use { zos ->
+                var written = 0
+                val captions = LinkedHashMap<String, String>()
+                for (item in items) {
+                    val file = File(appContext.filesDir, item.relativePath)
+                    if (!file.isFile) continue
+                    zos.putNextEntry(ZipEntry("$category/${item.fileName}"))
+                    file.inputStream().use { it.copyTo(zos) }
+                    zos.closeEntry()
+                    item.caption?.let { captions[item.fileName] = it }
+                    written++
                 }
-            }.onError { msg, t -> Logger.w("StickerLibraryRepository", "exportCategoryZip 失败: $msg", t) }
-        }
+                if (written == 0) error("「$category」的文件都不在磁盘上")
+                if (captions.isNotEmpty()) {
+                    zos.putNextEntry(ZipEntry(CAPSIONS_ENTRY_NAME))
+                    zos.write(
+                        AppJson.encodeToString(
+                            CaptionsFile.serializer(),
+                            CaptionsFile(category, captions),
+                        ).toByteArray(Charsets.UTF_8),
+                    )
+                    zos.closeEntry()
+                }
+                Logger.i("StickerLibraryRepository", "exportCategoryZip: $category 导出 $written 张")
+                written
+            }
+        }.onError { msg, t -> Logger.w("StickerLibraryRepository", "exportCategoryZip 失败: $msg", t) }
+    }
 
     /** 用户取消：整个草稿目录删掉。 */
     fun cancelDraft(draftId: String) {
@@ -829,7 +830,6 @@ class StickerLibraryRepository(private val appContext: Context) {
 
     /** 向导显示用的草稿内容。 */
     fun draftOf(draftId: String): StickerDraft? = draftStore.load(draftId)
-
 
     /** 导出包里那份配文 sidecar 的条目名。 */
     private fun readCaptionsSidecar(bytes: ByteArray): Map<String, String>? = runCatching {
@@ -994,10 +994,17 @@ class StickerLibraryRepository(private val appContext: Context) {
             val dir = File(rootDir, target).apply { mkdirs() }
             val file = uniqueTargetFile(dir, item.fileName)
             val source = File(appContext.filesDir, item.relativePath)
-            val moved = resultOf { source.renameTo(file) || run { source.copyTo(file, overwrite = false); true } }
+            val moved = resultOf {
+                source.renameTo(file) || run {
+                    source.copyTo(file, overwrite = false)
+                    true
+                }
+            }
                 .getOrNull() == true
             if (!moved) return@withLock false
-            val appendedToTarget = if (target == item.category) item.order else {
+            val appendedToTarget = if (target == item.category) {
+                item.order
+            } else {
                 (current.filter { it.category == target }.maxOfOrNull { it.order } ?: -1) + 1
             }
             current[index] = item.copy(
@@ -1180,11 +1187,106 @@ class StickerLibraryRepository(private val appContext: Context) {
      * 种子随机选取:同一 [seed] 稳定返回同一张(重进会话/重组不跳变)。
      * 非 suspend(基于已读快照,渲染层先 [snapshot] 再调用)。
      */
-    fun pickSticker(snap: StickerSnapshot, category: String, seed: Long): StickerItem? {
-        val list = snap.byCategory[category] ?: return null
-        if (list.isEmpty()) return null
-        val idx = Math.floorMod(seed, list.size.toLong()).toInt()
-        return list[idx]
+    fun pickSticker(snap: StickerSnapshot, category: String, seed: Long): StickerItem? =
+        pickSticker(snap, category, seed, emotions = emptyList())
+
+    /**
+     * E4:按情绪筛完再取。回退层层兜底,任何一层都不让「没有表情可选」发生:
+     *  1. 命中情绪的已标注条目(退场的不算);
+     *  2. 没打标签的条目 —— 它们没有立场,仍应可用;
+     *  3. 全部条目(连退场的也算上):整包都退场时,用户至少还能看到东西。
+     *
+     * 同一 seed 在同一层内仍是同一张:筛选改变候选集,不破坏稳定性。
+     */
+    fun pickSticker(snap: StickerSnapshot, category: String, seed: Long, emotions: List<String>): StickerItem? {
+        val pool = pickPool(snap, category, emotions)
+        if (pool.isNullOrEmpty()) return null
+        val idx = Math.floorMod(seed, pool.size.toLong()).toInt()
+        return pool[idx]
+    }
+
+    /**
+     * 候选集本身,与「从候选里取哪一张」分开。
+     *
+     * 分开不只是为了让一个函数少几个出口:回退规则以后还会加,
+     * 混在一起改的人很容易顺手动到索引稳定性那一条。
+     */
+    private fun pickPool(snap: StickerSnapshot, category: String, emotions: List<String>): List<StickerItem>? {
+        val all = snap.byCategory[category]?.takeIf { it.isNotEmpty() } ?: return null
+        val active = all.filter { it.retiredAt == null }.ifEmpty { all }
+        if (emotions.isEmpty()) return active
+        val wanted = active.filter { it.emotions.isNotEmpty() && StickerEmotionTagger.matches(it.emotions, emotions) }
+        val untagged = active.filter { it.emotions.isEmpty() }
+        return when {
+            wanted.isNotEmpty() -> wanted
+            untagged.isNotEmpty() -> untagged
+            else -> all
+        }
+    }
+
+    /**
+     * E4:记一次实际展示。
+     *
+     * 只在**真的解析到文件**之后调用:计数要回答的是「这张到底有没有被用过」,
+     * 把选不出、文件已被删的情况也算进去,低使用退场就会误伤。
+     * 用过一次同时清掉退场标记 —— 被重新用起来的表情不该继续躺在退场区。
+     */
+    suspend fun recordUse(id: String, now: Long = System.currentTimeMillis()) {
+        manifestMutex.withLock {
+            val current = readManifest()
+            val index = current.indexOfFirst { it.id == id }
+            if (index < 0) return
+            val item = current[index]
+            val updated = item.copy(useCount = item.useCount + 1, lastUsedAt = now, retiredAt = null)
+            if (updated == item) return
+            val next = current.toMutableList()
+            next[index] = updated
+            writeManifest(next)
+        }
+    }
+
+    /** E4:手动标注 / 清空标注。传空列表就是「这张不限情绪」。 */
+    suspend fun setEmotions(id: String, emotions: List<String>) {
+        val normalized = emotions.map { it.trim().lowercase() }.filter { it.isNotBlank() }.distinct()
+        manifestMutex.withLock {
+            val current = readManifest()
+            val index = current.indexOfFirst { it.id == id }
+            if (index < 0) return
+            val next = current.toMutableList()
+            next[index] = current[index].copy(emotions = normalized)
+            writeManifest(next)
+        }
+    }
+
+    /**
+     * E4:低使用退场。**只打标,不删除。**
+     *
+     * 三条护栏,每一条都对应一次「误伤整包」的可能:
+     *  - 没满观察期的一律不动(新导入还没轮到被用);
+     *  - 用过哪怕一次的永不退场(它已经被证明有用);
+     *  - 已退场的保持原样、不刷新时间,这样「退场多久了」仍然可查。
+     *
+     * @return 本次被标为退场的条目 id
+     */
+    suspend fun retireRarelyUsed(
+        now: Long = System.currentTimeMillis(),
+        minAgeMillis: Long = StickerEmotionTagger.RETIRE_AFTER_MILLIS,
+    ): List<String> {
+        val retired = mutableListOf<String>()
+        manifestMutex.withLock {
+            val current = readManifest()
+            val next = current.map { item ->
+                val eligible = item.retiredAt == null && item.useCount == 0 && now - item.addedAt >= minAgeMillis
+                if (!eligible) {
+                    item
+                } else {
+                    retired.add(item.id)
+                    item.copy(retiredAt = now)
+                }
+            }
+            if (retired.isNotEmpty()) writeManifest(next)
+        }
+        return retired
     }
 
     // ── 内部辅助 ─────────────────────────────────────────────────────────
@@ -1291,11 +1393,11 @@ data class StickerItem(
     val addedAt: Long,
     /**
      * 包内序号（表情包重做 P4 最后一项）。
-         *
-         * 不能继续只按 fileName 排：导出的目录页图叫 `表情1.png…表情25.png`，
-         * 字典序会把 10 排在 2 前面，用户看到的顺序跟切格顺序完全不同。
-         * 默认 0：旧的 JSON 清单没这个字段也必须能读；同值时按文件名兜底。
-         */
+     *
+     * 不能继续只按 fileName 排：导出的目录页图叫 `表情1.png…表情25.png`，
+     * 字典序会把 10 排在 2 前面，用户看到的顺序跟切格顺序完全不同。
+     * 默认 0：旧的 JSON 清单没这个字段也必须能读；同值时按文件名兜底。
+     */
     val order: Int = 0,
     /**
      * 配文（表情包重做 P2）。
@@ -1305,6 +1407,22 @@ data class StickerItem(
      * 默认 null：清单是 JSON 存盘的历史数据，老条目没这个字段也必须能读。
      */
     val caption: String? = null,
+    /**
+     * E4:情绪标签(小写枚举名,如 "joyful")。空列表 = 没标注。
+     *
+     * 默认空而不是猜:漏标只让这张表情按普通规则参与选取,
+     * 错标会让它在不该出现的时候反复出现 —— 后者更难被发现。
+     */
+    val emotions: List<String> = emptyList(),
+    /** E4:被实际展示的次数。默认 0 兼容旧清单。 */
+    val useCount: Int = 0,
+    /** E4:最近一次被展示的时刻;从未用过为 null。 */
+    val lastUsedAt: Long? = null,
+    /**
+     * E4:低使用退场时间戳。**退场不是删除** —— 与事实库 suppressedAt 同一取向:
+     * 辛苦导入的图不该因为"最近没用到"就消失;退场条目仍在库里,用过一次即自动召回。
+     */
+    val retiredAt: Long? = null,
 )
 
 /**
