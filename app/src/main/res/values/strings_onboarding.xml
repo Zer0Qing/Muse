@@ -58,6 +58,7 @@
     <!-- 步骤 5:完成页 -->
     <string name="onboarding_complete_title">准备好了。</string>
     <string name="onboarding_complete_subtitle">接下来可以试试这些</string>
+    <string name="onboarding_restore_from_backup">从备份恢复数据</string>
     <string name="onboarding_tutorial_chat_title">日常聊天</string>
     <string name="onboarding_tutorial_chat_desc">文字、图片、文件都能发，回复自然</string>
     <string name="onboarding_tutorial_assistant_title">助手与记忆</string>

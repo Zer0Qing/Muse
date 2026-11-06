@@ -58,6 +58,7 @@
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">Ready.</string>
     <string name="onboarding_complete_subtitle">A few things to try next</string>
+    <string name="onboarding_restore_from_backup">Restore data from a backup</string>
     <string name="onboarding_tutorial_chat_title">Daily Chat</string>
     <string name="onboarding_tutorial_chat_desc">Send text, photos or files; replies feel natural</string>
     <string name="onboarding_tutorial_assistant_title">Assistants &amp; Memory</string>

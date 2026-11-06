@@ -478,6 +478,8 @@ private fun MuseNavGraph(
     // 老用户兼容:已有 Provider 配置的跳过完整引导
     val onboardingShown by settings.onboardingShownFlow.collectAsStateWithLifecycle(initialValue = true)
     var onboardingCompleted by rememberSaveable { mutableStateOf(false) }
+    // 引导覆盖层阶段还没有 NavHost,恢复入口只能记一笔,等主导航出现后再跳。
+    var pendingBackupRestore by rememberSaveable { mutableStateOf(false) }
     val showOnboarding = settingsReady && !onboardingShown && !onboardingCompleted
     val quickCaptureEnabled by settings.quickCaptureEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val quickCaptureOverlayEnabled by settings.quickCaptureOverlayEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
@@ -549,6 +551,10 @@ private fun MuseNavGraph(
                 if (showOnboarding) {
                     OnboardingScreen(
                         onComplete = { onboardingCompleted = true },
+                        onRestoreFromBackup = {
+                            pendingBackupRestore = true
+                            onboardingCompleted = true
+                        },
                     )
                 } else {
                     // Phase 8.10: 消费分享/Deep Link 结果
@@ -745,6 +751,13 @@ private fun MuseNavGraph(
                         )
                     }
                     } // 关闭共享元素宿主（全应用唯一 SharedTransitionLayout）
+                    // 引导页里点「从备份恢复数据」:覆盖层先退场,这一帧之后再进云端备份页。
+                    LaunchedEffect(pendingBackupRestore) {
+                        if (pendingBackupRestore) {
+                            pendingBackupRestore = false
+                            navController.navigate(SettingsCloudBackupRoute)
+                        }
+                    }
                 } // 关闭 else(showOnboarding) 分支
             }
 

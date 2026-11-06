@@ -58,6 +58,7 @@
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">Готово.</string>
     <string name="onboarding_complete_subtitle">Вот что можно попробовать дальше</string>
+    <string name="onboarding_restore_from_backup">Восстановить данные из резервной копии</string>
     <string name="onboarding_tutorial_chat_title">Ежедневный чат</string>
     <string name="onboarding_tutorial_chat_desc">Текст, фото и файлы: ответы звучат живо</string>
     <string name="onboarding_tutorial_assistant_title">Помощники &amp; Память</string>

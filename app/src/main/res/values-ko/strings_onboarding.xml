@@ -58,6 +58,7 @@
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">준비됐어요.</string>
     <string name="onboarding_complete_subtitle">이런 것부터 해보세요</string>
+    <string name="onboarding_restore_from_backup">백업에서 데이터 복원</string>
     <string name="onboarding_tutorial_chat_title">일일채팅</string>
     <string name="onboarding_tutorial_chat_desc">글, 사진, 파일 모두 보낼 수 있어요</string>
     <string name="onboarding_tutorial_assistant_title">보조자 &amp; 메모리</string>

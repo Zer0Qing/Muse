@@ -58,6 +58,7 @@
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">Tudo pronto.</string>
     <string name="onboarding_complete_subtitle">Algumas coisas para experimentar</string>
+    <string name="onboarding_restore_from_backup">Restaurar dados de um backup</string>
     <string name="onboarding_tutorial_chat_title">Bate-papo diário</string>
     <string name="onboarding_tutorial_chat_desc">Envie texto, fotos ou arquivos</string>
     <string name="onboarding_tutorial_assistant_title">Assistentes &amp; Memória</string>

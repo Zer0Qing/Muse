@@ -58,6 +58,7 @@
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">準備完了。</string>
     <string name="onboarding_complete_subtitle">さっそく試してみましょう</string>
+    <string name="onboarding_restore_from_backup">バックアップからデータを復元</string>
     <string name="onboarding_tutorial_chat_title">デイリーチャット</string>
     <string name="onboarding_tutorial_chat_desc">文字も写真もファイルも送れて、返事は自然</string>
     <string name="onboarding_tutorial_assistant_title">アシスタント&amp; メモリ</string>

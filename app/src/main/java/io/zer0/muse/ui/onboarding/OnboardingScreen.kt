@@ -105,8 +105,9 @@ private sealed class TestStatus {
  * 设计令牌：使用 [MuseShapes]（圆角）与 [MusePaddings]（间距令牌），
  * 全程 Material Icons（无 emoji），Material 3 组件。
  */
+// onRestoreFromBackup:老用户换机场景,引导里就给出去备份恢复页的出口,不必走完 8 步再去设置里找。
 @Composable
-fun OnboardingScreen(onComplete: () -> Unit) {
+fun OnboardingScreen(onComplete: () -> Unit, onRestoreFromBackup: () -> Unit = {}) {
     val settings: SettingsRepository = koinInject()
     val assistantRepo: AssistantRepository = koinInject()
     val presetProviders: PresetProviders = koinInject()
@@ -301,7 +302,15 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         scope.launch { settings.saveThemeId(id) }
                     },
                 )
-                7 -> StepComplete()
+                7 -> StepComplete(
+                    onRestoreFromBackup = {
+                        scope.launch {
+                            // 走这条路也要落"引导已完成":否则下次冷启动又从头再来一遍。
+                            settings.saveOnboardingShown()
+                            onRestoreFromBackup()
+                        }
+                    },
+                )
             }
         }
 
@@ -1260,7 +1269,7 @@ private fun ModelItem(model: Model, selected: Boolean, onClick: () -> Unit) {
 
 // ── 步骤 5：完成页 ──────────────────────────────────────────────
 @Composable
-private fun StepComplete() {
+private fun StepComplete(onRestoreFromBackup: () -> Unit) {
     val tutorials = listOf(
         FeatureItem(
             MuseIcons.chat,
@@ -1326,6 +1335,12 @@ private fun StepComplete() {
             TutorialCard(item = item)
             Spacer(modifier = Modifier.height(MusePaddings.itemGap))
         }
+        MuseCapsuleButton(
+            text = stringResource(R.string.onboarding_restore_from_backup),
+            onClick = onRestoreFromBackup,
+            variant = IosCapsuleButtonVariant.Secondary,
+            fillWidth = false,
+        )
     }
 }
 
