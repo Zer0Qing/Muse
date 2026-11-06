@@ -310,6 +310,8 @@
     <string name="settings_chat_show_timestamp">Mostrar carimbo de data/hora</string>
     <string name="settings_chat_show_timestamp_subtitle">Mostrar o horário de envio de cada mensagem</string>
     <string name="settings_chat_generation_style">Estilo de Geração</string>
+    <string name="settings_chat_reply_language">Responder no idioma do usuário</string>
+    <string name="settings_chat_reply_language_subtitle">As respostas seguem o idioma da sua mensagem e, sem definição, o do app. Desative para que os prompts decidam</string>
     <string name="settings_chat_randomness">Aleatoriedade de resposta</string>
     <string name="settings_chat_temp_hint_certain">Determinístico, estável e previsível</string>
     <string name="settings_chat_temp_hint_balanced_low">Inclinação equilibrada, estável, mas diversificada</string>

@@ -311,6 +311,8 @@
     <string name="settings_chat_show_timestamp">Show Timestamp</string>
     <string name="settings_chat_show_timestamp_subtitle">Show send time for each message</string>
     <string name="settings_chat_generation_style">Generation Style</string>
+    <string name="settings_chat_reply_language">Reply in the user\'s language</string>
+    <string name="settings_chat_reply_language_subtitle">Answers follow the language of your message, falling back to the interface language. Turn off to let prompts decide</string>
     <string name="settings_chat_randomness">Response Randomness</string>
     <string name="settings_chat_temp_hint_certain">Deterministic, stable and predictable</string>
     <string name="settings_chat_temp_hint_balanced_low">Leaning balanced, stable yet diverse</string>

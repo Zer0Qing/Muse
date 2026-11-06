@@ -310,6 +310,8 @@
     <string name="settings_chat_show_timestamp">Mostrar marca de tiempo</string>
     <string name="settings_chat_show_timestamp_subtitle">Mostrar hora de envío para cada mensaje</string>
     <string name="settings_chat_generation_style">Estilo de generación</string>
+    <string name="settings_chat_reply_language">Responder en el idioma del usuario</string>
+    <string name="settings_chat_reply_language_subtitle">Las respuestas siguen el idioma de tu mensaje y, si no se distingue, el del sistema. Desactívalo para que decidan los prompts</string>
     <string name="settings_chat_randomness">Aleatoriedad de respuesta</string>
     <string name="settings_chat_temp_hint_certain">Determinista, estable y predecible</string>
     <string name="settings_chat_temp_hint_balanced_low">Inclinada equilibrada, estable pero diversa</string>

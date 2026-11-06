@@ -397,6 +397,8 @@
     <string name="settings_chat_show_timestamp">显示时间戳</string>
     <string name="settings_chat_show_timestamp_subtitle">每条消息显示发送时间</string>
     <string name="settings_chat_generation_style">生成风格</string>
+    <string name="settings_chat_reply_language">按用户语言回复</string>
+    <string name="settings_chat_reply_language_subtitle">正文跟随你这条消息的语言；判断不出时用界面语言。关掉后回复语言完全由提示词决定</string>
     <string name="settings_chat_randomness">回答随机性</string>
     <string name="settings_chat_temp_hint_certain">偏确定，回答稳定可预期</string>
     <string name="settings_chat_temp_hint_balanced_low">偏平衡，兼顾稳定与多样</string>

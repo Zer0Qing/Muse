@@ -750,6 +750,17 @@ fun ChatSettingsPage(
         item { SectionLabel(stringResource(R.string.settings_chat_generation_style)) }
         item {
             SettingsGroup {
+                SettingsSwitchRow(
+                    icon = MuseIcons.languages,
+                    title = stringResource(R.string.settings_chat_reply_language),
+                    subtitle = stringResource(R.string.settings_chat_reply_language_subtitle),
+                    checked = prefs.replyInUserLanguageEnabled,
+                    onCheckedChange = { v -> update { it.copy(replyInUserLanguageEnabled = v) } },
+                )
+            }
+        }
+        item {
+            SettingsGroup {
                 // 温度滑块:0-2,步长 0.1
                 Row(
                     modifier =

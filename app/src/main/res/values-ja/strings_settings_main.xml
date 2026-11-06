@@ -310,6 +310,8 @@
     <string name="settings_chat_show_timestamp">タイムスタンプを表示</string>
     <string name="settings_chat_show_timestamp_subtitle">各メッセージの送信時間を表示する</string>
     <string name="settings_chat_generation_style">生成スタイル</string>
+    <string name="settings_chat_reply_language">ユーザーの言語で回答</string>
+    <string name="settings_chat_reply_language_subtitle">本文はメッセージの言語に追従し、判断できない場合は界面言語を使います。オフにするとプロンプトの指定に従います</string>
     <string name="settings_chat_randomness">応答のランダム性</string>
     <string name="settings_chat_temp_hint_certain">決定的、安定的、予測可能</string>
     <string name="settings_chat_temp_hint_balanced_low">バランスが取れており、安定していながらも多様性に富んでいる</string>
