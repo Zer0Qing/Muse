@@ -1,6 +1,7 @@
 package io.zer0.muse.diagnostics
 
 import io.zer0.memory.fact.FactAuditReport
+import io.zer0.muse.data.session.LastMigrationRun
 import io.zer0.muse.schedule.WakeDiagnostics
 import io.zer0.muse.schedule.WakeState
 import io.zer0.muse.schedule.WakeStopReason
@@ -65,6 +66,15 @@ class DiagnosticsExportTest {
             pendingConflicts = 4,
             expiredNotSwept = 9,
         ),
+        migration = LastMigrationRun(
+            fromVersion = 96,
+            toVersion = 124,
+            steps = 28,
+            totalMillis = 3_200L,
+            slowestStepMillis = 900L,
+            slowestFromVersion = 112,
+            failedAtVersion = null,
+        ),
     )
 
     @Test
@@ -73,7 +83,7 @@ class DiagnosticsExportTest {
         val parsed = kotlinx.serialization.json.Json.parseToJsonElement(json)
             .let { it as kotlinx.serialization.json.JsonObject }
         assertEqualsKeys(
-            setOf("collectedAt", "app", "databases", "logBytes", "jank", "web", "background", "memory"),
+            setOf("collectedAt", "app", "databases", "logBytes", "jank", "web", "background", "memory", "migration"),
             parsed.keys.toSet(),
         )
     }
@@ -102,5 +112,20 @@ class DiagnosticsExportTest {
 
     private fun assertEqualsKeys(expected: Set<String>, actual: Set<String>) {
         assertTrue("顶层键不符: 期望 $expected 实际 $actual", expected == actual)
+    }
+
+    /**
+     * S3:迁移结果的导出。**没记录 ≠ 0 毫秒**,这两件事必须能被区分开。
+     */
+    @Test
+    fun `迁移结果缺席与失败都能被读出`() {
+        val failed = sample().copy(migration = sample().migration?.copy(failedAtVersion = 118))
+        val failedJson = failed.sanitizedJson()
+        assertTrue("失败步骤的版本号必须导出: $failedJson", failedJson.contains("\"failedAtVersion\":118"))
+
+        val none = sample().copy(migration = null).sanitizedJson()
+        assertTrue("没有记录要显式标 recorded=false: $none", none.contains("\"recorded\":false"))
+        assertFalse("不许用 0 毫秒的假记录冒充「迁移很快」: $none", none.contains("\"totalMillis\":3200"))
+        assertTrue("键仍然在场: $none", none.contains("\"migration\""))
     }
 }

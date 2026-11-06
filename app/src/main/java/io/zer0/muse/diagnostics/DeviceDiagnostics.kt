@@ -8,6 +8,8 @@ import io.zer0.memory.fact.FactAuditReport
 import io.zer0.memory.fact.MemoryAuditSource
 import io.zer0.memory.summary.MEMORY_DB_VERSION
 import io.zer0.muse.BuildConfig
+import io.zer0.muse.data.session.LastMigrationRun
+import io.zer0.muse.data.session.MigrationRunStore
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.schedule.BackgroundWakeDiagnostics
 import io.zer0.muse.schedule.WakeDiagnostics
@@ -39,6 +41,11 @@ data class DiagnosticsSnapshot(
      * 且「没装配」与「账本干净」是两件事 —— 前者由 [FactAuditReport.databasesChecked] 为 0 区分。
      */
     val memory: FactAuditReport = FactAuditReport.EMPTY,
+    /**
+     * S3:上一次数据迁移的结果。null 表示这台设备没有迁移记录(全新安装),
+     * 与「迁移用了 0 毫秒」是两件事,所以这里宁可缺席也不填零。
+     */
+    val migration: LastMigrationRun? = null,
 ) {
     data class AppSection(
         val versionName: String,
@@ -95,6 +102,18 @@ data class DiagnosticsSnapshot(
                 danglingMergedInto = memory.danglingMergedInto,
                 pendingConflicts = memory.pendingConflicts,
                 expiredNotSwept = memory.expiredNotSwept,
+            ),
+            // S3:迁移结果整段可缺(recorded=false),但键必须在 —— 读导出的人要能分辨
+            // 「这台设备没迁移过」与「诊断器没读这一项」。
+            migration = ExportedMigration(
+                recorded = migration != null,
+                fromVersion = migration?.fromVersion ?: 0,
+                toVersion = migration?.toVersion ?: 0,
+                steps = migration?.steps ?: 0,
+                totalMillis = migration?.totalMillis ?: 0L,
+                slowestStepMillis = migration?.slowestStepMillis ?: 0L,
+                slowestFromVersion = migration?.slowestFromVersion ?: 0,
+                failedAtVersion = migration?.failedAtVersion,
             ),
         ),
     )
@@ -170,6 +189,8 @@ data class DiagnosticsSnapshot(
                         Logger.w(TAG, "记忆账本审计失败: ${it.message}")
                         FactAuditReport.EMPTY
                     },
+                    // S3:读不到就是 null(导出里 recorded=false),不填一个 0 毫秒的假记录。
+                    migration = runCatching { MigrationRunStore.read(context) }.getOrNull(),
                 )
             }
     }
@@ -187,6 +208,25 @@ internal data class ExportedDiagnostics(
     val web: ExportedWeb,
     val background: ExportedBackground,
     val memory: ExportedMemory,
+    val migration: ExportedMigration,
+)
+
+/**
+ * S3:上一次数据迁移的导出形状。全是版本号与毫秒数。
+ *
+ * `recorded` 单独存在是必要的:`steps=0, totalMillis=0` 既可能是「这台设备从没迁移过」,
+ * 也可能是「诊断器没读到记录」。把这两种说成一种,会让人把缺数据读成好消息。
+ */
+@kotlinx.serialization.Serializable
+internal data class ExportedMigration(
+    val recorded: Boolean,
+    val fromVersion: Int,
+    val toVersion: Int,
+    val steps: Int,
+    val totalMillis: Long,
+    val slowestStepMillis: Long,
+    val slowestFromVersion: Int,
+    val failedAtVersion: Int?,
 )
 
 @kotlinx.serialization.Serializable

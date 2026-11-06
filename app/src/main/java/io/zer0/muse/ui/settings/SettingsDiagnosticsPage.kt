@@ -76,6 +76,7 @@ fun SettingsDiagnosticsPage(onBack: () -> Unit) {
             item { MainThreadCard(data) }
             item { WebHostCard(data) }
             item { BackgroundCard(data) }
+            item { MigrationCard(data) }
         }
         item {
             CardGroup(title = { Text(stringResource(R.string.settings_diagnostics_actions)) }) {
@@ -171,6 +172,34 @@ private fun MainThreadCard(data: DiagnosticsSnapshot) {
         stringResource(R.string.settings_diagnostics_thresholds) to
             "${MainThreadJankTracker.JANK_MS} / ${MainThreadJankTracker.SLOW_MS} / ${MainThreadJankTracker.BLOCK_MS} ms",
     )
+    CardGroup(title = { Text(title) }) {
+        rows.forEach { (label, value) -> infoRow(label, value) }
+    }
+}
+
+/**
+ * S3:上一次数据迁移的结果。
+ *
+ * 没有记录时明说「这台设备还没有迁移记录」而不是不画这张卡:
+ * 全新安装与「迁移器没读到」在诊断里必须长得不一样。
+ */
+@Composable
+private fun MigrationCard(data: DiagnosticsSnapshot) {
+    val title = stringResource(R.string.settings_diagnostics_migration)
+    val run = data.migration
+    val rows = if (run == null) {
+        listOf(stringResource(R.string.settings_diagnostics_migration_none) to "")
+    } else {
+        buildList {
+            add(
+                stringResource(R.string.settings_diagnostics_migration_summary, run.steps, run.totalMillis, run.slowestStepMillis) to
+                    "v${run.fromVersion} → v${run.toVersion}",
+            )
+            run.failedAtVersion?.let {
+                add(stringResource(R.string.settings_diagnostics_migration_failed, it) to "")
+            }
+        }
+    }
     CardGroup(title = { Text(title) }) {
         rows.forEach { (label, value) -> infoRow(label, value) }
     }

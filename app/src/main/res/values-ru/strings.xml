@@ -271,4 +271,11 @@
     <string name="proactive_kind_care">Забота</string>
     <string name="proactive_kind_share">Поделиться</string>
     <string name="proactive_kind_milestone">Веха</string>
+    <string name="migration_running">Обновление данных %1$d/%2$d</string>
+    <string name="migration_step">схема v%1$d → v%2$d</string>
+    <string name="migration_failed">При обновлении данных возникла проблема; система обрабатывает её, попробуйте перезапуск</string>
+    <string name="settings_diagnostics_migration">Последнее обновление данных</string>
+    <string name="settings_diagnostics_migration_none">На этом устройстве записи о миграции нет</string>
+    <string name="settings_diagnostics_migration_summary">%1$d шагов · %2$d мс всего · самый медленный %3$d мс</string>
+    <string name="settings_diagnostics_migration_failed">Шаг %1$d завершился ошибкой</string>
 </resources>

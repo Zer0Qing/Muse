@@ -319,4 +319,11 @@
     <string name="proactive_kind_care">Care</string>
     <string name="proactive_kind_share">Share</string>
     <string name="proactive_kind_milestone">Milestone</string>
+    <string name="migration_running">Upgrading data %1$d/%2$d</string>
+    <string name="migration_step">schema v%1$d → v%2$d</string>
+    <string name="migration_failed">The data upgrade hit a problem and is being handled by the system; try restarting</string>
+    <string name="settings_diagnostics_migration">Last data upgrade</string>
+    <string name="settings_diagnostics_migration_none">No migration recorded on this device</string>
+    <string name="settings_diagnostics_migration_summary">%1$d steps · %2$d ms total · slowest %3$d ms</string>
+    <string name="settings_diagnostics_migration_failed">Step %1$d failed</string>
 </resources>

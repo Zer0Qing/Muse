@@ -271,4 +271,11 @@
     <string name="proactive_kind_care">걱정</string>
     <string name="proactive_kind_share">공유</string>
     <string name="proactive_kind_milestone">기념일</string>
+    <string name="migration_running">데이터 업그레이드 중 %1$d/%2$d</string>
+    <string name="migration_step">schema v%1$d → v%2$d</string>
+    <string name="migration_failed">데이터 업그레이드에 문제가 발생했습니다. 시스템이 처리 중이며 재시도를 해보세요</string>
+    <string name="settings_diagnostics_migration">마지막 데이터 업그레이드</string>
+    <string name="settings_diagnostics_migration_none">이 기기에는 이전 기록이 없습니다</string>
+    <string name="settings_diagnostics_migration_summary">%1$d단계 · 총 %2$d ms · 가장 느린 %3$d ms</string>
+    <string name="settings_diagnostics_migration_failed">%1$d단계에서 실패</string>
 </resources>

@@ -49,6 +49,7 @@ import io.zer0.muse.data.AppearanceSettingsStore
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantCardImportBridge
+import io.zer0.muse.data.session.MigrationProgressBus
 import io.zer0.muse.intent.ShareIntentHandler
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.MuseRoutes
@@ -82,6 +83,7 @@ import io.zer0.muse.ui.onboarding.OnboardingScreen
 import io.zer0.muse.ui.quicknotes.QuickCaptureEdgeOverlay
 import io.zer0.muse.ui.quicknotes.QuickCaptureOverlayService
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
+import io.zer0.muse.ui.startup.MigrationProgressOverlay
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseTheme
 import io.zer0.muse.ui.theme.loadCustomFontFamily
@@ -208,7 +210,10 @@ class MainActivity : ComponentActivity() {
 
         // v1.7: 控制 SplashScreen 显示时长,应用初始化完成后保持 1.2s 再退出
         var splashReady by mutableStateOf(false)
-        splashScreen.setKeepOnScreenCondition { !splashReady }
+        // S3:迁移在跑时让开屏继续停留 —— 数据库是在首次访问时同步迁移的,
+        // 那一刻用户看到的正是「没有解释的启动等待」。真正的步骤/进度由
+        // MigrationProgressOverlay 负责,这里只是不让开屏先跳走遮住它。
+        splashScreen.setKeepOnScreenCondition { !splashReady || MigrationProgressBus.progress.value.visible }
 
         // 申请 POST_NOTIFICATIONS 运行时权限(Android 13+ 必需,否则通知不显示)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -356,6 +361,8 @@ class MainActivity : ComponentActivity() {
                                     onSplashReady = { splashReady = true },
                                 )
                                 MuseToastHost()
+                                // S3:迁移进度层。平时不生成任何节点,只有总线报告 RUNNING/FAILED 才覆盖全屏。
+                                MigrationProgressOverlay()
                             }
                         }
                     } // CompositionLocalProvider(液态玻璃开关)

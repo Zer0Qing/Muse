@@ -271,4 +271,11 @@
     <string name="proactive_kind_care">Cuidado</string>
     <string name="proactive_kind_share">Compartilhar</string>
     <string name="proactive_kind_milestone">Marco</string>
+    <string name="migration_running">Atualizando dados %1$d/%2$d</string>
+    <string name="migration_step">esquema v%1$d → v%2$d</string>
+    <string name="migration_failed">A atualização de dados teve um problema; o sistema está tratando. Tente reiniciar</string>
+    <string name="settings_diagnostics_migration">Última atualização de dados</string>
+    <string name="settings_diagnostics_migration_none">Nenhuma migração registrada neste aparelho</string>
+    <string name="settings_diagnostics_migration_summary">%1$d etapas · %2$d ms no total · mais lenta %3$d ms</string>
+    <string name="settings_diagnostics_migration_failed">Etapa %1$d falhou</string>
 </resources>

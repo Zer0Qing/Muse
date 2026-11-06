@@ -271,4 +271,11 @@
     <string name="proactive_kind_care">気づかい</string>
     <string name="proactive_kind_share">共有</string>
     <string name="proactive_kind_milestone">節目</string>
+    <string name="migration_running">データを引き上げ中 %1$d/%2$d</string>
+    <string name="migration_step">schema v%1$d → v%2$d</string>
+    <string name="migration_failed">データ移行で問題が発生しました。システムが処理しています。再起動をお試しください</string>
+    <string name="settings_diagnostics_migration">前回のデータ移行</string>
+    <string name="settings_diagnostics_migration_none">この端末に移行記録はありません</string>
+    <string name="settings_diagnostics_migration_summary">%1$d 工程 · 合計 %2$d ms · 最遅 %3$d ms</string>
+    <string name="settings_diagnostics_migration_failed">工程 %1$d で失敗</string>
 </resources>

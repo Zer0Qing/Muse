@@ -335,4 +335,11 @@
     <string name="proactive_kind_care">关心</string>
     <string name="proactive_kind_share">分享</string>
     <string name="proactive_kind_milestone">节点</string>
+    <string name="migration_running">正在升级数据 %1$d/%2$d</string>
+    <string name="migration_step">schema v%1$d → v%2$d</string>
+    <string name="migration_failed">数据升级遇到问题，正在交由系统处理；可尝试重新启动</string>
+    <string name="settings_diagnostics_migration">上次数据迁移</string>
+    <string name="settings_diagnostics_migration_none">这台设备还没有迁移记录</string>
+    <string name="settings_diagnostics_migration_summary">%1$d 步 · 共 %2$d ms · 最慢 %3$d ms</string>
+    <string name="settings_diagnostics_migration_failed">第 %1$d 步失败</string>
 </resources>
