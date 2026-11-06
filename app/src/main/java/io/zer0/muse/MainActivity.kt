@@ -216,12 +216,19 @@ class MainActivity : ComponentActivity() {
         // MigrationProgressOverlay 负责,这里只是不让开屏先跳走遮住它。
         splashScreen.setKeepOnScreenCondition { !splashReady || MigrationProgressBus.progress.value.visible }
 
-        // 申请 POST_NOTIFICATIONS 运行时权限(Android 13+ 必需,否则通知不显示)
+        // 通知权限不在启动第一帧就要:那只会换来条件反射的拒绝。
+        // 改为"真的投递通知时被系统拦下"之后再提 —— 那时用户已经知道少了什么。
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
-                PackageManager.PERMISSION_GRANTED
-            ) {
-                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            lifecycleScope.launch {
+                io.zer0.muse.notification.NotificationPermissionBus.needed.collect { needed ->
+                    // 取走信号:同一次被拦只提一次,用户拒绝后不反复骚扰。
+                    if (!io.zer0.muse.notification.NotificationPermissionBus.consume()) return@collect
+                    if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                        PackageManager.PERMISSION_GRANTED
+                    ) {
+                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
             }
         }
         // 插件跳转（app.navigate）：在 Activity 作用域订阅，复用同一条深链处理链。

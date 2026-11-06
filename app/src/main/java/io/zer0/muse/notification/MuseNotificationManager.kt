@@ -92,7 +92,11 @@ class MuseNotificationManager(private val context: Context) {
                 lastLiveProgressSentAt = SystemClock.elapsedRealtime()
                 val notif = buildGenerationNotification(latest.sessionTitle, latest.currentChars, latest.target)
                 resultOf { nm.notify(NOTIF_ID_LIVE_UPDATE, notif) }
-                    .onError { msg, _ -> Logger.w(TAG, "updateLiveProgress failed: $msg") }
+                    .onError { msg, t ->
+                Logger.w(TAG, "updateLiveProgress failed: $msg")
+                // 权限被拒不是普通失败:记下来,让前台界面在合适的时机提出授权请求
+                if (t is SecurityException) NotificationPermissionBus.needed.value = true
+            }
             }
         }
     }
@@ -170,7 +174,11 @@ class MuseNotificationManager(private val context: Context) {
             .build()
         // M2-1: 改用 resultOf{}
         resultOf { nm.notify(NOTIF_ID_CHAT_COMPLETED, notif) }
-            .onError { msg, _ -> Logger.w(TAG, "notifyChatCompleted failed: $msg") }
+            .onError { msg, t ->
+                Logger.w(TAG, "notifyChatCompleted failed: $msg")
+                // 权限被拒不是普通失败:记下来,让前台界面在合适的时机提出授权请求
+                if (t is SecurityException) NotificationPermissionBus.needed.value = true
+            }
     }
 
     /**
@@ -188,7 +196,11 @@ class MuseNotificationManager(private val context: Context) {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
         resultOf { nm.notify(NOTIF_ID_CHAT_PENDING_APPROVAL, notif) }
-            .onError { msg, _ -> Logger.w(TAG, "notifyChatPendingApproval failed: $msg") }
+            .onError { msg, t ->
+                Logger.w(TAG, "notifyChatPendingApproval failed: $msg")
+                // 权限被拒不是普通失败:记下来,让前台界面在合适的时机提出授权请求
+                if (t is SecurityException) NotificationPermissionBus.needed.value = true
+            }
     }
 
     /**
@@ -307,6 +319,7 @@ class MuseNotificationManager(private val context: Context) {
                 // 不能像普通失败那样只记 W 静默降级——记 ERROR 日志,便于设置页据此提示用户授权 POST_NOTIFICATIONS。
                 if (t is SecurityException) {
                     Logger.e(TAG, "notifyProactiveMessage denied (通知权限被拒, Android 13+ 需 POST_NOTIFICATIONS): $msg", t)
+                    NotificationPermissionBus.needed.value = true
                 } else {
                     Logger.w(TAG, "notifyProactiveMessage failed: $msg")
                 }
@@ -477,7 +490,11 @@ class MuseNotificationManager(private val context: Context) {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         resultOf { nm.notify(NOTIF_ID_TASK_STAGE, notif) }
-            .onError { msg, _ -> Logger.w(TAG, "updateTaskStage failed: $msg") }
+            .onError { msg, t ->
+                Logger.w(TAG, "updateTaskStage failed: $msg")
+                // 权限被拒不是普通失败:记下来,让前台界面在合适的时机提出授权请求
+                if (t is SecurityException) NotificationPermissionBus.needed.value = true
+            }
     }
 
     private fun notificationsAllowed(): Boolean = runCatching { nm.areNotificationsEnabled() }.getOrDefault(false)
@@ -502,7 +519,11 @@ class MuseNotificationManager(private val context: Context) {
             .build()
         // M2-1: 改用 resultOf{}
         resultOf { nm.notify(NOTIF_ID_WEB_SERVER, notif) }
-            .onError { msg, _ -> Logger.w(TAG, "updateWebServerStatus failed: $msg") }
+            .onError { msg, t ->
+                Logger.w(TAG, "updateWebServerStatus failed: $msg")
+                // 权限被拒不是普通失败:记下来,让前台界面在合适的时机提出授权请求
+                if (t is SecurityException) NotificationPermissionBus.needed.value = true
+            }
     }
 
     /**
@@ -523,7 +544,11 @@ class MuseNotificationManager(private val context: Context) {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
         resultOf { nm.notify(notificationId, notif) }
-            .onError { msg, _ -> Logger.w(TAG, "notifyReminder failed: $msg") }
+            .onError { msg, t ->
+                Logger.w(TAG, "notifyReminder failed: $msg")
+                // 权限被拒不是普通失败:记下来,让前台界面在合适的时机提出授权请求
+                if (t is SecurityException) NotificationPermissionBus.needed.value = true
+            }
     }
 
     /**
