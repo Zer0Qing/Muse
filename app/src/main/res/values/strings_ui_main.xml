@@ -718,7 +718,7 @@
     <string name="audit_log_category_user">用户操作</string>
     <string name="audit_log_category_auth">认证</string>
     <string name="audit_log_category_system">系统</string>
-    <string name="audit_log_search_hint">搜索 action / target / detail</string>
+    <string name="audit_log_search_hint">搜索 操作 / 目标 / 详情</string>
     <string name="audit_log_clear_search">清除搜索</string>
     <string name="audit_log_no_match">无匹配日志</string>
     <string name="audit_log_result_count">显示 %1$d 条 / 共 %2$d 条</string>
@@ -1003,4 +1003,19 @@
     <string name="muse_plugins_market_advice_needs_newer_app">这个插件要求更新的 App 版本</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">兼容要求会在下载后按插件 manifest 确认，当前无法判定</string>
     <string name="muse_plugins_market_advice_retained">本机还留有这些版本的存档：%1$s（在已安装列表里可切回）</string>
+
+    <!-- 界面语言自称：不随界面语言翻译，引导页/外观页/Host 协议共用一份。 -->
+    <string name="app_language_zh" translatable="false">简体中文</string>
+    <string name="app_language_en" translatable="false">English</string>
+    <string name="app_language_ja" translatable="false">日本語</string>
+    <string name="app_language_ko" translatable="false">한국어</string>
+    <string name="app_language_ru" translatable="false">Русский</string>
+    <string name="app_language_es" translatable="false">Español</string>
+    <string name="app_language_pt_br" translatable="false">Português (Brasil)</string>
+    <string name="audit_log_field_action">操作</string>
+    <string name="audit_log_field_target">目标</string>
+    <string name="audit_log_field_detail">详情</string>
+    <string name="audit_log_field_result">结果</string>
+    <string name="audit_log_result_ok">成功</string>
+    <string name="audit_log_result_fail">失败</string>
 </resources>

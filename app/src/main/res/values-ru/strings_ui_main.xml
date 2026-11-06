@@ -558,7 +558,7 @@
     <string name="audit_log_category_user">Действие пользователя</string>
     <string name="audit_log_category_auth">Аутентификация</string>
     <string name="audit_log_category_system">Система</string>
-    <string name="audit_log_search_hint">Поисковое действие/цель/подробности</string>
+    <string name="audit_log_search_hint">Поиск: действие / цель / детали</string>
     <string name="audit_log_clear_search">Очистить поиск</string>
     <string name="audit_log_no_match">Нет соответствующих журналов</string>
     <string name="audit_log_result_count">Показаны %1$d из %2$d</string>
@@ -849,4 +849,10 @@
     <string name="muse_plugins_market_advice_needs_newer_app">Этот плагин требует более новой версии приложения</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">Совместимость проверяется по манифесту после загрузки; сейчас утверждать нельзя</string>
     <string name="muse_plugins_market_advice_retained">Локально хранятся эти версии: %1$s (переключение в списке установленных)</string>
+    <string name="audit_log_field_action">Действие</string>
+    <string name="audit_log_field_target">Цель</string>
+    <string name="audit_log_field_detail">Детали</string>
+    <string name="audit_log_field_result">Результат</string>
+    <string name="audit_log_result_ok">Успех</string>
+    <string name="audit_log_result_fail">Сбой</string>
 </resources>

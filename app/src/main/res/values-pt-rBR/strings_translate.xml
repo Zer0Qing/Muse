@@ -80,4 +80,5 @@
     <string name="translate_page_ocr_applied">Texto reconhecido preenchido na entrada</string>
     <string name="translate_history_copied">Tradução copiada</string>
     <string name="translate_history_copy_format">%1$s\n\n%2$s</string>
+    <string name="translate_source_auto">Detecção automática</string>
 </resources>

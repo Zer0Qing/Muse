@@ -834,4 +834,5 @@
     <string name="plugin_cap_ui_skin">Cambiar la apariencia visual</string>
     <string name="plugin_cap_ui_interactive">Mostrar un formulario y ejecutar su controlador (altera datos; desactivado)</string>
     <string name="plugin_cap_runtime_python">Ejecutar Python fuera del entorno aislado (alta confianza)</string>
+    <string name="video_no_video_model_hint">El proveedor actual no tiene ningún modelo con salida de vídeo. Activa la capacidad de \"salida de vídeo\" en Ajustes › Modelos y proveedores.</string>
 </resources>

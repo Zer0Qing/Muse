@@ -834,4 +834,5 @@
     <string name="plugin_cap_ui_skin">화면 스킨 변경</string>
     <string name="plugin_cap_ui_interactive">제출 양식 표시 및 플러그인 핸들러 실행 (데이터 변경, 기본 꺼짐)</string>
     <string name="plugin_cap_runtime_python">격리 환경 밖에서 Python 실행(신뢰도 높음)</string>
+    <string name="video_no_video_model_hint">현재 제공자에 영상 출력 모델이 없습니다. 설정 › 모델 및 제공자에서 “영상 출력” 기능을 활성화해 주세요.</string>
 </resources>

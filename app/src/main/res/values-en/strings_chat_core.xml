@@ -469,7 +469,7 @@
     <string name="settings_sticker_import_failed">Import failed: %1$s</string>
     <string name="settings_sticker_export_location_failed">Cannot write to the selected location</string>
     <string name="settings_sticker_empty_title">No stickers yet</string>
-    <string name="settings_sticker_empty_subtitle">Tap \"Import ZIP\" above to add a ZIP file</string>
+    <string name="settings_sticker_empty_subtitle">Tap \"Import stickers\" above — ZIP, DOCX/PPTX and images are supported</string>
     <string name="settings_sticker_delete_confirm">Delete this sticker?</string>
     <string name="settings_sticker_category_all">All</string>
     <!-- 前端修复 (i18n-3.x): Sticker batch delete / clear i18n -->
@@ -673,4 +673,5 @@
     <string name="onboarding_connect_error_timeout">The connection timed out. Check the network or endpoint URL.</string>
     <string name="onboarding_connect_error_server">The provider is unavailable. Try again later; if it continues, the model may be offline.</string>
     <string name="onboarding_connect_error_no_model">No model is available to test. Fetch the model list first.</string>
+    <string name="sticker_category_default">Default</string>
 </resources>

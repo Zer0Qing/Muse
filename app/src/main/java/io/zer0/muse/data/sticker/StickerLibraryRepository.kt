@@ -38,6 +38,9 @@ import java.util.zip.ZipOutputStream
  *
  * @param appContext 应用 Context(用于 filesDir / contentResolver)
  */
+/** 无文件夹的图片归入的分类名；落库与目录用它，界面展示另有本地化标签。 */
+internal const val STICKER_DEFAULT_CATEGORY = "默认"
+
 /** 配文长度上限：说明用的字段，不是正文。 */
 private const val MAX_CAPTION_CHARS = 200
 
@@ -165,7 +168,7 @@ class StickerLibraryRepository(private val appContext: Context) {
         resultOf {
             Logger.i("StickerLibraryRepository", "importImage: 开始导入单张图片, uri=$uri, name=$displayName")
             val now = System.currentTimeMillis()
-            val category = "默认"
+            val category = STICKER_DEFAULT_CATEGORY
             val targetDir = File(rootDir, category).apply { mkdirs() }
 
             // 文件名冲突时附加短 uuid 后缀
@@ -895,7 +898,7 @@ class StickerLibraryRepository(private val appContext: Context) {
         onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
     ): Result<Int> = withContext(Dispatchers.IO) {
         resultOf {
-            val target = category?.takeIf { it.isNotBlank() }?.let(::safeCategoryName) ?: "默认"
+            val target = category?.takeIf { it.isNotBlank() }?.let(::safeCategoryName) ?: STICKER_DEFAULT_CATEGORY
             val stagingDir = File(rootDir, ".staging_" + UUID.randomUUID().toString().take(8))
             stagingDir.mkdirs()
             var skipped = 0
@@ -1351,22 +1354,22 @@ class StickerLibraryRepository(private val appContext: Context) {
     private fun parseCategoryAndName(rawName: String): Pair<String, String?> {
         // v1.113: 快速拒绝含 .. 的路径(防 Zip Slip)
         if (rawName.contains("..")) {
-            return "默认" to null // 返回 null fileName 会被调用方跳过
+            return STICKER_DEFAULT_CATEGORY to null // 返回 null fileName 会被调用方跳过
         }
         // 统一路径分隔符(zip 规范用 "/",部分工具可能用 "\\")
         val normalized = rawName.replace('\\', '/')
         // 按 / 分段,过滤空段(如开头/结尾的斜杠)
         val parts = normalized.split('/').filter { it.isNotBlank() }
-        if (parts.isEmpty()) return "默认" to null
+        if (parts.isEmpty()) return STICKER_DEFAULT_CATEGORY to null
         val fileName = parts.last().trim()
         if (parts.size == 1) {
             // 根目录直接文件 → 默认分类
-            return "默认" to fileName.ifBlank { null }
+            return STICKER_DEFAULT_CATEGORY to fileName.ifBlank { null }
         }
         // 取最后一个目录名作为分类:跳过顶层包装目录(如 "表情包/"),
         // 分类名是语义化标签(开心/难过/生气…),模型据此判断发哪类表情包
         val category = parts[parts.size - 2].trim()
-        return (if (category.isBlank()) "默认" else category) to fileName.ifBlank { null }
+        return (if (category.isBlank()) STICKER_DEFAULT_CATEGORY else category) to fileName.ifBlank { null }
     }
 
     /** 判断文件名是否为支持的图片类型(扩展名不区分大小写)。 */

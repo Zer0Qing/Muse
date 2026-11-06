@@ -833,4 +833,5 @@
     <string name="plugin_cap_ui_skin">外観スキンの変更</string>
     <string name="plugin_cap_ui_interactive">送信フォームを表示しプラグインのハンドラを実行（データを変更、既定で無効）</string>
     <string name="plugin_cap_runtime_python">沙盒の外で Python を実行（高信頼、個別に確認）</string>
+    <string name="video_no_video_model_hint">現在のプロバイダーには動画出力に対応したモデルがありません。設定 › モデルとプロバイダーで「動画出力」を有効にしてください。</string>
 </resources>

@@ -450,7 +450,7 @@
     <string name="settings_sticker_import_failed">Falha na importação: %1$s</string>
     <string name="settings_sticker_export_location_failed">Não é possível gravar no local selecionado</string>
     <string name="settings_sticker_empty_title">Ainda não há adesivos</string>
-    <string name="settings_sticker_empty_subtitle">Toque em \"Importar ZIP\" acima para adicionar um arquivo ZIP</string>
+    <string name="settings_sticker_empty_subtitle">Toque em \"Importar figurinhas\" acima; aceita ZIP, DOCX/PPTX e imagens</string>
     <string name="settings_sticker_delete_confirm">Excluir este adesivo?</string>
     <string name="settings_sticker_category_all">Todos</string>
 
@@ -660,4 +660,5 @@
     <string name="onboarding_connect_error_timeout">A conexão expirou. Verifique a rede ou o URL.</string>
     <string name="onboarding_connect_error_server">O provedor está indisponível. Tente mais tarde; se continuar, o modelo pode ter sido desativado.</string>
     <string name="onboarding_connect_error_no_model">Não há modelo para testar. Busque primeiro a lista de modelos.</string>
+    <string name="sticker_category_default">Padrão</string>
 </resources>

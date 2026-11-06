@@ -343,7 +343,7 @@
     <string name="channel_secret_hide">Hide</string>
     <string name="channel_test_connection">Test Connection</string>
     <string name="channel_test_failed">Test failed</string>
-    <string name="channel_owner_select">Which account is you</string>
+    <string name="channel_owner_select">Which account is yours?</string>
     <string name="channel_owner_none">Send a message first to select</string>
     <string name="channel_owner_warning">The selected account will be this channel\'s reply target. Make sure it belongs to you.</string>
     <string name="channel_field_region">Region</string>
@@ -995,4 +995,10 @@
     <string name="muse_plugins_market_advice_needs_newer_app">This plugin requires a newer app version</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">Compatibility is checked against the manifest after download; not decided yet</string>
     <string name="muse_plugins_market_advice_retained">Local archives kept for these versions: %1$s (switch from the installed list)</string>
+    <string name="audit_log_field_action">Action</string>
+    <string name="audit_log_field_target">Target</string>
+    <string name="audit_log_field_detail">Detail</string>
+    <string name="audit_log_field_result">Result</string>
+    <string name="audit_log_result_ok">Success</string>
+    <string name="audit_log_result_fail">Failed</string>
 </resources>

@@ -558,7 +558,7 @@
     <string name="audit_log_category_user">Ação do usuário</string>
     <string name="audit_log_category_auth">Autenticação</string>
     <string name="audit_log_category_system">Sistema</string>
-    <string name="audit_log_search_hint">Ação de pesquisa/alvo/detalhe</string>
+    <string name="audit_log_search_hint">Buscar ação / alvo / detalhe</string>
     <string name="audit_log_clear_search">Limpar pesquisa</string>
     <string name="audit_log_no_match">Nenhum registro correspondente</string>
     <string name="audit_log_result_count">Exibindo %1$d de %2$d</string>
@@ -891,4 +891,10 @@
     <string name="muse_plugins_market_advice_needs_newer_app">Este plugin exige uma versao mais nova do app</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">A compatibilidade e conferida no manifest apos o download; ainda nao da para afirmar</string>
     <string name="muse_plugins_market_advice_retained">Ha copias locais destas versoes: %1$s (troca pela lista instalada)</string>
+    <string name="audit_log_field_action">Ação</string>
+    <string name="audit_log_field_target">Alvo</string>
+    <string name="audit_log_field_detail">Detalhe</string>
+    <string name="audit_log_field_result">Resultado</string>
+    <string name="audit_log_result_ok">Sucesso</string>
+    <string name="audit_log_result_fail">Falhou</string>
 </resources>

@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.memory.fact.MemoryLegacyReset
+import io.zer0.muse.ui.memory.memorySpaceDisplayName
 import io.zer0.memory.space.MemorySpaceEntity
 import io.zer0.memory.summary.MemoryDbArchiveRecovery
 import io.zer0.muse.R
@@ -756,7 +757,7 @@ fun MemoryScreen(
                         )
                         spaces.forEach { space ->
                             MemoryFilterRow(
-                                label = space.name,
+                                label = memorySpaceDisplayName(space.name, stringResource(R.string.memory_space_default_name)),
                                 selected = space.id == selectedSpace,
                                 onClick = {
                                     viewModel.selectSpace(space.id)
@@ -1078,8 +1079,10 @@ private fun LazyListScope.memoryStreamItems(
                 val sourceMeta = if (item.source == "Summary") {
                     val assistantName = scopes.firstOrNull { it.id == item.scope }?.displayName
                         ?: item.scope.orEmpty()
-                    val spaceName = spaces.firstOrNull { it.id == item.spaceId }?.name
-                        ?: item.spaceId.orEmpty()
+                    val spaceName = memorySpaceDisplayName(
+                        spaces.firstOrNull { it.id == item.spaceId }?.name ?: item.spaceId.orEmpty(),
+                        stringResource(R.string.memory_space_default_name),
+                    )
                     stringResource(R.string.memory_conversation_meta, assistantName, spaceName)
                 } else {
                     null

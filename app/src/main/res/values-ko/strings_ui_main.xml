@@ -558,7 +558,7 @@
     <string name="audit_log_category_user">사용자 작업</string>
     <string name="audit_log_category_auth">인증</string>
     <string name="audit_log_category_system">시스템</string>
-    <string name="audit_log_search_hint">검색 액션/타겟/상세</string>
+    <string name="audit_log_search_hint">동작 / 대상 / 세부정보 검색</string>
     <string name="audit_log_clear_search">검색 지우기</string>
     <string name="audit_log_no_match">일치하는 로그가 없습니다.</string>
     <string name="audit_log_result_count">%2$d 중 %1$d 표시 중</string>
@@ -887,4 +887,10 @@
     <string name="muse_plugins_market_advice_needs_newer_app">이 플러그인은 더 새로운 앱 버전을 요구합니다</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">호환 여부는 내려받은 후 매니페스트로 확인됩니다. 지금은 판단할 수 없습니다</string>
     <string name="muse_plugins_market_advice_retained">이 버전들의 사본이 남아 있습니다: %1$s (설치 목록에서 전환)</string>
+    <string name="audit_log_field_action">동작</string>
+    <string name="audit_log_field_target">대상</string>
+    <string name="audit_log_field_detail">세부정보</string>
+    <string name="audit_log_field_result">결과</string>
+    <string name="audit_log_result_ok">성공</string>
+    <string name="audit_log_result_fail">실패</string>
 </resources>

@@ -382,7 +382,7 @@ private fun LanguageSelectorBar(
     ) {
         LanguageSelectorButton(
             label = stringResource(R.string.translate_page_source_language),
-            value = sourceLanguage,
+            value = translateLanguageDisplay(sourceLanguage, stringResource(R.string.translate_source_auto)),
             onClick = { if (enabled) showSourcePicker = true },
             modifier = Modifier.weight(1f),
         )
@@ -410,7 +410,7 @@ private fun LanguageSelectorBar(
 
         LanguageSelectorButton(
             label = stringResource(R.string.translate_page_target_language),
-            value = targetLanguage,
+            value = translateLanguageDisplay(targetLanguage, stringResource(R.string.translate_source_auto)),
             onClick = { if (enabled) showTargetPicker = true },
             modifier = Modifier.weight(1f),
         )
@@ -516,7 +516,7 @@ private fun LanguagePickerDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = option,
+                            text = translateLanguageDisplay(option, stringResource(R.string.translate_source_auto)),
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (isSelected) {
                                 MaterialTheme.colorScheme.primary

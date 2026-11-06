@@ -839,3 +839,9 @@ class TranslateViewModel(
         }
     }
 }
+
+/**
+ * 语言值本身要进 prompt，不能改；只在展示时把哨兵换成当前语言的“自动检测”。
+ */
+internal fun translateLanguageDisplay(option: String, autoLabel: String): String =
+    if (option == TranslateViewModel.SOURCE_AUTO) autoLabel else option

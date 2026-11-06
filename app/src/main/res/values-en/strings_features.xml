@@ -786,4 +786,5 @@
     <string name="plugin_cap_ui_skin">Change the visual skin</string>
     <string name="plugin_cap_ui_interactive">Show a submit form and run the plugin handler (changes data, off by default)</string>
     <string name="plugin_cap_runtime_python">Run Python code outside the sandbox (high trust, confirm separately)</string>
+    <string name="video_no_video_model_hint">The current provider has no model with video output. Enable the \"video output\" capability for a model in Settings › Models and Providers.</string>
 </resources>

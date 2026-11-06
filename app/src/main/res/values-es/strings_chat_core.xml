@@ -450,7 +450,7 @@
     <string name="settings_sticker_import_failed">Error de importación: %1$s</string>
     <string name="settings_sticker_export_location_failed">No se puede escribir en la ubicación seleccionada</string>
     <string name="settings_sticker_empty_title">Aún no hay pegatinas</string>
-    <string name="settings_sticker_empty_subtitle">Toca \"Importar ZIP\" arriba para agregar un archivo ZIP</string>
+    <string name="settings_sticker_empty_subtitle">Toca \"Importar stickers\" arriba; se admiten ZIP, DOCX/PPTX e imágenes</string>
     <string name="settings_sticker_delete_confirm">¿Eliminar esta pegatina?</string>
     <string name="settings_sticker_category_all">Todo</string>
 
@@ -660,4 +660,5 @@
     <string name="onboarding_connect_error_timeout">Se agotó el tiempo de conexión. Revisa la red o la URL.</string>
     <string name="onboarding_connect_error_server">El proveedor no está disponible. Inténtalo más tarde; si continúa, el modelo puede estar retirado.</string>
     <string name="onboarding_connect_error_no_model">No hay ningún modelo para probar. Obtén primero la lista de modelos.</string>
+    <string name="sticker_category_default">Predeterminado</string>
 </resources>

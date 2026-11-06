@@ -539,7 +539,7 @@ fun SettingsModelPage(
         return
     }
 
-    SettingsSubPageScaffold(title = stringResource(R.string.settings_sub_model_services), onBack = onBack) {
+    SettingsSubPageScaffold(title = stringResource(R.string.settings_group_models), onBack = onBack) {
         val providersList = visibleProviders
         if (providersList == null) {
             // v1.48: h13 首次加载显示居中加载指示器,避免 providers 列表闪空状态

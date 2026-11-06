@@ -465,12 +465,18 @@ private fun TimeRangeFilterRow(currentRange: StatsTimeRange, onRangeChange: (Sta
     ) {
         items(ranges.size) { index ->
             val (range, labelRes) = ranges[index]
+            val label = stringResource(labelRes)
             MuseChip(
                 selected = currentRange == range,
                 onClick = { onRangeChange(range) },
-                label = stringResource(labelRes),
+                label = label,
                 modifier = Modifier.semantics {
-                    contentDescription = "$allCd: ${if (currentRange == range) "$selectedCd " else ""}${ranges[index].first.name}"
+                    // 读屏念枚举名（ALL_TIME）用户听不懂，改成界面同名 + 选中态。
+                    contentDescription = if (currentRange == range) {
+                        "$allCd: $label · $selectedCd"
+                    } else {
+                        "$allCd: $label"
+                    }
                 },
             )
         }

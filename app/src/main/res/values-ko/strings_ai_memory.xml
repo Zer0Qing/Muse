@@ -211,4 +211,5 @@
     <string name="memory_merge_error_generate_failed">이 기억들을 병합하지 못했습니다</string>
     <string name="memory_merge_error_empty_result">병합 결과는 비울 수 없습니다</string>
     <string name="memory_merge_error_commit_failed">병합에 실패했습니다. 기억은 변경되지 않았습니다</string>
+    <string name="memory_space_default_name">기본</string>
 </resources>
