@@ -1237,6 +1237,9 @@ class StickerLibraryRepository(private val appContext: Context) {
             val index = current.indexOfFirst { it.id == id }
             if (index < 0) return
             val item = current[index]
+            // 同一次展示会被反复触发(滚动、主题切换、语言热切换都会重新组合)。
+            // 不去重的话「被看过多少次」会涨成「被组合过多少次」,低使用退场就废了。
+            if (item.lastUsedAt != null && now - item.lastUsedAt < StickerEmotionTagger.USE_DEDUPE_MILLIS) return
             val updated = item.copy(useCount = item.useCount + 1, lastUsedAt = now, retiredAt = null)
             if (updated == item) return
             val next = current.toMutableList()

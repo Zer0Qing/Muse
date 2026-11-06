@@ -179,8 +179,22 @@ class StickerEmotionE4Test {
         assertEquals(20_000L, saved.lastUsedAt)
         assertNull("被重新用起来的表情不该继续躺在退场区", saved.retiredAt)
 
-        repository.recordUse("a", now = 21_000L)
+        repository.recordUse("a", now = 25_000L)
         assertEquals(2, readBack().single().useCount)
+    }
+
+    @Test
+    fun `同一次展示被反复组合时不重复计数`() = runTest {
+        seed(listOf(item("a")))
+
+        repository.recordUse("a", now = 100_000L)
+        // 滚动、主题切换、语言热切换都会再触发一次;它们不该变成"又看了一次"
+        repository.recordUse("a", now = 100_000L + StickerEmotionTagger.USE_DEDUPE_MILLIS - 1)
+
+        assertEquals(1, readBack().single().useCount)
+
+        repository.recordUse("a", now = 100_000L + StickerEmotionTagger.USE_DEDUPE_MILLIS + 1)
+        assertEquals("过了去重窗口就该再算一次", 2, readBack().single().useCount)
     }
 
     @Test

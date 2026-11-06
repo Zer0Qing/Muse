@@ -21,6 +21,14 @@ object StickerEmotionTagger {
     private const val MAX_TEXT_CHARS = 400
 
     /**
+     * E4:同一次展示的计数去重窗口(2 秒)。
+     *
+     * 一次滚动、一次主题切换、一次语言热切换都会让表情重新组合;
+     * 不去重的话「被看过几次」会变成「被组合过几次」,低使用退场就失去意义。
+     */
+    const val USE_DEDUPE_MILLIS = 2_000L
+
+    /**
      * E4:低使用退场的观察期(30 天)。
      *
      * 短于这个时间就退场,等于删掉还没轮到被使用的表情:
