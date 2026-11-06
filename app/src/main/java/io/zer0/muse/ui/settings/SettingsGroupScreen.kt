@@ -14,6 +14,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,9 @@ private data class ResolvedEntryRow(
 
 /** 搜索直达后高亮保持时长:够看清,又不至于变成常驻状态。 */
 private const val FOCUS_FLASH_MS = 1600L
+
+/** 搜索直达高亮的左条宽度。 */
+private const val FOCUS_BAR_WIDTH_DP = 3
 
 /** 开关条目的当前值与写回回调。 */
 data class SettingsToggleUiState(val checked: Boolean, val onCheckedChange: (Boolean) -> Unit)
@@ -171,10 +175,12 @@ private fun SettingsEntryCard(
         }
     }
     val focusTint by animateColorAsState(
-        targetValue = if (flashFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+        targetValue = if (flashFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent,
         animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS),
         label = "settingsFocusFlash",
     )
+    // 单靠底色在 Mono 主题里会被读成"分组底色";补一条主色左条,才看得出是"你要找的在这"。
+    val focusBarColor = MaterialTheme.colorScheme.primary
     CardGroup(
         modifier = Modifier.fillMaxWidth(),
         title = label?.let { text ->
@@ -194,7 +200,16 @@ private fun SettingsEntryCard(
                 key = entry.id,
                 modifier = Modifier
                     .testTag(SETTINGS_ENTRY_ROW_TAG)
-                    .background(if (flashFocused && row.entry.id.name == focusEntryId) focusTint else Color.Transparent),
+                    .background(if (flashFocused && row.entry.id.name == focusEntryId) focusTint else Color.Transparent)
+                    .drawBehind {
+                        // 判定在组合期算好,绘制期只读布尔:组合期读状态会破坏快照规则
+                        if (flashFocused && row.entry.id.name == focusEntryId) {
+                            drawRect(
+                                color = focusBarColor,
+                                size = androidx.compose.ui.geometry.Size(FOCUS_BAR_WIDTH_DP.dp.toPx(), size.height),
+                            )
+                        }
+                    },
                 onClick = when (action) {
                     is SettingsEntryAction.Navigate -> ({ onNavigate(action.route) })
                     is SettingsEntryAction.Toggle -> null

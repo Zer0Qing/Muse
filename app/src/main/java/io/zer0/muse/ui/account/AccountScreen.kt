@@ -48,6 +48,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MusePaddings
@@ -286,10 +287,12 @@ private fun UserProfileEntryCard(onClick: () -> Unit, modifier: Modifier = Modif
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = "›",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // 全站导航箭头统一用 chevron 图标:ASCII "›" 既不成字形、读屏也读不出语义。
+            Icon(
+                imageVector = MuseIcons.chevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
         }
     }
@@ -483,10 +486,12 @@ fun AccountCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = "›",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // 全站导航箭头统一用 chevron 图标:ASCII "›" 既不成字形、读屏也读不出语义。
+            Icon(
+                imageVector = MuseIcons.chevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
         }
     }
