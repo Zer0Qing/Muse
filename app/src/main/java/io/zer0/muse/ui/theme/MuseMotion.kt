@@ -9,6 +9,9 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.DurationBasedAnimationSpec
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -104,6 +107,21 @@ object MuseMotion {
             scale = staticAnimatorScale.get(),
         )
 
+    /**
+     * 创建遵循当前动效缩放的弹簧规格。
+     *
+     * 弹簧没有时长语义：缩放 > 0 时三档参数原样生效（缩放只直接作用于 tween 时长）；
+     * 缩放 <= 0（系统关闭动画）时退化为 snap 即时完成，与卡片按压的降级契约一致。
+     * 位移/尺寸/缩放类动画优先从这里取规格；透明度仍走 tween，弹簧会让 alpha 越过 [0,1]。
+     */
+    @Composable
+    fun <T> spring(tier: MuseSpringTier, visibilityThreshold: T? = null): FiniteAnimationSpec<T> =
+        springForScale(tier, visibilityThreshold, animatorScale())
+
+    /** 供非 Composable 回调（导航转场等）使用的弹簧规格，读同一份静态缩放。 */
+    fun <T> springSpec(tier: MuseSpringTier, visibilityThreshold: T? = null): FiniteAnimationSpec<T> =
+        springForScale(tier, visibilityThreshold, staticAnimatorScale.get())
+
     /** 纯淡入的统一进入过渡。 */
     fun fadeEnter(durationMillis: Int = MuseAnimation.NORMAL_MS, delayMillis: Int = 0): EnterTransition = fadeIn(
         tweenSpec(
@@ -122,61 +140,65 @@ object MuseMotion {
         ),
     )
 
-    /** 仅展开内容的统一进入过渡。 */
-    fun expandEnter(durationMillis: Int = MuseAnimation.NORMAL_MS): EnterTransition = expandVertically(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseOutCubic),
+    /**
+     * 仅展开内容的统一进入过渡。
+     *
+     * 尺寸分量由 STEADY 弹簧驱动（临界阻尼、终点不回弹，承接原 GrowEase
+     * "先长出来再稳住"的读感）。弹簧没有时长语义，故不再收时长参数——
+     * 保留死参数会被 detekt UnusedParameter 点名，也不如签名诚实。
+     */
+    fun expandEnter(): EnterTransition = expandVertically(
+        animationSpec = springSpec(MuseSpringTier.STEADY),
     )
 
-    /** 仅收起内容的统一退出过渡。 */
-    fun expandExit(durationMillis: Int = MuseAnimation.NORMAL_MS): ExitTransition = shrinkVertically(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseInCubic),
+    /** 仅收起内容的统一退出过渡（尺寸分量 STEADY 弹簧，终点停稳）。 */
+    fun expandExit(): ExitTransition = shrinkVertically(
+        animationSpec = springSpec(MuseSpringTier.STEADY),
     )
 
-    /** 展开/折叠内容的统一进入过渡。 */
-    fun expandFadeEnter(durationMillis: Int = MuseAnimation.NORMAL_MS, fadeDurationMillis: Int = durationMillis): EnterTransition =
-        expandEnter(durationMillis) + fadeEnter(fadeDurationMillis)
+    /** 展开/折叠内容的统一进入过渡（时长只作用于淡入分量）。 */
+    fun expandFadeEnter(fadeDurationMillis: Int = MuseAnimation.NORMAL_MS): EnterTransition =
+        expandEnter() + fadeEnter(fadeDurationMillis)
 
-    /** 展开/折叠内容的统一退出过渡。 */
-    fun expandFadeExit(durationMillis: Int = MuseAnimation.NORMAL_MS, fadeDurationMillis: Int = durationMillis): ExitTransition =
-        expandExit(durationMillis) + fadeExit(fadeDurationMillis)
+    /** 展开/折叠内容的统一退出过渡（时长只作用于淡出分量）。 */
+    fun expandFadeExit(fadeDurationMillis: Int = MuseAnimation.NORMAL_MS): ExitTransition =
+        expandExit() + fadeExit(fadeDurationMillis)
 
-    /** 仅水平展开的统一进入过渡。 */
+    /** 仅水平展开的统一进入过渡（尺寸分量 STEADY 弹簧；弹簧无时长语义，不收时长参数）。 */
     fun horizontalExpandEnter(
-        durationMillis: Int = MuseAnimation.NORMAL_MS,
         expandFrom: Alignment.Horizontal = Alignment.Start,
     ): EnterTransition = expandHorizontally(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseOutCubic),
+        animationSpec = springSpec(MuseSpringTier.STEADY),
         expandFrom = expandFrom,
     )
 
-    /** 仅水平收起的统一退出过渡。 */
+    /** 仅水平收起的统一退出过渡（尺寸分量 STEADY 弹簧）。 */
     fun horizontalExpandExit(
-        durationMillis: Int = MuseAnimation.NORMAL_MS,
         shrinkTowards: Alignment.Horizontal = Alignment.Start,
     ): ExitTransition = shrinkHorizontally(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseInCubic),
+        animationSpec = springSpec(MuseSpringTier.STEADY),
         shrinkTowards = shrinkTowards,
     )
 
-    /** 水平展开并淡入，适用于从边缘出现的内容卡片。 */
+    /** 水平展开并淡入，适用于从边缘出现的内容卡片（时长只作用于淡入分量）。 */
     fun horizontalExpandFadeEnter(
-        durationMillis: Int = MuseAnimation.NORMAL_MS,
-        fadeDurationMillis: Int = durationMillis,
+        fadeDurationMillis: Int = MuseAnimation.NORMAL_MS,
         expandFrom: Alignment.Horizontal = Alignment.End,
-    ): EnterTransition = horizontalExpandEnter(durationMillis, expandFrom) + fadeEnter(fadeDurationMillis)
+    ): EnterTransition = horizontalExpandEnter(expandFrom) + fadeEnter(fadeDurationMillis)
 
-    /** 水平收起并淡出，适用于从边缘消失的内容卡片。 */
+    /** 水平收起并淡出，适用于从边缘消失的内容卡片（时长只作用于淡出分量）。 */
     fun horizontalExpandFadeExit(
-        durationMillis: Int = MuseAnimation.NORMAL_MS,
-        fadeDurationMillis: Int = durationMillis,
+        fadeDurationMillis: Int = MuseAnimation.NORMAL_MS,
         shrinkTowards: Alignment.Horizontal = Alignment.End,
-    ): ExitTransition = horizontalExpandExit(durationMillis, shrinkTowards) + fadeExit(fadeDurationMillis)
+    ): ExitTransition = horizontalExpandExit(shrinkTowards) + fadeExit(fadeDurationMillis)
 
     /**
      * 纵向滑入并淡入。
      *
      * v2.6.7: 默认位移从 `it / 2`（半屏）收到 `it / 20`（约 5%）。
      * 半屏配 easeOutCubic 的读感是 "整块被抽上来"；5% 才是 "就地浮现"。
+     * 流体化: 位移分量改 RESPONSIVE 弹簧（微过冲即时跟手），
+     * 透明度分量继续用 fadeDurationMillis 的 tween。
      * 确实需要大位移的场合（全屏预览等）请显式传 initialOffsetY。
      */
     fun verticalSlideFadeEnter(
@@ -184,7 +206,7 @@ object MuseMotion {
         fadeDurationMillis: Int = durationMillis,
         initialOffsetY: (Int) -> Int = { (it * MuseAnimation.SLIDE_FRACTION_CONTENT).roundToInt() },
     ): EnterTransition = slideInVertically(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseOutCubic),
+        animationSpec = springSpec(MuseSpringTier.RESPONSIVE),
         initialOffsetY = initialOffsetY,
     ) + fadeEnter(fadeDurationMillis)
 
@@ -192,13 +214,14 @@ object MuseMotion {
      * 纵向滑出并淡出。
      *
      * v2.6.7: 退场默认比入场短（200ms vs 260ms），且位移同样收到 5%。
+     * 流体化: 退场位移用 STEADY 弹簧（不回弹，离开不拖沓）。
      */
     fun verticalSlideFadeExit(
         durationMillis: Int = MuseAnimation.CONTENT_EXIT_MS,
         fadeDurationMillis: Int = durationMillis,
         targetOffsetY: (Int) -> Int = { (it * MuseAnimation.SLIDE_FRACTION_CONTENT).roundToInt() },
     ): ExitTransition = slideOutVertically(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseInCubic),
+        animationSpec = springSpec(MuseSpringTier.STEADY),
         targetOffsetY = targetOffsetY,
     ) + fadeExit(fadeDurationMillis)
 
@@ -207,23 +230,24 @@ object MuseMotion {
      *
      * v2.6.7: 默认位移从整屏（`it`）收到 1/12（约 8%）。
      * 整屏横向滑动是 iOS 导航栈的语法；用在内容条/浮层上会显得很重。
+     * 流体化: 位移分量改 RESPONSIVE 弹簧。
      */
     fun horizontalSlideFadeEnter(
         durationMillis: Int = MuseAnimation.CONTENT_ENTER_MS,
         fadeDurationMillis: Int = durationMillis,
         initialOffsetX: (Int) -> Int = { (it * MuseAnimation.SLIDE_FRACTION_PAGE).roundToInt() },
     ): EnterTransition = slideInHorizontally(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseOutCubic),
+        animationSpec = springSpec(MuseSpringTier.RESPONSIVE),
         initialOffsetX = initialOffsetX,
     ) + fadeEnter(fadeDurationMillis)
 
-    /** 水平滑出并淡出（退场短于入场）。 */
+    /** 水平滑出并淡出（退场短于入场；位移分量 STEADY 弹簧不回弹）。 */
     fun horizontalSlideFadeExit(
         durationMillis: Int = MuseAnimation.CONTENT_EXIT_MS,
         fadeDurationMillis: Int = durationMillis,
         targetOffsetX: (Int) -> Int = { (it * MuseAnimation.SLIDE_FRACTION_PAGE).roundToInt() },
     ): ExitTransition = slideOutHorizontally(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseInCubic),
+        animationSpec = springSpec(MuseSpringTier.STEADY),
         targetOffsetX = targetOffsetX,
     ) + fadeExit(fadeDurationMillis)
 
@@ -241,24 +265,34 @@ object MuseMotion {
         fadeDurationMillis: Int = durationMillis,
         initialScale: Float = 0.96f,
     ): EnterTransition = scaleIn(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.GrowEase),
+        animationSpec = springSpec(MuseSpringTier.RESPONSIVE),
         initialScale = initialScale,
         transformOrigin = TransformOrigin(0.5f, 0.5f),
     ) + fadeEnter(fadeDurationMillis)
 
-    /** v2.6.7: "就地收回" 退场 —— 缩放 + 淡出，移向 98%（比入场更浅）。 */
+    /** v2.6.7: "就地收回" 退场 —— 缩放 + 淡出，移向 98%（比入场更浅）；缩放分量 STEADY 弹簧。 */
     fun scaleFadeExit(
         durationMillis: Int = MuseAnimation.CONTENT_EXIT_MS,
         fadeDurationMillis: Int = durationMillis,
         targetScale: Float = 0.98f,
     ): ExitTransition = scaleOut(
-        animationSpec = tweenSpec(durationMillis, easing = MuseAnimation.EaseInCubic),
+        animationSpec = springSpec(MuseSpringTier.STEADY),
         targetScale = targetScale,
         transformOrigin = TransformOrigin(0.5f, 0.5f),
     ) + fadeExit(fadeDurationMillis)
 
     @Composable
     private fun animatorScale(): Float = LocalAnimatorScale.current
+
+    internal fun <T> springForScale(tier: MuseSpringTier, visibilityThreshold: T?, scale: Float): FiniteAnimationSpec<T> {
+        val safeScale = sanitizeScale(scale)
+        if (safeScale <= 0f) return snap()
+        return spring(
+            dampingRatio = MuseAnimation.dampingRatio(tier),
+            stiffness = MuseAnimation.stiffness(tier),
+            visibilityThreshold = visibilityThreshold,
+        )
+    }
 
     private fun <T> tweenForScale(durationMillis: Int, easing: Easing, delayMillis: Int, scale: Float): DurationBasedAnimationSpec<T> {
         val safeScale = sanitizeScale(scale)
