@@ -144,6 +144,8 @@ class DesignTokenParityTest {
         assertVeil("dark", "onSurfaceVeil85", WarmPaperTheme.darkScheme.onSurface, 0.85)
         assertVeil("dark", "primaryVeil20", WarmPaperTheme.darkScheme.primary, 0.20)
         assertNumber("colors.alpha.actionDisabled", MuseActionColors.disabledAlpha.toDouble())
+        assertNumber("colors.alpha.edgeGlowLight", MuseGlowTokens.Light.peakAlpha.toDouble())
+        assertNumber("colors.alpha.edgeGlowDark", MuseGlowTokens.Dark.peakAlpha.toDouble())
     }
 
     @Test
@@ -169,7 +171,7 @@ class DesignTokenParityTest {
             "colors.emotion",
             setOf("coralWhisper", "lavenderDream", "amberWarmth", "sageCalm", "mistGray"),
         )
-        assertKeySet("colors.alpha", setOf("actionDisabled", "actionContentDisabled"))
+        assertKeySet("colors.alpha", setOf("actionDisabled", "actionContentDisabled", "edgeGlowLight", "edgeGlowDark"))
         val schemeKeys = setOf(
             "surface", "surfaceContainer", "surfaceContainerLow", "surfaceContainerHigh", "surfaceDim",
             "surfaceBright", "surfaceVariant", "onSurface", "onSurfaceVariant", "outline", "outlineVariant",

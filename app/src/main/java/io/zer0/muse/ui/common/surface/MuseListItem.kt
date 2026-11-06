@@ -3,6 +3,7 @@
 package io.zer0.muse.ui.common.surface
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -34,6 +36,8 @@ import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseListItemSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpringTier
+import io.zer0.muse.ui.theme.edgeGlowIndication
 
 /** 菜单/选择面板使用紧凑行，页面正文保持原有密度。 */
 internal val LocalMuseCompactList = androidx.compose.runtime.staticCompositionLocalOf { false }
@@ -100,11 +104,21 @@ fun MuseListItem(
         animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
         label = "listItemPress",
     )
+    // F3.1: 列表行轻微按压缩放（0.98，跟手档弹簧；reduced-motion 由工厂统一即时化）
+    val rowScale by animateFloatAsState(
+        targetValue = if (pressed && onClick != null) 0.98f else 1f,
+        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
+        label = "listItemScale",
+    )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = minHeight)
+            .graphicsLayer {
+                scaleX = rowScale
+                scaleY = rowScale
+            }
             .background(rowBgColor)
             .padding(
                 horizontal = MusePaddings.screen,
@@ -114,7 +128,7 @@ fun MuseListItem(
                 when {
                     onClick != null && onLongClick != null -> Modifier.combinedClickable(
                         interactionSource = interactionSource,
-                        indication = null,
+                        indication = edgeGlowIndication(),
                         role = Role.Button,
                         onClick = {
                             MuseHaptics.light(haptic)
@@ -127,7 +141,7 @@ fun MuseListItem(
                     )
                     onClick != null -> Modifier.clickable(
                         interactionSource = interactionSource,
-                        indication = null,
+                        indication = edgeGlowIndication(),
                         role = Role.Button,
                         onClick = {
                             MuseHaptics.light(haptic)
