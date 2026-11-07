@@ -85,4 +85,10 @@
     <string name="mp_group_done">완료</string>
     <string name="mp_group_contacts_empty_hint">먼저 캐릭터를 추가해야 모임을 만들 수 있습니다</string>
     <string name="mp_moment_reply_prefix">%1$s에게 답장</string>
+    <string name="mp_activity_searching">상대가 무언가를 찾고 있어요…</string>
+    <string name="mp_activity_remembering">상대가 뭔가 떠올린 것 같아요…</string>
+    <string name="mp_activity_calendar">상대가 일정을 보고 있어요…</string>
+    <string name="mp_activity_weather">상대가 창밖을 한 번 봤어요…</string>
+    <string name="mp_activity_notes">상대가 노트를 뒤지고 있어요…</string>
+    <string name="mp_activity_other">상대가 다른 일을 하고 있어요…</string>
 </resources>

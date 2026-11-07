@@ -85,4 +85,10 @@
     <string name="mp_group_done">完了</string>
     <string name="mp_group_contacts_empty_hint">まずキャラクターを追加してからグループ作成</string>
     <string name="mp_moment_reply_prefix">「%1$s」に返信</string>
+    <string name="mp_activity_searching">相手が見つけている最中…</string>
+    <string name="mp_activity_remembering">相手が何かを思い出したようす…</string>
+    <string name="mp_activity_calendar">相手が予定表を見ています…</string>
+    <string name="mp_activity_weather">相手が窓の外を一目…</string>
+    <string name="mp_activity_notes">相手がノートを探っています…</string>
+    <string name="mp_activity_other">相手は別のことをしています…</string>
 </resources>

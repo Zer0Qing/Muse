@@ -1,5 +1,6 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpActivityKind
 
 /**
@@ -9,19 +10,14 @@ import io.zer0.muse.miniphone.api.MpActivityKind
  */
 internal object MiniPhoneActivityText {
 
-    fun of(kind: MpActivityKind): String = when (kind) {
-        MpActivityKind.SEARCHING -> SEARCHING
-        MpActivityKind.REMEMBERING -> REMEMBERING
-        MpActivityKind.CALENDAR -> CALENDAR
-        MpActivityKind.WEATHER -> WEATHER
-        MpActivityKind.NOTES -> NOTES
-        MpActivityKind.OTHER -> OTHER
+    /** 取词交给界面：这里只给资源 id，宿主与状态层都不再拼中文句子。 */
+    fun resOf(kind: MpActivityKind): Int = when (kind) {
+        MpActivityKind.SEARCHING -> R.string.mp_activity_searching
+        MpActivityKind.REMEMBERING -> R.string.mp_activity_remembering
+        MpActivityKind.CALENDAR -> R.string.mp_activity_calendar
+        MpActivityKind.WEATHER -> R.string.mp_activity_weather
+        MpActivityKind.NOTES -> R.string.mp_activity_notes
+        MpActivityKind.OTHER -> R.string.mp_activity_other
     }
-
-    private const val SEARCHING: String = "对方正在翻找…"
-    private const val REMEMBERING: String = "对方想起了点什么…"
-    private const val CALENDAR: String = "对方在看日程…"
-    private const val WEATHER: String = "对方看了眼窗外…"
-    private const val NOTES: String = "对方翻着笔记…"
-    private const val OTHER: String = "对方正在忙别的…"
 }
+

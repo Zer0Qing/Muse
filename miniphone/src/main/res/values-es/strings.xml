@@ -85,4 +85,10 @@
     <string name="mp_group_done">Listo</string>
     <string name="mp_group_contacts_empty_hint">Añade personajes primero para formar un grupo</string>
     <string name="mp_moment_reply_prefix">Responder a %1$s</string>
+    <string name="mp_activity_searching">Buscando algo…</string>
+    <string name="mp_activity_remembering">Les ha venido algo a la memoria…</string>
+    <string name="mp_activity_calendar">Revisa el calendario…</string>
+    <string name="mp_activity_weather">Ha mirado por la ventana…</string>
+    <string name="mp_activity_notes">Revisa sus notas…</string>
+    <string name="mp_activity_other">Ocupado con otra cosa…</string>
 </resources>

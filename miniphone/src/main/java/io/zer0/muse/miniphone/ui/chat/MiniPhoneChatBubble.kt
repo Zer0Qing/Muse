@@ -372,7 +372,7 @@ internal fun ChatActivityRow(kind: MpActivityKind) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = MiniPhoneActivityText.of(kind),
+            text = stringResource(MiniPhoneActivityText.resOf(kind)),
             style = typography.timestamp.copy(color = colors.textSecondary),
         )
     }

@@ -85,4 +85,10 @@
     <string name="mp_group_done">Готово</string>
     <string name="mp_group_contacts_empty_hint">Сначала добавьте персонажей, чтобы создать группу</string>
     <string name="mp_moment_reply_prefix">Ответить %1$s</string>
+    <string name="mp_activity_searching">Ищет информацию…</string>
+    <string name="mp_activity_remembering">Вспомнил что-то…</string>
+    <string name="mp_activity_calendar">Смотрит в календарь…</string>
+    <string name="mp_activity_weather">Глянул в окно…</string>
+    <string name="mp_activity_notes">Листает заметки…</string>
+    <string name="mp_activity_other">Занят другим…</string>
 </resources>

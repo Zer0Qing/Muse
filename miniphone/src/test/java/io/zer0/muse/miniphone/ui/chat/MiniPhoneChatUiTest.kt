@@ -124,7 +124,7 @@ class MiniPhoneChatUiTest {
         )
 
         compose.onNodeWithTag(MiniPhoneChatTags.ACTIVITY).assertExists()
-        compose.onNodeWithText("对方正在翻找…").assertExists()
+        compose.onNodeWithText(res(R.string.mp_activity_searching)).assertExists()
         compose.onNodeWithTag(MiniPhoneChatTags.TYPING).assertDoesNotExist()
     }
 
