@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -283,12 +285,33 @@ fun AssistantDetailPage(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                // 有图片头像才可点开看大图；emoji / 首字母头像没有"放大"这回事，
+                // 不给它一个按下去没反应的形状（走查 三-A10）
+                var avatarViewerOpen by remember { mutableStateOf(false) }
+                val avatarModel = assistant?.avatarImageUrl?.takeIf { it.isNotBlank() && assistant.hasImageAvatar() }
                 AssistantAvatar(
                     assistant = assistant ?: placeholderAssistant(),
                     avatarSize = 80.dp,
                     // F2 链路 A 终点：与助手列表行头像同源共享（key 用路由 id，加载前后一致）
-                    modifier = Modifier.museSharedElement(key = "assistant-avatar-$assistantId"),
+                    modifier = Modifier
+                        .museSharedElement(key = "assistant-avatar-$assistantId")
+                        .then(
+                            if (avatarModel == null) {
+                                Modifier
+                            } else {
+                                Modifier
+                                    .clip(CircleShape)
+                                    .clickable(role = Role.Image) { avatarViewerOpen = true }
+                            },
+                        ),
                 )
+                if (avatarViewerOpen && avatarModel != null) {
+                    io.zer0.muse.ui.common.media.FullScreenMediaViewer(
+                        images = listOf(avatarModel),
+                        initialIndex = 0,
+                        onDismiss = { avatarViewerOpen = false },
+                    )
+                }
                 Text(
                     text = assistant?.name?.ifBlank { stringResource(R.string.assistant_detail_unnamed) }
                         ?: stringResource(R.string.assistant_detail_loading),

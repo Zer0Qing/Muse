@@ -1413,7 +1413,7 @@ fun ChatScreen(
                             }
                         val sessionTitle =
                             if (isAgentMode) {
-                                "Agent"
+                                stringResource(R.string.home_tab_agent)
                             } else {
                                 // 顶栏副标题与列表同一口径:历史默认标题(按旧语言写进库的)在这里
                                 // 也该回落成当前语言的「新会话」,否则同一条会话在不同页面两个名字。
