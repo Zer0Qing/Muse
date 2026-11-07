@@ -799,4 +799,7 @@
     </plurals>
     <string name="workspace_go_root">Back to workspace root</string>
     <string name="artifact_center_empty_hint">Artifacts are the images, files and long texts the assistant produces in chat - keep them here to review and share</string>
+    <string name="daily_summary_light_fallback">Nothing to catch up on today - I\'m here whenever something comes up.</string>
+    <string name="daily_summary_rest_fallback">Long day - get some rest.</string>
+    <string name="daily_summary_none_fallback">No new conversation today.</string>
 </resources>

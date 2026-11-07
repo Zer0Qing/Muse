@@ -851,4 +851,7 @@
     </plurals>
     <string name="workspace_go_root">Volver a la raíz del espacio de trabajo</string>
     <string name="artifact_center_empty_hint">Los artefactos son las imágenes, archivos y textos largos que el asistente genera en el chat; aquí puedes revisarlos y compartirlos</string>
+    <string name="daily_summary_light_fallback">Hoy no hay mucho que repasar; aquí estoy cuando quieras hablar.</string>
+    <string name="daily_summary_rest_fallback">Ha sido un día largo; descansa.</string>
+    <string name="daily_summary_none_fallback">Hoy no hay conversaciones nuevas.</string>
 </resources>

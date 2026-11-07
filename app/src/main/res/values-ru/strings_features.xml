@@ -902,4 +902,7 @@
     </plurals>
     <string name="workspace_go_root">В корень рабочего пространства</string>
     <string name="artifact_center_empty_hint">Артефакты — это изображения, файлы и длинные тексты, которые ассистент создаёт в переписке; здесь их можно пересмотреть и поделиться ими</string>
+    <string name="daily_summary_light_fallback">Сегодня пока нечего вспоминать — я рядом, когда захочется поговорить.</string>
+    <string name="daily_summary_rest_fallback">День выдался долгим — отдохни.</string>
+    <string name="daily_summary_none_fallback">Сегодня новых разговоров пока не было.</string>
 </resources>

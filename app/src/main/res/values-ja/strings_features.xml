@@ -849,4 +849,7 @@
     </plurals>
     <string name="workspace_go_root">ワークスペースの最上位へ戻る</string>
     <string name="artifact_center_empty_hint">成果物とは、会話の中でアシスタントが作った画像・ファイル・長いテキストのことです。ここで見返しや共有ができます</string>
+    <string name="daily_summary_light_fallback">今日はまだ話すことが少なめです。思いついたときにいつでも。</string>
+    <string name="daily_summary_rest_fallback">今日はお疲れさまでした。ゆっくり休んでください。</string>
+    <string name="daily_summary_none_fallback">今日は新しい会話はまだありません。</string>
 </resources>

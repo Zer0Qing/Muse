@@ -820,4 +820,7 @@
     </plurals>
     <string name="workspace_go_root">返回工作区根目录</string>
     <string name="artifact_center_empty_hint">产物是助手在对话里生成的图片、文件与长文本，攒在这里可以回看和分享</string>
+    <string name="daily_summary_light_fallback">今天还没聊什么，想到什么随时找我。</string>
+    <string name="daily_summary_rest_fallback">今天辛苦了，早点休息。</string>
+    <string name="daily_summary_none_fallback">今天还没有新的对话。</string>
 </resources>

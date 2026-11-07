@@ -851,4 +851,7 @@
     </plurals>
     <string name="workspace_go_root">Voltar à raiz do espaço de trabalho</string>
     <string name="artifact_center_empty_hint">Artefatos são as imagens, arquivos e textos longos que o assistente gera na conversa; revise e compartilhe aqui</string>
+    <string name="daily_summary_light_fallback">Hoje ainda não há muito para revisar; estou aqui quando quiser conversar.</string>
+    <string name="daily_summary_rest_fallback">Foi um dia longo; descanse.</string>
+    <string name="daily_summary_none_fallback">Ainda não há conversas novas hoje.</string>
 </resources>

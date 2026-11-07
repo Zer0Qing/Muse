@@ -850,4 +850,7 @@
     </plurals>
     <string name="workspace_go_root">작업 공간 최상위로 이동</string>
     <string name="artifact_center_empty_hint">산출물은 대화에서 어시스턴트가 만든 이미지·파일·긴 텍스트입니다. 여기에서 다시 보거나 공유할 수 있어요</string>
+    <string name="daily_summary_light_fallback">오늘은 아직 나눌 이야기가 적어요. 생각나면 언제든 말 걸어 주세요.</string>
+    <string name="daily_summary_rest_fallback">오늘도 수고했어요. 푹 쉬세요.</string>
+    <string name="daily_summary_none_fallback">오늘은 새 대화가 아직 없어요.</string>
 </resources>

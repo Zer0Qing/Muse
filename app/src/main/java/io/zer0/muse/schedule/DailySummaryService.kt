@@ -6,6 +6,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactStore
+import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.notification.MuseNotificationManager
@@ -42,6 +43,7 @@ class DailySummaryService(
     private val factStore: FactStore,
     private val chatService: ChatService?,
     private val notificationManager: MuseNotificationManager?,
+    private val appContext: android.content.Context,
 ) {
 
     private val mutex = Mutex()
@@ -267,7 +269,8 @@ class DailySummaryService(
      *
      * 摘要是一次生成、长期复用的，不该携带会过期的时段信息，只给内容本身。
      */
-    private fun lightGreeting(): String = "今天还没聊什么，想到什么随时找我。"
+    // 素材不足时的兜底句要跟着界面语言，不能写死中文：这句会被写进摘要长期复用
+    private fun lightGreeting(): String = appContext.getString(R.string.daily_summary_light_fallback)
 
     private fun buildLocalSummary(todayMessages: List<UIMessage>, facts: List<String>): String {
         // v1.0.92: 问候区定位为"助手快速提醒空间" —
@@ -279,10 +282,10 @@ class DailySummaryService(
             ?.take(20)
         val raw = when {
             !firstFact.isNullOrBlank() -> firstFact
-            todayMessages.any { it.content.isNotBlank() } -> "今天辛苦了，早点休息。"
-            else -> "今天还没有新的对话。"
+            todayMessages.any { it.content.isNotBlank() } -> appContext.getString(R.string.daily_summary_rest_fallback)
+            else -> appContext.getString(R.string.daily_summary_none_fallback)
         }
-        return GreetingHelper.normalizeGreetingText(raw, SUMMARY_MAX_CHARS) ?: "今天还没有新的对话。"
+        return GreetingHelper.normalizeGreetingText(raw, SUMMARY_MAX_CHARS) ?: appContext.getString(R.string.daily_summary_none_fallback)
     }
 
     companion object {
