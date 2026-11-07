@@ -10,6 +10,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -24,9 +25,19 @@ import org.junit.Test
  */
 class PermissionCoordinatorTest {
 
+    private var previousLoggerEnabled = true
+
     @Before
     fun setUp() {
+        // Logger.enabled 是进程级全局开关：禁用后必须还原，否则会污染同 JVM 后续测试
+        // （如 EmbeddingServiceCacheTest 依赖 warn 日志捕获，enabled=false 会让它收不到日志）。
+        previousLoggerEnabled = Logger.enabled
         Logger.enabled = false
+    }
+
+    @After
+    fun tearDown() {
+        Logger.enabled = previousLoggerEnabled
     }
 
     private val shizuku = mockk<ShizukuAuthorizer>()

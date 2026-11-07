@@ -134,9 +134,14 @@ class RootAuthorizer(private val context: Context) {
      * 供向导/启动刷新使用，开销极小（File.exists + 包查询 + 读 prefs）。
      */
     fun grantState(): GrantState {
-        // 本进程已确认态优先（libsu 非阻塞返回）。
-        Shell.isAppGrantedRoot()?.let { return if (it) GrantState.Granted else GrantState.Denied }
+        // 本进程已确认拿到 root 优先（libsu 非阻塞返回）。
+        if (Shell.isAppGrantedRoot() == true) return GrantState.Granted
+        // 必须先判设备有无 root 方案：libsu 的 false 仅表示「PATH 无 su 文件」，
+        // 完全无 root 的零售机也会返回 false；若先映射成 Denied 会让向导误报
+        // 「检测到 root 方案但无管理器」。无方案一律 NoRoot。
         if (!isAvailable()) return GrantState.NoRoot
+        // 有 root 方案但 libsu 确认非 root（su 被拒回落非 root shell）→ Denied。
+        if (Shell.isAppGrantedRoot() == false) return GrantState.Denied
         return if (everGranted()) GrantState.PreviouslyGranted else GrantState.Unknown
     }
 

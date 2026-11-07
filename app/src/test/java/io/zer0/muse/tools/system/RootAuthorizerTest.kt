@@ -1,6 +1,7 @@
 package io.zer0.muse.tools.system
 
 import io.zer0.common.Logger
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -26,9 +27,18 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class RootAuthorizerTest {
 
+    private var previousLoggerEnabled = true
+
     @Before
     fun setUp() {
+        // 全局开关禁用后必须还原，避免污染同 JVM 后续测试的日志捕获。
+        previousLoggerEnabled = Logger.enabled
         Logger.enabled = false
+    }
+
+    @After
+    fun tearDown() {
+        Logger.enabled = previousLoggerEnabled
     }
 
     private val context get() = RuntimeEnvironment.application
