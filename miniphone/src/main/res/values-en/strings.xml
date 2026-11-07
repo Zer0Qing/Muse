@@ -40,4 +40,25 @@
     <string name="mp_thread_delete_title">Delete this chat?</string>
     <string name="mp_thread_delete_hint">The thread and all its messages are removed from this device and cannot be recovered.</string>
     <string name="mp_me_version_module">Mini phone data v%1$d</string>
+    <string name="mp_chat_input_placeholder">Say something…</string>
+    <string name="mp_chat_send_cd">Send</string>
+    <string name="mp_chat_pick_image_cd">Choose image</string>
+    <string name="mp_chat_mic_cd">Voice message</string>
+    <string name="mp_chat_stop">Stop</string>
+    <string name="mp_chat_transcribing">Transcribing…</string>
+    <string name="mp_chat_empty_transcript">Didn\'t catch that - say it again</string>
+    <string name="mp_chat_start_failed">Couldn\'t start recording; check whether another app holds the microphone</string>
+    <string name="mp_chat_mic_permission">Microphone permission is needed for voice messages</string>
+    <string name="mp_chat_voice_unsupported">The current speech engine can\'t record input; pick a transcription-capable engine in Settings</string>
+    <string name="mp_chat_expand">Expand</string>
+    <string name="mp_chat_collapse">Collapse</string>
+    <string name="mp_chat_sending">Sending</string>
+    <string name="mp_chat_send_failed">Not sent - tap to retry</string>
+    <string name="mp_chat_typing">They are typing…</string>
+    <string name="mp_chat_delete_title">Delete this message?</string>
+    <string name="mp_chat_delete_hint">It is removed only from this device\'s chat history; the thread itself stays.</string>
+    <string name="mp_voice_unavailable">Voice can\'t be played</string>
+    <string name="mp_voice_play">Play voice message</string>
+    <string name="mp_voice_pause">Pause voice message</string>
+    <string name="mp_image_broken">Image can\'t be shown</string>
 </resources>

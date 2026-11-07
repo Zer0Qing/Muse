@@ -38,9 +38,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.data.voice.MpVoiceCapture
 import io.zer0.muse.miniphone.data.voice.MpVoiceRecorder
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
@@ -91,7 +93,7 @@ internal fun ChatInputBar(
     val voiceState by voice.state.collectAsState()
     val askMic = rememberMicPermissionRequest(
         onGranted = voice::start,
-        onDenied = { context.toast(MIC_PERMISSION_NOTICE) },
+        onDenied = { context.toast(context.getString(MIC_PERMISSION_NOTICE_RES)) },
     )
     Column(
         modifier = modifier
@@ -137,7 +139,7 @@ internal fun ChatInputBar(
                         decorationBox = { innerTextField ->
                             if (text.isEmpty()) {
                                 Text(
-                                    text = INPUT_PLACEHOLDER,
+                                    text = stringResource(INPUT_PLACEHOLDER_RES),
                                     style = typography.body.copy(color = colors.textSecondary),
                                 )
                             }
@@ -153,7 +155,7 @@ internal fun ChatInputBar(
                 onClick = {
                     when {
                         // 引擎不支持录音输入:键是灰的,点了只解释一句,不弹权限框也不开采集
-                        !voiceInputEnabled -> context.toast(VOICE_UNSUPPORTED_NOTICE)
+                        !voiceInputEnabled -> context.toast(context.getString(VOICE_UNSUPPORTED_NOTICE_RES))
                         voiceState is MpVoiceInputState.Recording -> voice.stop()
                         voiceState == MpVoiceInputState.Transcribing -> Unit
                         else -> askMic()
@@ -185,13 +187,14 @@ private fun rememberVoiceInput(
     val currentTranscript = rememberUpdatedState(onTranscript)
     val currentNotice = rememberUpdatedState(onNotice)
     val currentEnabled = rememberUpdatedState(voiceInputEnabled)
+    val context = LocalContext.current
     val controller = remember(recorder) {
         MpVoiceInputController(
             recorder = recorder,
             transcribe = { wav -> currentTranscribe.value(wav) },
             onTranscript = { transcript -> currentTranscript.value(transcript) },
-            onEmptyTranscript = { currentNotice.value(EMPTY_TRANSCRIPT_NOTICE) },
-            onStartFailed = { currentNotice.value(START_FAILED_NOTICE) },
+            onEmptyTranscript = { currentNotice.value(context.getString(EMPTY_TRANSCRIPT_NOTICE_RES)) },
+            onStartFailed = { currentNotice.value(context.getString(START_FAILED_NOTICE_RES)) },
             canRecord = { currentEnabled.value },
             scope = scope,
         )
@@ -245,7 +248,7 @@ private fun PickImageButton(onClick: () -> Unit) {
     ) {
         Icon(
             imageVector = MiniPhoneIcons.Image,
-            contentDescription = PICK_IMAGE_DESCRIPTION,
+            contentDescription = stringResource(PICK_IMAGE_DESCRIPTION_RES),
             tint = colors.textSecondary,
             modifier = Modifier.size(SendIconSize),
         )
@@ -274,7 +277,7 @@ private fun MicButton(state: MpVoiceInputState, enabled: Boolean, onClick: () ->
                 .testTag(MiniPhoneChatTags.MIC_BUTTON),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = STOP_LABEL, style = typography.caption.copy(color = colors.onAccent))
+            Text(text = stringResource(STOP_LABEL_RES), style = typography.caption.copy(color = colors.onAccent))
         }
         state == MpVoiceInputState.Transcribing -> Box(
             modifier = Modifier
@@ -286,7 +289,7 @@ private fun MicButton(state: MpVoiceInputState, enabled: Boolean, onClick: () ->
         ) {
             Icon(
                 imageVector = MiniPhoneIcons.Mic,
-                contentDescription = MIC_DESCRIPTION,
+                contentDescription = stringResource(MIC_DESCRIPTION_RES),
                 tint = colors.divider,
                 modifier = Modifier.size(SendIconSize),
             )
@@ -301,7 +304,7 @@ private fun MicButton(state: MpVoiceInputState, enabled: Boolean, onClick: () ->
         ) {
             Icon(
                 imageVector = MiniPhoneIcons.Mic,
-                contentDescription = MIC_DESCRIPTION,
+                contentDescription = stringResource(MIC_DESCRIPTION_RES),
                 tint = if (enabled) colors.textSecondary else colors.divider,
                 modifier = Modifier.size(SendIconSize),
             )
@@ -356,7 +359,7 @@ private fun TranscribingStrip() {
             .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
         Text(
-            text = TRANSCRIBING_LABEL,
+            text = stringResource(TRANSCRIBING_LABEL_RES),
             style = typography.body.copy(color = colors.textSecondary),
             modifier = Modifier.testTag(MiniPhoneChatTags.VOICE_STATUS),
         )
@@ -379,7 +382,7 @@ private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
     ) {
         Icon(
             imageVector = MiniPhoneIcons.Send,
-            contentDescription = SEND_DESCRIPTION,
+            contentDescription = stringResource(SEND_DESCRIPTION_RES),
             tint = if (enabled) colors.onAccent else colors.textSecondary,
             modifier = Modifier.size(SendIconSize),
         )
@@ -408,14 +411,14 @@ private val RecordingDotSize = 8.dp
 /** 输入框最多长到四行,再长就在框内滚动。 */
 private const val INPUT_MAX_LINES: Int = 4
 
-private const val INPUT_PLACEHOLDER: String = "说点什么…"
-private const val SEND_DESCRIPTION: String = "发送"
-private const val PICK_IMAGE_DESCRIPTION: String = "选择图片"
-private const val MIC_DESCRIPTION: String = "发语音"
-private const val STOP_LABEL: String = "结束"
+private val INPUT_PLACEHOLDER_RES: Int = R.string.mp_chat_input_placeholder
+private val SEND_DESCRIPTION_RES: Int = R.string.mp_chat_send_cd
+private val PICK_IMAGE_DESCRIPTION_RES: Int = R.string.mp_chat_pick_image_cd
+private val MIC_DESCRIPTION_RES: Int = R.string.mp_chat_mic_cd
+private val STOP_LABEL_RES: Int = R.string.mp_chat_stop
 private const val CANCEL_LABEL: String = "取消"
-private const val TRANSCRIBING_LABEL: String = "正在转写…"
-private const val EMPTY_TRANSCRIPT_NOTICE: String = "没听清，再说一次"
-private const val START_FAILED_NOTICE: String = "录音启动失败，请检查麦克风是否被其他应用占用"
-private const val MIC_PERMISSION_NOTICE: String = "需要麦克风权限才能发语音"
-private const val VOICE_UNSUPPORTED_NOTICE: String = "当前语音识别引擎不支持录音输入，请到设置里选择支持转写的引擎"
+private val TRANSCRIBING_LABEL_RES: Int = R.string.mp_chat_transcribing
+private val EMPTY_TRANSCRIPT_NOTICE_RES: Int = R.string.mp_chat_empty_transcript
+private val START_FAILED_NOTICE_RES: Int = R.string.mp_chat_start_failed
+private val MIC_PERMISSION_NOTICE_RES: Int = R.string.mp_chat_mic_permission
+private val VOICE_UNSUPPORTED_NOTICE_RES: Int = R.string.mp_chat_voice_unsupported

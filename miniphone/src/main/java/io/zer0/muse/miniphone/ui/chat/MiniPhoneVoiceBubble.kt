@@ -26,7 +26,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import org.koin.compose.koinInject
@@ -60,6 +63,7 @@ internal fun ChatVoiceBubble(
     controller: MiniPhoneVoicePlaybackController = koinInject(),
     onLongPress: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     val uri = message.mediaUri.orEmpty()
     val durationMs = message.voiceDurationMs
     val file = remember(uri) { localAudioFileOf(uri) }
@@ -109,7 +113,7 @@ internal fun ChatVoiceBubble(
                 onClick = { controller.toggle(uri, file) },
                 onLongClick = onLongPress,
             )
-            .semantics { contentDescription = if (playing) VOICE_PAUSE_LABEL else VOICE_PLAY_LABEL }
+            .semantics { contentDescription = context.getString(if (playing) VOICE_PAUSE_LABEL_RES else VOICE_PLAY_LABEL_RES) }
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -173,7 +177,7 @@ private fun VoiceUnavailableBubble(message: ChatMessageUi, width: Dp, onLongPres
             modifier = Modifier.size(VoiceIconSize),
         )
         Text(
-            text = VOICE_UNAVAILABLE_TEXT,
+            text = stringResource(VOICE_UNAVAILABLE_TEXT_RES),
             style = MiniPhoneTheme.typography.timestamp.copy(color = colors.textSecondary),
         )
     }
@@ -283,8 +287,8 @@ private const val INACTIVE_BAR_ALPHA: Float = 0.28f
 private const val SHORT_VOICE_MS: Long = 15_000L
 private const val MEDIUM_VOICE_MS: Long = 60_000L
 
-internal const val VOICE_UNAVAILABLE_TEXT: String = "语音无法播放"
+internal val VOICE_UNAVAILABLE_TEXT_RES: Int = R.string.mp_voice_unavailable
 private const val UNKNOWN_DURATION: String = "--:--"
-private const val VOICE_PLAY_LABEL: String = "播放语音"
-private const val VOICE_PAUSE_LABEL: String = "暂停语音"
+private val VOICE_PLAY_LABEL_RES: Int = R.string.mp_voice_play
+private val VOICE_PAUSE_LABEL_RES: Int = R.string.mp_voice_pause
 private const val FILE_PREFIX: String = "file://"

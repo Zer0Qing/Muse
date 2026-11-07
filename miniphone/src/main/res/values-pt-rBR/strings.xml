@@ -40,4 +40,25 @@
     <string name="mp_thread_delete_title">Excluir esta conversa?</string>
     <string name="mp_thread_delete_hint">O chat e todas as mensagens são removidos deste aparelho e não podem ser recuperados.</string>
     <string name="mp_me_version_module">Dados do mini phone v%1$d</string>
+    <string name="mp_chat_input_placeholder">Diga algo…</string>
+    <string name="mp_chat_send_cd">Enviar</string>
+    <string name="mp_chat_pick_image_cd">Escolher imagem</string>
+    <string name="mp_chat_mic_cd">Mensagem de voz</string>
+    <string name="mp_chat_stop">Parar</string>
+    <string name="mp_chat_transcribing">Transcrevendo…</string>
+    <string name="mp_chat_empty_transcript">Não entendi, diga de novo</string>
+    <string name="mp_chat_start_failed">Falha ao iniciar a gravação; verifique se outro app usa o microfone</string>
+    <string name="mp_chat_mic_permission">É necessária a permissão do microfone para mensagens de voz</string>
+    <string name="mp_chat_voice_unsupported">O motor de voz atual não suporta gravação; escolha nas Ajustes um com transcrição</string>
+    <string name="mp_chat_expand">Expandir</string>
+    <string name="mp_chat_collapse">Recolher</string>
+    <string name="mp_chat_sending">Enviando</string>
+    <string name="mp_chat_send_failed">Não enviado; toque para tentar de novo</string>
+    <string name="mp_chat_typing">Digitando…</string>
+    <string name="mp_chat_delete_title">Excluir esta mensagem?</string>
+    <string name="mp_chat_delete_hint">Remove só do histórico deste aparelho; o chat permanece.</string>
+    <string name="mp_voice_unavailable">Não é possível reproduzir o áudio</string>
+    <string name="mp_voice_play">Reproduzir áudio</string>
+    <string name="mp_voice_pause">Pausar áudio</string>
+    <string name="mp_image_broken">Não é possível exibir a imagem</string>
 </resources>

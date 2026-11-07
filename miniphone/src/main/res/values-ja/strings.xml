@@ -40,4 +40,25 @@
     <string name="mp_thread_delete_title">この会話を削除しますか?</string>
     <string name="mp_thread_delete_hint">会話とすべてのメッセージがこの端末から削除され復元できません。</string>
     <string name="mp_me_version_module">ミニスマホデータ v%1$d</string>
+    <string name="mp_chat_input_placeholder">何か入力…</string>
+    <string name="mp_chat_send_cd">送信</string>
+    <string name="mp_chat_pick_image_cd">画像を選択</string>
+    <string name="mp_chat_mic_cd">音声メッセージ</string>
+    <string name="mp_chat_stop">終了</string>
+    <string name="mp_chat_transcribing">文字起こし中…</string>
+    <string name="mp_chat_empty_transcript">よく聞き取れませんでした、もう一度</string>
+    <string name="mp_chat_start_failed">録音を開始できませんでした。マイクが他のアプリに使用中でないか確認してください</string>
+    <string name="mp_chat_mic_permission">音声メッセージにはマイクの許可が必要です</string>
+    <string name="mp_chat_voice_unsupported">現在の音声認識エンジンは録音入力に対応していません。設定で文字起こし対応のエンジンを選んでください</string>
+    <string name="mp_chat_expand">展開</string>
+    <string name="mp_chat_collapse">折りたたむ</string>
+    <string name="mp_chat_sending">送信中</string>
+    <string name="mp_chat_send_failed">未送信・再試行</string>
+    <string name="mp_chat_typing">相手は入力中…</string>
+    <string name="mp_chat_delete_title">このメッセージを削除しますか?</string>
+    <string name="mp_chat_delete_hint">この端末の履歴からのみ削除され、会話自体はそのままです。</string>
+    <string name="mp_voice_unavailable">音声を再生できません</string>
+    <string name="mp_voice_play">音声を再生</string>
+    <string name="mp_voice_pause">音声を一時停止</string>
+    <string name="mp_image_broken">画像を表示できません</string>
 </resources>

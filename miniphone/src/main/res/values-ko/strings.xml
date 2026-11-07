@@ -40,4 +40,25 @@
     <string name="mp_thread_delete_title">이 대화를 삭제할까요?</string>
     <string name="mp_thread_delete_hint">대화와 모든 메시지가 기기에서 삭제되며 되돌릴 수 없습니다.</string>
     <string name="mp_me_version_module">미니폰 데이터 v%1$d</string>
+    <string name="mp_chat_input_placeholder">무언가 입력…</string>
+    <string name="mp_chat_send_cd">전송</string>
+    <string name="mp_chat_pick_image_cd">이미지 선택</string>
+    <string name="mp_chat_mic_cd">음성 메시지</string>
+    <string name="mp_chat_stop">종료</string>
+    <string name="mp_chat_transcribing">변환 중…</string>
+    <string name="mp_chat_empty_transcript">잘 안 들렸어요, 다시 말해 주세요</string>
+    <string name="mp_chat_start_failed">녹음을 시작하지 못했습니다. 마이크를 다른 앱이 사용하는지 확인해 주세요</string>
+    <string name="mp_chat_mic_permission">음성 메시지에는 마이크 권한이 필요합니다</string>
+    <string name="mp_chat_voice_unsupported">현재 음성 인식 엔진은 녹음 입력을 지원하지 않습니다. 설정에서 변환 지원 엔진을 선택하세요</string>
+    <string name="mp_chat_expand">펼치기</string>
+    <string name="mp_chat_collapse">접기</string>
+    <string name="mp_chat_sending">전송 중</string>
+    <string name="mp_chat_send_failed">미전송, 다시 시도</string>
+    <string name="mp_chat_typing">상대방이 입력 중…</string>
+    <string name="mp_chat_delete_title">이 메시지를 삭제할까요?</string>
+    <string name="mp_chat_delete_hint">이 기기의 기록에서만 삭제되고 대화는 그대로 남습니다.</string>
+    <string name="mp_voice_unavailable">음성을 재생할 수 없습니다</string>
+    <string name="mp_voice_play">음성 재생</string>
+    <string name="mp_voice_pause">음성 일시정지</string>
+    <string name="mp_image_broken">이미지를 표시할 수 없음</string>
 </resources>

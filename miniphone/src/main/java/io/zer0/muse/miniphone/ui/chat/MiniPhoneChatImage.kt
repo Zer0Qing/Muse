@@ -37,6 +37,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import java.io.File
@@ -209,7 +211,7 @@ private fun BrokenImageContent(messageId: String) {
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = BROKEN_IMAGE_TEXT,
+            text = stringResource(BROKEN_IMAGE_TEXT_RES),
             style = typography.timestamp.copy(color = colors.textSecondary),
             textAlign = TextAlign.Center,
         )
@@ -250,4 +252,4 @@ private const val GALLERY_DISMISS_DRAG_PX = 120f
 
 private const val MIN_ZOOM: Float = 1f
 private const val MAX_ZOOM: Float = 5f
-private const val BROKEN_IMAGE_TEXT: String = "图片无法显示"
+private val BROKEN_IMAGE_TEXT_RES: Int = R.string.mp_image_broken

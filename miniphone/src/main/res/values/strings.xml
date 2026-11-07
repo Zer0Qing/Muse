@@ -40,4 +40,25 @@
     <string name="mp_thread_delete_title">删除这个会话?</string>
     <string name="mp_thread_delete_hint">会话和里面的全部消息都会从这台手机上删掉,无法恢复。</string>
     <string name="mp_me_version_module">小手机数据 v%1$d</string>
+    <string name="mp_chat_input_placeholder">说点什么…</string>
+    <string name="mp_chat_send_cd">发送</string>
+    <string name="mp_chat_pick_image_cd">选择图片</string>
+    <string name="mp_chat_mic_cd">发语音</string>
+    <string name="mp_chat_stop">结束</string>
+    <string name="mp_chat_transcribing">正在转写…</string>
+    <string name="mp_chat_empty_transcript">没听清，再说一次</string>
+    <string name="mp_chat_start_failed">录音启动失败，请检查麦克风是否被其他应用占用</string>
+    <string name="mp_chat_mic_permission">需要麦克风权限才能发语音</string>
+    <string name="mp_chat_voice_unsupported">当前语音识别引擎不支持录音输入，请到设置里选择支持转写的引擎</string>
+    <string name="mp_chat_expand">展开</string>
+    <string name="mp_chat_collapse">收起</string>
+    <string name="mp_chat_sending">发送中</string>
+    <string name="mp_chat_send_failed">未发出,重试</string>
+    <string name="mp_chat_typing">对方正在输入…</string>
+    <string name="mp_chat_delete_title">删除这条消息?</string>
+    <string name="mp_chat_delete_hint">只从这台手机的聊天记录里删掉,会话本身不受影响。</string>
+    <string name="mp_voice_unavailable">语音无法播放</string>
+    <string name="mp_voice_play">播放语音</string>
+    <string name="mp_voice_pause">暂停语音</string>
+    <string name="mp_image_broken">图片无法显示</string>
 </resources>

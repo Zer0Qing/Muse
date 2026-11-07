@@ -40,4 +40,25 @@
     <string name="mp_thread_delete_title">Удалить этот чат?</string>
     <string name="mp_thread_delete_hint">Чат и все его сообщения удаляются с устройства без возврата.</string>
     <string name="mp_me_version_module">Данные минифона v%1$d</string>
+    <string name="mp_chat_input_placeholder">Скажите что-нибудь…</string>
+    <string name="mp_chat_send_cd">Отправить</string>
+    <string name="mp_chat_pick_image_cd">Выбрать изображение</string>
+    <string name="mp_chat_mic_cd">Голосовое сообщение</string>
+    <string name="mp_chat_stop">Стоп</string>
+    <string name="mp_chat_transcribing">Идёт расшифровка…</string>
+    <string name="mp_chat_empty_transcript">Не расслышал, скажите ещё раз</string>
+    <string name="mp_chat_start_failed">Не удалось начать запись; проверьте, не занят ли микрофон другим приложением</string>
+    <string name="mp_chat_mic_permission">Для голосовых сообщений нужен доступ к микрофону</string>
+    <string name="mp_chat_voice_unsupported">Текущий движок распознавания не поддерживает запись; выберите в настройках движок с транскрипцией</string>
+    <string name="mp_chat_expand">Развернуть</string>
+    <string name="mp_chat_collapse">Свернуть</string>
+    <string name="mp_chat_sending">Отправка</string>
+    <string name="mp_chat_send_failed">Не отправлено — повторить</string>
+    <string name="mp_chat_typing">Печатает…</string>
+    <string name="mp_chat_delete_title">Удалить это сообщение?</string>
+    <string name="mp_chat_delete_hint">Удаляется только из истории на этом устройстве; сам чат остаётся.</string>
+    <string name="mp_voice_unavailable">Голосовое недоступно</string>
+    <string name="mp_voice_play">Воспроизвести</string>
+    <string name="mp_voice_pause">Пауза</string>
+    <string name="mp_image_broken">Изображение недоступно</string>
 </resources>
