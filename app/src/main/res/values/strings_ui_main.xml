@@ -1010,7 +1010,12 @@
     <string name="app_language_ko" translatable="false">한국어</string>
     <string name="app_language_ru" translatable="false">Русский</string>
     <string name="app_language_es" translatable="false">Español</string>
-    <string name="app_language_pt_br" translatable="false">Português (Brasil)</string>
+        <string name="app_language_fr" translatable="false">Français</string>
+    <string name="app_language_de" translatable="false">Deutsch</string>
+    <string name="app_language_ar" translatable="false">العربية</string>
+    <string name="translate_language_zh" translatable="false">中文</string>
+    <string name="translate_language_pt" translatable="false">Português</string>
+<string name="app_language_pt_br" translatable="false">Português (Brasil)</string>
     <string name="audit_log_field_action">操作</string>
     <string name="audit_log_field_target">目标</string>
     <string name="audit_log_field_detail">详情</string>

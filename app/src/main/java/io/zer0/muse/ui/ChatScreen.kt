@@ -2325,6 +2325,7 @@ fun ChatScreen(
                             ) {
                                 EmptyChatGuide(
                                     assistant = state.currentAssistant,
+                                    onOpenAssistants = onOpenAssistants,
                                     // v1.0.72: 此条对话不参考记忆
                                     ignoreMemory = currentSessionIgnoreMemory,
                                     onToggleIgnoreMemory = { ignore ->

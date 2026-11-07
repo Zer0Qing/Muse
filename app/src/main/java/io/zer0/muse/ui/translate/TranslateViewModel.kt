@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.translate
 
 import android.content.Context
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.ai.ChatService
@@ -841,7 +842,27 @@ class TranslateViewModel(
 }
 
 /**
- * 语言值本身要进 prompt，不能改；只在展示时把哨兵换成当前语言的“自动检测”。
+ * 语言值本身要进 prompt，不能改；展示一律走同一张自称表。
+ *
+ * 走查 三-T3：翻译列表里的 Deutsch / Français / العربية 只在翻译功能出现，
+ * 界面语言列表又叫另一个名字，同一件东西两套词。现在两边都指向 app_language_*，
+ * 只有范围不同的两项（中文 / Português 泛指）用翻译专用 key。
  */
-internal fun translateLanguageDisplay(option: String, autoLabel: String): String =
-    if (option == TranslateViewModel.SOURCE_AUTO) autoLabel else option
+@Composable
+internal fun translateLanguageDisplay(option: String, autoLabel: String): String {
+    if (option == TranslateViewModel.SOURCE_AUTO) return autoLabel
+    val res = when (option) {
+        "English" -> io.zer0.muse.R.string.app_language_en
+        "日本語" -> io.zer0.muse.R.string.app_language_ja
+        "한국어" -> io.zer0.muse.R.string.app_language_ko
+        "Español" -> io.zer0.muse.R.string.app_language_es
+        "Русский" -> io.zer0.muse.R.string.app_language_ru
+        "Français" -> io.zer0.muse.R.string.app_language_fr
+        "Deutsch" -> io.zer0.muse.R.string.app_language_de
+        "العربية" -> io.zer0.muse.R.string.app_language_ar
+        "中文" -> io.zer0.muse.R.string.translate_language_zh
+        "Português" -> io.zer0.muse.R.string.translate_language_pt
+        else -> return option
+    }
+    return androidx.compose.ui.res.stringResource(res)
+}
