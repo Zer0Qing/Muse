@@ -13,8 +13,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 
 /**
@@ -90,7 +92,7 @@ internal fun ChatNewMessagesPill(count: Int, onClick: () -> Unit, modifier: Modi
     val colors = MiniPhoneTheme.colors
     val typography = MiniPhoneTheme.typography
     Text(
-        text = newMessagePillLabel(count),
+        text = newMessagePillLabel(LocalContext.current, count),
         style = typography.caption.copy(color = colors.onAccent),
         modifier = modifier
             .testTag(MiniPhoneChatTags.NEW_MESSAGES_PILL)
@@ -102,7 +104,8 @@ internal fun ChatNewMessagesPill(count: Int, onClick: () -> Unit, modifier: Modi
 }
 
 /** 胶囊上的字:条数 + 一句「有几条没看」。 */
-internal fun newMessagePillLabel(count: Int): String = "$count 条新消息"
+internal fun newMessagePillLabel(context: android.content.Context, count: Int): String =
+    context.resources.getQuantityString(R.plurals.mp_new_messages, count, count)
 
 /** 判定「贴底」允许的像素级偏差:滚动停稳时未必严格落在整数像素上。 */
 private const val BOTTOM_TOLERANCE_PX: Int = 2

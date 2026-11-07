@@ -63,6 +63,7 @@ fun ArtifactCenterScreen(onBack: () -> Unit) {
             if (artifacts.isEmpty()) {
                 MuseEmptyState(
                     title = stringResource(R.string.artifact_center_empty),
+                    subtitle = stringResource(R.string.artifact_center_empty_hint),
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {

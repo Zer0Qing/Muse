@@ -65,4 +65,33 @@ class InternalMarkupSanitizerTest {
         assertEquals("", InternalMarkupSanitizer.stripForDisplay("   \n  "))
         assertEquals("", InternalMarkupSanitizer.stripForDisplay(""))
     }
+
+    /**
+     * 状态记号：展示层保留、导出层剥掉。
+     *
+     * 展示层不能剥——剥完正文可能变成空串，下游「正文为空就不渲染」的判据会把整条
+     * 气泡吞掉（走查 §十六 实测：助手气泡整条消失）。本地化在气泡层用
+     * MessageMarkers.localize 做。复制/导出则不该带这行状态。
+     */
+    @Test
+    fun keepsStateMarkersForDisplayButStripsThemOnExport() {
+        val markers = io.zer0.muse.data.session.MessageMarkers
+        assertEquals("正文" + markers.interruptedSuffix, InternalMarkupSanitizer.stripForDisplay("正文" + markers.interruptedSuffix))
+        assertEquals("正文\n\n[已中断]", InternalMarkupSanitizer.stripForDisplay("正文\n\n[已中断]"))
+        assertEquals("正文", InternalMarkupSanitizer.exportContent("正文" + markers.interruptedSuffix))
+        assertEquals("正文", InternalMarkupSanitizer.exportContent("正文\n\n[已中断]"))
+        assertEquals("正文", InternalMarkupSanitizer.exportContent("正文" + markers.truncatedSuffix))
+    }
+
+    /** 记号换成当前语言的那句话；正文里的普通文字不受影响。 */
+    @Test
+    fun localizeReplacesMarkersWithTheCurrentLanguageSentence() {
+        val markers = io.zer0.muse.data.session.MessageMarkers
+        assertEquals(
+            "正文\n\n已中断",
+            markers.localize("正文" + markers.interruptedSuffix, "已中断", "被截断"),
+        )
+        assertEquals("正文\n\n[Interrupted]", markers.localize("正文\n\n[已中断]", "[Interrupted]", "Truncated"))
+        assertEquals("正文", markers.localize("正文", "[Interrupted]", "Truncated"))
+    }
 }

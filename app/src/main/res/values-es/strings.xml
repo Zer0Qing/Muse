@@ -155,7 +155,7 @@
 
     <string name="chat_draft_label">Borrador</string>
     <string name="chat_list_status_in_progress">En curso</string>
-    <string name="chat_list_status_pending">Pendiente</string>
+    <string name="chat_list_status_pending">Sin empezar</string>
     <string name="chat_list_status_completed">Terminado</string>
     <string name="chat_list_time_just_now">Ahora mismo</string>
     <string name="chat_list_time_minutes_ago">Hace %1$d min</string>
@@ -278,4 +278,5 @@
     <string name="settings_diagnostics_migration_none">Sin registros de migración en este dispositivo</string>
     <string name="settings_diagnostics_migration_summary">%1$d pasos · %2$d ms total · más lento %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">Falló el paso %1$d</string>
+    <string name="msg_interrupted_note">[Interrumpido]</string>
 </resources>

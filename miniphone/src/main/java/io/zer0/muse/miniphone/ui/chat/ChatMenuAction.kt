@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.data.db.MpMessageType
 
 /**
@@ -14,11 +15,11 @@ import io.zer0.muse.miniphone.data.db.MpMessageType
  * 界面只管把返回的项按顺序画出来。
  */
 internal enum class ChatMenuAction(
-    val label: String,
+    val labelRes: Int,
 ) {
-    COPY("复制"),
-    DELETE("删除"),
-    RESEND("重发"),
+    COPY(R.string.mp_chat_menu_copy),
+    DELETE(R.string.mp_delete),
+    RESEND(R.string.mp_chat_menu_resend),
 }
 
 /**

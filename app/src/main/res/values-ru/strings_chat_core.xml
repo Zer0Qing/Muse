@@ -447,13 +447,12 @@
     <string name="settings_sticker_move_target_label">Перенести в другой набор (новое имя создаёт набор)</string>
     <string name="settings_sticker_move_up">Выше</string>
     <string name="settings_sticker_move_down">Ниже</string>
-    <string name="settings_sticker_upload_zip">Импортировать ZIP-файл</string>
     <string name="settings_sticker_upload_zip_subtitle">Выберите ZIP-файл;</string>
     <string name="settings_sticker_imported">Импортированные стикеры %1$d</string>
     <string name="settings_sticker_import_failed">Не удалось импортировать: %1$s</string>
     <string name="settings_sticker_export_location_failed">Не удалось записать в выбранное место</string>
     <string name="settings_sticker_empty_title">Наклеек пока нет</string>
-    <string name="settings_sticker_empty_subtitle">Нажмите «Импортировать ZIP» выше, чтобы добавить ZIP-файл.</string>
+    <string name="settings_sticker_empty_subtitle">Нажмите «Импортировать стикеры» выше; поддерживаются ZIP, DOCX/PPTX и изображения</string>
     <string name="settings_sticker_delete_confirm">Удалить эту наклейку?</string>
     <string name="settings_sticker_category_all">Все</string>
 
@@ -663,4 +662,5 @@
     <string name="onboarding_connect_error_timeout">Время подключения истекло. Проверьте сеть или URL.</string>
     <string name="onboarding_connect_error_server">Поставщик недоступен. Повторите позже; если ошибка не исчезает, модель могла быть отключена.</string>
     <string name="onboarding_connect_error_no_model">Нет модели для проверки. Сначала загрузите список моделей.</string>
+    <string name="sticker_category_default">По умолчанию</string>
 </resources>

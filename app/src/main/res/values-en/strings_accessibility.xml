@@ -16,7 +16,7 @@
     <string name="accessibility_enable_btn">Open system settings</string>
 
     <!-- Shizuku -->
-    <string name="shizuku_section_title">Shizuku (Recommended)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse authorized to use Shizuku</string>
     <string name="shizuku_install_btn">Download Shizuku</string>
     <string name="shizuku_authorize_btn">Authorize Muse</string>
@@ -25,4 +25,8 @@
     <string name="root_section_title">Root Permission</string>
     <string name="root_status_available">Root authorized (fallback channel, can execute su commands directly)</string>
     <string name="root_status_unavailable">Not rooted or not authorized (used as fallback when Shizuku unavailable)</string>
+    <string name="permission_next_step">Suggested next step: %1$s</string>
+    <string name="permission_optional_channels">The basics are ready; the other channels are optional</string>
+    <string name="permission_privacy_notice_title">These permissions stay on this device</string>
+    <string name="permission_privacy_notice_body">Screen reading and command execution happen on this phone; nothing is uploaded. Root, Shizuku and Termux are optional high-privilege channels that let the app act on your device — revoke them any time in system settings or in the matching app.</string>
 </resources>

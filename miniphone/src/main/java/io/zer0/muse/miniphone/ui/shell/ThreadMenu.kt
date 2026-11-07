@@ -23,10 +23,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.chat.ChatMenuPositionProvider
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneColors
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
@@ -38,12 +40,12 @@ import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
  * 界面只管把返回的项按顺序画出来。
  */
 internal enum class ThreadMenuAction(
-    val label: String,
+    val labelRes: Int,
 ) {
-    PIN("置顶"),
-    UNPIN("取消置顶"),
-    MARK_READ("标记已读"),
-    DELETE("删除会话"),
+    PIN(R.string.mp_thread_pin),
+    UNPIN(R.string.mp_thread_unpin),
+    MARK_READ(R.string.mp_thread_mark_read),
+    DELETE(R.string.mp_thread_delete),
 }
 
 /**
@@ -115,7 +117,7 @@ internal fun ThreadRowMenu(
                     )
                 }
                 Text(
-                    text = action.label,
+                    text = stringResource(action.labelRes),
                     style = typography.body.copy(color = action.colorIn(colors)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -149,12 +151,12 @@ internal fun ThreadDeleteConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> U
                 .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
             Text(
-                text = DELETE_TITLE,
+                text = stringResource(DELETE_TITLE_RES),
                 style = typography.title.copy(color = colors.textPrimary),
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = DELETE_HINT,
+                text = stringResource(DELETE_HINT_RES),
                 style = typography.caption.copy(color = colors.textSecondary),
             )
             Spacer(Modifier.height(18.dp))
@@ -163,14 +165,14 @@ internal fun ThreadDeleteConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> U
                 horizontalArrangement = Arrangement.End,
             ) {
                 DialogAction(
-                    label = "取消",
+                    label = stringResource(R.string.mp_cancel),
                     color = colors.textSecondary,
                     tag = MiniPhoneTags.THREAD_DELETE_CANCEL,
                     onClick = onDismiss,
                 )
                 Spacer(Modifier.width(8.dp))
                 DialogAction(
-                    label = "删除",
+                    label = stringResource(R.string.mp_delete),
                     color = colors.unreadDot,
                     tag = MiniPhoneTags.THREAD_DELETE_CONFIRM,
                     onClick = onConfirm,
@@ -205,5 +207,5 @@ private val DialogWidth = 280.dp
 
 private val DialogActionHeight = 36.dp
 
-private const val DELETE_TITLE: String = "删除这个会话?"
-private const val DELETE_HINT: String = "会话和里面的全部消息都会从这台手机上删掉,无法恢复。"
+private val DELETE_TITLE_RES: Int = R.string.mp_thread_delete_title
+private val DELETE_HINT_RES: Int = R.string.mp_thread_delete_hint

@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
@@ -61,6 +62,9 @@ class MiniPhoneChatUiTest {
     private val sent = mutableListOf<String>()
     private val resent = mutableListOf<String>()
     private val deleted = mutableListOf<String>()
+
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
 
     @Test
     fun ownBubbleSitsRightAndPeerBubbleSitsLeft() {
@@ -120,7 +124,7 @@ class MiniPhoneChatUiTest {
         )
 
         compose.onNodeWithTag(MiniPhoneChatTags.ACTIVITY).assertExists()
-        compose.onNodeWithText("对方正在翻找…").assertExists()
+        compose.onNodeWithText(res(R.string.mp_activity_searching)).assertExists()
         compose.onNodeWithTag(MiniPhoneChatTags.TYPING).assertDoesNotExist()
     }
 
@@ -141,7 +145,7 @@ class MiniPhoneChatUiTest {
 
         compose.onNodeWithTag(MiniPhoneChatTags.expand("long")).assertExists()
         compose.onNodeWithTag(MiniPhoneChatTags.expand("long")).performClick()
-        compose.onNodeWithText(COLLAPSE_ACTION).assertExists()
+        compose.onNodeWithText(res(R.string.mp_chat_collapse)).assertExists()
     }
 
     @Test
@@ -312,7 +316,7 @@ class MiniPhoneChatUiTest {
             ),
         )
 
-        compose.onNodeWithTag(MiniPhoneChatTags.status("m1")).assertTextEquals("发送中")
+        compose.onNodeWithTag(MiniPhoneChatTags.status("m1")).assertTextEquals(res(R.string.mp_chat_sending))
         // 正文不能被进行态遮住
         compose.onNodeWithText("在吗").assertIsDisplayed()
     }
@@ -338,7 +342,10 @@ class MiniPhoneChatUiTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(MiniPhoneChatTags.NEW_MESSAGES_PILL).assertIsDisplayed()
-        compose.onNodeWithTag(MiniPhoneChatTags.NEW_MESSAGES_PILL).assertTextEquals("1 条新消息")
+        compose.onNodeWithTag(MiniPhoneChatTags.NEW_MESSAGES_PILL).assertTextEquals(
+            androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+                .resources.getQuantityString(R.plurals.mp_new_messages, 1, 1),
+        )
 
         // 点一下回到最新:提示自己收起来
         compose.onNodeWithTag(MiniPhoneChatTags.NEW_MESSAGES_PILL).performClick()

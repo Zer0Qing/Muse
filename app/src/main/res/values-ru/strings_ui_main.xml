@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">Эксклюзивная модель</string>
     <string name="assistant_detail_temperature">Температура: %1$s</string>
     <string name="assistant_detail_default">По умолчанию</string>
+    <string name="assistant_detail_default_value">По умолчанию (%1$s)</string>
     <string name="assistant_detail_use_default">Использовать по умолчанию</string>
     <string name="assistant_detail_top_p_label">Top P (пусто для значения по умолчанию, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens (пусто для значения по умолчанию)</string>
@@ -558,7 +559,7 @@
     <string name="audit_log_category_user">Действие пользователя</string>
     <string name="audit_log_category_auth">Аутентификация</string>
     <string name="audit_log_category_system">Система</string>
-    <string name="audit_log_search_hint">Поисковое действие/цель/подробности</string>
+    <string name="audit_log_search_hint">Поиск: действие / цель / детали</string>
     <string name="audit_log_clear_search">Очистить поиск</string>
     <string name="audit_log_no_match">Нет соответствующих журналов</string>
     <string name="audit_log_result_count">Показаны %1$d из %2$d</string>
@@ -621,6 +622,7 @@
 
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">Рабочее пространство</string>
+    <string name="workspace_tool_outputs">Вывод инструментов</string>
     <string name="workspace_desc">Локальное управление файлами и временное хранилище</string>
     <string name="workspace_empty">Рабочее пространство пусто</string>
     <string name="workspace_new_file">Новый файл</string>
@@ -849,4 +851,12 @@
     <string name="muse_plugins_market_advice_needs_newer_app">Этот плагин требует более новой версии приложения</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">Совместимость проверяется по манифесту после загрузки; сейчас утверждать нельзя</string>
     <string name="muse_plugins_market_advice_retained">Локально хранятся эти версии: %1$s (переключение в списке установленных)</string>
+    <string name="audit_log_field_action">Действие</string>
+    <string name="audit_log_field_target">Цель</string>
+    <string name="audit_log_field_detail">Детали</string>
+    <string name="audit_log_field_result">Результат</string>
+    <string name="audit_log_result_ok">Успех</string>
+    <string name="audit_log_result_fail">Сбой</string>
+    <string name="permission_advanced_channels">Дополнительные каналы (Root / Termux)</string>
+    <string name="channel_weclaw_summary">Подключает личный аккаунт через протокол iLink в WeChat. Один аккаунт WeChat может быть привязан только к одному каналу: новая привязка отменяет прежнюю. Инициативные уведомления зависят от окна ответа, открытого недавним входящим сообщением; если они не приходят, отправьте этому каналу сообщение в WeChat.</string>
 </resources>

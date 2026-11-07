@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.data.db.MiniPhoneDb
@@ -47,6 +48,9 @@ class MiniPhoneGroupChatUiTest {
         db?.close()
     }
 
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
+
     @Test
     fun groupThreadSitsInTheListWithItsTitleAndAPreviewMark() {
         val state = loadState(
@@ -66,10 +70,26 @@ class MiniPhoneGroupChatUiTest {
         compose.onNodeWithTag(MiniPhoneTags.thread("t-group")).assertIsDisplayed()
         compose.onNodeWithTag(MiniPhoneTags.thread("t-dm")).assertIsDisplayed()
         compose.onNodeWithText("阿远、小满、我").assertIsDisplayed()
-        compose.onNodeWithText("[群] 晚上见").assertIsDisplayed()
+        val mark = res(R.string.mp_shell_group_preview_mark)
+        compose.onNodeWithText("$mark 晚上见").assertIsDisplayed()
         compose.onNodeWithText("在吗").assertIsDisplayed()
-        assertEquals("[群] 在吗", groupPreviewOf("在吗"))
-        assertEquals("没有最后一条消息时也要能认出是群", "[群]", groupPreviewOf(null))
+        // 标记不再烘进状态里的字符串:它按界面语言取,也只盖在群那一行上
+        compose.onNodeWithText("$mark 在吗").assertDoesNotExist()
+    }
+
+    @Test
+    fun groupRowWithoutLastMessageStillReadsAsAGroup() {
+        val state = loadState(
+            threads = listOf(thread(id = "t-group", characterId = "c1", at = NOW, preview = "", isGroup = true, title = "阿远、小满、我")),
+            characters = listOf(MpCharacter(id = "c1", name = "阿远")),
+        )
+        compose.setContent {
+            MiniPhoneTheme(darkTheme = false) {
+                MiniPhoneShell(state = state)
+            }
+        }
+        compose.onNodeWithTag(MiniPhoneTags.tab(MiniPhoneTab.MESSAGES)).performClick()
+        compose.onNodeWithText(res(R.string.mp_shell_group_preview_mark)).assertIsDisplayed()
     }
 
     @Test
@@ -112,7 +132,7 @@ class MiniPhoneGroupChatUiTest {
         // 只选一个:还是按不动
         compose.onNodeWithTag(MiniPhoneTags.groupPick("c1")).performClick()
         compose.waitForIdle()
-        compose.onNodeWithTag(MiniPhoneTags.GROUP_CREATE_COUNT).assertTextEquals("已选 1 人,至少选 2 人")
+        compose.onNodeWithTag(MiniPhoneTags.GROUP_CREATE_COUNT).assertTextEquals(res(R.string.mp_group_selected_min).format(1, 2))
         compose.onNodeWithTag(MiniPhoneTags.GROUP_CREATE_DONE).assertIsNotEnabled()
 
         // 选到两个:完成可用,点下去带着这两个 id 建群并直接进群
@@ -142,7 +162,7 @@ class MiniPhoneGroupChatUiTest {
         }
 
         compose.onNodeWithTag(MiniPhoneTags.groupPickMark("c1"), useUnmergedTree = true).assertExists()
-        compose.onNodeWithTag(MiniPhoneTags.GROUP_CREATE_COUNT).assertTextEquals("已选 1 人,至少选 2 人")
+        compose.onNodeWithTag(MiniPhoneTags.GROUP_CREATE_COUNT).assertTextEquals(res(R.string.mp_group_selected_min).format(1, 2))
     }
 
     /** 真落库再读回来,顺带验证群名与预览标记确实从实体走到了列表。 */

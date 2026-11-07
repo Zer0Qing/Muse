@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">No providers yet</string>
     <string name="settings_provider_empty_subtitle">Add a provider first so the assistant can start working</string>
     <string name="settings_provider_empty_action">Add Provider</string>
+    <string name="settings_provider_free_ready_title">Built-in free models are ready</string>
+    <string name="settings_provider_free_ready_subtitle">Chat works right now. Adding your own provider is optional and unlocks more quota and capabilities.</string>
     <string name="settings_provider_category_official">Official</string>
     <string name="settings_provider_category_relay">Relay</string>
     <string name="settings_provider_category_custom">Custom</string>
@@ -309,6 +311,8 @@
     <string name="settings_chat_show_timestamp">Show Timestamp</string>
     <string name="settings_chat_show_timestamp_subtitle">Show send time for each message</string>
     <string name="settings_chat_generation_style">Generation Style</string>
+    <string name="settings_chat_reply_language">Reply in the user\'s language</string>
+    <string name="settings_chat_reply_language_subtitle">Answers follow the language of your message, falling back to the interface language. Turn off to let prompts decide</string>
     <string name="settings_chat_randomness">Response Randomness</string>
     <string name="settings_chat_temp_hint_certain">Deterministic, stable and predictable</string>
     <string name="settings_chat_temp_hint_balanced_low">Leaning balanced, stable yet diverse</string>

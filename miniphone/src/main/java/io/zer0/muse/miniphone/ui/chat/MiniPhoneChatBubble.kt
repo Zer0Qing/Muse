@@ -35,7 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
 import io.zer0.muse.miniphone.ui.shell.MiniPhoneTimeFormat
@@ -170,11 +173,12 @@ internal fun ChatMessageRow(
  */
 @Composable
 private fun ChatDeliveryState(message: ChatMessageUi, onRetry: () -> Unit) {
+    val context = LocalContext.current
     val colors = MiniPhoneTheme.colors
     val typography = MiniPhoneTheme.typography
     if (message.isSending) {
         Text(
-            text = SENDING_TEXT,
+            text = stringResource(SENDING_TEXT_RES),
             style = typography.timestamp.copy(color = colors.textSecondary),
             modifier = Modifier.testTag(MiniPhoneChatTags.status(message.id)),
         )
@@ -185,13 +189,13 @@ private fun ChatDeliveryState(message: ChatMessageUi, onRetry: () -> Unit) {
             .testTag(MiniPhoneChatTags.status(message.id))
             .clip(RoundedCornerShape(SendFailRadius))
             .clickable(onClick = onRetry)
-            .semantics { contentDescription = SEND_FAILED_TEXT }
+            .semantics { contentDescription = context.getString(SEND_FAILED_TEXT_RES) }
             .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = SEND_FAILED_MARK, style = typography.caption.copy(color = colors.unreadDot))
         Spacer(Modifier.width(2.dp))
-        Text(text = SEND_FAILED_TEXT, style = typography.timestamp.copy(color = colors.unreadDot))
+        Text(text = stringResource(SEND_FAILED_TEXT_RES), style = typography.timestamp.copy(color = colors.unreadDot))
     }
 }
 
@@ -248,7 +252,7 @@ private fun ChatBubble(message: ChatMessageUi, maxWidth: Dp, onLongPress: () -> 
         )
         if (collapsible) {
             Text(
-                text = if (expanded) COLLAPSE_ACTION else EXPAND_ACTION,
+                text = stringResource(if (expanded) COLLAPSE_ACTION_RES else EXPAND_ACTION_RES),
                 style = typography.caption.copy(
                     color = if (mine) colors.bubbleSelfText.copy(alpha = 0.85f) else colors.accent,
                     fontWeight = FontWeight.Medium,
@@ -277,7 +281,7 @@ private fun SystemNoticeRow(message: ChatMessageUi) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = message.content,
+            text = sentinelText(message.content),
             style = typography.timestamp.copy(color = colors.textSecondary),
             textAlign = TextAlign.Center,
             modifier = Modifier
@@ -301,7 +305,7 @@ internal fun ChatTimeDividerRow(at: Long) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = MiniPhoneTimeFormat.separator(at),
+            text = MiniPhoneTimeFormat.separator(LocalContext.current, at),
             style = typography.timestamp.copy(color = colors.textSecondary),
         )
     }
@@ -310,6 +314,7 @@ internal fun ChatTimeDividerRow(at: Long) {
 /** 「对方正在输入…」:对方一侧的气泡里三个跳动的点。 */
 @Composable
 internal fun ChatTypingRow(peerName: String, peerAvatarUri: String?, showName: Boolean = false) {
+    val context = LocalContext.current
     val colors = MiniPhoneTheme.colors
     val dimens = MiniPhoneTheme.dimens
     val typography = MiniPhoneTheme.typography
@@ -318,7 +323,7 @@ internal fun ChatTypingRow(peerName: String, peerAvatarUri: String?, showName: B
         modifier = Modifier
             .fillMaxWidth()
             .testTag(MiniPhoneChatTags.TYPING)
-            .semantics { contentDescription = TYPING_TEXT }
+            .semantics { contentDescription = context.getString(TYPING_TEXT_RES) }
             .padding(horizontal = dimens.pageMargin, vertical = 4.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -367,7 +372,7 @@ internal fun ChatActivityRow(kind: MpActivityKind) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = MiniPhoneActivityText.of(kind),
+            text = stringResource(MiniPhoneActivityText.resOf(kind)),
             style = typography.timestamp.copy(color = colors.textSecondary),
         )
     }
@@ -420,13 +425,13 @@ private val SystemNoticeRadius = 6.dp
 /** 超过这个字数折叠,折叠后给一个「展开」。 */
 private const val COLLAPSE_THRESHOLD: Int = 300
 
-private const val EXPAND_ACTION: String = "展开"
-private const val COLLAPSE_ACTION: String = "收起"
+private val EXPAND_ACTION_RES: Int = R.string.mp_chat_expand
+private val COLLAPSE_ACTION_RES: Int = R.string.mp_chat_collapse
 private const val ELLIPSIS: String = "…"
-private const val SENDING_TEXT: String = "发送中"
+private val SENDING_TEXT_RES: Int = R.string.mp_chat_sending
 private const val SEND_FAILED_MARK: String = "!"
-private const val SEND_FAILED_TEXT: String = "未发出,重试"
-private const val TYPING_TEXT: String = "对方正在输入…"
+private val SEND_FAILED_TEXT_RES: Int = R.string.mp_chat_send_failed
+private val TYPING_TEXT_RES: Int = R.string.mp_chat_typing
 private const val TYPING_LABEL: String = "mp-typing"
 private const val TYPING_PHASE_LABEL: String = "mp-typing-phase"
 

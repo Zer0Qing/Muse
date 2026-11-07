@@ -34,6 +34,8 @@
     <string name="settings_provider_empty_title">还没有供应商</string>
     <string name="settings_provider_empty_subtitle">先添加一个供应商，助手才能开始工作</string>
     <string name="settings_provider_empty_action">添加供应商</string>
+    <string name="settings_provider_free_ready_title">内置免费模型已就绪</string>
+    <string name="settings_provider_free_ready_subtitle">现在就能开始聊天；接入自己的供应商是可选的，额度和能力更全</string>
     <string name="settings_provider_category_official">官方厂商</string>
     <string name="settings_provider_category_relay">中转站</string>
     <string name="settings_provider_category_custom">自定义</string>
@@ -395,6 +397,8 @@
     <string name="settings_chat_show_timestamp">显示时间戳</string>
     <string name="settings_chat_show_timestamp_subtitle">每条消息显示发送时间</string>
     <string name="settings_chat_generation_style">生成风格</string>
+    <string name="settings_chat_reply_language">按用户语言回复</string>
+    <string name="settings_chat_reply_language_subtitle">正文跟随你这条消息的语言；判断不出时用界面语言。关掉后回复语言完全由提示词决定</string>
     <string name="settings_chat_randomness">回答随机性</string>
     <string name="settings_chat_temp_hint_certain">偏确定，回答稳定可预期</string>
     <string name="settings_chat_temp_hint_balanced_low">偏平衡，兼顾稳定与多样</string>

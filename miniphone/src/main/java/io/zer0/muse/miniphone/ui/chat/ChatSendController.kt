@@ -1,6 +1,7 @@
 package io.zer0.muse.miniphone.ui.chat
 
 import android.net.Uri
+import io.zer0.common.Logger
 import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.api.MpReplyEvent
 import io.zer0.muse.miniphone.data.db.MpActorType
@@ -8,14 +9,13 @@ import io.zer0.muse.miniphone.data.db.MpMessageStatus
 import io.zer0.muse.miniphone.data.db.MpMessageType
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
+import io.zer0.muse.miniphone.ui.launchGuarded
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.random.Random
-import io.zer0.common.Logger
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 发消息与收回复。
@@ -257,7 +257,7 @@ internal class ChatSendController(
                     characterId = reply.responders.firstOrNull().orEmpty(),
                     sender = MpActorType.SYSTEM,
                     type = MpMessageType.SYSTEM,
-                    content = NO_REPLY_TEXT,
+                    content = MpSentinel.NO_REPLY,
                 ),
             )
         } else {
@@ -332,7 +332,7 @@ internal class ChatSendController(
                 characterId = characterId,
                 sender = MpActorType.CHARACTER,
                 type = MpMessageType.VOICE,
-                content = VOICE_PREVIEW_TEXT,
+                content = MpSentinel.VOICE,
                 mediaUri = voice.uri,
                 voiceDurationMs = voice.durationMs,
             ),
@@ -359,14 +359,6 @@ internal class ChatSendController(
         val messageId: String,
         val responders: List<String>,
     )
-
-    private companion object {
-        /** 角色没给出回复时落在列表里的系统提示。 */
-        const val NO_REPLY_TEXT: String = "对方没有回应"
-
-        /** 语音消息的正文:库里不存音频,只存这句预览文案,会话列表与未读预览都用它。 */
-        const val VOICE_PREVIEW_TEXT: String = "[语音]"
-    }
 }
 
 /** 两个角色之间的停顿下限与上限(毫秒)。 */

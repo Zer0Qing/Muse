@@ -72,7 +72,6 @@
     <string name="groupchat_member_required">Please select at least one member</string>
     <string name="groupchat_team_optional">Link team (optional)</string>
     <string name="groupchat_no_team">Not linked</string>
-    <string name="groupchat_selected_members">%1$d members selected</string>
     <string name="groupchat_create_btn">Create</string>
 
     <!-- ===== ui/account ===== -->
@@ -132,6 +131,13 @@
     <string name="schedule_cancel">Cancel</string>
     <string name="schedule_msg_cancel">Cancel scheduled message</string>
     <string name="schedule_err_name_required">Please enter a task name</string>
+    <string name="schedule_time_daily">Daily time</string>
+    <string name="schedule_time_weekly">Weekly time</string>
+    <string name="schedule_time_once">Run at</string>
+    <string name="schedule_time_unset">Tap to pick a time</string>
+    <string name="schedule_err_once_time_required">Pick when this one-off task should run</string>
+    <string name="schedule_status_running">Running</string>
+    <string name="schedule_status_completed">Completed</string>
     <string name="schedule_err_content_required">Please enter run content</string>
     <string name="schedule_err_cron_invalid">Invalid cron expression. Please check or use a preset</string>
     <string name="schedule_assistant">Assistant</string>
@@ -676,7 +682,7 @@
     <!-- Background wake diagnostics: whether the system actually has wakeups queued for Muse (read-only). -->
     <string name="wake_diagnostics_open">Background wake status</string>
     <string name="wake_diagnostics_title">Background wake status</string>
-    <string name="wake_diagnostics_subtitle">Reads the real schedule in the system queue. Read-only, nothing is rescheduled.</string>
+    <string name="wake_diagnostics_subtitle">These are the app\'s background jobs as the system actually scheduled them, including built-in backup and summary work - they are not the tasks you created. Read-only; nothing is rescheduled.</string>
     <string name="wake_diagnostics_refresh">Reload</string>
     <string name="wake_diagnostics_copy">Copy snapshot</string>
     <string name="wake_diagnostics_copied">Snapshot copied</string>
@@ -786,4 +792,14 @@
     <string name="plugin_cap_ui_skin">Change the visual skin</string>
     <string name="plugin_cap_ui_interactive">Show a submit form and run the plugin handler (changes data, off by default)</string>
     <string name="plugin_cap_runtime_python">Run Python code outside the sandbox (high trust, confirm separately)</string>
+    <string name="video_no_video_model_hint">The current provider has no model with video output. Enable the \"video output\" capability for a model in Settings › Models and Providers.</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="one">%1$d member selected</item>
+        <item quantity="other">%1$d members selected</item>
+    </plurals>
+    <string name="workspace_go_root">Back to workspace root</string>
+    <string name="artifact_center_empty_hint">Artifacts are the images, files and long texts the assistant produces in chat - keep them here to review and share</string>
+    <string name="daily_summary_light_fallback">Nothing to catch up on today - I\'m here whenever something comes up.</string>
+    <string name="daily_summary_rest_fallback">Long day - get some rest.</string>
+    <string name="daily_summary_none_fallback">No new conversation today.</string>
 </resources>

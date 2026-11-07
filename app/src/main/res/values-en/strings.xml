@@ -156,7 +156,7 @@
 
     <string name="chat_draft_label">Draft</string>
     <string name="chat_list_status_in_progress">In Progress</string>
-    <string name="chat_list_status_pending">Pending</string>
+    <string name="chat_list_status_pending">Not started</string>
     <string name="chat_list_status_completed">Completed</string>
     <string name="chat_list_time_just_now">Just now</string>
     <string name="chat_list_time_minutes_ago">%1$d min ago</string>
@@ -326,4 +326,5 @@
     <string name="settings_diagnostics_migration_none">No migration recorded on this device</string>
     <string name="settings_diagnostics_migration_summary">%1$d steps · %2$d ms total · slowest %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">Step %1$d failed</string>
+    <string name="msg_interrupted_note">[Interrupted]</string>
 </resources>

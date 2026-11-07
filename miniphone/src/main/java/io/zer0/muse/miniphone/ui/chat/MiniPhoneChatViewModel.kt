@@ -7,13 +7,13 @@ import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.data.chat.MpGroupActions
-import io.zer0.muse.miniphone.data.db.dao.MpMessageDao
 import io.zer0.muse.miniphone.data.db.MpActorType
+import io.zer0.muse.miniphone.data.db.dao.MpMessageDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadMemberDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadMemberEntity
 import io.zer0.muse.miniphone.data.media.MpImageStore
-import io.zer0.muse.miniphone.ui.shell.UNKNOWN_CHARACTER_NAME
+import io.zer0.muse.miniphone.ui.launchGuarded
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 单个会话的聊天页状态。
@@ -258,13 +257,14 @@ class MiniPhoneChatViewModel(
         if (characterId.isEmpty()) return
         val peer = peerCharacters.firstOrNull { it.id == characterId }
         if (peer == null) {
-            // 有名单却没这个人:角色被删了;名单还没到就保持现状
-            if (peerCharacters.isNotEmpty()) mutableState.update { it.copy(peerName = UNKNOWN_CHARACTER_NAME) }
+            // 有名单却没这个人:角色被删了;名单还没到就保持现状。
+            // 这里只把名字清空,"已经不在了"那句话由界面按语言说。
+            if (peerCharacters.isNotEmpty()) mutableState.update { it.copy(peerName = "") }
             return
         }
         mutableState.update {
             it.copy(
-                peerName = peer.name.takeIf(String::isNotBlank) ?: UNKNOWN_CHARACTER_NAME,
+                peerName = peer.name.trim(),
                 peerAvatarUri = peer.avatarUri?.takeIf(String::isNotBlank),
             )
         }
@@ -275,19 +275,22 @@ class MiniPhoneChatViewModel(
      *
      * 优先用界面上那一份(名字已经配好);成员流还没到就先问库 —— 刚点进群就发一句,
      * 也不该因为成员列表晚到一步就没人接话。
+     *
+     * 没名字的角色一律不参与接话:名字为空说明这个人已经被删掉,
+     * 用一句兜底词把它喂给模型,只会让群里冒出一个不存在的人在说话。
      */
     private suspend fun responderCandidates(): List<GroupResponderCandidate> {
         val rendered = mutableState.value.members
         if (rendered.isNotEmpty()) {
-            return rendered.map { GroupResponderCandidate(characterId = it.characterId, name = it.name) }
+            return rendered
+                .filter { it.name.isNotBlank() }
+                .map { GroupResponderCandidate(characterId = it.characterId, name = it.name) }
         }
         val byId = peerCharacters.associateBy { it.id }
         val rows = memberRows.ifEmpty { memberDao.membersOf(threadId) }
-        return rows.map { row ->
-            GroupResponderCandidate(
-                characterId = row.characterId,
-                name = byId[row.characterId]?.name?.takeIf(String::isNotBlank) ?: UNKNOWN_CHARACTER_NAME,
-            )
+        return rows.mapNotNull { row ->
+            val name = byId[row.characterId]?.name?.trim().orEmpty()
+            if (name.isEmpty()) null else GroupResponderCandidate(characterId = row.characterId, name = name)
         }
     }
 
@@ -324,7 +327,7 @@ class MiniPhoneChatViewModel(
             val character = byId[row.characterId]
             ChatMemberUi(
                 characterId = row.characterId,
-                name = character?.name?.takeIf(String::isNotBlank) ?: UNKNOWN_CHARACTER_NAME,
+                name = character?.name?.trim().orEmpty(),
                 avatarUri = character?.avatarUri?.takeIf(String::isNotBlank),
             )
         }

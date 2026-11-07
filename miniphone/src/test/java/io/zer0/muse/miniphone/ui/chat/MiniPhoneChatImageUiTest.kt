@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageType
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
@@ -52,6 +53,9 @@ class MiniPhoneChatImageUiTest {
         directory.deleteRecursively()
     }
 
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
+
     @Test
     fun imageMessageRendersAnImageNodeInsteadOfATextBubble() {
         render(
@@ -73,7 +77,7 @@ class MiniPhoneChatImageUiTest {
         render(chatState(imageMessage("m1", MpActorType.USER, "/no/such/dir/photo.jpg")))
 
         compose.onNodeWithTag(MiniPhoneChatTags.imageBroken("m1"), useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("图片无法显示").assertExists()
+        compose.onNodeWithText(res(R.string.mp_image_broken)).assertExists()
     }
 
     @Test
@@ -175,7 +179,7 @@ class MiniPhoneChatImageUiTest {
         id = id,
         sender = sender,
         type = MpMessageType.IMAGE,
-        content = "[图片]",
+        content = MpSentinel.IMAGE,
         mediaUri = path,
         createdAt = createdAt,
     )

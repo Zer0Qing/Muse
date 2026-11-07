@@ -8,6 +8,7 @@
     <string name="translate_page_paste">Вставить</string>
     <string name="translate_page_clear">Прозрачный</string>
     <string name="translate_page_source_language">Исходный язык</string>
+    <string name="translate_page_source_text">Исходный текст</string>
     <string name="translate_page_target_language">Целевой язык</string>
     <string name="translate_page_error_failed">Не удалось выполнить перевод: %1$s</string>
     <string name="translate_page_copied">Скопировано в буфер обмена</string>
@@ -80,4 +81,5 @@
     <string name="translate_page_ocr_applied">Распознанный текст, введенный в поле ввода</string>
     <string name="translate_history_copied">Перевод скопирован</string>
     <string name="translate_history_copy_format">%1$s\n\n%2$s</string>
+    <string name="translate_source_auto">Автоопределение</string>
 </resources>

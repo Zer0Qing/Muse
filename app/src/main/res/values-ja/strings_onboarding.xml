@@ -31,7 +31,7 @@
     <string name="onboarding_provider_caps">能力を照合済み：視覚 %1$d · 推論 %2$d · ツール %3$d</string>
     <string name="onboarding_provider_select_label">プロバイダーの選択</string>
     <string name="onboarding_provider_apikey_label">APIキー</string>
-    <string name="onboarding_provider_apikey_input">APIキーを入力してください</string>
+    <string name="onboarding_provider_apikey_input">プロバイダーのコンソールで生成。通常 sk- で始まります</string>
     <string name="onboarding_provider_apikey_show">キーを表示</string>
     <string name="onboarding_provider_apikey_hide">キーを隠す</string>
     <string name="onboarding_provider_test_button">テスト接続</string>

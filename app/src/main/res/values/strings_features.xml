@@ -78,7 +78,6 @@
     <string name="groupchat_member_required">请至少选择一名成员</string>
     <string name="groupchat_team_optional">关联团队（可选）</string>
     <string name="groupchat_no_team">不关联</string>
-    <string name="groupchat_selected_members">已选 %1$d 个成员</string>
     <string name="groupchat_create_btn">创建</string>
     <string name="groupchat_edit_cd">编辑群聊</string>
     <!-- v1.0.72: 三点菜单 -->
@@ -225,6 +224,13 @@
     <string name="schedule_cancel">取消</string>
     <string name="schedule_msg_cancel">取消定时消息</string>
     <string name="schedule_err_name_required">请填写任务名称</string>
+    <string name="schedule_time_daily">每天执行时间</string>
+    <string name="schedule_time_weekly">每周执行时间</string>
+    <string name="schedule_time_once">执行时间</string>
+    <string name="schedule_time_unset">点选时间</string>
+    <string name="schedule_err_once_time_required">请选择一次性任务的执行时间</string>
+    <string name="schedule_status_running">正在执行</string>
+    <string name="schedule_status_completed">已完成</string>
     <string name="schedule_err_content_required">请填写执行内容</string>
     <string name="schedule_err_cron_invalid">Cron 表达式格式无效，请检查或使用预设</string>
     <string name="schedule_assistant">助手</string>
@@ -697,7 +703,7 @@
     <!-- 后台唤醒诊断:系统到底有没有为 Muse 排后台唤醒(只读,不改动任何调度) -->
     <string name="wake_diagnostics_open">后台唤醒状态</string>
     <string name="wake_diagnostics_title">后台唤醒状态</string>
-    <string name="wake_diagnostics_subtitle">这里读的是系统队列里的真实排期，只读，不会改动调度。</string>
+    <string name="wake_diagnostics_subtitle">这里是系统后台队列的真实排期，包含 App 自己的备份、总结等任务，不等于你创建的定时任务。只读，不会改动调度。</string>
     <string name="wake_diagnostics_refresh">重新读取</string>
     <string name="wake_diagnostics_copy">复制快照</string>
     <string name="wake_diagnostics_copied">快照已复制</string>
@@ -808,4 +814,13 @@
     <string name="plugin_cap_ui_skin">更换界面外观</string>
     <string name="plugin_cap_ui_interactive">显示可提交的表单，并运行插件的界面处理函数（会改动数据，默认关闭）</string>
     <string name="plugin_cap_runtime_python">以 Python 运行代码，能离开沙盒（高信任，请单独确认）</string>
+    <string name="video_no_video_model_hint">当前供应商没有支持视频输出的模型。请在「设置 → 模型与供应商」中为模型开启「视频输出」能力。</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="other">已选 %1$d 个成员</item>
+    </plurals>
+    <string name="workspace_go_root">返回工作区根目录</string>
+    <string name="artifact_center_empty_hint">产物是助手在对话里生成的图片、文件与长文本，攒在这里可以回看和分享</string>
+    <string name="daily_summary_light_fallback">今天还没聊什么，想到什么随时找我。</string>
+    <string name="daily_summary_rest_fallback">今天辛苦了，早点休息。</string>
+    <string name="daily_summary_none_fallback">今天还没有新的对话。</string>
 </resources>

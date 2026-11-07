@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">아직 제공업체가 없습니다.</string>
     <string name="settings_provider_empty_subtitle">공급자를 추가하면 어시스턴트가 작동하기 시작합니다</string>
     <string name="settings_provider_empty_action">공급자 추가</string>
+    <string name="settings_provider_free_ready_title">내장 무료 모델이 준비됨</string>
+    <string name="settings_provider_free_ready_subtitle">지금 바로 대화할 수 있습니다. 자체 제공자 추가는 선택이며 용량과 기능이 늘어납니다.</string>
     <string name="settings_provider_category_official">공식적인</string>
     <string name="settings_provider_category_relay">계전기</string>
     <string name="settings_provider_category_custom">관습</string>
@@ -308,6 +310,8 @@
     <string name="settings_chat_show_timestamp">타임스탬프 표시</string>
     <string name="settings_chat_show_timestamp_subtitle">각 메시지의 전송 시간 표시</string>
     <string name="settings_chat_generation_style">세대 스타일</string>
+    <string name="settings_chat_reply_language">사용자 언어로 답변</string>
+    <string name="settings_chat_reply_language_subtitle">답변은 사용자 메시지의 언어를 따르고, 판단이 어려우면 인터페이스 언어를 사용합니다. 끄면 프롬프트가 정합니다</string>
     <string name="settings_chat_randomness">응답 무작위성</string>
     <string name="settings_chat_temp_hint_certain">결정적이고 안정적이며 예측 가능합니다.</string>
     <string name="settings_chat_temp_hint_balanced_low">균형이 잡혀 있고 안정적이면서도 다양함</string>

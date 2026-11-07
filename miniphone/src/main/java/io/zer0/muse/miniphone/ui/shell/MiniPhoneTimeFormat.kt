@@ -1,5 +1,6 @@
 package io.zer0.muse.miniphone.ui.shell
 
+import io.zer0.muse.miniphone.R
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -22,7 +23,7 @@ internal object MiniPhoneTimeFormat {
      *
      * 分隔行本来就是给"翻页时突然跳时间"做标记的,所以同一天不必写"今天"两字。
      */
-    fun separator(epochMs: Long, now: Long = System.currentTimeMillis()): String {
+    fun separator(context: android.content.Context, epochMs: Long, now: Long = System.currentTimeMillis()): String {
         if (epochMs <= 0L) return ""
         val zone = ZoneId.systemDefault()
         val clock = clock(epochMs)
@@ -30,10 +31,17 @@ internal object MiniPhoneTimeFormat {
         val nowDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         return when {
             thenDate == nowDate -> clock
-            thenDate == nowDate.minusDays(1) -> "昨天 $clock"
-            thenDate.year == nowDate.year -> "${thenDate.monthValue} 月 ${thenDate.dayOfMonth} 日 $clock"
-            else -> "${thenDate.year} 年 ${thenDate.monthValue} 月 ${thenDate.dayOfMonth} 日 $clock"
+            thenDate == nowDate.minusDays(1) -> context.getString(R.string.mp_time_yesterday_at, clock)
+            // 日期部分交给平台的格式化器：月份名、顺序、是否有点都由 locale 决定，
+            // 自己拼「M 月 D 日」在别的语言里就是错的
+            else -> dateText(context, epochMs, includeYear = thenDate.year != nowDate.year) + " $clock"
         }
+    }
+
+    private fun dateText(context: android.content.Context, epochMs: Long, includeYear: Boolean): String {
+        val flags = android.text.format.DateUtils.FORMAT_SHOW_DATE or
+            (if (includeYear) android.text.format.DateUtils.FORMAT_SHOW_YEAR else 0)
+        return android.text.format.DateUtils.formatDateTime(context, epochMs, flags).toString()
     }
 }
 
@@ -58,20 +66,39 @@ private val RelativeClock: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:m
  *
  * @param now 作为「现在」的时间戳,默认系统时钟;测试用它钉死每一个分支
  */
-internal fun relativeTimeOf(epochMs: Long, now: Long = System.currentTimeMillis()): String {
-    if (epochMs <= 0L) return ""
-    val diff = now - epochMs
-    if (diff < MINUTE_MS) return "刚刚"
-    if (diff < HOUR_MS) return "${diff / MINUTE_MS} 分钟前"
+internal fun relativeTimeOf(context: android.content.Context, epochMs: Long, now: Long = System.currentTimeMillis()): String = when {
+    epochMs <= 0L -> ""
+    else -> {
+        val diff = now - epochMs
+        val zone = ZoneId.systemDefault()
+        val then = Instant.ofEpochMilli(epochMs).atZone(zone)
+        val thenDate = then.toLocalDate()
+        val nowDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        when {
+            diff < MINUTE_MS -> context.getString(R.string.mp_time_just_now)
+            diff < HOUR_MS -> context.resources.getQuantityString(
+                R.plurals.mp_time_minutes_ago,
+                (diff / MINUTE_MS).toInt(),
+                diff / MINUTE_MS,
+            )
 
-    val zone = ZoneId.systemDefault()
-    val then = Instant.ofEpochMilli(epochMs).atZone(zone)
-    val thenDate = then.toLocalDate()
-    val nowDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-    return when {
-        thenDate == nowDate -> "${diff / HOUR_MS} 小时前"
-        thenDate == nowDate.minusDays(1) -> "昨天 ${then.format(RelativeClock)}"
-        thenDate.year == nowDate.year -> "${thenDate.monthValue}月${thenDate.dayOfMonth}日 ${then.format(RelativeClock)}"
-        else -> "${thenDate.year}年${thenDate.monthValue}月${thenDate.dayOfMonth}日"
+            thenDate == nowDate -> context.resources.getQuantityString(
+                R.plurals.mp_time_hours_ago,
+                (diff / HOUR_MS).toInt(),
+                diff / HOUR_MS,
+            )
+
+            thenDate == nowDate.minusDays(1) ->
+                context.getString(R.string.mp_time_yesterday_at, then.format(RelativeClock))
+
+            else -> {
+                val crossYear = thenDate.year != nowDate.year
+                val flags = android.text.format.DateUtils.FORMAT_SHOW_DATE or
+                    (if (crossYear) android.text.format.DateUtils.FORMAT_SHOW_YEAR else 0)
+                val date = android.text.format.DateUtils.formatDateTime(context, epochMs, flags)
+                // 跨年时年份本身已经足够定位，不再补时刻（与原口径一致）
+                if (crossYear) date.toString() else "$date ${then.format(RelativeClock)}"
+            }
+        }
     }
 }

@@ -163,7 +163,4 @@ private fun ArchivedChatRow(session: SessionEntity, onOpen: () -> Unit, onUnarch
     }
 }
 
-private fun formatTime(timestamp: Long): String = java.text.SimpleDateFormat(
-    io.zer0.muse.ui.theme.MuseDateFormats.DATE_TIME_SHORT,
-    java.util.Locale.getDefault(),
-).format(java.util.Date(timestamp))
+private fun formatTime(timestamp: Long): String = io.zer0.muse.ui.theme.MuseDateFormats.dateTimeShort().format(java.util.Date(timestamp))

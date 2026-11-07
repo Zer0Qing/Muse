@@ -167,6 +167,8 @@
     <string name="assistant_import_sillytavern">导入 SillyTavern 角色卡</string>
     <!-- 助手详情页: 角色卡分享区块 -->
     <string name="assistant_detail_share_section">角色卡分享</string>
+    <string name="assistant_summary_empty">还没有简介；它的人设在「提示词」一节里</string>
+    <string name="assistant_detail_export_section">导出角色卡文件</string>
     <string name="assistant_detail_export_png">导出为 PNG 角色卡</string>
     <string name="assistant_detail_export_png_desc">SillyTavern 格式 （含元数据）</string>
     <string name="assistant_detail_export_json">导出为 JSON 角色卡</string>

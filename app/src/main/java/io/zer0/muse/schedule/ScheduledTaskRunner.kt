@@ -120,7 +120,13 @@ class ScheduledTaskRunner(
          * UI 预览)。任务执行完后推进调度用 [computeNextRunAnchored],锚定上次计划时刻。
          */
         internal fun computeNextRun(interval: String, cronExpr: String, now: Long): Long {
-            if (interval == "cron") return nextCronRunAfter(cronExpr, now)
+            val expr = cronExpr.trim()
+            // 定点时刻优先：daily/weekly 现在也能带一个墙钟时刻（界面用时间选择器写进 cronExpr），
+            // 原来只有 interval=="cron" 才读表达式，导致"每天 8 点提醒"这种最基本的需求
+            // 只能让用户去手写 cron。周期任务没填时刻时行为与过去完全一致。
+            if (expr.isNotBlank() && (interval == "cron" || fixedPeriodMillis(interval) != null)) {
+                return nextCronRunAfter(expr, now)
+            }
             val period = fixedPeriodMillis(interval) ?: return 0L
             return now + period
         }
@@ -179,9 +185,12 @@ class ScheduledTaskRunner(
             now: Long,
         ): ScheduleAdvance {
             val period = fixedPeriodMillis(interval)
+            val expr = cronExpr.trim()
             return when {
+                // 带定点时刻的 daily/weekly 与 cron 走同一套锚定推进，
+                // 否则"每天 8 点"跑完一次就会退回"上次执行 + 24 小时"的漂移口径。
+                expr.isNotBlank() && (interval == "cron" || period != null) -> advanceCron(expr, scheduledAt, now)
                 period != null -> anchoredFixedPeriod(period, scheduledAt, now)
-                interval == "cron" -> advanceCron(cronExpr, scheduledAt, now)
                 else -> ScheduleAdvance(0L, 0)
             }
         }
@@ -344,6 +353,16 @@ class ScheduledTaskRunner(
          * 再领取都不命中;执行结束 [executeTask] 会用真实的下次执行时间覆盖它。
          */
         private const val CLAIM_NEXT_RUN_SENTINEL = Long.MAX_VALUE
+
+        /** 领取中的哨兵判定：只有这个值代表"另一个执行者正在跑"。 */
+        private fun isClaimSentinel(nextRunAt: Long): Boolean = nextRunAt == CLAIM_NEXT_RUN_SENTINEL
+
+        /**
+         * 这个 next_run_at 不是"下次执行时刻"，而是"正被领取执行"的哨兵（或 cron 无匹配）。
+         * 界面必须按状态显示，不能拿去格式化——Long.MAX_VALUE 会渲染成 08-17 07:12 这种假日期。
+         */
+        internal fun isPlaceholderNextRun(nextRunAt: Long): Boolean =
+            nextRunAt == CLAIM_NEXT_RUN_SENTINEL || nextRunAt == CronExpression.NO_MATCH
 
         /**
          * B-26: 哨兵看门狗阈值 —— claim 后超过该时长仍停在哨兵值视为"卡死"(领取后
@@ -563,7 +582,7 @@ class ScheduledTaskRunner(
         // (已领取且尚未重置),此时绝不能再按哨兵值 CAS(会命中而重复执行),直接跳过。
         // 哨兵值不会由正常调度产生(computeNextRun 上限为周级/退避;cron 无匹配走
         // CronExpression.NO_MATCH = MAX-1,与领取哨兵 MAX 区分,见 C-06),唯一来源就是领取动作。
-        if (current.nextRunAt == CLAIM_NEXT_RUN_SENTINEL) {
+        if (isClaimSentinel(current.nextRunAt)) {
             Logger.w(TAG, "Task ${task.id} is currently being executed by another executer, skip")
             return
         }

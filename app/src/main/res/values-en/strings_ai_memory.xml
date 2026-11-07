@@ -233,4 +233,5 @@
     <string name="memory_merge_error_generate_failed">Could not merge these memories</string>
     <string name="memory_merge_error_empty_result">The merged text cannot be empty</string>
     <string name="memory_merge_error_commit_failed">Merge failed, memories unchanged</string>
+    <string name="memory_space_default_name">Default</string>
 </resources>

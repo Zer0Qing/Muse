@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -98,7 +99,7 @@ internal fun NoteMetaChip(
 @Composable
 internal fun formatNoteTime(timestamp: Long, now: Long): String {
     val fmtTime = remember { SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()) }
-    val fmtDate = remember { SimpleDateFormat(MuseDateFormats.DATE_SHORT, Locale.getDefault()) }
+    val fmtDate = remember { MuseDateFormats.dateShort() }
     if (timestamp <= 0) return ""
 
     val nowCal = Calendar.getInstance().apply { timeInMillis = now }
@@ -780,8 +781,12 @@ internal fun QuickNoteReminderDialog(currentReminderAt: Long, onDismiss: () -> U
 
     fun showDatePicker() {
         val now = Calendar.getInstance()
+        // 原生对话框必须有 Activity 的窗口 token。LocalContext.current 在带 locale 包装的
+        // 容器里是 ContextWrapper，直接 show() 会抛 BadTokenException 把整个应用打崩
+        // （实机：笔记 → 设置提醒 → 设置提醒 → 闪退到桌面）。
+        val dialogContext = context.findActivity() ?: context
         DatePickerDialog(
-            context,
+            dialogContext,
             { _, year, month, day ->
                 val cal = Calendar.getInstance().apply {
                     set(Calendar.YEAR, year)
@@ -789,7 +794,7 @@ internal fun QuickNoteReminderDialog(currentReminderAt: Long, onDismiss: () -> U
                     set(Calendar.DAY_OF_MONTH, day)
                 }
                 TimePickerDialog(
-                    context,
+                    dialogContext,
                     { _, hour, minute ->
                         cal.set(Calendar.HOUR_OF_DAY, hour)
                         cal.set(Calendar.MINUTE, minute)

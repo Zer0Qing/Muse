@@ -48,6 +48,7 @@ import io.zer0.muse.data.STICKER_FREQ_NORMAL
 import io.zer0.muse.data.STICKER_FREQ_OCCASIONALLY
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.sticker.StickerItem
+import io.zer0.muse.data.sticker.STICKER_DEFAULT_CATEGORY
 import io.zer0.muse.data.sticker.StickerLibraryRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -415,7 +416,7 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                     MuseChip(
                         selected = selectedCategory == cat,
                         onClick = { selectedCategory = cat },
-                        label = cat,
+                        label = stickerCategoryDisplay(cat, stringResource(R.string.sticker_category_default)),
                     )
                 }
                 if (selectedCategory.isNotBlank()) {
@@ -709,7 +710,10 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             content = {
                 Column {
                     Text(
-                        text = stringResource(R.string.settings_sticker_review_hint, draft.category),
+                        text = stringResource(
+                            R.string.settings_sticker_review_hint,
+                            stickerCategoryDisplay(draft.category, stringResource(R.string.sticker_category_default)),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -836,7 +840,10 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = stringResource(R.string.settings_sticker_actions_hint, target.category),
+                        text = stringResource(
+                            R.string.settings_sticker_actions_hint,
+                            stickerCategoryDisplay(target.category, stringResource(R.string.sticker_category_default)),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -936,3 +943,7 @@ internal fun StickerSettingsSection(settings: SettingsRepository, scope: Corouti
         StickerLibrarySection(settings = settings, scope = scope)
     }
 }
+
+/** 分类名要和目录、清单里的值对得上，所以只在展示这一步换成当前语言的默认标签。 */
+private fun stickerCategoryDisplay(category: String, defaultLabel: String): String =
+    if (category == STICKER_DEFAULT_CATEGORY) defaultLabel else category

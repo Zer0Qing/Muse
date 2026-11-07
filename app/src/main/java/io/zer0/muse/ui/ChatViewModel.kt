@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.tools.DenySource
 import android.content.Context
 import android.net.Uri
@@ -1076,7 +1077,6 @@ data class MessageExpandedState(
  */
 private val KNOWLEDGE_MENTION_REGEX = Regex("@[^\\s@]+")
 
-
 /** R-TEST-06: 发送守卫纯逻辑（防空消息/流式中/Agent 会话创建重入）。 */
 internal fun canStartGeneration(text: String, images: List<String>, isStreaming: Boolean, isCreatingAgentSession: Boolean): Boolean =
     (text.isNotBlank() || images.isNotEmpty()) && !isStreaming && !isCreatingAgentSession
@@ -1101,10 +1101,10 @@ internal fun buildSendText(
 /** R-TEST-06: 仅当非流式、最后一条为带 [已中断] 标记的助手消息时才允许续写。 */
 internal fun canContinueGeneration(isStreaming: Boolean, lastMessage: UIMessage?): Boolean = !isStreaming && lastMessage != null &&
     lastMessage.role == MessageRole.ASSISTANT &&
-    lastMessage.content.contains("[已中断]")
+    MessageMarkers.isInterrupted(lastMessage.content)
 
 /** R-TEST-06: 去掉 [已中断] 尾部标记,保留断点前内容。 */
-internal fun resumeFromInterrupted(content: String): String = content.removeSuffix("\n\n[已中断]").removeSuffix("[已中断]")
+internal fun resumeFromInterrupted(content: String): String = MessageMarkers.stripInterrupted(content)
 
 /**
  * C-11: 计算 [a] 与 [b] 的最长公共前缀长度(按 Unicode 代码单位)。
@@ -1753,10 +1753,7 @@ class ChatViewModel(
         generationController.enqueueSend(text, images, sessionId)
         // 已发出去的内容不再是草稿，清空该会话的草稿，
         // 避免下次切回来还看到已经发送过的文字。
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching { sessionRepository.saveInputDraft(sessionId, "") }
-                .onFailure { Logger.w("ChatVM", "清空输入草稿失败: ${it.message}") }
-        }
+        clearInputDraft(sessionId)
         // v2.6.7: 记录一次真实互动（亲密度 + 最后互动时间）。
         // 之前只有小手机主动私信会调 recordInteraction，用户在正常对话里
         // 说再多话关系也不动，关系系统实际只活了一半。
@@ -1813,6 +1810,7 @@ class ChatViewModel(
             appContext = appContext,
             onEnqueueSend = { text, images, sid -> enqueueSend(text, images, sid) },
         )
+
     /** 输入草稿防抖落盘的 Job（每次输入取消上一次）。 */
     private var draftPersistJob: Job? = null
 
@@ -2110,6 +2108,7 @@ class ChatViewModel(
         override val settings get() = this@ChatViewModel.settings
         override val sessionRepository get() = this@ChatViewModel.sessionRepository
         override val chatService get() = this@ChatViewModel.chatService
+
         // 上下文溢出恢复：压一轮历史再重发（详见 ChatToolLoopRunner 的 recovery 分支）
         override val contextCompressTransformer get() = this@ChatViewModel.contextCompressTransformer
         override val sessionManager get() = this@ChatViewModel.sessionManager
@@ -2965,6 +2964,20 @@ class ChatViewModel(
      *
      * 现在：输入变化就落盘（非空防抖 500ms，清空立即写），草稿始终等于用户最后看到的输入框内容。
      */
+    /**
+     * 发送成功后丢弃草稿。
+     *
+     * 必须先取消还在排队的防抖写：那段文字刚刚被提交，迟到的 debounce 会把它原样写回库里，
+     * 下次进这个会话就看到"已经发出去的话又躺在输入框里"，再点一次就是重复发送。
+     */
+    private fun clearInputDraft(sessionId: String) {
+        draftPersistJob?.cancel()
+        draftPersistJob = viewModelScope.launch(Dispatchers.IO) {
+            runCatching { sessionRepository.saveInputDraft(sessionId, "") }
+                .onFailure { Logger.w("ChatVM", "清空输入草稿失败: ${it.message}") }
+        }
+    }
+
     private fun persistDraftDebounced(text: String) {
         val st = _state.value
         if (st.isAgentMode) return
@@ -5715,9 +5728,7 @@ class ChatViewModel(
     fun observeArtifactsByMessage(messageId: String): kotlinx.coroutines.flow.Flow<List<io.zer0.muse.data.artifact.ArtifactEntity>> =
         mediaController.observeArtifactsByMessage(messageId)
 
-    fun observeArtifactsByMessages(
-        messageIds: List<String>,
-    ): Flow<List<ArtifactEntity>> =
+    fun observeArtifactsByMessages(messageIds: List<String>): Flow<List<ArtifactEntity>> =
         mediaController.observeArtifactsByMessages(messageIds)
 
     /** v1.45: 缓存列表滚动位置,切页/后台后恢复。 */

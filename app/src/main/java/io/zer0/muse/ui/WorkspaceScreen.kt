@@ -65,6 +65,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.ui.theme.titleSmallStrong
 import io.zer0.muse.workspace.WorkspaceManager
 import io.zer0.muse.workspace.WorkspaceMount
 import kotlinx.coroutines.launch
@@ -72,7 +73,6 @@ import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * P2-7: 工作区文件管理器 UI。
@@ -101,6 +101,8 @@ fun WorkspaceScreen(
     val workspaceManager: WorkspaceManager = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val mainMountLabel = stringResource(R.string.workspace_title)
+    val toolOutputsMountLabel = stringResource(R.string.workspace_tool_outputs)
     val widthClass = rememberWindowWidthClass()
 
     // 当前所在目录的相对路径(空串 = 根目录)
@@ -271,7 +273,8 @@ fun WorkspaceScreen(
     val currentName = when {
         currentPath.isEmpty() -> stringResource(R.string.workspace_title)
         currentPath.endsWith(":/") || currentPath.endsWith(":") ->
-            currentMount?.label ?: stringResource(R.string.workspace_title)
+            currentMount?.let { mountDisplayName(it, mainMountLabel, toolOutputsMountLabel) }
+                ?: stringResource(R.string.workspace_title)
         else -> currentPath.substringAfterLast('/')
     }
 
@@ -308,9 +311,9 @@ fun WorkspaceScreen(
                     // 子目录下额外提供"返回根目录"快捷按钮
                     if (currentPath.isNotEmpty()) {
                         MuseTactileButton(
-                            icon = MuseIcons.arrowLeft,
+                            icon = MuseIcons.home,
                             onClick = { currentPath = "" },
-                            contentDescription = stringResource(R.string.workspace_title),
+                            contentDescription = stringResource(R.string.workspace_go_root),
                         )
                     }
                 },
@@ -660,7 +663,7 @@ fun WorkspaceScreen(
                             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                         ) {
                             Text(
-                                text = mount.label,
+                                text = mountDisplayName(mount, mainMountLabel, toolOutputsMountLabel),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (selected) {
                                     MaterialTheme.colorScheme.primary
@@ -725,6 +728,8 @@ fun WorkspaceScreen(
             },
             confirmText = stringResource(R.string.common_close),
             onConfirm = { mountSheetOpen = false },
+            // 面板只需要一个出口：默认的 Cancel 与这颗 Close 是同义的并排按钮
+            dismissText = null,
         )
     }
 
@@ -963,10 +968,12 @@ private fun WorkspaceEntryRow(
                 )
                 Spacer(Modifier.size(MusePaddings.tightGap))
                 Text(
-                    text = if (entry.isDirectory) {
-                        dateFormat.format(Date(entry.lastModified))
-                    } else {
-                        "${formatSize(entry.size)} · ${dateFormat.format(Date(entry.lastModified))}"
+                    text = when {
+                        // 文件系统报不出时间(mtime<=0)时不要写 1970-01-01：那看着像一个真日期，
+                        // 用户会当事实读。宁可不显示（走查 §十六 三-W1）。
+                        entry.lastModified <= 0L -> if (entry.isDirectory) "" else formatSize(entry.size)
+                        entry.isDirectory -> dateFormat.format(Date(entry.lastModified))
+                        else -> "${formatSize(entry.size)} · ${dateFormat.format(Date(entry.lastModified))}"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1070,3 +1077,16 @@ private fun QuickSwitchChip(icon: androidx.compose.ui.graphics.vector.ImageVecto
  * 字节数格式化为人类可读字符串(B/KB/MB)。
  */
 private fun formatSize(bytes: Long): String = FileSizeFormatter.format(bytes)
+
+/**
+ * 内置挂载的展示名跟着界面语言走。
+ *
+ * 原来 "工作区 / 工具输出" 是写死在挂载表里的中文，英文界面里同一个目录出现三个名字
+ * （tool_outputs、工具输出、Workspace），用户会以为是三个地方。用户自己命名的挂载仍按原样显示。
+ */
+internal fun mountDisplayName(mount: io.zer0.muse.workspace.WorkspaceMount, mainLabel: String, toolOutputsLabel: String): String =
+    when (mount.id) {
+        io.zer0.muse.workspace.WorkspaceMount.MAIN_ID -> mainLabel
+        io.zer0.muse.workspace.WorkspaceMountStore.TOOL_OUTPUTS_MOUNT_ID -> toolOutputsLabel
+        else -> mount.label
+    }

@@ -81,6 +81,7 @@ import io.zer0.muse.ui.theme.PresetTheme
 import io.zer0.muse.ui.theme.PresetThemes
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
+import io.zer0.muse.util.AppLocales
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -873,7 +874,7 @@ private fun ThemeGridCard(
 
 /**
  * v1.60-C: 语言选择区 — 胶囊分段控件,仿 ThemeModeOption 模式。
- * 选项:跟随系统 / 中文 / 英文 / 日语 / 韩语 / 俄语。
+ * 选项:跟随系统 + [AppLocales.Language] 全集,标签用语言自称(与引导页同一份)。
  * v1.132: 新增 ja/ko/ru 三种语言,6 选项改用 FlowRow 两行三列布局,避免窄屏挤压。
  */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -886,11 +887,7 @@ internal fun LanguageSection(language: String, settings: SettingsRepository) {
         modifier = Modifier.padding(top = 8.dp),
     ) {
         val followSystem = stringResource(R.string.settings_theme_follow_system)
-        val zhLabel = stringResource(R.string.settings_theme_language_zh)
-        val enLabel = stringResource(R.string.settings_theme_language_en)
-        val jaLabel = stringResource(R.string.settings_theme_language_ja)
-        val koLabel = stringResource(R.string.settings_theme_language_ko)
-        val ruLabel = stringResource(R.string.settings_theme_language_ru)
+        val languageOptions = AppLocales.Language.entries.map { it.code to stringResource(it.labelRes) }
         // v1.132: 6 个选项用 FlowRow 包装,每行最多 3 个,避免窄屏挤压。
         androidx.compose.foundation.layout.FlowRow(
             modifier = Modifier
@@ -908,22 +905,12 @@ internal fun LanguageSection(language: String, settings: SettingsRepository) {
                 scope.launch { settings.saveLanguage(lang) }
             }
             ThemeModeOption(followSystem, language == "system") { switchLanguage("system") }
-            ThemeModeOption(zhLabel, language == "zh") { switchLanguage("zh") }
-            ThemeModeOption(enLabel, language == "en") { switchLanguage("en") }
-            // v1.132: 新增日语/韩语/俄语三种语言选项
-            ThemeModeOption(jaLabel, language == "ja") { switchLanguage("ja") }
-            ThemeModeOption(koLabel, language == "ko") { switchLanguage("ko") }
-            ThemeModeOption(ruLabel, language == "ru") { switchLanguage("ru") }
+            languageOptions.forEach { (code, label) ->
+                ThemeModeOption(label, language == code) { switchLanguage(code) }
+            }
         }
         SettingsGroupDivider()
-        val langLabel = when (language) {
-            "zh" -> zhLabel
-            "en" -> enLabel
-            "ja" -> jaLabel
-            "ko" -> koLabel
-            "ru" -> ruLabel
-            else -> followSystem
-        }
+        val langLabel = languageOptions.firstOrNull { it.first == language }?.second ?: followSystem
         SettingsItemRow(
             icon = MuseIcons.languages,
             title = stringResource(R.string.settings_theme_current_language),

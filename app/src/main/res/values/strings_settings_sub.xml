@@ -118,11 +118,6 @@
     <string name="settings_theme_preview_hello">你好</string>
     <string name="settings_theme_preview_reply">你好！有什么可以帮你的吗？</string>
     <string name="settings_theme_language">语言</string>
-    <string name="settings_theme_language_zh">中文</string>
-    <string name="settings_theme_language_en">英文</string>
-    <string name="settings_theme_language_ja">日语</string>
-    <string name="settings_theme_language_ko">韩语</string>
-    <string name="settings_theme_language_ru">俄语</string>
     <string name="settings_theme_current_language">当前语言</string>
     <!-- v1.97 gap7: 自定义主题 UI 字符串 -->
     <string name="settings_theme_custom_section">自定义主题</string>
@@ -153,7 +148,6 @@
     <string name="settings_default_home_page_desc">选择应用启动时显示的页面</string>
 
     <!-- 设置二级页 / 关于 -->
-    <string name="settings_sub_model_services">模型与服务</string>
     <string name="settings_task_routing_title">辅助模型</string>
     <!-- v2.x: 辅助模型区块(小工具/大工具/视觉) -->
     <string name="settings_task_routing_aux_section">辅助模型</string>

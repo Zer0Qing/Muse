@@ -12,12 +12,7 @@ import org.junit.Test
  */
 class MomentReplyTextTest {
 
-    private fun reply(
-        sender: String,
-        content: String,
-        to: String?,
-        id: String = "r1",
-    ) = MomentReplyUi(
+    private fun reply(sender: String, content: String, to: String?, id: String = "r1") = MomentReplyUi(
         id = id,
         senderName = sender,
         replyToName = to,

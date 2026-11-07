@@ -204,7 +204,7 @@ private fun TranslateHistoryItemCard(
                     ) {
                         // LAYOUT-01: 卡片内语言胶囊是行内短文本(行宽由内容决定,不取宽),限 1 行防逐字换行。
                         Text(
-                            text = item.sourceLanguage,
+                            text = translateLanguageDisplay(item.sourceLanguage, stringResource(R.string.translate_source_auto)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -216,7 +216,7 @@ private fun TranslateHistoryItemCard(
                             modifier = Modifier.size(MuseIconSizes.iconTiny),
                         )
                         Text(
-                            text = item.targetLanguage,
+                            text = translateLanguageDisplay(item.targetLanguage, stringResource(R.string.translate_source_auto)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold,

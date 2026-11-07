@@ -390,9 +390,10 @@ internal fun ChatSheetHost(
                                     )
                                 },
                                 supportingContent = {
-                                    // v1.136 T5: 优先显示 summary(助手简介),无则回退到 systemPrompt 截断
-                                    val desc = assistant.summary.takeIf { it.isNotBlank() }
-                                        ?: assistant.systemPrompt.take(60)
+                                    // 同上：简介为空就说"没有简介"，不把提示词当介绍
+                                    val desc = assistant.summary.ifBlank {
+                                        stringResource(R.string.assistant_summary_empty)
+                                    }
                                     if (desc.isNotBlank()) {
                                         Text(
                                             text = desc,

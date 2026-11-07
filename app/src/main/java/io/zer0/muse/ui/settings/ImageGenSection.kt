@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +46,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
@@ -135,9 +137,9 @@ private fun ModelSelectorCard(provider: ProviderConfig?, model: Model?, onClick:
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        // 外层 SettingsGroup 已经是一张卡，这里再套一层就是卡中卡；压平只留点击区域。
+        color = Color.Transparent,
         shape = MuseShapes.medium,
-        tonalElevation = 1.dp,
     ) {
         Row(
             modifier = Modifier
@@ -155,12 +157,24 @@ private fun ModelSelectorCard(provider: ProviderConfig?, model: Model?, onClick:
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = provider?.displayName?.firstOrNull()?.toString() ?: "?",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                )
+                // 原来这里用圆圈问号兜底：问号是"帮助"语义，读屏也会念成"问号"，
+                // 而这个位置说的是"这一行能生成什么"。
+                val initial = provider?.displayName?.firstOrNull()?.toString()
+                if (initial == null) {
+                    Icon(
+                        imageVector = MuseIcons.image,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                } else {
+                    Text(
+                        text = initial,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
             Column(modifier = Modifier.weight(1f)) {
                 val selectProviderText = stringResource(R.string.settings_image_gen_select_provider)
@@ -178,16 +192,11 @@ private fun ModelSelectorCard(provider: ProviderConfig?, model: Model?, onClick:
                 Text(
                     text = provider?.displayName ?: selectDefaultText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             // 全站导航箭头统一走 chevron 图标:ASCII ">" 既不成字形、读屏也读不出语义。
-            Icon(
-                imageVector = MuseIcons.chevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(MuseIconSizes.iconSmall),
-            )
+            ChevronRight()
         }
     }
 }

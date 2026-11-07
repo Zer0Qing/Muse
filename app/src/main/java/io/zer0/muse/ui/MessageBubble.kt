@@ -78,6 +78,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
+import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.artifact.ArtifactCardList
@@ -523,6 +524,12 @@ internal fun MessageBubble(
     val mediaImgGenerated = stringResource(R.string.err_chat_img_generated)
     val mediaVidGenerating = stringResource(R.string.err_chat_video_generating)
     val mediaVidGenerated = stringResource(R.string.err_chat_video_generated)
+    // 中断/截断记号在清洗层就摘掉了；这里按当前界面语言把那句话补回原来的位置，
+    // 切语言时这两行跟着变，不用回头改库里的正文（走查 §十五 三-N4）。
+    val interruptedNote = stringResource(R.string.msg_interrupted_note)
+    val truncatedNote = stringResource(R.string.err_reply_truncated)
+    val wasInterrupted = !isUser && MessageMarkers.isInterrupted(msg.content)
+    val wasTruncated = !isUser && MessageMarkers.isTruncated(msg.content, truncatedNote)
     val body =
         remember(
             rendersBody,
@@ -534,6 +541,10 @@ internal fun MessageBubble(
             mediaImgGenerated,
             mediaVidGenerating,
             mediaVidGenerated,
+            interruptedNote,
+            wasInterrupted,
+            truncatedNote,
+            wasTruncated,
         ) {
             if (!rendersBody) return@remember ""
             val raw = if (isUser) {
@@ -545,13 +556,18 @@ internal fun MessageBubble(
             val mediaStatusTexts = setOf(mediaImgGenerating, mediaImgGenerated, mediaVidGenerating, mediaVidGenerated)
                 .map { it.trim() }
                 .toSet()
-            if (!isUser && raw.isNotBlank() &&
+            val collapsed = if (!isUser && raw.isNotBlank() &&
                 raw.lines().all { it.isBlank() || it.trim() in mediaStatusTexts }
             ) {
                 ""
             } else {
                 raw
             }
+            // 记号在这里换成本地那句话。清洗层刻意不删它：删完正文会变空串，
+            // 下游一串「正文为空就不渲染」的判据会把整条气泡吞掉（走查 §十六 实测：
+            // 助手气泡只剩操作图标、正文一片空白）。替换而不是追加，正文原本为空时
+            // 也能得到一句完整的话，不会出现「中文原样 + 本地提示」两行并存。
+            MessageMarkers.localize(collapsed, interruptedNote, truncatedNote).trim()
         }
     // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条。
     // 流式等待反馈由 ChatScreen 的独立 ThinkingBubble 负责。
@@ -566,6 +582,10 @@ internal fun MessageBubble(
     val voiceUri = msg.voiceUri?.takeIf { it.isNotBlank() }
     val hasAssistantPayload = body.isNotBlank() ||
         (!rendersBody && msg.content.isNotBlank()) ||
+        // 中断/截断记号在正文里被摘掉后 body 是空的，但界面会把那句话画出来；
+        // 不把它们算进"有载重"，整条气泡会被下面的早返回直接吞掉（走查 §十六）。
+        wasInterrupted ||
+        wasTruncated ||
         msg.imageUrls.isNotEmpty() ||
         msg.imageBase64List.isNotEmpty() ||
         msg.videoFileUri != null ||
@@ -1214,7 +1234,7 @@ internal fun MessageBubble(
                                     )
                                     else -> Triple(
                                         stringResource(R.string.vision_assist_label),
-                                        MaterialTheme.colorScheme.outline,
+                                        MaterialTheme.colorScheme.onSurfaceVariant,
                                         MuseIcons.eye,
                                     )
                                 }
@@ -1281,7 +1301,7 @@ internal fun MessageBubble(
                     Text(
                         text = formatMessageTime(msg.createdAt, use24Hour = chatPrefs.use24Hour),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp, end = MusePaddings.tinyGap),
                     )
                 }
@@ -1351,7 +1371,7 @@ internal fun MessageBubble(
                                     else -> timeText
                                 },
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -1636,13 +1656,13 @@ internal fun MessageBubble(
                                         Icon(
                                             imageVector = MuseIcons.gitMerge,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.outline,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(14.dp),
                                         )
                                         Text(
                                             text = stringResource(R.string.msg_compressed),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }
@@ -1877,7 +1897,7 @@ internal fun MessageBubble(
                             onCopyMessage(messageCopyText(msg.content, msg.reasoning))
                         },
                         contentDescription = stringResource(R.string.action_copy),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
@@ -1889,7 +1909,7 @@ internal fun MessageBubble(
                                 onRegenerate()
                             },
                             contentDescription = stringResource(R.string.action_retry),
-                            tint = MaterialTheme.colorScheme.outline,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             size = MuseIconSizes.touchTarget,
                             iconSize = MuseIconSizes.iconSmall,
                         )
@@ -1902,7 +1922,7 @@ internal fun MessageBubble(
                             onEdit()
                         },
                         contentDescription = stringResource(R.string.action_edit),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
@@ -1917,7 +1937,7 @@ internal fun MessageBubble(
                             showDeleteConfirm = true
                         },
                         contentDescription = stringResource(R.string.action_delete),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
@@ -1933,8 +1953,8 @@ internal fun MessageBubble(
             val truncatedMarker = stringResource(R.string.err_reply_truncated)
             val willContinueShow = isLastAssistant && onContinue != null &&
                 (
-                    msg.content.contains("[已中断]") ||
-                        (truncatedMarker.isNotBlank() && msg.content.contains(truncatedMarker))
+                    MessageMarkers.isInterrupted(msg.content) ||
+                        MessageMarkers.isTruncated(msg.content, truncatedMarker)
                     )
             val hasContent = msg.content.isNotEmpty()
             val hasReasoning = !msg.reasoning.isNullOrBlank()
@@ -2063,7 +2083,7 @@ internal fun MessageBubble(
                             actionSurface = MessageActionSurface.Extended
                         },
                         contentDescription = stringResource(R.string.action_more),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
                     )
@@ -2072,7 +2092,7 @@ internal fun MessageBubble(
                     Text(
                         text = modelName,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
                         modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                     )
@@ -2502,7 +2522,7 @@ internal fun MessageBubble(
                                         Text(
                                             stringResource(R.string.chat_translate_in_progress),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 } else {
@@ -2535,7 +2555,7 @@ internal fun MessageBubble(
                     Text(
                         stringResource(R.string.chat_translate_in_progress),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

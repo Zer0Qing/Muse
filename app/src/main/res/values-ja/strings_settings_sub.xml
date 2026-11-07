@@ -101,17 +101,11 @@
     <string name="settings_theme_preview_hello">こんにちは</string>
     <string name="settings_theme_preview_reply">こんにちは！</string>
     <string name="settings_theme_language">言語</string>
-    <string name="settings_theme_language_zh">中国語</string>
-    <string name="settings_theme_language_en">英語</string>
-    <string name="settings_theme_language_ja">日本語</string>
-    <string name="settings_theme_language_ko">韓国人</string>
-    <string name="settings_theme_language_ru">ロシア</string>
     <string name="settings_theme_current_language">現在の言語</string>
     <string name="settings_default_home_page_title">デフォルトのホームページ</string>
     <string name="settings_default_home_page_desc">アプリ起動時に表示されるページを選択してください</string>
 
     <!-- Settings Sub-pages / About -->
-    <string name="settings_sub_model_services">モデルとサービス</string>
     <string name="settings_task_routing_title">ユーティリティモデル</string>
     <!-- v2.x: utility models section -->
     <string name="settings_task_routing_aux_section">ユーティリティモデル</string>

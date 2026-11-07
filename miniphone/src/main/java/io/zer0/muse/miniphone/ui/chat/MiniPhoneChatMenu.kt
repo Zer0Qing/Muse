@@ -22,10 +22,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneColors
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 
@@ -80,7 +82,7 @@ internal fun ChatMessageMenu(
                     )
                 }
                 Text(
-                    text = action.label,
+                    text = stringResource(action.labelRes),
                     style = typography.body.copy(color = action.colorIn(colors)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -114,12 +116,12 @@ internal fun ChatDeleteConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> Uni
                 .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
             Text(
-                text = DELETE_TITLE,
+                text = stringResource(DELETE_TITLE_RES),
                 style = typography.title.copy(color = colors.textPrimary),
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = DELETE_HINT,
+                text = stringResource(DELETE_HINT_RES),
                 style = typography.caption.copy(color = colors.textSecondary),
             )
             Spacer(Modifier.height(18.dp))
@@ -128,14 +130,14 @@ internal fun ChatDeleteConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> Uni
                 horizontalArrangement = Arrangement.End,
             ) {
                 DialogAction(
-                    label = "取消",
+                    label = stringResource(R.string.mp_cancel),
                     color = colors.textSecondary,
                     tag = MiniPhoneChatTags.DELETE_CANCEL,
                     onClick = onDismiss,
                 )
                 Spacer(Modifier.width(8.dp))
                 DialogAction(
-                    label = "删除",
+                    label = stringResource(R.string.mp_delete),
                     color = colors.unreadDot,
                     tag = MiniPhoneChatTags.DELETE_CONFIRM,
                     onClick = onConfirm,
@@ -168,5 +170,5 @@ private val MenuGap = 6.dp
 private val DialogWidth = 280.dp
 private val DialogActionHeight = 36.dp
 
-private const val DELETE_TITLE: String = "删除这条消息?"
-private const val DELETE_HINT: String = "只从这台手机的聊天记录里删掉,会话本身不受影响。"
+private val DELETE_TITLE_RES: Int = R.string.mp_chat_delete_title
+private val DELETE_HINT_RES: Int = R.string.mp_chat_delete_hint

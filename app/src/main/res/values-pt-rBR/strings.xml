@@ -155,7 +155,7 @@
 
     <string name="chat_draft_label">Rascunho</string>
     <string name="chat_list_status_in_progress">Em andamento</string>
-    <string name="chat_list_status_pending">Pendente</string>
+    <string name="chat_list_status_pending">Não iniciado</string>
     <string name="chat_list_status_completed">Concluído</string>
     <string name="chat_list_time_just_now">Agora mesmo</string>
     <string name="chat_list_time_minutes_ago">Há %1$d min</string>
@@ -278,4 +278,5 @@
     <string name="settings_diagnostics_migration_none">Nenhuma migração registrada neste aparelho</string>
     <string name="settings_diagnostics_migration_summary">%1$d etapas · %2$d ms no total · mais lenta %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">Etapa %1$d falhou</string>
+    <string name="msg_interrupted_note">[Interrompido]</string>
 </resources>

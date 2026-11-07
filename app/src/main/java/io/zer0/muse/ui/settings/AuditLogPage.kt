@@ -293,15 +293,23 @@ fun AuditLogPage(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.Start,
                 ) {
-                    InfoLine(label = "Action", value = log.action)
+                    InfoLine(label = stringResource(R.string.audit_log_field_action), value = log.action)
                     if (log.target.isNotBlank()) {
-                        InfoLine(label = "Target", value = log.target)
+                        InfoLine(
+                            label = stringResource(R.string.audit_log_field_target),
+                            value = auditTargetDisplay(log.target),
+                        )
                     }
-                    InfoLine(label = "Success", value = if (log.success) "true" else "false")
+                    InfoLine(
+                        label = stringResource(R.string.audit_log_field_result),
+                        value = stringResource(
+                            if (log.success) R.string.audit_log_result_ok else R.string.audit_log_result_fail,
+                        ),
+                    )
                     if (log.detail.isNotBlank() && log.detail != "{}") {
                         Spacer(Modifier.height(MusePaddings.contentGap))
                         Text(
-                            text = "Detail",
+                            text = stringResource(R.string.audit_log_field_detail),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -516,7 +524,7 @@ private fun AuditLogRow(log: AuditLogEntity, dateFormat: SimpleDateFormat, onLon
                 // target(若有)
                 if (log.target.isNotBlank()) {
                     Text(
-                        text = "→ ${log.target}",
+                        text = "→ ${auditTargetDisplay(log.target)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -710,3 +718,11 @@ private fun shareAuditLogsAsJson(context: android.content.Context, logs: List<Au
         MuseToast.show(context.getString(R.string.audit_log_export_failed))
     }
 }
+
+/**
+ * 目标常常是 uuid：整串贴在一行里既挤又读不出名堂，截到短前缀就够定位了。
+ * 非 uuid 的目标（工具名、路径）原样显示。
+ */
+private val uuidTargetPattern = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+internal fun auditTargetDisplay(target: String): String = if (uuidTargetPattern.matches(target)) "${target.take(8)}…" else target

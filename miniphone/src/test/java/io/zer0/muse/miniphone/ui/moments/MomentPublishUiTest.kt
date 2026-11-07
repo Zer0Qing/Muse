@@ -1,14 +1,15 @@
 package io.zer0.muse.miniphone.ui.moments
 
 import android.net.Uri
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -61,12 +62,15 @@ class MomentPublishUiTest {
         }
     }
 
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
+
     @Test
     fun `empty draft cannot be published`() {
         val captured = Captured()
         render(captured)
 
-        compose.onNodeWithText("写动态").assertExists()
+        compose.onNodeWithText(res(R.string.mp_publish_title)).assertExists()
         compose.onNodeWithTag(MiniPhoneMomentsTags.PUBLISH_CONFIRM).assertIsNotEnabled()
         assertTrue("没点成就该一次都不回调", captured.calls == 0)
     }

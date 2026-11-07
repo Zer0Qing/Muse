@@ -500,13 +500,12 @@
     <string name="settings_sticker_move_target_label">挪到另一个包（填新名字会新建包）</string>
     <string name="settings_sticker_move_up">前移一位</string>
     <string name="settings_sticker_move_down">后移一位</string>
-    <string name="settings_sticker_upload_zip">导入压缩包</string>
     <string name="settings_sticker_upload_zip_subtitle">选取 zip 文件，按文件夹结构自动分类</string>
     <string name="settings_sticker_imported">已导入 %1$d 个表情包</string>
     <string name="settings_sticker_import_failed">导入失败：%1$s</string>
     <string name="settings_sticker_export_location_failed">无法写入所选位置</string>
     <string name="settings_sticker_empty_title">还没有表情包</string>
-    <string name="settings_sticker_empty_subtitle">点击上方"导入压缩包"添加 zip 文件</string>
+    <string name="settings_sticker_empty_subtitle">点击上方“导入表情包”，支持 zip、docx/pptx 文档与图片</string>
     <string name="settings_sticker_delete_confirm">删除该表情包？</string>
     <string name="settings_sticker_category_all">全部</string>
     <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n -->
@@ -674,4 +673,5 @@
     <string name="onboarding_connect_error_timeout">连接超时，请检查网络或接口地址</string>
     <string name="onboarding_connect_error_server">供应商服务异常，稍后再试；若持续失败，可能是内置模型已下线</string>
     <string name="onboarding_connect_error_no_model">没有找到可测试的模型，请先点击「获取」拉取模型列表</string>
+    <string name="sticker_category_default">默认</string>
 </resources>

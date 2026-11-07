@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">专属模型</string>
     <string name="assistant_detail_temperature">Temperature: %1$s</string>
     <string name="assistant_detail_default">默认</string>
+    <string name="assistant_detail_default_value">默认（%1$s）</string>
     <string name="assistant_detail_use_default">用默认</string>
     <string name="assistant_detail_top_p_label">Top P(留空用默认,0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens(留空用默认)</string>
@@ -450,9 +451,6 @@
     <string name="channel_weclaw_rescan">重新登录</string>
     <string name="channel_weclaw_unbind">解除绑定</string>
     <string name="channel_weclaw_unbind_confirm">解绑会清空令牌与目标会话，重新绑定需要再次扫码。确认解绑？</string>
-    <string name="channel_weclaw_hint">通过微信 iLink 协议接入个人号</string>
-    <string name="channel_weclaw_exclusive">一个微信号只能绑定一个渠道，绑定新渠道后旧的会自动失效</string>
-    <string name="channel_weclaw_reply_window">微信主动通知依赖最近一次收到消息后的回复窗口。如果提醒没有送达，可以先给这个渠道发一条微信来激活窗口。</string>
     <string name="channel_telegram_hint">从 @BotFather 获取 Bot Token；发送目标填 chat_id（可留空，自动回复会回发到来源）。</string>
     <string name="channel_dingtalk_hint">Corp ID 和应用凭证用于新版 token 接口；Client ID 与 Client Secret 也用于建立 Stream 长连接，Robot Code 用于发送回复。API Base URL 默认 https://api.dingtalk.com/v1.0</string>
     <string name="channel_feishu_hint">从飞书开放平台获取；使用长连接接收事件，不需要本地回调 URL</string>
@@ -718,7 +716,7 @@
     <string name="audit_log_category_user">用户操作</string>
     <string name="audit_log_category_auth">认证</string>
     <string name="audit_log_category_system">系统</string>
-    <string name="audit_log_search_hint">搜索 action / target / detail</string>
+    <string name="audit_log_search_hint">搜索 操作 / 目标 / 详情</string>
     <string name="audit_log_clear_search">清除搜索</string>
     <string name="audit_log_no_match">无匹配日志</string>
     <string name="audit_log_result_count">显示 %1$d 条 / 共 %2$d 条</string>
@@ -874,6 +872,7 @@
 
     <!-- ===== P2-7: 工作区(WorkspaceScreen + 工具描述) ===== -->
     <string name="workspace_title">工作区</string>
+    <string name="workspace_tool_outputs">工具输出</string>
     <string name="workspace_desc">本地文件管理与临时存储</string>
     <string name="workspace_empty">工作区为空</string>
     <string name="workspace_new_file">新建文件</string>
@@ -1003,4 +1002,26 @@
     <string name="muse_plugins_market_advice_needs_newer_app">这个插件要求更新的 App 版本</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">兼容要求会在下载后按插件 manifest 确认，当前无法判定</string>
     <string name="muse_plugins_market_advice_retained">本机还留有这些版本的存档：%1$s（在已安装列表里可切回）</string>
+
+    <!-- 界面语言自称：不随界面语言翻译，引导页/外观页/Host 协议共用一份。 -->
+    <string name="app_language_zh" translatable="false">简体中文</string>
+    <string name="app_language_en" translatable="false">English</string>
+    <string name="app_language_ja" translatable="false">日本語</string>
+    <string name="app_language_ko" translatable="false">한국어</string>
+    <string name="app_language_ru" translatable="false">Русский</string>
+    <string name="app_language_es" translatable="false">Español</string>
+        <string name="app_language_fr" translatable="false">Français</string>
+    <string name="app_language_de" translatable="false">Deutsch</string>
+    <string name="app_language_ar" translatable="false">العربية</string>
+    <string name="translate_language_zh" translatable="false">中文</string>
+    <string name="translate_language_pt" translatable="false">Português</string>
+<string name="app_language_pt_br" translatable="false">Português (Brasil)</string>
+    <string name="audit_log_field_action">操作</string>
+    <string name="audit_log_field_target">目标</string>
+    <string name="audit_log_field_detail">详情</string>
+    <string name="audit_log_field_result">结果</string>
+    <string name="audit_log_result_ok">成功</string>
+    <string name="audit_log_result_fail">失败</string>
+    <string name="permission_advanced_channels">高级通道（Root / Termux）</string>
+    <string name="channel_weclaw_summary">通过微信 iLink 协议接入个人号；一个微信号只能绑一个渠道，绑新的会让旧的失效。主动提醒依赖最近收到消息后打开的回复窗口，没送达就先给这个渠道发一条微信激活它。</string>
 </resources>

@@ -350,13 +350,12 @@
     <string name="settings_sticker_move_target_label">別のパックへ移動（新しい名前は新規作成）</string>
     <string name="settings_sticker_move_up">前へ</string>
     <string name="settings_sticker_move_down">後へ</string>
-    <string name="settings_sticker_upload_zip">ZIPをインポート</string>
     <string name="settings_sticker_upload_zip_subtitle">ZIP ファイルを選択します。</string>
     <string name="settings_sticker_imported">輸入された%1$dステッカー</string>
     <string name="settings_sticker_import_failed">インポートに失敗しました: %1$s</string>
     <string name="settings_sticker_export_location_failed">選択した場所に書き込めません</string>
     <string name="settings_sticker_empty_title">ステッカーはまだありません</string>
-    <string name="settings_sticker_empty_subtitle">上の「ZIP をインポート」をタップして ZIP ファイルを追加します</string>
+    <string name="settings_sticker_empty_subtitle">上の「スタンプを読み込む」をタップ（zip / docx / pptx / 画像に対応）</string>
     <string name="settings_sticker_delete_confirm">このステッカーを削除しますか?</string>
     <string name="settings_sticker_category_all">全て</string>
 
@@ -658,4 +657,5 @@
     <string name="onboarding_connect_error_timeout">接続がタイムアウトしました。ネットワークまたは URL を確認してください。</string>
     <string name="onboarding_connect_error_server">プロバイダーで問題が発生しています。後で再試行してください。続く場合、モデルが終了した可能性があります。</string>
     <string name="onboarding_connect_error_no_model">テストできるモデルがありません。先にモデル一覧を取得してください。</string>
+    <string name="sticker_category_default">既定</string>
 </resources>

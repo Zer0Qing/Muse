@@ -1,8 +1,8 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageType
-import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.ui.shell.initialOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -102,11 +102,12 @@ class MiniPhoneChatTextRulesTest {
     @Test
     fun `每一种活动都有独立且非空的一句话案`() {
         val kinds = MpActivityKind.entries
-        val texts = kinds.map { MiniPhoneActivityText.of(it) }
+        val ids = kinds.map { MiniPhoneActivityText.resOf(it) }
 
-        assertTrue("文案不能是空的", texts.all { it.isNotBlank() })
-        assertEquals("每种活动各自一句，不能挤成同一句", kinds.size, texts.distinct().size)
-        assertEquals("对方正在翻找…", MiniPhoneActivityText.of(MpActivityKind.SEARCHING))
+        assertEquals("每种活动各自一句，不能挤成同一句", kinds.size, ids.distinct().size)
+        assertTrue("资源 id 不能是 0", ids.all { it != 0 })
+        // 句子本身在模块的 strings.xml 里，渲染后的文字由组合测试盯；
+        // 这条纯 JVM 测试只保证"种类→资源"这层映射不塌成同一句。
     }
 
     @Test

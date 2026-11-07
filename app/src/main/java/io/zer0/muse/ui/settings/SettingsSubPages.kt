@@ -58,6 +58,7 @@ import io.zer0.muse.auth.OAuthManager
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.ui.chat.usableProviderPresent
 import io.zer0.muse.ui.common.feedback.MuseAlertDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -539,7 +540,7 @@ fun SettingsModelPage(
         return
     }
 
-    SettingsSubPageScaffold(title = stringResource(R.string.settings_sub_model_services), onBack = onBack) {
+    SettingsSubPageScaffold(title = stringResource(R.string.settings_group_models), onBack = onBack) {
         val providersList = visibleProviders
         if (providersList == null) {
             // v1.48: h13 首次加载显示居中加载指示器,避免 providers 列表闪空状态
@@ -555,6 +556,7 @@ fun SettingsModelPage(
             // Provider 列表(同包 internal LazyListScope 扩展,直接调用)
             providerListSection(
                 providers = providersList,
+                hasUsableProvider = usableProviderPresent(providers.orEmpty()),
                 activeProviderId = activeProviderId,
                 onActivate = { id -> scope.launch { settings.setActiveProvider(id) } },
                 onEdit = { config ->

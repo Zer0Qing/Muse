@@ -640,28 +640,12 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                         )
                     }
+                    // 三段连着堆要滚很久才到保存；合并成一段，细节仍走页内"怎么配？"。
                     Text(
-                        text = stringResource(R.string.channel_weclaw_hint),
+                        text = stringResource(R.string.channel_weclaw_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(
-                        text = stringResource(R.string.channel_weclaw_exclusive),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    Surface(
-                        shape = MuseShapes.medium,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.channel_weclaw_reply_window),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        )
-                    }
                 }
                 ChannelPlatform.FEISHU -> {
                     val regionOptions =

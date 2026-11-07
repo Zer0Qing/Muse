@@ -78,7 +78,7 @@ fun SpaceSwitcherRow(spaces: List<MemorySpaceEntity>, selectedSpaceId: String, o
             MuseChip(
                 selected = space.id == selectedSpaceId,
                 onClick = { onSelect(space.id) },
-                label = space.name,
+                label = memorySpaceDisplayName(space.name, stringResource(R.string.memory_space_default_name)),
             )
         }
     }
@@ -231,7 +231,7 @@ private fun SpaceRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = space.name,
+                    text = memorySpaceDisplayName(space.name, stringResource(R.string.memory_space_default_name)),
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(

@@ -42,17 +42,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
+import io.zer0.muse.miniphone.ui.launchGuarded
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 聊天页入口:取会话自己的 ViewModel,把返回值挂到系统返回键上,并负责拉起系统图片选择器。
@@ -143,6 +145,12 @@ internal fun MiniPhoneChatScreen(
     // 看图层盖在聊天页上时,返回键先关它
     BackHandler(enabled = viewingUri != null) { viewingUri = null }
     BackHandler(enabled = membersOpen) { membersOpen = false }
+    // 名字可能是空的(没起名的群 / 已删的对手)。空在这里就地补一句当前语言的话——
+    // 界面语言随时可切,占位词写在状态里就会跟着语言一起过期。
+    val removedContactText = stringResource(R.string.mp_shell_unknown_character)
+    val titleText = state.title.ifBlank {
+        if (state.isGroup) stringResource(R.string.mp_shell_untitled_group) else removedContactText
+    }
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -150,7 +158,7 @@ internal fun MiniPhoneChatScreen(
                 .background(colors.background),
         ) {
             ChatTopBar(
-                name = state.title,
+                name = titleText,
                 avatarUri = if (state.isGroup) null else state.peerAvatarUri,
                 onBack = onBack,
                 // 群里顶栏就人多一行,私信里既没有人也不知道这个入口
@@ -203,7 +211,7 @@ internal fun MiniPhoneChatScreen(
         if (membersOpen && state.isGroup) {
             GroupMembersPage(
                 members = state.members,
-                title = state.title,
+                title = titleText,
                 characters = state.characters,
                 onBack = { membersOpen = false },
                 actions = GroupAdminActions(
@@ -263,7 +271,7 @@ private fun ChatTopBar(
             ) {
                 Icon(
                     imageVector = MiniPhoneIcons.Back,
-                    contentDescription = BACK_DESCRIPTION,
+                    contentDescription = stringResource(BACK_DESCRIPTION_RES),
                     tint = colors.textPrimary,
                     modifier = Modifier.size(TopBarIconSize),
                 )
@@ -334,6 +342,8 @@ private fun ChatMessageList(
     val self = remember(state.selfName, state.selfAvatarUri) { ChatPersona(state.selfName, state.selfAvatarUri) }
     val peer = remember(state.peerName, state.peerAvatarUri) { ChatPersona(state.peerName, state.peerAvatarUri) }
     val activity = state.activity
+    // 名字为空 = 对手已经不在名单里；那句话属于界面，在这里按当前语言补。
+    val removedContactText = stringResource(R.string.mp_shell_unknown_character)
     LazyColumn(
         state = listState,
         reverseLayout = true,
@@ -348,7 +358,7 @@ private fun ChatMessageList(
         } else if (state.isGenerating) {
             item(key = TYPING_ITEM_KEY, contentType = TYPING_ITEM_KEY) {
                 ChatTypingRow(
-                    peerName = state.typingName ?: state.peerName,
+                    peerName = (state.typingName ?: state.peerName).ifBlank { removedContactText },
                     peerAvatarUri = if (state.typingName != null) state.typingAvatarUri else state.peerAvatarUri,
                     // 群里两个角色轮流说话:那一行要写清现在是谁在打
                     showName = state.isGroup,
@@ -362,7 +372,11 @@ private fun ChatMessageList(
                     message = item.message,
                     self = self,
                     peer = peer,
-                    senderLabel = if (state.isGroup) state.memberNames[item.message.characterId] else null,
+                    senderLabel = if (state.isGroup) {
+                        state.memberNames[item.message.characterId]?.ifBlank { removedContactText }
+                    } else {
+                        null
+                    },
                     maxBubbleWidth = maxBubbleWidth,
                     onOpenImage = onOpenImage,
                     messageActions = messageActions,
@@ -406,7 +420,7 @@ private const val LOAD_OLDER_THRESHOLD: Int = 2
 
 private const val TYPING_ITEM_KEY: String = "mp-chat-typing-item"
 private const val ACTIVITY_ITEM_KEY: String = "mp-chat-activity-item"
-private const val BACK_DESCRIPTION: String = "返回"
+private val BACK_DESCRIPTION_RES: Int = R.string.mp_back_cd
 
 private val TopBarButtonSize = 40.dp
 private val TopBarIconSize = 20.dp

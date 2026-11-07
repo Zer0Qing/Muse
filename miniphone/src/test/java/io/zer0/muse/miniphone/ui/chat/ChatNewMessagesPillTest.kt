@@ -2,6 +2,9 @@ package io.zer0.muse.miniphone.ui.chat
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * 新消息提示的计数判定。
@@ -9,7 +12,12 @@ import org.junit.Test
  * 只验这一点:给定「上一次条数 / 这一次条数 / 人在不在底部 / 已经显示的条数」,
  * 该显示几条。全是纯函数,不需要手势、列表布局或界面。
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class ChatNewMessagesPillTest {
+
+    private val context: android.content.Context
+        get() = androidx.test.core.app.ApplicationProvider.getApplicationContext()
 
     @Test
     fun awayFromBottomCountsTheMessagesThatArrived() {
@@ -72,7 +80,7 @@ class ChatNewMessagesPillTest {
 
     @Test
     fun pillLabelReadsAsASentence() {
-        assertEquals("3 条新消息", newMessagePillLabel(3))
-        assertEquals("1 条新消息", newMessagePillLabel(1))
+        assertEquals("3 new messages", newMessagePillLabel(context, 3))
+        assertEquals("1 new message", newMessagePillLabel(context, 1))
     }
 }

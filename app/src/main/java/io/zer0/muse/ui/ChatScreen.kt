@@ -96,6 +96,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
+import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.perf.MessagePaginator
 import io.zer0.muse.perf.ChatMessageWindow
 import io.zer0.muse.transformer.InternalMarkupSanitizer
@@ -218,15 +219,22 @@ private fun UIMessage.hasRenderablePayload(showToolCallDetails: Boolean): Boolea
 }
 
 @Suppress("ReturnCount")
-private fun isRenderableChatMessage(message: UIMessage, showToolCallDetails: Boolean = true): Boolean {
+internal fun isRenderableChatMessage(message: UIMessage, showToolCallDetails: Boolean = true): Boolean {
     if (message.role == MessageRole.SYSTEM) return false
     // v2.6.0（用户反馈）: TOOL 结果消息（knowledge_search 检索出的文档全文等）
     // 跟随「显示工具调用过程」开关 —— 关闭时不再以正文气泡出现在前端。
     // 工具结果本来是回填给模型的协议载荷，此前 content 非空恒渲染，
     // 用户关掉工具显示后仍看到大段检索文本，观感割裂。
     if (message.role == MessageRole.TOOL) return showToolCallDetails
+    // 中断/截断记号在清洗层被摘掉后正文可能变成空串（只剩「这条被中断过」这一件事），
+    // 但界面会按当前语言把那句话画出来——所以"剥完为空"不等于"没有内容"（走查 §十六）。
     val hasVisibleContent = message.content.isNotBlank() &&
-        (message.role == MessageRole.USER || InternalMarkupSanitizer.displayContent(message.content).isNotBlank())
+        (
+            message.role == MessageRole.USER ||
+                InternalMarkupSanitizer.displayContent(message.content).isNotBlank() ||
+                MessageMarkers.isInterrupted(message.content) ||
+                MessageMarkers.isTruncated(message.content, legacyMarker = "")
+            )
     return hasVisibleContent || message.hasRenderablePayload(showToolCallDetails)
 }
 
@@ -736,11 +744,8 @@ fun ChatScreen(
                                     canContinue =
                                         message.id == lastVisibleMessageId &&
                                             (
-                                                message.content.contains("[已中断]") ||
-                                                    (
-                                                        truncatedMarker.isNotBlank() &&
-                                                            message.content.contains(truncatedMarker)
-                                                        )
+                                                MessageMarkers.isInterrupted(message.content) ||
+                                                    MessageMarkers.isTruncated(message.content, truncatedMarker)
                                 ),
                             ),
                             ),
@@ -1413,7 +1418,7 @@ fun ChatScreen(
                             }
                         val sessionTitle =
                             if (isAgentMode) {
-                                "Agent"
+                                stringResource(R.string.home_tab_agent)
                             } else {
                                 // 顶栏副标题与列表同一口径:历史默认标题(按旧语言写进库的)在这里
                                 // 也该回落成当前语言的「新会话」,否则同一条会话在不同页面两个名字。
@@ -2325,6 +2330,7 @@ fun ChatScreen(
                             ) {
                                 EmptyChatGuide(
                                     assistant = state.currentAssistant,
+                                    onOpenAssistants = onOpenAssistants,
                                     // v1.0.72: 此条对话不参考记忆
                                     ignoreMemory = currentSessionIgnoreMemory,
                                     onToggleIgnoreMemory = { ignore ->

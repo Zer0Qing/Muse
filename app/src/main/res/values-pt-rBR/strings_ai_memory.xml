@@ -211,4 +211,5 @@
     <string name="memory_merge_error_generate_failed">Não foi possível mesclar estas memórias</string>
     <string name="memory_merge_error_empty_result">O resultado da mesclagem não pode ficar vazio</string>
     <string name="memory_merge_error_commit_failed">A mesclagem falhou, as memórias não mudaram</string>
+    <string name="memory_space_default_name">Padrão</string>
 </resources>

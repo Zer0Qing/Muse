@@ -95,17 +95,15 @@ class MiniPhoneShellViewModel(
      * 建一个群并返回它的会话 id;选不够两个人(或角色 id 全空)时返回 null。
      *
      * 群名按选择顺序拼接(末尾缀「我」)。名字从最近一次的角色名单里取:
-     * 名单还没到、或某个角色已经被删,就退化成一句提示而不是空名字 ——
-     * 群名一旦写进库就不再重算,这里宁可写一个能看懂的名字。
+     * 名单还没到或角色已被删就留空,由 [groupTitleOf] 滤掉 —— 群名一旦写进库就不再重算,
+     * 所以库里只放真名字,不放界面提示语。
      *
      * @param characterIds 选中的角色 id,顺序就是群里的顺序
      */
     suspend fun createGroup(characterIds: List<String>): String? {
         val members = characterIds.map(String::trim).filter(String::isNotEmpty).distinct()
         if (!canCreateGroup(members.size)) return null
-        val names = members.map { id ->
-            charactersById[id]?.name?.takeIf(String::isNotBlank) ?: UNKNOWN_CHARACTER_NAME
-        }
+        val names = members.map { id -> charactersById[id]?.name.orEmpty() }
         return groupStore.createGroup(members, groupTitleOf(names))
     }
 

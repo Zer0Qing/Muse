@@ -79,16 +79,15 @@ import io.zer0.muse.schedule.DailySummaryService
 import io.zer0.muse.schedule.DailySummaryWorker
 import io.zer0.muse.schedule.GreetingHintGenerator
 import io.zer0.muse.transformer.InternalMarkupSanitizer
+import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseActionSheetRow
 import io.zer0.muse.ui.common.form.MuseBottomSheet
-import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.horizontalGestureExclusion
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.museAnimateItem
-import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseDivider
@@ -100,17 +99,15 @@ import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodyLargeStrong
+import io.zer0.muse.ui.theme.labelLargeStrong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
-import io.zer0.muse.ui.theme.labelLargeStrong
-import io.zer0.muse.ui.theme.bodyLargeStrong
 
 /** v1.x: 问候语个性化提醒通知 ID(与其它通知 ID 错开)。 */
 private const val GREETING_NOTIFY_ID = 1010
@@ -156,12 +153,11 @@ fun ChatListScreen(
     onToggleFolderExpanded: (String, Boolean) -> Unit,
     assistants: List<AssistantEntity> = emptyList(),
     currentAssistant: AssistantEntity? = null,
-    /** 已归档会话列表 — 工具行「已归档」入口与恢复视图的数据源。 */
+    /** 已归档会话列表 — 工具行「已归档」入口的计数数据源。 */
     archivedSessions: List<SessionEntity> = emptyList(),
+    onOpenArchivedChats: () -> Unit = {},
     /** v0.45: 归档会话(主列表项长按菜单用)。 */
     onArchive: (String) -> Unit = {},
-    /** v0.45: 取消归档(归档列表项长按菜单用)。 */
-    onUnarchive: (String) -> Unit = {},
     onOpenScheduledTasks: () -> Unit = {},
     onOpenQuickNotes: () -> Unit = {},
     /** v1.0.27: 打开快速翻译页。 */
@@ -170,6 +166,7 @@ fun ChatListScreen(
     onOpenKnowledgeBase: () -> Unit = {},
     /** v2.0: 打开最近删除页。 */
     onOpenRecentlyDeleted: () -> Unit = {},
+    // 归档只有 ArchivedChatsScreen 一处实现，首页入口直接跳它。
     /** Phase 1 WS5: 打开助手/角色管理页面(情感空状态 CTA 用)。 */
     onOpenAssistants: () -> Unit = {},
     /** v2.x: 伙伴横排 — 以指定助手开新聊天(assistantId)。 */
@@ -319,7 +316,6 @@ fun ChatListScreen(
             pinnedOrder.mapNotNull { byId[it] } + pinned.filterNot { it.id in pinnedOrder }
         }
         // U-7: 已归档视图开关(U-7 归档入口切换到此视图展示已归档会话)
-        var showArchived by remember { mutableStateOf(false) }
         // U-22: 多选编辑模式开关 + 已选会话 id 集合
         var editMode by remember { mutableStateOf(false) }
         var selectedIds by remember { mutableStateOf(setOf<String>()) }
@@ -352,15 +348,6 @@ fun ChatListScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                    )
-                } else if (showArchived) {
-                    // U-7: 已归档视图(带恢复按钮),由列表页工具行"已归档"入口进入
-                    ArchivedSessionsList(
-                        archived = archivedSessions,
-                        onBack = { showArchived = false },
-                        onRestore = onUnarchive,
-                        onSelect = onSelect,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
                     )
                 } else if (editMode) {
                     // U-22: 多选编辑模式(全选/删除/归档循环执行复用单条逻辑)
@@ -436,7 +423,7 @@ fun ChatListScreen(
                         item(key = "list_toolbar") {
                             ListToolbarRow(
                                 archivedCount = archivedSessions.size,
-                                onOpenArchived = { showArchived = true },
+                                onOpenArchived = onOpenArchivedChats,
                                 onCreateFolder = { showCreateFolderDialog = true },
                                 onEdit = { editMode = true },
                             )
@@ -698,16 +685,29 @@ private fun PartnerRow(
 }
 
 /**
+ * 会话预览列的显示口径：剥内部标记与产物占位、收敛空白，最后把与语言无关的记号
+ * 换成当前界面语言的那句话。库里存的是记号，话只能在这里说（走查 §十六）。
+ */
+internal fun sessionPreviewText(stored: String, interruptedText: String, truncatedText: String): String =
+    io.zer0.muse.data.session.MessageMarkers.localize(
+        InternalMarkupSanitizer.stripForDisplay(stored)
+            .replace(Regex("""\[artifact:[0-9a-fA-F-]{36}\]"""), "")
+            .replace(Regex("\\s+"), " ")
+            .trim(),
+        interruptedText,
+        truncatedText,
+    )
+
+/**
  * v2.x: 回顾条(候选A) — "💬 上次和 X 聊到「…」",整条可点直进最近会话。
  */
 @Composable
 private fun RecallBar(session: SessionEntity, assistantName: String?, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
     val name = assistantName ?: stringResource(R.string.assistant_repo_default_name)
-    val preview = remember(session.lastMessagePreview) {
-        InternalMarkupSanitizer.stripForDisplay(session.lastMessagePreview)
-            .replace(Regex("""\[artifact:[0-9a-fA-F-]{36}\]"""), "")
-            .replace(Regex("\\s+"), " ")
-            .trim()
+    val interruptedText = stringResource(R.string.msg_interrupted_note)
+    val truncatedText = stringResource(R.string.err_reply_truncated)
+    val preview = remember(session.lastMessagePreview, interruptedText, truncatedText) {
+        sessionPreviewText(session.lastMessagePreview, interruptedText, truncatedText)
     }
     if (preview.isBlank()) return
     Row(
@@ -1040,6 +1040,9 @@ private fun TaskItem(
     // U-7: 归档菜单反馈同样附带恢复提示
     val archiveToast = stringResource(R.string.chat_list_archived_toast)
     val movedToast = stringResource(R.string.chat_list_move_ungrouped)
+    // 预览列里存的是语言无关记号，这两句负责在渲染时把它换回当前语言（走查 §十六）
+    val interruptedText = stringResource(R.string.msg_interrupted_note)
+    val truncatedText = stringResource(R.string.err_reply_truncated)
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -1199,11 +1202,8 @@ private fun TaskItem(
                     // F2 链路 B：会话标题与聊天页顶栏标题同源共享
                     modifier = Modifier.museSharedElement(key = "session-title-${session.id}"),
                 )
-                val preview = InternalMarkupSanitizer.stripForDisplay(session.lastMessagePreview)
-                    // v2.0.1: 清洗 [artifact:...] 内部标记 — 列表预览不再露出 "…[artifact:7b7a65c4-…]"
-                    .replace(Regex("""\[artifact:[0-9a-fA-F-]{36}\]"""), "")
-                    .replace(Regex("\\s+"), " ")
-                    .trim()
+                // v2.0.1: 清洗 [artifact:...] 内部标记 — 列表预览不再露出 "…[artifact:7b7a65c4-…]"
+                val preview = sessionPreviewText(session.lastMessagePreview, interruptedText, truncatedText)
                 // U-21: 最近 24h 内有更新的会话预览轻微强调(加粗 + 深色),不再与旧会话视觉同权
                 val isRecentlyUpdated = System.currentTimeMillis() - session.updatedAt < TimeUnit.HOURS.toMillis(24)
                 Text(
@@ -1648,17 +1648,16 @@ private fun sessionTitleText(session: SessionEntity): String {
 private enum class TaskStatus { IN_PROGRESS, PENDING, COMPLETED }
 
 private fun inferTaskStatus(session: SessionEntity, now: Long): TaskStatus {
-    // 空会话 / 仅创建无消息 -> 待确认
+    // 只建了会话、一条消息都没有 -> 还没开始
     if (session.lastMessagePreview.isBlank() || session.messageCount <= 0) return TaskStatus.PENDING
     val dayMillis = TimeUnit.DAYS.toMillis(1)
     val threeDays = dayMillis * 3
-    // 3 天内有更新且消息数 >=2 -> 进行中
     val age = (now - session.updatedAt).coerceAtLeast(0L)
-    if (age < threeDays && session.messageCount >= 2) return TaskStatus.IN_PROGRESS
     // 超过 3 天未更新 -> 已完成
     if (age >= threeDays) return TaskStatus.COMPLETED
-    // 其余 -> 待确认
-    return TaskStatus.PENDING
+    // 有消息又还在三天窗口内 -> 进行中（原来这里还分"消息数 >=2"，
+    // 只发过一句的会话被塞回"待确认"，用户看到的是一个没有来由的状态词）
+    return TaskStatus.IN_PROGRESS
 }
 
 @Composable
@@ -1699,7 +1698,7 @@ private fun formatTaskStatus(session: SessionEntity): String {
 
 // H-CL1: SimpleDateFormat 提为文件级 lazy val 复用
 private val chatListSdf by lazy {
-    SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault())
+    MuseDateFormats.dateTimeShort()
 }
 
 @Composable
@@ -1784,111 +1783,6 @@ private fun ChatListToolbarAction(icon: androidx.compose.ui.graphics.vector.Imag
                 color = MuseActionColors.tonalContent,
             )
         }
-    }
-}
-
-/**
- * U-7: 已归档会话视图。顶部返回 + 标题,列表项带"恢复"按钮,
- * 复用 [onUnarchive](HomeScreen 已绑定 setSessionArchived(id, false))。
- */
-@Composable
-private fun ArchivedSessionsList(
-    archived: List<SessionEntity>,
-    onBack: () -> Unit,
-    onRestore: (String) -> Unit,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val restoreToast = stringResource(R.string.chat_list_restored_toast)
-    Column(modifier = modifier.fillMaxWidth()) {
-        // 顶部:返回 + 标题
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            MuseTactileButton(
-                icon = MuseIcons.arrowLeft,
-                onClick = onBack,
-                contentDescription = stringResource(R.string.search_back_cd),
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(R.string.chat_list_archived_entry, archived.size),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(start = 4.dp),
-            )
-        }
-        MuseDivider()
-        if (archived.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.chat_list_archived_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentPadding = PaddingValues(bottom = MusePaddings.listBottomClearance),
-            ) {
-                itemsIndexed(archived, key = { _, s -> "archived_${s.id}" }) { _, session ->
-                    SectionGroupRow(index = 0, total = 1) {
-                        ArchivedSessionRow(
-                            session = session,
-                            onRestore = {
-                                onRestore(session.id)
-                                MuseToast.show(restoreToast)
-                            },
-                            onSelect = { onSelect(session.id) },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** U-7: 已归档会话行 — 标题 + 时间 + 恢复按钮。点击行进会话,点恢复取消归档。 */
-@Composable
-private fun ArchivedSessionRow(session: SessionEntity, onRestore: () -> Unit, onSelect: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(onClick = onSelect)
-            .padding(horizontal = MusePaddings.screen, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = sessionTitleText(session),
-                style = MaterialTheme.typography.bodyLargeStrong,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = formatTime(session.updatedAt),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-        }
-        Spacer(Modifier.width(MusePaddings.contentGap))
-        Text(
-            text = stringResource(R.string.chat_list_archived_restore),
-            style = MaterialTheme.typography.labelLargeStrong,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .clip(MuseShapes.medium)
-                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
-                .clickable(onClick = onRestore)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-        )
     }
 }
 

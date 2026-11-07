@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">Modelo Exclusivo</string>
     <string name="assistant_detail_temperature">Temperatura: %1$s</string>
     <string name="assistant_detail_default">Padrão</string>
+    <string name="assistant_detail_default_value">Padrão (%1$s)</string>
     <string name="assistant_detail_use_default">Usar padrão</string>
     <string name="assistant_detail_top_p_label">P superior (deixe em branco por padrão, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens (deixe em branco por padrão)</string>
@@ -558,7 +559,7 @@
     <string name="audit_log_category_user">Ação do usuário</string>
     <string name="audit_log_category_auth">Autenticação</string>
     <string name="audit_log_category_system">Sistema</string>
-    <string name="audit_log_search_hint">Ação de pesquisa/alvo/detalhe</string>
+    <string name="audit_log_search_hint">Buscar ação / alvo / detalhe</string>
     <string name="audit_log_clear_search">Limpar pesquisa</string>
     <string name="audit_log_no_match">Nenhum registro correspondente</string>
     <string name="audit_log_result_count">Exibindo %1$d de %2$d</string>
@@ -624,6 +625,7 @@
 
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">Espaço de trabalho</string>
+    <string name="workspace_tool_outputs">Saídas das ferramentas</string>
     <string name="workspace_desc">Gerenciamento de arquivos locais e armazenamento temporário</string>
     <string name="workspace_empty">O espaço de trabalho está vazio</string>
     <string name="workspace_new_file">Novo arquivo</string>
@@ -891,4 +893,12 @@
     <string name="muse_plugins_market_advice_needs_newer_app">Este plugin exige uma versao mais nova do app</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">A compatibilidade e conferida no manifest apos o download; ainda nao da para afirmar</string>
     <string name="muse_plugins_market_advice_retained">Ha copias locais destas versoes: %1$s (troca pela lista instalada)</string>
+    <string name="audit_log_field_action">Ação</string>
+    <string name="audit_log_field_target">Alvo</string>
+    <string name="audit_log_field_detail">Detalhe</string>
+    <string name="audit_log_field_result">Resultado</string>
+    <string name="audit_log_result_ok">Sucesso</string>
+    <string name="audit_log_result_fail">Falhou</string>
+    <string name="permission_advanced_channels">Canais avançados (Root / Termux)</string>
+    <string name="channel_weclaw_summary">Conecta uma conta pessoal pelo protocolo iLink do WeChat. A mesma conta do WeChat só pode ter um canal: ao vincular outro, o anterior é desativado. Avisos proativos dependem da janela de resposta aberta por uma mensagem recente; se não chegarem, envie um WeChat a este canal para reabri-la.</string>
 </resources>

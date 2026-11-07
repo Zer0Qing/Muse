@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageType
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
@@ -62,6 +63,9 @@ class MiniPhoneChatVoiceUiTest {
         stopKoin()
     }
 
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
+
     @Test
     fun voiceMessageRendersTheVoiceBubbleInsteadOfATextBubble() {
         renderScreen(
@@ -70,7 +74,7 @@ class MiniPhoneChatVoiceUiTest {
 
         compose.onNodeWithTag(MiniPhoneChatTags.voice("m1")).assertExists()
         compose.onNodeWithTag(MiniPhoneChatTags.bubble("m1")).assertDoesNotExist()
-        compose.onNodeWithText(VOICE_PREVIEW_TEXT).assertDoesNotExist()
+        compose.onNodeWithText(MpSentinel.VOICE).assertDoesNotExist()
         compose.onNodeWithText("0:07").assertExists()
     }
 
@@ -97,7 +101,7 @@ class MiniPhoneChatVoiceUiTest {
 
         compose.onNodeWithTag(MiniPhoneChatTags.voiceUnavailable("m1")).assertExists()
         compose.onNodeWithTag(MiniPhoneChatTags.voice("m1")).assertDoesNotExist()
-        compose.onNodeWithText(VOICE_UNAVAILABLE_TEXT).assertExists()
+        compose.onNodeWithText(res(R.string.mp_voice_unavailable)).assertExists()
         // 文件不在就不该碰播放器
         compose.onNodeWithTag(MiniPhoneChatTags.voiceUnavailable("m1")).performClick()
         assertEquals(0, player.loadCount)
@@ -172,7 +176,7 @@ class MiniPhoneChatVoiceUiTest {
         id = id,
         sender = MpActorType.CHARACTER,
         type = MpMessageType.VOICE,
-        content = VOICE_PREVIEW_TEXT,
+        content = MpSentinel.VOICE,
         mediaUri = uri,
         voiceDurationMs = durationMs,
         createdAt = 60_000L,
@@ -181,7 +185,6 @@ class MiniPhoneChatVoiceUiTest {
     private companion object {
         const val AUDIO_BYTES: Int = 128
         const val SEVEN_SECONDS_MS: Long = 7_000L
-        const val VOICE_PREVIEW_TEXT: String = "[语音]"
         const val UNKNOWN_DURATION: String = "--:--"
     }
 }

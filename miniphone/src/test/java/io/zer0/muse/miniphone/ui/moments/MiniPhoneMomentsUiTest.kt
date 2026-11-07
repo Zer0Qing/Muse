@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneChatTags
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneGalleryViewer
 import io.zer0.muse.miniphone.ui.chat.galleryCounterOf
@@ -37,8 +38,14 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class MiniPhoneMomentsUiTest {
 
+    private val context: android.content.Context
+        get() = androidx.test.core.app.ApplicationProvider.getApplicationContext()
+
     @get:Rule
     val compose = createComposeRule()
+
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
 
     @Test
     fun emptyTimelineShowsEmptyStateUnderTheCover() {
@@ -46,7 +53,7 @@ class MiniPhoneMomentsUiTest {
 
         compose.onNodeWithTag(MiniPhoneMomentsTags.COVER).assertExists()
         compose.onNodeWithTag(MiniPhoneMomentsTags.EMPTY).assertIsDisplayed()
-        compose.onNodeWithText("还没有动态").assertIsDisplayed()
+        compose.onNodeWithText(res(R.string.mp_moments_empty_title)).assertIsDisplayed()
         compose.onNodeWithTag(MiniPhoneMomentsTags.commentInput("m1")).assertDoesNotExist()
     }
 
@@ -160,13 +167,20 @@ class MiniPhoneMomentsUiTest {
 
     @Test
     fun likersLineFoldsLongLists() {
-        assertEquals("❤️ 阿远，小满，老陈", likersLineOf(listOf("阿远", "小满", "老陈")))
-        assertEquals("只有一个也带心", "❤️ 阿远", likersLineOf(listOf("阿远")))
-        assertEquals("没人点赞就没有这一行", "", likersLineOf(emptyList()))
+        val sep = context.getString(R.string.mp_likers_separator)
+        val mark = "\u2764\ufe0f "
+        assertEquals(mark + listOf("阿远", "小满", "老陈").joinToString(sep), likersLineOf(context, listOf("阿远", "小满", "老陈")))
+        assertEquals("只有一个也带心", mark + "阿远", likersLineOf(context, listOf("阿远")))
+        assertEquals("没人点赞就没有这一行", "", likersLineOf(context, emptyList()))
 
         val twelve = (1..12).map { index -> "人$index" }
-        assertEquals("超过十人:前九个 + 等 12 人", "❤️ " + twelve.take(9).joinToString("，") + "，等 12 人", likersLineOf(twelve))
-        assertFalse("第十个人不该出现", likersLineOf(twelve).contains("人10"))
+        val line = likersLineOf(context, twelve)
+        assertEquals(
+            "超过上限:前九个 + 总人数",
+            mark + twelve.take(9).joinToString(sep) + sep + context.getString(R.string.mp_likers_fold, 12),
+            line,
+        )
+        assertFalse("第十个人不该出现", line.contains("人10"))
     }
 
     @Test
@@ -174,7 +188,9 @@ class MiniPhoneMomentsUiTest {
         render(MomentsUiState(moments = listOf(momentUi(likes = listOf("阿远", "小满", "老陈"))), isLoaded = true))
 
         compose.onNodeWithTag(MiniPhoneMomentsTags.likers("m1"), useUnmergedTree = true)
-            .assertTextEquals("❤️ 阿远，小满，老陈")
+            .assertTextEquals(
+                "❤️ " + listOf("阿远", "小满", "老陈").joinToString(context.getString(R.string.mp_likers_separator)),
+            )
     }
 
     @Test
@@ -193,7 +209,7 @@ class MiniPhoneMomentsUiTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(MiniPhoneMomentsTags.COMMENT_DELETE_DIALOG).assertIsDisplayed()
-        compose.onNodeWithText("这条评论和它下面的回复会一起删除。").assertIsDisplayed()
+        compose.onNodeWithText(res(R.string.mp_moment_delete_comment_hint)).assertIsDisplayed()
         assertEquals("确认之前不删", null, deleted)
 
         compose.onNodeWithTag(MiniPhoneMomentsTags.COMMENT_DELETE_CONFIRM).performClick()

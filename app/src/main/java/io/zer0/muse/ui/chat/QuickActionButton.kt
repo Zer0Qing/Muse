@@ -65,7 +65,7 @@ internal fun QuickActionButton(
     }
     val tint = when (action) {
         QuickAction.DELETE -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.outline
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val icon = when (action) {
         QuickAction.FAVORITE -> MuseIcons.star

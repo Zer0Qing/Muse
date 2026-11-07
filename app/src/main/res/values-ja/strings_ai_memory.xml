@@ -211,4 +211,5 @@
     <string name="memory_merge_error_generate_failed">これらの記憶を統合できませんでした</string>
     <string name="memory_merge_error_empty_result">統合結果を空にはできません</string>
     <string name="memory_merge_error_commit_failed">統合に失敗しました。記憶は変わっていません</string>
+    <string name="memory_space_default_name">既定</string>
 </resources>

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +57,7 @@ import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
 import io.zer0.muse.R
+import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantCardExporter
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -282,12 +285,33 @@ fun AssistantDetailPage(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                // 有图片头像才可点开看大图；emoji / 首字母头像没有"放大"这回事，
+                // 不给它一个按下去没反应的形状（走查 三-A10）
+                var avatarViewerOpen by remember { mutableStateOf(false) }
+                val avatarModel = assistant?.avatarImageUrl?.takeIf { it.isNotBlank() && assistant.hasImageAvatar() }
                 AssistantAvatar(
                     assistant = assistant ?: placeholderAssistant(),
                     avatarSize = 80.dp,
                     // F2 链路 A 终点：与助手列表行头像同源共享（key 用路由 id，加载前后一致）
-                    modifier = Modifier.museSharedElement(key = "assistant-avatar-$assistantId"),
+                    modifier = Modifier
+                        .museSharedElement(key = "assistant-avatar-$assistantId")
+                        .then(
+                            if (avatarModel == null) {
+                                Modifier
+                            } else {
+                                Modifier
+                                    .clip(CircleShape)
+                                    .clickable(role = Role.Image) { avatarViewerOpen = true }
+                            },
+                        ),
                 )
+                if (avatarViewerOpen && avatarModel != null) {
+                    io.zer0.muse.ui.common.media.FullScreenMediaViewer(
+                        images = listOf(avatarModel),
+                        initialIndex = 0,
+                        onDismiss = { avatarViewerOpen = false },
+                    )
+                }
                 Text(
                     text = assistant?.name?.ifBlank { stringResource(R.string.assistant_detail_unnamed) }
                         ?: stringResource(R.string.assistant_detail_loading),
@@ -298,9 +322,7 @@ fun AssistantDetailPage(
                 )
                 if (assistant != null) {
                     val desc = assistant.summary.ifBlank {
-                        assistant.systemPrompt.take(100).let {
-                            it + if (assistant.systemPrompt.length > 100) "..." else ""
-                        }
+                        stringResource(R.string.assistant_summary_empty)
                     }
                     if (desc.isNotBlank()) {
                         Text(
@@ -408,12 +430,11 @@ fun AssistantDetailPage(
                 )
             }
         }
-        // SillyTavern 角色卡分享 (PNG/JSON 导出)
-        // 把当前助手导出为业内通用格式, 可在其他支持 SillyTavern 角色卡的 App 中导入
+        // 角色卡文件导出（PNG / JSON），供支持同类角色卡格式的外部工具导入
         item {
             CardGroup(
                 modifier = museAnimateItem(),
-                title = { Text(stringResource(R.string.assistant_detail_share_section)) },
+                title = { Text(stringResource(R.string.assistant_detail_export_section)) },
             ) {
                 item(
                     onClick = {
@@ -671,6 +692,8 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
     val allModels = remember(providers) { providers.flatMap { it.models } }
     // Phase 6: 全局当前选中模型 id,用于显示全局默认模型名称
     val globalSelectedModelId by settings.selectedModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
+    // 助手没单独设温度时，界面要说清「默认」实际是多少，滑块也得落在同一个值上
+    val chatPrefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
     // 模型选择对话框
     var showModelPicker by remember { mutableStateOf(false) }
 
@@ -829,18 +852,6 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                     },
                     trailingContent = { ChevronRight() },
                 )
-                // Phase 6: 新建助手提示 — 未选择专属模型时显示引导提示
-                if (a.modelId == null) {
-                    item(
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.assistant_detail_model_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                        },
-                    )
-                }
                 item(
                     headlineContent = {
                         Column(modifier = Modifier.fillMaxWidth()) {
@@ -848,12 +859,15 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                                 text = stringResource(
                                     R.string.assistant_detail_temperature,
                                     a.temperature?.let { "%.2f".format(it) }
-                                        ?: stringResource(R.string.assistant_detail_default),
+                                        ?: stringResource(
+                                            R.string.assistant_detail_default_value,
+                                            "%.2f".format(chatPrefs.globalTemperature),
+                                        ),
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             MuseSlider(
-                                value = a.temperature ?: 1.0f,
+                                value = a.temperature ?: chatPrefs.globalTemperature,
                                 onValueChange = { v -> update { it.copy(temperature = v) } },
                                 valueRange = 0f..2f,
                                 steps = 39,

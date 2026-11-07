@@ -8,6 +8,7 @@
     <string name="translate_page_paste">반죽</string>
     <string name="translate_page_clear">분명한</string>
     <string name="translate_page_source_language">소스 언어</string>
+    <string name="translate_page_source_text">원문</string>
     <string name="translate_page_target_language">대상 언어</string>
     <string name="translate_page_error_failed">번역 실패: %1$s</string>
     <string name="translate_page_copied">클립보드에 복사됨</string>
@@ -80,4 +81,5 @@
     <string name="translate_page_ocr_applied">입력에 입력된 인식된 텍스트</string>
     <string name="translate_history_copied">번역을 복사했습니다</string>
     <string name="translate_history_copy_format">%1$s\n\n%2$s</string>
+    <string name="translate_source_auto">자동 감지</string>
 </resources>

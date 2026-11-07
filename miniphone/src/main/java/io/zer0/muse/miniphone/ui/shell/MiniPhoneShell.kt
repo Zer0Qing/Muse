@@ -34,14 +34,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneChatRoute
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
+import io.zer0.muse.miniphone.ui.launchGuarded
 import io.zer0.muse.miniphone.ui.moments.MiniPhoneMomentsRoute
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import kotlinx.coroutines.delay
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 小手机外壳。
@@ -203,7 +205,7 @@ private fun MiniPhonePageContent(selectedTab: MiniPhoneTab?, state: ShellUiState
         return
     }
     MiniPhonePageFrame(
-        title = selectedTab.title,
+        title = stringResource(selectedTab.titleRes),
         onGoHome = nav.goHome,
         headerAction = if (selectedTab == MiniPhoneTab.MESSAGES) {
             { GroupCreateEntry(onClick = nav.openGroupCreate) }
@@ -369,7 +371,7 @@ private fun LauncherTile(app: MiniPhoneApp, modifier: Modifier = Modifier, onCli
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            text = app.label,
+            text = stringResource(app.labelRes),
             style = typography.timestamp.copy(color = colors.textPrimary),
         )
     }
@@ -418,7 +420,7 @@ private fun MiniPhonePageFrame(
             ) {
                 Icon(
                     imageVector = MiniPhoneIcons.Home,
-                    contentDescription = "回到桌面",
+                    contentDescription = stringResource(R.string.mp_home_back_cd),
                     tint = colors.textSecondary,
                     modifier = Modifier.size(18.dp),
                 )
@@ -449,7 +451,7 @@ private fun GroupCreateEntry(onClick: () -> Unit) {
     ) {
         Icon(
             imageVector = MiniPhoneIcons.Plus,
-            contentDescription = "发起群聊",
+            contentDescription = stringResource(R.string.mp_group_create_cd),
             tint = colors.accent,
             modifier = Modifier.size(18.dp),
         )
@@ -494,7 +496,7 @@ private fun MiniPhoneTabBar(selected: MiniPhoneTab?, onSelect: (MiniPhoneTab) ->
                     )
                     Spacer(Modifier.height(3.dp))
                     Text(
-                        text = tab.title,
+                        text = stringResource(tab.titleRes),
                         style = typography.timestamp.copy(color = tint, fontWeight = if (active) FontWeight.Medium else FontWeight.Normal),
                     )
                 }

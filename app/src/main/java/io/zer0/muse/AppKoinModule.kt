@@ -333,6 +333,7 @@ val appModule = module {
             notificationManager = runCatching {
                 get<io.zer0.muse.notification.MuseNotificationManager>()
             }.getOrNull(),
+            appContext = androidContext(),
         )
     }
 

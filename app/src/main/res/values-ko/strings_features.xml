@@ -45,7 +45,6 @@
     <string name="groupchat_member_required">구성원을 하나 이상 선택하십시오.</string>
     <string name="groupchat_team_optional">링크 팀(선택 사항)</string>
     <string name="groupchat_no_team">연결되지 않음</string>
-    <string name="groupchat_selected_members">%1$d 멤버가 선택됨</string>
     <string name="groupchat_create_btn">만들다</string>
 
     <!-- ===== ui/account ===== -->
@@ -105,6 +104,13 @@
     <string name="schedule_cancel">취소</string>
     <string name="schedule_msg_cancel">예약된 메시지 취소</string>
     <string name="schedule_err_name_required">작업 이름을 입력하세요.</string>
+    <string name="schedule_time_daily">매일 실행 시각</string>
+    <string name="schedule_time_weekly">매주 실행 시각</string>
+    <string name="schedule_time_once">실행 시각</string>
+    <string name="schedule_time_unset">탭하여 시각 선택</string>
+    <string name="schedule_err_once_time_required">한 번 실행 작업의 시각을 선택하세요</string>
+    <string name="schedule_status_running">실행 중</string>
+    <string name="schedule_status_completed">완료됨</string>
     <string name="schedule_err_content_required">실행 내용을 입력해주세요</string>
     <string name="schedule_err_cron_invalid">크론 표현식이 잘못되었습니다.</string>
     <string name="schedule_assistant">어시스턴트</string>
@@ -610,7 +616,7 @@
     <string name="settings_about_qq_not_installed">QQ를 찾을 수 없습니다. 그룹 번호 905451314가 클립보드에 복사되었습니다</string>
     <string name="shizuku_authorize_btn">Muse 승인</string>
     <string name="shizuku_install_btn">Shizuku 다운로드</string>
-    <string name="shizuku_section_title">Shizuku(권장)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse의 Shizuku 사용 승인됨</string>
     <string name="skill_agent_phone_not_configured">agent_phone 미설정: GroupChatScheduler가 주입되지 않았습니다</string>
     <string name="skill_agent_phone_target_not_found">대상 에이전트가 존재하지 않습니다</string>
@@ -724,7 +730,7 @@
     <!-- 백그라운드 깨우기 진단: 시스템이 실제로 Muse의 깨우기를 예약했는지(읽기 전용) -->
     <string name="wake_diagnostics_open">백그라운드 깨우기 상태</string>
     <string name="wake_diagnostics_title">백그라운드 깨우기 상태</string>
-    <string name="wake_diagnostics_subtitle">시스템 큐에 실제로 잡혀 있는 일정을 읽습니다. 읽기 전용이며 일정은 바뀌지 않습니다.</string>
+    <string name="wake_diagnostics_subtitle">시스템이 실제로 예약한 백그라운드 작업입니다. 내장 백업·요약 작업도 포함되며, 사용자가 만든 작업과는 다릅니다. 읽기 전용이며 예약은 바뀌지 않습니다.</string>
     <string name="wake_diagnostics_refresh">다시 읽기</string>
     <string name="wake_diagnostics_copy">스냅숏 복사</string>
     <string name="wake_diagnostics_copied">스냅숏을 복사했습니다</string>
@@ -834,4 +840,17 @@
     <string name="plugin_cap_ui_skin">화면 스킨 변경</string>
     <string name="plugin_cap_ui_interactive">제출 양식 표시 및 플러그인 핸들러 실행 (데이터 변경, 기본 꺼짐)</string>
     <string name="plugin_cap_runtime_python">격리 환경 밖에서 Python 실행(신뢰도 높음)</string>
+    <string name="video_no_video_model_hint">현재 제공자에 영상 출력 모델이 없습니다. 설정 › 모델 및 제공자에서 “영상 출력” 기능을 활성화해 주세요.</string>
+    <string name="permission_next_step">권장 다음 단계: %1$s</string>
+    <string name="permission_optional_channels">기본 권한은 준비됨, 나머지 통로는 선택 사항</string>
+    <string name="permission_privacy_notice_title">이 권한은 이 기기에서만 동작합니다</string>
+    <string name="permission_privacy_notice_body">화면 읽기와 명령 실행은 이 기기에서 이루어지며 내용은 전송되지 않습니다. Root, Shizuku, Termux는 선택적인 고권한 통로이며, 활성화하면 앱이 기기를 대신 조작할 수 있습니다. 시스템 설정이나 해당 앱에서 언제든지 취소할 수 있습니다.</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="other">%1$d명의 멤버 선택됨</item>
+    </plurals>
+    <string name="workspace_go_root">작업 공간 최상위로 이동</string>
+    <string name="artifact_center_empty_hint">산출물은 대화에서 어시스턴트가 만든 이미지·파일·긴 텍스트입니다. 여기에서 다시 보거나 공유할 수 있어요</string>
+    <string name="daily_summary_light_fallback">오늘은 아직 나눌 이야기가 적어요. 생각나면 언제든 말 걸어 주세요.</string>
+    <string name="daily_summary_rest_fallback">오늘도 수고했어요. 푹 쉬세요.</string>
+    <string name="daily_summary_none_fallback">오늘은 새 대화가 아직 없어요.</string>
 </resources>

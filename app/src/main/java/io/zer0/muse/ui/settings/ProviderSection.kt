@@ -78,6 +78,8 @@ sealed class ProviderTestStatus {
  * v1.133: 新增 [testStatuses] / [isTestingAll] / [onTestAll] 用于"全部检测"批量并发
  * 健康检查(按 [ProviderEditPage] 的 testConnection 单测逻辑,提升为批量并发)。
  */
+// 列表项 helper 的固有参数面(回调 + 批量检测状态)，与站内同类 helper 一致就地豁免
+@Suppress("LongParameterList")
 internal fun LazyListScope.providerListSection(
     providers: List<ProviderConfig>,
     activeProviderId: String?,
@@ -90,6 +92,8 @@ internal fun LazyListScope.providerListSection(
     testStatuses: Map<String, ProviderTestStatus> = emptyMap(),
     isTestingAll: Boolean = false,
     onTestAll: () -> Unit = {},
+    // 列表本身会藏掉内置免费网关，空态却要说清"现在到底能不能用"，所以把闸门判断单独传进来。
+    hasUsableProvider: Boolean = false,
 ) {
     item {
         ProviderListHeader(
@@ -113,13 +117,25 @@ internal fun LazyListScope.providerListSection(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                MuseEmptyState(
-                    icon = MuseIcons.atom,
-                    title = stringResource(R.string.settings_provider_empty_title),
-                    subtitle = stringResource(R.string.settings_provider_empty_subtitle),
-                    actionText = stringResource(R.string.settings_provider_empty_action),
-                    onAction = onAddProvider,
-                )
+                // 只剩内置免费网关时列表是空的，但它足以开始聊天；
+                // 这时候再喊"先添加供应商才能工作"就是在否认自己刚跑通的路径。
+                if (hasUsableProvider) {
+                    MuseEmptyState(
+                        icon = MuseIcons.atom,
+                        title = stringResource(R.string.settings_provider_free_ready_title),
+                        subtitle = stringResource(R.string.settings_provider_free_ready_subtitle),
+                        actionText = stringResource(R.string.settings_provider_empty_action),
+                        onAction = onAddProvider,
+                    )
+                } else {
+                    MuseEmptyState(
+                        icon = MuseIcons.atom,
+                        title = stringResource(R.string.settings_provider_empty_title),
+                        subtitle = stringResource(R.string.settings_provider_empty_subtitle),
+                        actionText = stringResource(R.string.settings_provider_empty_action),
+                        onAction = onAddProvider,
+                    )
+                }
             }
         }
         return

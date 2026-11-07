@@ -45,7 +45,6 @@
     <string name="groupchat_member_required">少なくとも 1 人のメンバーを選択してください</string>
     <string name="groupchat_team_optional">リンクチーム（オプション）</string>
     <string name="groupchat_no_team">リンクされていません</string>
-    <string name="groupchat_selected_members">%1$d メンバーが選択されました</string>
     <string name="groupchat_create_btn">作成する</string>
 
     <!-- ===== ui/account ===== -->
@@ -105,6 +104,13 @@
     <string name="schedule_cancel">キャンセル</string>
     <string name="schedule_msg_cancel">スケジュールメッセージをキャンセル</string>
     <string name="schedule_err_name_required">タスク名を入力してください</string>
+    <string name="schedule_time_daily">毎日実行する時刻</string>
+    <string name="schedule_time_weekly">毎週実行する時刻</string>
+    <string name="schedule_time_once">実行時刻</string>
+    <string name="schedule_time_unset">タップして時刻を選択</string>
+    <string name="schedule_err_once_time_required">一度きりのタスクの実行時刻を選択してください</string>
+    <string name="schedule_status_running">実行中</string>
+    <string name="schedule_status_completed">完了</string>
     <string name="schedule_err_content_required">実行内容を入力してください</string>
     <string name="schedule_err_cron_invalid">無効な cron 式です。</string>
     <string name="schedule_assistant">アシスタント</string>
@@ -609,7 +615,7 @@
     <string name="settings_about_qq_not_installed">QQ が見つかりません。グループ番号 905451314 をクリップボードにコピーしました</string>
     <string name="shizuku_authorize_btn">Muse を承認</string>
     <string name="shizuku_install_btn">Shizuku をダウンロード</string>
-    <string name="shizuku_section_title">Shizuku（推奨）</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse の Shizuku 使用が承認済み</string>
     <string name="skill_agent_phone_not_configured">agent_phone 未設定: GroupChatScheduler が注入されていません</string>
     <string name="skill_agent_phone_target_not_found">対象エージェントが存在しません</string>
@@ -723,7 +729,7 @@
     <!-- バックグラウンド起動の診断:システムが実際に Muse の起動を予約しているか(読み取り専用) -->
     <string name="wake_diagnostics_open">バックグラウンド起動状態</string>
     <string name="wake_diagnostics_title">バックグラウンド起動状態</string>
-    <string name="wake_diagnostics_subtitle">システムのキューにある実際のスケジュールを表示します。読み取り専用で、スケジュールは変更しません。</string>
+    <string name="wake_diagnostics_subtitle">システムが実際に予約しているバックグラウンドジョブの一覧です。内蔵のバックアップや要約も含まれ、あなたが作成したタスクとは別ものです。読み取り専用で、予約は変わりません。</string>
     <string name="wake_diagnostics_refresh">再読み込み</string>
     <string name="wake_diagnostics_copy">スナップショットをコピー</string>
     <string name="wake_diagnostics_copied">スナップショットをコピーしました</string>
@@ -833,4 +839,17 @@
     <string name="plugin_cap_ui_skin">外観スキンの変更</string>
     <string name="plugin_cap_ui_interactive">送信フォームを表示しプラグインのハンドラを実行（データを変更、既定で無効）</string>
     <string name="plugin_cap_runtime_python">沙盒の外で Python を実行（高信頼、個別に確認）</string>
+    <string name="video_no_video_model_hint">現在のプロバイダーには動画出力に対応したモデルがありません。設定 › モデルとプロバイダーで「動画出力」を有効にしてください。</string>
+    <string name="permission_next_step">次にやる推奨ステップ：%1$s</string>
+    <string name="permission_optional_channels">基本の権限は準備済み、その他のチャネルは任意</string>
+    <string name="permission_privacy_notice_title">これらの権限はこの端末内でだけ有効です</string>
+    <string name="permission_privacy_notice_body">画面読み上げとコマンド実行はこの端末内で行われ、内容は送信されません。Root / Shizuku / Termux は任意の高権限チャネルで、有効にするとアプリが端末を操作できます。システム設定または各アプリからいつでも取り消せます。</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="other">%1$d メンバーを選択中</item>
+    </plurals>
+    <string name="workspace_go_root">ワークスペースの最上位へ戻る</string>
+    <string name="artifact_center_empty_hint">成果物とは、会話の中でアシスタントが作った画像・ファイル・長いテキストのことです。ここで見返しや共有ができます</string>
+    <string name="daily_summary_light_fallback">今日はまだ話すことが少なめです。思いついたときにいつでも。</string>
+    <string name="daily_summary_rest_fallback">今日はお疲れさまでした。ゆっくり休んでください。</string>
+    <string name="daily_summary_none_fallback">今日は新しい会話はまだありません。</string>
 </resources>

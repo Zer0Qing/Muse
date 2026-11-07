@@ -36,10 +36,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
+import io.zer0.muse.miniphone.ui.chat.sentinelText
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 
 /**
@@ -121,6 +125,20 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
     val colors = MiniPhoneTheme.colors
     val dimens = MiniPhoneTheme.dimens
     val typography = MiniPhoneTheme.typography
+    // 名字与预览行都可能是空的(没起名的群 / 已删的角色 / 还没有消息)。
+    // 状态里只留空,那三句话在这里按当前语言取——切语言后这一行立刻跟着变。
+    val nameText = thread.name.ifBlank {
+        stringResource(
+            if (thread.isGroup) R.string.mp_shell_untitled_group else R.string.mp_shell_unknown_character,
+        )
+    }
+    val groupMark = if (thread.isGroup) stringResource(R.string.mp_shell_group_preview_mark) else ""
+    val body = sentinelText(thread.preview)
+    val previewText = if (groupMark.isEmpty()) {
+        body
+    } else {
+        groupMark + if (body.isBlank()) "" else " " + body.trim()
+    }.ifBlank { stringResource(EMPTY_PREVIEW_TEXT_RES) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -130,7 +148,7 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box {
-            MiniPhoneAvatar(name = thread.name, size = dimens.avatarList)
+            MiniPhoneAvatar(name = nameText, size = dimens.avatarList)
             if (thread.unreadCount > 0) {
                 UnreadBadge(
                     count = thread.unreadCount,
@@ -145,7 +163,7 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = thread.name,
+                    text = nameText,
                     style = typography.body.copy(color = colors.textPrimary, fontWeight = FontWeight.Medium),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -153,14 +171,14 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = relativeTimeOf(thread.lastMessageAt),
+                    text = relativeTimeOf(LocalContext.current, thread.lastMessageAt),
                     style = typography.timestamp.copy(color = colors.textSecondary),
                     maxLines = 1,
                 )
             }
             Spacer(Modifier.height(3.dp))
             Text(
-                text = thread.preview.ifBlank { EMPTY_PREVIEW_TEXT },
+                text = previewText,
                 style = typography.caption.copy(color = colors.textSecondary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -213,17 +231,17 @@ private fun ThreadsEmptyState(onGoContacts: () -> Unit, modifier: Modifier = Mod
         EmptyBubble()
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "还没有聊天",
+            text = stringResource(R.string.mp_msgs_empty_title),
             style = typography.title.copy(color = colors.textPrimary),
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = "去通讯录找个角色开始吧",
+            text = stringResource(R.string.mp_msgs_empty_hint),
             style = typography.caption.copy(color = colors.textSecondary),
         )
         Spacer(Modifier.height(18.dp))
         Text(
-            text = GO_CONTACTS_LABEL,
+            text = stringResource(GO_CONTACTS_LABEL_RES),
             style = typography.caption.copy(color = colors.accent, fontWeight = FontWeight.Medium),
             modifier = Modifier
                 .testTag(MiniPhoneTags.EMPTY_THREADS_ACTION)
@@ -275,5 +293,5 @@ private val ThreadTextGap = 12.dp
 
 private const val MAX_BADGE_COUNT: Int = 99
 private const val FULL_BADGE_TEXT: String = "99+"
-private const val EMPTY_PREVIEW_TEXT: String = "还没有消息"
-private const val GO_CONTACTS_LABEL: String = "去通讯录"
+private val EMPTY_PREVIEW_TEXT_RES: Int = R.string.mp_msgs_empty_preview
+private val GO_CONTACTS_LABEL_RES: Int = R.string.mp_msgs_go_contacts

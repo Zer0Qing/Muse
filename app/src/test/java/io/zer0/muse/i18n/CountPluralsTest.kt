@@ -37,6 +37,7 @@ class CountPluralsTest {
         R.plurals.onboarding_provider_test_success,
         R.plurals.settings_search_result_count,
         R.plurals.chat_companion_days,
+        R.plurals.groupchat_selected_members,
     )
 
     private fun context(tag: String): Context {

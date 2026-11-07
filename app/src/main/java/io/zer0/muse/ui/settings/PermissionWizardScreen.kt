@@ -42,6 +42,7 @@ import io.zer0.muse.tools.system.RootAuthorizer
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import io.zer0.muse.tools.system.ShizukuInstaller
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -103,11 +104,14 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
 
     // v2.2.1: 无障碍独立 Provider(可选增强;不参与"三通道权限等级"判定)
     var providerInstalled by remember { mutableStateOf(false) }
+
+    // Root 与 Termux 属于可选升级通道，默认收起，用户按需展开
+    var showAdvanced by remember { mutableStateOf(false) }
     var providerBundled by remember { mutableStateOf(false) }
 
     // 刷新状态
     suspend fun refresh() {
-        try {
+        runCatching {
             a11yEnabled = a11yInstaller.isEnabled()
             shizukuInstalled = shizukuInstaller.isInstalled()
             shizukuAvailable = shizukuAuthorizer.isAvailable()
@@ -127,11 +131,11 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
             // v2.2.1: 独立 Provider 静态检测(装没装;APK 是否随包附带决定是否展示安装入口)
             providerInstalled = a11yInstaller.isProviderInstalled()
             providerBundled = a11yInstaller.isProviderApkBundled()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: SecurityException) {
-            Logger.w("PermissionWizard", "刷新权限状态被系统拒绝: ${e.message}", e)
-        } catch (e: IllegalStateException) {
+        }.onFailure { e ->
+            // 探针(binder / su / Termux)抛的运行时异常种类枚举不完。
+            // 这里漏出去一次，repeatOnLifecycle 的循环就永久死了：
+            // 用户从系统设置授权回来，页面状态再也不刷新，只能退出重进。
+            if (e is CancellationException) throw e
             Logger.w("PermissionWizard", "刷新权限状态失败: ${e.message}", e)
         }
     }
@@ -189,8 +193,41 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                         }
                     Text(text = levelText, style = MaterialTheme.typography.headlineSmall)
                     Spacer(Modifier.height(8.dp))
+                    // 五张卡并列时看不出先做哪一步：基础通道没开就点名它，开了就说明其余是可选的。
+                    Text(
+                        text = if (a11yEnabled) {
+                            stringResource(R.string.permission_optional_channels)
+                        } else {
+                            stringResource(
+                                R.string.permission_next_step,
+                                stringResource(R.string.accessibility_section_title),
+                            )
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.permission_wizard_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // 动手授权之前先说清边界：只做在本机、可随时撤销。
+            MuseSurface(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = stringResource(R.string.permission_privacy_notice_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        // LAYOUT-01: 卡片标题取宽 + 限行，防放大字号下挤成一列
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.permission_privacy_notice_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -245,109 +282,121 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                 onRefresh = { refreshAsync() },
             )
 
-            // 通道 3: Root — 未授权时主行为是发起 su 授权请求(Magisk/KernelSU 弹窗)
-            ChannelCard(
-                title = stringResource(R.string.root_section_title),
-                enabled = rootAvailable,
-                enabledText = stringResource(R.string.root_status_available),
-                disabledText = stringResource(R.string.root_status_unavailable),
-                actionText = if (!rootAvailable) stringResource(R.string.automation_root_action_request) else "",
-                onAction = {
-                    if (!rootRequesting) {
-                        scope.launch {
-                            rootRequesting = true
-                            val result = automationManager.requestRoot()
-                            rootRequesting = false
-                            if (result.granted) {
-                                MuseToast.show(context.getString(R.string.automation_root_granted))
-                            } else {
-                                val failure = result.failure ?: RootRequestFailure.ERROR
-                                val msgRes =
-                                    when (failure) {
-                                        RootRequestFailure.NO_SU_BINARY -> R.string.automation_root_no_su
-                                        RootRequestFailure.TIMEOUT -> R.string.automation_root_timeout
-                                        RootRequestFailure.DENIED -> R.string.automation_root_denied
-                                        RootRequestFailure.ERROR -> R.string.automation_root_failed
-                                    }
-                                MuseToast.show(context.getString(msgRes))
+            // 五张卡并列时最靠前的是没开通的 Root/Termux，等于同时飘三张红；
+            // 收进一个折叠，已经装上或已授权的机器直接展开，不让现有配置看起来消失了。
+            val advancedReady = rootAvailable || suiAvailable || termuxInstalled
+            MuseCapsuleButton(
+                text = stringResource(R.string.permission_advanced_channels),
+                onClick = { showAdvanced = !showAdvanced },
+                variant = IosCapsuleButtonVariant.Secondary,
+                trailingIcon = if (showAdvanced || advancedReady) MuseIcons.chevronUp else MuseIcons.chevronDown,
+            )
+            if (showAdvanced || advancedReady) {
+                // 通道 3: Root — 未授权时主行为是发起 su 授权请求(Magisk/KernelSU 弹窗)
+                ChannelCard(
+                    title = stringResource(R.string.root_section_title),
+                    optional = true,
+                    enabled = rootAvailable,
+                    enabledText = stringResource(R.string.root_status_available),
+                    disabledText = stringResource(R.string.root_status_unavailable),
+                    actionText = if (!rootAvailable) stringResource(R.string.automation_root_action_request) else "",
+                    onAction = {
+                        if (!rootRequesting) {
+                            scope.launch {
+                                rootRequesting = true
+                                val result = automationManager.requestRoot()
+                                rootRequesting = false
+                                if (result.granted) {
+                                    MuseToast.show(context.getString(R.string.automation_root_granted))
+                                } else {
+                                    val failure = result.failure ?: RootRequestFailure.ERROR
+                                    val msgRes =
+                                        when (failure) {
+                                            RootRequestFailure.NO_SU_BINARY -> R.string.automation_root_no_su
+                                            RootRequestFailure.TIMEOUT -> R.string.automation_root_timeout
+                                            RootRequestFailure.DENIED -> R.string.automation_root_denied
+                                            RootRequestFailure.ERROR -> R.string.automation_root_failed
+                                        }
+                                    MuseToast.show(context.getString(msgRes))
+                                }
+                                refresh()
                             }
-                            refresh()
                         }
-                    }
-                },
-                onRefresh = { refreshAsync() },
-            )
+                    },
+                    onRefresh = { refreshAsync() },
+                )
 
-            // 通道 4(v2.2.1): Termux 扩展通道 — 完整 Linux 环境命令执行(可选)
-            TermuxChannelCard(
-                installed = termuxInstalled,
-                permitted = termuxPermitted,
-                probeOk = termuxProbe,
-                onGet = {
-                    runCatching {
-                        context.startActivity(
-                            android.content.Intent(
-                                android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://f-droid.org/packages/com.termux/"),
-                            ),
-                        )
-                    }
-                },
-                onGrant = {
-                    // v2.6.7 修复（用户反馈：Termux 永远授不上权限）:
-                    // `com.termux.permission.RUN_COMMAND` 是 Termux 自己声明的
-                    // `dangerous` 运行时权限（Termux 官方安全公告原文:
-                    // "a `dangerous` runtime permission, to be granted to the calling app"）。
-                    //
-                    // 这类权限只能由系统弹框授予，或 `adb shell pm grant`，
-                    // **不会**出现在设置页的权限列表里。旧实现只跳
-                    // ACTION_APPLICATION_DETAILS_SETTINGS，于是:
-                    //   跳过去 → 那里没有这个开关 → 回来 hasPermission() 仍 false → 永远卡住。
-                    // 多数 ROM 都没有「附加权限」二级页，文案里的入口实际不存在。
-                    //
-                    // 正确做法:直接在 Muse 侧发起运行时请求，让系统弹授权框。
-                    // Termux 未安装 / 未声明该权限时，系统会直接回调拒绝，
-                    // 此时再回落成 adb 引导（下面 tryStart 那段保留）。
-                    val activity = context.findActivity()
-                    // launcher 始终已注册（Compose 组合期创建），有 Activity 就发请求。
-                    // 未装 Termux 时系统会直接回调拒绝，由 denied 提示引导用户先装。
-                    if (activity != null) {
-                        termuxPermissionLauncher.launch(io.zer0.muse.terminal.TermuxChannel.PERMISSION)
-                        return@TermuxChannelCard
-                    }
-                    // 回落: 无法发起运行时请求时，给可自查的 adb 命令而不是指错路。
-                    val pkg = io.zer0.muse.terminal.TermuxChannel.PKG
-                    val pkgUri = android.net.Uri.fromParts("package", pkg, null)
+                // 通道 4(v2.2.1): Termux 扩展通道 — 完整 Linux 环境命令执行(可选)
+                TermuxChannelCard(
+                    installed = termuxInstalled,
+                    permitted = termuxPermitted,
+                    probeOk = termuxProbe,
+                    onGet = {
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://f-droid.org/packages/com.termux/"),
+                                ),
+                            )
+                        }
+                    },
+                    onGrant = {
+                        // v2.6.7 修复（用户反馈：Termux 永远授不上权限）:
+                        // `com.termux.permission.RUN_COMMAND` 是 Termux 自己声明的
+                        // `dangerous` 运行时权限（Termux 官方安全公告原文:
+                        // "a `dangerous` runtime permission, to be granted to the calling app"）。
+                        //
+                        // 这类权限只能由系统弹框授予，或 `adb shell pm grant`，
+                        // **不会**出现在设置页的权限列表里。旧实现只跳
+                        // ACTION_APPLICATION_DETAILS_SETTINGS，于是:
+                        //   跳过去 → 那里没有这个开关 → 回来 hasPermission() 仍 false → 永远卡住。
+                        // 多数 ROM 都没有「附加权限」二级页，文案里的入口实际不存在。
+                        //
+                        // 正确做法:直接在 Muse 侧发起运行时请求，让系统弹授权框。
+                        // Termux 未安装 / 未声明该权限时，系统会直接回调拒绝，
+                        // 此时再回落成 adb 引导（下面 tryStart 那段保留）。
+                        val activity = context.findActivity()
+                        // launcher 始终已注册（Compose 组合期创建），有 Activity 就发请求。
+                        // 未装 Termux 时系统会直接回调拒绝，由 denied 提示引导用户先装。
+                        if (activity != null) {
+                            termuxPermissionLauncher.launch(io.zer0.muse.terminal.TermuxChannel.PERMISSION)
+                            return@TermuxChannelCard
+                        }
+                        // 回落: 无法发起运行时请求时，给可自查的 adb 命令而不是指错路。
+                        val pkg = io.zer0.muse.terminal.TermuxChannel.PKG
+                        val pkgUri = android.net.Uri.fromParts("package", pkg, null)
 
-                    // ① 部分 ROM(ColorOS/MIUI/EMUI)支持直接开应用详情并定位到权限页
-                    fun tryStart(action: String, uri: android.net.Uri?): Boolean = runCatching {
-                        val i = if (uri != null) {
-                            android.content.Intent(action, uri)
+                        // ① 部分 ROM(ColorOS/MIUI/EMUI)支持直接开应用详情并定位到权限页
+                        fun tryStart(action: String, uri: android.net.Uri?): Boolean = runCatching {
+                            val i = if (uri != null) {
+                                android.content.Intent(action, uri)
+                            } else {
+                                android.content.Intent(action)
+                            }
+                            i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(i)
+                        }.isSuccess
+
+                        val ok = tryStart(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri) ||
+                            tryStart(android.provider.Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS, null)
+
+                        if (!ok) {
+                            MuseToast.show(context.getString(R.string.permission_termux_grant_manual_hint), 3500)
                         } else {
-                            android.content.Intent(action)
+                            // 跳转成功也要给逐步指引 —— 应用信息首屏看不到这个开关。
+                            MuseToast.show(context.getString(R.string.permission_termux_grant_toast), 3500)
                         }
-                        i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context.startActivity(i)
-                    }.isSuccess
-
-                    val ok = tryStart(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri) ||
-                        tryStart(android.provider.Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS, null)
-
-                    if (!ok) {
-                        MuseToast.show(context.getString(R.string.permission_termux_grant_manual_hint), 3500)
-                    } else {
-                        // 跳转成功也要给逐步指引 —— 应用信息首屏看不到这个开关。
-                        MuseToast.show(context.getString(R.string.permission_termux_grant_toast), 3500)
-                    }
-                },
-                onOpenApp = {
-                    runCatching {
-                        context.packageManager.getLaunchIntentForPackage(io.zer0.muse.terminal.TermuxChannel.PKG)
-                            ?.let { context.startActivity(it) }
-                    }
-                },
-                onRefresh = { refreshAsync() },
-            )
+                    },
+                    onOpenApp = {
+                        runCatching {
+                            context.packageManager.getLaunchIntentForPackage(io.zer0.muse.terminal.TermuxChannel.PKG)
+                                ?.let { context.startActivity(it) }
+                        }
+                    },
+                    onRefresh = { refreshAsync() },
+                )
+            }
 
             // Sui 后端兼容提示
             if (suiAvailable) {
@@ -402,6 +451,8 @@ private fun ChannelCard(
     actionText: String,
     onAction: () -> Unit,
     onRefresh: () -> Unit,
+    // 可选通道没开通不是故障，不该和主通道一起飘红。
+    optional: Boolean = false,
 ) {
     MuseSurface(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -418,9 +469,19 @@ private fun ChannelCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Icon(
-                    imageVector = if (enabled) MuseIcons.circleCheck else MuseIcons.alertTriangle,
+                    imageVector = if (enabled) {
+                        MuseIcons.circleCheck
+                    } else if (optional) {
+                        MuseIcons.lock
+                    } else {
+                        MuseIcons.alertTriangle
+                    },
                     contentDescription = null,
-                    tint = if (enabled) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,
+                    tint = when {
+                        enabled -> MaterialTheme.statusColors.success
+                        optional -> MaterialTheme.colorScheme.onSurfaceVariant
+                        else -> MaterialTheme.colorScheme.error
+                    },
                     modifier = Modifier.size(24.dp),
                 )
             }
@@ -428,8 +489,7 @@ private fun ChannelCard(
             Text(
                 text = if (enabled) enabledText else disabledText,
                 style = MaterialTheme.typography.bodyMedium,
-                color =
-                if (enabled) {
+                color = if (enabled || optional) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
                     MaterialTheme.colorScheme.error
@@ -477,9 +537,9 @@ private fun ShizukuChannelCard(
                 )
                 val ready = installed && available && authorized
                 Icon(
-                    imageVector = if (ready) MuseIcons.circleCheck else MuseIcons.alertTriangle,
+                    imageVector = if (ready) MuseIcons.circleCheck else MuseIcons.lock,
                     contentDescription = null,
-                    tint = if (ready) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,
+                    tint = if (ready) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp),
                 )
             }
@@ -568,9 +628,9 @@ private fun TermuxChannelCard(
                 )
                 val ready = installed && permitted && probeOk == true
                 Icon(
-                    imageVector = if (ready) MuseIcons.circleCheck else MuseIcons.alertTriangle,
+                    imageVector = if (ready) MuseIcons.circleCheck else MuseIcons.lock,
                     contentDescription = null,
-                    tint = if (ready) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,
+                    tint = if (ready) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp),
                 )
             }
@@ -738,39 +798,20 @@ private fun A11yProviderCard(installed: Boolean, bundled: Boolean, onInstall: ()
 private fun StatusLine(done: Boolean, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
         Icon(
-            imageVector = if (done) MuseIcons.circleCheck else MuseIcons.alertTriangle,
+            imageVector = if (done) MuseIcons.circleCheck else MuseIcons.lock,
             contentDescription = null,
-            // ST-06: 未授权与已授权用不同色区分(此前未授权为灰色 outline,与已授权区分不足)
-            tint = if (done) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.error,
+            // 步骤没完成只是"还没开通"，这些通道本身是可选的，报错误色等于同时喊五张卡。
+            tint = if (done) MaterialTheme.statusColors.success else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(8.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color =
-            if (done) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.error
-            },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
 private fun buildGlobalActionsHelp(context: Context): String = context.getString(R.string.permission_action_id_help)
 
-/**
- * v2.6.7: 从 Context 向上找 Activity。
- *
- * 运行时权限请求必须从 Activity 发起（ContextWrapper 链上不一定直挂 Activity）。
- * 找不到时返回 null，由调用方回落到手动引导，不抛异常。
- */
-private fun Context.findActivity(): android.app.Activity? {
-    var ctx: Context? = this
-    while (ctx is android.content.ContextWrapper) {
-        if (ctx is android.app.Activity) return ctx
-        ctx = ctx.baseContext
-    }
-    return null
-}

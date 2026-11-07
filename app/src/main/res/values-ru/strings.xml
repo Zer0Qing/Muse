@@ -155,7 +155,7 @@
 
     <string name="chat_draft_label">Черновик</string>
     <string name="chat_list_status_in_progress">В ходе выполнения</string>
-    <string name="chat_list_status_pending">В ожидании</string>
+    <string name="chat_list_status_pending">Не начато</string>
     <string name="chat_list_status_completed">Завершенный</string>
     <string name="chat_list_time_just_now">Прямо сейчас</string>
     <string name="chat_list_time_minutes_ago">%1$d мин. назад</string>
@@ -278,4 +278,5 @@
     <string name="settings_diagnostics_migration_none">На этом устройстве записи о миграции нет</string>
     <string name="settings_diagnostics_migration_summary">%1$d шагов · %2$d мс всего · самый медленный %3$d мс</string>
     <string name="settings_diagnostics_migration_failed">Шаг %1$d завершился ошибкой</string>
+    <string name="msg_interrupted_note">[Прервано]</string>
 </resources>

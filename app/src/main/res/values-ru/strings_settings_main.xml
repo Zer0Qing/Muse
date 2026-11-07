@@ -19,6 +19,8 @@
     <string name="settings_provider_empty_title">Пока нет поставщиков</string>
     <string name="settings_provider_empty_subtitle">Добавьте поставщика, чтобы ассистент мог начать работу</string>
     <string name="settings_provider_empty_action">Добавить поставщика</string>
+    <string name="settings_provider_free_ready_title">Встроенные бесплатные модели готовы</string>
+    <string name="settings_provider_free_ready_subtitle">Уже можно общаться. Свой провайдер необязателен, но даёт больше лимитов и возможностей.</string>
     <string name="settings_provider_category_official">Официальный</string>
     <string name="settings_provider_category_relay">Реле</string>
     <string name="settings_provider_category_custom">Обычай</string>
@@ -308,6 +310,8 @@
     <string name="settings_chat_show_timestamp">Показать временную метку</string>
     <string name="settings_chat_show_timestamp_subtitle">Показывать время отправки для каждого сообщения</string>
     <string name="settings_chat_generation_style">Стиль генерации</string>
+    <string name="settings_chat_reply_language">Отвечать на языке пользователя</string>
+    <string name="settings_chat_reply_language_subtitle">Ответы следуют языку вашего сообщения, а при неопределённости — языку интерфейса. Отключите, чтобы решали промпты</string>
     <string name="settings_chat_randomness">Случайность ответа</string>
     <string name="settings_chat_temp_hint_certain">Детерминированный, стабильный и предсказуемый</string>
     <string name="settings_chat_temp_hint_balanced_low">Сбалансированный, стабильный, но разнообразный</string>

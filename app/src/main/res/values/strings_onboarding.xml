@@ -8,13 +8,6 @@
     <string name="onboarding_language_subtitle">界面文字会用它，随时可改。</string>
     <string name="onboarding_theme_title">换个喜欢的模样。</string>
     <string name="onboarding_theme_subtitle">主题可随时在设置里更换。</string>
-<string name="onboarding_lang_zh" translatable="false">简体中文</string>
-<string name="onboarding_lang_en" translatable="false">English</string>
-<string name="onboarding_lang_ja" translatable="false">日本語</string>
-<string name="onboarding_lang_ko" translatable="false">한국어</string>
-<string name="onboarding_lang_ru" translatable="false">Русский</string>
-<string name="onboarding_lang_es" translatable="false">Español</string>
-<string name="onboarding_lang_pt_br" translatable="false">Português (Brasil)</string>
 
     <!-- 步骤 2:你的名字 -->
     <string name="onboarding_names_title">先认识一下。</string>
@@ -38,7 +31,7 @@
     <string name="onboarding_provider_caps">能力已匹配：视觉 %1$d · 推理 %2$d · 工具 %3$d</string>
     <string name="onboarding_provider_select_label">选择供应商</string>
     <string name="onboarding_provider_apikey_label">API Key</string>
-    <string name="onboarding_provider_apikey_input">输入 API Key</string>
+    <string name="onboarding_provider_apikey_input">在供应商控制台生成，通常形如 sk-…</string>
     <string name="onboarding_provider_apikey_show">显示密钥</string>
     <string name="onboarding_provider_apikey_hide">隐藏密钥</string>
     <string name="onboarding_provider_test_button">测试连接</string>

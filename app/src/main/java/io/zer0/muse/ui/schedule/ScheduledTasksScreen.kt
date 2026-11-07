@@ -3,6 +3,8 @@
 
 package io.zer0.muse.ui.schedule
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -78,6 +80,7 @@ import io.zer0.muse.schedule.WakeWorkEntry
 import io.zer0.muse.schedule.WakeWorkKind
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
@@ -94,19 +97,20 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDateFormats
-import io.zer0.muse.ui.theme.MuseStatusColors
-import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseStatusColors
 import io.zer0.muse.ui.theme.huge
+import io.zer0.muse.ui.theme.statusColors
+import io.zer0.muse.ui.theme.titleSmallStrong
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * v1.104: 把 5 字段 Cron 表达式转为人类可读的中文描述。
@@ -453,15 +457,9 @@ private fun TaskCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 TaskMetaChip(text = intervalToLabel(task.interval))
-                if (task.nextRunAt > 0) {
-                    val nextFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
-                    TaskMetaChip(
-                        text = stringResource(R.string.schedule_next_run, nextFmt.format(Date(task.nextRunAt))),
-                        highlighted = task.enabled,
-                    )
-                }
+                NextRunChip(task)
                 if (task.lastRunAt > 0) {
-                    val lastFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+                    val lastFmt = remember { MuseDateFormats.dateTimeShort() }
                     TaskMetaChip(
                         text = stringResource(R.string.schedule_last_run_short, lastFmt.format(Date(task.lastRunAt))),
                     )
@@ -783,6 +781,9 @@ private fun TaskDialog(
     var assistantId by rememberSaveable { mutableStateOf(existingTask?.assistantId ?: "default") }
     var interval by rememberSaveable { mutableStateOf(existingTask?.interval ?: "daily") }
     var cronExpr by rememberSaveable { mutableStateOf(existingTask?.cronExpr ?: "") }
+    // 一次性任务的「何时执行」就是它的 nextRunAt；原来没有入口，建完就只能等下一轮轮询
+    val initialOnceAt = existingTask?.takeIf { it.interval == "once" }?.nextRunAt ?: 0L
+    var onceAt by rememberSaveable { mutableStateOf(initialOnceAt) }
 
     // 自动化字段
     val initialCondition =
@@ -825,6 +826,7 @@ private fun TaskDialog(
     val errNameRequired = stringResource(R.string.schedule_err_name_required)
     val errContentRequired = stringResource(R.string.schedule_err_content_required)
     val errCronInvalid = stringResource(R.string.schedule_err_cron_invalid)
+    val errOnceTimeRequired = stringResource(R.string.schedule_err_once_time_required)
 
     val isEdit = existingTask != null
     val selectedAssistantName = assistants.firstOrNull { it.id == assistantId }?.name
@@ -835,7 +837,8 @@ private fun TaskDialog(
         ScheduledTaskRunner.computeNextRun(interval, cronExpr.trim(), System.currentTimeMillis())
             .takeIf { it > 0 }
     }
-    val previewFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
+    // 表单预览与列表用同一格式，之前一个带年份一个不带，看起来像两个不同的时间
+    val previewFmt = remember { MuseDateFormats.dateTimeShort() }
     val previewText = nextRunPreview?.let { stringResource(R.string.schedule_next_run_preview, previewFmt.format(Date(it))) }
 
     // 未保存修改检测
@@ -872,6 +875,8 @@ private fun TaskDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 MuseTextField(value = name, onValueChange = {
                     name = it
+                    // 红字挂在已经填好的字段下面，比不报错更让人不敢提交
+                    errorMessage = null
                 }, label = { Text(stringResource(R.string.schedule_task_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 MuseTextField(value = prompt, onValueChange = {
                     prompt = it
@@ -918,6 +923,16 @@ private fun TaskDialog(
                             )
                         }
                     }
+                }
+                if (interval == "daily" || interval == "weekly" || interval == "once") {
+                    ScheduleTimeRow(
+                        interval = interval,
+                        cronExpr = cronExpr,
+                        onceAt = onceAt,
+                        onDailyTime = { hour, minute -> cronExpr = "$minute $hour * * *" },
+                        onWeeklyTime = { hour, minute, weekday -> cronExpr = "$minute $hour * * $weekday" },
+                        onOnceAt = { millis -> onceAt = millis },
+                    )
                 }
                 if (interval == "cron") {
                     MuseTextField(value = cronExpr, onValueChange = {
@@ -1066,8 +1081,12 @@ private fun TaskDialog(
                 }
             }
             val now = System.currentTimeMillis()
-            val cronValue = if (interval == "cron") cronExpr.trim() else ""
-            if (interval == "cron") {
+            if (interval == "once" && onceAt <= 0L) {
+                errorMessage = errOnceTimeRequired
+                return@MuseDialog
+            }
+            val cronValue = cronExpr.trim()
+            if (cronValue.isNotEmpty()) {
                 // cron 表达式非法时仍要拦在保存前;ScheduledTaskRunner 对非法值只降级成
                 // 「无下次执行」,静默保存会把用户语法错误变成一个跑一次就消失的任务。
                 val parsed = runCatching { CronExpression.parse(cronValue) }.getOrNull()
@@ -1076,7 +1095,11 @@ private fun TaskDialog(
                     return@MuseDialog
                 }
             }
-            val nextRun = ScheduledTaskRunner.initialNextRunAt(interval, cronValue, now)
+            val nextRun = if (interval == "once") {
+                onceAt
+            } else {
+                ScheduledTaskRunner.initialNextRunAt(interval, cronValue, now)
+            }
 
             val conditionConfig = when (conditionType) {
                 AutomationConfig.Condition.TIME_RANGE -> JsonObject(
@@ -1709,10 +1732,12 @@ private fun WakeEntryRow(entry: WakeWorkEntry) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        // 原始队列名保留：它是 adb / 系统日志里能直接搜到的写法，
+        // 支持排查时用户要复制的就是这一串
         Text(
             text = entry.uniqueName,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -1725,7 +1750,7 @@ private fun WakeEntryRow(entry: WakeWorkEntry) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         val extras = buildList {
-            add(stringResource(R.string.wake_diagnostics_attempts, entry.runAttemptCount))
+            if (entry.runAttemptCount > 0) add(stringResource(R.string.wake_diagnostics_attempts, entry.runAttemptCount))
             if (entry.historyCount > 1) add(stringResource(R.string.wake_diagnostics_history, entry.historyCount - 1))
             if (entry.constrained) add(stringResource(R.string.wake_diagnostics_constrained))
         }
@@ -1816,4 +1841,137 @@ private fun copyWakeSnapshot(context: Context, report: WakeDiagnostics) {
         ClipData.newPlainText("Muse Wake Snapshot", BackgroundWakeDiagnostics.formatSnapshot(report)),
     )
     MuseToast.show(context.getString(R.string.wake_diagnostics_copied))
+}
+
+/**
+ * 下次执行胶囊：领取哨兵与 cron 无匹配都不是"下次时刻"，
+ * 直接拿去格式化会显示 08-17 07:12 这种假日期（实机走查 三-S3）。
+ */
+@Composable
+private fun NextRunChip(task: io.zer0.muse.data.schedule.ScheduledTaskEntity) {
+    when {
+        ScheduledTaskRunner.isPlaceholderNextRun(task.nextRunAt) ->
+            TaskMetaChip(text = stringResource(R.string.schedule_status_running), highlighted = false)
+
+        !task.enabled && task.interval == "once" && task.lastRunAt > 0 ->
+            TaskMetaChip(text = stringResource(R.string.schedule_status_completed), highlighted = false)
+
+        task.nextRunAt > 0 -> {
+            val nextFmt = remember { MuseDateFormats.dateTimeShort() }
+            TaskMetaChip(
+                text = stringResource(R.string.schedule_next_run, nextFmt.format(Date(task.nextRunAt))),
+                highlighted = task.enabled,
+            )
+        }
+    }
+}
+
+/**
+ * 定点时间选择行：daily/weekly 写 cronExpr，once 写绝对时刻。
+ *
+ * 原来只有"自定义 cron"一条路能设时间，普通用户想"每天早上 8 点提醒"就卡死在这里。
+ */
+@Composable
+private fun ScheduleTimeRow(
+    interval: String,
+    cronExpr: String,
+    onceAt: Long,
+    onDailyTime: (Int, Int) -> Unit,
+    onWeeklyTime: (Int, Int, Int) -> Unit,
+    onOnceAt: (Long) -> Unit,
+) {
+    val context = LocalContext.current
+    val timeFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val fullFmt = remember { MuseDateFormats.dateTimeShort() }
+    val label = when (interval) {
+        "weekly" -> stringResource(R.string.schedule_time_weekly)
+        "once" -> stringResource(R.string.schedule_time_once)
+        else -> stringResource(R.string.schedule_time_daily)
+    }
+    val unset = stringResource(R.string.schedule_time_unset)
+    val value = when {
+        interval == "once" -> if (onceAt > 0L) fullFmt.format(Date(onceAt)) else unset
+        else -> cronTimeText(cronExpr, timeFmt) ?: unset
+    }
+    Surface(
+        shape = MuseShapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button) {
+                // 原生日期/时间对话框必须有 Activity 的窗口 token（见笔记提醒同类崩溃）
+                val activity = context.findActivity() ?: return@clickable
+                val now = Calendar.getInstance()
+                if (interval == "once") {
+                    DatePickerDialog(
+                        activity,
+                        { _, year, month, day ->
+                            TimePickerDialog(
+                                activity,
+                                { _, hour, minute ->
+                                    val cal = Calendar.getInstance().apply {
+                                        set(year, month, day, hour, minute, 0)
+                                        set(Calendar.MILLISECOND, 0)
+                                    }
+                                    onOnceAt(cal.timeInMillis)
+                                },
+                                now.get(Calendar.HOUR_OF_DAY),
+                                now.get(Calendar.MINUTE),
+                                true,
+                            ).show()
+                        },
+                        now.get(Calendar.YEAR),
+                        now.get(Calendar.MONTH),
+                        now.get(Calendar.DAY_OF_MONTH),
+                    ).show()
+                } else {
+                    TimePickerDialog(
+                        activity,
+                        { _, hour, minute ->
+                            if (interval == "weekly") {
+                                // 星期几取"今天这一天"，用户选的是"每周的这个时刻"
+                                onWeeklyTime(hour, minute, now.get(Calendar.DAY_OF_WEEK) - 1)
+                            } else {
+                                onDailyTime(hour, minute)
+                            }
+                        },
+                        now.get(Calendar.HOUR_OF_DAY),
+                        now.get(Calendar.MINUTE),
+                        true,
+                    ).show()
+                }
+            },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/** 把写好的 cron 读回成「08:00」这样的时刻；表达式坏掉或永不匹配时返回 null，界面回落到「点选时间」。 */
+private fun cronTimeText(cronExpr: String, fmt: SimpleDateFormat): String? {
+    if (cronExpr.isBlank()) return null
+    val next = runCatching { CronExpression.parse(cronExpr.trim()).nextRunAfter(System.currentTimeMillis()) }
+        .getOrNull()
+        ?.takeIf { it > 0L && !ScheduledTaskRunner.isPlaceholderNextRun(it) }
+        ?: return null
+    return fmt.format(Date(next))
 }

@@ -211,4 +211,5 @@
     <string name="memory_merge_error_generate_failed">No se pudieron fusionar estos recuerdos</string>
     <string name="memory_merge_error_empty_result">El resultado de la fusión no puede estar vacío</string>
     <string name="memory_merge_error_commit_failed">La fusión falló, los recuerdos no cambiaron</string>
+    <string name="memory_space_default_name">Predeterminado</string>
 </resources>

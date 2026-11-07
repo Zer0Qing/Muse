@@ -56,7 +56,6 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
@@ -442,7 +441,7 @@ internal fun BackupSection(
                 title = stringResource(R.string.settings_backup_log_empty),
             )
         } else {
-            val logFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+            val logFmt = remember { MuseDateFormats.dateTimeShort() }
             logs.forEach { log ->
                 val isSuccess = log.status == "success"
                 SettingsItemRow(

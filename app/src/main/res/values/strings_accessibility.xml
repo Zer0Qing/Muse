@@ -16,7 +16,7 @@
     <string name="accessibility_enable_btn">前往系统设置启用</string>
 
     <!-- Shizuku -->
-    <string name="shizuku_section_title">Shizuku(推荐)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">已授权 Muse 使用 Shizuku</string>
     <string name="shizuku_install_btn">下载安装 Shizuku</string>
     <string name="shizuku_authorize_btn">授权 Muse</string>
@@ -25,4 +25,8 @@
     <string name="root_section_title">Root 权限</string>
     <string name="root_status_available">Root 已授权（降级通道，可直接执行 su 命令）</string>
     <string name="root_status_unavailable">未 root 或未授权（Shizuku 不可用时使用 Root 降级）</string>
+    <string name="permission_next_step">建议下一步：%1$s</string>
+    <string name="permission_optional_channels">基础权限已就绪，其余通道按需开通</string>
+    <string name="permission_privacy_notice_title">这些权限只在你的设备上生效</string>
+    <string name="permission_privacy_notice_body">读屏和执行命令都在这台手机上进行，不会上传内容。Root、Shizuku、Termux 是可选的高权限通道，开启后应用可以代替你操作设备；随时可以在系统设置或对应应用里撤销。</string>
 </resources>

@@ -45,7 +45,6 @@
     <string name="groupchat_member_required">Por favor seleccione al menos un miembro</string>
     <string name="groupchat_team_optional">Equipo de enlace (opcional)</string>
     <string name="groupchat_no_team">No vinculado</string>
-    <string name="groupchat_selected_members">%1$d miembros seleccionados</string>
     <string name="groupchat_create_btn">Crear</string>
 
     <!-- ===== ui/account ===== -->
@@ -105,6 +104,13 @@
     <string name="schedule_cancel">Cancelar</string>
     <string name="schedule_msg_cancel">Cancelar mensaje programado</string>
     <string name="schedule_err_name_required">Por favor ingresa un nombre de tarea</string>
+    <string name="schedule_time_daily">Hora diaria</string>
+    <string name="schedule_time_weekly">Hora semanal</string>
+    <string name="schedule_time_once">Ejecutar a las</string>
+    <string name="schedule_time_unset">Toca para elegir la hora</string>
+    <string name="schedule_err_once_time_required">Elige cuándo debe ejecutarse esta tarea única</string>
+    <string name="schedule_status_running">En ejecución</string>
+    <string name="schedule_status_completed">Completada</string>
     <string name="schedule_err_content_required">Por favor ingrese el contenido de ejecución</string>
     <string name="schedule_err_cron_invalid">Expresión cron no válida.</string>
     <string name="schedule_assistant">Asistente</string>
@@ -610,7 +616,7 @@
     <string name="settings_about_qq_not_installed">QQ no encontrado; el número del grupo 905451314 se copió al portapapeles</string>
     <string name="shizuku_authorize_btn">Autorizar Muse</string>
     <string name="shizuku_install_btn">Descargar Shizuku</string>
-    <string name="shizuku_section_title">Shizuku (recomendado)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse autorizado para usar Shizuku</string>
     <string name="skill_agent_phone_not_configured">agent_phone no configurado: GroupChatScheduler no inyectado</string>
     <string name="skill_agent_phone_target_not_found">El agente de destino no existe</string>
@@ -724,7 +730,7 @@
     <!-- Diagnóstico de activación en segundo plano: si el sistema realmente tiene activaciones en cola para Muse (solo lectura) -->
     <string name="wake_diagnostics_open">Estado de activación en segundo plano</string>
     <string name="wake_diagnostics_title">Estado de activación en segundo plano</string>
-    <string name="wake_diagnostics_subtitle">Lee la programación real de la cola del sistema. Solo lectura, no se reprograma nada.</string>
+    <string name="wake_diagnostics_subtitle">Aquí están los trabajos en segundo plano tal como el sistema los programó, incluidos los de copia y resumen integrados; no son las tareas que creaste. Solo lectura: no se reprograma nada.</string>
     <string name="wake_diagnostics_refresh">Volver a leer</string>
     <string name="wake_diagnostics_copy">Copiar instantánea</string>
     <string name="wake_diagnostics_copied">Instantánea copiada</string>
@@ -834,4 +840,18 @@
     <string name="plugin_cap_ui_skin">Cambiar la apariencia visual</string>
     <string name="plugin_cap_ui_interactive">Mostrar un formulario y ejecutar su controlador (altera datos; desactivado)</string>
     <string name="plugin_cap_runtime_python">Ejecutar Python fuera del entorno aislado (alta confianza)</string>
+    <string name="video_no_video_model_hint">El proveedor actual no tiene ningún modelo con salida de vídeo. Activa la capacidad de \"salida de vídeo\" en Ajustes › Modelos y proveedores.</string>
+    <string name="permission_next_step">Próximo paso recomendado: %1$s</string>
+    <string name="permission_optional_channels">Lo básico ya está listo; los demás canales son opcionales</string>
+    <string name="permission_privacy_notice_title">Estos permisos solo actúan en este dispositivo</string>
+    <string name="permission_privacy_notice_body">La lectura de pantalla y los comandos ocurren en este teléfono; nada se sube. Root, Shizuku y Termux son canales opcionales de alto privilegio que dejan a la app actuar por ti: revócalos cuando quieras en Ajustes o en la app correspondiente.</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="one">%1$d miembro seleccionado</item>
+        <item quantity="other">%1$d miembros seleccionados</item>
+    </plurals>
+    <string name="workspace_go_root">Volver a la raíz del espacio de trabajo</string>
+    <string name="artifact_center_empty_hint">Los artefactos son las imágenes, archivos y textos largos que el asistente genera en el chat; aquí puedes revisarlos y compartirlos</string>
+    <string name="daily_summary_light_fallback">Hoy no hay mucho que repasar; aquí estoy cuando quieras hablar.</string>
+    <string name="daily_summary_rest_fallback">Ha sido un día largo; descansa.</string>
+    <string name="daily_summary_none_fallback">Hoy no hay conversaciones nuevas.</string>
 </resources>

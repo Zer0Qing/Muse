@@ -18,11 +18,10 @@ import kotlinx.coroutines.CoroutineExceptionHandler
  * 注意它**不吞取消**：协程的取消是正常控制流，`CoroutineExceptionHandler`
  * 本来也只会在"未被 catch 的异常"上触发，取消不会走到这里。
  */
-internal fun logOnlyExceptionHandler(tag: String): CoroutineExceptionHandler =
-    CoroutineExceptionHandler { _, error ->
-        Logger.w(
-            tag,
-            "后台任务抛出了没人接的异常（已记录，未让应用崩掉）: ${error.message ?: error.javaClass.simpleName}",
-            error,
-        )
-    }
+internal fun logOnlyExceptionHandler(tag: String): CoroutineExceptionHandler = CoroutineExceptionHandler { _, error ->
+    Logger.w(
+        tag,
+        "后台任务抛出了没人接的异常（已记录，未让应用崩掉）: ${error.message ?: error.javaClass.simpleName}",
+        error,
+    )
+}

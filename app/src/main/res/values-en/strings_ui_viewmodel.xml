@@ -162,14 +162,16 @@
     <string name="assistant_import_sillytavern">Import SillyTavern Character Card</string>
     <!-- Assistant detail: character card sharing section -->
     <string name="assistant_detail_share_section">Character Card Sharing</string>
+    <string name="assistant_summary_empty">No description yet; the persona lives under Prompts</string>
+    <string name="assistant_detail_export_section">Export card files</string>
     <string name="assistant_detail_export_png">Export as PNG character card</string>
     <string name="assistant_detail_export_png_desc">SillyTavern format (with metadata)</string>
     <string name="assistant_detail_export_json">Export as JSON character card</string>
     <string name="assistant_detail_export_json_desc">SillyTavern V2 JSON</string>
     <string name="assistant_detail_share_muse_card">Share Muse Character Card</string>
-    <string name="assistant_detail_share_muse_card_desc">Generate visual card and share via system</string>
+    <string name="assistant_detail_share_muse_card_desc">Create an image card and share it with another app</string>
     <string name="assistant_detail_share_muse_json">Share Muse JSON</string>
-    <string name="assistant_detail_share_muse_json_desc">Share Muse JSON via system</string>
+    <string name="assistant_detail_share_muse_json_desc">Share the full character card (JSON) with another app</string>
     <string name="assistant_detail_share_pack">Send Character Pack</string>
     <string name="assistant_detail_share_pack_desc">Send a full character pack (with avatar) via any app; the receiver can import it directly</string>
     <string name="assistant_import_preview_title">Import Character Card</string>

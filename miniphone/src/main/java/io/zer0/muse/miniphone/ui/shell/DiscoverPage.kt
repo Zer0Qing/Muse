@@ -19,7 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 
@@ -59,7 +61,7 @@ internal fun DiscoverPage(modifier: Modifier = Modifier, onOpenMoments: () -> Un
             )
             Spacer(Modifier.width(12.dp))
             Text(
-                text = "朋友圈",
+                text = stringResource(R.string.mp_discover_moments),
                 style = typography.body.copy(color = colors.textPrimary),
             )
             Spacer(Modifier.weight(1f))

@@ -16,7 +16,6 @@ import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
 import io.zer0.muse.miniphone.data.db.entity.MpThreadMemberEntity
 import io.zer0.muse.miniphone.data.media.MpImageStore
 import io.zer0.muse.miniphone.newInMemoryMiniPhoneDb
-import io.zer0.muse.miniphone.ui.shell.UNKNOWN_CHARACTER_NAME
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -91,14 +90,15 @@ class MiniPhoneGroupChatViewModelTest {
     }
 
     @Test
-    fun groupMembersArriveInJoinOrderAndKeepThePlaceholderWhenACharacterIsGone() = runBlocking {
+    fun groupMembersArriveInJoinOrderAndLeaveTheNameEmptyWhenACharacterIsGone() = runBlocking {
         seedGroup(memberIds = listOf("c1", "c2", "c-gone"))
         val viewModel = createViewModel(CastHost())
 
         val state = awaitState(viewModel) { it.members.size == 3 }
 
         assertEquals(listOf("c1", "c2", "c-gone"), state.members.map { it.characterId })
-        assertEquals(listOf("阿远", "小满", "已注销的角色"), state.members.map { it.name })
+        // 名字留空而不是放一句中文：那句话由界面按当前语言补，切语言才不会留下旧词。
+        assertEquals(listOf("阿远", "小满", ""), state.members.map { it.name })
         assertEquals("少了一个人也还是三行 + 自己", 4, state.memberCount)
     }
 
@@ -410,7 +410,7 @@ class MiniPhoneGroupChatViewModelTest {
      */
     private suspend fun readyGroup(viewModel: MiniPhoneChatViewModel, size: Int): ChatUiState = withTimeout(TIMEOUT_MS) {
         viewModel.uiState.first { state ->
-            state.members.size == size && state.members.none { it.name == UNKNOWN_CHARACTER_NAME }
+            state.members.size == size && state.members.none { it.name.isBlank() }
         }
     }
 

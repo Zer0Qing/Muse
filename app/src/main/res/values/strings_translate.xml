@@ -8,6 +8,7 @@
     <string name="translate_page_paste">粘贴</string>
     <string name="translate_page_clear">清空</string>
     <string name="translate_page_source_language">源语言</string>
+    <string name="translate_page_source_text">原文</string>
     <string name="translate_page_target_language">目标语言</string>
     <string name="translate_page_error_failed">翻译失败： %1$s</string>
     <string name="translate_page_copied">已复制到剪贴板</string>
@@ -81,4 +82,5 @@
     <string name="translate_page_ocr_empty">未识别到文字</string>
     <string name="translate_page_ocr_failed">OCR 识别失败</string>
     <string name="translate_page_ocr_applied">已识别文字填入输入框</string>
+    <string name="translate_source_auto">自动检测</string>
 </resources>

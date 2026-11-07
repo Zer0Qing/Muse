@@ -155,7 +155,7 @@
 
     <string name="chat_draft_label">下書き</string>
     <string name="chat_list_status_in_progress">進行中</string>
-    <string name="chat_list_status_pending">保留中</string>
+    <string name="chat_list_status_pending">未開始</string>
     <string name="chat_list_status_completed">完了</string>
     <string name="chat_list_time_just_now">たった今</string>
     <string name="chat_list_time_minutes_ago">%1$d 分前</string>
@@ -278,4 +278,5 @@
     <string name="settings_diagnostics_migration_none">この端末に移行記録はありません</string>
     <string name="settings_diagnostics_migration_summary">%1$d 工程 · 合計 %2$d ms · 最遅 %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">工程 %1$d で失敗</string>
+    <string name="msg_interrupted_note">[中断済み]</string>
 </resources>

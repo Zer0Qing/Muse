@@ -215,7 +215,7 @@
     <string name="chat_draft_label">草稿</string>
     <!-- 功能3: 归档确认 -->
     <string name="chat_list_status_in_progress">进行中</string>
-    <string name="chat_list_status_pending">待确认</string>
+    <string name="chat_list_status_pending">还没开始</string>
     <string name="chat_list_status_completed">已完成</string>
     <string name="chat_list_time_just_now">刚刚</string>
     <string name="chat_list_time_minutes_ago">%1$d 分钟前</string>
@@ -342,4 +342,5 @@
     <string name="settings_diagnostics_migration_none">这台设备还没有迁移记录</string>
     <string name="settings_diagnostics_migration_summary">%1$d 步 · 共 %2$d ms · 最慢 %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">第 %1$d 步失败</string>
+    <string name="msg_interrupted_note">[已中断]</string>
 </resources>

@@ -31,7 +31,7 @@
     <string name="onboarding_provider_caps">Возможности сопоставлены: зрение %1$d · рассуждение %2$d · инструменты %3$d</string>
     <string name="onboarding_provider_select_label">Выберите поставщика</string>
     <string name="onboarding_provider_apikey_label">API-ключ</string>
-    <string name="onboarding_provider_apikey_input">Введите ключ API</string>
+    <string name="onboarding_provider_apikey_input">Из консоли провайдера; обычно начинается с sk-</string>
     <string name="onboarding_provider_apikey_show">Показать ключ</string>
     <string name="onboarding_provider_apikey_hide">Скрыть ключ</string>
     <string name="onboarding_provider_test_button">Тестовое соединение</string>

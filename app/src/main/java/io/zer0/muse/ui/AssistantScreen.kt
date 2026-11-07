@@ -242,15 +242,6 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                 title = screenTitle,
                 onBack = onBack,
                 largeTitle = true,
-                actions = {
-                    MuseTactileButton(
-                        icon = MuseIcons.download,
-                        onClick = { importLauncher.launch(arrayOf("*/*")) },
-                        contentDescription = importCardCd,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = MuseIconSizes.iconMedium,
-                    )
-                },
             )
         },
     ) { innerPadding ->
@@ -336,7 +327,7 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                     },
                                 )
                             } else {
-                                state.assistants.forEach { assistant ->
+                                state.assistants.filterNot { it.id == defaultAssistantId }.forEach { assistant ->
                                     item(
                                         key = assistant.id,
                                         onClick = { onOpenDetail(assistant.id) },
@@ -374,16 +365,15 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                             }
                                         },
                                         supportingContent = {
-                                            val desc = assistant.summary.ifBlank {
-                                                assistant.systemPrompt.take(40).replace("\n", " ")
-                                            }
-                                            if (desc.isNotEmpty()) {
-                                                Text(
-                                                    text = desc,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                            }
+                                            // 提示词是模型面，不是简介：直接截一段展示会把
+                                            // {{char}}/{{user_name}} 这类变量原样漏在列表上
+                                            Text(
+                                                text = assistant.summary.ifBlank {
+                                                    stringResource(R.string.assistant_summary_empty)
+                                                },
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
                                         },
                                         trailingContent = {
                                             MuseTactileButton(
@@ -425,6 +415,26 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                         Text(
                                             text = newActionText,
                                             color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    trailingContent = { ChevronRight() },
+                                )
+                                // 导入角色卡：原来只是顶栏一颗无字下载箭头，读屏之外没人知道它是什么；
+                                // 与同页另一个导入入口用同一形态（图标 + 标题 + chevron）
+                                item(
+                                    onClick = { importLauncher.launch(arrayOf("*/*")) },
+                                    leadingContent = {
+                                        Icon(
+                                            imageVector = MuseIcons.download,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(MuseIconSizes.icon),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    },
+                                    headlineContent = {
+                                        Text(
+                                            text = importCardCd,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                         )
                                     },
                                     trailingContent = { ChevronRight() },

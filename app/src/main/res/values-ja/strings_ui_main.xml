@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">エクスクルーシブモデル</string>
     <string name="assistant_detail_temperature">温度: %1$s</string>
     <string name="assistant_detail_default">デフォルト</string>
+    <string name="assistant_detail_default_value">既定（%1$s）</string>
     <string name="assistant_detail_use_default">デフォルトを使用</string>
     <string name="assistant_detail_top_p_label">トップ P (デフォルトでは空のままにしておきます、0 ～ 1)</string>
     <string name="assistant_detail_max_tokens_label">最大トークン数 (デフォルトでは空のまま)</string>
@@ -558,7 +559,7 @@
     <string name="audit_log_category_user">ユーザーアクション</string>
     <string name="audit_log_category_auth">認証</string>
     <string name="audit_log_category_system">システム</string>
-    <string name="audit_log_search_hint">検索アクション/ターゲット/詳細</string>
+    <string name="audit_log_search_hint">操作 / 対象 / 詳細を検索</string>
     <string name="audit_log_clear_search">検索をクリア</string>
     <string name="audit_log_no_match">一致するログはありません</string>
     <string name="audit_log_result_count">%2$d 中の %1$d を表示しています</string>
@@ -624,6 +625,7 @@
 
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">ワークスペース</string>
+    <string name="workspace_tool_outputs">ツールの出力</string>
     <string name="workspace_desc">ローカルファイル管理と一時ストレージ</string>
     <string name="workspace_empty">ワークスペースが空です</string>
     <string name="workspace_new_file">新しいファイル</string>
@@ -888,4 +890,12 @@
     <string name="muse_plugins_market_advice_needs_newer_app">このプラグインはより新しいアプリ版を要求します</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">互換性はダウンロード後にマニフェストで確認されます。今は判定できません</string>
     <string name="muse_plugins_market_advice_retained">本机にこれらのバージョンの控えがあります：%1$s（インストール済み一覧で切替）</string>
+    <string name="audit_log_field_action">操作</string>
+    <string name="audit_log_field_target">対象</string>
+    <string name="audit_log_field_detail">詳細</string>
+    <string name="audit_log_field_result">結果</string>
+    <string name="audit_log_result_ok">成功</string>
+    <string name="audit_log_result_fail">失敗</string>
+    <string name="permission_advanced_channels">高度なチャネル（Root / Termux）</string>
+    <string name="channel_weclaw_summary">WeChat の iLink プロトコルで個人アカウントを接続します。1 つの WeChat ID は 1 チャネルのみ紐付けでき、新しく紐付けると前は無効になります。能動通知は直近の受信メッセージで開く返信ウィンドウに依存します。届かない場合はこのチャネルへ WeChat を送って窓を開けてください。</string>
 </resources>

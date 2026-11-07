@@ -37,11 +37,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
@@ -76,6 +77,9 @@ import io.zer0.muse.ui.theme.semiLarge
 internal fun EmptyChatGuide(
     modifier: Modifier = Modifier,
     assistant: io.zer0.muse.data.assistant.AssistantEntity? = null,
+    // 走查 三-A9:助手列表藏在设置三层里，Agent 页签又摆着一个不能点的头像——
+    // 把头像变成入口，用户在这里就能换助手
+    onOpenAssistants: () -> Unit = {},
     // v1.0.72: 本会话不参考记忆开关
     ignoreMemory: Boolean = false,
     onToggleIgnoreMemory: (Boolean) -> Unit = {},
@@ -95,11 +99,13 @@ internal fun EmptyChatGuide(
         Box(
             modifier = Modifier
                 .size(64.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .clickable(role = Role.Button, onClick = onOpenAssistants)
                 .background(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                     shape = androidx.compose.foundation.shape.CircleShape,
                 )
-                .clearAndSetSemantics {
+                .semantics {
                     contentDescription = avatarCd
                 },
             contentAlignment = Alignment.Center,
@@ -546,7 +552,7 @@ internal fun DateSeparator(timestamp: Long) {
         if (isToday) {
             "今天 $timeText"
         } else {
-            val dateSdf = java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, java.util.Locale.getDefault())
+            val dateSdf = MuseDateFormats.dateTimeShort()
             dateSdf.format(java.util.Date(timestamp))
         }
     }

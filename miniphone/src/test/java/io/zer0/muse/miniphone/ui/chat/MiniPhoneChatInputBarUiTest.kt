@@ -8,15 +8,16 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.shadows.ShadowToast
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 /**
  * 聊天输入框的门控（小手机 P2b 第五批）。
@@ -54,11 +55,14 @@ class MiniPhoneChatInputBarUiTest {
 
     private fun input() = compose.onNode(hasSetTextAction())
 
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
+
     @Test
     fun `空输入时发送键点不动`() {
         render()
 
-        compose.onNodeWithText("说点什么…").assertExists()
+        compose.onNodeWithText(res(R.string.mp_chat_input_placeholder)).assertExists()
         compose.onNodeWithTag(MiniPhoneChatTags.SEND_BUTTON).assertIsNotEnabled()
     }
 
@@ -111,7 +115,7 @@ class MiniPhoneChatInputBarUiTest {
         compose.onNodeWithTag(MiniPhoneChatTags.RECORDING_SECONDS).assertDoesNotExist()
         // 但必须给出一句解释
         val notice = ShadowToast.getTextOfLatestToast()?.toString().orEmpty()
-        assertTrue("该说明为什么不能用，实际：$notice", notice.contains("不支持录音输入"))
+        assertTrue("该说明为什么不能用，实际：$notice", notice == res(R.string.mp_chat_voice_unsupported))
     }
 
     @Test

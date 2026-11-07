@@ -33,8 +33,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.data.moment.MOMENT_MAX_IMAGES
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
@@ -117,10 +119,14 @@ private fun PublishTopBar(canPublish: Boolean, onClose: () -> Unit, onConfirm: (
                     .testTag(MiniPhoneMomentsTags.PUBLISH_CLOSE),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = CLOSE_LABEL, style = typography.caption.copy(color = colors.textSecondary))
+                Text(
+                    text = stringResource(CLOSE_LABEL_RES),
+                    style = typography.caption.copy(color = colors.textSecondary),
+                )
             }
             Text(
-                text = TITLE,
+                text = stringResource(TITLE_RES),
+
                 style = typography.title.copy(color = colors.textPrimary),
                 modifier = Modifier
                     .weight(1f)
@@ -134,7 +140,8 @@ private fun PublishTopBar(canPublish: Boolean, onClose: () -> Unit, onConfirm: (
                     .padding(horizontal = 10.dp, vertical = 6.dp),
             ) {
                 Text(
-                    text = CONFIRM_LABEL,
+                    text = stringResource(CONFIRM_LABEL_RES),
+
                     style = typography.caption.copy(
                         color = if (canPublish) colors.accent else colors.textSecondary,
                     ),
@@ -161,7 +168,8 @@ private fun PublishTextField(text: String, onTextChange: (String) -> Unit) {
     ) {
         if (text.isEmpty()) {
             Text(
-                text = PLACEHOLDER,
+                text = stringResource(PLACEHOLDER_RES),
+
                 style = typography.body.copy(color = colors.textSecondary),
             )
         }
@@ -228,7 +236,8 @@ private fun PickerTile(onPick: () -> Unit) {
     ) {
         Icon(
             imageVector = MiniPhoneIcons.Image,
-            contentDescription = PICK_LABEL,
+            contentDescription = stringResource(PICK_LABEL_RES),
+
             tint = colors.textSecondary,
             modifier = Modifier.size(PickIconSize),
         )
@@ -255,7 +264,8 @@ private fun VisibilitySwitch(onlySelf: Boolean, onToggle: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = ONLY_SELF_LABEL,
+            text = stringResource(ONLY_SELF_LABEL_RES),
+
             style = typography.caption.copy(color = colors.textPrimary),
             modifier = Modifier.weight(1f),
         )
@@ -294,12 +304,12 @@ private val TrackHeight = 22.dp
 private val TrackPadding = 3.dp
 private val TrackKnob = 16.dp
 
-private const val TITLE: String = "写动态"
-private const val CLOSE_LABEL: String = "取消"
-private const val CONFIRM_LABEL: String = "发布"
-private const val PLACEHOLDER: String = "这一刻的想法……"
-private const val PICK_LABEL: String = "选择图片"
-private const val ONLY_SELF_LABEL: String = "仅自己可见"
+private val TITLE_RES: Int = R.string.mp_publish_title
+private val CLOSE_LABEL_RES: Int = R.string.mp_cancel
+private val CONFIRM_LABEL_RES: Int = R.string.mp_publish_confirm
+private val PLACEHOLDER_RES: Int = R.string.mp_publish_placeholder
+private val PICK_LABEL_RES: Int = R.string.mp_chat_pick_image_cd
+private val ONLY_SELF_LABEL_RES: Int = R.string.mp_moment_only_self
 
 /** 选图网格的列数。 */
 private const val PICKED_COLUMNS: Int = 3

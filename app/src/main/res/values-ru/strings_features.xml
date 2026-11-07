@@ -45,7 +45,6 @@
     <string name="groupchat_member_required">Пожалуйста, выберите хотя бы одного участника</string>
     <string name="groupchat_team_optional">Связать команду (необязательно)</string>
     <string name="groupchat_no_team">Не связано</string>
-    <string name="groupchat_selected_members">%1$d выбрано участников</string>
     <string name="groupchat_create_btn">Создавать</string>
 
     <!-- ===== ui/account ===== -->
@@ -105,6 +104,13 @@
     <string name="schedule_cancel">Отмена</string>
     <string name="schedule_msg_cancel">Отменить запланированное сообщение</string>
     <string name="schedule_err_name_required">Пожалуйста, введите название задачи</string>
+    <string name="schedule_time_daily">Время ежедневного запуска</string>
+    <string name="schedule_time_weekly">Время еженедельного запуска</string>
+    <string name="schedule_time_once">Выполнить в</string>
+    <string name="schedule_time_unset">Нажмите, чтобы выбрать время</string>
+    <string name="schedule_err_once_time_required">Выберите, когда выполнить эту одноразовую задачу</string>
+    <string name="schedule_status_running">Выполняется</string>
+    <string name="schedule_status_completed">Завершено</string>
     <string name="schedule_err_content_required">Пожалуйста, введите содержание запуска</string>
     <string name="schedule_err_cron_invalid">Недопустимое выражение cron.</string>
     <string name="schedule_assistant">Ассистент</string>
@@ -653,7 +659,7 @@
     <string name="settings_about_qq_not_installed">QQ не найден; номер группы 905451314 скопирован в буфер обмена</string>
     <string name="shizuku_authorize_btn">Авторизовать Muse</string>
     <string name="shizuku_install_btn">Скачать Shizuku</string>
-    <string name="shizuku_section_title">Shizuku (рекомендуется)</string>
+    <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse авторизован для использования Shizuku</string>
     <string name="skill_agent_phone_not_configured">agent_phone не настроен: GroupChatScheduler не внедрён</string>
     <string name="skill_agent_phone_target_not_found">Целевой агент не существует</string>
@@ -773,7 +779,7 @@
     <!-- Диагностика фоновых пробуждений: действительно ли система запланировала их для Muse (только чтение) -->
     <string name="wake_diagnostics_open">Состояние фоновых пробуждений</string>
     <string name="wake_diagnostics_title">Состояние фоновых пробуждений</string>
-    <string name="wake_diagnostics_subtitle">Показывает реальное расписание в очереди системы. Только чтение, расписание не меняется.</string>
+    <string name="wake_diagnostics_subtitle">Это фоновые задачи так, как их реально запланировала система, включая встроенные бэкапы и сводки; это не те задачи, которые создали вы. Только чтение; расписание не меняется.</string>
     <string name="wake_diagnostics_refresh">Обновить</string>
     <string name="wake_diagnostics_copy">Скопировать снимок</string>
     <string name="wake_diagnostics_copied">Снимок скопирован</string>
@@ -883,4 +889,20 @@
     <string name="plugin_cap_ui_skin">Менять визуальное оформление</string>
     <string name="plugin_cap_ui_interactive">Форма отправки и запуск обработчика плагина (меняет данные, по умолчанию выкл)</string>
     <string name="plugin_cap_runtime_python">Запуск Python вне изоляции (высокое доверие)</string>
+    <string name="video_no_video_model_hint">У текущего провайдера нет модели с выводом видео. Включите возможность «вывод видео» для модели в «Настройки › Модели и провайдеры».</string>
+    <string name="permission_next_step">Рекомендуемый следующий шаг: %1$s</string>
+    <string name="permission_optional_channels">Базовое готово; остальные каналы — по желанию</string>
+    <string name="permission_privacy_notice_title">Эти разрешения действуют только на этом устройстве</string>
+    <string name="permission_privacy_notice_body">Чтение экрана и команды выполняются на этом устройстве, ничего не отправляется. Root, Shizuku и Termux — необязательные каналы с высокими привилегиями: включив их, приложение сможет действовать за вас. Отозвать можно в любой момент в системных настройках или в соответствующем приложении.</string>
+    <plurals name="groupchat_selected_members">
+        <item quantity="one">выбран %1$d участник</item>
+        <item quantity="few">выбрано %1$d участника</item>
+        <item quantity="many">выбрано %1$d участников</item>
+        <item quantity="other">выбрано %1$d участника</item>
+    </plurals>
+    <string name="workspace_go_root">В корень рабочего пространства</string>
+    <string name="artifact_center_empty_hint">Артефакты — это изображения, файлы и длинные тексты, которые ассистент создаёт в переписке; здесь их можно пересмотреть и поделиться ими</string>
+    <string name="daily_summary_light_fallback">Сегодня пока нечего вспоминать — я рядом, когда захочется поговорить.</string>
+    <string name="daily_summary_rest_fallback">День выдался долгим — отдохни.</string>
+    <string name="daily_summary_none_fallback">Сегодня новых разговоров пока не было.</string>
 </resources>

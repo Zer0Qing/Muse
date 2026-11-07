@@ -83,6 +83,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.PresetThemes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.util.AppLocales
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -571,15 +572,7 @@ private fun StepLanguage(selectedLanguage: String, onLanguageSelected: (String) 
     // 与 AppLocales.parse / values-* 一一对应的 7 种语言。原先列了 zh-TW 却没有繁体资源,
     // 选中它等于没选(映射返回 null,悄悄回落系统语言);而西/葡/俄已有全量文案却没进选项,
     // 用户在欢迎页问候轮播里看到自己的语言,到了设置语言这一步却选不到。
-    val languages = listOf(
-        "zh" to stringResource(R.string.onboarding_lang_zh),
-        "en" to stringResource(R.string.onboarding_lang_en),
-        "ja" to stringResource(R.string.onboarding_lang_ja),
-        "ko" to stringResource(R.string.onboarding_lang_ko),
-        "ru" to stringResource(R.string.onboarding_lang_ru),
-        "es" to stringResource(R.string.onboarding_lang_es),
-        "pt-rBR" to stringResource(R.string.onboarding_lang_pt_br),
-    )
+    val languages = AppLocales.Language.entries.map { it.code to stringResource(it.labelRes) }
 
     Column(
         modifier = Modifier

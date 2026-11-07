@@ -28,6 +28,7 @@
     <string name="assistant_detail_exclusive_model">전용 모델</string>
     <string name="assistant_detail_temperature">온도: %1$s</string>
     <string name="assistant_detail_default">기본</string>
+    <string name="assistant_detail_default_value">기본값(%1$s)</string>
     <string name="assistant_detail_use_default">기본 사용</string>
     <string name="assistant_detail_top_p_label">Top P(비워두면 기본값, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens(비워두면 기본값)</string>
@@ -558,7 +559,7 @@
     <string name="audit_log_category_user">사용자 작업</string>
     <string name="audit_log_category_auth">인증</string>
     <string name="audit_log_category_system">시스템</string>
-    <string name="audit_log_search_hint">검색 액션/타겟/상세</string>
+    <string name="audit_log_search_hint">동작 / 대상 / 세부정보 검색</string>
     <string name="audit_log_clear_search">검색 지우기</string>
     <string name="audit_log_no_match">일치하는 로그가 없습니다.</string>
     <string name="audit_log_result_count">%2$d 중 %1$d 표시 중</string>
@@ -624,6 +625,7 @@
 
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">워크스페이스</string>
+    <string name="workspace_tool_outputs">도구 출력</string>
     <string name="workspace_desc">로컬 파일 관리 및 임시 저장</string>
     <string name="workspace_empty">워크스페이스가 비어 있습니다</string>
     <string name="workspace_new_file">새 파일</string>
@@ -887,4 +889,12 @@
     <string name="muse_plugins_market_advice_needs_newer_app">이 플러그인은 더 새로운 앱 버전을 요구합니다</string>
     <string name="muse_plugins_market_advice_compat_unconfirmed">호환 여부는 내려받은 후 매니페스트로 확인됩니다. 지금은 판단할 수 없습니다</string>
     <string name="muse_plugins_market_advice_retained">이 버전들의 사본이 남아 있습니다: %1$s (설치 목록에서 전환)</string>
+    <string name="audit_log_field_action">동작</string>
+    <string name="audit_log_field_target">대상</string>
+    <string name="audit_log_field_detail">세부정보</string>
+    <string name="audit_log_field_result">결과</string>
+    <string name="audit_log_result_ok">성공</string>
+    <string name="audit_log_result_fail">실패</string>
+    <string name="permission_advanced_channels">고급 통로 (Root / Termux)</string>
+    <string name="channel_weclaw_summary">WeChat iLink 프로토콜로 개인 계정을 연결합니다. 한 WeChat 계정은 하나의 채널에만 연결되며, 새로 연결하면 기존은 해제됩니다. 능동 알림은 최근 수신 메시지로 열리는 답장 창에 의존하니, 알림이 오지 않으면 이 채널로 WeChat을 보내 창을 열어 주세요.</string>
 </resources>

@@ -65,21 +65,23 @@ class MiniPhoneShellViewModelTest {
 
     @Test
     fun uiStateMergesThreadsWithCharacterNamesAndProfile() = runTest(dispatcher) {
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = FakeThreadDao(
-                listOf(
-                    thread(id = "t2", characterId = "c2", at = 3_000L, unread = 1),
-                    thread(id = "t1", characterId = "c1", at = 1_000L),
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = FakeThreadDao(
+                    listOf(
+                        thread(id = "t2", characterId = "c2", at = 3_000L, unread = 1),
+                        thread(id = "t1", characterId = "c1", at = 1_000L),
+                    ),
                 ),
+                host = FakeHost(
+                    characters = listOf(MpCharacter(id = "c1", name = "阿离"), MpCharacter(id = "c2", name = "Bob")),
+                    profile = MpProfile(nickname = "子奇", signature = "在写小手机"),
+                ),
+                settings = FakeAutoStore(),
+                store = FakeConversationActions(),
+                groupStore = FakeGroupActions(),
             ),
-            host = FakeHost(
-                characters = listOf(MpCharacter(id = "c1", name = "阿离"), MpCharacter(id = "c2", name = "Bob")),
-                profile = MpProfile(nickname = "子奇", signature = "在写小手机"),
-            ),
-            settings = FakeAutoStore(),
-            store = FakeConversationActions(),
-            groupStore = FakeGroupActions(),
-        ))
+        )
 
         val state = viewModel.uiState.first { it.threads.isNotEmpty() }
 
@@ -92,30 +94,34 @@ class MiniPhoneShellViewModelTest {
 
     @Test
     fun threadWithoutCharacterFallsBackToPlaceholderName() = runTest(dispatcher) {
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = FakeThreadDao(listOf(thread(id = "t9", characterId = "gone", at = 5_000L))),
-            host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
-            settings = FakeAutoStore(),
-            store = FakeConversationActions(),
-            groupStore = FakeGroupActions(),
-        ))
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = FakeThreadDao(listOf(thread(id = "t9", characterId = "gone", at = 5_000L))),
+                host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
+                settings = FakeAutoStore(),
+                store = FakeConversationActions(),
+                groupStore = FakeGroupActions(),
+            ),
+        )
 
         val state = viewModel.uiState.first { it.threads.isNotEmpty() }
 
-        assertEquals(listOf(UNKNOWN_CHARACTER_NAME), state.threads.map { it.name })
+        assertEquals(listOf("" to true), state.threads.map { it.name to it.isCharacterMissing })
         assertEquals(emptyList<MiniPhoneContactSection>(), state.contactSections)
     }
 
     @Test
     fun autoMomentSwitchReflectsStoreAndWritesBack() = runTest(dispatcher) {
         val store = FakeAutoStore(enabled = false)
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = FakeThreadDao(emptyList()),
-            host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
-            settings = store,
-            store = FakeConversationActions(),
-            groupStore = FakeGroupActions(),
-        ))
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = FakeThreadDao(emptyList()),
+                host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
+                settings = store,
+                store = FakeConversationActions(),
+                groupStore = FakeGroupActions(),
+            ),
+        )
 
         // 开关关着时状态得跟着关(默认值是 true,所以这里能看出上游真的接上了)
         val off = viewModel.uiState.first { !it.autoMomentEnabled }
@@ -130,13 +136,15 @@ class MiniPhoneShellViewModelTest {
     @Test
     fun openOrCreateThreadReturnsTheSameThreadForTheSameCharacter() = runTest(dispatcher) {
         val threads = FakeThreadDao(emptyList())
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = threads,
-            host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
-            settings = FakeAutoStore(),
-            store = FakeConversationActions(),
-            groupStore = FakeGroupActions(),
-        ))
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = threads,
+                host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
+                settings = FakeAutoStore(),
+                store = FakeConversationActions(),
+                groupStore = FakeGroupActions(),
+            ),
+        )
 
         val first = viewModel.openOrCreateThread("c1")
         val second = viewModel.openOrCreateThread("c1")
@@ -149,13 +157,15 @@ class MiniPhoneShellViewModelTest {
     @Test
     fun openOrCreateThreadKeepsDifferentCharactersApart() = runTest(dispatcher) {
         val threads = FakeThreadDao(listOf(thread(id = "t-old", characterId = "c2", at = 1_000L)))
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = threads,
-            host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
-            settings = FakeAutoStore(),
-            store = FakeConversationActions(),
-            groupStore = FakeGroupActions(),
-        ))
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = threads,
+                host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
+                settings = FakeAutoStore(),
+                store = FakeConversationActions(),
+                groupStore = FakeGroupActions(),
+            ),
+        )
 
         val existing = viewModel.openOrCreateThread("c2")
         val created = viewModel.openOrCreateThread("c3")
@@ -169,13 +179,15 @@ class MiniPhoneShellViewModelTest {
     @Test
     fun openOrCreateThreadIgnoresBlankCharacterId() = runTest(dispatcher) {
         val threads = FakeThreadDao(emptyList())
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = threads,
-            host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
-            settings = FakeAutoStore(),
-            store = FakeConversationActions(),
-            groupStore = FakeGroupActions(),
-        ))
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = threads,
+                host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
+                settings = FakeAutoStore(),
+                store = FakeConversationActions(),
+                groupStore = FakeGroupActions(),
+            ),
+        )
 
         assertNull(viewModel.openOrCreateThread("  "))
         assertTrue("空角色不开会话", threads.stored.isEmpty())
@@ -184,20 +196,22 @@ class MiniPhoneShellViewModelTest {
     @Test
     fun createdGroupCarriesTheJoinedNamesAndReturnsItsThreadId() = runTest(dispatcher) {
         val groups = FakeGroupActions(newThreadId = "g1")
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = FakeThreadDao(emptyList()),
-            host = FakeHost(
-                characters = listOf(
-                    MpCharacter(id = "c1", name = "阿远"),
-                    MpCharacter(id = "c2", name = "小满"),
-                    MpCharacter(id = "c3", name = "阿吾"),
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = FakeThreadDao(emptyList()),
+                host = FakeHost(
+                    characters = listOf(
+                        MpCharacter(id = "c1", name = "阿远"),
+                        MpCharacter(id = "c2", name = "小满"),
+                        MpCharacter(id = "c3", name = "阿吾"),
+                    ),
+                    profile = MpProfile(nickname = "子奇"),
                 ),
-                profile = MpProfile(nickname = "子奇"),
+                settings = FakeAutoStore(),
+                store = FakeConversationActions(),
+                groupStore = groups,
             ),
-            settings = FakeAutoStore(),
-            store = FakeConversationActions(),
-            groupStore = groups,
-        ))
+        )
         // 名单进状态之后才拼得出名字
         viewModel.uiState.first { it.contactSections.isNotEmpty() }
 
@@ -211,13 +225,15 @@ class MiniPhoneShellViewModelTest {
     @Test
     fun creatingAGroupNeedsTwoPeopleAtLeast() = runTest(dispatcher) {
         val groups = FakeGroupActions(newThreadId = "g1")
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = FakeThreadDao(emptyList()),
-            host = FakeHost(characters = listOf(MpCharacter(id = "c1", name = "阿远")), profile = MpProfile(nickname = "")),
-            settings = FakeAutoStore(),
-            store = FakeConversationActions(),
-            groupStore = groups,
-        ))
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = FakeThreadDao(emptyList()),
+                host = FakeHost(characters = listOf(MpCharacter(id = "c1", name = "阿远")), profile = MpProfile(nickname = "")),
+                settings = FakeAutoStore(),
+                store = FakeConversationActions(),
+                groupStore = groups,
+            ),
+        )
         viewModel.uiState.first { it.contactSections.isNotEmpty() }
 
         assertNull("一个人不成群", viewModel.createGroup(listOf("c1")))
@@ -228,13 +244,15 @@ class MiniPhoneShellViewModelTest {
     @Test
     fun threadActionsAreForwardedToTheConversationStore() = runTest(dispatcher) {
         val actions = FakeConversationActions()
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = FakeThreadDao(emptyList()),
-            host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
-            settings = FakeAutoStore(),
-            store = actions,
-            groupStore = FakeGroupActions(),
-        ))
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = FakeThreadDao(emptyList()),
+                host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = "")),
+                settings = FakeAutoStore(),
+                store = actions,
+                groupStore = FakeGroupActions(),
+            ),
+        )
 
         viewModel.setThreadPinned("t1", pinned = true)
         viewModel.markThreadRead("t1")
@@ -249,13 +267,15 @@ class MiniPhoneShellViewModelTest {
 
     @Test
     fun uiStateCarriesTheHostVersionName() = runTest(dispatcher) {
-        val viewModel = track(MiniPhoneShellViewModel(
-            threadDao = FakeThreadDao(emptyList()),
-            host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = ""), appVersion = "2.6.12"),
-            settings = FakeAutoStore(),
-            store = FakeConversationActions(),
-            groupStore = FakeGroupActions(),
-        ))
+        val viewModel = track(
+            MiniPhoneShellViewModel(
+                threadDao = FakeThreadDao(emptyList()),
+                host = FakeHost(characters = emptyList(), profile = MpProfile(nickname = ""), appVersion = "2.6.12"),
+                settings = FakeAutoStore(),
+                store = FakeConversationActions(),
+                groupStore = FakeGroupActions(),
+            ),
+        )
 
         assertEquals("我页的版本信息靠它", "2.6.12", viewModel.uiState.first().appVersionName)
     }
