@@ -299,9 +299,7 @@ fun AssistantDetailPage(
                 )
                 if (assistant != null) {
                     val desc = assistant.summary.ifBlank {
-                        assistant.systemPrompt.take(100).let {
-                            it + if (assistant.systemPrompt.length > 100) "..." else ""
-                        }
+                        stringResource(R.string.assistant_summary_empty)
                     }
                     if (desc.isNotBlank()) {
                         Text(

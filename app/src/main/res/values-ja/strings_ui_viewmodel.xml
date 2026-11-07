@@ -162,6 +162,7 @@
     <string name="assistant_import_sillytavern">SillyTavern キャラクターカードをインポート</string>
     <!-- Assistant detail: character card sharing section -->
     <string name="assistant_detail_share_section">キャラクターカードの共有</string>
+    <string name="assistant_summary_empty">説明がありません。ペルソナは「プロンプト」に書かれています</string>
     <string name="assistant_detail_export_section">キャラクターカードをファイルに書き出す</string>
     <string name="assistant_detail_export_png">PNG キャラクターカードとしてエクスポート</string>
     <string name="assistant_detail_export_png_desc">SillyTavern 形式 (メタデータ付き)</string>

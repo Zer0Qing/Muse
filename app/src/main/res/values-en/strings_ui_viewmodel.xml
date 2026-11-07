@@ -162,6 +162,7 @@
     <string name="assistant_import_sillytavern">Import SillyTavern Character Card</string>
     <!-- Assistant detail: character card sharing section -->
     <string name="assistant_detail_share_section">Character Card Sharing</string>
+    <string name="assistant_summary_empty">No description yet; the persona lives under Prompts</string>
     <string name="assistant_detail_export_section">Export card files</string>
     <string name="assistant_detail_export_png">Export as PNG character card</string>
     <string name="assistant_detail_export_png_desc">SillyTavern format (with metadata)</string>

@@ -162,6 +162,7 @@
     <string name="assistant_import_sillytavern">Импортировать карту персонажа SillyTavern</string>
     <!-- Assistant detail: character card sharing section -->
     <string name="assistant_detail_share_section">Обмен картами персонажей</string>
+    <string name="assistant_summary_empty">Описания пока нет; персона — в разделе «Промпты»</string>
     <string name="assistant_detail_export_section">Экспорт файлов карточки</string>
     <string name="assistant_detail_export_png">Экспортировать как карточку персонажа PNG</string>
     <string name="assistant_detail_export_png_desc">Формат SillyTavern (с метаданными)</string>

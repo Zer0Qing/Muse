@@ -336,7 +336,7 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                     },
                                 )
                             } else {
-                                state.assistants.forEach { assistant ->
+                                state.assistants.filterNot { it.id == defaultAssistantId }.forEach { assistant ->
                                     item(
                                         key = assistant.id,
                                         onClick = { onOpenDetail(assistant.id) },
@@ -374,16 +374,15 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                             }
                                         },
                                         supportingContent = {
-                                            val desc = assistant.summary.ifBlank {
-                                                assistant.systemPrompt.take(40).replace("\n", " ")
-                                            }
-                                            if (desc.isNotEmpty()) {
-                                                Text(
-                                                    text = desc,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                            }
+                                            // 提示词是模型面，不是简介：直接截一段展示会把
+                                            // {{char}}/{{user_name}} 这类变量原样漏在列表上
+                                            Text(
+                                                text = assistant.summary.ifBlank {
+                                                    stringResource(R.string.assistant_summary_empty)
+                                                },
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
                                         },
                                         trailingContent = {
                                             MuseTactileButton(
