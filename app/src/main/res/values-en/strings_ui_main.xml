@@ -967,9 +967,9 @@
     <string name="greeting_open_todos">You have unfinished items in %1$d conversation(s)</string>
     <string name="settings_preference_title">User preferences</string>
     <string name="settings_preference_subtitle">Lasting rules the assistant recorded</string>
-    <string name="settings_preference_desc">When you tell the assistant "from now on, don't…", it stores that as a hard rule here and follows it in every conversation.</string>
+    <string name="settings_preference_desc">When you tell the assistant "from now on, don\'t…", it stores that as a hard rule here and follows it in every conversation.</string>
     <string name="settings_preference_empty">No preferences recorded yet</string>
-    <string name="settings_preference_empty_hint">Try telling the assistant "don't use generic encouragement from now on"</string>
+    <string name="settings_preference_empty_hint">Try telling the assistant "don\'t use generic encouragement from now on"</string>
     <string name="settings_preference_disable">Disable</string>
     <string name="settings_preference_enable">Enable</string>
     <string name="settings_preference_delete">Delete</string>

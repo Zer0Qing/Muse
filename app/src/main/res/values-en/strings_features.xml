@@ -682,7 +682,7 @@
     <!-- Background wake diagnostics: whether the system actually has wakeups queued for Muse (read-only). -->
     <string name="wake_diagnostics_open">Background wake status</string>
     <string name="wake_diagnostics_title">Background wake status</string>
-    <string name="wake_diagnostics_subtitle">These are the app's background jobs as the system actually scheduled them, including built-in backup and summary work - they are not the tasks you created. Read-only; nothing is rescheduled.</string>
+    <string name="wake_diagnostics_subtitle">These are the app\'s background jobs as the system actually scheduled them, including built-in backup and summary work - they are not the tasks you created. Read-only; nothing is rescheduled.</string>
     <string name="wake_diagnostics_refresh">Reload</string>
     <string name="wake_diagnostics_copy">Copy snapshot</string>
     <string name="wake_diagnostics_copied">Snapshot copied</string>
