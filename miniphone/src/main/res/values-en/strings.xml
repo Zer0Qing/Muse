@@ -129,4 +129,10 @@
     </plurals>
     <string name="mp_likers_separator">, </string>
     <string name="mp_likers_fold">and %1$d in total</string>
+    <string name="mp_shell_unknown_character">Removed contact</string>
+    <string name="mp_shell_untitled_group">Group chat</string>
+    <string name="mp_shell_group_preview_mark">[Group]</string>
+    <string name="mp_msg_image">[Photo]</string>
+    <string name="mp_msg_no_reply">No one replied this round</string>
+    <string name="mp_msg_voice">[Voice]</string>
 </resources>

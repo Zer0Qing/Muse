@@ -137,4 +137,10 @@
     </plurals>
     <string name="mp_likers_separator">, </string>
     <string name="mp_likers_fold">всего %1$d</string>
+    <string name="mp_shell_unknown_character">Удалённый персонаж</string>
+    <string name="mp_shell_untitled_group">Групповой чат</string>
+    <string name="mp_shell_group_preview_mark">[Группа]</string>
+    <string name="mp_msg_image">[Фото]</string>
+    <string name="mp_msg_no_reply">Собеседник не ответил</string>
+    <string name="mp_msg_voice">[Голос]</string>
 </resources>

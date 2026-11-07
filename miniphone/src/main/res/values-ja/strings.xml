@@ -125,4 +125,10 @@
     </plurals>
     <string name="mp_likers_separator">、</string>
     <string name="mp_likers_fold">計 %1$d 人</string>
+    <string name="mp_shell_unknown_character">退会したキャラクター</string>
+    <string name="mp_shell_untitled_group">グループチャット</string>
+    <string name="mp_shell_group_preview_mark">[グループ]</string>
+    <string name="mp_msg_image">[画像]</string>
+    <string name="mp_msg_no_reply">相手は応答しませんでした</string>
+    <string name="mp_msg_voice">[音声]</string>
 </resources>

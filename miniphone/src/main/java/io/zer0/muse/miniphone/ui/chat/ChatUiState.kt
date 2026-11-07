@@ -7,7 +7,6 @@ import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
 import io.zer0.muse.miniphone.data.db.MpMessageType
 import io.zer0.muse.miniphone.data.db.entity.MpMessageEntity
-import io.zer0.muse.miniphone.ui.shell.UNTITLED_GROUP_NAME
 
 /**
  * 聊天页要展示的全部状态。
@@ -62,8 +61,13 @@ data class ChatUiState(
      */
     val voiceInputAvailable: Boolean = true,
 ) {
-    /** 顶栏标题:群里是群名,私信是对方名字。 */
-    val title: String get() = if (isGroup) groupTitle.ifBlank { UNTITLED_GROUP_NAME } else peerName
+    /**
+     * 顶栏标题:群里是群名,私信是对方名字。
+     *
+     * 两种"还没名字"的情况都原样留空,由界面按当前语言补那句提示——
+     * 状态里烘进中文,切到英文界面也还是中文。
+     */
+    val title: String get() = if (isGroup) groupTitle else peerName
 
     /** 群人数:成员行加上本机用户。私信不计。 */
     val memberCount: Int get() = if (isGroup) members.size + 1 else 0
@@ -184,7 +188,7 @@ internal fun MpMessageEntity.toChatMessageUi(): ChatMessageUi = ChatMessageUi(
     characterId = characterId,
     sender = sender,
     type = type,
-    content = content,
+    content = MpSentinel.normalize(content),
     mediaUri = mediaUri,
     voiceDurationMs = voiceDurationMs ?: 0L,
     createdAt = createdAt,

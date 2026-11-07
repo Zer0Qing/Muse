@@ -74,7 +74,7 @@ class MiniPhoneChatVoiceUiTest {
 
         compose.onNodeWithTag(MiniPhoneChatTags.voice("m1")).assertExists()
         compose.onNodeWithTag(MiniPhoneChatTags.bubble("m1")).assertDoesNotExist()
-        compose.onNodeWithText(VOICE_PREVIEW_TEXT).assertDoesNotExist()
+        compose.onNodeWithText(MpSentinel.VOICE).assertDoesNotExist()
         compose.onNodeWithText("0:07").assertExists()
     }
 
@@ -176,7 +176,7 @@ class MiniPhoneChatVoiceUiTest {
         id = id,
         sender = MpActorType.CHARACTER,
         type = MpMessageType.VOICE,
-        content = VOICE_PREVIEW_TEXT,
+        content = MpSentinel.VOICE,
         mediaUri = uri,
         voiceDurationMs = durationMs,
         createdAt = 60_000L,
@@ -185,7 +185,6 @@ class MiniPhoneChatVoiceUiTest {
     private companion object {
         const val AUDIO_BYTES: Int = 128
         const val SEVEN_SECONDS_MS: Long = 7_000L
-        const val VOICE_PREVIEW_TEXT: String = "[语音]"
         const val UNKNOWN_DURATION: String = "--:--"
     }
 }

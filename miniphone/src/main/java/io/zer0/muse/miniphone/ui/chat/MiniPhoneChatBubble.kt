@@ -281,7 +281,7 @@ private fun SystemNoticeRow(message: ChatMessageUi) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = message.content,
+            text = sentinelText(message.content),
             style = typography.timestamp.copy(color = colors.textSecondary),
             textAlign = TextAlign.Center,
             modifier = Modifier

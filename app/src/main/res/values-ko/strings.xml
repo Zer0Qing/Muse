@@ -278,4 +278,5 @@
     <string name="settings_diagnostics_migration_none">이 기기에는 이전 기록이 없습니다</string>
     <string name="settings_diagnostics_migration_summary">%1$d단계 · 총 %2$d ms · 가장 느린 %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">%1$d단계에서 실패</string>
+    <string name="msg_interrupted_note">[중단됨]</string>
 </resources>

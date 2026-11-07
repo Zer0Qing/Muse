@@ -8,7 +8,6 @@ import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadMemberDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
 import io.zer0.muse.miniphone.ui.launchGuarded
-import io.zer0.muse.miniphone.ui.shell.UNKNOWN_CHARACTER_NAME
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -86,14 +85,14 @@ internal class GroupAdminController(
     /**
      * 群名没被手动改过时,按「现在的成员」拼一个;改过就返回 null(表示别动)。
      *
-     * 名字取自宿主名单:角色被删了就退化成占位名,不因此把一个群变成无名群。
+     * 这份名字会落库，所以只写真名字：角色被删了就跳过他（[groupTitleOf] 会滤掉空串），
+     * 不拿一句界面提示去占位——那句话说的是"界面当时是什么语言"，不是这个群叫什么。
      */
     private fun autoTitleOf(thread: MpThreadEntity, memberIds: List<String>): String? {
         if (thread.titleCustomized) return null
         val known = characters()
         val names = memberIds.map { id ->
-            known.firstOrNull { character -> character.id == id }?.name?.takeIf(String::isNotBlank)
-                ?: UNKNOWN_CHARACTER_NAME
+            known.firstOrNull { character -> character.id == id }?.name.orEmpty()
         }
         return groupTitleOf(names).takeIf(String::isNotEmpty)
     }

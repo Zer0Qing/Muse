@@ -309,6 +309,8 @@ private fun GroupMemberRow(member: ChatMemberUi, onLongPress: (() -> Unit)?) {
     val colors = MiniPhoneTheme.colors
     val dimens = MiniPhoneTheme.dimens
     val typography = MiniPhoneTheme.typography
+    // 名单晚到一步或角色已被删时名字是空的;那句话属于界面,不属于成员数据,在这里按语言取。
+    val displayName = member.name.ifBlank { stringResource(R.string.mp_shell_unknown_character) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -321,10 +323,10 @@ private fun GroupMemberRow(member: ChatMemberUi, onLongPress: (() -> Unit)?) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
     ) {
-        MiniPhoneChatAvatar(name = member.name, avatarUri = member.avatarUri, size = dimens.avatarList)
+        MiniPhoneChatAvatar(name = displayName, avatarUri = member.avatarUri, size = dimens.avatarList)
         Spacer(Modifier.width(12.dp))
         Text(
-            text = member.name,
+            text = displayName,
             style = typography.body.copy(color = colors.textPrimary),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

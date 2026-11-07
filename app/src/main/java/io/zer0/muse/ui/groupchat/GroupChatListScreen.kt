@@ -60,14 +60,14 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodyLargeEmphasis
+import io.zer0.muse.ui.theme.bodyLargeStrong
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.theme.bodyLargeStrong
-import io.zer0.muse.ui.theme.bodyLargeEmphasis
 
 /**
  * 群聊列表页 — 展示全部群聊,卡片点击进入详情。
@@ -505,7 +505,7 @@ private fun LatestMessagePreview(message: GroupChatMessageEntity?): String {
 private fun formatRelativeTime(timestamp: Long, now: Long): String {
     // v1.71: 用 remember 缓存 SimpleDateFormat(必须在条件分支之前调用)
     val timeFmt = remember { SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()) }
-    val dateFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_SHORT, Locale.getDefault()) }
+    val dateFmt = remember { MuseDateFormats.dateShort() }
     if (timestamp <= 0) return ""
     val diff = now - timestamp
     val justNow = stringResource(R.string.groupchat_just_now)

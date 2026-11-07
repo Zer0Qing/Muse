@@ -257,7 +257,7 @@ internal class ChatSendController(
                     characterId = reply.responders.firstOrNull().orEmpty(),
                     sender = MpActorType.SYSTEM,
                     type = MpMessageType.SYSTEM,
-                    content = NO_REPLY_TEXT,
+                    content = MpSentinel.NO_REPLY,
                 ),
             )
         } else {
@@ -332,7 +332,7 @@ internal class ChatSendController(
                 characterId = characterId,
                 sender = MpActorType.CHARACTER,
                 type = MpMessageType.VOICE,
-                content = VOICE_PREVIEW_TEXT,
+                content = MpSentinel.VOICE,
                 mediaUri = voice.uri,
                 voiceDurationMs = voice.durationMs,
             ),
@@ -359,14 +359,6 @@ internal class ChatSendController(
         val messageId: String,
         val responders: List<String>,
     )
-
-    private companion object {
-        /** 角色没给出回复时落在列表里的系统提示。 */
-        const val NO_REPLY_TEXT: String = "对方没有回应"
-
-        /** 语音消息的正文:库里不存音频,只存这句预览文案,会话列表与未读预览都用它。 */
-        const val VOICE_PREVIEW_TEXT: String = "[语音]"
-    }
 }
 
 /** 两个角色之间的停顿下限与上限(毫秒)。 */

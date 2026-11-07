@@ -42,12 +42,11 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodySmallStrong
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
-import io.zer0.muse.ui.theme.bodySmallStrong
 
 /**
  * v1.126: Agent 私信收件箱 — 展示所有 Agent 间的私信往来。
@@ -101,7 +100,7 @@ fun AgentDmScreen(
     }
 
     val totalUnread = messages.count { !it.isRead }
-    val fmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+    val fmt = remember { MuseDateFormats.dateTimeShort() }
 
     io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {

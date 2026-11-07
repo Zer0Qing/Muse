@@ -179,7 +179,7 @@ class MiniPhoneChatImageUiTest {
         id = id,
         sender = sender,
         type = MpMessageType.IMAGE,
-        content = "[图片]",
+        content = MpSentinel.IMAGE,
         mediaUri = path,
         createdAt = createdAt,
     )

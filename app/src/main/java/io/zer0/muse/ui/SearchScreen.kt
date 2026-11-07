@@ -55,6 +55,8 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodyMediumStrong
+import io.zer0.muse.ui.theme.labelSmallStrong
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.delay
@@ -63,8 +65,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import io.zer0.muse.ui.theme.bodyMediumStrong
-import io.zer0.muse.ui.theme.labelSmallStrong
 
 /**
  * v0.45: 独立全局搜索页。
@@ -844,7 +844,7 @@ private fun formatSearchRelativeTime(timestamp: Long, context: Context): String 
     val diff = now - timestamp
     val dayMillis = TimeUnit.DAYS.toMillis(1)
     val timeSdf = SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault())
-    val dateSdf = SimpleDateFormat(MuseDateFormats.DATE_SHORT, Locale.getDefault())
+    val dateSdf = MuseDateFormats.dateShort()
     val calNow = java.util.Calendar.getInstance().apply { timeInMillis = now }
     val calTarget = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
     val isSameDay = calNow.get(java.util.Calendar.YEAR) == calTarget.get(java.util.Calendar.YEAR) &&

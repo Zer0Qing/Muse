@@ -459,7 +459,7 @@ private fun TaskCard(
                 TaskMetaChip(text = intervalToLabel(task.interval))
                 NextRunChip(task)
                 if (task.lastRunAt > 0) {
-                    val lastFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+                    val lastFmt = remember { MuseDateFormats.dateTimeShort() }
                     TaskMetaChip(
                         text = stringResource(R.string.schedule_last_run_short, lastFmt.format(Date(task.lastRunAt))),
                     )
@@ -838,7 +838,7 @@ private fun TaskDialog(
             .takeIf { it > 0 }
     }
     // 表单预览与列表用同一格式，之前一个带年份一个不带，看起来像两个不同的时间
-    val previewFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+    val previewFmt = remember { MuseDateFormats.dateTimeShort() }
     val previewText = nextRunPreview?.let { stringResource(R.string.schedule_next_run_preview, previewFmt.format(Date(it))) }
 
     // 未保存修改检测
@@ -1857,7 +1857,7 @@ private fun NextRunChip(task: io.zer0.muse.data.schedule.ScheduledTaskEntity) {
             TaskMetaChip(text = stringResource(R.string.schedule_status_completed), highlighted = false)
 
         task.nextRunAt > 0 -> {
-            val nextFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+            val nextFmt = remember { MuseDateFormats.dateTimeShort() }
             TaskMetaChip(
                 text = stringResource(R.string.schedule_next_run, nextFmt.format(Date(task.nextRunAt))),
                 highlighted = task.enabled,
@@ -1882,7 +1882,7 @@ private fun ScheduleTimeRow(
 ) {
     val context = LocalContext.current
     val timeFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val fullFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+    val fullFmt = remember { MuseDateFormats.dateTimeShort() }
     val label = when (interval) {
         "weekly" -> stringResource(R.string.schedule_time_weekly)
         "once" -> stringResource(R.string.schedule_time_once)

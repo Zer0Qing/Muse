@@ -20,7 +20,6 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseDateFormats
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
@@ -62,10 +61,7 @@ fun MessageInfoSheet(msg: UIMessage, onDismiss: () -> Unit) {
     val unknown = stringResource(R.string.msg_info_unknown)
     val noData = stringResource(R.string.msg_info_no_data)
 
-    val timeText = SimpleDateFormat(
-        MuseDateFormats.DATE_TIME_SHORT,
-        Locale.getDefault(),
-    ).format(Date(msg.createdAt))
+    val timeText = MuseDateFormats.dateTimeShort().format(Date(msg.createdAt))
 
     val hasMeasured = msg.promptTokens != null || msg.completionTokens != null
 

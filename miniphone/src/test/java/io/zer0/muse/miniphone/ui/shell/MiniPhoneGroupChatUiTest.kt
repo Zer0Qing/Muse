@@ -70,10 +70,26 @@ class MiniPhoneGroupChatUiTest {
         compose.onNodeWithTag(MiniPhoneTags.thread("t-group")).assertIsDisplayed()
         compose.onNodeWithTag(MiniPhoneTags.thread("t-dm")).assertIsDisplayed()
         compose.onNodeWithText("阿远、小满、我").assertIsDisplayed()
-        compose.onNodeWithText("[群] 晚上见").assertIsDisplayed()
+        val mark = res(R.string.mp_shell_group_preview_mark)
+        compose.onNodeWithText("$mark 晚上见").assertIsDisplayed()
         compose.onNodeWithText("在吗").assertIsDisplayed()
-        assertEquals("[群] 在吗", groupPreviewOf("在吗"))
-        assertEquals("没有最后一条消息时也要能认出是群", "[群]", groupPreviewOf(null))
+        // 标记不再烘进状态里的字符串:它按界面语言取,也只盖在群那一行上
+        compose.onNodeWithText("$mark 在吗").assertDoesNotExist()
+    }
+
+    @Test
+    fun groupRowWithoutLastMessageStillReadsAsAGroup() {
+        val state = loadState(
+            threads = listOf(thread(id = "t-group", characterId = "c1", at = NOW, preview = "", isGroup = true, title = "阿远、小满、我")),
+            characters = listOf(MpCharacter(id = "c1", name = "阿远")),
+        )
+        compose.setContent {
+            MiniPhoneTheme(darkTheme = false) {
+                MiniPhoneShell(state = state)
+            }
+        }
+        compose.onNodeWithTag(MiniPhoneTags.tab(MiniPhoneTab.MESSAGES)).performClick()
+        compose.onNodeWithText(res(R.string.mp_shell_group_preview_mark)).assertIsDisplayed()
     }
 
     @Test

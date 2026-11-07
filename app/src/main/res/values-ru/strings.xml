@@ -278,4 +278,5 @@
     <string name="settings_diagnostics_migration_none">На этом устройстве записи о миграции нет</string>
     <string name="settings_diagnostics_migration_summary">%1$d шагов · %2$d мс всего · самый медленный %3$d мс</string>
     <string name="settings_diagnostics_migration_failed">Шаг %1$d завершился ошибкой</string>
+    <string name="msg_interrupted_note">[Прервано]</string>
 </resources>

@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.miniphone.R
+import io.zer0.muse.miniphone.ui.chat.sentinelText
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 
 /**
@@ -124,6 +125,20 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
     val colors = MiniPhoneTheme.colors
     val dimens = MiniPhoneTheme.dimens
     val typography = MiniPhoneTheme.typography
+    // 名字与预览行都可能是空的(没起名的群 / 已删的角色 / 还没有消息)。
+    // 状态里只留空,那三句话在这里按当前语言取——切语言后这一行立刻跟着变。
+    val nameText = thread.name.ifBlank {
+        stringResource(
+            if (thread.isGroup) R.string.mp_shell_untitled_group else R.string.mp_shell_unknown_character,
+        )
+    }
+    val groupMark = if (thread.isGroup) stringResource(R.string.mp_shell_group_preview_mark) else ""
+    val body = sentinelText(thread.preview)
+    val previewText = if (groupMark.isEmpty()) {
+        body
+    } else {
+        groupMark + if (body.isBlank()) "" else " " + body.trim()
+    }.ifBlank { stringResource(EMPTY_PREVIEW_TEXT_RES) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -133,7 +148,7 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box {
-            MiniPhoneAvatar(name = thread.name, size = dimens.avatarList)
+            MiniPhoneAvatar(name = nameText, size = dimens.avatarList)
             if (thread.unreadCount > 0) {
                 UnreadBadge(
                     count = thread.unreadCount,
@@ -148,7 +163,7 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = thread.name,
+                    text = nameText,
                     style = typography.body.copy(color = colors.textPrimary, fontWeight = FontWeight.Medium),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -163,7 +178,7 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
             }
             Spacer(Modifier.height(3.dp))
             Text(
-                text = thread.preview.ifBlank { stringResource(EMPTY_PREVIEW_TEXT_RES) },
+                text = previewText,
                 style = typography.caption.copy(color = colors.textSecondary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

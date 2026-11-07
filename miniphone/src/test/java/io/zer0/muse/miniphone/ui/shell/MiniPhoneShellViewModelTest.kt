@@ -106,7 +106,7 @@ class MiniPhoneShellViewModelTest {
 
         val state = viewModel.uiState.first { it.threads.isNotEmpty() }
 
-        assertEquals(listOf(UNKNOWN_CHARACTER_NAME), state.threads.map { it.name })
+        assertEquals(listOf("" to true), state.threads.map { it.name to it.isCharacterMissing })
         assertEquals(emptyList<MiniPhoneContactSection>(), state.contactSections)
     }
 

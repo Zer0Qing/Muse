@@ -37,9 +37,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -552,7 +552,7 @@ internal fun DateSeparator(timestamp: Long) {
         if (isToday) {
             "今天 $timeText"
         } else {
-            val dateSdf = java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, java.util.Locale.getDefault())
+            val dateSdf = MuseDateFormats.dateTimeShort()
             dateSdf.format(java.util.Date(timestamp))
         }
     }

@@ -82,6 +82,8 @@ import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodyLargeStrong
+import io.zer0.muse.ui.theme.bodyMediumStrong
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.Dispatchers
@@ -94,11 +96,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.security.MessageDigest
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.theme.bodyMediumStrong
-import io.zer0.muse.ui.theme.bodyLargeStrong
 
 // L-KUI1: 内容截断上限,防止超大文档导致 OOM
 private const val MAX_CONTENT_LENGTH = 500_000
@@ -2028,7 +2027,7 @@ private fun DocCard(doc: KnowledgeDocEntity, highlight: String?, onClick: () -> 
                     )
                 }
                 // v1.71: 用 remember 缓存 SimpleDateFormat,避免列表项重组都新建对象
-                val dateFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+                val dateFmt = remember { MuseDateFormats.dateTimeShort() }
                 Text(
                     stringResource(
                         R.string.knowledge_doc_meta_with_date,

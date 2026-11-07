@@ -18,6 +18,7 @@ import io.zer0.muse.data.lorebook.LorebookEntity
 import io.zer0.muse.data.lorebook.LorebookRepository
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
 import io.zer0.muse.data.promptinjection.PromptInjectionRepository
+import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.privacy.PiiGuard
@@ -504,7 +505,7 @@ class ChatStreamCoordinator(
             Logger.w(tag, "备份恢复进行中，跳过中断助手快照写入")
             return
         }
-        val interruptedMsg = partial.copy(content = partial.content + "\n\n[已中断]", durationMs = durationMs)
+        val interruptedMsg = partial.copy(content = partial.content + MessageMarkers.interruptedSuffix, durationMs = durationMs)
         // v1.0.74 fix: 此前 partialMsg != null(切页/生成闭包场景)一律不更新 UI,
         // 导致用户停止生成后当次会话内看不到 [已中断] 标记、"继续生成"按钮不出现。
         // 改为:消息仍在当前会话列表就更新 UI(正常停止场景),不在则跳过(切页防污染)。
@@ -634,7 +635,7 @@ class ChatStreamCoordinator(
             // 通知:启动流式进度通知(LOW importance,不发声)
             sessionTitle = accessor.snapshot.sessions
                 .firstOrNull { it.id == sessionId }?.title
-                    .let { io.zer0.muse.data.session.displaySessionTitle(it, appContext.getString(R.string.chat_new_session)) }
+                .let { io.zer0.muse.data.session.displaySessionTitle(it, appContext.getString(R.string.chat_new_session)) }
             runCatching {
                 notificationManager.updateLiveProgress(
                     sessionTitle,

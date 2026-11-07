@@ -65,6 +65,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.ui.theme.titleSmallStrong
 import io.zer0.muse.workspace.WorkspaceManager
 import io.zer0.muse.workspace.WorkspaceMount
 import kotlinx.coroutines.launch
@@ -72,7 +73,6 @@ import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * P2-7: 工作区文件管理器 UI。
@@ -968,10 +968,12 @@ private fun WorkspaceEntryRow(
                 )
                 Spacer(Modifier.size(MusePaddings.tightGap))
                 Text(
-                    text = if (entry.isDirectory) {
-                        dateFormat.format(Date(entry.lastModified))
-                    } else {
-                        "${formatSize(entry.size)} · ${dateFormat.format(Date(entry.lastModified))}"
+                    text = when {
+                        // 文件系统报不出时间(mtime<=0)时不要写 1970-01-01：那看着像一个真日期，
+                        // 用户会当事实读。宁可不显示（走查 §十六 三-W1）。
+                        entry.lastModified <= 0L -> if (entry.isDirectory) "" else formatSize(entry.size)
+                        entry.isDirectory -> dateFormat.format(Date(entry.lastModified))
+                        else -> "${formatSize(entry.size)} · ${dateFormat.format(Date(entry.lastModified))}"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

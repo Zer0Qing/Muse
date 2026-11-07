@@ -79,6 +79,7 @@ import io.zer0.muse.schedule.DailySummaryService
 import io.zer0.muse.schedule.DailySummaryWorker
 import io.zer0.muse.schedule.GreetingHintGenerator
 import io.zer0.muse.transformer.InternalMarkupSanitizer
+import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseActionSheetRow
@@ -87,7 +88,6 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.horizontalGestureExclusion
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.museAnimateItem
-import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseDivider
@@ -99,17 +99,15 @@ import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodyLargeStrong
+import io.zer0.muse.ui.theme.labelLargeStrong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
-import io.zer0.muse.ui.theme.labelLargeStrong
-import io.zer0.muse.ui.theme.bodyLargeStrong
 
 /** v1.x: 问候语个性化提醒通知 ID(与其它通知 ID 错开)。 */
 private const val GREETING_NOTIFY_ID = 1010
@@ -687,16 +685,29 @@ private fun PartnerRow(
 }
 
 /**
+ * 会话预览列的显示口径：剥内部标记与产物占位、收敛空白，最后把与语言无关的记号
+ * 换成当前界面语言的那句话。库里存的是记号，话只能在这里说（走查 §十六）。
+ */
+internal fun sessionPreviewText(stored: String, interruptedText: String, truncatedText: String): String =
+    io.zer0.muse.data.session.MessageMarkers.localize(
+        InternalMarkupSanitizer.stripForDisplay(stored)
+            .replace(Regex("""\[artifact:[0-9a-fA-F-]{36}\]"""), "")
+            .replace(Regex("\\s+"), " ")
+            .trim(),
+        interruptedText,
+        truncatedText,
+    )
+
+/**
  * v2.x: 回顾条(候选A) — "💬 上次和 X 聊到「…」",整条可点直进最近会话。
  */
 @Composable
 private fun RecallBar(session: SessionEntity, assistantName: String?, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
     val name = assistantName ?: stringResource(R.string.assistant_repo_default_name)
-    val preview = remember(session.lastMessagePreview) {
-        InternalMarkupSanitizer.stripForDisplay(session.lastMessagePreview)
-            .replace(Regex("""\[artifact:[0-9a-fA-F-]{36}\]"""), "")
-            .replace(Regex("\\s+"), " ")
-            .trim()
+    val interruptedText = stringResource(R.string.msg_interrupted_note)
+    val truncatedText = stringResource(R.string.err_reply_truncated)
+    val preview = remember(session.lastMessagePreview, interruptedText, truncatedText) {
+        sessionPreviewText(session.lastMessagePreview, interruptedText, truncatedText)
     }
     if (preview.isBlank()) return
     Row(
@@ -1029,6 +1040,9 @@ private fun TaskItem(
     // U-7: 归档菜单反馈同样附带恢复提示
     val archiveToast = stringResource(R.string.chat_list_archived_toast)
     val movedToast = stringResource(R.string.chat_list_move_ungrouped)
+    // 预览列里存的是语言无关记号，这两句负责在渲染时把它换回当前语言（走查 §十六）
+    val interruptedText = stringResource(R.string.msg_interrupted_note)
+    val truncatedText = stringResource(R.string.err_reply_truncated)
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -1188,11 +1202,8 @@ private fun TaskItem(
                     // F2 链路 B：会话标题与聊天页顶栏标题同源共享
                     modifier = Modifier.museSharedElement(key = "session-title-${session.id}"),
                 )
-                val preview = InternalMarkupSanitizer.stripForDisplay(session.lastMessagePreview)
-                    // v2.0.1: 清洗 [artifact:...] 内部标记 — 列表预览不再露出 "…[artifact:7b7a65c4-…]"
-                    .replace(Regex("""\[artifact:[0-9a-fA-F-]{36}\]"""), "")
-                    .replace(Regex("\\s+"), " ")
-                    .trim()
+                // v2.0.1: 清洗 [artifact:...] 内部标记 — 列表预览不再露出 "…[artifact:7b7a65c4-…]"
+                val preview = sessionPreviewText(session.lastMessagePreview, interruptedText, truncatedText)
                 // U-21: 最近 24h 内有更新的会话预览轻微强调(加粗 + 深色),不再与旧会话视觉同权
                 val isRecentlyUpdated = System.currentTimeMillis() - session.updatedAt < TimeUnit.HOURS.toMillis(24)
                 Text(
@@ -1687,7 +1698,7 @@ private fun formatTaskStatus(session: SessionEntity): String {
 
 // H-CL1: SimpleDateFormat 提为文件级 lazy val 复用
 private val chatListSdf by lazy {
-    SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault())
+    MuseDateFormats.dateTimeShort()
 }
 
 @Composable

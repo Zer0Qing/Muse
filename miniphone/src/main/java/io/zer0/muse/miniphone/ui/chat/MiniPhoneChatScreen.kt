@@ -145,6 +145,12 @@ internal fun MiniPhoneChatScreen(
     // 看图层盖在聊天页上时,返回键先关它
     BackHandler(enabled = viewingUri != null) { viewingUri = null }
     BackHandler(enabled = membersOpen) { membersOpen = false }
+    // 名字可能是空的(没起名的群 / 已删的对手)。空在这里就地补一句当前语言的话——
+    // 界面语言随时可切,占位词写在状态里就会跟着语言一起过期。
+    val removedContactText = stringResource(R.string.mp_shell_unknown_character)
+    val titleText = state.title.ifBlank {
+        if (state.isGroup) stringResource(R.string.mp_shell_untitled_group) else removedContactText
+    }
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -152,7 +158,7 @@ internal fun MiniPhoneChatScreen(
                 .background(colors.background),
         ) {
             ChatTopBar(
-                name = state.title,
+                name = titleText,
                 avatarUri = if (state.isGroup) null else state.peerAvatarUri,
                 onBack = onBack,
                 // 群里顶栏就人多一行,私信里既没有人也不知道这个入口
@@ -205,7 +211,7 @@ internal fun MiniPhoneChatScreen(
         if (membersOpen && state.isGroup) {
             GroupMembersPage(
                 members = state.members,
-                title = state.title,
+                title = titleText,
                 characters = state.characters,
                 onBack = { membersOpen = false },
                 actions = GroupAdminActions(
@@ -336,6 +342,8 @@ private fun ChatMessageList(
     val self = remember(state.selfName, state.selfAvatarUri) { ChatPersona(state.selfName, state.selfAvatarUri) }
     val peer = remember(state.peerName, state.peerAvatarUri) { ChatPersona(state.peerName, state.peerAvatarUri) }
     val activity = state.activity
+    // 名字为空 = 对手已经不在名单里；那句话属于界面，在这里按当前语言补。
+    val removedContactText = stringResource(R.string.mp_shell_unknown_character)
     LazyColumn(
         state = listState,
         reverseLayout = true,
@@ -350,7 +358,7 @@ private fun ChatMessageList(
         } else if (state.isGenerating) {
             item(key = TYPING_ITEM_KEY, contentType = TYPING_ITEM_KEY) {
                 ChatTypingRow(
-                    peerName = state.typingName ?: state.peerName,
+                    peerName = (state.typingName ?: state.peerName).ifBlank { removedContactText },
                     peerAvatarUri = if (state.typingName != null) state.typingAvatarUri else state.peerAvatarUri,
                     // 群里两个角色轮流说话:那一行要写清现在是谁在打
                     showName = state.isGroup,
@@ -364,7 +372,11 @@ private fun ChatMessageList(
                     message = item.message,
                     self = self,
                     peer = peer,
-                    senderLabel = if (state.isGroup) state.memberNames[item.message.characterId] else null,
+                    senderLabel = if (state.isGroup) {
+                        state.memberNames[item.message.characterId]?.ifBlank { removedContactText }
+                    } else {
+                        null
+                    },
                     maxBubbleWidth = maxBubbleWidth,
                     onOpenImage = onOpenImage,
                     messageActions = messageActions,

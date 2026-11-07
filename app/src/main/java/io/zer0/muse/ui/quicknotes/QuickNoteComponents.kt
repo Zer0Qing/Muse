@@ -99,7 +99,7 @@ internal fun NoteMetaChip(
 @Composable
 internal fun formatNoteTime(timestamp: Long, now: Long): String {
     val fmtTime = remember { SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()) }
-    val fmtDate = remember { SimpleDateFormat(MuseDateFormats.DATE_SHORT, Locale.getDefault()) }
+    val fmtDate = remember { MuseDateFormats.dateShort() }
     if (timestamp <= 0) return ""
 
     val nowCal = Calendar.getInstance().apply { timeInMillis = now }

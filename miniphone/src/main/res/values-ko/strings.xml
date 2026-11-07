@@ -125,4 +125,10 @@
     </plurals>
     <string name="mp_likers_separator">, </string>
     <string name="mp_likers_fold">총 %1$d명</string>
+    <string name="mp_shell_unknown_character">삭제된 캐릭터</string>
+    <string name="mp_shell_untitled_group">그룹 채팅</string>
+    <string name="mp_shell_group_preview_mark">[그룹]</string>
+    <string name="mp_msg_image">[이미지]</string>
+    <string name="mp_msg_no_reply">상대가 응답하지 않았습니다</string>
+    <string name="mp_msg_voice">[음성]</string>
 </resources>

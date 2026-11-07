@@ -1,5 +1,4 @@
 package io.zer0.muse.ui.chat
-import io.zer0.muse.transformer.ContextBudget
 import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStopReason
 import io.zer0.ai.core.ChatStreamEvent
@@ -22,6 +21,7 @@ import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
 import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
 import io.zer0.muse.data.chat.rewrite.buildCommitParts
 import io.zer0.muse.data.session.ConversationTurnEntity
+import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.session.WarmupHistory
 import io.zer0.muse.tools.SessionToolLoadRegistry
@@ -33,6 +33,7 @@ import io.zer0.muse.tools.ToolLoopHost
 import io.zer0.muse.tools.ToolLoopParams
 import io.zer0.muse.tools.ToolRoundPresentationPolicy
 import io.zer0.muse.transformer.CompressionPolicy
+import io.zer0.muse.transformer.ContextBudget
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.ChatStreamPhase
@@ -611,7 +612,7 @@ internal class ChatToolLoopRunner(
                         } catch (error: Exception) {
                             listOf(
                                 ChatStreamEvent.Error(
-                                        message = error.message ?: "non_stream_request_failed",
+                                    message = error.message ?: "non_stream_request_failed",
                                     throwable = error,
                                 ),
                             )
@@ -1173,7 +1174,7 @@ internal class ChatToolLoopRunner(
                         params.reasoningBuilder.setLength(0)
                     }
                     if (streamError == null && ChatStopReason.isLengthLimited(doneFinishReason)) {
-                        params.builder.append("\n\n").append(host.appContext.getString(R.string.err_reply_truncated))
+                        params.builder.append(MessageMarkers.truncatedSuffix)
                     }
                     // v2.x（诊断导出项目 A）: 流收尾分类入 trace（纯观察者，不影呴逻辑）
                     runCatching {

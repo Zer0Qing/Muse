@@ -85,7 +85,7 @@ class MiniPhoneChatVoiceMessageTest {
         )
         val voice = state.messages[2]
         assertEquals(MpActorType.CHARACTER, voice.sender)
-        assertEquals("[语音]", voice.content)
+        assertEquals(MpSentinel.VOICE, voice.content)
         assertEquals(VOICE_URI, voice.mediaUri)
         assertEquals(DURATION_MS, voice.voiceDurationMs)
         assertTrue("语音消息走语音渲染分支", voice.isVoice)
@@ -103,7 +103,7 @@ class MiniPhoneChatVoiceMessageTest {
         assertEquals(MpMessageType.VOICE, stored.type)
         assertEquals(VOICE_URI, stored.mediaUri)
         assertEquals(DURATION_MS, stored.voiceDurationMs)
-        assertEquals("[语音]", stored.content)
+        assertEquals(MpSentinel.VOICE, stored.content)
     }
 
     @Test

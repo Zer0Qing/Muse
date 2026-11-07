@@ -342,4 +342,5 @@
     <string name="settings_diagnostics_migration_none">这台设备还没有迁移记录</string>
     <string name="settings_diagnostics_migration_summary">%1$d 步 · 共 %2$d ms · 最慢 %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">第 %1$d 步失败</string>
+    <string name="msg_interrupted_note">[已中断]</string>
 </resources>

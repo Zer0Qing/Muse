@@ -412,12 +412,10 @@ class SessionRepository(
         sessionDao.getRecentAgentByAssistant(assistantId, limit)
 
     /** 主动消息落点:该助手最近有用户发言、且未删除/未归档的会话。 */
-    suspend fun getRecentActiveByAssistant(assistantId: String): SessionEntity? =
-        sessionDao.getRecentActiveByAssistant(assistantId)
+    suspend fun getRecentActiveByAssistant(assistantId: String): SessionEntity? = sessionDao.getRecentActiveByAssistant(assistantId)
 
     /** 该助手最近有用户发言的普通会话（排除 Agent Tab），主动消息的首选落点。 */
-    suspend fun getRecentChatByAssistant(assistantId: String): SessionEntity? =
-        sessionDao.getRecentChatByAssistant(assistantId)
+    suspend fun getRecentChatByAssistant(assistantId: String): SessionEntity? = sessionDao.getRecentChatByAssistant(assistantId)
 
     /** v1.0.72: 设置会话"不参考记忆"标志。 */
     suspend fun setSessionIgnoreMemory(sessionId: String, ignore: Boolean) {
@@ -1356,13 +1354,13 @@ class SessionRepository(
                         database.generationCheckpointDao().deleteByAssistantMessageId(cp.assistantMessageId)
                         continue
                     }
-                    val marker = "[已中断]"
+                    val marker = MessageMarkers.INTERRUPTED
                     val base = when {
                         existing != null && existing.content.length >= cp.content.length -> existing.content
                         else -> cp.content
                     }
                     val content = when {
-                        base.contains(marker) -> base
+                        MessageMarkers.isInterrupted(base) -> base
                         base.isBlank() -> marker
                         else -> base + "\n\n" + marker
                     }
@@ -1994,8 +1992,16 @@ class SessionRepository(
     }
 
     /** 会话列表/系统提示只显示正文，隐藏 mood、mod、think 等内部块和卡片状态尾巴。 */
-    private fun previewText(content: String): String =
-        InternalMarkupSanitizer.displayContent(content).take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" }
+    private fun previewText(content: String): String {
+        // 这一列是落库的快照，所以只存与语言无关的记号：把记号（含修复前的中文原句）
+        // 折成中性写法，那句话留给列表渲染时按当前语言说。
+        // 写成本地句子等于换一次语言就把旧快照永久留在旧语言里（走查 §十六）。
+        val neutral = MessageMarkers.neutralize(
+            InternalMarkupSanitizer.displayContent(content),
+            context.getString(R.string.err_reply_truncated),
+        )
+        return neutral.take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" }
+    }
 
     /** MessageEntity → UIMessage。 */
     private fun MessageEntity.toUIMessage(): UIMessage {

@@ -125,4 +125,10 @@
     </plurals>
     <string name="mp_likers_separator">，</string>
     <string name="mp_likers_fold">等 %1$d 人</string>
+    <string name="mp_shell_unknown_character">已注销的角色</string>
+    <string name="mp_shell_untitled_group">群聊</string>
+    <string name="mp_shell_group_preview_mark">[群]</string>
+    <string name="mp_msg_image">[图片]</string>
+    <string name="mp_msg_no_reply">对方没有回应</string>
+    <string name="mp_msg_voice">[语音]</string>
 </resources>

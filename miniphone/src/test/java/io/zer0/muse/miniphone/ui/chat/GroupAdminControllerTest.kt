@@ -188,8 +188,9 @@ class GroupAdminControllerTest {
         val (threadId, fresh, autoTitle) = store.adds.single()
         assertEquals(GROUP_ID, threadId)
         assertEquals("已在群里的 c2 与空串都滤掉，重复的 c3 只留一次", listOf("c3", "c4"), fresh)
-        // 默认名（没手改过）按"现在全部成员"重算：c1、c2、c3、c4 → 超 3 人走「等 N 人」写法
-        assertTrue("该带上自动群名，实际=$autoTitle", autoTitle != null && autoTitle.contains("等 4 人"))
+        // 默认名（没手改过）按"现在全部成员"重算：名单里只有 c1、c2、c3 有名字，c4 不在名单就不进群名。
+        // 这句会落库，把界面提示写进去等于把某一种语言的话永久存进这个群叫什么。
+        assertEquals("群名只写真的有名字的人，实际=$autoTitle", "阿远、小满、大毛", autoTitle)
     }
 
     @Test

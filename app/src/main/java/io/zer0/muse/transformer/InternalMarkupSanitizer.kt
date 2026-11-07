@@ -1,5 +1,6 @@
 package io.zer0.muse.transformer
 
+import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.perf.BoundedLruCache
 
 /**
@@ -127,8 +128,13 @@ object InternalMarkupSanitizer {
      *
      * 在 [displayContent] 基础上再清掉 `[glow]…[/glow]` 这类内联特效标签（保留被包裹的文字）。
      * 与展示口径的唯一差别就是这层特效壳，用户拿到的文本里不该有协议标记。
+     *
+     * 中断/截断记号也在这里去掉：那是"这条停在哪儿"的状态，不是用户写下的内容，
+     * 复制出去不该带上它（显示层会按当前语言把这句话单独画出来）。
      */
-    fun exportContent(text: String): String = MoodSkinParser.stripInlineEffects(displayContent(text)).trim()
+    fun exportContent(text: String): String = MessageMarkers.stripTruncated(
+        MessageMarkers.stripInterrupted(MoodSkinParser.stripInlineEffects(displayContent(text))),
+    ).trim()
 
     /**
      * v2.6.8 出口三：搜索索引 / 检索比对用的正文。
