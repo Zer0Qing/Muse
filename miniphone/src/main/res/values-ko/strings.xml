@@ -123,4 +123,6 @@
     <plurals name="mp_members_selected_count">
         <item quantity="other">%1$d명 선택</item>
     </plurals>
+    <string name="mp_likers_separator">, </string>
+    <string name="mp_likers_fold">총 %1$d명</string>
 </resources>

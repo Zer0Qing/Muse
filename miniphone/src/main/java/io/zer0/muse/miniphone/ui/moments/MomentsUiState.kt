@@ -1,6 +1,7 @@
 package io.zer0.muse.miniphone.ui.moments
 
 import androidx.compose.runtime.Immutable
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMomentSource
@@ -187,13 +188,19 @@ internal const val LIKERS_SHOWN_WHEN_FOLDED: Int = 9
  * [LIKERS_SHOWN_WHEN_FOLDED] 个,后面接「等 N 人」——N 是全部点赞人数,不是省略掉的人数。
  * 名字之间用中文逗号,与正文的顿号区分开。
  */
-internal fun likersLineOf(names: List<String>): String {
+internal fun likersLineOf(context: android.content.Context, names: List<String>): String {
+    val separator = context.getString(R.string.mp_likers_separator)
     val shown = names.map(String::trim).filter(String::isNotEmpty)
     if (shown.isEmpty()) return ""
     val folded = shown.size > LIKERS_INLINE_MAX
     val parts = shown.take(if (folded) LIKERS_SHOWN_WHEN_FOLDED else shown.size)
-    val namesText = parts.joinToString(LIKERS_SEPARATOR)
-    return if (folded) "$LIKERS_MARK$namesText${LIKERS_SEPARATOR}等 ${shown.size} 人" else "$LIKERS_MARK$namesText"
+    val namesText = parts.joinToString(separator)
+    return if (folded) {
+        // N 是全部点赞人数，不是省略掉的人数（原口径，别改）
+        LIKERS_MARK + namesText + separator + context.getString(R.string.mp_likers_fold, shown.size)
+    } else {
+        LIKERS_MARK + namesText
+    }
 }
 
 private const val LIKERS_MARK: String = "❤️ "

@@ -135,4 +135,6 @@
         <item quantity="many">Выбрано %1$d</item>
         <item quantity="other">Выбрано %1$d</item>
     </plurals>
+    <string name="mp_likers_separator">, </string>
+    <string name="mp_likers_fold">всего %1$d</string>
 </resources>

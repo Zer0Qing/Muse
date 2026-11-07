@@ -234,7 +234,7 @@ private fun MomentLikers(moment: MomentUi) {
     val colors = MiniPhoneTheme.colors
     val typography = MiniPhoneTheme.typography
     Text(
-        text = likersLineOf(moment.likes),
+        text = likersLineOf(LocalContext.current, moment.likes),
         style = typography.timestamp.copy(color = colors.textSecondary),
         softWrap = true,
         modifier = Modifier

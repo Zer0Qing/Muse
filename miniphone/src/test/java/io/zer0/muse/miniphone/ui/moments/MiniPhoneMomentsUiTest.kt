@@ -38,6 +38,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class MiniPhoneMomentsUiTest {
 
+    private val context: android.content.Context
+        get() = androidx.test.core.app.ApplicationProvider.getApplicationContext()
+
     @get:Rule
     val compose = createComposeRule()
 
@@ -164,13 +167,20 @@ class MiniPhoneMomentsUiTest {
 
     @Test
     fun likersLineFoldsLongLists() {
-        assertEquals("❤️ 阿远，小满，老陈", likersLineOf(listOf("阿远", "小满", "老陈")))
-        assertEquals("只有一个也带心", "❤️ 阿远", likersLineOf(listOf("阿远")))
-        assertEquals("没人点赞就没有这一行", "", likersLineOf(emptyList()))
+        val sep = context.getString(R.string.mp_likers_separator)
+        val mark = "\u2764\ufe0f "
+        assertEquals(mark + listOf("阿远", "小满", "老陈").joinToString(sep), likersLineOf(context, listOf("阿远", "小满", "老陈")))
+        assertEquals("只有一个也带心", mark + "阿远", likersLineOf(context, listOf("阿远")))
+        assertEquals("没人点赞就没有这一行", "", likersLineOf(context, emptyList()))
 
         val twelve = (1..12).map { index -> "人$index" }
-        assertEquals("超过十人:前九个 + 等 12 人", "❤️ " + twelve.take(9).joinToString("，") + "，等 12 人", likersLineOf(twelve))
-        assertFalse("第十个人不该出现", likersLineOf(twelve).contains("人10"))
+        val line = likersLineOf(context, twelve)
+        assertEquals(
+            "超过上限:前九个 + 总人数",
+            mark + twelve.take(9).joinToString(sep) + sep + context.getString(R.string.mp_likers_fold, 12),
+            line,
+        )
+        assertFalse("第十个人不该出现", line.contains("人10"))
     }
 
     @Test
@@ -178,7 +188,9 @@ class MiniPhoneMomentsUiTest {
         render(MomentsUiState(moments = listOf(momentUi(likes = listOf("阿远", "小满", "老陈"))), isLoaded = true))
 
         compose.onNodeWithTag(MiniPhoneMomentsTags.likers("m1"), useUnmergedTree = true)
-            .assertTextEquals("❤️ 阿远，小满，老陈")
+            .assertTextEquals(
+                "❤️ " + listOf("阿远", "小满", "老陈").joinToString(context.getString(R.string.mp_likers_separator)),
+            )
     }
 
     @Test

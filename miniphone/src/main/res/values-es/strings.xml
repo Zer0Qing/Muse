@@ -127,4 +127,6 @@
         <item quantity="one">%1$d seleccionado</item>
         <item quantity="other">%1$d seleccionados</item>
     </plurals>
+    <string name="mp_likers_separator">, </string>
+    <string name="mp_likers_fold">y %1$d en total</string>
 </resources>
