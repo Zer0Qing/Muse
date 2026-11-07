@@ -148,7 +148,11 @@ class ChatViewModelSessionMismatchTest {
         // (observeSessions 返回空流 → 不会自动创建/切换会话)
         every { sessionRepository.observeSessions() } returns emptyFlow()
         every { settings.providerConfigFlow } returns emptyFlow()
-        every { settings.providersFlow } returns emptyFlow()
+        // 发送前有可用性闸门（X1）：没有可用供应商时 send() 会直接拦下并给错误条，
+        // 这里测的是发送之后的会话错配行为，所以给一条填了密钥的供应商让闸门放行
+        every { settings.providersFlow } returns kotlinx.coroutines.flow.flowOf(
+            listOf(io.zer0.ai.core.ProviderConfig(id = "p1", displayName = "p1", apiKey = "k")),
+        )
         every { settings.activeProviderIdFlow } returns emptyFlow()
         every { settings.selectedModelIdFlow } returns emptyFlow()
         every { settings.toolModelIdFlow } returns emptyFlow()

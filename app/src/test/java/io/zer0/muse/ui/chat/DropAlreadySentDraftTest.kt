@@ -47,4 +47,22 @@ class DropAlreadySentDraftTest {
         // 会误删用户真的还没发出去的内容。
         assertEquals("hello", dropAlreadySentDraft("hello", listOf("hello world")))
     }
+
+    @Test
+    fun `消息已落库但草稿没清掉时同样丢弃`() {
+        // 崩溃正好卡在「写消息成功」与「清草稿」之间：待发队列此时已空，
+        // 只有比对会话最后一条用户消息才认得出这是已经发出去的那句。
+        assertEquals("", dropAlreadySentDraft("killtest88", emptyList(), "killtest88"))
+    }
+
+    @Test
+    fun `最后一条不是用户消息时不丢弃`() {
+        assertEquals("还没发出去", dropAlreadySentDraft("还没发出去", emptyList(), "上一轮用户的提问"))
+    }
+
+    @Test
+    fun `助手刚回过话就不算未清草稿`() {
+        // 会话已经推进到助手发言，说明那句话早就发完了，此时相同的草稿要保留
+        assertEquals("好的", dropAlreadySentDraft("好的", emptyList(), null))
+    }
 }

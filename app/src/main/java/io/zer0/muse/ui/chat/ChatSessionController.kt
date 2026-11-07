@@ -715,7 +715,13 @@ internal class ChatSessionController(
                 val pendingTexts = resultOf { sessionRepository.getPendingOutbox(sessionId) }.getOrNull()
                     ?.map { it.text }
                     .orEmpty()
-                dropAlreadySentDraft(draft, pendingTexts)
+                // 崩溃也可能落在「消息已落库、草稿还没清掉」之间：这时待发队列已经清空，
+                // 只比对 outbox 就认不出来。取最近几条里的最后一条用户发言做比对——
+                // 助手可能已经回了（甚至回了「已中断」），但那句用户话就是刚发出去的。
+                val lastSentUserText = messages.takeLast(RECENT_SENT_SCAN)
+                    .lastOrNull { it.role == MessageRole.USER }
+                    ?.content
+                dropAlreadySentDraft(draft, pendingTexts, lastSentUserText)
             }
             accessor.update {
                 sessionDeps.stateStore.messages.value = messages
@@ -786,6 +792,9 @@ internal class ChatSessionController(
 
     companion object {
         private const val MESSAGE_PAGE_SIZE = 50
+
+        /** 找回「刚发出去却没清掉的草稿」时往回看几条；再多就可能在用户重打同样一句话时误删。 */
+        private const val RECENT_SENT_SCAN = 4
     }
 }
 
@@ -793,5 +802,13 @@ internal class ChatSessionController(
  * 崩溃正好落在「outbox 已落库」与「草稿已清空」之间时，库里那条草稿就是已经发出去的那句话；
  * 恢复回去等于邀请用户再发一次，所以按 outbox 里待发的原文认出来并丢弃。
  */
-internal fun dropAlreadySentDraft(draft: String, pendingOutboxTexts: List<String>): String =
-    if (draft.isBlank() || draft in pendingOutboxTexts) "" else draft
+internal fun dropAlreadySentDraft(
+    draft: String,
+    pendingOutboxTexts: List<String>,
+    lastSentUserText: String? = null,
+): String {
+    if (draft.isBlank()) return ""
+    if (draft in pendingOutboxTexts) return ""
+    if (lastSentUserText != null && lastSentUserText == draft) return ""
+    return draft
+}
