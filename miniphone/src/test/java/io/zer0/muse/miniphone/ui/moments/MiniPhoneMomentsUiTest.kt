@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneChatTags
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneGalleryViewer
 import io.zer0.muse.miniphone.ui.chat.galleryCounterOf
@@ -40,13 +41,16 @@ class MiniPhoneMomentsUiTest {
     @get:Rule
     val compose = createComposeRule()
 
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
+
     @Test
     fun emptyTimelineShowsEmptyStateUnderTheCover() {
         render(MomentsUiState(isLoaded = true))
 
         compose.onNodeWithTag(MiniPhoneMomentsTags.COVER).assertExists()
         compose.onNodeWithTag(MiniPhoneMomentsTags.EMPTY).assertIsDisplayed()
-        compose.onNodeWithText("还没有动态").assertIsDisplayed()
+        compose.onNodeWithText(res(R.string.mp_moments_empty_title)).assertIsDisplayed()
         compose.onNodeWithTag(MiniPhoneMomentsTags.commentInput("m1")).assertDoesNotExist()
     }
 
@@ -193,7 +197,7 @@ class MiniPhoneMomentsUiTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(MiniPhoneMomentsTags.COMMENT_DELETE_DIALOG).assertIsDisplayed()
-        compose.onNodeWithText("这条评论和它下面的回复会一起删除。").assertIsDisplayed()
+        compose.onNodeWithText(res(R.string.mp_moment_delete_comment_hint)).assertIsDisplayed()
         assertEquals("确认之前不删", null, deleted)
 
         compose.onNodeWithTag(MiniPhoneMomentsTags.COMMENT_DELETE_CONFIRM).performClick()

@@ -47,10 +47,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneChatAvatar
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneGalleryViewer
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
@@ -143,7 +145,7 @@ internal fun MiniPhoneMomentsScreen(
                 .fillMaxSize()
                 .background(colors.background),
         ) {
-            MomentsTopBar(onBack = onBack, title = if (onlyMine) MINE_PAGE_TITLE else PAGE_TITLE, onCompose = { composing = true })
+            MomentsTopBar(onBack = onBack, title = stringResource(if (onlyMine) MINE_PAGE_TITLE_RES else PAGE_TITLE_RES), onCompose = { composing = true })
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = actions.onRefresh,
@@ -205,7 +207,8 @@ private fun MomentsTopBar(onBack: () -> Unit, title: String, onCompose: () -> Un
             ) {
                 Icon(
                     imageVector = MiniPhoneIcons.Back,
-                    contentDescription = BACK_DESCRIPTION,
+                    contentDescription = stringResource(BACK_DESCRIPTION_RES),
+
                     tint = colors.textPrimary,
                     modifier = Modifier.size(TopBarIconSize),
                 )
@@ -227,7 +230,8 @@ private fun MomentsTopBar(onBack: () -> Unit, title: String, onCompose: () -> Un
             ) {
                 Icon(
                     imageVector = MiniPhoneIcons.Pen,
-                    contentDescription = COMPOSE_DESCRIPTION,
+                    contentDescription = stringResource(COMPOSE_DESCRIPTION_RES),
+
                     tint = colors.textPrimary,
                     modifier = Modifier.size(TopBarIconSize),
                 )
@@ -277,7 +281,7 @@ private fun MomentsTimeline(state: MomentsUiState, actions: MomentActions, onlyM
             )
         }
         if (state.isLoadingMore) {
-            item(key = LOADING_KEY, contentType = LOADING_KEY) { ListFootNote(text = LOADING_TEXT) }
+            item(key = LOADING_KEY, contentType = LOADING_KEY) { ListFootNote(text = stringResource(LOADING_TEXT_RES)) }
         }
     }
     LoadMoreEffect(listState = listState, hasMore = state.hasMore, onLoadMore = actions.onLoadMore)
@@ -308,6 +312,7 @@ private fun LoadMoreEffect(listState: LazyListState, hasMore: Boolean, onLoadMor
  */
 @Composable
 private fun MomentsCover(coverImageUri: String?, selfName: String, selfAvatarUri: String?) {
+    val selfLabel = stringResource(DEFAULT_SELF_NAME_RES)
     val colors = MiniPhoneTheme.colors
     val dimens = MiniPhoneTheme.dimens
     val typography = MiniPhoneTheme.typography
@@ -339,7 +344,7 @@ private fun MomentsCover(coverImageUri: String?, selfName: String, selfAvatarUri
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = selfName.ifBlank { DEFAULT_SELF_NAME },
+                text = selfName.ifBlank { selfLabel },
                 style = typography.title.copy(color = colors.textPrimary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -403,13 +408,13 @@ private fun MomentsEmptyState(isLoaded: Boolean, onlyMine: Boolean) {
         }
         Spacer(Modifier.height(12.dp))
         Text(
-            text = if (onlyMine) MINE_EMPTY_TITLE else EMPTY_TITLE,
+            text = stringResource(if (onlyMine) MINE_EMPTY_TITLE_RES else EMPTY_TITLE_RES),
             style = typography.body.copy(color = colors.textPrimary),
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = if (onlyMine) MINE_EMPTY_HINT else EMPTY_HINT,
+            text = stringResource(if (onlyMine) MINE_EMPTY_HINT_RES else EMPTY_HINT_RES),
             style = typography.timestamp.copy(color = colors.textSecondary),
             textAlign = TextAlign.Center,
         )
@@ -451,18 +456,18 @@ private const val EMPTY_CARD_STEP_RATIO: Float = 0.62f
 private const val EMPTY_DOT_INSET_RATIO: Float = 0.18f
 private const val EMPTY_DOT_TOP_RATIO: Float = 0.28f
 
-private const val PAGE_TITLE: String = "朋友圈"
-private const val MINE_PAGE_TITLE: String = "我的朋友圈"
+private val PAGE_TITLE_RES: Int = R.string.mp_moments_title
+private val MINE_PAGE_TITLE_RES: Int = R.string.mp_moments_mine_title
 private const val ALL_KEY: String = "mp-moments-all"
 private const val MINE_KEY: String = "mp-moments-mine"
-private const val BACK_DESCRIPTION: String = "返回"
-private const val COMPOSE_DESCRIPTION: String = "写一条"
-private const val DEFAULT_SELF_NAME: String = "我"
-private const val EMPTY_TITLE: String = "还没有动态"
-private const val EMPTY_HINT: String = "下拉刷新，等角色说点什么"
-private const val MINE_EMPTY_TITLE: String = "还没有自己的动态"
-private const val MINE_EMPTY_HINT: String = "点右上角写一条，记下现在"
-private const val LOADING_TEXT: String = "载入中……"
+private val BACK_DESCRIPTION_RES: Int = R.string.mp_back_cd
+private val COMPOSE_DESCRIPTION_RES: Int = R.string.mp_moments_compose_cd
+private val DEFAULT_SELF_NAME_RES: Int = R.string.mp_moments_self_name
+private val EMPTY_TITLE_RES: Int = R.string.mp_moments_empty_title
+private val EMPTY_HINT_RES: Int = R.string.mp_moments_empty_hint
+private val MINE_EMPTY_TITLE_RES: Int = R.string.mp_moments_mine_empty_title
+private val MINE_EMPTY_HINT_RES: Int = R.string.mp_moments_mine_empty_hint
+private val LOADING_TEXT_RES: Int = R.string.mp_loading
 
 /** 离列表末端还剩几条时开始要下一页。 */
 private const val LOAD_MORE_THRESHOLD: Int = 2

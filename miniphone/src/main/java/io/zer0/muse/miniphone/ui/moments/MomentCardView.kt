@@ -33,11 +33,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.chat.ChatMenuPositionProvider
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneChatAvatar
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
@@ -184,7 +186,7 @@ private fun MomentActionRow(moment: MomentUi, onToggleLike: () -> Unit, onDelete
         ) {
             Icon(
                 imageVector = MiniPhoneIcons.Heart,
-                contentDescription = "点赞",
+                contentDescription = stringResource(R.string.mp_moment_like_cd),
                 tint = if (moment.likedByMe) colors.unreadDot else colors.textSecondary,
                 modifier = Modifier.size(ActionIconSize),
             )
@@ -198,7 +200,8 @@ private fun MomentActionRow(moment: MomentUi, onToggleLike: () -> Unit, onDelete
         if (moment.isMine) {
             Spacer(Modifier.width(ActionGap))
             Text(
-                text = DELETE_LABEL,
+                text = stringResource(DELETE_LABEL_RES),
+
                 style = typography.timestamp.copy(color = colors.textSecondary),
                 modifier = Modifier
                     .clip(RoundedCornerShape(ActionCorner))
@@ -211,7 +214,8 @@ private fun MomentActionRow(moment: MomentUi, onToggleLike: () -> Unit, onDelete
         if (moment.isMine && moment.visibleToJson.isNotBlank()) {
             Spacer(Modifier.width(ActionGap))
             Text(
-                text = ONLY_SELF_LABEL,
+                text = stringResource(ONLY_SELF_LABEL_RES),
+
                 style = typography.timestamp.copy(color = colors.textSecondary),
                 modifier = Modifier.testTag(MiniPhoneMomentsTags.visibleSelf(moment.id)),
             )
@@ -377,7 +381,8 @@ private fun CommentDeleteMenu(onDismiss: () -> Unit, onDelete: () -> Unit) {
         properties = PopupProperties(focusable = true),
     ) {
         Text(
-            text = DELETE_COMMENT_LABEL,
+            text = stringResource(DELETE_COMMENT_LABEL_RES),
+
             style = typography.body.copy(color = colors.unreadDot),
             modifier = Modifier
                 .testTag(MiniPhoneMomentsTags.COMMENT_MENU_ACTION)
@@ -410,13 +415,16 @@ private fun CommentDeleteConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> U
                 .border(dimens.hairline, colors.divider, shape)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
-            Text(text = COMMENT_DELETE_TITLE, style = typography.title.copy(color = colors.textPrimary))
+            Text(text = stringResource(COMMENT_DELETE_TITLE_RES),
+ style = typography.title.copy(color = colors.textPrimary))
             Spacer(Modifier.height(8.dp))
-            Text(text = COMMENT_DELETE_HINT, style = typography.caption.copy(color = colors.textSecondary))
+            Text(text = stringResource(COMMENT_DELETE_HINT_RES),
+ style = typography.caption.copy(color = colors.textSecondary))
             Spacer(Modifier.height(18.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Text(
-                    text = COMMENT_DELETE_CANCEL_LABEL,
+                    text = stringResource(COMMENT_DELETE_CANCEL_LABEL_RES),
+
                     style = typography.body.copy(color = colors.textSecondary),
                     modifier = Modifier
                         .testTag(MiniPhoneMomentsTags.COMMENT_DELETE_CANCEL)
@@ -427,7 +435,8 @@ private fun CommentDeleteConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> U
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = DELETE_COMMENT_LABEL,
+                    text = stringResource(DELETE_COMMENT_LABEL_RES),
+
                     style = typography.body.copy(color = colors.unreadDot),
                     modifier = Modifier
                         .testTag(MiniPhoneMomentsTags.COMMENT_DELETE_CONFIRM)
@@ -469,7 +478,8 @@ private fun MomentCommentInput(momentId: String, replyTargetName: String?, onSen
         ) {
             if (draft.isEmpty()) {
                 Text(
-                    text = replyTargetName?.let { "回复 $it" } ?: COMMENT_PLACEHOLDER,
+                    text = replyTargetName?.let { stringResource(R.string.mp_moment_reply_prefix, it) }
+                        ?: stringResource(COMMENT_PLACEHOLDER_RES),
                     style = typography.timestamp.copy(color = colors.textSecondary),
                 )
             }
@@ -497,7 +507,7 @@ private fun MomentCommentInput(momentId: String, replyTargetName: String?, onSen
         ) {
             Icon(
                 imageVector = MiniPhoneIcons.Send,
-                contentDescription = "发送评论",
+                contentDescription = stringResource(R.string.mp_moment_comment_cd),
                 tint = if (draft.isNotBlank()) colors.accent else colors.textSecondary,
                 modifier = Modifier.size(CommentSendIcon),
             )
@@ -529,11 +539,11 @@ private val CommentDialogWidth = 280.dp
 private val CancelCorner = 8.dp
 private val DialogActionHeight = 36.dp
 
-private const val DELETE_COMMENT_LABEL: String = "删除"
-private const val COMMENT_DELETE_TITLE: String = "删除这条评论?"
-private const val COMMENT_DELETE_HINT: String = "这条评论和它下面的回复会一起删除。"
-private const val COMMENT_DELETE_CANCEL_LABEL: String = "取消"
+private val DELETE_COMMENT_LABEL_RES: Int = R.string.mp_delete
+private val COMMENT_DELETE_TITLE_RES: Int = R.string.mp_moment_delete_comment_title
+private val COMMENT_DELETE_HINT_RES: Int = R.string.mp_moment_delete_comment_hint
+private val COMMENT_DELETE_CANCEL_LABEL_RES: Int = R.string.mp_cancel
 
-private const val DELETE_LABEL: String = "删除"
-private const val ONLY_SELF_LABEL: String = "仅自己可见"
-private const val COMMENT_PLACEHOLDER: String = "说点什么"
+private val DELETE_LABEL_RES: Int = R.string.mp_delete
+private val ONLY_SELF_LABEL_RES: Int = R.string.mp_moment_only_self
+private val COMMENT_PLACEHOLDER_RES: Int = R.string.mp_moment_comment_placeholder

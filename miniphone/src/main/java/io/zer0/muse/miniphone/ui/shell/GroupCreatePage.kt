@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +59,7 @@ internal fun GroupCreatePage(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val colors = MiniPhoneTheme.colors
     Column(
         modifier = modifier
@@ -67,7 +69,7 @@ internal fun GroupCreatePage(
     ) {
         GroupPickHeader(
             title = stringResource(R.string.mp_group_create_title),
-            hint = selectedHintOf(selectedIds.size),
+            hint = selectedHintOf(context, selectedIds.size),
             canFinish = canCreateGroup(selectedIds.size),
             tagPrefix = GROUP_CREATE_TAG_PREFIX,
             onBack = onBack,
@@ -76,8 +78,8 @@ internal fun GroupCreatePage(
         GroupPickList(
             sections = sections,
             selectedIds = selectedIds,
-            emptyTitle = EMPTY_CONTACTS_TITLE,
-            emptyHint = EMPTY_CONTACTS_HINT,
+            emptyTitle = stringResource(EMPTY_CONTACTS_TITLE_RES),
+            emptyHint = stringResource(EMPTY_CONTACTS_HINT_RES),
             onToggle = onToggle,
         )
     }
@@ -112,7 +114,7 @@ internal fun GroupPickHeader(title: String, hint: String, canFinish: Boolean, ta
             ) {
                 Icon(
                     imageVector = MiniPhoneIcons.Back,
-                    contentDescription = "返回",
+                    contentDescription = stringResource(R.string.mp_back_cd),
                     tint = colors.textPrimary,
                     modifier = Modifier.size(GroupHeaderIconSize),
                 )
@@ -127,7 +129,8 @@ internal fun GroupPickHeader(title: String, hint: String, canFinish: Boolean, ta
                     .padding(start = 4.dp),
             )
             Text(
-                text = GROUP_PICK_DONE_LABEL,
+                text = stringResource(GROUP_PICK_DONE_LABEL_RES),
+
                 style = typography.caption.copy(
                     color = if (canFinish) colors.accent else colors.textSecondary,
                     fontWeight = FontWeight.Medium,
@@ -288,15 +291,16 @@ private fun GroupPickEmptyState(title: String, hint: String, modifier: Modifier 
 }
 
 /** 已选人数那一行:不到两个人时顺带说明门槛。 */
-internal fun selectedHintOf(selectedCount: Int): String = if (selectedCount < MIN_GROUP_MEMBERS) {
-    "已选 $selectedCount 人,至少选 $MIN_GROUP_MEMBERS 人"
-} else {
-    "已选 $selectedCount 人"
-}
+internal fun selectedHintOf(context: android.content.Context, selectedCount: Int): String =
+    if (selectedCount < MIN_GROUP_MEMBERS) {
+        context.getString(R.string.mp_group_selected_min, selectedCount, MIN_GROUP_MEMBERS)
+    } else {
+        context.getString(R.string.mp_group_selected_enough, selectedCount)
+    }
 
-private const val GROUP_PICK_DONE_LABEL: String = "完成"
-private const val EMPTY_CONTACTS_TITLE: String = "通讯录还是空的"
-private const val EMPTY_CONTACTS_HINT: String = "先有角色,才凑得起一个群"
+private val GROUP_PICK_DONE_LABEL_RES: Int = R.string.mp_group_done
+private val EMPTY_CONTACTS_TITLE_RES: Int = R.string.mp_contacts_empty_title
+private val EMPTY_CONTACTS_HINT_RES: Int = R.string.mp_group_contacts_empty_hint
 
 /** 建群页的标签前缀:派生出的值就是对外约定的那几个标签。 */
 private const val GROUP_CREATE_TAG_PREFIX: String = "mp-group-create"
