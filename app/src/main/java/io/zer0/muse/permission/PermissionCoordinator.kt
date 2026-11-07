@@ -95,6 +95,7 @@ class PermissionCoordinator(
      * 被动刷新四通道状态（零副作用：不弹 su、不唤醒 Termux、不请求授权）。
      * 单通道探针异常降级为不可用，不击穿整页（与向导旧 runCatching 同口径）。
      */
+    @Suppress("TooGenericExceptionCaught") // 单通道探针异常必须降级为不可用，不能击穿整页刷新。
     suspend fun refresh(): PermissionSnapshot = mutex.withLock {
         val a11y = probeBool("a11y") { a11yInstaller.isEnabled() }
         val providerInstalled = probeBool("a11yProvider") { a11yInstaller.isProviderInstalled() }
@@ -141,6 +142,7 @@ class PermissionCoordinator(
         snap
     }
 
+    @Suppress("TooGenericExceptionCaught") // 布尔探针失败一律降级 false，不向上抛。
     private fun probeBool(name: String, block: () -> Boolean): Boolean = try {
         block()
     } catch (e: CancellationException) {

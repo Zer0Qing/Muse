@@ -107,7 +107,11 @@ class AutomationManager(
                 shizukuMessage = snap.shizukuMessage,
             )
             _permissionState.value = state
-            Logger.i(TAG, "permissions refreshed via coordinator: a11y=${state.accessibilityEnabled} shell=${state.shizukuState} root=${state.rootEnabled}")
+            Logger.i(
+                TAG,
+                "permissions refreshed via coordinator: " +
+                    "a11y=${state.accessibilityEnabled} shell=${state.shizukuState} root=${state.rootEnabled}",
+            )
             return@withLock state
         }
         val a11y = probe("accessibility") { accessibility.isAvailable() }
