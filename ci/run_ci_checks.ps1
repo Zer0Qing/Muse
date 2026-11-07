@@ -144,7 +144,13 @@ switch ($Lane) {
             ':common:testDebugUnitTest',
             ':accessibility:testDebugUnitTest',
             # P4-4: material3 此前漏在单测 lane 之外
-            ':material3:testDebugUnitTest'
+            ':material3:testDebugUnitTest',
+            # 走查修复期补:小手机是独立模块且有整套 UI/调度测试,
+            # 之前不在 lane 里等于改了没人查;conversation-core 与
+            # virtual-display-server 同样是 JVM 模块的 test 任务(不是 testDebugUnitTest)
+            ':miniphone:testDebugUnitTest',
+            ':conversation-core:test',
+            ':virtual-display-server:test'
         ) + $skipReleaseGuards)
     }
     'debug' {
