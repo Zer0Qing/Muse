@@ -797,4 +797,6 @@
         <item quantity="one">%1$d member selected</item>
         <item quantity="other">%1$d members selected</item>
     </plurals>
+    <string name="workspace_go_root">Back to workspace root</string>
+    <string name="artifact_center_empty_hint">Artifacts are the images, files and long texts the assistant produces in chat - keep them here to review and share</string>
 </resources>

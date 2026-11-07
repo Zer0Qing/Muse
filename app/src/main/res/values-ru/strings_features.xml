@@ -900,4 +900,6 @@
         <item quantity="many">выбрано %1$d участников</item>
         <item quantity="other">выбрано %1$d участника</item>
     </plurals>
+    <string name="workspace_go_root">В корень рабочего пространства</string>
+    <string name="artifact_center_empty_hint">Артефакты — это изображения, файлы и длинные тексты, которые ассистент создаёт в переписке; здесь их можно пересмотреть и поделиться ими</string>
 </resources>

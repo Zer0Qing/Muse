@@ -849,4 +849,6 @@
         <item quantity="one">%1$d membro selecionado</item>
         <item quantity="other">%1$d membros selecionados</item>
     </plurals>
+    <string name="workspace_go_root">Voltar à raiz do espaço de trabalho</string>
+    <string name="artifact_center_empty_hint">Artefatos são as imagens, arquivos e textos longos que o assistente gera na conversa; revise e compartilhe aqui</string>
 </resources>

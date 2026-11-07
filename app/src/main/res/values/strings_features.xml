@@ -818,4 +818,6 @@
     <plurals name="groupchat_selected_members">
         <item quantity="other">已选 %1$d 个成员</item>
     </plurals>
+    <string name="workspace_go_root">返回工作区根目录</string>
+    <string name="artifact_center_empty_hint">产物是助手在对话里生成的图片、文件与长文本，攒在这里可以回看和分享</string>
 </resources>

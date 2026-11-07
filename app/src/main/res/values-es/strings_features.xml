@@ -849,4 +849,6 @@
         <item quantity="one">%1$d miembro seleccionado</item>
         <item quantity="other">%1$d miembros seleccionados</item>
     </plurals>
+    <string name="workspace_go_root">Volver a la raíz del espacio de trabajo</string>
+    <string name="artifact_center_empty_hint">Los artefactos son las imágenes, archivos y textos largos que el asistente genera en el chat; aquí puedes revisarlos y compartirlos</string>
 </resources>

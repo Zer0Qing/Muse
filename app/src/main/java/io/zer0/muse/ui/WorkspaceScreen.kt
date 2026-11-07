@@ -311,9 +311,9 @@ fun WorkspaceScreen(
                     // 子目录下额外提供"返回根目录"快捷按钮
                     if (currentPath.isNotEmpty()) {
                         MuseTactileButton(
-                            icon = MuseIcons.arrowLeft,
+                            icon = MuseIcons.home,
                             onClick = { currentPath = "" },
-                            contentDescription = stringResource(R.string.workspace_title),
+                            contentDescription = stringResource(R.string.workspace_go_root),
                         )
                     }
                 },
@@ -728,6 +728,8 @@ fun WorkspaceScreen(
             },
             confirmText = stringResource(R.string.common_close),
             onConfirm = { mountSheetOpen = false },
+            // 面板只需要一个出口：默认的 Cancel 与这颗 Close 是同义的并排按钮
+            dismissText = null,
         )
     }
 

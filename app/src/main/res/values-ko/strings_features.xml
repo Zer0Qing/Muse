@@ -848,4 +848,6 @@
     <plurals name="groupchat_selected_members">
         <item quantity="other">%1$d명의 멤버 선택됨</item>
     </plurals>
+    <string name="workspace_go_root">작업 공간 최상위로 이동</string>
+    <string name="artifact_center_empty_hint">산출물은 대화에서 어시스턴트가 만든 이미지·파일·긴 텍스트입니다. 여기에서 다시 보거나 공유할 수 있어요</string>
 </resources>
