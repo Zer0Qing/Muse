@@ -96,6 +96,7 @@
 | 破坏性操作与"未保存离开"必须有确认，且点名对象 | 无确认即毁数据（删供应商、删云端备份、解绑、批量删除、草稿丢弃） | `ConfirmDeleteDialog` 唯一件 |
 | 运行时权限按需请求，不在冷启动第一帧 | 第一帧就要通知权限，只会换来条件反射的拒绝 | `NotificationPermissionBus` |
 | 依赖外部配置的功能（模型服务等）不可用时，必须在动作前告知并给出口 | 静默空回合等于"App 坏了" | `usableProviderPresent` + 错误条「去设置」 |
+| 改过 `strings*.xml` 必须跑一次 `:app:assembleDebug`，不能只看编译与静态门禁 | 未转义的英文撇号只在 `mergeDebugResources` 报错，而且报法是误导人的 "Invalid unicode escape sequence in string"；`compileDebugKotlin`、ktlint、detekt 全都能绿着放过（实机打包连续撞到两次） | `:app:assembleDebug` |
 | 颜色角色分工：`outline` 只做描边与禁用态，次要文字/图标一律 `onSurfaceVariant` | mono 深色的 `outline` 是 `#38383E`，当文字色放在近黑底上约 2:1，等于写了一行看不见的字（实机：消息旁助手名、设置副标题、群聊空态提示） | 走查项 二-16 / 三-3；共享件 `SettingsItemRow`、`SettingsSwitchRow`、`ChevronRight`、`MessageBubble*` 已按此改 |
 | 状态词必须自解释，且各语言同一含义 | 首页会话行的 "Pending/待确认" 既没说在等什么，也跨语言漂移，还兜住了"根本没消息"和"只发过一句"两种情况 | 走查项 三-2；`inferTaskStatus` 只在"一条消息都没有"时给未开始 |
 
