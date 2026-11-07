@@ -293,16 +293,17 @@ private fun ColorScheme.toHighContrast(darkTheme: Boolean): ColorScheme = if (da
  *  - 浅色模式下抬得多(底色接近纸白)，深色模式只抬一点点(保持 OLED 的暗底，只把灰块提亮一档)。
  *  - 高对比模式不走这里(见 [toHighContrast])，两者的目标相反。
  *
- * v2.0.1 「双平面」：浅色模式额外把 page 底色（background/surfaceDim）朝黑端压一档，
- * 让"浅底色 + 更亮卡面(surface)"的明度差成为层级的主要载体；
- * 卡面不再靠描边/阴影分层。深色模式暂不变（待深色参考校准）。
+ * v2.0.1 「双平面」：把 page 底色（background/surfaceDim）朝黑端压一档、把卡面（surface）
+ * 朝白端提一档，让"底 vs 卡"的明度差成为层级的主要载体；卡面不再靠描边/阴影分层。
+ * 浅色与深色同构：深色底压向 OLED 纯黑、卡面独立提亮（不再与底色同系数压黑，否则底=卡、无层级）。
+ * 具体幅度是校准参数，随样张/实机观感迭代；方向性不变量由 DoublePlaneTest 钉住。
  */
-private fun ColorScheme.toWhiterNeutrals(darkTheme: Boolean): ColorScheme = if (darkTheme) {
+internal fun ColorScheme.toWhiterNeutrals(darkTheme: Boolean): ColorScheme = if (darkTheme) {
     copy(
-        // v2.x 深色双平面(深色模式校准):底色向 OLED 纯黑压一档(与浅色"底色压深"同构);
-        // 实测参照:深色 = #000 底 / #1A1A1A 卡,层级靠底-卡明度差。
+        // 深色双平面：底色向 OLED 纯黑压一档；卡面独立提亮一档(见 DOUBLE_PLANE_DARK_SURFACE_LIFT)，
+        // 纯黑底 → 近 #1A1A1A 卡，层级靠底-卡明度差。
         background = darkenToward(background, DOUBLE_PLANE_DARK_BG_PUSH),
-        surface = darkenToward(surface, DOUBLE_PLANE_DARK_BG_PUSH),
+        surface = liftTowardWhite(surface, DOUBLE_PLANE_DARK_SURFACE_LIFT),
         surfaceDim = darkenToward(surfaceDim, DOUBLE_PLANE_DARK_BG_PUSH),
         // 卡面灰块适度收敛(原 lift 略高,与深底搭配时卡偏亮;回收约 30%,保留"雾面不闷"观感)。
         surfaceBright = liftTowardWhite(surfaceBright, 0.04f),
@@ -316,8 +317,9 @@ private fun ColorScheme.toWhiterNeutrals(darkTheme: Boolean): ColorScheme = if (
     )
 } else {
     copy(
-        // v2.0.1 双平面：底色压深一档（×0.955），卡面(surface)保持白底，明度差建立层级。
+        // 双平面：底色压深一档（×0.92）、卡面(surface)提亮一档，明度差建立层级。
         background = darkenToward(background, DOUBLE_PLANE_BG_PUSH),
+        surface = liftTowardWhite(surface, DOUBLE_PLANE_LIGHT_SURFACE_LIFT),
         surfaceDim = darkenToward(surfaceDim, DOUBLE_PLANE_BG_PUSH),
         surfaceContainerLowest = liftTowardWhite(surfaceContainerLowest, 0.25f),
         surfaceContainerLow = liftTowardWhite(surfaceContainerLow, 0.40f),
@@ -329,8 +331,11 @@ private fun ColorScheme.toWhiterNeutrals(darkTheme: Boolean): ColorScheme = if (
     )
 }
 
-/** 「双平面」浅色模式底色压深幅度：1 - 0.955 = 4.5%。（校准参数，样张迭代时调整。） */
-private const val DOUBLE_PLANE_BG_PUSH = 0.045f
+/** 「双平面」浅色模式底色压深幅度：1 - 0.92 = 8%。（校准参数，样张迭代时调整。） */
+private const val DOUBLE_PLANE_BG_PUSH = 0.08f
+
+/** 「双平面」浅色模式卡面提亮幅度：向白拉 35%，与压深的底色拉开明度差。（校准参数。） */
+private const val DOUBLE_PLANE_LIGHT_SURFACE_LIFT = 0.35f
 
 /**
  * 「双平面」深色模式底色压黑幅度（深色模式校准，v2.x）：
@@ -339,6 +344,13 @@ private const val DOUBLE_PLANE_BG_PUSH = 0.045f
  * （校准参数：随深色截图/实机观感迭代时单点调整。）
  */
 private const val DOUBLE_PLANE_DARK_BG_PUSH = 0.75f
+
+/**
+ * 「双平面」深色模式卡面提亮幅度：向白拉 10%（纯黑底 → 近 #1A1A1A 卡），与压黑的底色拉开明度差。
+ * 此前卡面与底色同系数压黑导致底=卡、深色无层级，这里改为独立提亮修复。
+ * （校准参数：待深色样张/实机观感迭代时单点调整；方向性不变量由 DoublePlaneTest 钉住。）
+ */
+private const val DOUBLE_PLANE_DARK_SURFACE_LIFT = 0.10f
 
 /** 把颜色向纯白拉 [amount](0..1)，只改亮度不做色相偏移。 */
 private fun liftTowardWhite(color: Color, amount: Float): Color = Color(

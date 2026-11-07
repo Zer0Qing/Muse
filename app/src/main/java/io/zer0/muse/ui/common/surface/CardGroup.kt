@@ -23,7 +23,7 @@ import io.zer0.muse.ui.theme.largeCard
  * 一个 [CardGroup] 内的多个 [item] 共享同一个圆角卡片容器:
  *  - 第一项顶部圆角 20dp,最后一项底部圆角 20dp,中间项直角拼接
  *  - 可选的分组标题(primary 色 + titleSmall 字体)
- *  - item 之间用 [MuseDivider] 分隔(56dp 缩进,对齐系统设置)
+ *  - item 之间用 [MuseDivider] 分隔(缩进跟随内容左边线:有图标缩到文字列,无图标落行内边距)
  *
  * v1.0.26 重构:
  *  - 容器改用 [MuseSurface] 基元,统一 clip/color/shadow 处理
@@ -171,6 +171,9 @@ fun CardGroup(modifier: Modifier = Modifier, title: (@Composable () -> Unit)? = 
         ) {
             Column {
                 val count = scope.items.size
+                // 双平面翻新：分隔线起点跟随内容左边线——整组有 leading 图标时缩到图标右侧文字列,
+                // 无图标卡落到行内边距(不再无条件 56dp,根治无图标卡比内容线多缩 40dp)。
+                val dividerIndent = museDividerStartIndent(hasLeading = scope.items.any { it.leadingContent != null })
                 scope.items.fastForEachIndexed { index, item ->
                     // 用 key 包裹,使带 key 的列表项在增删/重排时保留 remember 状态(如交互源、展开态)
                     key(item.key ?: index) {
@@ -186,7 +189,7 @@ fun CardGroup(modifier: Modifier = Modifier, title: (@Composable () -> Unit)? = 
                     }
                     // 用 MuseDivider 基元分隔 item,统一 thickness/color/缩进
                     if (index != count - 1) {
-                        MuseDivider()
+                        MuseDivider(startIndent = dividerIndent)
                     }
                 }
             }

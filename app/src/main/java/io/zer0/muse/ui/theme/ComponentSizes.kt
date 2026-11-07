@@ -45,8 +45,8 @@ object MuseSwitchSizes {
  * 提到这里后 `tokens.json` 的 `component.listRow.*` 与组件用同一个源。
  */
 object MuseListItemSizes {
-    /** 常规列表行最小高度(对齐 Material3 ListItem 默认,确保触摸目标)。 */
-    val minHeight = 60.dp
+    /** 常规列表行最小高度(双平面翻新由 60 上调到 64dp,行更舒展;双行由内容自然撑开)。 */
+    val minHeight = 64.dp
 
     /** 紧凑列表(菜单 / 选择面板)的行最小高度。 */
     val compactMinHeight = 48.dp

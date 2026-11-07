@@ -65,7 +65,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.navigation.MuseLargeTitleHeader
+import io.zer0.muse.ui.common.navigation.MuseCompactTitleHeader
 import io.zer0.muse.ui.common.navigation.MuseStickyBackButton
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SectionLabel
@@ -108,9 +108,9 @@ fun SettingsSubPageScaffold(
     focusItemIndex: Int? = null,
     content: LazyListScope.() -> Unit,
 ) {
-    // v2.0.1: 滚动头部 — 大标题（item 0）随滚动推出（保留返回键）。
+    // 双平面翻新: 子页改用紧凑标题（item 0，圆底返回键 + 22sp 同排），随滚动推出。
     // 搜索栏只保留在一级设置页；二三级子页不再放置搜索栏。
-    // 大标题推出后，左上角渐显吸顶返回键（MuseStickyBackButton），保证随时可返回。
+    // 紧凑标题推出后，左上角渐显吸顶返回键（MuseStickyBackButton），保证随时可返回。
     val listState = rememberLazyListState()
     // 搜索直达开关时:进组即滚到那张卡片,剩下的"看哪一行"交给行内短暂高亮。
     LaunchedEffect(focusItemIndex) {
@@ -126,7 +126,7 @@ fun SettingsSubPageScaffold(
     )
 
     io.zer0.muse.ui.common.surface.MusePageScaffold(
-        // v2.0.1: 大标题移入列表（随滚动推出），topBar 留空。
+        // 双平面翻新: 紧凑标题移入列表（随滚动推出），topBar 留空。
         topBar = {},
         containerColor = MaterialTheme.colorScheme.background,
         topBarHandlesInsets = true,
@@ -162,7 +162,8 @@ fun SettingsSubPageScaffold(
                         .heightIn(max = boundedHeight)
                         .testTag(SETTINGS_SCROLL_CONTAINER_TAG)
                         // 设置页保持设备窗口的完整宽度；不能用固定 720dp 截断手机窗口。
-                        .padding(horizontal = MusePaddings.screen),
+                        // 双平面翻新：设置族水平外边距用 pageMargin(20dp),比通用 screen 宽一档。
+                        .padding(horizontal = MusePaddings.pageMargin),
                     contentPadding = PaddingValues(
                         // 吸顶返回键浮在左上角，滚动后内容会滑到它下面（首字被遮）。
                         // 按吸顶进度补一份按钮高度，让内容始终停在按钮下方。
@@ -172,11 +173,11 @@ fun SettingsSubPageScaffold(
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.cardGap),
                 ) {
                     item(key = "settings_large_header") {
-                        // offset 抵消列表的水平内边距：标题/返回按钮与设置首页同一水平基准。
-                        MuseLargeTitleHeader(
+                        // offset 抵消列表的水平内边距：紧凑标题/圆底返回键与卡片同一水平基准(pageMargin)。
+                        MuseCompactTitleHeader(
                             title = title,
                             onBack = onBack,
-                            modifier = Modifier.offset(x = -MusePaddings.screen),
+                            modifier = Modifier.offset(x = -MusePaddings.pageMargin),
                         )
                     }
                     content()

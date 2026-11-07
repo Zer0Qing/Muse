@@ -200,7 +200,7 @@ private fun SettingsHomeList(
                 item(key = "account") {
                     io.zer0.muse.ui.account.AccountCard(
                         onClick = onOpenAccount,
-                        modifier = Modifier.padding(horizontal = MusePaddings.screen),
+                        modifier = Modifier.padding(horizontal = MusePaddings.pageMargin),
                     )
                 }
                 item(key = "settings_groups") {
@@ -221,8 +221,8 @@ private fun SettingsHomeList(
                         .museSafeTopInsetPadding()
                         // 底部多留一份内容间距，避免胶囊下沿紧贴分隔线。
                         .padding(
-                            start = MusePaddings.screen,
-                            end = MusePaddings.screen,
+                            start = MusePaddings.pageMargin,
+                            end = MusePaddings.pageMargin,
                             top = 6.dp,
                             bottom = MusePaddings.contentGap,
                         )
@@ -253,7 +253,7 @@ private fun SettingsStickySearchBar(progress: Float, onOpenSearch: () -> Unit) {
             text = stringResource(R.string.settings_search_hint),
             onClick = onOpenSearch,
             modifier = Modifier
-                .padding(horizontal = MusePaddings.screen, vertical = 6.dp)
+                .padding(horizontal = MusePaddings.pageMargin, vertical = 6.dp)
                 .alpha(1f - progress),
         )
     }
@@ -270,7 +270,7 @@ internal fun SettingsGroupCards(
     modifier: Modifier = Modifier,
     groups: List<SettingsGroupSpec> = SettingsCatalog.groups,
 ) {
-    CardGroup(modifier = modifier.padding(horizontal = MusePaddings.screen)) {
+    CardGroup(modifier = modifier.padding(horizontal = MusePaddings.pageMargin)) {
         groups.forEach { group ->
             item(
                 key = group.kind,
@@ -332,7 +332,7 @@ private fun SettingsSearchPalette(
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.largeGap),
+                    .padding(horizontal = MusePaddings.pageMargin, vertical = MusePaddings.largeGap),
             ) {
                 SettingsSearchField(query = query, onQueryChange = onQueryChange)
                 if (query.isNotBlank()) {

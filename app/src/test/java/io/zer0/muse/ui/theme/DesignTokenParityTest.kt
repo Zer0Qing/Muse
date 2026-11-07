@@ -287,6 +287,7 @@ class DesignTokenParityTest {
     fun `spacing tokens match MusePaddings`() {
         listOf(
             "screen" to MusePaddings.screen,
+            "pageMargin" to MusePaddings.pageMargin,
             "sectionGap" to MusePaddings.sectionGap,
             "cardGap" to MusePaddings.cardGap,
             "searchBarHeight" to MusePaddings.searchBarHeight,

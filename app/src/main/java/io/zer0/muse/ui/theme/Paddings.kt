@@ -11,11 +11,12 @@ import androidx.compose.ui.unit.dp
  *
  * 令牌层级(留白节奏):
  *  - [screen]:         16.dp — 屏幕水平边距(Scaffold padding)
+ *  - [pageMargin]:     20.dp — 设置类页面水平外边距(比 screen 宽一档,只用于设置族)
  *  - [cardInner]:      horizontal=16, vertical=12 — 卡片内边距
  *  - [cardInnerLoose]: horizontal=16, vertical=14 — 略松的卡片内边距
  *  - [sectionGap]:     16.dp — section 之间间距
  *  - [itemGap]:        16.dp — 列表项之间间距(LazyColumn spacedBy;v2.0.1 由 12 上调)
- *  - [cardGap]:        20.dp — 卡片组之间的间距(设置类页面;v2.0.1 新增)
+ *  - [cardGap]:        24.dp — 卡片组之间的间距(设置类页面;双平面翻新由 20 上调)
  *  - [contentGap]:     8.dp — 卡片内组件之间间距
  *  - [tightGap]:       4.dp — 紧凑间距(图标 + 文字)
  *  - [tinyGap]:        2.dp — 徽标 / 行间极紧间距
@@ -33,6 +34,13 @@ object MusePaddings {
     /** 屏幕水平边距(Scaffold padding)。 */
     val screen = 16.dp
 
+    /**
+     * 设置类页面水平外边距(卡片/搜索栏/账户卡左右留白)。
+     * 比通用 [screen] 宽一档(20dp),对齐系统级设置页的卡片外边距节奏;
+     * 只用于设置族页面,聊天/首页等仍用 [screen],避免全站节奏被一处改动波及。
+     */
+    val pageMargin = 20.dp
+
     /** 卡片内边距(统一所有 Card 的 padding)。 */
     val cardInner = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
 
@@ -42,8 +50,8 @@ object MusePaddings {
     /** section 之间间距。 */
     val sectionGap = 16.dp
 
-    /** v2.0.1: 卡片组之间的间距（设置类页面，实测 20dp）。 */
-    val cardGap = 20.dp
+    /** 卡片组之间的间距（设置类页面，双平面翻新上调到 24dp，组间距明显大于组内行距）。 */
+    val cardGap = 24.dp
 
     /** 搜索栏胶囊高度。吸顶页需按同值给列表补偿顶部空间，故与组件共享此令牌。 */
     val searchBarHeight = 48.dp

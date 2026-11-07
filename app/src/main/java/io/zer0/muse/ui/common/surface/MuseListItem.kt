@@ -52,7 +52,7 @@ internal val LocalMuseCompactList = androidx.compose.runtime.staticCompositionLo
  *  - Material3 ListItem 在不同 alpha 下颜色行为不稳定
  *
  * 规格(系统设置风格):
- *  - 最小高度 60dp(对齐 Material3 ListItem 默认,确保触摸目标)
+ *  - 最小高度 64dp(双平面翻新由 60 上调,确保触摸目标且行更舒展)
  *  - 水平 padding 16dp,垂直 padding 12dp
  *  - leading content 右侧间距 16dp,trailing content 左侧间距 12dp
  *  - headline: titleMedium + onSurface
@@ -77,7 +77,7 @@ internal val LocalMuseCompactList = androidx.compose.runtime.staticCompositionLo
  * @param supportingContent 副标题(可选,灰色小字)
  * @param leadingContent 左侧内容(通常是图标,可选)
  * @param trailingContent 右侧内容(箭头/Switch 等,可选)
- * @param minHeight 最小高度(默认 60dp)
+ * @param minHeight 最小高度(默认 64dp,紧凑列表 48dp)
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
