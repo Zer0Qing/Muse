@@ -3,6 +3,8 @@ package io.zer0.muse.automation.executors
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.automation.core.PermissionLevel
+import io.zer0.muse.tools.system.RootAuthorizer
+import io.zer0.muse.tools.system.sanitizeShellCommandForLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -30,43 +32,27 @@ class RootExecutor(
 
     override val shellPrefix: List<String> = listOf("su")
 
+    /** 权限体系重设计: libsu 门面（持久 shell + 被动授权缓存 + 管理器检测）。 */
+    private val rootAuthorizer = RootAuthorizer(context)
+
+    /**
+     * 被动可用性探测（零副作用）：读 libsu 缓存 + 曾授权标记，**不执行 su、不弹窗**。
+     * 启动 refreshPermissions 与向导刷新都走这里，根治「冷启动即弹 root 授权」。
+     */
     override suspend fun isAvailable(): Boolean = withContext(Dispatchers.IO) {
-        if (!isRooted()) return@withContext false
-        val result = exec("id")
-        result.isSuccess && result.getOrDefault("").contains("uid=0")
+        rootAuthorizer.checkPermission()
     }
 
-    /** 检查设备是否存在 su 二进制或内核 root 方案(不一定有权限执行)。 */
-    private fun isRooted(): Boolean {
-        return try {
-            val paths = arrayOf(
-                "/system/bin/su",
-                "/system/xbin/su",
-                "/sbin/su",
-                "/system/sd/xbin/su",
-                "/system/bin/failsafe/su",
-                "/data/local/xbin/su",
-                "/data/local/bin/su",
-                "/data/local/su",
-                "/su/bin/su",
-            )
-            // v2.0: KernelSU 系(GKI/LKM)不暴露 su 文件,sucompat 由内核拦截;
-            // /data/adb 是 root 方案的数据目录,作为预筛信号。
-            paths.any { File(it).exists() } || File("/data/adb").exists() || runCatching {
-                ProcessBuilder("which", "su").start().inputStream.bufferedReader().readText().isNotBlank()
-            }.getOrDefault(false)
-        } catch (e: Exception) {
-            false
-        }
-    }
+    /** 设备是否存在 root 方案（不一定已授权）；委托门面的广探测（含管理器包）。 */
+    private fun isRooted(): Boolean = rootAuthorizer.isAvailable()
 
     /**
      * 显式请求 Root 授权:执行一次 `su -c id`,root 管理器(Magisk/KernelSU 等)会据此弹出授权对话框。
      *
      * 只有存在 su 二进制时才值得请求,否则直接返回 [RootRequestFailure.NO_SU_BINARY],不阻塞 UI;
      * 授权对话框可能长时间无人处理,等待超过 [timeoutMs] 即销毁子进程并返回
-     * [RootRequestFailure.TIMEOUT]。本方法只发起授权,不静默提权,也不缓存结果 ——
-     * 授权状态始终以 [isAvailable] 的真实探测为准。
+     * [RootRequestFailure.TIMEOUT]。本方法只在用户点按钮时发起授权,不静默提权;
+     * 成功后写「曾授权」持久化标记,供下次冷启动被动判可用（真实复验推迟到执行时）。
      *
      * @return 是否拿到 uid=0,以及失败时的可读原因
      */
@@ -92,12 +78,60 @@ class RootExecutor(
             }
             val output = process.inputStream.bufferedReader().use { it.readText() }
             val result = evaluateRootProbe(process.exitValue(), output)
+            if (result.granted) rootAuthorizer.markEverGranted()
             Logger.i(TAG, "root 授权请求结束: granted=${result.granted} failure=${result.failure}")
             result
         } catch (e: Exception) {
             runCatching { process.destroyForcibly() }
             Logger.w(TAG, "root 授权请求异常: ${e.message}")
             RootRequestResult.failed(classifyRootProbeException(e))
+        }
+    }
+
+    // ── 权限体系重设计: 执行层改走 libsu 持久 shell ──────────────────────────
+    // 覆写 exec/execDetailed 后,继承来的全部命令构造器与输入/读屏动作自动走 libsu,
+    // 不再每条命令起一个新 su 进程。
+
+    override suspend fun exec(command: String): Result<String> = withContext(Dispatchers.IO) {
+        val result = rootAuthorizer.execute(command)
+        if (result.isSuccess) {
+            Result.success(result.stdout)
+        } else {
+            Logger.w(TAG, "root exec failed (exit=${result.exitCode}, verb=${sanitizeShellCommandForLog(command)})")
+            Result.failure(IllegalStateException(result.stderr.ifBlank { "root 命令执行失败" }))
+        }
+    }
+
+    override suspend fun execDetailed(command: String): ExecDetail = withContext(Dispatchers.IO) {
+        val result = rootAuthorizer.execute(command)
+        val merged = buildString {
+            append(result.stdout)
+            if (result.stderr.isNotBlank()) {
+                if (isNotEmpty()) append('\n')
+                append("[stderr]\n")
+                append(result.stderr)
+            }
+        }
+        ExecDetail(result.exitCode, merged)
+    }
+
+    /** 截图走 libsu 写文件再读字节（libsu 输出按行收集,直接接二进制 PNG 会损坏）。 */
+    override suspend fun screenshot(): ByteArray? = withContext(Dispatchers.IO) {
+        val file = File(context.cacheDir, "muse_root_shot_${System.currentTimeMillis()}.png")
+        try {
+            val path = "'" + file.absolutePath.replace("'", "'\\''") + "'"
+            val result = rootAuthorizer.execute("screencap -p $path")
+            if (result.isSuccess && file.exists() && file.length() > 0) {
+                file.readBytes()
+            } else {
+                Logger.w(TAG, "root 截图失败 exit=${result.exitCode}")
+                null
+            }
+        } catch (e: Exception) {
+            Logger.w(TAG, "root 截图异常: ${e.message}")
+            null
+        } finally {
+            file.delete()
         }
     }
 

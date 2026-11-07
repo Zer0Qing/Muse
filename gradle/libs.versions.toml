@@ -47,6 +47,8 @@ jtokkit = "1.1.0"
 composeIcons = "1.1.1"
 # P3-3: Shizuku SDK(以 Shell 权限运行命令,无需 root;rikk.shizuku:api + provider)
 shizuku = "13.1.5"
+# 权限体系重设计: libsu(Magisk 作者库)——Root 通道持久 shell + 三态授权缓存(JitPack)
+libsu = "6.0.0"
 # v2.0.1: Haze — Compose 背景模糊(backdrop blur),设置页吸顶搜索栏玻璃效果(API 31+ 真模糊,低版本自动降级 scrim)
 haze = "1.5.3"
 
@@ -168,6 +170,8 @@ composeIcons-tablerIcons = { module = "br.com.devsrsouza.compose.icons:tabler-ic
 # P3-3: Shizuku SDK — 以 Shell 权限执行命令(无需 root),三通道路由之一
 shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku" }
 shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
+# 权限体系重设计: Root 通道改用 libsu 持久 shell(替代每条命令起一个 su 进程)
+libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
 
 # R-BUILD-06: app/memory 附加依赖
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }

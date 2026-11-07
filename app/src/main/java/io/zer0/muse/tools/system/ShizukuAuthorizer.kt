@@ -266,8 +266,8 @@ class ShizukuAuthorizer(
         } catch (e: PackageManager.NameNotFoundException) {
             false
         }
-        // Sui 需要 root 才能工作
-        return suiInstalled && RootAuthorizer().checkPermission()
+        // Sui 需要 root 才能工作（被动检测,不弹窗、不阻塞）
+        return suiInstalled && RootAuthorizer(context).checkPermission()
     }
 
     /**

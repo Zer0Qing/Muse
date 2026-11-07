@@ -392,6 +392,9 @@ dependencies {
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
 
+    // 权限体系重设计: Root 通道持久 shell + 三态授权缓存(Magisk 作者库)
+    implementation(libs.libsu.core)
+
     // AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.documentfile)

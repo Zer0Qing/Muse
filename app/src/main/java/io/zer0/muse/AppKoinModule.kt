@@ -584,8 +584,8 @@ val appModule = module {
     single { io.zer0.muse.tools.system.AccessibilityClient(androidContext()) }
     // ShizukuAuthorizer: Shizuku SDK 集成,以 shell 权限执行命令(无需 root)
     single { io.zer0.muse.tools.system.ShizukuAuthorizer(androidContext()) }
-    // RootAuthorizer: root 检测 + su 执行(降级通道)
-    single { io.zer0.muse.tools.system.RootAuthorizer() }
+    // RootAuthorizer: libsu 门面(被动授权缓存 + 持久 shell + 管理器检测,降级通道)
+    single { io.zer0.muse.tools.system.RootAuthorizer(androidContext()) }
     // 安装器(引导启用/安装)
     single { io.zer0.muse.tools.system.AccessibilityProviderInstaller(androidContext()) }
     single { io.zer0.muse.tools.system.ShizukuInstaller(androidContext()) }

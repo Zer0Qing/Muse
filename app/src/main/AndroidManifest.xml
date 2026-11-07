@@ -77,6 +77,14 @@
              属隐式依赖;isInstalled/isSuiBackendAvailable 改为显式声明兜底。 -->
         <package android:name="moe.shizuku.privileged.api" />
         <package android:name="moe.shizuku.privileged.sui" />
+        <!-- 权限体系重设计: Root 管理器包可见性。用于区分「设备无 root 方案」与
+             「有方案但管理器未安装」(KernelSU/APatch 无管理器时 su 静默拒绝),给定向指引。 -->
+        <package android:name="com.topjohnwu.magisk" />
+        <package android:name="io.github.huskydg.magisk" />
+        <package android:name="me.weishu.kernelsu" />
+        <package android:name="com.rifsxd.ksunext" />
+        <package android:name="com.sukisu.ultra" />
+        <package android:name="me.bmax.apatch" />
         <!-- v2.2.1 无障碍独立 Provider:包可见性(安装检测与桥接绑定) -->
         <package android:name="io.zer0.muse.a11y" />
         <intent>

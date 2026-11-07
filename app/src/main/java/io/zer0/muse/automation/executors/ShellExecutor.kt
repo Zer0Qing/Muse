@@ -273,8 +273,8 @@ open class ShellExecutor(
         return ProcResult(proc.exitValue(), synchronized(buffer) { buffer.toString() }, timedOut = false)
     }
 
-    /** 执行 shell 命令,返回 stdout 字符串。 */
-    suspend fun exec(command: String): Result<String> = withContext(Dispatchers.IO) {
+    /** 执行 shell 命令,返回 stdout 字符串。open 供 RootExecutor 覆写为 libsu 持久 shell。 */
+    open suspend fun exec(command: String): Result<String> = withContext(Dispatchers.IO) {
         if (shizukuAuthorizer != null) {
             if (!shizukuAuthorizer.checkPermission()) {
                 return@withContext Result.failure(IllegalStateException("Shizuku 未授权"))
@@ -307,7 +307,7 @@ open class ShellExecutor(
      * v2.x 自动化一期:带退出码的详细执行 —— 供 [io.zer0.muse.automation.core.AutomationManager.execTiered]
      * 与 device_shell 使用。Shizuku 模式保留 stdout/stderr 分块;本地( su )模式合并输出流。
      */
-    suspend fun execDetailed(command: String): ExecDetail = withContext(Dispatchers.IO) {
+    open suspend fun execDetailed(command: String): ExecDetail = withContext(Dispatchers.IO) {
         if (shizukuAuthorizer != null) {
             if (!shizukuAuthorizer.checkPermission()) {
                 return@withContext ExecDetail(-1, "Shizuku 未授权")
