@@ -78,6 +78,36 @@ class WorkspaceMountTest {
         assertTrue("默认根视图应包含工具输出挂载: $paths", paths.contains("tool_outputs:/"))
     }
 
+    /**
+     * 条目必须自带「自己在哪块挂载上」。
+     *
+     * 删除确认的文案分流全押在这三个字段上：默认工作区里删的多半是导入副本，
+     * 用户自己挂进来的目录删下去就是手机上的原文件。界面拿不到这个信息，
+     * 就只能用一句「不可撤销」把两种相反的风险说成同一件事。
+     */
+    @Test
+    fun entriesCarryTheirMountIdentity() = runTest {
+        File(manager.rootDir, "note.txt").writeText("导入副本示例", Charsets.UTF_8)
+        val mount = WorkspaceMount(
+            id = "photos",
+            label = "相册",
+            provider = MountProvider.LOCAL,
+            rootPath = externalDir.absolutePath,
+            capabilities = WorkspaceMount.DEFAULT_CAPABILITIES,
+            createdAt = System.currentTimeMillis(),
+        )
+        assertTrue("用户挂载应成功", manager.upsertMount(mount) is WorkspaceMountStore.MountStoreResult.Success)
+
+        val entries = (manager.listDir("") as WorkspaceManager.ListResult.Success).entries
+        val mainEntry = entries.first { it.name == "note.txt" }
+        assertEquals("默认工作区的条目应归到 main", WorkspaceMount.MAIN_ID, mainEntry.mountId)
+        assertTrue("默认工作区是系统内置挂载", mainEntry.mountSystem)
+
+        val mountEntry = entries.first { it.relativePath == "photos:/" }
+        assertTrue("用户自己挂的目录不能算系统挂载", !mountEntry.mountSystem)
+        assertEquals("删除确认要说清是哪块目录，得带上展示名", "相册", mountEntry.mountLabel)
+    }
+
     @Test
     fun toolOutputsMountRejectsWrite() = runTest {
         val result = manager.writeFile("tool_outputs:/a.txt", "x")

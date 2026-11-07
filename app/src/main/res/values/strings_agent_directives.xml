@@ -7,6 +7,7 @@
     <string name="agent_directives_forbidden_section">绝对不要</string>
     <string name="agent_directives_desired_section">尽量做到</string>
     <string name="agent_directives_empty">还没有写过。比如：别叫我宝贝</string>
+    <string name="agent_directives_empty_desired">还没有写过。比如：多夸夸我认真做的事</string>
     <string name="agent_directives_add_forbidden">添加一条「不要做」</string>
     <string name="agent_directives_add_desired">添加一条「要做」</string>
     <string name="agent_directives_editor_placeholder">例如：早上提醒我吃早饭</string>

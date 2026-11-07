@@ -7,6 +7,7 @@
     <string name="agent_directives_forbidden_section">Nunca hagas</string>
     <string name="agent_directives_desired_section">Por favor, haz</string>
     <string name="agent_directives_empty">Aún no hay nada. Por ejemplo: no me llames cariño</string>
+    <string name="agent_directives_empty_desired">Aún no hay nada. Por ejemplo: reconoce el esfuerzo que hago</string>
     <string name="agent_directives_add_forbidden">Añadir un «nunca»</string>
     <string name="agent_directives_add_desired">Añadir un «haz»</string>
     <string name="agent_directives_editor_placeholder">Por ejemplo: recuérdame desayunar</string>

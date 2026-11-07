@@ -2,8 +2,11 @@ package io.zer0.muse.ui.settings
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.test.core.app.ApplicationProvider
+import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,6 +61,24 @@ class AgentDirectivesContentTest {
     fun `没有约定时显示空态而不是空白`() {
         renderWith(listOf(AssistantEntity(id = AGENT, name = "阿绫")))
         assertEquals("一行都不能没有，否则用户以为功能坏了", 1, countOf("还没有写过。比如：别叫我宝贝"))
+    }
+
+    /**
+     * 两段的空态示例必须是两句不同的话。
+     *
+     * 以前两段共用 `agent_directives_empty`，后果有两个：「尽量做到」里举的是
+     * 「别叫我宝贝」这种「绝对不要」的例子；而且屏幕上是两句一模一样的空态提示。
+     * 不在这里数全局文本次数：本节文件头已经写了，Robolectric 下后面分节可能根本不组合，
+     * 那种断言会退化成 0==0。所以判据收到资源层：两句不一样是实质，资源层可稳定地测。
+     */
+    @Test
+    fun `两段空态不许共用同一句示例`() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        assertNotEquals(
+            "「尽量做到」要有自己的示例，不能复述「绝对不要」的那句",
+            context.getString(R.string.agent_directives_empty),
+            context.getString(R.string.agent_directives_empty_desired),
+        )
     }
 
     @Test

@@ -631,7 +631,8 @@
     <string name="workspace_new_file">新しいファイル</string>
     <string name="workspace_new_folder">新しいフォルダー</string>
     <string name="workspace_file_name">ファイル名</string>
-    <string name="workspace_delete_confirm">「%1$s」を削除しますか?</string>
+    <string name="workspace_delete_confirm">ワークスペースから「%1$s」を削除しますか？取り込んだファイルの原本は元の場所に残りますが、Muse が書いたファイルはこの 1 コピーだけです。</string>
+    <string name="workspace_delete_confirm_mount">「%1$s」はマウント先「%2$s」にある原ファイルです。コピーではなく原本を削除するため、元に戻せません。</string>
     <string name="workspace_rename">名前の変更</string>
     <string name="workspace_path_copied">パスをコピーしました</string>
 

@@ -279,4 +279,7 @@
     <string name="settings_diagnostics_migration_summary">%1$d단계 · 총 %2$d ms · 가장 느린 %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">%1$d단계에서 실패</string>
     <string name="msg_interrupted_note">[중단됨]</string>
+    <string name="workspace_media_info">%1$s ｜ %2$s ｜ %3$s. 이 파일에는 읽을 수 있는 본문이 없습니다.</string>
+    <string name="workspace_media_open_external">다른 앱으로 열기</string>
+    <string name="workspace_media_no_handler">이 형식을 열 수 있는 앱이 없습니다</string>
 </resources>

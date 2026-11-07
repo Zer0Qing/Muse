@@ -228,6 +228,9 @@ class WorkspaceManager(private val context: Context) {
                     isDirectory = entry.isDirectory,
                     size = entry.size,
                     lastModified = entry.lastModified,
+                    mountId = t.mount.id,
+                    mountLabel = t.mount.label,
+                    mountSystem = t.mount.system,
                 )
             }
             val atDefaultRoot = t.mount.id == WorkspaceMount.MAIN_ID && t.relative.isEmpty()
@@ -250,8 +253,75 @@ class WorkspaceManager(private val context: Context) {
                     isDirectory = true,
                     size = 0L,
                     lastModified = mount.lastUsedAt,
+                    mountId = mount.id,
+                    mountLabel = mount.label,
+                    mountSystem = mount.system,
                 )
             }
+
+    /**
+     * 读之前的统一类型判定（工作区媒体修复的核心）。
+     *
+     * 返回 null 表示可以当文本读；非 null 是要拦下的结果。
+     * 只读文件头 [WorkspaceFileSniffer.HEAD_BYTES]，**不整读文件**：工作区允许导入到
+     * [MAX_IMPORT_BYTES]，为了判类型先把视频读进内存等于把一个 bug 换成另一个。
+     */
+    private suspend fun notTextResult(t: Target): ReadResult.NotText? {
+        val head = t.fs.readHead(t.relative, WorkspaceFileSniffer.HEAD_BYTES) ?: return null
+        val size = runCatching { t.fs.size(t.relative) }.getOrDefault(head.size.toLong())
+        val sniffed = WorkspaceFileSniffer.sniff(head, size)
+        if (sniffed.kind == WorkspaceFileKind.TEXT) return null
+        val mime = sniffed.mimeType.ifBlank {
+            WorkspaceFileSniffer.guessMime(t.display.substringAfterLast('/'))
+        }
+        return ReadResult.NotText(
+            display = t.display,
+            kind = sniffed.kind,
+            mimeType = mime,
+            sizeBytes = size,
+            note = sniffed.note,
+        )
+    }
+
+    /** 媒体读取需要的宿主 Context（OCR 与转写要过 ContentResolver）。 */
+    internal val mediaContext: Context get() = context
+
+    /**
+     * 工作区里一个**非文本**文件的读取所需信息。
+     *
+     * 路径校验、能力位、会话可见范围全部沿用 [target]，不在外面再拼一次路径——
+     * 「助手直接读工作区图片」不能变成第二条绕过边界的通道。
+     */
+    data class MediaTarget(
+        val display: String,
+        val kind: WorkspaceFileKind,
+        val mimeType: String,
+        val sizeBytes: Long,
+        val uri: android.net.Uri?,
+    )
+
+    /**
+     * 解析媒体目标。
+     *
+     * @return 文本文件、不存在或无权读取时返回 null，调用方按普通（文本）路径处理即可。
+     */
+    suspend fun resolveMedia(relativePath: String, scope: Set<String>? = null): MediaTarget? =
+        withContext(Dispatchers.IO) {
+            try {
+                val t = target(relativePath, MountCapability.READ, scope, allowRoot = false)
+                val notText = notTextResult(t) ?: return@withContext null
+                MediaTarget(
+                    display = t.display,
+                    kind = notText.kind,
+                    mimeType = notText.mimeType,
+                    sizeBytes = notText.sizeBytes,
+                    uri = runCatching { t.fs.contentUri(t.relative) }.getOrNull(),
+                )
+            } catch (e: WorkspaceIoException) {
+                Logger.d(TAG, "resolveMedia 读不到: ${e.message}")
+                null
+            }
+        }
 
     /**
      * 读文本文件（上限 [MAX_READ_BYTES]）。
@@ -263,12 +333,15 @@ class WorkspaceManager(private val context: Context) {
         try {
             val t = target(relativePath, MountCapability.READ, scope, allowRoot = false)
             lockedBy(t) {
+                if (!t.fs.exists(t.relative) || t.fs.isDirectory(t.relative)) {
+                    return@lockedBy ReadResult.Error("文件不存在: ${t.display}")
+                }
+                // 类型判定先于大小判定：一张 3MB 的 PNG 不该回「文件过大」，
+                // 它本来就不是给文本读接口用的。
+                notTextResult(t)?.let { return@lockedBy it }
                 val size = t.fs.size(t.relative)
                 if (size > MAX_READ_BYTES) {
                     return@lockedBy ReadResult.Error("文件过大($size 字节),读取上限为 $MAX_READ_BYTES 字节")
-                }
-                if (!t.fs.exists(t.relative) || t.fs.isDirectory(t.relative)) {
-                    return@lockedBy ReadResult.Error("文件不存在: ${t.display}")
                 }
                 ReadResult.Success(t.fs.readText(t.relative))
             }
@@ -290,6 +363,7 @@ class WorkspaceManager(private val context: Context) {
                 if (!t.fs.exists(t.relative) || t.fs.isDirectory(t.relative)) {
                     return@lockedBy ReadResult.Error("文件不存在: ${t.display}")
                 }
+                notTextResult(t)?.let { return@lockedBy it }
                 val paginated = offsetChars != null || lengthChars != null || t.fs.size(t.relative) > MAX_READ_BYTES
                 val content = if (paginated) {
                     t.fs.readTextRange(
@@ -353,6 +427,10 @@ class WorkspaceManager(private val context: Context) {
         try {
             val t = target(relativePath, MountCapability.READ, scope, allowRoot = false)
             lockedBy(t) {
+                // 文本编辑对二进制文件就是破坏：拿 UTF-8 读出乱码再写回去，图片会直接坏掉。
+                notTextResult(t)?.let {
+                    return@lockedBy EditResult.Failed("${it.display} 不是文本文件(${it.kind})，workspace_edit 只能改文本")
+                }
                 val size = t.fs.size(t.relative)
                 if (size > MAX_READ_BYTES) {
                     return@lockedBy EditResult.Failed("文件过大($size 字节),读取上限为 $MAX_READ_BYTES 字节")
@@ -555,8 +633,8 @@ class WorkspaceManager(private val context: Context) {
     ): Boolean {
         val size = runCatching { start.fs.size(rel) }.getOrDefault(0L)
         if (size > MAX_GREP_FILE_BYTES) return false
+        if (!isReadableTextForGrep(start, rel, size)) return false
         val text = runCatching { start.fs.readText(rel) }.getOrNull() ?: return false
-        if (text.indexOf('\u0000') >= 0) return false
         val display = displayOf(start.mount, rel)
         text.lineSequence().forEachIndexed { idx, line ->
             if (out.size >= maxResults) return@forEachIndexed
@@ -564,6 +642,20 @@ class WorkspaceManager(private val context: Context) {
             if (hit) out.add(GrepMatch(display, idx + 1, line.take(MAX_GREP_LINE_CHARS)))
         }
         return out.size >= maxResults
+    }
+
+    /**
+     * grep 前的类型判定。
+     *
+     * 与 workspace_read 共用 [WorkspaceFileSniffer]，不再另写一份 NUL 规则（两处各写一份
+     * 就是本次事故的根源）。只读文件头，不为了判类型先把整份文件拉进内存。
+     *
+     * @return 可以当文本搜索时返回 true
+     */
+    private suspend fun isReadableTextForGrep(start: Target, rel: String, size: Long): Boolean {
+        val head = runCatching { start.fs.readHead(rel, WorkspaceFileSniffer.HEAD_BYTES) }.getOrNull()
+            ?: return false
+        return WorkspaceFileSniffer.sniff(head, size).kind == WorkspaceFileKind.TEXT
     }
 
     /** 编译正则，语法非法时返回 null。 */
@@ -688,6 +780,12 @@ class WorkspaceManager(private val context: Context) {
      * @param isDirectory 是否为目录
      * @param size 字节数（目录恒为 0）
      * @param lastModified 最后修改时间戳（毫秒）
+     * @param mountId 条目所在挂载的标识（`main` = 默认工作区）
+     * @param mountLabel 挂载展示名；删除确认得说清“这是哪块目录”
+     * @param mountSystem 是否系统内置挂载。
+     *   内置工作区里的文件要么是导入时的副本、要么是 Muse 自己写的；
+     *   用户自己挂进来的目录指向的是手机上的**原目录**，删下去就是真删。
+     *   界面必须按这个区分文案，不然一句「不可撤销」同时说错了两种情况。
      */
     data class WorkspaceEntry(
         val name: String,
@@ -695,6 +793,9 @@ class WorkspaceManager(private val context: Context) {
         val isDirectory: Boolean,
         val size: Long,
         val lastModified: Long,
+        val mountId: String = WorkspaceMount.MAIN_ID,
+        val mountLabel: String = "",
+        val mountSystem: Boolean = true,
     )
 
     /**
@@ -746,6 +847,26 @@ class WorkspaceManager(private val context: Context) {
         val totalChars: Int = content.length,
         val revision: String = "",
     ) : ReadResult()
+
+        /**
+         * 目标不是文本：已按内容嗅探判出类型，**没有**解码。
+         *
+         * 以前这条路会把二进制当 UTF-8 读，返回一堆 U+FFFD 加「还有后续内容」提示，
+         * 模型一轮一轮翻页烧 token。现在给调用方一个能据以分流的确定结论。
+         *
+         * @param display 给用户看的路径
+         * @param kind 内容类型
+         * @param mimeType 猜出的 MIME，可能为空
+         * @param sizeBytes 文件字节数
+         * @param note 补充说明（如 UTF-16 编码提醒）
+         */
+        data class NotText(
+            val display: String,
+            val kind: WorkspaceFileKind,
+            val mimeType: String,
+            val sizeBytes: Long,
+            val note: String? = null,
+        ) : ReadResult()
 
         data class Error(val message: String) : ReadResult()
     }

@@ -7,6 +7,7 @@
     <string name="agent_directives_forbidden_section">절대 하지 말 것</string>
     <string name="agent_directives_desired_section">가급적 해줄 것</string>
     <string name="agent_directives_empty">아직 없습니다. 예: 애칭으로 부르지 말기</string>
+    <string name="agent_directives_empty_desired">아직 없습니다. 예: 내가 노력한 걸 알아줘</string>
     <string name="agent_directives_add_forbidden">‘하지 말 것’ 추가</string>
     <string name="agent_directives_add_desired">‘할 것’ 추가</string>
     <string name="agent_directives_editor_placeholder">예: 아침에 식사 챙겨 주기</string>

@@ -343,4 +343,7 @@
     <string name="settings_diagnostics_migration_summary">%1$d 步 · 共 %2$d ms · 最慢 %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">第 %1$d 步失败</string>
     <string name="msg_interrupted_note">[已中断]</string>
+    <string name="workspace_media_info">%1$s ｜ %2$s ｜ %3$s。这个文件没有可读的正文。</string>
+    <string name="workspace_media_open_external">用其他应用打开</string>
+    <string name="workspace_media_no_handler">这台手机上没有能打开该类型文件的应用</string>
 </resources>

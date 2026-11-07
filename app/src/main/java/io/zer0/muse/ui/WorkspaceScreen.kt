@@ -2,6 +2,8 @@ package io.zer0.muse.ui
 
 import android.content.ClipData
 import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -130,6 +132,10 @@ fun WorkspaceScreen(
     var viewingEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
     // v2.0.1: PDF 文档预览目标（pdf.js 全屏渲染）
     var docPreviewEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
+    // v2.6.22: 非文本文件的预览/说明弹窗。以前 jpg/mp3 也走文本弹窗，用户只看得见文件名。
+    var mediaEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
+    var mediaInfo by remember { mutableStateOf<WorkspaceManager.MediaTarget?>(null) }
+    var mediaShareUri by remember { mutableStateOf<android.net.Uri?>(null) }
     var viewingContent by remember { mutableStateOf<String?>(null) }
     var viewingLoading by rememberSaveable { mutableStateOf(false) }
     // 长按操作菜单弹窗
@@ -165,6 +171,32 @@ fun WorkspaceScreen(
                 }
             }
             isLoading = false
+        }
+    }
+
+    /**
+     * 打开非文本文件（v2.6.22）。
+     *
+     * 类型与 Uri 都问 [WorkspaceManager.resolveMedia] 要：路径校验、能力位、挂载边界
+     * 全走那一条现成的路，界面不自己拼路径；内容嗅探也只有一份，不会出现
+     * 「列表说是图、点开又当文本」的两套判定。
+     */
+    fun openMediaPreview(entry: WorkspaceManager.WorkspaceEntry) {
+        scope.launch {
+            val target = workspaceManager.resolveMedia(entry.relativePath)
+            mediaInfo = target
+            // file:// 不能直接交给其他应用（FileUriExposedException），要过 FileProvider；
+            // 挂载到公共目录或 SAF 授权目录时本身就是 content://，直接给。
+            mediaShareUri = target?.uri?.let { u ->
+                runCatching {
+                    if (u.scheme == "file" && u.path != null) {
+                        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", java.io.File(u.path!!))
+                    } else {
+                        u
+                    }
+                }.getOrNull()
+            }
+            mediaEntry = entry
         }
     }
 
@@ -428,20 +460,37 @@ fun WorkspaceScreen(
                                         // 进入子目录
                                         currentPath = entry.relativePath
                                     } else {
-                                        // v2.0.1: PDF 走文档预览（pdf.js），其余保持文本弹窗
-                                        if (entry.relativePath.endsWith(".pdf", ignoreCase = true)) {
-                                            docPreviewEntry = entry
-                                        } else {
-                                            // 读取文件内容(在弹窗内展示)
-                                            viewingEntry = entry
-                                            viewingContent = null
-                                            viewingLoading = true
-                                            scope.launch {
-                                                when (val r = workspaceManager.readFile(entry.relativePath)) {
-                                                    is WorkspaceManager.ReadResult.Success -> viewingContent = r.content
-                                                    is WorkspaceManager.ReadResult.Error -> viewingContent = "Error: ${r.message}"
+                                        // v2.6.22: 先按扩展名分流（不碰文件内容，点一下就开），
+                                        // 真判靠内容：文本分支读到 NotText 时改走媒体弹窗。
+                                        val guessed = io.zer0.muse.workspace.WorkspaceFileSniffer.guessKind(entry.name)
+                                        when {
+                                            entry.relativePath.endsWith(".pdf", ignoreCase = true) -> docPreviewEntry = entry
+                                            guessed == io.zer0.muse.workspace.WorkspaceFileKind.IMAGE ||
+                                                guessed == io.zer0.muse.workspace.WorkspaceFileKind.AUDIO ||
+                                                guessed == io.zer0.muse.workspace.WorkspaceFileKind.VIDEO ||
+                                                guessed == io.zer0.muse.workspace.WorkspaceFileKind.ARCHIVE ||
+                                                guessed == io.zer0.muse.workspace.WorkspaceFileKind.EXECUTABLE -> {
+                                                openMediaPreview(entry)
+                                            }
+                                            else -> {
+                                                // 读取文件内容(在弹窗内展示)
+                                                viewingEntry = entry
+                                                viewingContent = null
+                                                viewingLoading = true
+                                                scope.launch {
+                                                    when (val r = workspaceManager.readFile(entry.relativePath)) {
+                                                        is WorkspaceManager.ReadResult.Success -> viewingContent = r.content
+                                                        is WorkspaceManager.ReadResult.Error -> viewingContent = "Error: ${r.message}"
+                                                        is WorkspaceManager.ReadResult.NotText -> {
+                                                            // 扩展名骗了分流（改名成 .txt 的 PNG）：按内容重定向到媒体弹窗，
+                                                            // 不把乱码当正文画给用户。
+                                                            viewingEntry = null
+                                                            viewingContent = null
+                                                            openMediaPreview(entry)
+                                                        }
+                                                    }
+                                                    viewingLoading = false
                                                 }
-                                                viewingLoading = false
                                             }
                                         }
                                     }
@@ -516,6 +565,64 @@ fun WorkspaceScreen(
         )
     }
 
+    // v2.6.22: 图片就地预览；音频/视频/压缩包/可执行文件给类型与大小，并能转给外部应用。
+    mediaEntry?.let { entry ->
+        val info = mediaInfo
+        MuseDialog(
+            onDismissRequest = { mediaEntry = null; mediaInfo = null; mediaShareUri = null },
+            title = entry.name,
+            content = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                ) {
+                    if (info != null && info.kind == io.zer0.muse.workspace.WorkspaceFileKind.IMAGE) {
+                        SmartImage(
+                            model = info.uri,
+                            modifier = Modifier.fillMaxWidth(),
+                            contentDescription = entry.name,
+                        )
+                    }
+                    Text(
+                        text = info?.let {
+                            context.getString(
+                                R.string.workspace_media_info,
+                                it.kind.name,
+                                it.mimeType.ifBlank { "-" },
+                                io.zer0.muse.workspace.WorkspaceMediaReport.formatBytes(it.sizeBytes),
+                            )
+                        } ?: context.getString(R.string.workspace_media_info, "-", "-", "-"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    mediaShareUri?.let { uri ->
+                        MenuActionRow(
+                            icon = MuseIcons.download,
+                            label = stringResource(R.string.workspace_media_open_external),
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(uri, info?.mimeType?.takeIf { it.isNotBlank() } ?: "*/*")
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        },
+                                    )
+                                }.onFailure {
+                                    // 系统里没有能处理这个 MIME 的应用：只说这一件事，不把类型信息当错误弹。
+                                    MuseToast.show(context.getString(R.string.workspace_media_no_handler))
+                                }
+                                mediaEntry = null
+                            },
+                        )
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.action_close),
+            onConfirm = { mediaEntry = null; mediaInfo = null; mediaShareUri = null },
+            dismissText = null,
+        )
+    }
+
     // 长按操作菜单弹窗
     menuEntry?.let { entry ->
         MuseDialog(
@@ -567,7 +674,18 @@ fun WorkspaceScreen(
             title = stringResource(R.string.common_delete),
             content = {
                 Text(
-                    text = stringResource(R.string.workspace_delete_confirm, entry.name),
+                    // 删除文案必须按挂载分流：默认工作区里的条目多是导入副本，
+                    // 而用户自己挂进来的目录指向手机上的原目录，删下去就是真删。
+                    // 以前两边共用一句「不可撤销」，前一种情式说重了，后一种说轻了。
+                    text = if (entry.mountSystem) {
+                        stringResource(R.string.workspace_delete_confirm, entry.name)
+                    } else {
+                        stringResource(
+                            R.string.workspace_delete_confirm_mount,
+                            entry.name,
+                            entry.mountLabel.ifBlank { entry.mountId },
+                        )
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -906,6 +1024,16 @@ private fun ParentRow(onClick: () -> Unit) {
 }
 
 /**
+ * 目录行的挂载提示：只在**用户自己挂进来的目录**上显示，默认工作区不加。
+ *
+ * 根目录里那些挂载入口的名字就是挂载标识（`album`、`downloads`），看不出它指向设备上
+ * 哪个真实目录。删错位置的代价在挂载目录上最高（删的是原文件），所以这一行得把展示名
+ * 递到眼前。默认工作区不标，避免整列条目多一个每行都一样的噪声。
+ */
+private fun mountHint(entry: WorkspaceManager.WorkspaceEntry): String =
+    if (entry.mountSystem || entry.mountLabel.isBlank()) "" else entry.mountLabel
+
+/**
  * 工作区条目行(目录 / 文件)。
  *
  * 点击进入子目录或查看文件内容;长按弹操作菜单。
@@ -971,8 +1099,16 @@ private fun WorkspaceEntryRow(
                     text = when {
                         // 文件系统报不出时间(mtime<=0)时不要写 1970-01-01：那看着像一个真日期，
                         // 用户会当事实读。宁可不显示（走查 §十六 三-W1）。
-                        entry.lastModified <= 0L -> if (entry.isDirectory) "" else formatSize(entry.size)
-                        entry.isDirectory -> dateFormat.format(Date(entry.lastModified))
+                        entry.lastModified <= 0L -> when {
+                            entry.isDirectory -> mountHint(entry)
+                            else -> formatSize(entry.size)
+                        }
+
+                        entry.isDirectory -> listOfNotNull(
+                            dateFormat.format(Date(entry.lastModified)),
+                            mountHint(entry).takeIf { it.isNotBlank() },
+                        ).joinToString(" · ")
+
                         else -> "${formatSize(entry.size)} · ${dateFormat.format(Date(entry.lastModified))}"
                     },
                     style = MaterialTheme.typography.bodySmall,

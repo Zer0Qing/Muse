@@ -279,4 +279,7 @@
     <string name="settings_diagnostics_migration_summary">%1$d pasos · %2$d ms total · más lento %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">Falló el paso %1$d</string>
     <string name="msg_interrupted_note">[Interrumpido]</string>
+    <string name="workspace_media_info">%1$s | %2$s | %3$s. Este archivo no tiene texto legible.</string>
+    <string name="workspace_media_open_external">Abrir con otra aplicación</string>
+    <string name="workspace_media_no_handler">Ninguna aplicación de este dispositivo puede abrir este tipo de archivo</string>
 </resources>

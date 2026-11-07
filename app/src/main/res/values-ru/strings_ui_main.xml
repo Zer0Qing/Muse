@@ -628,7 +628,8 @@
     <string name="workspace_new_file">Новый файл</string>
     <string name="workspace_new_folder">Новая папка</string>
     <string name="workspace_file_name">Имя файла</string>
-    <string name="workspace_delete_confirm">Подтвердить удаление \"%1$s\"? Действие необратимо</string>
+    <string name="workspace_delete_confirm">Удалить «%1$s» из рабочей области? Импортированные файлы останутся в исходном месте, а созданные Muse существуют только здесь.</string>
+    <string name="workspace_delete_confirm_mount">«%1$s» лежит в смонтированной папке «%2$s». Удаляется оригинал, а не копия. Отменить нельзя.</string>
     <string name="workspace_rename">Переименовать</string>
     <string name="workspace_path_copied">Путь скопирован</string>
 

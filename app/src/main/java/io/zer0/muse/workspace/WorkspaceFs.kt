@@ -78,6 +78,22 @@ interface WorkspaceFs {
     /** 读原始字节。 */
     suspend fun readBytes(relative: String): ByteArray?
 
+    /**
+     * 只读文件头 [maxBytes] 字节，用于内容类型嗅探。
+     *
+     * 不能拿 [readBytes] 代替：工作区允许导入到 256MB，为了判断类型
+     * 先把整个视频读进内存是把 bug 换成另一个 bug。不存在或不是文件返回 null。
+     */
+    suspend fun readHead(relative: String, maxBytes: Int): ByteArray?
+
+    /**
+     * 该文件的Uri（供图片预览 / OCR / 上传类能力使用）。
+     *
+     * 本地挂载给 `file://`，系统授权目录给 `content://`；不存在或不是文件返回 null。
+     * 上层不再需要自己区分两种挂载去拼 Uri。
+     */
+    suspend fun contentUri(relative: String): android.net.Uri?
+
     /** 按字符区间读文本。 */
     suspend fun readTextRange(relative: String, offsetChars: Int, lengthChars: Int): String
 
@@ -116,6 +132,9 @@ interface WorkspaceFs {
  *
  * @param root 挂载根目录
  */
+// 文件系统门面定死了操作数量（增删改查 + stat + 范围读 + Uri），
+// 方法多不等于职责杂；拆成几个接口只会让调用方同时持有多个引用。与 SafWorkspaceFs 同一处理。
+@Suppress("TooManyFunctions")
 class LocalWorkspaceFs(private val root: File) : WorkspaceFs {
 
     /**
@@ -187,6 +206,29 @@ class LocalWorkspaceFs(private val root: File) : WorkspaceFs {
         val file = resolve(relative, allowRoot = false) ?: return@withContext null
         if (!file.isFile) return@withContext null
         runCatching { file.readBytes() }.getOrNull()
+    }
+
+    override suspend fun contentUri(relative: String): android.net.Uri? = withContext(Dispatchers.IO) {
+        val file = resolve(relative, allowRoot = false) ?: return@withContext null
+        if (!file.isFile) return@withContext null
+        android.net.Uri.fromFile(file)
+    }
+
+    override suspend fun readHead(relative: String, maxBytes: Int): ByteArray? = withContext(Dispatchers.IO) {
+        val file = resolve(relative, allowRoot = false) ?: return@withContext null
+        if (!file.isFile) return@withContext null
+        runCatching {
+            file.inputStream().buffered().use { input ->
+                val buf = ByteArray(maxBytes.coerceAtLeast(1))
+                var filled = 0
+                while (filled < buf.size) {
+                    val n = input.read(buf, filled, buf.size - filled)
+                    if (n < 0) break
+                    filled += n
+                }
+                if (filled == buf.size) buf else buf.copyOf(filled)
+            }
+        }.getOrNull()
     }
 
     override suspend fun readTextRange(relative: String, offsetChars: Int, lengthChars: Int): String = withContext(Dispatchers.IO) {

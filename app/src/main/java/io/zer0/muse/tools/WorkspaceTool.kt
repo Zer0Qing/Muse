@@ -1,6 +1,13 @@
 package io.zer0.muse.tools
 
+import android.graphics.BitmapFactory
+import io.zer0.common.Logger
+import io.zer0.muse.asr.OneShotAsrTranscriber
+import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.doc.OcrManager
+import io.zer0.muse.workspace.WorkspaceFileKind
 import io.zer0.muse.workspace.WorkspaceManager
+import io.zer0.muse.workspace.WorkspaceMediaReport
 import io.zer0.muse.workspace.WorkspaceMount
 import kotlinx.coroutines.runBlocking
 
@@ -27,6 +34,8 @@ import kotlinx.coroutines.runBlocking
  */
 @Suppress("TooManyFunctions")
 object WorkspaceTool {
+
+    private const val TAG = "WorkspaceTool"
 
     /** workspace_list 工具名。 */
     const val NAME_LIST = "workspace_list"
@@ -104,10 +113,172 @@ object WorkspaceTool {
         riskLevel = ToolRiskLevel.SAFE,
     )
 
+    /**
+     * workspace_read 遇到非文本文件的分流。
+     *
+     * 以前这里会把二进制当 UTF-8 读，模型拿到整页 U+FFFD 加一句「后面还有内容」，
+     * 一轮一轮翻页。现在：图片直接把原图交给模型（复用 browser_screenshot 那条
+     * 「工具产出图片 → 追加一条带图 USER 消息」的通道，各 Provider 都支持），
+     * 音频走整段转写，剩下的类型只给事实与下一步。
+     *
+     * 不做助手级授权：工作区里的东西是用户自己放进去的，读它就是读给用户看。
+     */
+    private suspend fun renderNotText(
+        notText: WorkspaceManager.ReadResult.NotText,
+        path: String,
+        manager: WorkspaceManager,
+        scope: Set<String>?,
+    ): String = when (notText.kind) {
+        WorkspaceFileKind.IMAGE -> renderImage(path, manager, scope, notText)
+        WorkspaceFileKind.AUDIO -> renderAudio(path, manager, scope, notText)
+        else -> WorkspaceMediaReport.refusal(
+            display = notText.display,
+            kind = notText.kind,
+            mimeType = notText.mimeType,
+            sizeBytes = notText.sizeBytes,
+            note = notText.note,
+        )
+    }
+
+    /** 图片：尺寸与本机 OCR 文本进回执，原图够小就随附。 */
+    private suspend fun renderImage(
+        path: String,
+        manager: WorkspaceManager,
+        scope: Set<String>?,
+        notText: WorkspaceManager.ReadResult.NotText,
+    ): String {
+        val media = manager.resolveMedia(path, scope) ?: notText.asMediaTarget()
+        val context = manager.mediaContext
+        val tooBigToProbe = media.sizeBytes > PROBE_CEILING_BYTES
+        val bytes = if (tooBigToProbe) null else media.uri?.let { uri ->
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }.getOrNull()
+        }
+        val dimensions = bytes?.let {
+            val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(it, 0, it.size, opts)
+            if (opts.outWidth > 0 && opts.outHeight > 0) opts.outWidth to opts.outHeight else null
+        }
+        val ocrText = if (bytes != null && media.uri != null) {
+            runCatching { ocrManager.recognize(media.uri, context) }.getOrNull()
+        } else {
+            null
+        }
+        val attached = bytes != null && media.sizeBytes <= WorkspaceMediaReport.ATTACH_MAX_BYTES
+        val skipReason = when {
+            attached -> null
+            tooBigToProbe -> "文件超过 ${WorkspaceMediaReport.formatBytes(PROBE_CEILING_BYTES)}，不为了读内容把整张图拉进内存"
+            media.uri == null -> "这条挂载给不出可用 Uri"
+            bytes == null -> "图片读不出来"
+            else -> "原图 ${WorkspaceMediaReport.formatBytes(media.sizeBytes)}，" +
+                "超过随附上限 ${WorkspaceMediaReport.formatBytes(WorkspaceMediaReport.ATTACH_MAX_BYTES)}"
+        }
+        val text = WorkspaceMediaReport.image(
+            io.zer0.muse.workspace.ImageReportInput(
+                display = media.display,
+                mimeType = media.mimeType,
+                dimensions = dimensions,
+                sizeBytes = media.sizeBytes,
+                attached = attached,
+                attachSkipReason = skipReason,
+                ocrText = ocrText,
+                ocrAttempted = bytes != null,
+            ),
+        )
+        // 图片本体走工具结果 JSON 的 screenshot 字段，由 ToolOrchestrator 另发一条带图消息。
+        // 主模型不声明支持视觉时各 Provider 会丢弃图片，但上面的 OCR 文本仍然送到。
+        // attached 的定义已经包含「bytes 非空」，再判一次是多余条件（编译器已报 always true）。
+        // 用 takeIf + let 把「能随附」这件事写成一条链路，就不需要 !!。
+        return bytes?.takeIf { attached }
+            ?.let {
+                screenshotJson(text, android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP), media.display)
+            }
+            ?: text
+    }
+
+    /** 音频：配了可用的整段转写引擎就转，没配就明说，不猜内容。 */
+    private suspend fun renderAudio(
+        path: String,
+        manager: WorkspaceManager,
+        scope: Set<String>?,
+        notText: WorkspaceManager.ReadResult.NotText,
+    ): String {
+        val media = manager.resolveMedia(path, scope) ?: notText.asMediaTarget()
+        val settings = runCatching { org.koin.core.context.GlobalContext.getOrNull()?.get<SettingsRepository>() }
+            .getOrNull()
+        val transcriber = settings?.let { OneShotAsrTranscriber(it) }
+        // 能不能转写先判完再读文件：不要为了一个注定没人能转的音频先把几十 MB 读进内存。
+        val blocked: String? = when {
+            transcriber == null -> "读不到语音识别设置"
+            !transcriber.supportsTranscription() ->
+                "当前语音识别引擎不支持整段音频转写（需 OpenAI Whisper 兼容端点，设置 → 语音 → 语音识别）"
+
+            media.sizeBytes > WorkspaceMediaReport.AUDIO_MAX_BYTES ->
+                "文件 ${WorkspaceMediaReport.formatBytes(media.sizeBytes)}，超过转写上限 " +
+                    WorkspaceMediaReport.formatBytes(WorkspaceMediaReport.AUDIO_MAX_BYTES)
+
+            else -> null
+        }
+        val bytes = if (blocked == null) {
+            media.uri?.let { uri ->
+                runCatching {
+                    manager.mediaContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }.getOrNull()
+            }
+        } else {
+            null
+        }
+        val transcript = if (bytes != null && transcriber != null) {
+            runCatching { transcriber.transcribe(bytes) }.getOrNull()
+        } else {
+            null
+        }
+        val missing = when {
+            blocked != null -> blocked
+            bytes == null -> "音频读不出来"
+            transcript.isNullOrBlank() -> "转写未返回文字（引擎拒答或音频格式不支持）"
+            else -> null
+        }
+        Logger.d(TAG, "workspace_read 音频转写 | ${media.display} | 结果长度=${transcript?.length ?: 0}")
+        return WorkspaceMediaReport.audio(media.display, media.mimeType, media.sizeBytes, transcript, missing)
+    }
+
+    /**
+     * 工具结果里携带图片的 JSON。
+     *
+     * 字段约定与浏览器截图完全一致（[BrowserAutomationTool.SCREENSHOT_RESULT_FIELD]），
+     * 因为工具结果回填给模型只能带文本，图片得由编排器识别后另发一条带图 USER 消息。
+     * 复用同一个约定，不再开第二条媒体通道。
+     */
+    private fun screenshotJson(dataText: String, base64: String, display: String): String =
+        org.json.JSONObject().apply {
+            put("success", true)
+            put("data", dataText)
+            put("error", org.json.JSONObject.NULL)
+            put(BrowserAutomationTool.SCREENSHOT_RESULT_FIELD, base64)
+            put(BrowserAutomationTool.SCREENSHOT_CAPTION_FIELD, "[工作区图片] 以下是文件 $display 的原图。")
+        }.toString()
+
+    private fun WorkspaceManager.ReadResult.NotText.asMediaTarget(): WorkspaceManager.MediaTarget =
+        WorkspaceManager.MediaTarget(display, kind, mimeType, sizeBytes, null)
+
+    /**
+     * 图片探测封顶：再大就不为了看内容把整张图读进内存。
+     *
+     * 256MB 堆的机型上，一张 30MB 原图进内存会直接变成 40MB 的 Base64 字符串，
+     * 正好是本次崩溃报告里那种「谁下一个分配谁崩」的处境。
+     */
+    private const val PROBE_CEILING_BYTES: Long = 12L * 1024 * 1024
+
+    /** OCR 引擎常驻：每次新建会重建 ML Kit recognizer 并重新加载模型。 */
+    private val ocrManager: OcrManager by lazy { OcrManager() }
+
     private fun readToolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
         name = NAME_READ,
-        description = "读取工作区内指定文本文件内容(UTF-8)。大文件自动分段,用 offset_chars/length_chars 继续读。" +
-            PATH_HINT,
+        description = "读取工作区文件。文本文件返回 UTF-8 正文（大文件自动分段，用 offset_chars/length_chars 继续读）；" +
+            "图片会把原图作为图片消息随附并附本机 OCR 文字，音频会尝试整段转写；" +
+            "PDF/压缩包/可执行文件只回类型与大小。类型按内容判定，不信扩展名。" + PATH_HINT,
         parameters = mapOf(
             "path" to "必填,文件路径",
             "offset_chars" to "可选,字符起始游标;继续读取时使用上次返回的 offset_chars。",
@@ -310,6 +481,8 @@ object WorkspaceTool {
                 content = r.content,
             )
             is WorkspaceManager.ReadResult.Error -> "Error: ${r.message}"
+            // 非文本不再当 UTF-8 读：图片随附给模型、音频转写、其他类型给事实。
+            is WorkspaceManager.ReadResult.NotText -> renderNotText(r, path, manager, scope)
         }
     }
 

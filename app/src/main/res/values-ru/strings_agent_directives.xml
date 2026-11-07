@@ -7,6 +7,7 @@
     <string name="agent_directives_forbidden_section">Никогда не</string>
     <string name="agent_directives_desired_section">Пожалуйста, делай</string>
     <string name="agent_directives_empty">Пока пусто. Например: не зови меня ласково</string>
+    <string name="agent_directives_empty_desired">Пока пусто. Например: замечай мои усилия</string>
     <string name="agent_directives_add_forbidden">Добавить «никогда не»</string>
     <string name="agent_directives_add_desired">Добавить «делай»</string>
     <string name="agent_directives_editor_placeholder">Например: напомни мне позавтракать</string>

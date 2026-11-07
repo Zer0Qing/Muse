@@ -731,7 +731,8 @@
     <string name="workspace_import_success">Imported %1$d</string>
     <string name="workspace_import_failed">File import failed: %1$s</string>
     <string name="workspace_file_name">File name</string>
-    <string name="workspace_delete_confirm">Confirm deleting \"%1$s\"? This action cannot be undone</string>
+    <string name="workspace_delete_confirm">Delete “%1$s” from the workspace? Imported files keep their originals where they came from; files Muse wrote exist only here.</string>
+    <string name="workspace_delete_confirm_mount">“%1$s” lives in the mounted folder “%2$s”. Deleting removes the original file there, not a copy. This cannot be undone.</string>
     <string name="workspace_rename">Rename</string>
     <string name="workspace_path_copied">Path copied</string>
 

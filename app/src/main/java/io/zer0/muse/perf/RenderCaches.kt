@@ -173,5 +173,8 @@ internal object DataUriImageCache {
 
     fun size(): Int = bitmaps.size()
 
+    /** 当前持有的位图字节数（崩溃现场诊断用，不是缓存上限）。 */
+    fun bytes(): Int = bitmaps.totalSize()
+
     fun clear() = bitmaps.clear()
 }

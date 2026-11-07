@@ -631,7 +631,8 @@
     <string name="workspace_new_file">Nuevo archivo</string>
     <string name="workspace_new_folder">Nueva carpeta</string>
     <string name="workspace_file_name">Nombre del archivo</string>
-    <string name="workspace_delete_confirm">¿Confirmar la eliminación de \"%1$s\"?</string>
+    <string name="workspace_delete_confirm">¿Eliminar “%1$s” del espacio de trabajo? Los archivos importados conservan su original donde estaba; los que escribió Muse solo existen aquí.</string>
+    <string name="workspace_delete_confirm_mount">“%1$s” está en la carpeta montada “%2$s”. Se elimina el archivo original, no una copia. No se puede deshacer.</string>
     <string name="workspace_rename">Rebautizar</string>
     <string name="workspace_path_copied">Ruta copiada</string>
 

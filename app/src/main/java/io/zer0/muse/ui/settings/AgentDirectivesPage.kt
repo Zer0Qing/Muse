@@ -153,7 +153,11 @@ internal fun AgentDirectivesContent(
             }
         }
         directiveSection(
-            titleRes = R.string.agent_directives_forbidden_section,
+            copy = DirectiveSectionCopy(
+                titleRes = R.string.agent_directives_forbidden_section,
+                addRes = R.string.agent_directives_add_forbidden,
+                emptyRes = R.string.agent_directives_empty,
+            ),
             rows = forbidden,
             onAdd = { drafting = DirectivePolarity.MUST_NOT },
             onToggle = onToggle,
@@ -161,7 +165,13 @@ internal fun AgentDirectivesContent(
             onDelete = onDelete,
         )
         directiveSection(
-            titleRes = R.string.agent_directives_desired_section,
+            copy = DirectiveSectionCopy(
+                titleRes = R.string.agent_directives_desired_section,
+                addRes = R.string.agent_directives_add_desired,
+                // 「尽量做到」必须有属于自己的示例：以前两段共用 agent_directives_empty，
+                // 这一段落举的却是「别叫我宝贝」这种「绝对不要」的例子。
+                emptyRes = R.string.agent_directives_empty_desired,
+            ),
             rows = desired,
             onAdd = { drafting = DirectivePolarity.SHOULD },
             onToggle = onToggle,
@@ -192,8 +202,20 @@ internal fun AgentDirectivesContent(
     }
 }
 
+/**
+ * 一段约定分节的文案：段标题、添加入口、空态示例。
+ *
+ * 三者总是同时出现、也必须同时换（漏一个就是刚才那个「两段共用同一句示例」的 bug），
+ * 所以打包成一个类型而不是三个并列参数。
+ */
+private data class DirectiveSectionCopy(
+    @StringRes val titleRes: Int,
+    @StringRes val addRes: Int,
+    @StringRes val emptyRes: Int,
+)
+
 private fun LazyListScope.directiveSection(
-    @StringRes titleRes: Int,
+    copy: DirectiveSectionCopy,
     rows: List<AgentDirective>,
     onAdd: () -> Unit,
     onToggle: (String, Boolean) -> Unit,
@@ -201,18 +223,15 @@ private fun LazyListScope.directiveSection(
     onDelete: (String) -> Unit,
 ) {
     item {
-        val addRes = if (titleRes == R.string.agent_directives_forbidden_section) {
-            R.string.agent_directives_add_forbidden
-        } else {
-            R.string.agent_directives_add_desired
-        }
-        SectionLabel(stringResource(titleRes))
+        SectionLabel(stringResource(copy.titleRes))
         SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
             if (rows.isEmpty()) {
                 // 空态只说"还没有"，不再重复一遍"添加"：段尾本来就有一行添加入口，
-                // 两处写同一个标签会让用户以为是两个不同的动作（这条是渲染测试实测出来的，不是我想出来的）。
+                // 两处写同一个标签会让用户以为是两个不同的动作（这条是渲染测试实测出来的）。
+                // 示例文案也必须分段：以前两段共用 agent_directives_empty，
+                // 「尽量做到」那段举的是「绝对不要」的例子，而且界面会同时出现两句一模一样的空态提示。
                 SettingsItemRow(
-                    title = stringResource(R.string.agent_directives_empty),
+                    title = stringResource(copy.emptyRes),
                     subtitle = stringResource(R.string.agent_directives_text_limit),
                 )
             } else {
@@ -257,7 +276,7 @@ private fun LazyListScope.directiveSection(
             SettingsGroupDivider()
             SettingsItemRow(
                 icon = MuseIcons.plus,
-                title = stringResource(addRes),
+                title = stringResource(copy.addRes),
                 onClick = onAdd,
             )
         }

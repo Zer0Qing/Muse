@@ -631,7 +631,8 @@
     <string name="workspace_new_file">Novo arquivo</string>
     <string name="workspace_new_folder">Nova pasta</string>
     <string name="workspace_file_name">Nome do arquivo</string>
-    <string name="workspace_delete_confirm">Confirmar exclusão \"%1$s\"?</string>
+    <string name="workspace_delete_confirm">Excluir “%1$s” da área de trabalho? Arquivos importados mantêm o original no lugar de origem; os que o Muse escreveu só existem aqui.</string>
+    <string name="workspace_delete_confirm_mount">“%1$s” está na pasta montada “%2$s”. Isso apaga o arquivo original, não uma cópia. Não dá para desfazer.</string>
     <string name="workspace_rename">Renomear</string>
     <string name="workspace_path_copied">Caminho copiado</string>
 

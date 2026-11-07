@@ -753,24 +753,13 @@ class ToolOrchestrator(
     private fun sanitizeUrlQuery(text: String): String = URL_QUERY_SANITIZER.replace(text) { match -> match.groupValues[1] }
 
     /**
-     * v2.6.0: 从工具结果 JSON 中提取截图(Base64 PNG)。
+     * v2.6.0: 从工具结果 JSON 中提取截图。
      *
-     * 仅当：① 工具成功；② 结果是 JSON 对象；③ 含约定字段 [BrowserAutomationTool.SCREENSHOT_RESULT_FIELD]
-     * 时才返回非空。其他情况返回 null。
+     * 解析规则已抽到文件级的 [ToolScreenshotPayload]：它是纯字符串规则，
+     * 放在需要一堆依赖才能构造的编排器里就等于没法测，而它的失效方式是静默的。
      */
-    private fun extractScreenshotBase64(toolResult: String, isSuccess: Boolean): String? {
-        if (!isSuccess) return null
-        return runCatching {
-            if (!toolResult.contains("\"${BrowserAutomationTool.SCREENSHOT_RESULT_FIELD}\"")) {
-                null
-            } else {
-                AppJson.decodeFromString(JsonObject.serializer(), toolResult)[BrowserAutomationTool.SCREENSHOT_RESULT_FIELD]
-                    ?.let { it as? JsonPrimitive }
-                    ?.content
-                    ?.takeIf { it.isNotBlank() }
-            }
-        }.getOrNull()
-    }
+    private fun screenshotOf(toolResult: String, isSuccess: Boolean): ScreenshotPayload? =
+        ToolScreenshotPayload.of(toolResult, isSuccess)
 
     /**
      * F-07: 工具执行状态机。
@@ -818,6 +807,13 @@ class ToolOrchestrator(
          * 让模型真正“看到”页面渲染图(工具结果本身无法携带图片)。
          */
         val screenshotBase64: String? = null,
+        /**
+         * v2.6.22: 随图那条消息的说明文本，由产图的工具自己写。
+         *
+         * 以前编排器把“这是你刚截的页面”写死，工作区图片读取复用同一条通道时
+         * 那句话就成了假话；谁产图谁写字。
+         */
+        val screenshotCaption: String? = null,
     )
 
     /**
@@ -1439,11 +1435,12 @@ class ToolOrchestrator(
                             conversationHistory.add(
                                 UIMessage(
                                     role = MessageRole.USER,
-                                    content = "[浏览器截图] 这是你刚调用的 browser_screenshot 返回的当前页面渲染图。",
+                                    content = result.screenshotCaption
+                                        ?: "[浏览器截图] 这是你刚调用的 browser_screenshot 返回的当前页面渲染图。",
                                     imageBase64List = listOf(b64),
                                 ),
                             )
-                            Logger.d(TAG, "browser_screenshot 结果已作为带图消息追加 | sessionId=${params.sessionId}")
+                            Logger.d(TAG, "工具产出图片已作为带图消息追加 | sessionId=${params.sessionId}")
                         }
 
                         val toolDisplay =
@@ -2342,8 +2339,13 @@ class ToolOrchestrator(
         // 按剩余上下文预算选择直传或"完整落盘 + 文件引用"；
         // 需要更多内容时助手可用 read_file 的字符游标分段读取。
         // 只生成一次结果表示，展示与 LLM 共用同一份完整文本或完整文件引用。
+        // v2.6.22: 工具产出图片时，结果里的 Base64 只是传输载体，不是正文。
+        // 不拆这一层，几 MB 字符串会被当成普通超长输出：走截断、落盘到 tool_outputs，
+        // 而模型和任务卡看到的只是被削头的 JSON。图片本体走单独的带图消息（见下）。
+        val screenshotPayload = screenshotOf(toolResult, isSuccess)
         // 失败引导只进 LLM 历史,不泄漏到用户可见的任务卡/工具卡片。
-        val baseResult = prepareToolOutput(tc.id, tc.name, toolResult, inlineOutputBudgetTokens)
+        val baseResult = screenshotPayload?.let { ToolScreenshotPayload.resultText(it) }
+            ?: prepareToolOutput(tc.id, tc.name, toolResult, inlineOutputBudgetTokens)
         // v1.0.47 P2-1: 结构化失败引导 — 仅拼进给 LLM 的历史消息,避免无效重试循环
         val llmResult =
             if (isSuccess) {
@@ -2420,15 +2422,18 @@ class ToolOrchestrator(
                 "工具结果超限截断 | tool=${tc.name} | 原始长度=${finalToolResult.length} | sessionId=${params.sessionId}",
             )
         }
+        // 图片从**原始**结果里取：clampOutput 会把超长 JSON 截断或落盘，
+        // 截断后的串里凑不出完整的 Base64。
         return ToolExecResult(
             idx,
             tc,
             clampedResult,
             isSuccess,
             displayResult = displayResult,
-            // v2.6.0: 若工具结果带截图(浏览器截图工具),提取出来交给调用方,
-            // 由它追加一条带图用户消息让模型看到页面渲染图。
-            screenshotBase64 = extractScreenshotBase64(toolResult, isSuccess),
+            // v2.6.0: 若工具结果带截图(浏览器截图工具、工作区图片读取),提取出来交给调用方,
+            // 由它追加一条带图用户消息让模型真的看到图。
+            screenshotBase64 = screenshotPayload?.base64,
+            screenshotCaption = screenshotPayload?.caption,
             // Timeout must not be reported as a plain success/failure: callers use the
             // status to render the terminal state and to record a terminationReason.
             status = execStatus,

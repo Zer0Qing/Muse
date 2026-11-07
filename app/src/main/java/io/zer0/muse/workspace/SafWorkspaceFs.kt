@@ -116,6 +116,29 @@ class SafWorkspaceFs(private val context: Context, treeUri: Uri) : WorkspaceFs {
         }.getOrNull()
     }
 
+    override suspend fun contentUri(relative: String): android.net.Uri? = withContext(Dispatchers.IO) {
+        val doc = find(relative) ?: return@withContext null
+        if (!doc.isFile) return@withContext null
+        doc.uri
+    }
+
+    override suspend fun readHead(relative: String, maxBytes: Int): ByteArray? = withContext(Dispatchers.IO) {
+        val doc = find(relative) ?: return@withContext null
+        if (!doc.isFile) return@withContext null
+        runCatching {
+            context.contentResolver.openInputStream(doc.uri)?.use { input ->
+                val buf = ByteArray(maxBytes.coerceAtLeast(1))
+                var filled = 0
+                while (filled < buf.size) {
+                    val n = input.read(buf, filled, buf.size - filled)
+                    if (n < 0) break
+                    filled += n
+                }
+                if (filled == buf.size) buf else buf.copyOf(filled)
+            }
+        }.getOrNull()
+    }
+
     override suspend fun readTextRange(relative: String, offsetChars: Int, lengthChars: Int): String = withContext(Dispatchers.IO) {
         // 分页读在授权目录上先整份读进来再切片：这里的文件通常是文档与图片说明，
         // 超过上限的读取由上层拦截，不会把大文件拖进内存。
@@ -190,9 +213,20 @@ class SafWorkspaceFs(private val context: Context, treeUri: Uri) : WorkspaceFs {
         context.contentResolver.openInputStream(doc.uri)?.use { it.readBytes() }
     }.getOrNull()
 
+    /**
+     * 删除一个文件或目录。
+     *
+     * 不能只报一句「删除失败」就完：`DocumentFile.delete()` 内部把异常吞成 false，
+     * 而真实原因恰恰是用户能行动的那部分信息。失败后再走一次 `contentResolver.delete`：
+     * 要么真的删掉了（上一档返 false 但文件其实可删），要么拿到原始异常，
+     * 具体怎么翻成给人看的话见 [safDeleteReason]。
+     */
     override suspend fun delete(relative: String): Unit = withContext(Dispatchers.IO) {
         val doc = find(relative) ?: throw WorkspaceIoException("路径不存在: $relative")
-        if (!doc.delete()) throw WorkspaceIoException("删除失败: $relative")
+        if (doc.delete()) return@withContext
+        val retry = runCatching { context.contentResolver.delete(doc.uri, null, null) }
+        if (retry.isSuccess) return@withContext
+        throw WorkspaceIoException(safDeleteReason(relative, retry.exceptionOrNull()))
     }
 
     override suspend fun mkdirs(relative: String): Unit = withContext(Dispatchers.IO) {
@@ -275,3 +309,35 @@ class SafWorkspaceFs(private val context: Context, treeUri: Uri) : WorkspaceFs {
         private const val MIME_BINARY = "application/octet-stream"
     }
 }
+
+/**
+ * 把 SAF 删除失败的原因翻成能行动的一句话。
+ *
+ * 放在文件级而不是类成员：构造 [SafWorkspaceFs] 需要一个真实 treeUri 与 Context，
+ * 把判据绑在那上面只会让人不写测试。此处它是纯函数。
+ *
+ * `OperationNotImplementedException` 按**类名**比对：它在 API 26 引入，局部单元环上
+ * 未必能加载到这个类型，名字比对不需要额外的 mock。
+ *
+ * 两类异常必须说成两回事：
+ *  - Android 11+ 删其他应用拥有的媒体时抛 RecoverableSecurityException（继承
+ *    SecurityException）。那不是「不准删」，是「要你再确认一次」；
+ *  - OperationNotImplementedException 基本就是只授了读权限的目录。
+ */
+internal fun safDeleteReason(relative: String, cause: Throwable?): String {
+    val name = relative.substringAfterLast('/')
+    return when {
+        cause is SecurityException ->
+            "删除被系统拦下：「$name」属于其他应用，Android 要你再确认一次。请在系统弹窗里批准，或到相册/文件管理器里删除"
+
+        cause?.javaClass?.name == OPERATION_NOT_IMPLEMENTED_CLASS ->
+            "删不了「$name」：这个目录只提供了读取能力（挂载时可能只给了读权限）"
+
+        cause == null -> "删除失败：$name"
+
+        else -> "删除失败：$name（${cause.message ?: cause.javaClass.simpleName}）"
+    }
+}
+
+/** android.content.OperationNotImplementedException 的全限定名。 */
+private const val OPERATION_NOT_IMPLEMENTED_CLASS = "android.content.OperationNotImplementedException"

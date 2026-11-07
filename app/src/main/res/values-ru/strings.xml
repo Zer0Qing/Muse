@@ -279,4 +279,7 @@
     <string name="settings_diagnostics_migration_summary">%1$d шагов · %2$d мс всего · самый медленный %3$d мс</string>
     <string name="settings_diagnostics_migration_failed">Шаг %1$d завершился ошибкой</string>
     <string name="msg_interrupted_note">[Прервано]</string>
+    <string name="workspace_media_info">%1$s | %2$s | %3$s. В этом файле нет читаемого текста.</string>
+    <string name="workspace_media_open_external">Открыть в другом приложении</string>
+    <string name="workspace_media_no_handler">На этом устройстве нет приложения для такого типа файлов</string>
 </resources>

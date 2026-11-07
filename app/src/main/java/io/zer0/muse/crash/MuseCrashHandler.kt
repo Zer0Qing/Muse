@@ -111,6 +111,7 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
             pw.println("Heap: used ${usedMb}MB / max ${maxMb}MB")
             pw.println("OutOfMemory: ${e is OutOfMemoryError}")
             pw.println()
+            if (e is OutOfMemoryError) appendMemoryDetail(pw)
             pw.println("----- Stack Trace -----")
             e.printStackTrace(pw)
         }
@@ -142,6 +143,45 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
         File(appContext.filesDir, SAFE_MODE_FLAG).writeText("1")
         val now = SimpleDateFormat(CRASH_TIME_DISPLAY_FMT, Locale.US).format(Date())
         writeSafeModeSp(appContext, now, crashTrace.take(MAX_SP_TRACE_LENGTH))
+    }
+
+    /**
+     * 崩溃现场的内存构成（仅 OOM 时写入）。
+     *
+     * OOM 堆栈只能告诉我们谁最后倒下：已收到的报告里受害者分别是 Compose 快照推进、
+     * 协程调度器、厂商 Jank 统计、通知 Ranking 解析、vivo 帧率提升、ConnectivityThread 的一行日志
+     * ——全是随机受害者，对“谁占着堆”没有信息。这里在写日志的这一刻量一遍已知大户。
+     *
+     * 每一项独立 `runCatching`：诊断代码不能把崩溃流程再崩一次，也不能在堆已满时
+     * 因为一次分配失败而丢掉后面的信息。
+     */
+    private fun appendMemoryDetail(pw: PrintWriter) {
+        pw.println("----- Memory Detail -----")
+        runCatching {
+            val nativeMb = android.os.Debug.getNativeHeapAllocatedSize() / (1024 * 1024)
+            pw.println("native heap allocated: ${nativeMb}MB")
+        }
+        runCatching {
+            val cache = coil.Coil.imageLoader(appContext).memoryCache
+            if (cache != null) {
+                pw.println(
+                    "coil image cache: ${cache.size / 1024}KB / ${cache.maxSize / 1024}KB",
+                )
+            }
+        }
+        runCatching {
+            pw.println(
+                "data-uri bitmaps: ${io.zer0.muse.perf.DataUriImageCache.size()} entries, " +
+                    "${io.zer0.muse.perf.DataUriImageCache.bytes() / (1024 * 1024)}MB",
+            )
+        }
+        runCatching {
+            pw.println("markdown cache entries: ${io.zer0.muse.perf.MarkdownParseCache.size()}")
+        }
+        runCatching {
+            pw.println("debug log entries: ${io.zer0.muse.debug.DebugLogStore.size()}")
+        }
+        pw.println()
     }
 
     companion object {

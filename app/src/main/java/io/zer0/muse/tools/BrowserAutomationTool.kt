@@ -405,6 +405,14 @@ object BrowserAutomationTool {
     const val SCREENSHOT_RESULT_FIELD = "screenshot"
 
     /**
+     * 随附图片那跳用户消息的说明文本（可选）。
+     *
+     * 以前这条通道只给 browser_screenshot 用，文案写死在编排器里；工作区图片读取
+     * 复用同一条通道后，“这是刚截的页面”就成了假话。谁产图谁写字。
+     */
+    const val SCREENSHOT_CAPTION_FIELD = "screenshotCaption"
+
+    /**
      * v1.0.92: 页面结构化快照脚本 — 提取可交互元素并缓存到 window.__museEls,
      * 供 numberId 模式的 click/type 按编号操作(页面刷新后缓存失效,需重新快照)。
      *

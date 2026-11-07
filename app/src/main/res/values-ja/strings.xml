@@ -279,4 +279,7 @@
     <string name="settings_diagnostics_migration_summary">%1$d 工程 · 合計 %2$d ms · 最遅 %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">工程 %1$d で失敗</string>
     <string name="msg_interrupted_note">[中断済み]</string>
+    <string name="workspace_media_info">%1$s ｜ %2$s ｜ %3$s。このファイルに読み取れる本文はありません。</string>
+    <string name="workspace_media_open_external">他のアプリで開く</string>
+    <string name="workspace_media_no_handler">この形式を開けるアプリが見つかりません</string>
 </resources>

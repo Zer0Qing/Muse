@@ -881,7 +881,8 @@
     <string name="workspace_import_success">已导入 %1$d</string>
     <string name="workspace_import_failed">文件导入失败： %1$s</string>
     <string name="workspace_file_name">文件名称</string>
-    <string name="workspace_delete_confirm">确认删除 \"%1$s\"？此操作不可撤销</string>
+    <string name="workspace_delete_confirm">确认从工作区删除「%1$s」？导入进来的文件，原件仍在原处；由 Muse 生成或保存的文件只有这一份，删了就没了。</string>
+    <string name="workspace_delete_confirm_mount">「%1$s」位于挂载目录「%2$s」，删的是那里的原文件，不是副本。此操作不可撤销。</string>
     <string name="workspace_rename">重命名</string>
     <string name="workspace_path_copied">路径已复制</string>
 

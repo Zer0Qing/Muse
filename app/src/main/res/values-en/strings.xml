@@ -327,4 +327,7 @@
     <string name="settings_diagnostics_migration_summary">%1$d steps · %2$d ms total · slowest %3$d ms</string>
     <string name="settings_diagnostics_migration_failed">Step %1$d failed</string>
     <string name="msg_interrupted_note">[Interrupted]</string>
+    <string name="workspace_media_info">%1$s | %2$s | %3$s. This file has no readable text.</string>
+    <string name="workspace_media_open_external">Open with another app</string>
+    <string name="workspace_media_no_handler">No app on this device can open this file type</string>
 </resources>
