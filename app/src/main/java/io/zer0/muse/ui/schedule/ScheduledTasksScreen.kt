@@ -1732,6 +1732,15 @@ private fun WakeEntryRow(entry: WakeWorkEntry) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        // 原始队列名保留：它是 adb / 系统日志里能直接搜到的写法，
+        // 支持排查时用户要复制的就是这一串
+        Text(
+            text = entry.uniqueName,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         Text(
             text = stringResource(
                 R.string.wake_diagnostics_next_run,

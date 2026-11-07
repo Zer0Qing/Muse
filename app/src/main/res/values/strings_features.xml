@@ -725,14 +725,14 @@
     <string name="wake_diagnostics_read_failed">读取失败：%1$s</string>
     <!-- 状态名不翻译:用户反馈问题、开发者检索线上材料时用的都是 WorkInfo.State 的英文名,
          所以所有语言包里都保留英文原文，不写「排队中/运行中」这类译名。 -->
-    <string name="wake_state_enqueued">已排队</string>
-    <string name="wake_state_running">正在运行</string>
-    <string name="wake_state_blocked">被系统限制</string>
-    <string name="wake_state_succeeded">已完成</string>
-    <string name="wake_state_failed">失败</string>
-    <string name="wake_state_cancelled">已取消</string>
-    <string name="wake_state_not_registered">尚未排队</string>
-    <string name="wake_state_unknown">状态未知</string>
+    <string name="wake_state_enqueued">ENQUEUED</string>
+    <string name="wake_state_running">RUNNING</string>
+    <string name="wake_state_blocked">BLOCKED</string>
+    <string name="wake_state_succeeded">SUCCEEDED</string>
+    <string name="wake_state_failed">FAILED</string>
+    <string name="wake_state_cancelled">CANCELLED</string>
+    <string name="wake_state_not_registered">NOT_REGISTERED</string>
+    <string name="wake_state_unknown">UNKNOWN</string>
     <string name="wake_kind_scheduled_task">定时任务</string>
     <string name="wake_kind_moment">朋友圈</string>
     <string name="wake_kind_proactive">主动消息</string>
