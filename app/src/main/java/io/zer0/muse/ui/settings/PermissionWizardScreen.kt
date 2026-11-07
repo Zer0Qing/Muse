@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
@@ -69,7 +70,10 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
     val a11yInstaller: AccessibilityProviderInstaller = koinInject()
     val shizukuInstaller: ShizukuInstaller = koinInject()
     val shizukuAuthorizer: ShizukuAuthorizer = koinInject()
-    val rootAuthorizer: RootAuthorizer = koinInject()
+    // 权限体系重设计: 向导以协调层快照为单一事实源（与工具预检/管理器同源），
+    // 不再自带一套阻塞探针；刷新走协调层被动探测（off-main、零副作用）。
+    val coordinator: io.zer0.muse.permission.PermissionCoordinator = koinInject()
+    val snapshot by coordinator.snapshot.collectAsStateWithLifecycle()
     // v2.x: Root 授权请求(自「UI 自动化」页迁移 — 该页权限卡已收敛到本向导)
     val automationManager = remember { AutomationInitializer.manager }
 
@@ -77,12 +81,25 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 各通道状态
-    var a11yEnabled by remember { mutableStateOf(false) }
-    var shizukuInstalled by remember { mutableStateOf(false) }
-    var shizukuAvailable by remember { mutableStateOf(false) }
-    var shizukuAuthorized by remember { mutableStateOf(false) }
-    var rootAvailable by remember { mutableStateOf(false) }
+    // 主通道状态全部派生自协调层快照。
+    val a11yEnabled = snapshot.accessibilityEnabled
+    val shizukuInstalled = snapshot.shizukuInstalled
+    val shizukuAvailable = snapshot.shizukuState in setOf(
+        ShizukuAuthorizer.ShizukuState.NOT_AUTHORIZED,
+        ShizukuAuthorizer.ShizukuState.USER_SERVICE_UNAVAILABLE,
+        ShizukuAuthorizer.ShizukuState.READY,
+    )
+    val shizukuAuthorized = snapshot.shizukuState == ShizukuAuthorizer.ShizukuState.READY
+    val shizukuVersionTooOld = snapshot.shizukuState == ShizukuAuthorizer.ShizukuState.VERSION_TOO_OLD
+    val rootAvailable = snapshot.rootEnabled
+    val rootManager = snapshot.rootManager
+    // 有 root 方案但没装管理器：KernelSU/APatch 无管理器时 su 静默拒绝，需定向指引。
+    val rootManagerMissing = snapshot.rootGrantState != RootAuthorizer.GrantState.NoRoot && rootManager == null
+    val providerInstalled = snapshot.providerInstalled
+    val providerBundled = snapshot.providerBundled
+    val termuxInstalled = snapshot.termuxAvailability != io.zer0.muse.terminal.TermuxChannel.Availability.NotInstalled
+    val termuxOutdated = snapshot.termuxAvailability is io.zer0.muse.terminal.TermuxChannel.Availability.OutdatedVersion
+
     var rootRequesting by remember { mutableStateOf(false) }
     var suiAvailable by remember { mutableStateOf(false) }
 
@@ -98,55 +115,43 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                 MuseToast.show(context.getString(R.string.permission_termux_grant_denied_hint), 3500)
             }
         }
-    var termuxInstalled by remember { mutableStateOf(false) }
+    // Termux 权限位与 probe 结果不在协调层被动快照里（probe 会唤醒 Termux），就地被动查询/缓存。
     var termuxPermitted by remember { mutableStateOf(false) }
     var termuxProbe by remember { mutableStateOf<Boolean?>(null) }
 
-    // v2.2.1: 无障碍独立 Provider(可选增强;不参与"三通道权限等级"判定)
-    var providerInstalled by remember { mutableStateOf(false) }
-
     // Root 与 Termux 属于可选升级通道，默认收起，用户按需展开
     var showAdvanced by remember { mutableStateOf(false) }
-    var providerBundled by remember { mutableStateOf(false) }
 
-    // 刷新状态
-    suspend fun refresh() {
+    // 刷新状态：协调层被动刷新四通道快照；Termux probe 按 force 决定缓存/重探。
+    suspend fun refresh(forceTermuxProbe: Boolean = false) {
         runCatching {
-            a11yEnabled = a11yInstaller.isEnabled()
-            shizukuInstalled = shizukuInstaller.isInstalled()
-            shizukuAvailable = shizukuAuthorizer.isAvailable()
-            // 授权位为 true 仍可能无法绑定 UserService；这里展示实际可用状态。
-            shizukuAuthorized = shizukuAuthorizer.checkReady()
-            rootAvailable = rootAuthorizer.checkPermission()
+            coordinator.refresh()
             suiAvailable = shizukuAuthorizer.isSuiBackendAvailable()
-            // v2.2.1: Termux 通道静态检测 + 已就绪时轻量探测(验证 allow-external-apps)
-            termuxInstalled = termuxChannel.isInstalled()
             termuxPermitted = termuxChannel.hasPermission()
+            // 用即时被动查询判定是否值得 probe，不捕获快照派生值（协调层刷新后重组才更新，会滞后）。
+            val termuxProbeable = termuxChannel.isInstalled() && termuxPermitted &&
+                termuxChannel.availability() is io.zer0.muse.terminal.TermuxChannel.Availability.Ready
             termuxProbe =
-                if (termuxInstalled && termuxPermitted) {
-                    termuxChannel.probe() is io.zer0.muse.terminal.TermuxChannel.Availability.Ready
+                if (termuxProbeable) {
+                    termuxChannel.probe(forceRefresh = forceTermuxProbe) is io.zer0.muse.terminal.TermuxChannel.Availability.Ready
                 } else {
                     null
                 }
-            // v2.2.1: 独立 Provider 静态检测(装没装;APK 是否随包附带决定是否展示安装入口)
-            providerInstalled = a11yInstaller.isProviderInstalled()
-            providerBundled = a11yInstaller.isProviderApkBundled()
         }.onFailure { e ->
-            // 探针(binder / su / Termux)抛的运行时异常种类枚举不完。
-            // 这里漏出去一次，repeatOnLifecycle 的循环就永久死了：
-            // 用户从系统设置授权回来，页面状态再也不刷新，只能退出重进。
+            // 探针抛的运行时异常种类枚举不完；漏出去一次 repeatOnLifecycle 循环就永久停摆。
             if (e is CancellationException) throw e
             Logger.w("PermissionWizard", "刷新权限状态失败: ${e.message}", e)
         }
     }
 
+    // 手动「刷新状态」按钮强制重探 Termux；页面 RESUMED 用缓存避免反复唤醒。
     fun refreshAsync() {
-        scope.launch { refresh() }
+        scope.launch { refresh(forceTermuxProbe = true) }
     }
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            refresh()
+            refresh(forceTermuxProbe = false)
         }
     }
 
@@ -268,6 +273,7 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                 installed = shizukuInstalled,
                 available = shizukuAvailable,
                 authorized = shizukuAuthorized,
+                versionTooOld = shizukuVersionTooOld,
                 onInstall = { shizukuInstaller.openDownloadPage() },
                 onAuthorize = {
                     scope.launch {
@@ -339,6 +345,24 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                     },
                     onRefresh = { refreshAsync() },
                 )
+
+                // 有 root 方案却没装管理器：su 会被静默拒绝，告诉用户去装哪个，而不是笼统报「未授权」。
+                if (rootManagerMissing) {
+                    Text(
+                        text = stringResource(R.string.permission_root_manager_missing),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                // Termux 版本过旧（Play 商店版停更）拿不到结果回传，先于授权提示给出更新指引。
+                if (termuxOutdated) {
+                    Text(
+                        text = stringResource(R.string.permission_termux_outdated),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
 
                 // 通道 4(v2.2.1): Termux 扩展通道 — 完整 Linux 环境命令执行(可选)
                 TermuxChannelCard(
@@ -530,6 +554,7 @@ private fun ShizukuChannelCard(
     installed: Boolean,
     available: Boolean,
     authorized: Boolean,
+    versionTooOld: Boolean,
     onInstall: () -> Unit,
     onAuthorize: () -> Unit,
     onStartService: () -> Unit,
@@ -569,14 +594,15 @@ private fun ShizukuChannelCard(
             )
             StatusLine(
                 done = available,
-                text = if (available) {
-                    stringResource(R.string.shizuku_service_running)
-                } else {
-                    stringResource(R.string.shizuku_service_not_running)
+                text = when {
+                    versionTooOld -> stringResource(R.string.permission_shizuku_version_old)
+                    available -> stringResource(R.string.shizuku_service_running)
+                    else -> stringResource(R.string.shizuku_service_not_running)
                 },
             )
             // 服务未运行时给出可操作的激活路径(重启后必掉是非 root 设备的常态,不是故障)。
-            if (installed && !available) {
+            // 版本过旧不是「未激活」，别给无线调试指引误导用户。
+            if (installed && !available && !versionTooOld) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = stringResource(R.string.permission_shizuku_activation_hint),

@@ -621,6 +621,9 @@
     <string name="permission_shizuku_denied_toast">Shizuku 권한이 거부되었습니다</string>
     <string name="permission_shizuku_timeout_toast">Shizuku 승인 대기 시간이 초과되었습니다. 다시 시도하세요</string>
     <string name="permission_shizuku_unavailable_toast">Shizuku 서비스가 실행 중이 아닙니다. 먼저 Shizuku 앱에서 시작하세요</string>
+    <string name="permission_root_manager_missing">root 환경은 감지되었지만 관리자 앱(Magisk / KernelSU / APatch)이 설치되지 않았습니다. 이 상태에서는 su 요청이 조용히 거부됩니다. 해당 관리자를 설치하고 연 뒤 위의 \'승인 요청\'을 누르세요.</string>
+    <string name="permission_termux_outdated">이 Termux 버전은 너무 오래되어 명령 결과를 반환할 수 없습니다. F-Droid 또는 GitHub에서 0.118+로 업데이트하세요(Play 스토어 버전은 업데이트가 중단되었습니다).</string>
+    <string name="permission_shizuku_version_old">Shizuku가 너무 오래되었습니다(v11+ 필수, v13+ 권장). 업데이트 후 다시 시도하세요.</string>
     <string name="shizuku_install_btn">Shizuku 다운로드</string>
     <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse의 Shizuku 사용 승인됨</string>

@@ -35,4 +35,7 @@
     <string name="permission_optional_channels">The basics are ready; the other channels are optional</string>
     <string name="permission_privacy_notice_title">These permissions stay on this device</string>
     <string name="permission_privacy_notice_body">Screen reading and command execution happen on this phone; nothing is uploaded. Root, Shizuku and Termux are optional high-privilege channels that let the app act on your device — revoke them any time in system settings or in the matching app.</string>
+    <string name="permission_root_manager_missing">A root solution was detected, but no manager app (Magisk / KernelSU / APatch) is installed. su requests will be silently denied — install and open the matching manager, then tap \"Request authorization\" above.</string>
+    <string name="permission_termux_outdated">This Termux version is too old to return command results. Update to 0.118+ from F-Droid or GitHub (the Play Store version is no longer updated).</string>
+    <string name="permission_shizuku_version_old">Shizuku is too old (v11+ required, v13+ recommended). Please update and retry.</string>
 </resources>

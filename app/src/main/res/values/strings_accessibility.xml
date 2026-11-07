@@ -35,4 +35,7 @@
     <string name="permission_optional_channels">基础权限已就绪，其余通道按需开通</string>
     <string name="permission_privacy_notice_title">这些权限只在你的设备上生效</string>
     <string name="permission_privacy_notice_body">读屏和执行命令都在这台手机上进行，不会上传内容。Root、Shizuku、Termux 是可选的高权限通道，开启后应用可以代替你操作设备；随时可以在系统设置或对应应用里撤销。</string>
+    <string name="permission_root_manager_missing">检测到 root 方案，但未安装管理器（如 Magisk / KernelSU / APatch）。此时 su 请求会被静默拒绝，请先安装并打开对应管理器，再点上方「请求授权」。</string>
+    <string name="permission_termux_outdated">Termux 版本过旧，无法回传命令结果。请从 F-Droid 或 GitHub 更新到 0.118+（Play 商店版已停更）。</string>
+    <string name="permission_shizuku_version_old">Shizuku 版本过旧（需 v11+，建议 v13+），请更新后重试。</string>
 </resources>

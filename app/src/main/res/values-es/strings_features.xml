@@ -621,6 +621,9 @@
     <string name="permission_shizuku_denied_toast">Permiso de Shizuku denegado</string>
     <string name="permission_shizuku_timeout_toast">Se agotó el tiempo de espera de la autorización de Shizuku; reintenta</string>
     <string name="permission_shizuku_unavailable_toast">El servicio de Shizuku no está en ejecución; inícialo primero en la app Shizuku</string>
+    <string name="permission_root_manager_missing">Se detectó una solución root, pero no hay ningún gestor (Magisk / KernelSU / APatch) instalado. Las solicitudes de su se denegarán silenciosamente: instala y abre el gestor correspondiente y luego pulsa «Solicitar autorización» arriba.</string>
+    <string name="permission_termux_outdated">Esta versión de Termux es demasiado antigua para devolver resultados. Actualiza a 0.118+ desde F-Droid o GitHub (la versión de Play Store ya no se actualiza).</string>
+    <string name="permission_shizuku_version_old">Shizuku es demasiado antiguo (se requiere v11+, se recomienda v13+). Actualiza y reintenta.</string>
     <string name="shizuku_install_btn">Descargar Shizuku</string>
     <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse autorizado para usar Shizuku</string>
