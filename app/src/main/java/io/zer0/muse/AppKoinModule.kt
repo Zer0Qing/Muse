@@ -589,6 +589,16 @@ val appModule = module {
     // 安装器(引导启用/安装)
     single { io.zer0.muse.tools.system.AccessibilityProviderInstaller(androidContext()) }
     single { io.zer0.muse.tools.system.ShizukuInstaller(androidContext()) }
+    // 权限体系重设计: 统一权限协调层(四通道单一事实源 + 事件驱动刷新),向导与管理器同源消费
+    single {
+        io.zer0.muse.permission.PermissionCoordinator(
+            shizukuAuthorizer = get(),
+            shizukuInstaller = get(),
+            rootAuthorizer = get(),
+            a11yInstaller = get(),
+            termuxChannel = io.zer0.muse.terminal.TermuxChannel.get(androidContext()),
+        )
+    }
     // P3-3: UI 工具注册器(init 块自动注册 10 个 ui_* 工具到 ToolRegistry,均为 HIGH 风险)
     single {
         io.zer0.muse.tools.defaultTool.UIToolsRegistrar(

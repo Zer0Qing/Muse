@@ -70,12 +70,22 @@ object AutomationInitializer {
                 runCatching {
                     org.koin.java.KoinJavaComponent.get<ShizukuAuthorizer>(ShizukuAuthorizer::class.java)
                 }.getOrElse { ShizukuAuthorizer(appContext) }
+            // 权限体系重设计: 统一协调层（单一事实源 + 事件驱动）。Koin 缺失时退回管理器自探测。
+            val coordinator =
+                runCatching {
+                    org.koin.java.KoinJavaComponent.get<io.zer0.muse.permission.PermissionCoordinator>(
+                        io.zer0.muse.permission.PermissionCoordinator::class.java,
+                    )
+                }.getOrNull()
             val mgr =
                 AutomationManager(
                     context = appContext,
                     shizukuAuthorizer = authorizer,
+                    coordinator = coordinator,
                 )
             _manager = mgr
+            // 接线 Shizuku binder + 无障碍连接事件 → 同源刷新（协调层与管理工作器缓存一起更新）。
+            coordinator?.start { mgr.refreshPermissions() }
 
             // v2.x: 工具权限分层 — 注入运行环境授权状态提供器(find_tools 状态展示 + 执行前预检)
             toolRegistry.permissionStatusProvider = {
@@ -207,10 +217,14 @@ object AutomationInitializer {
             // 无障碍是异步连接的：用户开启开关后服务才 onServiceConnected；
             // 若不刷新，启动时探测的缓存会一直停在 false，
             // 导致工具预检误判“未授权”（向导读系统设置却能正确显示已开启）。
-            io.zer0.muse.accessibility.MuseAccessibilityService.addConnectionListener { connected ->
-                appScope.launch {
-                    runCatching { mgr.refreshPermissions() }
-                        .onFailure { Logger.w(TAG, "a11y 连接($connected)后刷新权限失败: ${it.message}") }
+            // 权限体系重设计: 有协调层时由 coordinator.start 统一接线（含 Shizuku binder 事件），
+            // 这里仅在退回管理器自探测时兜底注册，避免重复刷新。
+            if (coordinator == null) {
+                io.zer0.muse.accessibility.MuseAccessibilityService.addConnectionListener { connected ->
+                    appScope.launch {
+                        runCatching { mgr.refreshPermissions() }
+                            .onFailure { Logger.w(TAG, "a11y 连接($connected)后刷新权限失败: ${it.message}") }
+                    }
                 }
             }
 

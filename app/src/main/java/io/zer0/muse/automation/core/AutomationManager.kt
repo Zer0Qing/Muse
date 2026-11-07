@@ -5,6 +5,7 @@ import io.zer0.common.Logger
 import io.zer0.muse.automation.executors.AccessibilityExecutor
 import io.zer0.muse.automation.executors.RootExecutor
 import io.zer0.muse.automation.executors.RootRequestResult
+import io.zer0.muse.permission.PermissionCoordinator
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,11 @@ class AutomationManager(
      */
     private val shellExecutor: io.zer0.muse.automation.executors.ShellExecutor =
         io.zer0.muse.automation.executors.ShellExecutor(context, shizukuAuthorizer),
+    /**
+     * 权限体系重设计: 统一协调层（单一事实源 + 事件驱动刷新）。
+     * 生产由 AutomationInitializer 注入；为 null 时退回管理器自探测（单测路径）。
+     */
+    private val coordinator: PermissionCoordinator? = null,
 ) {
     val accessibility = AccessibilityExecutor(context)
 
@@ -90,6 +96,20 @@ class AutomationManager(
      * 探测三层可用性。应在 App 启动时和从设置页返回时调用。
      */
     suspend fun refreshPermissions(): PermissionState = mutex.withLock {
+        // 权限体系重设计: 有协调层时以它的被动快照为单一事实源（事件驱动同源刷新）。
+        if (coordinator != null) {
+            val snap = coordinator.refresh()
+            val state = PermissionState(
+                accessibilityEnabled = snap.accessibilityEnabled,
+                shellEnabled = snap.shellEnabled,
+                rootEnabled = snap.rootEnabled,
+                shizukuState = snap.shizukuState,
+                shizukuMessage = snap.shizukuMessage,
+            )
+            _permissionState.value = state
+            Logger.i(TAG, "permissions refreshed via coordinator: a11y=${state.accessibilityEnabled} shell=${state.shizukuState} root=${state.rootEnabled}")
+            return@withLock state
+        }
         val a11y = probe("accessibility") { accessibility.isAvailable() }
         // 普通 `sh` 始终能在 Android 应用沙盒中启动，不能代表 adb/Shizuku 授权。
         // 第二层状态必须完成 UserService bind，不能只看 Shizuku 授权位。
