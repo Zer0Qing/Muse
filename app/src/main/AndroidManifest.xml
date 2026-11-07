@@ -72,6 +72,11 @@
     <queries>
         <!-- v2.2.1 Termux 通道:包可见性(Android 11+ 否则看不到 Termux) -->
         <package android:name="com.termux" />
+        <!-- 权限体系重设计: Shizuku/Sui 显式包可见性。
+             此前靠 MAIN/LAUNCHER intent query 碰巧覆盖(带图标的应用可见),
+             属隐式依赖;isInstalled/isSuiBackendAvailable 改为显式声明兜底。 -->
+        <package android:name="moe.shizuku.privileged.api" />
+        <package android:name="moe.shizuku.privileged.sui" />
         <!-- v2.2.1 无障碍独立 Provider:包可见性(安装检测与桥接绑定) -->
         <package android:name="io.zer0.muse.a11y" />
         <intent>

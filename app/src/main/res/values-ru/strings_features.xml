@@ -658,6 +658,12 @@
     <string name="settings_about_join_qq_group_subtitle">Группа QQ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ не найден; номер группы 905451314 скопирован в буфер обмена</string>
     <string name="shizuku_authorize_btn">Авторизовать Muse</string>
+    <string name="permission_shizuku_opened_toast">Shizuku открыт. Запустите службу в нём, затем вернитесь и обновите</string>
+    <string name="permission_shizuku_activation_hint">Служба не запущена. На Android 11+: включите параметры разработчика, затем выполните сопряжение и запуск через «Беспроводную отладку» в Shizuku; устройства с root могут запустить напрямую. После перезагрузки телефона требуется повторная активация.</string>
+    <string name="permission_shizuku_manual_grant_hint">Диалог разрешения навсегда отклонён («Больше не спрашивать»). Shizuku открыт — разрешите Muse вручную в приложении</string>
+    <string name="permission_shizuku_denied_toast">Разрешение Shizuku отклонено</string>
+    <string name="permission_shizuku_timeout_toast">Истекло время ожидания авторизации Shizuku; повторите попытку</string>
+    <string name="permission_shizuku_unavailable_toast">Служба Shizuku не запущена; сначала запустите её в приложении Shizuku</string>
     <string name="shizuku_install_btn">Скачать Shizuku</string>
     <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse авторизован для использования Shizuku</string>

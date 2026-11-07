@@ -615,6 +615,12 @@
     <string name="settings_about_join_qq_group_subtitle">Grupo QQ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ no encontrado; el número del grupo 905451314 se copió al portapapeles</string>
     <string name="shizuku_authorize_btn">Autorizar Muse</string>
+    <string name="permission_shizuku_opened_toast">Shizuku abierto. Inicia el servicio allí y vuelve para actualizar</string>
+    <string name="permission_shizuku_activation_hint">El servicio no está en ejecución. En Android 11+, activa las Opciones de desarrollador y empareja/inicia mediante «Depuración inalámbrica» dentro de Shizuku; los dispositivos con root pueden iniciarlo directamente. Tras reiniciar el teléfono hay que activarlo de nuevo.</string>
+    <string name="permission_shizuku_manual_grant_hint">El diálogo de permiso fue denegado permanentemente («No volver a preguntar»). Shizuku está abierto: permite Muse manualmente dentro de la app</string>
+    <string name="permission_shizuku_denied_toast">Permiso de Shizuku denegado</string>
+    <string name="permission_shizuku_timeout_toast">Se agotó el tiempo de espera de la autorización de Shizuku; reintenta</string>
+    <string name="permission_shizuku_unavailable_toast">El servicio de Shizuku no está en ejecución; inícialo primero en la app Shizuku</string>
     <string name="shizuku_install_btn">Descargar Shizuku</string>
     <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse autorizado para usar Shizuku</string>

@@ -271,13 +271,27 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                 onInstall = { shizukuInstaller.openDownloadPage() },
                 onAuthorize = {
                     scope.launch {
-                        shizukuAuthorizer.requestPermission()
+                        when (shizukuAuthorizer.requestPermission()) {
+                            ShizukuAuthorizer.PermissionRequestResult.Granted -> Unit
+                            ShizukuAuthorizer.PermissionRequestResult.PermanentlyDenied -> {
+                                // 系统弹窗已被「不再询问」封死：直开 Shizuku 应用内授权页手动允许。
+                                shizukuInstaller.openApp()
+                                MuseToast.show(context.getString(R.string.permission_shizuku_manual_grant_hint), 5000)
+                            }
+                            ShizukuAuthorizer.PermissionRequestResult.Denied ->
+                                MuseToast.show(context.getString(R.string.permission_shizuku_denied_toast))
+                            ShizukuAuthorizer.PermissionRequestResult.Timeout ->
+                                MuseToast.show(context.getString(R.string.permission_shizuku_timeout_toast))
+                            ShizukuAuthorizer.PermissionRequestResult.Unavailable ->
+                                MuseToast.show(context.getString(R.string.permission_shizuku_unavailable_toast))
+                        }
                         refresh()
                     }
                 },
                 onStartService = {
-                    // 引导用户打开 Shizuku 应用启动服务(无法直接拉起)
-                    shizukuInstaller.openDownloadPage()
+                    // 直开已安装的 Shizuku(启动服务要在它里面点),不再错误地跳下载页。
+                    shizukuInstaller.openApp()
+                    MuseToast.show(context.getString(R.string.permission_shizuku_opened_toast), 5000)
                 },
                 onRefresh = { refreshAsync() },
             )
@@ -561,6 +575,15 @@ private fun ShizukuChannelCard(
                     stringResource(R.string.shizuku_service_not_running)
                 },
             )
+            // 服务未运行时给出可操作的激活路径(重启后必掉是非 root 设备的常态,不是故障)。
+            if (installed && !available) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.permission_shizuku_activation_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             StatusLine(
                 done = authorized,
                 text = if (authorized) {

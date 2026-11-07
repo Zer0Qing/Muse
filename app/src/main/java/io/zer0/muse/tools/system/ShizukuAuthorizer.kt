@@ -77,9 +77,6 @@ class ShizukuAuthorizer(
         /** UserService 稳定标识，避免 R8/混淆后以类名误判服务身份。 */
         private const val SHELL_SERVICE_TAG = "muse_shell"
 
-        /** UserService 协议版本；AIDL/服务实现变化时强制替换旧进程。 */
-        private const val SHELL_SERVICE_VERSION = 4
-
         /** R-SVC-03: 授权弹窗等待超时(毫秒)。 */
         private const val PERMISSION_TIMEOUT_MS = 60_000L
 
@@ -105,6 +102,47 @@ class ShizukuAuthorizer(
     // 绑定失败时做短暂退避，避免设置页每次重组/恢复都重复阻塞 3 秒并刷屏。
     @Volatile
     private var lastBindFailureAt = 0L
+
+    /** Shizuku binder 是否存活（由 sticky received / dead 监听维护，事件驱动刷新用）。 */
+    @Volatile
+    var binderAlive: Boolean = false
+        private set
+
+    private val binderStateListeners = java.util.concurrent.CopyOnWriteArrayList<(alive: Boolean) -> Unit>()
+
+    /** 注册 binder 存活状态监听（幂等）；协调层据此在 Shizuku 启动/停止时自动刷新权限快照。 */
+    fun addBinderStateListener(listener: (alive: Boolean) -> Unit) {
+        binderStateListeners.addIfAbsent(listener)
+    }
+
+    fun removeBinderStateListener(listener: (alive: Boolean) -> Unit) {
+        binderStateListeners.remove(listener)
+    }
+
+    init {
+        // 官方要求的生命周期跟踪：不注册监听时，Shizuku 中途启动/被杀后探测结果会一直停在旧值。
+        // sticky 变体保证注册前 binder 已到达也会立即回调一次。
+        runCatching {
+            Shizuku.addBinderReceivedListenerSticky(
+                Shizuku.OnBinderReceivedListener {
+                    binderAlive = true
+                    // 新的服务进程：清掉绑定失败退避，允许立即重绑 UserService。
+                    lastBindFailureAt = 0L
+                    binderStateListeners.forEach { runCatching { it(true) } }
+                },
+            )
+            Shizuku.addBinderDeadListener(
+                Shizuku.OnBinderDeadListener {
+                    binderAlive = false
+                    // binder 死亡意味着 UserService 进程也已终止，清掉失效引用。
+                    shellService = null
+                    serviceBound = false
+                    boundArgs = null
+                    binderStateListeners.forEach { runCatching { it(false) } }
+                },
+            )
+        }.onFailure { Logger.w(TAG, "注册 Shizuku binder 监听失败: ${it.message}") }
+    }
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -154,11 +192,17 @@ class ShizukuAuthorizer(
 
     /**
      * 请求 Shizuku 授权(suspend,等待用户在授权弹窗操作)。
-     * @return true 已授权;false 被拒绝或服务不可用
+     *
+     * 返回细分结果而非 Boolean：用户勾过「拒绝且不再询问」后 [Shizuku.requestPermission]
+     * 静默无效（官方语义），干等只会超时；调用方收到 [PermissionRequestResult.PermanentlyDenied]
+     * 应直开 Shizuku 应用内的授权管理页让用户手动允许（AutoJs6 同口径）。
      */
-    suspend fun requestPermission(): Boolean {
-        if (!isAvailable()) return false
-        if (checkPermission()) return true
+    suspend fun requestPermission(): PermissionRequestResult {
+        if (!isAvailable()) return PermissionRequestResult.Unavailable
+        if (checkPermission()) return PermissionRequestResult.Granted
+        if (runCatching { Shizuku.shouldShowRequestPermissionRationale() }.getOrDefault(false)) {
+            return PermissionRequestResult.PermanentlyDenied
+        }
         return try {
             withTimeout(PERMISSION_TIMEOUT_MS) {
                 suspendCancellableCoroutine { cont ->
@@ -168,7 +212,11 @@ class ShizukuAuthorizer(
                                 val granted = grantResult == PackageManager.PERMISSION_GRANTED
                                 // 必须移除监听器,避免泄漏与重复回调
                                 Shizuku.removeRequestPermissionResultListener(this)
-                                if (cont.isActive) cont.resume(granted)
+                                if (cont.isActive) {
+                                    cont.resume(
+                                        if (granted) PermissionRequestResult.Granted else PermissionRequestResult.Denied,
+                                    )
+                                }
                             }
                         }
                     }
@@ -181,14 +229,29 @@ class ShizukuAuthorizer(
                     } catch (e: Throwable) {
                         Shizuku.removeRequestPermissionResultListener(listener)
                         Logger.w(TAG, "Shizuku.requestPermission 失败: ${e.message}")
-                        if (cont.isActive) cont.resume(false)
+                        if (cont.isActive) cont.resume(PermissionRequestResult.Unavailable)
                     }
                 }
             }
         } catch (e: TimeoutCancellationException) {
             Logger.w(TAG, "Shizuku 授权等待超时")
-            false
+            PermissionRequestResult.Timeout
         }
+    }
+
+    /** Shizuku 授权请求的细分结果。 */
+    sealed interface PermissionRequestResult {
+        data object Granted : PermissionRequestResult
+
+        data object Denied : PermissionRequestResult
+
+        /** 用户曾「拒绝且不再询问」：系统弹窗不会再出现，需去 Shizuku 应用内手动授权。 */
+        data object PermanentlyDenied : PermissionRequestResult
+
+        /** Shizuku 服务不可用（未安装/未启动/版本过旧）。 */
+        data object Unavailable : PermissionRequestResult
+
+        data object Timeout : PermissionRequestResult
     }
 
     /**
@@ -218,6 +281,12 @@ class ShizukuAuthorizer(
             return ShizukuStatus(ShizukuState.NOT_INSTALLED, "未安装 Shizuku")
         }
         if (!isAvailable()) {
+            // binder 活着但 isAvailable=false：pre-v11 旧版（UserService 自 v11 起才有），
+            // 与「服务未运行」是两种修法，不能混报。
+            val tooOld = binderAlive && runCatching { Shizuku.isPreV11() }.getOrDefault(false)
+            if (tooOld) {
+                return ShizukuStatus(ShizukuState.VERSION_TOO_OLD, "Shizuku 版本过旧,请更新到 v13+")
+            }
             return ShizukuStatus(
                 ShizukuState.NOT_RUNNING,
                 if (suiAvailable) "Sui 已安装,但 Shizuku 服务未运行" else "Shizuku 服务未运行",
@@ -379,7 +448,9 @@ class ShizukuAuthorizer(
                 ComponentName(context.packageName, ShellService::class.java.name),
             ).processNameSuffix("shell")
                 .tag(SHELL_SERVICE_TAG)
-                .version(SHELL_SERVICE_VERSION)
+                // 随 app 版本强制替换旧 UserService 进程（AutoJs6 同口径）；
+                // 固定版本号会让升级后的设备复用旧 AIDL 实现。
+                .version(BuildConfig.VERSION_CODE)
                 .debuggable(BuildConfig.DEBUG)
                 // 不保留脱离当前绑定的常驻 UserService,避免升级后复用旧 AIDL 进程。
                 .daemon(false)
@@ -449,6 +520,7 @@ class ShizukuAuthorizer(
     enum class ShizukuState {
         NOT_INSTALLED,
         NOT_RUNNING,
+        VERSION_TOO_OLD,
         NOT_AUTHORIZED,
         USER_SERVICE_UNAVAILABLE,
         READY,

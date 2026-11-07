@@ -614,6 +614,12 @@
     <string name="settings_about_join_qq_group_subtitle">QQ グループ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ が見つかりません。グループ番号 905451314 をクリップボードにコピーしました</string>
     <string name="shizuku_authorize_btn">Muse を承認</string>
+    <string name="permission_shizuku_opened_toast">Shizuku を開きました。アプリ内でサービスを起動してから戻って更新してください</string>
+    <string name="permission_shizuku_activation_hint">サービスが停止中です。Android 11 以降：開発者オプションを有効にし、Shizuku 内の「ワイヤレス デバッグ」でペアリングして起動します。root 済み端末は直接起動できます。端末の再起動後は再度有効化が必要です。</string>
+    <string name="permission_shizuku_manual_grant_hint">権限ダイアログは「今後表示しない」で拒否されています。Shizuku を開いたので、アプリ内で Muse を手動で許可してください</string>
+    <string name="permission_shizuku_denied_toast">Shizuku の権限が拒否されました</string>
+    <string name="permission_shizuku_timeout_toast">Shizuku の承認待ちがタイムアウトしました。再試行してください</string>
+    <string name="permission_shizuku_unavailable_toast">Shizuku サービスが停止中です。先に Shizuku アプリで起動してください</string>
     <string name="shizuku_install_btn">Shizuku をダウンロード</string>
     <string name="shizuku_section_title">Shizuku</string>
     <string name="shizuku_status_authorized">Muse の Shizuku 使用が承認済み</string>

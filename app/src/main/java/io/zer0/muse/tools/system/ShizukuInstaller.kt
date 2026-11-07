@@ -38,6 +38,30 @@ class ShizukuInstaller(private val context: Context) {
     }
 
     /**
+     * 直接打开已安装的 Shizuku 应用（启动服务/手动授权都在它里面完成）。
+     *
+     * 「服务未运行」时把用户扔去下载页是旧实现的错误引导：非 root 设备重启后
+     * Shizuku 必掉，用户需要的是打开 App 点「启动」，不是再下载一遍。
+     * 未安装或拉起失败时才回落到下载页。
+     *
+     * @return true 成功打开应用；false 回落到下载页（仍可能失败）
+     */
+    fun openApp(): Boolean {
+        val launchIntent = runCatching {
+            context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE)
+        }.getOrNull()
+        if (launchIntent != null) {
+            val opened = runCatching {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(launchIntent)
+            }.isSuccess
+            if (opened) return true
+            Logger.w(TAG, "拉起 Shizuku 应用失败,回落下载页")
+        }
+        return openDownloadPage()
+    }
+
+    /**
      * 打开 Shizuku 下载页(优先 Play Store,回退浏览器打开 GitHub)。
      * @return true 跳转成功;false 跳转失败
      */

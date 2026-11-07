@@ -20,6 +20,12 @@
     <string name="shizuku_status_authorized">Muse authorized to use Shizuku</string>
     <string name="shizuku_install_btn">Download Shizuku</string>
     <string name="shizuku_authorize_btn">Authorize Muse</string>
+    <string name="permission_shizuku_opened_toast">Shizuku opened. Start the service there, then come back and refresh</string>
+    <string name="permission_shizuku_activation_hint">Service not running. On Android 11+, enable Developer options, then pair and start via \"Wireless debugging\" inside Shizuku; rooted devices can start directly. After a reboot you must activate it again.</string>
+    <string name="permission_shizuku_manual_grant_hint">The permission dialog was permanently denied (\"Don\'t ask again\"). Shizuku is open — allow Muse manually inside it</string>
+    <string name="permission_shizuku_denied_toast">Shizuku permission denied</string>
+    <string name="permission_shizuku_timeout_toast">Timed out waiting for Shizuku authorization, please retry</string>
+    <string name="permission_shizuku_unavailable_toast">Shizuku service is not running; start it in the Shizuku app first</string>
 
     <!-- Root -->
     <string name="root_section_title">Root Permission</string>

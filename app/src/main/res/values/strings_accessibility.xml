@@ -20,6 +20,12 @@
     <string name="shizuku_status_authorized">已授权 Muse 使用 Shizuku</string>
     <string name="shizuku_install_btn">下载安装 Shizuku</string>
     <string name="shizuku_authorize_btn">授权 Muse</string>
+    <string name="permission_shizuku_opened_toast">已打开 Shizuku，请在其中启动服务后返回刷新</string>
+    <string name="permission_shizuku_activation_hint">服务未运行。Android 11+：先开启开发者选项，在 Shizuku 内通过「无线调试」配对并启动；已 root 设备可直接在 Shizuku 内启动。手机重启后需重新激活。</string>
+    <string name="permission_shizuku_manual_grant_hint">授权弹窗已被「不再询问」永久拒绝。已打开 Shizuku，请在其中手动允许 Muse</string>
+    <string name="permission_shizuku_denied_toast">Shizuku 授权被拒绝</string>
+    <string name="permission_shizuku_timeout_toast">等待 Shizuku 授权超时，请重试</string>
+    <string name="permission_shizuku_unavailable_toast">Shizuku 服务未运行，请先在 Shizuku 中启动</string>
 
     <!-- Root -->
     <string name="root_section_title">Root 权限</string>
