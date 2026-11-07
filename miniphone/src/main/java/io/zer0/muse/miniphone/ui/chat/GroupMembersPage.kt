@@ -36,13 +36,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.data.chat.GROUP_TITLE_MAX_LENGTH
 import io.zer0.muse.miniphone.data.chat.MIN_GROUP_MEMBERS_AFTER_REMOVE
@@ -70,9 +73,9 @@ internal class GroupAdminActions(
 
 /** 成员行上能做的事。 */
 internal enum class GroupMemberAction(
-    val label: String,
+    val labelRes: Int,
 ) {
-    REMOVE("移出群聊"),
+    REMOVE(R.string.mp_members_remove),
 }
 
 /**
@@ -243,13 +246,13 @@ private fun GroupMembersHeader(count: Int, onBack: () -> Unit) {
             ) {
                 Icon(
                     imageVector = MiniPhoneIcons.Back,
-                    contentDescription = "返回",
+                    contentDescription = stringResource(R.string.mp_back_cd),
                     tint = colors.textPrimary,
                     modifier = Modifier.size(GroupMembersIconSize),
                 )
             }
             Text(
-                text = GROUP_MEMBERS_TITLE,
+                text = stringResource(R.string.mp_members_title),
                 style = typography.title.copy(color = colors.textPrimary),
                 modifier = Modifier.padding(start = 4.dp),
             )
@@ -267,6 +270,7 @@ private fun GroupMembersHeader(count: Int, onBack: () -> Unit) {
 /** 群名一行:点一下改名。右侧那句「点击修改」是把入口说出来,不用人猜。 */
 @Composable
 private fun GroupTitleRow(title: String, onClick: () -> Unit) {
+    val untitled = stringResource(R.string.mp_members_untitled)
     val colors = MiniPhoneTheme.colors
     val dimens = MiniPhoneTheme.dimens
     val typography = MiniPhoneTheme.typography
@@ -279,12 +283,12 @@ private fun GroupTitleRow(title: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = GROUP_TITLE_LABEL,
+            text = stringResource(R.string.mp_members_group_name),
             style = typography.timestamp.copy(color = colors.textSecondary),
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            text = title.ifBlank { UNTITLED_GROUP_NAME },
+            text = title.ifBlank { untitled },
             style = typography.body.copy(color = colors.textPrimary),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -293,7 +297,7 @@ private fun GroupTitleRow(title: String, onClick: () -> Unit) {
                 .testTag(MiniPhoneChatTags.GROUP_TITLE_VALUE),
         )
         Text(
-            text = GROUP_TITLE_EDIT_HINT,
+            text = stringResource(R.string.mp_members_tap_to_edit),
             style = typography.timestamp.copy(color = colors.accent),
         )
     }
@@ -348,7 +352,7 @@ private fun MemberRowMenu(onDismiss: () -> Unit, onRemove: () -> Unit) {
         properties = PopupProperties(focusable = true),
     ) {
         Text(
-            text = GroupMemberAction.REMOVE.label,
+            text = stringResource(GroupMemberAction.REMOVE.labelRes),
             style = typography.body.copy(color = colors.unreadDot),
             modifier = Modifier
                 .testTag(MiniPhoneChatTags.MEMBER_MENU_REMOVE)
@@ -373,7 +377,7 @@ private fun MemberAdminFooter(onAdd: () -> Unit, onDisband: () -> Unit) {
     Column(Modifier.fillMaxWidth().background(colors.surface)) {
         Box(Modifier.fillMaxWidth().height(dimens.hairline).background(colors.divider))
         Text(
-            text = ADD_MEMBER_LABEL,
+            text = stringResource(R.string.mp_members_add_label),
             style = typography.body.copy(color = colors.accent),
             modifier = Modifier
                 .fillMaxWidth()
@@ -383,7 +387,7 @@ private fun MemberAdminFooter(onAdd: () -> Unit, onDisband: () -> Unit) {
         )
         Box(Modifier.fillMaxWidth().height(dimens.hairline).background(colors.divider))
         Text(
-            text = DISBAND_LABEL,
+            text = stringResource(R.string.mp_members_disband),
             style = typography.body.copy(color = colors.unreadDot),
             modifier = Modifier
                 .fillMaxWidth()
@@ -413,7 +417,7 @@ private fun GroupTitleEditDialog(initialTitle: String, onDismiss: () -> Unit, on
                 .border(dimens.hairline, colors.divider, shape)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
-            Text(text = GROUP_TITLE_EDIT_TITLE, style = typography.title.copy(color = colors.textPrimary))
+            Text(text = stringResource(R.string.mp_members_rename_title), style = typography.title.copy(color = colors.textPrimary))
             Spacer(Modifier.height(12.dp))
             Box(
                 modifier = Modifier
@@ -444,7 +448,7 @@ private fun GroupTitleEditDialog(initialTitle: String, onDismiss: () -> Unit, on
                 confirmColor = colors.accent,
                 confirmTag = MiniPhoneChatTags.GROUP_TITLE_EDIT_SAVE,
                 confirmEnabled = normalized.isNotEmpty(),
-                confirmLabel = SAVE_LABEL,
+                confirmLabel = stringResource(R.string.mp_save),
                 cancelTag = MiniPhoneChatTags.GROUP_TITLE_EDIT_CANCEL,
                 onCancel = onDismiss,
                 onConfirm = { onSave(normalized) },
@@ -458,8 +462,8 @@ private fun GroupTitleEditDialog(initialTitle: String, onDismiss: () -> Unit, on
 private fun MemberRemoveDialog(name: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     ConfirmDialog(
         tag = MiniPhoneChatTags.MEMBER_REMOVE_DIALOG,
-        title = "把${name}移出群聊?",
-        hint = REMOVE_HINT,
+        title = stringResource(R.string.mp_members_remove_title, name),
+        hint = stringResource(R.string.mp_members_remove_hint),
         confirmTag = MiniPhoneChatTags.MEMBER_REMOVE_CONFIRM,
         cancelTag = MiniPhoneChatTags.MEMBER_REMOVE_CANCEL,
         onDismiss = onDismiss,
@@ -472,8 +476,8 @@ private fun MemberRemoveDialog(name: String, onDismiss: () -> Unit, onConfirm: (
 private fun DisbandGroupDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     ConfirmDialog(
         tag = MiniPhoneChatTags.GROUP_DISBAND_DIALOG,
-        title = DISBAND_TITLE,
-        hint = DISBAND_HINT,
+        title = stringResource(R.string.mp_members_disband_title),
+        hint = stringResource(R.string.mp_members_disband_hint),
         confirmTag = MiniPhoneChatTags.GROUP_DISBAND_CONFIRM,
         cancelTag = MiniPhoneChatTags.GROUP_DISBAND_CANCEL,
         onDismiss = onDismiss,
@@ -514,7 +518,7 @@ private fun ConfirmDialog(
                 confirmColor = colors.unreadDot,
                 confirmTag = confirmTag,
                 confirmEnabled = true,
-                confirmLabel = DELETE_LABEL,
+                confirmLabel = stringResource(R.string.mp_delete),
                 cancelTag = cancelTag,
                 onCancel = onDismiss,
                 onConfirm = onConfirm,
@@ -538,7 +542,7 @@ private fun DialogActions(
     val typography = MiniPhoneTheme.typography
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
         Text(
-            text = CANCEL_LABEL,
+            text = stringResource(R.string.mp_cancel),
             style = typography.body.copy(color = colors.textSecondary),
             modifier = Modifier
                 .testTag(cancelTag)
@@ -574,6 +578,7 @@ private fun GroupAddMembersPage(
     onBack: () -> Unit,
     onDone: () -> Unit,
 ) {
+    val context = LocalContext.current
     val colors = MiniPhoneTheme.colors
     Column(
         modifier = Modifier
@@ -582,8 +587,12 @@ private fun GroupAddMembersPage(
             .background(colors.background),
     ) {
         GroupPickHeader(
-            title = ADD_MEMBER_TITLE,
-            hint = ADD_MEMBER_HINT_PREFIX + selectedIds.size + " 人",
+            title = stringResource(R.string.mp_members_add_title),
+            hint = context.resources.getQuantityString(
+                R.plurals.mp_members_selected_count,
+                selectedIds.size,
+                selectedIds.size,
+            ),
             canFinish = selectedIds.isNotEmpty(),
             tagPrefix = GROUP_ADD_TAG_PREFIX,
             onBack = onBack,
@@ -592,8 +601,8 @@ private fun GroupAddMembersPage(
         GroupPickList(
             sections = sections,
             selectedIds = selectedIds,
-            emptyTitle = ADD_MEMBER_EMPTY_TITLE,
-            emptyHint = ADD_MEMBER_EMPTY_HINT,
+            emptyTitle = stringResource(R.string.mp_members_add_empty_title),
+            emptyHint = stringResource(R.string.mp_members_add_empty_hint),
             onToggle = onToggle,
         )
     }
@@ -610,23 +619,6 @@ private val WindowCorner = 8.dp
 private val DialogActionCorner = 8.dp
 private val DialogActionHeight = 36.dp
 
-private const val GROUP_MEMBERS_TITLE: String = "群成员"
-private const val GROUP_TITLE_LABEL: String = "群名"
-private const val GROUP_TITLE_EDIT_HINT: String = "点击修改"
-private const val GROUP_TITLE_EDIT_TITLE: String = "修改群名"
-private const val ADD_MEMBER_LABEL: String = "+ 添加成员"
-private const val ADD_MEMBER_TITLE: String = "添加成员"
-private const val ADD_MEMBER_HINT_PREFIX: String = "已选 "
-private const val ADD_MEMBER_EMPTY_TITLE: String = "没有可以加入的角色"
-private const val ADD_MEMBER_EMPTY_HINT: String = "通讯录里的人都已经在群里了"
-private const val DISBAND_LABEL: String = "删除并退出"
-private const val DISBAND_TITLE: String = "删除并退出?"
-private const val DISBAND_HINT: String = "整个群和里面的全部消息都会从这台手机上删掉,无法恢复。"
-private const val REMOVE_HINT: String = "移出后他之前说过的话留在群里。"
-private const val UNTITLED_GROUP_NAME: String = "群聊"
-private const val SAVE_LABEL: String = "保存"
-private const val CANCEL_LABEL: String = "取消"
-private const val DELETE_LABEL: String = "删除"
 
 /** 添加成员页的标签前缀:与建群页分开,测试点的是哪一页一眼能看出。 */
 private const val GROUP_ADD_TAG_PREFIX: String = "mp-group-add-member"

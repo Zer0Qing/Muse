@@ -42,9 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -263,7 +265,7 @@ private fun ChatTopBar(
             ) {
                 Icon(
                     imageVector = MiniPhoneIcons.Back,
-                    contentDescription = BACK_DESCRIPTION,
+                    contentDescription = stringResource(BACK_DESCRIPTION_RES),
                     tint = colors.textPrimary,
                     modifier = Modifier.size(TopBarIconSize),
                 )
@@ -406,7 +408,7 @@ private const val LOAD_OLDER_THRESHOLD: Int = 2
 
 private const val TYPING_ITEM_KEY: String = "mp-chat-typing-item"
 private const val ACTIVITY_ITEM_KEY: String = "mp-chat-activity-item"
-private const val BACK_DESCRIPTION: String = "返回"
+private val BACK_DESCRIPTION_RES: Int = R.string.mp_back_cd
 
 private val TopBarButtonSize = 40.dp
 private val TopBarIconSize = 20.dp

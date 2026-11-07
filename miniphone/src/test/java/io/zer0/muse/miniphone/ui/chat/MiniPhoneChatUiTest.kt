@@ -342,7 +342,10 @@ class MiniPhoneChatUiTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(MiniPhoneChatTags.NEW_MESSAGES_PILL).assertIsDisplayed()
-        compose.onNodeWithTag(MiniPhoneChatTags.NEW_MESSAGES_PILL).assertTextEquals("1 条新消息")
+        compose.onNodeWithTag(MiniPhoneChatTags.NEW_MESSAGES_PILL).assertTextEquals(
+            androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+                .resources.getQuantityString(R.plurals.mp_new_messages, 1, 1),
+        )
 
         // 点一下回到最新:提示自己收起来
         compose.onNodeWithTag(MiniPhoneChatTags.NEW_MESSAGES_PILL).performClick()

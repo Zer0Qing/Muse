@@ -82,7 +82,7 @@ internal fun ChatMessageMenu(
                     )
                 }
                 Text(
-                    text = action.label,
+                    text = stringResource(action.labelRes),
                     style = typography.body.copy(color = action.colorIn(colors)),
                     modifier = Modifier
                         .fillMaxWidth()

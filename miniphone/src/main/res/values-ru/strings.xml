@@ -105,4 +105,34 @@
         <item quantity="many">%1$d часов назад</item>
         <item quantity="other">%1$d часа назад</item>
     </plurals>
+    <string name="mp_members_title">Участники группы</string>
+    <string name="mp_members_group_name">Название группы</string>
+    <string name="mp_members_tap_to_edit">Нажмите, чтобы изменить</string>
+    <string name="mp_members_rename_title">Переименовать группу</string>
+    <string name="mp_members_add_label">+ Добавить участников</string>
+    <string name="mp_members_add_title">Добавить участников</string>
+    <string name="mp_members_add_empty_title">Некого добавлять</string>
+    <string name="mp_members_add_empty_hint">Все из «Контактов» уже в группе</string>
+    <string name="mp_members_disband">Удалить и выйти</string>
+    <string name="mp_members_disband_title">Удалить и выйти?</string>
+    <string name="mp_members_disband_hint">Группа целиком и все её сообщения удаляются с устройства без возврата.</string>
+    <string name="mp_members_remove">Исключить из группы</string>
+    <string name="mp_members_remove_title">Исключить %1$s из группы?</string>
+    <string name="mp_members_remove_hint">Сказанное ранее останется в группе.</string>
+    <string name="mp_members_untitled">Групповой чат</string>
+    <string name="mp_save">Сохранить</string>
+    <string name="mp_chat_menu_copy">Копировать</string>
+    <string name="mp_chat_menu_resend">Отправить снова</string>
+    <plurals name="mp_new_messages">
+        <item quantity="one">%1$d новое сообщение</item>
+        <item quantity="few">%1$d новых сообщения</item>
+        <item quantity="many">%1$d новых сообщений</item>
+        <item quantity="other">%1$d нового сообщения</item>
+    </plurals>
+    <plurals name="mp_members_selected_count">
+        <item quantity="one">Выбран %1$d</item>
+        <item quantity="few">Выбрано %1$d</item>
+        <item quantity="many">Выбрано %1$d</item>
+        <item quantity="other">Выбрано %1$d</item>
+    </plurals>
 </resources>

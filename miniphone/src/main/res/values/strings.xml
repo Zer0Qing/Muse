@@ -99,4 +99,28 @@
     <plurals name="mp_time_hours_ago">
         <item quantity="other">%1$d 小时前</item>
     </plurals>
+    <string name="mp_members_title">群成员</string>
+    <string name="mp_members_group_name">群名</string>
+    <string name="mp_members_tap_to_edit">点击修改</string>
+    <string name="mp_members_rename_title">修改群名</string>
+    <string name="mp_members_add_label">+ 添加成员</string>
+    <string name="mp_members_add_title">添加成员</string>
+    <string name="mp_members_add_empty_title">没有可以加入的角色</string>
+    <string name="mp_members_add_empty_hint">通讯录里的人都已经在群里了</string>
+    <string name="mp_members_disband">删除并退出</string>
+    <string name="mp_members_disband_title">删除并退出?</string>
+    <string name="mp_members_disband_hint">整个群和里面的全部消息都会从这台手机上删掉,无法恢复。</string>
+    <string name="mp_members_remove">移出群聊</string>
+    <string name="mp_members_remove_title">把 %1$s 移出群聊?</string>
+    <string name="mp_members_remove_hint">移出后他之前说过的话留在群里。</string>
+    <string name="mp_members_untitled">群聊</string>
+    <string name="mp_save">保存</string>
+    <string name="mp_chat_menu_copy">复制</string>
+    <string name="mp_chat_menu_resend">重发</string>
+    <plurals name="mp_new_messages">
+        <item quantity="other">%1$d 条新消息</item>
+    </plurals>
+    <plurals name="mp_members_selected_count">
+        <item quantity="other">已选 %1$d 人</item>
+    </plurals>
 </resources>

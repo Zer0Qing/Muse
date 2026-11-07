@@ -101,4 +101,30 @@
         <item quantity="one">há %1$d hora</item>
         <item quantity="other">há %1$d horas</item>
     </plurals>
+    <string name="mp_members_title">Membros do grupo</string>
+    <string name="mp_members_group_name">Nome do grupo</string>
+    <string name="mp_members_tap_to_edit">Toque para editar</string>
+    <string name="mp_members_rename_title">Renomear grupo</string>
+    <string name="mp_members_add_label">+ Adicionar membros</string>
+    <string name="mp_members_add_title">Adicionar membros</string>
+    <string name="mp_members_add_empty_title">Não há personagens para adicionar</string>
+    <string name="mp_members_add_empty_hint">Todos os contatos já estão no grupo</string>
+    <string name="mp_members_disband">Excluir e sair</string>
+    <string name="mp_members_disband_title">Excluir e sair?</string>
+    <string name="mp_members_disband_hint">O grupo inteiro e todas as mensagens são removidos deste aparelho sem recuperação.</string>
+    <string name="mp_members_remove">Remover do grupo</string>
+    <string name="mp_members_remove_title">Remover %1$s do grupo?</string>
+    <string name="mp_members_remove_hint">O que ele disse antes continua no grupo.</string>
+    <string name="mp_members_untitled">Chat em grupo</string>
+    <string name="mp_save">Salvar</string>
+    <string name="mp_chat_menu_copy">Copiar</string>
+    <string name="mp_chat_menu_resend">Reenviar</string>
+    <plurals name="mp_new_messages">
+        <item quantity="one">%1$d nova mensagem</item>
+        <item quantity="other">%1$d novas mensagens</item>
+    </plurals>
+    <plurals name="mp_members_selected_count">
+        <item quantity="one">%1$d selecionado</item>
+        <item quantity="other">%1$d selecionados</item>
+    </plurals>
 </resources>

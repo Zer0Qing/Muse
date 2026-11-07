@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
+import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageType
@@ -39,6 +40,9 @@ class MiniPhoneGroupChatUiTest {
 
     @get:Rule
     val compose = createComposeRule()
+
+    private fun res(@androidx.annotation.StringRes id: Int): String =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
 
     @Test
     fun groupTopBarShowsTheTitleWithTheMemberCount() {
@@ -194,7 +198,7 @@ class MiniPhoneGroupChatUiTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(MiniPhoneChatTags.MEMBER_REMOVE_DIALOG).assertIsDisplayed()
-        compose.onNodeWithText("移出后他之前说过的话留在群里。").assertExists()
+        compose.onNodeWithText(res(R.string.mp_members_remove_hint)).assertExists()
         assertEquals("确认之前不移出", null, removed)
 
         compose.onNodeWithTag(MiniPhoneChatTags.MEMBER_REMOVE_CONFIRM).performClick()
@@ -224,7 +228,7 @@ class MiniPhoneGroupChatUiTest {
         compose.onNodeWithTag(MiniPhoneChatTags.GROUP_DISBAND_DIALOG).assertExists()
         assertTrue(
             "文案要写明不可恢复",
-            compose.onAllNodesWithText("整个群和里面的全部消息都会从这台手机上删掉,无法恢复。").fetchSemanticsNodes().isNotEmpty(),
+            compose.onAllNodesWithText(res(R.string.mp_members_disband_hint)).fetchSemanticsNodes().isNotEmpty(),
         )
         assertFalse("确认之前不解散", disbanded)
 
