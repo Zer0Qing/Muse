@@ -38,6 +38,9 @@ class TermuxChannel private constructor(private val context: Context) {
     sealed class Availability {
         data object Ready : Availability()
         data object NotInstalled : Availability()
+
+        /** 已安装但版本过旧：结果回传需 0.118+，Play 商店版停更在 0.101，永远拿不到结果。 */
+        data class OutdatedVersion(val versionName: String?) : Availability()
         data object PermissionMissing : Availability()
         data class NotConfigured(val detail: String?) : Availability()
     }
@@ -48,6 +51,8 @@ class TermuxChannel private constructor(private val context: Context) {
         val stdout: String,
         val stderr: String,
         val error: String?,
+        /** Termux 侧把超 100KB 的输出截断；true 表示 stdout/stderr 不完整。 */
+        val truncated: Boolean = false,
     )
 
     private val pending = ConcurrentHashMap<Int, CompletableDeferred<TermuxResult>>()
@@ -81,9 +86,11 @@ class TermuxChannel private constructor(private val context: Context) {
         }
     }
 
-    /** 快速静态检查(不执行命令)。 */
+    /** 快速静态检查(不执行命令、不唤醒 Termux)。 */
     fun availability(): Availability {
         if (!isInstalled()) return Availability.NotInstalled
+        val version = installedVersionName()
+        if (!isVersionSupported(version)) return Availability.OutdatedVersion(version)
         if (!hasPermission()) return Availability.PermissionMissing
         return Availability.Ready
     }
@@ -92,21 +99,41 @@ class TermuxChannel private constructor(private val context: Context) {
         context.packageManager.getPackageInfo(PKG, 0)
     }.isSuccess
 
+    /** 已安装 Termux 的 versionName（未装或读取失败返回 null）。 */
+    fun installedVersionName(): String? = runCatching {
+        context.packageManager.getPackageInfo(PKG, 0).versionName
+    }.getOrNull()
+
     fun hasPermission(): Boolean = context.checkSelfPermission(PERMISSION) == PackageManager.PERMISSION_GRANTED
+
+    /** probe 结果缓存：避免每次进向导都真实执行 echo 唤醒 Termux。手动刷新可强制重探。 */
+    @Volatile
+    private var cachedProbe: Availability? = null
 
     /**
      * 完整链路探测:实际执行一条 echo 标记命令,验证 allow-external-apps 等配置。
      * 比 [availability] 慢(要先起 Termux 服务),供状态展示/排障使用。
+     *
+     * @param forceRefresh true 时忽略缓存真实重探（手动刷新）；false 时复用缓存（页面 RESUMED），
+     *   免得每次回到向导都唤醒 Termux。前置静态检查失败时清缓存并直接返回。
      */
-    suspend fun probe(): Availability {
+    suspend fun probe(forceRefresh: Boolean = false): Availability {
         val quick = availability()
-        if (quick !is Availability.Ready) return quick
+        if (quick !is Availability.Ready) {
+            cachedProbe = null
+            return quick
+        }
+        if (!forceRefresh) {
+            cachedProbe?.let { return it }
+        }
         val result = exec("echo __MUSE_TERMUX_OK__", timeoutMs = 15_000L)
-        return when {
+        val verdict = when {
             result.error != null -> Availability.NotConfigured(result.error)
             result.stdout.contains("__MUSE_TERMUX_OK__") -> Availability.Ready
             else -> Availability.NotConfigured("探测输出异常(exit=${result.exitCode})")
         }
+        cachedProbe = verdict
+        return verdict
     }
 
     /**
@@ -144,7 +171,7 @@ class TermuxChannel private constructor(private val context: Context) {
         if (result == null) {
             return ExecResult(-1, "", "", "等待结果超时(${timeoutMs / 1000}s):Termux 可能被系统限制后台启动或未响应")
         }
-        return ExecResult(result.exitCode, result.stdout, result.stderr, result.error)
+        return ExecResult(result.exitCode, result.stdout, result.stderr, result.error, result.truncated)
     }
 
     /**
@@ -254,7 +281,21 @@ class TermuxChannel private constructor(private val context: Context) {
             val stdout: String,
             val stderr: String,
             val error: String?,
+            val truncated: Boolean = false,
         )
+
+        /**
+         * Termux 版本是否支持结果回传（需 ≥0.118；0.109 起支持、0.118 稳定）。
+         * Play 商店版停更在 0.101，无 PendingIntent 回传机制，调用永远超时。
+         * 解析不了版本号时不误报（按支持处理），避免把自定义构建判死。
+         */
+        internal fun isVersionSupported(versionName: String?): Boolean {
+            if (versionName.isNullOrBlank()) return true
+            val parts = versionName.trim().split('.')
+            val major = parts.getOrNull(0)?.toIntOrNull() ?: return true
+            val minor = parts.getOrNull(1)?.toIntOrNull() ?: return true
+            return major > 0 || minor >= 118
+        }
 
         /**
          * 防御性解析结果字段(可单测):兼容 exitCode/exit_code、err/errCode 与字符串数值。
@@ -277,14 +318,22 @@ class TermuxChannel private constructor(private val context: Context) {
             // 拿 “!= 0” 判定会把每次成功都写成「Termux 服务错误码 -1」，通道看上去永久不可用。
             // 只有正数才是真错误；0 交给旧版本/其他实现当成功码。
             val error = errmsg ?: if (errCode != null && errCode > 0) "Termux 服务错误码 $errCode" else null
-            return TermuxResult(exitCode, stdout, stderr, error)
+            // Termux 把超 100KB 的输出从头截断,并带回原始长度;原始长度 > 实收长度即被截断。
+            val stdoutOriginal = (entries["stdout_original_length"] as? Number)?.toInt()
+            val stderrOriginal = (entries["stderr_original_length"] as? Number)?.toInt()
+            val truncated = (stdoutOriginal != null && stdoutOriginal > stdout.length) ||
+                (stderrOriginal != null && stderrOriginal > stderr.length)
+            return TermuxResult(exitCode, stdout, stderr, error, truncated)
         }
 
         /** 面向用户/模型的引导文案(硬编码中文,与 device_shell 等运行时提示同口径)。 */
         fun describe(availability: Availability): String = when (availability) {
             is Availability.Ready -> "Termux 通道就绪"
             is Availability.NotInstalled ->
-                "Termux 通道不可用:未安装 Termux。请先安装 Termux(应用商店 / F-Droid),装好后回到 设置→工具 检测。"
+                "Termux 通道不可用:未安装 Termux。请先安装 Termux(F-Droid / GitHub),装好后回到 设置→工具 检测。"
+            is Availability.OutdatedVersion ->
+                "Termux 版本过旧(${availability.versionName ?: "未知"}):命令结果回传需 0.118+。" +
+                    "Play 商店版已停更(0.101),拿不到执行结果;请从 F-Droid 或 GitHub 安装新版 Termux 后重试。"
             is Availability.PermissionMissing ->
                 "Termux 通道待授权:请到 系统设置→应用→Termux→附加权限,勾选「运行 Termux 命令」" +
                     "(Run commands in Termux environment),然后重试。"

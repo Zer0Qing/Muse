@@ -85,4 +85,60 @@ class TermuxChannelTest {
         assertTrue(text.contains("allow-external-apps"))
         assertTrue(text.contains("boom"))
     }
+
+    // ── 权限体系重设计: 版本检测 ──────────────────────────────────────────
+
+    @Test
+    fun `0_118 及以上版本支持结果回传`() {
+        assertTrue(TermuxChannel.isVersionSupported("0.118.3"))
+        assertTrue(TermuxChannel.isVersionSupported("0.118.3.64"))
+        assertTrue(TermuxChannel.isVersionSupported("0.119.0"))
+        assertTrue(TermuxChannel.isVersionSupported("1.0.0"))
+    }
+
+    @Test
+    fun `Play 商店旧版 0_101 判为不支持`() {
+        assertEquals(false, TermuxChannel.isVersionSupported("0.101"))
+        assertEquals(false, TermuxChannel.isVersionSupported("0.109"))
+        assertEquals(false, TermuxChannel.isVersionSupported("0.117.9"))
+    }
+
+    @Test
+    fun `解析不了的版本号不误报`() {
+        assertTrue(TermuxChannel.isVersionSupported(null))
+        assertTrue(TermuxChannel.isVersionSupported(""))
+        assertTrue(TermuxChannel.isVersionSupported("custom-build"))
+    }
+
+    @Test
+    fun `旧版本引导指向 F-Droid 与 0_118`() {
+        val text = TermuxChannel.describe(TermuxChannel.Availability.OutdatedVersion("0.101"))
+        assertTrue(text.contains("0.118"))
+        assertTrue(text.contains("F-Droid"))
+        assertTrue(text.contains("0.101"))
+    }
+
+    // ── 权限体系重设计: 输出截断检测 ──────────────────────────────────────
+
+    @Test
+    fun `原始长度大于实收长度判为截断`() {
+        val result = TermuxChannel.parseResultEntries(
+            mapOf("stdout" to "abc", "exitCode" to 0, "stdout_original_length" to 100_000),
+        )
+        assertTrue(result.truncated)
+    }
+
+    @Test
+    fun `无原始长度字段不判截断`() {
+        val result = TermuxChannel.parseResultEntries(mapOf("stdout" to "abc", "exitCode" to 0))
+        assertEquals(false, result.truncated)
+    }
+
+    @Test
+    fun `原始长度等于实收长度不判截断`() {
+        val result = TermuxChannel.parseResultEntries(
+            mapOf("stdout" to "abc", "exitCode" to 0, "stdout_original_length" to 3),
+        )
+        assertEquals(false, result.truncated)
+    }
 }

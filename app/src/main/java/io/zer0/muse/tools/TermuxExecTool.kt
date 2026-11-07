@@ -76,6 +76,10 @@ object TermuxExecTool {
             } else {
                 append(out)
             }
+            if (result.truncated) {
+                append("\n[注意] 输出超过 Termux 单次回传上限(约 100KB),已被截断,内容不完整;")
+                append("如需完整结果,请把命令输出重定向到 Termux 内文件再分段读取。")
+            }
         }
     }
 
