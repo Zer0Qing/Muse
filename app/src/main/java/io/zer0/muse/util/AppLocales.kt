@@ -30,11 +30,11 @@ object AppLocales {
         RU("ru", "app_language_ru", R.string.app_language_ru),
         ES("es", "app_language_es", R.string.app_language_es),
         PT_BR("pt-rBR", "app_language_pt_br", R.string.app_language_pt_br),
-        ;
     }
 
-    @Suppress("DEPRECATION") // Locale(language, country) 在新 JDK 标了 deprecated（推荐 Locale.of），
+    // Locale(language, country) 在新 JDK 标了 deprecated（推荐 Locale.of），
     // 但 project minSdk 上 Locale.of 不可用，沿用构造器是有意的。
+    @Suppress("DEPRECATION")
     fun parse(language: String): Locale? = when (language) {
         "zh" -> Locale.SIMPLIFIED_CHINESE
         "en" -> Locale.US

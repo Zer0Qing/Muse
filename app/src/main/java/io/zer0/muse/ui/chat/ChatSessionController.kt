@@ -802,11 +802,7 @@ internal class ChatSessionController(
  * 崩溃正好落在「outbox 已落库」与「草稿已清空」之间时，库里那条草稿就是已经发出去的那句话；
  * 恢复回去等于邀请用户再发一次，所以按 outbox 里待发的原文认出来并丢弃。
  */
-internal fun dropAlreadySentDraft(
-    draft: String,
-    pendingOutboxTexts: List<String>,
-    lastSentUserText: String? = null,
-): String {
+internal fun dropAlreadySentDraft(draft: String, pendingOutboxTexts: List<String>, lastSentUserText: String? = null): String {
     if (draft.isBlank()) return ""
     if (draft in pendingOutboxTexts) return ""
     if (lastSentUserText != null && lastSentUserText == draft) return ""

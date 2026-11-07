@@ -1775,8 +1775,6 @@ private fun ChatListToolbarAction(icon: androidx.compose.ui.graphics.vector.Imag
     }
 }
 
-
-
 /**
  * U-22: 多选编辑模式。顶栏提供"全选/删除/归档/退出",
  * 删除/归档循环执行 [onDeleteSelected]/[onArchiveSelected](复用单条 onDelete/onArchive)。

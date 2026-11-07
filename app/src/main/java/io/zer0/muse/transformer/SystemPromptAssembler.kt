@@ -64,11 +64,10 @@ internal fun thinkingInstruction(locale: String): String {
 }
 
 /** 正文语言契约：与"思考语言"分开，避免模型把"用用户语言回复"读成只对推理有效。 */
-internal fun replyLanguageInstruction(locale: String): String =
-    "回复语言\n" +
-        "- 正文使用用户本轮消息所用的语言；不要因为系统提示词、工具说明或历史消息是中文就改用中文\n" +
-        "- 判断不出用户语言时，使用应用界面语言：${thinkingLanguageName(locale)}\n" +
-        "- 用户明确指定语言时，以用户本轮的指定为准"
+internal fun replyLanguageInstruction(locale: String): String = "回复语言\n" +
+    "- 正文使用用户本轮消息所用的语言；不要因为系统提示词、工具说明或历史消息是中文就改用中文\n" +
+    "- 判断不出用户语言时，使用应用界面语言：${thinkingLanguageName(locale)}\n" +
+    "- 用户明确指定语言时，以用户本轮的指定为准"
 
 /**
  * v0.30-a: 系统提示组装器(6 步工作流 第 1 步)。

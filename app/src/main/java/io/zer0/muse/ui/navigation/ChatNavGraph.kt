@@ -200,7 +200,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                         currentAssistant = state.currentAssistant,
                         archivedSessions = state.archivedSessions,
                         onArchive = { id -> sharedViewModel.setSessionArchived(id, true) },
-                        onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
+                            onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
                         onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
                         onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
                         onOpenQuickTranslate = { navController.navigate(TranslateRoute) },

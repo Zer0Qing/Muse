@@ -97,20 +97,20 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDateFormats
-import io.zer0.muse.ui.theme.MuseStatusColors
-import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseStatusColors
 import io.zer0.muse.ui.theme.huge
-import java.util.Calendar
+import io.zer0.muse.ui.theme.statusColors
+import io.zer0.muse.ui.theme.titleSmallStrong
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * v1.104: 把 5 字段 Cron 表达式转为人类可读的中文描述。
@@ -457,7 +457,7 @@ private fun TaskCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 TaskMetaChip(text = intervalToLabel(task.interval))
-                    NextRunChip(task)
+                NextRunChip(task)
                 if (task.lastRunAt > 0) {
                     val lastFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
                     TaskMetaChip(
@@ -1843,7 +1843,6 @@ private fun copyWakeSnapshot(context: Context, report: WakeDiagnostics) {
     MuseToast.show(context.getString(R.string.wake_diagnostics_copied))
 }
 
-
 /**
  * 下次执行胶囊：领取哨兵与 cron 无匹配都不是"下次时刻"，
  * 直接拿去格式化会显示 08-17 07:12 这种假日期（实机走查 三-S3）。
@@ -1866,7 +1865,6 @@ private fun NextRunChip(task: io.zer0.muse.data.schedule.ScheduledTaskEntity) {
         }
     }
 }
-
 
 /**
  * 定点时间选择行：daily/weekly 写 cronExpr，once 写绝对时刻。
@@ -1977,5 +1975,3 @@ private fun cronTimeText(cronExpr: String, fmt: SimpleDateFormat): String? {
         ?: return null
     return fmt.format(Date(next))
 }
-
-

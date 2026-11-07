@@ -13,8 +13,7 @@ import java.util.TimeZone
  */
 class ScheduledTaskFixedTimeTest {
 
-    private fun at(millis: Long, field: Int): Int =
-        Calendar.getInstance(TimeZone.getDefault()).apply { timeInMillis = millis }.get(field)
+    private fun at(millis: Long, field: Int): Int = Calendar.getInstance(TimeZone.getDefault()).apply { timeInMillis = millis }.get(field)
 
     @Test
     fun `daily 带时刻时按墙钟定点，不再等于现在加二十四小时`() {

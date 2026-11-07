@@ -303,7 +303,7 @@ fun AuditLogPage(onBack: () -> Unit) {
                     InfoLine(
                         label = stringResource(R.string.audit_log_field_result),
                         value = stringResource(
-                            if (log.success) R.string.audit_log_result_ok else R.string.audit_log_result_fail
+                            if (log.success) R.string.audit_log_result_ok else R.string.audit_log_result_fail,
                         ),
                     )
                     if (log.detail.isNotBlank() && log.detail != "{}") {
@@ -725,5 +725,4 @@ private fun shareAuditLogsAsJson(context: android.content.Context, logs: List<Au
  */
 private val uuidTargetPattern = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-internal fun auditTargetDisplay(target: String): String =
-    if (uuidTargetPattern.matches(target)) "${target.take(8)}…" else target
+internal fun auditTargetDisplay(target: String): String = if (uuidTargetPattern.matches(target)) "${target.take(8)}…" else target
