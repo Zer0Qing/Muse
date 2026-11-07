@@ -20,4 +20,3 @@ internal object MiniPhoneActivityText {
         MpActivityKind.OTHER -> R.string.mp_activity_other
     }
 }
-

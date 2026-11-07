@@ -291,12 +291,11 @@ private fun GroupPickEmptyState(title: String, hint: String, modifier: Modifier 
 }
 
 /** 已选人数那一行:不到两个人时顺带说明门槛。 */
-internal fun selectedHintOf(context: android.content.Context, selectedCount: Int): String =
-    if (selectedCount < MIN_GROUP_MEMBERS) {
-        context.getString(R.string.mp_group_selected_min, selectedCount, MIN_GROUP_MEMBERS)
-    } else {
-        context.getString(R.string.mp_group_selected_enough, selectedCount)
-    }
+internal fun selectedHintOf(context: android.content.Context, selectedCount: Int): String = if (selectedCount < MIN_GROUP_MEMBERS) {
+    context.getString(R.string.mp_group_selected_min, selectedCount, MIN_GROUP_MEMBERS)
+} else {
+    context.getString(R.string.mp_group_selected_enough, selectedCount)
+}
 
 private val GROUP_PICK_DONE_LABEL_RES: Int = R.string.mp_group_done
 private val EMPTY_CONTACTS_TITLE_RES: Int = R.string.mp_contacts_empty_title

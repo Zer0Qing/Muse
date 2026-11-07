@@ -1,6 +1,7 @@
 package io.zer0.muse.miniphone.ui.chat
 
 import android.net.Uri
+import io.zer0.common.Logger
 import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.api.MpReplyEvent
 import io.zer0.muse.miniphone.data.db.MpActorType
@@ -8,14 +9,13 @@ import io.zer0.muse.miniphone.data.db.MpMessageStatus
 import io.zer0.muse.miniphone.data.db.MpMessageType
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
+import io.zer0.muse.miniphone.ui.launchGuarded
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.random.Random
-import io.zer0.common.Logger
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 发消息与收回复。

@@ -1,6 +1,5 @@
 package io.zer0.muse.miniphone.ui.chat
 
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize

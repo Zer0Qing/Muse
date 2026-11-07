@@ -1,9 +1,9 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
 import io.zer0.muse.miniphone.data.db.MpMessageType
-import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.entity.MpMessageEntity
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
 import io.zer0.muse.miniphone.newInMemoryMiniPhoneDb

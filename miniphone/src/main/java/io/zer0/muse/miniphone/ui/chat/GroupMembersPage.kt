@@ -619,6 +619,5 @@ private val WindowCorner = 8.dp
 private val DialogActionCorner = 8.dp
 private val DialogActionHeight = 36.dp
 
-
 /** 添加成员页的标签前缀:与建群页分开,测试点的是哪一页一眼能看出。 */
 private const val GROUP_ADD_TAG_PREFIX: String = "mp-group-add-member"

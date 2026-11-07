@@ -1,13 +1,13 @@
 package io.zer0.muse.miniphone.ui.chat
 
 import io.zer0.muse.miniphone.data.voice.MpVoiceCapture
+import io.zer0.muse.miniphone.ui.launchGuarded
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 语音输入的三个状态。

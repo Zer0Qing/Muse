@@ -319,7 +319,6 @@ private fun ClearChatsConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> Unit
     }
 }
 
-
 private val SectionGap = 12.dp
 private val DialogWidth = 280.dp
 private val DialogActionHeight = 36.dp

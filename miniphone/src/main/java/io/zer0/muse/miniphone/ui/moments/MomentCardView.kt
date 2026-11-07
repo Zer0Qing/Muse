@@ -416,11 +416,15 @@ private fun CommentDeleteConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> U
                 .border(dimens.hairline, colors.divider, shape)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
-            Text(text = stringResource(COMMENT_DELETE_TITLE_RES),
- style = typography.title.copy(color = colors.textPrimary))
+            Text(
+                text = stringResource(COMMENT_DELETE_TITLE_RES),
+                style = typography.title.copy(color = colors.textPrimary),
+            )
             Spacer(Modifier.height(8.dp))
-            Text(text = stringResource(COMMENT_DELETE_HINT_RES),
- style = typography.caption.copy(color = colors.textSecondary))
+            Text(
+                text = stringResource(COMMENT_DELETE_HINT_RES),
+                style = typography.caption.copy(color = colors.textSecondary),
+            )
             Spacer(Modifier.height(18.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Text(

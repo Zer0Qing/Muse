@@ -7,12 +7,13 @@ import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.data.chat.MpGroupActions
-import io.zer0.muse.miniphone.data.db.dao.MpMessageDao
 import io.zer0.muse.miniphone.data.db.MpActorType
+import io.zer0.muse.miniphone.data.db.dao.MpMessageDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadMemberDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadMemberEntity
 import io.zer0.muse.miniphone.data.media.MpImageStore
+import io.zer0.muse.miniphone.ui.launchGuarded
 import io.zer0.muse.miniphone.ui.shell.UNKNOWN_CHARACTER_NAME
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 单个会话的聊天页状态。

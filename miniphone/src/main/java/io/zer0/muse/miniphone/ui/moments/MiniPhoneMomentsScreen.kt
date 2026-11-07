@@ -145,7 +145,9 @@ internal fun MiniPhoneMomentsScreen(
                 .fillMaxSize()
                 .background(colors.background),
         ) {
-            MomentsTopBar(onBack = onBack, title = stringResource(if (onlyMine) MINE_PAGE_TITLE_RES else PAGE_TITLE_RES), onCompose = { composing = true })
+            MomentsTopBar(onBack = onBack, title = stringResource(if (onlyMine) MINE_PAGE_TITLE_RES else PAGE_TITLE_RES), onCompose = {
+                composing = true
+            })
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = actions.onRefresh,

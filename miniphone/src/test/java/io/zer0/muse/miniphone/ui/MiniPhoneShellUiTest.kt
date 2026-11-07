@@ -68,7 +68,6 @@ class MiniPhoneShellUiTest {
         db?.close()
     }
 
-
     /**
      * 断言绑资源而不是中文串：小手机的界面文案已经进了 strings 资源，
      * 换语言或改文案时这条测试不该跟着红（模块文档本来就是这么约定的）。
@@ -387,8 +386,8 @@ class MiniPhoneShellUiTest {
         compose.onNodeWithTag(MiniPhoneTags.tab(MiniPhoneTab.ME)).performClick()
         compose.onNodeWithTag(MiniPhoneTags.VERSION_LABEL).performScrollTo()
             .assertTextEquals(
-            res(R.string.mp_me_version_label).format(MINI_PHONE_DB_VERSION, "2.6.12"),
-        )
+                res(R.string.mp_me_version_label).format(MINI_PHONE_DB_VERSION, "2.6.12"),
+            )
 
         compose.onNodeWithTag(MiniPhoneTags.MY_MOMENTS_ROW).performScrollTo().performClick()
 
@@ -421,8 +420,14 @@ class MiniPhoneShellUiTest {
 
     @Test
     fun versionLabelDropsTheHostPartWhenTheHostReportsNothing() {
-        assertEquals(res(R.string.mp_me_version_module).format(MINI_PHONE_DB_VERSION), miniPhoneVersionLabel(context, MINI_PHONE_DB_VERSION, ""))
-        assertEquals(res(R.string.mp_me_version_module).format(MINI_PHONE_DB_VERSION), miniPhoneVersionLabel(context, MINI_PHONE_DB_VERSION, "  "))
+        assertEquals(
+            res(R.string.mp_me_version_module).format(MINI_PHONE_DB_VERSION),
+            miniPhoneVersionLabel(context, MINI_PHONE_DB_VERSION, ""),
+        )
+        assertEquals(
+            res(R.string.mp_me_version_module).format(MINI_PHONE_DB_VERSION),
+            miniPhoneVersionLabel(context, MINI_PHONE_DB_VERSION, "  "),
+        )
         assertEquals(
             res(R.string.mp_me_version_label).format(MINI_PHONE_DB_VERSION, "2.6.12"),
             miniPhoneVersionLabel(context, MINI_PHONE_DB_VERSION, "2.6.12"),

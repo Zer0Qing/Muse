@@ -48,13 +48,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
+import io.zer0.muse.miniphone.ui.launchGuarded
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 聊天页入口:取会话自己的 ViewModel,把返回值挂到系统返回键上,并负责拉起系统图片选择器。

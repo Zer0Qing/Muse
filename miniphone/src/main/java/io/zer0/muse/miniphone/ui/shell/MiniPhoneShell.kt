@@ -40,10 +40,10 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.miniphone.R
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneChatRoute
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
+import io.zer0.muse.miniphone.ui.launchGuarded
 import io.zer0.muse.miniphone.ui.moments.MiniPhoneMomentsRoute
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import kotlinx.coroutines.delay
-import io.zer0.muse.miniphone.ui.launchGuarded
 
 /**
  * 小手机外壳。

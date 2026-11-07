@@ -5,6 +5,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import io.zer0.common.Logger
+import io.zer0.muse.miniphone.util.logOnlyExceptionHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +21,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
-import io.zer0.muse.miniphone.util.logOnlyExceptionHandler
 
 /**
  * 录音的对外契约。
@@ -64,7 +64,7 @@ internal class MpVoiceRecorder(
 
     // 挂上只记日志的异常处理器：采集写入里任何没人预料的异常，
 // 原来都会落到线程默认处理器（整个应用弹掉），现在留下一条原因后让这单任务自己死。
-private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + logOnlyExceptionHandler(TAG))
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + logOnlyExceptionHandler(TAG))
 
     /** 正在进行的这一次录音;null 表示没在录。 */
     private var session: Session? = null

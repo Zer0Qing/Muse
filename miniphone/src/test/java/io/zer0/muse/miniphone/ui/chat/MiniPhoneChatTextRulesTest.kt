@@ -1,8 +1,8 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageType
-import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.ui.shell.initialOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

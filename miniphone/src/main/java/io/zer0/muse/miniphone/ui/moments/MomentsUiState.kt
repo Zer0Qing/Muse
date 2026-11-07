@@ -204,4 +204,3 @@ internal fun likersLineOf(context: android.content.Context, names: List<String>)
 }
 
 private const val LIKERS_MARK: String = "❤️ "
-private const val LIKERS_SEPARATOR: String = "，"

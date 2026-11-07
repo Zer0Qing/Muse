@@ -7,8 +7,8 @@ import io.zer0.muse.miniphone.data.chat.normalizeGroupTitle
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadMemberDao
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
-import io.zer0.muse.miniphone.ui.shell.UNKNOWN_CHARACTER_NAME
 import io.zer0.muse.miniphone.ui.launchGuarded
+import io.zer0.muse.miniphone.ui.shell.UNKNOWN_CHARACTER_NAME
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update

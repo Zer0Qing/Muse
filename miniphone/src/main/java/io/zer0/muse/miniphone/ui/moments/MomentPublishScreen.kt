@@ -119,8 +119,10 @@ private fun PublishTopBar(canPublish: Boolean, onClose: () -> Unit, onConfirm: (
                     .testTag(MiniPhoneMomentsTags.PUBLISH_CLOSE),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = stringResource(CLOSE_LABEL_RES),
- style = typography.caption.copy(color = colors.textSecondary))
+                Text(
+                    text = stringResource(CLOSE_LABEL_RES),
+                    style = typography.caption.copy(color = colors.textSecondary),
+                )
             }
             Text(
                 text = stringResource(TITLE_RES),

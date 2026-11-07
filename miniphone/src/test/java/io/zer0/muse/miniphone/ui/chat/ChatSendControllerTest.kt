@@ -1,13 +1,13 @@
 package io.zer0.muse.miniphone.ui.chat
 
 import io.zer0.muse.miniphone.api.MiniPhoneHost
-import io.zer0.muse.miniphone.api.MpChatTurn
 import io.zer0.muse.miniphone.api.MpCharacter
+import io.zer0.muse.miniphone.api.MpChatTurn
 import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.api.MpReplyEvent
+import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
-import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
 import io.zer0.muse.miniphone.data.media.MpImageStore
 import io.zer0.muse.miniphone.newInMemoryMiniPhoneDb

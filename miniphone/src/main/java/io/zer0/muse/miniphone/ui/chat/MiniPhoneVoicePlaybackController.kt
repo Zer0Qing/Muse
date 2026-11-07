@@ -5,6 +5,7 @@ import android.media.MediaPlayer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.zer0.muse.miniphone.util.logOnlyExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,7 +14,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
-import io.zer0.muse.miniphone.util.logOnlyExceptionHandler
 
 /**
  * 语音条的播放状态。
@@ -229,8 +229,8 @@ class MiniPhoneVoicePlaybackController(
     private companion object {
         /** 进度采样间隔:语音条不需要逐帧,10 fps 足够顺,也省电。 */
         // 日志里认出是哪条后台任务/动作失败了。
-private const val TAG = "MiniPhoneVoicePlayback"
+        private const val TAG = "MiniPhoneVoicePlayback"
 
-private const val PROGRESS_INTERVAL_MS = 100L
+        private const val PROGRESS_INTERVAL_MS = 100L
     }
 }
