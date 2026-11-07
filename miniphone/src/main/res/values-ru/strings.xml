@@ -91,4 +91,18 @@
     <string name="mp_activity_weather">Глянул в окно…</string>
     <string name="mp_activity_notes">Листает заметки…</string>
     <string name="mp_activity_other">Занят другим…</string>
+    <string name="mp_time_just_now">Только что</string>
+    <string name="mp_time_yesterday_at">Вчера %1$s</string>
+    <plurals name="mp_time_minutes_ago">
+        <item quantity="one">%1$d минуту назад</item>
+        <item quantity="few">%1$d минуты назад</item>
+        <item quantity="many">%1$d минут назад</item>
+        <item quantity="other">%1$d минуты назад</item>
+    </plurals>
+    <plurals name="mp_time_hours_ago">
+        <item quantity="one">%1$d час назад</item>
+        <item quantity="few">%1$d часа назад</item>
+        <item quantity="many">%1$d часов назад</item>
+        <item quantity="other">%1$d часа назад</item>
+    </plurals>
 </resources>

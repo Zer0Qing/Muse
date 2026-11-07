@@ -36,6 +36,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -155,7 +156,7 @@ private fun ThreadRow(thread: MiniPhoneThreadUi, onOpen: () -> Unit, onLongPress
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = relativeTimeOf(thread.lastMessageAt),
+                    text = relativeTimeOf(LocalContext.current, thread.lastMessageAt),
                     style = typography.timestamp.copy(color = colors.textSecondary),
                     maxLines = 1,
                 )

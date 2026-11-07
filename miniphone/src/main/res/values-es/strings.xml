@@ -91,4 +91,14 @@
     <string name="mp_activity_weather">Ha mirado por la ventana…</string>
     <string name="mp_activity_notes">Revisa sus notas…</string>
     <string name="mp_activity_other">Ocupado con otra cosa…</string>
+    <string name="mp_time_just_now">Ahora mismo</string>
+    <string name="mp_time_yesterday_at">Ayer %1$s</string>
+    <plurals name="mp_time_minutes_ago">
+        <item quantity="one">hace %1$d minuto</item>
+        <item quantity="other">hace %1$d minutos</item>
+    </plurals>
+    <plurals name="mp_time_hours_ago">
+        <item quantity="one">hace %1$d hora</item>
+        <item quantity="other">hace %1$d horas</item>
+    </plurals>
 </resources>

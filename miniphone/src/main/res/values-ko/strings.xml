@@ -91,4 +91,12 @@
     <string name="mp_activity_weather">상대가 창밖을 한 번 봤어요…</string>
     <string name="mp_activity_notes">상대가 노트를 뒤지고 있어요…</string>
     <string name="mp_activity_other">상대가 다른 일을 하고 있어요…</string>
+    <string name="mp_time_just_now">방금</string>
+    <string name="mp_time_yesterday_at">어제 %1$s</string>
+    <plurals name="mp_time_minutes_ago">
+        <item quantity="other">%1$d분 전</item>
+    </plurals>
+    <plurals name="mp_time_hours_ago">
+        <item quantity="other">%1$d시간 전</item>
+    </plurals>
 </resources>

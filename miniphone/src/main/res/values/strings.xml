@@ -91,4 +91,12 @@
     <string name="mp_activity_weather">对方看了眼窗外…</string>
     <string name="mp_activity_notes">对方翻着笔记…</string>
     <string name="mp_activity_other">对方正在忙别的…</string>
+    <string name="mp_time_just_now">刚刚</string>
+    <string name="mp_time_yesterday_at">昨天 %1$s</string>
+    <plurals name="mp_time_minutes_ago">
+        <item quantity="other">%1$d 分钟前</item>
+    </plurals>
+    <plurals name="mp_time_hours_ago">
+        <item quantity="other">%1$d 小时前</item>
+    </plurals>
 </resources>

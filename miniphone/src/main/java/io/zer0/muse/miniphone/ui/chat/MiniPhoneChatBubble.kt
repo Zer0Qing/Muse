@@ -305,7 +305,7 @@ internal fun ChatTimeDividerRow(at: Long) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = MiniPhoneTimeFormat.separator(at),
+            text = MiniPhoneTimeFormat.separator(LocalContext.current, at),
             style = typography.timestamp.copy(color = colors.textSecondary),
         )
     }

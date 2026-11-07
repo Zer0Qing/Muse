@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -151,7 +152,7 @@ private fun MomentHeader(moment: MomentUi) {
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = relativeTimeOf(moment.createdAt),
+            text = relativeTimeOf(LocalContext.current, moment.createdAt),
             style = typography.timestamp.copy(color = colors.textSecondary),
             modifier = Modifier.testTag(MiniPhoneMomentsTags.time(moment.id)),
         )
@@ -338,7 +339,7 @@ private fun CommentLine(line: CommentLineModel, onReply: () -> Unit, onAskDelete
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = relativeTimeOf(line.createdAt),
+            text = relativeTimeOf(LocalContext.current, line.createdAt),
             style = typography.timestamp.copy(color = colors.textSecondary),
             modifier = Modifier
                 .padding(start = CommentTimeGap)
