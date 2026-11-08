@@ -1,0 +1,105 @@
+Muse v2.6.25 测试候选包校验记录
+生成时间: 2026-11-09 05:03 +08:00
+versionName=2.6.25  versionCode=289  applicationId=io.zer0.muse
+状态: **已公开发布**。发行提交 cf9543703e701b71f1f0e9df2d7935fe5ec641a3；
+      tag v2.6.25 指向该提交；三包 APK 与 manifest.json 已作为 GitHub Release 附件上传。
+
+## 版本与来源一致性
+本版把上一版遗留的「包与 tag 不同源」偏差彻底消除：
+- 包在独立 clean worktree 中构建，其内容 = HEAD f2998dc0 + 60 个 app 侧改动，
+  与发行提交 cf954370 的源码差异为零（该提交正是把同样这 60 个路径提交入库）。
+- manifest.json 的 sourceCommit = cf9543703e701b71f1f0e9df2d7935fe5ec641a3，
+  即 tag v2.6.25 所指的提交；不存在「manifest 用基础 commit 冒充」的情况。
+- 构建时的 gitignored 本地资产（jniLibs / 两个 zip / web dist）已补齐并复核，
+  详见下方「构建来源与工作区状态」第 3 条。
+
+## 版本号
+aapt2 dump badging（arm64-v8a 包）:
+package: name='io.zer0.muse' versionCode='289' versionName='2.6.25' compileSdkVersion='36'
+minSdkVersion 26  targetSdkVersion 36
+版本预检: resolve_release_version.py --tag v2.6.25 --gradle-file app/build.gradle.kts PASS
+          （tag 与 gradle 默认值一致：2.6.25 / 289）
+构建命令: ./gradlew.bat :app:assembleRelease -PversionName=2.6.25 -PversionCode=289
+output-metadata.json 四个变体均为 2.6.25 / 289。
+
+## 签名（apksigner verify --print-certs）
+validate_release_apks.py 对三个分发包全部 PASS；固定证书 SHA-256:
+e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+与 v2.6.22 / v2.6.24 同一证书，可直接覆盖升级。
+
+## 产物（本次分发三包 + manifest.json）
+Muse_v2.6.25_arm64-v8a.apk    104071971 bytes  sha256=df14b5beb013906cce6bb6601e2d6b5381e24169608e7c3444947ae3c0d11003
+Muse_v2.6.25_armeabi-v7a.apk   60004430 bytes  sha256=e3a2a2717e75cd0108b5f19bedf12ab87d2b8831fece36cced47a8fef237e8f2
+Muse_v2.6.25_universal.apk    188074980 bytes  sha256=adf270b850409e2a76c87d05ef7e183b9e46b1a18c7926303198e6bf6b19ee27
+
+三包的 SHA-256 与 Gradle 产物逐字节核对一致：分发包就是构建输出改名而来，无二次处理。
+x86_64 包（105354709 bytes）本机保留用于模拟器，按 PROJECT_GUIDE §7.3 不进入公开分发。
+
+包内条目核对（zipfile，arm64-v8a 包）：总条目 1981、assets 235、lib/arm64-v8a 84 项，
+与 v2.6.24 的 1981 / 235 / 84 完全对齐；关键资产无缺失：
+- assets/muse-python-assets.zip、assets/muse-runtime-assets.zip
+- lib/arm64-v8a/libmuse_node.so、libpython3.14.so、libicudata.so
+- assets/a11y/accessibility-provider.apk
+- assets/muse-web/ 网页 bundle 10 项（index-D_tnbcY8.js / index-DmLlq4aT.css 等）
+旧包有而新包无的条目：除 R8 重命名导致的 META-INF/services 差异外，无。
+
+## manifest 校验
+generate_release_manifest.py → release/manifest.json（归档为 releases/v2.6.25/manifest.json）
+validate_release_manifest.py PASS：版本、DB 版本（MuseDb.kt → 125）、三包摘要与 provenance 一致。
+manifest.json 的 sourceCommit=cf9543703e701b71f1f0e9df2d7935fe5ec641a3、sourceRef=v2.6.25，
+与 tag v2.6.25 指向的提交一致。
+
+## 构建来源与工作区状态（不隐瞒）
+构建工作树: 独立 detached worktree，基础 commit f2998dc0（main HEAD），
+            路径 C:\Users\21192\AppData\Local\Temp\muse-v2625-build。
+构建时把 60 个 app 侧的已修改/新增路径复制进该 worktree；其中 2 个
+(ChatBackgroundStore.kt、StickerSettingsPage.kt) 经逐字节核对内容等于 HEAD，只是时间戳脏，
+所以 worktree 的 git status 记为 58 项，实际源码内容一致。
+
+**本版包与 tag 同源**：构建完成后，把同样这 60 个 app 侧路径提交为
+发行提交 cf9543703e701b71f1f0e9df2d7935fe5ec641a3，再用该 SHA 重新生成 manifest。
+PROJECT_GUIDE §7.1 要求记录基础 commit / sourceRef / dirty 状态与内容指纹；
+本次通过「提交后重新生成 manifest」把来源收敛到单一提交，不再有 dirty 指纹缺口。
+
+1. **不含小手机的未提交中间态（本次刻意与上版不同）**：
+   主工作树另有 43 个 miniphone 相关未提交改动，含 MiniPhoneDb 的 5→6 迁移
+   （HEAD 只到 4→5）、mp_call_session 表与 R3 通话草稿。这些**没有进本包**：
+   worktree 基于 HEAD，只复制 app 侧路径，miniphone 模块保持 HEAD 版本。
+   上版 v2.6.24 的校验记录里「包与 tag 不同源、含未提交小手机改动」的偏差，本版不再存在。
+2. **小手机 UI 已确认隐藏**：FeatureFlags.MINI_PHONE=false、MINI_PHONE_ENTRY=false、
+   MOMENTS=MINI_PHONE；首页、设置分类页、搜索、路由、Web Host 设置七处入口均受这些开关控制。
+3. **gitignored 的本地运行时资产**：app/src/main/jniLibs/（148 文件）、
+   assets/muse-python-assets.zip、assets/muse-runtime-assets.zip、web/apps/client/dist
+   都不入库，纯净 worktree 初次构建时缺失，导致首包少了内嵌 Node/Python 运行时与网页 bundle
+   （arm64 仅 53MB / 1895 条目）。已把这些本地资产补齐后重新构建，复核见上「包内条目核对」。
+   这些资产被 .gitignore 覆盖，不会进提交，也不含任何凭据。
+4. 归档目录已核对不含 keystore / token / .env / local.properties。
+
+## 五条 CI lane（本次正式跑全，非手挑脚本）
+ci-scripts PASS
+lanes     FAILED —— hardcoded-cjk: MemoryViewModel.kt 2 处（baseline 1，新增 1）
+static    FAILED —— ktlintKotlinSourceCheck 八个模块全红，合计 3068 条（app 2928）
+unit      FAILED —— :app:testDebugUnitTest 5258 例中 4 例失败
+debug     PASS
+
+用户已明确接受「不影响应用大部分正常功能就不管，后面单独处理」，故本版带着这三条红 lane 发行，
+如实标注 **未达到五 lane 全绿的发行门槛**，不伪报门禁通过。三条的性质与归属：
+
+- lanes / static 为继承存量：MemoryViewModel.kt 与 ci/ 基线、.editorconfig、各模块
+  ktlint-baseline.xml 相对 HEAD 均未改动。入库 app/ktlint-baseline.xml 仅 537 条 / 243 文件，
+  已严重过期；上一轮走查台账已取证并写明「:app:ktlintKotlinSourceCheck 对任何人都是红的」。
+  本轮改动名下的 ktlint 违规原有 8 处（ShizukuRemoteExecutor.kt 4、ShizukuAuthorizerTest.kt 4），
+  已全部改代码清零、未塞 baseline；detekt 名下 0 条。
+- unit 的 4 例失败全在 AutomationSettingsDecodeTraceTest，症状为日志列表为空。
+  该类单独跑 PASS；加入诊断探针后 4 例全绿；另一次全量跑则换成 SessionMemoryCleanupTest
+  报 UncaughtExceptionsBeforeTest。Logger.sink 是进程级全局（该类注释自己写明这一风险），
+  证据指向跨测试类遗留协程/全局状态污染，不是本轮代码引入的回归。
+  按系统化调试规则，两处猜测式修复均未站住，已停止继续猜测并把诊断代码全部撤除
+  （AutomationSettingsDecodeTraceTest.kt 已回到 HEAD 原样）。此项**未定位到根因，仍未解决**。
+
+## 待真机确认（本记录不宣称已通过）
+- Shizuku newProcess 直连快路径：SELinux 域是否与原 UserService 通道等价、Sui 后端是否支持
+  该调用；任一不成立会自动退回原通道，功能不受影响，只是回到原速度。
+- Termux 此前「返回 200 且不给助手反馈」中 200 的来源仍未定位；本轮补齐了三路回传、
+  探测缓存与结构化失败反馈，若仍复现需要设备日志。
+- 动效手感与低端机降级、TalkBack 全流程、大字号截断、ColorOS 通知与省电行为。
