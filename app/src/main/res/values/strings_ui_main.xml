@@ -205,6 +205,8 @@
     <string name="shizuku_service_running">Shizuku 服务已运行</string>
     <string name="shizuku_service_not_running">Shizuku 服务未运行（需在 Shizuku 应用中启动）</string>
     <string name="shizuku_status_unauthorized_long">未授权 Muse 使用 Shizuku</string>
+    <string name="permission_shizuku_service_not_ready">已授权，但 Shell 服务未就绪，请点「刷新状态」重试</string>
+    <string name="permission_shizuku_request_sent_hint">已向 Shizuku 发送授权请求，请在弹窗中允许</string>
     <string name="permission_open_shizuku_service">打开 Shizuku 启动服务</string>
     <string name="permission_action_id_help">1 = 返回 (BACK)\n2 = 主页 (HOME)\n3 = 最近任务 (RECENTS)\n4 = 通知栏 (NOTIFICATIONS)\n5 = 快捷设置 (QUICK_SETTINGS)\n6 = 电源对话框 (POWER_DIALOG)\n10 = 关闭通知shade (DISMISS_NOTIFICATION_SHADE)\n\n快捷工具： ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">AI 对你的理解</string>

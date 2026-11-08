@@ -73,7 +73,8 @@ open class ShellExecutor(
     private suspend fun screenshotViaShizuku(): Result<ByteArray> {
         val file = File(context.cacheDir, "muse_shell_shot_${System.currentTimeMillis()}.png")
         return try {
-            val result = shizukuAuthorizer?.executeForTool("screencap -p > ${shellQuote(file.absolutePath)}")
+            // UserService 以 shell 身份运行，写不了 App 私有 cache；字节必须经管道回本进程再落盘。
+            val result = shizukuAuthorizer?.executeToFile("screencap -p 2>/dev/null", file)
             val ok = result != null && result.exitCode == 0 && file.exists() && file.length() > 0
             if (!ok) {
                 Logger.w(
@@ -93,9 +94,6 @@ open class ShellExecutor(
             Result.failure(e)
         }
     }
-
-    /** 单引号包裹路径，内部单引号按 POSIX 规则转义。路径来自 cacheDir，不含特殊字符，这里仍做防御。 */
-    private fun shellQuote(raw: String): String = "'" + raw.replace("'", "'\\''") + "'"
 
     override suspend fun readScreen(): ScreenInfo = withContext(Dispatchers.IO) {
         val pkg = currentPackage()

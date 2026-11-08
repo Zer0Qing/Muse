@@ -1,6 +1,13 @@
 package io.zer0.muse.automation.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.layout.Arrangement
@@ -105,12 +112,21 @@ fun AutomationSettingsPage(
         autonomousLoaded = true
     }
 
-    SettingsSubPageScaffold(
-        title = stringResource(automationSubPageTitleRes(subPage)),
-        onBack = {
-            if (subPage != AutomationSubPage.LANDING) subPage = AutomationSubPage.LANDING else onBack()
+    // 2.6.24: 子页按「整页横向推入」呈现（含各自页头），不再在原页上只换标题与按钮。
+    AnimatedContent(
+        targetState = subPage,
+        transitionSpec = {
+            (slideInHorizontally(animationSpec = tween(220)) { full -> full } + fadeIn(tween(220))) togetherWith
+                (slideOutHorizontally(animationSpec = tween(220)) { full -> -full / 4 } + fadeOut(tween(160)))
         },
-    ) {
+        label = "automationSubPage",
+    ) { page ->
+        SettingsSubPageScaffold(
+            title = stringResource(automationSubPageTitleRes(page)),
+            onBack = {
+                if (page != AutomationSubPage.LANDING) subPage = AutomationSubPage.LANDING else onBack()
+            },
+        ) {
         // 顶部说明卡
         item(key = "intro") {
             Surface(
@@ -224,7 +240,7 @@ fun AutomationSettingsPage(
         }
 
         // v2.x: 三通道权限配置已收敛到「权限配置向导」(消除两页逐层重复)
-        if (subPage == AutomationSubPage.ACCESS) item(key = "permissions-entry") {
+        if (page == AutomationSubPage.ACCESS) item(key = "permissions-entry") {
             SettingsGroup {
                 SettingsItemRow(
                     icon = MuseIcons.shieldCheck,
@@ -240,7 +256,7 @@ fun AutomationSettingsPage(
         // 虚拟屏交接（P1-02）：任务跑完把屏留下来时，用户在这里看得到、也能自己点。
         val handoffs = io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
             .list(System.currentTimeMillis())
-        if (subPage == AutomationSubPage.ACCESS && handoffs.isNotEmpty()) {
+        if (page == AutomationSubPage.ACCESS && handoffs.isNotEmpty()) {
             item(key = "vdisplay-handoff") {
                 VirtualDisplayHandoffSection(
                     handoffs = handoffs,
@@ -292,7 +308,7 @@ fun AutomationSettingsPage(
         }
 
         // 25: 总览页的三个子页入口（默认全开：点进去即可配置，不再一页堆砌）。
-        if (subPage == AutomationSubPage.LANDING) {
+        if (page == AutomationSubPage.LANDING) {
             item(key = "sub-menu") {
                 SettingsGroup {
                     SettingsItemRow(
@@ -317,7 +333,7 @@ fun AutomationSettingsPage(
             }
         }
 
-        if (subPage == AutomationSubPage.AUTONOMOUS) item(key = "autonomous-accessibility") {
+        if (page == AutomationSubPage.AUTONOMOUS) item(key = "autonomous-accessibility") {
             AutonomousAccessibilityItem(
                 loaded = autonomousLoaded,
                 draft = autonomousDraft,
@@ -332,7 +348,7 @@ fun AutomationSettingsPage(
         }
 
         // v1.xxx: F-24 编排与测试子页（抽成独立函数，页内只留分流，降复杂度）。
-        if (subPage == AutomationSubPage.ORCHESTRATION) {
+        if (page == AutomationSubPage.ORCHESTRATION) {
             orchestrationSubPage(
                 testing = testing,
                 testResult = testResult,
@@ -347,6 +363,7 @@ fun AutomationSettingsPage(
                 onOpenScheduledTasks = onOpenScheduledTasks,
             )
         }
+    }
     }
 }
 

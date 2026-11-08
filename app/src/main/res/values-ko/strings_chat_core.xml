@@ -616,6 +616,8 @@
     <string name="chat_tool_paused_banner_action">설정</string>
     <string name="settings_chat_show_assistant_name">어시스턴트 이름 표시</string>
     <string name="settings_chat_show_assistant_name_subtitle">메시지 위에 말하는 사람을 표시합니다</string>
+    <string name="settings_chat_show_user_name">내 이름 표시</string>
+    <string name="settings_chat_show_user_name_subtitle">내 메시지 위에 닉네임을 표시합니다. 그룹 채팅과 여러 어시스턴트 환경에서 유용합니다</string>
     <string name="chat_placeholder_simple">메시지…</string>
     <string name="chat_ignore_memory_option_on">메모리 참조 안 함: 켜짐</string>
     <string name="chat_ignore_memory_option_off">메모리 참조 안 함: 꺼짐</string>

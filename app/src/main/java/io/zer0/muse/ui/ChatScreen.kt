@@ -2912,6 +2912,8 @@ fun ChatScreen(
                                                     showAvatar = showAvatar,
                                                     showUserAvatar = !isAgentMode && state.chatPreferences.showUserAvatar,
                                                     userAvatarText = accountState.userName.take(1).ifBlank { "U" },
+                                                    userAvatarUri = accountState.avatarUri,
+                                                    userName = accountState.userName,
                                                     showTimestamp = showTimestamp,
                                                     assistant = state.currentAssistant,
                                                     // v1.43: 产物卡片列表与点击查看

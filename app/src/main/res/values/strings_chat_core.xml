@@ -632,6 +632,8 @@
     <string name="chat_tool_paused_banner_action">去设置</string>
     <string name="settings_chat_show_assistant_name">显示助手名字</string>
     <string name="settings_chat_show_assistant_name_subtitle">消息顶部显示是谁在说话，多助手场景更容易分辨</string>
+    <string name="settings_chat_show_user_name">显示我的名字</string>
+    <string name="settings_chat_show_user_name_subtitle">在自己消息顶部显示昵称，群聊与多助手场景更容易分辨</string>
     <string name="chat_placeholder_simple">发消息…</string>
     <string name="chat_ignore_memory_option_on">不参考记忆：已开启</string>
     <string name="chat_ignore_memory_option_off">不参考记忆：未开启</string>

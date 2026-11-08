@@ -193,17 +193,24 @@ android {
         //          二维码默认不含密钥、引导语言与返回策略修复、数量文案改复数、15 处裸 Toast 收敛、
         //          长表单改底部面板）；实机走查 X 批（无可用模型服务不再静默空回合、通知权限改按需请求、
         //          主题名与 PII 的机翻硬伤纠正、会话标题口径全链路统一、完成页卡片可直达、跳过态后退补全）。
+        // v2.6.24: 权限体系统一（无障碍/Shizuku/Root/Termux 四通道单一事实源 + 事件驱动刷新，
+        //          Root 换 libsu 并把探测与请求分离，向导接协调层给定向指引，无 root 设备不再误报）；
+        //          设置信息架构重排（一级直达内容页、保活二级提到一级、表情包库并入聊天、
+        //          整组不可达时首页不显示空分类卡、UI 自动化子页改整页推入、高级通道可折叠）；
+        //          真机反馈收口（弹窗嵌套滚动闪退、卡片点击被聚焦遮罩吃掉、用户气泡改实色主题容器、
+        //          头像 URI 没传导致回退首字、Shizuku 请求被 rationale 判断吞掉与截图写不进私有目录、
+        //          刷新不清绑定退避、语音回复频率归位到语音播报、按压改整面遮罩、largeHeap）。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
             // 默认值跟随当前发行线；正式构建仍显式注入并与 tag 核对。
-            ?: 286
+            ?: 288
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
             // 名称与编号保持同一发行线，防止本地构建无意产生错配。
-            ?: "2.6.23"
+            ?: "2.6.24"
     }
 
     signingConfigs {

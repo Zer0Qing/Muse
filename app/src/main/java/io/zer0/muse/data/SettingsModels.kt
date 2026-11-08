@@ -169,6 +169,12 @@ data class ChatPreferences(
      * 与 [showTimestamp] 独立：关闭时间戳不应连带隐藏名字。
      */
     val showAssistantName: Boolean = true,
+    /**
+     * 2.6.24: 是否在用户消息顶部显示自己的名字。
+     *
+     * 与 [showAssistantName] 对称：关闭时只留头像/气泡，不显示名字。
+     */
+    val showUserName: Boolean = true,
     // ── v2.x（用户反馈）: 消息下方快捷按钮显隐 ──
     /** 助手/用户消息下方的快捷操作按钮 —— 用户可自行决定显示哪些，避免按钮行拥挤。 */
     val quickActionCopy: Boolean = true,

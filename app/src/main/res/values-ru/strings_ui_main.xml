@@ -158,6 +158,8 @@
     <string name="shizuku_service_running">Служба Shizuku запущена</string>
     <string name="shizuku_service_not_running">Служба Shizuku не запущена (запустите её в приложении Shizuku)</string>
     <string name="shizuku_status_unauthorized_long">Muse не авторизован для использования Shizuku</string>
+    <string name="permission_shizuku_service_not_ready">Разрешение есть, но служба Shell не готова. Нажмите «Обновить», чтобы повторить.</string>
+    <string name="permission_shizuku_request_sent_hint">Запрос на авторизацию отправлен в Shizuku. Разрешите его в диалоге.</string>
     <string name="permission_open_shizuku_service">Открыть Shizuku, чтобы запустить службу</string>
     <string name="permission_action_id_help">1 = Назад (BACK)\n2 = Главный экран (HOME)\n3 = Недавние задачи (RECENTS)\n4 = Панель уведомлений (NOTIFICATIONS)\n5 = Быстрые настройки (QUICK_SETTINGS)\n6 = Диалог питания (POWER_DIALOG)\n10 = Закрыть шторку уведомлений (DISMISS_NOTIFICATION_SHADE)\n\nБыстрые инструменты: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">Как AI понимает вас</string>

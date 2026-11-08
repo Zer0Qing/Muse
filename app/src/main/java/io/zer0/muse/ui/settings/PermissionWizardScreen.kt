@@ -120,8 +120,9 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
     var termuxPermitted by remember { mutableStateOf(false) }
     var termuxProbe by remember { mutableStateOf<Boolean?>(null) }
 
-    // Root 与 Termux 属于可选升级通道，默认收起，用户按需展开
-    var showAdvanced by remember { mutableStateOf(false) }
+    // Root 与 Termux 属于可选升级通道：初始跟随「是否已配置」展开，
+    // 但用户手动折叠后必须真的能收起（此前用 `showAdvanced || advancedReady` 恒展开）。
+    var showAdvanced by remember { mutableStateOf<Boolean?>(null) }
 
     // 刷新状态：协调层被动刷新四通道快照；Termux probe 按 force 决定缓存/重探。
     suspend fun refresh(forceTermuxProbe: Boolean = false) {
@@ -147,6 +148,8 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
 
     // 手动「刷新状态」按钮强制重探 Termux；页面 RESUMED 用缓存避免反复唤醒。
     fun refreshAsync() {
+        // 手动刷新要真的重绑 UserService：自动刷新留下的失败退避不该挡用户主动重试。
+        shizukuAuthorizer.resetBindBackoff()
         scope.launch { refresh(forceTermuxProbe = true) }
     }
 
@@ -274,9 +277,12 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                 installed = shizukuInstalled,
                 available = shizukuAvailable,
                 authorized = shizukuAuthorized,
+                permissionGranted = snapshot.shizukuPermissionGranted,
                 versionTooOld = shizukuVersionTooOld,
                 onInstall = { shizukuInstaller.openDownloadPage() },
                 onAuthorize = {
+                    // 先给一次即时反馈：授权弹窗由 Shizuku 应用弹出，没弹出来时用户也得知道点到了。
+                    MuseToast.show(context.getString(R.string.permission_shizuku_request_sent_hint), 4000)
                     scope.launch {
                         when (shizukuAuthorizer.requestPermission()) {
                             ShizukuAuthorizer.PermissionRequestResult.Granted -> Unit
@@ -287,11 +293,17 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                             }
                             ShizukuAuthorizer.PermissionRequestResult.Denied ->
                                 MuseToast.show(context.getString(R.string.permission_shizuku_denied_toast))
-                            ShizukuAuthorizer.PermissionRequestResult.Timeout ->
-                                MuseToast.show(context.getString(R.string.permission_shizuku_timeout_toast))
+                            ShizukuAuthorizer.PermissionRequestResult.Timeout -> {
+                                // 超时多半是弹窗没起来（后台启动限制/管理器不在当前用户）：
+                                // 直开 Shizuku，让用户手动确认，而不是只弹一句「超时」。
+                                shizukuInstaller.openApp()
+                                MuseToast.show(context.getString(R.string.permission_shizuku_manual_grant_hint), 5000)
+                            }
                             ShizukuAuthorizer.PermissionRequestResult.Unavailable ->
                                 MuseToast.show(context.getString(R.string.permission_shizuku_unavailable_toast))
                         }
+                        // 授权状态刚变化过：清掉旧退避，让这次刷新真正尝试绑定 Shell 服务。
+                        shizukuAuthorizer.resetBindBackoff()
                         refresh()
                     }
                 },
@@ -306,13 +318,14 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
             // 五张卡并列时最靠前的是没开通的 Root/Termux，等于同时飘三张红；
             // 收进一个折叠，已经装上或已授权的机器直接展开，不让现有配置看起来消失了。
             val advancedReady = rootAvailable || suiAvailable || termuxInstalled
+            val advancedExpanded = showAdvanced ?: advancedReady
             MuseCapsuleButton(
                 text = stringResource(R.string.permission_advanced_channels),
-                onClick = { showAdvanced = !showAdvanced },
+                onClick = { showAdvanced = !advancedExpanded },
                 variant = IosCapsuleButtonVariant.Secondary,
-                trailingIcon = if (showAdvanced || advancedReady) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                trailingIcon = if (advancedExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
             )
-            if (showAdvanced || advancedReady) {
+            if (advancedExpanded) {
                 // 通道 3: Root — 未授权时主行为是发起 su 授权请求(Magisk/KernelSU 弹窗)
                 ChannelCard(
                     title = stringResource(R.string.root_section_title),
@@ -560,6 +573,7 @@ private fun ShizukuChannelCard(
     installed: Boolean,
     available: Boolean,
     authorized: Boolean,
+    permissionGranted: Boolean,
     versionTooOld: Boolean,
     onInstall: () -> Unit,
     onAuthorize: () -> Unit,
@@ -617,13 +631,21 @@ private fun ShizukuChannelCard(
                 )
             }
             StatusLine(
-                done = authorized,
-                text = if (authorized) {
+                done = permissionGranted,
+                text = if (permissionGranted) {
                     stringResource(R.string.shizuku_status_authorized)
                 } else {
                     stringResource(R.string.shizuku_status_unauthorized_long)
                 },
             )
+            if (permissionGranted && !authorized) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.permission_shizuku_service_not_ready),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // ST-08b: 三个动作按钮 M3 Button → MuseCapsuleButton(fillWidth = false 保持并排)
@@ -639,7 +661,9 @@ private fun ShizukuChannelCard(
                         onClick = onStartService,
                         fillWidth = false,
                     )
-                } else if (!authorized) {
+                } else if (!authorized && !permissionGranted) {
+                    // 已授权但 Shell 服务没绑上时不再给「授权」按钮：再点只会拿到「已授权」，
+                    // 用户看到的就是「点了什么也没发生」。用刷新重试绑定。
                     MuseCapsuleButton(
                         text = stringResource(R.string.shizuku_authorize_btn),
                         onClick = onAuthorize,

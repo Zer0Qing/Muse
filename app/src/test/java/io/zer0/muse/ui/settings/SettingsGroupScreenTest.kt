@@ -49,7 +49,7 @@ class SettingsGroupScreenTest {
     private fun string(resId: Int): String = context.getString(resId)
 
     @Test
-    fun `home shows sixteen category rows`() {
+    fun `home shows every browsable category row`() {
         composeTestRule.setContent {
             MaterialTheme {
                 // 真实页面把分类卡放在可滚动容器里；测试不包一层的话 16 行溢出且无处可滚。
@@ -59,8 +59,10 @@ class SettingsGroupScreenTest {
             }
         }
 
-        composeTestRule.onAllNodesWithTag(SETTINGS_GROUP_ROW_TAG).assertCountEquals(16)
-        SettingsCatalog.groups.forEach { group ->
+        // 分类卡与条目共用可达性判定：整组不可达（如关闸的小手机）时首页不显示这张卡。
+        val visibleGroups = SettingsCatalog.groups.filter { group -> group.entries.any { it.isAvailable() } }
+        composeTestRule.onAllNodesWithTag(SETTINGS_GROUP_ROW_TAG).assertCountEquals(visibleGroups.size)
+        visibleGroups.forEach { group ->
             // 16 行超出测试视口，先滚到该行再断言可见；直接 assertIsDisplayed 会把
             // 「在列表里但没滚到」误判成「不存在」。
             composeTestRule.onNodeWithText(string(group.titleRes)).performScrollTo().assertIsDisplayed()

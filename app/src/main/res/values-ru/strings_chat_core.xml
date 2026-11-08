@@ -621,6 +621,8 @@
     <string name="chat_tool_paused_banner_action">Настройки</string>
     <string name="settings_chat_show_assistant_name">Показывать имя ассистента</string>
     <string name="settings_chat_show_assistant_name_subtitle">Показывать, кто говорит, над сообщением</string>
+    <string name="settings_chat_show_user_name">Показывать моё имя</string>
+    <string name="settings_chat_show_user_name_subtitle">Показывает ваш ник над сообщениями; полезно в групповых чатах и при нескольких ассистентах</string>
     <string name="chat_placeholder_simple">Сообщение…</string>
     <string name="chat_ignore_memory_option_on">Не использовать память: включено</string>
     <string name="chat_ignore_memory_option_off">Не использовать память: выключено</string>

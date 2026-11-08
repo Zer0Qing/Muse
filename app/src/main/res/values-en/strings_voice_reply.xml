@@ -11,6 +11,6 @@
     <string name="voice_timbre_entry_desc">Configured once in Settings → Media; nothing is stored twice</string>
     <string name="voice_reply_follow_global">Follow default</string>
     <string name="voice_reply_global_default_fmt">Global default: %1$s</string>
-    <string name="voice_reply_global_section">Voice reply frequency (global default)</string>
-    <string name="voice_reply_global_hint">All assistants follow this tier by default; override per assistant in its directives page.</string>
+    <string name="voice_reply_global_section">Voice reply frequency</string>
+    <string name="voice_reply_global_hint">All assistants follow this single tier; it only shapes the prompt, no hard blocking.</string>
 </resources>

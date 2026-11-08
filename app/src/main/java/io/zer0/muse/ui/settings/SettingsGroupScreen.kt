@@ -143,7 +143,7 @@ fun SettingsGroupScreen(
 }
 
 /** 分类页展示条件：编译期闸门开着，且这个入口没有被标为暂不展示。 */
-private fun SettingsEntrySpec.isAvailable(): Boolean =
+internal fun SettingsEntrySpec.isAvailable(): Boolean =
     browseVisible && (id != SettingsEntryId.MINIPHONE || FeatureFlags.MINI_PHONE)
 
 @Composable

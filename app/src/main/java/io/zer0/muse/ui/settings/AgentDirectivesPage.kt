@@ -3,9 +3,7 @@ package io.zer0.muse.ui.settings
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
@@ -27,8 +25,6 @@ import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.assistant.DirectivePolarity
-import io.zer0.muse.data.assistant.VoiceReplyFrequency
-import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -65,8 +61,6 @@ fun AgentDirectivesPage(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember { AgentDirectiveStore.of(context) }
-    val voiceStore = remember { VoiceReplyPolicyStore.of(context) }
-    val voiceSnapshot by voiceStore.snapshot.collectAsStateWithLifecycle(initialValue = emptyMap())
     val assistantRepository: AssistantRepository = koinInject()
 
     val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -95,16 +89,12 @@ fun AgentDirectivesPage(
         forbidden = forbidden,
         desired = desired,
         omittedCount = omittedCount,
-        voiceOverride = AgentDirectivesUiState.voiceOverride(voiceSnapshot, agentId),
-        globalVoiceFrequency = AgentDirectivesUiState.globalVoiceFrequency(voiceSnapshot),
         onBack = onBack,
         onSelectAgent = { selectedAgent = it },
         onSave = { polarity, text -> scope.launch { store.add(agentId, polarity, text) } },
         onToggle = { id, enabled -> scope.launch { store.setEnabled(id, enabled) } },
         onMove = { id, delta -> scope.launch { store.move(id, delta) } },
         onDelete = { id -> scope.launch { store.remove(id) } },
-        onVoiceFrequencyChange = { level -> scope.launch { voiceStore.set(agentId, level) } },
-        onVoiceFollowDefault = { scope.launch { voiceStore.clearOverride(agentId) } },
         onOpenTimbre = onOpenVoiceSettings,
     )
 }
@@ -123,16 +113,12 @@ internal fun AgentDirectivesContent(
     forbidden: List<AgentDirective>,
     desired: List<AgentDirective>,
     omittedCount: Int,
-    voiceOverride: VoiceReplyFrequency?,
-    globalVoiceFrequency: VoiceReplyFrequency,
     onBack: () -> Unit,
     onSelectAgent: (String) -> Unit,
     onSave: (DirectivePolarity, String) -> Unit,
     onToggle: (String, Boolean) -> Unit,
     onMove: (String, Int) -> Unit,
     onDelete: (String) -> Unit,
-    onVoiceFrequencyChange: (VoiceReplyFrequency) -> Unit,
-    onVoiceFollowDefault: () -> Unit,
     onOpenTimbre: () -> Unit,
 ) {
     var drafting by remember { mutableStateOf<DirectivePolarity?>(null) }
@@ -187,13 +173,7 @@ internal fun AgentDirectivesContent(
             DirectiveFootnote(omittedCount = omittedCount)
         }
         item {
-            VoiceFrequencySection(
-                override = voiceOverride,
-                globalDefault = globalVoiceFrequency,
-                onSelect = onVoiceFrequencyChange,
-                onFollowDefault = onVoiceFollowDefault,
-                onOpenTimbre = onOpenTimbre,
-            )
+            VoiceTimbreEntry(onOpenTimbre = onOpenTimbre)
         }
     }
 
@@ -336,70 +316,19 @@ private fun DirectiveEditor(polarity: DirectivePolarity, onDismiss: () -> Unit, 
 }
 
 /**
- * 「多常用语音回你」（整改计划 第 4 条④）。
+ * 「音色」入口：只跳到既有的语音播报设置页。
  *
- * 放在这一页而不是主动消息页，是因为主动消息那一页此刻被并行改动占用；
- * 语义上也同族 —— 都是"用户对助手行为的长期偏好"。
- * 档位只改提示词政策，不做硬拦截（见 `VoiceReplyPolicy` 的说明）。
+ * 2.6.24: 语音回复频率已统一到语音播报设置，本页不再放第二份（两处能改、值却可能不一致）。
  */
 @Composable
-private fun VoiceFrequencySection(
-    override: VoiceReplyFrequency?,
-    globalDefault: VoiceReplyFrequency,
-    onSelect: (VoiceReplyFrequency) -> Unit,
-    onFollowDefault: () -> Unit,
-    onOpenTimbre: () -> Unit,
-) {
-    val labels = mapOf(
-        VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
-        VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),
-        VoiceReplyFrequency.OFTEN to stringResource(R.string.voice_reply_often),
-        VoiceReplyFrequency.ALWAYS to stringResource(R.string.voice_reply_always),
-    )
+private fun VoiceTimbreEntry(onOpenTimbre: () -> Unit) {
     SectionLabel(stringResource(R.string.agent_directives_voice_section))
     SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
-        Column(Modifier.padding(MusePaddings.cardInner)) {
-            Text(
-                text = stringResource(R.string.agent_directives_voice_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                // 让"跟随默认"看得见到底跟随到哪一档，否则用户不知道点了会生效成什么。
-                text = stringResource(R.string.voice_reply_global_default_fmt, labels.getValue(globalDefault)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            // 5 颗 chip（跟随默认 + 四档）：用 FlowRow 而不是 Row，窄屏一行放不下会被压成竖排。
-            FlowRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MuseChip(
-                    label = stringResource(R.string.voice_reply_follow_global),
-                    selected = override == null,
-                    onClick = { if (override != null) onFollowDefault() },
-                )
-                VoiceReplyFrequency.entries.forEach { level ->
-                    MuseChip(
-                        label = labels.getValue(level),
-                        selected = level == override,
-                        onClick = { if (level != override) onSelect(level) },
-                    )
-                }
-            }
-            SettingsGroupDivider()
-            // 音色只留一个入口：跳既有的「设置 → 多媒体」页。
-            // 在这页再放一份音色选择器，就会出现"两处都能改、值却可能不一致"的老毛病。
-            SettingsItemRow(
-                icon = MuseIcons.microphone,
-                title = stringResource(R.string.voice_timbre_entry),
-                subtitle = stringResource(R.string.voice_timbre_entry_desc),
-                onClick = onOpenTimbre,
-            )
-        }
+        SettingsItemRow(
+            icon = MuseIcons.microphone,
+            title = stringResource(R.string.voice_timbre_entry),
+            subtitle = stringResource(R.string.voice_timbre_entry_desc),
+            onClick = onOpenTimbre,
+        )
     }
 }

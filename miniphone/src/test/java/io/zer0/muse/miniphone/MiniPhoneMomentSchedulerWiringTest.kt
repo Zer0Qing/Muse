@@ -34,10 +34,11 @@ class MiniPhoneMomentSchedulerWiringTest {
         assertTrue("MuseApp.kt 里找不到 override fun onCreate()", onCreateAt >= 0)
         assertTrue("MuseApp.onCreate 没有注册小手机后台任务", callAt > onCreateAt)
 
-        // 注册只在启动时发生一次;stop 不在这里调(开关关掉只让 Worker 空轮跳过)
+        // 2.6.24: 开关打开时只注册；整体收起时启动路径必须显式取消已排期的周期任务
+        // （KEEP 注册不会因为不再注册就消失，旧任务会一直空转/耗电）。
         assertTrue(
-            "启动路径不该顺手取消任务",
-            !source.substringAfter("override fun onCreate()").contains("MiniPhoneMomentScheduler.stop"),
+            "收起小手机时要在启动路径显式取消后台任务",
+            source.substringAfter("override fun onCreate()").contains("MiniPhoneMomentScheduler.stop"),
         )
     }
 

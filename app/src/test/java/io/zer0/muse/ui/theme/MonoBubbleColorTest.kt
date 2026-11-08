@@ -63,8 +63,9 @@ class MonoBubbleColorTest {
     }
 
     @Test
-    fun `non mono themes keep the tinted translucent bubble`() {
+    fun `non mono themes use a solid theme container`() {
         val (user, _) = colorsFor("sakura", dark = false)
-        assertTrue("非黑白主题仍走主色浅染（带透明度）", user.alpha < 1f)
+        // 2.6.24: 20% 主色透明底压在壁纸/渐变上像「糊了一层」；改为实色 primaryContainer。
+        assertTrue("非黑白主题也必须是不透明实色", user.alpha == 1f)
     }
 }

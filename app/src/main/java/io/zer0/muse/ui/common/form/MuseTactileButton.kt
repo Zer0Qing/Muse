@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.common.form
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -27,7 +25,6 @@ import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
-import io.zer0.muse.ui.theme.MuseSpringTier
 
 /**
  * 图标按钮统一件 — 全应用所有「只有图标、没有文字」的按钮都用它。
@@ -110,11 +107,6 @@ fun MuseTactileButton(
     )
 
     val hasContainer = container != MuseIconContainer.None
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && hasContainer) 0.92f else 1f,
-        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
-        label = "tactile_scale",
-    )
 
     val effectiveVisual = visualSize ?: if (hasContainer) MuseIconSizes.topBarSolid else size
 
@@ -145,10 +137,15 @@ fun MuseTactileButton(
                 .size(effectiveVisual)
                 .clip(CircleShape)
                 .background(boxColor)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                },
+                // 2.6.24: 按压反馈改为整面遮罩，不再缩小图标按钮。
+                .background(
+                    color = if (isPressed && enabled) {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                    } else {
+                        Color.Transparent
+                    },
+                    shape = CircleShape,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

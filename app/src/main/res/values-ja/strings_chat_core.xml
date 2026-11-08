@@ -616,6 +616,8 @@
     <string name="chat_tool_paused_banner_action">設定</string>
     <string name="settings_chat_show_assistant_name">アシスタント名を表示</string>
     <string name="settings_chat_show_assistant_name_subtitle">メッセージ上部に話し手を表示します</string>
+    <string name="settings_chat_show_user_name">自分の名前を表示</string>
+    <string name="settings_chat_show_user_name_subtitle">自分のメッセージ上部にニックネームを表示します。グループチャットや複数アシスタントで便利です</string>
     <string name="chat_placeholder_simple">メッセージ…</string>
     <string name="chat_ignore_memory_option_on">メモリを参照しない：オン</string>
     <string name="chat_ignore_memory_option_off">メモリを参照しない：オフ</string>

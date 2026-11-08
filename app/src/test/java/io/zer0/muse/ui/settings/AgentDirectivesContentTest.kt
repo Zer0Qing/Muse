@@ -44,16 +44,12 @@ class AgentDirectivesContentTest {
                 forbidden = emptyList(),
                 desired = emptyList(),
                 omittedCount = 0,
-                voiceOverride = null,
-                globalVoiceFrequency = io.zer0.muse.data.assistant.VoiceReplyFrequency.RARELY,
                 onBack = {},
                 onSelectAgent = {},
                 onSave = { _, _ -> },
                 onToggle = { _, _ -> },
                 onMove = { _, _ -> },
                 onDelete = {},
-                onVoiceFrequencyChange = {},
-                onVoiceFollowDefault = {},
                 onOpenTimbre = {},
             )
         }

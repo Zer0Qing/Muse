@@ -37,6 +37,20 @@ fun resolveCardScrollMode(focused: Boolean, hasOverflow: Boolean): CardScrollMod
     if (focused && hasOverflow) CardScrollMode.InternalScroll else CardScrollMode.PassToChat
 
 /**
+ * 是否需要在卡片上盖一层「点击聚焦」透明层。
+ *
+ * 只有「Auto 卡、尚未聚焦、内容确实溢出上限」才需要：这一下点击先把卡内滚动打开。
+ * 其余情况一律不盖 —— 盖层会吃掉 WebView 里的所有点击（按钮、链接、JS 交互全失效）。
+ * 聚焦后 [resolveCardScrollMode] 已切到 InternalScroll，由 WebView 自己滚，也不需要这层。
+ */
+fun shouldCaptureTapForFocus(
+    isAutoSize: Boolean,
+    focused: Boolean,
+    hasOverflow: Boolean,
+    hasCardId: Boolean,
+): Boolean = isAutoSize && hasCardId && !focused && hasOverflow
+
+/**
  * 全局卡片焦点协调：同一时刻最多一张卡处于「可卡内滚动」的聚焦态。
  *
  * 点新卡自动松开旧卡，点外部/返回清除。这是 HANA 式 tap-to-focus 的状态源；

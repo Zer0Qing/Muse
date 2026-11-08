@@ -73,6 +73,7 @@ import io.zer0.muse.ui.settings.SettingsGroupSpec
 import io.zer0.muse.ui.settings.SettingsSearchCatalog
 import io.zer0.muse.ui.settings.SettingsSearchRecord
 import io.zer0.muse.ui.settings.filterSettingsSearch
+import io.zer0.muse.ui.settings.isAvailable
 import io.zer0.muse.ui.settings.rememberSettingsActionHost
 import io.zer0.muse.ui.settings.settingsBreadcrumb
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -270,8 +271,11 @@ internal fun SettingsGroupCards(
     modifier: Modifier = Modifier,
     groups: List<SettingsGroupSpec> = SettingsCatalog.groups,
 ) {
+    // 分类卡与条目同一套可达性判定：整组条目都不可达时（例如关闸的小手机），
+    // 首页不该再留一张点进去什么都没有的分类卡。
+    val visibleGroups = groups.filter { group -> group.entries.any { it.isAvailable() } }
     CardGroup(modifier = modifier.padding(horizontal = MusePaddings.pageMargin)) {
-        groups.forEach { group ->
+        visibleGroups.forEach { group ->
             item(
                 key = group.kind,
                 modifier = Modifier.testTag(SETTINGS_GROUP_ROW_TAG),

@@ -77,8 +77,11 @@ class ShizukuAuthorizer(
         /** UserService 稳定标识，避免 R8/混淆后以类名误判服务身份。 */
         private const val SHELL_SERVICE_TAG = "muse_shell"
 
-        /** R-SVC-03: 授权弹窗等待超时(毫秒)。 */
-        private const val PERMISSION_TIMEOUT_MS = 60_000L
+        /** R-SVC-03: 授权弹窗等待超时(毫秒)。没有弹窗时不能干等，超时后转人工引导。 */
+        private const val PERMISSION_TIMEOUT_MS = 30_000L
+
+        /** 「拒绝且不再询问」时弹窗不会再出现，只等一个短窗口就转人工引导。 */
+        private const val PERMISSION_RATIONALE_TIMEOUT_MS = 3_000L
 
         /** UserService 绑定失败后的短退避窗口。 */
         private const val BIND_FAILURE_BACKOFF_MS = 5_000L
@@ -198,13 +201,23 @@ class ShizukuAuthorizer(
      * 应直开 Shizuku 应用内的授权管理页让用户手动允许（AutoJs6 同口径）。
      */
     suspend fun requestPermission(): PermissionRequestResult {
-        if (!isAvailable()) return PermissionRequestResult.Unavailable
-        if (checkPermission()) return PermissionRequestResult.Granted
-        if (runCatching { Shizuku.shouldShowRequestPermissionRationale() }.getOrDefault(false)) {
-            return PermissionRequestResult.PermanentlyDenied
+        if (!isAvailable()) {
+            Logger.i(TAG, "requestPermission: Shizuku 不可用（未运行或版本过旧）")
+            return PermissionRequestResult.Unavailable
         }
+        if (checkPermission()) {
+            // 已经授权：再请求也不会弹窗。调用方应按「已授权」刷新状态，
+            // 而不是把「Shell 服务未绑上」误当成「没授权」反复来点。
+            Logger.i(TAG, "requestPermission: 已授权，无需再次请求")
+            return PermissionRequestResult.Granted
+        }
+        // 部分 Shizuku 版本对「从未请求过」也会返回 true；不能据此提前返回，
+        // 否则请求根本发不出去（用户看到的就是「点授权没有任何反应」）。
+        // 只把它当作「弹窗不会出现」的短超时判据。
+        val rationale = runCatching { Shizuku.shouldShowRequestPermissionRationale() }.getOrDefault(false)
+        Logger.i(TAG, "requestPermission: 发送授权请求 rationale=$rationale")
         return try {
-            withTimeout(PERMISSION_TIMEOUT_MS) {
+            withTimeout(if (rationale) PERMISSION_RATIONALE_TIMEOUT_MS else PERMISSION_TIMEOUT_MS) {
                 suspendCancellableCoroutine { cont ->
                     val listener = object : Shizuku.OnRequestPermissionResultListener {
                         override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
@@ -226,6 +239,7 @@ class ShizukuAuthorizer(
                     }
                     try {
                         Shizuku.requestPermission(PERMISSION_REQUEST_CODE)
+                        Logger.i(TAG, "requestPermission: 请求已发送，等待用户操作")
                     } catch (e: Throwable) {
                         Shizuku.removeRequestPermissionResultListener(listener)
                         Logger.w(TAG, "Shizuku.requestPermission 失败: ${e.message}")
@@ -234,8 +248,8 @@ class ShizukuAuthorizer(
                 }
             }
         } catch (e: TimeoutCancellationException) {
-            Logger.w(TAG, "Shizuku 授权等待超时")
-            PermissionRequestResult.Timeout
+            Logger.w(TAG, "Shizuku 授权等待超时（rationale=$rationale）")
+            if (rationale) PermissionRequestResult.PermanentlyDenied else PermissionRequestResult.Timeout
         }
     }
 
@@ -417,6 +431,63 @@ class ShizukuAuthorizer(
 
     // ── 内部工具 ──────────────────────────────────────────────────────────────
 
+    /**
+     * 把命令的原始字节写进 [file]（截图等二进制输出）。
+     *
+     * 与 [executeForTool] 同一套管道：命令在 shell 进程执行，字节经 ParcelFileDescriptor
+     * 流回本进程再落盘。不能像文本路径那样把输出重定向到 App 私有目录 —— UserService
+     * 以 shell 身份运行，写不了 /data/user/0/<pkg>。
+     */
+    suspend fun executeToFile(command: String, file: File): ShizukuExecResult = withContext(Dispatchers.IO) {
+        if (!checkPermission()) return@withContext ShizukuExecResult(-1, "", "Shizuku 未授权")
+        if (!ensureServiceBound()) return@withContext ShizukuExecResult(-1, "", "Shizuku shell service 绑定失败")
+        val service = shellService ?: return@withContext ShizukuExecResult(-1, "", "Shizuku shell service 不可用")
+        val pipe = try {
+            ParcelFileDescriptor.createPipe()
+        } catch (error: Exception) {
+            return@withContext ShizukuExecResult(-1, "", "创建 Shell 输出管道失败: ${error.message}")
+        }
+        val readEnd = pipe[0]
+        val writeEnd = pipe[1]
+        val readerFailure = AtomicReference<Throwable?>(null)
+        val reader = Thread(
+            {
+                try {
+                    ParcelFileDescriptor.AutoCloseInputStream(readEnd).use { input ->
+                        file.outputStream().buffered().use { output -> input.copyTo(output) }
+                    }
+                } catch (error: Throwable) {
+                    readerFailure.set(error)
+                }
+            },
+            "muse-shizuku-file",
+        )
+        reader.start()
+
+        var exitCode = -1
+        var remoteFailure: Throwable? = null
+        try {
+            exitCode = service.executeToPipe(command, writeEnd)
+        } catch (error: android.os.RemoteException) {
+            Logger.e(TAG, "Shizuku 文件流远程调用失败: ${error.message}", error)
+            remoteFailure = error
+            release()
+        } catch (error: Throwable) {
+            Logger.e(TAG, "Shizuku 文件流执行异常: ${error.message}", error)
+            remoteFailure = error
+        } finally {
+            runCatching { writeEnd.close() }
+        }
+
+        reader.join()
+        val failure = remoteFailure ?: readerFailure.get()
+        if (failure != null) {
+            runCatching { file.delete() }
+            return@withContext ShizukuExecResult(-1, "", failure.message ?: "执行失败")
+        }
+        ShizukuExecResult(exitCode, "", "")
+    }
+
     /** R-SVC-03: 解绑 UserService 并清理引用(App 退出/通道关闭时调用)。 */
     fun release() {
         val args = boundArgs
@@ -505,6 +576,15 @@ class ShizukuAuthorizer(
             shellService = null
             serviceBound = false
         }
+    }
+
+    /**
+     * 用户手动重试：清掉绑定失败退避，让下一次 [checkReady] / [diagnose] 真正重新 bind。
+     *
+     * 退避只用于自动刷新（避免每次进页都阻塞 3 秒），不该挡住用户主动点的「刷新状态」。
+     */
+    fun resetBindBackoff() {
+        lastBindFailureAt = 0L
     }
 
     /** 解析 UserService 返回的 "exitCode\u0000stdout\u0000stderr" 格式字符串。 */

@@ -54,6 +54,15 @@ class PermissionCoordinator(
     ) {
         val shellEnabled: Boolean get() = shizukuState == ShizukuAuthorizer.ShizukuState.READY
 
+        /**
+         * 授权位是否已给出：READY 与 USER_SERVICE_UNAVAILABLE 都意味着 checkPermission 已通过。
+         * 后者是「已授权但 Shell 服务没绑上」，不能再当成未授权去重复请求（请求会直接返回已授权，
+         * 用户看到的就是「点了授权什么也没发生」）。
+         */
+        val shizukuPermissionGranted: Boolean
+            get() = shizukuState == ShizukuAuthorizer.ShizukuState.READY ||
+                shizukuState == ShizukuAuthorizer.ShizukuState.USER_SERVICE_UNAVAILABLE
+
         val rootEnabled: Boolean
             get() = rootGrantState == RootAuthorizer.GrantState.Granted ||
                 rootGrantState == RootAuthorizer.GrantState.PreviouslyGranted

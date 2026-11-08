@@ -41,23 +41,24 @@ object MuseBubbleStyles {
     /**
      * 用户气泡默认底色(无皮肤)。
      *
-     * v2.0: 从 surfaceVariant(与背景几乎同色,用户反馈"气泡看不见")改为主色浅染,
-     * 亮/暗主题下都能和背景拉开对比;描边由 [userBorderColor] 给边缘。
+     * 2.6.24: 原先用 `primary@20%` 半透明叠色 —— 压在壁纸/渐变上像「糊了一层」，
+     * 与助手卡的实色观感割裂。改为实色 [MaterialTheme.colorScheme.primaryContainer]：
+     * 与心情块同一族的主题跟随色，但不再透出背景。
      */
     @Composable
     fun userSurfaceColor(): Color = if (isMonoBubbleTheme()) {
         // 黑白主题：扁平灰阶。暗色用比背景亮两档的中灰，浅色用比背景深一档的浅灰。
         if (isDarkScheme()) Color(0xFF2E2E34) else Color(0xFFECECF0)
     } else {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+        MaterialTheme.colorScheme.primaryContainer
     }
 
-    /** 用户气泡默认描边(无皮肤)— 主色 24%,让气泡边界清晰。 */
+    /** 用户气泡默认描边(无皮肤)— 主色 18%,与心情块描边同口径。 */
     @Composable
     fun userBorderColor(): Color = if (isMonoBubbleTheme()) {
         if (isDarkScheme()) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.10f)
     } else {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
     }
 
     /**
@@ -88,7 +89,11 @@ object MuseBubbleStyles {
 
     /** 用户气泡默认文字色(无皮肤)。 */
     @Composable
-    fun userContentColor(): Color = MaterialTheme.colorScheme.onSurface
+    fun userContentColor(): Color = if (isMonoBubbleTheme()) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    }
 
     /** 气泡最大宽度(70% 屏宽,与群聊 maxBubbleWidth 一致)。 */
     @Composable

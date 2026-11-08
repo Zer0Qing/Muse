@@ -50,6 +50,35 @@ class CardViewportTest {
     }
 
     @Test
+    fun `不溢出的短卡不盖聚焦层`() {
+        // 盖层会吃掉 WebView 里的按钮与 JS 点击；短卡聚焦也没有可滚内容。
+        assertFalse(
+            shouldCaptureTapForFocus(isAutoSize = true, focused = false, hasOverflow = false, hasCardId = true),
+        )
+    }
+
+    @Test
+    fun `溢出且未聚焦才盖聚焦层`() {
+        assertTrue(
+            shouldCaptureTapForFocus(isAutoSize = true, focused = false, hasOverflow = true, hasCardId = true),
+        )
+        assertFalse(
+            "聚焦后 WebView 自己滚，不能再挡住点击",
+            shouldCaptureTapForFocus(isAutoSize = true, focused = true, hasOverflow = true, hasCardId = true),
+        )
+    }
+
+    @Test
+    fun `固定尺寸与无 id 的卡不盖聚焦层`() {
+        assertFalse(
+            shouldCaptureTapForFocus(isAutoSize = false, focused = false, hasOverflow = true, hasCardId = true),
+        )
+        assertFalse(
+            shouldCaptureTapForFocus(isAutoSize = true, focused = false, hasOverflow = true, hasCardId = false),
+        )
+    }
+
+    @Test
     fun `焦点同一时刻只属于一张卡`() {
         val focus = CardFocusController()
         focus.focus("a")

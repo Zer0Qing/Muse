@@ -158,6 +158,8 @@
     <string name="shizuku_service_running">Servicio de Shizuku en ejecución</string>
     <string name="shizuku_service_not_running">Servicio de Shizuku no en ejecución (inícialo en la aplicación de Shizuku)</string>
     <string name="shizuku_status_unauthorized_long">Muse no está autorizado a usar Shizuku</string>
+    <string name="permission_shizuku_service_not_ready">Autorizado, pero el servicio Shell no está listo. Pulsa Actualizar para reintentar.</string>
+    <string name="permission_shizuku_request_sent_hint">Solicitud de autorización enviada a Shizuku. Permítela en el diálogo.</string>
     <string name="permission_open_shizuku_service">Abrir Shizuku para iniciar el servicio</string>
     <string name="permission_action_id_help">1 = Volver (BACK)\n2 = Inicio (HOME)\n3 = Tareas recientes (RECENTS)\n4 = Panel de notificaciones (NOTIFICATIONS)\n5 = Ajustes rápidos (QUICK_SETTINGS)\n6 = Diálogo de encendido (POWER_DIALOG)\n10 = Cerrar panel de notificaciones (DISMISS_NOTIFICATION_SHADE)\n\nHerramientas rápidas: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">La comprensión que la IA tiene de ti</string>

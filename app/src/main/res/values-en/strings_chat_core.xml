@@ -631,6 +631,8 @@
     <string name="chat_tool_paused_banner_action">Settings</string>
     <string name="settings_chat_show_assistant_name">Show assistant name</string>
     <string name="settings_chat_show_assistant_name_subtitle">Show who is speaking above each message; useful with several assistants</string>
+    <string name="settings_chat_show_user_name">Show my name</string>
+    <string name="settings_chat_show_user_name_subtitle">Show your nickname above your messages; useful in group chats and with several assistants</string>
     <string name="chat_placeholder_simple">Message…</string>
     <string name="chat_ignore_memory_option_on">Ignore memory: on</string>
     <string name="chat_ignore_memory_option_off">Ignore memory: off</string>

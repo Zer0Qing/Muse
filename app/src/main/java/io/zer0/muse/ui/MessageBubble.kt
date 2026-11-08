@@ -77,6 +77,7 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import coil.compose.SubcomposeAsyncImage
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.transformer.InternalMarkupSanitizer
@@ -410,6 +411,10 @@ internal fun MessageBubble(
     bubbleSkin: BubbleSkin? = null,
     showUserAvatar: Boolean = false,
     userAvatarText: String = "U",
+    /** 2.6.24: 本机用户头像 URI；为空或加载失败时回退到 [userAvatarText] 首字。 */
+    userAvatarUri: String? = null,
+    /** 2.6.24: 用户显示名；[io.zer0.muse.data.ChatPreferences.showUserName] 打开时画在消息顶部。 */
+    userName: String = "",
     /**
      * v2.4.5 fix: 是否展示工具调用过程(设置 → 聊天 → 显示工具调用过程)。
      *
@@ -1013,25 +1018,43 @@ internal fun MessageBubble(
             }
 
             if (isUser) {
-                if (showUserAvatar) {
+                val showUserName = chatPrefs.showUserName
+                if (showUserAvatar || showUserName) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = MusePaddings.screen, vertical = 2.dp),
                         horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(28.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = userAvatarText.take(1).ifBlank { "U" },
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
+                        if (showUserName) {
+                            Text(
+                                text = userName.ifBlank { userAvatarText },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Spacer(Modifier.width(MusePaddings.contentGap))
+                        }
+                        if (showUserAvatar) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(28.dp),
+                            ) {
+                                if (!userAvatarUri.isNullOrBlank()) {
+                                    SubcomposeAsyncImage(
+                                        model = io.zer0.muse.data.AvatarStorage.imageModel(userAvatarUri),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                        loading = { UserAvatarInitial(userAvatarText) },
+                                        error = { UserAvatarInitial(userAvatarText) },
+                                    )
+                                } else {
+                                    UserAvatarInitial(userAvatarText)
+                                }
                             }
                         }
                     }
@@ -2908,6 +2931,19 @@ private fun FixedColorActionRow(icon: ImageVector, text: String, textColor: Colo
             text = text,
             style = MaterialTheme.typography.bodyMedium,
             color = textColor,
+        )
+    }
+}
+
+/** 用户头像未设置、加载中或加载失败时的首字占位。 */
+@Composable
+private fun UserAvatarInitial(text: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            text = text.take(1).ifBlank { "U" },
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
 }

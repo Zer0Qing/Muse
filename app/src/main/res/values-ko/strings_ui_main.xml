@@ -158,6 +158,8 @@
     <string name="shizuku_service_running">Shizuku 서비스가 실행 중입니다</string>
     <string name="shizuku_service_not_running">Shizuku 서비스가 실행 중이 아닙니다(Shizuku 앱에서 시작하세요)</string>
     <string name="shizuku_status_unauthorized_long">Muse가 Shizuku 사용 권한을 받지 못했습니다</string>
+    <string name="permission_shizuku_service_not_ready">권한은 있지만 Shell 서비스가 준비되지 않았습니다. "새로 고침"을 눌러 다시 시도하세요.</string>
+    <string name="permission_shizuku_request_sent_hint">Shizuku에 권한 요청을 보냈습니다. 대화상자에서 허용해 주세요.</string>
     <string name="permission_open_shizuku_service">Shizuku를 열어 서비스 시작</string>
     <string name="permission_action_id_help">1 = 뒤로 (BACK)\n2 = 홈 (HOME)\n3 = 최근 작업 (RECENTS)\n4 = 알림 패널 (NOTIFICATIONS)\n5 = 빠른 설정 (QUICK_SETTINGS)\n6 = 전원 대화상자 (POWER_DIALOG)\n10 = 알림 패널 닫기 (DISMISS_NOTIFICATION_SHADE)\n\n빠른 도구: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">AI가 당신을 어떻게 이해하고 있는지</string>

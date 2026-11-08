@@ -618,6 +618,8 @@
     <string name="chat_tool_paused_banner_action">Configurações</string>
     <string name="settings_chat_show_assistant_name">Mostrar nome do assistente</string>
     <string name="settings_chat_show_assistant_name_subtitle">Mostra quem está falando acima da mensagem</string>
+    <string name="settings_chat_show_user_name">Mostrar meu nome</string>
+    <string name="settings_chat_show_user_name_subtitle">Exibe seu apelido acima das suas mensagens; útil em conversas em grupo e com vários assistentes</string>
     <string name="chat_placeholder_simple">Mensagem…</string>
     <string name="chat_ignore_memory_option_on">Ignorar memória: ativado</string>
     <string name="chat_ignore_memory_option_off">Ignorar memória: desativado</string>

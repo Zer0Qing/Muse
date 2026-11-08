@@ -553,6 +553,15 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> update { it.copy(showAssistantName = v) } },
                 )
                 SettingsGroupDivider()
+                // 2.6.24: 与助手名字开关对称 —— 用户消息顶部是否显示自己的昵称。
+                SettingsSwitchRow(
+                    icon = MuseIcons.user,
+                    title = stringResource(R.string.settings_chat_show_user_name),
+                    subtitle = stringResource(R.string.settings_chat_show_user_name_subtitle),
+                    checked = prefs.showUserName,
+                    onCheckedChange = { v -> update { it.copy(showUserName = v) } },
+                )
+                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_chat_show_timestamp),

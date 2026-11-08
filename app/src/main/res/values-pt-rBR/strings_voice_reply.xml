@@ -11,6 +11,6 @@
     <string name="voice_timbre_entry_desc">Configurado uma vez em Ajustes → Mídia; não há segunda cópia</string>
     <string name="voice_reply_follow_global">Padrão</string>
     <string name="voice_reply_global_default_fmt">Padrão global: %1$s</string>
-    <string name="voice_reply_global_section">Frequência de voz (padrão global)</string>
-    <string name="voice_reply_global_hint">Todos os assistentes seguem este nível por padrão; substitua por assistente na página de diretivas.</string>
+    <string name="voice_reply_global_section">Frequência de resposta de voz</string>
+    <string name="voice_reply_global_hint">Todos os assistentes seguem este único nível; afeta apenas o prompt, sem bloqueio rígido.</string>
 </resources>

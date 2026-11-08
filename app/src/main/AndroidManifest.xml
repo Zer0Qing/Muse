@@ -109,12 +109,15 @@
         </intent>
     </queries>
 
+    <!-- 2.6.24: 显式申请大堆。默认单进程上限 256MB，多图/长会话时回收窗口偏紧
+         （真机日志 used 151/256）；largeHeap 由系统按设备上调上限，不是磁盘缓存。 -->
     <application
         android:name=".MuseApp"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:largeHeap="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Muse"

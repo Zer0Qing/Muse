@@ -158,6 +158,8 @@
     <string name="shizuku_service_running">Shizuku サービスは実行中です</string>
     <string name="shizuku_service_not_running">Shizuku サービスは実行されていません(Shizuku アプリで起動してください)</string>
     <string name="shizuku_status_unauthorized_long">Muse は Shizuku の使用を許可されていません</string>
+    <string name="permission_shizuku_service_not_ready">認証済みですが Shell サービスが未準備です。「更新」で再試行してください。</string>
+    <string name="permission_shizuku_request_sent_hint">Shizuku に認証リクエストを送信しました。ダイアログで許可してください。</string>
     <string name="permission_open_shizuku_service">Shizuku を開いてサービスを起動</string>
     <string name="permission_action_id_help">1 = 戻る (BACK)\n2 = ホーム (HOME)\n3 = 最近のタスク (RECENTS)\n4 = 通知シェード (NOTIFICATIONS)\n5 = クイック設定 (QUICK_SETTINGS)\n6 = 電源ダイアログ (POWER_DIALOG)\n10 = 通知シェードを閉じる (DISMISS_NOTIFICATION_SHADE)\n\nクイックツール: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">AI によるあなたへの理解</string>

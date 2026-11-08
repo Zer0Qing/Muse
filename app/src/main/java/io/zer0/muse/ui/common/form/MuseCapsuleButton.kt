@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.common.form
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -32,10 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseActionColors
-import io.zer0.muse.ui.theme.MuseCapsuleButtonSizes
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MuseMotion
-import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
@@ -76,11 +71,6 @@ fun MuseCapsuleButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) MuseCapsuleButtonSizes.pressScale else 1f,
-        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
-        label = "capsuleBtnScale",
-    )
 
     // 主题色口径：主按钮走高饱和主题主色；次要按钮走低饱和主题容器色；
     // destructive 覆盖前两者，走主题错误色（删除/清除类操作）。
@@ -117,6 +107,15 @@ fun MuseCapsuleButton(
                 },
                 shape = MuseShapes.huge,
             )
+            // 2.6.24: 按压反馈改为「整面遮罩」——不再缩小按钮，按压时在胶囊上叠一层淡色。
+            .background(
+                color = if (isPressed && clickable) {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                } else {
+                    Color.Transparent
+                },
+                shape = MuseShapes.huge,
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -124,10 +123,6 @@ fun MuseCapsuleButton(
                 enabled = clickable,
                 onClick = onClick,
             )
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
             .padding(horizontal = MusePaddings.messageGap, vertical = MusePaddings.itemGap),
         contentAlignment = Alignment.Center,
     ) {

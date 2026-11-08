@@ -83,6 +83,35 @@ class PermissionCoordinatorTest {
     }
 
     @Test
+    fun `granted but shell service unavailable still counts as permission granted`() = runTest {
+        stubDefaults()
+        every { shizukuInstaller.isInstalled() } returns true
+        coEvery { shizuku.diagnose() } returns ShizukuAuthorizer.ShizukuStatus(
+            ShizukuAuthorizer.ShizukuState.USER_SERVICE_UNAVAILABLE,
+            "已授权，Shell 服务未就绪",
+        )
+
+        val snap = coordinator().refresh()
+
+        assertFalse("服务没绑上，Shell 能力仍不可用", snap.shellEnabled)
+        assertTrue("授权位已给出，不该再让用户去点授权", snap.shizukuPermissionGranted)
+    }
+
+    @Test
+    fun `not authorized is not permission granted`() = runTest {
+        stubDefaults()
+        every { shizukuInstaller.isInstalled() } returns true
+        coEvery { shizuku.diagnose() } returns ShizukuAuthorizer.ShizukuStatus(
+            ShizukuAuthorizer.ShizukuState.NOT_AUTHORIZED,
+            "尚未授权",
+        )
+
+        val snap = coordinator().refresh()
+
+        assertFalse(snap.shizukuPermissionGranted)
+    }
+
+    @Test
     fun `previously granted root counts as enabled`() = runTest {
         stubDefaults()
         every { root.grantState() } returns RootAuthorizer.GrantState.PreviouslyGranted

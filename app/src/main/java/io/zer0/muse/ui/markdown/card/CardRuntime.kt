@@ -94,8 +94,9 @@ internal fun CardRuntime(
     val cardId = host.cardId
     val focused = cardId != null && focusedId == cardId
     val capPx = with(LocalDensity.current) { MAX_INLINE_CARD_DP.dp.roundToPx() }
+    val hasOverflow = hasInlineOverflow(contentHeightPx, capPx)
     val internalScroll = spec.size is CardSize.Auto &&
-        resolveCardScrollMode(focused, hasInlineOverflow(contentHeightPx, capPx)) == CardScrollMode.InternalScroll
+        resolveCardScrollMode(focused, hasOverflow) == CardScrollMode.InternalScroll
     val scrollable = (spec.size !is CardSize.Auto) || internalScroll
 
     // 推送目标只在这里留存一份引用（离开组合即清空），状态名带 Ref 后缀是为了
@@ -134,14 +135,17 @@ internal fun CardRuntime(
                     },
                 ),
         )
-        // 未进入卡内滚的 Auto 卡盖一层透明点击层：点一下聚焦，竖滑不消费、交回聊天列表，
-        // 修长卡「WebView 吃掉竖滑又无可滚」的死区。聚焦且溢出后撤掉这层，WebView 自己滚。
-        if (spec.size is CardSize.Auto && !internalScroll && cardId != null) {
+        // 只在「Auto 卡未聚焦且内容溢出」时盖一层透明点击层：点一下聚焦，竖滑不消费、交回聊天列表。
+        // 不溢出时绝不能盖 —— 否则 WebView 里的按钮、链接与 JS 交互全都收不到点击。
+        val tapFocusId = cardId
+        if (tapFocusId != null &&
+            shouldCaptureTapForFocus(spec.size is CardSize.Auto, focused, hasOverflow, hasCardId = true)
+        ) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .pointerInput(cardId) {
-                        detectTapGestures(onTap = { focusController.focus(cardId) })
+                    .pointerInput(tapFocusId) {
+                        detectTapGestures(onTap = { focusController.focus(tapFocusId) })
                     },
             )
         }
