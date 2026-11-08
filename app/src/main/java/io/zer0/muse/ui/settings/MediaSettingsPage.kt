@@ -3,9 +3,11 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,6 +20,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -27,11 +30,14 @@ import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.SpeechProviderResolver
+import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -158,6 +164,9 @@ fun MediaSettingsPage(
             }
         }
 
+        // ── 22③：语音回复频率（全局默认档）；按助手的覆盖在约定页，这里只管全局 ──
+        globalVoiceFrequencySection()
+
         // ── 2. 云端 TTS 引擎 ──
         item { SectionLabel(stringResource(R.string.settings_media_cloud_tts_section)) }
         item {
@@ -197,8 +206,8 @@ fun MediaSettingsPage(
         }
 
         // 输出设备跟随 Android 系统与当前音频焦点，不在 Muse 内重复抽象。
-        // ── 贴纸库（多媒体能力，从聊天页归位）──
-        item { StickerSettingsSection(settings = settings, scope = scope) }
+        // 08: 表情包库不再挂在语音/媒体页——它与语音播报无关，且专用入口
+        // （设置→聊天→表情包库 / StickerSettingsRoute）一直都在，这里是重复残留。
     }
 }
 
@@ -825,3 +834,60 @@ private fun supportsResponseFormat(engine: String): Boolean = engine in listOf("
  */
 private fun hasAdvancedParams(engine: String): Boolean = engine == "elevenlabs" || engine == "minimax" ||
     supportsSpeed(engine) || supportsResponseFormat(engine)
+
+/**
+ * 22③：语音回复频率的「全局默认档」。
+ *
+ * 抽成 LazyListScope 扩展而不是内联在 [MediaSettingsPage]，是为了不把已经很长的页面再撑过
+ * 单函数长度门禁（127→回落到阈值内）；档位只改注入给模型的约定文案，不做客户端硬拦截（见 VoiceReplyPolicy）。
+ */
+private fun LazyListScope.globalVoiceFrequencySection() {
+    item { SectionLabel(stringResource(R.string.voice_reply_global_section)) }
+    item {
+        val context = LocalContext.current
+        val voiceStore = remember { VoiceReplyPolicyStore.of(context) }
+        val snapshot by voiceStore.snapshot.collectAsStateWithLifecycle(initialValue = emptyMap())
+        val scope = rememberCoroutineScope()
+        GlobalVoiceFrequencySection(
+            current = VoiceReplyFrequency.fromName(snapshot[VoiceReplyPolicyStore.GLOBAL_KEY]),
+            onSelect = { level -> scope.launch { voiceStore.setGlobal(level) } },
+        )
+    }
+}
+
+@Composable
+private fun GlobalVoiceFrequencySection(
+    current: VoiceReplyFrequency,
+    onSelect: (VoiceReplyFrequency) -> Unit,
+) {
+    val labels = mapOf(
+        VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
+        VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),
+        VoiceReplyFrequency.OFTEN to stringResource(R.string.voice_reply_often),
+        VoiceReplyFrequency.ALWAYS to stringResource(R.string.voice_reply_always),
+    )
+    SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
+        Column(Modifier.padding(MusePaddings.cardInner)) {
+            Text(
+                text = stringResource(R.string.voice_reply_global_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // 四档 chip 窄屏一行放不下会压成竖排，用 FlowRow。
+            FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                VoiceReplyFrequency.entries.forEach { level ->
+                    MuseChip(
+                        label = labels.getValue(level),
+                        selected = level == current,
+                        onClick = { if (level != current) onSelect(level) },
+                    )
+                }
+            }
+        }
+    }
+}

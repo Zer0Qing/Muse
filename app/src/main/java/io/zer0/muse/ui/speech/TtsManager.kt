@@ -1278,6 +1278,30 @@ class TtsManager(
         return ok
     }
 
+    /**
+     * 10: 用克隆音色把文本合成为语音**文件**（供 send_voice 落盘成语音消息）。
+     *
+     * 与 [speakWithClonedVoice] 同一套临时覆盖配置思路，但合成是 suspend、返回即完成，
+     * 所以在 finally 里同步恢复原配置，不需要等播放结束。
+     */
+    suspend fun synthesizeToWithClonedVoice(
+        text: String,
+        outputFile: File,
+        emotionOverride: String?,
+        voiceId: String,
+        providerId: String = "elevenlabs",
+    ): TtsSynthResult {
+        if (voiceId.isBlank()) return synthesizeTo(text, outputFile, emotionOverride)
+        val original = mediaConfig
+        val needOverride = original.ttsEngine != providerId || original.ttsVoice != voiceId
+        if (needOverride) applyConfig(original.copy(ttsEngine = providerId, ttsVoice = voiceId))
+        return try {
+            synthesizeTo(text, outputFile, emotionOverride)
+        } finally {
+            if (needOverride) applyConfig(original)
+        }
+    }
+
     /** 停止当前朗读(同时停分片播放 + 流式朗读)。 */
     fun stop() {
         stopInternal(resetState = true)

@@ -148,7 +148,7 @@ internal class ChatSessionController(
     /** 新建会话:释放旧会话 → 按默认助手创建 → 重置 UI 状态 → 刷新上下文。
      *  v2.x: [assistantIdOverride] 非空时以指定助手创建(伙伴横排快捷开聊用)。 */
     @Suppress("CyclomaticComplexMethod")
-    fun createNewSession(onReady: (() -> Unit)? = null, assistantIdOverride: String? = null) {
+    fun createNewSession(onReady: (() -> Unit)? = null, assistantIdOverride: String? = null, folderId: String? = null) {
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         // Phase 8.7: 切换会话时停止 TTS(避免跨会话继续朗读)
         sessionDeps.onStopTts()
@@ -168,6 +168,8 @@ internal class ChatSessionController(
                 assistantIdOverride
                     ?: sessionDeps.settings.defaultAssistantIdFlow.first().ifBlank { "default" }
             val id = sessionRepository.createSession(assistantId = currentAssistantId)
+            // 文件夹详情页「新建到此文件夹」：新会话直接落进指定文件夹（null 时维持原行为）。
+            if (folderId != null) sessionRepository.setSessionFolder(id, folderId)
             // v1.x: 新会话权限模式跟随全局默认
             val permissionMode =
                 sessionDeps.sessionPermissionStore.getMode(

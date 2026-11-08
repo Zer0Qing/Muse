@@ -744,8 +744,13 @@ class MuseApp : Application(), ImageLoaderFactory {
                 .onError { msg, t -> Logger.w("MuseApp", "取消旧朋友圈 Worker 失败: ${t?.message ?: msg}", t) }
             // P3: 小手机后台自动发朋友圈 — 每 3 小时唤醒一次,四道判定(安静时段/90 分钟防抖/概率/有无角色)
             // 全在 :miniphone 模块内;KEEP 策略:已存在则保留旧排期,开关关掉时 Worker 每轮空转退出
-            resultOf { MiniPhoneMomentScheduler.start(this) }
-                .onError { msg, t -> Logger.w("MuseApp", "MiniPhoneMomentScheduler 注册失败: ${t?.message ?: msg}", t) }
+            // 2.6.24: 小手机整体收起 —— 已经排期的周期任务不会因「不再注册」而消失,必须显式取消。
+            if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
+                resultOf { MiniPhoneMomentScheduler.start(this) }
+                    .onError { msg, t -> Logger.w("MuseApp", "MiniPhoneMomentScheduler 注册失败: ${t?.message ?: msg}", t) }
+            } else {
+                MiniPhoneMomentScheduler.stop(this)
+            }
             // v1.134 P0-1: 主动消息 WorkManager 兜底 — App 被杀后由系统每 15 分钟拉起一次检查
             // KEEP 策略:已存在则保留旧 schedule(避免重复注册);与 ScheduledTaskWorker 兜底对齐
             // P2-2: Worker 路径带冷启动防打扰(长时间未触发时仅更新 lastTriggeredAt,不立即发送)

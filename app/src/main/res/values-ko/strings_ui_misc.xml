@@ -196,4 +196,18 @@
     <string name="card_favorite_failed">카드 즐겨찾기 실패: %1$s</string>
     <string name="card_favorite_session_title">카드 즐겨찾기</string>
     <string name="card_favorite_wrapper">즐겨찾기한 카드: %1$s</string>
+    <string name="user_persona_section">사용자 페르소나</string>
+    <string name="user_persona_current">현재 페르소나</string>
+    <string name="user_persona_none">미선택(전역 프로필 사용)</string>
+    <string name="user_persona_use_global">전역 프로필 사용</string>
+    <string name="user_persona_select">선택</string>
+    <string name="user_persona_new">새 페르소나</string>
+    <string name="user_persona_name">페르소나 이름</string>
+    <string name="user_persona_text">설정(이 어시스턴트에서의 정체성)</string>
+    <string name="favorites_select_mode">선택</string>
+    <string name="favorites_exit_select">선택 종료</string>
+    <string name="favorites_selected_count">%1$d개 선택됨</string>
+    <string name="favorites_select_all">모두 선택</string>
+    <string name="favorites_batch_unfavorite">즐겨찾기 해제</string>
+    <string name="favorites_batch_group">그룹 설정</string>
 </resources>

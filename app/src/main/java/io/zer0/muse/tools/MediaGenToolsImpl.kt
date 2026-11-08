@@ -395,12 +395,19 @@ class MediaGenToolsImpl(
             ?: return "缺少必填参数: text"
         voiceBlockReason(text, turnKey)?.let { return it }
         val emotion = args["emotion"]?.takeIf { it.isNotBlank() }
+        // 10: 可选克隆音色 id（list_cloned_voices 返回）。留空用用户配置的默认音色。
+        val clonedVoiceId = args["voice"]?.takeIf { it.isNotBlank() }
         val slot = currentHost()?.begin(MediaGenKind.VOICE)
         // 临时文件放 cacheDir：持久化由 VoiceMessageStore 负责，中途失败也不会脏 filesDir
         val tempFile = File(context.cacheDir, "$VOICE_TEMP_PREFIX${Uuid.random()}.wav")
 
         return try {
-            when (val outcome = voiceSynthesizer.synthesizeTo(text, tempFile, emotion)) {
+            val outcome = if (clonedVoiceId != null) {
+                voiceSynthesizer.synthesizeToWithVoice(text, tempFile, emotion, clonedVoiceId)
+            } else {
+                voiceSynthesizer.synthesizeTo(text, tempFile, emotion)
+            }
+            when (outcome) {
                 // 云成功 / 系统音色直成：与改造前一样只报「已发出语音消息」
                 TtsSynthResult.Success -> deliverVoice(slot, tempFile, text, emotion, fallbackReason = null)
                 // 回落到系统 TTS：音频能用，但声音不是用户配的，必须说清楚

@@ -9,15 +9,12 @@ import io.zer0.muse.ui.navigation.ArchivedChatsRoute
 import io.zer0.muse.ui.navigation.AssistantsRoute
 import io.zer0.muse.ui.navigation.AuditLogRoute
 import io.zer0.muse.ui.navigation.ChannelSettingsRoute
-import io.zer0.muse.ui.navigation.ConnectionCenterRoute
 import io.zer0.muse.ui.navigation.DataManagementRoute
 import io.zer0.muse.ui.navigation.DebugRoute
 import io.zer0.muse.ui.navigation.KeepAliveSettingsRoute
 import io.zer0.muse.ui.navigation.MiniPhoneRoute
 import io.zer0.muse.ui.navigation.NotificationListenerRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
-import io.zer0.muse.ui.navigation.QuickNotesRoute
-import io.zer0.muse.ui.navigation.ScheduledTasksRoute
 import io.zer0.muse.ui.navigation.SettingsAboutRoute
 import io.zer0.muse.ui.navigation.SettingsAgentDirectivesRoute
 import io.zer0.muse.ui.navigation.SettingsAgentRoute
@@ -48,9 +45,7 @@ import io.zer0.muse.ui.navigation.SettingsVisionRoute
 import io.zer0.muse.ui.navigation.SettingsWebAccessRoute
 import io.zer0.muse.ui.navigation.SettingsWebSearchRoute
 import io.zer0.muse.ui.navigation.StatsRoute
-import io.zer0.muse.ui.navigation.StickerSettingsRoute
 import io.zer0.muse.ui.navigation.ToolsScreenRoute
-import io.zer0.muse.ui.navigation.TranslateRoute
 import io.zer0.muse.ui.navigation.UserProfileEditRoute
 import io.zer0.muse.ui.navigation.VideoGenerationRoute
 import io.zer0.muse.ui.navigation.VoiceCloningRoute
@@ -72,7 +67,9 @@ enum class SettingsGroupKind {
     MEMORY,
     CONNECTION,
     AUTOMATION,
+    KEEP_ALIVE,
     APPEARANCE,
+    MINI_PHONE,
     DATA_STORAGE,
     PRIVACY_SECURITY,
     ABOUT,
@@ -91,8 +88,6 @@ enum class SettingsEntryId {
     ASSISTANT_RESOURCES,
     AGENT,
     CHAT,
-    STICKERS,
-    QUICK_NOTES,
     SHARE,
     PROVIDER,
     TASK_ROUTING,
@@ -105,16 +100,13 @@ enum class SettingsEntryId {
     VOICE_CLONING,
     IMAGE_VIDEO_GEN,
     VISION,
-    TRANSLATE,
     MEMORY,
     RAG,
-    CONNECTION_CENTER,
     CHANNEL,
     WEB_ACCESS,
     MCP,
     PROACTIVE,
     AGENT_DIRECTIVES,
-    SCHEDULED_TASKS,
     NOTIFICATION_LISTENER,
     UI_AUTOMATION,
     KEEP_ALIVE,
@@ -215,6 +207,17 @@ data class SettingsGroupSpec(
 }
 
 /**
+ * 分类的唯一可进入页面：只有一个「跳转」条目时返回它的路由，否则 null。
+ *
+ * 只有一个条目的分类再套一层列表，等于让用户多点一次；首页那一下直接进这个页面。
+ * 开关类条目不适用 —— 它没有独立页面，要留在分类页里就地切换。
+ */
+fun SettingsGroupSpec.directEntryRoute(): Any? {
+    val only = entries.singleOrNull() ?: return null
+    return (only.action as? SettingsEntryAction.Navigate)?.route
+}
+
+/**
  * 设置入口的唯一声明清单。
  *
  * 首页（14 个分类）、分类页（该类条目）、搜索索引（全量条目）都从这里取数据，
@@ -288,25 +291,23 @@ object SettingsCatalog {
                         "快捷键", "引用回复",
                     ),
                 ),
+            ),
+        ),
+        group(
+            SettingsGroupKind.APPEARANCE,
+            R.string.settings_group_appearance,
+            R.string.settings_group_appearance_desc,
+            MuseIcons.palette,
+            entries(
                 entry(
-                    SettingsEntryId.STICKERS,
-                    R.string.settings_chat_sticker_section,
-                    R.string.settings_screen_sticker_desc,
-                    MuseIcons.sticker,
-                    SettingsEntryAction.Navigate(StickerSettingsRoute),
+                    SettingsEntryId.APPEARANCE,
+                    R.string.settings_screen_appearance_label,
+                    R.string.settings_screen_appearance_desc,
+                    MuseIcons.palette,
+                    SettingsEntryAction.Navigate(SettingsAppearanceRoute),
                     keywords = listOf(
-                        "表情包", "表情", "贴纸", "表情包库", "sticker", "emoji", "biaoqingbao",
-                        "biaoqing", "tiezhi", "biaoqingbaoku", "bq", "tq", "bqbk",
-                    ),
-                ),
-                entry(
-                    SettingsEntryId.QUICK_NOTES,
-                    R.string.settings_screen_quick_notes,
-                    R.string.settings_screen_quick_notes_desc,
-                    MuseIcons.bulb,
-                    SettingsEntryAction.Navigate(QuickNotesRoute),
-                    keywords = listOf(
-                        "快速记录", "速记", "笔记", "quick note", "note", "记录", "kuaisujilu", "suji", "biji", "jilu", "ksjl", "sj", "bj", "jl",
+                        "外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao",
+                        "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸",
                     ),
                 ),
             ),
@@ -348,8 +349,8 @@ object SettingsCatalog {
                     MuseIcons.affiliate,
                     SettingsEntryAction.Navigate(PluginManageRoute),
                     keywords = listOf(
-                        "插件管理", "供应商插件", "插件", "插件包", "provider plugin", "chajian",
-                        "chajianbao", "gongyingshangchajian", "cj", "cjb",
+                        "插件管理", "应用插件", "供应商插件", "插件", "插件包", "app plugin", "provider plugin", "chajian",
+                        "chajianbao", "yingyongchajian", "gongyingshangchajian", "cj", "cjb",
                     ),
                 ),
             ),
@@ -371,7 +372,8 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.PERMISSION_WIZARD,
                     R.string.permission_wizard_title,
-                    R.string.permission_wizard_desc,
+                    // 20②: 外层只给一行；三通道权限模型的细节留在向导内页。
+                    R.string.permission_wizard_desc_short,
                     MuseIcons.shieldCheck,
                     SettingsEntryAction.Navigate(SettingsPermissionWizardRoute),
                     keywords = listOf("权限", "向导", "无障碍", "Shizuku", "Root", "quanxian", "xiangdao", "wuzhangai", "qx", "xd", "wza"),
@@ -459,17 +461,8 @@ object SettingsCatalog {
                         "tupianlijie", "kantu", "shijuefuzhu", "shijuemoxing", "sj", "tplj", "kt",
                     ),
                 ),
-                entry(
-                    SettingsEntryId.TRANSLATE,
-                    R.string.settings_screen_translate,
-                    R.string.settings_screen_translate_desc,
-                    MuseIcons.languages,
-                    SettingsEntryAction.Navigate(TranslateRoute),
-                    keywords = listOf(
-                        "翻译", "translate", "语言", "互译", "源语言", "目标语言", "fanyi",
-                        "yuyan", "huyi", "yuanyuyan", "mubiaoyuyan", "fy", "yy",
-                    ),
-                ),
+                // 11①: AI 翻译不属于「图像与视觉」。入口已移除；翻译功能本身保留，
+                // 首页快捷栏的 Quick Translate 仍直达 TranslateRoute。
             ),
         ),
         group(
@@ -519,17 +512,9 @@ object SettingsCatalog {
             R.string.settings_group_connection_desc,
             MuseIcons.link,
             entries(
-                entry(
-                    SettingsEntryId.CONNECTION_CENTER,
-                    R.string.connection_center_title,
-                    R.string.connection_center_desc,
-                    MuseIcons.link,
-                    SettingsEntryAction.Navigate(ConnectionCenterRoute),
-                    keywords = listOf(
-                        "连接中心", "连接", "渠道", "MCP", "插件", "权限",
-                        "lianjie", "lianjiezhongxin", "qudao", "chajian", "quanxian", "mcp",
-                    ),
-                ),
+                // 21: 原「扩展与连接」三级包装已拍平——它的五个目的地在二级都直达：
+                // 渠道/MCP 就在本组，插件在模型组，技能经助手资源，工具权限在工具组。
+                // 留着它只是多一层点击并把同样的入口再列一遍。
                 entry(
                     SettingsEntryId.CHANNEL,
                     R.string.channel_page_title,
@@ -616,17 +601,6 @@ object SettingsCatalog {
                     ),
                 ),
                 entry(
-                    SettingsEntryId.SCHEDULED_TASKS,
-                    R.string.schedule_title,
-                    R.string.settings_screen_desc_schedule,
-                    MuseIcons.clock,
-                    SettingsEntryAction.Navigate(ScheduledTasksRoute),
-                    keywords = listOf(
-                        "定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu",
-                        "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw",
-                    ),
-                ),
-                entry(
                     SettingsEntryId.NOTIFICATION_LISTENER,
                     R.string.settings_screen_notification_listener,
                     R.string.settings_screen_notification_listener_desc,
@@ -645,6 +619,14 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(SettingsAutomationRoute),
                     keywords = listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"),
                 ),
+            ),
+        ),
+        group(
+            SettingsGroupKind.KEEP_ALIVE,
+            R.string.settings_group_keep_alive,
+            R.string.settings_group_keep_alive_desc,
+            MuseIcons.battery,
+            entries(
                 entry(
                     SettingsEntryId.KEEP_ALIVE,
                     R.string.settings_keep_alive_title,
@@ -660,22 +642,11 @@ object SettingsCatalog {
             ),
         ),
         group(
-            SettingsGroupKind.APPEARANCE,
-            R.string.settings_group_appearance,
-            R.string.settings_group_appearance_desc,
-            MuseIcons.palette,
+            SettingsGroupKind.MINI_PHONE,
+            R.string.settings_group_miniphone,
+            R.string.settings_group_miniphone_desc,
+            MuseIcons.deviceMobile,
             entries(
-                entry(
-                    SettingsEntryId.APPEARANCE,
-                    R.string.settings_screen_appearance_label,
-                    R.string.settings_screen_appearance_desc,
-                    MuseIcons.palette,
-                    SettingsEntryAction.Navigate(SettingsAppearanceRoute),
-                    keywords = listOf(
-                        "外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao",
-                        "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸",
-                    ),
-                ),
                 entry(
                     SettingsEntryId.MINIPHONE,
                     R.string.settings_miniphone_title,
@@ -686,8 +657,9 @@ object SettingsCatalog {
                         "小手机", "内置手机", "手机", "miniphone", "mini phone", "xiaoshouji",
                         "neizhishouji", "shouji", "xsj", "sj",
                     ),
-                    // 本版暂不主推：模块与路由完整保留，只是不在分类页与首页给入口，搜索仍能命中。
-                    browseVisible = false,
+                    // 31: 可见性只认编译期总闸这一个真源。原先这里再写一份 false，
+                    // 开入口时就得记得改两处，漏一处就是首页能进、设置搜不到。
+                    browseVisible = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY,
                 ),
             ),
         ),

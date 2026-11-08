@@ -389,6 +389,12 @@
     <string name="chat_list_section_recent">Recent</string>
     <string name="chat_list_section_pinned">Pinned</string>
     <string name="chat_list_section_folders">Folders</string>
+    <string name="folder_detail_new_here">New chat here</string>
+    <string name="folder_detail_add_existing">Add existing chats</string>
+    <string name="folder_detail_add_empty">No chats to add</string>
+    <string name="folder_detail_empty_title">This folder is empty</string>
+    <string name="folder_detail_empty_sub">Create a chat, or add existing ones via “Add existing chats”</string>
+    <string name="folder_detail_remove">Remove from folder</string>
     <string name="chat_list_section_knowledge">Library</string>
     <!-- v2.x: recall bar + partners row -->
     <string name="chat_list_recall_format">Last chat with %1$s: "%2$s"</string>
@@ -416,6 +422,7 @@
     <string name="chat_list_move_ungrouped">Move to Ungrouped</string>
     <string name="chat_list_move_to">Move to: %1$s</string>
     <string name="chat_list_rename">Rename</string>
+    <string name="chat_list_copy_session_id">Copy session ID</string>
     <string name="chat_list_unarchive">Unarchive</string>
 
     <!-- Session rename/delete dialogs -->

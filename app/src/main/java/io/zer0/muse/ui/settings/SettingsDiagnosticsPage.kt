@@ -31,6 +31,7 @@ import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,7 +54,11 @@ fun SettingsDiagnosticsPage(onBack: () -> Unit) {
     var snapshot by remember { mutableStateOf<DiagnosticsSnapshot?>(null) }
     var reload by remember { mutableStateOf(0) }
     LaunchedEffect(reload) {
-        snapshot = runCatching { DiagnosticsSnapshot.collect(context, memoryAudit) }.getOrNull()
+        // 28: LaunchedEffect 默认在 Main 派发，采集（读库/审计/文件）留在主线程就是打开卡顿。
+        // 页面已有 data == null 的加载态，挪到 IO 不改变可见行为，只去掉卡帧。
+        snapshot = withContext(Dispatchers.IO) {
+            runCatching { DiagnosticsSnapshot.collect(context, memoryAudit) }.getOrNull()
+        }
     }
 
     SettingsSubPageScaffold(

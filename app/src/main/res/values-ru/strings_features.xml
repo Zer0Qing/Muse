@@ -411,6 +411,11 @@
     <string name="artifact_center_empty">Пока нет артефактов</string>
     <string name="artifact_share_chooser">Поделиться артефактом</string>
     <string name="artifact_save_text">Сохранить как текст</string>
+    <string name="artifact_open_external">Открыть внешне</string>
+    <string name="artifact_fullscreen">Полный экран</string>
+    <string name="artifact_view_source">Исходник</string>
+    <string name="artifact_view_rendered">Просмотр</string>
+    <string name="artifact_open_failed">Не удалось открыть</string>
     <string name="artifact_saved">Сохранено</string>
     <string name="artifact_save_failed">Не удалось сохранить</string>
 
@@ -647,6 +652,7 @@
     <string name="permission_level_root">Root одобрен (доступны все возможности)</string>
     <string name="permission_level_shizuku">Shizuku одобрен (доступны UI + команды оболочки)</string>
     <string name="permission_wizard_desc">Автоматизация UI Muse использует трёхканальную модель прав. Включите каждый канал ниже: чем выше уровень, тем больше операций доступно. Действия UI требуют только «Специальные возможности»; команды оболочки требуют Shizuku или Root.</string>
+    <string name="permission_wizard_desc_short">Пошагово включите разрешения, необходимые для автоматизации интерфейса</string>
     <string name="permission_wizard_title">Мастер прав</string>
     <string name="root_section_title">Права root</string>
     <string name="root_status_available">Root одобрен (резервный канал, может напрямую выполнять команды su)</string>

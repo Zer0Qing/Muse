@@ -3,9 +3,9 @@
 <resources>
     <string name="settings_screen_agent_directives">Что делать и чего не делать</string>
     <string name="settings_screen_agent_directives_desc">Долгосрочные правила, которые он соблюдает в том числе в инициативе</string>
-    <string name="agent_directives_hint">Это ваши явные требования, они важнее общих настроек тона. При конфликте приоритет у списка «никогда не».</string>
-    <string name="agent_directives_forbidden_section">Никогда не</string>
-    <string name="agent_directives_desired_section">Пожалуйста, делай</string>
+    <string name="agent_directives_hint">Ваши конкретные требования здесь важнее общих настроек тона; при конфликте побеждает «Никогда не делать».</string>
+    <string name="agent_directives_forbidden_section">Никогда не делать</string>
+    <string name="agent_directives_desired_section">Желательно делать</string>
     <string name="agent_directives_empty">Пока пусто. Например: не зови меня ласково</string>
     <string name="agent_directives_empty_desired">Пока пусто. Например: замечай мои усилия</string>
     <string name="agent_directives_add_forbidden">Добавить «никогда не»</string>

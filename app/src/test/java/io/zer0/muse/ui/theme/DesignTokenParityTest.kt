@@ -262,6 +262,8 @@ class DesignTokenParityTest {
         assertNumber("motion.slide.page", MuseAnimation.SLIDE_FRACTION_PAGE.toDouble())
         assertNumber("motion.slide.secondary", MuseAnimation.SLIDE_FRACTION_SECONDARY.toDouble())
         assertNumber("motion.slide.content", MuseAnimation.SLIDE_FRACTION_CONTENT.toDouble())
+        assertNumber("motion.slide.navPage", MuseAnimation.SLIDE_FRACTION_NAV_PAGE.toDouble())
+        assertNumber("motion.slide.navUnder", MuseAnimation.SLIDE_FRACTION_NAV_UNDER.toDouble())
         assertKeySet(
             "motion.easings",
             setOf("standard", "easeOutCubic", "easeOutBack", "easeInCubic", "emphasized", "growEase"),

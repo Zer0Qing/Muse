@@ -3,9 +3,12 @@ package io.zer0.muse.automation.ui
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
 import io.mockk.verify
@@ -90,7 +93,13 @@ class AutomationSettingsPageTest {
             }
         }
 
-        // v2.x: 三通道权限卡已收敛到向导页 — 本页保留一行入口,且点击真的打开向导
+        // 25: 向导入口收进「权限与接入」子页 — 先滚到菜单项点进子页，再点向导入口验证接线。
+        composeTestRule
+            .onNodeWithTag("settings-scroll-container")
+            .performScrollToNode(hasText(context.getString(R.string.automation_sub_access)))
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.automation_sub_access))
+            .performClick()
         composeTestRule
             .onNodeWithText(context.getString(R.string.permission_wizard_title))
             .performClick()

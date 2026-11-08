@@ -1,7 +1,11 @@
 package io.zer0.muse.ui.settings
 
 import android.content.Context
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
@@ -30,7 +34,7 @@ import org.robolectric.annotation.Config
  * 首页分类行与分类页条目行的渲染/点击回归。
  *
  * 断言两件容易回退的事：分类页渲染的是该分类声明的全部条目（不多不少），
- * 点条目触发它自己的路由；首页只有 14 个分类行，子页专有项（权限向导、审计日志等）
+ * 点条目触发它自己的路由；首页只有 16 个分类行，子页专有项（权限向导、审计日志等）
  * 不许出现在这一层。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -45,16 +49,21 @@ class SettingsGroupScreenTest {
     private fun string(resId: Int): String = context.getString(resId)
 
     @Test
-    fun `home shows fourteen category rows`() {
+    fun `home shows sixteen category rows`() {
         composeTestRule.setContent {
             MaterialTheme {
-                SettingsGroupCards(onOpenGroup = { _, _ -> })
+                // 真实页面把分类卡放在可滚动容器里；测试不包一层的话 16 行溢出且无处可滚。
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    SettingsGroupCards(onOpenGroup = { _, _ -> })
+                }
             }
         }
 
-        composeTestRule.onAllNodesWithTag(SETTINGS_GROUP_ROW_TAG).assertCountEquals(14)
+        composeTestRule.onAllNodesWithTag(SETTINGS_GROUP_ROW_TAG).assertCountEquals(16)
         SettingsCatalog.groups.forEach { group ->
-            composeTestRule.onNodeWithText(string(group.titleRes)).assertIsDisplayed()
+            // 16 行超出测试视口，先滚到该行再断言可见；直接 assertIsDisplayed 会把
+            // 「在列表里但没滚到」误判成「不存在」。
+            composeTestRule.onNodeWithText(string(group.titleRes)).performScrollTo().assertIsDisplayed()
         }
     }
 

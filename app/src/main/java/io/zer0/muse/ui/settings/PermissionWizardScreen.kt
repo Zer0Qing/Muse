@@ -75,7 +75,8 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
     val coordinator: io.zer0.muse.permission.PermissionCoordinator = koinInject()
     val snapshot by coordinator.snapshot.collectAsStateWithLifecycle()
     // v2.x: Root 授权请求(自「UI 自动化」页迁移 — 该页权限卡已收敛到本向导)
-    val automationManager = remember { AutomationInitializer.manager }
+    // managerOrNull：初始化未完成时为 null，不抛——下面 requestRoot 前判空并给可读提示。
+    val automationManager = remember { AutomationInitializer.managerOrNull }
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -323,8 +324,13 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                     onAction = {
                         if (!rootRequesting) {
                             scope.launch {
+                                val manager = automationManager
+                                if (manager == null) {
+                                    MuseToast.show(context.getString(R.string.automation_root_failed))
+                                    return@launch
+                                }
                                 rootRequesting = true
-                                val result = automationManager.requestRoot()
+                                val result = manager.requestRoot()
                                 rootRequesting = false
                                 if (result.granted) {
                                     MuseToast.show(context.getString(R.string.automation_root_granted))

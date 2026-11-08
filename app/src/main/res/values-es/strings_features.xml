@@ -411,6 +411,11 @@
     <string name="artifact_center_empty">Aún no hay artefactos</string>
     <string name="artifact_share_chooser">Compartir artefacto</string>
     <string name="artifact_save_text">Guardar como texto</string>
+    <string name="artifact_open_external">Abrir externamente</string>
+    <string name="artifact_fullscreen">Pantalla completa</string>
+    <string name="artifact_view_source">Ver código</string>
+    <string name="artifact_view_rendered">Ver renderizado</string>
+    <string name="artifact_open_failed">No se pudo abrir</string>
     <string name="artifact_saved">Guardado</string>
     <string name="artifact_save_failed">Error al guardar</string>
 
@@ -604,6 +609,7 @@
     <string name="permission_level_root">Root autorizado (todas las capacidades disponibles)</string>
     <string name="permission_level_shizuku">Shizuku autorizado (UI + comandos de shell disponibles)</string>
     <string name="permission_wizard_desc">La automatización de UI de Muse usa un modelo de permisos de tres canales. Habilita cada uno a continuación; los niveles superiores desbloquean más operaciones. Las acciones de UI solo necesitan Accesibilidad; los comandos de shell necesitan Shizuku o Root.</string>
+    <string name="permission_wizard_desc_short">Habilita paso a paso los permisos que necesita la automatización de la IU</string>
     <string name="permission_wizard_title">Asistente de permisos</string>
     <string name="root_section_title">Permiso de root</string>
     <string name="root_status_available">Root autorizado (canal de respaldo, puede ejecutar comandos su directamente)</string>

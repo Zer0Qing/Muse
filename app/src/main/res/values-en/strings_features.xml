@@ -438,6 +438,11 @@
     <string name="artifact_center_empty">No artifacts yet</string>
     <string name="artifact_share_chooser">Share artifact</string>
     <string name="artifact_save_text">Save as text</string>
+    <string name="artifact_open_external">Open externally</string>
+    <string name="artifact_fullscreen">Fullscreen</string>
+    <string name="artifact_view_source">View source</string>
+    <string name="artifact_view_rendered">View rendered</string>
+    <string name="artifact_open_failed">Could not open</string>
     <string name="artifact_saved">Saved</string>
     <string name="artifact_save_failed">Save failed</string>
 

@@ -10,11 +10,10 @@ data class AutonomousAccessibilityDraftState(
     val startMinute: Int = 14 * 60,
     val endMinute: Int = 17 * 60,
     val allowedPackages: Set<String> = setOf(DEFAULT_PACKAGE),
-    val allowedActions: Set<AutomationAction> = setOf(AutomationAction.READ_SCREEN, AutomationAction.SCROLL),
+    val allowedActions: Set<AutomationAction> = AutomationAction.entries.toSet(),
     val maxRunsPerDay: Int = 6,
 ) {
     fun toggleAction(action: AutomationAction): AutonomousAccessibilityDraftState {
-        if (action == AutomationAction.INPUT) return this
         val next = if (action in allowedActions) allowedActions - action else allowedActions + action
         return copy(allowedActions = next)
     }
@@ -25,7 +24,7 @@ data class AutonomousAccessibilityDraftState(
             startMinuteOfDay = startMinute.coerceIn(0, 24 * 60 - 1),
             endMinuteOfDay = endMinute.coerceIn(0, 24 * 60 - 1),
             allowedPackages = allowedPackages.filter(String::isNotBlank).toSet(),
-            allowedActions = allowedActions - AutomationAction.INPUT,
+            allowedActions = allowedActions,
             maxRunsPerDay = maxRunsPerDay.coerceIn(0, 100),
         )
 
@@ -38,7 +37,7 @@ data class AutonomousAccessibilityDraftState(
                 startMinute = window.startMinuteOfDay,
                 endMinute = window.endMinuteOfDay,
                 allowedPackages = window.allowedPackages.ifEmpty { setOf(DEFAULT_PACKAGE) },
-                allowedActions = window.allowedActions - AutomationAction.INPUT,
+                allowedActions = window.allowedActions,
                 maxRunsPerDay = window.maxRunsPerDay,
             )
     }

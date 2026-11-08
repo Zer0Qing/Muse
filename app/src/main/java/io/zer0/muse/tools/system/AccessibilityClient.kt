@@ -157,10 +157,14 @@ class AccessibilityClient(private val context: Context) {
 
     /**
      * 无障碍服务是否已在系统设置中启用。
-     * 独立 Provider 或应用内服务任一被授权即返回 true(迁移期两套授权并存)。
+     *
+     * 只认**应用内服务**（[SERVICE_CLASS_NAME]）：自动化运行时（AutomationManager/Executor）
+     * 实际用的是 `MuseAccessibilityService.instance`，独立 Provider 并未接进执行器。
+     * 旧实现把"仅 Provider 已开"也算 granted，导致向导显示绿、自动化却全失败（两个真源打架）。
+     * 按产品决策 B：状态只显示运行时真能用的——仅开 Provider 时这里返回 false，
+     * 向导据此引导用户去开启应用内无障碍，不再给出误导性的"已授权"。
      */
-    fun isEnabled(): Boolean = isServiceEnabledInSystem(context.packageName, SERVICE_CLASS_NAME) ||
-        isServiceEnabledInSystem(PROVIDER_PACKAGE, PROVIDER_SERVICE_CLASS)
+    fun isEnabled(): Boolean = isServiceEnabledInSystem(context.packageName, SERVICE_CLASS_NAME)
 
     private fun isServiceEnabledInSystem(packageName: String, className: String): Boolean {
         val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager

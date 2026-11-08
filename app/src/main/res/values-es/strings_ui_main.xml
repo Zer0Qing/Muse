@@ -32,7 +32,7 @@
     <string name="assistant_detail_use_default">Usar predeterminado</string>
     <string name="assistant_detail_top_p_label">Top P (dejar vacío por defecto, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Tokens máximos (déjelo vacío por defecto)</string>
-    <string name="assistant_detail_context_message_count">Recuento de mensajes de contexto: %1$d</string>
+    <string name="assistant_detail_context_message_count">Incluye los últimos %1$d mensajes del historial</string>
     <string name="assistant_detail_reasoning_level">Nivel de razonamiento</string>
     <string name="assistant_detail_stream_output">Salida de flujo</string>
     <string name="assistant_detail_stream_output_desc">Cuando está desactivado, devuelve la respuesta completa a la vez.</string>
@@ -207,7 +207,7 @@
     <string name="settings_group_chat">Chat</string>
     <string name="settings_group_chat_desc">Visualización, stickers, notas rápidas y compartir</string>
     <string name="settings_group_models">Modelos y proveedores</string>
-    <string name="settings_group_models_desc">Proveedores, enrutado de tareas y plugins</string>
+    <string name="settings_group_models_desc">Proveedores, enrutado de tareas y complementos de aplicaciones</string>
     <string name="settings_group_tools">Herramientas y permisos</string>
     <string name="settings_group_tools_desc">Herramientas, asistente de permisos y búsqueda web</string>
     <string name="settings_group_voice">Voz</string>
@@ -608,7 +608,7 @@
     <string name="free_model_service_unavailable">El servicio de cuota gratuita no está disponible. Añade una API Key o inténtalo más tarde.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">Complementos de proveedores</string>
+    <string name="provider_plugins_title">Complementos de aplicaciones</string>
     <string name="muse_plugins_external">Complementos externos</string>
     <string name="muse_plugins_manage">Gestión de plugins</string>
     <string name="muse_plugins_imported">Paquete de plugin instalado</string>
@@ -626,6 +626,9 @@
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">Espacio de trabajo</string>
     <string name="workspace_tool_outputs">Salidas de herramientas</string>
+    <string name="workspace_attachments">Adjuntos</string>
+    <string name="workspace_download">Descargas</string>
+    <string name="workspace_resume">Currículos</string>
     <string name="workspace_desc">Gestión de archivos locales y almacenamiento temporal.</string>
     <string name="workspace_empty">El espacio de trabajo está vacío</string>
     <string name="workspace_new_file">Nuevo archivo</string>
@@ -884,6 +887,7 @@
     <string name="workspace_mount_add">Añadir carpeta</string>
     <string name="workspace_mount_read_only">Solo lectura</string>
     <string name="workspace_mount_remove">Quitar</string>
+    <string name="workspace_mount_remove_confirm">Solo se elimina la entrada de montaje de %1$s. La carpeta y los archivos originales del teléfono se conservan.</string>
     <string name="workspace_mount_added">%1$s montado</string>
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">No se pudo quitar «%1$s»: sigue en la lista</string>

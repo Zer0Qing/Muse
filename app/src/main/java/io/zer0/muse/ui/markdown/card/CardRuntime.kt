@@ -1,6 +1,8 @@
 package io.zer0.muse.ui.markdown.card
 
 import io.zer0.common.Logger
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -8,12 +10,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.markdown.CardHeightSink
 import io.zer0.muse.ui.markdown.MuseCardBridge
@@ -82,7 +87,16 @@ internal fun CardRuntime(
             Logger.d("CardPerf", "assemble card=${host.cardId} len=${assembled.length}")
         }
     }
-    val scrollable = spec.size !is CardSize.Auto
+    // 36: tap-to-focus。未聚焦的 Auto 卡保持原样（外层列表滚），仅「聚焦且溢出」才卡内滚，
+    // 故不会回退 39②（卡内滚抢手势）——聚焦是用户点出来的，不是默认状态。
+    val focusController = LocalCardFocusController.current
+    val focusedId by focusController.state.collectAsState()
+    val cardId = host.cardId
+    val focused = cardId != null && focusedId == cardId
+    val capPx = with(LocalDensity.current) { MAX_INLINE_CARD_DP.dp.roundToPx() }
+    val internalScroll = spec.size is CardSize.Auto &&
+        resolveCardScrollMode(focused, hasInlineOverflow(contentHeightPx, capPx)) == CardScrollMode.InternalScroll
+    val scrollable = (spec.size !is CardSize.Auto) || internalScroll
 
     // 推送目标只在这里留存一份引用（离开组合即清空），状态名带 Ref 后缀是为了
     // 不和 onWebViewCreated 的形参重名 —— 下面那两行是既有接线契约，形参名要保留。
@@ -96,23 +110,42 @@ internal fun CardRuntime(
         view.evaluateJavascript(CardScript.DATA_EVENT_JS, null)
     }
 
-    LifecycleAwareWebViewContainer(
-        htmlContent = html,
-        baseUrl = null,
-        javaScriptEnabled = true,
-        webViewClient = webViewClient,
-        scrollable = scrollable,
-        onWebViewCreated = { webView ->
-            // 高度接口无条件注册：与「能不能回传」无关。
-            webView.addJavascriptInterface(sink, CardScript.HEIGHT_SINK_NAME)
-            bridge?.let { webView.addJavascriptInterface(it, CardScript.BRIDGE_NAME) }
-            webViewRef = webView
-        },
-        onWebViewReleased = { webViewRef = null },
-        modifier = modifier
-            .fillMaxWidth()
-            .then(sizeModifier(spec.size, contentHeightPx)),
-    )
+    Box(modifier = modifier.fillMaxWidth()) {
+        LifecycleAwareWebViewContainer(
+            htmlContent = html,
+            baseUrl = null,
+            javaScriptEnabled = true,
+            webViewClient = webViewClient,
+            scrollable = scrollable,
+            onWebViewCreated = { webView ->
+                // 高度接口无条件注册：与「能不能回传」无关。
+                webView.addJavascriptInterface(sink, CardScript.HEIGHT_SINK_NAME)
+                bridge?.let { webView.addJavascriptInterface(it, CardScript.BRIDGE_NAME) }
+                webViewRef = webView
+            },
+            onWebViewReleased = { webViewRef = null },
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (internalScroll) {
+                        Modifier.height(effectiveInlineHeightPx(contentHeightPx, capPx).dp)
+                    } else {
+                        sizeModifier(spec.size, contentHeightPx)
+                    },
+                ),
+        )
+        // 未进入卡内滚的 Auto 卡盖一层透明点击层：点一下聚焦，竖滑不消费、交回聊天列表，
+        // 修长卡「WebView 吃掉竖滑又无可滚」的死区。聚焦且溢出后撤掉这层，WebView 自己滚。
+        if (spec.size is CardSize.Auto && !internalScroll && cardId != null) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .pointerInput(cardId) {
+                        detectTapGestures(onTap = { focusController.focus(cardId) })
+                    },
+            )
+        }
+    }
 }
 
 /**
@@ -126,15 +159,15 @@ private fun sizeModifier(
     size: CardSize,
     measuredPx: Int,
 ): Modifier = when (size) {
-    // 声明的高度是上限，不是铁框。内容比它矮就跟着收缩 ——
-    // 一个三十字的卡片被撑成 520dp，剩下全是空白，读起来像加载失败。
-    // 只有内容真的超过上限时才固定，让它在卡内滚。
+    // 39②: 声明高度只当测量前的占位，不再当上限。未聚焦时内容多高卡片就多高、由外层聊天列表滚，
+    // 不默认卡内滚（卡内滚会与外层抢手势）。36 的 tap-to-focus 只在「用户点聚焦且内容溢出上限」时
+    // 改走限高 + 卡内滚（见 CardRuntime 主体），故不默认回退 39②。收缩下限仍保留。
     is CardSize.Fixed -> {
         // 上报值来自 WebView 的 getBoundingClientRect，单位是 CSS px；
         // 而 CSS px 在 WebView 里就等于 dp（devicePixelRatio 即 Android 密度）。
         // 当成物理像素再 /density 会让每张卡按密度倍率缩水。
         val measured = measuredPx.dp
-        if (measuredPx > 0 && measured < size.height) {
+        if (measuredPx > 0) {
             Modifier.height(measured.coerceAtLeast(MIN_CARD_HEIGHT))
         } else {
             Modifier.height(size.height)

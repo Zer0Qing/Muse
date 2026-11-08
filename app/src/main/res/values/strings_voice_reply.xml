@@ -9,4 +9,8 @@
     <string name="voice_reply_always">总是</string>
     <string name="voice_timbre_entry">语音音色与语速</string>
     <string name="voice_timbre_entry_desc">在「设置 → 多媒体」里统一配置，这里不另存一份</string>
+    <string name="voice_reply_follow_global">跟随默认</string>
+    <string name="voice_reply_global_default_fmt">全局默认：%1$s</string>
+    <string name="voice_reply_global_section">语音回复频率（全局默认）</string>
+    <string name="voice_reply_global_hint">所有助手默认跟随这一档；可在助手约定页单独覆盖。</string>
 </resources>

@@ -351,5 +351,9 @@ data object RecentlyDeletedRoute
 @Serializable
 data object ArchivedChatsRoute
 
+/** 文件夹独立详情页：点文件夹进来，列出其中的对话，可新建到此文件夹 / 添加已有对话。 */
+@Serializable
+data class FolderDetailRoute(val folderId: String)
+
 @Serializable
 data class HtmlPreviewRoute(val html: String)

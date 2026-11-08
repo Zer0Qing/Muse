@@ -1,5 +1,8 @@
 package io.zer0.muse.ui.settings
 
+import io.zer0.muse.ui.navigation.KeepAliveSettingsRoute
+import io.zer0.muse.ui.navigation.SettingsAppearanceRoute
+import io.zer0.muse.ui.navigation.SettingsChatRoute
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -12,7 +15,7 @@ import org.robolectric.annotation.Config
 /**
  * 设置入口清单的结构回归锁定。
  *
- * 首页 14 个分类、每类的条目与顺序、全局 50 项的完整性全部写在 [SettingsCatalog] 里，
+ * 首页 16 个分类、每类的条目与顺序、全局 47 项的完整性全部写在 [SettingsCatalog] 里，
  * 首页 / 分类页 / 搜索索引都从这份清单取数据。这里直接断言清单本身：
  * 换类、换顺序、把某一项贴到两类里、加一项漏一项，都会让下面的断言失败。
  */
@@ -20,7 +23,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class SettingsGroupLayoutTest {
 
-    /** 14 个分类，按首页从上到下的顺序；每类的条目按分类页从上到下的顺序。 */
+    /** 16 个分类，按首页从上到下的顺序；每类的条目按分类页从上到下的顺序。 */
     private val expectedLayout: List<Pair<SettingsGroupKind, List<SettingsEntryId>>> = listOf(
         SettingsGroupKind.ASSISTANTS to listOf(
             SettingsEntryId.USER_PROFILE,
@@ -30,8 +33,9 @@ class SettingsGroupLayoutTest {
         ),
         SettingsGroupKind.CHAT to listOf(
             SettingsEntryId.CHAT,
-            SettingsEntryId.STICKERS,
-            SettingsEntryId.QUICK_NOTES,
+        ),
+        SettingsGroupKind.APPEARANCE to listOf(
+            SettingsEntryId.APPEARANCE,
         ),
         SettingsGroupKind.MODELS to listOf(
             SettingsEntryId.PROVIDER,
@@ -51,7 +55,6 @@ class SettingsGroupLayoutTest {
         SettingsGroupKind.IMAGE to listOf(
             SettingsEntryId.IMAGE_VIDEO_GEN,
             SettingsEntryId.VISION,
-            SettingsEntryId.TRANSLATE,
         ),
         SettingsGroupKind.MEMORY to listOf(
             SettingsEntryId.MEMORY,
@@ -60,7 +63,6 @@ class SettingsGroupLayoutTest {
             SettingsEntryId.SESSION_TERMS,
         ),
         SettingsGroupKind.CONNECTION to listOf(
-            SettingsEntryId.CONNECTION_CENTER,
             SettingsEntryId.CHANNEL,
             SettingsEntryId.BROWSER,
             SettingsEntryId.WEB_ACCESS,
@@ -70,13 +72,13 @@ class SettingsGroupLayoutTest {
         SettingsGroupKind.AUTOMATION to listOf(
             SettingsEntryId.PROACTIVE,
             SettingsEntryId.AGENT_DIRECTIVES,
-            SettingsEntryId.SCHEDULED_TASKS,
             SettingsEntryId.NOTIFICATION_LISTENER,
             SettingsEntryId.UI_AUTOMATION,
+        ),
+        SettingsGroupKind.KEEP_ALIVE to listOf(
             SettingsEntryId.KEEP_ALIVE,
         ),
-        SettingsGroupKind.APPEARANCE to listOf(
-            SettingsEntryId.APPEARANCE,
+        SettingsGroupKind.MINI_PHONE to listOf(
             SettingsEntryId.MINIPHONE,
         ),
         SettingsGroupKind.DATA_STORAGE to listOf(
@@ -151,7 +153,7 @@ class SettingsGroupLayoutTest {
     @Test
     fun `category titles use their own keys and do not repeat entry titles`() {
         val groupTitleRes = SettingsCatalog.groups.map { it.titleRes }
-        assertEquals("14 个分类必须各有独立标题键", SETTINGS_GROUP_COUNT, groupTitleRes.distinct().size)
+        assertEquals("16 个分类必须各有独立标题键", SETTINGS_GROUP_COUNT, groupTitleRes.distinct().size)
 
         val entryTitleRes = SettingsCatalog.entries.map { it.titleRes }
         val shared = groupTitleRes.filter { it in entryTitleRes }
@@ -182,6 +184,15 @@ class SettingsGroupLayoutTest {
         }
     }
 
+    /** 单条目分类直接进它唯一的页面；多条目分类保留中间页。 */
+    @Test
+    fun `single entry categories expose their only page for direct navigation`() {
+        assertEquals(SettingsChatRoute, SettingsCatalog.group(SettingsGroupKind.CHAT).directEntryRoute())
+        assertEquals(SettingsAppearanceRoute, SettingsCatalog.group(SettingsGroupKind.APPEARANCE).directEntryRoute())
+        assertEquals(KeepAliveSettingsRoute, SettingsCatalog.group(SettingsGroupKind.KEEP_ALIVE).directEntryRoute())
+        assertNull("多条目分类仍需中间页", SettingsCatalog.group(SettingsGroupKind.MODELS).directEntryRoute())
+    }
+
     @Test
     fun `entries that are switches stay inside their category page`() {
         val toggles = SettingsCatalog.entries.filter { it.action is SettingsEntryAction.Toggle }
@@ -197,11 +208,11 @@ class SettingsGroupLayoutTest {
     }
 
     private companion object {
-        const val SETTINGS_GROUP_COUNT = 14
-        const val EXPECTED_ENTRY_COUNT = 52
+        const val SETTINGS_GROUP_COUNT = 16
+        const val EXPECTED_ENTRY_COUNT = 47
 
         /** 与上方 expectedLayout 一一对应的条目数，用来锁住分布均衡、没有过大的单类。 */
-        // v2.7.x(E2): 记忆类 +1（术语页）
-        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 3, 3, 3, 3, 3, 3, 6, 6, 2, 5, 2, 4, 5)
+        // v2.7.x(E2): 记忆类 +1（术语页）；2.6.24: 表情包库并入聊天设置，聊天类 -1
+        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 1, 1, 3, 3, 3, 2, 3, 5, 4, 1, 1, 5, 2, 4, 5)
     }
 }

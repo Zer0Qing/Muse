@@ -32,7 +32,7 @@
     <string name="assistant_detail_use_default">デフォルトを使用</string>
     <string name="assistant_detail_top_p_label">トップ P (デフォルトでは空のままにしておきます、0 ～ 1)</string>
     <string name="assistant_detail_max_tokens_label">最大トークン数 (デフォルトでは空のまま)</string>
-    <string name="assistant_detail_context_message_count">コンテキスト メッセージ数: %1$d</string>
+    <string name="assistant_detail_context_message_count">直近の履歴メッセージを %1$d 件引き継ぎます</string>
     <string name="assistant_detail_reasoning_level">推理レベル</string>
     <string name="assistant_detail_stream_output">ストリーム出力</string>
     <string name="assistant_detail_stream_output_desc">オフの場合、完全な応答を一度に返します</string>
@@ -207,7 +207,7 @@
     <string name="settings_group_chat">チャット</string>
     <string name="settings_group_chat_desc">表示、スタンプ、クイックメモ、共有</string>
     <string name="settings_group_models">モデルとプロバイダー</string>
-    <string name="settings_group_models_desc">プロバイダー、タスクルーティング、プラグイン</string>
+    <string name="settings_group_models_desc">プロバイダー、タスクルーティング、アプリプラグイン</string>
     <string name="settings_group_tools">ツールと権限</string>
     <string name="settings_group_tools_desc">ツール、権限ウィザード、Web 検索</string>
     <string name="settings_group_voice">音声</string>
@@ -608,7 +608,7 @@
     <string name="free_model_service_unavailable">無料枠サービスは利用できません。API Key を追加するか、後でもう一度お試しください。</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">プロバイダーのプラグイン</string>
+    <string name="provider_plugins_title">アプリプラグイン</string>
     <string name="muse_plugins_external">外部プラグイン</string>
     <string name="muse_plugins_manage">プラグイン管理</string>
     <string name="muse_plugins_imported">プラグインパッケージをインストールしました</string>
@@ -626,6 +626,9 @@
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">ワークスペース</string>
     <string name="workspace_tool_outputs">ツールの出力</string>
+    <string name="workspace_attachments">添付</string>
+    <string name="workspace_download">ダウンロード</string>
+    <string name="workspace_resume">履歴書</string>
     <string name="workspace_desc">ローカルファイル管理と一時ストレージ</string>
     <string name="workspace_empty">ワークスペースが空です</string>
     <string name="workspace_new_file">新しいファイル</string>
@@ -881,6 +884,7 @@
     <string name="workspace_mount_add">フォルダを追加</string>
     <string name="workspace_mount_read_only">読み取り専用</string>
     <string name="workspace_mount_remove">削除</string>
+    <string name="workspace_mount_remove_confirm">「%1$s」のマウント登録だけを削除します。端末内の元のフォルダとファイルはそのまま残ります。</string>
     <string name="workspace_mount_added">%1$s をマウントしました</string>
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">「%1$s」を削除できませんでした。一覧に残っています</string>

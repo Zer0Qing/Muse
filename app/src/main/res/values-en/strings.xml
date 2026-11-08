@@ -33,6 +33,7 @@
     <string name="about_oss_licenses">Open Source Licenses</string>
     <string name="licenses_title">Open Source Licenses</string>
     <string name="licenses_total_count">%1$d dependencies in total</string>
+    <string name="licenses_app_statement">Muse is released as open source under GPL v3. Third-party dependencies use permissive licenses (Apache 2.0 / MIT / BSD / EPL-1.0); their notices must be retained.</string>
 
     <!-- Common actions -->
     <string name="action_back">Back</string>

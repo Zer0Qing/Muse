@@ -31,9 +31,7 @@ object AutonomousAccessibilityApproval {
             return Result(pending, "")
         }
         val action = actionFor(toolName) ?: return Result(pending, "")
-        if (action == AutomationAction.INPUT) {
-            return Result(pending, "输入动作不会自主执行")
-        }
+        // 输入不再硬挡：是否放行完全交给下方动作白名单（window.allowedActions）与时段/白名单/额度策略。
         if (currentPackage.isNullOrBlank()) {
             return Result(pending, "无法确认当前前台应用")
         }

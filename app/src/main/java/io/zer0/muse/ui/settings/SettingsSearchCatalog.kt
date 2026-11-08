@@ -72,16 +72,21 @@ object SettingsSearchCatalog {
 
     val records: List<SettingsSearchRecord> =
         SettingsCatalog.groups.flatMap { group ->
-            group.entries.map { entry ->
-                SettingsSearchRecord(
-                    titleRes = entry.titleRes,
-                    keywords = entry.keywords,
-                    group = group.kind,
-                    action = entry.action,
-                    icon = entry.icon,
-                    entryId = entry.id,
-                )
-            }
+            group.entries
+                // 小手机总闸关掉时路由不存在；留在索引里等于给用户一个点了没有落地页的按钮。
+                .filter { entry ->
+                    entry.id != SettingsEntryId.MINIPHONE || io.zer0.muse.feature.FeatureFlags.MINI_PHONE
+                }
+                .map { entry ->
+                    SettingsSearchRecord(
+                        titleRes = entry.titleRes,
+                        keywords = entry.keywords,
+                        group = group.kind,
+                        action = entry.action,
+                        icon = entry.icon,
+                        entryId = entry.id,
+                    )
+                }
         } + SettingsSearchExtras.records
 }
 
@@ -299,6 +304,16 @@ internal object SettingsSearchExtras {
             listOf(
                 "组件", "画廊", "component gallery", "组件演示", "预览", "设计系统",
                 "zujian", "hualang", "zujiandemo", "yulan", "shejixitong",
+            ),
+        ),
+        // 表情包库并入聊天设置页后不再单独成条目；搜索仍直达它所在的聊天设置。
+        record(
+            R.string.settings_chat_sticker_section,
+            SettingsGroupKind.CHAT,
+            SettingsEntryAction.Navigate(SettingsChatRoute),
+            listOf(
+                "表情包", "表情", "贴纸", "表情包库", "sticker", "emoji", "biaoqingbao",
+                "biaoqing", "tiezhi", "biaoqingbaoku", "bq", "tq", "bqbk",
             ),
         ),
     )

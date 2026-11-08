@@ -53,6 +53,12 @@ interface VoiceAudioPlayer {
     /** 当前播放位置（毫秒）。 */
     fun positionMs(): Long
 
+    /**
+     * 跳到指定位置（毫秒）。未 prepared 时记下来等 prepared 后应用。
+     * 默认 no-op：测试假实现不必关心拖动。
+     */
+    fun seekTo(positionMs: Long) {}
+
     /** 释放底层资源。 */
     fun release()
 }
@@ -61,6 +67,7 @@ interface VoiceAudioPlayer {
 class MediaPlayerVoiceAudioPlayer : VoiceAudioPlayer {
     private var player: MediaPlayer? = null
     private var prepared = false
+    private var pendingSeekMs: Long? = null
 
     override fun load(file: File, onCompletion: () -> Unit, onError: (Throwable) -> Unit): Boolean =
         runCatching {
@@ -81,6 +88,11 @@ class MediaPlayerVoiceAudioPlayer : VoiceAudioPlayer {
                         Logger.w(TAG, "语音起播失败: ${e.message}")
                         onError(e)
                     }
+                pendingSeekMs?.let { target ->
+                    pendingSeekMs = null
+                    runCatching { ready.seekTo(target.toInt()) }
+                        .onFailure { Logger.w(TAG, "语音起播后跳转失败: ${it.message}") }
+                }
             }
             mp.setOnCompletionListener { onCompletion() }
             mp.setOnErrorListener { _, what, extra ->
@@ -113,10 +125,21 @@ class MediaPlayerVoiceAudioPlayer : VoiceAudioPlayer {
         if (!prepared) 0L else mp.currentPosition.toLong()
     }.getOrDefault(0L)
 
+    override fun seekTo(positionMs: Long) {
+        val mp = player ?: return
+        if (!prepared) {
+            pendingSeekMs = positionMs
+            return
+        }
+        runCatching { mp.seekTo(positionMs.toInt()) }
+            .onFailure { Logger.w(TAG, "语音跳转失败: ${it.message}") }
+    }
+
     override fun release() {
         val mp = player ?: return
         player = null
         prepared = false
+        pendingSeekMs = null
         runCatching { mp.release() }.onFailure { Logger.w(TAG, "语音播放器释放失败: ${it.message}") }
     }
 
@@ -158,6 +181,20 @@ class VoicePlaybackController(
         }
         stop()
         play(uri, file)
+    }
+
+    /**
+     * 09: 拖动进度。不是当前条时先起播再跳；未 prepared 的跳转由播放器记下等 prepared 应用。
+     * 位置钳到 >=0；上限由调用方按总时长钳。
+     */
+    fun seek(uri: String, file: File, positionMs: Long) {
+        val ms = positionMs.coerceAtLeast(0L)
+        if (state.uri != uri) {
+            stop()
+            play(uri, file)
+        }
+        player?.seekTo(ms)
+        state = state.copy(positionMs = ms)
     }
 
     /** 停掉当前语音并释放播放器（切后台/离开页面/换条时调用，可重复调用）。 */

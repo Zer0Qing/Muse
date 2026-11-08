@@ -9,4 +9,8 @@
     <string name="voice_reply_always">Всегда</string>
     <string name="voice_timbre_entry">Тембр и скорость речи</string>
     <string name="voice_timbre_entry_desc">Настраивается один раз в «Медиа» — второй копии нет</string>
+    <string name="voice_reply_follow_global">По умолчанию</string>
+    <string name="voice_reply_global_default_fmt">Глобально по умолчанию: %1$s</string>
+    <string name="voice_reply_global_section">Частота голосовых ответов (глобально)</string>
+    <string name="voice_reply_global_hint">Все ассистенты по умолчанию следуют этому уровню; переопределите для каждого на странице директив.</string>
 </resources>

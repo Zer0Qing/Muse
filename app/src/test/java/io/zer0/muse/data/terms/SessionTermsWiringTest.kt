@@ -151,7 +151,7 @@ class SessionTermsStringsTest {
             File("app/src/test/java/io/zer0/muse/ui/settings/SettingsGroupLayoutTest.kt"),
             File("src/test/java/io/zer0/muse/ui/settings/SettingsGroupLayoutTest.kt"),
         ).firstOrNull { it.exists() }?.readText() ?: error("找不到 SettingsGroupLayoutTest.kt")
-        assertTrue("布局期望没同步(条目数)", layout.contains("EXPECTED_ENTRY_COUNT = 52"))
+        assertTrue("布局期望没同步(条目数)", layout.contains("EXPECTED_ENTRY_COUNT = 47"))
         assertTrue("记忆组没把术语页算进去", layout.contains("SettingsEntryId.SESSION_TERMS,"))
     }
 }

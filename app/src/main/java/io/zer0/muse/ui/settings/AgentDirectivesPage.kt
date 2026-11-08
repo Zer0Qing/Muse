@@ -3,6 +3,7 @@ package io.zer0.muse.ui.settings
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -94,7 +95,8 @@ fun AgentDirectivesPage(
         forbidden = forbidden,
         desired = desired,
         omittedCount = omittedCount,
-        voiceFrequency = AgentDirectivesUiState.voiceFrequency(voiceSnapshot, agentId),
+        voiceOverride = AgentDirectivesUiState.voiceOverride(voiceSnapshot, agentId),
+        globalVoiceFrequency = AgentDirectivesUiState.globalVoiceFrequency(voiceSnapshot),
         onBack = onBack,
         onSelectAgent = { selectedAgent = it },
         onSave = { polarity, text -> scope.launch { store.add(agentId, polarity, text) } },
@@ -102,6 +104,7 @@ fun AgentDirectivesPage(
         onMove = { id, delta -> scope.launch { store.move(id, delta) } },
         onDelete = { id -> scope.launch { store.remove(id) } },
         onVoiceFrequencyChange = { level -> scope.launch { voiceStore.set(agentId, level) } },
+        onVoiceFollowDefault = { scope.launch { voiceStore.clearOverride(agentId) } },
         onOpenTimbre = onOpenVoiceSettings,
     )
 }
@@ -120,7 +123,8 @@ internal fun AgentDirectivesContent(
     forbidden: List<AgentDirective>,
     desired: List<AgentDirective>,
     omittedCount: Int,
-    voiceFrequency: VoiceReplyFrequency,
+    voiceOverride: VoiceReplyFrequency?,
+    globalVoiceFrequency: VoiceReplyFrequency,
     onBack: () -> Unit,
     onSelectAgent: (String) -> Unit,
     onSave: (DirectivePolarity, String) -> Unit,
@@ -128,6 +132,7 @@ internal fun AgentDirectivesContent(
     onMove: (String, Int) -> Unit,
     onDelete: (String) -> Unit,
     onVoiceFrequencyChange: (VoiceReplyFrequency) -> Unit,
+    onVoiceFollowDefault: () -> Unit,
     onOpenTimbre: () -> Unit,
 ) {
     var drafting by remember { mutableStateOf<DirectivePolarity?>(null) }
@@ -183,8 +188,10 @@ internal fun AgentDirectivesContent(
         }
         item {
             VoiceFrequencySection(
-                current = voiceFrequency,
+                override = voiceOverride,
+                globalDefault = globalVoiceFrequency,
                 onSelect = onVoiceFrequencyChange,
+                onFollowDefault = onVoiceFollowDefault,
                 onOpenTimbre = onOpenTimbre,
             )
         }
@@ -336,7 +343,13 @@ private fun DirectiveEditor(polarity: DirectivePolarity, onDismiss: () -> Unit, 
  * 档位只改提示词政策，不做硬拦截（见 `VoiceReplyPolicy` 的说明）。
  */
 @Composable
-private fun VoiceFrequencySection(current: VoiceReplyFrequency, onSelect: (VoiceReplyFrequency) -> Unit, onOpenTimbre: () -> Unit) {
+private fun VoiceFrequencySection(
+    override: VoiceReplyFrequency?,
+    globalDefault: VoiceReplyFrequency,
+    onSelect: (VoiceReplyFrequency) -> Unit,
+    onFollowDefault: () -> Unit,
+    onOpenTimbre: () -> Unit,
+) {
     val labels = mapOf(
         VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
         VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),
@@ -351,17 +364,30 @@ private fun VoiceFrequencySection(current: VoiceReplyFrequency, onSelect: (Voice
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(
+            Text(
+                // 让"跟随默认"看得见到底跟随到哪一档，否则用户不知道点了会生效成什么。
+                text = stringResource(R.string.voice_reply_global_default_fmt, labels.getValue(globalDefault)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            // 5 颗 chip（跟随默认 + 四档）：用 FlowRow 而不是 Row，窄屏一行放不下会被压成竖排。
+            FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                MuseChip(
+                    label = stringResource(R.string.voice_reply_follow_global),
+                    selected = override == null,
+                    onClick = { if (override != null) onFollowDefault() },
+                )
                 VoiceReplyFrequency.entries.forEach { level ->
                     MuseChip(
                         label = labels.getValue(level),
-                        selected = level == current,
-                        onClick = { if (level != current) onSelect(level) },
+                        selected = level == override,
+                        onClick = { if (level != override) onSelect(level) },
                     )
                 }
             }

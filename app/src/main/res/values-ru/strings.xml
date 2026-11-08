@@ -32,6 +32,7 @@
     <string name="about_oss_licenses">Лицензии с открытым исходным кодом</string>
     <string name="licenses_title">Лицензии с открытым исходным кодом</string>
     <string name="licenses_total_count">%1$d зависимости всего</string>
+    <string name="licenses_app_statement">Muse выпускается с открытым исходным кодом по GPL v3. Сторонние зависимости используют разрешительные лицензии (Apache 2.0 / MIT / BSD / EPL-1.0); их уведомления необходимо сохранять.</string>
 
     <!-- Common actions -->
     <string name="action_back">Назад</string>

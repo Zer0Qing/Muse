@@ -1,7 +1,9 @@
 package io.zer0.muse.automation.ui
 
+import io.zer0.muse.automation.core.AutomationAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AutonomousAccessibilitySettingsSectionTest {
@@ -17,13 +19,25 @@ class AutonomousAccessibilitySettingsSectionTest {
     }
 
     @Test
-    fun `input cannot be selected as an autonomous action`() {
-        val next =
-            AutonomousAccessibilityDraftState().toggleAction(
-                io.zer0.muse.automation.core.AutomationAction.INPUT,
-            )
+    fun `默认四个自主动作全开`() {
+        val initial = AutonomousAccessibilityDraftState()
+        assertEquals(AutomationAction.entries.toSet(), initial.allowedActions)
+    }
 
-        assertFalse(io.zer0.muse.automation.core.AutomationAction.INPUT in next.allowedActions)
+    @Test
+    fun `输入可以单独关掉而不是被硬挡且可再开`() {
+        val off = AutonomousAccessibilityDraftState().toggleAction(AutomationAction.INPUT)
+        assertFalse(AutomationAction.INPUT in off.allowedActions)
+        val on = off.toggleAction(AutomationAction.INPUT)
+        assertTrue(AutomationAction.INPUT in on.allowedActions)
+    }
+
+    @Test
+    fun `输入动作能存进窗口并原样读回`() {
+        val window = AutonomousAccessibilityDraftState().toWindow()
+        assertTrue("全开默认应含输入，不再被 toWindow 剥掉", AutomationAction.INPUT in window.allowedActions)
+        val back = AutonomousAccessibilityDraftState.fromWindow(window)
+        assertTrue("读回也不剥输入", AutomationAction.INPUT in back.allowedActions)
     }
 
     @Test

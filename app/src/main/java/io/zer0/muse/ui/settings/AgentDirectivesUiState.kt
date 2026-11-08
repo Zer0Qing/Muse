@@ -4,6 +4,7 @@ import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
 import io.zer0.muse.data.assistant.DirectivePolarity
 import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 import io.zer0.muse.proactive.AgentDirectivesPrompt
 
 /**
@@ -45,7 +46,15 @@ internal object AgentDirectivesUiState {
      * 若这里写成 ALWAYS 或抛异常，用户什么都没动就变了回复形态。
      */
     fun voiceFrequency(snapshot: Map<String, String>, agentId: String): VoiceReplyFrequency =
-        VoiceReplyFrequency.fromName(snapshot[agentId])
+        voiceOverride(snapshot, agentId) ?: globalVoiceFrequency(snapshot)
+
+    /** 助手的显式覆盖档；null 表示跟随全局默认。 */
+    fun voiceOverride(snapshot: Map<String, String>, agentId: String): VoiceReplyFrequency? =
+        snapshot[agentId]?.let { VoiceReplyFrequency.fromName(it) }
+
+    /** 全局默认档；未设回落 RARELY（不注入任何文案）。 */
+    fun globalVoiceFrequency(snapshot: Map<String, String>): VoiceReplyFrequency =
+        VoiceReplyFrequency.fromName(snapshot[VoiceReplyPolicyStore.GLOBAL_KEY])
 
     fun omittedCount(mine: List<AgentDirective>): Int = AgentDirectivesPrompt.build(mine, AgentDirectiveStore.MAX_TOTAL_CHARS).omitted.size
 }

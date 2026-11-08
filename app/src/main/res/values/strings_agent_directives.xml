@@ -3,9 +3,9 @@
 <resources>
     <string name="settings_screen_agent_directives">它该做与不该做的事</string>
     <string name="settings_screen_agent_directives_desc">给它立的长期规矩，主动消息和聊天都会遵守</string>
-    <string name="agent_directives_hint">这里写的是你的具体要求，比一般语气设定更优先。两类冲突时，以「绝对不要」为准。</string>
-    <string name="agent_directives_forbidden_section">绝对不要</string>
-    <string name="agent_directives_desired_section">尽量做到</string>
+    <string name="agent_directives_hint">这里写你的具体要求，优先于一般语气设定；两者冲突时以「禁止事项」为准。</string>
+    <string name="agent_directives_forbidden_section">禁止事项</string>
+    <string name="agent_directives_desired_section">期望事项</string>
     <string name="agent_directives_empty">还没有写过。比如：别叫我宝贝</string>
     <string name="agent_directives_empty_desired">还没有写过。比如：多夸夸我认真做的事</string>
     <string name="agent_directives_add_forbidden">添加一条「不要做」</string>

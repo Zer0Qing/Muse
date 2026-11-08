@@ -201,4 +201,18 @@ Tap refresh to fetch the list upstream</string>
     <string name="browser_cookies_cleared">Cookies cleared</string>
 
     <string name="home_miniphone_cd">Mini Phone</string>
+    <string name="user_persona_section">User Persona</string>
+    <string name="user_persona_current">Current persona</string>
+    <string name="user_persona_none">None (use global profile)</string>
+    <string name="user_persona_use_global">Use global profile</string>
+    <string name="user_persona_select">Use</string>
+    <string name="user_persona_new">New persona</string>
+    <string name="user_persona_name">Persona name</string>
+    <string name="user_persona_text">Persona text (your identity with this assistant)</string>
+    <string name="favorites_select_mode">Select</string>
+    <string name="favorites_exit_select">Exit selection</string>
+    <string name="favorites_selected_count">%1$d selected</string>
+    <string name="favorites_select_all">Select all</string>
+    <string name="favorites_batch_unfavorite">Unfavorite</string>
+    <string name="favorites_batch_group">Set group</string>
 </resources>

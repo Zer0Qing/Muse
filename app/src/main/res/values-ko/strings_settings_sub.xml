@@ -697,6 +697,10 @@
     <string name="keep_alive_notification_title">Muse가 백그라운드에서 실행 중</string>
     <string name="keep_alive_notification_text">예약 작업과 능동 메시지를 유지합니다</string>
     <string name="settings_keep_alive_title">백그라운드 상주</string>
+    <string name="settings_group_keep_alive">상시 백그라운드</string>
+    <string name="settings_group_keep_alive_desc">상주, 배터리 최적화, 자동 시작</string>
+    <string name="settings_group_miniphone">미니 폰</string>
+    <string name="settings_group_miniphone_desc">내장 폰과 2D 작은 방</string>
     <string name="settings_keep_alive_subtitle">상주 알림으로 프로세스를 포그라운드에 유지합니다</string>
     <string name="settings_keep_alive_hint">Muse는 상주 알림을 표시합니다. Android가 포그라운드 서비스에 요구하는 사항이며 숨길 수 없습니다. 일부 중국 ROM에서는 자동 시작도 허용해야 합니다.</string>
     <string name="settings_keep_alive_wakelock_title">화면이 꺼져도 연결 유지</string>

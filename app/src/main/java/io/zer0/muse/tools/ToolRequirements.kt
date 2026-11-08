@@ -142,6 +142,7 @@ object ToolRequirements {
             "generate_image", "generate_video", "generate_qr_code",
             // v2.x: 语音消息——本地 TTS 合成 + 挂在自己的消息上,不碰系统权限
             "send_voice",
+            "list_cloned_voices",
         ).forEach { put(it, NONE) }
     }
 

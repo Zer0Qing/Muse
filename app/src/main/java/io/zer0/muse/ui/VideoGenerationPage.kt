@@ -473,16 +473,19 @@ fun VideoGenerationPage(
             }
 
             // ── 生成视频按钮(Surface + clickable,不用 Material3 Button)──
+            // 11③: 禁用态背景是浅色 surfaceVariant，前景若仍用 onPrimary(白)就白底白字，
+            // 整个按钮看起来是一块空白圆角。禁用时前景必须换成可读的 onSurfaceVariant。
+            val submitEnabled = !isGenerating && selectedProvider != null && videoModels.isNotEmpty()
             Surface(
                 shape = MuseShapes.medium,
-                color = if (isGenerating || selectedProvider == null || videoModels.isEmpty()) {
-                    MaterialTheme.colorScheme.surfaceVariant
-                } else {
+                color = if (submitEnabled) {
                     MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = !isGenerating && selectedProvider != null && videoModels.isNotEmpty()) {
+                    .clickable(enabled = submitEnabled) {
                         if (prompt.isBlank()) {
                             MuseToast.show(context.getString(R.string.video_gen_prompt))
                             return@clickable
@@ -538,7 +541,11 @@ fun VideoGenerationPage(
                         Icon(
                             imageVector = MuseIcons.movie,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = if (submitEnabled) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.size(MusePaddings.iconPadding * 2),
                         )
                         Spacer(Modifier.size(MusePaddings.iconPadding))
@@ -547,10 +554,10 @@ fun VideoGenerationPage(
                         text = stringResource(R.string.video_gen_submit),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isGenerating) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onPrimary
+                        color = when {
+                            isGenerating -> MaterialTheme.colorScheme.onSurface
+                            submitEnabled -> MaterialTheme.colorScheme.onPrimary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
                     )
                 }

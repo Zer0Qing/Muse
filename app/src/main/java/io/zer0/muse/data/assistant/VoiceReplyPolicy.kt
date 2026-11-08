@@ -79,10 +79,11 @@ internal object VoiceReplyPolicy {
     }
 }
 
-/** 每个助手一档，落 `filesDir/voice_reply_policy.json`。 */
+/** 全局默认档 + 按助手覆盖，落 `filesDir/voice_reply_policy.json`。 */
 @Serializable
 private data class VoiceReplyPolicyFile(
     val byAgent: Map<String, String> = emptyMap(),
+    val schema: Int = 0,
 )
 
 class VoiceReplyPolicyStore private constructor(context: Context) {
@@ -105,12 +106,27 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
         runCatching { byAgentState.value = readFromDisk() }
     }
 
-    suspend fun frequencyFor(agentId: String): VoiceReplyFrequency = VoiceReplyFrequency.fromName(current()[agentId])
+    /** 某助手生效档：显式覆盖优先，否则跟随全局默认。 */
+    suspend fun frequencyFor(agentId: String): VoiceReplyFrequency {
+        val override = current()[agentId]
+        if (override != null) return VoiceReplyFrequency.fromName(override)
+        return globalFrequency()
+    }
 
-    suspend fun set(agentId: String, frequency: VoiceReplyFrequency): Result<Unit> = withContext(Dispatchers.IO) {
+    /** 全局默认档；未设回落 RARELY。 */
+    suspend fun globalFrequency(): VoiceReplyFrequency = VoiceReplyFrequency.fromName(current()[GLOBAL_KEY])
+
+    suspend fun setGlobal(frequency: VoiceReplyFrequency): Result<Unit> = mutate { it[GLOBAL_KEY] = frequency.name }
+
+    suspend fun set(agentId: String, frequency: VoiceReplyFrequency): Result<Unit> = mutate { it[agentId] = frequency.name }
+
+    /** 清除某助手覆盖＝让它跟随全局默认。 */
+    suspend fun clearOverride(agentId: String): Result<Unit> = mutate { it.remove(agentId) }
+
+    private suspend fun mutate(transform: (MutableMap<String, String>) -> Unit): Result<Unit> = withContext(Dispatchers.IO) {
         mutex.withLock {
             resultOf<Unit> {
-                val next = current().toMutableMap().apply { put(agentId, frequency.name) }
+                val next = current().toMutableMap().apply(transform)
                 writeToDisk(next)
                 byAgentState.value = next
             }
@@ -121,14 +137,22 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
 
     private fun readFromDisk(): Map<String, String> {
         if (!file.isFile) return emptyMap()
-        return runCatching { json.decodeFromString(VoiceReplyPolicyFile.serializer(), file.readText()).byAgent }
-            .getOrDefault(emptyMap())
+        return runCatching {
+            val decoded = json.decodeFromString(VoiceReplyPolicyFile.serializer(), file.readText())
+            if (decoded.schema < CURRENT_SCHEMA) {
+                // 旧版按助手存且 RARELY 等同未设：迁移时丢弃 RARELY 让它跟随新的全局默认，
+                // 其它档保留为显式覆盖。schema 升级后不再迁移，显式设的 RARELY 才能钉住。
+                decoded.byAgent.filterValues { VoiceReplyFrequency.fromName(it) != VoiceReplyFrequency.RARELY }
+            } else {
+                decoded.byAgent
+            }
+        }.getOrDefault(emptyMap())
     }
 
     private fun writeToDisk(map: Map<String, String>) {
         // 与约定表同一套纪律：临时文件 + 替换，不留半截 JSON
         val tmp = File(file.parentFile, "$FILE_NAME.tmp")
-        tmp.writeText(json.encodeToString(VoiceReplyPolicyFile.serializer(), VoiceReplyPolicyFile(map)))
+        tmp.writeText(json.encodeToString(VoiceReplyPolicyFile.serializer(), VoiceReplyPolicyFile(map, CURRENT_SCHEMA)))
         if (file.exists() && !file.delete() && !tmp.delete()) {
             error("旧文件删不掉，语音档位未保存")
         }
@@ -139,6 +163,12 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
 
     companion object {
         const val FILE_NAME = "voice_reply_policy.json"
+
+        /** 当前文件 schema；旧文件无此字段解码为 0，触发一次性迁移。 */
+        private const val CURRENT_SCHEMA = 1
+
+        /** 全局默认档在 byAgent 表里的保留键（不会与真实 agentId 冲突）。 */
+        internal const val GLOBAL_KEY = "__global__"
 
         @Volatile
         private var shared: VoiceReplyPolicyStore? = null

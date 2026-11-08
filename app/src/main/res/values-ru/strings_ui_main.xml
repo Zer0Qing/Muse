@@ -32,7 +32,7 @@
     <string name="assistant_detail_use_default">Использовать по умолчанию</string>
     <string name="assistant_detail_top_p_label">Top P (пусто для значения по умолчанию, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens (пусто для значения по умолчанию)</string>
-    <string name="assistant_detail_context_message_count">Количество сообщений в контексте: %1$d</string>
+    <string name="assistant_detail_context_message_count">Передаёт последние %1$d сообщений истории</string>
     <string name="assistant_detail_reasoning_level">Уровень рассуждения</string>
     <string name="assistant_detail_stream_output">Потоковый вывод</string>
     <string name="assistant_detail_stream_output_desc">Если выключено, полный ответ возвращается сразу</string>
@@ -207,7 +207,7 @@
     <string name="settings_group_chat">Чат</string>
     <string name="settings_group_chat_desc">Отображение, стикеры, быстрые заметки и отправка</string>
     <string name="settings_group_models">Модели и провайдеры</string>
-    <string name="settings_group_models_desc">Провайдеры, маршрутизация задач и плагины</string>
+    <string name="settings_group_models_desc">Провайдеры, маршрутизация задач и плагины приложений</string>
     <string name="settings_group_tools">Инструменты и права</string>
     <string name="settings_group_tools_desc">Инструменты, мастер прав и веб-поиск</string>
     <string name="settings_group_voice">Голос</string>
@@ -608,7 +608,7 @@
     <string name="free_model_service_unavailable">Бесплатная квота недоступна. Добавьте API-ключ или попробуйте позже.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">Плагины провайдеров</string>
+    <string name="provider_plugins_title">Плагины приложений</string>
     <string name="muse_plugins_external">Внешние плагины</string>
     <string name="provider_plugins_empty">Нет плагинов</string>
     <string name="provider_plugins_import">Импортировать плагин</string>
@@ -623,6 +623,9 @@
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">Рабочее пространство</string>
     <string name="workspace_tool_outputs">Вывод инструментов</string>
+    <string name="workspace_attachments">Вложения</string>
+    <string name="workspace_download">Загрузки</string>
+    <string name="workspace_resume">Резюме</string>
     <string name="workspace_desc">Локальное управление файлами и временное хранилище</string>
     <string name="workspace_empty">Рабочее пространство пусто</string>
     <string name="workspace_new_file">Новый файл</string>
@@ -842,6 +845,7 @@
     <string name="workspace_mount_add">Добавить папку</string>
     <string name="workspace_mount_read_only">Только чтение</string>
     <string name="workspace_mount_remove">Удалить</string>
+    <string name="workspace_mount_remove_confirm">Удаляется только запись подключения %1$s. Исходная папка и файлы на телефоне сохраняются.</string>
     <string name="workspace_mount_added">%1$s смонтирован</string>
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">Не удалось удалить «%1$s» — запись всё ещё в списке</string>

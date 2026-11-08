@@ -105,6 +105,21 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
             importing = true
             importDialogVisible = true
             try {
+                // 14①: zip 能力包必须走 importUri（落缓存→解包→校验→落库），当文本读只会得到
+                // 一句"解析失败"。json/recipe/SKILL.md 仍走下面的文本路径。
+                val mime = context.contentResolver.getType(uri).orEmpty()
+                val pickedName = uri.lastPathSegment.orEmpty()
+                if (mime == "application/zip" || mime == "application/x-zip-compressed" ||
+                    pickedName.endsWith(".zip", ignoreCase = true)
+                ) {
+                    importMessage = when (val outcome = packageImporter.importUri(uri)) {
+                        is SkillPackageImporter.Outcome.Installed ->
+                            context.getString(R.string.skill_imported, outcome.skill.name)
+                        is SkillPackageImporter.Outcome.Failed ->
+                            context.getString(R.string.skill_import_error, outcome.reason)
+                    }
+                    return@launch
+                }
                 val text = withContext(Dispatchers.IO) {
                     // v1.73: 用 use{} 确保 InputStream/BufferedReader 关闭,避免 FD 泄漏
                     context.contentResolver.openInputStream(uri)?.use { input ->
@@ -203,7 +218,11 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                     MuseTactileButton(
                         icon = MuseIcons.upload,
                         onClick = {
-                            runCatching { importLauncher.launch(arrayOf("application/json", "text/plain")) }
+                            runCatching {
+                                importLauncher.launch(
+                                    arrayOf("application/json", "text/plain", "application/zip", "application/x-zip-compressed"),
+                                )
+                            }
                                 .onFailure { importMessage = context.getString(R.string.skill_open_picker_failed, it.message) }
                         },
                         contentDescription = stringResource(R.string.skill_import_cd),

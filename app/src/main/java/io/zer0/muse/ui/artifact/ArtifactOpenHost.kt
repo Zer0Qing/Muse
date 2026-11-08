@@ -21,7 +21,9 @@ fun ArtifactOpenHost(artifact: ArtifactEntity?, onDismiss: () -> Unit) {
     if (artifact == null) return
     val context = LocalContext.current
     val richLang = richPreviewLanguage(artifact.type, artifact.language)
-    if (richLang != null) {
+    // html/svg 走全屏浏览器形态；chart/mermaid 交给查看器内的卡片运行时正确包裹渲染，
+    // 不再把图表 JSON / mermaid 源码当裸 HTML 塞进浏览器（37：展开后什么都看不到的根因之一）。
+    if (richLang == "html" || richLang == "svg") {
         Dialog(
             onDismissRequest = onDismiss,
             properties = DialogProperties(

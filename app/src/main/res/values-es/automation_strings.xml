@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="automation_settings_title">Automatización de UI</string>
+    <string name="automation_sub_access">Acceso y permisos</string>
+    <string name="automation_sub_access_desc">Asistente, servicio de accesibilidad y cesión de pantalla virtual</string>
+    <string name="automation_sub_autonomous">Acciones autónomas</string>
+    <string name="automation_sub_autonomous_desc">Franja horaria, lista de acciones y límite diario</string>
+    <string name="automation_sub_orchestration">Orquestación y prueba</string>
+    <string name="automation_sub_orchestration_desc">Orquestación de tareas y autoprueba de lectura de pantalla</string>
     <string name="automation_settings_subtitle">Permisos de lectura y operación de pantalla</string>
     <string name="accessibility_service_description">Permite que Muse lea el contenido de la pantalla y simule toques, deslizamientos y otros gestos para automatizar tareas entre aplicaciones. Muse no ejecutará acciones sin tu confirmación.</string>
     <string name="automation_permission_a11y">Automatización UI de Muse</string>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +25,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -164,6 +166,15 @@ internal fun VoiceMessageBubble(
             seed = voiceUri.hashCode(),
             activeColor = accentColor(isFromUser),
             inactiveColor = inactiveWaveColor(isFromUser),
+            // 09: 在波形上横向拖动即跳转；未开始播时先起播再跳到该位置。
+            // 点按整条仍是播放/暂停（tap 不带水平位移，不会被下面的拖动消费）。
+            onSeek = if (durationMs > 0L) {
+                { fraction ->
+                    controller.seek(voiceUri, resolved, (durationMs * fraction).toLong())
+                }
+            } else {
+                null
+            },
             modifier = Modifier.weight(1f),
         )
         Text(
@@ -215,10 +226,27 @@ private fun VoiceWaveform(
     seed: Int,
     activeColor: Color,
     inactiveColor: Color,
+    onSeek: ((Float) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val peaks = remember(seed) { wavePeaks(seed, VOICE_WAVE_BAR_COUNT) }
-    Canvas(modifier = modifier.height(20.dp)) {
+    Canvas(
+        modifier = modifier
+            .height(20.dp)
+            .then(
+                if (onSeek == null) {
+                    Modifier
+                } else {
+                    Modifier.pointerInput(onSeek) {
+                        detectHorizontalDragGestures { change, _ ->
+                            val fraction = (change.position.x / size.width).coerceIn(0f, 1f)
+                            change.consume()
+                            onSeek(fraction)
+                        }
+                    }
+                },
+            ),
+    ) {
         val gap = 2.dp.toPx()
         val barWidth = ((size.width - gap * (peaks.size - 1)) / peaks.size).coerceAtLeast(1f)
         val playedEdge = size.width * progress

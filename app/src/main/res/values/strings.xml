@@ -31,6 +31,7 @@
     <string name="about_oss_licenses">开源许可</string>
     <string name="licenses_title">开源许可</string>
     <string name="licenses_total_count">共 %1$d 个依赖</string>
+    <string name="licenses_app_statement">Muse 以 GPL v3 开源发布。第三方依赖均为宽松协议（Apache 2.0 / MIT / BSD / EPL-1.0），需保留其声明。</string>
 
     <!-- 通用按钮 -->
     <string name="action_back">返回</string>

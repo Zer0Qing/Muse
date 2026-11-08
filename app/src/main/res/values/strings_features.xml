@@ -596,6 +596,11 @@
     <string name="artifact_center_empty">还没有产物</string>
     <string name="artifact_share_chooser">分享产物</string>
     <string name="artifact_save_text">另存为文本</string>
+    <string name="artifact_open_external">外部打开</string>
+    <string name="artifact_fullscreen">全屏</string>
+    <string name="artifact_view_source">查看源码</string>
+    <string name="artifact_view_rendered">查看渲染</string>
+    <string name="artifact_open_failed">无法打开</string>
     <string name="artifact_saved">已保存</string>
     <string name="artifact_save_failed">保存失败</string>
 

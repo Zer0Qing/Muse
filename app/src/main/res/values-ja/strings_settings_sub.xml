@@ -697,6 +697,10 @@
     <string name="keep_alive_notification_title">Muse はバックグラウンドで実行中</string>
     <string name="keep_alive_notification_text">定期タスクと自発メッセージを維持しています</string>
     <string name="settings_keep_alive_title">バックグラウンドで常駐</string>
+    <string name="settings_group_keep_alive">常時バックグラウンド</string>
+    <string name="settings_group_keep_alive_desc">常駐、バッテリー最適化、自動起動</string>
+    <string name="settings_group_miniphone">ミニスマホ</string>
+    <string name="settings_group_miniphone_desc">内蔵スマホと 2D のお部屋</string>
     <string name="settings_keep_alive_subtitle">常駐通知でプロセスをフォアグラウンドに保ちます</string>
     <string name="settings_keep_alive_hint">Muse は常駐通知を表示します。Android がフォアグラウンドサービスに要求するもので、非表示にはできません。一部の中国製 ROM では自動起動も許可が必要です。</string>
     <string name="settings_keep_alive_wakelock_title">画面オフでも接続を維持</string>

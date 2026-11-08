@@ -741,6 +741,10 @@ fun GroupChatDetailScreen(
                                 MuseHaptics.light(haptic)
                                 viewModel.stopGeneration()
                             },
+                            // 06: 与单聊同一判据（配置开启 + 设备支持真玻璃），同一份配置。
+                            glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current,
+                            glassActive = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled &&
+                                io.zer0.muse.ui.theme.isRealGlassSupported(),
                         )
                     }
                 },

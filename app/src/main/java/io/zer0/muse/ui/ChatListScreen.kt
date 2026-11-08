@@ -151,11 +151,18 @@ fun ChatListScreen(
     onRenameFolder: (String, String) -> Unit,
     onDeleteFolder: (String) -> Unit,
     onToggleFolderExpanded: (String, Boolean) -> Unit,
+    /** 文件夹独立详情页：点文件夹进该页看其中对话（默认空=沿用就地展开，未接导航处不至于变哑）。 */
+    onOpenFolder: (String) -> Unit = { id -> onToggleFolderExpanded(id, false) },
     assistants: List<AssistantEntity> = emptyList(),
     currentAssistant: AssistantEntity? = null,
     /** 已归档会话列表 — 工具行「已归档」入口的计数数据源。 */
     archivedSessions: List<SessionEntity> = emptyList(),
     onOpenArchivedChats: () -> Unit = {},
+    /** 01①: 首页把归档/新建文件夹/编辑收进右上角更多菜单，故传 false；无该菜单的布局保持 true。 */
+    showListToolbar: Boolean = true,
+    /** 01①: 更多菜单下发的列表动作（"edit" / "create_folder"），消费后回执清空。 */
+    listAction: String? = null,
+    onListActionConsumed: () -> Unit = {},
     /** v0.45: 归档会话(主列表项长按菜单用)。 */
     onArchive: (String) -> Unit = {},
     onOpenScheduledTasks: () -> Unit = {},
@@ -318,6 +325,14 @@ fun ChatListScreen(
         // U-7: 已归档视图开关(U-7 归档入口切换到此视图展示已归档会话)
         // U-22: 多选编辑模式开关 + 已选会话 id 集合
         var editMode by remember { mutableStateOf(false) }
+        LaunchedEffect(listAction) {
+            when (listAction) {
+                "edit" -> editMode = true
+                "create_folder" -> showCreateFolderDialog = true
+                else -> return@LaunchedEffect
+            }
+            onListActionConsumed()
+        }
         var selectedIds by remember { mutableStateOf(setOf<String>()) }
 
         MusePageScaffold(
@@ -420,13 +435,15 @@ fun ChatListScreen(
                         // 列表工具行 — 归档恢复 / 新建文件夹 / 多选编辑三个入口。
                         // 这三簇功能的视图与回调早已接好,只缺入口;缺入口时归档 toast
                         // 承诺的"可到「已归档」中恢复"对用户并不成立。
-                        item(key = "list_toolbar") {
-                            ListToolbarRow(
-                                archivedCount = archivedSessions.size,
-                                onOpenArchived = onOpenArchivedChats,
-                                onCreateFolder = { showCreateFolderDialog = true },
-                                onEdit = { editMode = true },
-                            )
+                        if (showListToolbar) {
+                            item(key = "list_toolbar") {
+                                ListToolbarRow(
+                                    archivedCount = archivedSessions.size,
+                                    onOpenArchived = onOpenArchivedChats,
+                                    onCreateFolder = { showCreateFolderDialog = true },
+                                    onEdit = { editMode = true },
+                                )
+                            }
                         }
 
                         // 已置顶(标题 + 每条会话独立 item,平铺懒加载)
@@ -455,7 +472,7 @@ fun ChatListScreen(
                                 onTogglePinned = onTogglePinned,
                                 onMoveSessionToFolder = onMoveSessionToFolder,
                                 onArchive = onArchive,
-                                onSelectFolder = { folder -> onToggleFolderExpanded(folder.id, !folder.expanded) },
+                                onSelectFolder = { folder -> onOpenFolder(folder.id) },
                                 onRenameFolder = onRenameFolder,
                                 onDeleteFolder = onDeleteFolder,
                             )
@@ -780,19 +797,23 @@ private fun TaskSectionTitle(title: @Composable () -> Unit) {
  * 背景 + 细边框模拟原"整组一张圆角卡片"外观。行间 0 间距由调用方保证。
  */
 @Composable
+/** 组内单项的圆角：首项圆上角、末项圆下角、中间直角、单项全圆。分组容器与行内按压高亮共用。 */
+private fun sectionItemShape(index: Int, total: Int): androidx.compose.ui.graphics.Shape = when {
+    total == 1 -> MuseShapes.extraLarge
+    index == 0 -> RoundedCornerShape(
+        topStart = MuseCornerRadius.CARD.dp,
+        topEnd = MuseCornerRadius.CARD.dp,
+    )
+    index == total - 1 -> RoundedCornerShape(
+        bottomStart = MuseCornerRadius.CARD.dp,
+        bottomEnd = MuseCornerRadius.CARD.dp,
+    )
+    else -> RoundedCornerShape(0.dp)
+}
+
+@Composable
 private fun SectionGroupRow(index: Int, total: Int, content: @Composable ColumnScope.() -> Unit) {
-    val shape = when {
-        total == 1 -> MuseShapes.extraLarge
-        index == 0 -> RoundedCornerShape(
-            topStart = MuseCornerRadius.CARD.dp,
-            topEnd = MuseCornerRadius.CARD.dp,
-        )
-        index == total - 1 -> RoundedCornerShape(
-            bottomStart = MuseCornerRadius.CARD.dp,
-            bottomEnd = MuseCornerRadius.CARD.dp,
-        )
-        else -> RoundedCornerShape(0.dp)
-    }
+    val shape = sectionItemShape(index, total)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -873,6 +894,7 @@ private fun PinnedTaskRow(
             .offset { IntOffset(0, if (dragging) dragOffset.roundToInt() else 0) },
     ) {
         TaskItem(
+            shape = sectionItemShape(index, pinnedIds.size),
             session = session,
             folders = folders,
             onSelect = onSelect,
@@ -955,6 +977,7 @@ private fun LazyListScope.recentSectionItems(
             Box(museAnimateItem()) {
                 SectionGroupRow(index = index, total = recent.size) {
                     TaskItem(
+                        shape = sectionItemShape(index, recent.size),
                         session = session,
                         folders = folders,
                         onSelect = onSelect,
@@ -1023,6 +1046,7 @@ private fun TaskItem(
     onTogglePinned: (String) -> Unit,
     onMoveSessionToFolder: (String, String?) -> Unit,
     onArchive: (String) -> Unit,
+    shape: androidx.compose.ui.graphics.Shape = MuseShapes.extraLarge,
     modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -1177,6 +1201,9 @@ private fun TaskItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)
+                // 按压高亮必须在行内裁剪：SwipeToDismissBox 把内容画在独立图层，父层
+                // SectionGroupRow 的 clip 管不到它，方角高亮会切掉卡片圆角。
+                .clip(shape)
                 .background(MaterialTheme.colorScheme.surface)
                 .combinedClickable(
                     onClick = { onSelect(session.id) },
@@ -1257,6 +1284,7 @@ private fun TaskActionSheet(
     onRename: () -> Unit,
     onMoveToFolder: (String?) -> Unit,
 ) {
+    val context = LocalContext.current
     MuseBottomSheet(
         onDismissRequest = onDismiss,
         // UI-FIX(贴边): 原来把水平内边距压成 0，标题和操作卡片直接顶到屏幕边。
@@ -1296,6 +1324,19 @@ private fun TaskActionSheet(
                 text = stringResource(R.string.chat_list_rename),
                 onClick = {
                     onRename()
+                    onDismiss()
+                },
+            )
+            // 34: 复制会话编号 —— 其它助手可凭这个编号用 session_read 工具查这段对话。
+            MuseActionSheetRow(
+                icon = MuseIcons.copy,
+                text = stringResource(R.string.chat_list_copy_session_id),
+                onClick = {
+                    val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                    clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("session_id", session.id))
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(
+                        context.getString(R.string.quick_notes_copied),
+                    )
                     onDismiss()
                 },
             )
@@ -1387,8 +1428,9 @@ private fun LazyListScope.foldersSectionItems(
                 folderSessions,
                 key = { _, session -> "folder_${folder.id}_session_${session.id}" },
                 contentType = { _, _ -> "session" },
-            ) { _, session ->
+            ) { index, session ->
                 TaskItem(
+                    shape = sectionItemShape(index, folderSessions.size),
                     session = session,
                     folders = folders,
                     onSelect = onSelect,

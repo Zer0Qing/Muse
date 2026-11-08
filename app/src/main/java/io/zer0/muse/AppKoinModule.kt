@@ -621,7 +621,17 @@ val appModule = module {
             settings = get(),
             imageService = get(),
             videoGenerationService = get(),
-            voiceSynthesizer = { text, file, emotion -> tts.synthesizeTo(text, file, emotion) },
+            voiceSynthesizer = object : io.zer0.muse.ui.speech.VoiceSynthesizer {
+                override suspend fun synthesizeTo(text: String, file: java.io.File, emotion: String?) =
+                    tts.synthesizeTo(text, file, emotion)
+
+                override suspend fun synthesizeToWithVoice(
+                    text: String,
+                    file: java.io.File,
+                    emotion: String?,
+                    voiceId: String,
+                ) = tts.synthesizeToWithClonedVoice(text, file, emotion, voiceId)
+            },
             voiceMessageStore = get<io.zer0.muse.ui.speech.VoiceMessageStore>(),
         )
     }
@@ -631,6 +641,7 @@ val appModule = module {
         io.zer0.muse.tools.MediaGenToolsRegistrar(
             toolRegistry = get(),
             impl = get(),
+            voiceCloningService = get(),
         )
     }
 
@@ -995,7 +1006,17 @@ val miniPhoneHostModule = module {
             toolTurnRunner = get(),
             // TtsManager 不实现 VoiceSynthesizer（给它加父类型会破 detekt 类级豁免），
             // 与 AppMediaModule 的 send_voice 接法一致：SAM 适配一次
-            voiceSynthesizer = { text, file, emotion -> tts.synthesizeTo(text, file, emotion) },
+            voiceSynthesizer = object : io.zer0.muse.ui.speech.VoiceSynthesizer {
+                override suspend fun synthesizeTo(text: String, file: java.io.File, emotion: String?) =
+                    tts.synthesizeTo(text, file, emotion)
+
+                override suspend fun synthesizeToWithVoice(
+                    text: String,
+                    file: java.io.File,
+                    emotion: String?,
+                    voiceId: String,
+                ) = tts.synthesizeToWithClonedVoice(text, file, emotion, voiceId)
+            },
             voiceStore = get<io.zer0.muse.ui.speech.VoiceMessageStore>(),
             cacheDir = androidContext().cacheDir,
         )

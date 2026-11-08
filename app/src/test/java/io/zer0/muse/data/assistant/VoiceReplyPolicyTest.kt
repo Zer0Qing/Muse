@@ -131,6 +131,70 @@ class VoiceReplyPolicyTest {
         )
     }
 
+    @Test
+    fun `全局默认档对未单独设置的助手生效`() {
+        val store = freshStore()
+        runTest {
+            assertEquals(VoiceReplyFrequency.RARELY, store.globalFrequency())
+            assertTrue(store.setGlobal(VoiceReplyFrequency.OFTEN).isSuccess)
+            assertEquals(VoiceReplyFrequency.OFTEN, store.globalFrequency())
+            assertEquals("未单独设置的助手跟随全局默认", VoiceReplyFrequency.OFTEN, store.frequencyFor("a1"))
+        }
+    }
+
+    @Test
+    fun `助手覆盖优先于全局默认`() {
+        val store = freshStore()
+        runTest {
+            store.setGlobal(VoiceReplyFrequency.OFTEN)
+            store.set("a1", VoiceReplyFrequency.NEVER)
+            assertEquals(VoiceReplyFrequency.NEVER, store.frequencyFor("a1"))
+            assertEquals("别的助手仍跟随全局", VoiceReplyFrequency.OFTEN, store.frequencyFor("a2"))
+        }
+    }
+
+    @Test
+    fun `跟随全局默认即清除助手覆盖`() {
+        val store = freshStore()
+        runTest {
+            store.setGlobal(VoiceReplyFrequency.ALWAYS)
+            store.set("a1", VoiceReplyFrequency.NEVER)
+            assertEquals(VoiceReplyFrequency.NEVER, store.frequencyFor("a1"))
+            assertTrue(store.clearOverride("a1").isSuccess)
+            assertEquals("清除覆盖后回到全局默认", VoiceReplyFrequency.ALWAYS, store.frequencyFor("a1"))
+        }
+    }
+
+    @Test
+    fun `旧版存量 RARELY 迁移为跟随全局而其它档保留`() {
+        freshStore()
+        // 旧 schema（无 schema 字段）：a1=RARELY（旧默认等同未设）、a2=OFTEN（显式覆盖）
+        File(context.filesDir, VoiceReplyPolicyStore.FILE_NAME)
+            .writeText("""{"byAgent":{"a1":"RARELY","a2":"OFTEN"}}""")
+        VoiceReplyPolicyStore.resetForTests()
+        val reopened = VoiceReplyPolicyStore.of(context)
+        runTest {
+            reopened.setGlobal(VoiceReplyFrequency.ALWAYS)
+            assertEquals("存量 RARELY 当作未设→跟随全局", VoiceReplyFrequency.ALWAYS, reopened.frequencyFor("a1"))
+            assertEquals("显式 OFTEN 保留为覆盖", VoiceReplyFrequency.OFTEN, reopened.frequencyFor("a2"))
+        }
+    }
+
+    @Test
+    fun `迁移后显式设的 RARELY 能钉住不被当作未设`() {
+        val store = freshStore()
+        runTest {
+            store.setGlobal(VoiceReplyFrequency.OFTEN)
+            store.set("a1", VoiceReplyFrequency.RARELY)
+            assertEquals(VoiceReplyFrequency.RARELY, store.frequencyFor("a1"))
+        }
+        VoiceReplyPolicyStore.resetForTests()
+        val reopened = VoiceReplyPolicyStore.of(context)
+        runTest {
+            assertEquals("落盘重开仍是显式 RARELY（schema 已升级，不再迁移）", VoiceReplyFrequency.RARELY, reopened.frequencyFor("a1"))
+        }
+    }
+
     /**
      * 装配侧的接线不变式（读源码断言）。
      *

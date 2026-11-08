@@ -125,8 +125,11 @@ class WorkspaceFileSnifferTest {
         )
         assertTrue(attached.contains("image |"))
         assertTrue(attached.contains("1024×768"))
-        assertTrue(attached.contains("原图已作为一条图片消息随附"))
+        assertTrue(attached.contains("原图已读取"))
         assertTrue(attached.contains("识别到：会议纪要"))
+        // 工具结果会被落库，而带图那条用户消息只进本回合历史。写「已随附」的话，
+        // 重开会话后历史里没有那张图，模型会按这句话去找一张不存在的东西。
+        assertFalse("已落库的文本不能承诺附件", attached.contains("已作为一条图片消息随附"))
 
         val skipped = WorkspaceMediaReport.image(
             ImageReportInput(
@@ -135,7 +138,7 @@ class WorkspaceFileSnifferTest {
                 attachSkipReason = "原图 9.0MB 超过随附上限 4.0MB",
             ),
         )
-        assertTrue(skipped.contains("原图未随附：原图 9.0MB 超过随附上限 4.0MB"))
+        assertTrue(skipped.contains("原图未读取：原图 9.0MB 超过随附上限 4.0MB"))
         assertTrue("尺寸未知时不能编一个出来", !skipped.contains("×"))
         assertTrue(skipped.contains("没有识别到文字"))
 

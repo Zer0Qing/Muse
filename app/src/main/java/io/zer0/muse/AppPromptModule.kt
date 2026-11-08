@@ -31,6 +31,11 @@ val appPromptModule = module {
     // 免得两处各建一个 store 后，注入侧与页面看到的次数对不上。
     single { io.zer0.muse.data.terms.SessionTermStore(get<io.zer0.muse.data.session.MuseDb>().sessionTermDao()) }
 
+    // 35: 每助手用户面具库（DataStore，不碰 Room schema）。装配器与面具管理页共用同一实例。
+    single<io.zer0.muse.data.assistant.UserPersonaStore> {
+        io.zer0.muse.data.assistant.DataStoreUserPersonaStore(androidContext())
+    }
+
     // P1-1: Hook 注册表(全局单例,所有 Hook 通过此注册)
     single { io.zer0.muse.hook.HookRegistry() }
 
@@ -73,6 +78,8 @@ val appPromptModule = module {
             relationshipRepository = get(),
             // 工具审批策略：提示词里的「本轮可调用」数与 schema 下发同源，需排除 ALWAYS_DENY 的工具
             toolConfigStore = get(),
+            // 35: 每助手用户面具库，命中时在全局画像前注入
+            userPersonaStore = get(),
         )
     }
 }

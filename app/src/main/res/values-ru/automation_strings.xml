@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="automation_settings_title">Автоматизация UI</string>
+    <string name="automation_sub_access">Доступ и разрешения</string>
+    <string name="automation_sub_access_desc">Мастер, спецслужба доступности и передача виртуального экрана</string>
+    <string name="automation_sub_autonomous">Автономные действия</string>
+    <string name="automation_sub_autonomous_desc">Окно времени, список действий и дневной лимит</string>
+    <string name="automation_sub_orchestration">Оркестрация и тест</string>
+    <string name="automation_sub_orchestration_desc">Оркестрация задач и самотест чтения экрана</string>
     <string name="automation_settings_subtitle">Разрешения на чтение и управление экраном</string>
     <string name="accessibility_service_description">Позволяет Muse читать содержимое экрана и имитировать касания, свайпы и другие жесты для автоматизации задач между приложениями. Muse не выполняет действия без вашего подтверждения.</string>
     <string name="automation_permission_a11y">UI-автоматизация Muse</string>

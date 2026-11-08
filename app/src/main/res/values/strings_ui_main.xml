@@ -32,7 +32,7 @@
     <string name="assistant_detail_use_default">用默认</string>
     <string name="assistant_detail_top_p_label">Top P(留空用默认,0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens(留空用默认)</string>
-    <string name="assistant_detail_context_message_count">上下文消息数： %1$d</string>
+    <string name="assistant_detail_context_message_count">携带最近 %1$d 条历史消息</string>
     <string name="assistant_detail_reasoning_level">推理等级</string>
     <!-- v2.0.1: 推理等级下拉显示名 -->
     <string name="reasoning_level_off">关闭</string>
@@ -256,7 +256,7 @@
     <string name="settings_group_chat">聊天</string>
     <string name="settings_group_chat_desc">聊天显示、表情包、快速记录与分享</string>
     <string name="settings_group_models">模型与供应商</string>
-    <string name="settings_group_models_desc">供应商与模型、任务路由、供应商插件</string>
+    <string name="settings_group_models_desc">供应商与模型、任务路由、应用插件</string>
     <string name="settings_group_tools">工具与权限</string>
     <string name="settings_group_tools_desc">可用工具、权限向导与联网搜索</string>
     <string name="settings_group_voice">语音</string>
@@ -765,7 +765,7 @@
     <string name="free_model_service_unavailable">免费额度服务不可用，请填写 API Key 或等待服务恢复</string>
 
     <!-- ===== P2-10: Provider 插件管理(ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">供应商插件</string>
+    <string name="provider_plugins_title">应用插件</string>
     <string name="muse_plugins_external">外部插件</string>
     <string name="muse_plugins_manage">插件管理</string>
     <string name="muse_plugins_imported">插件包已安装</string>
@@ -873,6 +873,9 @@
     <!-- ===== P2-7: 工作区(WorkspaceScreen + 工具描述) ===== -->
     <string name="workspace_title">工作区</string>
     <string name="workspace_tool_outputs">工具输出</string>
+    <string name="workspace_attachments">附件</string>
+    <string name="workspace_download">下载</string>
+    <string name="workspace_resume">简历</string>
     <string name="workspace_desc">本地文件管理与临时存储</string>
     <string name="workspace_empty">工作区为空</string>
     <string name="workspace_new_file">新建文件</string>
@@ -993,6 +996,7 @@
     <string name="workspace_mount_add">添加目录</string>
     <string name="workspace_mount_read_only">只读</string>
     <string name="workspace_mount_remove">移除</string>
+    <string name="workspace_mount_remove_confirm">只移除「%1$s」的挂载记录，手机上的原目录和文件都会保留。</string>
     <string name="workspace_mount_added">已挂载 %1$s</string>
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">没能移除「%1$s」，它还在列表里</string>

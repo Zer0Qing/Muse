@@ -27,11 +27,19 @@ internal fun launchFirstResolvable(candidates: List<Intent>, canResolve: (Intent
     return false
 }
 
-/** 从非 Activity Context 启动设置时,把 NEW_TASK 加到最终候选 Intent。 */
+/**
+ * 从非 Activity Context 启动设置时,把 NEW_TASK 加到最终候选 Intent。
+ *
+ * 不再用 `resolveActivity() != null` 做前置门禁:targetSdk 30+ 的包可见性下,
+ * 系统 Settings 活动常常 resolveActivity 返回 null(清单没为每个 action 声明 `<queries>`),
+ * 于是候选被整条丢掉、`startActivity` 根本没被尝试——这正是"点了没反应/没有可用的设置页入口"的根因。
+ * 改为逐个 `startActivity` 并依赖 [launchFirstResolvable] 的 ActivityNotFoundException 降级:
+ * 能不能开由系统实际裁决,试不了才换下一个,最后一个都不行才回 false。
+ */
 internal fun openAutomationSettings(context: Context, candidates: List<Intent>, onUnavailable: () -> Unit = {}): Boolean {
     val started = launchFirstResolvable(
         candidates = candidates.map { Intent(it).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
-        canResolve = { intent -> intent.resolveActivity(context.packageManager) != null },
+        canResolve = { true },
         startActivity = context::startActivity,
     )
     if (!started) onUnavailable()

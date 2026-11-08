@@ -116,6 +116,36 @@ class VoiceMessageBubbleTest {
     }
 
     @Test
+    fun seekOnCurrentTrackJumpsWithoutReloading() {
+        val player = FakeVoiceAudioPlayer()
+        val controller = VoicePlaybackController { player }
+        val uri = storedVoice("seek.wav")
+        render(voiceUri = uri, durationMs = 7_000L, controller = controller)
+        composeTestRule.onNodeWithTag(VOICE_MESSAGE_BUBBLE_TAG).performClick()
+
+        controller.seek(uri, File(storageDir, "seek.wav"), 3_500L)
+
+        assertEquals("拖动不应重新装载", 1, player.loadCount)
+        assertEquals("应跳到指定位置", 3_500L, player.lastSeekMs)
+        assertEquals(1, player.seekCount)
+        assertEquals("状态位置应同步", 3_500L, controller.state.positionMs)
+    }
+
+    @Test
+    fun seekClampsNegativePositionToZero() {
+        val player = FakeVoiceAudioPlayer()
+        val controller = VoicePlaybackController { player }
+        val uri = storedVoice("seekneg.wav")
+        render(voiceUri = uri, durationMs = 7_000L, controller = controller)
+        composeTestRule.onNodeWithTag(VOICE_MESSAGE_BUBBLE_TAG).performClick()
+
+        controller.seek(uri, File(storageDir, "seekneg.wav"), -100L)
+
+        assertEquals(0L, player.lastSeekMs)
+        assertEquals(0L, controller.state.positionMs)
+    }
+
+    @Test
     fun completionCallbackResetsToIdle() {
         val player = FakeVoiceAudioPlayer()
         val controller = VoicePlaybackController { player }
@@ -195,6 +225,8 @@ private class FakeVoiceAudioPlayer : VoiceAudioPlayer {
     var startCount = 0
     var pauseCount = 0
     var releaseCount = 0
+    var seekCount = 0
+    var lastSeekMs = -1L
     var playing = false
     private var onCompletion: (() -> Unit)? = null
 
@@ -216,6 +248,11 @@ private class FakeVoiceAudioPlayer : VoiceAudioPlayer {
     }
 
     override fun positionMs(): Long = 0L
+
+    override fun seekTo(positionMs: Long) {
+        seekCount++
+        lastSeekMs = positionMs
+    }
 
     override fun release() {
         releaseCount++

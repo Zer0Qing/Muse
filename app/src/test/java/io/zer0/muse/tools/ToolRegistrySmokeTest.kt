@@ -291,6 +291,7 @@ class ToolRegistrySmokeTest {
             "generate_image", "generate_video", "generate_qr_code",
             // v2.x: 发语音消息(依赖 TTS 引擎 + 文件系统,Robolectric 下不执行)
             "send_voice",
+            "list_cloned_voices",
             // 表情包(依赖 SkillExecutor)
             "list_stickers", "send_sticker",
             // 记忆/经验(依赖 DB + LLM)

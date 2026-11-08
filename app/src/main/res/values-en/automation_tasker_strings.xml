@@ -20,7 +20,7 @@
     <string name="automation_autonomous_read">Read screen</string>
     <string name="automation_autonomous_click">Tap</string>
     <string name="automation_autonomous_scroll">Scroll</string>
-    <string name="automation_autonomous_input_locked">Text input always requires approval</string>
+    <string name="automation_autonomous_input">Input</string>
     <string name="automation_autonomous_daily_limit">Maximum runs per day</string>
     <string name="automation_autonomous_daily_limit_desc">Counted only after successful execution. Reaching the limit revokes the current task grant.</string>
     <string name="automation_autonomous_task">Chat task authorization</string>

@@ -12,10 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -143,40 +146,51 @@ private class EdgeGlowDrawNode(
 
         val alpha = cfg.peakAlpha * p
 
-        // 外柔光带（宽、低 alpha）+ 内锐边（细、稍亮）。
-        // Outline 三态都是公开几何数据，逐态描边，不依赖任何 internal API。
-        strokeShapeOutline(shape, glowColor.copy(alpha = alpha), cfg.outerBandDp.dp.toPx())
-        strokeShapeOutline(shape, glowColor.copy(alpha = alpha * 1.35f), cfg.innerBandDp.dp.toPx())
-        // 触点偏置的轮廓亮段：径向渐变只提亮触点一侧边缘，
-        // 因组件外层已 clip 到形状，可见效果即"光影随指尖"。
-        if (cfg.hotspotGain > 0f) {
-            drawRect(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        glowColor.copy(alpha = alpha * cfg.hotspotGain),
-                        Color.Transparent,
+        // 整段凝光裁剪到组件形状后再画：外带压在轮廓外沿的那一半被裁掉，
+        // 触点径向亮段也不再以黑色方框铺满 size——圆角/胶囊组件四角不再被"切"出矩形。
+        val outline = shape.createOutline(size, layoutDirection, this)
+        clipPath(shapeOutlinePath(outline)) {
+            strokeShapeOutline(outline, glowColor.copy(alpha = alpha), cfg.outerBandDp.dp.toPx())
+            strokeShapeOutline(outline, glowColor.copy(alpha = alpha * 1.35f), cfg.innerBandDp.dp.toPx())
+            // 触点偏置的轮廓亮段：径向渐变只提亮触点一侧边缘，裁剪后光影严格随形状。
+            if (cfg.hotspotGain > 0f) {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            glowColor.copy(alpha = alpha * cfg.hotspotGain),
+                            Color.Transparent,
+                        ),
+                        center = pressPosition,
+                        radius = size.minDimension.coerceAtLeast(1f),
                     ),
-                    center = pressPosition,
-                    radius = size.minDimension.coerceAtLeast(1f),
-                ),
-                size = size,
-            )
+                    size = size,
+                )
+            }
         }
     }
 }
 
+/** 由形状 Outline 生成用于裁剪的 Path（Rectangle/Rounded/Generic 均为公开几何数据）。 */
+private fun shapeOutlinePath(outline: Outline): Path = Path().apply {
+    when (outline) {
+        is Outline.Rectangle -> addRect(outline.rect)
+        is Outline.Rounded -> addRoundRect(outline.roundRect)
+        is Outline.Generic -> addPath(outline.path)
+    }
+}
+
 /** 按 Outline 三态描边（Rectangle/Rounded/Generic 均为公开几何数据）。 */
-private fun DrawScope.strokeShapeOutline(shape: Shape, color: Color, strokeWidth: Float) {
+private fun DrawScope.strokeShapeOutline(outline: Outline, color: Color, strokeWidth: Float) {
     val style = Stroke(width = strokeWidth)
-    when (val outline = shape.createOutline(size, layoutDirection, this)) {
-        is androidx.compose.ui.graphics.Outline.Rectangle ->
+    when (outline) {
+        is Outline.Rectangle ->
             drawRect(color = color, topLeft = outline.rect.topLeft, size = outline.rect.size, style = style)
-        is androidx.compose.ui.graphics.Outline.Rounded -> {
+        is Outline.Rounded -> {
             // RoundRect 只用绝对坐标核心字段（left/top/width/height），派生属性不依赖。
             val rr = outline.roundRect
             drawRoundRect(
                 color = color,
-                topLeft = androidx.compose.ui.geometry.Offset(rr.left, rr.top),
+                topLeft = Offset(rr.left, rr.top),
                 size = androidx.compose.ui.geometry.Size(rr.width, rr.height),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(
                     rr.topLeftCornerRadius.x,
@@ -185,7 +199,7 @@ private fun DrawScope.strokeShapeOutline(shape: Shape, color: Color, strokeWidth
                 style = style,
             )
         }
-        is androidx.compose.ui.graphics.Outline.Generic ->
+        is Outline.Generic ->
             drawPath(path = outline.path, color = color, style = style)
     }
 }

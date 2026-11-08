@@ -126,6 +126,7 @@
     <string name="assistant_import_card_cd">Импортировать карточку персонажа</string>
     <string name="assistant_section_my_assistants">Мои помощники</string>
     <string name="assistant_default_title">Помощник по умолчанию</string>
+    <string name="assistant_default_tag">По умолчанию</string>
     <string name="assistant_default_picker_title">Выберите помощника по умолчанию</string>
     <string name="assistant_default_hint">Помощник, используемый по умолчанию для новых задач</string>
     <string name="assistant_section_actions">Добавить или импортировать</string>

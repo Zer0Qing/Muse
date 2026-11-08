@@ -255,9 +255,11 @@ internal fun RichContentCard(
                     }
                 }
             },
-            confirmText = stringResource(R.string.common_close),
-            onConfirm = { menuExpanded = false },
-            onDismiss = { menuExpanded = false },
+            // 39①: 这是动作菜单，不是确认弹窗。卡片常常已经嵌在产物弹层里，底层已有一个
+            // 「关闭」；这里再带取消/关闭就同屏两个关闭。去掉按钮行，点动作即关、点外部/返回也关。
+            dismissText = null,
+            onConfirm = null,
+            onDismiss = null,
         )
     }
 

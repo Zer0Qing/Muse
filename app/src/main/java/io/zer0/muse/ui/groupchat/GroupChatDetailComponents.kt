@@ -472,6 +472,21 @@ internal fun GroupChatMessageBubble(
                                 modifier = Modifier.padding(top = 6.dp),
                             )
                         }
+                        // 07①: 操作入口落在气泡右下角。原来只能长按才出菜单，用户找不到；
+                        // 这里复用长按同一套菜单与锚点，不另发明一组动作。作者头像仍在左侧不动。
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            MuseTactileButton(
+                                icon = MuseIcons.moreVertical,
+                                onClick = { onLongClick(messageBounds, pressPointInWindow) },
+                                contentDescription = stringResource(R.string.settings_mcp_more),
+                                tint = MaterialTheme.colorScheme.outline,
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = MuseIconSizes.iconSmall,
+                            )
+                        }
                     }
                 }
             }
@@ -870,6 +885,9 @@ internal fun GroupChatInputBar(
      * 用户发出请求后只能干等。
      */
     onStop: (() -> Unit)? = null,
+    /** 06: 与单聊输入岛同一套玻璃判据与配置，由宿主从 LocalLiquidGlass 传入。 */
+    glassActive: Boolean = false,
+    glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
     // @mention 自动补全状态:用户点击外部关闭后置 false,再次输入 @ 触发时置 true
     var showMentionDropdown by remember { mutableStateOf(false) }
@@ -902,8 +920,22 @@ internal fun GroupChatInputBar(
     // v1.0.28: 输入框重写,对齐任务页面样式(MuseTextField + 圆形按钮在同一行,去掉外层 Surface 色块)
     // v1.0.72: 输入大岛 — 加号菜单 + 输入框 + 发送全部包裹在圆角大栏里(与单聊输入栏一致)
     // v1.0.72: 做回岛样式(实色背景 + 圆角 + 阴影)
+    // 06: 玻璃与单聊输入岛同源——统一由 glassSurfaceModifier 决策真玻璃或降级假玻璃，
+    // 不在群聊另写一份模糊实现。
+    val groupGlassOn = glassActive && glassConfig.enabled
+    val groupIslandModifier: Modifier = if (groupGlassOn) {
+        io.zer0.muse.ui.theme.glassSurfaceModifier(
+            shape = MuseShapes.pill,
+            surfaceColor = MaterialTheme.colorScheme.surfaceVariant,
+            config = glassConfig,
+            backdrop = io.zer0.muse.ui.theme.LocalLayerBackdrop.current,
+            waterState = io.zer0.muse.ui.theme.LocalWaterGlassState.current,
+        )
+    } else {
+        Modifier
+    }
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = if (groupGlassOn) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.surfaceVariant,
         // v2.4.5 (参考图对齐): 与单聊输入岛一致——真胶囊 + 去投影。
         shape = MuseShapes.pill,
         tonalElevation = io.zer0.muse.ui.theme.MuseElevation.low,
@@ -916,7 +948,8 @@ internal fun GroupChatInputBar(
                 horizontal = MusePaddings.inputIslandHorizontal,
                 vertical = MusePaddings.inputIslandVertical,
             )
-            .padding(bottom = MusePaddings.inputIslandBottomGap),
+            .padding(bottom = MusePaddings.inputIslandBottomGap)
+            .then(groupIslandModifier),
     ) {
         Box {
             // @mention 自动补全下拉(锚定在输入框上方)

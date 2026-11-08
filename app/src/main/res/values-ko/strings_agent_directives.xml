@@ -3,9 +3,9 @@
 <resources>
     <string name="settings_screen_agent_directives">해도 되는 일과 안 되는 일</string>
     <string name="settings_screen_agent_directives_desc">능동 메시지와 일반 대화 모두에서 지키는 장기 규칙</string>
-    <string name="agent_directives_hint">여기에 적으면 일반적인 말투 설정보다 우선합니다. 두 항목이 충돌하면 ’절대 하지 말 것’이 우선입니다.</string>
-    <string name="agent_directives_forbidden_section">절대 하지 말 것</string>
-    <string name="agent_directives_desired_section">가급적 해줄 것</string>
+    <string name="agent_directives_hint">여기에 적은 구체적 요구는 일반 말투 설정보다 우선합니다. 충돌하면 「하지 말 것」이 우선합니다.</string>
+    <string name="agent_directives_forbidden_section">하지 말 것</string>
+    <string name="agent_directives_desired_section">하면 좋은 것</string>
     <string name="agent_directives_empty">아직 없습니다. 예: 애칭으로 부르지 말기</string>
     <string name="agent_directives_empty_desired">아직 없습니다. 예: 내가 노력한 걸 알아줘</string>
     <string name="agent_directives_add_forbidden">‘하지 말 것’ 추가</string>

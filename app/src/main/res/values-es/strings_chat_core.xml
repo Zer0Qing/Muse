@@ -370,6 +370,12 @@
     <string name="chat_list_section_recent">Reciente</string>
     <string name="chat_list_section_pinned">Fijado</string>
     <string name="chat_list_section_folders">Carpetas</string>
+    <string name="folder_detail_new_here">Nuevo chat aquí</string>
+    <string name="folder_detail_add_existing">Añadir chats existentes</string>
+    <string name="folder_detail_add_empty">No hay chats para añadir</string>
+    <string name="folder_detail_empty_title">Esta carpeta está vacía</string>
+    <string name="folder_detail_empty_sub">Crea un chat o añade existentes con «Añadir chats existentes»</string>
+    <string name="folder_detail_remove">Quitar de carpeta</string>
     <string name="chat_list_section_knowledge">Recursos</string>
     <!-- v2.x: recall bar + partners row -->
     <string name="chat_list_recall_format">Última charla con %1$s: "%2$s"</string>
@@ -397,6 +403,7 @@
     <string name="chat_list_move_ungrouped">Mover a Desagrupado</string>
     <string name="chat_list_move_to">Mover a: %1$s</string>
     <string name="chat_list_rename">Rebautizar</string>
+    <string name="chat_list_copy_session_id">Copiar ID de sesión</string>
     <string name="chat_list_unarchive">Desarchivar</string>
 
     <!-- Session rename/delete dialogs -->

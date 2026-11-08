@@ -6,13 +6,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * 暂不主推的入口：分类页不展示，搜索仍能命中。
+ * 入口的展示可见性。
  *
- * 这两个功能模块与路由都还在包里，只是这一版不给主入口。
+ * 隐藏的是「展示」，不是「声明」：模块与路由都还在包里，搜索仍能命中，
+ * 所以这里断言的是展示位，条目总数与分组结构由布局测试另行钉住。
  */
 class SettingsEntryVisibilityTest {
 
-    private val hiddenIds = listOf(SettingsEntryId.MINIPHONE, SettingsEntryId.WEB_ACCESS)
+    // 2.6.24: 小手机整体收起，入口随编译期总闸一起隐藏；网页版仍是暂不主推。
+    private val hiddenIds = listOf(SettingsEntryId.WEB_ACCESS, SettingsEntryId.MINIPHONE)
 
     @Test
     fun `暂不展示的入口标了 browseVisible=false`() {
@@ -21,6 +23,14 @@ class SettingsEntryVisibilityTest {
             val entry = requireNotNull(all[id]) { "$id 应在清单里保留声明" }
             assertFalse("$id 不应在分类页展示", entry.browseVisible)
         }
+    }
+
+    @Test
+    fun `小手机的展示位只认编译期总闸这一个真源`() {
+        // 首页看 FeatureFlags.MINI_PHONE_ENTRY、设置分类页看条目的 browseVisible。
+        // 两处各写一份迟早会漂成「首页能进、设置搜不到」，所以设置位必须等于总闸。
+        val entry = SettingsCatalog.entries.first { it.id == SettingsEntryId.MINIPHONE }
+        assertEquals(io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY, entry.browseVisible)
     }
 
     @Test
@@ -41,7 +51,7 @@ class SettingsEntryVisibilityTest {
     @Test
     fun `暂不展示不影响分类结构与条目总数`() {
         // 隐藏的是“展示”，不是“声明”，否则分组数量与布局测试会跟着漂。
-        assertEquals(14, SettingsCatalog.groups.size)
+        assertEquals(16, SettingsCatalog.groups.size)
         assertEquals(SettingsCatalog.groups.sumOf { it.entries.size }, SettingsCatalog.entries.size)
     }
 }

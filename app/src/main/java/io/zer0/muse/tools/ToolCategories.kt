@@ -68,6 +68,7 @@ object ToolCategories {
             // 之前归 OPTIONAL，要等用户说出「语音 / 朗读 / voice」才装载，
             // 导致配好 key 与音色后角色仍不会发语音（自定义助手设过工具白名单时更彻底搜不到）。
             "send_voice",
+            "list_cloned_voices",
         )
 
     /** 用户可在设置→工具 开关。 */

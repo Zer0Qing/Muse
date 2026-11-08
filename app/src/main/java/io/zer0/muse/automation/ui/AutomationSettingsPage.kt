@@ -1,6 +1,8 @@
 package io.zer0.muse.automation.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -87,6 +89,11 @@ fun AutomationSettingsPage(
     var taskGrant by remember { mutableStateOf<io.zer0.muse.automation.core.AutonomousAccessibilityGrant?>(null) }
     val chatViewModel: ChatViewModel? = koinInject()
 
+    // 25: 把堆砌的单页拆成「总览 + 三个子页」的菜单。用页内状态而非新导航路由，
+    // 免得动导航图/设置目录/web 镜像与一堆计数测试；返回键先回总览再退出。
+    var subPage by remember { mutableStateOf(AutomationSubPage.LANDING) }
+    BackHandler(enabled = subPage != AutomationSubPage.LANDING) { subPage = AutomationSubPage.LANDING }
+
     LaunchedEffect(automationSettingsStore, chatViewModel) {
         autonomousDraft =
             AutonomousAccessibilityDraftState.fromWindow(
@@ -99,8 +106,10 @@ fun AutomationSettingsPage(
     }
 
     SettingsSubPageScaffold(
-        title = stringResource(R.string.automation_settings_title),
-        onBack = onBack,
+        title = stringResource(automationSubPageTitleRes(subPage)),
+        onBack = {
+            if (subPage != AutomationSubPage.LANDING) subPage = AutomationSubPage.LANDING else onBack()
+        },
     ) {
         // 顶部说明卡
         item(key = "intro") {
@@ -215,7 +224,7 @@ fun AutomationSettingsPage(
         }
 
         // v2.x: 三通道权限配置已收敛到「权限配置向导」(消除两页逐层重复)
-        item(key = "permissions-entry") {
+        if (subPage == AutomationSubPage.ACCESS) item(key = "permissions-entry") {
             SettingsGroup {
                 SettingsItemRow(
                     icon = MuseIcons.shieldCheck,
@@ -231,7 +240,7 @@ fun AutomationSettingsPage(
         // 虚拟屏交接（P1-02）：任务跑完把屏留下来时，用户在这里看得到、也能自己点。
         val handoffs = io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
             .list(System.currentTimeMillis())
-        if (handoffs.isNotEmpty()) {
+        if (subPage == AutomationSubPage.ACCESS && handoffs.isNotEmpty()) {
             item(key = "vdisplay-handoff") {
                 VirtualDisplayHandoffSection(
                     handoffs = handoffs,
@@ -247,7 +256,7 @@ fun AutomationSettingsPage(
             }
         }
 
-        // 总闸：一次停掉所有屏幕自动化（screen_* / ui_agent / automation_workflow）。
+        // 25: 两个并列总闸收进同一张卡，减少「一项一卡」的堆砌感；行为与开关各自独立不变。
         item(key = "automation-master") {
             SettingsGroup {
                 SettingsItemRow(
@@ -264,12 +273,7 @@ fun AutomationSettingsPage(
                         contentDescription = stringResource(R.string.automation_master_title),
                     )
                 }
-            }
-        }
-
-        // AUD-20261011-TASKER-ABUSE: exported broadcast remains opt-in and visibly warns about model cost.
-        item(key = "tasker-trigger") {
-            SettingsGroup {
+                // AUD-20261011-TASKER-ABUSE: exported broadcast remains opt-in and visibly warns about model cost.
                 SettingsItemRow(
                     icon = MuseIcons.link,
                     title = stringResource(R.string.automation_tasker_title),
@@ -287,7 +291,33 @@ fun AutomationSettingsPage(
             }
         }
 
-        item(key = "autonomous-accessibility") {
+        // 25: 总览页的三个子页入口（默认全开：点进去即可配置，不再一页堆砌）。
+        if (subPage == AutomationSubPage.LANDING) {
+            item(key = "sub-menu") {
+                SettingsGroup {
+                    SettingsItemRow(
+                        icon = MuseIcons.shieldCheck,
+                        title = stringResource(R.string.automation_sub_access),
+                        subtitle = stringResource(R.string.automation_sub_access_desc),
+                        onClick = { subPage = AutomationSubPage.ACCESS },
+                    ) { ChevronRight() }
+                    SettingsItemRow(
+                        icon = MuseIcons.computer,
+                        title = stringResource(R.string.automation_sub_autonomous),
+                        subtitle = stringResource(R.string.automation_sub_autonomous_desc),
+                        onClick = { subPage = AutomationSubPage.AUTONOMOUS },
+                    ) { ChevronRight() }
+                    SettingsItemRow(
+                        icon = MuseIcons.clock,
+                        title = stringResource(R.string.automation_sub_orchestration),
+                        subtitle = stringResource(R.string.automation_sub_orchestration_desc),
+                        onClick = { subPage = AutomationSubPage.ORCHESTRATION },
+                    ) { ChevronRight() }
+                }
+            }
+        }
+
+        if (subPage == AutomationSubPage.AUTONOMOUS) item(key = "autonomous-accessibility") {
             AutonomousAccessibilityItem(
                 loaded = autonomousLoaded,
                 draft = autonomousDraft,
@@ -301,182 +331,143 @@ fun AutomationSettingsPage(
             )
         }
 
-        // v1.xxx: F-24 自动化动作如何编排 — 说明 + 一键跳转到定时任务页
-        item(key = "orchestration") {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = MuseIcons.clock,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.automation_orchestration_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.automation_orchestration_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.automation_orchestration_action),
-                        onClick = onOpenScheduledTasks,
-                        modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = MuseIcons.clock,
-                    )
-                }
-            }
-        }
-
-        // 测试按钮
-        item(key = "test") {
-            MuseCapsuleButton(
-                text = if (testing) {
-                    stringResource(R.string.automation_test_running)
-                } else {
-                    stringResource(R.string.automation_test_action)
-                },
-                onClick = {
-                    if (testing) return@MuseCapsuleButton
+        // v1.xxx: F-24 编排与测试子页（抽成独立函数，页内只留分流，降复杂度）。
+        if (subPage == AutomationSubPage.ORCHESTRATION) {
+            orchestrationSubPage(
+                testing = testing,
+                testResult = testResult,
+                onRunTest = {
                     scope.launch {
                         testing = true
                         testResult = null
-                        val outcome = runCatching {
-                            manager.refreshPermissions()
-                            val screen = manager.readScreen()
-                            if (screen.source == "unavailable") {
-                                ScreenTestResult(
-                                    context.getString(R.string.automation_test_no_channel),
-                                    success = false,
-                                )
-                            } else {
-                                val unknown = context.getString(R.string.automation_test_unknown)
-                                // ST-04: 包名与数据来源属开发者诊断信息,收进 devInfo 折叠区
-                                ScreenTestResult(
-                                    message = buildString {
-                                        appendLine(
-                                            context.getString(
-                                                R.string.automation_test_node_count,
-                                                screen.nodes.size,
-                                            ),
-                                        )
-                                        appendLine(
-                                            context.getString(
-                                                R.string.automation_test_resolution,
-                                                screen.screenWidth,
-                                                screen.screenHeight,
-                                            ),
-                                        )
-                                    }.trimEnd('\n'),
-                                    success = true,
-                                    devInfo = buildString {
-                                        appendLine(
-                                            context.getString(
-                                                R.string.automation_test_current_app,
-                                                screen.packageName ?: unknown,
-                                            ),
-                                        )
-                                        appendLine(
-                                            context.getString(
-                                                R.string.automation_test_source,
-                                                screen.source,
-                                            ),
-                                        )
-                                    }.trimEnd('\n'),
-                                )
-                            }
-                        }.getOrElse {
-                            ScreenTestResult(
-                                context.getString(
-                                    R.string.automation_test_failed,
-                                    it.message ?: context.getString(R.string.automation_test_unknown),
-                                ),
-                                success = false,
-                            )
-                        }
-                        testResult = outcome
+                        testResult = runScreenReadTest(manager, context)
                         testing = false
                     }
                 },
-                enabled = !testing,
-                loading = testing,
-                leadingIcon = MuseIcons.play,
-                modifier = Modifier.fillMaxWidth(),
+                onOpenScheduledTasks = onOpenScheduledTasks,
             )
         }
+    }
+}
 
-        // 测试结果
-        testResult?.let { result ->
-            item(key = "test-result") {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (result.success) {
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                    } else {
-                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                    },
+/** 25: 编排与测试子页。从主页抽出，页内只留子页分流，避免单函数分支复杂度超标。 */
+private fun LazyListScope.orchestrationSubPage(
+    testing: Boolean,
+    testResult: ScreenTestResult?,
+    onRunTest: () -> Unit,
+    onOpenScheduledTasks: () -> Unit,
+) {
+    item(key = "orchestration") {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = MuseIcons.clock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.automation_orchestration_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.automation_orchestration_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                MuseCapsuleButton(
+                    text = stringResource(R.string.automation_orchestration_action),
+                    onClick = onOpenScheduledTasks,
                     modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = MuseIcons.clock,
+                )
+            }
+        }
+    }
+    item(key = "test") {
+        MuseCapsuleButton(
+            text = if (testing) {
+                stringResource(R.string.automation_test_running)
+            } else {
+                stringResource(R.string.automation_test_action)
+            },
+            onClick = onRunTest,
+            enabled = !testing,
+            loading = testing,
+            leadingIcon = MuseIcons.play,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    testResult?.let { result ->
+        item(key = "test-result") {
+            ScreenTestResultCard(result)
+        }
+    }
+}
+
+/** 屏幕读取自测结果卡（含默认折叠的开发者诊断信息）。 */
+@Composable
+private fun ScreenTestResultCard(result: ScreenTestResult) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = if (result.success) {
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+        } else {
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Text(text = result.message, style = MaterialTheme.typography.bodySmall)
+            // ST-04: 开发者诊断信息默认折叠,展开显示包名与数据来源
+            result.devInfo?.let { devInfo ->
+                var showDevInfo by remember { mutableStateOf(false) }
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showDevInfo = !showDevInfo }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(
-                            text = result.message,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        // ST-04: 开发者诊断信息默认折叠,展开显示包名与数据来源
-                        result.devInfo?.let { devInfo ->
-                            var showDevInfo by remember { mutableStateOf(false) }
-                            Spacer(Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { showDevInfo = !showDevInfo }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.automation_developer_info),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Icon(
-                                    imageVector = if (showDevInfo) {
-                                        MuseIcons.chevronUp
-                                    } else {
-                                        MuseIcons.chevronDown
-                                    },
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            if (showDevInfo) {
-                                Text(
-                                    text = devInfo,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                )
-                            }
-                        }
-                    }
+                    Text(
+                        text = stringResource(R.string.automation_developer_info),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        imageVector = if (showDevInfo) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (showDevInfo) {
+                    Text(
+                        text = devInfo,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
                 }
             }
         }
     }
 }
+
+/** 25: UI 自动化页内菜单层级（总览 + 三子页），用页内状态切换，不新增导航路由。 */
+private enum class AutomationSubPage { LANDING, ACCESS, AUTONOMOUS, ORCHESTRATION }
 
 /**
  * 一次屏幕读取自测的结果:用户可见文案 + 是否成功(决定提示卡配色)。
@@ -487,6 +478,44 @@ private data class ScreenTestResult(
     val success: Boolean,
     val devInfo: String? = null,
 )
+
+/** 25: 子页标题映射（从页面抽出，降低页内分支复杂度）。 */
+@androidx.annotation.StringRes
+private fun automationSubPageTitleRes(subPage: AutomationSubPage): Int = when (subPage) {
+    AutomationSubPage.LANDING -> R.string.automation_settings_title
+    AutomationSubPage.ACCESS -> R.string.automation_sub_access
+    AutomationSubPage.AUTONOMOUS -> R.string.automation_sub_autonomous
+    AutomationSubPage.ORCHESTRATION -> R.string.automation_sub_orchestration
+}
+
+/** 25: 屏幕读取自测的执行逻辑（从页面 onClick 抽出，页面只负责状态翻转）。 */
+private suspend fun runScreenReadTest(manager: AutomationManager, context: android.content.Context): ScreenTestResult =
+    runCatching {
+        manager.refreshPermissions()
+        val screen = manager.readScreen()
+        if (screen.source == "unavailable") {
+            ScreenTestResult(context.getString(R.string.automation_test_no_channel), success = false)
+        } else {
+            val unknown = context.getString(R.string.automation_test_unknown)
+            // ST-04: 包名与数据来源属开发者诊断信息,收进 devInfo 折叠区
+            ScreenTestResult(
+                message = buildString {
+                    appendLine(context.getString(R.string.automation_test_node_count, screen.nodes.size))
+                    appendLine(context.getString(R.string.automation_test_resolution, screen.screenWidth, screen.screenHeight))
+                }.trimEnd('\n'),
+                success = true,
+                devInfo = buildString {
+                    appendLine(context.getString(R.string.automation_test_current_app, screen.packageName ?: unknown))
+                    appendLine(context.getString(R.string.automation_test_source, screen.source))
+                }.trimEnd('\n'),
+            )
+        }
+    }.getOrElse {
+        ScreenTestResult(
+            context.getString(R.string.automation_test_failed, it.message ?: context.getString(R.string.automation_test_unknown)),
+            success = false,
+        )
+    }
 
 /**
  * 虚拟屏交接区：一行入口 + 展开后的预览/触摸面板。

@@ -14,8 +14,8 @@ import org.robolectric.annotation.Config
 /**
  * 设置搜索索引的结构与命中锁定。
  *
- * 索引由分类清单里的 48 项加上「只做搜索直达」的页内设置组成，全部记录都必须挂在
- * 14 个一级分类之一上：搜索结果靠这个分类名拼面包屑，缺了它用户就不知道自己会被带到哪。
+ * 索引由分类清单里的 47 项加上「只做搜索直达」的页内设置组成，全部记录都必须挂在
+ * 16 个一级分类之一上：搜索结果靠这个分类名拼面包屑，缺了它用户就不知道自己会被带到哪。
  * 这里用真实资源跑一遍过滤与面包屑，键名改了、分组搬了都会断出来。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -29,13 +29,15 @@ class SettingsSearchIndexTest {
 
     @Test
     fun `index covers the settings catalog and extra deep links`() {
-        assertTrue("索引至少要覆盖分类清单里的 48 项", records.size >= SettingsCatalog.entries.size)
+        val catalogEntries = SettingsCatalog.entries.filter { entry ->
+            entry.id != SettingsEntryId.MINIPHONE || io.zer0.muse.feature.FeatureFlags.MINI_PHONE
+        }
+        assertTrue("索引至少要覆盖分类清单里可到达的 ${catalogEntries.size} 项", records.size >= catalogEntries.size)
 
-        val catalogTitles = SettingsCatalog.entries.map { it.titleRes }
-        catalogTitles.forEach { titleRes ->
+        catalogEntries.forEach { entry ->
             assertTrue(
-                "分类清单里的条目「${text(titleRes)}」没有进搜索索引",
-                records.any { it.titleRes == titleRes },
+                "分类清单里的条目「${text(entry.titleRes)}」没有进搜索索引",
+                records.any { it.titleRes == entry.titleRes },
             )
         }
     }
@@ -90,15 +92,29 @@ class SettingsSearchIndexTest {
     /** 渲染组 == 索引组：分类页里看到的每一项，索引里的归属必须与清单一致。 */
     @Test
     fun `catalog entries are indexed under their declared group`() {
-        SettingsCatalog.entries.forEach { entry ->
-            val declared = SettingsCatalog.groups.single { group ->
-                group.entries.any { it.id == entry.id }
+        SettingsCatalog.entries
+            .filter { entry ->
+                entry.id != SettingsEntryId.MINIPHONE || io.zer0.muse.feature.FeatureFlags.MINI_PHONE
             }
-            assertTrue(
-                "条目「${text(entry.titleRes)}」在索引里没有挂在「${text(declared.titleRes)}」下",
-                records.any { it.titleRes == entry.titleRes && it.group == declared.kind },
-            )
-        }
+            .forEach { entry ->
+                val declared = SettingsCatalog.groups.single { group ->
+                    group.entries.any { it.id == entry.id }
+                }
+                assertTrue(
+                    "条目「${text(entry.titleRes)}」在索引里没有挂在「${text(declared.titleRes)}」下",
+                    records.any { it.titleRes == entry.titleRes && it.group == declared.kind },
+                )
+            }
+    }
+
+    /** 关闸时路由不存在，索引里也不能留一个点了没有落地页的按钮。 */
+    @Test
+    fun `mini phone record exists only while the module is on`() {
+        assertEquals(
+            "小手机条目是否进搜索索引，必须与编译期总闸一致",
+            io.zer0.muse.feature.FeatureFlags.MINI_PHONE,
+            records.any { it.entryId == SettingsEntryId.MINIPHONE },
+        )
     }
 
     @Test

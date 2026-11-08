@@ -20,7 +20,7 @@
     <string name="automation_autonomous_read">读屏</string>
     <string name="automation_autonomous_click">点击</string>
     <string name="automation_autonomous_scroll">滑动</string>
-    <string name="automation_autonomous_input_locked">输入动作始终需要审批</string>
+    <string name="automation_autonomous_input">输入</string>
     <string name="automation_autonomous_daily_limit">每日最多执行</string>
     <string name="automation_autonomous_daily_limit_desc">只在工具成功执行后计数；达到上限立即撤销当前任务授权。</string>
     <string name="automation_autonomous_task">对话任务授权</string>

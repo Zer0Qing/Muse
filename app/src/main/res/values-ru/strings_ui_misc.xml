@@ -196,4 +196,18 @@
     <string name="card_favorite_failed">Не удалось добавить карточку в избранное: %1$s</string>
     <string name="card_favorite_session_title">Избранные карточки</string>
     <string name="card_favorite_wrapper">Карточка в избранном: %1$s</string>
+    <string name="user_persona_section">Персона пользователя</string>
+    <string name="user_persona_current">Текущая персона</string>
+    <string name="user_persona_none">Нет (глобальный профиль)</string>
+    <string name="user_persona_use_global">Глобальный профиль</string>
+    <string name="user_persona_select">Выбрать</string>
+    <string name="user_persona_new">Новая персона</string>
+    <string name="user_persona_name">Имя персоны</string>
+    <string name="user_persona_text">Текст (ваша личность с этим ассистентом)</string>
+    <string name="favorites_select_mode">Выбрать</string>
+    <string name="favorites_exit_select">Выйти из выбора</string>
+    <string name="favorites_selected_count">Выбрано: %1$d</string>
+    <string name="favorites_select_all">Выбрать всё</string>
+    <string name="favorites_batch_unfavorite">Убрать из избранного</string>
+    <string name="favorites_batch_group">Задать группу</string>
 </resources>

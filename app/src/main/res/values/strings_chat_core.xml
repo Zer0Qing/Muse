@@ -426,6 +426,12 @@
     <string name="chat_list_section_recent">最近</string>
     <string name="chat_list_section_pinned">已置顶</string>
     <string name="chat_list_section_folders">文件夹</string>
+    <string name="folder_detail_new_here">新建到此文件夹</string>
+    <string name="folder_detail_add_existing">添加已有对话</string>
+    <string name="folder_detail_add_empty">没有可添加的对话</string>
+    <string name="folder_detail_empty_title">这个文件夹还是空的</string>
+    <string name="folder_detail_empty_sub">新建对话，或从「添加已有对话」把已有对话收进来</string>
+    <string name="folder_detail_remove">移出文件夹</string>
     <string name="chat_list_section_knowledge">资料</string>
     <!-- v2.x: 回顾条 + 伙伴横排 -->
     <string name="chat_list_recall_format">上次和 %1$s 聊到「%2$s」</string>
@@ -453,6 +459,7 @@
     <string name="chat_list_move_ungrouped">移到未分组</string>
     <string name="chat_list_move_to">移到： %1$s</string>
     <string name="chat_list_rename">重命名</string>
+    <string name="chat_list_copy_session_id">复制会话编号</string>
     <string name="chat_list_unarchive">取消归档</string>
 
     <!-- 会话重命名/删除对话框 -->

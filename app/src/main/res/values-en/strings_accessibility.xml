@@ -3,6 +3,7 @@
     <!-- P3-3: Permission wizard -->
     <string name="permission_wizard_title">Permission Wizard</string>
     <string name="permission_wizard_desc">Muse UI automation relies on a three-channel permission model. Enable each below; higher levels unlock more operations. UI actions need only Accessibility; shell commands need Shizuku or Root.</string>
+    <string name="permission_wizard_desc_short">Enable the permissions UI automation needs, step by step</string>
     <string name="permission_current_level">Current Permission Level</string>
     <string name="permission_level_none">None (UI automation unavailable)</string>
     <string name="permission_level_accessibility">Accessibility enabled (UI actions available)</string>

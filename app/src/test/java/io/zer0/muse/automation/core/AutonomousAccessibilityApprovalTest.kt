@@ -59,10 +59,27 @@ class AutonomousAccessibilityApprovalTest {
     }
 
     @Test
-    fun `input remains pending even when configured in the window`() {
+    fun `输入在白名单内时与其它动作一样自动放行`() {
         val result =
             AutonomousAccessibilityApproval.evaluate(
                 window = window.copy(allowedActions = window.allowedActions + AutomationAction.INPUT),
+                toolName = "screen_input",
+                currentPackage = "com.xingin.xhs",
+                minuteOfDay = 15 * 60,
+                runCountToday = 0,
+                userConfirmed = true,
+                pending = ToolApprovalState.Pending,
+            )
+
+        assertEquals(ToolApprovalState.Auto, result.approval)
+    }
+
+    @Test
+    fun `输入不在白名单内时仍按白名单拦下`() {
+        // 去掉 INPUT 的硬闸后，输入是否放行完全交给动作白名单：不在名单照样 Pending。
+        val result =
+            AutonomousAccessibilityApproval.evaluate(
+                window = window, // allowedActions 不含 INPUT
                 toolName = "screen_input",
                 currentPackage = "com.xingin.xhs",
                 minuteOfDay = 15 * 60,

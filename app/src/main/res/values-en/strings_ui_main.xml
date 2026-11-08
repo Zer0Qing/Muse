@@ -32,7 +32,7 @@
     <string name="assistant_detail_use_default">Use Default</string>
     <string name="assistant_detail_top_p_label">Top P (leave empty for default, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens (leave empty for default)</string>
-    <string name="assistant_detail_context_message_count">Context message count: %1$d</string>
+    <string name="assistant_detail_context_message_count">Carries the last %1$d history messages</string>
     <string name="assistant_detail_reasoning_level">Reasoning Level</string>
     <!-- v2.0.1: Reasoning level option labels -->
     <string name="reasoning_level_off">Off</string>
@@ -216,7 +216,7 @@
     <string name="settings_group_chat">Chat</string>
     <string name="settings_group_chat_desc">Chat display, stickers, quick notes and sharing</string>
     <string name="settings_group_models">Models and Providers</string>
-    <string name="settings_group_models_desc">Providers, task routing and provider plugins</string>
+    <string name="settings_group_models_desc">Providers, task routing and app plugins</string>
     <string name="settings_group_tools">Tools and Permissions</string>
     <string name="settings_group_tools_desc">Tools, permission wizard and web search</string>
     <string name="settings_group_voice">Voice</string>
@@ -705,7 +705,7 @@
     <string name="free_model_service_unavailable">Free quota service is unavailable. Add an API Key or try again later.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">Provider Plugins</string>
+    <string name="provider_plugins_title">App Plugins</string>
     <string name="muse_plugins_external">External Plugins</string>
     <string name="muse_plugins_manage">Plugins</string>
     <string name="muse_plugins_imported">Plugin package installed</string>
@@ -723,6 +723,9 @@
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">Workspace</string>
     <string name="workspace_tool_outputs">Tool outputs</string>
+    <string name="workspace_attachments">Attachments</string>
+    <string name="workspace_download">Downloads</string>
+    <string name="workspace_resume">Resumes</string>
     <string name="workspace_desc">Local file management and temporary storage</string>
     <string name="workspace_empty">Workspace is empty</string>
     <string name="workspace_new_file">New File</string>
@@ -985,6 +988,7 @@
     <string name="workspace_mount_add">Add folder</string>
     <string name="workspace_mount_read_only">Read-only</string>
     <string name="workspace_mount_remove">Remove</string>
+    <string name="workspace_mount_remove_confirm">Only removes the mount entry for %1$s. The original folder and files on your phone are kept.</string>
     <string name="workspace_mount_added">Mounted %1$s</string>
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">Couldn’t remove “%1$s” — it is still in the list</string>

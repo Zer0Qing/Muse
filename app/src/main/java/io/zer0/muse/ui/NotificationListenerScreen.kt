@@ -171,7 +171,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
     ) {
         // ── 状态卡片 ────────────────────────────────────────────────────
         item(key = "status") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+            CardGroup {
                 item {
                     StatusRow(
                         connected = connected,
@@ -194,7 +194,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
         item(key = "notification_memory") {
             val notifMemoryEnabled by settings.notificationMemoryEnabledFlow
                 .collectAsStateWithLifecycle(initialValue = false)
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+            CardGroup {
                 item {
                     SettingsSwitchRow(
                         title = stringResource(R.string.notif_memory_title),
@@ -216,7 +216,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                 MuseNotificationListenerService.getSensitivePackagesPresent()
             }
             if (sensitivePresent.isNotEmpty()) {
-                CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+                CardGroup {
                     item {
                         Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                             Text(
@@ -262,7 +262,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
 
         // ── F-15: 通知权限(Android 13+ POST_NOTIFICATIONS)状态与拒绝引导 ──
         item(key = "notif_permission") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+            CardGroup {
                 item {
                     val notifEnabled = androidx.core.app.NotificationManagerCompat.from(context)
                         .areNotificationsEnabled()
@@ -323,7 +323,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
 
         // ── 搜索与筛选 ─────────────────────────────────────────────────
         item(key = "filters") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+            CardGroup {
                 item {
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         MuseTextField(
@@ -412,7 +412,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
 
         // ── 操作按钮 ────────────────────────────────────────────────────
         item(key = "actions") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+            CardGroup {
                 item {
                     Column(
                         modifier = Modifier
@@ -482,7 +482,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
 
         // ── 解释卡片 ────────────────────────────────────────────────────
         item(key = "explanation") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+            CardGroup {
                 item {
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         Text(
@@ -641,42 +641,47 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
  */
 @Composable
 private fun StatusRow(connected: Boolean, recentCount: Int, activeCount: Int, unreadCount: Int, onRefresh: () -> Unit) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(MusePaddings.cardInner),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatusBadge(connected = connected)
-        Spacer(Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StatusBadge(connected = connected)
+            Spacer(Modifier.size(12.dp))
             Text(
                 text = if (connected) {
-                    stringResource(
-                        R.string.notif_listener_authorized,
-                    )
+                    stringResource(R.string.notif_listener_authorized)
                 } else {
                     stringResource(R.string.notif_listener_unauthorized)
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = if (connected) {
-                    stringResource(R.string.notif_listener_counts, recentCount, activeCount, unreadCount)
-                } else {
-                    stringResource(R.string.notif_listener_recent_count_disconnected, recentCount)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            MuseTactileButton(
+                icon = MuseIcons.refresh,
+                onClick = onRefresh,
+                contentDescription = stringResource(R.string.notif_listener_refresh_cd),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        MuseTactileButton(
-            icon = MuseIcons.refresh,
-            onClick = onRefresh,
-            contentDescription = stringResource(R.string.notif_listener_refresh_cd),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        // 提示/计数放满宽第二行：以前它和徽章+刷新挤在同一 Row，文字列只剩 ~120dp，
+        // 20 字的状态文案被拗成三行。
+        Text(
+            text = if (connected) {
+                stringResource(R.string.notif_listener_counts, recentCount, activeCount, unreadCount)
+            } else {
+                stringResource(R.string.notif_listener_recent_count_disconnected, recentCount)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
         )
     }
 }

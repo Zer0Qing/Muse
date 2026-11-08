@@ -3,9 +3,9 @@
 <resources>
     <string name="settings_screen_agent_directives">してよいこと・してはいけないこと</string>
     <string name="settings_screen_agent_directives_desc">主動メッセージと通常会話の両方で守る長期的な約束</string>
-    <string name="agent_directives_hint">ここに書いた内容は一般的な話し方の設定より優先されます。両者が矛盾する場合は「絶対しないこと」が優先です。</string>
-    <string name="agent_directives_forbidden_section">絶対しないこと</string>
-    <string name="agent_directives_desired_section">できるだけしてほしいこと</string>
+    <string name="agent_directives_hint">ここに書いた具体的な要求は一般的な口調設定より優先されます。矛盾する場合は「してはいけないこと」が優先されます。</string>
+    <string name="agent_directives_forbidden_section">してはいけないこと</string>
+    <string name="agent_directives_desired_section">してほしいこと</string>
     <string name="agent_directives_empty">まだありません。例：「あだ名で呼ばないで」</string>
     <string name="agent_directives_empty_desired">まだありません。例：「頑張ったことを認めて」</string>
     <string name="agent_directives_add_forbidden">「しないこと」を追加</string>

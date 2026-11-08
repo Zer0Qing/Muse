@@ -32,6 +32,7 @@
     <string name="about_oss_licenses">Licencias de código abierto</string>
     <string name="licenses_title">Licencias de código abierto</string>
     <string name="licenses_total_count">%1$d dependencias en total</string>
+    <string name="licenses_app_statement">Muse se publica como código abierto bajo GPL v3. Las dependencias de terceros usan licencias permisivas (Apache 2.0 / MIT / BSD / EPL-1.0); sus avisos deben conservarse.</string>
 
     <!-- Common actions -->
     <string name="action_back">Atrás</string>

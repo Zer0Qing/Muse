@@ -3,9 +3,9 @@
 <resources>
     <string name="settings_screen_agent_directives">Lo que debe y no debe hacer</string>
     <string name="settings_screen_agent_directives_desc">Reglas de largo plazo que cumple en chats proactivos y normales</string>
-    <string name="agent_directives_hint">Son requisitos explícitos tuyos y pesan más que el tono general. Ante conflicto gana la lista de «nunca».</string>
-    <string name="agent_directives_forbidden_section">Nunca hagas</string>
-    <string name="agent_directives_desired_section">Por favor, haz</string>
+    <string name="agent_directives_hint">Tus requisitos específicos aquí tienen prioridad sobre los ajustes generales de tono; si hay conflicto, gana «Nunca hacer».</string>
+    <string name="agent_directives_forbidden_section">Nunca hacer</string>
+    <string name="agent_directives_desired_section">Preferir hacer</string>
     <string name="agent_directives_empty">Aún no hay nada. Por ejemplo: no me llames cariño</string>
     <string name="agent_directives_empty_desired">Aún no hay nada. Por ejemplo: reconoce el esfuerzo que hago</string>
     <string name="agent_directives_add_forbidden">Añadir un «nunca»</string>

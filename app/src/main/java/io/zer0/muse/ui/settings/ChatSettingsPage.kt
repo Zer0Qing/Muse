@@ -1148,6 +1148,9 @@ fun ChatSettingsPage(
                 )
             }
         }
+
+        // ── 表情包库：并入聊天设置，不再作为聊天分类下的独立条目 ──
+        item { StickerSettingsSection(settings = settings, scope = scope) }
     }
 
     if (showTitlePromptDialog) {

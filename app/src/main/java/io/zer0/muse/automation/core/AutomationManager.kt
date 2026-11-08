@@ -629,9 +629,14 @@ class AutomationManager(
         val candidates = when (target) {
             SystemSettingsTarget.ACCESSIBILITY -> listOf(
                 android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS),
+                // OEM 常不实现专项 action：补一条通用设置兜底，配合 attempt-and-catch 不再静默 no-op。
+                android.content.Intent(android.provider.Settings.ACTION_SETTINGS),
             )
             SystemSettingsTarget.NOTIFICATION_ACCESS -> listOf(
-                android.content.Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"),
+                // 用 SDK 常量（= "android.settings.NOTIFICATION_LISTENER_SETTINGS"）。
+                // 旧实现写了 "android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"——这个 action 根本不存在，
+                // 只会退到通用设置却照样报成功；与 NotificationListenerScreen 同一常量口径。
+                android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS),
                 android.content.Intent(android.provider.Settings.ACTION_SETTINGS),
             )
             SystemSettingsTarget.OVERLAY -> listOf(

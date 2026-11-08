@@ -432,6 +432,7 @@ fun AssistantDetailPage(
         }
         // 角色卡文件导出（PNG / JSON），供支持同类角色卡格式的外部工具导入
         item {
+            UserPersonaCard(assistantId, modifier = museAnimateItem())
             CardGroup(
                 modifier = museAnimateItem(),
                 title = { Text(stringResource(R.string.assistant_detail_export_section)) },

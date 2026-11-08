@@ -697,6 +697,10 @@
     <string name="keep_alive_notification_title">Muse está em execução em segundo plano</string>
     <string name="keep_alive_notification_text">Mantendo tarefas agendadas e mensagens proativas online</string>
     <string name="settings_keep_alive_title">Manter em segundo plano</string>
+    <string name="settings_group_keep_alive">Sempre ativo</string>
+    <string name="settings_group_keep_alive_desc">Persistência, otimização de bateria e início automático</string>
+    <string name="settings_group_miniphone">Mini telefone</string>
+    <string name="settings_group_miniphone_desc">Telefone integrado e sua casinha 2D</string>
     <string name="settings_keep_alive_subtitle">Mantém o processo em primeiro plano com uma notificação permanente</string>
     <string name="settings_keep_alive_hint">O Muse mostrará uma notificação permanente. O Android exige isso para serviços em primeiro plano e não é possível ocultá-la. Em algumas ROMs chinesas também é preciso permitir a inicialização automática.</string>
     <string name="settings_keep_alive_wakelock_title">Manter conexão com a tela desligada</string>

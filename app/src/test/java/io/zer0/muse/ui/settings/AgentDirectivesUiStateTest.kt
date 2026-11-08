@@ -4,8 +4,10 @@ import io.zer0.muse.data.assistant.AgentDirective
 import io.zer0.muse.data.assistant.AgentDirectiveStore
 import io.zer0.muse.data.assistant.DirectivePolarity
 import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 import io.zer0.muse.proactive.AgentDirectivesPrompt
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -85,5 +87,27 @@ class AgentDirectivesUiStateTest {
         )
         assertEquals("存了不认识的值也要回落", VoiceReplyFrequency.RARELY, AgentDirectivesUiState.voiceFrequency(snapshot, "a2"))
         assertEquals(VoiceReplyFrequency.RARELY, AgentDirectivesUiState.voiceFrequency(emptyMap(), ""))
+    }
+
+    @Test
+    fun `语音频率无覆盖时跟随全局默认`() {
+        val snapshot = mapOf(VoiceReplyPolicyStore.GLOBAL_KEY to "OFTEN")
+        assertEquals(VoiceReplyFrequency.OFTEN, AgentDirectivesUiState.voiceFrequency(snapshot, "a1"))
+        assertEquals(VoiceReplyFrequency.OFTEN, AgentDirectivesUiState.globalVoiceFrequency(snapshot))
+    }
+
+    @Test
+    fun `助手覆盖优先于全局默认且可识别是否跟随`() {
+        val snapshot = mapOf(VoiceReplyPolicyStore.GLOBAL_KEY to "OFTEN", "a1" to "NEVER")
+        assertEquals(VoiceReplyFrequency.NEVER, AgentDirectivesUiState.voiceFrequency(snapshot, "a1"))
+        assertEquals(VoiceReplyFrequency.NEVER, AgentDirectivesUiState.voiceOverride(snapshot, "a1"))
+        assertNull("未设覆盖的助手应识别为跟随默认", AgentDirectivesUiState.voiceOverride(snapshot, "a2"))
+        assertEquals(VoiceReplyFrequency.OFTEN, AgentDirectivesUiState.voiceFrequency(snapshot, "a2"))
+    }
+
+    @Test
+    fun `全局默认未设时回落偶尔`() {
+        assertEquals(VoiceReplyFrequency.RARELY, AgentDirectivesUiState.globalVoiceFrequency(emptyMap()))
+        assertNull(AgentDirectivesUiState.voiceOverride(emptyMap(), "a1"))
     }
 }

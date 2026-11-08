@@ -327,7 +327,7 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                     },
                                 )
                             } else {
-                                state.assistants.filterNot { it.id == defaultAssistantId }.forEach { assistant ->
+                                state.assistants.forEach { assistant ->
                                     item(
                                         key = assistant.id,
                                         onClick = { onOpenDetail(assistant.id) },
@@ -352,6 +352,15 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                                 )
                                                 if (assistant.id == state.currentAssistant?.id) {
                                                     CurrentIndicator(text = currentText)
+                                                }
+                                                if (assistant.id == defaultAssistantId) {
+                                                    // 默认助手也进列表：过去被 filterNot 掉，用户在"我的助手"
+                                                    // 里找不到它，只看见上方一个选择器，不知道它同样可编辑。
+                                                    Text(
+                                                        text = stringResource(R.string.assistant_default_tag),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                    )
                                                 }
                                                 if (!assistant.enabled) {
                                                     // 停用后助手从候选列表消失,列表里却不留痕迹 ——

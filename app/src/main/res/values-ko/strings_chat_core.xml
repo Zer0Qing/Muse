@@ -368,6 +368,12 @@
     <string name="chat_list_section_recent">최근의</string>
     <string name="chat_list_section_pinned">고정됨</string>
     <string name="chat_list_section_folders">폴더</string>
+    <string name="folder_detail_new_here">여기에서 새 대화</string>
+    <string name="folder_detail_add_existing">기존 대화 추가</string>
+    <string name="folder_detail_add_empty">추가할 대화가 없습니다</string>
+    <string name="folder_detail_empty_title">이 폴더는 비어 있습니다</string>
+    <string name="folder_detail_empty_sub">대화를 만들거나 “기존 대화 추가”로 담아오세요</string>
+    <string name="folder_detail_remove">폴더에서 제거</string>
     <string name="chat_list_section_knowledge">자료</string>
     <!-- v2.x: recall bar + partners row -->
     <string name="chat_list_recall_format">지난번 %1$s와(과) 「%2$s」</string>
@@ -395,6 +401,7 @@
     <string name="chat_list_move_ungrouped">그룹 해제됨으로 이동</string>
     <string name="chat_list_move_to">다음으로 이동: %1$s</string>
     <string name="chat_list_rename">이름 바꾸기</string>
+    <string name="chat_list_copy_session_id">세션 ID 복사</string>
     <string name="chat_list_unarchive">보관 취소</string>
 
     <!-- Session rename/delete dialogs -->

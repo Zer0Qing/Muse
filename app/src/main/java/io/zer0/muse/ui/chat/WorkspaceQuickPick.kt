@@ -102,7 +102,9 @@ internal fun WorkspaceQuickPickDialog(onOpen: (String) -> Unit, onDismiss: () ->
                 folders.forEach { entry ->
                     SettingsItemRow(
                         icon = MuseIcons.folder,
-                        title = entry.name,
+                        // 与 WorkspaceScreen 条目行同一份内置目录映射，选择器与打开页叫法一致。
+                        title = io.zer0.muse.ui.workspaceDirectoryLabelRes(entry.name)
+                            ?.let { stringResource(it) } ?: entry.name,
                         onClick = {
                             stack.enter(WorkspacePickStack.normalize(entry.relativePath))
                             path = stack.current

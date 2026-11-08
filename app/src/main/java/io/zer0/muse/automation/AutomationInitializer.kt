@@ -52,6 +52,14 @@ object AutomationInitializer {
     val manager: AutomationManager
         get() = _manager ?: error("AutomationInitializer not initialized. Call initialize() first.")
 
+    /**
+     * 安全访问器：未初始化时返回 null，而不是抛。
+     * UI（权限向导 / Root 授权入口）用它，避免初始化未完成时打开页面直接崩；
+     * 调用方须自行处理 null（禁用该动作并给可读提示），不能假设一定就绪。
+     */
+    val managerOrNull: AutomationManager?
+        get() = _manager
+
     /** 是否已初始化。 */
     val isInitialized: Boolean get() = _manager != null
 

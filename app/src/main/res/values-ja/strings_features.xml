@@ -411,6 +411,11 @@
     <string name="artifact_center_empty">まだアーティファクトはありません</string>
     <string name="artifact_share_chooser">成果物を共有</string>
     <string name="artifact_save_text">テキストとして保存</string>
+    <string name="artifact_open_external">外部で開く</string>
+    <string name="artifact_fullscreen">全画面</string>
+    <string name="artifact_view_source">ソースを表示</string>
+    <string name="artifact_view_rendered">レンダリングを表示</string>
+    <string name="artifact_open_failed">開けませんでした</string>
     <string name="artifact_saved">保存しました</string>
     <string name="artifact_save_failed">保存に失敗しました</string>
 
@@ -603,6 +608,7 @@
     <string name="permission_level_root">Root 承認済み（全機能を利用可能）</string>
     <string name="permission_level_shizuku">Shizuku 承認済み（UI + シェルコマンドを利用可能）</string>
     <string name="permission_wizard_desc">Muse の UI 自動化は3チャネルの権限モデルを使用します。下の各項目を有効にしてください。レベルが高いほど、より多くの操作が利用できます。UI操作はアクセシビリティのみ、シェルコマンドは Shizuku または Root が必要です。</string>
+    <string name="permission_wizard_desc_short">UI 自動化に必要な権限を順に有効にします</string>
     <string name="permission_wizard_title">権限ウィザード</string>
     <string name="root_section_title">Root 権限</string>
     <string name="root_status_available">Root 承認済み（フォールバックチャネル。su コマンドを直接実行可能）</string>

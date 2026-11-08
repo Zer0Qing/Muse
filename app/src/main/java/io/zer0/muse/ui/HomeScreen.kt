@@ -92,6 +92,8 @@ fun HomeScreen(
     onOpenAssistants: () -> Unit = {},
     onOpenScheduledTasks: () -> Unit = {},
     onOpenQuickNotes: () -> Unit = {},
+    /** 文件夹独立详情页：点文件夹进该页（由 HomeRoute 接导航）。 */
+    onOpenFolder: (String) -> Unit = {},
     /** v1.0.27: 打开快速翻译页。 */
     onOpenQuickTranslate: () -> Unit = {},
     /** v1.0.27: 打开知识库页。 */
@@ -136,6 +138,8 @@ fun HomeScreen(
     // v1.133: 订阅缓存的 ReleaseInfo,有值则渲染 Banner
     val releaseJson by settings.latestReleaseInfoFlow.collectAsStateWithLifecycle(initialValue = null)
     val pagerState = rememberPagerState(initialPage = defaultPage, pageCount = { 3 })
+    // 01①: 更多菜单触发任务列表的编辑/新建文件夹，ChatListScreen 消费后回执清零。
+    var pendingListAction by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     // v1.41: Agent Tab 模型切换面板展开状态
     var showModelSheet by remember { mutableStateOf(false) }
@@ -252,6 +256,9 @@ fun HomeScreen(
                 val searchLabel = stringResource(R.string.home_search_cd)
                 val miniPhoneLabel = stringResource(R.string.home_miniphone_cd)
                 val workspaceLabel = stringResource(R.string.workspace_title)
+                val archivedEntryLabel = stringResource(R.string.chat_list_archived_entry, state.archivedSessions.size)
+                val newFolderLabel = stringResource(R.string.chat_list_new_folder)
+                val editListLabel = stringResource(R.string.chat_list_edit)
                 val topMenuItems = buildList {
                     add(
                         MuseFloatingActionItem(
@@ -279,6 +286,34 @@ fun HomeScreen(
                             onClick = { showWorkspacePick = true },
                         ),
                     )
+                    // 01①: 任务列表的归档/新建文件夹/编辑从首屏快捷行收进这里，只在任务 Tab 出现。
+                    // 归档入口常驻(含 0)：右滑归档的 toast 承诺"可到已归档中恢复"，入口不能时有时无。
+                    if (pagerState.currentPage == 0) {
+                        add(
+                            MuseFloatingActionItem(
+                                key = "archived",
+                                icon = MuseIcons.archive,
+                                label = archivedEntryLabel,
+                                onClick = onOpenArchivedChats,
+                            ),
+                        )
+                        add(
+                            MuseFloatingActionItem(
+                                key = "new_folder",
+                                icon = MuseIcons.folderPlus,
+                                label = newFolderLabel,
+                                onClick = { pendingListAction = "create_folder" },
+                            ),
+                        )
+                        add(
+                            MuseFloatingActionItem(
+                                key = "edit_list",
+                                icon = MuseIcons.edit,
+                                label = editListLabel,
+                                onClick = { pendingListAction = "edit" },
+                            ),
+                        )
+                    }
                 }
                 MuseTopBarMenu(
                     contentDescription = stringResource(R.string.action_more),
@@ -410,16 +445,18 @@ fun HomeScreen(
                                     onRenameFolder = viewModel::renameFolder,
                                     onDeleteFolder = viewModel::deleteFolder,
                                     onToggleFolderExpanded = viewModel::toggleFolderExpanded,
+                                    onOpenFolder = onOpenFolder,
                                     assistants = state.assistants,
                                     currentAssistant = state.currentAssistant,
-                                    archivedSessions = state.archivedSessions,
+                                    showListToolbar = false,
+                                    listAction = pendingListAction,
+                                    onListActionConsumed = { pendingListAction = null },
                                     onArchive = { id -> viewModel.setSessionArchived(id, true) },
                                     onOpenScheduledTasks = onOpenScheduledTasks,
                                     onOpenQuickNotes = onOpenQuickNotes,
                                     onOpenQuickTranslate = onOpenQuickTranslate,
                                     onOpenKnowledgeBase = onOpenKnowledgeBase,
                                     onOpenRecentlyDeleted = onOpenRecentlyDeleted,
-                                    onOpenArchivedChats = onOpenArchivedChats,
                                     onOpenAssistants = onOpenAssistants,
                                     // v2.x: 伙伴横排 — 以指定助手开新聊天(宽屏双栏就地切新会话)
                                     onOpenAssistantChat = { id ->
@@ -473,16 +510,18 @@ fun HomeScreen(
                                 onRenameFolder = viewModel::renameFolder,
                                 onDeleteFolder = viewModel::deleteFolder,
                                 onToggleFolderExpanded = viewModel::toggleFolderExpanded,
+                                onOpenFolder = onOpenFolder,
                                 assistants = state.assistants,
                                 currentAssistant = state.currentAssistant,
-                                archivedSessions = state.archivedSessions,
+                                showListToolbar = false,
+                                listAction = pendingListAction,
+                                onListActionConsumed = { pendingListAction = null },
                                 onArchive = { id -> viewModel.setSessionArchived(id, true) },
                                 onOpenScheduledTasks = onOpenScheduledTasks,
                                 onOpenQuickNotes = onOpenQuickNotes,
                                 onOpenQuickTranslate = onOpenQuickTranslate,
                                 onOpenKnowledgeBase = onOpenKnowledgeBase,
                                 onOpenRecentlyDeleted = onOpenRecentlyDeleted,
-                                onOpenArchivedChats = onOpenArchivedChats,
                                 onOpenAssistants = onOpenAssistants,
                                 // v2.x: 伙伴横排 — 以指定助手开新聊天并进入聊天页
                                 onOpenAssistantChat = { id ->

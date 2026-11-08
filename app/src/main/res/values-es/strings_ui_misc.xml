@@ -196,4 +196,18 @@ Toca actualizar para obtener la lista</string>
     <string name="card_favorite_failed">No se pudo guardar la tarjeta: %1$s</string>
     <string name="card_favorite_session_title">Tarjetas favoritas</string>
     <string name="card_favorite_wrapper">Tarjeta favorita: %1$s</string>
+    <string name="user_persona_section">Máscara de usuario</string>
+    <string name="user_persona_current">Máscara actual</string>
+    <string name="user_persona_none">Ninguna (perfil global)</string>
+    <string name="user_persona_use_global">Usar perfil global</string>
+    <string name="user_persona_select">Usar</string>
+    <string name="user_persona_new">Nueva máscara</string>
+    <string name="user_persona_name">Nombre de máscara</string>
+    <string name="user_persona_text">Texto (tu identidad con este asistente)</string>
+    <string name="favorites_select_mode">Seleccionar</string>
+    <string name="favorites_exit_select">Salir de selección</string>
+    <string name="favorites_selected_count">%1$d seleccionadas</string>
+    <string name="favorites_select_all">Seleccionar todo</string>
+    <string name="favorites_batch_unfavorite">Quitar de favoritos</string>
+    <string name="favorites_batch_group">Definir grupo</string>
 </resources>

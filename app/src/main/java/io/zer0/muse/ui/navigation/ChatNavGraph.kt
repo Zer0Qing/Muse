@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import io.zer0.muse.ui.ArchivedChatsScreen
 import io.zer0.muse.ui.ChatListScreen
+import io.zer0.muse.ui.FolderDetailScreen
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
@@ -63,6 +64,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             },
             onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
             onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
+            onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
             // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
             onHtmlPreview = { html ->
                 navController.navigate(HtmlPreviewRoute(html))
@@ -72,11 +74,11 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         )
         } // 关闭共享元素作用域注入（目的地级 AnimatedVisibilityScope，见 F2 基建）
     }
-    // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入,右滑入场)
-    // v1.0.80: 纯 slide 无淡入淡出 — 避免半透明透出深色背景形成"黑色遮罩"
+    // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入)
+    // 整屏覆盖滑动:进入页不透明满屏盖入,与其余二级页同一套语义(见 MuseTransitions 类注)。
     composable<SearchRoute>(
-        enterTransition = { MuseTransitions.horizontalSlideEnter() },
-        popExitTransition = { MuseTransitions.horizontalSlidePopExit() },
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SearchScreen(
             onBack = { navController.popBackStack() },
@@ -160,6 +162,32 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         )
     }
 
+    // 文件夹独立详情页：点文件夹进来就是里面的对话（新建到此文件夹 / 添加已有对话 / 移出）。
+    composable<FolderDetailRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { backStackEntry ->
+        val folderId = backStackEntry.toRoute<FolderDetailRoute>().folderId
+        val state by sharedViewModel.state.collectAsStateWithLifecycle()
+        val folder = state.folders.firstOrNull { it.id == folderId }
+        FolderDetailScreen(
+            folderName = folder?.name.orEmpty(),
+            sessions = state.sessions.filter { it.folderId == folderId },
+            ungroupedSessions = state.sessions.filter { it.folderId == null },
+            onBack = { navController.popBackStack() },
+            onOpenSession = { id ->
+                sharedViewModel.switchSession(id)
+                navController.navigate(ChatDetailRoute)
+            },
+            onCreateInFolder = {
+                sharedViewModel.createNewSession(folderId = folderId)
+                navController.navigate(ChatDetailRoute)
+            },
+            onAddSession = { id -> sharedViewModel.moveSessionToFolder(id, folderId) },
+            onRemoveSession = { id -> sharedViewModel.moveSessionToFolder(id, null) },
+        )
+    }
+
     // v0.27: 聊天详情页 — 从首页 push 进入,右滑入场 + 左滑返回(滑动式 push 过渡)
     // P1-4 平板适配:Expanded 模式下双列布局(左 ChatListScreen 40% + 右 ChatScreen 60%),
     //               Compact/Medium 保持单列 push/pop
@@ -196,6 +224,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                         onRenameFolder = sharedViewModel::renameFolder,
                         onDeleteFolder = sharedViewModel::deleteFolder,
                         onToggleFolderExpanded = sharedViewModel::toggleFolderExpanded,
+                        onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
                         assistants = state.assistants,
                         currentAssistant = state.currentAssistant,
                         archivedSessions = state.archivedSessions,

@@ -61,8 +61,10 @@ internal object HostSettingsCatalog {
         group(
             "settings_group_chat",
             link("chat", "settings_screen_chat", "settings_screen_chat_desc", "chat"),
-            link("stickers", "settings_chat_sticker_section", "settings_screen_sticker_desc", "image"),
-            link("quick_notes", "settings_screen_quick_notes", "settings_screen_quick_notes_desc", "bulb"),
+        ),
+        group(
+            "settings_group_appearance",
+            link("appearance", "settings_screen_appearance_label", "settings_screen_appearance_desc", "palette"),
         ),
         group(
             "settings_group_models",
@@ -73,7 +75,7 @@ internal object HostSettingsCatalog {
         group(
             "settings_group_tools",
             link("tools", "settings_screen_tools", "settings_screen_tools_desc", "wrench"),
-            link("permission_wizard", "permission_wizard_title", "permission_wizard_desc", "shieldCheck"),
+            link("permission_wizard", "permission_wizard_title", "permission_wizard_desc_short", "shieldCheck"),
             link("web_search", "settings_screen_web_search", "settings_screen_web_search_desc", "globe"),
         ),
         group(
@@ -86,7 +88,6 @@ internal object HostSettingsCatalog {
             "settings_group_image",
             link("image_video_gen", "video_gen_title", "settings_screen_desc_video_gen", "video"),
             link("vision", "settings_vision_title", "settings_screen_desc_vision", "image"),
-            link("translate", "settings_screen_translate", "settings_screen_translate_desc", "languages"),
         ),
         group(
             "settings_group_memory",
@@ -99,7 +100,6 @@ internal object HostSettingsCatalog {
         ),
         group(
             "settings_group_connection",
-            link("connection_center", "connection_center_title", "connection_center_desc", "link"),
             link("channel", "channel_page_title", "settings_screen_desc_channel", "wifi"),
             // 内置浏览器设置只有 App 侧有页面（WebView 的引擎与 Cookies 行为没法从网页驱动），
             // 所以这里 enabled = false：Web 端列出但不进子页，不造一个点了没反应的假入口。
@@ -121,7 +121,6 @@ internal object HostSettingsCatalog {
                 "bell",
                 enabled = false,
             ),
-            link("scheduled_tasks", "schedule_title", "settings_screen_desc_schedule", "clock"),
             link(
                 "notification_listener",
                 "settings_screen_notification_listener",
@@ -129,11 +128,13 @@ internal object HostSettingsCatalog {
                 "bell",
             ),
             link("ui_automation", "automation_settings_title", "automation_settings_subtitle", "computer"),
+        ),
+        group(
+            "settings_group_keep_alive",
             link("keep_alive", "settings_keep_alive_title", "settings_keep_alive_subtitle", "battery"),
         ),
         group(
-            "settings_group_appearance",
-            link("appearance", "settings_screen_appearance_label", "settings_screen_appearance_desc", "palette"),
+            "settings_group_miniphone",
             link(
                 "miniphone",
                 "settings_miniphone_title",

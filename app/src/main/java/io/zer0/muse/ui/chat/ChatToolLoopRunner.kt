@@ -37,6 +37,7 @@ import io.zer0.muse.transformer.ContextBudget
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.ChatStreamPhase
+import io.zer0.muse.ui.artifact.RichCardArtifacts
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.mergeFinalAssistantMedia
 import io.zer0.muse.ui.selectSteeringMessages
@@ -1793,6 +1794,13 @@ internal class ChatToolLoopRunner(
                 } else {
                     withCitations
                 }
+            // 富卡片自动同步进产物中心：渲染侧把 svg/html/chart 围栏块当卡片，但过去只有
+            // 手动「保存」才入库，产物中心因此长期缺卡。id 与手动保存一致，不会重复入库。
+            RichCardArtifacts.extract(
+                sessionId = sessionId,
+                messageId = state.currentAssistantId.toString(),
+                content = withArtifacts.content,
+            ).forEach { host.artifactRepository.upsert(it) }
             host.stateStore.messages.value =
                 host.stateStore.messages.value.map { msg ->
                     if (msg.id == withArtifacts.id) withArtifacts else msg

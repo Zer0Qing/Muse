@@ -248,8 +248,16 @@ class SessionRepository(
         uniqueIds.mapNotNull(byId::get)
     }
 
-    /** v0.45: 观察已归档会话(按 updatedAt 降序)。归档列表用。 */
-    fun observeArchived(): Flow<List<SessionEntity>> = sessionDao.observeArchived()
+    /**
+     * v0.45: 观察已归档会话(按 updatedAt 降序)。归档列表用。
+     *
+     * 卡片收藏容器([ensureCardFavoriteSession])也是 archived=1，但它是收藏夹的存储载体而非
+     * 用户对话。露在归档列表里会被当成普通归档删掉，messages 的 FK 级联会连带清空整个收藏夹。
+     */
+    fun observeArchived(): Flow<List<SessionEntity>> =
+        sessionDao.observeArchived().map { sessions ->
+            sessions.filterNot { it.folderId == CARD_FAVORITE_SESSION_MARKER }
+        }
 
     /** v0.45: 切换会话归档状态。 */
     suspend fun setArchived(sessionId: String, archived: Boolean) {
@@ -280,6 +288,10 @@ class SessionRepository(
      * 否则应用重启时恢复任务可能再次向已删除会话写入消息。
      */
     suspend fun softDeleteSession(id: String) {
+        if (isCardFavoriteContainer(id)) {
+            Logger.w(TAG, "拒绝软删卡片收藏容器: 会连带清空收藏夹 [sessionId=$id]")
+            return
+        }
         val now = System.currentTimeMillis()
         withContext(Dispatchers.IO) {
             database.withTransaction {
@@ -523,6 +535,10 @@ class SessionRepository(
 
     /** 删除会话(级联删消息 + FTS 索引)。 */
     suspend fun deleteSession(id: String) {
+        if (isCardFavoriteContainer(id)) {
+            Logger.w(TAG, "拒绝删除卡片收藏容器: 会连带清空收藏夹 [sessionId=$id]")
+            return
+        }
         // Phase 10.3: 先删 FTS 索引(依赖 messages 表子查询,必须在 messages 被级联删之前)
         //   这个顺序在 fts4 模式下是硬要求，而 `MessageFtsRuntime.useFts5` 默认就是 false（生产默认路径）：
         //   `deleteFtsBySession` 写的是 `message_id IN (SELECT id FROM messages WHERE sessionId=…)`，
@@ -644,6 +660,15 @@ class SessionRepository(
      *    但 [MessageDao.observeAllFavorites] 不按 archived 过滤，收藏页照常能看到；
      *  - 幂等：按标题复用，重复收藏不会每次新建会话。
      */
+    /**
+     * 该会话是否是卡片收藏的存储容器。
+     *
+     * 收藏内容以独立快照消息存在这个容器里，容器一旦被删，FK 级联会清空整个收藏夹。
+     * 删除入口不止归档页（会话管理工具、web 网关、最近删除都能删），所以护栏放在 repository。
+     */
+    private suspend fun isCardFavoriteContainer(id: String): Boolean =
+        sessionDao.getByFolderId(CARD_FAVORITE_SESSION_MARKER)?.id == id
+
     suspend fun ensureCardFavoriteSession(): String = withContext(Dispatchers.IO) {
         sessionDao.getByFolderId(CARD_FAVORITE_SESSION_MARKER)?.let { return@withContext it.id }
         val id = Uuid.random().toString()

@@ -29,10 +29,11 @@ class FavoritesScreenWiringTest {
             "分组文案必须走 favoriteTagLabel 映射",
             source.contains("favoriteTagLabel(tag)"),
         )
-        // 分组写入只保留自定义 tag 一条路径（唯一的定义 + 唯一的调用点）。
+        // 分组写入只保留自定义 tag 一条路径：同一个 FavoriteTagEditDialog 组件，
+        // 定义 1 处 + 单条编辑 1 处 + 12 批量分组复用 1 处 = 3；写入都走 setMessageFavoriteTag。
         assertEquals(
-            "分组对话框只能有一个",
-            2,
+            "分组对话框组件只能有一个定义（调用点可复用）",
+            3,
             Regex("FavoriteTagEditDialog\\(").findAll(source).count(),
         )
     }

@@ -3803,8 +3803,8 @@ class ChatViewModel(
     fun forkSessionFromMessage(messageId: kotlin.uuid.Uuid) = sessionController.forkSessionFromMessage(messageId)
 
     /** 新建会话。[assistantIdOverride] 非空时以指定助手创建(伙伴横排快捷开聊)。 */
-    fun createNewSession(onReady: (() -> Unit)? = null, assistantIdOverride: String? = null) =
-        sessionController.createNewSession(onReady, assistantIdOverride)
+    fun createNewSession(onReady: (() -> Unit)? = null, assistantIdOverride: String? = null, folderId: String? = null) =
+        sessionController.createNewSession(onReady, assistantIdOverride, folderId)
 
     /**
      * v1.97 gap8: 将文本发送到新会话。
@@ -4059,9 +4059,9 @@ class ChatViewModel(
             resultOf {
                 artifactRepository.upsert(
                     ArtifactEntity(
-                        // 幂等 id：同一张卡（同一 messageId + 同一语言）连点两次是覆盖同一行，
-                        // 而不是每次多存一份。用时间戳做主键会让“保存”变成“不断新增”。
-                        id = "card_${messageId}_${language.lowercase()}",
+                        // 与流式收尾的自动入库共用同一幂等 id：同一张卡手动保存不会另存一份，
+                        // 一条消息里多张同语言卡片也各自独立（id 含内容摘要）。
+                        id = io.zer0.muse.ui.artifact.RichCardArtifacts.id(messageId, language, content),
                         sessionId = sid,
                         messageId = messageId,
                         title = language.uppercase(),

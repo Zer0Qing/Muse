@@ -51,6 +51,7 @@ import io.zer0.muse.ui.settings.UserPreferencePage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.VisionSettingsPage
 import io.zer0.muse.ui.settings.WebAccessPage
+import io.zer0.muse.ui.settings.directEntryRoute
 import io.zer0.muse.ui.terminal.TerminalScreen
 import org.koin.compose.koinInject
 
@@ -70,7 +71,15 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         SettingsScreen(
             onBack = { navController.popBackStack() },
             onOpenAccount = { navController.navigate(AccountRoute) },
-            onOpenGroup = { kind, focus -> navController.navigate(SettingsGroupRoute(kind.name, focus?.name.orEmpty())) },
+            onOpenGroup = { kind, focus ->
+                // 只有一个条目的分类不再套一层二级列表：首页那一下直接进它唯一的页面。
+                val directRoute = io.zer0.muse.ui.settings.SettingsCatalog.group(kind).directEntryRoute()
+                if (focus == null && directRoute != null) {
+                    navController.navigate(directRoute)
+                } else {
+                    navController.navigate(SettingsGroupRoute(kind.name, focus?.name.orEmpty()))
+                }
+            },
             onNavigate = { route -> navController.navigate(route) },
         )
     }

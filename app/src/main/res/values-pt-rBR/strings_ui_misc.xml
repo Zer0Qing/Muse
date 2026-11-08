@@ -196,4 +196,18 @@ Toque em atualizar para buscar a lista</string>
     <string name="card_favorite_failed">Falha ao favoritar o cartão: %1$s</string>
     <string name="card_favorite_session_title">Cartões favoritos</string>
     <string name="card_favorite_wrapper">Cartão favoritado: %1$s</string>
+    <string name="user_persona_section">Persona do usuário</string>
+    <string name="user_persona_current">Persona atual</string>
+    <string name="user_persona_none">Nenhuma (perfil global)</string>
+    <string name="user_persona_use_global">Usar perfil global</string>
+    <string name="user_persona_select">Usar</string>
+    <string name="user_persona_new">Nova persona</string>
+    <string name="user_persona_name">Nome da persona</string>
+    <string name="user_persona_text">Texto (sua identidade com este assistente)</string>
+    <string name="favorites_select_mode">Selecionar</string>
+    <string name="favorites_exit_select">Sair da seleção</string>
+    <string name="favorites_selected_count">%1$d selecionadas</string>
+    <string name="favorites_select_all">Selecionar tudo</string>
+    <string name="favorites_batch_unfavorite">Remover dos favoritos</string>
+    <string name="favorites_batch_group">Definir grupo</string>
 </resources>

@@ -203,4 +203,18 @@
     <string name="browser_menu_open_external">在系统浏览器打开</string>
     <string name="browser_menu_copy_link">复制链接</string>
     <string name="browser_cookies_cleared">已清除 Cookie</string>
+    <string name="user_persona_section">用户面具</string>
+    <string name="user_persona_current">当前面具</string>
+    <string name="user_persona_none">未选择（用全局画像）</string>
+    <string name="user_persona_use_global">改用全局画像</string>
+    <string name="user_persona_select">选用</string>
+    <string name="user_persona_new">新建面具</string>
+    <string name="user_persona_name">面具名称</string>
+    <string name="user_persona_text">面具设定（你在本助手下的身份）</string>
+    <string name="favorites_select_mode">多选</string>
+    <string name="favorites_exit_select">退出多选</string>
+    <string name="favorites_selected_count">已选 %1$d</string>
+    <string name="favorites_select_all">全选</string>
+    <string name="favorites_batch_unfavorite">取消收藏</string>
+    <string name="favorites_batch_group">设置分组</string>
 </resources>

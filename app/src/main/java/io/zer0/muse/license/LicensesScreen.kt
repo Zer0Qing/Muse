@@ -196,7 +196,8 @@ private fun HeaderSummary(manifest: LicenseManifest) {
             modifier = Modifier.padding(20.dp),
         ) {
             Text(
-                text = "${manifest.appName} v${manifest.appVersion}",
+                // 27: 版本取真实安装包版本，不用 manifest 里 baked 的旧值（曾长期停在 2.1.0）。
+                text = "${manifest.appName} v${io.zer0.muse.BuildConfig.VERSION_NAME}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
@@ -208,9 +209,8 @@ private fun HeaderSummary(manifest: LicenseManifest) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Muse 闭源商业发布,所有第三方依赖均为宽松协议" +
-                    "(Apache 2.0 / MIT / BSD / EPL-1.0)," +
-                    "无需开源我们的代码,仅需保留本声明。",
+                // 27: Muse 已是 GPL v3 开源项目，原文案"闭源商业发布/无需开源我们的代码"与事实相反。
+                text = stringResource(R.string.licenses_app_statement),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
             )

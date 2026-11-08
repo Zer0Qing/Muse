@@ -196,4 +196,18 @@
     <string name="card_favorite_failed">カードのお気に入り登録に失敗しました：%1$s</string>
     <string name="card_favorite_session_title">カードのお気に入り</string>
     <string name="card_favorite_wrapper">お気に入りのカード：%1$s</string>
+    <string name="user_persona_section">ユーザーペルソナ</string>
+    <string name="user_persona_current">現在のペルソナ</string>
+    <string name="user_persona_none">未選択（全局画像を使用）</string>
+    <string name="user_persona_use_global">全局画像を使う</string>
+    <string name="user_persona_select">選択</string>
+    <string name="user_persona_new">新規ペルソナ</string>
+    <string name="user_persona_name">ペルソナ名</string>
+    <string name="user_persona_text">設定（この助手でのあなたの身份)</string>
+    <string name="favorites_select_mode">選択</string>
+    <string name="favorites_exit_select">選択を終了</string>
+    <string name="favorites_selected_count">%1$d 件選択</string>
+    <string name="favorites_select_all">すべて選択</string>
+    <string name="favorites_batch_unfavorite">お気に入り解除</string>
+    <string name="favorites_batch_group">グループ設定</string>
 </resources>

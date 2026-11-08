@@ -32,6 +32,7 @@
     <string name="about_oss_licenses">Licenças de código aberto</string>
     <string name="licenses_title">Licenças de código aberto</string>
     <string name="licenses_total_count">%1$d dependências no total</string>
+    <string name="licenses_app_statement">O Muse é publicado como código aberto sob GPL v3. As dependências de terceiros usam licenças permissivas (Apache 2.0 / MIT / BSD / EPL-1.0); seus avisos devem ser mantidos.</string>
 
     <!-- Common actions -->
     <string name="action_back">Voltar</string>

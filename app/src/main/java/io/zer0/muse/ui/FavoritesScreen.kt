@@ -91,6 +91,11 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
     // 用户“没法点开看完整原文”）。
     var fullTextTarget by remember { mutableStateOf<UIMessage?>(null) }
 
+    // 12: 文件管理器式多选 —— 选中一批后可批量取消收藏 / 批量设置分组。
+    var selectionMode by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf(setOf<kotlin.uuid.Uuid>()) }
+    var batchGroupTarget by remember { mutableStateOf(false) }
+
     // 当前 filter 下显示的收藏列表(本地过滤,不影响 state.favoriteMessages 全量)
     val visibleFavorites = remember(state.favoriteMessages, state.favoriteTagFilter) {
         when (state.favoriteTagFilter) {
@@ -104,7 +109,23 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.favorites_title, state.favoriteMessages.size),
-                onBack = onBack,
+                onBack = if (selectionMode) {
+                    { selectionMode = false; selectedIds = emptySet() }
+                } else {
+                    onBack
+                },
+                actions = {
+                    if (state.favoriteMessages.isNotEmpty()) {
+                        MuseTactileButton(
+                            icon = if (selectionMode) MuseIcons.x else MuseIcons.check,
+                            onClick = { selectionMode = !selectionMode; selectedIds = emptySet() },
+                            contentDescription = stringResource(
+                                if (selectionMode) R.string.favorites_exit_select else R.string.favorites_select_mode,
+                            ),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -127,72 +148,28 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
                     onFilterChange = { viewModel.setFavoriteTagFilter(it) },
                 )
             }
-            // v1.77: 首次加载时显示 loading,避免闪空状态
-            if (state.isFavoritesLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MuseSpinner()
-                }
-            } else if (state.favoritesError != null) {
-                // ST-01: 收藏列表加载失败错误态 + 重试
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MuseErrorStateBox(
-                        message = state.favoritesError.orEmpty(),
-                        onRetry = { viewModel.retryLoadFavorites() },
-                    )
-                }
-            } else if (state.favoriteMessages.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MuseEmptyState(
-                        icon = MuseIcons.star,
-                        title = stringResource(R.string.favorites_empty_title),
-                        subtitle = stringResource(R.string.favorites_empty_subtitle),
-                    )
-                }
-            } else if (visibleFavorites.isEmpty()) {
-                // v1.104 U7: 该分组下无收藏(区别于"完全没有收藏")
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MuseEmptyState(
-                        icon = MuseIcons.star,
-                        title = stringResource(R.string.favorites_empty_in_filter),
-                        subtitle = null,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        horizontal = 16.dp,
-                        vertical = 12.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(visibleFavorites, key = { it.id }) { msg ->
-                        Box(modifier = museAnimateItem()) {
-                            FavoriteCard(
-                                message = msg,
-                                dateFormat = dateFormat,
-                                isStaleVariant = msg.id in staleFavoriteIds,
-                                onUnfavorite = { viewModel.toggleFavorite(msg.id) },
-                                onLongClick = { tagEditTarget = msg },
-                                // v2.6.2: 点击看完整原文；分组入口是卡片内按钮
-                                onClick = { fullTextTarget = msg },
-                                onGroupClick = { tagEditTarget = msg },
-                            )
-                        }
-                    }
-                }
+            FavoritesListArea(
+                state = state,
+                viewModel = viewModel,
+                visibleFavorites = visibleFavorites,
+                dateFormat = dateFormat,
+                staleFavoriteIds = staleFavoriteIds,
+                selectionMode = selectionMode,
+                selectedIds = selectedIds,
+                onToggleSelect = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
+                onOpenFullText = { fullTextTarget = it },
+                onEditTag = { tagEditTarget = it },
+            )
+            if (selectionMode) {
+                FavoriteBatchBar(
+                    selectedCount = visibleFavorites.count { it.id in selectedIds },
+                    onSelectAll = { selectedIds = visibleFavorites.map { it.id }.toSet() },
+                    onBatchGroup = { batchGroupTarget = true },
+                    onBatchUnfavorite = {
+                        selectedIds.forEach { viewModel.toggleFavorite(it) }
+                        selectedIds = emptySet()
+                    },
+                )
             }
         }
     }
@@ -212,6 +189,20 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
     // v2.6.2（用户反馈）: 全屏原文预览 —— 点击收藏卡片打开，可滚动看完整内容。
     fullTextTarget?.let { msg ->
         FavoriteFullTextDialog(message = msg, dateFormat = dateFormat, onDismiss = { fullTextTarget = null })
+    }
+
+    // 12: 批量分组 —— 对选中的整批写同一个 tag（空输入=移到未分组），复用单条分组对话框。
+    if (batchGroupTarget) {
+        FavoriteTagEditDialog(
+            currentTag = null,
+            onConfirm = { newTag ->
+                selectedIds.forEach { viewModel.setMessageFavoriteTag(it, newTag) }
+                batchGroupTarget = false
+                selectedIds = emptySet()
+                selectionMode = false
+            },
+            onDismiss = { batchGroupTarget = false },
+        )
     }
 }
 
@@ -258,6 +249,97 @@ private fun favoriteTagLabel(tag: String): String = when (tag) {
     ChatViewModel.FAVORITE_GROUP_LEARNING -> stringResource(R.string.favorites_group_learning)
     ChatViewModel.FAVORITE_GROUP_CUSTOM -> stringResource(R.string.favorites_group_custom)
     else -> tag
+}
+
+/** 12: 收藏列表区（loading/error/empty/列表），从主函数抽出控制长度；多选态下点击改勾选。 */
+@Suppress("LongParameterList")
+@Composable
+private fun FavoritesListArea(
+    state: ChatUiState,
+    viewModel: ChatViewModel,
+    visibleFavorites: List<UIMessage>,
+    dateFormat: SimpleDateFormat,
+    staleFavoriteIds: Set<kotlin.uuid.Uuid>,
+    selectionMode: Boolean,
+    selectedIds: Set<kotlin.uuid.Uuid>,
+    onToggleSelect: (kotlin.uuid.Uuid) -> Unit,
+    onOpenFullText: (UIMessage) -> Unit,
+    onEditTag: (UIMessage) -> Unit,
+) {
+    if (state.isFavoritesLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { MuseSpinner() }
+    } else if (state.favoritesError != null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            MuseErrorStateBox(
+                message = state.favoritesError.orEmpty(),
+                onRetry = { viewModel.retryLoadFavorites() },
+            )
+        }
+    } else if (state.favoriteMessages.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            MuseEmptyState(
+                icon = MuseIcons.star,
+                title = stringResource(R.string.favorites_empty_title),
+                subtitle = stringResource(R.string.favorites_empty_subtitle),
+            )
+        }
+    } else if (visibleFavorites.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            MuseEmptyState(
+                icon = MuseIcons.star,
+                title = stringResource(R.string.favorites_empty_in_filter),
+                subtitle = null,
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(visibleFavorites, key = { it.id }) { msg ->
+                Box(modifier = museAnimateItem()) {
+                    FavoriteCard(
+                        message = msg,
+                        dateFormat = dateFormat,
+                        isStaleVariant = msg.id in staleFavoriteIds,
+                        onUnfavorite = {
+                            if (selectionMode) onToggleSelect(msg.id) else viewModel.toggleFavorite(msg.id)
+                        },
+                        onLongClick = { if (!selectionMode) onEditTag(msg) },
+                        onClick = { if (selectionMode) onToggleSelect(msg.id) else onOpenFullText(msg) },
+                        onGroupClick = { if (!selectionMode) onEditTag(msg) },
+                        selected = msg.id in selectedIds,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 12: 多选态批量操作栏。 */
+@Composable
+private fun FavoriteBatchBar(
+    selectedCount: Int,
+    onSelectAll: () -> Unit,
+    onBatchGroup: () -> Unit,
+    onBatchUnfavorite: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.favorites_selected_count, selectedCount),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.weight(1f))
+        MuseCapsuleButton(text = stringResource(R.string.favorites_select_all), onClick = onSelectAll)
+        MuseCapsuleButton(text = stringResource(R.string.favorites_batch_group), onClick = onBatchGroup)
+        MuseCapsuleButton(text = stringResource(R.string.favorites_batch_unfavorite), onClick = onBatchUnfavorite)
+    }
 }
 
 /**
@@ -361,8 +443,10 @@ private fun FavoriteCard(
     /** §11-4: 该收藏属于变体组里已被新版本取代的旧行。 */
     isStaleVariant: Boolean = false,
     onClick: () -> Unit = {},
-    /** v2.6.2: 分组入口（移到卡片内按钮，把点击让给“看原文”）。 */
+    /** v2.6.2: 分组入口（移到卡片内按钮，把点击让给”看原文”）。 */
     onGroupClick: () -> Unit = {},
+    /** 12: 是否选中 —— 选中态用主色描边区分；点击行为由父级按多选态决定。 */
+    selected: Boolean = false,
 ) {
     val roleLabel = when (message.role) {
         MessageRole.USER -> stringResource(R.string.favorites_role_user)
@@ -378,6 +462,9 @@ private fun FavoriteCard(
     MuseSurface(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MuseShapes.medium) else Modifier,
+            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,

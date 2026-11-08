@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="automation_settings_title">UI Automation</string>
+    <string name="automation_sub_access">Access &amp; permissions</string>
+    <string name="automation_sub_access_desc">Wizard, accessibility service and virtual-display handoff</string>
+    <string name="automation_sub_autonomous">Autonomous actions</string>
+    <string name="automation_sub_autonomous_desc">Time window, action allowlist and daily limit</string>
+    <string name="automation_sub_orchestration">Orchestration &amp; test</string>
+    <string name="automation_sub_orchestration_desc">Scheduled-task orchestration and screen-read self-test</string>
     <string name="automation_settings_subtitle">Screen reading and operation permissions</string>
     <string name="accessibility_service_description">Allows Muse to read the screen content of any app (including sensitive information shown by other apps, such as verification codes or chat messages) and simulate taps, swipes and other gestures to automate tasks across apps. Only enable if you trust this; Muse will not perform high-risk actions without your confirmation.</string>
     <string name="automation_permission_a11y">Muse UI Automation</string>

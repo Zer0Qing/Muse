@@ -16,6 +16,7 @@ package io.zer0.muse.tools
 class MediaGenToolsRegistrar(
     private val toolRegistry: ToolRegistry,
     private val impl: MediaGenToolsImpl,
+    private val voiceCloningService: io.zer0.muse.ui.speech.VoiceCloningService? = null,
 ) {
 
     init {
@@ -91,12 +92,41 @@ class MediaGenToolsRegistrar(
                 parameters = mapOf(
                     "text" to "必填,要念出来的纯文本(一段话,口语化,不要 Markdown / 代码块 / 链接)",
                     "emotion" to "可选,情绪语气,如 happy / sad / calm / excited;留空用设置里的默认情绪",
+                    "voice" to "可选,克隆音色 voiceId(先调 list_cloned_voices 查看);留空用用户配置的默认音色",
                 ),
                 required = setOf("text"),
                 riskLevel = ToolRiskLevel.NORMAL,
             ),
         ) { args, executionContext ->
             impl.execSendVoice(args, executionContext.messageId)
+        }
+
+        // 10: 让助手发现已克隆音色，配合 send_voice 的 voice 参数选用。
+        toolRegistry.register(
+            ToolRegistry.ToolDef(
+                name = "list_cloned_voices",
+                description = "列出用户已克隆的语音音色(名称 + voiceId + 服务商)。想用自己的/特定音色发语音时先查这里,再把 voiceId 填进 send_voice 的 voice 参数。",
+                parameters = emptyMap(),
+                required = emptySet(),
+                riskLevel = ToolRiskLevel.SAFE,
+            ),
+        ) {
+            val service = voiceCloningService
+            if (service == null) {
+                "当前没有可用的语音克隆服务。"
+            } else {
+                val lines = mutableListOf<String>()
+                for (provider in service.availableProviders()) {
+                    service.listClonedVoices(provider).getOrNull().orEmpty().forEach { v ->
+                        lines += "- ${v.name}（voiceId=${v.voiceId}, provider=$provider）"
+                    }
+                }
+                if (lines.isEmpty()) {
+                    "还没有克隆音色。用户可在 设置→媒体→语音克隆 里创建。"
+                } else {
+                    "已克隆音色：" + lines.joinToString(separator = "\n")
+                }
+            }
         }
     }
 }

@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="automation_settings_title">UI 자동화</string>
+    <string name="automation_sub_access">권한 및 연결</string>
+    <string name="automation_sub_access_desc">마법사, 접근성 서비스, 가상 화면 인계</string>
+    <string name="automation_sub_autonomous">자율 동작</string>
+    <string name="automation_sub_autonomous_desc">시간대, 동작 허용 목록, 일일 한도</string>
+    <string name="automation_sub_orchestration">편성 및 테스트</string>
+    <string name="automation_sub_orchestration_desc">예약 작업 편성 및 화면 읽기 자가 테스트</string>
     <string name="automation_settings_subtitle">화면 읽기 및 조작 권한</string>
     <string name="accessibility_service_description">Muse가 화면 내용을 읽고 탭, 스와이프 등 동작을 시뮬레이션하여 앱 간 작업을 자동화할 수 있게 합니다. Muse는 사용자의 확인 없이 작업을 수행하지 않습니다.</string>
     <string name="automation_permission_a11y">Muse UI 자동화</string>

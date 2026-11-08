@@ -88,11 +88,6 @@ internal fun AutonomousAccessibilitySettingsCard(
         )
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = MuseIcons.shieldCheck,
-            title = stringResource(R.string.automation_autonomous_input_locked),
-        )
-        SettingsGroupDivider()
-        SettingsItemRow(
             icon = MuseIcons.timer,
             title = stringResource(R.string.automation_autonomous_daily_limit),
             subtitle = stringResource(R.string.automation_autonomous_daily_limit_desc),
@@ -286,6 +281,7 @@ private fun AutonomousActionRows(
         Spec(AutomationAction.READ_SCREEN, R.string.automation_autonomous_read, MuseIcons.bookOpen),
         Spec(AutomationAction.CLICK, R.string.automation_autonomous_click, MuseIcons.play),
         Spec(AutomationAction.SCROLL, R.string.automation_autonomous_scroll, MuseIcons.arrowUp),
+        Spec(AutomationAction.INPUT, R.string.automation_autonomous_input, MuseIcons.edit),
     )
     specs.forEachIndexed { index, spec ->
         if (index > 0) SettingsGroupDivider()

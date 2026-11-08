@@ -373,6 +373,12 @@
     <string name="chat_list_section_recent">Недавний</string>
     <string name="chat_list_section_pinned">Закреплено</string>
     <string name="chat_list_section_folders">Папки</string>
+    <string name="folder_detail_new_here">Новый чат здесь</string>
+    <string name="folder_detail_add_existing">Добавить существующие чаты</string>
+    <string name="folder_detail_add_empty">Нет чатов для добавления</string>
+    <string name="folder_detail_empty_title">Папка пуста</string>
+    <string name="folder_detail_empty_sub">Создайте чат или добавьте существующие через «Добавить существующие чаты»</string>
+    <string name="folder_detail_remove">Убрать из папки</string>
     <string name="chat_list_section_knowledge">Материалы</string>
     <!-- v2.x: recall bar + partners row -->
     <string name="chat_list_recall_format">Последний чат с %1$s: «%2$s»</string>
@@ -400,6 +406,7 @@
     <string name="chat_list_move_ungrouped">Перейти в раздел «Разгруппировать»</string>
     <string name="chat_list_move_to">Перейти к: %1$s</string>
     <string name="chat_list_rename">Переименовать</string>
+    <string name="chat_list_copy_session_id">Копировать ID сессии</string>
     <string name="chat_list_unarchive">Разархивировать</string>
 
     <!-- Session rename/delete dialogs -->

@@ -276,6 +276,12 @@
     <string name="chat_list_section_recent">最近の</string>
     <string name="chat_list_section_pinned">固定された</string>
     <string name="chat_list_section_folders">フォルダー</string>
+    <string name="folder_detail_new_here">ここで新規チャット</string>
+    <string name="folder_detail_add_existing">既存のチャットを追加</string>
+    <string name="folder_detail_add_empty">追加できるチャットがありません</string>
+    <string name="folder_detail_empty_title">このフォルダーは空です</string>
+    <string name="folder_detail_empty_sub">チャットを作成、または「既存のチャットを追加」で取り込み</string>
+    <string name="folder_detail_remove">フォルダーから移出</string>
     <string name="chat_list_section_knowledge">資料</string>
     <!-- v2.x: recall bar + partners row -->
     <string name="chat_list_recall_format">前回 %1$s と「%2$s」</string>
@@ -303,6 +309,7 @@
     <string name="chat_list_move_ungrouped">グループ化されていない状態に移動</string>
     <string name="chat_list_move_to">移動先: %1$s</string>
     <string name="chat_list_rename">名前の変更</string>
+    <string name="chat_list_copy_session_id">セッション ID をコピー</string>
     <string name="chat_list_unarchive">アーカイブを解除する</string>
 
     <!-- Session rename/delete dialogs -->

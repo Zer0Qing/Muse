@@ -832,6 +832,7 @@ class ToolRegistry(
                 "generate_image", "generate_video", "generate_qr_code",
                 // v2.x: 助手发语音消息(MediaGenToolsRegistrar 注册,与生图同一条媒体投递链路)
                 "send_voice",
+                "list_cloned_voices",
                 // v1.95: 表情包库工具(SkillExecutor 实现,此处登记便于统一识别)
                 "list_stickers", "send_sticker",
                 // 补充内置工具

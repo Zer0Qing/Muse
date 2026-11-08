@@ -1,11 +1,16 @@
 package io.zer0.muse.ui.artifact
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -17,25 +22,37 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
+import io.zer0.muse.ui.HtmlPreviewScreen
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.markdown.CodeHighlighter
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.util.ShareIntentHelper
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -124,39 +141,63 @@ internal fun artifactExportMime(type: String): String = when (type.lowercase()) 
 }
 
 /**
- * 产物查看器弹窗 —— 显示标题、完整内容与复制按钮。
- *
- * Phase 2 补齐: 标题行增加「分享」「另存为文本」动作,
- * 分享复用 [ShareIntentHelper],另存走 SAF CreateDocument(app 已有保存模式)。
+ * 37：data-URI 图片解码出真实字节；非 data-URI（URL/本地路径）返回 null，交给 Coil 直接加载。
+ * 纯函数，便于钉住「不要把图片地址本身当成图渲染」。
+ */
+internal fun artifactImageBytes(content: String): ByteArray? {
+    val trimmed = content.trim()
+    if (!trimmed.startsWith("data:") || !trimmed.contains("base64,")) return null
+    val payload = trimmed.substringAfter("base64,")
+    return runCatching { java.util.Base64.getMimeDecoder().decode(payload) }.getOrNull()
+}
+
+/**
+ * 37：外部打开产物。URL 直接 ACTION_VIEW；其余（html/svg/代码/文本）落到 cache 文件经
+ * FileProvider 授权后按 MIME 打开，让产物「能拿去别的 App 用」，而不是困在预览框里。
+ */
+internal fun openArtifactExternal(context: Context, artifact: ArtifactEntity) {
+    runCatching {
+        val content = artifact.content.trim()
+        val intent = if (content.startsWith("http://") || content.startsWith("https://")) {
+            Intent(Intent.ACTION_VIEW, Uri.parse(content))
+        } else {
+            val ext = artifactExportExtension(artifact.type, artifact.language)
+            val dir = File(context.cacheDir, "artifact_open").apply { mkdirs() }
+            val file = File(dir, artifactExportFileName(artifact.title, ext))
+            file.writeText(artifact.content, Charsets.UTF_8)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, artifactExportMime(artifact.type))
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }.onFailure { e ->
+        Logger.w("ArtifactViewer", "外部打开失败: ${e.message ?: e.javaClass.simpleName}", e)
+        MuseToast.show(context.getString(R.string.artifact_open_failed))
+    }
+}
+
+/**
+ * 37：产物查看器 —— 按类型给真正的查看形态 + 一组实在的动作（复制/保存/分享/外部打开，
+ * 网页另给源码切换与全屏，图片另给全屏）。取代「展开后只有一个什么都干不了的预览框」。
  */
 @Composable
 fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val isMonospace = when (artifact.type.lowercase()) {
-        "code" -> true
-        else -> false
-    }
-    // v2.0.1: 富内容判定同时看 type 与 language（抽取器常把 HTML 归为 type=code + language=html，
-    // 旧判定只认 type，导致「HTML 产物点开只有一串代码」，用户反馈修复）。
-    val richLanguage = richPreviewLanguage(artifact.type, artifact.language)
-    val isRichContent = richLanguage != null
-    // v2.6.10: markdown / document / table / json 走 Markdown 渲染。
-    // 这些类型的正文本身是 Markdown 语法（表格、列表、代码块），
-    // 之前一律塞进 Text，用户点开产物看到的是原始竖线与星号。
-    val isMarkdownContent =
-        !isRichContent &&
-            artifact.type.lowercase() in setOf("markdown", "document", "table", "json", "csv")
+    val mode = remember(artifact.type, artifact.language) { artifactRenderMode(artifact.type, artifact.language) }
+    val actions = remember(mode) { artifactActions(mode) }
+    var showSource by remember { mutableStateOf(false) }
+    var fullscreen by remember { mutableStateOf(false) }
     val exportExtension =
         remember(artifact.type, artifact.language) { artifactExportExtension(artifact.type, artifact.language) }
     val exportMime = remember(artifact.type) { artifactExportMime(artifact.type) }
     val exportFileName =
         remember(artifact.title, exportExtension) { artifactExportFileName(artifact.title, exportExtension) }
 
-    // 另存为文本:SAF 选择目标位置后写入(与通知导出/备份导出同一模式)
-    // v2.6.10: 按产物类型给 MIME，表格/Markdown 存成 .md、JSON 存成 .json,
-    // 不再一律 text/plain —— 那样存出来的表格没有任何编辑器会当表格解析。
-    val saveTextLauncher = rememberLauncherForActivityResult(
+    val saveLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument(exportMime),
     ) { uri ->
         if (uri != null) {
@@ -167,24 +208,43 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                             output.write(artifact.content.toByteArray(Charsets.UTF_8))
                         } != null
                     }
-                        // 界面会 toast「保存失败」，但**原因只有日志知道**：
-                        // 权限被收回、目标卷已满、SAF 拒写是三种完全不同的修法。
                         .onFailure { e ->
-                            Logger.w(
-                                "ArtifactViewer",
-                                "导出产物失败 uri=$uri | 原因: ${e.message ?: e.javaClass.simpleName}",
-                                e,
-                            )
+                            Logger.w("ArtifactViewer", "导出产物失败 uri=$uri | 原因: ${e.message ?: e.javaClass.simpleName}", e)
                         }
                         .getOrDefault(false)
                 }
-                MuseToast.show(
-                    context.getString(
-                        if (saved) R.string.artifact_saved else R.string.artifact_save_failed,
-                    ),
+                MuseToast.show(context.getString(if (saved) R.string.artifact_saved else R.string.artifact_save_failed))
+            }
+        }
+    }
+
+    // 全屏：网页走浏览器形态，图片走纯图查看。
+    if (fullscreen) {
+        Dialog(
+            onDismissRequest = { fullscreen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) {
+            if (mode == ArtifactRenderMode.Image) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = artifact.content.trim(),
+                        contentDescription = artifact.title,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            } else {
+                HtmlPreviewScreen(
+                    html = artifact.content,
+                    title = artifact.title.ifBlank { null },
+                    onBack = { fullscreen = false },
                 )
             }
         }
+        return
     }
 
     MuseDialog(
@@ -195,7 +255,6 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // 标题行
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -215,40 +274,6 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    // Phase 2: 分享产物文本
-                    MuseTactileButton(
-                        icon = MuseIcons.share,
-                        onClick = {
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(
-                                    Intent.EXTRA_SUBJECT,
-                                    artifact.title.ifBlank {
-                                        context.getString(R.string.artifact_untitled)
-                                    },
-                                )
-                                putExtra(Intent.EXTRA_TEXT, artifact.content)
-                            }
-                            ShareIntentHelper.startChooserSafely(
-                                context = context,
-                                shareIntent = shareIntent,
-                                chooserTitle = context.getString(R.string.artifact_share_chooser),
-                            )
-                        },
-                        contentDescription = stringResource(R.string.action_share),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = 20.dp,
-                    )
-                    // Phase 2: 另存为文本文件
-                    MuseTactileButton(
-                        icon = MuseIcons.deviceFloppy,
-                        onClick = { saveTextLauncher.launch(exportFileName) },
-                        contentDescription = stringResource(R.string.artifact_save_text),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = 20.dp,
-                    )
                     MuseTactileButton(
                         icon = MuseIcons.x,
                         onClick = onDismiss,
@@ -257,69 +282,150 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                         iconSize = 20.dp,
                     )
                 }
-                // 内容区
                 Surface(
-                    color = if (isMonospace) {
+                    color = if (mode == ArtifactRenderMode.Code) {
                         MaterialTheme.colorScheme.surfaceVariant
                     } else {
                         MaterialTheme.colorScheme.surface
                     },
                     shape = MuseShapes.small,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 320.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
                 ) {
-                    if (isRichContent) {
-                        // v1.62: svg/html/chart/mermaid 用 RichContentCard 渲染
-                        // 弹窗内无 navController,禁用全屏预览按钮(避免无效点击)
-                        io.zer0.muse.ui.markdown.RichContentCard(
-                            language = richLanguage ?: artifact.type.lowercase(),
-                            content = artifact.content,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(4.dp),
-                            showPreviewButton = false,
-                        )
-                    } else if (isMarkdownContent) {
-                        // Markdown 正文：交给项目里已有的 MarkdownText，
-                        // 它支持 GFM 表格 / 列表 / 代码块，表格不再退化成竖线文本。
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                        ) {
-                            io.zer0.muse.ui.markdown.MarkdownText(
-                                text = artifact.content,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    } else {
-                        // 长文本产物：内容区自身滚动（Surface 限高 320dp），
-                        // 避免超长内容被 Surface 裁剪后外层滚动只能移动整个面板、裁掉部分永远不可见。
-                        Text(
-                            text = artifact.content,
-                            style = if (isMonospace) {
-                                MaterialTheme.typography.bodyMedium.copy(
-                                    fontFamily = MuseMonoFontFamily,
-                                )
-                            } else {
-                                MaterialTheme.typography.bodyMedium
-                            },
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 320.dp)
-                                .verticalScroll(rememberScrollState())
-                                .padding(12.dp),
-                        )
-                    }
+                    ArtifactContent(artifact = artifact, mode = mode, showSource = showSource)
                 }
+                ArtifactActionBar(
+                    actions = actions,
+                    showSource = showSource,
+                    onAction = { action ->
+                        when (action) {
+                            ArtifactAction.Copy -> onCopy(artifact.content)
+                            ArtifactAction.Save -> saveLauncher.launch(exportFileName)
+                            ArtifactAction.Share -> shareArtifact(context, artifact)
+                            ArtifactAction.OpenExternal -> openArtifactExternal(context, artifact)
+                            ArtifactAction.ToggleSource -> showSource = !showSource
+                            ArtifactAction.Fullscreen -> fullscreen = true
+                        }
+                    },
+                )
             }
         },
         confirmText = stringResource(R.string.artifact_copy),
-        // L6 已知限制: 复制未标注敏感(artifact 内容可能含敏感信息),暂不区分;后续可结合内容检测判断。
         onConfirm = { onCopy(artifact.content) },
         dismissText = null,
+    )
+}
+
+/** 按渲染形态给出内容区。图片用 Coil 真渲染，不再退化成原始文本。 */
+@Composable
+private fun ArtifactContent(artifact: ArtifactEntity, mode: ArtifactRenderMode, showSource: Boolean) {
+    when (mode) {
+        ArtifactRenderMode.Image -> {
+            val model = remember(artifact.content) {
+                artifactImageBytes(artifact.content)?.let { java.nio.ByteBuffer.wrap(it) } ?: artifact.content.trim()
+            }
+            AsyncImage(
+                model = model,
+                contentDescription = artifact.title,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp).padding(4.dp),
+            )
+        }
+        ArtifactRenderMode.RichWeb -> {
+            if (showSource) {
+                ScrollableMonoText(artifact.content)
+            } else {
+                io.zer0.muse.ui.markdown.RichContentCard(
+                    language = richPreviewLanguage(artifact.type, artifact.language) ?: artifact.type.lowercase(),
+                    content = artifact.content,
+                    modifier = Modifier.fillMaxWidth().padding(4.dp),
+                    showPreviewButton = false,
+                )
+            }
+        }
+        ArtifactRenderMode.Markdown -> {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
+            ) {
+                io.zer0.muse.ui.markdown.MarkdownText(text = artifact.content, modifier = Modifier.fillMaxWidth())
+            }
+        }
+        ArtifactRenderMode.Code -> {
+            val highlighted = CodeHighlighter.highlight(artifact.content, artifact.language)
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp),
+            ) {
+                Text(
+                    text = highlighted,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = MuseMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        ArtifactRenderMode.PlainText -> ScrollableMonoText(artifact.content, mono = false)
+    }
+}
+
+@Composable
+private fun ScrollableMonoText(text: String, mono: Boolean = true) {
+    Text(
+        text = text,
+        style = if (mono) {
+            MaterialTheme.typography.bodyMedium.copy(fontFamily = MuseMonoFontFamily)
+        } else {
+            MaterialTheme.typography.bodyMedium
+        },
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp).verticalScroll(rememberScrollState()).padding(12.dp),
+    )
+}
+
+/** 统一动作条：按可用动作渲染，固定顺序，杜绝「展开后什么都干不了」。 */
+@Composable
+private fun ArtifactActionBar(actions: Set<ArtifactAction>, showSource: Boolean, onAction: (ArtifactAction) -> Unit) {
+    // 复制由弹窗的主按钮承担，动作条不再重复一颗复制。
+    val ordered = listOf(
+        ArtifactAction.Save,
+        ArtifactAction.Share,
+        ArtifactAction.OpenExternal,
+        ArtifactAction.ToggleSource,
+        ArtifactAction.Fullscreen,
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ordered.filter { it in actions }.forEach { action ->
+            val (icon, descRes) = when (action) {
+                ArtifactAction.Copy -> MuseIcons.copy to R.string.artifact_copy
+                ArtifactAction.Save -> MuseIcons.deviceFloppy to R.string.artifact_save_text
+                ArtifactAction.Share -> MuseIcons.share to R.string.action_share
+                ArtifactAction.OpenExternal -> MuseIcons.externalLink to R.string.artifact_open_external
+                ArtifactAction.ToggleSource -> MuseIcons.code to
+                    (if (showSource) R.string.artifact_view_rendered else R.string.artifact_view_source)
+                ArtifactAction.Fullscreen -> MuseIcons.maximize to R.string.artifact_fullscreen
+            }
+            MuseTactileButton(
+                icon = icon,
+                onClick = { onAction(action) },
+                contentDescription = stringResource(descRes),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = MuseIconSizes.touchTarget,
+                iconSize = 20.dp,
+            )
+        }
+    }
+}
+
+private fun shareArtifact(context: Context, artifact: ArtifactEntity) {
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, artifact.title.ifBlank { context.getString(R.string.artifact_untitled) })
+        putExtra(Intent.EXTRA_TEXT, artifact.content)
+    }
+    ShareIntentHelper.startChooserSafely(
+        context = context,
+        shareIntent = shareIntent,
+        chooserTitle = context.getString(R.string.artifact_share_chooser),
     )
 }

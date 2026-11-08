@@ -32,6 +32,7 @@
     <string name="about_oss_licenses">오픈 소스 라이선스</string>
     <string name="licenses_title">오픈 소스 라이선스</string>
     <string name="licenses_total_count">%1$d 전체 종속성</string>
+    <string name="licenses_app_statement">Muse는 GPL v3 오픈소스로 배포됩니다. 서드파티 의존성은 모두 허용적 라이선스(Apache 2.0 / MIT / BSD / EPL-1.0)이며 해당 고지를 유지해야 합니다.</string>
 
     <!-- Common actions -->
     <string name="action_back">뒤쪽에</string>

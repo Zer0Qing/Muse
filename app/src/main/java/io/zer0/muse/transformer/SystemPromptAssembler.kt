@@ -17,6 +17,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantMemoryAccessPolicy
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.data.assistant.UserPersonaStore
 import io.zer0.muse.data.assistant.VoiceReplyFrequency
 import io.zer0.muse.data.assistant.VoiceReplyPolicy
 import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
@@ -206,6 +207,11 @@ class SystemPromptAssembler(
      * 与 function schema 下发同源。为 null 时不排除（测试环境或未注入时降级）。
      */
     private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
+    /**
+     * 35: 每助手「用户面具」库 — 命中时在全局画像之前注入该面具，
+     * 让同一用户在不同助手下扮演不同身份。为 null 时不注入（测试/未接时降级）。
+     */
+    private val userPersonaStore: UserPersonaStore? = null,
 ) {
     /**
      * 组装系统提示包。
@@ -438,7 +444,7 @@ class SystemPromptAssembler(
             }
             val profile =
                 if (!skipMemorySections && memoryEnabled && canReadGlobalMemory) {
-                    buildUserProfileSection(chatPrefs?.profileSnapshotEnabled ?: true)
+                    buildUserProfileSection(chatPrefs?.profileSnapshotEnabled ?: true, assistant?.id)
                 } else {
                     ""
                 }
@@ -919,12 +925,22 @@ class SystemPromptAssembler(
      * v2.6.23(M3): 追加**自动画像快照**(从事实账本按规则提炼,手填字段永远优先)。
      * 快照是"参考",不是指令:段落标题标明来源,末尾声明与当前对话冲突时以对话为准。
      */
-    private suspend fun buildUserProfileSection(profileSnapshotEnabled: Boolean): String {
+    private suspend fun buildUserProfileSection(profileSnapshotEnabled: Boolean, assistantId: String? = null): String {
+        // 35: 每助手面具优先于全局画像 —— 命中时先注入面具，再叠加全局画像作背景。
+        val personaPrefix = if (assistantId != null && userPersonaStore != null) {
+            resultOf { userPersonaStore.selectedFor(assistantId) }
+                .getOrNull()
+                ?.takeIf { it.text.isNotBlank() }
+                ?.let { "用户当前面具（本助手专用，优先于下方全局画像）: ${it.name}\n${it.text}" }
+                .orEmpty()
+        } else {
+            ""
+        }
         // H-ASM1: settings.getUserProfile() 为 suspend,用 resultOf 正确重抛 CancellationException
         val profile =
             resultOf { settings.getUserProfile() }
                 .onError { _, t -> Logger.w(TAG, "getUserProfile 失败", t) }
-                .getOrNull() ?: return buildProfileSnapshotText(profileSnapshotEnabled)
+                .getOrNull() ?: return prependPersona(personaPrefix, buildProfileSnapshotText(profileSnapshotEnabled))
         val parts = mutableListOf<String>()
         // v1.76: 称呼信息优先注入(最高优先级,影响 AI 自称与对用户的称呼)
         profile.userNickName?.takeIf { it.isNotBlank() }?.let { parts.add("用户称呼: 请称呼用户为「$it」") }
@@ -951,10 +967,14 @@ class SystemPromptAssembler(
         profile.preferredLanguage?.takeIf { it.isNotBlank() }?.let { parts.add("偏好回复语言: $it") }
         profile.avoidTopics?.takeIf { it.isNotBlank() }?.let { parts.add("忌讳话题: $it(请主动避开这些话题,如必须提及需谨慎处理)") }
         val snapshot = buildProfileSnapshotText(profileSnapshotEnabled)
-        if (parts.isEmpty()) return snapshot
+        if (parts.isEmpty()) return prependPersona(personaPrefix, snapshot)
         val manual = "用户画像\n${parts.joinToString("\n") { "- $it" }}"
-        return if (snapshot.isEmpty()) manual else "$manual\n$snapshot"
+        return prependPersona(personaPrefix, if (snapshot.isEmpty()) manual else "$manual\n$snapshot")
     }
+
+    /** 35: 面具段非空时置于最前，与全局画像/快照用空行分隔；空则原样返回。 */
+    private fun prependPersona(prefix: String, rest: String): String =
+        if (prefix.isEmpty()) rest else if (rest.isEmpty()) prefix else "$prefix\n\n$rest"
 
     /**
      * v2.6.23(M3): 自动画像快照段。TTL 内只做读表 + 指纹短路,不重算、不调 LLM。
@@ -1733,13 +1753,19 @@ class SystemPromptAssembler(
     }
 
     /**
-     * 7. Workspace 路径 — 告诉 LLM 应用沙盒根目录。
+     * 7. 文件沙盒根目录 + 用户工作区入口。
      *
      * L-ASM6: 暴露沙盒根路径供文件工具使用,文件工具内部再做沙盒校验(深度防御)。
+     * 用户工作区可被改到公共目录(如 Download/Muse)或 SAF 挂载，其真实位置只有
+     * workspace_mounts 知道；把绝对路径抄进提示词会在用户搬移工作区后立刻过期，
+     * 所以这里只说明它存在、并指向运行时查询入口。
      */
     private fun buildWorkspaceSection(): String {
         val path = context.filesDir.absolutePath
-        return "Workspace 路径(应用沙盒根目录,供文件工具 read_file/write_file 等使用):\n$path"
+        return "文件工具沙盒根目录(read_file/write_file 等相对此路径):\n$path\n" +
+            "用户工作区另有其位置(可能被用户移到公共目录或外部挂载)，" +
+            "用 workspace_mounts 查真实挂载与路径，再用 workspace_list/workspace_read 按工作区相对路径访问；" +
+            "不要拿上面的沙盒路径去猜用户工作区在哪。"
     }
 
     // ── 静态 section(决策树 + MOOD 格式) ──────────────────────────────

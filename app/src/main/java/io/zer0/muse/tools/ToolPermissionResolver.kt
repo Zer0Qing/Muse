@@ -377,6 +377,7 @@ object ToolPermissionResolver {
         // v2.x: 发语音消息 —— 名字是 send_ 前缀(否则会被推成 HIGH),实际只是本地 TTS 合成
         // 然后挂到自己消息上:不外发、不写用户目录。给 HIGH 会让每次发语音都弹审批卡。
         "send_voice" to ToolRiskLevel.NORMAL,
+        "list_cloned_voices" to ToolRiskLevel.SAFE,
 
         // HIGH 族显式(不可逆/跨设备/隐私)
         "install_skill" to ToolRiskLevel.HIGH,

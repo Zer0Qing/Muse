@@ -336,7 +336,7 @@ object ToolExposurePolicy {
                     "语音", "发语音", "念一下", "语音消息",
                     "image", "video", "qr code", "voice",
                 ),
-                toolNames = setOf("generate_image", "generate_video", "generate_qr_code", "speak_text", "send_voice"),
+                toolNames = setOf("generate_image", "generate_video", "generate_qr_code", "speak_text", "send_voice", "list_cloned_voices"),
             ),
             ToolFamily(
                 keywords = setOf("子代理", "群聊", "渠道", "表情包", "subagent", "channel"),

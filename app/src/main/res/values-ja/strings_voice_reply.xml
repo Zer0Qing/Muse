@@ -9,4 +9,8 @@
     <string name="voice_reply_always">毎回</string>
     <string name="voice_timbre_entry">声の音色と速度</string>
     <string name="voice_timbre_entry_desc">「設定 → マルチメディア」で一元設定。ここでは重複して持ちません</string>
+    <string name="voice_reply_follow_global">デフォルトに従う</string>
+    <string name="voice_reply_global_default_fmt">全体デフォルト：%1$s</string>
+    <string name="voice_reply_global_section">音声返信の頻度（全体デフォルト）</string>
+    <string name="voice_reply_global_hint">すべてのアシスタントは既定でこの段階に従います。アシスタント規約ページで個別に上書きできます。</string>
 </resources>

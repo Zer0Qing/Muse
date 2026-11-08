@@ -3,9 +3,9 @@
 <resources>
     <string name="settings_screen_agent_directives">O que fazer e o que não fazer</string>
     <string name="settings_screen_agent_directives_desc">Regras de longo prazo que ele segue em conversas normais e proativas</string>
-    <string name="agent_directives_hint">São requisitos seus explícitos e vêm antes do tom geral. Em conflito, vale a lista de “nunca”.</string>
-    <string name="agent_directives_forbidden_section">Nunca faça</string>
-    <string name="agent_directives_desired_section">Por favor, faça</string>
+    <string name="agent_directives_hint">Seus requisitos específicos aqui têm prioridade sobre as configurações gerais de tom; em conflito, "Nunca fazer" prevalece.</string>
+    <string name="agent_directives_forbidden_section">Nunca fazer</string>
+    <string name="agent_directives_desired_section">Preferir fazer</string>
     <string name="agent_directives_empty">Nada ainda. Exemplo: não me chame de amor</string>
     <string name="agent_directives_empty_desired">Nada ainda. Exemplo: reconheça o esforço que eu faço</string>
     <string name="agent_directives_add_forbidden">Adicionar um “nunca”</string>

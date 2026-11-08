@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -149,6 +150,8 @@ fun WorkspaceScreen(
     // 挂载表与挂载管理弹窗
     var mounts by remember { mutableStateOf<List<WorkspaceMount>>(emptyList()) }
     var mountSheetOpen by remember { mutableStateOf(false) }
+    // 移除挂载的确认目标：移除只删授权登记，但用户容易与"删除文件"混淆，先讲清原件保留。
+    var removeMountTarget by remember { mutableStateOf<WorkspaceMount?>(null) }
 
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
 
@@ -307,7 +310,33 @@ fun WorkspaceScreen(
         currentPath.endsWith(":/") || currentPath.endsWith(":") ->
             currentMount?.let { mountDisplayName(it, mainMountLabel, toolOutputsMountLabel) }
                 ?: stringResource(R.string.workspace_title)
-        else -> currentPath.substringAfterLast('/')
+        else -> currentPath.substringAfterLast('/').let { raw ->
+            workspaceDirectoryLabelRes(raw)?.let { stringResource(it) } ?: raw
+        }
+    }
+
+    // 手势/系统返回必须在模块内逐层退栈：文档预览 → 文本查看 → 媒体弹窗 → 长按菜单 →
+    // 挂载表 → 上级目录。缺这层时 NavHost 直接 pop 整个工作区路由，用户在二/三层一划就回首页。
+    // 删除确认/重命名/新建走 MuseDialog，Dialog 窗口自己消费返回，不在这里重复处理。
+    BackHandler(
+        enabled = docPreviewEntry != null || viewingEntry != null || mediaEntry != null ||
+            menuEntry != null || mountSheetOpen || currentPath.isNotEmpty(),
+    ) {
+        when {
+            docPreviewEntry != null -> docPreviewEntry = null
+            viewingEntry != null -> {
+                viewingEntry = null
+                viewingContent = null
+            }
+            mediaEntry != null -> {
+                mediaEntry = null
+                mediaInfo = null
+                mediaShareUri = null
+            }
+            menuEntry != null -> menuEntry = null
+            mountSheetOpen -> mountSheetOpen = false
+            else -> currentPath = parentPath(currentPath)
+        }
     }
 
     io.zer0.muse.ui.common.surface.MusePageScaffold(
@@ -529,6 +558,21 @@ fun WorkspaceScreen(
                         }
                     }
                     viewingContent != null -> {
+                        // 03: 弹窗里的 Text 拿不到系统长按选择菜单，长内容不给明确入口用户就复制不走。
+                        // 滚动由 MuseDialog 外层容器负责（这里不能再裸套同向滚动）。
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            MuseTactileButton(
+                                icon = MuseIcons.copy,
+                                onClick = {
+                                    copyToClipboard(context, viewingContent ?: "")
+                                    MuseToast.show(context.getString(R.string.quick_notes_copied))
+                                },
+                                contentDescription = stringResource(R.string.action_copy),
+                            )
+                        }
                         // 长文件内容靠 MuseDialog 外层 verticalScroll 滚动展示
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -668,6 +712,43 @@ fun WorkspaceScreen(
     }
 
     // 删除确认弹窗
+    removeMountTarget?.let { mount ->
+        MuseDialog(
+            onDismissRequest = { removeMountTarget = null },
+            title = stringResource(R.string.workspace_mount_remove),
+            content = {
+                Text(
+                    // 移除挂载只删授权登记，不动磁盘原件。文案必须讲清这一点，否则用户
+                    // 会把它与"删除文件"混为一谈而不敢操作，或误以为原目录已被清掉。
+                    text = stringResource(R.string.workspace_mount_remove_confirm, mount.label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.workspace_mount_remove),
+            onConfirm = {
+                val target = mount
+                removeMountTarget = null
+                scope.launch {
+                    // removeMount 返回"是否真删掉一条"：失败时下面的 mounts() 刷新会把原条目
+                    // 重新画出来，用户按下移除却什么都没变，所以失败必须给一句话。
+                    val removed = workspaceManager.removeMount(target.id)
+                    mounts = workspaceManager.mounts()
+                    if (currentMountId == target.id) currentPath = ""
+                    if (!removed) {
+                        Logger.w(
+                            "WorkspaceScreen",
+                            "移除挂载失败 id=${target.id} label=${target.label}（列表未变）",
+                        )
+                        MuseToast.show(
+                            context.getString(R.string.workspace_mount_remove_failed, target.label),
+                        )
+                    }
+                }
+            },
+        )
+    }
+
     deleteEntry?.let { entry ->
         MuseDialog(
             onDismissRequest = { deleteEntry = null },
@@ -801,28 +882,7 @@ fun WorkspaceScreen(
                             }
                             if (!mount.system) {
                                 androidx.compose.material3.TextButton(
-                                    onClick = {
-                                        scope.launch {
-                                            // removeMount 会返回"是否真删掉一条"：以前直接丢掉返回值，
-                                            // 失败时下面的 mounts() 刷新会把原条目重新画出来 ——
-                                            // 用户按下"移除"却什么都没变，也没有任何一句话。
-                                            val removed = workspaceManager.removeMount(mount.id)
-                                            mounts = workspaceManager.mounts()
-                                            if (currentMountId == mount.id) currentPath = ""
-                                            if (!removed) {
-                                                Logger.w(
-                                                    "WorkspaceScreen",
-                                                    "移除挂载失败 id=${mount.id} label=${mount.label}（列表未变）",
-                                                )
-                                                MuseToast.show(
-                                                    context.getString(
-                                                        R.string.workspace_mount_remove_failed,
-                                                        mount.label,
-                                                    ),
-                                                )
-                                            }
-                                        }
-                                    },
+                                    onClick = { removeMountTarget = mount },
                                 ) {
                                     Text(stringResource(R.string.workspace_mount_remove))
                                 }
@@ -1086,7 +1146,8 @@ private fun WorkspaceEntryRow(
             Spacer(Modifier.size(MusePaddings.contentGap))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = entry.name,
+                    text = (if (entry.isDirectory) workspaceDirectoryLabelRes(entry.name)?.let { stringResource(it) } else null)
+                        ?: entry.name,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                     ),
@@ -1213,6 +1274,20 @@ private fun QuickSwitchChip(icon: androidx.compose.ui.graphics.vector.ImageVecto
  * 字节数格式化为人类可读字符串(B/KB/MB)。
  */
 private fun formatSize(bytes: Long): String = FileSizeFormatter.format(bytes)
+
+/**
+ * 内置目录的展示名跟着界面语言走（02①）。
+ *
+ * 条目行、下钻选择器、顶栏标题共用这一份映射，避免同一个目录在三个地方三种叫法。
+ * 未知目录返回 null 保持原名——不猜用户自己建的目录该叫什么。
+ */
+internal fun workspaceDirectoryLabelRes(name: String): Int? = when (name.lowercase()) {
+    "tool_outputs" -> R.string.workspace_tool_outputs
+    "attachments" -> R.string.workspace_attachments
+    "download", "downloads" -> R.string.workspace_download
+    "resume" -> R.string.workspace_resume
+    else -> null
+}
 
 /**
  * 内置挂载的展示名跟着界面语言走。

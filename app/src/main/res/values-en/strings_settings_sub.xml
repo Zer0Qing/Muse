@@ -720,6 +720,10 @@
     <string name="keep_alive_notification_title">Muse is running in the background</string>
     <string name="keep_alive_notification_text">Keeping scheduled tasks and proactive messages online</string>
     <string name="settings_keep_alive_title">Keep running in background</string>
+    <string name="settings_group_keep_alive">Always On</string>
+    <string name="settings_group_keep_alive_desc">Keep-alive, battery optimization and auto-start</string>
+    <string name="settings_group_miniphone">Mini Phone</string>
+    <string name="settings_group_miniphone_desc">Built-in phone and its 2D little room</string>
     <string name="settings_keep_alive_subtitle">Hold the process in the foreground with a persistent notification</string>
     <string name="settings_keep_alive_hint">Muse will show a persistent notification. Android requires this for foreground services and it cannot be hidden. On some Chinese ROMs you also need to allow autostart in system settings.</string>
     <string name="settings_keep_alive_wakelock_title">Stay connected with screen off</string>

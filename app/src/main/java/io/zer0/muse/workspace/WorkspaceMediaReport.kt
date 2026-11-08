@@ -61,8 +61,11 @@ object WorkspaceMediaReport {
         }
         appendLine(
             when {
-                input.attached -> "原图已作为一条图片消息随附，你可以直接看到画面。"
-                else -> "原图未随附：${input.attachSkipReason ?: "超出随附上限"}。"
+                // 不写「已随附」：工具结果会被落库，而带图那条用户消息只进本回合历史、不进数据库。
+                // 写成「已随附」的话，重开会话后历史里根本没有那条消息，模型会按这句话去找一张不存在的图。
+                // 真正的交付声明由那条随图消息的 caption 承担（它只在实时路径存在）。
+                input.attached -> "原图已读取。"
+                else -> "原图未读取：${input.attachSkipReason ?: "超出随附上限"}。"
             },
         )
         val text = input.ocrText?.trim().orEmpty()

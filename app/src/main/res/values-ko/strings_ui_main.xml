@@ -32,7 +32,7 @@
     <string name="assistant_detail_use_default">기본 사용</string>
     <string name="assistant_detail_top_p_label">Top P(비워두면 기본값, 0-1)</string>
     <string name="assistant_detail_max_tokens_label">Max Tokens(비워두면 기본값)</string>
-    <string name="assistant_detail_context_message_count">컨텍스트 메시지 수: %1$d</string>
+    <string name="assistant_detail_context_message_count">이전 메시지 최근 %1$d개를 함께 보냅니다</string>
     <string name="assistant_detail_reasoning_level">추론 등급</string>
     <string name="assistant_detail_stream_output">스트림 출력</string>
     <string name="assistant_detail_stream_output_desc">끄면 전체 응답을 한 번에 반환합니다</string>
@@ -207,7 +207,7 @@
     <string name="settings_group_chat">채팅</string>
     <string name="settings_group_chat_desc">표시, 스티커, 빠른 메모, 공유</string>
     <string name="settings_group_models">모델 및 공급자</string>
-    <string name="settings_group_models_desc">공급자, 작업 라우팅, 공급자 플러그인</string>
+    <string name="settings_group_models_desc">공급자, 작업 라우팅, 앱 플러그인</string>
     <string name="settings_group_tools">도구 및 권한</string>
     <string name="settings_group_tools_desc">도구, 권한 마법사, 웹 검색</string>
     <string name="settings_group_voice">음성</string>
@@ -608,7 +608,7 @@
     <string name="free_model_service_unavailable">무료 할당량 서비스를 사용할 수 없습니다. API Key를 추가하거나 나중에 다시 시도하세요.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
-    <string name="provider_plugins_title">공급자 플러그인</string>
+    <string name="provider_plugins_title">앱 플러그인</string>
     <string name="muse_plugins_external">외부 플러그인</string>
     <string name="muse_plugins_manage">플러그인 관리</string>
     <string name="muse_plugins_imported">플러그인 패키지가 설치되었습니다</string>
@@ -626,6 +626,9 @@
     <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">워크스페이스</string>
     <string name="workspace_tool_outputs">도구 출력</string>
+    <string name="workspace_attachments">첨부</string>
+    <string name="workspace_download">다운로드</string>
+    <string name="workspace_resume">이력서</string>
     <string name="workspace_desc">로컬 파일 관리 및 임시 저장</string>
     <string name="workspace_empty">워크스페이스가 비어 있습니다</string>
     <string name="workspace_new_file">새 파일</string>
@@ -880,6 +883,7 @@
     <string name="workspace_mount_add">폴더 추가</string>
     <string name="workspace_mount_read_only">읽기 전용</string>
     <string name="workspace_mount_remove">제거</string>
+    <string name="workspace_mount_remove_confirm">%1$s의 마운트 등록만 제거합니다. 기기의 원본 폴더와 파일은 그대로 유지됩니다.</string>
     <string name="workspace_mount_added">%1$s 마운트됨</string>
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">“%1$s”을(를) 제거하지 못했습니다. 목록에 남아 있습니다</string>

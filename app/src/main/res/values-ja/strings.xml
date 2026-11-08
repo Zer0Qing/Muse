@@ -32,6 +32,7 @@
     <string name="about_oss_licenses">オープンソースライセンス</string>
     <string name="licenses_title">オープンソースライセンス</string>
     <string name="licenses_total_count">合計 %1$d 依存関係</string>
+    <string name="licenses_app_statement">Muse は GPL v3 のオープンソースとして公開されています。サードパーティ依存はいずれも寛容なライセンス（Apache 2.0 / MIT / BSD / EPL-1.0）で、その表示を保持する必要があります。</string>
 
     <!-- Common actions -->
     <string name="action_back">戻る</string>
