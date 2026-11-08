@@ -1,0 +1,34 @@
+{
+  "versionName": "2.6.24",
+  "versionCode": 288,
+  "dbVersion": 125,
+  "apkFile": "Muse_v2.6.24_arm64-v8a.apk",
+  "apkSizeBytes": 104083331,
+  "apkSha256": "9475f01235194b789fd17fb1c9049a3135f7d587f111600af87a4125c4e69ec8",
+  "apkArtifacts": [
+    {
+      "name": "Muse_v2.6.24_arm64-v8a.apk",
+      "sizeBytes": 104083331,
+      "sha256": "9475f01235194b789fd17fb1c9049a3135f7d587f111600af87a4125c4e69ec8"
+    },
+    {
+      "name": "Muse_v2.6.24_armeabi-v7a.apk",
+      "sizeBytes": 60015790,
+      "sha256": "78f54cb799e4031bacc1a18d558b9ae625c5490d7f04fd684ea54d3779fe5e83"
+    },
+    {
+      "name": "Muse_v2.6.24_x86_64.apk",
+      "sizeBytes": 105366069,
+      "sha256": "c7c7b7132a83adce884d2cdb514dab871800dd3ba8f083a1c2c8e130f04fbdc7"
+    },
+    {
+      "name": "Muse_v2.6.24_universal.apk",
+      "sizeBytes": 188086344,
+      "sha256": "bb6c4b053c13b3fa5ad029a64379fc2bbf387158662afa6021092cabd624a36e"
+    }
+  ],
+  "releaseNotesRef": "releases/v2.6.24/release_body.md",
+  "sourceCommit": "28a6ad984d4a9e4036410fe40833b5e039a6943b",
+  "sourceRef": "v2.6.24",
+  "generatedAt": "2026-11-08T15:19:58+00:00"
+}

@@ -1,0 +1,99 @@
+Muse v2.6.24 发布校验
+生成时间: 2026-11-08 23:24 +08:00
+versionName=2.6.24  versionCode=288  applicationId=io.zer0.muse
+
+## 版本号（aapt2 dump badging，arm64-v8a 包）
+package: name='io.zer0.muse' versionCode='288' versionName='2.6.24' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36'
+minSdkVersion 26  targetSdk 36  application-label 'Muse'
+版本预检：resolve_release_version.py --tag v2.6.24 PASS（tag 与 app/build.gradle.kts 默认值一致：2.6.24 / 288）。
+
+## 签名（apksigner verify --print-certs）
+Signer #1 certificate DN: CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN
+Signer #1 certificate SHA-256 digest: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+Signer #1 certificate SHA-1 digest: 8230c9b7150676e322457c588fff81764e02ee0c
+Signer #1 certificate MD5 digest: 3f6d42436cac25c25053c2ea58a1d134
+（与 v2.6.22 / v2.6.23 候选同一证书：可覆盖升级）
+签名预检：validate_release_apks.py 对 4 个 release APK 全部 PASS。
+
+## 产物（本次分发四包 + manifest.json）
+Muse_v2.6.24_arm64-v8a.apk    104083331 bytes  sha256=9475f01235194b789fd17fb1c9049a3135f7d587f111600af87a4125c4e69ec8
+Muse_v2.6.24_armeabi-v7a.apk   60015790 bytes  sha256=78f54cb799e4031bacc1a18d558b9ae625c5490d7f04fd684ea54d3779fe5e83
+Muse_v2.6.24_x86_64.apk       105366069 bytes  sha256=c7c7b7132a83adce884d2cdb514dab871800dd3ba8f083a1c2c8e130f04fbdc7
+Muse_v2.6.24_universal.apk    188086344 bytes  sha256=bb6c4b053c13b3fa5ad029a64379fc2bbf387158662afa6021092cabd624a36e
+
+与 Gradle 产物逐字节核对：4/4 与 app/build/outputs/apk/release/app-<abi>-release.apk（2026-11-08 22:53 那次构建）
+SHA-256 完全相同，分发包就是那次构建的输出改名而来，没有二次处理。
+
+包内核对（zipfile 逐包统计）：
+- arm64-v8a：lib/arm64-v8a 84 项，assets 235，总条目 1981
+- armeabi-v7a：lib/armeabi-v7a 10 项，assets 235，总条目 1907（Python/Node 运行时按设计只随 arm64/x86_64）
+- x86_64：lib/x86_64 84 项，assets 235，总条目 1981
+- universal：lib/arm64-v8a 84 + armeabi-v7a 10 + x86 7 + x86_64 84 = 185 项，assets 235，总条目 2082
+  （与 v2.6.23 候选的 universal 同为 2082 / assets 235）
+- 四包均在：assets/muse-python-assets.zip、assets/muse-runtime-assets.zip、assets/a11y/accessibility-provider.apk
+- 内嵌运行时（arm64-v8a / x86_64 / universal）：libpython3.14.so、libpython3.so、libmuse_node.so
+- 网页 bundle：assets/muse-web/assets/index-D_tnbcY8.js、index-DmLlq4aT.css
+  （css 与 v2.6.23 候选同哈希；js 哈希不同，见下"工作区状态"第 3 条）
+
+R8 后关键类仍在（dex 字节核对，arm64-v8a 包，5 个 dex）：
+- rikka.shizuku.ShizukuProvider → classes.dex
+- IShellService 与 executeToPipe → classes3.dex
+- 打包后的 AndroidManifest（aapt2 dump xmltree）：android:largeHeap=true；
+  provider rikka.shizuku.ShizukuProvider，authorities=io.zer0.muse.shizuku
+
+## manifest 校验
+validate_release_manifest.py PASS：版本、DB 版本（MuseDb.kt → 125）、四包摘要与 provenance 全部一致。
+manifest.json 的 sourceCommit=28a6ad984d4a9e4036410fe40833b5e039a6943b、sourceRef=v2.6.24。
+
+## 构建来源与工作区状态（重要，不隐瞒）
+构建命令: ./gradlew :app:assembleRelease -PversionName=2.6.24 -PversionCode=288
+构建工作树: **主工作树**（不是 v2.6.23 那种 --detach 干净树）。构建时 HEAD=d58416fa，工作树另含未提交改动。
+
+1. **包与 tag 不同源，这一条明写。** 28a6ad98 提交了本轮全部 app 侧修复（49 个文件）与发布记录，
+   但包是在它之前、从带未提交改动的工作树构建的；包里还含**未提交的小手机改动**：
+   MiniPhoneDb 版本 6（tag 上是 5）、mp_inner_voice 与 mp_call_session 表、R3 通话草稿
+   （MpCallKind / MpCallStore / MpCallSessionDao / MpCallSessionEntity）、宿主侧的心声实现
+   （AppMiniPhoneHost.composeInnerVoice）。这些按要求本轮不进仓库，下个版本随小手机一起发。
+2. **为什么这不构成本版的用户风险（已核对，不是推测）：**
+   - FeatureFlags.MINI_PHONE=false 且 MINI_PHONE_ENTRY=false：首页与设置无入口、路由不注册；
+   - R8 已把小手机 UI 摇掉：dex 里搜不到 MiniPhoneShell；
+   - miniphoneModule 的 single 全部惰性创建，启动路径只调 MiniPhoneMomentScheduler.stop()，
+     而它只做 WorkManager.cancelUniqueWork + 取消私信排期，不解析 Koin、不开数据库；
+   - 因此 mp_inner_voice / mp_call_session 只作为 dex 字符串存在，用户设备上不会创建 v6 库；
+     旧装机已有的 v5 库不会被迁移，也不会出现"高版本库被低版本源打开"的降级路径。
+   - 结论：包内多出的这部分是**不可达代码**，不影响本版行为；但它确实使 tag 无法逐字节复现该包。
+3. gitignore 的 pack 产物（app/src/main/jniLibs/、muse-python-assets.zip、muse-runtime-assets.zip）
+   沿用主工作树已准备好的产物：本机是 Windows，跑不了 CI 在 Linux runner 上的 patchelf 步骤。
+   网页 bundle 同样取主树的 web/apps/client/dist，**没有**像 v2.6.23 那样在干净树里 npm ci && npm run build
+   重建（这就是 js 哈希与那次候选不同的原因）。包内 bundle 因此对应主树当时的 dist，而非 sourceCommit 重建结果。
+
+## 门禁与实机验证（本轮已跑的证据）
+- assembleRelease：BUILD SUCCESSFUL（R8 混淆+压缩开启、优化 pass 关闭，沿用既定配置）。
+- unit lane：`:app` 全量单测 5210 例 / 0 failures / 0 errors / 1 skipped；
+  `:miniphone` 403 例 / 0 failures / 0 errors（跑在含未提交小手机改动的工作树上）。
+- static lane：`:app` 与 `:miniphone` detekt 干净；lintVitalRelease 无 error / warning。
+- 本轮修复的判据尽量抽成纯函数并补测试：CardViewportTest（聚焦遮罩 3 例）、
+  FolderDetailScreenTest（弹窗可打开的回归）、MonoBubbleColorTest（用户气泡实色非单色）、
+  PermissionCoordinatorTest（快照 2 例）、SettingsGroupScreenTest / SettingsGroupLayoutTest（分类卡随可达性计算）、
+  AgentDirectives* 相关用例随语音回复频率归位一并收敛。
+- 真机（用户自验）：用户在真机上安装并试用了 288 这一版（第三份包 dist-repack2）后判定可作为正式版发布。
+  **逐项验收清单没有回填**，所以本记录不宣称每条修复都在真机上单独验过。
+
+## 已知未修（不隐瞒）
+- 首页文件夹行的会话计数可能显示「-1」：folders.sessionCount 是冗余计数、发生漂移；本轮没有动数据层。
+- 部分 ROM 上 Shizuku 可能停在「已授权但 Shell 服务未就绪」：手动刷新现在会真正清退避并重绑，
+  若仍然失败需要设备日志（ShizukuAuthorizer / ShellService 标签）才能定位到 ROM 侧原因。
+- 尚未验证（不宣称通过）：release 包的全量功能回归（插件 / 渠道 / 浏览器等 R8 敏感面）、
+  真机动效手感与帧率、TalkBack 全流程、大字号截断、ColorOS 通知与省电行为。
+
+## 提交状态
+- 28a6ad98：本轮 49 个 app 侧修复 + 发行线默认值推进到 2.6.24/288 + 发布正文
+  + 一个 miniphone 接线测试的期望反转（MuseApp 已在收起小手机时显式 stop 后台任务，
+  旧断言"不许出现 stop"会让已提交状态的该模块单测变红；经确认后只带这一个测试文件）。
+- 仍未提交（43 项，全部是小手机）：miniphone/** 的新功能代码与文案资源化、
+  app/src/main/java/io/zer0/muse/data/miniphone/AppMiniPhoneHost.kt 的心声实现、
+  miniphone/schemas/…/6.json。下一个版本随小手机一起提交。
+
+## 发布状态
+本次发布已获授权：push main、打 tag v2.6.24、创建 GitHub Release（资产 = 4 个 APK + manifest.json）。
+远端核对以 publish_release.py 的输出为准（名称 / 大小 / SHA-256 三项一致才算 PASS）。
