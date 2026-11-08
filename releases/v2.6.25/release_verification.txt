@@ -1,15 +1,20 @@
 Muse v2.6.25 测试候选包校验记录
 生成时间: 2026-11-09 05:03 +08:00
 versionName=2.6.25  versionCode=289  applicationId=io.zer0.muse
-状态: **已公开发布**。发行提交 cf9543703e701b71f1f0e9df2d7935fe5ec641a3；
-      tag v2.6.25 指向该提交；三包 APK 与 manifest.json 已作为 GitHub Release 附件上传。
+状态: **已公开发布**。发行源码提交 cf9543703e701b71f1f0e9df2d7935fe5ec641a3；
+      tag v2.6.25 指向包含本校验记录与 manifest 的最终发行提交；
+      三包 APK 与 manifest.json 已作为 GitHub Release 附件上传。
 
 ## 版本与来源一致性
 本版把上一版遗留的「包与 tag 不同源」偏差彻底消除：
 - 包在独立 clean worktree 中构建，其内容 = HEAD f2998dc0 + 60 个 app 侧改动，
-  与发行提交 cf954370 的源码差异为零（该提交正是把同样这 60 个路径提交入库）。
+  与发行源码提交 cf954370 的源码差异为零（该提交正是把同样这 60 个路径提交入库）。
 - manifest.json 的 sourceCommit = cf9543703e701b71f1f0e9df2d7935fe5ec641a3，
-  即 tag v2.6.25 所指的提交；不存在「manifest 用基础 commit 冒充」的情况。
+  即 APK 的构建源码基线，不再是「用基础 commit 冒充」。
+- **tag 与 sourceCommit 的差别如实写明**（PROJECT_GUIDE §7.1 要求）：
+  tag v2.6.25 指向的是最终发行提交，它在 cf954370 之后只包含发行文档
+  （releases/v2.6.25/manifest.json 与 release_verification.txt），**没有任何源码改动**。
+  `git diff --name-only cf954370..v2.6.25` 可复核；本记录不把两者说成同一个提交。
 - 构建时的 gitignored 本地资产（jniLibs / 两个 zip / web dist）已补齐并复核，
   详见下方「构建来源与工作区状态」第 3 条。
 
@@ -56,10 +61,11 @@ manifest.json 的 sourceCommit=cf9543703e701b71f1f0e9df2d7935fe5ec641a3、source
 (ChatBackgroundStore.kt、StickerSettingsPage.kt) 经逐字节核对内容等于 HEAD，只是时间戳脏，
 所以 worktree 的 git status 记为 58 项，实际源码内容一致。
 
-**本版包与 tag 同源**：构建完成后，把同样这 60 个 app 侧路径提交为
-发行提交 cf9543703e701b71f1f0e9df2d7935fe5ec641a3，再用该 SHA 重新生成 manifest。
+**本版包与源码同基线**：构建完成后，把同样这 60 个 app 侧路径提交为
+发行源码提交 cf9543703e701b71f1f0e9df2d7935fe5ec641a3，再用该 SHA 重新生成 manifest。
 PROJECT_GUIDE §7.1 要求记录基础 commit / sourceRef / dirty 状态与内容指纹；
-本次通过「提交后重新生成 manifest」把来源收敛到单一提交，不再有 dirty 指纹缺口。
+本次通过「提交后重新生成 manifest」把构建来源收敛到单一已提交 SHA，不再有 dirty 指纹缺口。
+tag 与该 SHA 之间只有发行文档，差异已在上方「版本与来源一致性」写明。
 
 1. **不含小手机的未提交中间态（本次刻意与上版不同）**：
    主工作树另有 43 个 miniphone 相关未提交改动，含 MiniPhoneDb 的 5→6 迁移
