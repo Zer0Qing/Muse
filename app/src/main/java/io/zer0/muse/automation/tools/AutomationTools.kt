@@ -590,6 +590,9 @@ class AutomationTools(
                         } else {
                             append("(无输出)")
                         }
+                        if (detail.exitCode == -1) {
+                            manager.shell.describeChannelFailure()?.let { append('\n').append(it) }
+                        }
                     }
                 }
             }

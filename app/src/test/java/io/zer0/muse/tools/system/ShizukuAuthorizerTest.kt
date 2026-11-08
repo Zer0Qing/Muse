@@ -94,7 +94,167 @@ class ShizukuAuthorizerTest {
         assertEquals(null, readField(authorizer, "shellService"))
     }
 
+    // ── 快路径优先，UserService 兜底 ───────────────────────────────────────
+
+    @Test
+    fun `快路径命中时完全不碰 UserService`() = kotlinx.coroutines.runBlocking {
+        val authorizer = ShizukuAuthorizer(
+            context = context,
+            checkPermissionProbe = { true },
+            remoteExec = ShizukuRemoteExecutor { fakeProcess(out = "uid=2000(shell)\n") },
+        )
+
+        val result = authorizer.execute("id")
+
+        assertEquals(0, result.exitCode)
+        assertEquals("uid=2000(shell)\n", result.stdout)
+        assertEquals(ShizukuAuthorizer.PATH_REMOTE, authorizer.lastExecutionPath)
+        // 没绑定过：既不该有服务代理，也不该留下绑定参数
+        assertEquals(null, readField(authorizer, "shellService"))
+        assertEquals(null, readField(authorizer, "boundArgs"))
+    }
+
+    @Test
+    fun `快路径起不来才退回 UserService`() = kotlinx.coroutines.runBlocking {
+        val authorizer = ShizukuAuthorizer(
+            context = context,
+            checkPermissionProbe = { true },
+            remoteExec = ShizukuRemoteExecutor { null },
+        )
+        writeVolatileField(authorizer, "lastBindFailureAt", System.currentTimeMillis())
+
+        val result = authorizer.execute("id")
+
+        assertEquals(-1, result.exitCode)
+        assertEquals(ShizukuAuthorizer.PATH_USER_SERVICE, authorizer.lastExecutionPath)
+        assertTrue(result.stderr.contains("绑定失败") || result.stderr.contains("不可用"))
+    }
+
+    @Test
+    fun `快路径超时也不退回，命令不会被执行两遍`() = kotlinx.coroutines.runBlocking {
+        var started = 0
+        val authorizer = ShizukuAuthorizer(
+            context = context,
+            checkPermissionProbe = { true },
+            remoteExec = ShizukuRemoteExecutor {
+                started++
+                fakeProcess(exits = false)
+            },
+        )
+
+        val result = authorizer.execute("rm /sdcard/x")
+
+        assertEquals(1, started)
+        assertEquals(-1, result.exitCode)
+        assertEquals(ShizukuAuthorizer.PATH_REMOTE, authorizer.lastExecutionPath)
+        assertTrue(result.stderr.contains("超时"))
+    }
+
+    @Test
+    fun `未授权时快路径也不会被尝试`() = kotlinx.coroutines.runBlocking {
+        var started = 0
+        val authorizer = ShizukuAuthorizer(
+            context = context,
+            checkPermissionProbe = { false },
+            remoteExec = ShizukuRemoteExecutor {
+                started++
+                fakeProcess()
+            },
+        )
+
+        val result = authorizer.execute("id")
+
+        assertEquals(0, started)
+        assertEquals(ShizukuAuthorizer.PATH_NONE, authorizer.lastExecutionPath)
+        assertTrue(result.stderr.contains("Shizuku 未授权"))
+    }
+
+    // ── 绑定策略 ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `UserService 常驻，不在每次解绑时销毁进程`() {
+        val args = ShizukuAuthorizer(context).shellServiceArgs
+        // 版本号已经保证升级后换掉旧进程；再配 daemon(false) 只会让每次执行都付一次冷启动。
+        assertTrue(readBooleanField(args, "daemon"))
+    }
+
+    @Test
+    fun `连接等待超时返回 false 而不是抛`() = kotlinx.coroutines.runBlocking {
+        val started = System.currentTimeMillis()
+        assertFalse(ShizukuAuthorizer(context).awaitServiceConnection(200L))
+        val cost = System.currentTimeMillis() - started
+        assertTrue("等待应在超时附近返回,实际 ${cost}ms", cost in 150L..3_000L)
+    }
+
+    @Test
+    fun `连接回调到达后等待立刻返回，不用等满超时`() = kotlinx.coroutines.runBlocking {
+        val authorizer = ShizukuAuthorizer(context)
+        val connector = kotlin.concurrent.thread {
+            Thread.sleep(120L)
+            writeVolatileField(authorizer, "shellService", fakeService())
+            writeVolatileField(authorizer, "serviceBound", true)
+            completeConnectionSignal(authorizer)
+        }
+        val started = System.currentTimeMillis()
+        val connected = authorizer.awaitServiceConnection(10_000L)
+        connector.join(3_000L)
+        assertTrue(connected)
+        val cost = System.currentTimeMillis() - started
+        assertTrue("应由回调唤醒,实际等了 ${cost}ms", cost < 5_000L)
+    }
+
+    @Test
+    fun `信号被完成但服务字段还没赋值时不算就绪`() = kotlinx.coroutines.runBlocking {
+        val authorizer = ShizukuAuthorizer(context)
+        // 旧信号残留会让下一次等待立刻通过，然后拿着 null 服务往下走。
+        completeConnectionSignal(authorizer)
+        assertFalse(authorizer.awaitServiceConnection(500L))
+    }
+
+    private fun fakeProcess(out: String = "", code: Int = 0, exits: Boolean = true): RemoteShellProcess {
+        return object : RemoteShellProcess {
+            override fun stdout(): java.io.InputStream = java.io.ByteArrayInputStream(out.toByteArray(Charsets.UTF_8))
+            override fun stderr(): java.io.InputStream = java.io.ByteArrayInputStream(ByteArray(0))
+            override fun waitFor(timeoutMs: Long): Boolean = exits
+            override fun exitValue(): Int = code
+            override fun destroy() = Unit
+            override fun close() = Unit
+        }
+    }
+
+    private fun fakeService(): IShellService = java.lang.reflect.Proxy.newProxyInstance(
+        IShellService::class.java.classLoader,
+        arrayOf(IShellService::class.java),
+    ) { _, method, _ ->
+        when (method.name) {
+            "execute" -> "0\u0000ok\u0000"
+            "executeToPipe" -> 0
+            "destroy" -> null
+            else -> null
+        }
+    } as IShellService
+
     // -- reflection helpers (read/write @Volatile var fields only, non-final) --
+
+    private fun readBooleanField(target: Any, name: String): Boolean {
+        val field: Field = target.javaClass.getDeclaredField(name)
+        field.isAccessible = true
+        return field.getBoolean(target)
+    }
+
+    /**
+     * 模拟 onServiceConnected 里那次信号完成。反射调用避免在测试里写裸泛型转换。
+     *
+     * 取方法要按接口取、再放开可访问性：字段的运行时类型是 kotlinx.coroutines 的 internal 实现类，
+     * 从它身上取到的 Method 即便签名一致，invoke 时也会被访问检查挡下来。
+     */
+    private fun completeConnectionSignal(authorizer: ShizukuAuthorizer) {
+        val signal = readField(authorizer, "connectionSignal")!!
+        val complete = kotlinx.coroutines.CompletableDeferred::class.java
+            .getMethod("complete", Any::class.java)
+        complete.isAccessible = true
+        complete.invoke(signal, Unit)
+    }
 
     private fun readField(target: Any, name: String): Any? {
         val field: Field = ShizukuAuthorizer::class.java.getDeclaredField(name)

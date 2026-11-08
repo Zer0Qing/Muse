@@ -471,6 +471,18 @@
             </intent-filter>
         </receiver>
 
+        <!-- Termux 结果回传的兜底接收器：动态注册那份被 ROM 丢弃/失效时，这封**显式**广播
+             （PendingIntent 基础 Intent 带 setPackage，不受 Android 8+ 隐式广播限制）仍能送达。
+             exported=true 是必须的——发件人是 Termux 那个应用（不同 uid）。
+             伪造防护由 TermuxChannel 统一做：随机会话 token + pending 请求 id 双重校验。 -->
+        <receiver
+            android:name=".terminal.TermuxResultReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.zer0.muse.action.TERMUX_RESULT" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

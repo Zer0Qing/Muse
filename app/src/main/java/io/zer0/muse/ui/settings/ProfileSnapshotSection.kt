@@ -92,7 +92,7 @@ internal fun ProfileSnapshotSection() {
                     Text(
                         text = stringResource(R.string.settings_user_profile_auto_empty),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
             )

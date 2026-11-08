@@ -122,7 +122,7 @@ internal fun AsrSection(
                 Text(
                     text = stringResource(R.string.settings_asr_engine_title),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = asrProviderName(asrConfig.provider),
@@ -146,7 +146,10 @@ internal fun AsrSection(
 
     if (asrConfig.provider != AsrProviderType.SYSTEM) {
         // ---- 连接 ----
-        SectionLabel(stringResource(R.string.settings_asr_group_connection))
+        SectionLabel(
+            stringResource(R.string.settings_asr_group_connection),
+            modifier = Modifier.padding(top = MusePaddings.cardGap),
+        )
         SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
             var asrApiKey by remember(asrConfig.provider) { mutableStateOf(asrConfig.apiKey) }
             var asrApiKeyVisible by remember { mutableStateOf(false) }
@@ -306,7 +309,10 @@ internal fun AsrSection(
         }
 
         // ---- 识别 ----
-        SectionLabel(stringResource(R.string.settings_asr_group_recognition))
+        SectionLabel(
+            stringResource(R.string.settings_asr_group_recognition),
+            modifier = Modifier.padding(top = MusePaddings.cardGap),
+        )
         SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
             SettingsItemRow(
                 icon = MuseIcons.waveSine,
@@ -458,7 +464,10 @@ internal fun AsrSection(
 
         // ---- 文件转录(仅 DASHSCOPE_FILE) ----
         if (asrConfig.provider == AsrProviderType.DASHSCOPE_FILE) {
-            SectionLabel(stringResource(R.string.settings_asr_group_transcription))
+            SectionLabel(
+                stringResource(R.string.settings_asr_group_transcription),
+                modifier = Modifier.padding(top = MusePaddings.cardGap),
+            )
             SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
                 var fileUrl by remember(asrConfig.provider) { mutableStateOf(asrConfig.fileAudioUrl) }
                 var pollInterval by remember(asrConfig.provider) {

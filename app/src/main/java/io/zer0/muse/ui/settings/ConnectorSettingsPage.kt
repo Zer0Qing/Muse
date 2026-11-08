@@ -82,7 +82,7 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
                         Text(
                             text = stringResource(R.string.connector_intro),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -154,7 +154,7 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
                 Text(
                     text = stringResource(R.string.connector_empty),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                 )
             }
@@ -250,7 +250,7 @@ private fun ConnectorRow(config: ConnectorConfig, onConnect: () -> Unit, onEdit:
             Text(
                 text = config.authorizeUrl.ifBlank { "-" },
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }

@@ -119,6 +119,7 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
     // Termux 权限位与 probe 结果不在协调层被动快照里（probe 会唤醒 Termux），就地被动查询/缓存。
     var termuxPermitted by remember { mutableStateOf(false) }
     var termuxProbe by remember { mutableStateOf<Boolean?>(null) }
+    var termuxDetail by remember { mutableStateOf<String?>(null) }
 
     // Root 与 Termux 属于可选升级通道：初始跟随「是否已配置」展开，
     // 但用户手动折叠后必须真的能收起（此前用 `showAdvanced || advancedReady` 恒展开）。
@@ -139,6 +140,9 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                 } else {
                     null
                 }
+            // 探测结论没变（false→false）时 termuxProbe 不触发重组，
+            // 失败原因要单独存一份 state 才刷得出来。
+            termuxDetail = if (termuxProbeable) termuxChannel.lastError else null
         }.onFailure { e ->
             // 探针抛的运行时异常种类枚举不完；漏出去一次 repeatOnLifecycle 循环就永久停摆。
             if (e is CancellationException) throw e
@@ -388,6 +392,7 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                     installed = termuxInstalled,
                     permitted = termuxPermitted,
                     probeOk = termuxProbe,
+                    detail = termuxDetail,
                     onGet = {
                         runCatching {
                             context.startActivity(
@@ -686,6 +691,7 @@ private fun TermuxChannelCard(
     installed: Boolean,
     permitted: Boolean,
     probeOk: Boolean?,
+    detail: String?,
     onGet: () -> Unit,
     onGrant: () -> Unit,
     onOpenApp: () -> Unit,
@@ -741,6 +747,16 @@ private fun TermuxChannelCard(
                     null -> stringResource(R.string.permission_termux_probe_unchecked)
                 },
             )
+            // 探测失败时把通道自己报的原因摊开：三条回传路径全空、服务起不来、配置没生效
+            // 是三种完全不同的修法，只给一句「探测失败」用户无从下手。
+            if (probeOk == false && !detail.isNullOrBlank()) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             if (installed && permitted && probeOk != true) {
                 Spacer(Modifier.height(8.dp))
                 // issue #3.4: 用户反映「手册里追加的允许外部调用指令也无效」。

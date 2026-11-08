@@ -368,7 +368,7 @@ private fun DiffEmptyHint(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(
             horizontal = MusePaddings.screen,
             vertical = MusePaddings.contentGap,
@@ -435,7 +435,7 @@ private fun DiffModelRow(model: Model, selected: Boolean, onToggle: () -> Unit, 
                 Text(
                     text = model.name,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

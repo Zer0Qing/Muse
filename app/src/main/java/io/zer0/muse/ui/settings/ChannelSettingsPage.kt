@@ -128,7 +128,7 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
                         Text(
                             text = stringResource(R.string.channel_intro),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
@@ -163,7 +163,7 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
                 Text(
                     text = stringResource(R.string.channel_empty),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                 )
             }
@@ -232,7 +232,7 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
                                 Text(
                                     text = "$platformLabel · ${msg.from.ifBlank { "-" }}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
                                     text = msg.summary.ifBlank { "-" },
@@ -321,7 +321,7 @@ private fun ChannelRow(
                 Text(
                     text = "$platformLabel · ${shortTargetId(config.targetId)}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -823,13 +823,13 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                     Text(
                         text = stringResource(R.string.channel_owner_none),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(
                     text = stringResource(R.string.channel_owner_warning),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 MuseTextField(
                     value = targetId,
@@ -852,7 +852,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                     Text(
                         text = stringResource(R.string.channel_auto_reply_desc),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 MuseSwitch(checked = autoReply, onCheckedChange = { autoReply = it })
@@ -872,7 +872,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
             Text(
                 text = stringResource(R.string.channel_assistant_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             // ── v2.6.23(C1): 对话目标策略(入站自动回复与出站发送共用同一判定) ──
             val policyOptions = listOf(
@@ -889,7 +889,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
             Text(
                 text = stringResource(R.string.channel_policy_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (policyMode != "open") {
                 MuseTextField(
@@ -1136,7 +1136,7 @@ private fun WebhookReceiverToggle(checked: Boolean, onCheckedChange: (Boolean) -
             Text(
                 text = stringResource(R.string.channel_webhook_receive_desc),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         MuseSwitch(checked = checked, onCheckedChange = onCheckedChange)

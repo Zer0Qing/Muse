@@ -331,7 +331,7 @@ internal fun EmptyModelsState(
         Text(
             text = stringResource(R.string.settings_provider_no_models_hint),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.size(MuseIconSizes.icon))
         Row(
@@ -394,7 +394,7 @@ internal fun FetchedModelsPickerSheet(
                 Text(
                     text = stringResource(R.string.settings_provider_models_count, models.size),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
                 Spacer(Modifier.size(MusePaddings.itemGap))
@@ -437,7 +437,7 @@ internal fun FetchedModelsPickerSheet(
                                         Text(
                                             text = stringResource(R.string.settings_provider_search_models),
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                     innerTextField()
@@ -570,7 +570,7 @@ internal fun FetchedModelsPickerSheet(
                                     Text(
                                         text = m.name,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.outline,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 ModelAbilityChips(model = m)

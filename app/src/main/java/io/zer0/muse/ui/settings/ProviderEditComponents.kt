@@ -473,7 +473,7 @@ internal fun ConfigTab(
                                 Text(
                                     text = stringResource(R.string.oauth_polling),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -618,7 +618,7 @@ internal fun ConfigTab(
                 Text(
                     text = stringResource(R.string.settings_provider_manual_add_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 12.dp, top = 4.dp),
                 )
             }
@@ -752,7 +752,7 @@ internal fun ConfigTab(
                         Text(
                             text = stringResource(R.string.settings_common_advanced),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -1091,7 +1091,7 @@ internal fun ApiKeyPoolField(
             placeholder = {
                 Text(
                     text = stringResource(R.string.settings_provider_api_key_pool_hint),
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             minLines = 3,

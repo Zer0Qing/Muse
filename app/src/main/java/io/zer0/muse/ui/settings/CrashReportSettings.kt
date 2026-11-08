@@ -118,7 +118,7 @@ fun CrashReportSettingsPage(onBack: () -> Unit) {
                                 stringResource(R.string.settings_crash_pending_hint_idle)
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     if (reporting) {
@@ -139,7 +139,7 @@ fun CrashReportSettingsPage(onBack: () -> Unit) {
                 Text(
                     text = stringResource(R.string.settings_crash_target_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                 )
             }

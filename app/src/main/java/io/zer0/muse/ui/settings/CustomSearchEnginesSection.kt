@@ -49,7 +49,10 @@ internal fun CustomSearchEnginesSection(webSearchConfig: WebSearchConfig, settin
     var editing by remember { mutableStateOf<CustomSearchEngine?>(null) }
     val engines = webSearchConfig.customEngines
 
-    SectionLabel(stringResource(R.string.search_custom_engines_section))
+    SectionLabel(
+        stringResource(R.string.search_custom_engines_section),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     Column(modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = 4.dp)) {
         Text(
             text = stringResource(R.string.search_custom_engines_hint),
@@ -201,7 +204,7 @@ private fun CustomEngineRow(engine: CustomSearchEngine, enabled: Boolean, onTogg
             Text(
                 text = "${engine.method.uppercase()} ${engine.endpoint}",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

@@ -368,7 +368,7 @@ private fun MainModelPickerDialog(
                         Text(
                             text = provider.displayName,
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                         )
                         provider.models.forEach { model ->
@@ -406,7 +406,7 @@ private fun MainModelPickerDialog(
                     Text(
                         text = stringResource(R.string.settings_agent_no_models_hint),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp),
                     )
                 }

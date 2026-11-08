@@ -200,17 +200,25 @@ android {
         //          真机反馈收口（弹窗嵌套滚动闪退、卡片点击被聚焦遮罩吃掉、用户气泡改实色主题容器、
         //          头像 URI 没传导致回退首字、Shizuku 请求被 rationale 判断吞掉与截图写不进私有目录、
         //          刷新不清绑定退避、语音回复频率归位到语音播报、按压改整面遮罩、largeHeap）。
+        // v2.6.25: 自动化通道可用性收口 —— Shizuku 增开 newProcess 快路径（免 app_process 冷启动与
+        //          dex 加载，binder 活着就能执行；只有命令根本没跑起来才退回 UserService），
+        //          绑定改常驻 + 超时不解绑 + 连接信号替代轮询（根治「已授权但 shell 服务未就绪、
+        //          点刷新也没用」的自我挫败循环）；Termux 结果三路回传（广播/清单接收器/环回 TCP）
+        //          加探测缓存、执行证据回填与启动重试；device_shell 与 termux_exec 失败时给模型
+        //          结构化反馈（执行路径/含义/下一步），不再让它原样重发有副作用的命令；
+        //          修 Koin 缺 PluginActivationBridge 定义导致启动期整段插件装配失败；
+        //          设置小标题顶部间距统一、说明类文字对比度全应用整改。
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
             // 默认值跟随当前发行线；正式构建仍显式注入并与 tag 核对。
-            ?: 288
+            ?: 289
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
             // 名称与编号保持同一发行线，防止本地构建无意产生错配。
-            ?: "2.6.24"
+            ?: "2.6.25"
     }
 
     signingConfigs {
@@ -562,7 +570,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 285/2.6.22。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 289/2.6.25。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()

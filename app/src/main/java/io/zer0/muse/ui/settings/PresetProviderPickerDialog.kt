@@ -192,7 +192,7 @@ private fun PresetProviderPickerPage(onDismiss: () -> Unit, onPickPreset: (Provi
                         Text(
                             text = stringResource(R.string.settings_preset_no_match),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -317,7 +317,7 @@ private fun PresetItem(preset: ProviderConfig, onClick: () -> Unit) {
                     Text(
                         text = extractDomain(preset.baseUrl).ifBlank { needBaseUrlText },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
@@ -327,7 +327,7 @@ private fun PresetItem(preset: ProviderConfig, onClick: () -> Unit) {
                     Text(
                         text = "·",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
                     Text(

@@ -71,7 +71,7 @@ fun SettingsDiagnosticsPage(onBack: () -> Unit) {
                 Text(
                     text = stringResource(R.string.settings_diagnostics_loading),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
                 )
             }

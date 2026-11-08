@@ -81,7 +81,7 @@ private fun PreviewUserBubble(prefs: ChatPreferences, bodyStyle: TextStyle) {
                 Text(
                     text = stringResource(R.string.settings_preview_timestamp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -131,7 +131,7 @@ private fun PreviewAssistantBubble(prefs: ChatPreferences, bodyStyle: TextStyle)
                 Text(
                     text = stringResource(R.string.settings_preview_model_name),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

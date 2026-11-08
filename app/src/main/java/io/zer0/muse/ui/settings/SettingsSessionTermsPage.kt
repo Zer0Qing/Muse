@@ -75,7 +75,7 @@ fun SettingsSessionTermsPage(onBack: () -> Unit) {
                 Text(
                     text = stringResource(R.string.settings_session_terms_loading),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
                 )
             }
@@ -170,7 +170,7 @@ private fun TermCard(term: SessionTermEntity, onManage: () -> Unit) {
                     text = stringResource(statusLabel(term)) + " · " +
                         stringResource(R.string.settings_session_terms_occurrences, term.occurrences),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = term.meaning?.takeIf { it.isNotBlank() }

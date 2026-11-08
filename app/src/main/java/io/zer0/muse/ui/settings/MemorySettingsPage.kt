@@ -288,7 +288,7 @@ private fun SettingsActionRow(title: String, subtitle: String, onClick: () -> Un
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

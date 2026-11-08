@@ -517,7 +517,7 @@ fun AgentSettingsPage(
                         Text(
                             text = groupLabel,
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp, bottom = 6.dp),
                         )
                         FlowRow(
@@ -622,7 +622,7 @@ fun AgentSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_moment_content_mode_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 12.dp),
                     )
                     io.zer0.muse.data.moment.MomentContentMode.entries.forEach { mode ->
@@ -692,7 +692,7 @@ fun AgentSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_agent_pace_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 12.dp),
                     )
                     ProactivePace.values().forEach { pace ->
@@ -726,7 +726,7 @@ fun AgentSettingsPage(
                                 Text(
                                     text = paceSubtitle(pace),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             if (selected) {
@@ -783,7 +783,7 @@ fun AgentSettingsPage(
                             Text(
                                 text = stringResource(R.string.settings_agent_all_day_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         MuseSwitch(checked = allDay, onCheckedChange = { allDay = it })
@@ -817,13 +817,13 @@ fun AgentSettingsPage(
                         Text(
                             text = stringResource(R.string.settings_agent_quiet_hours_hint),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
                         Text(
                             text = stringResource(R.string.settings_agent_quiet_hours_start),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         MuseSlider(
                             value = s.toFloat(),
@@ -835,7 +835,7 @@ fun AgentSettingsPage(
                         Text(
                             text = stringResource(R.string.settings_agent_quiet_hours_end),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         MuseSlider(
                             value = e.toFloat(),
@@ -876,7 +876,7 @@ fun AgentSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_agent_content_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                     SettingsGroup {
@@ -977,7 +977,7 @@ fun AgentSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_agent_advanced_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                     SettingsGroup {
@@ -1118,7 +1118,7 @@ fun AgentSettingsPage(
                             Text(
                                 text = stringResource(R.string.settings_agent_no_assistants_hint),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(MusePaddings.screen),
                             )
                         }
@@ -1169,7 +1169,7 @@ fun AgentSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_agent_offset_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
                     MuseSlider(
@@ -1189,13 +1189,13 @@ fun AgentSettingsPage(
                         Text(
                             stringResource(R.string.settings_agent_offset_off_label),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                         )
                         Text(
                             intervalLabel(maxOffset),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                         )
                     }
@@ -1232,7 +1232,7 @@ fun AgentSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_agent_daily_guarantee_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
                     MuseSlider(
@@ -1279,7 +1279,7 @@ fun AgentSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_agent_temperature_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
                     MuseSlider(
@@ -1296,13 +1296,13 @@ fun AgentSettingsPage(
                         Text(
                             stringResource(R.string.settings_agent_temperature_stable),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                         )
                         Text(
                             stringResource(R.string.settings_agent_temperature_creative),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                         )
                     }

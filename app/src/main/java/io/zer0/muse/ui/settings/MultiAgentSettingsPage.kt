@@ -408,7 +408,7 @@ private fun TeamCard(team: AgentTeam, assistants: List<AssistantEntity>, onClick
                     Text(
                         text = team.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -419,7 +419,7 @@ private fun TeamCard(team: AgentTeam, assistants: List<AssistantEntity>, onClick
                     Text(
                         text = stringResource(R.string.settings_multi_agent_no_members),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 }
             }
@@ -541,13 +541,13 @@ private fun TeamEditDialog(team: AgentTeam, assistants: List<AssistantEntity>, o
                 Text(
                     text = stringResource(R.string.settings_multi_agent_select_members),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (assistants.isEmpty()) {
                     Text(
                         text = stringResource(R.string.settings_multi_agent_no_assistants),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 } else {
                     FlowRow(
@@ -595,13 +595,13 @@ private fun TeamEditDialog(team: AgentTeam, assistants: List<AssistantEntity>, o
                 Text(
                     text = stringResource(R.string.settings_multi_agent_workflow_desc),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
                 Text(
                     text = stringResource(R.string.settings_multi_agent_aggregation),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -632,13 +632,13 @@ private fun TeamEditDialog(team: AgentTeam, assistants: List<AssistantEntity>, o
                 Text(
                     text = stringResource(R.string.settings_multi_agent_add_node),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (workflow.nodes.isEmpty()) {
                     Text(
                         text = stringResource(R.string.settings_multi_agent_no_workflow),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 } else {
                     Column(
@@ -764,7 +764,7 @@ private fun WorkflowNodeRow(
             Text(
                 text = assistant?.name ?: node.assistantId,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         MuseTactileButton(
@@ -834,7 +834,7 @@ private fun WorkflowNodeEditDialog(
                 Text(
                     text = stringResource(R.string.settings_multi_agent_node_mode),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -866,7 +866,7 @@ private fun WorkflowNodeEditDialog(
                     Text(
                         text = stringResource(R.string.settings_multi_agent_node_dependencies),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),

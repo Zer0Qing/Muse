@@ -51,6 +51,7 @@ import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -86,7 +87,10 @@ fun ImageGenSection(settings: SettingsRepository = koinInject(), scope: Coroutin
         scope.launch { settings.saveImageGenConfig(localConfig) }
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+    ) {
         SectionLabel(stringResource(R.string.settings_image_gen_section))
         SettingsGroup {
             Column(

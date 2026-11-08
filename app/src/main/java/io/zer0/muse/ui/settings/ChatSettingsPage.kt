@@ -176,7 +176,7 @@ fun ChatSettingsPage(
                     Text(
                         text = stringResource(modeDescRes),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -281,7 +281,7 @@ fun ChatSettingsPage(
                         Text(
                             text = stringResource(R.string.settings_chat_background_subtitle),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     if (chatBackground != null) {
@@ -371,7 +371,7 @@ fun ChatSettingsPage(
                         Text(
                             text = stringResource(R.string.settings_chat_background_dark_subtitle),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     if (darkBg != null) {
@@ -438,7 +438,7 @@ fun ChatSettingsPage(
                         Text(
                             text = stringResource(R.string.settings_chat_gradient_subtitle),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     if (chatGradient != null) {
@@ -687,7 +687,7 @@ fun ChatSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_chat_message_font_size_subtitle),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     MuseSlider(
                         value = fontScaleDraft,
@@ -742,7 +742,7 @@ fun ChatSettingsPage(
                     Text(
                         text = stringResource(R.string.settings_chat_letter_spacing_subtitle),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     MuseSlider(
                         value = letterSpacingDraft,
@@ -824,7 +824,7 @@ fun ChatSettingsPage(
                         Text(
                             text = stringResource(temperatureHint(temperatureDraft)),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         MuseSlider(
                             value = temperatureDraft,
@@ -1223,7 +1223,7 @@ private fun NotificationPolicyRow(current: String, onChange: (String) -> Unit) {
                 Text(
                     text = replyNotificationSubtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -1290,7 +1290,7 @@ private fun SessionCacheSizeRow(settings: SettingsRepository, scope: CoroutineSc
             Text(
                 text = stringResource(R.string.settings_chat_session_cache_subtitle),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(
                 modifier = Modifier.padding(top = 8.dp),

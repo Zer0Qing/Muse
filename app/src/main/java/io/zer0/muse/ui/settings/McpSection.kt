@@ -104,7 +104,7 @@ internal fun McpSection() {
     Text(
         text = stringResource(R.string.settings_mcp_desc),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 4.dp),
     )
     // v1.0.92 (B-5): 风险自动判定说明(可折叠,解释为何某些工具需要审批)
@@ -324,7 +324,7 @@ private fun McpServerRow(
                     "${server.transportType.name} · ${server.url.take(50)}${if (server.url.length > 50) "..." else ""}"
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = state.name,
@@ -346,7 +346,7 @@ private fun McpServerRow(
                 Text(
                     text = stringResource(R.string.settings_mcp_connected_tools, toolCount),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             // v1.0.92 (B-4): 未连接时展示最后一次成功连接时间(帮助判断 server 是否曾可用)
@@ -357,7 +357,7 @@ private fun McpServerRow(
                         android.text.format.DateUtils.getRelativeTimeSpanString(server.lastConnectedAt).toString(),
                     ),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -552,7 +552,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                                         Text(
                                             text = template.summary,
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 },
@@ -563,7 +563,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                 Text(
                     text = selectedTemplate.summary,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 SettingField(
                     label = stringResource(R.string.settings_mcp_display_name),
@@ -667,7 +667,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                     Text(
                         text = stringResource(R.string.settings_common_advanced),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -882,13 +882,13 @@ private fun ResourcesBrowserDialog(serverId: String, mcpRegistry: McpRegistry, o
                                     Text(
                                         text = res.description,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.outline,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 Text(
                                     text = res.uri,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -1022,14 +1022,14 @@ private fun PromptsBrowserDialog(serverId: String, mcpRegistry: McpRegistry, onD
                                     Text(
                                         text = p.description,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.outline,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 if (p.arguments.isNotEmpty()) {
                                     Text(
                                         text = stringResource(R.string.settings_mcp_prompt_args, p.arguments.joinToString { it.name }),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.outline,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -1124,7 +1124,7 @@ private fun PromptsBrowserDialog(serverId: String, mcpRegistry: McpRegistry, onD
                         Text(
                             text = result.description,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     if (result.messages.isEmpty()) {

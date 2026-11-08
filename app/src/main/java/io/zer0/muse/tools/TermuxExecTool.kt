@@ -3,6 +3,7 @@ package io.zer0.muse.tools
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.terminal.TermuxChannel
+import io.zer0.muse.terminal.TermuxLoopbackProtocol
 
 /**
  * v2.2.1 Termux 通道:termux_exec — 在用户安装的 Termux(完整 Linux 环境)中执行命令。
@@ -53,16 +54,25 @@ object TermuxExecTool {
         val channel = TermuxChannel.get(context)
         val availability = channel.availability()
         if (availability !is TermuxChannel.Availability.Ready) {
-            return TermuxChannel.describe(availability)
+            return TermuxChannel.describe(availability) + "\n[通道自检] " + channel.diagnostics()
         }
 
         val result = channel.exec(command, timeoutMs, workdir)
         if (result.error != null) {
+            // 失败必须给模型可行动的信息：光一句「执行未完成」会让它原样重发同一条命令，
+            // 而结果没回传并不代表命令没执行，重发有副作用的命令是二次伤害。
             return buildString {
                 append("Termux 执行未完成: ").append(result.error)
-                append("\n如尚未配置 Termux 外部调用,请在 Termux 中执行 ")
-                append("`echo 'allow-external-apps = true' >> ~/.termux/termux.properties` 并重启 Termux,")
-                append("并在 系统设置→应用→Termux→附加权限 授予「运行 Termux 命令」。")
+                append("\n[回传路径] ").append(result.deliveryPath)
+                append("\n[通道自检] ").append(channel.diagnostics())
+                append("\n[用户侧配置] 在 Termux 中执行 ")
+                append("`echo 'allow-external-apps = true' >> ~/.termux/termux.properties && termux-reload-settings`,")
+                append("并在 系统设置→应用→Termux→附加权限 授予「运行 Termux 命令」;")
+                append("部分系统还需允许 Termux 被外部启动/关联启动。")
+                append("\n[下一步] 结果未回传不等于命令未执行,不要原样重发这条命令。")
+                append("先跑一条只读命令(如 `echo ok`)确认通道;若任务不依赖 Termux 专有工具链,")
+                append("改用 terminal_exec(应用沙盒)或 device_shell(需 Shizuku/Root);")
+                append("仍不通就把上面的自检结果如实告诉用户,请其确认配置后再试。")
             }
         }
         return buildString {
@@ -77,7 +87,15 @@ object TermuxExecTool {
                 append(out)
             }
             if (result.truncated) {
-                append("\n[注意] 输出超过 Termux 单次回传上限(约 100KB),已被截断,内容不完整;")
+                // 上限随回传路径不同，写死 100KB 会让环回路径的截断看起来无法解释。
+                append("\n[注意] 输出已被截断,内容不完整;")
+                if (result.deliveryPath == TermuxChannel.PATH_LOOPBACK) {
+                    append("本次走环回回传,上限 ")
+                        .append(TermuxLoopbackProtocol.MAX_PAYLOAD_BYTES / (1024 * 1024))
+                        .append("MB。")
+                } else {
+                    append("本次走广播回传,上限约 100KB(Termux 侧限制)。")
+                }
                 append("如需完整结果,请把命令输出重定向到 Termux 内文件再分段读取。")
             }
         }

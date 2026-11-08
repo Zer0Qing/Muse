@@ -189,7 +189,7 @@ private fun NotificationTextDialog(currentTitle: String, currentText: String, on
                 Text(
                     text = stringResource(R.string.settings_keep_alive_notification_custom_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 MuseTextField(
                     value = title,

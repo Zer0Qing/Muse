@@ -47,6 +47,17 @@ val appModule = module {
     single { io.zer0.muse.data.plugin.PluginMessageBridge(get()) }
     // 插件改外观通道（app.theme）。只开放明暗模式，具体皮肤留给用户自己挑。
     single { io.zer0.muse.data.plugin.PluginAppearanceBridge(get()) }
+    // 插件激活桥：启动装配与 PluginScheduleRunner 共用同一个单例。
+    // 此前只在 MuseApp 里手工构造，Koin 里没有定义 —— PluginScheduleRunner 解析时直接
+    // NoDefinitionFound，启动期整段插件装配失败、后台唤醒也跳过（见真机日志）。
+    single {
+        io.zer0.muse.data.plugin.PluginActivationBridge(
+            context = androidContext(),
+            pluginManager = get(),
+            appScope = get(),
+            settings = get(),
+        )
+    }
     // 插件定时任务：上次执行时间落盘，进程被杀之后仍能算出"该不该补跑"
     single {
         io.zer0.muse.data.plugin.PluginScheduleRunner(

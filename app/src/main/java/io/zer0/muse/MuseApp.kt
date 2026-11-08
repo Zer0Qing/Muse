@@ -509,12 +509,11 @@ class MuseApp : Application(), ImageLoaderFactory {
                 // v2.6.13: 插件激活事件（activationEvents）派发。
                 // 之前这个字段只被展示、从不派发，作者写了 onStartup 也不会被叫到。
                 resultOf {
-                    val bridge = io.zer0.muse.data.plugin.PluginActivationBridge(
-                        context = applicationContext,
-                        pluginManager = pluginManager,
-                        appScope = appScope,
-                        settings = settings,
-                    )
+                    // 从 Koin 取单例：PluginScheduleRunner 的同一依赖也从这里解析，
+                    // 两边手工各造一座桥会让激活去重状态分叉。
+                    val bridge = org.koin.java.KoinJavaComponent.get<
+                        io.zer0.muse.data.plugin.PluginActivationBridge,
+                        >(io.zer0.muse.data.plugin.PluginActivationBridge::class.java)
                     bridge.start()
                     // 发送链路通过这个持有者投 onMessage（加构造参数会撞 LongParameterList）
                     io.zer0.muse.data.plugin.PluginActivationBridge.install(bridge)

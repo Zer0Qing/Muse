@@ -296,7 +296,7 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                     Text(
                         text = stringResource(R.string.settings_sticker_frequency_subtitle),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(
                         modifier = Modifier.padding(top = 8.dp),
@@ -466,13 +466,13 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                     Text(
                         text = stringResource(R.string.settings_sticker_empty_title),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
                     Text(
                         text = stringResource(R.string.settings_sticker_empty_subtitle),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -938,7 +938,7 @@ internal val PRESET_CHAT_GRADIENTS: List<Pair<Long, Long>> =
  */
 @Composable
 internal fun StickerSettingsSection(settings: SettingsRepository, scope: CoroutineScope) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
         SectionLabel(stringResource(R.string.settings_chat_sticker_section))
         StickerLibrarySection(settings = settings, scope = scope)
     }

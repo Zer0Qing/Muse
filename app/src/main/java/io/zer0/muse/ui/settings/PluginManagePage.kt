@@ -1692,7 +1692,7 @@ private fun ConfigFieldRow(item: ConfigItem, currentValue: JsonElement?, onChang
             Text(
                 text = item.description,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

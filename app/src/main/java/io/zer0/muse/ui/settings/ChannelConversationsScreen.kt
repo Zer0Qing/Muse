@@ -206,7 +206,7 @@ private fun ConversationCard(
                 Text(
                     text = stringResource(R.string.channel_conversation_meta, turns.size, timeText),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
                 )
                 LastTurnPreview(lastTurn)
@@ -248,7 +248,7 @@ private fun EmptyHint() {
     Text(
         text = stringResource(R.string.channel_conversations_empty),
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 8.dp, vertical = 32.dp),
     )
 }
@@ -284,7 +284,7 @@ private fun SummaryLine(summary: String) {
     Text(
         text = stringResource(R.string.channel_conversation_summary, summary),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier.padding(top = 4.dp),

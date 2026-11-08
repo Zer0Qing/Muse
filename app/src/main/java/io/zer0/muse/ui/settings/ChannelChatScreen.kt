@@ -74,7 +74,7 @@ fun ChannelChatScreen(channelId: String, from: String, onBack: () -> Unit) {
                     Text(
                         text = stringResource(R.string.channel_chat_empty),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 32.dp),
                     )
                 }
@@ -84,7 +84,7 @@ fun ChannelChatScreen(channelId: String, from: String, onBack: () -> Unit) {
                     Text(
                         text = stringResource(R.string.channel_chat_readonly_hint),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                     )
                 }
@@ -100,7 +100,7 @@ fun ChannelChatScreen(channelId: String, from: String, onBack: () -> Unit) {
                     Text(
                         text = formatTime(turn.at),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     )
                 }
@@ -143,7 +143,7 @@ private fun ChannelBubble(turn: ChannelConversationStore.Turn) {
                     },
                 ),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             androidx.compose.material3.Surface(
                 shape = MuseShapes.medium,

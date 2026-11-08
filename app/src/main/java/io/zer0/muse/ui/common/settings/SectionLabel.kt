@@ -14,8 +14,11 @@ import io.zer0.muse.ui.theme.MusePaddings
  *
  * 用法:`SectionLabel("基础")`
  *
- * 样式:labelLarge + primary 色(蓝色),与 SettingsScreen / AssistantScreen 等 4 个
- * 管理页统一。
+ * 间距契约:组件自身不带顶部间距。逐 `item{}` 摆放(LazyColumn 的 spacedBy(cardGap) 提供节奏)时直接用;
+ * 若整段 section 被塞进单个 `item{}`(节内没有 spacedBy),调用方要给「上方还有内容」的小标题传
+ * `Modifier.padding(top = MusePaddings.cardGap)`,否则小标题会贴住上方卡片。
+ *
+ * 样式:labelLarge + SemiBold,颜色取 onSurface 80%。
  */
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier) {

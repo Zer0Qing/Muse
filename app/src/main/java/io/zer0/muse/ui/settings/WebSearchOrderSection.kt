@@ -43,7 +43,10 @@ internal fun WebSearchOrderSection(webSearchConfig: WebSearchConfig, onSave: (Li
         .filter { it.enabled && it.endpoint.isNotBlank() }
         .map { customSearchOrderKey(it.name) }
 
-    SectionLabel(stringResource(R.string.settings_web_search_order_title))
+    SectionLabel(
+        stringResource(R.string.settings_web_search_order_title),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
         Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(

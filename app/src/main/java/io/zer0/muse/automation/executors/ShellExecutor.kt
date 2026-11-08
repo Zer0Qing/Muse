@@ -67,7 +67,7 @@ open class ShellExecutor(
      * UserService 直接被打死（真机日志：`Transaction failed on small parcel; remote process
      * probably died` + 后续每次 `bindUserService 失败: UserService 连接超时`）。
      *
-     * 现在用 [ShizukuAuthorizer.executeToPipe]：命令在 shell 进程执行，字节经
+     * 现在用 [ShizukuAuthorizer.executeToFile]：命令在 shell 进程执行，字节经
      * ParcelFileDescriptor 管道流回本进程写文件，完全绕开 binder 体积上限。
      */
     private suspend fun screenshotViaShizuku(): Result<ByteArray> {
@@ -332,6 +332,28 @@ open class ShellExecutor(
         }.getOrElse { e ->
             Logger.w(TAG, "execDetailed error: ${e.message}")
             ExecDetail(-1, e.message ?: "执行失败")
+        }
+    }
+
+    /**
+     * exit=-1 的含义解释，供模型侧工具在失败时附上。
+     *
+     * -1 不是命令的退出码，而是「这条命令没能拿到退出码」。它有两种可能：通道根本没起来
+     * （命令没执行），或命令执行了但结果没能回传。两者的下一步完全不同 —— 只报一个 -1，
+     * 模型会原样重发同一条命令，带副作用的命令就被做两遍。
+     *
+     * @return 非 Shizuku 模式（含 [RootExecutor]）返回 null：那里的 -1 只有超时一种来源，
+     *   输出文本里已经写明，不需要再解释一遍。
+     */
+    fun describeChannelFailure(): String? {
+        val authorizer = shizukuAuthorizer ?: return null
+        return buildString {
+            append("[执行路径] ").append(authorizer.lastExecutionPath)
+            append("\n[含义] exit=-1 是通道级失败,不是命令的退出码:")
+            append("命令可能根本没执行,也可能执行了但结果没能回传。")
+            append("\n[下一步] 不要原样重发这条命令。先请用户确认 Shizuku 正在运行且已授权 Muse")
+            append("(设置 → 权限配置向导);再用一条只读命令(如 `echo ok`)确认通道是否恢复;")
+            append("若刚才那条命令带副作用,用只读命令核实它是否已经生效,再决定要不要重做。")
         }
     }
 

@@ -74,7 +74,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                     Text(
                         text = stringResource(R.string.prompt_template_manager_empty),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(MusePaddings.cardInner),
                     )
                 } else {
@@ -114,7 +114,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                                 Text(
                                     text = template.category.ifBlank { "-" },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )

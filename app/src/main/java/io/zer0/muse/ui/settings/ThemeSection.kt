@@ -215,7 +215,12 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     }
 
     // ── v0.22: 主题切换(预设主题网格选择器) ──
-    SectionLabel(stringResource(R.string.section_theme))
+    // 本函数整体被宿主页塞进单个 item{}，节内没有 LazyColumn 的 spacedBy 可借，
+    // 所以「上方还有内容」的小标题要自带与一级页同值的顶部间距，否则会贴住上一张卡片。
+    SectionLabel(
+        stringResource(R.string.section_theme),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     // 主题网格: 3 列卡片,每张展示主色+表面色+名称+选中态
     ThemeGridPicker(
         themes = PresetThemes,
@@ -354,7 +359,10 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
 
     // ── 主题定时切换(Feature 4) ──
     val schedule by settings.themeScheduleFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.ThemeScheduleConfig())
-    SectionLabel(stringResource(R.string.settings_theme_schedule))
+    SectionLabel(
+        stringResource(R.string.settings_theme_schedule),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
@@ -434,7 +442,10 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     }
 
     // ── 字号选择 ──
-    SectionLabel(stringResource(R.string.settings_theme_font_size))
+    SectionLabel(
+        stringResource(R.string.settings_theme_font_size),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
@@ -718,7 +729,7 @@ private fun FontSizePreview(scale: String) {
                 style = TextStyle(
                     fontSize = (MaterialTheme.typography.bodySmall.fontSize.value * factor).sp,
                 ),
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
@@ -998,7 +1009,10 @@ private fun CustomThemeSection(
     /** E1: 导出单个主题为 JSON 分享。 */
     onExport: (CustomTheme) -> Unit,
 ) {
-    SectionLabel(stringResource(R.string.settings_theme_custom_section))
+    SectionLabel(
+        stringResource(R.string.settings_theme_custom_section),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
@@ -1275,7 +1289,7 @@ private fun CustomThemeEditDialog(theme: CustomTheme?, isDark: Boolean, onDismis
                 Text(
                     text = stringResource(R.string.settings_theme_custom_presets),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 Row(
@@ -1652,7 +1666,10 @@ private fun PresetColorChip(name: String, primary: Color, secondary: Color, tert
  */
 @Composable
 private fun FontSection(customFontPath: String?, onImport: () -> Unit, onClear: () -> Unit) {
-    SectionLabel(stringResource(R.string.settings_font_section_title))
+    SectionLabel(
+        stringResource(R.string.settings_font_section_title),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {

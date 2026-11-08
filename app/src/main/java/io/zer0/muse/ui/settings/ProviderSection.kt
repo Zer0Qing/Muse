@@ -323,7 +323,7 @@ private fun ProviderCategoryHeader(title: String, count: Int) {
         Text(
             text = "$count",
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -367,7 +367,7 @@ private fun ModelCatalogRow() {
                     )
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         MuseCapsuleButton(
@@ -457,7 +457,7 @@ internal fun ProviderRow(
             Text(
                 text = providerDisplayTypeName(config.type),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )

@@ -110,8 +110,10 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
 
     // ST-10 (A11Y-03): 分区间距由固定高度改为 heightIn(min = …) — 纯间距不裁剪文本,
     // 但保证字号放大 1.3x 时不会被写死的高度限制。
-    Spacer(Modifier.heightIn(min = 12.dp))
-    SectionLabel(stringResource(R.string.settings_web_search_mode))
+    SectionLabel(
+        stringResource(R.string.settings_web_search_mode),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup {
         Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(
@@ -174,8 +176,10 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         }
     }
 
-    Spacer(Modifier.heightIn(min = 12.dp))
-    SectionLabel(stringResource(R.string.settings_web_search_default_path))
+    SectionLabel(
+        stringResource(R.string.settings_web_search_default_path),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup {
         Text(
             text = stringResource(R.string.settings_web_search_default_path_desc),
@@ -201,8 +205,10 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         )
     }
 
-    Spacer(Modifier.heightIn(min = 12.dp))
-    SectionLabel(stringResource(R.string.settings_web_search_strategy))
+    SectionLabel(
+        stringResource(R.string.settings_web_search_strategy),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup {
         Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(stringResource(R.string.settings_web_search_budget), style = MaterialTheme.typography.bodyMedium)
@@ -253,8 +259,10 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         )
     }
 
-    Spacer(Modifier.height(12.dp))
-    SectionLabel(stringResource(R.string.settings_web_search_diagnosis))
+    SectionLabel(
+        stringResource(R.string.settings_web_search_diagnosis),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup {
         val response = lastSearch
         if (response == null) {
@@ -288,8 +296,10 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         }
     }
 
-    Spacer(Modifier.height(12.dp))
-    SectionLabel(stringResource(R.string.settings_web_search_api_services))
+    SectionLabel(
+        stringResource(R.string.settings_web_search_api_services),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup {
         SettingsItemRow(
             icon = MuseIcons.plug,
@@ -346,7 +356,7 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
             Text(
                 text = stringResource(R.string.settings_web_search_multi_key_subtitle),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp),
             )
             WebSearchConfig.PROVIDERS_NEEDING_API_KEY
@@ -453,7 +463,6 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
 
     // 「搜索顺序」：Auto 回退链的尝试顺序可调，且与链构造共用同一份顺序表
     // （AUTO_CHAIN_PROVIDER_KEYS）—— 界面自己抄一份顺序的话，用户拖完看到的是假顺序。
-    Spacer(Modifier.height(12.dp))
     WebSearchOrderSection(
         webSearchConfig = webSearchConfig,
         onSave = { order ->

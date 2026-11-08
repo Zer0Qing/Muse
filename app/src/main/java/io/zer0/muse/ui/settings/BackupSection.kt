@@ -54,6 +54,7 @@ import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.settings.StatusDot
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
@@ -248,7 +249,10 @@ internal fun BackupSection(
     }
 
     // ── 本地备份与恢复 ──
-    SectionLabel(stringResource(R.string.settings_backup_local_title))
+    SectionLabel(
+        stringResource(R.string.settings_backup_local_title),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
@@ -392,7 +396,10 @@ internal fun BackupSection(
     }
 
     // ── 云备份(P1 新增;v2.x: 收敛为单行入口 — 配置、开关与操作统一在独立云备份页)──
-    SectionLabel(stringResource(R.string.settings_backup_cloud_title))
+    SectionLabel(
+        stringResource(R.string.settings_backup_cloud_title),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
@@ -431,7 +438,10 @@ internal fun BackupSection(
     }
 
     // ── F-04: 最近备份记录(诊断可见,来自 auto_backup_log 表)──
-    SectionLabel(stringResource(R.string.settings_backup_log_title))
+    SectionLabel(
+        stringResource(R.string.settings_backup_log_title),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup {
         val logs by autoBackupLogDao.observeRecent(10)
             .collectAsStateWithLifecycle(initialValue = emptyList())

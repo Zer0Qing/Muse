@@ -181,7 +181,7 @@ fun ProxySettingsPage(onBack: () -> Unit) {
             Text(
                 text = stringResource(R.string.proxy_bypass_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
@@ -204,7 +204,7 @@ fun ProxySettingsPage(onBack: () -> Unit) {
             Text(
                 text = stringResource(R.string.proxy_restart_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
         }

@@ -125,7 +125,12 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
         )
     }
 
-    SectionLabel(stringResource(R.string.settings_bubble_skin_section))
+    // 本函数在 ThemeSection 体内中途出现，节内没有 LazyColumn 的 spacedBy 可借，
+    // 首个与后续小标题都自带与一级页同值的顶部间距，避免贴住上方卡片。
+    SectionLabel(
+        stringResource(R.string.settings_bubble_skin_section),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
@@ -181,7 +186,10 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
 
     // ── Phase 4: 已安装插件的声明式皮肤(只读展示/选择,不支持导出与删除) ──
     if (pluginSkins.isNotEmpty()) {
-        SectionLabel(stringResource(R.string.settings_bubble_skin_plugin_section))
+        SectionLabel(
+            stringResource(R.string.settings_bubble_skin_plugin_section),
+            modifier = Modifier.padding(top = MusePaddings.cardGap),
+        )
         SettingsGroup(
             modifier = Modifier.padding(top = 8.dp),
         ) {
@@ -351,7 +359,10 @@ private fun BubbleSkinRow(
  */
 @Composable
 private fun BubbleSkinPreviewPanel(skin: BubbleSkin?, dark: Boolean, fontSizeScale: String, onDarkChange: (Boolean) -> Unit) {
-    SectionLabel(stringResource(R.string.settings_bubble_skin_preview))
+    SectionLabel(
+        stringResource(R.string.settings_bubble_skin_preview),
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    )
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {

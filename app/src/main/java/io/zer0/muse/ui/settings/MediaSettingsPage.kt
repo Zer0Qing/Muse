@@ -465,7 +465,13 @@ private fun CloudTtsConfigSection(
                             MuseListItem(
                                 headlineContent = { Text(v.name) },
                                 supportingContent = v.description?.takeIf { it.isNotBlank() }?.let { desc ->
-                                    { Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline) }
+                                    {
+                                        Text(
+                                            desc,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 },
                                 onClick = {
                                     voice = v.id
