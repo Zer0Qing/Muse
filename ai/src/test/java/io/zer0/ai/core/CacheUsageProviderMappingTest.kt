@@ -84,4 +84,50 @@ class CacheUsageProviderMappingTest {
         // Gemini 的 promptTokenCount 含缓存命中
         assertTrue(usage.promptTokensIncludeCache)
     }
+
+    @Test
+    fun `DeepSeek 把缓存命中放在 usage 顶层，不能读成零`() {
+        // DeepSeek 的兼容端点不填 prompt_tokens_details，而是在 usage 顶层给
+        // prompt_cache_hit_tokens / prompt_cache_miss_tokens。只读嵌套字段的话，
+        // 命中数永远是 0 —— 界面上「缓存命中」恒为空，计价按全价算。
+        val usage =
+            OpenAICompletionUsage(
+                promptTokens = 1_000,
+                completionTokens = 10,
+                promptCacheHitTokens = 640,
+            ).openAIUsageTokens()
+
+        assertEquals(640, usage.cachedTokens)
+        assertEquals(640, usage.cacheReadTokens)
+        assertEquals(0, usage.cacheWriteTokens)
+        assertTrue(usage.promptTokensIncludeCache)
+    }
+
+    @Test
+    fun `顶层 cached_tokens 也要认（部分中转站只给这一层）`() {
+        val usage =
+            OpenAICompletionUsage(
+                promptTokens = 500,
+                completionTokens = 5,
+                cachedTokens = 300,
+            ).openAIUsageTokens()
+
+        assertEquals(300, usage.cachedTokens)
+        assertTrue(usage.promptTokensIncludeCache)
+    }
+
+    @Test
+    fun `嵌套与顶层同时出现时以嵌套为准`() {
+        // 两处都给值时说明该端点同时兼容两套协议；嵌套是 OpenAI 官方口径，优先采信。
+        val usage =
+            OpenAICompletionUsage(
+                promptTokens = 1_000,
+                completionTokens = 10,
+                promptTokensDetails = OpenAICompletionPromptTokensDetails(cachedTokens = 800),
+                promptCacheHitTokens = 640,
+                cachedTokens = 300,
+            ).openAIUsageTokens()
+
+        assertEquals(800, usage.cachedTokens)
+    }
 }

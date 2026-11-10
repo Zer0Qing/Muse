@@ -290,7 +290,6 @@ class ProactiveContextLoaderSessionTest {
         assertEquals(ASSISTANT_ID, created.assistantId)
     }
 
-
     @Test
     fun `no session at all falls back to a new agent session`() = runTest {
         val pick = loader().resolveSessionPick(assistant)

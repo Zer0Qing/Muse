@@ -117,23 +117,14 @@ data class ScreenInfo(
  * `width` / `height` 非正（拿不到屏幕尺寸）时返回 null：**尺寸未知不拦** ——
  * 拿 0 当边界会把所有点击都判成越界，那是把保护变成故障。
  */
-internal fun boundsIssue(
-    x: Int,
-    y: Int,
-    width: Int,
-    height: Int,
-): String? {
+internal fun boundsIssue(x: Int, y: Int, width: Int, height: Int): String? {
     if (width <= 0 || height <= 0) return null
     if (x in 0 until width && y in 0 until height) return null
     return "坐标越界: ($x,$y) 不在 0..${width - 1} / 0..${height - 1} 内"
 }
 
 /** 多点动作（滑动/缩放/路径）的越界原因：把**所有**越界的点都列出来。 */
-internal fun pointsBoundsIssue(
-    points: List<Pair<Int, Int>>,
-    width: Int,
-    height: Int,
-): String? {
+internal fun pointsBoundsIssue(points: List<Pair<Int, Int>>, width: Int, height: Int): String? {
     if (width <= 0 || height <= 0) return null
     val bad = points.filter { (x, y) -> x !in 0 until width || y !in 0 until height }
     if (bad.isEmpty()) return null
@@ -148,12 +139,7 @@ internal fun pointsBoundsIssue(
  * @param error 遍历中途抛出的异常描述（null 表示没抛）
  * @param collected 实际收集到的控件数
  */
-internal fun screenReadIssue(
-    depthTruncated: Boolean,
-    error: String?,
-    collected: Int,
-    maxDepth: Int,
-): String? = buildList {
+internal fun screenReadIssue(depthTruncated: Boolean, error: String?, collected: Int, maxDepth: Int): String? = buildList {
     if (error != null) {
         add("控件树遍历中断（$error），只拿到中断前的 $collected 个控件")
     }

@@ -96,11 +96,7 @@ object TokenEstimator {
      * @param systemPrompt 系统提示文本(SystemPromptAssembler 组装后),默认空
      * @return token 数(BPE 精确或启发式回退)
      */
-    fun estimate(
-        messages: List<UIMessage>,
-        systemPrompt: String = "",
-        cache: MessageTokenCache? = null,
-    ): Int {
+    fun estimate(messages: List<UIMessage>, systemPrompt: String = "", cache: MessageTokenCache? = null): Int {
         var total = estimate(systemPrompt)
         messages.forEach { msg -> total += (cache?.count(msg) ?: countMessage(msg)) }
         // M6: 每条消息约 4 tokens 开销(OpenAI 协议每条消息的固定开销:role 标记 + 分隔符)
@@ -153,6 +149,7 @@ object TokenEstimator {
         return cnTokens + enTokens
     }
 }
+
 /**
  * 单条消息 token 计数的**身份缓存**。
  *

@@ -19,8 +19,8 @@ import io.zer0.muse.data.session.MessageFtsDdl
 import io.zer0.muse.data.session.MessageFtsRuntime
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.SessionEntity
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -149,18 +149,17 @@ class RoomCheckpointPortTest {
         assertEquals(1, database.messageDao().getRecentBySession("session-identity", 10).size)
     }
 
-    private fun snapshot() =
-        CheckpointSnapshot(
-            identity = RunIdentity(
-                sessionId = "session-1",
-                incarnation = 1,
-                turnId = "turn-1",
-                generationId = "generation-1",
-                streamId = "stream-1",
-                selectionSetId = "selection-1",
-            ),
-            sequence = 2,
-            text = "hello",
-            parts = listOf(MessagePart("assistant:text", PartKind.Text, 2, "hello")),
-        )
+    private fun snapshot() = CheckpointSnapshot(
+        identity = RunIdentity(
+            sessionId = "session-1",
+            incarnation = 1,
+            turnId = "turn-1",
+            generationId = "generation-1",
+            streamId = "stream-1",
+            selectionSetId = "selection-1",
+        ),
+        sequence = 2,
+        text = "hello",
+        parts = listOf(MessagePart("assistant:text", PartKind.Text, 2, "hello")),
+    )
 }

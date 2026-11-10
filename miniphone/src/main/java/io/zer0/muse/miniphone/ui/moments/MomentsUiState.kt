@@ -97,6 +97,8 @@ internal fun buildMomentUi(
     likes: List<MpMomentLikeEntity>,
     comments: List<MpMomentCommentEntity>,
     characters: Map<String, MpCharacter>,
+    /** 名字为空时的称呼，按点赞人类型给（自己 / 角色），由调用方按当前语言提供。 */
+    nameFallback: (MpActorType) -> String = { "" },
 ): MomentUi = MomentUi(
     id = entity.id,
     authorId = entity.authorId,
@@ -106,7 +108,10 @@ internal fun buildMomentUi(
     images = decodeMomentImages(entity.imagesJson),
     createdAt = entity.createdAt,
     isMine = entity.source == MpMomentSource.USER && entity.authorId == MP_LOCAL_ACTOR_ID,
-    likes = likes.map { like -> like.likerName },
+    // 空名字不再落库（落库侧只存真名），这里按点赞人类型补一个称呼，
+    // 否则没设昵称的用户点了赞，自己会从点赞行里消失（likersLineOf 会滤掉空串）。
+    // 称呼由调用方按当前语言给 —— 这个函数是纯的，不该持有任何一种语言。
+    likes = likes.map { like -> like.likerName.trim().ifEmpty { nameFallback(like.likerType) } },
     likedByMe = likes.any { like -> like.likerType == MpActorType.USER && like.likerId == MP_LOCAL_ACTOR_ID },
     comments = buildCommentTree(comments),
     visibleToJson = entity.visibleToJson,
@@ -204,3 +209,16 @@ internal fun likersLineOf(context: android.content.Context, names: List<String>)
 }
 
 private const val LIKERS_MARK: String = "❤️ "
+
+/**
+ * 名字为空时按当前界面语言补一个称呼。
+ *
+ * 落库侧不再把「我」「角色」写进数据（那等于把界面语言固化进库），所以读出来可能是空串。
+ * 空就补称呼；有名字就原样用 —— 界面只做兜底，不替用户改名。
+ */
+internal fun displayNameOf(context: android.content.Context, name: String, isMine: Boolean): String {
+    val trimmed = name.trim()
+    if (trimmed.isNotEmpty()) return trimmed
+    val res = if (isMine) R.string.mp_moments_self_name else R.string.mp_moments_character_name
+    return context.getString(res)
+}

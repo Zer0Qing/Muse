@@ -27,10 +27,6 @@ fun interface VoiceSynthesizer {
      * 10: 用指定克隆音色合成。默认回落到普通 [synthesizeTo]（假实现/无克隆能力时忽略音色），
      * 真实现（Koin 绑定）覆盖它接到 [TtsManager.synthesizeToWithClonedVoice]。
      */
-    suspend fun synthesizeToWithVoice(
-        text: String,
-        outputFile: File,
-        emotionOverride: String?,
-        voiceId: String,
-    ): TtsSynthResult = synthesizeTo(text, outputFile, emotionOverride)
+    suspend fun synthesizeToWithVoice(text: String, outputFile: File, emotionOverride: String?, voiceId: String): TtsSynthResult =
+        synthesizeTo(text, outputFile, emotionOverride)
 }

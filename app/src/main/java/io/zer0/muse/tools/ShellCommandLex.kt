@@ -152,11 +152,9 @@ internal class ShellLocator(private val workspaceDir: File?) {
         else -> ShellScope.OUTSIDE
     }
 
-    private fun resolvesToWorkspaceRoot(path: String) =
-        path == workspacePosix || variants(path).any { it == workspacePosix }
+    private fun resolvesToWorkspaceRoot(path: String) = path == workspacePosix || variants(path).any { it == workspacePosix }
 
-    private fun resolvesInsideWorkspace(path: String) =
-        insideWorkspace(path) || variants(path).any { insideWorkspace(it) }
+    private fun resolvesInsideWorkspace(path: String) = insideWorkspace(path) || variants(path).any { insideWorkspace(it) }
 
     private fun insideWorkspace(absolute: String) =
         workspacePosix != null && absolute != workspacePosix && absolute.startsWith("$workspacePosix/")
@@ -217,9 +215,8 @@ internal object ShellCommandLex {
     fun isHarmlessSink(path: String) = HARMLESS_SINKS.any { path == it || path.startsWith("$it/") }
 
     /** `-r`/`-R`/`-rf`/`--recursive`:递归开关(组合短选项逐字符看)。 */
-    fun isRecursiveFlag(token: String) =
-        token == "--recursive" ||
-            (token.startsWith("-") && !token.startsWith("--") && token.any { it == 'r' || it == 'R' })
+    fun isRecursiveFlag(token: String) = token == "--recursive" ||
+        (token.startsWith("-") && !token.startsWith("--") && token.any { it == 'r' || it == 'R' })
 
     /** 世界可写的模式:`777`/`776`/`o+w`/`a+w` 这类放开了其它用户写权限的写法。 */
     fun isWorldWritableMode(token: String): Boolean {
@@ -244,6 +241,5 @@ internal object ShellCommandLex {
     }
 
     /** 参数里是不是在拉远程内容(`eval "$(curl …)"` 这类判据用)。 */
-    fun loadsRemoteContent(token: String) =
-        token.contains("curl") || token.contains("wget") || token.contains("://")
+    fun loadsRemoteContent(token: String) = token.contains("curl") || token.contains("wget") || token.contains("://")
 }

@@ -707,7 +707,8 @@ private fun LinkableText(
 @Composable
 private fun CodeBlockView(block: MarkdownBlock.CodeBlock) {
     val context = LocalContext.current
-    val codeLines = remember(block.code) { block.code.split("\n") }
+    // 用统一的换行分割：\r\n 的每行末尾若残留 \r，行数与折叠判断都会偏。
+    val codeLines = remember(block.code) { block.code.split(MARKDOWN_LINE_SPLIT) }
     val lineCount = codeLines.size
     val autoCollapseThreshold = 30
     val previewLineCount = 10

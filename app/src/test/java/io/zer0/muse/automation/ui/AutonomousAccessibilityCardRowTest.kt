@@ -59,8 +59,7 @@ class AutonomousAccessibilityCardRowTest {
         }
     }
 
-    private fun countOf(text: String): Int =
-        composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().size
+    private fun countOf(text: String): Int = composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().size
 
     @Test
     fun `每日最多执行只渲染一行`() {

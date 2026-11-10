@@ -72,14 +72,7 @@ object StickerMontageSplitter {
     }
 
     /** 粗网格：每个块里非背景像素够多才算有内容。 */
-    private fun contentGrid(
-        pixels: IntArray,
-        width: Int,
-        height: Int,
-        block: Int,
-        columns: Int,
-        rows: Int,
-    ): BooleanArray {
+    private fun contentGrid(pixels: IntArray, width: Int, height: Int, block: Int, columns: Int, rows: Int): BooleanArray {
         val sampler = Sampler(pixels, width, height, block, guessBackground(pixels, width, height))
         val flags = BooleanArray(columns * rows)
         for (row in 0 until rows) {
@@ -257,8 +250,7 @@ object StickerMontageSplitter {
         return runs
     }
 
-    private fun List<Cell>.readingOrder(): List<Cell> =
-        sortedWith(compareBy({ it.top / 64 }, { it.left })).take(MAX_CELLS)
+    private fun List<Cell>.readingOrder(): List<Cell> = sortedWith(compareBy({ it.top / 64 }, { it.left })).take(MAX_CELLS)
 
     /**
      * 背景色：取四边一圈的众数。
@@ -295,11 +287,9 @@ object StickerMontageSplitter {
             channelDelta(color, background, 0) <= COLOR_TOLERANCE
     }
 
-    private fun channelDelta(first: Int, second: Int, shift: Int): Int =
-        abs((first ushr shift and 0xFF) - (second ushr shift and 0xFF))
+    private fun channelDelta(first: Int, second: Int, shift: Int): Int = abs((first ushr shift and 0xFF) - (second ushr shift and 0xFF))
 
-    private fun quantize(color: Int): Int =
-        (color ushr 16 and 0xFF) / 16 shl 8 or
-            ((color ushr 8 and 0xFF) / 16 shl 4) or
-            ((color and 0xFF) / 16)
+    private fun quantize(color: Int): Int = (color ushr 16 and 0xFF) / 16 shl 8 or
+        ((color ushr 8 and 0xFF) / 16 shl 4) or
+        ((color and 0xFF) / 16)
 }

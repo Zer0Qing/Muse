@@ -239,6 +239,9 @@ private const val EXACT_ID_BONUS = 1000
  * 将模型 ID 切分为字母/数字/符号片段。
  * 例如 "gpt-4o-mini" → ["gpt", "4", "o", "-", "mini"]
  */
+/** 跟在数字后面表示「量」而非「版本」的单位。 */
+private val QUANTITY_UNITS = setOf("b", "k", "m", "t")
+
 internal fun tokenize(modelId: String): List<String> {
     val tokens = mutableListOf<String>()
     val input = modelId.lowercase()
@@ -256,7 +259,19 @@ internal fun tokenize(modelId: String): List<String> {
                 val start = index
                 index++
                 while (index < input.length && input[index].isDigit()) index++
-                tokens.add(input.substring(start, index))
+                // 数字后面紧跟数量单位时，把它并成一个词：`5b` / `32k` / `235b` 是参数量或上下文长度，
+                // 不是版本号。不合并的话 `qwen3-5b` 会被切成 [qwen,3,5,b]，
+                // 于是 `qwen 3 5` 这条定义误把它当成 qwen3.5 —— 判成视觉模型、给它用不上的能力。
+                val unitStart = index
+                while (index < input.length && input[index].isLetter()) index++
+                val unit = input.substring(unitStart, index)
+                if (unit in QUANTITY_UNITS) {
+                    tokens.add(input.substring(start, index))
+                } else {
+                    // 不是数量单位：数字单独成词，字母留给下一轮按普通单词切
+                    index = unitStart
+                    tokens.add(input.substring(start, unitStart))
+                }
             }
             else -> {
                 tokens.add(ch.toString())

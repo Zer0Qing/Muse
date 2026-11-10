@@ -21,8 +21,8 @@ import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.api.MpReplyEvent
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.transformer.stripThinkTags
-import io.zer0.muse.ui.speech.VoiceMessageArchiver
 import io.zer0.muse.ui.speech.TtsSynthResult
+import io.zer0.muse.ui.speech.VoiceMessageArchiver
 import io.zer0.muse.ui.speech.VoiceSynthesizer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -161,10 +161,9 @@ internal class MiniPhoneTextComposer(
 ) {
 
     /** 读取角色；读不到（不存在 / 异常）都返回 null。 */
-    suspend fun findAssistant(characterId: String): AssistantEntity? =
-        resultOf { assistantRepository.getById(characterId) }
-            .onError { msg, t -> Logger.w(TAG, "读取角色失败: id=$characterId, ${t?.message ?: msg}") }
-            .getOrNull()
+    suspend fun findAssistant(characterId: String): AssistantEntity? = resultOf { assistantRepository.getById(characterId) }
+        .onError { msg, t -> Logger.w(TAG, "读取角色失败: id=$characterId, ${t?.message ?: msg}") }
+        .getOrNull()
 
     /** 动态素材：动态口吻，单条正文，不配图。 */
     suspend fun composeMoment(assistant: AssistantEntity, hint: String?): String? =
@@ -173,6 +172,14 @@ internal class MiniPhoneTextComposer(
     /** 主动私信素材：同一个角色人格、同一个生成链路，只把任务换成「直接开口说一句话」。 */
     suspend fun composeProactiveMessage(assistant: AssistantEntity, hint: String?): String? =
         generate(assistant, proactiveChatMaterial(hint), MAX_TOKENS_PROACTIVE_CHAT)?.let(::cleanOutput)
+
+    /** 心声：角色没说出口的内心独白，一句，第一人称，不进对话。 */
+    suspend fun composeInnerVoice(assistant: AssistantEntity, hint: String?): String? =
+        generate(assistant, innerVoiceMaterial(hint), MAX_TOKENS_INNER_VOICE)?.let(::cleanOutput)
+
+    /** 通用场景：玩法模块把任务说明交进来，人格与生成链路复用同一条。 */
+    suspend fun composeScene(assistant: AssistantEntity, brief: String): String? =
+        generate(assistant, sceneMaterial(brief), MAX_TOKENS_SCENE)?.let(::cleanOutput)
 
     /** 私信素材：把模块交来的对话拼成「人格系统提示 + 最近几轮」。 */
     suspend fun buildConversation(assistant: AssistantEntity, history: List<MpChatTurn>): List<UIMessage> {
@@ -197,11 +204,10 @@ internal class MiniPhoneTextComposer(
     }
 
     /** 剥掉 think 标签、系统标记与包裹引号;剥完为空视为没有结果。 */
-    fun cleanOutput(raw: String): String? =
-        stripSystemMarks(stripThinkTags(raw)).trim()
-            .removeSurrounding("\"")
-            .trim()
-            .takeIf { it.isNotBlank() }
+    fun cleanOutput(raw: String): String? = stripSystemMarks(stripThinkTags(raw)).trim()
+        .removeSurrounding("\"")
+        .trim()
+        .takeIf { it.isNotBlank() }
 
     /**
      * 剥掉模型自作主张加的系统标记:MOOD 整行、`[mood]…[/mood]` / `<mood>…</mood>` 段、
@@ -272,6 +278,32 @@ internal class MiniPhoneTextComposer(
         appendLine("</style>")
     }
 
+    /** 心声素材：角色没说出口的一句内心独白，配合最近交流与刚说的那句。 */
+    private fun innerVoiceMaterial(hint: String?): String = buildString {
+        appendLine("<inner_voice_task>")
+        appendLine("写下你此刻没说出口的内心独白（心声）。")
+        appendHint(hint)
+        appendLine("</inner_voice_task>")
+        appendLine()
+        appendLine("<style>")
+        appendLine("- 第一人称，一句话，只写心里想的，不是说出口的话。")
+        appendLine("- 不要 MOOD、旁白、引号、markdown、解释。")
+        appendLine("- 只输出这一句心声本身。")
+        appendLine("</style>")
+    }
+
+    /** 通用场景素材：任务说明原样接进人格上下文，风格约束只保留「别输出状态栏」。 */
+    private fun sceneMaterial(brief: String): String = buildString {
+        appendLine("<scene_task>")
+        appendLine(brief.trim())
+        appendLine("</scene_task>")
+        appendLine()
+        appendLine("<style>")
+        appendLine("- 以你自己的身份写，口语自然，只输出正文本身。")
+        appendLine("- 不要 MOOD、情绪值、好感度、状态栏、系统标签、markdown、解释。")
+        appendLine("</style>")
+    }
+
     /** 模块拼好的素材原样接进去：上下文在前，最后一句是这一条要写什么。 */
     private fun StringBuilder.appendHint(hint: String?) {
         hint?.takeIf { it.isNotBlank() }?.lineSequence()?.forEach { line -> appendLine(line) }
@@ -287,6 +319,12 @@ internal class MiniPhoneTextComposer(
 
         /** 主动私信只要一两句:额度压小,避免写成一整封信。 */
         private const val MAX_TOKENS_PROACTIVE_CHAT = 120
+
+        /** 心声就一句:额度压到最小,别写成一整段独白。 */
+        private const val MAX_TOKENS_INNER_VOICE = 60
+
+        /** 通用场景上限：玩法叙事比一句话长，但也不该放成几百 token。 */
+        private const val MAX_TOKENS_SCENE = 320
 
         /** 私信只带最近几轮:更早的内容对一句话回复没有帮助,只会吃上下文预算。 */
         private const val MAX_HISTORY_TURNS = 20
@@ -324,6 +362,8 @@ class AppMiniPhoneHost(
     private val voiceSynthesizer: VoiceSynthesizer,
     private val voiceStore: VoiceMessageArchiver,
     private val cacheDir: File,
+    /** 世界书与表情包的只读互通；null 表示宿主没接，这两项能力按「没有」处理。 */
+    private val libraryBridge: MiniPhoneLibraryBridge? = null,
 ) : MiniPhoneHost {
 
     private val textComposer = MiniPhoneTextComposer(
@@ -335,21 +375,19 @@ class AppMiniPhoneHost(
     /** 用户录音的一次性转写:与流式识别共用同一份语音设置,不共用采集链路。 */
     private val voiceTranscriber = OneShotAsrTranscriber(settingsRepository)
 
-    override fun observeCharacters(): Flow<List<MpCharacter>> =
-        assistantRepository.observeAll
-            .map { assistants -> assistants.map { it.toMpCharacter() } }
-            .catch { t ->
-                Logger.w(TAG, "读取角色列表失败，按空通讯录处理: ${t.message}")
-                emit(emptyList())
-            }
+    override fun observeCharacters(): Flow<List<MpCharacter>> = assistantRepository.observeAll
+        .map { assistants -> assistants.map { it.toMpCharacter() } }
+        .catch { t ->
+            Logger.w(TAG, "读取角色列表失败，按空通讯录处理: ${t.message}")
+            emit(emptyList())
+        }
 
-    override fun observeProfile(): Flow<MpProfile> =
-        settingsRepository.userProfileFlow
-            .map { it.toMpProfile() }
-            .catch { t ->
-                Logger.w(TAG, "读取用户资料失败，按空资料处理: ${t.message}")
-                emit(MpProfile(nickname = ""))
-            }
+    override fun observeProfile(): Flow<MpProfile> = settingsRepository.userProfileFlow
+        .map { it.toMpProfile() }
+        .catch { t ->
+            Logger.w(TAG, "读取用户资料失败，按空资料处理: ${t.message}")
+            emit(MpProfile(nickname = ""))
+        }
 
     override fun respond(characterId: String, history: List<MpChatTurn>): Flow<MpReplyEvent> = flow {
         val assistant = textComposer.findAssistant(characterId)
@@ -383,6 +421,18 @@ class AppMiniPhoneHost(
         return textComposer.composeProactiveMessage(assistant, hint)
     }
 
+    override suspend fun composeInnerVoice(characterId: String, hint: String?): String? {
+        val assistant = textComposer.findAssistant(characterId) ?: return null
+        return textComposer.composeInnerVoice(assistant, hint)
+    }
+
+    override suspend fun composeScene(characterId: String, brief: String): String? {
+        val assistant = textComposer.findAssistant(characterId) ?: return null
+        return textComposer.composeScene(assistant, brief)
+    }
+
+    override suspend fun listStickers(): List<io.zer0.muse.miniphone.api.MpSticker> = libraryBridge?.listStickers() ?: emptyList()
+
     override suspend fun synthesizeVoice(text: String, emotion: String?): Pair<String, Long>? {
         if (text.isBlank()) return null
         val tempFile = File(cacheDir, "$VOICE_TEMP_PREFIX${UUID.randomUUID()}$VOICE_TEMP_EXTENSION")
@@ -403,8 +453,7 @@ class AppMiniPhoneHost(
      * 只在用户已经配好语音识别（手填或跟随供应商）时才有结果;读设置、解析供应商、
      * 发请求、解析响应全在 [OneShotAsrTranscriber] 里,这里只做转发,不让模块看见任何协议细节。
      */
-    override suspend fun transcribeVoice(wavBytes: ByteArray): String? =
-        voiceTranscriber.transcribe(wavBytes)
+    override suspend fun transcribeVoice(wavBytes: ByteArray): String? = voiceTranscriber.transcribe(wavBytes)
 
     /**
      * 录音输入能不能用:判据与转写器实际会不会发请求完全一致。

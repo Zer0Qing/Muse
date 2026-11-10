@@ -4,14 +4,14 @@ import io.zer0.common.AppJson
 import io.zer0.muse.tools.ToolCallGate
 import io.zer0.muse.tools.script.SkillBridge
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.coroutineContext
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.put
+import kotlin.coroutines.coroutineContext
 
 /**
  * 宿主侧状态写入类动作的统一入口（当前是 `config_set`；后续 `chat_append` 等也走这里）。
@@ -92,10 +92,7 @@ class PluginHostApi(
      * 会话 id **只认宿主注入的那一个**：插件参数里的 `session_id` 一律不读 ——
      * 否则一个插件就能往任意会话里塞话，而用户会以为那是助手说的。
      */
-    private suspend fun handleAppInsertMessage(
-        obj: JsonObject,
-        allowedActions: Set<String>,
-    ): SkillBridge.HandleResult {
+    private suspend fun handleAppInsertMessage(obj: JsonObject, allowedActions: Set<String>): SkillBridge.HandleResult {
         if (ACTION_APP_INSERT_MESSAGE !in allowedActions) return SkillBridge.HandleResult.Failure(notAuthorized())
         // 构造参数优先，其次读进程级持有：两者都没有才算"未接入"。
         // 双保险的理由是这条通道的安装点在 Application 启动流程里，
@@ -113,10 +110,7 @@ class PluginHostApi(
     }
 
     /** 切明暗模式（`app.theme`）。只认 light / dark / system，具体皮肤留给用户自己挑。 */
-    private suspend fun handleAppSetThemeMode(
-        obj: JsonObject,
-        allowedActions: Set<String>,
-    ): SkillBridge.HandleResult {
+    private suspend fun handleAppSetThemeMode(obj: JsonObject, allowedActions: Set<String>): SkillBridge.HandleResult {
         if (ACTION_APP_SET_THEME_MODE !in allowedActions) return SkillBridge.HandleResult.Failure(notAuthorized())
         val bridge = appearanceBridge ?: PluginAppearanceChannels.current
             ?: return SkillBridge.HandleResult.Failure("宿主未接入外观通道，app_set_theme_mode 不可用")
@@ -131,10 +125,7 @@ class PluginHostApi(
     }
 
     /** 写白名单里的设置项（`app.settings`）。只开放外观类、可逆的四项。 */
-    private suspend fun handleAppSetSetting(
-        obj: JsonObject,
-        allowedActions: Set<String>,
-    ): SkillBridge.HandleResult {
+    private suspend fun handleAppSetSetting(obj: JsonObject, allowedActions: Set<String>): SkillBridge.HandleResult {
         if (ACTION_APP_SET_SETTING !in allowedActions) return SkillBridge.HandleResult.Failure(notAuthorized())
         val bridge = appearanceBridge ?: PluginAppearanceChannels.current
             ?: return SkillBridge.HandleResult.Failure("宿主未接入外观通道，app_set_setting 不可用")
@@ -164,11 +155,7 @@ class PluginHostApi(
      * 深度限 1：被调用的工具如果本身是插件工具，它里面再发起 `tool_invoke` 会被拒 ——
      * 否则"插件 A 调 B 调 C"既能把审批拖成一串，也可能绕开对 A 的那次判定。
      */
-    private suspend fun handleToolInvoke(
-        pluginId: String,
-        obj: JsonObject,
-        allowedActions: Set<String>,
-    ): SkillBridge.HandleResult {
+    private suspend fun handleToolInvoke(pluginId: String, obj: JsonObject, allowedActions: Set<String>): SkillBridge.HandleResult {
         val params = obj["params"] as? JsonObject
         val toolName = (params?.get("name") as? JsonPrimitive)?.contentOrNull?.trim()
         val argumentsJson = params?.get("arguments")?.toString()?.takeIf { it != "null" } ?: "{}"
@@ -239,8 +226,10 @@ class PluginHostApi(
         }
         if (problem != null) return SkillBridge.HandleResult.Failure(problem)
         val system = (params?.get("system") as? JsonPrimitive)?.contentOrNull
-        val maxTokens = ((params?.get("maxTokens") as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
-            ?: PluginModelBridge.DEFAULT_MAX_TOKENS)
+        val maxTokens = (
+            (params?.get("maxTokens") as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+                ?: PluginModelBridge.DEFAULT_MAX_TOKENS
+            )
             .coerceIn(1, PluginModelBridge.MAX_TOKENS_CAP)
         return runCatching { requireNotNull(bridge).complete(prompt.orEmpty(), system, maxTokens) }.fold(
             onSuccess = { text ->
@@ -273,11 +262,7 @@ class PluginHostApi(
         }
     }
 
-    private suspend fun writeConfigValue(
-        pluginId: String,
-        manifest: PluginManifest,
-        params: JsonObject?,
-    ): SkillBridge.HandleResult {
+    private suspend fun writeConfigValue(pluginId: String, manifest: PluginManifest, params: JsonObject?): SkillBridge.HandleResult {
         val (request, problem) = parseConfigSet(manifest, params)
         if (problem != null) return SkillBridge.HandleResult.Failure(problem)
         val target = requireNotNull(request)
@@ -293,20 +278,19 @@ class PluginHostApi(
      * 写成"算出一个 problem"而不是层层 return，是为了让**每一条拒绝都必须被读到**：
      * 层层早退最容易漏掉某一条（而漏掉的那条只有插件作者会撞上）。
      */
-    private fun parseConfigSet(
-        manifest: PluginManifest,
-        params: JsonObject?,
-    ): Pair<ConfigSetRequest?, String?> {
+    private fun parseConfigSet(manifest: PluginManifest, params: JsonObject?): Pair<ConfigSetRequest?, String?> {
         val key = (params?.get("key") as? JsonPrimitive)?.contentOrNull
         val value = params?.get("value")
         val item = key?.let { k -> manifest.contributes?.configuration?.firstOrNull { it.key == k } }
         val problem = when {
             key == null -> "config_set 缺少 key 参数"
             value == null -> "config_set 缺少 value 参数"
-            item == null -> "config_set 只能写插件自己声明过的配置项；可写的键：" +
-                (manifest.contributes?.configuration?.map { it.key }?.joinToString("、") ?: "（该插件未声明配置项）")
-            item.secret -> "配置项 '${item.key}' 是敏感项（凭据类），只能由用户在 设置 → 插件 → 配置 里填写，" +
-                "插件不得自行改写"
+            item == null ->
+                "config_set 只能写插件自己声明过的配置项；可写的键：" +
+                    (manifest.contributes?.configuration?.map { it.key }?.joinToString("、") ?: "（该插件未声明配置项）")
+            item.secret ->
+                "配置项 '${item.key}' 是敏感项（凭据类），只能由用户在 设置 → 插件 → 配置 里填写，" +
+                    "插件不得自行改写"
             else -> typeMismatchMessage(item, value)
         }
         return when {
@@ -321,8 +305,9 @@ class PluginHostApi(
             ?: return "配置项 '${item.key}' 需要 ${item.type.name} 类型的值，收到的是对象或数组"
         val ok = when (item.type) {
             ConfigItemType.string -> primitive.isString
-            ConfigItemType.boolean -> primitive.booleanOrNull != null ||
-                primitive.contentOrNull?.toBooleanStrictOrNull() != null
+            ConfigItemType.boolean ->
+                primitive.booleanOrNull != null ||
+                    primitive.contentOrNull?.toBooleanStrictOrNull() != null
             ConfigItemType.number -> primitive.contentOrNull?.toBigDecimalOrNull() != null
             ConfigItemType.select -> {
                 val text = primitive.contentOrNull
@@ -339,9 +324,8 @@ class PluginHostApi(
         }
     }
 
-    private fun notAuthorized(): String =
-        "动作 'config_set' 未获授权：插件需在清单声明能力 '$CAPABILITY_CONFIG_WRITE'，" +
-            "并在 设置 → 工具与扩展 → 插件 → 权限 中批准"
+    private fun notAuthorized(): String = "动作 'config_set' 未获授权：插件需在清单声明能力 '$CAPABILITY_CONFIG_WRITE'，" +
+        "并在 设置 → 工具与扩展 → 插件 → 权限 中批准"
 
     /** 校验通过的写入请求。 */
     private data class ConfigSetRequest(val item: ConfigItem, val value: JsonElement)
@@ -355,17 +339,17 @@ class PluginHostApi(
         const val CAPABILITY_CHAT_READ = "chat.read"
         const val ACTION_MODEL_CALL = "model_call"
 
-    /** 跳转（`app.navigate`）。 */
-    const val ACTION_APP_NAVIGATE = "app_navigate"
+        /** 跳转（`app.navigate`）。 */
+        const val ACTION_APP_NAVIGATE = "app_navigate"
 
-    /** 往会话里写消息（`app.messages`）。 */
-    const val ACTION_APP_INSERT_MESSAGE = "app_insert_message"
+        /** 往会话里写消息（`app.messages`）。 */
+        const val ACTION_APP_INSERT_MESSAGE = "app_insert_message"
 
-    /** 切明暗模式（`app.theme`）。 */
-    const val ACTION_APP_SET_THEME_MODE = "app_set_theme_mode"
+        /** 切明暗模式（`app.theme`）。 */
+        const val ACTION_APP_SET_THEME_MODE = "app_set_theme_mode"
 
-    /** 写白名单里的设置项（`app.settings`）。 */
-    const val ACTION_APP_SET_SETTING = "app_set_setting"
+        /** 写白名单里的设置项（`app.settings`）。 */
+        const val ACTION_APP_SET_SETTING = "app_set_setting"
         const val CAPABILITY_MODEL_CALL = "host.model.call"
         const val DEFAULT_CHAT_LIMIT = 10
     }

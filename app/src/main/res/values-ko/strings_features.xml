@@ -725,6 +725,10 @@
     <string name="knowledge_folder_created">폴더 \"%1$s\"을(를) 만들었습니다</string>
     <string name="knowledge_folder_renamed">\"%1$s\"(으)로 이름을 변경했습니다</string>
     <string name="knowledge_folder_deleted">폴더를 삭제했습니다</string>
+    <string name="knowledge_import_cancel_title">가져오기를 취소할까요?</string>
+    <string name="knowledge_import_cancel_body">이미 가져온 파일은 남습니다. 나머지는 다시 가져와야 합니다.</string>
+    <string name="knowledge_import_cancel_confirm">중단</string>
+    <string name="common_continue">계속</string>
     <string name="chat_set_background">채팅 배경</string>
     <string name="chat_background_saved">이 대화의 배경이 업데이트되었습니다</string>
     <string name="chat_background_save_failed">배경 저장 실패</string>

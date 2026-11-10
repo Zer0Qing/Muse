@@ -137,22 +137,20 @@ class AutonomousAccessibilityRuntimeTest {
     private fun runtime(
         store: AutomationSettingsStore,
         latest: String = "打开 com.xingin.xhs 浏览小红书",
-    ): PersistentAutonomousAccessibilityRuntime =
-        PersistentAutonomousAccessibilityRuntime(
-            store = store,
-            foregroundPackage = { "com.xingin.xhs" },
-            latestUserMessage = { latest },
-            clock = clock,
-            zoneId = zone,
-        )
+    ): PersistentAutonomousAccessibilityRuntime = PersistentAutonomousAccessibilityRuntime(
+        store = store,
+        foregroundPackage = { "com.xingin.xhs" },
+        latestUserMessage = { latest },
+        clock = clock,
+        zoneId = zone,
+    )
 
-    private fun allowedWindow(maxRuns: Int): AutonomousAccessibilityWindow =
-        AutonomousAccessibilityWindow(
-            enabled = true,
-            startMinuteOfDay = 14 * 60,
-            endMinuteOfDay = 17 * 60,
-            allowedPackages = setOf("com.xingin.xhs"),
-            allowedActions = setOf(AutomationAction.READ_SCREEN, AutomationAction.SCROLL),
-            maxRunsPerDay = maxRuns,
-        )
+    private fun allowedWindow(maxRuns: Int): AutonomousAccessibilityWindow = AutonomousAccessibilityWindow(
+        enabled = true,
+        startMinuteOfDay = 14 * 60,
+        endMinuteOfDay = 17 * 60,
+        allowedPackages = setOf("com.xingin.xhs"),
+        allowedActions = setOf(AutomationAction.READ_SCREEN, AutomationAction.SCROLL),
+        maxRunsPerDay = maxRuns,
+    )
 }

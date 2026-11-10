@@ -1,7 +1,5 @@
 package io.zer0.muse.tools
 
-
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.MessageRole
@@ -15,6 +13,7 @@ import io.zer0.muse.data.MultiAgentConfig
 import io.zer0.muse.data.agentdm.AgentDmRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.subagent.SubagentThreadStore
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -199,7 +198,8 @@ class SkillDelegateAgentImpl(
             val resp = pauseManager.awaitPauseDecision(pauseReq, policy)
             when (resp.decision) {
                 DelegationPauseManager.PauseDecision.CANCEL,
-                DelegationPauseManager.PauseDecision.REJECT ->
+                DelegationPauseManager.PauseDecision.REJECT,
+                ->
                     return errorResult(
                         pauseManager.rejectionText(
                             resp,
@@ -437,7 +437,8 @@ class SkillDelegateAgentImpl(
                 val resp = pauseManager.awaitPauseDecision(pauseReq, policy)
                 when (resp.decision) {
                     DelegationPauseManager.PauseDecision.CANCEL,
-                    DelegationPauseManager.PauseDecision.REJECT ->
+                    DelegationPauseManager.PauseDecision.REJECT,
+                    ->
                         return errorResult(
                             pauseManager.rejectionText(
                                 resp,
@@ -624,4 +625,3 @@ internal object DelegateDepth {
     /** 这一层的子 agent 还能不能拿到 `delegate_agent` 工具。 */
     fun shouldOfferDelegateTool(depth: Int): Boolean = depth < MAX
 }
-

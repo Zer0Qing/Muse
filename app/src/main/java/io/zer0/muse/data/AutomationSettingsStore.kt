@@ -8,11 +8,11 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.automation.core.AutonomousAccessibilityGrant
 import io.zer0.muse.automation.core.AutonomousAccessibilityWindow
-import kotlinx.serialization.Serializable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 
 @Serializable
 data class AutonomousAccessibilityLedger(
@@ -140,12 +140,7 @@ class AutomationSettingsStore(
      *
      * 以前这五处各写各的：只有窗口那条有日志，其余直接 `.getOrNull()` 丢掉原因。
      */
-    private fun <T : Any> decode(
-        key: Preferences.Key<String>,
-        raw: String?,
-        consequence: String,
-        parser: (String) -> T,
-    ): T? {
+    private fun <T : Any> decode(key: Preferences.Key<String>, raw: String?, consequence: String, parser: (String) -> T): T? {
         if (raw == null) return null
         return runCatching { parser(raw) }
             .onFailure { error ->

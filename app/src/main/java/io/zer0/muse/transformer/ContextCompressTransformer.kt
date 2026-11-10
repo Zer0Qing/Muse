@@ -37,8 +37,7 @@ internal fun isOverContextCompressionBudget(messages: List<UIMessage>, tokenBudg
     tokenBudget > 0 && TokenEstimator.estimate(messages) > tokenBudget
 
 /** 同上，但 token 数已由调用方算好（一次请求里同一批消息只该估一遍）。 */
-internal fun isOverContextCompressionBudget(tokens: Int, tokenBudget: Int): Boolean =
-    tokenBudget > 0 && tokens > tokenBudget
+internal fun isOverContextCompressionBudget(tokens: Int, tokenBudget: Int): Boolean = tokenBudget > 0 && tokens > tokenBudget
 
 /**
  * 上下文压缩 Transformer(Phase 8.1 H1)。
@@ -167,6 +166,7 @@ class ContextCompressTransformer(
         // 压缩后收益）。共用一份按实例的计数缓存，每条消息的 BPE 只跑一次。
         val tokenCache = MessageTokenCache()
         val totalTokens = TokenEstimator.estimate(messages, cache = tokenCache)
+
         @Suppress("NAME_SHADOWING")
         val historyTokens = TokenEstimator.estimate(
             messages.dropWhile { it.role == MessageRole.SYSTEM },

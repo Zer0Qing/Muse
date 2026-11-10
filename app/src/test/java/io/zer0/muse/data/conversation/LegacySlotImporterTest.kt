@@ -35,23 +35,16 @@ class LegacySlotImporterTest {
         assertEquals(listOf("u1b", "a1b"), slots.map { it.messageId })
     }
 
-    private fun message(
-        id: String,
-        role: String,
-        createdAt: Long,
-        group: String?,
-        index: Int,
-        count: Int,
-        parent: String? = null,
-    ) = MessageEntity(
-        id = id,
-        sessionId = "session-1",
-        role = role,
-        content = id,
-        createdAt = createdAt,
-        parentMessageId = parent,
-        variantGroupId = group,
-        variantIndex = index,
-        variantCount = count,
-    )
+    private fun message(id: String, role: String, createdAt: Long, group: String?, index: Int, count: Int, parent: String? = null) =
+        MessageEntity(
+            id = id,
+            sessionId = "session-1",
+            role = role,
+            content = id,
+            createdAt = createdAt,
+            parentMessageId = parent,
+            variantGroupId = group,
+            variantIndex = index,
+            variantCount = count,
+        )
 }

@@ -39,7 +39,6 @@ object PluginAppNavigation {
         SESSION("session"),
         SCHEDULED_TASK("scheduled-task"),
         QUICK_NOTE("quick-note"),
-        ;
     }
 
     sealed interface Parsed {

@@ -105,8 +105,13 @@ class HybridSearchService(
                     vectorSearch.search(queryVector, vectorCandidateK, threshold, mmrLambda, scopeDocIds, metadataFilter)
                 }
             }
+            // R1: BM25 召回支失败必须显式记录,不得静默吞成零结果(此前 bm25() SQL 在 FTS4
+            // 表上必然抛错,被这里的 resultOf 静默清零,混合检索无声退化为纯向量)。
             val bm25Deferred = async {
                 resultOf { ftsDao.searchBm25(buildFtsQuery(query), bm25CandidateK) }
+                    .onError { msg, e ->
+                        Logger.w("HybridSearchService", "BM25 召回支失败,本路按零结果继续: $msg", e)
+                    }
             }
             vectorDeferred.await().getOrNull().orEmpty() to bm25Deferred.await().getOrNull().orEmpty()
         }
@@ -120,6 +125,9 @@ class HybridSearchService(
 
         // B4-03: 元数据过滤只在非空时启用(null / 空 filter = 不过滤,向后兼容)。
         val filter = metadataFilter?.takeIf { !it.isEmpty() }
+        // R1 范围合同: 词法(BM25)路必须与向量路共用同一有效范围。
+        // null = 无范围约束;空列表 = 显式空范围(词法路直接零结果,不进入融合)。
+        val scopeSet = scopeDocIds?.toHashSet()
 
         // 2. RRF 融合
         // 向量路径:按 score 降序排(已在 search 内排过,但保险起见再排一次)
@@ -127,13 +135,20 @@ class HybridSearchService(
         val vectorRanked = vectorResults.sortedByDescending { it.score }
         val vectorChunkIds = vectorRanked.map { it.chunkId }.toHashSet()
         // BM25 路径:score 升序(SQLite bm25 返回负值,越小越相关),取反作为正向
-        val bm25Sorted = bm25Hits.sortedBy { it.score }
+        val bm25Sorted = if (scopeSet != null && scopeSet.isEmpty()) {
+            emptyList()
+        } else {
+            bm25Hits.sortedBy { it.score }
+        }
 
         // P2-31/B4-03: 解析 BM25 命中的文档元数据(resolver 注入时)。
         //  - 无过滤:仅补齐 bm25-only 命中的内容(旧行为);
         //  - 有过滤:全部 BM25 命中都要拿到 docId/标题/元数据,才能与向量链路同样被过滤。
+        // R1 范围合同:scope 非空时同样需要全部命中的元数据 —— scope 判定按解析出的
+        // docId 进行,双路命中若解析不到元数据会被 scopeOk 误剔,词法路 RRF 贡献被
+        // 静默丢弃;因此「有 metadata 过滤」与「有 scope 约束」任一成立即全量解析。
         val bm25MetaById: Map<String, ChunkMeta> = if (bm25MetaResolver != null) {
-            val needIds = if (filter != null) {
+            val needIds = if (filter != null || scopeSet != null) {
                 bm25Sorted.map { it.chunkId }
             } else {
                 bm25Sorted.map { it.chunkId }.filter { it !in vectorChunkIds }
@@ -149,14 +164,21 @@ class HybridSearchService(
 
         // B4-03: BM25 过滤必须在 RRF 融合前完成 — 被过滤掉的命中不得贡献 RRF 分数。
         // 无法解析元数据的命中在过滤开启时按「不通过」处理,避免放行未校验文档(安全侧)。
-        val bm25Ranked = if (filter == null) {
-            bm25Sorted
-        } else {
-            bm25Sorted.filter { hit ->
-                bm25MetaById[hit.chunkId]?.let { m ->
-                    filter.matches(m.docId, m.docTitle, m.metadataJson, m.createdAt)
-                } == true
+        // R1 范围合同: scope 非空时按解析出的 docId 剔除越界命中;无法解析的按越界处理(安全侧),
+        // 保证词法路无法成为范围泄漏通道。
+        val bm25Ranked = bm25Sorted.filter { hit ->
+            val m = bm25MetaById[hit.chunkId]
+            val metaOk = if (filter == null) {
+                true
+            } else {
+                m?.let { meta -> filter.matches(meta.docId, meta.docTitle, meta.metadataJson, meta.createdAt) } == true
             }
+            val scopeOk = if (scopeSet == null) {
+                true
+            } else {
+                m != null && m.docId in scopeSet
+            }
+            metaOk && scopeOk
         }
 
         val rrfScores = mutableMapOf<String, Float>() // chunkId -> rrfScore

@@ -819,10 +819,7 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
  * 因此这里可以无条件调用。
  */
 @Suppress("TooGenericExceptionCaught")
-private suspend fun resolveActiveBackendQuietly(
-    embeddingService: io.zer0.muse.rag.EmbeddingService,
-    config: RagConfig,
-) {
+private suspend fun resolveActiveBackendQuietly(embeddingService: io.zer0.muse.rag.EmbeddingService, config: RagConfig) {
     if (embeddingService.activeBackend.value != null) return
     try {
         embeddingService.getProvider(config)

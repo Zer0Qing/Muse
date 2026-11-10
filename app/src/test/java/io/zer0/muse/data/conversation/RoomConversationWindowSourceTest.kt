@@ -6,9 +6,9 @@ import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.conversation.core.ConversationAddress
 import io.zer0.muse.conversation.core.ConversationWindowReader
 import io.zer0.muse.conversation.core.SelectionSetId
-import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.MessageEntity
 import io.zer0.muse.data.session.MessagePartEntity
+import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.SessionEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After

@@ -41,14 +41,13 @@ class PluginChatBridge(
      * 行数由调用方夹好上限：让插件一次要"全部历史"等于把整个会话塞进它自己的上下文与回传里，
      * 既慢也容易把内容带出到不该去的地方。
      */
-    suspend fun readRecent(sessionId: String, limit: Int): List<Line> =
-        repository.getRecentMessages(sessionId, limit).map { message ->
-            Line(
-                role = message.role.name.lowercase(),
-                content = message.content,
-                createdAt = message.createdAt,
-            )
-        }
+    suspend fun readRecent(sessionId: String, limit: Int): List<Line> = repository.getRecentMessages(sessionId, limit).map { message ->
+        Line(
+            role = message.role.name.lowercase(),
+            content = message.content,
+            createdAt = message.createdAt,
+        )
+    }
 
     companion object {
         /** [SkillExecutor.execute] 的老默认值：代表「没有绑定真实会话」。 */

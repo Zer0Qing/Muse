@@ -263,8 +263,7 @@ class ProactiveOutcomeFeedbackTest {
     private suspend fun outcome(id: String): ProactiveOutcomeEntity =
         requireNotNull(database.proactiveOutcomeDao().getById(id)) { "结果账里应该有 $id" }
 
-    private suspend fun intimacy(): Float =
-        requireNotNull(relations.get(ASSISTANT)) { "有记账就该有亲密度行" }.intimacy
+    private suspend fun intimacy(): Float = requireNotNull(relations.get(ASSISTANT)) { "有记账就该有亲密度行" }.intimacy
 
     private suspend fun seedOutcome(id: String, kind: ThoughtKind, state: OutcomeState, sentAt: Long) {
         database.proactiveOutcomeDao().upsert(

@@ -3,8 +3,8 @@ package io.zer0.muse.data.skill
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.util.SafePaths
-import io.zer0.muse.util.isStrictlyInside
 import io.zer0.muse.util.copyZipEntryWithLimit
+import io.zer0.muse.util.isStrictlyInside
 import io.zer0.muse.util.readZipEntryWithLimit
 import java.io.File
 import java.io.FileInputStream
@@ -170,8 +170,7 @@ class SkillPackageStore(context: Context) {
         }
     }
 
-    private fun existingPackageMessage(skillId: String): String =
-        "技能包已存在（id=$skillId）。先删除旧版本，或改 $SKILL_FILE 里的 name"
+    private fun existingPackageMessage(skillId: String): String = "技能包已存在（id=$skillId）。先删除旧版本，或改 $SKILL_FILE 里的 name"
 
     private fun failAfterFailedCopy(target: File, error: Throwable): Outcome {
         target.deleteRecursively()

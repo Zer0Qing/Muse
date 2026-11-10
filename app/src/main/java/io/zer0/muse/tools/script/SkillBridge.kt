@@ -5,14 +5,14 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import io.zer0.common.AppJson
-import io.zer0.muse.data.AtomicFileStore
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
 import io.zer0.common.Logger
+import io.zer0.muse.data.AtomicFileStore
 import io.zer0.muse.tools.TOOL_OUTPUTS_DIR
 import io.zer0.muse.tools.ToolFailureText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -294,12 +294,7 @@ object SkillBridge {
      * 名字空间必须是本插件在清单里声明过的那几个：光有 `storage` 能力不够，
      * 也不能靠传参临时借别人的空间 —— "谁能看到我的数据"由双方各自的清单决定。
      */
-    private fun execStorageShared(
-        params: JsonObject,
-        host: Host?,
-        declared: Set<String>,
-        run: (File) -> HandleResult,
-    ): HandleResult {
+    private fun execStorageShared(params: JsonObject, host: Host?, declared: Set<String>, run: (File) -> HandleResult): HandleResult {
         val namespace = (params["namespace"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
         val context = host?.context
         val store = if (context == null) {

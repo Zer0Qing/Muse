@@ -63,19 +63,23 @@ class SkillBridgeTest {
 
         val set = SkillBridge.tryHandle(
             """{"__bridge__":true,"action":"storage_set","params":{"key":"a.b","value":{"n":1}}}""",
-            allowed, host,
+            allowed,
+            host,
         )
         val read = SkillBridge.tryHandle(
             """{"__bridge__":true,"action":"storage_get","params":{"key":"a.b"}}""",
-            allowed, host,
+            allowed,
+            host,
         )
         val missing = SkillBridge.tryHandle(
             """{"__bridge__":true,"action":"storage_get","params":{"key":"nope"}}""",
-            allowed, host,
+            allowed,
+            host,
         )
         val list = SkillBridge.tryHandle(
             """{"__bridge__":true,"action":"storage_list","params":{}}""",
-            allowed, host,
+            allowed,
+            host,
         )
 
         assertTrue("set 应成功: $set", set is SkillBridge.HandleResult.Output)
@@ -85,20 +89,23 @@ class SkillBridgeTest {
 
         val denied = SkillBridge.tryHandle(
             """{"__bridge__":true,"action":"storage_set","params":{"key":"x","value":"y"}}""",
-            setOf("echo"), host,
+            setOf("echo"),
+            host,
         )
         assertTrue("未授权必须被拒", denied is SkillBridge.HandleResult.Failure)
 
         val bigValue = "z".repeat(300 * 1024)
         val tooBig = SkillBridge.tryHandle(
             """{"__bridge__":true,"action":"storage_set","params":{"key":"x","value":"$bigValue"}}""",
-            allowed, host,
+            allowed,
+            host,
         )
         assertTrue("单项超上限要给出可行动提示: $tooBig", (tooBig as? SkillBridge.HandleResult.Failure)?.message?.contains("fs_write") == true)
 
         val badKey = SkillBridge.tryHandle(
             """{"__bridge__":true,"action":"storage_set","params":{"key":"../escape","value":1}}""",
-            allowed, host,
+            allowed,
+            host,
         )
         assertTrue("非法键必须拒: $badKey", badKey is SkillBridge.HandleResult.Failure)
         root.deleteRecursively()

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- R9 로컬 놀거리 문구: 옷장, 그룹 홍바오, 기념일, 통화 벨소리. -->
+    <string name="mp_discover_wardrobe">옷장</string>
+    <string name="mp_wardrobe_title">옷 갈아입기</string>
+    <string name="mp_wardrobe_empty">옷장이 아직 비어 있어요</string>
+    <string name="mp_wardrobe_name_hint">이 옷의 이름</string>
+    <string name="mp_wardrobe_uri_hint">이미지 URL (선택)</string>
+    <string name="mp_wardrobe_add">추가</string>
+    <string name="mp_wardrobe_equip">입기</string>
+    <string name="mp_wardrobe_equipped">착용 중</string>
+    <string name="mp_wardrobe_kind_top">상의</string>
+    <string name="mp_wardrobe_kind_bottom">하의</string>
+    <string name="mp_wardrobe_kind_dress">원피스</string>
+    <string name="mp_wardrobe_kind_shoes">신발</string>
+    <string name="mp_wardrobe_kind_accessory">액세서리</string>
+
+    <string name="mp_discover_redpacket">그룹 홍바오</string>
+    <string name="mp_redpacket_title">그룹 홍바오</string>
+    <string name="mp_redpacket_empty">아직 홍바오가 없어요</string>
+    <string name="mp_redpacket_rp_hint">금액은 롤플레이용 표시일 뿐 실제 돈은 오가지 않아요</string>
+    <string name="mp_redpacket_amount_hint">금액 (롤플레이용)</string>
+    <string name="mp_redpacket_note_hint">인사말 (선택)</string>
+    <string name="mp_redpacket_send">보내기</string>
+    <string name="mp_redpacket_claim">받기</string>
+    <string name="mp_redpacket_claim_count">%1$d 명 받음</string>
+    <string name="mp_redpacket_state_open">받을 수 있음</string>
+    <string name="mp_redpacket_state_claimed">모두 받음</string>
+    <string name="mp_redpacket_state_expired">만료됨</string>
+
+    <string name="mp_discover_holiday">기념일</string>
+    <string name="mp_holiday_title">명절과 기념일</string>
+    <string name="mp_holiday_empty">아직 기록된 기념일이 없어요</string>
+    <string name="mp_holiday_recurring">매년</string>
+    <string name="mp_holiday_once">한 번만</string>
+    <string name="mp_holiday_name_hint">명절 또는 기념일 이름</string>
+    <string name="mp_holiday_date_hint">날짜: MM-dd (매년)</string>
+    <string name="mp_holiday_date_once_hint">날짜: yyyy-MM-dd (한 번)</string>
+    <string name="mp_holiday_year_hint">연도 (예: 2026)</string>
+    <string name="mp_holiday_note_hint">메모 (선택)</string>
+    <string name="mp_holiday_add">추가</string>
+
+    <string name="mp_discover_ringtone">통화 벨소리</string>
+    <string name="mp_ringtone_title">통화 벨소리</string>
+    <string name="mp_ringtone_empty">아직 벨소리가 없어요</string>
+    <string name="mp_ringtone_general">공통</string>
+    <string name="mp_ringtone_voice">음성 통화 벨소리</string>
+    <string name="mp_ringtone_video">영상 통화 벨소리</string>
+    <string name="mp_ringtone_name_hint">벨소리 이름</string>
+    <string name="mp_ringtone_uri_hint">오디오 또는 영상 URL</string>
+    <string name="mp_ringtone_add">추가</string>
+</resources>

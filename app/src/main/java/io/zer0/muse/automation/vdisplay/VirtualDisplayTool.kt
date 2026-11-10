@@ -236,29 +236,29 @@ internal data class VirtualDisplayInputCommand(
         }
 
         /**
-     * 虚拟屏文本输入的可用性检查：null = 可用；否则返回**给模型看的原因**。
-     *
-     * 为什么要单独暴露：`build()` 返回 null 的原因有「文本空/超长/含特殊字符」多种，
-     * 调用方只回「参数无效」时，模型分不清是格式错还是文字里有引号，只能盲试。
-     */
-    fun textRejectionReason(text: String): String? {
-        if (text.isBlank()) return "文本为空"
-        if (text.length > 500) return "文本过长(${text.length} > 500 字)；请拆成多段输入"
-        val bad = text.filter { it in SHELL_META || it == '\n' || it == '\r' || it == '\\' || it == '"' || it == '\'' }
-        if (bad.isEmpty()) return null
-        val names = bad.map { ch ->
-            when (ch) {
-                '\n', '\r' -> "换行"
-                '\\' -> "反斜杠"
-                '"' -> "双引号"
-                '\'' -> "单引号"
-                else -> "特殊符号 $ch"
-            }
-        }.distinct().joinToString("/")
-        return "虚拟屏输入不支持$names；改用 display=foreground 走 screen_input，或先去掉这些字符"
-    }
+         * 虚拟屏文本输入的可用性检查：null = 可用；否则返回**给模型看的原因**。
+         *
+         * 为什么要单独暴露：`build()` 返回 null 的原因有「文本空/超长/含特殊字符」多种，
+         * 调用方只回「参数无效」时，模型分不清是格式错还是文字里有引号，只能盲试。
+         */
+        fun textRejectionReason(text: String): String? {
+            if (text.isBlank()) return "文本为空"
+            if (text.length > 500) return "文本过长(${text.length} > 500 字)；请拆成多段输入"
+            val bad = text.filter { it in SHELL_META || it == '\n' || it == '\r' || it == '\\' || it == '"' || it == '\'' }
+            if (bad.isEmpty()) return null
+            val names = bad.map { ch ->
+                when (ch) {
+                    '\n', '\r' -> "换行"
+                    '\\' -> "反斜杠"
+                    '"' -> "双引号"
+                    '\'' -> "单引号"
+                    else -> "特殊符号 $ch"
+                }
+            }.distinct().joinToString("/")
+            return "虚拟屏输入不支持$names；改用 display=foreground 走 screen_input，或先去掉这些字符"
+        }
 
-    private fun buildText(displayId: Int, args: Map<String, String>): VirtualDisplayInputCommand? {
+        private fun buildText(displayId: Int, args: Map<String, String>): VirtualDisplayInputCommand? {
             val text = args["text"]?.takeIf { it.isNotBlank() }?.takeIf { it.length <= 500 } ?: return null
             val unsafe = text.any { it in SHELL_META || it == '\n' || it == '\r' || it == '\\' || it == '"' || it == '\'' }
             return if (unsafe) null else command(displayId, "text ${text.replace(" ", "%s")}", "输入文本")

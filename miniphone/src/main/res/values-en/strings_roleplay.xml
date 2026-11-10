@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 跑团模块的文案。各语言保持同一组键，不让业务代码决定成品语言。 -->
+    <string name="mp_discover_roleplay">Roleplay</string>
+    <string name="mp_rp_title">Roleplay Script Library</string>
+    <string name="mp_rp_back">Back to Discover</string>
+    <string name="mp_rp_empty">No scripts yet. Write an opening first.</string>
+    <string name="mp_rp_script_title_hint">Script title</string>
+    <string name="mp_rp_script_body_hint">Opening and rules</string>
+    <string name="mp_rp_create_script">New script</string>
+    <string name="mp_rp_update_script">Save changes</string>
+    <string name="mp_rp_cancel_edit">Cancel editing</string>
+    <string name="mp_rp_edit_script">Edit</string>
+    <string name="mp_rp_delete_script">Delete script</string>
+    <string name="mp_rp_no_characters">Add a character before starting a run.</string>
+    <string name="mp_rp_start_run">Start a run</string>
+    <string name="mp_rp_saves">Saves</string>
+    <string name="mp_rp_saves_empty">This script has no saves yet</string>
+    <string name="mp_rp_endings">Endings</string>
+    <string name="mp_rp_endings_empty">No endings yet</string>
+    <string name="mp_rp_turn">Turn %1$d</string>
+    <string name="mp_rp_roll">Roll %1$d</string>
+    <string name="mp_rp_action_hint">What do you do this turn…</string>
+    <string name="mp_rp_advance">Advance</string>
+    <string name="mp_rp_conclude">Conclude</string>
+    <string name="mp_rp_delete_save">Delete save</string>
+    <string name="mp_rp_state_unreadable">The snapshot cannot be read</string>
+</resources>

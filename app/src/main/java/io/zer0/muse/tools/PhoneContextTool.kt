@@ -186,7 +186,7 @@ object PhoneContextTool {
             .take(MAX_ITEMS)
             .map { stat ->
                 val minutes = stat.totalTimeInForeground / 60_000
-                "${stat.packageName} | 前台 ${minutes} 分钟"
+                "${stat.packageName} | 前台 $minutes 分钟"
             }
         return PhoneContextDispatcher.Loaded.available(items, truncated = stats.size > MAX_ITEMS)
     }

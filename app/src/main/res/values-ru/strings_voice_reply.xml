@@ -13,4 +13,8 @@
     <string name="voice_reply_global_default_fmt">Глобально по умолчанию: %1$s</string>
     <string name="voice_reply_global_section">Частота голосовых ответов</string>
     <string name="voice_reply_global_hint">Все ассистенты следуют этому единственному уровню; это влияет только на промпт, без жёсткой блокировки.</string>
+    <string name="speech_guide_section">Гайд по речи</string>
+    <string name="speech_guide_hint">Ответы как в чате: разговорно и легко; для длинного текста, списков, шагов или кода — структурно. Влияет только на отправляемый текст.</string>
+    <string name="speech_guide_off">Выкл. (по умолчанию)</string>
+    <string name="speech_guide_conversational">Разговорный</string>
 </resources>

@@ -4,6 +4,7 @@ import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.data.AtomicFileStore
+import io.zer0.muse.data.sharing.takeCodePoints
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,7 +63,8 @@ object AnnotationStore {
             id = "an_" + System.currentTimeMillis(),
             messageId = messageId,
             sessionId = sessionId,
-            text = trimmed.take(2000),
+            // 按码点截断：批注正文会持久化，按 UTF-16 单元切会把 emoji 切成半个代理对
+            text = trimmed.takeCodePoints(2000),
         )
         val updated = (listOf(item) + _all.value).take(MAX_ITEMS)
         _all.value = updated

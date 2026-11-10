@@ -174,11 +174,7 @@ private fun InteractiveNode(
 }
 
 @Composable
-private fun InputControl(
-    node: PluginUiTree.Node.Input,
-    enabled: Boolean,
-    values: MutableMap<String, String>,
-) {
+private fun InputControl(node: PluginUiTree.Node.Input, enabled: Boolean, values: MutableMap<String, String>) {
     val kind = node.kind?.lowercase() ?: "text"
     val value = values[node.key].orEmpty()
     when (kind) {
@@ -246,22 +242,21 @@ internal fun hasInteractiveNodes(node: PluginUiTree.Node): Boolean {
 }
 
 /** 把表单值变成插件 handler 的参数：数字给数字、开关给布尔，其余给字符串。 */
-internal fun valuesJson(inputs: List<PluginUiTree.Node.Input>, values: Map<String, String>): String =
-    buildJsonObject {
-        inputs.forEach { input ->
-            val raw = values[input.key].orEmpty()
-            // 显式分支而不是 `?.let{} ?: put(raw)`：后者依赖 put 的返回值语义，
-            // 一旦 put 返回 null 就会静默写回字符串（实测踩到过，数字字段变成 "12"）。
-            when (input.kind?.lowercase()) {
-                "number" -> {
-                    val asNumber = raw.toDoubleOrNull()
-                    if (asNumber != null) put(input.key, asNumber) else put(input.key, raw)
-                }
-                "toggle" -> put(input.key, raw == "true")
-                else -> put(input.key, raw)
+internal fun valuesJson(inputs: List<PluginUiTree.Node.Input>, values: Map<String, String>): String = buildJsonObject {
+    inputs.forEach { input ->
+        val raw = values[input.key].orEmpty()
+        // 显式分支而不是 `?.let{} ?: put(raw)`：后者依赖 put 的返回值语义，
+        // 一旦 put 返回 null 就会静默写回字符串（实测踩到过，数字字段变成 "12"）。
+        when (input.kind?.lowercase()) {
+            "number" -> {
+                val asNumber = raw.toDoubleOrNull()
+                if (asNumber != null) put(input.key, asNumber) else put(input.key, raw)
             }
+            "toggle" -> put(input.key, raw == "true")
+            else -> put(input.key, raw)
         }
-    }.toString()
+    }
+}.toString()
 
 /** 深度优先收集输入项（保持出现顺序，便于作者预测参数顺序）。 */
 internal fun collectInputs(node: PluginUiTree.Node): List<PluginUiTree.Node.Input> {

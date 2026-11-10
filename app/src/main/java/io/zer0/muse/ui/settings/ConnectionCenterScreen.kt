@@ -164,8 +164,7 @@ internal fun skillAndPackageCounts(skills: List<io.zer0.muse.data.skill.SkillEnt
  * 这里刻意不做更精确的口径：中枢页的职责是"让人知道有多少、点进去看细节"，
  * 为了一个数字把 PluginManager 的注册表加载逻辑复制进来，只会多一处会过期的真相。
  */
-internal fun pluginInstalledCount(skills: List<io.zer0.muse.data.skill.SkillEntity>): Int =
-    skills.count { it.id.startsWith("plugin_") }
+internal fun pluginInstalledCount(skills: List<io.zer0.muse.data.skill.SkillEntity>): Int = skills.count { it.id.startsWith("plugin_") }
 
 /** 连接中心导航卡 — 图标 + 标题 + 状态摘要 + 箭头。 */
 @Composable

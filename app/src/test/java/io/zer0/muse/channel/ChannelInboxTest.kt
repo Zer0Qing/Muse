@@ -252,7 +252,6 @@ class ChannelInboxTest {
         assertEquals(processing.dispatchId, journal.claimNextPending()?.dispatchId)
     }
 
-
     /** 全部分片文件的文本（旧单文件不存在也不报错）。 */
     private fun persistedText(): String {
         val dir = File(directory, ChannelInbox.INBOX_DIR_NAME)

@@ -75,8 +75,7 @@ class PluginSharedStorageTest {
 
     // ── 网关 ────────────────────────────────────────────────────────────
 
-    private fun gateway(): PluginCapabilityGateway =
-        PluginCapabilityGateway(File(context.filesDir, "plugin_permissions.json"))
+    private fun gateway(): PluginCapabilityGateway = PluginCapabilityGateway(File(context.filesDir, "plugin_permissions.json"))
 
     @Test
     fun `a shared action is refused when nothing is declared`() {

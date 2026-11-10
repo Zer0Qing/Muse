@@ -31,10 +31,9 @@ class PluginToolDecisionHook(
      * 值统一按字符串传：插件判断"参数里有没有敏感字样/地址"够用了，
      * 而保留原始类型需要为任意嵌套结构做序列化，收益不成比例。
      */
-    internal fun argsToJson(params: Map<String, Any>): String =
-        kotlinx.serialization.json.JsonObject(
-            params.mapValues { (_, value) ->
-                kotlinx.serialization.json.JsonPrimitive(value.toString())
-            },
-        ).toString()
+    internal fun argsToJson(params: Map<String, Any>): String = kotlinx.serialization.json.JsonObject(
+        params.mapValues { (_, value) ->
+            kotlinx.serialization.json.JsonPrimitive(value.toString())
+        },
+    ).toString()
 }

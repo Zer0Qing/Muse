@@ -1,12 +1,12 @@
 package io.zer0.muse.conversation
 
-import java.nio.file.Files
-import java.nio.file.Path
+import io.mockk.mockk
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
-import io.mockk.mockk
+import java.nio.file.Files
+import java.nio.file.Path
 
 class ConversationKoinAssemblyTest {
     @Test

@@ -37,8 +37,8 @@ import io.zer0.memory.fact.FactStore
 import io.zer0.memory.summary.SessionSummaryManager
 import io.zer0.muse.R
 import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
-import io.zer0.muse.ui.chat.SessionArtifactCleanup
 import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.ui.chat.SessionArtifactCleanup
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseCapsuleButton

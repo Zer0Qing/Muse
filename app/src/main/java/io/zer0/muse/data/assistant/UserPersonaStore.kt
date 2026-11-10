@@ -98,15 +98,19 @@ class DataStoreUserPersonaStore(context: Context) : UserPersonaStore {
         }
     }
 
-    private fun decodePersonas(raw: String?): List<UserPersona> =
-        if (raw.isNullOrBlank()) emptyList()
-        else runCatching { json.decodeFromString(ListSerializer(UserPersona.serializer()), raw) }.getOrDefault(emptyList())
+    private fun decodePersonas(raw: String?): List<UserPersona> = if (raw.isNullOrBlank()) {
+        emptyList()
+    } else {
+        runCatching { json.decodeFromString(ListSerializer(UserPersona.serializer()), raw) }.getOrDefault(emptyList())
+    }
 
-    private fun decodeSelection(raw: String?): Map<String, String> =
-        if (raw.isNullOrBlank()) emptyMap()
-        else runCatching {
+    private fun decodeSelection(raw: String?): Map<String, String> = if (raw.isNullOrBlank()) {
+        emptyMap()
+    } else {
+        runCatching {
             json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), raw)
         }.getOrDefault(emptyMap())
+    }
 
     private companion object {
         val KEY_PERSONAS = stringPreferencesKey("personas_json")

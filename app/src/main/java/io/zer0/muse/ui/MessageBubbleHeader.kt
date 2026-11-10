@@ -39,7 +39,7 @@ internal fun MessageBubbleHeader(
     Column(
         modifier =
         modifier
-            .fillMaxWidth()
+            .fillMaxWidth(),
     ) {
         if (showDateSeparator) {
             DateSeparator(timestamp = message.createdAt)
@@ -75,13 +75,13 @@ internal fun MessageBubbleHeader(
                     Spacer(Modifier.width(MusePaddings.contentGap))
                     Text(
                         text =
-                            when {
-                                showName && showTime ->
-                                    "${assistant?.name?.takeIf { it.isNotBlank() } ?: "Muse"} · " +
-                                        formatMessageTime(message.createdAt, use24Hour = chatPreferences.use24Hour)
-                                showName -> assistant?.name?.takeIf { it.isNotBlank() } ?: "Muse"
-                                else -> formatMessageTime(message.createdAt, use24Hour = chatPreferences.use24Hour)
-                            },
+                        when {
+                            showName && showTime ->
+                                "${assistant?.name?.takeIf { it.isNotBlank() } ?: "Muse"} · " +
+                                    formatMessageTime(message.createdAt, use24Hour = chatPreferences.use24Hour)
+                            showName -> assistant?.name?.takeIf { it.isNotBlank() } ?: "Muse"
+                            else -> formatMessageTime(message.createdAt, use24Hour = chatPreferences.use24Hour)
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

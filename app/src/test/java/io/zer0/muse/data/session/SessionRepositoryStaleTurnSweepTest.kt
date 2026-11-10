@@ -82,8 +82,7 @@ class SessionRepositoryStaleTurnSweepTest {
         )
     }
 
-    private suspend fun turn(turnId: String): ConversationTurnEntity? =
-        database.conversationTurnDao().getById(turnId)
+    private suspend fun turn(turnId: String): ConversationTurnEntity? = database.conversationTurnDao().getById(turnId)
 
     @Test
     fun `sweep closes stale open turns with a terminal phase and finishedAt`() = runBlocking {

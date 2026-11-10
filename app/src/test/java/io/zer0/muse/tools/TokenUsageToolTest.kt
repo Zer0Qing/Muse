@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
-import io.zer0.muse.data.stats.UsageByModel
 import io.zer0.muse.data.stats.UsageByDay
+import io.zer0.muse.data.stats.UsageByModel
 import io.zer0.muse.data.stats.UsageBySource
 import io.zer0.muse.data.stats.UsageRecordDao
 import io.zer0.muse.data.stats.UsageRecordEntity
@@ -29,8 +29,7 @@ class TokenUsageToolTest {
     private val now = Instant.parse("2026-10-29T02:00:00Z").toEpochMilli()
     private val startOfToday = Instant.parse("2026-10-28T16:00:00Z").toEpochMilli()
 
-    private fun context(sessionId: String? = "s-1") =
-        ToolExecutionContext(scope = "chat", spaceId = "default", sessionId = sessionId)
+    private fun context(sessionId: String? = "s-1") = ToolExecutionContext(scope = "chat", spaceId = "default", sessionId = sessionId)
 
     private class FakeDao(
         var totals: UsageTotals? = null,
@@ -59,16 +58,15 @@ class TokenUsageToolTest {
         override suspend fun count(): Int = 0
     }
 
-    private fun totals(requests: Int = 12, prompt: Long = 1_234_567L, completion: Long = 45_678L, cached: Long = 0L) =
-        UsageTotals(
-            requests = requests,
-            promptTokens = prompt,
-            completionTokens = completion,
-            reasoningTokens = 0,
-            cachedTokens = cached,
-            cacheWriteTokens = 0,
-            avgFirstTokenMs = 0,
-        )
+    private fun totals(requests: Int = 12, prompt: Long = 1_234_567L, completion: Long = 45_678L, cached: Long = 0L) = UsageTotals(
+        requests = requests,
+        promptTokens = prompt,
+        completionTokens = completion,
+        reasoningTokens = 0,
+        cachedTokens = cached,
+        cacheWriteTokens = 0,
+        avgFirstTokenMs = 0,
+    )
 
     @Test
     fun `formatTokens shortens large numbers`() {

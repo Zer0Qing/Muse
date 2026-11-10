@@ -33,5 +33,4 @@ internal fun feishuSendIssue(sent: Boolean, error: Throwable?): String? = when {
 internal const val PING_FAILURES_BEFORE_RECONNECT = 2
 
 /** 是否该因为心跳失败而放弃当前连接、走重连。 */
-internal fun shouldReconnectOnPingFailure(consecutiveFailures: Int): Boolean =
-    consecutiveFailures >= PING_FAILURES_BEFORE_RECONNECT
+internal fun shouldReconnectOnPingFailure(consecutiveFailures: Int): Boolean = consecutiveFailures >= PING_FAILURES_BEFORE_RECONNECT

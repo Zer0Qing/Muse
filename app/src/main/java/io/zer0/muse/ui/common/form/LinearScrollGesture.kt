@@ -258,18 +258,17 @@ private suspend fun AwaitPointerEventScope.runLinearDrag(
     }
 }
 
-private fun LazyListState.toLinearScrollSnapshot(): LinearScrollSnapshot =
-    LinearScrollSnapshot(
-        visibleItems =
-        layoutInfo.visibleItemsInfo.map { info ->
-            LinearScrollItem(index = info.index, size = info.size)
-        },
-        totalItemsCount = layoutInfo.totalItemsCount,
-        viewportSizePx = layoutInfo.viewportSize.height,
-        viewportEndOffsetPx = layoutInfo.viewportEndOffset,
-        firstVisibleItemIndex = firstVisibleItemIndex,
-        firstVisibleItemScrollOffset = firstVisibleItemScrollOffset,
-    )
+private fun LazyListState.toLinearScrollSnapshot(): LinearScrollSnapshot = LinearScrollSnapshot(
+    visibleItems =
+    layoutInfo.visibleItemsInfo.map { info ->
+        LinearScrollItem(index = info.index, size = info.size)
+    },
+    totalItemsCount = layoutInfo.totalItemsCount,
+    viewportSizePx = layoutInfo.viewportSize.height,
+    viewportEndOffsetPx = layoutInfo.viewportEndOffset,
+    firstVisibleItemIndex = firstVisibleItemIndex,
+    firstVisibleItemScrollOffset = firstVisibleItemScrollOffset,
+)
 
 /** 按目标内容偏移定位列表：两端直接落到真首/真末，中间按条目 + 条目内偏移。 */
 private suspend fun seekList(listState: LazyListState, targetPx: Float, range: Float, count: Int, model: LinearScrollModel) {

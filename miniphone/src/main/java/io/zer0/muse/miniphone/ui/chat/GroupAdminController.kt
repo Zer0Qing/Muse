@@ -34,6 +34,8 @@ internal class GroupAdminController(
     private val characters: () -> List<MpCharacter>,
     private val state: MutableStateFlow<ChatUiState>,
     private val scope: CoroutineScope,
+    /** 只为自动重算群名时取当前语言的分隔符与收口词（群名会落库）。 */
+    private val context: android.content.Context? = null,
 ) {
 
     /** 改群名:空名不写,超长截断;写成功后界面上的群名立刻跟着换。 */
@@ -94,6 +96,14 @@ internal class GroupAdminController(
         val names = memberIds.map { id ->
             known.firstOrNull { character -> character.id == id }?.name.orEmpty()
         }
-        return groupTitleOf(names).takeIf(String::isNotEmpty)
+        return groupTitleOf(
+            names,
+            separator = context?.getString(io.zer0.muse.miniphone.R.string.mp_group_title_separator)
+                ?: io.zer0.muse.miniphone.data.chat.GROUP_TITLE_SEPARATOR,
+            fold = { count ->
+                context?.getString(io.zer0.muse.miniphone.R.string.mp_group_title_fold, count)
+                    ?: io.zer0.muse.miniphone.data.chat.groupTitleTailOf(count)
+            },
+        ).takeIf(String::isNotEmpty)
     }
 }

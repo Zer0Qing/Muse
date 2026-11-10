@@ -229,12 +229,10 @@ internal object CardDataFiles {
         return digest.joinToString(separator = "") { byte -> "%02x".format(byte) } + ".json"
     }
 
-    fun encode(cardId: String, data: String): String =
-        AppJson.encodeToString(Envelope.serializer(), Envelope(cardId = cardId, data = data))
+    fun encode(cardId: String, data: String): String = AppJson.encodeToString(Envelope.serializer(), Envelope(cardId = cardId, data = data))
 
     /** 解码失败返回 null（调用方跳过该分片，不当成空数据写进内存）。 */
-    fun decode(text: String): Pair<String, String>? =
-        runCatching { AppJson.decodeFromString(Envelope.serializer(), text) }
-            .getOrNull()
-            ?.let { it.cardId to it.data }
+    fun decode(text: String): Pair<String, String>? = runCatching { AppJson.decodeFromString(Envelope.serializer(), text) }
+        .getOrNull()
+        ?.let { it.cardId to it.data }
 }

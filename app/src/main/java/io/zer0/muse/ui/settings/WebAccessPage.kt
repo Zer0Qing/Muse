@@ -179,11 +179,7 @@ fun WebAccessPage(onBack: () -> Unit) {
 
 /** 运行状态 + 访问地址 + PIN + 二维码的组合卡，让用户一屏看到全部连接信息。 */
 @Composable
-private fun WebAccessHeroCard(
-    snapshot: WebAccessSnapshot,
-    onCopyAddress: () -> Unit,
-    onCopyPin: () -> Unit,
-) {
+private fun WebAccessHeroCard(snapshot: WebAccessSnapshot, onCopyAddress: () -> Unit, onCopyPin: () -> Unit) {
     val url = snapshot.address.url
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -234,13 +230,7 @@ private fun WebAccessHeroCard(
 
 /** 「标签 - 值 + 复制按钮」一行；值为空时用淡色提示文案而不是留白。 */
 @Composable
-private fun WebAccessValueRow(
-    label: String,
-    value: String,
-    faded: Boolean,
-    onCopy: (() -> Unit)?,
-    copyDescription: String,
-) {
+private fun WebAccessValueRow(label: String, value: String, faded: Boolean, onCopy: (() -> Unit)?, copyDescription: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             text = label,

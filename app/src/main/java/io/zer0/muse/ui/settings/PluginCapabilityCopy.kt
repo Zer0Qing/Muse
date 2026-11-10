@@ -90,12 +90,10 @@ object PluginCapabilityCopy {
         return id?.let { context.getString(it) } ?: capability
     }
 
-    fun isSensitive(capability: String): Boolean =
-        capability in SENSITIVE || canonical(capability) in SENSITIVE
+    fun isSensitive(capability: String): Boolean = capability in SENSITIVE || canonical(capability) in SENSITIVE
 
     /** 是否有可读表述（测试用来断言"覆盖齐了"，不是用来给 UI 判空的）。 */
-    fun hasCopy(capability: String): Boolean =
-        RES.containsKey(canonical(capability)) || RES.containsKey(capability)
+    fun hasCopy(capability: String): Boolean = RES.containsKey(canonical(capability)) || RES.containsKey(capability)
 
     private fun canonical(capability: String): String =
         PluginCapabilityGateway.canonicalCapabilities(listOf(capability)).firstOrNull() ?: capability

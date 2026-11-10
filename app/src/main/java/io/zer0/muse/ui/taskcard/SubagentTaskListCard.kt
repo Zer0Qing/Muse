@@ -461,12 +461,7 @@ private fun OrphanThreadRows(
  * 这种情况理论上少见(任务与线程通常 1:1)，仅作展示兜底。
  */
 @Composable
-private fun SubagentThreadRow(
-    threadId: String,
-    assistantId: String,
-    onClick: (() -> Unit)? = null,
-    onClose: (() -> Unit)? = null,
-) {
+private fun SubagentThreadRow(threadId: String, assistantId: String, onClick: (() -> Unit)? = null, onClose: (() -> Unit)? = null) {
     val assistantRepository: AssistantRepository = koinInject()
     val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
     val assistant = assistants.firstOrNull { it.id == assistantId }

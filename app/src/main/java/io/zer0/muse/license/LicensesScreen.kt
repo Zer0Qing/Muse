@@ -45,8 +45,8 @@ import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
-import org.koin.compose.koinInject
 import io.zer0.muse.ui.theme.bodyMediumStrong
+import org.koin.compose.koinInject
 
 /**
  * Phase 13: 开源许可页。

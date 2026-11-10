@@ -11,7 +11,7 @@ class ProactiveManualTestRouteTest {
         val route =
             ProactiveManualTestRoute.resolve(
                 config = ProactiveMessageConfig(allowPlainChatSession = true),
-                                existingAgentSession = {
+                existingAgentSession = {
                     ProactiveContextLoader.SessionPick(
                         "agent",
                         ProactiveContextLoader.SessionSource.EXISTING_AGENT,
@@ -31,7 +31,7 @@ class ProactiveManualTestRouteTest {
         val route =
             ProactiveManualTestRoute.resolve(
                 config = ProactiveMessageConfig(allowPlainChatSession = true),
-                                existingAgentSession = { null },
+                existingAgentSession = { null },
                 createAgentSession = {
                     created++
                     ProactiveContextLoader.SessionPick(
@@ -52,7 +52,7 @@ class ProactiveManualTestRouteTest {
         val route =
             ProactiveManualTestRoute.resolve(
                 config = ProactiveMessageConfig(agentSessionEnabled = false, allowPlainChatSession = true),
-                                existingAgentSession = { error("disabled Agent must not be queried") },
+                existingAgentSession = { error("disabled Agent must not be queried") },
                 createAgentSession = { error("disabled Agent must not be created") },
             )
 

@@ -811,12 +811,11 @@ internal val MARKDOWN_IMAGE_PATTERN = Regex("""!\[[^\]]*]\((\S+?)\)""")
  * 但此前没有任何地方把它们取出来渲染，模型用 Markdown 写的图就整行消失。
  * 只接受能直接加载的绝对地址与 data URI；相对路径不处理，留在正文里。
  */
-internal fun extractMarkdownImageUrls(text: String): List<String> =
-    MARKDOWN_IMAGE_PATTERN.findAll(text)
-        .map { it.groupValues[1].trim() }
-        .filter { it.startsWith("http://") || it.startsWith("https://") || it.startsWith("data:image/") }
-        .distinct()
-        .toList()
+internal fun extractMarkdownImageUrls(text: String): List<String> = MARKDOWN_IMAGE_PATTERN.findAll(text)
+    .map { it.groupValues[1].trim() }
+    .filter { it.startsWith("http://") || it.startsWith("https://") || it.startsWith("data:image/") }
+    .distinct()
+    .toList()
 
 /**
  * v2.x: 长文消息判定 — 结构型内容或超长正文时,AI 消息"不进卡"
@@ -1318,10 +1317,7 @@ private fun DirectToolOutput(
  * 不适合当界面：看不出有几个文件、多大，也点不开。这里按结构化元数据渲染成芯片。
  */
 @Composable
-internal fun MessageAttachmentChips(
-    attachments: List<AttachmentRef>,
-    onOpen: (AttachmentRef) -> Unit,
-) {
+internal fun MessageAttachmentChips(attachments: List<AttachmentRef>, onOpen: (AttachmentRef) -> Unit) {
     Column(
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
         modifier = Modifier.fillMaxWidth(),
@@ -1371,11 +1367,7 @@ internal fun MessageAttachmentChips(
  * 不做「交给外部应用打开」：工作区可能是 SAF 挂载，拿不到可共享的 File 路径。
  */
 @Composable
-internal fun AttachmentPreviewDialog(
-    attachment: AttachmentRef,
-    loadBytes: suspend () -> ByteArray?,
-    onDismiss: () -> Unit,
-) {
+internal fun AttachmentPreviewDialog(attachment: AttachmentRef, loadBytes: suspend () -> ByteArray?, onDismiss: () -> Unit) {
     if (isPdfAttachment(attachment)) {
         io.zer0.muse.ui.artifact.DocPreviewDialog(
             fileName = attachment.name,
@@ -1439,9 +1431,8 @@ private fun attachmentIcon(attachment: AttachmentRef): androidx.compose.ui.graph
     }
 }
 
-private fun isPdfAttachment(attachment: AttachmentRef): Boolean =
-    attachment.mimeType.equals("application/pdf", ignoreCase = true) ||
-        attachment.name.endsWith(".pdf", ignoreCase = true)
+private fun isPdfAttachment(attachment: AttachmentRef): Boolean = attachment.mimeType.equals("application/pdf", ignoreCase = true) ||
+    attachment.name.endsWith(".pdf", ignoreCase = true)
 
 private fun isTextAttachment(attachment: AttachmentRef): Boolean {
     val mime = attachment.mimeType.lowercase()

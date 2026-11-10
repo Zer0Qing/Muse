@@ -42,9 +42,8 @@ private typealias VideoHandler = io.zer0.muse.ui.chat.VideoAttachmentHandler
  * @param provider 本次绘图使用的供应商(可能为 null,此时无从兜底)
  * @param requested 调用方首选模型(设置里的绘图模型或当前选中模型,可能为 null)
  */
-internal fun resolveImageCapableModel(provider: ProviderConfig?, requested: Model?): Model? =
-    requested?.takeIf { it.supportsImageOutput() }
-        ?: provider?.models?.firstOrNull { it.supportsImageOutput() }
+internal fun resolveImageCapableModel(provider: ProviderConfig?, requested: Model?): Model? = requested?.takeIf { it.supportsImageOutput() }
+    ?: provider?.models?.firstOrNull { it.supportsImageOutput() }
 
 /**
  * v1.105 阶段 1: 从 ChatViewModel 抽离的图片相关 Coordinator。

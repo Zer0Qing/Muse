@@ -51,8 +51,11 @@ class NodePluginEngineIsolationInstrumentedTest {
         val slow = runaway.await()
         val totalMs = System.currentTimeMillis() - startedAt
 
-        Log.i(TAG, "NODE peer=${peerMs}ms value=${(peer as? SkillEngineResult.Success)?.valueJson} | " +
-            "runaway=${(slow as? SkillEngineResult.Error)?.message} total=${totalMs}ms")
+        Log.i(
+            TAG,
+            "NODE peer=${peerMs}ms value=${(peer as? SkillEngineResult.Success)?.valueJson} | " +
+                "runaway=${(slow as? SkillEngineResult.Error)?.message} total=${totalMs}ms",
+        )
 
         assertEquals("同伴插件必须算对", "42", (peer as? SkillEngineResult.Success)?.valueJson)
         assertTrue("同伴插件被跑飞插件拖慢：peer=${peerMs}ms", peerMs < RUNAWAY_TIMEOUT_MS)

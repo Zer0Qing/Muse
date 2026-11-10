@@ -11,12 +11,14 @@ import androidx.compose.runtime.Immutable
  * @param onSend 发一条文本
  * @param onPickImages 拉起系统图片选择器
  * @param onTranscribeVoice 把录音转成文字;转不了返回 null
+ * @param onSendSticker 发一个表情包库里的表情,参数是它的 uri
  */
 @Immutable
 data class ChatInputActions(
     val onSend: (String) -> Unit = {},
     val onPickImages: () -> Unit = {},
     val onTranscribeVoice: suspend (ByteArray) -> String? = { null },
+    val onSendSticker: (String) -> Unit = {},
 )
 
 /**

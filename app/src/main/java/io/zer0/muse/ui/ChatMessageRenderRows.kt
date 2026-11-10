@@ -29,15 +29,10 @@ data class ChatMessageRenderRow(
 }
 
 object ChatMessageRenderRows {
-    fun needsFooterDecision(
-        message: UIMessage,
-        isStreaming: Boolean,
-        hasRichContent: Boolean,
-    ): Boolean =
-        !isStreaming &&
-            !hasRichContent &&
-            message.role == io.zer0.ai.core.MessageRole.ASSISTANT &&
-            message.content.length > ChatRenderChunks.maxChunkCharacters
+    fun needsFooterDecision(message: UIMessage, isStreaming: Boolean, hasRichContent: Boolean): Boolean = !isStreaming &&
+        !hasRichContent &&
+        message.role == io.zer0.ai.core.MessageRole.ASSISTANT &&
+        message.content.length > ChatRenderChunks.maxChunkCharacters
 
     /**
      * 决定「这条消息要不要留页脚」所需的全部事实。
@@ -76,12 +71,7 @@ object ChatMessageRenderRows {
     }
 
     /** 某个快捷动作在这条消息上**按得动吗** —— 按不动的动作不该把页脚撑出来。 */
-    private fun rendersFor(
-        action: QuickAction,
-        facts: FooterFacts,
-        hasContent: Boolean,
-        hasReasoning: Boolean,
-    ): Boolean = when (action) {
+    private fun rendersFor(action: QuickAction, facts: FooterFacts, hasContent: Boolean, hasReasoning: Boolean): Boolean = when (action) {
         QuickAction.COPY, QuickAction.TRANSLATE, QuickAction.SHARE -> hasContent
         QuickAction.REASONING ->
             hasReasoning && (facts.chatPreferences.quickActionReasoning || !hasContent)
@@ -100,11 +90,7 @@ object ChatMessageRenderRows {
     }
 
     /** 老口径：没有 `quickActionOrder` 时，按各个独立开关判断。 */
-    private fun legacyFlagsNeedFooter(
-        facts: FooterFacts,
-        hasContent: Boolean,
-        hasReasoning: Boolean,
-    ): Boolean {
+    private fun legacyFlagsNeedFooter(facts: FooterFacts, hasContent: Boolean, hasReasoning: Boolean): Boolean {
         val prefs = facts.chatPreferences
         return (prefs.quickActionCopy && hasContent) ||
             (prefs.quickActionTranslate && hasContent) ||

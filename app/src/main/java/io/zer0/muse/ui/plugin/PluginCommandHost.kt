@@ -17,11 +17,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.plugin.PluginCommandRegistry
-import androidx.compose.ui.platform.LocalContext
 import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.tools.SkillMediaToolsImpl
 import io.zer0.muse.ui.theme.MusePaddings
@@ -101,11 +101,7 @@ fun rememberPluginCommandHost(setInput: (String) -> Unit): PluginCommandHost {
 
 /** 输入岛上方的插件命令候选（与内置命令的候选视觉一致）。 */
 @Composable
-fun PluginCommandSuggestionStrip(
-    host: PluginCommandHost,
-    text: String,
-    onPick: (PluginCommandRegistry.Entry) -> Unit,
-) {
+fun PluginCommandSuggestionStrip(host: PluginCommandHost, text: String, onPick: (PluginCommandRegistry.Entry) -> Unit) {
     LaunchedEffect(text) { host.refresh(text) }
     val entries = host.suggestions
     if (entries.isEmpty()) return

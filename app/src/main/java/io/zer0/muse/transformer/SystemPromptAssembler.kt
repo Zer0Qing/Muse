@@ -17,6 +17,9 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantMemoryAccessPolicy
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.data.assistant.SpeechGuidePolicy
+import io.zer0.muse.data.assistant.SpeechGuideStore
+import io.zer0.muse.data.assistant.SpeechGuideStyle
 import io.zer0.muse.data.assistant.UserPersonaStore
 import io.zer0.muse.data.assistant.VoiceReplyFrequency
 import io.zer0.muse.data.assistant.VoiceReplyPolicy
@@ -277,6 +280,9 @@ class SystemPromptAssembler(
         // 整改计划 第 4 条④：语音回复频率。走纯函数拼接 ⇒ 默认档逐字不改（有断言钉）。
         // 子代理不注入：它有自己的简报，多一段人设级习惯只会稀释。
         combined = if (forSubagent) combined else VoiceReplyPolicy.inject(combined, voiceFrequencyFor(assistant))
+        // 发言指南：只约束最终发到对话的正文怎么写。与语音约定同一处、同样跳过子代理。
+        // 默认档（OFF）走纯函数原样返回，所有用户的提示词逐字不变。
+        combined = if (forSubagent) combined else SpeechGuidePolicy.inject(combined, speechGuideFor())
 
         // P1-1: 调用 SystemPromptComposeHook,追加 Hook 返回的内容
         if (hookRegistry != null) {
@@ -733,6 +739,14 @@ class SystemPromptAssembler(
      * 走 `VoiceReplyPolicyStore` 而不是 `ChatPreferences`：后者的定义文件此刻被并行修改占用，
      * 且这一项本来就是助手级长期偏好，与用户约定同族。
      */
+    /**
+     * 发言指南当前档位。
+     *
+     * 读不出来一律回落 OFF（= 不注入），与语音档位同一套「默认必须一个字都不加」的纪律。
+     */
+    internal suspend fun speechGuideFor(): SpeechGuideStyle =
+        runCatching { SpeechGuideStore.of(context).style() }.getOrDefault(SpeechGuideStyle.OFF)
+
     internal suspend fun voiceFrequencyFor(assistant: AssistantEntity?): VoiceReplyFrequency {
         val agentId = assistant?.id ?: return VoiceReplyFrequency.RARELY
         return runCatching { VoiceReplyPolicyStore.of(context).frequencyFor(agentId) }

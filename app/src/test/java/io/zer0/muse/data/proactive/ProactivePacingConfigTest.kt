@@ -117,35 +117,28 @@ class ProactivePacingConfigTest {
     // 构造辅助
     // ══════════════════════════════════════════════════════════════
 
-    private fun pacing(
-        intervalMinutes: Int,
-        randomOffsetMinutes: Int,
-        assistantId: String = "default",
-    ): ProactiveTimingEngine.Pacing = ProactiveTimingEngine.Pacing(
-        intervalMinutes = intervalMinutes,
-        randomOffsetMinutes = randomOffsetMinutes,
-        assistantId = assistantId,
-    )
+    private fun pacing(intervalMinutes: Int, randomOffsetMinutes: Int, assistantId: String = "default"): ProactiveTimingEngine.Pacing =
+        ProactiveTimingEngine.Pacing(
+            intervalMinutes = intervalMinutes,
+            randomOffsetMinutes = randomOffsetMinutes,
+            assistantId = assistantId,
+        )
 
-    private fun input(
-        minutesSinceLastSent: Long,
-        pacing: ProactiveTimingEngine.Pacing,
-    ): ProactiveTimingEngine.Input = ProactiveTimingEngine.Input(
-        now = baseNow,
-        relation = relation(),
-        allowedHourStart = 8,
-        allowedHourEnd = 22,
-        allDayAllowed = false,
-        lastUserMessageAt = 0L,
-        isGenerating = false,
-        lastProactiveSentAt = if (minutesSinceLastSent <= 0) 0L else baseNow - minutesSinceLastSent * minute,
-        pacing = pacing,
-    )
+    private fun input(minutesSinceLastSent: Long, pacing: ProactiveTimingEngine.Pacing): ProactiveTimingEngine.Input =
+        ProactiveTimingEngine.Input(
+            now = baseNow,
+            relation = relation(),
+            allowedHourStart = 8,
+            allowedHourEnd = 22,
+            allDayAllowed = false,
+            lastUserMessageAt = 0L,
+            isGenerating = false,
+            lastProactiveSentAt = if (minutesSinceLastSent <= 0) 0L else baseNow - minutesSinceLastSent * minute,
+            pacing = pacing,
+        )
 
-    private fun evaluate(
-        minutesSinceLastSent: Long,
-        pacing: ProactiveTimingEngine.Pacing,
-    ): ProactiveTimingEngine.Decision = ProactiveTimingEngine.evaluate(input(minutesSinceLastSent, pacing))
+    private fun evaluate(minutesSinceLastSent: Long, pacing: ProactiveTimingEngine.Pacing): ProactiveTimingEngine.Decision =
+        ProactiveTimingEngine.evaluate(input(minutesSinceLastSent, pacing))
 
     private fun relation(): ProactiveRelationEntity = ProactiveRelationEntity(
         assistantId = "default",
@@ -157,9 +150,8 @@ class ProactivePacingConfigTest {
         earnedToday = 0f,
     )
 
-    private fun localMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long =
-        java.util.Calendar.getInstance().apply {
-            clear()
-            set(year, month - 1, day, hour, minute, 0)
-        }.timeInMillis
+    private fun localMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long = java.util.Calendar.getInstance().apply {
+        clear()
+        set(year, month - 1, day, hour, minute, 0)
+    }.timeInMillis
 }

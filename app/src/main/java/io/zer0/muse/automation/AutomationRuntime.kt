@@ -54,8 +54,7 @@ object AutomationRuntime {
      * **注意能力边界**：这一步只能保证"应用出现在主屏"，**不能保证**原来的页面与输入状态还在 ——
      * 那取决于应用自己是否保存了状态。界面文案必须把这一点说清楚，不能承诺"无缝恢复"。
      */
-    suspend fun launchOnMain(packageName: String): Boolean =
-        launchOnMainFn?.invoke(packageName) ?: false
+    suspend fun launchOnMain(packageName: String): Boolean = launchOnMainFn?.invoke(packageName) ?: false
 
     /** 仅测试用：清空通道，避免跨用例串状态。 */
     internal fun resetForTests() {

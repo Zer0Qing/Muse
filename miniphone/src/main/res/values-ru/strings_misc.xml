@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Строки локальных玩法 R9: гардероб, красные конверты, праздники и мелодии звонка. -->
+    <string name="mp_discover_wardrobe">Гардероб</string>
+    <string name="mp_wardrobe_title">Гардероб</string>
+    <string name="mp_wardrobe_empty">Гардероб пока пуст</string>
+    <string name="mp_wardrobe_name_hint">Название этой одежды</string>
+    <string name="mp_wardrobe_uri_hint">URL изображения (необязательно)</string>
+    <string name="mp_wardrobe_add">Добавить</string>
+    <string name="mp_wardrobe_equip">Надеть</string>
+    <string name="mp_wardrobe_equipped">Надето</string>
+    <string name="mp_wardrobe_kind_top">Верх</string>
+    <string name="mp_wardrobe_kind_bottom">Низ</string>
+    <string name="mp_wardrobe_kind_dress">Платье</string>
+    <string name="mp_wardrobe_kind_shoes">Обувь</string>
+    <string name="mp_wardrobe_kind_accessory">Аксессуар</string>
+
+    <string name="mp_discover_redpacket">Красные конверты группы</string>
+    <string name="mp_redpacket_title">Красные конверты группы</string>
+    <string name="mp_redpacket_empty">Красных конвертов пока нет</string>
+    <string name="mp_redpacket_rp_hint">Сумма — лишь текст для ролевой игры, реальные деньги не задействованы</string>
+    <string name="mp_redpacket_amount_hint">Сумма (текст для игры)</string>
+    <string name="mp_redpacket_note_hint">Пожелание (необязательно)</string>
+    <string name="mp_redpacket_send">Отправить</string>
+    <string name="mp_redpacket_claim">Получить</string>
+    <string name="mp_redpacket_claim_count">Получили: %1$d</string>
+    <string name="mp_redpacket_state_open">Доступен</string>
+    <string name="mp_redpacket_state_claimed">Всё получено</string>
+    <string name="mp_redpacket_state_expired">Истёк</string>
+
+    <string name="mp_discover_holiday">Праздники</string>
+    <string name="mp_holiday_title">Праздники и годовщины</string>
+    <string name="mp_holiday_empty">Праздники пока не записаны</string>
+    <string name="mp_holiday_recurring">Каждый год</string>
+    <string name="mp_holiday_once">Только один раз</string>
+    <string name="mp_holiday_name_hint">Название праздника или годовщины</string>
+    <string name="mp_holiday_date_hint">Дата: MM-dd (ежегодно)</string>
+    <string name="mp_holiday_date_once_hint">Дата: yyyy-MM-dd (один раз)</string>
+    <string name="mp_holiday_year_hint">Год (напр. 2026)</string>
+    <string name="mp_holiday_note_hint">Заметка (необязательно)</string>
+    <string name="mp_holiday_add">Добавить</string>
+
+    <string name="mp_discover_ringtone">Мелодии звонка</string>
+    <string name="mp_ringtone_title">Мелодии звонка</string>
+    <string name="mp_ringtone_empty">Мелодий пока нет</string>
+    <string name="mp_ringtone_general">Общая</string>
+    <string name="mp_ringtone_voice">Мелодия голосового звонка</string>
+    <string name="mp_ringtone_video">Мелодия видеозвонка</string>
+    <string name="mp_ringtone_name_hint">Название мелодии</string>
+    <string name="mp_ringtone_uri_hint">URL аудио или видео</string>
+    <string name="mp_ringtone_add">Добавить</string>
+</resources>

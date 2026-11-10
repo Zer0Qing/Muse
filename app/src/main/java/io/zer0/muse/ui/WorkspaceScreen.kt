@@ -3,7 +3,6 @@ package io.zer0.muse.ui
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
-import androidx.core.content.FileProvider
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -48,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import io.zer0.common.FileSizeFormatter
 import io.zer0.common.Logger
 import io.zer0.muse.R
@@ -613,7 +613,11 @@ fun WorkspaceScreen(
     mediaEntry?.let { entry ->
         val info = mediaInfo
         MuseDialog(
-            onDismissRequest = { mediaEntry = null; mediaInfo = null; mediaShareUri = null },
+            onDismissRequest = {
+                mediaEntry = null
+                mediaInfo = null
+                mediaShareUri = null
+            },
             title = entry.name,
             content = {
                 Column(
@@ -662,7 +666,11 @@ fun WorkspaceScreen(
                 }
             },
             confirmText = stringResource(R.string.action_close),
-            onConfirm = { mediaEntry = null; mediaInfo = null; mediaShareUri = null },
+            onConfirm = {
+                mediaEntry = null
+                mediaInfo = null
+                mediaShareUri = null
+            },
             dismissText = null,
         )
     }

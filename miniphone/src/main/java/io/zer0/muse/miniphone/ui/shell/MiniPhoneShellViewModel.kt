@@ -43,6 +43,13 @@ class MiniPhoneShellViewModel(
     private val groupStore: MpGroupActions,
     host: MiniPhoneHost,
     private val settings: MpMomentAutoStore,
+    /**
+     * 只为建群时取「等 N 人」与名字之间的分隔符。
+     *
+     * 群名会写进库，所以拼它的那一刻就得用当前语言；这是唯一需要 Context 的地方。
+     * 可空：只建会话、不建群的替身不必提供。
+     */
+    private val context: android.content.Context? = null,
 ) : ViewModel() {
 
     /** 宿主版本名:整个停留期间不变,进页时问一次就够。 */
@@ -104,8 +111,21 @@ class MiniPhoneShellViewModel(
         val members = characterIds.map(String::trim).filter(String::isNotEmpty).distinct()
         if (!canCreateGroup(members.size)) return null
         val names = members.map { id -> charactersById[id]?.name.orEmpty() }
-        return groupStore.createGroup(members, groupTitleOf(names))
+        val title = groupTitleOf(
+            names,
+            separator = groupTitleSeparator(),
+            fold = ::groupTitleFold,
+        )
+        return groupStore.createGroup(members, title)
     }
+
+    /** 名字之间的分隔符按当前语言取；没有 Context 的替身退回既有默认。 */
+    private fun groupTitleSeparator(): String = context?.getString(io.zer0.muse.miniphone.R.string.mp_group_title_separator)
+        ?: io.zer0.muse.miniphone.data.chat.GROUP_TITLE_SEPARATOR
+
+    private fun groupTitleFold(personCount: Int): String =
+        context?.getString(io.zer0.muse.miniphone.R.string.mp_group_title_fold, personCount)
+            ?: io.zer0.muse.miniphone.data.chat.groupTitleTailOf(personCount)
 
     /** 合成状态,顺便把角色名单留在 [charactersById] 上(建群要用名字,不能再去问宿主一次)。 */
     private fun assembleWithCharacterCache(

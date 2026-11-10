@@ -3,11 +3,11 @@ package io.zer0.muse.data.plugin
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.encodeToString
 import io.zer0.muse.tools.script.SkillEngineResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.encodeToString
 
 /**
  * 插件激活事件派发。
@@ -164,10 +164,7 @@ class PluginActivationBridge(
     }
 
     /** 问单个插件要一段追加文本；没声明/失败都返回 null。 */
-    private suspend fun systemPromptPart(
-        plugin: PluginManager.InstalledPlugin,
-        contextJson: String,
-    ): String? {
+    private suspend fun systemPromptPart(plugin: PluginManager.InstalledPlugin, contextJson: String): String? {
         val verified = resultOf { pluginManager.loadVerifiedPlugin(plugin.id) }.getOrNull() ?: return null
         if (HOOK_SYSTEM_PROMPT !in verified.manifest.hooks) return null
         val raw = resultOf {
@@ -180,9 +177,10 @@ class PluginActivationBridge(
             )
         }.getOrNull()
         return when (raw) {
-            is SkillEngineResult.Success -> PluginPromptInjection
-                .wrap(verified.manifest.name, raw.valueJson.trim('"'))
-                .takeIf { it.isNotBlank() }
+            is SkillEngineResult.Success ->
+                PluginPromptInjection
+                    .wrap(verified.manifest.name, raw.valueJson.trim('"'))
+                    .takeIf { it.isNotBlank() }
             is SkillEngineResult.Error -> {
                 Logger.w(TAG, "系统提示词钩子失败(已跳过): ${plugin.id} — ${raw.message}")
                 null
@@ -216,11 +214,7 @@ class PluginActivationBridge(
     }
 
     /** 问单个插件要不要拦；放行返回 null。 */
-    private suspend fun askPluginToBlock(
-        plugin: PluginManager.InstalledPlugin,
-        toolName: String,
-        argsJson: String,
-    ): String? {
+    private suspend fun askPluginToBlock(plugin: PluginManager.InstalledPlugin, toolName: String, argsJson: String): String? {
         val verified = resultOf { pluginManager.loadVerifiedPlugin(plugin.id) }.getOrNull() ?: return null
         if (ACTIVATION_ON_TOOL_CALL_BEFORE !in verified.manifest.activationEvents) return null
         val raw = resultOf {
@@ -294,8 +288,7 @@ class PluginActivationBridge(
     }
 
     /** 工具调用事件的载荷。 */
-    internal fun toolCallPayload(toolName: String): String =
-        """{"event":"$ACTIVATION_ON_TOOL_CALL","tool":${quote(toolName)}}"""
+    internal fun toolCallPayload(toolName: String): String = """{"event":"$ACTIVATION_ON_TOOL_CALL","tool":${quote(toolName)}}"""
 
     /** 对所有声明了 `onStartup` 且已启用的插件派发一次激活。 */
     suspend fun dispatchStartup() {
@@ -340,10 +333,7 @@ class PluginActivationBridge(
      * 「没声明 onStartup」和「已经激活过」都是正常跳过，不应该和「激活失败」混在同一层，
      * 否则日志会把前两种当成需要关注的事件。
      */
-    private suspend fun resolveActivatable(
-        plugin: PluginManager.InstalledPlugin,
-        key: String,
-    ): PluginManager.VerifiedPlugin? {
+    private suspend fun resolveActivatable(plugin: PluginManager.InstalledPlugin, key: String): PluginManager.VerifiedPlugin? {
         synchronized(activatedKeys) { if (key in activatedKeys) return null }
 
         // 声明在磁盘上的 manifest 里，不在注册表缓存里 —— 与所有执行路径保持一致。

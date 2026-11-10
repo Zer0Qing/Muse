@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mp_discover_relation">Rede de relações</string>
+    <string name="mp_relation_title">Rede de relações</string>
+    <string name="mp_relation_no_characters">Ainda não há personagens nos contatos</string>
+    <string name="mp_relation_from_section">Como ele vê os outros</string>
+    <string name="mp_relation_to_section">Como os outros veem ele</string>
+    <string name="mp_relation_from_empty">Ele ainda não disse como vê ninguém</string>
+    <string name="mp_relation_to_empty">Ninguém ainda disse como vê ele</string>
+    <string name="mp_relation_set_title">Registrar uma opinião</string>
+    <string name="mp_relation_target_hint">Escolha alguém</string>
+    <string name="mp_relation_label_hint">ex.: amigo íntimo, rival, desconhecido</string>
+    <string name="mp_relation_set">Registrar</string>
+    <string name="mp_relation_describe">Deixar ele mesmo dizer</string>
+</resources>

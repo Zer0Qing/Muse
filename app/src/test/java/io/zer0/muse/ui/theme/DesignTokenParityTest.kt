@@ -488,8 +488,7 @@ class DesignTokenParityTest {
     }
 
     /** PaddingValues 的水平内边距（Compose 只暴露 calculate*Padding）。 */
-    private fun paddingX(values: PaddingValues): Double =
-        values.calculateLeftPadding(LayoutDirection.Ltr).value.toDouble()
+    private fun paddingX(values: PaddingValues): Double = values.calculateLeftPadding(LayoutDirection.Ltr).value.toDouble()
 
     /** PaddingValues 的垂直内边距。 */
     private fun paddingY(values: PaddingValues): Double = values.calculateTopPadding().value.toDouble()

@@ -63,8 +63,7 @@ class PluginAppearanceBridgeTest {
 
     // ── 宿主 API 侧 ─────────────────────────────────────────────────────
 
-    private fun request(mode: String) =
-        """{"__bridge__":true,"action":"app_set_theme_mode","params":{"mode":"$mode"}}"""
+    private fun request(mode: String) = """{"__bridge__":true,"action":"app_set_theme_mode","params":{"mode":"$mode"}}"""
 
     @Test
     fun `without the capability the action is refused`() = runTest {

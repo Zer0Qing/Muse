@@ -88,8 +88,14 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
     return parseMarkdownPass(lines, 0).blocks
 }
 
-/** L10 修复: 换行分割(兼容 Windows \r\n 与旧 Mac \r),全量/增量共用保证行号一致。 */
-internal val MARKDOWN_LINE_SPLIT = Regex("\\r?\\n")
+/**
+ * 换行分割：Unix `\n`、Windows `\r\n`、旧 Mac 单独 `\r` 三种都要能分。
+ *
+ * 只写 `\r?\n` 的话单独 `\r` 分不开，整段会被当成一行 ——
+ * 围栏代码块的结束行识别不到，后面的正文全被吞进代码块。
+ * 全量解析与增量解析共用这一个正则，保证两边行号一致。
+ */
+internal val MARKDOWN_LINE_SPLIT = Regex("\\r\\n|\\n|\\r")
 
 /**
  * 单遍解析的中间结果。

@@ -18,11 +18,7 @@ import java.io.File
  *        解压/写入守卫里"目标正好等于根目录"意味着 entry 名是空或 `.`，
  *        历史上那三处都是拒绝的，这里保持同样的严格度。
  */
-internal fun isStrictlyInside(
-    candidatePath: String,
-    rootPath: String,
-    allowEqual: Boolean = false,
-): Boolean {
+internal fun isStrictlyInside(candidatePath: String, rootPath: String, allowEqual: Boolean = false): Boolean {
     val root = rootPath.trimEnd(File.separatorChar)
     if (candidatePath == root) return allowEqual
     return candidatePath.startsWith(root + File.separator)

@@ -51,8 +51,7 @@ object SearchMemoryTool {
         riskLevel = ToolRiskLevel.SAFE,
     )
 
-    suspend fun execute(args: Map<String, String>, factStore: FactStore): String =
-        executeInternal(args, factStore, null, null)
+    suspend fun execute(args: Map<String, String>, factStore: FactStore): String = executeInternal(args, factStore, null, null)
 
     suspend fun execute(args: Map<String, String>, factStore: FactStore, executionContext: ToolExecutionContext): String =
         executeInternal(args, factStore, executionContext, null)

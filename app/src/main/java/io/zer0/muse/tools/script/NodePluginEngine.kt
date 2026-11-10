@@ -199,14 +199,13 @@ class NodePluginEngine(private val context: Context) {
      * 插件里 `const a = muse.bridge(...)` 之后紧接着的算式不会拿着一个 error 对象继续跑 ——
      * 静默的"结果是错误对象"比失败更难查。
      */
-    private suspend fun runBridge(
-        request: BridgeRequest,
-        bridgeHandler: suspend (String) -> SkillBridge.HandleResult,
-    ): String {
+    private suspend fun runBridge(request: BridgeRequest, bridgeHandler: suspend (String) -> SkillBridge.HandleResult): String {
         val payload = "{\"action\":${request.actionJson},\"params\":${request.paramsJson}}"
-        return when (val result = runCatching { bridgeHandler(payload) }.getOrElse {
-            return replyError(request.id, "桥接执行异常: ${it.message}")
-        }) {
+        return when (
+            val result = runCatching { bridgeHandler(payload) }.getOrElse {
+                return replyError(request.id, "桥接执行异常: ${it.message}")
+            }
+        ) {
             is SkillBridge.HandleResult.Output ->
                 "{\"kind\":\"reply\",\"id\":${request.id},\"ok\":true,\"result\":${result.json}}"
             is SkillBridge.HandleResult.Failure -> replyError(request.id, result.message)
@@ -217,8 +216,7 @@ class NodePluginEngine(private val context: Context) {
     private fun replyError(id: Int, message: String): String =
         "{\"kind\":\"reply\",\"id\":$id,\"ok\":false,\"error\":${JsonPrimitive(message)}}"
 
-    private fun exitCodeOf(process: Process): Int =
-        if (process.isAlive) -1 else runCatching { process.exitValue() }.getOrDefault(-1)
+    private fun exitCodeOf(process: Process): Int = if (process.isAlive) -1 else runCatching { process.exitValue() }.getOrDefault(-1)
 
     private fun writeLine(writer: BufferedWriter, line: String) {
         writer.write(line)
@@ -304,8 +302,7 @@ class NodePluginEngine(private val context: Context) {
         return array.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
     }
 
-    private fun tail(text: String): String =
-        if (text.isBlank()) "" else "\n" + text.substring(maxOf(0, text.length - MAX_STDERR_CHARS))
+    private fun tail(text: String): String = if (text.isBlank()) "" else "\n" + text.substring(maxOf(0, text.length - MAX_STDERR_CHARS))
 
     /**
      * 生成包装脚本。
@@ -469,6 +466,7 @@ class NodePluginEngine(private val context: Context) {
             |} else {
             |  __emit({ ok: true, valueJson: JSON.stringify(__value === undefined ? null : __value), logs: __logs });
             |}
-            |""".trimMargin()
+            |
+        """.trimMargin()
     }
 }

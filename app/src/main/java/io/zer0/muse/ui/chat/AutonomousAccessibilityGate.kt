@@ -1,9 +1,9 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.muse.automation.core.AutomationAction
 import io.zer0.muse.automation.core.AutonomousAccessibilityApproval
 import io.zer0.muse.automation.core.AutonomousAccessibilityRuntimeSnapshot
 import io.zer0.muse.automation.core.AutonomousAccessibilityTaskScope
-import io.zer0.muse.automation.core.AutomationAction
 import io.zer0.muse.tools.ToolApprovalState
 import kotlinx.coroutines.sync.withLock
 

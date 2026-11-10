@@ -50,8 +50,7 @@ class ChannelConversationShardTest {
         ChannelConversationStore.clear(channelB, "peer-2")
     }
 
-    private fun shardFiles(): List<File> =
-        shardDir.listFiles().orEmpty().filter { it.isFile && it.name.endsWith(".json") }
+    private fun shardFiles(): List<File> = shardDir.listFiles().orEmpty().filter { it.isFile && it.name.endsWith(".json") }
 
     private fun bytesOf(key: String): Long =
         File(shardDir, ChannelConversationFiles.shardName(key)).let { if (it.exists()) it.length() else 0L }

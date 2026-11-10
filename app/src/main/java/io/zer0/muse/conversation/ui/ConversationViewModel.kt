@@ -18,12 +18,7 @@ class ConversationViewModel(
         }
     }
 
-    suspend fun load(
-        sessionId: String,
-        explicitSelectionSetId: String? = null,
-        around: String? = null,
-        limit: Int = 50,
-    ) {
+    suspend fun load(sessionId: String, explicitSelectionSetId: String? = null, around: String? = null, limit: Int = 50) {
         val pageModel = pageModelFor(sessionId)
         val selectionSetId =
             explicitSelectionSetId?.takeIf { it.isNotBlank() }

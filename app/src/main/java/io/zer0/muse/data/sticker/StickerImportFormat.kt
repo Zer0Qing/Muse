@@ -30,7 +30,6 @@ enum class StickerSourceKind {
 
     /** 认不出来。 */
     UNKNOWN,
-    ;
 }
 
 /** 认格式只需要文件名与头部字节，因此这里全部是纯函数（可 JVM 单测）。 */
@@ -83,10 +82,9 @@ object StickerImportFormat {
         else -> null
     }
 
-    private fun isImageMagic(head: ByteArray): Boolean =
-        startsWith(head, PNG_MAGIC) || startsWith(head, JPEG_MAGIC) ||
-            startsWith(head, GIF_MAGIC) || startsWith(head, BMP_MAGIC) ||
-            isWebp(head)
+    private fun isImageMagic(head: ByteArray): Boolean = startsWith(head, PNG_MAGIC) || startsWith(head, JPEG_MAGIC) ||
+        startsWith(head, GIF_MAGIC) || startsWith(head, BMP_MAGIC) ||
+        isWebp(head)
 
     private fun startsWith(bytes: ByteArray, magic: ByteArray): Boolean {
         if (bytes.size < magic.size) return false
@@ -102,8 +100,7 @@ object StickerImportFormat {
     private val RIFF_MAGIC = "RIFF".toByteArray(Charsets.US_ASCII)
 
     /** WEBP 是 `RIFF` + 4 字节长度 + `WEBP`：只看前缀会把 wav/avi 误判成图片。 */
-    private fun isWebp(head: ByteArray): Boolean =
-        head.size >= 12 &&
-            startsWith(head, RIFF_MAGIC) &&
-            head.copyOfRange(8, 12).toString(Charsets.US_ASCII) == "WEBP"
+    private fun isWebp(head: ByteArray): Boolean = head.size >= 12 &&
+        startsWith(head, RIFF_MAGIC) &&
+        head.copyOfRange(8, 12).toString(Charsets.US_ASCII) == "WEBP"
 }

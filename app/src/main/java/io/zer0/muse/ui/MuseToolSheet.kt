@@ -75,14 +75,14 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
-import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpringTier
+import io.zer0.muse.ui.theme.bodyMediumStrong
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import io.zer0.muse.ui.theme.bodyMediumStrong
 
 /** B7-07: 加号工具面板的数据驱动条目。 */
 internal data class ToolEntry(

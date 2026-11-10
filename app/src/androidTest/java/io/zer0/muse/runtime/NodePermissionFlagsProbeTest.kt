@@ -78,22 +78,21 @@ class NodePermissionFlagsProbeTest {
         return target.absolutePath.replace("\\", "\\\\")
     }
 
-    private fun runNode(node: File, args: List<String>, context: Context): String =
-        runCatching {
-            val builder = ProcessBuilder(listOf(node.absolutePath) + args).apply {
-                environment().clear()
-                environment().putAll(MuseRuntime.buildEnv(context))
-                redirectErrorStream(true)
-            }
-            val process = builder.start()
-            val output = process.inputStream.bufferedReader().readText()
-            val finished = process.waitFor(20, TimeUnit.SECONDS)
-            if (!finished) {
-                process.destroyForcibly()
-                return@runCatching "TIMEOUT output=${output.take(300)}"
-            }
-            "exit=${process.exitValue()} out=${output.trim().take(400)}"
-        }.getOrElse { "LAUNCH-FAIL ${it.message}" }
+    private fun runNode(node: File, args: List<String>, context: Context): String = runCatching {
+        val builder = ProcessBuilder(listOf(node.absolutePath) + args).apply {
+            environment().clear()
+            environment().putAll(MuseRuntime.buildEnv(context))
+            redirectErrorStream(true)
+        }
+        val process = builder.start()
+        val output = process.inputStream.bufferedReader().readText()
+        val finished = process.waitFor(20, TimeUnit.SECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            return@runCatching "TIMEOUT output=${output.take(300)}"
+        }
+        "exit=${process.exitValue()} out=${output.trim().take(400)}"
+    }.getOrElse { "LAUNCH-FAIL ${it.message}" }
 
     private fun runBlockingUnit(block: suspend () -> Unit) = kotlinx.coroutines.runBlocking { block() }
 

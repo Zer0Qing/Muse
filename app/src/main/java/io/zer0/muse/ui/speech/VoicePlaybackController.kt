@@ -1,12 +1,12 @@
 package io.zer0.muse.ui.speech
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.zer0.common.Logger
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -69,44 +69,43 @@ class MediaPlayerVoiceAudioPlayer : VoiceAudioPlayer {
     private var prepared = false
     private var pendingSeekMs: Long? = null
 
-    override fun load(file: File, onCompletion: () -> Unit, onError: (Throwable) -> Unit): Boolean =
-        runCatching {
-            release()
-            val mp = MediaPlayer()
-            player = mp
-            mp.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build(),
-            )
-            mp.setDataSource(file.absolutePath)
-            mp.setOnPreparedListener { ready ->
-                prepared = true
-                runCatching { ready.start() }
-                    .onFailure { e ->
-                        Logger.w(TAG, "语音起播失败: ${e.message}")
-                        onError(e)
-                    }
-                pendingSeekMs?.let { target ->
-                    pendingSeekMs = null
-                    runCatching { ready.seekTo(target.toInt()) }
-                        .onFailure { Logger.w(TAG, "语音起播后跳转失败: ${it.message}") }
+    override fun load(file: File, onCompletion: () -> Unit, onError: (Throwable) -> Unit): Boolean = runCatching {
+        release()
+        val mp = MediaPlayer()
+        player = mp
+        mp.setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build(),
+        )
+        mp.setDataSource(file.absolutePath)
+        mp.setOnPreparedListener { ready ->
+            prepared = true
+            runCatching { ready.start() }
+                .onFailure { e ->
+                    Logger.w(TAG, "语音起播失败: ${e.message}")
+                    onError(e)
                 }
+            pendingSeekMs?.let { target ->
+                pendingSeekMs = null
+                runCatching { ready.seekTo(target.toInt()) }
+                    .onFailure { Logger.w(TAG, "语音起播后跳转失败: ${it.message}") }
             }
-            mp.setOnCompletionListener { onCompletion() }
-            mp.setOnErrorListener { _, what, extra ->
-                onError(IllegalStateException("MediaPlayer error what=$what extra=$extra"))
-                true
-            }
-            mp.prepareAsync()
-            true
-        }.getOrElse { e ->
-            Logger.w(TAG, "语音装载失败: ${e.message}")
-            runCatching { release() }
-            onError(e)
-            false
         }
+        mp.setOnCompletionListener { onCompletion() }
+        mp.setOnErrorListener { _, what, extra ->
+            onError(IllegalStateException("MediaPlayer error what=$what extra=$extra"))
+            true
+        }
+        mp.prepareAsync()
+        true
+    }.getOrElse { e ->
+        Logger.w(TAG, "语音装载失败: ${e.message}")
+        runCatching { release() }
+        onError(e)
+        false
+    }
 
     override fun start() {
         val mp = player ?: return

@@ -26,12 +26,10 @@ internal class HostMediaLinks(
     }
 
     /** 列表版转换，顺带剔除不可用项。 */
-    fun links(values: List<String>, ownerMessageId: String): List<String> =
-        values.mapNotNull { link(it, ownerMessageId) }
+    fun links(values: List<String>, ownerMessageId: String): List<String> = values.mapNotNull { link(it, ownerMessageId) }
 
     /** 语音引用单独走一条链：非语音消息不下发 voiceUrl。 */
-    fun voiceLink(value: String?, ownerMessageId: String): String? =
-        value?.takeIf { it.isNotBlank() }?.let { link(it, ownerMessageId) }
+    fun voiceLink(value: String?, ownerMessageId: String): String? = value?.takeIf { it.isNotBlank() }?.let { link(it, ownerMessageId) }
 
     /**
      * 头像这类一次性资源：只认本地文件与 `http(s)`。
@@ -61,8 +59,7 @@ internal class HostMediaLinks(
     }
 
     /** 不带 `file://` 前缀的本机路径：Unix 绝对路径与 Windows 盘符路径。 */
-    private fun isLocalPath(value: String): Boolean =
-        value.startsWith("/") || value.startsWith(UNC_PREFIX) || DRIVE_PATH.matches(value)
+    private fun isLocalPath(value: String): Boolean = value.startsWith("/") || value.startsWith(UNC_PREFIX) || DRIVE_PATH.matches(value)
 
     private fun looksLikeBase64(value: String): Boolean {
         if (value.length < MIN_BASE64_LENGTH) return false

@@ -57,7 +57,7 @@ object WorkspaceMediaReport {
         val (width, height) = input.dimensions ?: 0 to 0
         appendLine("image | ${input.display} | ${input.mimeType.ifBlank { "图片" }} | ${formatBytes(input.sizeBytes)}")
         if (width > 0 && height > 0) {
-            appendLine("尺寸：${width}×${height}")
+            appendLine("尺寸：$width×$height")
         }
         appendLine(
             when {
@@ -89,22 +89,17 @@ object WorkspaceMediaReport {
      * @param transcript 转写文本；null 表示没有结果
      * @param missingReason 没有结果时的原因（未配置引擎、超限、转写失败）
      */
-    fun audio(
-        display: String,
-        mimeType: String,
-        sizeBytes: Long,
-        transcript: String?,
-        missingReason: String? = null,
-    ): String = buildString {
-        appendLine("audio | $display | ${mimeType.ifBlank { "音频" }} | ${formatBytes(sizeBytes)}")
-        val text = transcript?.trim().orEmpty()
-        if (text.isNotEmpty()) {
-            append("转写内容：")
-            append(lineBody(text))
-        } else {
-            append("没有转写内容：${missingReason ?: "转写未返回结果"}。这段音频的内容你看不到，需要文字时请让用户先转写好。")
-        }
-    }.trimEnd()
+    fun audio(display: String, mimeType: String, sizeBytes: Long, transcript: String?, missingReason: String? = null): String =
+        buildString {
+            appendLine("audio | $display | ${mimeType.ifBlank { "音频" }} | ${formatBytes(sizeBytes)}")
+            val text = transcript?.trim().orEmpty()
+            if (text.isNotEmpty()) {
+                append("转写内容：")
+                append(lineBody(text))
+            } else {
+                append("没有转写内容：${missingReason ?: "转写未返回结果"}。这段音频的内容你看不到，需要文字时请让用户先转写好。")
+            }
+        }.trimEnd()
 
     /**
      * 其他非文本文件（压缩包、PDF、可执行体、未知二进制）的拒绝回执。
@@ -112,13 +107,7 @@ object WorkspaceMediaReport {
      * 只说事实与下一步，不编内容。PDF 特别说明界面有预览、且有 parse_pdf 工具，
      * 免得模型以为读不了就去猜正文。
      */
-    fun refusal(
-        display: String,
-        kind: WorkspaceFileKind,
-        mimeType: String,
-        sizeBytes: Long,
-        note: String? = null,
-    ): String {
+    fun refusal(display: String, kind: WorkspaceFileKind, mimeType: String, sizeBytes: Long, note: String? = null): String {
         val hint = when (kind) {
             WorkspaceFileKind.DOCUMENT -> "PDF 请改用 parse_pdf 工具取正文，本接口不解析版式。"
             WorkspaceFileKind.ARCHIVE -> "压缩包不能直接读；先解压（可用 execute_node_script / 终端），再读里面的文件。"

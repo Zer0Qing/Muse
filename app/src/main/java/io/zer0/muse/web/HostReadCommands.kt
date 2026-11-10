@@ -69,11 +69,7 @@ internal object HostReadCommands {
      * 人设只给截断后的摘要([HostAssistantDetail.personaSummary]),截断口径见
      * [PERSONA_SUMMARY_LIMIT]。
      */
-    fun assistantDetailEvent(
-        assistant: AssistantEntity?,
-        requestId: String?,
-        mediaLinks: HostMediaLinks,
-    ): HostEvent {
+    fun assistantDetailEvent(assistant: AssistantEntity?, requestId: String?, mediaLinks: HostMediaLinks): HostEvent {
         if (assistant == null) {
             return HostEvent(type = TYPE_ASSISTANT_DETAIL, requestId = requestId, error = ERROR_ASSISTANT_NOT_FOUND)
         }
@@ -118,11 +114,7 @@ internal object HostReadCommands {
      * 过滤 [ProviderConfig.hiddenFromSettings]:这类内部供应商本来就不在 App 的供应商设置列表里,
      * 网页端看到只会是重复项。
      */
-    fun providersEvent(
-        providers: List<ProviderConfig>,
-        selectedModelId: String?,
-        requestId: String?,
-    ): HostEvent = HostEvent(
+    fun providersEvent(providers: List<ProviderConfig>, selectedModelId: String?, requestId: String?): HostEvent = HostEvent(
         type = TYPE_PROVIDERS,
         requestId = requestId,
         selectedModelId = selectedModelId,
@@ -137,11 +129,7 @@ internal object HostReadCommands {
     )
 
     /** 会话元信息;[session] 为空时返回带 [ERROR_SESSION_NOT_FOUND] 的空载荷事件。 */
-    fun sessionDetailEvent(
-        session: SessionEntity?,
-        messageCount: Int,
-        requestId: String?,
-    ): HostEvent {
+    fun sessionDetailEvent(session: SessionEntity?, messageCount: Int, requestId: String?): HostEvent {
         if (session == null) {
             return HostEvent(type = TYPE_SESSION_DETAIL, requestId = requestId, error = ERROR_SESSION_NOT_FOUND)
         }

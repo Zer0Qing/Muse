@@ -76,8 +76,7 @@ class StickerDraftImportTest {
         return Uri.fromFile(file)
     }
 
-    private fun imagePara(rid: String) =
-        "<w:p><w:r><w:drawing><a:blip r:embed=\"" + rid + "\"/></w:drawing></w:r></w:p>"
+    private fun imagePara(rid: String) = "<w:p><w:r><w:drawing><a:blip r:embed=\"" + rid + "\"/></w:drawing></w:r></w:p>"
 
     private fun textPara(text: String) = "<w:p><w:r><w:t>" + text + "</w:t></w:r></w:p>"
 

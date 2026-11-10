@@ -7,13 +7,9 @@ data class ProactiveSessionMutePresentation(
     val globalConfigUnchanged: Boolean = true,
 ) {
     companion object {
-        fun of(
-            muted: Boolean,
-            hasSession: Boolean,
-        ): ProactiveSessionMutePresentation =
-            ProactiveSessionMutePresentation(
-                enabled = hasSession,
-                checked = hasSession && !muted,
-            )
+        fun of(muted: Boolean, hasSession: Boolean): ProactiveSessionMutePresentation = ProactiveSessionMutePresentation(
+            enabled = hasSession,
+            checked = hasSession && !muted,
+        )
     }
 }

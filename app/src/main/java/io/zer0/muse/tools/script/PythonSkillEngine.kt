@@ -69,10 +69,9 @@ class PythonSkillEngine(private val context: Context) : SkillEngine {
      *
      * 没有 scopeKey（内置脚本、非插件调用）时返回 null，沿用运行时的默认工作目录。
      */
-    private fun sandboxDir(scopeKey: String?): File? =
-        scopeKey?.takeIf { it.isNotBlank() }?.let { key ->
-            File(context.filesDir, "workspace/plugins/$key").apply { mkdirs() }
-        }
+    private fun sandboxDir(scopeKey: String?): File? = scopeKey?.takeIf { it.isNotBlank() }?.let { key ->
+        File(context.filesDir, "workspace/plugins/$key").apply { mkdirs() }
+    }
 
     /**
      * 沙盒环境变量：把 HOME / TMPDIR 也指到插件目录。

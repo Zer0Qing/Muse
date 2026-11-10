@@ -38,12 +38,7 @@ object StickerCandidateFilters {
      *
      * @param widthOf/heightOf/bytesOf 由调用方提供（Android 侧从 BitmapFactory 取，测试里直接给常量）
      */
-    fun <T> filter(
-        items: List<T>,
-        widthOf: (T) -> Int,
-        heightOf: (T) -> Int,
-        bytesOf: (T) -> ByteArray,
-    ): List<T> {
+    fun <T> filter(items: List<T>, widthOf: (T) -> Int, heightOf: (T) -> Int, bytesOf: (T) -> ByteArray): List<T> {
         val seen = HashSet<String>()
         val kept = mutableListOf<T>()
         // 上限必须在**进循环体第一件事**就判：以前写成 forEach + return@forEach，

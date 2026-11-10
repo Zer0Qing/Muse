@@ -202,7 +202,9 @@ object AssistantCardExporter {
 
         // 新卡优先:严格 schema 解析,失败就拒绝,不退回"尽力解释"。
         personaStr?.let { text ->
-            return@withContext when (val outcome = PersonaCardCodec.decode(text)) {
+            // 导入用宽上限：本来就超常规上限的卡，若在这里直接拒掉，用户此后永远改不动它。
+            // 先让它进来，超出的部分由用户自己删减；真正异常的体积仍被挡住。
+            return@withContext when (val outcome = PersonaCardCodec.decode(text, PersonaCardCodec.IMPORT_MAX_TEXT_CHARS)) {
                 is PersonaParse.Ok -> ParsedCard(
                     entity = PersonaCardCodec.toNewEntity(outcome.card),
                     avatarBytes = avatarBytes,

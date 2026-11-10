@@ -64,8 +64,7 @@ class RagQueryVectorCacheTest {
 
     // ── 接线契约 ──────────────────────────────────────────────
 
-    private fun source(relative: String): String =
-        File("src/main/java/io/zer0/muse/$relative").readText()
+    private fun source(relative: String): String = File("src/main/java/io/zer0/muse/$relative").readText()
 
     @Test
     fun `rag_query_embedding_keeps_timeout_and_circuit_breaker`() {

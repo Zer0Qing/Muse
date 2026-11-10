@@ -138,7 +138,7 @@ object FileTools {
         }
 
         // 解析候选路径:工作区相对路径 → filesDir → cacheDir → 外部 Download
-        //（工具输出目录就在 filesDir 下，`tool_outputs/x.txt` 由下一条候选命中；
+        // （工具输出目录就在 filesDir 下，`tool_outputs/x.txt` 由下一条候选命中；
         //  不再额外拼 `tool_outputs/$path`，那层拼接在路径已带前缀时会变成双前缀，永远撞不上）
         val candidates = listOf(
             File(workspaceRoot, trimmedPath),

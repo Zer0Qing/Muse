@@ -12,15 +12,15 @@ import io.zer0.muse.ui.qrcode.QrCodeGenerator
 import io.zer0.muse.ui.speech.TtsSynthResult
 import io.zer0.muse.ui.speech.VoiceMessageArchiver
 import io.zer0.muse.ui.speech.VoiceSynthesizer
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -455,11 +455,10 @@ class MediaGenToolsImpl(
         return false
     }
 
-    private fun isCjkIdeograph(codePoint: Int): Boolean =
-        codePoint in CJK_UNIFIED_RANGE ||
-            codePoint in CJK_EXT_A_RANGE ||
-            codePoint in CJK_COMPAT_RANGE ||
-            codePoint in CJK_EXT_B_RANGE
+    private fun isCjkIdeograph(codePoint: Int): Boolean = codePoint in CJK_UNIFIED_RANGE ||
+        codePoint in CJK_EXT_A_RANGE ||
+        codePoint in CJK_COMPAT_RANGE ||
+        codePoint in CJK_EXT_B_RANGE
 
     /** 语音落盘 + 时长探测 + 投递；返回给模型的文案不带 uri。
      *

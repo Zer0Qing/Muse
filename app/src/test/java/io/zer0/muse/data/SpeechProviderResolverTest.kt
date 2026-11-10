@@ -28,11 +28,7 @@ class SpeechProviderResolverTest {
         ),
     )
 
-    private fun media(
-        follow: Boolean,
-        providerId: String = "p1",
-        modelId: String = "tts-1",
-    ): MediaConfig = MediaConfig(
+    private fun media(follow: Boolean, providerId: String = "p1", modelId: String = "tts-1"): MediaConfig = MediaConfig(
         ttsEngine = "openai",
         ttsApiKey = "sk-manual",
         ttsModel = "manual-model",
@@ -42,11 +38,7 @@ class SpeechProviderResolverTest {
         ttsModelId = modelId,
     )
 
-    private fun asr(
-        follow: Boolean,
-        providerId: String = "p1",
-        modelId: String = "tts-1",
-    ): AsrConfig = AsrConfig(
+    private fun asr(follow: Boolean, providerId: String = "p1", modelId: String = "tts-1"): AsrConfig = AsrConfig(
         provider = io.zer0.muse.asr.AsrProviderType.OPENAI_WHISPER,
         apiKey = "sk-manual",
         model = "manual-model",

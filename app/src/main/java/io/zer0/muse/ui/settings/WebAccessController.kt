@@ -42,16 +42,12 @@ internal fun buildWebAccessUrl(ip: String?, port: Int, https: Boolean = false): 
  * - 局域网访问关闭：固定回环地址，并标记 [WebAccessAddress.localOnly]
  * - 局域网访问开启：用局域网 IP；没拿到 IP 时 [WebAccessAddress.url] 为 null
  */
-internal fun resolveWebAccessAddress(
-    allowLan: Boolean,
-    lanIp: String?,
-    port: Int,
-    https: Boolean = false,
-): WebAccessAddress = if (allowLan) {
-    WebAccessAddress(url = buildWebAccessUrl(lanIp, port, https), localOnly = false)
-} else {
-    WebAccessAddress(url = buildWebAccessUrl(LOOPBACK_HOST, port, https), localOnly = true)
-}
+internal fun resolveWebAccessAddress(allowLan: Boolean, lanIp: String?, port: Int, https: Boolean = false): WebAccessAddress =
+    if (allowLan) {
+        WebAccessAddress(url = buildWebAccessUrl(lanIp, port, https), localOnly = false)
+    } else {
+        WebAccessAddress(url = buildWebAccessUrl(LOOPBACK_HOST, port, https), localOnly = true)
+    }
 
 /** 一张网卡上的一个候选地址。 */
 internal data class LanIpCandidate(
@@ -93,8 +89,7 @@ private fun interfaceRank(interfaceName: String): Int {
 }
 
 /** 枚举当前设备的局域网 IPv4 地址；取不到时返回 null。 */
-internal fun resolveLanIpAddress(): String? =
-    runCatching { pickLanIpAddress(collectLanIpCandidates()) }.getOrNull()
+internal fun resolveLanIpAddress(): String? = runCatching { pickLanIpAddress(collectLanIpCandidates()) }.getOrNull()
 
 /** 遍历所有网卡，收集非回环 IPv4 候选(地址里的 zone id 后缀会被去掉)。 */
 private fun collectLanIpCandidates(): List<LanIpCandidate> {
@@ -144,12 +139,7 @@ internal interface WebAccessHost {
  *
  * @return 切换后服务的实际运行状态
  */
-internal suspend fun applyWebAccessEnabled(
-    host: WebAccessHost,
-    current: WebServerConfig,
-    enabled: Boolean,
-    running: Boolean,
-): Boolean {
+internal suspend fun applyWebAccessEnabled(host: WebAccessHost, current: WebServerConfig, enabled: Boolean, running: Boolean): Boolean {
     host.saveConfig(current.copy(enabled = enabled))
     if (!enabled) {
         if (running) host.stopServer()

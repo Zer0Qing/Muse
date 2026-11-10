@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- フォーラム画面の文言。キーは mp_forum_ を接頭辞に、 -->
+    <!-- mp_discover_forum は「発見」ページの項目名です。 -->
+    <string name="mp_discover_forum">フォーラム</string>
+    <string name="mp_forum_title">フォーラム</string>
+    <string name="mp_forum_back">戻る</string>
+    <string name="mp_forum_hint">何か書いて…</string>
+    <string name="mp_forum_publish">投稿する</string>
+    <string name="mp_forum_compose_cd">キャラクターに投稿させる</string>
+    <string name="mp_forum_all">すべての投稿</string>
+    <string name="mp_forum_message_author">メッセージ</string>
+    <string name="mp_forum_empty">まだ投稿がありません</string>
+    <string name="mp_forum_author_empty">この作者はまだ投稿していません</string>
+    <string name="mp_forum_self_name">私</string>
+    <string name="mp_forum_character_name">キャラクター</string>
+    <string name="mp_forum_like">いいね</string>
+    <string name="mp_forum_liked">いいねを取り消す</string>
+    <string name="mp_forum_like_count">いいね %1$d</string>
+    <string name="mp_forum_comment">コメント</string>
+    <string name="mp_forum_no_comments">コメントはまだありません</string>
+    <string name="mp_forum_comment_hint">コメントを書く…</string>
+    <string name="mp_forum_comment_send">送信</string>
+    <string name="mp_forum_delete">削除</string>
+</resources>

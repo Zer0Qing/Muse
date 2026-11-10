@@ -41,14 +41,24 @@ internal const val GROUP_TITLE_MAX_NAMES: Int = 3
  * 群名在建立那一刻定下来,不随后续成员变化重算。没有名字的成员直接跳过,
  * 不留下多余的分隔符;一个名字都没有时返回空串,由界面退化成「群聊」。
  */
-internal fun groupTitleOf(memberNames: List<String>): String {
+internal fun groupTitleOf(
+    memberNames: List<String>,
+    separator: String = GROUP_TITLE_SEPARATOR,
+    fold: (Int) -> String = ::groupTitleTailOf,
+): String {
     val names = memberNames.map(String::trim).filter(String::isNotEmpty)
     if (names.isEmpty()) return ""
-    if (names.size <= GROUP_TITLE_MAX_NAMES) return names.joinToString(GROUP_TITLE_SEPARATOR)
-    return names.take(GROUP_TITLE_TAIL_NAMES).joinToString(GROUP_TITLE_SEPARATOR) + groupTitleTailOf(names.size)
+    if (names.size <= GROUP_TITLE_MAX_NAMES) return names.joinToString(separator)
+    return names.take(GROUP_TITLE_TAIL_NAMES).joinToString(separator) + fold(names.size)
 }
 
-/** 收口写法里的「等 N 人」——N 是全部角色数。 */
+/**
+ * 收口写法里的「等 N 人」——N 是全部角色数。
+ *
+ * 这是**兜底**写法，不是给人看的最终文案：群名建群那一刻写进 `mp_thread.title`，
+ * 之后切界面语言它不会变。所以真正落库的调用方要传入按当前语言取的分隔符与收口词
+ * （`mp_group_title_separator` / `mp_group_title_fold`）；这里只在没给的时候兜住。
+ */
 internal fun groupTitleTailOf(personCount: Int): String = "等 $personCount 人"
 
 /** 收口时逐个列出来的名字个数。 */

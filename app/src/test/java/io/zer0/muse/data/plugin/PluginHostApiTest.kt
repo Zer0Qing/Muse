@@ -1,18 +1,18 @@
 package io.zer0.muse.data.plugin
 
-import io.zer0.common.AppJson
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
+import io.zer0.common.AppJson
 import io.zer0.muse.tools.ToolCallGate
 import io.zer0.muse.tools.script.SkillBridge
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -49,11 +49,9 @@ class PluginHostApiTest {
     )
 
     /** 只记录写了什么，方便断言"被拒时绝不能落盘"。 */
-    private fun api(sink: MutableList<Pair<String, JsonElement?>>) =
-        PluginHostApi(writeConfig = { id, _, value -> sink += id to value })
+    private fun api(sink: MutableList<Pair<String, JsonElement?>>) = PluginHostApi(writeConfig = { id, _, value -> sink += id to value })
 
-    private fun request(action: String, params: String): String =
-        """{"__bridge__":true,"action":"$action","params":$params}"""
+    private fun request(action: String, params: String): String = """{"__bridge__":true,"action":"$action","params":$params}"""
 
     private fun handle(api: PluginHostApi, valueJson: String, allowed: Set<String> = setOf("config_set")) =
         runBlocking { api.handle("demo", manifest, valueJson, allowed) }
@@ -182,15 +180,19 @@ class PluginHostApiTest {
         outcome: ToolCallGate.Outcome = ToolCallGate.Outcome(allowed = true),
         result: String = """{"ok":true}""",
     ) = PluginToolInvokeBridge(
-        gateCall = { _, _, _ -> counters.gated++; outcome },
-        executeTool = { _, _ -> counters.executed++; result },
+        gateCall = { _, _, _ ->
+            counters.gated++
+            outcome
+        },
+        executeTool = { _, _ ->
+            counters.executed++
+            result
+        },
     )
 
-    private fun toolApi(bridge: PluginToolInvokeBridge?) =
-        PluginHostApi(writeConfig = { _, _, _ -> }, toolBridge = bridge)
+    private fun toolApi(bridge: PluginToolInvokeBridge?) = PluginHostApi(writeConfig = { _, _, _ -> }, toolBridge = bridge)
 
-    private fun invokeRequest(params: String) =
-        """{"__bridge__":true,"action":"tool_invoke","params":$params}"""
+    private fun invokeRequest(params: String) = """{"__bridge__":true,"action":"tool_invoke","params":$params}"""
 
     @Test
     fun `tool_invoke without the capability never reaches the executor`() {
@@ -211,7 +213,8 @@ class PluginHostApiTest {
 
         val result = runBlocking {
             api.handle(
-                "demo", manifest,
+                "demo",
+                manifest,
                 invokeRequest("""{"name":"read_file","arguments":{"path":"a"}}"""),
                 setOf("tool_invoke"),
             )
@@ -229,7 +232,10 @@ class PluginHostApiTest {
             writeConfig = { _, _, _ -> },
             toolBridge = PluginToolInvokeBridge(
                 gateCall = { _, _, _ -> ToolCallGate.Outcome(allowed = false, reason = "工具 'x' 未获批准(用户拒绝)") },
-                executeTool = { _, _ -> executed = true; "{}" },
+                executeTool = { _, _ ->
+                    executed = true
+                    "{}"
+                },
             ),
         )
 
@@ -248,7 +254,8 @@ class PluginHostApiTest {
         val result = runBlocking {
             withContext(PluginToolCallMarker("other-plugin")) {
                 api.handle(
-                    "demo", manifest,
+                    "demo",
+                    manifest,
                     """{"__bridge__":true,"action":"tool_invoke","params":{"name":"read_file"}}""",
                     setOf("tool_invoke"),
                 )
@@ -271,10 +278,7 @@ class PluginHostApiTest {
 
     // ── chat_read：隐私面，默认拒绝，身份只认宿主注入的会话 ─────────────────
 
-    private fun chatApi(
-        bridge: PluginChatBridge?,
-        sessionId: String = "sess-real",
-    ) = PluginHostApi(
+    private fun chatApi(bridge: PluginChatBridge?, sessionId: String = "sess-real") = PluginHostApi(
         writeConfig = { _, _, _ -> },
         chatBridge = bridge,
         sessionId = sessionId,
@@ -332,7 +336,10 @@ class PluginHostApiTest {
 
         val result = runBlocking {
             chatApi(PluginChatBridge(repository)).handle(
-                "p1", manifest, chatRequest(limit = "5000"), setOf("chat_read"),
+                "p1",
+                manifest,
+                chatRequest(limit = "5000"),
+                setOf("chat_read"),
             )
         }
 
@@ -344,8 +351,7 @@ class PluginHostApiTest {
 
     // ── model_call：成本面，三道闸 ────────────────────────────────────────
 
-    private fun modelApi(bridge: PluginModelBridge?) =
-        PluginHostApi(writeConfig = { _, _, _ -> }, modelBridge = bridge)
+    private fun modelApi(bridge: PluginModelBridge?) = PluginHostApi(writeConfig = { _, _, _ -> }, modelBridge = bridge)
 
     private fun modelRequest(prompt: String, maxTokens: Int? = null): String {
         val params = buildJsonObject {
@@ -397,7 +403,10 @@ class PluginHostApiTest {
 
         val result = runBlocking {
             modelApi(bridge).handle(
-                "p1", manifest, """{"__bridge__":true,"action":"model_call","params":{}}""", setOf("model_call"),
+                "p1",
+                manifest,
+                """{"__bridge__":true,"action":"model_call","params":{}}""",
+                setOf("model_call"),
             )
         }
 
@@ -413,7 +422,10 @@ class PluginHostApiTest {
 
         val result = runBlocking {
             modelApi(bridge).handle(
-                "p1", manifest, modelRequest("hi", maxTokens = 999_999), setOf("model_call"),
+                "p1",
+                manifest,
+                modelRequest("hi", maxTokens = 999_999),
+                setOf("model_call"),
             )
         }
 

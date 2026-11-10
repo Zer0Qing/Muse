@@ -52,18 +52,17 @@ object LegacySlotImporter {
         return result
     }
 
-    private fun MessageEntity.toUiProjection(): io.zer0.ai.core.UIMessage =
-        io.zer0.ai.core.UIMessage(
-            id = runCatching { kotlin.uuid.Uuid.parse(id) }.getOrElse { kotlin.uuid.Uuid.parse(stableProjectionId(id)) },
-            role = io.zer0.ai.core.MessageRole.valueOf(role),
-            content = content,
-            createdAt = createdAt,
-            parentGroupId = parentMessageId ?: parentGroupId,
-            parentMessageId = parentMessageId,
-            variantGroupId = variantGroupId,
-            variantIndex = variantIndex,
-            variantCount = variantCount,
-        )
+    private fun MessageEntity.toUiProjection(): io.zer0.ai.core.UIMessage = io.zer0.ai.core.UIMessage(
+        id = runCatching { kotlin.uuid.Uuid.parse(id) }.getOrElse { kotlin.uuid.Uuid.parse(stableProjectionId(id)) },
+        role = io.zer0.ai.core.MessageRole.valueOf(role),
+        content = content,
+        createdAt = createdAt,
+        parentGroupId = parentMessageId ?: parentGroupId,
+        parentMessageId = parentMessageId,
+        variantGroupId = variantGroupId,
+        variantIndex = variantIndex,
+        variantCount = variantCount,
+    )
 
     private fun stableProjectionId(rawId: String): String =
         java.util.UUID.nameUUIDFromBytes("muse-legacy-message:$rawId".toByteArray()).toString()

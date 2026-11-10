@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通话进行中的页面文案。阶段与降级原因在数据层是记号，这里负责换成当前语言的话。 -->
+<resources>
+    <string name="mp_call_none">No call in progress</string>
+    <string name="mp_call_back">Back</string>
+    <string name="mp_call_dialing">Dialing…</string>
+    <string name="mp_call_ringing">Waiting for an answer</string>
+    <string name="mp_call_connected">Connected</string>
+    <string name="mp_call_ended">Call ended</string>
+    <string name="mp_call_failed">Could not dial</string>
+    <string name="mp_call_no_answer">No answer</string>
+    <string name="mp_call_hangup">Hang up</string>
+    <string name="mp_call_duration">Call %1$s</string>
+    <string name="mp_call_camera_denied">Camera permission denied — switched to a voice call</string>
+    <string name="mp_call_dial_failed">Nothing came back this round, so the call ended</string>
+    <string name="mp_call_mine">Me</string>
+    <string name="mp_call_peer">Them</string>
+    <string name="mp_call_play_voice">Play this voice message</string>
+    <string name="mp_call_say_hint">Say something…</string>
+    <string name="mp_call_say_send">Send</string>
+    <string name="mp_chat_call_voice">Voice call</string>
+    <string name="mp_chat_call_video">Video chat</string>
+</resources>

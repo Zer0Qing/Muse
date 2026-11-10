@@ -13,4 +13,8 @@
     <string name="voice_reply_global_default_fmt">Padrão global: %1$s</string>
     <string name="voice_reply_global_section">Frequência de resposta de voz</string>
     <string name="voice_reply_global_hint">Todos os assistentes seguem este único nível; afeta apenas o prompt, sem bloqueio rígido.</string>
+    <string name="speech_guide_section">Guia de fala</string>
+    <string name="speech_guide_hint">Faça as respostas soarem como chat: conversacionais e leves; use escrita estruturada para conteúdo longo, listas, passos ou código. Só afeta o corpo enviado.</string>
+    <string name="speech_guide_off">Desativado (padrão)</string>
+    <string name="speech_guide_conversational">Conversacional</string>
 </resources>

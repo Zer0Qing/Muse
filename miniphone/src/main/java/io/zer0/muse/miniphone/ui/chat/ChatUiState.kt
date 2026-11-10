@@ -3,6 +3,7 @@ package io.zer0.muse.miniphone.ui.chat
 import androidx.compose.runtime.Immutable
 import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.api.MpCharacter
+import io.zer0.muse.miniphone.api.MpSticker
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
 import io.zer0.muse.miniphone.data.db.MpMessageType
@@ -35,6 +36,8 @@ data class ChatUiState(
     val selfName: String = "",
     val selfAvatarUri: String? = null,
     val messages: List<ChatMessageUi> = emptyList(),
+    /** 心声：messageId → 该条角色消息对应的内心独白。气泡据此在下方画可展开的折叠区。 */
+    val innerVoices: Map<String, String> = emptyMap(),
     val isGenerating: Boolean = false,
     /**
      * 此刻正在打字的角色名与头像;null 表示没人在打字。
@@ -60,6 +63,12 @@ data class ChatUiState(
      * 一个灰麦克风再变亮,像刚坏过一下。
      */
     val voiceInputAvailable: Boolean = true,
+    /**
+     * 宿主表情包库里的表情,进页时问一次。
+     *
+     * 空表示没有库:输入栏不画那枚按钮 —— 点开一片空白比根本没有入口更让人以为是坏了。
+     */
+    val stickers: List<MpSticker> = emptyList(),
 ) {
     /**
      * 顶栏标题:群里是群名,私信是对方名字。

@@ -62,8 +62,8 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
-import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.labelLargeStrong
+import io.zer0.muse.ui.theme.pill
 
 @Composable
 internal fun ProviderEditBottomBar(

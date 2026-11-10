@@ -13,6 +13,10 @@ import io.zer0.muse.data.knowledge.KnowledgeChunkFtsSelfHealer
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.data.session.MessageFtsManager
+import io.zer0.muse.knowledge.domain.KnowledgeScope
+import io.zer0.muse.knowledge.domain.ScopeDoc
+import io.zer0.muse.knowledge.retrieval.DefaultKnowledgeScopeResolver
+import io.zer0.muse.knowledge.retrieval.KnowledgeScopeResolver
 import io.zer0.muse.util.TokenEstimator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -1055,9 +1059,11 @@ class RagService(
         // 条件:vectorIndex 有数据 + 无 scopeDocIds(scope 场景候选集小,暴力遍历足够)
         //      + 无 metadataFilter:HNSW 结果不带元数据,无法过滤;过滤开启时必须落到
         //        vectorSearch(其内部支持 metadataFilter),避免过滤被静默忽略。
-        // 注意:混合检索失败 fallback 时也会走到这里 — HNSW 比 brute-force 快得多
+        // R1 范围合同:仅 null(无范围约束)才允许走全库 ANN;显式空列表 = 显式空范围,
+        // 直接零结果返回,不得借道 HNSW 扩大成全库检索。
         val vi = vectorIndex
-        if (vi != null && scopeDocIds.isNullOrEmpty() && (metadataFilter == null || metadataFilter.isEmpty())) {
+        if (scopeDocIds != null && scopeDocIds.isEmpty()) return emptyList()
+        if (vi != null && scopeDocIds == null && (metadataFilter == null || metadataFilter.isEmpty())) {
             loadVectorIndexIfNeeded(provider)
             if (!vectorIndexNeedsFullRebuild && vi.size > 0) {
                 val hnswResults = resultOf { vi.search(queryVector, topK) }
@@ -1251,6 +1257,8 @@ class RagService(
         }
 
         // 4. 向量检索无结果 → 关键词兜底(LIKE 子串匹配)
+        // R1 范围合同: 显式空范围必须零结果,不得借道兜底扩成全库。
+        if (scopeDocIds != null && scopeDocIds.isEmpty()) return RagInjection("", emptyList(), System.currentTimeMillis() - start)
         val fallback = scopedKeywordSearchFallback ?: if (scopeDocIds == null) {
             keywordSearchFallback?.let { legacy ->
                 { text: String, limit: Int, _: List<String>?, _: VectorSearchService.MetadataFilter? -> legacy(text, limit) }
@@ -1758,6 +1766,46 @@ class RagService(
             }
             .getOrNull()
             ?: emptyList()
+    }
+
+    /**
+     * R1 兼容适配器:把旧「List<String>? scopeDocIds」调用方迁到显式 [KnowledgeScope] 合同。
+     * 绑定展开(整库 / KB+文件夹)统一走 [KnowledgeScopeResolver],由它区分
+     * None/Invalid/Failed/Resolved,调用方(聊天/工具)不再自行用
+     * `takeIf { it.isNotEmpty() }` 把空或失效绑定解释成全库。
+     *
+     * 文档投影:docId + kbId + 已归一化文件夹路径,与旧 [resolveKbFolderScopes] 同一数据源
+     * ([KnowledgeDocDao.getByKbIds] + [KnowledgeFolderBrowser.folderPath]),保证过渡期两种
+     * 展开入口的结果一致。
+     */
+    suspend fun resolveBindingScope(
+        knowledgeBaseIds: List<String>,
+        folderScopes: List<Pair<String, String>>,
+    ): KnowledgeScope = knowledgeScopeResolver.resolveBinding(knowledgeBaseIds, folderScopes)
+
+    /** R1: 惰性构造的范围解析器(与 [resolveKbFolderScopes] 同一 DAO 数据源)。 */
+    private val knowledgeScopeResolver: KnowledgeScopeResolver by lazy {
+        DefaultKnowledgeScopeResolver(
+            docsByKbIds = { kbIds ->
+                if (kbIds.isEmpty()) {
+                    emptyList()
+                } else {
+                    resultOf { docDao.getByKbIds(kbIds) }
+                        .onError { msg, throwable ->
+                            Logger.w("RagService", "范围解析文档投影失败: ${throwable?.message ?: msg}", throwable)
+                        }
+                        .getOrNull()
+                        .orEmpty()
+                        .map { doc ->
+                            ScopeDoc(
+                                docId = doc.id,
+                                kbId = doc.kbId,
+                                folderPath = io.zer0.muse.rag.KnowledgeFolderBrowser.folderPath(doc),
+                            )
+                        }
+                }
+            },
+        )
     }
 
     /**

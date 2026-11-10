@@ -68,7 +68,6 @@ class PluginScheduleStore(private val file: File) {
         /** 记录文件名（应用私有目录）。 */
         const val FILE_NAME = "plugin_schedules.json"
 
-        fun forContext(context: Context): PluginScheduleStore =
-            PluginScheduleStore(File(context.applicationContext.filesDir, FILE_NAME))
+        fun forContext(context: Context): PluginScheduleStore = PluginScheduleStore(File(context.applicationContext.filesDir, FILE_NAME))
     }
 }

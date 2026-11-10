@@ -74,12 +74,11 @@ internal object SpeechModelPicker {
     }
 
     /** 选中 TTS 模型后要落库的配置：跟随供应商写 [MediaConfig.ttsModelId]，否则写 [MediaConfig.ttsModel]。 */
-    fun applyToTts(config: MediaConfig, modelId: String): MediaConfig =
-        if (config.ttsFollowProvider) {
-            config.copy(ttsModelId = modelId)
-        } else {
-            config.copy(ttsModel = modelId)
-        }
+    fun applyToTts(config: MediaConfig, modelId: String): MediaConfig = if (config.ttsFollowProvider) {
+        config.copy(ttsModelId = modelId)
+    } else {
+        config.copy(ttsModel = modelId)
+    }
 
     /**
      * ASR 是否真的在用供应商配置。
@@ -87,16 +86,14 @@ internal object SpeechModelPicker {
      * DashScope 实时识别走内置端点、供应商地址不参与，因此该引擎下即便开关开着也按手动处理
      * （与 [io.zer0.muse.data.SpeechProviderResolver.resolveAsr] 的判定保持一致）。
      */
-    fun asrFollowActive(config: AsrConfig): Boolean =
-        config.followProvider && config.provider != AsrProviderType.DASHSCOPE
+    fun asrFollowActive(config: AsrConfig): Boolean = config.followProvider && config.provider != AsrProviderType.DASHSCOPE
 
     /** 选中 ASR 模型后要落库的配置：跟随供应商写 [AsrConfig.modelId]，否则写 [AsrConfig.model]。 */
-    fun applyToAsr(config: AsrConfig, modelId: String): AsrConfig =
-        if (asrFollowActive(config)) {
-            config.copy(modelId = modelId)
-        } else {
-            config.copy(model = modelId)
-        }
+    fun applyToAsr(config: AsrConfig, modelId: String): AsrConfig = if (asrFollowActive(config)) {
+        config.copy(modelId = modelId)
+    } else {
+        config.copy(model = modelId)
+    }
 }
 
 /** 候选模型（只保留选择面板要用的两个字段，避免把整个模型对象带进 UI 状态）。 */
@@ -195,12 +192,7 @@ internal fun SpeechModelSection(
  * @param emptyLabel 未选模型时的副标题
  */
 @Composable
-internal fun SpeechModelRow(
-    title: String,
-    selection: SpeechModelSelection,
-    emptyLabel: String,
-    onOpenPicker: () -> Unit,
-) {
+internal fun SpeechModelRow(title: String, selection: SpeechModelSelection, emptyLabel: String, onOpenPicker: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         SettingsItemRow(
             icon = MuseIcons.robot,

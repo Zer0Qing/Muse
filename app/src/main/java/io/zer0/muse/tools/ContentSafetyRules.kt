@@ -81,23 +81,22 @@ object ContentSafetyRules {
      *
      * @param toolName 写文件类工具名（workspace_write / workspace_edit）
      */
-    private fun writePathRules(toolName: String): List<ContentSafetyRule> =
-        listOf(
-            ContentSafetyRule(
-                toolName = toolName,
-                matcher = { it.contains("..") },
-                reason = "路径包含 .. 被安全策略拦截",
-                ruleId = "workspace-traversal",
-                targetArg = "path",
-            ),
-            ContentSafetyRule(
-                toolName = toolName,
-                matcher = { it.startsWith("/") || Regex("^[A-Za-z]:[\\\\/]").containsMatchIn(it) },
-                reason = "绝对路径写入被安全策略拦截(仅允许工作区内相对路径)",
-                ruleId = "workspace-absolute-path",
-                targetArg = "path",
-            ),
-        )
+    private fun writePathRules(toolName: String): List<ContentSafetyRule> = listOf(
+        ContentSafetyRule(
+            toolName = toolName,
+            matcher = { it.contains("..") },
+            reason = "路径包含 .. 被安全策略拦截",
+            ruleId = "workspace-traversal",
+            targetArg = "path",
+        ),
+        ContentSafetyRule(
+            toolName = toolName,
+            matcher = { it.startsWith("/") || Regex("^[A-Za-z]:[\\\\/]").containsMatchIn(it) },
+            reason = "绝对路径写入被安全策略拦截(仅允许工作区内相对路径)",
+            ruleId = "workspace-absolute-path",
+            targetArg = "path",
+        ),
+    )
 
     /**
      * 检查规则;命中返回第一条规则,未命中返回 null。

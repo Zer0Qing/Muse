@@ -102,7 +102,11 @@ private fun UserPersonaSheet(
                         )
                     }
                     MuseCapsuleButton(text = stringResource(R.string.user_persona_select), onClick = { onSelect(p.id) })
-                    MuseCapsuleButton(text = stringResource(R.string.action_edit), onClick = { editing = p; name = p.name; text = p.text })
+                    MuseCapsuleButton(text = stringResource(R.string.action_edit), onClick = {
+                        editing = p
+                        name = p.name
+                        text = p.text
+                    })
                     MuseCapsuleButton(text = stringResource(R.string.action_delete), onClick = { onDelete(p.id) })
                 }
             }
@@ -128,7 +132,9 @@ private fun UserPersonaSheet(
                     onClick = {
                         if (name.isNotBlank() && text.isNotBlank()) {
                             onSave(UserPersona(id = editing?.id ?: UUID.randomUUID().toString(), name = name.trim(), text = text.trim()))
-                            editing = null; name = ""; text = ""
+                            editing = null
+                            name = ""
+                            text = ""
                         }
                     },
                 )

@@ -87,6 +87,16 @@ class StickerLibraryRepository(private val appContext: Context) {
     }
 
     /**
+     * 某张表情在磁盘上的实际文件。
+     *
+     * [StickerItem.relativePath] 是相对 `filesDir` 的（本身已含 `stickers/` 前缀），
+     * 所以这里基于 `filesDir` 解析，不能再拼一次 [rootDir] —— 那会得到
+     * `filesDir/stickers/stickers/...` 这种永远不存在的路径。
+     * 目录布局只有这里知道，别处（含小手机的只读互通）要拿文件都走这一个方法。
+     */
+    fun fileOf(item: StickerItem): File = File(appContext.filesDir, item.relativePath)
+
+    /**
      * 列出表情包(可按分类筛选)。
      *
      * @param category 分类筛选;null 或空字符串表示列出全部

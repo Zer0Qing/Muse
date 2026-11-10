@@ -20,26 +20,24 @@ data class ConversationWindowSlot(
 class RoomConversationStore(
     private val database: MuseDb,
 ) {
-    suspend fun commitCommand(receipt: ConversationCommandReceiptEntity): CommandStoreResult =
-        database.withTransaction {
-            val existing = database.conversationCommandReceiptDao().find(receipt.commandId)
-            if (existing != null) {
-                return@withTransaction if (existing.fingerprint == receipt.fingerprint) {
-                    CommandStoreResult.Replay(existing)
-                } else {
-                    CommandStoreResult.Conflict(existing)
-                }
+    suspend fun commitCommand(receipt: ConversationCommandReceiptEntity): CommandStoreResult = database.withTransaction {
+        val existing = database.conversationCommandReceiptDao().find(receipt.commandId)
+        if (existing != null) {
+            return@withTransaction if (existing.fingerprint == receipt.fingerprint) {
+                CommandStoreResult.Replay(existing)
+            } else {
+                CommandStoreResult.Conflict(existing)
             }
-            database.conversationCommandReceiptDao().insert(receipt)
-            CommandStoreResult.Accepted(receipt)
         }
+        database.conversationCommandReceiptDao().insert(receipt)
+        CommandStoreResult.Accepted(receipt)
+    }
 
     suspend fun releaseOutbox(commandId: String) {
         database.messageOutboxDao().deleteById(commandId)
     }
 
-    suspend fun findReceipt(commandId: String): ConversationCommandReceiptEntity? =
-        database.conversationCommandReceiptDao().find(commandId)
+    suspend fun findReceipt(commandId: String): ConversationCommandReceiptEntity? = database.conversationCommandReceiptDao().find(commandId)
 
     suspend fun findLatestSelection(sessionId: String): ConversationSelectionEntity? =
         database.conversationSelectionDao().findBySession(sessionId)
@@ -61,11 +59,7 @@ class RoomConversationStore(
         )
     }
 
-    suspend fun importLegacySlots(
-        sessionId: String,
-        selectionSetId: String,
-        slots: List<ImportedSlot>,
-    ) = database.withTransaction {
+    suspend fun importLegacySlots(sessionId: String, selectionSetId: String, slots: List<ImportedSlot>) = database.withTransaction {
         require(slots.map { it.logicalPosition }.distinct().size == slots.size) {
             "imported slot positions must be unique"
         }
@@ -160,12 +154,7 @@ class RoomConversationStore(
         }
     }
 
-    suspend fun readAround(
-        sessionId: String,
-        selectionSetId: String,
-        slotId: String,
-        limit: Int,
-    ): List<ConversationWindowSlot> {
+    suspend fun readAround(sessionId: String, selectionSetId: String, slotId: String, limit: Int): List<ConversationWindowSlot> {
         val anchor = database.conversationDisplaySlotDao().find(slotId)
             ?: error("display slot not found: $slotId")
         require(anchor.sessionId == sessionId) { "display slot belongs to another session" }

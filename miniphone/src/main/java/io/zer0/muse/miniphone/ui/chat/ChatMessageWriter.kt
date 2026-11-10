@@ -1,6 +1,7 @@
 package io.zer0.muse.miniphone.ui.chat
 
 import androidx.compose.runtime.Immutable
+import io.zer0.muse.miniphone.data.chat.MpOfflineQueueStore
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
 import io.zer0.muse.miniphone.data.db.MpMessageType
@@ -21,6 +22,8 @@ import kotlinx.coroutines.sync.withLock
  * @param onStored 属于本会话的消息落地后回调,参数是界面要追加的那一行
  * @param onStatusChanged 发送状态改写后回调:库里与界面上那一行必须同时变
  * @param onDeleted 本机删掉一条后回调
+ * @param offlineQueue 待应答队列;null 表示这条写入路径不参与(例如后台主动消息)。
+ *   入队与清行都在 [writeMutex] 内做,和消息落库同一把闸,不会出现「先清后入」的悬挂行。
  */
 internal class ChatMessageWriter(
     private val threadId: String,
@@ -31,6 +34,7 @@ internal class ChatMessageWriter(
     private val onStored: (ChatMessageUi) -> Unit,
     private val onStatusChanged: (messageId: String, status: MpMessageStatus) -> Unit = { _, _ -> },
     private val onDeleted: (messageId: String) -> Unit = {},
+    private val offlineQueue: MpOfflineQueueStore? = null,
 ) {
 
     /** 落库与翻页共用的闸。 */
@@ -49,6 +53,16 @@ internal class ChatMessageWriter(
         writeMutex.withLock {
             messageDao.insert(entity)
             threadDao.updateLastMessage(message.threadId, message.content, entity.createdAt)
+            // 只有用户发出的「发送中」消息才算欠一次应答;角色回复、系统提示、已发出的都不入队
+            if (message.sender == MpActorType.USER && message.status == MpMessageStatus.SENDING) {
+                offlineQueue?.enqueue(
+                    id = entity.id,
+                    threadId = message.threadId,
+                    characterId = message.characterId,
+                    content = message.content,
+                    createdAt = entity.createdAt,
+                )
+            }
             if (message.threadId == this@ChatMessageWriter.threadId) {
                 onStored(entity.toChatMessageUi())
             }
@@ -60,6 +74,8 @@ internal class ChatMessageWriter(
     suspend fun updateStatus(messageId: String, status: MpMessageStatus) {
         writeMutex.withLock {
             messageDao.updateStatus(messageId, status)
+            // 应答有了结果(成功或明确失败)就不再欠着,把队列里那行清掉
+            if (status != MpMessageStatus.SENDING) offlineQueue?.settle(messageId)
             onStatusChanged(messageId, status)
         }
     }

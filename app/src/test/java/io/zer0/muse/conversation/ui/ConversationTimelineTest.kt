@@ -12,12 +12,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
+import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.ToolCallInfo
+import io.zer0.ai.core.UIMessage
 import io.zer0.muse.conversation.core.RenderBlock
 import io.zer0.muse.conversation.core.SlotKind
 import io.zer0.muse.conversation.render.LegacyConversationProjector
-import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.UIMessage
-import io.zer0.ai.core.ToolCallInfo
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

@@ -227,10 +227,9 @@ class ScheduledTaskMissedCatchUpTest {
 
         override suspend fun getById(id: String): ScheduledTaskEntity? = task.takeIf { it.id == id }
 
-        override suspend fun earliestNextRunAt(after: Long, sentinel: Long): Long? =
-            listOf(task)
-                .filter { it.enabled && it.nextRunAt > after && it.nextRunAt != sentinel }
-                .minOfOrNull { it.nextRunAt }
+        override suspend fun earliestNextRunAt(after: Long, sentinel: Long): Long? = listOf(task)
+            .filter { it.enabled && it.nextRunAt > after && it.nextRunAt != sentinel }
+            .minOfOrNull { it.nextRunAt }
 
         override suspend fun upsert(task: ScheduledTaskEntity) {
             this.task = task

@@ -23,13 +23,12 @@ import org.junit.Test
 class AgentConcurrencyLimiterTest {
 
     /** 轮询等待用的是真实时间，所以断言前给足一个上限，超时即失败。 */
-    private suspend fun awaitUntil(predicate: () -> Boolean): Boolean =
-        withTimeoutOrNull(3_000L) {
-            while (!predicate()) {
-                kotlinx.coroutines.delay(20)
-            }
-            true
-        } == true
+    private suspend fun awaitUntil(predicate: () -> Boolean): Boolean = withTimeoutOrNull(3_000L) {
+        while (!predicate()) {
+            kotlinx.coroutines.delay(20)
+        }
+        true
+    } == true
 
     @Test
     fun `超出并发上限的那一个必须排队而不是挤进去`() = runBlocking {
@@ -40,8 +39,18 @@ class AgentConcurrencyLimiterTest {
         // 两个都得**占着不放**：上一版让 b 立刻跑完，b 归还了槽位，
         // c 自然就进来了 —— 那不是"挤进来"，是我把测试写成了合法场景（诊断印出 started=[a, b, c]）。
         val holders = listOf(
-            launch { limiter.run { started += "a"; release.await() } },
-            launch { limiter.run { started += "b"; release.await() } },
+            launch {
+                limiter.run {
+                    started += "a"
+                    release.await()
+                }
+            },
+            launch {
+                limiter.run {
+                    started += "b"
+                    release.await()
+                }
+            },
         )
         val waiter = launch { limiter.run { started += "c" } }
 

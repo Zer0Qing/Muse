@@ -122,16 +122,14 @@ object SkillImporter {
     }
 
     /** 是否为提示词技能(见 [PROMPT_PREFIX] 的编码说明)。技能包（[PROMPT_FILE_PREFIX]）也算。 */
-    fun isPromptSkill(implementationKotlin: String): Boolean =
-        implementationKotlin == PROMPT_IMPLEMENTATION_KEY ||
-            implementationKotlin.startsWith(PROMPT_PREFIX) ||
-            implementationKotlin.startsWith(PROMPT_FILE_PREFIX)
+    fun isPromptSkill(implementationKotlin: String): Boolean = implementationKotlin == PROMPT_IMPLEMENTATION_KEY ||
+        implementationKotlin.startsWith(PROMPT_PREFIX) ||
+        implementationKotlin.startsWith(PROMPT_FILE_PREFIX)
 
     /** 技能包正文的相对路径；非技能包返回 null。 */
-    fun promptFilePath(implementationKotlin: String): String? =
-        implementationKotlin.removePrefix(PROMPT_FILE_PREFIX).takeIf {
-            implementationKotlin.startsWith(PROMPT_FILE_PREFIX) && it.isNotBlank()
-        }
+    fun promptFilePath(implementationKotlin: String): String? = implementationKotlin.removePrefix(PROMPT_FILE_PREFIX).takeIf {
+        implementationKotlin.startsWith(PROMPT_FILE_PREFIX) && it.isNotBlank()
+    }
 
     /** 编码技能包正文路径为 [SkillEntity.implementationKotlin] 存储形式。 */
     fun encodePromptFile(relativePath: String): String = PROMPT_FILE_PREFIX + relativePath

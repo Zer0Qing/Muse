@@ -61,6 +61,5 @@ internal object ToolScreenshotPayload {
      * 走一遍截断与落盘、再往 `tool_outputs` 写一份重复字节，而模型和任务卡看到的
      * 只是被削了头的 JSON。图片本体从原始结果里取，走独立的带图消息。
      */
-    fun resultText(payload: ScreenshotPayload): String =
-        payload.dataText ?: "[图片已随附：见下一条图片消息]"
+    fun resultText(payload: ScreenshotPayload): String = payload.dataText ?: "[图片已随附：见下一条图片消息]"
 }

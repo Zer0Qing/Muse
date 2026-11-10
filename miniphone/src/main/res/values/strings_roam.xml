@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 漫游（R7）的用户可见文案：虚拟地点的出发、路人面板与空态。
+         键名统一 mp_roam_ 前缀，入口另有 mp_discover_roam，供发现页注册表引用。 -->
+    <string name="mp_discover_roam">漫游</string>
+    <string name="mp_roam_title">漫游</string>
+    <string name="mp_roam_empty">还没有人出门，选个角色去逛逛吧</string>
+    <string name="mp_roam_who">谁出门</string>
+    <string name="mp_roam_location_hint">想去哪儿？输入一个地点</string>
+    <string name="mp_roam_depart">出发</string>
+    <string name="mp_roam_npc_title">这一带的路人</string>
+    <string name="mp_roam_encounter">遇见路人</string>
+    <string name="mp_roam_clear">清空这一带</string>
+    <string name="mp_roam_no_npc">这一带还没遇到谁</string>
+</resources>

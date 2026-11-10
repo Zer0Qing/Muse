@@ -74,13 +74,13 @@ class PersistentAutonomousAccessibilityRuntime(
             action = "autonomous_accessibility_run",
             target = sessionId,
             detail =
-                mapOf(
-                    "package" to packageName,
-                    "task" to grant.taskFingerprint,
-                    "date" to dateKey,
-                    "runs" to (snapshot.runCountToday + 1),
-                    "cap" to snapshot.window.maxRunsPerDay,
-                ),
+            mapOf(
+                "package" to packageName,
+                "task" to grant.taskFingerprint,
+                "date" to dateKey,
+                "runs" to (snapshot.runCountToday + 1),
+                "cap" to snapshot.window.maxRunsPerDay,
+            ),
         )
         if (snapshot.runCountToday + 1 >= snapshot.window.maxRunsPerDay.coerceAtLeast(0)) {
             store.clearAutonomousAccessibilityGrant(expected = grant)
@@ -110,10 +110,9 @@ class PersistentAutonomousAccessibilityRuntime(
 
 /** Helpers used by the settings UI to keep editable grant fields consistent. */
 object AutonomousAccessibilityDraft {
-    fun packageName(lastAttempt: String?, current: Set<String>): String =
-        lastAttempt?.trim()?.takeIf(String::isNotBlank)
-            ?: current.firstOrNull()
-            ?: DEFAULT_PACKAGE
+    fun packageName(lastAttempt: String?, current: Set<String>): String = lastAttempt?.trim()?.takeIf(String::isNotBlank)
+        ?: current.firstOrNull()
+        ?: DEFAULT_PACKAGE
 
     const val DEFAULT_PACKAGE = "com.xingin.xhs"
 }

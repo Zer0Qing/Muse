@@ -32,8 +32,7 @@ class PluginAppearanceBridge(
         ;
 
         companion object {
-            fun parse(raw: String?): Mode? =
-                entries.firstOrNull { it.wire.equals(raw?.trim(), ignoreCase = true) }
+            fun parse(raw: String?): Mode? = entries.firstOrNull { it.wire.equals(raw?.trim(), ignoreCase = true) }
         }
     }
 
@@ -52,8 +51,7 @@ class PluginAppearanceBridge(
         ;
 
         companion object {
-            fun parse(raw: String?): SettingKey? =
-                entries.firstOrNull { it.wire.equals(raw?.trim(), ignoreCase = true) }
+            fun parse(raw: String?): SettingKey? = entries.firstOrNull { it.wire.equals(raw?.trim(), ignoreCase = true) }
         }
     }
 
@@ -100,21 +98,19 @@ class PluginAppearanceBridge(
         }
     }
 
-    private suspend fun writeBool(raw: String, label: String, save: suspend (Boolean) -> Unit): Applied =
-        when (raw.lowercase()) {
-            "true" -> write(label) { save(true) }
-            "false" -> write(label) { save(false) }
-            else -> Applied.Rejected("$label 需要 true 或 false：'$raw'")
-        }
+    private suspend fun writeBool(raw: String, label: String, save: suspend (Boolean) -> Unit): Applied = when (raw.lowercase()) {
+        "true" -> write(label) { save(true) }
+        "false" -> write(label) { save(false) }
+        else -> Applied.Rejected("$label 需要 true 或 false：'$raw'")
+    }
 
-    private suspend fun write(label: String, block: suspend () -> Unit): Applied =
-        runCatching { block() }
-            .fold(
-                onSuccess = { Applied.Ok },
-                onFailure = { error ->
-                    Applied.Rejected("写入 $label 失败：${error.message ?: error.javaClass.simpleName}")
-                },
-            )
+    private suspend fun write(label: String, block: suspend () -> Unit): Applied = runCatching { block() }
+        .fold(
+            onSuccess = { Applied.Ok },
+            onFailure = { error ->
+                Applied.Rejected("写入 $label 失败：${error.message ?: error.javaClass.simpleName}")
+            },
+        )
 
     suspend fun setMode(raw: String?): Applied {
         val mode = Mode.parse(raw)

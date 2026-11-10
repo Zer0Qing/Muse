@@ -72,21 +72,27 @@ interface KnowledgeChunkFtsDao {
     suspend fun deleteAll() = withFtsSelfHeal { deleteAllRaw() }
 
     /**
-     * v1.133: BM25 全文检索 — 返回匹配的 chunkId 及 BM25 分数(越小越好,SQLite bm25() 返回负值)。
-     * 调用方需把分数取反作为正向权重。
+     * v1.133: BM25 全文检索 — 返回匹配的 chunkId 及分数。
+     *
+     * R1 FTS 排名契约修正:表是 FTS4 虚拟表,`bm25()` 是 FTS5 辅助函数,在 FTS4 上下文
+     * 执行必然抛 "unable to use function bm25 in the requested context"(R0 基线 C 待验项的
+     * 桌面 SQLite 合同观测);此前该错误被上游 resultOf 吞掉,导致 BM25 召回支静默清零、
+     * 混合检索退化为纯向量。过渡修复:SELECT 不调用任何 FTS5 专用函数,FTS4 MATCH 命中
+     * 按 rowid 序返回(FTS4 无原生 BM25 排名;应用层 matchinfo('pcx') 排名由 R6 统一查询
+     * 计划落地,真实设备排名行为由 R10 证明)。score 恒为 0:融合层(HybridSearchService)
+     * 对同分命中按命中序稳定排序,不依赖绝对分数。
      *
      * query 需用 FTS4 语法:单词空格分隔为 AND,短语用双引号。
      * 例:"合同 违约" → 同时包含"合同"和"违约";"\"违约责任\"" → 完整短语。
      *
-     * 返回:List<FTS命中 chunkId + BM25 分数>
+     * 返回:List<FTS命中 chunkId>(score 保留字段兼容现有调用方,恒为 0.0)
      */
     @SkipQueryVerification
     @Query(
         """
-        SELECT chunkId, bm25(knowledge_chunks_fts) AS score
+        SELECT chunkId, 0.0 AS score
         FROM knowledge_chunks_fts
         WHERE text_content MATCH :query
-        ORDER BY score ASC
         LIMIT :limit
         """,
     )

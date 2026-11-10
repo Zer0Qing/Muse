@@ -49,6 +49,7 @@ val miniPhoneModule: Module = module {
     single { get<MiniPhoneDb>().momentCommentDao() }
     single { get<MiniPhoneDb>().diaryDao() }
     single { get<MiniPhoneDb>().albumDao() }
+    single { get<MiniPhoneDb>().innerVoiceDao() }
 
     // ── 图片落盘:选中的图复制进私有目录,库里只存路径 ──
     single { miniPhoneImageStore(androidContext()) }
@@ -91,7 +92,17 @@ val miniPhoneModule: Module = module {
     single<MiniPhoneHost> { PlaceholderMiniPhoneHost() }
 
     // ── 界面状态 ──
-    viewModel { MiniPhoneShellViewModel(threadDao = get(), store = get(), groupStore = get(), host = get(), settings = get()) }
+    viewModel {
+        MiniPhoneShellViewModel(
+            threadDao = get(),
+            store = get(),
+            groupStore = get(),
+            host = get(),
+            settings = get(),
+            // 建群时拼群名要按当前语言取分隔符与收口词（群名会落库）
+            context = androidContext(),
+        )
+    }
     viewModel { params ->
         MiniPhoneMomentsViewModel(
             repository = get(),
@@ -99,17 +110,17 @@ val miniPhoneModule: Module = module {
             settings = get(),
             material = get(),
             onlyMine = params.get(),
+            context = androidContext(),
         )
     }
     viewModel { params ->
         MiniPhoneChatViewModel(
             threadId = params.get(),
-            messageDao = get(),
-            threadDao = get(),
-            memberDao = get(),
+            db = get(),
             host = get(),
             imageStore = get(),
             groupStore = get(),
+            context = androidContext(),
         )
     }
 }

@@ -9,6 +9,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.data.sharing.takeCodePoints
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.serialization.Serializable
@@ -558,8 +559,16 @@ object ConversationExporter {
     /** 转义 HTML 属性值(额外转义引号)。 */
     private fun escapeAttr(s: String): String = escapeHtml(s).replace("\"", "&quot;")
 
-    /** 把会话标题转为安全文件名。 */
-    private fun sanitizeFileName(name: String): String = name.replace(Regex("""[\\/:*?"<>|\n\r\t]"""), "_").take(40).ifBlank { "muse" }
+    /**
+     * 把会话标题转为安全文件名。
+     *
+     * 按码点截断：标题里常有 emoji，按 UTF-16 单元切会留下半个代理对，
+     * 那是非法文件名，部分文件系统会直接拒绝写入，用户看到的是「导出失败」。
+     */
+    private fun sanitizeFileName(name: String): String = name
+        .replace(Regex("""[\\/:*?"<>|\n\r\t]"""), "_")
+        .takeCodePoints(40)
+        .ifBlank { "muse" }
 
     /** HTML 内联 CSS(聊天气泡风格 + 深浅色适配)。 */
     private val CSS = """

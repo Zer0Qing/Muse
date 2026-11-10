@@ -40,11 +40,7 @@ object NoteThoughtTool {
         riskLevel = ToolRiskLevel.NORMAL,
     )
 
-    suspend fun execute(
-        args: Map<String, String>,
-        thoughts: ProactiveThoughtRepository,
-        executionContext: ToolExecutionContext,
-    ): String {
+    suspend fun execute(args: Map<String, String>, thoughts: ProactiveThoughtRepository, executionContext: ToolExecutionContext): String {
         val parsed = ParsedArgs.from(args)
         if (parsed.seed.isBlank()) return "Error: seed 不能为空"
 

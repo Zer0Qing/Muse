@@ -64,8 +64,7 @@ class StickerDocumentImportTest {
         return Uri.fromFile(file)
     }
 
-    private fun imageParagraph(rid: String) =
-        "<w:p><w:r><w:drawing><a:blip r:embed=\"" + rid + "\"/></w:drawing></w:r></w:p>"
+    private fun imageParagraph(rid: String) = "<w:p><w:r><w:drawing><a:blip r:embed=\"" + rid + "\"/></w:drawing></w:r></w:p>"
 
     private fun textParagraph(text: String) = "<w:p><w:r><w:t>" + text + "</w:t></w:r></w:p>"
 
@@ -138,8 +137,10 @@ class StickerDocumentImportTest {
             1,
             scanned.candidates.size,
         )
-        assertNotNull("媒体要能在条目表里找到: ${scanned.candidates.map { it.mediaPath }}",
-            container.entries[scanned.candidates.first().mediaPath])
+        assertNotNull(
+            "媒体要能在条目表里找到: ${scanned.candidates.map { it.mediaPath }}",
+            container.entries[scanned.candidates.first().mediaPath],
+        )
     }
 
     @Test

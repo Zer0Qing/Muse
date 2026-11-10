@@ -1,6 +1,5 @@
 package io.zer0.muse.asr
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioRecord
@@ -8,6 +7,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.asr.AudioAmplitude.appendAmplitude
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -763,11 +763,10 @@ private const val DEFAULT_INPUT_SAMPLE_RATE = 16_000
  *
  * 独立成函数以便单元测试直接断言握手头,无需起真实 WebSocket。
  */
-internal fun buildRealtimeRequest(endpoint: String, apiKey: String): Request =
-    Request.Builder()
-        .url(endpoint)
-        .header("Authorization", "Bearer $apiKey")
-        .build()
+internal fun buildRealtimeRequest(endpoint: String, apiKey: String): Request = Request.Builder()
+    .url(endpoint)
+    .header("Authorization", "Bearer $apiKey")
+    .build()
 
 /**
  * 构造 GA 版 `session.update` 的 payload(纯函数,便于单元测试直接断言)。

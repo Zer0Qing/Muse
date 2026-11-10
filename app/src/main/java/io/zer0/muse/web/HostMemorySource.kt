@@ -38,8 +38,7 @@ internal interface HostMemorySource {
     object Empty : HostMemorySource {
         override suspend fun entries(assistantId: String?): List<HostMemoryRecord> = emptyList()
 
-        override suspend fun search(query: String, assistantId: String?, limit: Int): List<HostMemoryRecord> =
-            emptyList()
+        override suspend fun search(query: String, assistantId: String?, limit: Int): List<HostMemoryRecord> = emptyList()
     }
 }
 
@@ -77,11 +76,10 @@ internal class FactHostMemorySource(
      * 检索按 (scope, space) 走库里的分空间入口,所以先把空间列出来;库还空着时用默认空间
      * 兜底,保证空库也走同一条路径返回空列表,而不是另开一条"没有空间"的短路。
      */
-    private suspend fun spacesOf(store: FactStore, scope: String): List<String> =
-        store.listScopeSpacePairs()
-            .filter { it.first == scope }
-            .map { it.second }
-            .ifEmpty { listOf(MemorySpaceEntity.DEFAULT_SPACE_ID) }
+    private suspend fun spacesOf(store: FactStore, scope: String): List<String> = store.listScopeSpacePairs()
+        .filter { it.first == scope }
+        .map { it.second }
+        .ifEmpty { listOf(MemorySpaceEntity.DEFAULT_SPACE_ID) }
 
     private fun storeFor(assistantId: String?): FactStore {
         val id = assistantId?.trim().orEmpty()

@@ -374,6 +374,15 @@ internal data class OpenAICompletionUsage(
     @SerialName("completion_tokens_details") val completionTokensDetails: OpenAICompletionTokensDetails? = null,
     /** A5: prompt 缓存命中 token(OpenAI 返回 prompt_tokens_details.cached_tokens)。 */
     @SerialName("prompt_tokens_details") val promptTokensDetails: OpenAICompletionPromptTokensDetails? = null,
+    /**
+     * 部分兼容端点把缓存命中数放在 usage 顶层。
+     *
+     * 只读 `prompt_tokens_details.cached_tokens` 时，这类端点的命中数恒为 0：
+     * 界面上缓存命中一栏永远是空的，计价也会按全价算。
+     */
+    @SerialName("prompt_cache_hit_tokens") val promptCacheHitTokens: Int? = null,
+    /** 顶层 `cached_tokens`（另一批中转站用的写法）。 */
+    @SerialName("cached_tokens") val cachedTokens: Int? = null,
 )
 
 @Serializable
@@ -511,7 +520,13 @@ internal fun OpenAICompletionUsage.toUsageTokens(): io.zer0.ai.core.UsageTokens 
     promptTokens = promptTokens,
     completionTokens = completionTokens,
     reasoningTokens = completionTokensDetails?.reasoningTokens ?: 0,
-    cachedTokens = promptTokensDetails?.cachedTokens ?: 0,
+    // 三处写法取第一个非零：嵌套是官方口径，顶层两处是兼容端点。
+    // 三处写法取第一个非零：嵌套是官方口径，顶层两处是兼容端点。
+    cachedTokens = promptTokensDetails?.cachedTokens
+        ?.takeIf { it > 0 }
+        ?: promptCacheHitTokens?.takeIf { it > 0 }
+        ?: cachedTokens?.takeIf { it > 0 }
+        ?: 0,
 )
 
 /** v1.0.53 Phase 3: Responses API usage -> [io.zer0.ai.core.UsageTokens]。 */

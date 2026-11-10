@@ -3,8 +3,11 @@ package io.zer0.muse.ui.chat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,15 +25,11 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.ToolCallRecord
 import io.zer0.muse.ui.common.animation.MuseInkGlyph
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.common.form.MuseBottomSheet
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Spacer
 
 /**
  * 输入栏上方的过程扁条。

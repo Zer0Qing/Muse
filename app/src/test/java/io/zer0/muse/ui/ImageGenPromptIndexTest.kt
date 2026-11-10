@@ -69,8 +69,7 @@ class ImageGenPromptIndexTest {
         messages[index].id.toString() to prompt
     }
 
-    private fun promptOf(args: String): String? =
-        runCatching { JSONObject(args).optString("prompt") }.getOrNull()
+    private fun promptOf(args: String): String? = runCatching { JSONObject(args).optString("prompt") }.getOrNull()
 
     // ── 用例 ────────────────────────────────────────────────────────────
 

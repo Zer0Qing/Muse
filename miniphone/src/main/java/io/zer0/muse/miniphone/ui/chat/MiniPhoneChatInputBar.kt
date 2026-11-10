@@ -8,6 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -36,20 +39,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import io.zer0.muse.miniphone.R
+import io.zer0.muse.miniphone.api.MpSticker
 import io.zer0.muse.miniphone.data.voice.MpVoiceCapture
 import io.zer0.muse.miniphone.data.voice.MpVoiceRecorder
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 
 /**
- * 底部输入栏:图片入口 + 麦克风 + 多行输入 + 发送。
+ * 底部输入栏:图片入口 + 表情入口 + 麦克风 + 多行输入 + 发送。
  *
  * 输入框最多长到四行,再多就在框内滚动 —— 聊天页不能被一句长话顶掉半屏消息。
  * 空输入时发送键只有形不肯按:点击回调根本不挂,而不是按下去什么都不做。
@@ -61,6 +67,7 @@ import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
  *
  * @param onTranscribeVoice 把整段 WAV 交给宿主转写;拿不到文字时返回 null
  * @param voiceInputEnabled 当前识别引擎能不能把录音转成文字;false 时麦克风置灰
+ * @param stickers 宿主表情包库;空的时候连表情键都不画
  */
 @Composable
 internal fun ChatInputBar(
@@ -69,12 +76,15 @@ internal fun ChatInputBar(
     modifier: Modifier = Modifier,
     onTranscribeVoice: suspend (ByteArray) -> String? = { null },
     voiceInputEnabled: Boolean = true,
+    stickers: List<MpSticker> = emptyList(),
+    onSendSticker: (String) -> Unit = {},
 ) {
     val colors = MiniPhoneTheme.colors
     val dimens = MiniPhoneTheme.dimens
     val typography = MiniPhoneTheme.typography
     val context = LocalContext.current
     var text by rememberSaveable { mutableStateOf("") }
+    var stickerPanelOpen by rememberSaveable { mutableStateOf(false) }
     val canSend = text.isNotBlank()
     val submit = {
         if (canSend) {
@@ -106,6 +116,15 @@ internal fun ChatInputBar(
                 .height(dimens.hairline)
                 .background(colors.divider),
         )
+        if (stickers.isNotEmpty() && stickerPanelOpen) {
+            StickerPanel(
+                stickers = stickers,
+                onPick = { sticker ->
+                    onSendSticker(sticker.uri)
+                    stickerPanelOpen = false
+                },
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -113,6 +132,13 @@ internal fun ChatInputBar(
             verticalAlignment = Alignment.Bottom,
         ) {
             PickImageButton(onClick = onPickImages)
+            if (stickers.isNotEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                StickerButton(
+                    selected = stickerPanelOpen,
+                    onClick = { stickerPanelOpen = !stickerPanelOpen },
+                )
+            }
             Spacer(Modifier.width(8.dp))
             Box(
                 modifier = Modifier
@@ -234,6 +260,62 @@ private fun rememberMicPermissionRequest(onGranted: () -> Unit, onDenied: () -> 
     }
 }
 
+/**
+ * 表情键：开合面板。库是宿主给的，这里只管开与关。
+ *
+ * 面板开着的时候键换成强调色：没有别的提示说「下面这一排是表情」，
+ * 用户关掉键盘后至少能看出这枚键正被自己用着。
+ */
+@Composable
+private fun StickerButton(selected: Boolean, onClick: () -> Unit) {
+    val colors = MiniPhoneTheme.colors
+    Box(
+        modifier = Modifier
+            .size(SendButtonSize)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .testTag(MiniPhoneChatTags.STICKER_BUTTON),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = MiniPhoneIcons.Sticker,
+            contentDescription = stringResource(STICKER_DESCRIPTION_RES),
+            tint = if (selected) colors.accent else colors.textSecondary,
+            modifier = Modifier.size(SendIconSize),
+        )
+    }
+}
+
+/** 表情面板：一行缩略图，横着滚；点一个就发出去并收起。 */
+@Composable
+private fun StickerPanel(stickers: List<MpSticker>, onPick: (MpSticker) -> Unit) {
+    val colors = MiniPhoneTheme.colors
+    val dimens = MiniPhoneTheme.dimens
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = dimens.pageMargin, vertical = 6.dp)
+            .testTag(MiniPhoneChatTags.STICKER_PANEL),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        stickers.forEach { sticker ->
+            AsyncImage(
+                model = sticker.uri,
+                contentDescription = sticker.caption?.takeIf(String::isNotBlank),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .size(StickerThumbSize)
+                    .clip(ImageThumbShape)
+                    .background(colors.divider)
+                    .clickable { onPick(sticker) }
+                    .testTag(MiniPhoneChatTags.stickerItem(sticker.id)),
+            )
+        }
+    }
+}
+
 /** 图片入口:自绘相册图标,和发送键同尺寸,底边对齐。 */
 @Composable
 private fun PickImageButton(onClick: () -> Unit) {
@@ -337,7 +419,7 @@ private fun RecordingStrip(elapsedSeconds: Int, onCancel: () -> Unit) {
         )
         Spacer(Modifier.weight(1f))
         Text(
-            text = CANCEL_LABEL,
+            text = stringResource(R.string.mp_cancel),
             style = typography.caption.copy(color = colors.textSecondary),
             modifier = Modifier
                 .clip(CircleShape)
@@ -406,6 +488,8 @@ internal fun appendTranscript(current: String, addition: String): String {
 private val InputShape = RoundedCornerShape(8.dp)
 private val SendButtonSize = 38.dp
 private val SendIconSize = 18.dp
+private val StickerThumbSize = 44.dp
+private val ImageThumbShape = RoundedCornerShape(8.dp)
 private val RecordingDotSize = 8.dp
 
 /** 输入框最多长到四行,再长就在框内滚动。 */
@@ -414,9 +498,9 @@ private const val INPUT_MAX_LINES: Int = 4
 private val INPUT_PLACEHOLDER_RES: Int = R.string.mp_chat_input_placeholder
 private val SEND_DESCRIPTION_RES: Int = R.string.mp_chat_send_cd
 private val PICK_IMAGE_DESCRIPTION_RES: Int = R.string.mp_chat_pick_image_cd
+private val STICKER_DESCRIPTION_RES: Int = R.string.mp_chat_sticker_cd
 private val MIC_DESCRIPTION_RES: Int = R.string.mp_chat_mic_cd
 private val STOP_LABEL_RES: Int = R.string.mp_chat_stop
-private const val CANCEL_LABEL: String = "取消"
 private val TRANSCRIBING_LABEL_RES: Int = R.string.mp_chat_transcribing
 private val EMPTY_TRANSCRIPT_NOTICE_RES: Int = R.string.mp_chat_empty_transcript
 private val START_FAILED_NOTICE_RES: Int = R.string.mp_chat_start_failed

@@ -178,12 +178,7 @@ class ScheduledTaskRunner(
          * - 周期数超过 [MAX_MISSED_SCAN]:按 [MAX_MISSED_SCAN] 记上限并从 now 重新起算,
          *   避免异常时钟(如 1970 年的锚点)把 Long 算溢出或空转上百万次
          */
-        internal fun computeNextRunAnchored(
-            interval: String,
-            cronExpr: String,
-            scheduledAt: Long,
-            now: Long,
-        ): ScheduleAdvance {
+        internal fun computeNextRunAnchored(interval: String, cronExpr: String, scheduledAt: Long, now: Long): ScheduleAdvance {
             val period = fixedPeriodMillis(interval)
             val expr = cronExpr.trim()
             return when {
@@ -250,18 +245,15 @@ class ScheduledTaskRunner(
          *
          * @param now 本次补跑的时间
          */
-        internal fun missedExecutionEntity(
-            taskId: String,
-            replySummary: String,
-            now: Long,
-        ): ScheduledTaskExecutionEntity = ScheduledTaskExecutionEntity(
-            id = "exec-${java.util.UUID.randomUUID()}",
-            taskId = taskId,
-            executedAt = now,
-            status = STATUS_MISSED,
-            replySummary = replySummary,
-            errorMessage = "",
-        )
+        internal fun missedExecutionEntity(taskId: String, replySummary: String, now: Long): ScheduledTaskExecutionEntity =
+            ScheduledTaskExecutionEntity(
+                id = "exec-${java.util.UUID.randomUUID()}",
+                taskId = taskId,
+                executedAt = now,
+                status = STATUS_MISSED,
+                replySummary = replySummary,
+                errorMessage = "",
+            )
 
         /**
          * 新建任务 / 改间隔后的首跑时间(纯函数)。
@@ -303,28 +295,28 @@ class ScheduledTaskRunner(
          */
         internal fun claimTaskSucceeded(rowsAffected: Int): Boolean = rowsAffected > 0
 
-    /**
-     * 下一轮巡检等待时长（纯函数，便于单测）。
-     *
-     * - 没有到期任务 → [POLL_INTERVAL_MS]（保持每分钟一次的心跳）
-     * - 有到期任务且已经过期 → [MIN_POLL_DELAY_MS]（别空转，但也不能 0）
-     * - 到期时间在 [MIN_POLL_DELAY_MS] 与 [POLL_INTERVAL_MS] 之间 → 恰好睡到那一刻
-     * - 到期时间更远 → [POLL_INTERVAL_MS]（**不睡更久**：新建的近期任务不能被拖）
-     */
-    internal fun computePollDelay(
-        now: Long,
-        nextDueAt: Long?,
-        pollInterval: Long = POLL_INTERVAL_MS,
-        minDelay: Long = MIN_POLL_DELAY_MS,
-    ): Long {
-        if (nextDueAt == null) return pollInterval
-        val untilDue = nextDueAt - now
-        return when {
-            untilDue <= 0L -> minDelay
-            untilDue >= pollInterval -> pollInterval
-            else -> untilDue.coerceAtLeast(minDelay)
+        /**
+         * 下一轮巡检等待时长（纯函数，便于单测）。
+         *
+         * - 没有到期任务 → [POLL_INTERVAL_MS]（保持每分钟一次的心跳）
+         * - 有到期任务且已经过期 → [MIN_POLL_DELAY_MS]（别空转，但也不能 0）
+         * - 到期时间在 [MIN_POLL_DELAY_MS] 与 [POLL_INTERVAL_MS] 之间 → 恰好睡到那一刻
+         * - 到期时间更远 → [POLL_INTERVAL_MS]（**不睡更久**：新建的近期任务不能被拖）
+         */
+        internal fun computePollDelay(
+            now: Long,
+            nextDueAt: Long?,
+            pollInterval: Long = POLL_INTERVAL_MS,
+            minDelay: Long = MIN_POLL_DELAY_MS,
+        ): Long {
+            if (nextDueAt == null) return pollInterval
+            val untilDue = nextDueAt - now
+            return when {
+                untilDue <= 0L -> minDelay
+                untilDue >= pollInterval -> pollInterval
+                else -> untilDue.coerceAtLeast(minDelay)
+            }
         }
-    }
 
         /** 单次任务 AI 调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
@@ -371,11 +363,11 @@ class ScheduledTaskRunner(
          */
         private const val CLAIM_STUCK_TIMEOUT_MS = 5 * 60 * 1000L
 
-    /** 哨兵看门狗最小扫描间隔；与 [CLAIM_STUCK_TIMEOUT_MS] 同量级即可。 */
-    private const val STUCK_RECOVERY_INTERVAL_MS = CLAIM_STUCK_TIMEOUT_MS
+        /** 哨兵看门狗最小扫描间隔；与 [CLAIM_STUCK_TIMEOUT_MS] 同量级即可。 */
+        private const val STUCK_RECOVERY_INTERVAL_MS = CLAIM_STUCK_TIMEOUT_MS
 
-    /** 自适应休眠的下限：到期时间已过（或近在眼前）时也不要空转。 */
-    private const val MIN_POLL_DELAY_MS = 1_000L
+        /** 自适应休眠的下限：到期时间已过（或近在眼前）时也不要空转。 */
+        private const val MIN_POLL_DELAY_MS = 1_000L
     }
 
     private fun restoreBlocksScheduledWrites(taskId: String, operation: String): Boolean {
@@ -689,12 +681,7 @@ class ScheduledTaskRunner(
      * @param scheduledAt 上次的计划时刻(missed 计数的锚点)
      * @param now 本次补跑的时间
      */
-    private fun buildMissedExecution(
-        taskId: String,
-        missedCount: Int,
-        scheduledAt: Long,
-        now: Long,
-    ): ScheduledTaskExecutionEntity {
+    private fun buildMissedExecution(taskId: String, missedCount: Int, scheduledAt: Long, now: Long): ScheduledTaskExecutionEntity {
         val gapHours = ((now - scheduledAt) / 3_600_000L).coerceAtLeast(0L)
         val plannedAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
             .format(java.util.Date(scheduledAt))

@@ -97,7 +97,7 @@ class UiAgentRunner(
                     return RunResult(
                         false,
                         "超过时间预算(${effectiveBudgetMs / 1000} 秒)，已停止（用了 ${elapsedMs / 1000} 秒、" +
-                            "${index} 步）。可以：① 把任务拆小；② 调大 budget_minutes 或 max_steps；" +
+                            "$index 步）。可以：① 把任务拆小；② 调大 budget_minutes 或 max_steps；" +
                             "③ 先用 screen_read 看当前停在哪一步。\n动作记录:\n$history",
                     )
                 }
@@ -315,12 +315,7 @@ class UiAgentRunner(
      *
      * 重建是有次数上限的（[MAX_VIRTUAL_DISPLAY_REFRESHES]）—— 否则服务一直挂就会无限重建。
      */
-    private suspend fun captureFrame(
-        displayId: Int?,
-        targetPackage: String?,
-        refreshes: Int,
-        history: StringBuilder,
-    ): FrameCapture {
+    private suspend fun captureFrame(displayId: Int?, targetPackage: String?, refreshes: Int, history: StringBuilder): FrameCapture {
         if (displayId == null) {
             return FrameCapture(manager.screenshot(), null, refreshes)
         }
@@ -371,8 +366,7 @@ class UiAgentRunner(
      * 抽成纯函数：这条决定"用户能不能接手助手刚才操作的界面"，
      * 必须能在没有设备的环境里被验证（对比清单 P1-02）。
      */
-    internal fun shouldDestroyOnFinish(displayId: Int?, handoffOnFinish: Boolean): Boolean =
-        displayId != null && !handoffOnFinish
+    internal fun shouldDestroyOnFinish(displayId: Int?, handoffOnFinish: Boolean): Boolean = displayId != null && !handoffOnFinish
 
     /** AUTO 模式的执行面选择结果。 */
     internal enum class AutoSurfaceChoice {
@@ -438,10 +432,7 @@ class UiAgentRunner(
      * 抽出来的两个原因：`resolveExecutionSurface` 的分支复杂度已经顶到 detekt 上限；
      * 而这段本身就是"用户正在看的任务会不会被抽走"的决策点，独立成函数更好读。
      */
-    private suspend fun prepareAutoSurface(
-        targetPackage: String?,
-        history: StringBuilder,
-    ): Result<ExecutionSurface> {
+    private suspend fun prepareAutoSurface(targetPackage: String?, history: StringBuilder): Result<ExecutionSurface> {
         val pkg = targetPackage
         // 前台查询可能失败（通道未授权/服务未连）：**读不到就按未知处理**，
         // 退到虚拟屏，而不是让整次任务因为一次探测失败直接结束。
@@ -500,9 +491,8 @@ class UiAgentRunner(
     }
 
     /** 通道没就绪时给模型一句能照做的话（不然它只会原样重试）。 */
-    private fun notReadyHint(): String =
-        "失败(自动化通道未就绪；先调 screen_permission_status 看缺哪层，" +
-            "再用 screen_open_settings 打开对应设置页)"
+    private fun notReadyHint(): String = "失败(自动化通道未就绪；先调 screen_permission_status 看缺哪层，" +
+        "再用 screen_open_settings 打开对应设置页)"
 
     /** 坐标越界时把边界写出来，模型才知道该重新取坐标。 */
     private fun outOfBoundsHint(x: Int, y: Int, width: Int, height: Int): String =
@@ -573,10 +563,7 @@ class UiAgentRunner(
      * 不是为好看，是因为超阈值后每次动这个函数都要跟基线较劲。
      */
     @Suppress("ReturnCount")
-    private suspend fun handleSimpleVirtualAction(
-        action: UiAgentProtocol.Action,
-        displayId: Int,
-    ): String? {
+    private suspend fun handleSimpleVirtualAction(action: UiAgentProtocol.Action, displayId: Int): String? {
         if (action is UiAgentProtocol.Action.Wait) {
             delay(action.ms)
             return "ok"
@@ -762,11 +749,7 @@ class UiAgentRunner(
      * 「标签命中 → 拒绝坐标重放 → 坐标兜底」这条判断链一眼能读完。
      */
     @Suppress("ReturnCount")
-    private suspend fun executeTap(
-        action: UiAgentProtocol.Action.Tap,
-        width: Int,
-        height: Int,
-    ): String {
+    private suspend fun executeTap(action: UiAgentProtocol.Action.Tap, width: Int, height: Int): String {
         val label = action.label
         if (label.isNullOrBlank()) {
             return if (isInBounds(action.x, action.y, width, height) && manager.tap(action.x, action.y)) {
@@ -895,8 +878,10 @@ class UiAgentRunner(
     companion object {
         private const val TAG = "UiAgentRunner"
         const val DEFAULT_MAX_STEPS = 15
+
         /** GUI Agent 环默认墙钟预算：5 分钟（步数上限挡不住「每步都很慢」）。 */
         const val DEFAULT_BUDGET_MS = 5 * 60 * 1000L
+
         /** 预算下限/上限：太短必然失败，太长会让用户等太久。 */
         const val MIN_BUDGET_MS = 60 * 1000L
         const val MAX_BUDGET_MS = 15 * 60 * 1000L

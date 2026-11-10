@@ -73,12 +73,11 @@ class MuseDbMigration123To124ProactiveSessionTest {
         ).writableDatabase
     }
 
-    private fun tableNames(db: SupportSQLiteDatabase): Set<String> =
-        buildSet {
-            db.query("SELECT name FROM sqlite_master WHERE type='table'").use { cursor ->
-                while (cursor.moveToNext()) add(cursor.getString(0))
-            }
+    private fun tableNames(db: SupportSQLiteDatabase): Set<String> = buildSet {
+        db.query("SELECT name FROM sqlite_master WHERE type='table'").use { cursor ->
+            while (cursor.moveToNext()) add(cursor.getString(0))
         }
+    }
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 }

@@ -728,6 +728,10 @@ class ChatStreamCoordinator(
             // 必须放在截断之前 —— 这样按条数的裁剪作用于已压缩后的历史；也必须放在 transformer
             // 管道之前 —— 摘要要与最终请求里的消息同源，不能只影响压缩器自己看到的那份。
             rawHistory = applySessionCheckpoint(sessionId, rawHistory)
+            // 换过模型就把旧模型专属的附加结构剥掉（正文保留）：
+            // 思考签名/加密推理跨模型回传会被拒或行为异常，用户看到的是「一换模型就发不出去」。
+            // 放在截断之前，保证按条数裁剪作用于清洗后的历史。
+            rawHistory = ModelSwitchHistoryPolicy.sanitize(rawHistory, effectiveModel?.id)
             // v1.x: 工具依赖感知截断;预热轮改为 token 预算截断(全量优先)
             truncatedHistory =
                 if (warmupActive) {

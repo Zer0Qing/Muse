@@ -59,7 +59,6 @@ class BrowserManager(private val context: Context) {
      */
     internal val browserSettings: BrowserSettingsStore by lazy { BrowserSettingsStore.of(context) }
 
-
     companion object {
         private const val TAG = "BrowserManager"
 
@@ -565,9 +564,9 @@ class BrowserManager(private val context: Context) {
             // ── WebSettings:启用 JS + 浏览器必需功能 + 严格安全限制 ──
             settings.javaScriptEnabled = true
 
-        // Cookies 接受策略来自设置（默认 true＝与改动前的 WebView 行为一致，
-        // 不顺手改变用户已有的登录态习惯）。见 [applyCookiePolicy]。
-        applyCookiePolicy()
+            // Cookies 接受策略来自设置（默认 true＝与改动前的 WebView 行为一致，
+            // 不顺手改变用户已有的登录态习惯）。见 [applyCookiePolicy]。
+            applyCookiePolicy()
             // 严格安全:禁用 file/content access(防止 file:// 跨域读取)
             settings.allowContentAccess = false
             settings.allowFileAccess = false
@@ -706,8 +705,7 @@ class BrowserManager(private val context: Context) {
      * 用户看到的是一个打不开的页面。现在关键词交给用户选的搜索引擎，
      * 完整网址仍然直接打开（含 `localhost:8080` 这类本机地址不强迫用户写协议）。
      */
-    private fun normalizeUrl(url: String): String =
-        resolveBrowserTarget(url, browserSettings.engine.value)
+    private fun normalizeUrl(url: String): String = resolveBrowserTarget(url, browserSettings.engine.value)
 
     /**
      * 解析 evaluateJavascript 回调返回的 JSON-encoded 字符串。

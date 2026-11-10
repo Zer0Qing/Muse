@@ -2,8 +2,8 @@ package io.zer0.muse.automation.tools
 
 import io.zer0.common.Logger
 import io.zer0.muse.automation.core.AutomationManager
-import io.zer0.muse.automation.core.ScreenChange
 import io.zer0.muse.automation.core.DeviceCommandPolicy
+import io.zer0.muse.automation.core.ScreenChange
 import io.zer0.muse.automation.vdisplay.VirtualDisplayClient
 import io.zer0.muse.automation.vdisplay.VirtualDisplayLeaseRegistry
 import io.zer0.muse.automation.vdisplay.VirtualDisplayServerManager
@@ -36,7 +36,8 @@ class AutomationTools(
      * 并告诉模型去设置页打开 —— 用户需要一次停掉所有动手能力的刹车。
      * 默认恒为 true：单测/未接线场景保持既有行为。
      */
-    private val automationEnabled: suspend () -> Boolean = { true },) {
+    private val automationEnabled: suspend () -> Boolean = { true },
+) {
     /** 所有 automation_workflow 工具调用共享的 lease 台账，按 run_id 隔离虚拟屏释放权。 */
     private val displayLeases = VirtualDisplayLeaseRegistry()
 
@@ -54,21 +55,16 @@ class AutomationTools(
     }
 
     /** 总闸关闭时统一回给模型的话。 */
-    private fun automationOffMessage(): String =
-        "自动化总闸已关闭（设置 → 自动化 → 允许屏幕自动化）。" +
-            "在用户重新打开之前，screen_* / ui_agent / automation_workflow 都不会执行。" +
-            "你仍可以调用 screen_open_settings 直接把用户带到那一页（该工具不受总闸限制），" +
-            "或用 screen_permission_status 查各通道权限。"
+    private fun automationOffMessage(): String = "自动化总闸已关闭（设置 → 自动化 → 允许屏幕自动化）。" +
+        "在用户重新打开之前，screen_* / ui_agent / automation_workflow 都不会执行。" +
+        "你仍可以调用 screen_open_settings 直接把用户带到那一页（该工具不受总闸限制），" +
+        "或用 screen_permission_status 查各通道权限。"
 
     /** 路径滑动的点数上限：再多也不会是正常手势，只会拖慢或失败。 */
     private val maxSwipePathPoints = 16
 
     /** 带总闸的注册：闸关时直接返回提示，不进任何执行器。 */
-    private fun registerGuarded(
-        registry: ToolRegistry,
-        def: ToolRegistry.ToolDef,
-        block: suspend (Map<String, String>) -> String,
-    ) {
+    private fun registerGuarded(registry: ToolRegistry, def: ToolRegistry.ToolDef, block: suspend (Map<String, String>) -> String) {
         registry.register(def) { args ->
             if (automationEnabled()) block(args) else automationOffMessage()
         }
@@ -110,7 +106,8 @@ class AutomationTools(
 
     /** 感知类：读屏、当前应用、返回/桌面。 */
     private fun registerScreenPerception(registry: ToolRegistry) {
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_read",
                 description = "读取当前屏幕内容。返回控件树摘要(文字/按钮/输入框及其坐标)," +
@@ -158,7 +155,8 @@ class AutomationTools(
             }
         }
 
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_current_app",
                 description = "查询当前前台运行的应用包名和界面名。",
@@ -170,7 +168,8 @@ class AutomationTools(
             "包名: ${info.packageName ?: "未知"}\n界面: ${info.activityName ?: "未知"}\n分辨率: ${info.screenWidth}x${info.screenHeight}"
         }
 
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_back",
                 description = "按下系统返回键,回到上一个界面。",
@@ -181,7 +180,8 @@ class AutomationTools(
             if (manager.back()) "已返回" + viaSuffix() else "返回失败(通道未就绪 —— 先 screen_permission_status)"
         }
 
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_home",
                 description = "按下 Home 键,回到桌面。",
@@ -193,17 +193,17 @@ class AutomationTools(
         }
 
         // ── 操作类 ──────────────────────────────────────────
-
     }
 
     /** 点击类：坐标点击、按文字语义点击。 */
     private fun registerScreenTapTools(registry: ToolRegistry) {
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_tap",
                 description = "点击屏幕上的指定坐标(x,y)。坐标来自 screen_read 返回的控件中心位置。" +
-                       "**每次调用都是一次真实点击**：不确定上一次是否生效时，先用 screen_read 看界面，" +
-                       "不要直接重试 —— 对「付款/发送/删除」这类按钮重复调用会造成两次副作用。" +
+                    "**每次调用都是一次真实点击**：不确定上一次是否生效时，先用 screen_read 看界面，" +
+                    "不要直接重试 —— 对「付款/发送/删除」这类按钮重复调用会造成两次副作用。" +
                     "不要凭空猜测坐标,必须先 screen_read 确认。",
                 parameters = mapOf(
                     "x" to "必填,点击位置 X 坐标(像素)",
@@ -248,12 +248,13 @@ class AutomationTools(
             "已点击 ($x,$y)$verification" + viaSuffix()
         }
 
-        registerOutcomeGuarded(registry,
+        registerOutcomeGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_tap_text",
                 description = "查找屏幕上包含指定文字的控件并点击其中心。" +
-                       "**每次调用都是一次真实点击**：若结果不确定，先 screen_read 看界面再决定，别直接重试。" +
-                       "（内部已保证「点击发出后不自动重放」，但你的下一次调用就是新的一次点击。）" +
+                    "**每次调用都是一次真实点击**：若结果不确定，先 screen_read 看界面再决定，别直接重试。" +
+                    "（内部已保证「点击发出后不自动重放」，但你的下一次调用就是新的一次点击。）" +
                     "比 screen_tap 更方便,不需要自己算坐标；可在长页面内有限次滚动查找，并可验证点击后的文字。",
                 parameters = mapOf(
                     "text" to "必填,要查找的按钮/文字内容(支持模糊匹配)",
@@ -281,12 +282,12 @@ class AutomationTools(
                 ToolOutcome.error("未找到或点击后未验证包含\"$text\"的控件", details)
             }
         }
-
     }
 
     /** 滑动类：滑动、双指缩放。 */
     private fun registerScreenSwipeTools(registry: ToolRegistry) {
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_swipe",
                 description = "在屏幕上从一个点滑动到另一个点,可用于滚动/翻页。",
@@ -320,7 +321,8 @@ class AutomationTools(
             ScreenChange.scrollResult(ScreenChange.compare(before, after)) + viaSuffix()
         }
 
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_pinch",
                 description = "双指缩放手势(放大/缩小)。两指以 (center_x, center_y) 为中心对称开合。" +
@@ -347,20 +349,22 @@ class AutomationTools(
             // 靠边缩放时指尖会甩到屏幕外，那 Android 直接拒收整个手势。
             manager.coordinatesIssue(
                 listOf(
-                    cx - base / 2 to cy, cx + base / 2 to cy,
-                    cx - end / 2 to cy, cx + end / 2 to cy,
+                    cx - base / 2 to cy,
+                    cx + base / 2 to cy,
+                    cx - end / 2 to cy,
+                    cx + end / 2 to cy,
                 ),
             )?.let { issue ->
                 return@registerGuarded "缩放被拒绝($issue) —— 两指指尖都要在屏内，把 center_x 往中间挪或减小 scale"
             }
             if (manager.pinch(cx, cy, base, end, dur)) "已缩放 (scale=$scale)" + viaSuffix() else "缩放失败(需要无障碍通道；Shell/Root 无多指注入能力)"
         }
-
     }
 
     /** 路径滑动（参数最多，单独一组）。 */
     private fun registerScreenSwipePathTools(registry: ToolRegistry) {
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_swipe_path",
                 description = "多段滑动:单指依次经过多个路径点(至少 2 个),适合解锁图案/复杂拖拽。",
@@ -395,12 +399,12 @@ class AutomationTools(
             val dur = args["duration_ms"]?.toLongOrNull()?.coerceIn(50L, 5_000L) ?: 400L
             if (manager.swipePath(points, dur)) "已执行 ${points.size} 点路径滑动" + viaSuffix() else "路径滑动失败(通道未就绪或点数不足)"
         }
-
     }
 
     /** 输入与系统：文本输入、通知栏/权限/设置入口。 */
     private fun registerScreenInputTools(registry: ToolRegistry) {
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_input",
                 description = "往当前聚焦的输入框输入文字(支持中文)。输入前应先点击输入框使其聚焦。",
@@ -419,7 +423,8 @@ class AutomationTools(
         // （这里是 HIGH，app_launch 是 NORMAL）。app_launch 还支持中文应用名，
         // 对模型更友好 —— 只留一个入口，避免「同一件事两个工具、审批行为还不一样」。
 
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_open_notifications",
                 description = "打开系统通知栏,查看通知。",
@@ -491,12 +496,12 @@ class AutomationTools(
         }
 
         // ── 等待原语（感知类）─────────────────────────────
-
     }
 
     /** 等待与特权 Shell。 */
     private fun registerScreenDeviceTools(registry: ToolRegistry) {
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "screen_wait",
                 description = "Wait before the next action: idle = until the screen stops changing; " +
@@ -563,7 +568,8 @@ class AutomationTools(
 
         // ── 设备命令通道（自动化一期）─────────────────────────
 
-        registerGuarded(registry,
+        registerGuarded(
+            registry,
             ToolRegistry.ToolDef(
                 name = "device_shell",
                 description = deviceShellDescription(),
@@ -600,7 +606,8 @@ class AutomationTools(
     }
 
     private fun registerWorkflow(registry: ToolRegistry) {
-        registerOutcomeWithContext(registry,
+        registerOutcomeWithContext(
+            registry,
             ToolRegistry.ToolDef(
                 name = "automation_workflow",
                 description = "执行可恢复的受控手机工作流，按序运行前台语义动作与 virtual_* 虚拟屏动作；" +
@@ -658,7 +665,6 @@ class AutomationTools(
     }
 }
 
-
 /**
  * 缺哪一层就说清怎么开、用哪个工具开。
  *
@@ -680,24 +686,22 @@ internal fun permissionGuidance(state: AutomationManager.PermissionState): Strin
     }
 }
 
-
 /**
  * device_shell 的工具描述。
  *
  * 抽成函数是为了能写测试：描述里列的动词必须和 [DeviceCommandPolicy] 的白名单一致 ——
  * 描述写着一个命令、策略却拒绝它，比没描述更糟（模型会一直重试同一个被拒的命令）。
  */
-internal fun deviceShellDescription(): String =
-    "执行单条设备命令（命令行操控手机），需要 Shizuku 或 Root 授权。" +
-        "**会改变设备状态**；只读查文件请用 execute_shell（沙箱白名单，不会动设备）。" +
-        "允许的动词: " + DeviceCommandPolicy.allowedVerbs.joinToString("/") + "。" +
-        "input 支持 tap/swipe/draganddrop/text/keyevent/roll/press/motionevent；" +
-        "am 支持 start/startservice/broadcast/force-stop/kill；" +
-        "pm 支持 list/path/dump/enable/disable/grant/revoke/clear；" +
-        "settings 支持 get/put/delete/list；svc 支持 power/wifi/data/bluetooth；wm 支持 size/density；" +
-        "dumpsys/screencap/screendump/getprop/date 参数自由；uiautomator 仅 dump。" +
-        "不支持管道/重定向/多命令拼接 —— 每次写一条完整命令。" +
-        "与 screen_* 工具互补：screen_* 是高层动作，本工具是命令行自由度。"
+internal fun deviceShellDescription(): String = "执行单条设备命令（命令行操控手机），需要 Shizuku 或 Root 授权。" +
+    "**会改变设备状态**；只读查文件请用 execute_shell（沙箱白名单，不会动设备）。" +
+    "允许的动词: " + DeviceCommandPolicy.allowedVerbs.joinToString("/") + "。" +
+    "input 支持 tap/swipe/draganddrop/text/keyevent/roll/press/motionevent；" +
+    "am 支持 start/startservice/broadcast/force-stop/kill；" +
+    "pm 支持 list/path/dump/enable/disable/grant/revoke/clear；" +
+    "settings 支持 get/put/delete/list；svc 支持 power/wifi/data/bluetooth；wm 支持 size/density；" +
+    "dumpsys/screencap/screendump/getprop/date 参数自由；uiautomator 仅 dump。" +
+    "不支持管道/重定向/多命令拼接 —— 每次写一条完整命令。" +
+    "与 screen_* 工具互补：screen_* 是高层动作，本工具是命令行自由度。"
 
 /** 记录一次新的观察（动作后刷新，后续点击以最新画面为准）。 */
 private fun rememberObservation(fingerprint: String) {

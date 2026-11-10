@@ -42,7 +42,6 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.skill.SkillPackageImporter
-import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.SkillExecutor
 import io.zer0.muse.tools.SkillImporter
@@ -50,6 +49,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -820,9 +820,6 @@ private fun DetailLine(label: String, value: String) {
  *
  * 抽成纯函数是因为这段判据决定「一键」到底影响什么，值得单独测。
  */
-internal fun bulkToggleTargets(
-    skills: List<SkillEntity>,
-    builtInIds: Set<String>,
-): List<SkillEntity> = skills.filterNot { skill ->
+internal fun bulkToggleTargets(skills: List<SkillEntity>, builtInIds: Set<String>): List<SkillEntity> = skills.filterNot { skill ->
     skill.id in builtInIds || skill.implementationKotlin.startsWith("plugin:")
 }

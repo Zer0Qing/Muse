@@ -83,22 +83,21 @@ internal class PluginPromptFinalizeHook(
      * 不经过参数序列化，避开了早前引擎对复杂对象参数的兼容问题。
      * Python 没有那段历史包袱，直接按参数数组传。
      */
-    private suspend fun invokeHook(event: PromptFinalizeEvent): SkillEngineResult =
-        if (PluginFunctionInvoker.isPython(manifest)) {
-            PluginFunctionInvoker(context).call(
-                manifest = manifest,
-                entryCode = entryCode,
-                functionName = HOOK_FUNCTION_NAME,
-                argsJson = buildPythonArgs(event),
-                configJson = configJson,
-            )
-        } else {
-            WebViewSkillEngine().eval(
-                buildCallScript(event),
-                scopeKey = pluginId,
-                pluginConfigJson = configJson,
-            )
-        }
+    private suspend fun invokeHook(event: PromptFinalizeEvent): SkillEngineResult = if (PluginFunctionInvoker.isPython(manifest)) {
+        PluginFunctionInvoker(context).call(
+            manifest = manifest,
+            entryCode = entryCode,
+            functionName = HOOK_FUNCTION_NAME,
+            argsJson = buildPythonArgs(event),
+            configJson = configJson,
+        )
+    } else {
+        WebViewSkillEngine().eval(
+            buildCallScript(event),
+            scopeKey = pluginId,
+            pluginConfigJson = configJson,
+        )
+    }
 
     /** Python 版入参：`[{"preparedHistory": [{"role":..., "content":...}]}]`。 */
     private fun buildPythonArgs(event: PromptFinalizeEvent): String {

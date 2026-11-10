@@ -24,10 +24,7 @@ internal object ProactiveModelPicker {
 
     private const val TAG = "ProactiveModel"
 
-    suspend fun pick(
-        settings: SettingsRepository,
-        assistant: AssistantEntity,
-    ): Pair<ProviderConfig, Model>? {
+    suspend fun pick(settings: SettingsRepository, assistant: AssistantEntity): Pair<ProviderConfig, Model>? {
         val router = UtilityModelRouter(settings)
         val providerId = assistant.providerId?.takeIf { it.isNotBlank() }
             ?: readOrNull { settings.activeProviderIdFlow.first() }

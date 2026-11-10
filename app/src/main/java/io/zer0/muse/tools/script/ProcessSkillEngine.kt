@@ -112,7 +112,7 @@ class ProcessSkillEngine(private val context: Context) : SkillEngine {
             |    process.stdout.write(JSON.stringify({ ok: false, error: String((e && e.message) || e), logs: __logs }));
             |  }
             |})();
-        """.trimMargin()
+            """.trimMargin()
         // 脚本第一句先装 CPU 兜底：原生 os.cpus() 为空时用 MUSE_CPU_COUNT 合成，
         // 否则依赖核数的 npm 包在部分设备上会按 0/1 核运行。正常脚本作用域与返回值不受影响。
         return NodeCpuShim.wrap(body)

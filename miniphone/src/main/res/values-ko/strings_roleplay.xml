@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 跑团模块的文案。各语言保持同一组键，不让业务代码决定成品语言。 -->
+    <string name="mp_discover_roleplay">롤플레이</string>
+    <string name="mp_rp_title">롤플레이 시나리오 라이브러리</string>
+    <string name="mp_rp_back">발견으로 돌아가기</string>
+    <string name="mp_rp_empty">시나리오가 없습니다. 먼저 도입부를 작성해 보세요</string>
+    <string name="mp_rp_script_title_hint">시나리오 제목</string>
+    <string name="mp_rp_script_body_hint">도입부와 규칙</string>
+    <string name="mp_rp_create_script">새 시나리오</string>
+    <string name="mp_rp_update_script">변경사항 저장</string>
+    <string name="mp_rp_cancel_edit">편집 취소</string>
+    <string name="mp_rp_edit_script">편집</string>
+    <string name="mp_rp_delete_script">시나리오 삭제</string>
+    <string name="mp_rp_no_characters">시작하려면 캐릭터가 먼저 필요합니다</string>
+    <string name="mp_rp_start_run">한 판 시작</string>
+    <string name="mp_rp_saves">세이브</string>
+    <string name="mp_rp_saves_empty">이 시나리오의 세이브가 아직 없습니다</string>
+    <string name="mp_rp_endings">결말</string>
+    <string name="mp_rp_endings_empty">결말이 아직 없습니다</string>
+    <string name="mp_rp_turn">%1$d턴차</string>
+    <string name="mp_rp_roll">주사위 %1$d</string>
+    <string name="mp_rp_action_hint">이번 턴에 할 행동…</string>
+    <string name="mp_rp_advance">진행</string>
+    <string name="mp_rp_conclude">결말 작성</string>
+    <string name="mp_rp_delete_save">세이브 삭제</string>
+    <string name="mp_rp_state_unreadable">상태 스냅샷을 읽을 수 없습니다</string>
+</resources>

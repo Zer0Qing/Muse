@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +40,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.miniphone.R
+import io.zer0.muse.miniphone.data.call.MpCallKind
+import io.zer0.muse.miniphone.ui.call.MiniPhoneCallFeature
 import io.zer0.muse.miniphone.ui.chat.MiniPhoneChatRoute
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.launchGuarded
@@ -72,34 +76,57 @@ private const val TAG_SHELL_UI = "MiniPhoneShellUi"
 fun MiniPhoneShell(
     state: ShellUiState,
     modifier: Modifier = Modifier,
-    chatContent: @Composable (threadId: String, onBack: () -> Unit) -> Unit = { threadId, onBack ->
-        MiniPhoneChatRoute(threadId = threadId, onBack = onBack)
+    chatContent: @Composable (
+        threadId: String,
+        onBack: () -> Unit,
+        onStartCall: (characterId: String, kind: MpCallKind) -> Unit,
+    ) -> Unit = { threadId, onBack, onStartCall ->
+        MiniPhoneChatRoute(threadId = threadId, onBack = onBack, onStartCall = onStartCall)
     },
     momentsContent: @Composable (onlyMine: Boolean, onBack: () -> Unit) -> Unit = { onlyMine, onBack ->
         MiniPhoneMomentsRoute(onlyMine = onlyMine, onBack = onBack)
     },
+    featureContent: (@Composable (feature: MiniPhoneFeature, onBack: () -> Unit) -> Unit)? = null,
     onOpenCharacterChat: suspend (characterId: String) -> String? = { null },
     actions: MiniPhoneShellActions = MiniPhoneShellActions(),
 ) {
     val colors = MiniPhoneTheme.colors
     var selectedTab by rememberSaveable { mutableStateOf<MiniPhoneTab?>(null) }
     var currentThreadId by rememberSaveable { mutableStateOf<String?>(null) }
-    var momentsOpen by rememberSaveable { mutableStateOf(false) }
     var momentsOnlyMine by rememberSaveable { mutableStateOf(false) }
     var groupCreateOpen by rememberSaveable { mutableStateOf(false) }
+    // 发现页打开的模块：存 id 而不是枚举，进程重建后由注册表还原；
+    // 加一个模块只需在注册表登记并补一个分派分支，不必再逐个加布尔状态。
+    var activeFeatureId by rememberSaveable { mutableStateOf<String?>(null) }
+    // 通话盖在聊天页之上；聊天页只上报「拨给谁、哪一类」，页面与收尾都由这一层负责。
+    var callCharacterId by rememberSaveable { mutableStateOf<String?>(null) }
+    var callKindId by rememberSaveable { mutableStateOf<String?>(null) }
+    val activeFeature = activeFeatureId?.let { MiniPhoneFeatureCatalog.fromId(it) }
+    val roomStore = io.zer0.muse.miniphone.data.room.miniPhoneRoomStore(
+        androidx.compose.ui.platform.LocalContext.current,
+    )
     // 建群所选中的人用 list 存:点击先后就是入群顺序,成员页也按这个顺序排
     var groupSelection by rememberSaveable { mutableStateOf(listOf<String>()) }
     val openThread: (String) -> Unit = { currentThreadId = it }
     val closeThread: () -> Unit = { currentThreadId = null }
+    val closeFeature: () -> Unit = { activeFeatureId = null }
+    // 我页的「我的朋友圈」也走同一个模块，只是多带一个只看自己的标记。
     val openMoments: (Boolean) -> Unit = { onlyMine ->
         momentsOnlyMine = onlyMine
-        momentsOpen = true
+        activeFeatureId = MiniPhoneFeature.MOMENTS.id
     }
     // 通讯录点击要先问会话 id(可能要新建一条),所以得带一层协程作用域
     val scope = rememberCoroutineScope()
     val openContact: (String) -> Unit = { characterId ->
         scope.launchGuarded(TAG_SHELL_UI, "从通讯录打开某个角色的会话") {
             onOpenCharacterChat(characterId)?.let { threadId -> currentThreadId = threadId }
+        }
+    }
+    // 从模块页里发起私信：先关掉模块页再进会话，返回时不会又落回那一页
+    val openChatFromFeature: suspend (String) -> String? = { characterId ->
+        onOpenCharacterChat(characterId)?.also { threadId ->
+            activeFeatureId = null
+            currentThreadId = threadId
         }
     }
     // 建群同样要等库里写完才拿得到会话 id,不能同步打开
@@ -117,12 +144,29 @@ fun MiniPhoneShell(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(colors.wallpaperTop, colors.wallpaperBottom))),
     ) {
-        Column(Modifier.fillMaxSize()) {
+        // 壳内自绘状态栏时，仍需给宿主系统状态栏留出空间；否则两套时钟叠在左上角。
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
             MiniPhoneStatusBar()
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 val threadId = currentThreadId
                 when {
-                    threadId != null -> chatContent(threadId, closeThread)
+                    threadId != null && callKindId == null -> chatContent(
+                        threadId,
+                        closeThread,
+                        { characterId, kind ->
+                            callCharacterId = characterId
+                            callKindId = kind.wire
+                        },
+                    )
+                    threadId != null -> MiniPhoneCallFeature(
+                        threadId = threadId,
+                        characterId = callCharacterId.orEmpty(),
+                        requestedKind = MpCallKind.fromWire(callKindId ?: MpCallKind.VOICE.wire),
+                        onBack = {
+                            callKindId = null
+                            callCharacterId = null
+                        },
+                    )
                     groupCreateOpen -> GroupCreatePage(
                         sections = state.contactSections,
                         selectedIds = groupSelection.toSet(),
@@ -139,7 +183,16 @@ fun MiniPhoneShell(
                         },
                         onDone = createGroup,
                     )
-                    momentsOpen -> momentsContent(momentsOnlyMine) { momentsOpen = false }
+                    activeFeature != null -> FeatureHost(
+                        feature = activeFeature,
+                        state = state,
+                        roomStore = roomStore,
+                        momentsOnlyMine = momentsOnlyMine,
+                        momentsContent = momentsContent,
+                        featureContent = featureContent,
+                        onBack = closeFeature,
+                        onOpenCharacterChat = openChatFromFeature,
+                    )
                     else -> MiniPhonePageContent(
                         selectedTab = selectedTab,
                         state = state,
@@ -150,14 +203,15 @@ fun MiniPhoneShell(
                             openThread = openThread,
                             openContact = openContact,
                             openGroupCreate = { groupCreateOpen = true },
+                            openFeature = { activeFeatureId = it.id },
                             goHome = { selectedTab = null },
                         ),
                         actions = actions,
                     )
                 }
             }
-            // 聊天页、朋友圈与建群页占满内容区,tab 栏让位给它们自己的底栏与输入栏
-            if (currentThreadId == null && !momentsOpen && !groupCreateOpen) {
+            // 聊天页、朋友圈、建群页与发现页模块占满内容区，tab 栏让位给它们自己的底栏与页头
+            if (currentThreadId == null && !groupCreateOpen && activeFeature == null && callKindId == null) {
                 MiniPhoneTabBar(selected = selectedTab, onSelect = { selectedTab = it })
             }
         }
@@ -183,9 +237,9 @@ data class MiniPhoneShellActions(
 )
 
 /**
- * 内容区的六条跳转回调:切 tab、开朋友圈(全部 / 只看自己)、开会话、按角色开会话、开建群页、回桌面。
+ * 内容区的跳转回调：切 tab、开朋友圈(全部 / 只看自己)、开会话、按角色开会话、建群、打开发现页模块、回桌面。
  *
- * 它们描述的是同一件事(用户要去哪),合成一个值比六个平铺参数好读。
+ * 发现页模块统一走 [openFeature]，新增模块不改这里。
  */
 private data class PageNav(
     val selectTab: (MiniPhoneTab) -> Unit = {},
@@ -194,6 +248,7 @@ private data class PageNav(
     val openThread: (String) -> Unit = {},
     val openContact: (String) -> Unit = {},
     val openGroupCreate: () -> Unit = {},
+    val openFeature: (MiniPhoneFeature) -> Unit = {},
     val goHome: () -> Unit = {},
 )
 
@@ -226,7 +281,7 @@ private fun MiniPhonePageContent(selectedTab: MiniPhoneTab?, state: ShellUiState
                 ),
             )
             MiniPhoneTab.CONTACTS -> ContactsPage(sections = state.contactSections, onOpenContact = nav.openContact)
-            MiniPhoneTab.DISCOVER -> DiscoverPage(onOpenMoments = nav.openMoments)
+            MiniPhoneTab.DISCOVER -> DiscoverPage(onOpenFeature = nav.openFeature)
             MiniPhoneTab.ME -> MePage(
                 profile = state.profile,
                 appVersionName = state.appVersionName,
@@ -467,6 +522,8 @@ private fun MiniPhoneTabBar(selected: MiniPhoneTab?, onSelect: (MiniPhoneTab) ->
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // 手势导航条会压住 tab 文字，底部面板自己负责系统安全区。
+            .navigationBarsPadding()
             .background(colors.surface),
     ) {
         Box(
@@ -512,3 +569,35 @@ private val StatusIconGap = 6.dp
 private val LauncherRowGap = 18.dp
 private val HomeButtonSize = 32.dp
 private val PageHeaderActionGap = 4.dp
+
+/**
+ * 模块页的渲染口：调用方给了替身就用替身，否则走真实分派表。
+ *
+ * 单拎出来是因为壳本身的 `when` 已经很长了 —— 把「模块页怎么渲染」这段搬走后，
+ * 壳只负责「现在该显示哪一层」，加一个模块也不会再让壳跟着变长。
+ */
+@Composable
+private fun FeatureHost(
+    feature: MiniPhoneFeature,
+    state: ShellUiState,
+    roomStore: io.zer0.muse.miniphone.data.room.MpRoomStore,
+    momentsOnlyMine: Boolean,
+    momentsContent: @Composable (onlyMine: Boolean, onBack: () -> Unit) -> Unit,
+    featureContent: (@Composable (feature: MiniPhoneFeature, onBack: () -> Unit) -> Unit)?,
+    onBack: () -> Unit,
+    onOpenCharacterChat: suspend (String) -> String?,
+) {
+    if (featureContent != null) {
+        featureContent(feature, onBack)
+        return
+    }
+    MiniPhoneFeaturePage(
+        feature = feature,
+        state = state,
+        roomStore = roomStore,
+        momentsOnlyMine = momentsOnlyMine,
+        momentsContent = momentsContent,
+        onBack = onBack,
+        onOpenCharacterChat = onOpenCharacterChat,
+    )
+}

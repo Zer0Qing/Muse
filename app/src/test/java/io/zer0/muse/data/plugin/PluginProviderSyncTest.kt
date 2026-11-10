@@ -53,8 +53,7 @@ class PluginProviderSyncTest {
         File(dir, "provider.json").writeText(content)
     }
 
-    private fun validJson(name: String = "中转站") =
-        """{"id":"ignored","displayName":"$name","baseUrl":"https://relay.example.com/v1"}"""
+    private fun validJson(name: String = "中转站") = """{"id":"ignored","displayName":"$name","baseUrl":"https://relay.example.com/v1"}"""
 
     @Test
     fun `an enabled provider plugin is registered under its package id`() = runBlocking {

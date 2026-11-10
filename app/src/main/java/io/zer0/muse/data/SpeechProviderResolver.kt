@@ -60,16 +60,15 @@ object SpeechProviderResolver {
     const val REASON_MODEL_MISSING = "model_missing"
 
     /** 解析 TTS(云端引擎)的实际连接参数。 */
-    fun resolveMedia(config: MediaConfig, providers: List<ProviderConfig>): ResolvedSpeechEndpoint =
-        resolve(
-            follow = config.ttsFollowProvider,
-            providerId = config.ttsProviderId,
-            modelId = config.ttsModelId,
-            manualBaseUrl = config.ttsEndpoint,
-            manualApiKey = config.ttsApiKey,
-            manualModel = config.ttsModel,
-            providers = providers,
-        )
+    fun resolveMedia(config: MediaConfig, providers: List<ProviderConfig>): ResolvedSpeechEndpoint = resolve(
+        follow = config.ttsFollowProvider,
+        providerId = config.ttsProviderId,
+        modelId = config.ttsModelId,
+        manualBaseUrl = config.ttsEndpoint,
+        manualApiKey = config.ttsApiKey,
+        manualModel = config.ttsModel,
+        providers = providers,
+    )
 
     /**
      * 解析 ASR 的实际连接参数。
@@ -94,13 +93,12 @@ object SpeechProviderResolver {
         )
     }
 
-    private fun manual(baseUrl: String, apiKey: String, model: String): ResolvedSpeechEndpoint =
-        ResolvedSpeechEndpoint(
-            baseUrl = baseUrl,
-            apiKey = apiKey,
-            model = model,
-            source = SpeechEndpointSource.MANUAL,
-        )
+    private fun manual(baseUrl: String, apiKey: String, model: String): ResolvedSpeechEndpoint = ResolvedSpeechEndpoint(
+        baseUrl = baseUrl,
+        apiKey = apiKey,
+        model = model,
+        source = SpeechEndpointSource.MANUAL,
+    )
 
     private fun resolve(
         follow: Boolean,

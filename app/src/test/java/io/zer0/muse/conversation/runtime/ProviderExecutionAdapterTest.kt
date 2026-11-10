@@ -24,8 +24,10 @@ class ProviderExecutionAdapterTest {
         val result = mutableListOf<ProviderEvent>()
         events.collect { result += it }
 
-        assertEquals(listOf(ProviderEventType.CONTENT, ProviderEventType.CONTENT, ProviderEventType.COMPLETED),
-            result.map { it.type })
+        assertEquals(
+            listOf(ProviderEventType.CONTENT, ProviderEventType.CONTENT, ProviderEventType.COMPLETED),
+            result.map { it.type },
+        )
         assertEquals(listOf("one", "two"), result.take(2).map { (it as ProviderEvent.Content).text })
     }
 

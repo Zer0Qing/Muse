@@ -120,6 +120,23 @@ interface MiniPhoneHost {
     suspend fun composeProactiveMessage(characterId: String, hint: String?): String?
 
     /**
+     * 生成角色的一条「心声」（没说出口的内心独白），给定 [hint] 素材（最近交流 + 刚说的那句）。
+     *
+     * 默认返回 null：不实现等于没有心声能力，界面折叠区自行不显示。宿主实现覆盖之即可产出。
+     * 与主线消息分开，不进会话历史。失败/无法生成返回 null，不抛。
+     */
+    suspend fun composeInnerVoice(characterId: String, hint: String?): String? = null
+
+    /**
+     * 通用一次性文本生成：给定角色与一段任务说明 [brief]，产出一段文本。
+     *
+     * 查岗的证据解读、论坛发帖、漫游路人对话、跑团叙事都走这一条，
+     * 不再为每个玩法各加一个宿主方法 —— 它们的差别只在 [brief] 里的任务描述。
+     * 默认返回 null：不实现等于没有这个能力，调用方按「没有结果」处理，不抛异常。
+     */
+    suspend fun composeScene(characterId: String, brief: String): String? = null
+
+    /**
      * 把文本合成语音。
      *
      * @return `first` 为音频文件 uri,`second` 为时长(毫秒);失败返回 null。
@@ -143,6 +160,13 @@ interface MiniPhoneHost {
      * 界面不会因此填一个假版本号。
      */
     fun appVersionName(): String = ""
+
+    /**
+     * 主应用表情包库里的表情（只读投影）。
+     *
+     * 默认空列表：没接就等于没有表情可用，界面不显示入口，而不是显示一个空网格让人以为坏了。
+     */
+    suspend fun listStickers(): List<MpSticker> = emptyList()
 
     /**
      * 当前 ASR 配置是否支持把整段音频转文字(录音输入依赖它)。

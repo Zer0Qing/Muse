@@ -38,23 +38,18 @@ class TaskCardSurfacesDeviceTest {
 
     private fun s(id: Int, vararg args: Any): String = context.getString(id, *args)
 
-    private fun node(
-        requestId: String,
-        parent: String?,
-        status: DelegationNodeStatus,
-        targetName: String,
-        task: String,
-    ) = DelegationChainTracker.ChainNode(
-        requestId = requestId,
-        parentRequestId = parent,
-        task = task,
-        targetType = "assistant",
-        targetId = "a-$requestId",
-        targetName = targetName,
-        status = status,
-        startedAt = 1_700_000_000_000L,
-        finishedAt = if (status == DelegationNodeStatus.RUNNING) null else 1_700_000_005_000L,
-    )
+    private fun node(requestId: String, parent: String?, status: DelegationNodeStatus, targetName: String, task: String) =
+        DelegationChainTracker.ChainNode(
+            requestId = requestId,
+            parentRequestId = parent,
+            task = task,
+            targetType = "assistant",
+            targetId = "a-$requestId",
+            targetName = targetName,
+            status = status,
+            startedAt = 1_700_000_000_000L,
+            finishedAt = if (status == DelegationNodeStatus.RUNNING) null else 1_700_000_005_000L,
+        )
 
     @Test
     fun emptyChainShowsHintInsteadOfACardFrame() {

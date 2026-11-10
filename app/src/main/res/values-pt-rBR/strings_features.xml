@@ -725,6 +725,10 @@
     <string name="knowledge_folder_created">Pasta \"%1$s\" criada</string>
     <string name="knowledge_folder_renamed">Renomeada para \"%1$s\"</string>
     <string name="knowledge_folder_deleted">Pasta excluída</string>
+    <string name="knowledge_import_cancel_title">Cancelar a importação?</string>
+    <string name="knowledge_import_cancel_body">Os arquivos já importados serão mantidos; o restante precisa ser importado de novo.</string>
+    <string name="knowledge_import_cancel_confirm">Parar</string>
+    <string name="common_continue">Continuar</string>
     <string name="chat_set_background">Fundo do chat</string>
     <string name="chat_background_saved">Fundo desta conversa atualizado</string>
     <string name="chat_background_save_failed">Falha ao salvar o fundo</string>

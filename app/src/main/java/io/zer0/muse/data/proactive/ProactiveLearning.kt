@@ -17,8 +17,7 @@ object ProactiveLearning {
     }
 
     /** 应用一次反馈后的新亲密度。 */
-    fun applyOutcome(intimacy: Float, state: OutcomeState): Float =
-        (intimacy + intimacyDelta(state)).coerceIn(0f, 1f)
+    fun applyOutcome(intimacy: Float, state: OutcomeState): Float = (intimacy + intimacyDelta(state)).coerceIn(0f, 1f)
 
     /**
      * 某类型是否已经「不怎么受欢迎」。
@@ -26,6 +25,5 @@ object ProactiveLearning {
      * 判据刻意保守（至少要发过 4 条、且划掉率过半），
      * 避免样本太少就下结论 —— 误判的代价是永久关掉一类有意义的主动消息。
      */
-    fun isKindUnpopular(dismissed: Int, total: Int): Boolean =
-        total >= 4 && dismissed * 2 > total
+    fun isKindUnpopular(dismissed: Int, total: Int): Boolean = total >= 4 && dismissed * 2 > total
 }

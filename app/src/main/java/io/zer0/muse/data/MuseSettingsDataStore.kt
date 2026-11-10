@@ -1,17 +1,17 @@
 package io.zer0.muse.data
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import io.zer0.common.Logger
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import androidx.datastore.preferences.core.emptyPreferences
-import io.zer0.common.Logger
 import java.io.File
 
 /**
@@ -111,8 +111,7 @@ private fun evictDeletedStoreDirsLocked(current: File) {
  * 必须是"看得见具体目录"而不是只给个数 —— 只给个数的话，
  * 断言很容易写成永远成立的形状（我第一版就是这么错的）。
  */
-internal fun museSettingsStoreCachedDirsForTests(): Set<File> =
-    synchronized(settingsStoreLock) { settingsStores.keys.toSet() }
+internal fun museSettingsStoreCachedDirsForTests(): Set<File> = synchronized(settingsStoreLock) { settingsStores.keys.toSet() }
 
 /**
  * 所有 Settings 子仓库共用的 `muse_settings` DataStore。

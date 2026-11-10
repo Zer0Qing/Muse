@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 跑团模块的文案。各语言保持同一组键，不让业务代码决定成品语言。 -->
+    <string name="mp_discover_roleplay">跑团</string>
+    <string name="mp_rp_title">跑团剧本库</string>
+    <string name="mp_rp_back">返回发现页</string>
+    <string name="mp_rp_empty">还没有剧本，先写一个开场吧</string>
+    <string name="mp_rp_script_title_hint">剧本标题</string>
+    <string name="mp_rp_script_body_hint">开场与规则</string>
+    <string name="mp_rp_create_script">新建剧本</string>
+    <string name="mp_rp_update_script">保存修改</string>
+    <string name="mp_rp_cancel_edit">取消编辑</string>
+    <string name="mp_rp_edit_script">编辑</string>
+    <string name="mp_rp_delete_script">删除剧本</string>
+    <string name="mp_rp_no_characters">先有角色才能开局</string>
+    <string name="mp_rp_start_run">开一局</string>
+    <string name="mp_rp_saves">存档</string>
+    <string name="mp_rp_saves_empty">这个剧本还没有存档</string>
+    <string name="mp_rp_endings">结局册</string>
+    <string name="mp_rp_endings_empty">还没有结局</string>
+    <string name="mp_rp_turn">第 %1$d 回合</string>
+    <string name="mp_rp_roll">骰果 %1$d</string>
+    <string name="mp_rp_action_hint">这回合想做什么…</string>
+    <string name="mp_rp_advance">推进</string>
+    <string name="mp_rp_conclude">结案</string>
+    <string name="mp_rp_delete_save">删除存档</string>
+    <string name="mp_rp_state_unreadable">局面快照无法读取</string>
+</resources>

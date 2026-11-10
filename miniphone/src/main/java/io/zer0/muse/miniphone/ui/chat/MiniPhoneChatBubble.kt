@@ -78,6 +78,8 @@ internal fun ChatMessageRow(
     onOpenImage: (String) -> Unit,
     messageActions: ChatMessageActions = ChatMessageActions(),
     senderLabel: String? = null,
+    /** 这条角色消息对应的心声（内心独白）；非空时在气泡下方给一个可展开的折叠区。 */
+    innerVoice: String? = null,
 ) {
     if (message.isSystem) {
         SystemNoticeRow(message = message)
@@ -155,6 +157,14 @@ internal fun ChatMessageRow(
             )
         }
     }
+    if (innerVoice != null) {
+        InnerVoiceRow(
+            text = innerVoice,
+            alignEnd = message.isMine,
+            maxBubbleWidth = maxBubbleWidth,
+            modifier = Modifier.testTag("inner-voice-${message.id}"),
+        )
+    }
     if (confirmingDelete) {
         ChatDeleteConfirmDialog(
             onDismiss = { confirmingDelete = false },
@@ -163,6 +173,47 @@ internal fun ChatMessageRow(
                 onDelete(message.id)
             },
         )
+    }
+}
+
+/**
+ * 心声折叠区：默认只给一行「内心独白」标签，点开展示那句没说出口的话。
+ *
+ * 与主线气泡分色分形，弱化处理——它是角色心里想的，不是说出来的。
+ */
+@Composable
+private fun InnerVoiceRow(text: String, alignEnd: Boolean, maxBubbleWidth: Dp, modifier: Modifier = Modifier) {
+    var expanded by remember(text) { mutableStateOf(false) }
+    val colors = MiniPhoneTheme.colors
+    val typography = MiniPhoneTheme.typography
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = MiniPhoneTheme.dimens.pageMargin, vertical = 2.dp),
+        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = maxBubbleWidth)
+                .clip(RoundedCornerShape(MiniPhoneTheme.dimens.cardRadius))
+                .background(colors.bubbleOther.copy(alpha = 0.4f))
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.mp_inner_voice_label),
+                style = typography.caption,
+                color = colors.textSecondary,
+            )
+            if (expanded) {
+                Text(
+                    text = text,
+                    style = typography.body,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
     }
 }
 

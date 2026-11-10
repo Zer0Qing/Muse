@@ -1321,23 +1321,53 @@ internal class ChatGenerationController(
                                 assistant
                                     ?.let { deps.assistantRepository.parseKnowledgeFolderScopes(it) }
                                     .orEmpty()
-                            val boundDocIds =
-                                if (mentionDocIds.isNullOrEmpty()) {
-                                    resultOf {
-                                        if (boundFolderScopes.isNotEmpty()) {
-                                            deps.ragService.resolveKbFolderScopes(boundFolderScopes)
-                                        } else {
-                                            deps.ragService.resolveKnowledgeBaseDocIds(boundKnowledgeBaseIds)
-                                        }
-                                    }.onError { msg, t ->
-                                        Logger.w("ChatViewModel", "助手绑定知识库展开失败: $msg", t)
-                                    }.getOrNull()
+                            // R1 范围合同:绑定解析走显式 KnowledgeScope,禁止用
+                            // `takeIf { it.isNotEmpty() }` 把空绑定/失效绑定重新解释成全库。
+                            //  - 助手完全未绑定(无整库绑定也无文件夹绑定)= 既有「本地全库」行为,
+                            //    显式映射为 AllUserLibraries → 许可 = null(计划 R1 步骤:
+                            //    明确本地未绑定默认助手的 AllUserLibraries 行为,旧有效绑定保留);
+                            //  - 绑定存在但失效/为空(None/Invalid)→ 显式空许可(空列表)
+                            //    = 零结果,不再回落 null(全库);
+                            //  - Failed(解析执行失败)同样按零结果处理并显式告警,不伪装成全库。
+                            val permittedDocIds: List<String>? =
+                                if (boundKnowledgeBaseIds.isEmpty() && boundFolderScopes.isEmpty()) {
+                                    null
                                 } else {
-                                    emptyList()
+                                    when (
+                                        val resolved =
+                                            resultOf {
+                                                deps.ragService.resolveBindingScope(boundKnowledgeBaseIds, boundFolderScopes)
+                                            }.onError { msg, t ->
+                                                Logger.w("ChatViewModel", "助手绑定知识库展开失败: $msg", t)
+                                            }.getOrNull()
+                                    ) {
+                                        is io.zer0.muse.knowledge.domain.KnowledgeScope.Resolved ->
+                                            resolved.docIds.toList()
+                                        is io.zer0.muse.knowledge.domain.KnowledgeScope.Invalid,
+                                        is io.zer0.muse.knowledge.domain.KnowledgeScope.None,
+                                        -> emptyList()
+                                        is io.zer0.muse.knowledge.domain.KnowledgeScope.Failed -> {
+                                            Logger.w("ChatViewModel", "范围解析失败,按零结果处理: ${resolved.reason}")
+                                            emptyList()
+                                        }
+                                        // resultOf 链 onError 后 getOrNull() 为 null = 解析链异常:
+                                        // 与 Failed 同语义,按零结果处理并告警,不得回落全库。
+                                        null -> {
+                                            Logger.w("ChatViewModel", "范围解析链失败,按零结果处理")
+                                            emptyList()
+                                        }
+                                        io.zer0.muse.knowledge.domain.KnowledgeScope.AllUserLibraries -> null
+                                    }
                                 }
-                            val scopeDocIds =
-                                mentionDocIds.takeIf { !it.isNullOrEmpty() }
-                                    ?: boundDocIds?.takeIf { it.isNotEmpty() }
+                            // R1 mention 合同:@mention 只能在入口许可内临时覆盖选择。
+                            // 合并逻辑统一在 mergeMentionWithPermit(合同测试钉住):
+                            // 空许可(失效/空绑定、解析失败)一律零结果,不得被重新解释成
+                            // null(全库);null 唯一来源 = 未绑定且无 mention。
+                            val scopeDocIds: List<String>? =
+                                io.zer0.muse.knowledge.retrieval.mergeMentionWithPermit(
+                                    mentionDocIds = mentionDocIds,
+                                    permittedDocIds = permittedDocIds,
+                                )
                             val injection =
                                 resultOf {
                                     deps.ragService.buildInjectionContextWithCitations(

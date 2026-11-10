@@ -53,11 +53,10 @@ class StickerLibraryManagementTest {
      * 夹具再写一堆随机字节就会被正确地挡掉 —— 那不是我们要测的东西。
      * 后面的负载故意不是可解码的 PNG：尺寸解不出时应按"中性方图"收下，这条也要被覆盖。
      */
-    private fun imageFile(name: String, seed: Int): File =
-        File(workDir, name).apply {
-            val magic = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
-            writeBytes(magic + ByteArray(128) { (it + seed).toByte() })
-        }
+    private fun imageFile(name: String, seed: Int): File = File(workDir, name).apply {
+        val magic = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+        writeBytes(magic + ByteArray(128) { (it + seed).toByte() })
+    }
 
     /** 往某个包里放两张图；断言"批量添加本身是好的"，后面的用例才有干净起点。 */
     private suspend fun seedPack(category: String) {

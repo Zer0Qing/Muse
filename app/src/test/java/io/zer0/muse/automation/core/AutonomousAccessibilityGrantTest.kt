@@ -75,9 +75,15 @@ class AutonomousAccessibilityGrantTest {
                 taskFingerprint = "task:abc",
                 confirmedAtMillis = 123L,
             )
-        assertEquals(grant, Json.decodeFromString(AutonomousAccessibilityGrant.serializer(), Json.encodeToString(
-            AutonomousAccessibilityGrant.serializer(),
+        assertEquals(
             grant,
-        )))
+            Json.decodeFromString(
+                AutonomousAccessibilityGrant.serializer(),
+                Json.encodeToString(
+                    AutonomousAccessibilityGrant.serializer(),
+                    grant,
+                ),
+            ),
+        )
     }
 }

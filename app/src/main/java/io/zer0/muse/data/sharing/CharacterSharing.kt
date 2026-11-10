@@ -134,9 +134,9 @@ object CharacterSharer {
                 typeface = Typeface.DEFAULT_BOLD
                 textAlign = Paint.Align.CENTER
             }
-            canvas.drawText(assistant.name.take(24), cx, cy + avatarR + 150f, namePaint)
+            canvas.drawText(assistant.name.takeCodePoints(24), cx, cy + avatarR + 150f, namePaint)
 
-            val desc = assistant.description.trim().take(80)
+            val desc = assistant.description.trim().takeCodePoints(80)
             if (desc.isNotEmpty()) {
                 val descPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = SUBTLE

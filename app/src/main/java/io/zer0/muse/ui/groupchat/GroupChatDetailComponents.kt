@@ -128,6 +128,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.bodyMediumStrong
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.Dispatchers
@@ -135,7 +136,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import java.io.ByteArrayOutputStream
-import io.zer0.muse.ui.theme.bodyMediumStrong
 
 /**
  * 群聊消息气泡 — 区分 user(右侧)/ assistant(左侧 + 头像)。

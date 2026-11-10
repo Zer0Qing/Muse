@@ -85,5 +85,4 @@ class ChatMessageWindowTest {
         assertEquals(listOf("translation"), window.visible.map { it.content })
         assertEquals(source, window.byId[source.id.toString()])
     }
-
 }

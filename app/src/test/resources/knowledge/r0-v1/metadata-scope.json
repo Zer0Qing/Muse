@@ -1,0 +1,61 @@
+{
+  "baselineStatus": "待基线",
+  "cases": [
+    {
+      "baselineStatus": "待基线",
+      "caseId": "metadata-within-scope",
+      "expectedIntersectionDocIds": [
+        "doc-metadata-legal"
+      ],
+      "metadata": {
+        "tag": "legal"
+      },
+      "mustNotReturnDocIds": [
+        "doc-library-beta",
+        "doc-zh-direct"
+      ],
+      "scope": {
+        "ids": [
+          "kb-alpha"
+        ],
+        "type": "Libraries"
+      }
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "metadata-with-empty-scope",
+      "expectedIntersectionDocIds": [],
+      "metadata": {
+        "tag": "legal"
+      },
+      "mustNotReturnDocIds": [
+        "doc-metadata-legal",
+        "doc-library-beta"
+      ],
+      "scope": {
+        "type": "None"
+      }
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "metadata-provider-must-intersect-scope",
+      "expectedIntersectionDocIds": [],
+      "metadata": {
+        "tag": "legal"
+      },
+      "mustNotReturnDocIds": [
+        "doc-metadata-legal",
+        "doc-library-alpha"
+      ],
+      "provider": "chunkPageByMetadataProvider",
+      "scope": {
+        "ids": [
+          "kb-beta"
+        ],
+        "type": "Libraries"
+      }
+    }
+  ],
+  "fixtureSetVersion": "r0-v1",
+  "schemaVersion": 1
+}

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 포럼 화면 문구입니다. 키는 mp_forum_ 접두사를 쓰고, -->
+    <!-- mp_discover_forum은 발견 화면의 항목 이름입니다. -->
+    <string name="mp_discover_forum">포럼</string>
+    <string name="mp_forum_title">포럼</string>
+    <string name="mp_forum_back">돌아가기</string>
+    <string name="mp_forum_hint">뭔가 적어 보세요…</string>
+    <string name="mp_forum_publish">게시</string>
+    <string name="mp_forum_compose_cd">캐릭터가 게시하게 하기</string>
+    <string name="mp_forum_all">전체 게시글</string>
+    <string name="mp_forum_message_author">메시지</string>
+    <string name="mp_forum_empty">아직 게시글이 없습니다</string>
+    <string name="mp_forum_author_empty">이 작성자는 아직 게시글이 없습니다</string>
+    <string name="mp_forum_self_name">나</string>
+    <string name="mp_forum_character_name">캐릭터</string>
+    <string name="mp_forum_like">좋아요</string>
+    <string name="mp_forum_liked">좋아요 취소</string>
+    <string name="mp_forum_like_count">좋아요 %1$d개</string>
+    <string name="mp_forum_comment">댓글</string>
+    <string name="mp_forum_no_comments">아직 댓글이 없습니다</string>
+    <string name="mp_forum_comment_hint">댓글 쓰기…</string>
+    <string name="mp_forum_comment_send">보내기</string>
+    <string name="mp_forum_delete">삭제</string>
+</resources>

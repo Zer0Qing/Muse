@@ -302,11 +302,11 @@ class ChatMessageRenderRowsTest {
         val hasFooter =
             ChatMessageRenderRows.hasRenderableFooter(
                 ChatMessageRenderRows.FooterFacts(
-                message = message,
-                isStreaming = false,
-                isTranslating = false,
-                isLastAssistant = false,
-                chatPreferences =
+                    message = message,
+                    isStreaming = false,
+                    isTranslating = false,
+                    isLastAssistant = false,
+                    chatPreferences =
                     ChatPreferences(
                         quickActionOrder = emptyList(),
                         quickActionCopy = false,
@@ -316,11 +316,11 @@ class ChatMessageRenderRowsTest {
                         quickActionRegenerate = false,
                         quickActionDelete = false,
                     ),
-                showsModelName = false,
-                showsTokenStats = false,
-                branchCount = 1,
-                canContinue = false,
-                )
+                    showsModelName = false,
+                    showsTokenStats = false,
+                    branchCount = 1,
+                    canContinue = false,
+                ),
             )
 
         assertFalse(hasFooter)
@@ -366,5 +366,4 @@ class ChatMessageRenderRowsTest {
         assertEquals(listOf("${message.id}:message"), rows.map { it.key })
         assertEquals(ChatMessageRenderRowKind.Complete, rows.single().kind)
     }
-
 }

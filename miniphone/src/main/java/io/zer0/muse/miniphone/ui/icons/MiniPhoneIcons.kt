@@ -241,6 +241,17 @@ private fun imageIcon(): ImageVector = lineIcon("mp-image") {
     }
 }
 
+/** 表情：圆角方框里两只眼与一道笑口；与其它图标共用同一笔触，不混填充式图形。 */
+private fun stickerIcon(): ImageVector = lineIcon("mp-sticker") {
+    strokePath(width = THIN_LINE_WIDTH) { roundedRect(3.6f, 4.4f, 20.4f, 19.6f, 4.2f) }
+    strokePath(width = 1.6f) { circle(9.4f, 10.4f, 1.2f) }
+    strokePath(width = 1.6f) { circle(14.6f, 10.4f, 1.2f) }
+    strokePath(width = 1.6f) {
+        moveTo(8.4f, 14.6f)
+        curveTo(10.2f, 16.8f, 13.8f, 16.8f, 15.6f, 14.6f)
+    }
+}
+
 /** 图片坏了:同一个相框,中间一道裂纹。 */
 private fun brokenImageIcon(): ImageVector = lineIcon("mp-image-broken") {
     strokePath(width = THIN_LINE_WIDTH) { roundedRect(3.4f, 5.2f, 20.6f, 18.8f, 3f) }
@@ -335,6 +346,52 @@ private fun penIcon(): ImageVector = lineIcon("mp-pen") {
     }
 }
 
+/**
+ * 语音通话：听筒形状，画在 24 网格上。
+ *
+ * 不引 Material Icons：本模块全部图标共用同一笔触（1.7 单位细线 + 圆端），
+ * 混进一套填充式图标会让同一排按钮粗细不一致。
+ */
+private fun callIcon(): ImageVector = lineIcon("Call") {
+    strokePath(width = LINE_WIDTH) {
+        moveTo(6.4f, 3.6f)
+        lineTo(9.2f, 3.6f)
+        lineTo(10.8f, 7.4f)
+        lineTo(8.8f, 9.4f)
+        curveTo(10.2f, 12.2f, 11.8f, 13.8f, 14.6f, 15.2f)
+        lineTo(16.6f, 13.2f)
+        lineTo(20.4f, 14.8f)
+        lineTo(20.4f, 17.6f)
+        curveTo(20.4f, 19.4f, 18.8f, 20.6f, 17.0f, 20.2f)
+        curveTo(11.2f, 18.6f, 5.4f, 12.8f, 3.8f, 7.0f)
+        curveTo(3.4f, 5.2f, 4.6f, 3.6f, 6.4f, 3.6f)
+        close()
+    }
+}
+
+/** 视频聊天：摄像机机身加镜头三角；主应用侧这个功能也叫「视频聊天」。 */
+private fun videoCallIcon(): ImageVector = lineIcon("VideoCall") {
+    strokePath(width = LINE_WIDTH) {
+        moveTo(4.4f, 6.4f)
+        lineTo(14.0f, 6.4f)
+        curveTo(14.9f, 6.4f, 15.6f, 7.1f, 15.6f, 8.0f)
+        lineTo(15.6f, 16.0f)
+        curveTo(15.6f, 16.9f, 14.9f, 17.6f, 14.0f, 17.6f)
+        lineTo(4.4f, 17.6f)
+        curveTo(3.5f, 17.6f, 2.8f, 16.9f, 2.8f, 16.0f)
+        lineTo(2.8f, 8.0f)
+        curveTo(2.8f, 7.1f, 3.5f, 6.4f, 4.4f, 6.4f)
+        close()
+    }
+    strokePath(width = LINE_WIDTH) {
+        moveTo(16.4f, 10.2f)
+        lineTo(21.2f, 7.4f)
+        lineTo(21.2f, 16.6f)
+        lineTo(16.4f, 13.8f)
+        close()
+    }
+}
+
 object MiniPhoneIcons {
     val Signal: ImageVector = signalIcon()
     val Wifi: ImageVector = wifiIcon()
@@ -357,4 +414,7 @@ object MiniPhoneIcons {
     val Mic: ImageVector = micIcon()
     val Plus: ImageVector = plusIcon()
     val Check: ImageVector = checkIcon()
+    val Call: ImageVector = callIcon()
+    val VideoCall: ImageVector = videoCallIcon()
+    val Sticker: ImageVector = stickerIcon()
 }

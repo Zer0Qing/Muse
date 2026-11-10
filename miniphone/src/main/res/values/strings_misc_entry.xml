@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mp_redpacket_no_group">还没有群聊，先建一个群再发红包</string>
+</resources>

@@ -1,8 +1,8 @@
 package io.zer0.muse.rag
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.common.Logger
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers

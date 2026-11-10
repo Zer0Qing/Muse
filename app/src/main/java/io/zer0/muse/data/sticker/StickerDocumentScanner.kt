@@ -53,15 +53,15 @@ object StickerDocumentScanner {
     }
 
     /** 正文部件与它的 rels 部件（pptx 有多张 slide，按名字里的编号排）。 */
-    private fun partsFor(kind: StickerSourceKind, entries: Map<String, ByteArray>): List<Pair<String, String>> =
-        when (kind) {
-            StickerSourceKind.DOCX -> listOf("word/document.xml" to "word/_rels/document.xml.rels")
-            StickerSourceKind.PPTX -> entries.keys
+    private fun partsFor(kind: StickerSourceKind, entries: Map<String, ByteArray>): List<Pair<String, String>> = when (kind) {
+        StickerSourceKind.DOCX -> listOf("word/document.xml" to "word/_rels/document.xml.rels")
+        StickerSourceKind.PPTX ->
+            entries.keys
                 .filter { it.lowercase().startsWith("ppt/slides/slide") && it.endsWith(".xml") }
                 .sortedBy { SLIDE_NUMBER.find(it)?.groupValues?.get(1)?.toIntOrNull() ?: Int.MAX_VALUE }
                 .map { it to "ppt/slides/_rels/${it.substringAfterLast('/')}.rels" }
-            else -> emptyList()
-        }
+        else -> emptyList()
+    }
 
     /** rId → 包内媒体路径。Target 可能是相对路径，按正文部件所在目录解析。 */
     private fun parseRels(rels: String, partPath: String): Map<String, String> {
@@ -91,8 +91,11 @@ object StickerDocumentScanner {
                 }
                 is Token.Text -> if (token.value.isNotBlank()) {
                     val current = open
-                    if (current == null) leading.append(token.value).append(' ')
-                    else open = current.copy(caption = mergeCaption(current.caption, token.value))
+                    if (current == null) {
+                        leading.append(token.value).append(' ')
+                    } else {
+                        open = current.copy(caption = mergeCaption(current.caption, token.value))
+                    }
                 }
             }
         }

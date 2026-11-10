@@ -18,13 +18,13 @@ import io.zer0.muse.R
 import io.zer0.muse.data.ChatPreferences
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.nio.file.Files
+import java.nio.file.Path
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

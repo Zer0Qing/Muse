@@ -2,7 +2,6 @@ package io.zer0.muse.tools
 
 import android.annotation.SuppressLint
 import android.content.Context
-import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import android.os.Looper
 import android.webkit.ConsoleMessage
 import android.webkit.JsResult
@@ -14,6 +13,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
@@ -25,9 +25,9 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
@@ -71,6 +71,7 @@ object JsSandbox {
      */
     private class Instance(val scopeKey: String) {
         @Volatile var webView: WebView? = null
+
         @Volatile var lastUsedMs: Long = System.currentTimeMillis()
         val logs = mutableListOf<String>()
         val logsLock = Any()
@@ -120,11 +121,7 @@ object JsSandbox {
      * WebView 全局对象会跨 execute() 保留；即使 localStorage/缓存被清理，
      * 不覆盖这些变量也会让下一个插件读取上一个插件的配置。
      */
-    internal fun buildHostInjectionScript(
-        scopeKey: String?,
-        pluginConfigJson: String?,
-        executionToken: String? = null,
-    ): String {
+    internal fun buildHostInjectionScript(scopeKey: String?, pluginConfigJson: String?, executionToken: String? = null): String {
         val config = pluginConfigJson ?: "null"
         val pluginId = scopeKey?.let(::quoteJs) ?: "null"
         val token = executionToken?.let(::quoteJs) ?: "null"
@@ -259,8 +256,6 @@ object JsSandbox {
         })();
     """
 
-
-
     /** JS 侧「等我异步回传」的哨兵值。 */
     private const val ASYNC_SENTINEL = "__MUSE_ASYNC__"
 
@@ -271,11 +266,11 @@ object JsSandbox {
     private const val MAX_HTTP_BYTES = 2 * 1024 * 1024
 
     /** 供 JS 调用的异步回传入口（注册为 `__museAsync`）。 */
-    @android.webkit.JavascriptInterface
     /**
      * 异步结果回传（`__museAsync`）。带 token 是因为接口方法本身不知道是哪个 WebView 调的：
      * 多实例并发时没有 token 就会把 A 的结果投给 B。
      */
+    @android.webkit.JavascriptInterface
     fun deliverAsyncResult(token: String, payload: String) {
         tokenIndex[token]?.deliver?.getAndSet(null)?.invoke(payload)
     }
@@ -301,8 +296,9 @@ object JsSandbox {
                 val pluginId = instance.scopeKey
                 when (PluginCapabilityLedgers.sharedFromHolderOrNull()?.isApproved(pluginId, CAPABILITY_NETWORK)) {
                     null -> "插件权限账本未就绪，暂时不能联网（请稍后重试）"
-                    false -> "未授权 network 能力：插件清单需声明 \"$CAPABILITY_NETWORK\"，" +
-                        "并在 设置 → 工具与扩展 → 插件 → 权限 中批准"
+                    false ->
+                        "未授权 network 能力：插件清单需声明 \"$CAPABILITY_NETWORK\"，" +
+                            "并在 设置 → 工具与扩展 → 插件 → 权限 中批准"
                     true -> null
                 }
             }
@@ -737,7 +733,10 @@ object JsSandbox {
         check(Looper.myLooper() == Looper.getMainLooper()) {
             "JsSandbox WebView 必须在主线程创建和访问"
         }
-        instance.webView?.let { instance.lastUsedMs = System.currentTimeMillis(); return it }
+        instance.webView?.let {
+            instance.lastUsedMs = System.currentTimeMillis()
+            return it
+        }
         val ctx = appContext
             ?: error("JsSandbox 未初始化,请先调用 init(context) 注入 Application Context")
 

@@ -774,6 +774,10 @@
     <string name="knowledge_folder_created">Папка «%1$s» создана</string>
     <string name="knowledge_folder_renamed">Переименовано в «%1$s»</string>
     <string name="knowledge_folder_deleted">Папка удалена</string>
+    <string name="knowledge_import_cancel_title">Отменить импорт?</string>
+    <string name="knowledge_import_cancel_body">Уже импортированные файлы останутся; остальные нужно импортировать заново.</string>
+    <string name="knowledge_import_cancel_confirm">Остановить</string>
+    <string name="common_continue">Продолжить</string>
     <string name="chat_set_background">Фон чата</string>
     <string name="chat_background_saved">Фон этого диалога обновлён</string>
     <string name="chat_background_save_failed">Не удалось сохранить фон</string>

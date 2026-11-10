@@ -16,15 +16,14 @@ import io.zer0.common.Logger
  *
  * @param label 人类可读的依赖名，直接进日志（不要传字符串资源 id：日志不进 UI）。
  */
-internal fun <T : Any> lookupOrNull(label: String, lookup: () -> T): T? =
-    runCatching(lookup)
-        .onFailure { e ->
-            Logger.w(
-                TAG,
-                "$label 解析失败，本次按「不可用」降级 | 原因: ${e.message ?: e.javaClass.simpleName}",
-                e,
-            )
-        }
-        .getOrNull()
+internal fun <T : Any> lookupOrNull(label: String, lookup: () -> T): T? = runCatching(lookup)
+    .onFailure { e ->
+        Logger.w(
+            TAG,
+            "$label 解析失败，本次按「不可用」降级 | 原因: ${e.message ?: e.javaClass.simpleName}",
+            e,
+        )
+    }
+    .getOrNull()
 
 private const val TAG = "LazyLookup"

@@ -20,7 +20,7 @@ import java.io.File
  * 一个只在单测里绿、页面上什么都不画的渲染器，对插件作者是同样糟糕的结果。
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], qualifiers = "zh-rCN")  // 断言里用的是中文文案，锁定语言环境
+@Config(sdk = [33], qualifiers = "zh-rCN") // 断言里用的是中文文案，锁定语言环境
 class PluginUiRendererTest {
 
     @get:Rule

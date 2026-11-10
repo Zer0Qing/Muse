@@ -453,6 +453,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
     // 新建渠道的 id 与创建时间在草稿期固定:每次重算都会拿到新值,比对就永远"有改动"。
     val draftId = remember { initial?.id ?: ("ch_" + System.currentTimeMillis()) }
     val draftCreatedAt = remember { initial?.createdAt ?: System.currentTimeMillis() }
+
     // 草稿只在这里拼一次:保存与"是否已有未保存改动"共用同一份口径,不会两处各写一份而漂移。
     fun buildDraft(): ChannelConfig = ChannelConfig(
         id = draftId,

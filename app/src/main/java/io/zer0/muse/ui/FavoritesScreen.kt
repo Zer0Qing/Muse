@@ -110,7 +110,10 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
             MuseTopBar(
                 title = stringResource(R.string.favorites_title, state.favoriteMessages.size),
                 onBack = if (selectionMode) {
-                    { selectionMode = false; selectedIds = emptySet() }
+                    {
+                        selectionMode = false
+                        selectedIds = emptySet()
+                    }
                 } else {
                     onBack
                 },
@@ -118,7 +121,10 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
                     if (state.favoriteMessages.isNotEmpty()) {
                         MuseTactileButton(
                             icon = if (selectionMode) MuseIcons.x else MuseIcons.check,
-                            onClick = { selectionMode = !selectionMode; selectedIds = emptySet() },
+                            onClick = {
+                                selectionMode = !selectionMode
+                                selectedIds = emptySet()
+                            },
                             contentDescription = stringResource(
                                 if (selectionMode) R.string.favorites_exit_select else R.string.favorites_select_mode,
                             ),
@@ -319,12 +325,7 @@ private fun FavoritesListArea(
 
 /** 12: 多选态批量操作栏。 */
 @Composable
-private fun FavoriteBatchBar(
-    selectedCount: Int,
-    onSelectAll: () -> Unit,
-    onBatchGroup: () -> Unit,
-    onBatchUnfavorite: () -> Unit,
-) {
+private fun FavoriteBatchBar(selectedCount: Int, onSelectAll: () -> Unit, onBatchGroup: () -> Unit, onBatchUnfavorite: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.memory.fact.MemoryLegacyReset
-import io.zer0.muse.ui.memory.memorySpaceDisplayName
 import io.zer0.memory.space.MemorySpaceEntity
 import io.zer0.memory.summary.MemoryDbArchiveRecovery
 import io.zer0.muse.R
@@ -84,6 +83,7 @@ import io.zer0.muse.ui.memory.PinnedMemorySection
 import io.zer0.muse.ui.memory.TimelineEventCard
 import io.zer0.muse.ui.memory.TimelineItem
 import io.zer0.muse.ui.memory.TimelineItemActions
+import io.zer0.muse.ui.memory.memorySpaceDisplayName
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion

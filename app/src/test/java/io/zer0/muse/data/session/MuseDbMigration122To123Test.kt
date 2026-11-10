@@ -26,11 +26,15 @@ class MuseDbMigration122To123Test {
 
             MuseDb.MIGRATION_122_123.migrate(db)
 
-            assertTrue(tableNames(db).containsAll(setOf(
-                "conversation_command_receipts",
-                "conversation_selections",
-                "conversation_display_slots",
-            )))
+            assertTrue(
+                tableNames(db).containsAll(
+                    setOf(
+                        "conversation_command_receipts",
+                        "conversation_selections",
+                        "conversation_display_slots",
+                    ),
+                ),
+            )
             db.query("SELECT title FROM sessions WHERE id = 'session-1'").use {
                 assertTrue(it.moveToFirst())
                 assertEquals("kept", it.getString(0))
@@ -51,11 +55,15 @@ class MuseDbMigration122To123Test {
             MuseDb.MIGRATION_122_123.migrate(db)
             MuseDb.MIGRATION_122_123.migrate(db)
 
-            assertTrue(tableNames(db).containsAll(setOf(
-                "conversation_command_receipts",
-                "conversation_selections",
-                "conversation_display_slots",
-            )))
+            assertTrue(
+                tableNames(db).containsAll(
+                    setOf(
+                        "conversation_command_receipts",
+                        "conversation_selections",
+                        "conversation_display_slots",
+                    ),
+                ),
+            )
         } finally {
             db.close()
         }
@@ -90,10 +98,9 @@ class MuseDbMigration122To123Test {
         ).writableDatabase
     }
 
-    private fun tableNames(db: SupportSQLiteDatabase): Set<String> =
-        buildSet {
-            db.query("SELECT name FROM sqlite_master WHERE type='table'").use { cursor ->
-                while (cursor.moveToNext()) add(cursor.getString(0))
-            }
+    private fun tableNames(db: SupportSQLiteDatabase): Set<String> = buildSet {
+        db.query("SELECT name FROM sqlite_master WHERE type='table'").use { cursor ->
+            while (cursor.moveToNext()) add(cursor.getString(0))
         }
+    }
 }

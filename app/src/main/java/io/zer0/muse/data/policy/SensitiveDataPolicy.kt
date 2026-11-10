@@ -59,12 +59,11 @@ object SensitiveDataPolicy {
      * MCP 结果来自第三方系统，保留期比普通工具输出更短 —— 这条判断放在政策里，
      * 而不是让每个落盘点各自写一遍字符串比较。
      */
-    fun categoryForTool(toolName: String?): Category =
-        if (toolName?.trim()?.lowercase()?.startsWith(MCP_TOOL_PREFIX) == true) {
-            Category.MCP_RESULT
-        } else {
-            Category.TOOL_OUTPUT
-        }
+    fun categoryForTool(toolName: String?): Category = if (toolName?.trim()?.lowercase()?.startsWith(MCP_TOOL_PREFIX) == true) {
+        Category.MCP_RESULT
+    } else {
+        Category.TOOL_OUTPUT
+    }
 
     /** 按类别取规则。 */
     fun rulesFor(category: Category): Category = category
@@ -83,11 +82,7 @@ object SensitiveDataPolicy {
     const val PREVIEW_MAX_CHARS = 400
 
     /** 是否该删掉这个落盘文件。 */
-    fun shouldPurge(
-        lastModifiedMillis: Long,
-        nowMillis: Long,
-        retentionDays: Int = TOOL_OUTPUT_RETENTION_DAYS,
-    ): Boolean {
+    fun shouldPurge(lastModifiedMillis: Long, nowMillis: Long, retentionDays: Int = TOOL_OUTPUT_RETENTION_DAYS): Boolean {
         if (retentionDays <= 0) return false
         val age = nowMillis - lastModifiedMillis
         // 时钟回拨（文件比现在还"新"）时不删：宁可多留，也不要因为一次时间跳变清空用户数据

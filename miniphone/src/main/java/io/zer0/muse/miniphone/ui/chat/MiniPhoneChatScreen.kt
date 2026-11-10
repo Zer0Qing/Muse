@@ -1,5 +1,6 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -41,12 +42,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.miniphone.R
+import io.zer0.muse.miniphone.data.call.MpCallKind
 import io.zer0.muse.miniphone.ui.icons.MiniPhoneIcons
 import io.zer0.muse.miniphone.ui.launchGuarded
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
@@ -63,7 +66,13 @@ import org.koin.core.parameter.parametersOf
  * 会复用同一份状态,不会重新从库里拉一遍。
  */
 @Composable
-internal fun MiniPhoneChatRoute(threadId: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
+internal fun MiniPhoneChatRoute(
+    threadId: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** 顶栏拨号：把「拨给谁 + 哪一类」交给外壳，聊天页自己不开通话页。 */
+    onStartCall: (characterId: String, kind: MpCallKind) -> Unit = { _, _ -> },
+) {
     // 以会话 id 作 ViewModel 键:不同会话各一份状态,同一个会话退出再进复用
     val viewModel: MiniPhoneChatViewModel = koinViewModel(key = threadId) { parametersOf(threadId) }
     val state by viewModel.uiState.collectAsState()
@@ -81,6 +90,7 @@ internal fun MiniPhoneChatRoute(threadId: String, onBack: () -> Unit, modifier: 
     MiniPhoneChatScreen(
         state = state,
         onBack = onBack,
+        onStartCall = onStartCall,
         onLoadOlder = viewModel::loadOlder,
         input = ChatInputActions(
             onSend = viewModel::send,
@@ -88,6 +98,9 @@ internal fun MiniPhoneChatRoute(threadId: String, onBack: () -> Unit, modifier: 
                 pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
             },
             onTranscribeVoice = viewModel::transcribeVoice,
+            // 表情走的就是发图那条链：表情本是宿主库里的一张本地文件，
+            // 另起一条落库路径只会多出「图片」与「表情」两种长得一样、行为却不同的消息。
+            onSendSticker = { uri -> viewModel.sendImages(listOf(Uri.parse(uri))) },
         ),
         messageActions = ChatMessageActions(
             onResend = viewModel::resend,
@@ -123,6 +136,7 @@ private const val TAG_CHAT_UI = "MiniPhoneChatScreen"
 internal fun MiniPhoneChatScreen(
     state: ChatUiState,
     onBack: () -> Unit,
+    onStartCall: (String, MpCallKind) -> Unit = { _, _ -> },
     onLoadOlder: () -> Unit,
     input: ChatInputActions = ChatInputActions(),
     messageActions: ChatMessageActions = ChatMessageActions(),
@@ -159,6 +173,9 @@ internal fun MiniPhoneChatScreen(
         ) {
             ChatTopBar(
                 name = titleText,
+                // 通话只对私信开放：群里没有「对方」这一个可拨的人
+                onStartCall = { kind -> onStartCall(state.characterId, kind) },
+                isGroup = state.isGroup,
                 avatarUri = if (state.isGroup) null else state.peerAvatarUri,
                 onBack = onBack,
                 // 群里顶栏就人多一行,私信里既没有人也不知道这个入口
@@ -202,6 +219,8 @@ internal fun MiniPhoneChatScreen(
                 onPickImages = input.onPickImages,
                 onTranscribeVoice = input.onTranscribeVoice,
                 voiceInputEnabled = state.voiceInputAvailable,
+                stickers = state.stickers,
+                onSendSticker = input.onSendSticker,
             )
         }
         val viewing = viewingUri
@@ -237,10 +256,27 @@ internal fun MiniPhoneChatScreen(
  * 「阿远、小满、我（3）」是一个整体,分开写会读成两个不相干的信息。
  */
 @Composable
+private fun ChatTopCallButton(icon: ImageVector, descriptionRes: Int, tag: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.size(TopBarButtonSize).clip(CircleShape).clickable(onClick = onClick).testTag(tag),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = stringResource(descriptionRes),
+            tint = MiniPhoneTheme.colors.textPrimary,
+            modifier = Modifier.size(TopBarIconSize),
+        )
+    }
+}
+
+@Composable
 private fun ChatTopBar(
     name: String,
     avatarUri: String?,
     onBack: () -> Unit,
+    onStartCall: (MpCallKind) -> Unit = {},
+    isGroup: Boolean = false,
     memberCount: Int? = null,
     onOpenMembers: (() -> Unit)? = null,
 ) {
@@ -307,7 +343,21 @@ private fun ChatTopBar(
                     )
                 }
             }
-            Spacer(Modifier.width(TopBarButtonSize))
+            // 群聊里放一个拨不通的按钮比不放更糟，所以群里保持原来的配平留白。
+            if (!isGroup) {
+                ChatTopCallButton(
+                    icon = MiniPhoneIcons.Call,
+                    descriptionRes = R.string.mp_chat_call_voice,
+                    tag = MiniPhoneChatTags.CHAT_CALL_VOICE,
+                ) { onStartCall(MpCallKind.VOICE) }
+                ChatTopCallButton(
+                    icon = MiniPhoneIcons.VideoCall,
+                    descriptionRes = R.string.mp_chat_call_video,
+                    tag = MiniPhoneChatTags.CHAT_CALL_VIDEO,
+                ) { onStartCall(MpCallKind.VIDEO) }
+            } else {
+                Spacer(Modifier.width(TopBarButtonSize))
+            }
         }
         Box(
             Modifier
@@ -370,6 +420,7 @@ private fun ChatMessageList(
                 is ChatItem.Time -> ChatTimeDividerRow(at = item.at)
                 is ChatItem.Message -> ChatMessageRow(
                     message = item.message,
+                    innerVoice = state.innerVoices[item.message.id],
                     self = self,
                     peer = peer,
                     senderLabel = if (state.isGroup) {

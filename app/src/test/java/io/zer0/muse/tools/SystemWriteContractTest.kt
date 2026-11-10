@@ -32,8 +32,7 @@ class SystemWriteContractTest {
         tools = SystemToolsImpl(context)
     }
 
-    private fun brightness(): Int =
-        Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, -1)
+    private fun brightness(): Int = Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, -1)
 
     @Test
     fun `brightness write is verified by reading back and shows before and after`() = runBlocking {

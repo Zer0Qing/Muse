@@ -9,6 +9,7 @@ import io.zer0.muse.miniphone.api.MpChatTurn
 import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.api.MpReplyEvent
 import io.zer0.muse.miniphone.data.chat.MpGroupChatStore
+import io.zer0.muse.miniphone.data.chat.MpOfflineQueueStore
 import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
@@ -76,6 +77,39 @@ class MiniPhoneChatViewModelTest {
         }
         Dispatchers.resetMain()
         db.close()
+    }
+
+    @Test
+    fun leftoverPendingReplyBecomesRetryableAfterProcessDeath() = runBlocking {
+        seedThread()
+        // 模拟上一次进程被回收：库里那条用户消息还停在「发送中」，队列里也还欠着一次应答
+        val staleId = "stale-1"
+        db.messageDao().insert(
+            MpMessageEntity(
+                id = staleId,
+                threadId = THREAD_ID,
+                characterId = CHARACTER_ID,
+                sender = MpActorType.USER,
+                type = MpMessageType.TEXT,
+                content = "在吗",
+                createdAt = 1_000L,
+                status = MpMessageStatus.SENDING,
+            ),
+        )
+        val queue = MpOfflineQueueStore(db.offlineMessageDao())
+        queue.enqueue(staleId, THREAD_ID, CHARACTER_ID, "在吗", createdAt = 1_000L)
+
+        val viewModel = createViewModel(FakeHost(answer = null))
+        // init 的恢复协程跑完后：库里状态改成失败、队列清空
+        mainDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(MpMessageStatus.FAILED, db.messageDao().getMessage(staleId)?.status)
+        assertEquals(0, queue.observeByThread(THREAD_ID).first().size)
+
+        val state = awaitChat(viewModel) { chat -> chat.messages.any { it.id == staleId } }
+        assertTrue(
+            "残留消息应显示成可重发，而不是永远转圈",
+            state.messages.first { it.id == staleId }.canResend,
+        )
     }
 
     @Test
@@ -368,9 +402,7 @@ class MiniPhoneChatViewModelTest {
         var clock = NOW_BASE
         return MiniPhoneChatViewModel(
             threadId = THREAD_ID,
-            messageDao = db.messageDao(),
-            threadDao = db.threadDao(),
-            memberDao = db.threadMemberDao(),
+            db = db,
             groupStore = MpGroupChatStore(
                 db = db,
                 threadDao = db.threadDao(),

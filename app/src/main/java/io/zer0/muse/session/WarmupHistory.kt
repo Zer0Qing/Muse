@@ -55,18 +55,14 @@ object WarmupHistory {
      * @param toolTokens 工具定义占用；给不出就传 0。
      * @param maxOutputTokens 模型最大输出；<=0 时按最小输出预留算。
      */
-    fun compressTokenBudgetFor(
-        contextMaxTokens: Int,
-        systemTokens: Int = 0,
-        toolTokens: Int = 0,
-        maxOutputTokens: Int = 0,
-    ): Int = io.zer0.muse.transformer.ContextBudget.compute(
-        contextWindow = contextMaxTokens,
-        systemTokens = systemTokens,
-        toolTokens = toolTokens,
-        maxOutputTokens = maxOutputTokens,
-        fallbackBudget = FALLBACK_BUDGET_TOKENS,
-    ).historyBudget
+    fun compressTokenBudgetFor(contextMaxTokens: Int, systemTokens: Int = 0, toolTokens: Int = 0, maxOutputTokens: Int = 0): Int =
+        io.zer0.muse.transformer.ContextBudget.compute(
+            contextWindow = contextMaxTokens,
+            systemTokens = systemTokens,
+            toolTokens = toolTokens,
+            maxOutputTokens = maxOutputTokens,
+            fallbackBudget = FALLBACK_BUDGET_TOKENS,
+        ).historyBudget
 
     /** 兼容旧调用方/key 名;返回值已经是 token,不再是字符预算。 */
     @Deprecated("Use compressTokenBudgetFor; the legacy name is retained for persisted context keys.")

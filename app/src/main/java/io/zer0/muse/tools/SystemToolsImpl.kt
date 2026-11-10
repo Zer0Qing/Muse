@@ -2,13 +2,13 @@ package io.zer0.muse.tools
 
 import android.annotation.SuppressLint
 import android.content.Context
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.notification.MuseNotificationListenerService
 import io.zer0.muse.util.MusePatterns
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -509,11 +509,7 @@ class SystemToolsImpl(private val context: Context) {
      * 之前只把"我调用过 setTorchMode"写进内存字段就报成功；相机被占用、系统拒绝、
      * 或进程重启后字段与真实状态脱节，用户都会看到一个假的"已打开"。
      */
-    private suspend fun torchWriteResult(
-        cm: android.hardware.camera2.CameraManager,
-        cameraId: String,
-        desired: Boolean,
-    ): String {
+    private suspend fun torchWriteResult(cm: android.hardware.camera2.CameraManager, cameraId: String, desired: Boolean): String {
         val base = if (desired) R.string.tool_flashlight_on else R.string.tool_flashlight_off
         cm.setTorchMode(cameraId, desired)
         val actual = queryTorchState(cm, cameraId)
@@ -535,27 +531,25 @@ class SystemToolsImpl(private val context: Context) {
      * 所以"注册 + 等一次回调"就是查询。超时返回 null —— 宁可说未知，
      * 也不要拿进程内记忆冒充系统状态。
      */
-    private suspend fun queryTorchState(
-        cm: android.hardware.camera2.CameraManager,
-        cameraId: String,
-    ): Boolean? = withTimeoutOrNull(TORCH_STATE_TIMEOUT_MS) {
-        val state = CompletableDeferred<Boolean>()
-        val callback = object : android.hardware.camera2.CameraManager.TorchCallback() {
-            override fun onTorchModeChanged(id: String, enabled: Boolean) {
-                if (id == cameraId) state.complete(enabled)
-            }
+    private suspend fun queryTorchState(cm: android.hardware.camera2.CameraManager, cameraId: String): Boolean? =
+        withTimeoutOrNull(TORCH_STATE_TIMEOUT_MS) {
+            val state = CompletableDeferred<Boolean>()
+            val callback = object : android.hardware.camera2.CameraManager.TorchCallback() {
+                override fun onTorchModeChanged(id: String, enabled: Boolean) {
+                    if (id == cameraId) state.complete(enabled)
+                }
 
-            override fun onTorchModeUnavailable(id: String) {
-                if (id == cameraId) state.complete(false)
+                override fun onTorchModeUnavailable(id: String) {
+                    if (id == cameraId) state.complete(false)
+                }
+            }
+            cm.registerTorchCallback(callback, null)
+            try {
+                state.await()
+            } finally {
+                runCatching { cm.unregisterTorchCallback(callback) }
             }
         }
-        cm.registerTorchCallback(callback, null)
-        try {
-            state.await()
-        } finally {
-            runCatching { cm.unregisterTorchCallback(callback) }
-        }
-    }
 
     companion object {
         /** 查询手电状态的回调等待上限：CameraManager 注册时会立刻回报，正常是毫秒级。 */

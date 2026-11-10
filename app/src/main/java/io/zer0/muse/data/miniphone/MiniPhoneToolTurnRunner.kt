@@ -42,11 +42,7 @@ class MiniPhoneToolTurnRunner(
      * 事件顺序:若干 [MpReplyEvent.Activity](每条工具调用前一条) → 一条
      * [MpReplyEvent.Text];超时、没有任何文本或生成入口不可用时只有一条 [MpReplyEvent.Failed]。
      */
-    fun reply(
-        messages: List<UIMessage>,
-        temperature: Float?,
-        maxTokens: Int?,
-    ): Flow<MpReplyEvent> = flow {
+    fun reply(messages: List<UIMessage>, temperature: Float?, maxTokens: Int?): Flow<MpReplyEvent> = flow {
         val service = chatService
         if (service == null) {
             emit(MpReplyEvent.Failed)

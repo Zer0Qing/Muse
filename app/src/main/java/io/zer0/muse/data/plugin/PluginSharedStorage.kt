@@ -33,13 +33,12 @@ object PluginSharedStorage {
     const val ROOT_DIR_NAME = "plugin-shared-kv"
 
     /** 从清单能力里取出本插件声明过的共享名字空间。 */
-    fun declaredNamespaces(capabilities: List<String>): Set<String> =
-        capabilities.asSequence()
-            .map { it.trim() }
-            .filter { it.startsWith(CAPABILITY_PREFIX) }
-            .map { it.removePrefix(CAPABILITY_PREFIX).trim() }
-            .filter { isValidNamespace(it) }
-            .toSet()
+    fun declaredNamespaces(capabilities: List<String>): Set<String> = capabilities.asSequence()
+        .map { it.trim() }
+        .filter { it.startsWith(CAPABILITY_PREFIX) }
+        .map { it.removePrefix(CAPABILITY_PREFIX).trim() }
+        .filter { isValidNamespace(it) }
+        .toSet()
 
     /**
      * 名字是否合法。
@@ -64,6 +63,5 @@ object PluginSharedStorage {
     }
 
     /** 某个名字空间的 KV 文件。 */
-    fun fileFor(context: Context, namespace: String): File? =
-        dirFor(context, namespace)?.let { File(it, "kv.json") }
+    fun fileFor(context: Context, namespace: String): File? = dirFor(context, namespace)?.let { File(it, "kv.json") }
 }

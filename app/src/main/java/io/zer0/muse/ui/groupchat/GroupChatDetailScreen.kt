@@ -101,6 +101,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.assistantBubble
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.theme.titleMediumStrong
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -109,7 +110,6 @@ import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
-import io.zer0.muse.ui.theme.titleMediumStrong
 
 /**
  * 群聊详情页 — 消息流 + 输入栏 + Agent 轮转回复。

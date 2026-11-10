@@ -27,11 +27,7 @@ class PluginMessageBridgeTest {
         PluginMessageChannels.resetForTests()
     }
 
-    private suspend fun rejected(
-        sessionId: String,
-        role: String,
-        text: String,
-    ): PluginMessageBridge.Appended.Rejected =
+    private suspend fun rejected(sessionId: String, role: String, text: String): PluginMessageBridge.Appended.Rejected =
         bridge.append(sessionId, role, text) as PluginMessageBridge.Appended.Rejected
 
     @Test
@@ -87,8 +83,7 @@ class PluginMessageBridgeTest {
 
     // ── 宿主 API 侧 ─────────────────────────────────────────────────────
 
-    private fun request(text: String) =
-        """{"__bridge__":true,"action":"app_insert_message","params":{"text":"$text"}}"""
+    private fun request(text: String) = """{"__bridge__":true,"action":"app_insert_message","params":{"text":"$text"}}"""
 
     @Test
     fun `without the capability the action is refused`() = runTest {

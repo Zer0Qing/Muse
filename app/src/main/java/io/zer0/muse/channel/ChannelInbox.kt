@@ -5,6 +5,7 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.ProcessWriteGate
 import io.zer0.muse.data.AtomicFileStore
+import io.zer0.muse.data.sharing.takeCodePoints
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -137,7 +138,8 @@ object ChannelInbox {
                 runCatching { io.zer0.memory.pii.PiiGuard.scrub(t).cleaned }
                     .getOrDefault("")
             }
-            ?.take(2000)
+            // 摘要会落库：按码点截断，避免把 emoji 切成半个代理对
+            ?.takeCodePoints(2000)
             .orEmpty()
         val item = Inbound(
             platform = source.platform,

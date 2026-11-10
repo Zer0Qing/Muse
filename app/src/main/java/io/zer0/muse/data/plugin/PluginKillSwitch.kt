@@ -43,12 +43,10 @@ object PluginKillSwitch {
      * 给那些只拿得到某个 filesDir 下文件、拿不到 Context 的组件用
      * （例如权限账本只持有自己的 storeFile）。两者都在 filesDir 下，因此同目录。
      */
-    fun isDisabledBeside(sibling: File): Boolean =
-        runCatching { File(sibling.parentFile, FLAG_FILE).isFile }.getOrDefault(false)
+    fun isDisabledBeside(sibling: File): Boolean = runCatching { File(sibling.parentFile, FLAG_FILE).isFile }.getOrDefault(false)
 
     /** 是否已被总闸关掉。读文件失败按「未关闭」处理：不能因为读不到就让用户以为关了。 */
-    fun isDisabled(context: Context): Boolean =
-        runCatching { flagFile(context).isFile }.getOrDefault(false)
+    fun isDisabled(context: Context): Boolean = runCatching { flagFile(context).isFile }.getOrDefault(false)
 
     /**
      * 设置总闸状态。

@@ -275,15 +275,15 @@ internal fun BackupSection(
                 runCatching {
                     pendingExportSecrets = includeSecrets
                     exportLauncher.launch(
-                                    // 用可读日期而非 13 位毫秒：后者在选择器里会被截断，
-                                    // 既看不出导出时间，也看不到 .json 后缀，多份备份还同名。
-                                    "muse-backup-${
-                                        java.time.format
-                                            .DateTimeFormatter
-                                            .ofPattern("yyyyMMdd-HHmmss")
-                                            .format(java.time.LocalDateTime.now())
-                                    }.json",
-                                )
+                        // 用可读日期而非 13 位毫秒：后者在选择器里会被截断，
+                        // 既看不出导出时间，也看不到 .json 后缀，多份备份还同名。
+                        "muse-backup-${
+                            java.time.format
+                                .DateTimeFormatter
+                                .ofPattern("yyyyMMdd-HHmmss")
+                                .format(java.time.LocalDateTime.now())
+                        }.json",
+                    )
                 }.onFailure {
                     MuseToast.show(context.getString(R.string.settings_backup_export_start_failed, it.message))
                 }

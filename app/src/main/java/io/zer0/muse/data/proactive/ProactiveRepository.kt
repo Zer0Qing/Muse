@@ -59,8 +59,7 @@ class ProactiveThoughtRepository(
     suspend fun countOpen(assistantId: String): Int = readDao.countOpen(assistantId)
 
     /** 已记账的来源 id 集合，供推导时批量去重。 */
-    suspend fun getOpenSourceRefs(assistantId: String): Set<String> =
-        readDao.getOpenSourceRefs(assistantId).toSet()
+    suspend fun getOpenSourceRefs(assistantId: String): Set<String> = readDao.getOpenSourceRefs(assistantId).toSet()
 
     /**
      * 例行清理：过期、念叨太多次、太久远的已结束记录。
@@ -103,9 +102,8 @@ class ProactiveRelationRepository(
     companion object {
         private const val DAY_MS = 86_400_000L
 
-        private fun dateKey(now: Long): String =
-            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-                .format(java.util.Date(now))
+        private fun dateKey(now: Long): String = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            .format(java.util.Date(now))
     }
 
     /**
@@ -255,17 +253,15 @@ class ProactiveOutcomeRepository(
     }
 
     /** 把时间戳写到对应的列上。状态列总是更新，时间列按状态分。 */
-    private fun ProactiveOutcomeEntity.stamped(state: OutcomeState, now: Long): ProactiveOutcomeEntity =
-        when (state) {
-            OutcomeState.OPENED -> copy(state = state.name, openedAt = now)
-            OutcomeState.REPLIED -> copy(state = state.name, repliedAt = now)
-            OutcomeState.DISMISSED -> copy(state = state.name, dismissedAt = now)
-            OutcomeState.EXPIRED, OutcomeState.PENDING -> copy(state = state.name)
-        }
+    private fun ProactiveOutcomeEntity.stamped(state: OutcomeState, now: Long): ProactiveOutcomeEntity = when (state) {
+        OutcomeState.OPENED -> copy(state = state.name, openedAt = now)
+        OutcomeState.REPLIED -> copy(state = state.name, repliedAt = now)
+        OutcomeState.DISMISSED -> copy(state = state.name, dismissedAt = now)
+        OutcomeState.EXPIRED, OutcomeState.PENDING -> copy(state = state.name)
+    }
 
     /** 找某会话里最近一条还在等反应的主动消息，用于回复检测与「打开即已读」。 */
-    suspend fun findPendingInSession(sessionId: String): ProactiveOutcomeEntity? =
-        dao.findPendingInSession(sessionId)
+    suspend fun findPendingInSession(sessionId: String): ProactiveOutcomeEntity? = dao.findPendingInSession(sessionId)
 
     /**
      * 把发出去超过 [EXPIRE_AFTER_MS] 仍然没人理的记录收尾成 EXPIRED。
@@ -290,8 +286,7 @@ class ProactiveOutcomeRepository(
     suspend fun unpopularKinds(assistantId: String, kinds: Collection<ThoughtKind>): Set<ThoughtKind> =
         kinds.filterTo(mutableSetOf()) { isKindUnpopular(assistantId, it) }
 
-    suspend fun getRecent(assistantId: String, limit: Int = 20): List<ProactiveOutcomeEntity> =
-        dao.getRecent(assistantId, limit)
+    suspend fun getRecent(assistantId: String, limit: Int = 20): List<ProactiveOutcomeEntity> = dao.getRecent(assistantId, limit)
 
     /**
      * 某类型是否已经被用户用脚投票否决了。

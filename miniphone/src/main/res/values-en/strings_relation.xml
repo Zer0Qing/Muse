@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mp_discover_relation">Relationships</string>
+    <string name="mp_relation_title">Relationships</string>
+    <string name="mp_relation_no_characters">No characters in contacts yet</string>
+    <string name="mp_relation_from_section">How they see others</string>
+    <string name="mp_relation_to_section">How others see them</string>
+    <string name="mp_relation_from_empty">No views of others recorded yet</string>
+    <string name="mp_relation_to_empty">No views from others recorded yet</string>
+    <string name="mp_relation_set_title">Note a view</string>
+    <string name="mp_relation_target_hint">Pick someone</string>
+    <string name="mp_relation_label_hint">e.g. close friend, rival, stranger</string>
+    <string name="mp_relation_set">Save</string>
+    <string name="mp_relation_describe">Let them say it themselves</string>
+</resources>

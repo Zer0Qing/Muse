@@ -35,11 +35,7 @@ sealed interface ConversationTimelineRow {
 }
 
 object ConversationTimelineRows {
-    fun project(
-        slotId: String,
-        kind: SlotKind,
-        projection: LegacyConversationProjection,
-    ): List<ConversationTimelineRow> {
+    fun project(slotId: String, kind: SlotKind, projection: LegacyConversationProjection): List<ConversationTimelineRow> {
         require(slotId.isNotBlank()) { "slot id must not be blank" }
         return buildList {
             projection.slots.forEachIndexed { index, slot ->
@@ -94,7 +90,6 @@ object ConversationTimelineRows {
             check(duplicateIds.isEmpty()) { "duplicate timeline row ids: ${duplicateIds.keys}" }
         }
     }
-
 }
 
 /**
@@ -103,10 +98,7 @@ object ConversationTimelineRows {
  * every paragraph or table row to compose at once.
  */
 @Composable
-fun ConversationTimeline(
-    rows: List<RenderBlock>,
-    modifier: Modifier = Modifier,
-) {
+fun ConversationTimeline(rows: List<RenderBlock>, modifier: Modifier = Modifier) {
     val timelineRows =
         rows.map { block ->
             ConversationTimelineRow.Markdown(
@@ -119,10 +111,7 @@ fun ConversationTimeline(
 }
 
 @Composable
-fun ConversationRichTimeline(
-    rows: List<ConversationTimelineRow>,
-    modifier: Modifier = Modifier,
-) {
+fun ConversationRichTimeline(rows: List<ConversationTimelineRow>, modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(MusePaddings.messageGap),

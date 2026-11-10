@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -41,6 +40,7 @@ import io.zer0.muse.data.proactive.ProactivePace
 import io.zer0.muse.data.proactive.QuietHoursWindow
 import io.zer0.muse.schedule.DailySummaryWorker
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -1075,7 +1075,7 @@ fun AgentSettingsPage(
                                         if (e is kotlin.coroutines.cancellation.CancellationException) throw e
                                         Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
                                         MuseToast.show(
-                                                context.getString(R.string.settings_agent_test_failed, e.message),
+                                            context.getString(R.string.settings_agent_test_failed, e.message),
                                         )
                                     } finally {
                                         testSending = false

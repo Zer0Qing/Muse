@@ -1,10 +1,10 @@
 package io.zer0.muse.ui
 
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 class ChatScreenLongListPerformanceWiringTest {
     @Test
@@ -94,7 +94,7 @@ class ChatScreenLongListPerformanceWiringTest {
         )
         assertFalse(
             "one giant MessageBubble item forces all markdown and rich content through a single measure pass",
-            source.contains("visibleMessages,\n                                            key = { _, it -> it.id }") ,
+            source.contains("visibleMessages,\n                                            key = { _, it -> it.id }"),
         )
     }
 

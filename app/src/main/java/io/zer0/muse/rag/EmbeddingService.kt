@@ -136,8 +136,7 @@ class EmbeddingService(
      * 而 [embedWithCache] 会把 Provider 异常吞成 null。命中直接返回；未命中由调用方
      * 自己 `withTimeout { provider.embed(...) }`，再调 [rememberVector] 写回。
      */
-    suspend fun cachedVector(ragConfig: RagConfig, text: String): FloatArray? =
-        vectorStore.peek(entryFor(ragConfig).fingerprint, text)
+    suspend fun cachedVector(ragConfig: RagConfig, text: String): FloatArray? = vectorStore.peek(entryFor(ragConfig).fingerprint, text)
 
     /** 把已经取到的向量写回缓存（配合 [cachedVector] 使用）。 */
     suspend fun rememberVector(ragConfig: RagConfig, text: String, vector: FloatArray) {
@@ -230,11 +229,7 @@ class EmbeddingService(
         return provider to stateOf(provider, degraded = degraded, reason = reason)
     }
 
-    private fun stateOf(
-        provider: EmbeddingProvider,
-        degraded: Boolean,
-        reason: String? = null,
-    ): BackendState = BackendState(
+    private fun stateOf(provider: EmbeddingProvider, degraded: Boolean, reason: String? = null): BackendState = BackendState(
         backendId = provider.id,
         displayName = provider.displayName,
         modelName = provider.modelName,

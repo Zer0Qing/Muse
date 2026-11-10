@@ -1,0 +1,135 @@
+{
+  "androidRestoreVerification": "待验",
+  "backupTypes": [
+    {
+      "portableBlobManifestIncluded": false,
+      "status": "待基线",
+      "type": "json",
+      "vectorsIncluded": false
+    },
+    {
+      "portableBlobManifestIncluded": false,
+      "status": "待基线",
+      "type": "ndjson",
+      "vectorsIncluded": false
+    },
+    {
+      "dbFileSnapshot": true,
+      "independentRestorePoint": "待基线",
+      "status": "待基线",
+      "type": "db_auto_snapshot"
+    },
+    {
+      "consistentSnapshotId": "待基线",
+      "status": "待基线",
+      "type": "restore_point"
+    }
+  ],
+  "baselineStatus": "待基线",
+  "expectedRestoreOutcomes": [
+    {
+      "caseId": "orphan-doc",
+      "mustNotEnterDefaultLibrary": true,
+      "status": "待基线"
+    },
+    {
+      "caseId": "missing-session-owner",
+      "mustEnterNonSearchableRecoveryArea": true,
+      "status": "待基线"
+    },
+    {
+      "caseId": "same-name-directory",
+      "mustPreserveLibraryOwnership": true,
+      "status": "待基线"
+    },
+    {
+      "caseId": "literal-wildcard-path",
+      "mustPreserveLiteralCharacters": true,
+      "status": "待基线"
+    },
+    {
+      "caseId": "builtin-help",
+      "mustPreserveCorpusVersion": true,
+      "status": "待基线"
+    }
+  ],
+  "fixtureSetVersion": "r0-v1",
+  "jsonIncludesVectors": false,
+  "knowledgeBases": [
+    {
+      "id": "kb-alpha",
+      "name": "Alpha"
+    },
+    {
+      "id": "kb-beta",
+      "name": "Beta"
+    }
+  ],
+  "knowledgeDocs": [
+    {
+      "id": "old-doc-alpha",
+      "kbId": "kb-alpha",
+      "ownerKind": "UserLibrary",
+      "title": "Old Alpha Document"
+    },
+    {
+      "id": "old-doc-beta",
+      "kbId": "kb-beta",
+      "ownerKind": "UserLibrary",
+      "title": "Old Beta Document"
+    },
+    {
+      "id": "old-doc-orphan",
+      "kbId": "kb-missing",
+      "orphan": true,
+      "ownerKind": "LegacyOrphan",
+      "title": "Old Orphan Document"
+    },
+    {
+      "builtInHelp": true,
+      "corpusVersion": "r0-v1-help",
+      "id": "old-doc-builtin",
+      "kbId": null,
+      "ownerKind": "BuiltinHelp",
+      "title": "Old Builtin Help"
+    }
+  ],
+  "knowledgeFolders": [
+    {
+      "id": "folder-alpha-shared",
+      "kbId": "kb-alpha",
+      "path": "共享目录"
+    },
+    {
+      "id": "folder-beta-shared",
+      "kbId": "kb-beta",
+      "path": "共享目录"
+    },
+    {
+      "id": "folder-alpha-wildcard",
+      "kbId": "kb-alpha",
+      "path": "folder%_wildcard"
+    }
+  ],
+  "ndjsonIncludesVectors": false,
+  "orphanDocIds": [
+    "old-doc-orphan"
+  ],
+  "portableSourceBlobManifestIncluded": false,
+  "portableSourceBlobManifestPath": null,
+  "sameNameDirectoryPaths": [
+    "共享目录"
+  ],
+  "schemaVersion": 1,
+  "sessionAttachments": [
+    {
+      "id": "old-session-attachment",
+      "ownerMissing": true,
+      "sessionId": null
+    }
+  ],
+  "synthetic": true,
+  "wildcardPaths": [
+    "folder%_wildcard"
+  ]
+}

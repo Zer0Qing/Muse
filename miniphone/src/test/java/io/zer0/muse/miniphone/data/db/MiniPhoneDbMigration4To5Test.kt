@@ -62,8 +62,7 @@ class MiniPhoneDbMigration4To5Test {
                     db.threadMemberDao().membersOf(GROUP_THREAD_ID).map { it.characterId },
                 )
                 assertEquals("消息还在", 1, db.messageDao().countInThread(GROUP_THREAD_ID))
-                assertEquals("库版本升到 5", MINI_PHONE_DB_VERSION, db.openHelper.readableDatabase.version)
-                assertEquals("这一版就是 5", 5, MINI_PHONE_DB_VERSION)
+                assertEquals("迁移一路走到当前版本", MINI_PHONE_DB_VERSION, db.openHelper.readableDatabase.version)
             }
         } finally {
             db.close()
@@ -148,6 +147,9 @@ class MiniPhoneDbMigration4To5Test {
             MINI_PHONE_MIGRATION_2_3,
             MINI_PHONE_MIGRATION_3_4,
             MINI_PHONE_MIGRATION_4_5,
+            MINI_PHONE_MIGRATION_5_6,
+            MINI_PHONE_MIGRATION_6_7,
+            MINI_PHONE_MIGRATION_7_8,
         )
         .allowMainThreadQueries()
         .build()

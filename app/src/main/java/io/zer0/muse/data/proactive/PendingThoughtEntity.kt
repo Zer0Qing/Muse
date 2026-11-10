@@ -66,8 +66,7 @@ data class PendingThoughtEntity(
      * 不用 `enumValueOf` 直接解析：库里可能存着旧版本写过、
      * 现在已删掉的枚举名，直接 parse 会抛异常把整个调度打断。
      */
-    private fun <T : Enum<T>> enumOr(values: List<T>, raw: String, fallback: T): T =
-        values.firstOrNull { it.name == raw } ?: fallback
+    private fun <T : Enum<T>> enumOr(values: List<T>, raw: String, fallback: T): T = values.firstOrNull { it.name == raw } ?: fallback
 }
 
 /**

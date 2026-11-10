@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mp_discover_relation">人間関係</string>
+    <string name="mp_relation_title">人間関係</string>
+    <string name="mp_relation_no_characters">連絡先にまだキャラクターがいません</string>
+    <string name="mp_relation_from_section">他人をどう見ているか</string>
+    <string name="mp_relation_to_section">他人からどう見られているか</string>
+    <string name="mp_relation_from_empty">まだ誰への見方もありません</string>
+    <string name="mp_relation_to_empty">まだ誰からの見方もありません</string>
+    <string name="mp_relation_set_title">見方を記す</string>
+    <string name="mp_relation_target_hint">相手を選ぶ</string>
+    <string name="mp_relation_label_hint">例：親友、ライバル、他人</string>
+    <string name="mp_relation_set">記す</string>
+    <string name="mp_relation_describe">本人に言わせる</string>
+</resources>

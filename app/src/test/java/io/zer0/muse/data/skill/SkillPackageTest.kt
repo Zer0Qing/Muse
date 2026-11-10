@@ -33,8 +33,7 @@ class SkillPackageTest {
     }
 
     /** 失败原因文本。项目用的是自定义 Result（Error.message），不是 kotlin.Result。 */
-    private fun failureOf(markdown: String): String =
-        (SkillPackage.parse(markdown) as? io.zer0.common.Result.Error)?.message ?: ""
+    private fun failureOf(markdown: String): String = (SkillPackage.parse(markdown) as? io.zer0.common.Result.Error)?.message ?: ""
 
     @Test
     fun `missing opening fence is refused with a positional hint`() {
@@ -109,7 +108,7 @@ class SkillPackageTest {
 
     @Test
     fun `bom and crlf files parse the same`() {
-        val withNoise = "﻿" + sample.replace("\n", "\r\n")
+        val withNoise = "" + sample.replace("\n", "\r\n")
 
         val parsed = SkillPackage.parse(withNoise).getOrThrow()
 

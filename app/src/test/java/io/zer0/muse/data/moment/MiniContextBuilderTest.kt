@@ -14,6 +14,9 @@ import io.zer0.muse.data.lorebook.LorebookRepository
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
 import io.zer0.muse.data.promptinjection.PromptInjectionRepository
 import io.zer0.muse.transformer.SystemPromptAssembler
+import io.zer0.muse.worldbook.WorldBookEntryEntity
+import io.zer0.muse.worldbook.WorldBookHook
+import io.zer0.muse.worldbook.WorldBookRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -34,11 +37,14 @@ class MiniContextBuilderTest {
     private val promptInjectionRepository = mockk<PromptInjectionRepository>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
 
-    private fun builder() = MiniContextBuilder(
+    private val worldBookRepository = mockk<WorldBookRepository>(relaxed = true)
+
+    private fun builder(withWorldBook: Boolean = false) = MiniContextBuilder(
         systemPromptAssembler = assembler,
         lorebookRepository = lorebookRepository,
         promptInjectionRepository = promptInjectionRepository,
         settingsRepository = settingsRepository,
+        worldBookHook = if (withWorldBook) WorldBookHook(worldBookRepository) else null,
     )
 
     private fun assistant(lorebookIds: String = """["lb1"]""", injectionIds: String = "[]", memoryEnabled: Boolean = true) =
@@ -178,5 +184,76 @@ class MiniContextBuilderTest {
         // 至少保留用户消息，不能整体失败
         assertEquals(MessageRole.USER, result.last().role)
         assertTrue(result.last().content.contains("内容"))
+    }
+
+    @Test
+    fun `动态世界书的关键词条目命中后也进旁路生成`() = runTest {
+        coEvery {
+            assembler.build(any(), any(), any(), any(), any())
+        } returns listOf(UIMessage(role = MessageRole.SYSTEM, content = "系统提示"))
+        coEvery { settingsRepository.getUserProfile() } returns UserProfile()
+        coEvery { lorebookRepository.getByIdsEnabled(any()) } returns emptyList()
+        coEvery {
+            worldBookRepository.getKeywordEntries(any(), "asst-1")
+        } returns listOf(
+            WorldBookEntryEntity(
+                id = "wb1",
+                name = "北境",
+                keywordsJson = """["北境"]""",
+                content = "北境常年下雪，夜里能听见冰裂。",
+            ),
+        )
+
+        val result = builder(withWorldBook = true).buildMessages(assistant(lorebookIds = "[]"), "北境冷吗")
+
+        val joined = result.joinToString("\n") { it.content }
+        assertTrue(
+            "动态世界书的关键词条目必须进小手机的生成上下文\n实际内容:\n$joined",
+            joined.contains("<worldbook name=\"北境\">") && joined.contains("北境常年下雪"),
+        )
+    }
+
+    @Test
+    fun `没命中关键词时不出现世界书块`() = runTest {
+        coEvery {
+            assembler.build(any(), any(), any(), any(), any())
+        } returns listOf(UIMessage(role = MessageRole.SYSTEM, content = "系统提示"))
+        coEvery { settingsRepository.getUserProfile() } returns UserProfile()
+        coEvery { lorebookRepository.getByIdsEnabled(any()) } returns emptyList()
+        coEvery { worldBookRepository.getKeywordEntries(any(), any()) } returns emptyList()
+
+        val result = builder(withWorldBook = true).buildMessages(assistant(lorebookIds = "[]"), "今天吃什么")
+
+        val joined = result.joinToString("\n") { it.content }
+        assertFalse("没命中就不该注入世界书块\n实际内容:\n$joined", joined.contains("<worldbook"))
+    }
+
+    @Test
+    fun `世界书查询抛异常时按未命中处理而不是整条回复失败`() = runTest {
+        coEvery {
+            assembler.build(any(), any(), any(), any(), any())
+        } returns listOf(UIMessage(role = MessageRole.SYSTEM, content = "系统提示"))
+        coEvery { settingsRepository.getUserProfile() } returns UserProfile()
+        coEvery { lorebookRepository.getByIdsEnabled(any()) } returns emptyList()
+        coEvery { worldBookRepository.getKeywordEntries(any(), any()) } throws IllegalStateException("db closed")
+
+        val result = builder(withWorldBook = true).buildMessages(assistant(lorebookIds = "[]"), "北境冷吗")
+
+        assertEquals("失败时仍要保留用户素材", MessageRole.USER, result.last().role)
+        assertTrue(result.last().content.contains("北境"))
+    }
+
+    @Test
+    fun `没接世界书钩子时行为与以前一致`() = runTest {
+        coEvery {
+            assembler.build(any(), any(), any(), any(), any())
+        } returns listOf(UIMessage(role = MessageRole.SYSTEM, content = "系统提示"))
+        coEvery { settingsRepository.getUserProfile() } returns UserProfile()
+        coEvery { lorebookRepository.getByIdsEnabled(any()) } returns emptyList()
+
+        val result = builder(withWorldBook = false).buildMessages(assistant(lorebookIds = "[]"), "北境冷吗")
+
+        coVerify(exactly = 0) { worldBookRepository.getKeywordEntries(any(), any()) }
+        assertEquals(MessageRole.USER, result.last().role)
     }
 }

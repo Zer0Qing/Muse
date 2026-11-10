@@ -8,16 +8,16 @@ import io.zer0.muse.data.plugin.PluginBridgeRouter
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
 import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginFunctionInvoker
-import io.zer0.muse.data.plugin.PluginManifest
 import io.zer0.muse.data.plugin.PluginManager
+import io.zer0.muse.data.plugin.PluginManifest
 import io.zer0.muse.tools.script.SkillBridge
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlinx.coroutines.runBlocking
 
 /**
  * 面板提交（`submit` handler）的门控回归。

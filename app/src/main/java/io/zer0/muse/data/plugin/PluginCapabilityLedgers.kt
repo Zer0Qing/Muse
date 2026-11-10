@@ -26,8 +26,7 @@ object PluginCapabilityLedgers {
     /** 未初始化时返回 null：调用方据此区分"没上下文"与"确实没授权"。 */
     fun sharedOrNull(): PluginCapabilityGateway? = gateway
 
-    private fun storeFile(context: Context): File =
-        File(context.applicationContext.filesDir, PluginPermissionStore.FILE_NAME)
+    private fun storeFile(context: Context): File = File(context.applicationContext.filesDir, PluginPermissionStore.FILE_NAME)
 
     /** 供测试与非 Koin 场景显式重置。 */
     internal fun resetForTests() {

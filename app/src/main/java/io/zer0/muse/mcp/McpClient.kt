@@ -1,9 +1,9 @@
 package io.zer0.muse.mcp
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.runtime.classifyProcessExit
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

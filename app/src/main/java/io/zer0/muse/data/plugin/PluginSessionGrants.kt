@@ -34,7 +34,12 @@ class PluginSessionGrants {
             null -> false
             PluginPermissionTier.ONCE -> {
                 val remaining = onceRemaining.getOrDefault(key, 0)
-                if (remaining <= 0) false else { onceRemaining[key] = remaining - 1; true }
+                if (remaining <= 0) {
+                    false
+                } else {
+                    onceRemaining[key] = remaining - 1
+                    true
+                }
             }
             else -> true
         }

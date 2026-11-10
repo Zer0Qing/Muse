@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>TooManyFunctions:MiniPhoneDb.kt$MiniPhoneDb : RoomDatabase</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -83,7 +83,7 @@ internal fun MomentCardView(
     ) {
         Row(verticalAlignment = Alignment.Top) {
             MiniPhoneChatAvatar(
-                name = moment.authorName,
+                name = displayNameOf(LocalContext.current, moment.authorName, moment.isMine),
                 avatarUri = moment.authorAvatarUri,
                 size = dimens.avatarList,
                 modifier = Modifier.testTag(MiniPhoneMomentsTags.author(moment.id)),
@@ -147,7 +147,7 @@ private fun MomentHeader(moment: MomentUi) {
     val typography = MiniPhoneTheme.typography
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = moment.authorName,
+            text = displayNameOf(LocalContext.current, moment.authorName, moment.isMine),
             style = typography.caption.copy(color = colors.accent),
             modifier = Modifier.weight(1f),
         )
@@ -276,7 +276,11 @@ private fun MomentComments(
                 CommentLine(
                     line = CommentLineModel(
                         id = comment.id,
-                        text = "${comment.senderName}：${comment.content}",
+                        text = stringResource(
+                            R.string.mp_moments_comment_line,
+                            displayNameOf(LocalContext.current, comment.senderName, comment.isMine),
+                            comment.content,
+                        ),
                         createdAt = comment.createdAt,
                         indent = 0.dp,
                         canDelete = comment.isMine,
@@ -294,7 +298,13 @@ private fun MomentComments(
                     CommentLine(
                         line = CommentLineModel(
                             id = reply.id,
-                            text = replyText(reply),
+                            text = replyLineOf(
+                                reply = reply,
+                                senderName = displayNameOf(LocalContext.current, reply.senderName, reply.isMine),
+                                replyToName = reply.replyToName?.let { name ->
+                                    displayNameOf(LocalContext.current, name, isMine = false)
+                                },
+                            ),
                             createdAt = reply.createdAt,
                             indent = ReplyIndent,
                             canDelete = reply.isMine,
@@ -455,14 +465,20 @@ private fun CommentDeleteConfirmDialog(onDismiss: () -> Unit, onConfirm: () -> U
     }
 }
 
-/** 回复的正文;回复的是另一条回复时,前缀补一句「回复谁」。 */
-internal fun replyText(reply: MomentReplyUi): String {
-    val to = reply.replyToName
-    return if (to == null) {
-        "${reply.senderName}：${reply.content}"
-    } else {
-        "${reply.senderName} 回复 $to：${reply.content}"
-    }
+/**
+ * 回复行要显示的文字。
+ *
+ * 名字与标点都不在这里拼：不同语言把「谁回复谁」摆的顺序、用的冒号都不一样
+ * （英文是全角冒号就错了，日韩把动词放句尾）。所以模板由资源给，这里只填参数。
+ *
+ * [senderName] 与 [replyToName] 都是**已经解析好的展示名**：库里的名字可能是空串
+ * （落库侧不再把「我」「角色」写进数据），补称呼要按当前界面语言来，那是调用方的事。
+ */
+@Composable
+internal fun replyLineOf(reply: MomentReplyUi, senderName: String, replyToName: String?): String = if (replyToName == null) {
+    stringResource(R.string.mp_moments_comment_line, senderName, reply.content)
+} else {
+    stringResource(R.string.mp_moments_reply_line, senderName, replyToName, reply.content)
 }
 
 /** 评论输入:一行输入框加一个发送键,空白内容不发。 */

@@ -1,0 +1,11 @@
+{"androidRestoreVerification":"待验","baselineStatus":"待基线","expectedCounts":{"knowledge_base":2,"knowledge_doc":4,"knowledge_folder":3,"session_attachment":1},"fixtureSetVersion":"r0-v1","jsonIncludesVectors":false,"ndjsonIncludesVectors":false,"portableSourceBlobManifestIncluded":false,"schemaVersion":1,"type":"meta"}
+{"id":"kb-alpha","name":"Alpha","type":"knowledge_base"}
+{"id":"kb-beta","name":"Beta","type":"knowledge_base"}
+{"id":"folder-alpha-shared","kbId":"kb-alpha","path":"共享目录","type":"knowledge_folder"}
+{"id":"folder-beta-shared","kbId":"kb-beta","path":"共享目录","type":"knowledge_folder"}
+{"id":"folder-alpha-wildcard","kbId":"kb-alpha","path":"folder%_wildcard","type":"knowledge_folder"}
+{"id":"old-doc-alpha","kbId":"kb-alpha","ownerKind":"UserLibrary","title":"Old Alpha Document","type":"knowledge_doc"}
+{"id":"old-doc-beta","kbId":"kb-beta","ownerKind":"UserLibrary","title":"Old Beta Document","type":"knowledge_doc"}
+{"id":"old-doc-orphan","kbId":"kb-missing","orphan":true,"ownerKind":"LegacyOrphan","title":"Old Orphan Document","type":"knowledge_doc"}
+{"builtInHelp":true,"corpusVersion":"r0-v1-help","id":"old-doc-builtin","kbId":null,"ownerKind":"BuiltinHelp","title":"Old Builtin Help","type":"knowledge_doc"}
+{"id":"old-session-attachment","ownerMissing":true,"sessionId":null,"type":"session_attachment"}

@@ -7,7 +7,12 @@ import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.api.MpCharacter
 import io.zer0.muse.miniphone.api.MpProfile
 import io.zer0.muse.miniphone.data.chat.MpGroupActions
+import io.zer0.muse.miniphone.data.chat.MpInnerVoiceStore
+import io.zer0.muse.miniphone.data.chat.MpOfflineQueueStore
+import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.MpActorType
+import io.zer0.muse.miniphone.data.db.MpMessageStatus
+import io.zer0.muse.miniphone.data.db.MpMessageType
 import io.zer0.muse.miniphone.data.db.dao.MpMessageDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadDao
 import io.zer0.muse.miniphone.data.db.dao.MpThreadMemberDao
@@ -42,15 +47,27 @@ private const val TAG_CHAT_VM = "MiniPhoneChat"
 
 class MiniPhoneChatViewModel(
     private val threadId: String,
-    private val messageDao: MpMessageDao,
-    private val threadDao: MpThreadDao,
-    private val memberDao: MpThreadMemberDao,
+    private val db: MiniPhoneDb,
     private val host: MiniPhoneHost,
     imageStore: MpImageStore,
     groupStore: MpGroupActions,
     clock: ChatWriteClock = ChatWriteClock(),
     private val pauseBetweenResponders: suspend () -> Unit = { delay(responderGapMillis()) },
+    /** 群成员变化后自动重算群名时，要按当前语言取分隔符与收口词（群名会落库）。 */
+    private val context: android.content.Context? = null,
 ) : ViewModel() {
+
+    // 依赖打包：散 DAO 参数收进一份 db，既给心声 store 腾出构造参数位（detekt 构造器阈值），
+    // 也让"会话用到哪几张表"一目了然。DAO 就地派生，字段名不变，下面各处引用照旧。
+    private val messageDao: MpMessageDao = db.messageDao()
+    private val threadDao: MpThreadDao = db.threadDao()
+    private val memberDao: MpThreadMemberDao = db.threadMemberDao()
+
+    /** 心声门面：onStored 里为角色文本触发一次独白生成，init 里观察进状态。 */
+    private val innerVoiceStore = MpInnerVoiceStore(db.innerVoiceDao())
+
+    /** 待应答队列：用户发出的「发送中」消息入队，应答有结果就清行。 */
+    private val offlineQueue = MpOfflineQueueStore(db.offlineMessageDao())
 
     private val mutableState = MutableStateFlow(ChatUiState(threadId = threadId))
 
@@ -65,6 +82,7 @@ class MiniPhoneChatViewModel(
         characters = { peerCharacters },
         state = mutableState,
         scope = viewModelScope,
+        context = context,
     )
 
     /** 宿主给的最后一份角色列表,补名字与头像用。 */
@@ -82,7 +100,10 @@ class MiniPhoneChatViewModel(
         threadDao = threadDao,
         now = clock.now,
         newId = clock.newId,
-        onStored = { message -> mutableState.update { it.copy(messages = it.messages + message) } },
+        onStored = { message ->
+            mutableState.update { it.copy(messages = it.messages + message) }
+            maybeGenerateInnerVoice(message)
+        },
         onStatusChanged = { messageId, status ->
             mutableState.update { state ->
                 state.copy(
@@ -97,6 +118,7 @@ class MiniPhoneChatViewModel(
                 state.copy(messages = state.messages.filterNot { message -> message.id == messageId })
             }
         },
+        offlineQueue = offlineQueue,
     )
 
     private val media = ChatMediaWriter(
@@ -127,7 +149,52 @@ class MiniPhoneChatViewModel(
         groupContext = ::groupResponderContext,
     )
 
+    /**
+     * 角色文本落地后，异步补一条没说出口的内心独白（心声），关联到那条消息 id。
+     *
+     * 只认角色文本消息（用户/系统/图片/语音/哨兵不生成）；走独立协程，失败静默跳过，
+     * 绝不阻塞聊天主流程——心声是锦上添花。
+     */
+    private fun maybeGenerateInnerVoice(message: ChatMessageUi) {
+        if (message.sender != MpActorType.CHARACTER || message.type != MpMessageType.TEXT) return
+        val replyText = message.content.trim()
+        if (replyText.isEmpty() || replyText == MpSentinel.VOICE || replyText == MpSentinel.NO_REPLY) return
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "生成心声") {
+            val hint = "<recent>\n你刚刚对用户说了：$replyText\n</recent>"
+            val text = runCatching { host.composeInnerVoice(message.characterId, hint) }.getOrNull()
+            if (text.isNullOrBlank()) return@launchGuarded
+            runCatching {
+                innerVoiceStore.put(
+                    id = java.util.UUID.randomUUID().toString(),
+                    threadId = threadId,
+                    characterId = message.characterId,
+                    messageId = message.id,
+                    text = text,
+                    createdAt = System.currentTimeMillis(),
+                )
+            }
+        }
+    }
+
     init {
+        // 进程被回收后残留的「发送中」：那次应答再也不会回来。
+        // 把它们标成发送失败，用户就能用气泡上的重发按钮重新问一次，而不是永远卡在转圈。
+        // 清队列放在同一协程里，避免重发时又看到一条陈旧的待应答记录。
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "恢复上次未完成的应答") {
+            offlineQueue.pendingInThread(threadId).forEach { pending ->
+                writer.updateStatus(pending.id, MpMessageStatus.FAILED)
+            }
+            offlineQueue.clearThread(threadId)
+        }
+        // 心声：观察本会话条目，按 messageId 建映射进状态，供气泡折叠区取用。
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "接心声") {
+            innerVoiceStore.observeByThread(threadId)
+                .catch { emit(emptyList()) }
+                .collect { entries ->
+                    val map = entries.mapNotNull { e -> e.messageId?.let { id -> id to e.text } }.toMap()
+                    mutableState.update { it.copy(innerVoices = map) }
+                }
+        }
         // 宿主的两条流:角色名单用来补名字与头像,本机资料用来补自己那侧的头像
         viewModelScope.launchGuarded(TAG_CHAT_VM, "接宿主角色名单") {
             host.observeCharacters()
@@ -164,6 +231,10 @@ class MiniPhoneChatViewModel(
         viewModelScope.launchGuarded(TAG_CHAT_VM, "探测语音输入能力") {
             val supported = host.supportsVoiceTranscription()
             mutableState.update { it.copy(voiceInputAvailable = supported) }
+        }
+        // 表情库同样只问一次:库不大、也不会一边聊一边长,反复问只是多要几次磁盘
+        viewModelScope.launchGuarded(TAG_CHAT_VM, "读表情包库") {
+            mutableState.update { it.copy(stickers = host.listStickers()) }
         }
         paging.open()
         sender.start()

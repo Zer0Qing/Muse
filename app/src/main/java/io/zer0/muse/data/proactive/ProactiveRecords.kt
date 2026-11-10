@@ -59,8 +59,7 @@ data class ProactiveOutcomeEntity(
     /** [OutcomeState] 的 name。 */
     @ColumnInfo(defaultValue = "PENDING") val state: String = OutcomeState.PENDING.name,
 ) {
-    fun stateEnum(): OutcomeState =
-        OutcomeState.entries.firstOrNull { it.name == state } ?: OutcomeState.PENDING
+    fun stateEnum(): OutcomeState = OutcomeState.entries.firstOrNull { it.name == state } ?: OutcomeState.PENDING
 }
 
 @Dao

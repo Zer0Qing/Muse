@@ -341,9 +341,7 @@ class MiniPhoneGroupChatViewModelTest {
         var clock = NOW_BASE
         return MiniPhoneChatViewModel(
             threadId = threadId,
-            messageDao = db.messageDao(),
-            threadDao = db.threadDao(),
-            memberDao = db.threadMemberDao(),
+            db = db,
             groupStore = MpGroupChatStore(
                 db = db,
                 threadDao = db.threadDao(),

@@ -33,9 +33,7 @@ class RoomSubmitCommandPort(
     private val store: RoomConversationStore,
     private val identityFactory: (ConversationCommand.Submit) -> SubmitIdentity = ::newSubmitIdentity,
 ) {
-    suspend fun accept(
-        command: ConversationCommand.Submit,
-    ): CommandResult.Accepted = database.withTransaction {
+    suspend fun accept(command: ConversationCommand.Submit): CommandResult.Accepted = database.withTransaction {
         val fingerprint = fingerprint(command)
         val existing = store.findReceipt(command.commandId)
         if (existing != null) {
@@ -105,10 +103,9 @@ class RoomSubmitCommandPort(
         CommandResult.Accepted(identity.userMessageId, identity.turnId)
     }
 
-    private fun fingerprint(command: ConversationCommand.Submit): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest("${command.sessionId}\u001f${command.selectionSetId}\u001f${command.text}".toByteArray())
-            .joinToString("") { byte -> "%02x".format(byte) }
+    private fun fingerprint(command: ConversationCommand.Submit): String = MessageDigest.getInstance("SHA-256")
+        .digest("${command.sessionId}\u001f${command.selectionSetId}\u001f${command.text}".toByteArray())
+        .joinToString("") { byte -> "%02x".format(byte) }
 
     private companion object {
         /**
@@ -117,11 +114,10 @@ class RoomSubmitCommandPort(
          * 删掉形参会连带改掉缝的类型，那是为了过 lint 而改设计。
          */
         @Suppress("UnusedParameter")
-        fun newSubmitIdentity(command: ConversationCommand.Submit): SubmitIdentity =
-            SubmitIdentity(
-                userMessageId = Uuid.random().toString(),
-                assistantMessageId = Uuid.random().toString(),
-                turnId = Uuid.random().toString(),
-            )
+        fun newSubmitIdentity(command: ConversationCommand.Submit): SubmitIdentity = SubmitIdentity(
+            userMessageId = Uuid.random().toString(),
+            assistantMessageId = Uuid.random().toString(),
+            turnId = Uuid.random().toString(),
+        )
     }
 }

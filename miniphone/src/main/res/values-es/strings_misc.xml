@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cadenas de la jugabilidad local R9: armario, sobres rojos, festivos y tonos de llamada. -->
+    <string name="mp_discover_wardrobe">Armario</string>
+    <string name="mp_wardrobe_title">Armario</string>
+    <string name="mp_wardrobe_empty">El armario está vacío</string>
+    <string name="mp_wardrobe_name_hint">Ponle nombre a esta prenda</string>
+    <string name="mp_wardrobe_uri_hint">URL de imagen (opcional)</string>
+    <string name="mp_wardrobe_add">Añadir</string>
+    <string name="mp_wardrobe_equip">Poner</string>
+    <string name="mp_wardrobe_equipped">Puesto</string>
+    <string name="mp_wardrobe_kind_top">Parte superior</string>
+    <string name="mp_wardrobe_kind_bottom">Parte inferior</string>
+    <string name="mp_wardrobe_kind_dress">Vestido</string>
+    <string name="mp_wardrobe_kind_shoes">Zapatos</string>
+    <string name="mp_wardrobe_kind_accessory">Accesorio</string>
+
+    <string name="mp_discover_redpacket">Sobres rojos del grupo</string>
+    <string name="mp_redpacket_title">Sobres rojos del grupo</string>
+    <string name="mp_redpacket_empty">Aún no hay sobres rojos</string>
+    <string name="mp_redpacket_rp_hint">El importe es solo texto de rol, no implica dinero real</string>
+    <string name="mp_redpacket_amount_hint">Importe (texto de rol)</string>
+    <string name="mp_redpacket_note_hint">Felicitación (opcional)</string>
+    <string name="mp_redpacket_send">Enviar</string>
+    <string name="mp_redpacket_claim">Reclamar</string>
+    <string name="mp_redpacket_claim_count">%1$d reclamados</string>
+    <string name="mp_redpacket_state_open">Disponible</string>
+    <string name="mp_redpacket_state_claimed">Todo reclamado</string>
+    <string name="mp_redpacket_state_expired">Caducado</string>
+
+    <string name="mp_discover_holiday">Festivos</string>
+    <string name="mp_holiday_title">Festivos y aniversarios</string>
+    <string name="mp_holiday_empty">Aún no hay festivos registrados</string>
+    <string name="mp_holiday_recurring">Cada año</string>
+    <string name="mp_holiday_once">Solo una vez</string>
+    <string name="mp_holiday_name_hint">Nombre del festivo o aniversario</string>
+    <string name="mp_holiday_date_hint">Fecha: MM-dd (anual)</string>
+    <string name="mp_holiday_date_once_hint">Fecha: yyyy-MM-dd (una vez)</string>
+    <string name="mp_holiday_year_hint">Año (p. ej. 2026)</string>
+    <string name="mp_holiday_note_hint">Nota (opcional)</string>
+    <string name="mp_holiday_add">Añadir</string>
+
+    <string name="mp_discover_ringtone">Tonos de llamada</string>
+    <string name="mp_ringtone_title">Tonos de llamada</string>
+    <string name="mp_ringtone_empty">Aún no hay tonos</string>
+    <string name="mp_ringtone_general">General</string>
+    <string name="mp_ringtone_voice">Tono de llamada de voz</string>
+    <string name="mp_ringtone_video">Tono de videollamada</string>
+    <string name="mp_ringtone_name_hint">Nombre del tono</string>
+    <string name="mp_ringtone_uri_hint">URL de audio o vídeo</string>
+    <string name="mp_ringtone_add">Añadir</string>
+</resources>

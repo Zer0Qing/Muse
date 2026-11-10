@@ -30,12 +30,7 @@ object VirtualDisplayHandoffRegistry {
 
     /** 交出（或更新）一块屏。[now] 与 [ttlMs] 显式传入，便于测试不依赖真实时钟。 */
     @Synchronized
-    fun offer(
-        displayId: Int,
-        packageName: String,
-        now: Long,
-        ttlMs: Long = DEFAULT_TTL_MS,
-    ): Handoff {
+    fun offer(displayId: Int, packageName: String, now: Long, ttlMs: Long = DEFAULT_TTL_MS): Handoff {
         require(displayId >= 0) { "displayId 无效" }
         pruneExpired(now)
         val entry = Handoff(

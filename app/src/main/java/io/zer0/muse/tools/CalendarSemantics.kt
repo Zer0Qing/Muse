@@ -45,11 +45,7 @@ object CalendarSemantics {
      * @param endMsExclusive 用户意图中的结束（不含），同样取其所在日期
      * @return (DTSTART, DTEND)，两者都是 UTC 零点，且 DTEND = 结束日 + 1 天（不含）
      */
-    fun normalizeAllDay(
-        startMs: Long,
-        endMsExclusive: Long,
-        zone: TimeZone = TimeZone.getDefault(),
-    ): Pair<Long, Long> {
+    fun normalizeAllDay(startMs: Long, endMsExclusive: Long, zone: TimeZone = TimeZone.getDefault()): Pair<Long, Long> {
         val zoneId = zone.toZoneId()
         val startDate = LocalDate.ofInstant(Instant.ofEpochMilli(startMs), zoneId)
         // 结束时间按"最后一毫秒所属的那一天"算，避免 23:59:59.999 被判成次日
@@ -89,12 +85,7 @@ object CalendarSemantics {
      * 修改单个实例要写例外行并重算系列，做不对会把整个重复日程弄乱 ——
      * 与其半吊子支持，不如明确拒绝并给出可行替代。
      */
-    fun checkUpdate(
-        eventId: Long?,
-        scope: RecurrenceScope?,
-        hasAnyField: Boolean,
-        occurrenceTime: Long?,
-    ): MutationRejection? = when {
+    fun checkUpdate(eventId: Long?, scope: RecurrenceScope?, hasAnyField: Boolean, occurrenceTime: Long?): MutationRejection? = when {
         eventId == null || eventId <= 0L -> MutationRejection.INVALID_ID
         !hasAnyField -> MutationRejection.NOTHING_TO_UPDATE
         scope == RecurrenceScope.THIS && occurrenceTime == null -> MutationRejection.THIS_SCOPE_NEEDS_OCCURRENCE_TIME
@@ -103,11 +94,7 @@ object CalendarSemantics {
     }
 
     /** 删除前的校验：单次取消必须给出该次的开始时间。 */
-    fun checkDelete(
-        eventId: Long?,
-        scope: RecurrenceScope?,
-        occurrenceTime: Long?,
-    ): MutationRejection? = when {
+    fun checkDelete(eventId: Long?, scope: RecurrenceScope?, occurrenceTime: Long?): MutationRejection? = when {
         eventId == null || eventId <= 0L -> MutationRejection.INVALID_ID
         scope == RecurrenceScope.THIS && occurrenceTime == null -> MutationRejection.THIS_SCOPE_NEEDS_OCCURRENCE_TIME
         else -> null

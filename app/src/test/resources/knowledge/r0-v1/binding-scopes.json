@@ -1,0 +1,184 @@
+{
+  "baselineStatus": "待基线",
+  "builtinHelp": [
+    {
+      "corpusVersion": "r0-v1-help",
+      "docId": "doc-internal",
+      "path": "docs/internal/builtin-help.md"
+    }
+  ],
+  "cases": [
+    {
+      "baselineStatus": "待基线",
+      "caseId": "empty-binding",
+      "mustNotReturnDocIds": [
+        "doc-library-alpha",
+        "doc-library-beta",
+        "doc-session-a",
+        "doc-session-b",
+        "doc-internal"
+      ],
+      "resolution": "Empty",
+      "selection": {
+        "type": "None"
+      }
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "invalid-binding",
+      "mustNotReturnDocIds": [
+        "doc-library-alpha",
+        "doc-library-beta"
+      ],
+      "resolution": "Invalid",
+      "selection": {
+        "ids": [
+          "kb-missing"
+        ],
+        "type": "Libraries"
+      }
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "library-alpha",
+      "expectedDocIds": [
+        "doc-library-alpha"
+      ],
+      "resolution": "Resolved",
+      "selection": {
+        "ids": [
+          "kb-alpha"
+        ],
+        "type": "Libraries"
+      },
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ]
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "same-name-folder-alpha",
+      "expectedDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "resolution": "Resolved",
+      "selection": {
+        "kbId": "kb-alpha",
+        "path": "共享目录",
+        "type": "Folders"
+      },
+      "wrongSourceDocIds": [
+        "doc-folder-shared-beta"
+      ]
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "same-name-folder-beta",
+      "expectedDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "resolution": "Resolved",
+      "selection": {
+        "kbId": "kb-beta",
+        "path": "共享目录",
+        "type": "Folders"
+      },
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ]
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "session-a",
+      "expectedDocIds": [
+        "doc-session-a"
+      ],
+      "resolution": "Resolved",
+      "selection": {
+        "sessionId": "session-a",
+        "type": "SessionAttachments"
+      },
+      "wrongSourceDocIds": [
+        "doc-session-b"
+      ]
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "session-b",
+      "expectedDocIds": [
+        "doc-session-b"
+      ],
+      "resolution": "Resolved",
+      "selection": {
+        "sessionId": "session-b",
+        "type": "SessionAttachments"
+      },
+      "wrongSourceDocIds": [
+        "doc-session-a"
+      ]
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "builtin-help",
+      "expectedDocIds": [
+        "doc-internal"
+      ],
+      "resolution": "Resolved",
+      "selection": {
+        "corpusVersion": "r0-v1-help",
+        "type": "BuiltinHelp"
+      }
+    },
+    {
+      "baselineStatus": "待基线",
+      "caseId": "all-user-libraries",
+      "mustNotReturnDocIds": [
+        "doc-internal",
+        "doc-session-a",
+        "doc-session-b"
+      ],
+      "resolution": "Resolved",
+      "selection": {
+        "type": "AllUserLibraries"
+      }
+    }
+  ],
+  "fixtureSetVersion": "r0-v1",
+  "folders": [
+    {
+      "kbId": "kb-alpha",
+      "path": "共享目录"
+    },
+    {
+      "kbId": "kb-beta",
+      "path": "共享目录"
+    },
+    {
+      "kbId": "kb-alpha",
+      "path": "folder%_wildcard"
+    }
+  ],
+  "libraries": [
+    {
+      "kbId": "kb-alpha",
+      "name": "Alpha"
+    },
+    {
+      "kbId": "kb-beta",
+      "name": "Beta"
+    }
+  ],
+  "schemaVersion": 1,
+  "sessionAttachments": [
+    {
+      "docId": "doc-session-a",
+      "path": "sessions/session-a/attachment.md",
+      "sessionId": "session-a"
+    },
+    {
+      "docId": "doc-session-b",
+      "path": "sessions/session-b/attachment.md",
+      "sessionId": "session-b"
+    }
+  ]
+}

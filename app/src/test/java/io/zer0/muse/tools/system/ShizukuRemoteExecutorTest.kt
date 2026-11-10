@@ -54,7 +54,10 @@ class ShizukuRemoteExecutorTest {
     @Test
     fun `命令按 sh -c 原样下发`() {
         var seen: String? = null
-        ShizukuRemoteExecutor { command -> seen = command; FakeProcess() }.execute("ls -l /sdcard")
+        ShizukuRemoteExecutor { command ->
+            seen = command
+            FakeProcess()
+        }.execute("ls -l /sdcard")
         assertEquals("ls -l /sdcard", seen)
     }
 
@@ -143,7 +146,10 @@ class ShizukuRemoteExecutorTest {
     @Test
     fun `流式路径把 stderr 并进 stdout 保持真实顺序`() {
         var seen: String? = null
-        ShizukuRemoteExecutor { command -> seen = command; FakeProcess() }
+        ShizukuRemoteExecutor { command ->
+            seen = command
+            FakeProcess()
+        }
             .streamTo("echo hi", ByteArrayOutputStream())
         assertNotNull(seen)
         assertTrue(seen!!.contains("2>&1"))

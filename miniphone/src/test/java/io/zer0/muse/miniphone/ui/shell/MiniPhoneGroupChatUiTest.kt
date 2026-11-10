@@ -106,7 +106,7 @@ class MiniPhoneGroupChatUiTest {
             MiniPhoneTheme(darkTheme = false) {
                 MiniPhoneShell(
                     state = ShellUiState(contactSections = sections),
-                    chatContent = { threadId, _ ->
+                    chatContent = { threadId, _, _ ->
                         Text(text = "chat:$threadId", modifier = Modifier.testTag(FAKE_CHAT_TAG))
                     },
                     actions = MiniPhoneShellActions(

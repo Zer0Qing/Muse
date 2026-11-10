@@ -2,8 +2,8 @@ package io.zer0.muse.automation.ui
 
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -11,9 +11,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
-import io.mockk.verify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.data.SettingsRepository
@@ -44,9 +44,7 @@ class AutomationSettingsPageTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
-    private fun managerMock(
-        accessibilityEnabled: Boolean = false,
-    ): AutomationManager = mockk<AutomationManager>(relaxed = true).apply {
+    private fun managerMock(accessibilityEnabled: Boolean = false): AutomationManager = mockk<AutomationManager>(relaxed = true).apply {
         val state = AutomationManager.PermissionState(accessibilityEnabled = accessibilityEnabled)
         every { permissionState } returns MutableStateFlow(state)
         coEvery { refreshPermissions() } returns state
@@ -107,11 +105,10 @@ class AutomationSettingsPageTest {
         assertEquals(1, wizardCount)
     }
 
-    private fun settingsMock(automationEnabled: Boolean): SettingsRepository =
-        mockk<SettingsRepository>(relaxed = true).apply {
-            every { automationEnabledFlow } returns MutableStateFlow(automationEnabled)
-            every { taskerTriggerEnabledFlow } returns MutableStateFlow(false)
-        }
+    private fun settingsMock(automationEnabled: Boolean): SettingsRepository = mockk<SettingsRepository>(relaxed = true).apply {
+        every { automationEnabledFlow } returns MutableStateFlow(automationEnabled)
+        every { taskerTriggerEnabledFlow } returns MutableStateFlow(false)
+    }
 
     @Test
     fun `master switch off shows the disabled banner`() {

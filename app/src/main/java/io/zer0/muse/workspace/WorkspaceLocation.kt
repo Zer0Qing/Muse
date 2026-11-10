@@ -48,12 +48,10 @@ object WorkspaceLocation {
     private const val KEY_PREFER_DOWNLOADS = "prefer_downloads"
 
     /** 私有工作区。 */
-    fun internalRoot(context: Context): File =
-        File(context.applicationContext.filesDir, INTERNAL_DIR_NAME)
+    fun internalRoot(context: Context): File = File(context.applicationContext.filesDir, INTERNAL_DIR_NAME)
 
     /** 公共下载目录下的工作区：`Download/Muse`。 */
-    fun downloadsRoot(): File =
-        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), DOWNLOAD_DIR_NAME)
+    fun downloadsRoot(): File = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), DOWNLOAD_DIR_NAME)
 
     /**
      * 是否拿到了「所有文件访问」。
@@ -140,22 +138,21 @@ object WorkspaceLocation {
     }
 
     /** 真正搬：先复制，完整成功之后才删源目录；失败时清掉目标并退回私有目录。 */
-    private fun moveTree(context: Context, source: File, target: File): Migration =
-        runCatching {
-            target.ensureDir()
-            val copied = copyTree(source, target)
-            if (!source.deleteRecursively()) {
-                Logger.w(TAG, "源目录未完全删除，保留原样: ${source.absolutePath}")
-            }
-            setPrefersDownloads(context, true)
-            Migration.Moved(source.absolutePath, target.absolutePath, copied) as Migration
-        }.getOrElse { error ->
-            Logger.e(TAG, "迁移工作区失败: ${error.message}", error)
-            // 失败时把目标清掉，避免留下半份让人误会"已经搬好了"
-            runCatching { if (target.listFiles().isNullOrEmpty()) target.delete() }
-            setPrefersDownloads(context, false)
-            Migration.Failed(error.message ?: error.javaClass.simpleName)
+    private fun moveTree(context: Context, source: File, target: File): Migration = runCatching {
+        target.ensureDir()
+        val copied = copyTree(source, target)
+        if (!source.deleteRecursively()) {
+            Logger.w(TAG, "源目录未完全删除，保留原样: ${source.absolutePath}")
         }
+        setPrefersDownloads(context, true)
+        Migration.Moved(source.absolutePath, target.absolutePath, copied) as Migration
+    }.getOrElse { error ->
+        Logger.e(TAG, "迁移工作区失败: ${error.message}", error)
+        // 失败时把目标清掉，避免留下半份让人误会"已经搬好了"
+        runCatching { if (target.listFiles().isNullOrEmpty()) target.delete() }
+        setPrefersDownloads(context, false)
+        Migration.Failed(error.message ?: error.javaClass.simpleName)
+    }
 
     /** 搬回私有目录（下载目录不可用时的退路）。 */
     fun migrateBackInternal(context: Context): Migration {
@@ -189,8 +186,7 @@ object WorkspaceLocation {
 
     // ── 内部 ────────────────────────────────────────────────────────────────
 
-    private fun prefs(context: Context) =
-        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private fun prefs(context: Context) = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     private fun File.ensureDir(): File = apply { if (!exists()) runCatching { mkdirs() } }
 

@@ -644,7 +644,7 @@ class SkillExecutor(
                     id = "web_search",
                     name = "网页搜索",
                     // v1.0.75 fix (工具审查 01): 删冗余 time_period,补 date_range 使用指引
-                    description = "用配置好的搜索引擎(SearXNG/Tavily)搜索网页。返回标题、URL 和摘要。当用户问到需要最新信息的问题时调用此工具。使用时机: 用户问到需要最新/实时信息的问题(价格、版本、政策、行情、天气等),或你知识不确定时。需要限定时间时传 date_range(如用户说'最近一周',传 past_week)。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不全时换关键词重搜,不要编造。",
+                    description = "用配置好的搜索引擎搜索网页。返回标题、URL 和摘要。当用户问到需要最新信息的问题时调用此工具。使用时机: 用户问到需要最新/实时信息的问题(价格、版本、政策、行情、天气等),或你知识不确定时。需要限定时间时传 date_range(如用户说'最近一周',传 past_week);查询里带'今天/最近/最新/本月'等词也会自动推断时间范围。支持 site:域名、filetype:类型、intitle:关键词 操作符,会作为结果过滤生效。用完整的自然语言或关键词串提问即可,不要只给一个单词。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不相关时换关键词重搜,不要编造。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -864,20 +864,20 @@ class SkillExecutor(
                     id = "author_plugin",
                     name = "编写插件",
                     description = "让助手自己编写一个带 JS 工具实现的插件。code 是 JS 入口源码（工具实现必须是顶层" +
-                                        " function 声明），" +
-                                        "tools 是工具声明数组（每项含 name/description/parametersJ" +
-                                        "son/requiredJson/functionName），" +
-                                        "可选 capabilities 必须覆盖你代码里实际用到的桥接能力（resource.rea" +
-                                        "d / resource.write 或同义的 storage.read / storage" +
-                                        ".write、network、" +
-                                        "clipboard.read / clipboard.write、notify、" +
-                                        "device.info、storage（插件私有 KV，与 fs.* 分开授权）、" +
-                                            "config.write（写回自己声明过的配置项，敏感项不可写）、" +
-                                                "host.tool.invoke（调用其它工具，走同一套人工审批、深度限 1）、" +
-                                        "ui / ui.mood / ui.skin）；**未声明的能力在运行时会被直接拒绝**，" +
-                                        "忘了声明就等于插件装得上但调不动。本工具只生成【未签名草稿】：草稿已禁用、不可执行，" +
-                                        "助手不能调用；必须由用户在「设置 → 插件管理」中审阅工具清单与代码，" +
-                                        "点击「签名并启用」后才会由本机作者密钥签名生效。",
+                        " function 声明），" +
+                        "tools 是工具声明数组（每项含 name/description/parametersJ" +
+                        "son/requiredJson/functionName），" +
+                        "可选 capabilities 必须覆盖你代码里实际用到的桥接能力（resource.rea" +
+                        "d / resource.write 或同义的 storage.read / storage" +
+                        ".write、network、" +
+                        "clipboard.read / clipboard.write、notify、" +
+                        "device.info、storage（插件私有 KV，与 fs.* 分开授权）、" +
+                        "config.write（写回自己声明过的配置项，敏感项不可写）、" +
+                        "host.tool.invoke（调用其它工具，走同一套人工审批、深度限 1）、" +
+                        "ui / ui.mood / ui.skin）；**未声明的能力在运行时会被直接拒绝**，" +
+                        "忘了声明就等于插件装得上但调不动。本工具只生成【未签名草稿】：草稿已禁用、不可执行，" +
+                        "助手不能调用；必须由用户在「设置 → 插件管理」中审阅工具清单与代码，" +
+                        "点击「签名并启用」后才会由本机作者密钥签名生效。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -964,13 +964,13 @@ class SkillExecutor(
                                         put(
                                             "description",
                                             "可选能力数组。可用名：resource.read / resource.write（等价别名" +
-                                                                " storage.read / storage.write）、network、" +
-                                                                "clipboard.read / clipboard.write、notify、" +
-                                                                "device.info、storage（插件私有 KV，与 fs.* 分开授权）、" +
-                                                                    "config.write（写回自己声明过的配置项，敏感项不可写）、" +
+                                                " storage.read / storage.write）、network、" +
+                                                "clipboard.read / clipboard.write、notify、" +
+                                                "device.info、storage（插件私有 KV，与 fs.* 分开授权）、" +
+                                                "config.write（写回自己声明过的配置项，敏感项不可写）、" +
                                                 "host.tool.invoke（调用其它工具，走同一套人工审批、深度限 1）、" +
-                                                                "ui / ui.mood / ui.skin。默认不声明 = 任何桥接动作都会被拒；请把你代" +
-                                                                "码里用到的都列上",
+                                                "ui / ui.mood / ui.skin。默认不声明 = 任何桥接动作都会被拒；请把你代" +
+                                                "码里用到的都列上",
                                         )
                                     },
                                 )
@@ -1514,18 +1514,27 @@ class SkillExecutor(
                         put(
                             "properties",
                             buildJsonObject {
-                                put("skill_id", buildJsonObject {
-                                    put("type", "string")
-                                    put("description", "技能 id（list_skills 里看到的那个）")
-                                })
-                                put("action", buildJsonObject {
-                                    put("type", "string")
-                                    put("description", "list（默认）或 read")
-                                })
-                                put("path", buildJsonObject {
-                                    put("type", "string")
-                                    put("description", "action=read 时的相对路径，如 references/schema.md")
-                                })
+                                put(
+                                    "skill_id",
+                                    buildJsonObject {
+                                        put("type", "string")
+                                        put("description", "技能 id（list_skills 里看到的那个）")
+                                    },
+                                )
+                                put(
+                                    "action",
+                                    buildJsonObject {
+                                        put("type", "string")
+                                        put("description", "list（默认）或 read")
+                                    },
+                                )
+                                put(
+                                    "path",
+                                    buildJsonObject {
+                                        put("type", "string")
+                                        put("description", "action=read 时的相对路径，如 references/schema.md")
+                                    },
+                                )
                             },
                         )
                         put("required", kotlinx.serialization.json.JsonArray(listOf(kotlinx.serialization.json.JsonPrimitive("skill_id"))))

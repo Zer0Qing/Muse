@@ -54,7 +54,9 @@ interface MpMomentAutoStore {
 /** 模块内 DataStore 文件名:只放手机相关的设置,不与宿主共用。 */
 private const val STORE_NAME: String = "miniphone_settings"
 
-private val Context.miniPhoneSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = STORE_NAME)
+// 38: 房间位置也存这里。DataStore 不允许在同一文件上开第二个实例，所以新增存储只能
+// 复用这一个委托 —— 另写一个 preferencesDataStore(name = "miniphone_settings") 会直接崩。
+internal val Context.miniPhoneSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = STORE_NAME)
 
 /** 取模块内设置,进程内同一份 DataStore(DataStore 不允许同文件开两个实例)。 */
 fun miniPhoneMomentAutoStore(context: Context): MpMomentAutoStore =

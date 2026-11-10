@@ -16,10 +16,8 @@ class DelegationPauseWordingTest {
 
     private val manager = DelegationPauseManager()
 
-    private fun response(
-        decision: DelegationPauseManager.PauseDecision,
-        outcome: DelegationPauseManager.PauseOutcome,
-    ) = DelegationPauseManager.PauseResponse(decision = decision, outcome = outcome)
+    private fun response(decision: DelegationPauseManager.PauseDecision, outcome: DelegationPauseManager.PauseOutcome) =
+        DelegationPauseManager.PauseResponse(decision = decision, outcome = outcome)
 
     private val policy = DelegationPauseManager.PausePolicy(autoTimeoutSec = 300)
 

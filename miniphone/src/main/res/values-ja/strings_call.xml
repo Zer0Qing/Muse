@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通话进行中的页面文案。阶段与降级原因在数据层是记号，这里负责换成当前语言的话。 -->
+<resources>
+    <string name="mp_call_none">進行中の通話はありません</string>
+    <string name="mp_call_back">戻る</string>
+    <string name="mp_call_dialing">発信中…</string>
+    <string name="mp_call_ringing">相手の応答を待っています</string>
+    <string name="mp_call_connected">接続済み</string>
+    <string name="mp_call_ended">通話が終わりました</string>
+    <string name="mp_call_failed">発信できませんでした</string>
+    <string name="mp_call_no_answer">相手は出ませんでした</string>
+    <string name="mp_call_hangup">切断</string>
+    <string name="mp_call_duration">通話 %1$s</string>
+    <string name="mp_call_camera_denied">カメラの許可が得られなかったため、音声通話に切り替えました</string>
+    <string name="mp_call_dial_failed">この回合は内容が返らなかったため通話を終了しました</string>
+    <string name="mp_call_mine">自分</string>
+    <string name="mp_call_peer">相手</string>
+    <string name="mp_call_play_voice">この音声を再生</string>
+    <string name="mp_call_say_hint">何か話す…</string>
+    <string name="mp_call_say_send">送信</string>
+    <string name="mp_chat_call_voice">音声通話</string>
+    <string name="mp_chat_call_video">ビデオチャット</string>
+</resources>

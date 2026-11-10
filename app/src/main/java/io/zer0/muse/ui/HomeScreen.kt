@@ -36,6 +36,7 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.chat.WorkspaceQuickPickDialog
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -57,13 +58,12 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.theme.titleSmallStrong
 import io.zer0.muse.update.UpdateChecker
 import io.zer0.muse.update.UpdateNotifier
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.theme.titleSmallStrong
-import io.zer0.muse.ui.chat.WorkspaceQuickPickDialog
 
 // M-CS7: tabs 列表提为文件级 val,避免每次 recomposition 重新创建(原在 Composable 内 listOf)
 // 存资源 id(Int) 与页面序号,UI 层统一用 stringResource 解析。

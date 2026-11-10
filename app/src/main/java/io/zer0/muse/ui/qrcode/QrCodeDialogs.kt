@@ -49,12 +49,7 @@ import kotlinx.coroutines.withContext
  * @param onDismiss 关闭回调
  */
 @Composable
-fun QrCodeShareDialog(
-    content: String,
-    onDismiss: () -> Unit,
-    includesSecret: Boolean,
-    onIncludesSecretChange: (Boolean) -> Unit,
-) {
+fun QrCodeShareDialog(content: String, onDismiss: () -> Unit, includesSecret: Boolean, onIncludesSecretChange: (Boolean) -> Unit) {
     var bitmap by remember(content) { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(content) {
         bitmap = withContext(Dispatchers.Default) {

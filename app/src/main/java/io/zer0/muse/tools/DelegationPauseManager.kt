@@ -99,13 +99,7 @@ class DelegationPauseManager {
      * @param userRejected 用户**真的**点了拒绝时各处原本的说法（本函数不改写它）
      * @param userCancelled 用户**真的**点了取消时各处原本的说法
      */
-    fun rejectionText(
-        response: PauseResponse,
-        policy: PausePolicy,
-        subject: String,
-        userRejected: String,
-        userCancelled: String,
-    ): String {
+    fun rejectionText(response: PauseResponse, policy: PausePolicy, subject: String, userRejected: String, userCancelled: String): String {
         val minutes = (policy.autoTimeoutSec.coerceAtLeast(0) + SECONDS_PER_MINUTE - 1) / SECONDS_PER_MINUTE
         // 不足一分钟就别写"0 分钟"：那句读起来像 bug，不如只说超时
         val waited = if (minutes >= 1) "确认等待超过 $minutes 分钟" else "确认等待超时"

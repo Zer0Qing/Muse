@@ -13,8 +13,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -143,8 +143,7 @@ fun SettingsGroupScreen(
 }
 
 /** 分类页展示条件：编译期闸门开着，且这个入口没有被标为暂不展示。 */
-internal fun SettingsEntrySpec.isAvailable(): Boolean =
-    browseVisible && (id != SettingsEntryId.MINIPHONE || FeatureFlags.MINI_PHONE)
+internal fun SettingsEntrySpec.isAvailable(): Boolean = browseVisible && (id != SettingsEntryId.MINIPHONE || FeatureFlags.MINI_PHONE)
 
 @Composable
 private fun SettingsEntryCard(

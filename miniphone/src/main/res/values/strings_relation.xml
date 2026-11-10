@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 关系网页面的文案。键名与其他语言保持完全一致，前缀 mp_relation_ / mp_discover_relation。 -->
+    <string name="mp_discover_relation">关系网</string>
+    <string name="mp_relation_title">关系网</string>
+    <string name="mp_relation_no_characters">通讯录里还没有角色</string>
+    <string name="mp_relation_from_section">他怎么看别人</string>
+    <string name="mp_relation_to_section">别人怎么看他</string>
+    <string name="mp_relation_from_empty">他还没有对谁表态</string>
+    <string name="mp_relation_to_empty">还没有人对他表态</string>
+    <string name="mp_relation_set_title">记一条看法</string>
+    <string name="mp_relation_target_hint">选一个对象</string>
+    <string name="mp_relation_label_hint">比如：挚友、宿敌、陌生人</string>
+    <string name="mp_relation_set">记下</string>
+    <string name="mp_relation_describe">让他自己说</string>
+</resources>

@@ -254,10 +254,9 @@ class SessionRepository(
      * 卡片收藏容器([ensureCardFavoriteSession])也是 archived=1，但它是收藏夹的存储载体而非
      * 用户对话。露在归档列表里会被当成普通归档删掉，messages 的 FK 级联会连带清空整个收藏夹。
      */
-    fun observeArchived(): Flow<List<SessionEntity>> =
-        sessionDao.observeArchived().map { sessions ->
-            sessions.filterNot { it.folderId == CARD_FAVORITE_SESSION_MARKER }
-        }
+    fun observeArchived(): Flow<List<SessionEntity>> = sessionDao.observeArchived().map { sessions ->
+        sessions.filterNot { it.folderId == CARD_FAVORITE_SESSION_MARKER }
+    }
 
     /** v0.45: 切换会话归档状态。 */
     suspend fun setArchived(sessionId: String, archived: Boolean) {
@@ -666,8 +665,7 @@ class SessionRepository(
      * 收藏内容以独立快照消息存在这个容器里，容器一旦被删，FK 级联会清空整个收藏夹。
      * 删除入口不止归档页（会话管理工具、web 网关、最近删除都能删），所以护栏放在 repository。
      */
-    private suspend fun isCardFavoriteContainer(id: String): Boolean =
-        sessionDao.getByFolderId(CARD_FAVORITE_SESSION_MARKER)?.id == id
+    private suspend fun isCardFavoriteContainer(id: String): Boolean = sessionDao.getByFolderId(CARD_FAVORITE_SESSION_MARKER)?.id == id
 
     suspend fun ensureCardFavoriteSession(): String = withContext(Dispatchers.IO) {
         sessionDao.getByFolderId(CARD_FAVORITE_SESSION_MARKER)?.let { return@withContext it.id }

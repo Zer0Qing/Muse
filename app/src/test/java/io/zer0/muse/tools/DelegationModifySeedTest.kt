@@ -16,10 +16,7 @@ import org.junit.Test
  */
 class DelegationModifySeedTest {
 
-    private fun request(
-        taskDescription: String = "",
-        intermediateResult: String? = null,
-    ) = DelegationPauseManager.PauseRequest(
+    private fun request(taskDescription: String = "", intermediateResult: String? = null) = DelegationPauseManager.PauseRequest(
         requestId = "req-1",
         taskId = "task-1",
         taskTitle = "整理会议纪要",

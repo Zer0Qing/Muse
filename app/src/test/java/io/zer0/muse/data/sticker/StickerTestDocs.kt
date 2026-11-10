@@ -15,12 +15,10 @@ import java.util.zip.ZipOutputStream
 object StickerTestDocs {
 
     /** PNG 魔数开头的假图：够让类型嗅探认出来，又不是可解码图（尺寸解不出时应按中性放行）。 */
-    fun fakePng(seed: Int): ByteArray =
-        byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A) +
-            ByteArray(9) { ((it + seed) % 251).toByte() }
+    fun fakePng(seed: Int): ByteArray = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A) +
+        ByteArray(9) { ((it + seed) % 251).toByte() }
 
-    fun imageParagraph(rid: String) =
-        "<w:p><w:r><w:drawing><a:blip r:embed=\"" + rid + "\"/></w:drawing></w:r></w:p>"
+    fun imageParagraph(rid: String) = "<w:p><w:r><w:drawing><a:blip r:embed=\"" + rid + "\"/></w:drawing></w:r></w:p>"
 
     fun textParagraph(text: String) = "<w:p><w:r><w:t>" + text + "</w:t></w:r></w:p>"
 

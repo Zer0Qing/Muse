@@ -1,16 +1,15 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,16 +22,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.plugin.PluginCapabilityAudit
-import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
+import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginPermissionTier
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.theme.MusePaddings
@@ -142,10 +142,7 @@ fun PluginPermissionPanel(
  * 桥接闸门与文件沙盒都管不到它；这不是"再多一项能力"，而是另一级信任。
  */
 @Composable
-private fun PythonTrustRow(
-    allowed: Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
+private fun PythonTrustRow(allowed: Boolean, onToggle: (Boolean) -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
@@ -186,10 +183,7 @@ private fun RuntimeNote(text: String) {
 
 /** 已声明能力逐行开关。 */
 @Composable
-private fun CapabilityRows(
-    rows: List<CapabilityRow>,
-    onToggle: (String, Boolean) -> Unit,
-) {
+private fun CapabilityRows(rows: List<CapabilityRow>, onToggle: (String, Boolean) -> Unit) {
     if (rows.isEmpty()) {
         Text(
             text = stringResource(R.string.plugin_permission_none),
@@ -225,10 +219,7 @@ private fun CapabilityRows(
 
 /** 被拒但插件确实在用的能力：给出"本次会话允许"的一次性出口。 */
 @Composable
-private fun DeniedCallsBlock(
-    attempts: List<PluginCapabilityAudit.Event>,
-    onAllowSession: (String) -> Unit,
-) {
+private fun DeniedCallsBlock(attempts: List<PluginCapabilityAudit.Event>, onAllowSession: (String) -> Unit) {
     if (attempts.isEmpty()) return
     Text(
         text = stringResource(R.string.plugin_permission_denied_title),
@@ -363,12 +354,7 @@ private data class PermissionSnapshot(
     val nodeRuntime: Boolean = false,
 ) {
     companion object {
-        fun from(
-            gateway: PluginCapabilityGateway,
-            pluginId: String,
-            declared: List<String>,
-            runtime: String = "js",
-        ): PermissionSnapshot {
+        fun from(gateway: PluginCapabilityGateway, pluginId: String, declared: List<String>, runtime: String = "js"): PermissionSnapshot {
             val granted = gateway.grantedCapabilities(pluginId, declared)
             val audit = gateway.recentAudit()
             val declaredNames = declared.map(::canonical)
@@ -385,20 +371,14 @@ private data class PermissionSnapshot(
             )
         }
 
-        private fun canonical(capability: String): String =
-            PluginCapabilityGateway.CAPABILITY_ALIASES[capability] ?: capability
+        private fun canonical(capability: String): String = PluginCapabilityGateway.CAPABILITY_ALIASES[capability] ?: capability
     }
 }
 
 private data class CapabilityRow(val capability: String, val allowed: Boolean)
 
 @Composable
-private fun WarningBlock(
-    title: String,
-    detail: String,
-    actionLabel: String,
-    onAction: () -> Unit,
-) {
+private fun WarningBlock(title: String, detail: String, actionLabel: String, onAction: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
@@ -424,10 +404,7 @@ private fun WarningBlock(
 
 /** 小面积可点文本：面板里用文字按钮比 Button 更克制，也不会把行高撑开。 */
 @Composable
-private fun TextAction(
-    text: String,
-    onClick: () -> Unit,
-) {
+private fun TextAction(text: String, onClick: () -> Unit) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
@@ -438,5 +415,4 @@ private fun TextAction(
     )
 }
 
-private fun timeText(millis: Long): String =
-    DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(millis))
+private fun timeText(millis: Long): String = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(millis))

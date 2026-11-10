@@ -1,14 +1,14 @@
 package io.zer0.muse.permission
 
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
 import io.zer0.common.Logger
 import io.zer0.muse.terminal.TermuxChannel
 import io.zer0.muse.tools.system.AccessibilityProviderInstaller
 import io.zer0.muse.tools.system.RootAuthorizer
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import io.zer0.muse.tools.system.ShizukuInstaller
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals

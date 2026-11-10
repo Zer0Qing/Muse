@@ -36,23 +36,19 @@ object PhoneContextDispatcher {
      * 没注册 provider 的来源按 [PhoneContext.Availability.UNAVAILABLE] 处理并说明原因 ——
      * 静默跳过会让模型以为"用户没有数据"，而实际上是这个应用还没接。
      */
-    fun describe(
-        sources: List<PhoneContext.Source>,
-        days: Int,
-        nowMillis: Long,
-        providers: Map<PhoneContext.Source, Provider>,
-    ): String = sources.joinToString("\n\n") { source ->
-        val provider = providers[source]
-        val loaded = provider?.load(days) ?: Loaded.unavailable("这个应用还没有接入这项数据源")
-        val envelope = PhoneContext.Envelope(
-            source = source,
-            availability = loaded.availability,
-            capturedAtMillis = nowMillis,
-            windowDays = days,
-            itemCount = loaded.items.size,
-            truncated = loaded.truncated,
-            note = loaded.note,
-        )
-        PhoneContext.render(envelope, loaded.items)
-    }
+    fun describe(sources: List<PhoneContext.Source>, days: Int, nowMillis: Long, providers: Map<PhoneContext.Source, Provider>): String =
+        sources.joinToString("\n\n") { source ->
+            val provider = providers[source]
+            val loaded = provider?.load(days) ?: Loaded.unavailable("这个应用还没有接入这项数据源")
+            val envelope = PhoneContext.Envelope(
+                source = source,
+                availability = loaded.availability,
+                capturedAtMillis = nowMillis,
+                windowDays = days,
+                itemCount = loaded.items.size,
+                truncated = loaded.truncated,
+                note = loaded.note,
+            )
+            PhoneContext.render(envelope, loaded.items)
+        }
 }

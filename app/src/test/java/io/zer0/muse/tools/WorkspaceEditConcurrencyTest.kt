@@ -44,19 +44,17 @@ class WorkspaceEditConcurrencyTest {
         assertTrue("写入夹具失败: $result", result is WorkspaceManager.OpResult.Success)
     }
 
-    private fun contentOf(path: String): String =
-        runBlocking {
-            val result = manager.readFile(path)
-            assertTrue("读取失败: $result", result is WorkspaceManager.ReadResult.Success)
-            (result as WorkspaceManager.ReadResult.Success).content
-        }
+    private fun contentOf(path: String): String = runBlocking {
+        val result = manager.readFile(path)
+        assertTrue("读取失败: $result", result is WorkspaceManager.ReadResult.Success)
+        (result as WorkspaceManager.ReadResult.Success).content
+    }
 
-    private fun edit(path: String, oldString: String, newString: String): String =
-        WorkspaceTool.execute(
-            WorkspaceTool.NAME_EDIT,
-            mapOf("path" to path, "old_string" to oldString, "new_string" to newString),
-            manager,
-        )
+    private fun edit(path: String, oldString: String, newString: String): String = WorkspaceTool.execute(
+        WorkspaceTool.NAME_EDIT,
+        mapOf("path" to path, "old_string" to oldString, "new_string" to newString),
+        manager,
+    )
 
     @Test
     fun `并发 workspace_edit 同一文件时每一次改动都落盘`() {

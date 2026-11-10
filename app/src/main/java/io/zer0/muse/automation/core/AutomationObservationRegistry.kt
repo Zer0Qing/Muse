@@ -39,12 +39,7 @@ object AutomationObservationRegistry {
      * 同一个 scope 上之前发出的 id 立刻作废（这正是"画面可能变了"的表达）。
      */
     @Synchronized
-    fun record(
-        scope: String,
-        fingerprint: String,
-        now: Long,
-        ttlMs: Long = DEFAULT_TTL_MS,
-    ): Observation {
+    fun record(scope: String, fingerprint: String, now: Long, ttlMs: Long = DEFAULT_TTL_MS): Observation {
         counter += 1
         val observation = Observation(
             id = "obs-$counter",

@@ -1,5 +1,6 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import io.zer0.muse.miniphone.R
+import io.zer0.muse.miniphone.api.MpSticker
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -40,14 +42,17 @@ class MiniPhoneChatInputBarUiTest {
     val compose = createComposeRule()
 
     private val sent = mutableListOf<String>()
+    private val sentStickers = mutableListOf<String>()
 
-    private fun render(voiceInputEnabled: Boolean = true, onPickImages: () -> Unit = {}) {
+    private fun render(voiceInputEnabled: Boolean = true, onPickImages: () -> Unit = {}, stickers: List<MpSticker> = emptyList()) {
         compose.setContent {
             MiniPhoneTheme(darkTheme = false) {
                 ChatInputBar(
                     onSend = { sent += it },
                     onPickImages = onPickImages,
                     voiceInputEnabled = voiceInputEnabled,
+                    stickers = stickers,
+                    onSendSticker = { uri -> sentStickers += uri },
                 )
             }
         }
@@ -138,4 +143,33 @@ class MiniPhoneChatInputBarUiTest {
 
         assertEquals("空输入也能先选图", 1, picks)
     }
+
+    @Test
+    fun `表情库为空时不画表情键`() {
+        render()
+        compose.onNodeWithTag(MiniPhoneChatTags.STICKER_BUTTON).assertDoesNotExist()
+        compose.onNodeWithTag(MiniPhoneChatTags.STICKER_PANEL).assertDoesNotExist()
+    }
+
+    @Test
+    fun `表情键先把面板展开再逐个可点`() {
+        render(stickers = listOf(sticker("s1", "file:///a.png"), sticker("s2", "file:///b.png")))
+        compose.onNodeWithTag(MiniPhoneChatTags.STICKER_PANEL).assertDoesNotExist()
+        compose.onNodeWithTag(MiniPhoneChatTags.STICKER_BUTTON).performClick()
+        compose.onNodeWithTag(MiniPhoneChatTags.STICKER_PANEL).assertIsDisplayed()
+        compose.onNodeWithTag(MiniPhoneChatTags.stickerItem("s1")).assertIsDisplayed()
+        compose.onNodeWithTag(MiniPhoneChatTags.stickerItem("s2")).assertIsDisplayed()
+    }
+
+    @Test
+    fun `点一个表情只交它的 uri 并收起面板`() {
+        render(stickers = listOf(sticker("s1", "file:///a.png"), sticker("s2", "file:///b.png")))
+        compose.onNodeWithTag(MiniPhoneChatTags.STICKER_BUTTON).performClick()
+        compose.onNodeWithTag(MiniPhoneChatTags.stickerItem("s2")).performClick()
+        assertEquals(listOf("file:///b.png"), sentStickers)
+        compose.onNodeWithTag(MiniPhoneChatTags.STICKER_PANEL).assertDoesNotExist()
+        assertEquals("表情键不该把输入框里的话当成发送", emptyList<String>(), sent)
+    }
+
+    private fun sticker(id: String, uri: String) = MpSticker(id = id, category = "常用", uri = uri, caption = "")
 }

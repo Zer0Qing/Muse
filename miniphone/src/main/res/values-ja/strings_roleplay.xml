@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 跑团模块的文案。各语言保持同一组键，不让业务代码决定成品语言。 -->
+    <string name="mp_discover_roleplay">ロールプレイ</string>
+    <string name="mp_rp_title">ロールプレイ脚本ライブラリ</string>
+    <string name="mp_rp_back">発見に戻る</string>
+    <string name="mp_rp_empty">脚本はまだありません。まず導入を書きましょう</string>
+    <string name="mp_rp_script_title_hint">脚本タイトル</string>
+    <string name="mp_rp_script_body_hint">導入とルール</string>
+    <string name="mp_rp_create_script">新規脚本</string>
+    <string name="mp_rp_update_script">変更を保存</string>
+    <string name="mp_rp_cancel_edit">編集をキャンセル</string>
+    <string name="mp_rp_edit_script">編集</string>
+    <string name="mp_rp_delete_script">脚本を削除</string>
+    <string name="mp_rp_no_characters">開始するにはキャラクターが必要です</string>
+    <string name="mp_rp_start_run">1回始める</string>
+    <string name="mp_rp_saves">セーブ</string>
+    <string name="mp_rp_saves_empty">この脚本のセーブはまだありません</string>
+    <string name="mp_rp_endings">エンディング</string>
+    <string name="mp_rp_endings_empty">エンディングはまだありません</string>
+    <string name="mp_rp_turn">第%1$dターン</string>
+    <string name="mp_rp_roll">出目 %1$d</string>
+    <string name="mp_rp_action_hint">このターンで行動…</string>
+    <string name="mp_rp_advance">進行</string>
+    <string name="mp_rp_conclude">幕引き</string>
+    <string name="mp_rp_delete_save">セーブを削除</string>
+    <string name="mp_rp_state_unreadable">局面スナップショットを読み取れません</string>
+</resources>

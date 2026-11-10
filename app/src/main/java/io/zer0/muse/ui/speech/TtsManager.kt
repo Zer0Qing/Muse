@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.speech
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import android.media.MediaPlayer
 import android.os.Build
@@ -16,6 +15,7 @@ import io.zer0.muse.data.ResolvedSpeechEndpoint
 import io.zer0.muse.data.SpeechProviderResolver
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +79,13 @@ class TtsManager(
         private val HORIZONTAL_RULE_REGEX = Regex("---+")
 
         /**
+         * 通用 HTML 标签。模型偶尔会用 `<b>`、`<br>`、`<span style=…>` 这类标记排版，
+         * 朗读时会被逐字念出来（「小于 b 大于」）。这里把它们整段剥掉；
+         * 保留标签之间的文字，只去掉标记本身。
+         */
+        private val HTML_TAG_REGEX = Regex("""<\s*/?\s*[a-zA-Z][^>]*>""")
+
+        /**
          * v1.97: 支持的云端 TTS 引擎列表(engineId → 显示名字符串资源)。
          *
          * "system" 不在此列表中(由 SettingsRepository 默认值表示,UI 单独处理)。
@@ -97,6 +104,61 @@ class TtsManager(
             "step" to R.string.settings_media_tts_engine_step,
             "xai" to R.string.settings_media_tts_engine_xai,
         )
+
+        /**
+         * 把一段回复正文清成「适合念出来」的样子。
+         *
+         * 代码块与公式不念；链接只留文字；Markdown 标记与 HTML 标签都剥掉。
+         * 拆成两层是为了让主循环只做「这一行该不该念」的判断，
+         * 逐条替换规则放到 [stripInlineMarks] 里 —— 一个循环里塞进十几条替换会难以维护。
+         */
+        internal fun stripMarkdown(text: String): String {
+            val sb = StringBuilder()
+            var inCodeBlock = false
+            var inFormula = false
+            for (raw in text.split("\n")) {
+                val trimmed = raw.trim()
+                // 三种「整行不念」的情况（代码块围栏、代码块内容、公式块）先判掉；
+                // 判断本身抽成 [isUnspokenLine]，循环里只留一处 continue。
+                val decision = lineDecision(trimmed, inCodeBlock, inFormula)
+                inCodeBlock = decision.inCodeBlock
+                inFormula = decision.inFormula
+                if (decision.skip) continue
+                val cleaned = stripInlineMarks(trimmed)
+                if (cleaned.isNotBlank()) sb.appendLine(cleaned)
+            }
+            return sb.toString().trim()
+        }
+
+        /** 一行的处置结果：跳过与否，以及进出代码块/公式块后的状态。 */
+        private data class LineDecision(val skip: Boolean, val inCodeBlock: Boolean, val inFormula: Boolean)
+
+        private fun lineDecision(line: String, inCodeBlock: Boolean, inFormula: Boolean): LineDecision = when {
+            line.startsWith("```") -> LineDecision(skip = true, inCodeBlock = !inCodeBlock, inFormula = inFormula)
+            inCodeBlock -> LineDecision(skip = true, inCodeBlock = inCodeBlock, inFormula = inFormula)
+            line.startsWith("$$") && line.endsWith("$$") && line.length > 2 ->
+                LineDecision(skip = true, inCodeBlock = inCodeBlock, inFormula = inFormula)
+            line.startsWith("$$") -> LineDecision(skip = true, inCodeBlock = inCodeBlock, inFormula = !inFormula)
+            inFormula -> LineDecision(skip = true, inCodeBlock = inCodeBlock, inFormula = inFormula)
+            else -> LineDecision(skip = false, inCodeBlock = inCodeBlock, inFormula = inFormula)
+        }
+
+        /** 逐条剥掉行内标记。正则均为 companion 常量，不在每次调用时重新编译。 */
+        private fun stripInlineMarks(line: String): String = line
+            .replace(HEADING_PREFIX_REGEX, "")
+            .replace(UNORDERED_LIST_REGEX, "")
+            .replace(ORDERED_LIST_REGEX, "")
+            .replace(QUOTE_PREFIX_REGEX, "")
+            .replace(IMAGE_REGEX, "")
+            .replace(LINK_REGEX, "$1")
+            .replace(INLINE_CODE_REGEX, "$1")
+            .replace(BOLD_ASTERISK_REGEX, "$1")
+            .replace(BOLD_UNDERSCORE_REGEX, "$1")
+            .replace(ITALIC_ASTERISK_REGEX, "$1")
+            .replace(ITALIC_UNDERSCORE_REGEX, "$1")
+            .replace(HORIZONTAL_RULE_REGEX, "")
+            // 模型偶尔用 <b>/<br>/<span style=…> 排版，朗读时会被逐字念成「小于 b 大于」
+            .replace(HTML_TAG_REGEX, "")
     }
 
     /** 合成到文件用的 utteranceId 前缀(区分 speakStream 的真实 id)。 */
@@ -479,9 +541,8 @@ class TtsManager(
      * 优先用解析层的 fallbackReason（跟随供应商配置失败的具体原因）；没有的话，
      * 空 API Key 是一眼能看出的常见硬伤，单独点出来；最后才是笼统的合成失败。
      */
-    private fun cloudFailureReason(resolved: ResolvedSpeechEndpoint): String =
-        resolved.fallbackReason
-            ?: if (resolved.apiKey.isBlank()) "tts_api_key_missing" else "tts_cloud_synthesis_failed"
+    private fun cloudFailureReason(resolved: ResolvedSpeechEndpoint): String = resolved.fallbackReason
+        ?: if (resolved.apiKey.isBlank()) "tts_api_key_missing" else "tts_cloud_synthesis_failed"
 
     /**
      * v1.104: 系统 TTS 合成(从 synthesizeToFile 抽出,供云端失败回退复用)。
@@ -1361,50 +1422,6 @@ class TtsManager(
      * - 去掉引用 > 前缀
      * - 去掉图片 ![]() / 公式 $$...$$
      */
-    private fun stripMarkdown(text: String): String {
-        val sb = StringBuilder()
-        val lines = text.split("\n")
-        var inCodeBlock = false
-        var inFormula = false
-        for (line in lines) {
-            val trimmed = line.trim()
-            // 围栏代码块开关
-            if (trimmed.startsWith("```")) {
-                inCodeBlock = !inCodeBlock
-                continue
-            }
-            if (inCodeBlock) continue // 代码块内容跳过
-            // 公式块 $$ ... $$(单行或多行)
-            if (trimmed.startsWith("$$")) {
-                if (trimmed.endsWith("$$") && trimmed.length > 2) {
-                    // 单行公式,跳过
-                    continue
-                }
-                inFormula = !inFormula
-                continue
-            }
-            if (inFormula) continue
-            // 引用 > 前缀
-            // M-SP2: 以下 Regex 均已提升为 companion object 常量,避免每次调用重新编译模式
-            val cleaned = trimmed
-                .replace(HEADING_PREFIX_REGEX, "") // 标题
-                .replace(UNORDERED_LIST_REGEX, "") // 无序列表
-                .replace(ORDERED_LIST_REGEX, "") // 有序列表
-                .replace(QUOTE_PREFIX_REGEX, "") // 引用
-                .replace(IMAGE_REGEX, "") // 图片
-                .replace(LINK_REGEX, "$1") // 链接保留 text
-                .replace(INLINE_CODE_REGEX, "$1") // 行内代码
-                .replace(BOLD_ASTERISK_REGEX, "$1") // 粗体 **
-                .replace(BOLD_UNDERSCORE_REGEX, "$1") // 粗体 _
-                .replace(ITALIC_ASTERISK_REGEX, "$1") // 斜体 *
-                .replace(ITALIC_UNDERSCORE_REGEX, "$1") // 斜体 _
-                .replace(HORIZONTAL_RULE_REGEX, "") // 水平线
-            if (cleaned.isNotBlank()) {
-                sb.appendLine(cleaned)
-            }
-        }
-        return sb.toString().trim()
-    }
 
     /** 释放资源(应用退出时调用)。 */
     fun shutdown() {

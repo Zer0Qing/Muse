@@ -56,19 +56,18 @@ class ChatRenderRowIndexTest {
         assertEquals(null, ChatRenderRowIndex.messageAtRow(rows, rowIndex = 4))
     }
 
-    private fun row(key: String, messageIndex: Int) =
-        ChatMessageRenderRow(
+    private fun row(key: String, messageIndex: Int) = ChatMessageRenderRow(
+        key = key,
+        message = null,
+        chunk =
+        ChatRenderChunk(
             key = key,
-            message = null,
-            chunk =
-            ChatRenderChunk(
-                key = key,
-                text = key,
-                index = 0,
-                count = 1,
-                sourceStart = 0,
-                sourceEnd = key.length,
-            ),
-            messageIndex = messageIndex,
-        )
+            text = key,
+            index = 0,
+            count = 1,
+            sourceStart = 0,
+            sourceEnd = key.length,
+        ),
+        messageIndex = messageIndex,
+    )
 }

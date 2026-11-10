@@ -1,13 +1,13 @@
 package io.zer0.muse.conversation.ui
 
-import io.zer0.muse.conversation.core.ConversationCommand
+import io.mockk.coEvery
+import io.mockk.mockk
 import io.zer0.muse.conversation.core.ConversationAddress
+import io.zer0.muse.conversation.core.ConversationCommand
 import io.zer0.muse.conversation.core.ConversationWindowReader
 import io.zer0.muse.conversation.core.ConversationWindowSource
 import io.zer0.muse.conversation.runtime.ConversationSessionController
 import io.zer0.muse.data.conversation.RoomSubmitCommandPort
-import io.mockk.mockk
-import io.mockk.coEvery
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
@@ -137,25 +137,22 @@ class ConversationViewModelTest {
                         limit: Int,
                     ) = emptyList<io.zer0.muse.conversation.core.WindowSlotReference>()
 
-                    override suspend fun readParts(
-                        messageIds: List<String>,
-                    ) = emptyMap<String, List<io.zer0.muse.conversation.core.MessagePart>>()
+                    override suspend fun readParts(messageIds: List<String>) =
+                        emptyMap<String, List<io.zer0.muse.conversation.core.MessagePart>>()
                 },
             ),
             pageModel = ConversationPageModel(),
         )
     }
 
-    private fun emptyWindowSource() =
-        object : ConversationWindowSource {
-            override suspend fun readSlots(
-                address: ConversationAddress,
-                selectionSetId: io.zer0.muse.conversation.core.SelectionSetId,
-                around: String?,
-                limit: Int,
-            ) = emptyList<io.zer0.muse.conversation.core.WindowSlotReference>()
+    private fun emptyWindowSource() = object : ConversationWindowSource {
+        override suspend fun readSlots(
+            address: ConversationAddress,
+            selectionSetId: io.zer0.muse.conversation.core.SelectionSetId,
+            around: String?,
+            limit: Int,
+        ) = emptyList<io.zer0.muse.conversation.core.WindowSlotReference>()
 
-            override suspend fun readParts(messageIds: List<String>) =
-                emptyMap<String, List<io.zer0.muse.conversation.core.MessagePart>>()
-        }
+        override suspend fun readParts(messageIds: List<String>) = emptyMap<String, List<io.zer0.muse.conversation.core.MessagePart>>()
+    }
 }

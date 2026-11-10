@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通话进行中的页面文案。阶段与降级原因在数据层是记号，这里负责换成当前语言的话。 -->
+<resources>
+    <string name="mp_call_none">现在没有进行中的通话</string>
+    <string name="mp_call_back">返回</string>
+    <string name="mp_call_dialing">正在拨号…</string>
+    <string name="mp_call_ringing">等待对方接听</string>
+    <string name="mp_call_connected">已接通</string>
+    <string name="mp_call_ended">通话结束</string>
+    <string name="mp_call_failed">没能拨出去</string>
+    <string name="mp_call_no_answer">对方没有接听</string>
+    <string name="mp_call_hangup">挂断</string>
+    <string name="mp_call_duration">通话 %1$s</string>
+    <string name="mp_call_camera_denied">未获得相机权限，已改用语音通话</string>
+    <string name="mp_call_dial_failed">这一轮没有生成内容，通话已结束</string>
+    <string name="mp_call_mine">我</string>
+    <string name="mp_call_peer">对方</string>
+    <string name="mp_call_play_voice">播放这条语音</string>
+    <string name="mp_call_say_hint">说点什么…</string>
+    <string name="mp_call_say_send">发送</string>
+    <string name="mp_chat_call_voice">语音通话</string>
+    <string name="mp_chat_call_video">视频聊天</string>
+</resources>

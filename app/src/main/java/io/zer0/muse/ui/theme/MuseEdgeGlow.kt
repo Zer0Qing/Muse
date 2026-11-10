@@ -1,13 +1,16 @@
 package io.zer0.muse.ui.theme
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -21,9 +24,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -102,12 +102,10 @@ class MuseEdgeGlowIndication(
     private val darkTheme: Boolean = false,
 ) : IndicationNodeFactory {
 
-    override fun create(interactionSource: InteractionSource): DelegatableNode =
-        EdgeGlowDrawNode(interactionSource, shape, darkTheme)
+    override fun create(interactionSource: InteractionSource): DelegatableNode = EdgeGlowDrawNode(interactionSource, shape, darkTheme)
 
     // IndicationNodeFactory 契约：相等性参与 Compose 优化，按参数值比较。
-    override fun equals(other: Any?): Boolean =
-        other is MuseEdgeGlowIndication && other.shape == shape && other.darkTheme == darkTheme
+    override fun equals(other: Any?): Boolean = other is MuseEdgeGlowIndication && other.shape == shape && other.darkTheme == darkTheme
 
     override fun hashCode(): Int = 31 * (31 * shape.hashCode() + darkTheme.hashCode()) + 0x4D757667
 }

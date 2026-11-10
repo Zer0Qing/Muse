@@ -10,12 +10,14 @@ import io.zer0.muse.data.lorebook.LorebookEntity
 import io.zer0.muse.data.lorebook.LorebookRepository
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
 import io.zer0.muse.data.promptinjection.PromptInjectionRepository
+import io.zer0.muse.hook.PromptFinalizeEvent
 import io.zer0.muse.transformer.LorebookTransformer
 import io.zer0.muse.transformer.PromptInjectionTransformer
 import io.zer0.muse.transformer.SystemPromptAssembler
 import io.zer0.muse.transformer.ThinkTagTransformer
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
+import io.zer0.muse.worldbook.WorldBookHook
 import kotlinx.serialization.json.Json
 
 /**
@@ -31,7 +33,8 @@ import kotlinx.serialization.json.Json
  *   绝不能拉进后台 Worker / 定时任务）
  * - 不跑 MemoryInjection / TimeReminder / ContextCompress 等"对话历史相关"环节，
  *   旁路生成没有历史，跑这些只会产生空转或错误预算
- * - 只跑与"人格一致性"直接相关的三个 Transformer：世界书、提示词注入、think 标签剥离
+ * - 只跑与"人格一致性"直接相关的三个 Transformer：Lorebook、提示词注入、think 标签剥离；
+ *   管道之后只再追加一段动态世界书的关键词触发（[WorldBookHook.beforeFinalizePrompt]）
  *
  * 线程模型：所有方法都是 suspend，内部读取均为一线程一次性调用，可在
  * WorkManager 的 CoroutineWorker 里直接使用（Koin 通过 GlobalContext 解析）。
@@ -41,6 +44,19 @@ class MiniContextBuilder(
     private val lorebookRepository: LorebookRepository,
     private val promptInjectionRepository: PromptInjectionRepository,
     private val settingsRepository: SettingsRepository,
+    /**
+     * 动态世界书的关键词触发段。
+     *
+     * 常驻条目（alwaysActive）本来就由 [SystemPromptAssembler] 里的
+     * SystemPromptComposeHook 带进系统提示；缺的是「扫最近 N 层 USER 消息、
+     * 命中关键词才注入」那一段，它挂在 PromptFinalizeHook 上，只有主对话的
+     * ChatStreamCoordinator 会派发。旁路生成不走那条链，所以在这里直接调同一个 Hook，
+     * 而不是把整个 hookRegistry 搬进来 —— 旁路没有楼层截断、没有插件注入，
+     * 把整套 Hook 引进来只会带进与这次生成无关的东西。
+     *
+     * 可空：替身与旧调用方不传时保持原有行为（只跑 Transformer 管道）。
+     */
+    private val worldBookHook: WorldBookHook? = null,
 ) {
 
     private val idListJson = Json { ignoreUnknownKeys = true }
@@ -106,9 +122,12 @@ class MiniContextBuilder(
         val lorebookEntries = loadLorebookEntries(assistant)
         val modeInjections = loadPromptInjections(assistant)
         if (lorebookEntries.isEmpty() && modeInjections.isEmpty()) {
-            // 没有可注入内容时仍要剥 think 标签，避免推理文本混入正文
-            return runCatching { ThinkTagTransformer().transform(messages, emptyContext(sessionId, assistant)) }
+            // 没有可注入内容时仍要剥 think 标签，避免推理文本混入正文；
+            // 也仍要走世界书那一段 —— 「助手没绑 lorebook / 提示词注入」是最常见的情况，
+            // 在这里直接 return 会让动态世界书对绝大多数角色永远不生效。
+            val stripped = runCatching { ThinkTagTransformer().transform(messages, emptyContext(sessionId, assistant)) }
                 .getOrElse { messages }
+            return applyWorldBookKeywords(stripped, assistant, sessionId)
         }
 
         val pipeline = TransformerPipeline(
@@ -135,8 +154,34 @@ class MiniContextBuilder(
                 put("time_reminder_enabled", false)
             },
         )
-        return resultOf { pipeline.execute(messages, context) }
+        val transformed = resultOf { pipeline.execute(messages, context) }
             .onError { msg, t -> Logger.w(TAG, "Transformer 管道失败，退化为原始消息: ${t?.message ?: msg}") }
+            .getOrNull() ?: messages
+        return applyWorldBookKeywords(transformed, assistant, sessionId)
+    }
+
+    /**
+     * 动态世界书的关键词触发注入。
+     *
+     * 放在 Transformer 管道之后：管道里的 Lorebook 只看最后一条 USER 消息，
+     * 而世界书要按各自 scanDepth 扫最近几层，晚一步才能看到管道整理过的最终历史。
+     *
+     * 失败一律退回入参：世界书是锦上添花，取不到就当没有，不能让一条脏数据把整条回复变成空白。
+     */
+    private suspend fun applyWorldBookKeywords(
+        messages: List<UIMessage>,
+        assistant: AssistantEntity?,
+        sessionId: String?,
+    ): List<UIMessage> {
+        val hook = worldBookHook ?: return messages
+        val event = PromptFinalizeEvent(
+            preparedHistory = messages,
+            assistantId = assistant?.id,
+            sessionId = sessionId,
+            transformContext = TransformContext(sessionId = sessionId, modelId = assistant?.modelId),
+        )
+        return resultOf { hook.beforeFinalizePrompt(event).preparedHistory }
+            .onError { msg, t -> Logger.w(TAG, "世界书关键词注入失败，按未命中处理: ${t?.message ?: msg}") }
             .getOrNull() ?: messages
     }
 

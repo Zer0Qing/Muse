@@ -45,11 +45,7 @@ import java.util.Locale
  * 每个联系人一段对话,支持展开查看最近消息,可"重启上下文"(清空该对话历史与摘要)。
  */
 @Composable
-fun ChannelConversationsScreen(
-    channelId: String,
-    onBack: () -> Unit,
-    onOpenConversation: (String) -> Unit,
-) {
+fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit, onOpenConversation: (String) -> Unit) {
     val conversations by ChannelConversationStore.conversations.collectAsStateWithLifecycle()
     val entries = remember(conversations, channelId) {
         conversations
@@ -151,12 +147,7 @@ private fun ResetContextDialog(target: String?, onConfirm: (String) -> Unit, onD
  * 摊在列表里既读不出上下文，也把列表变成一堵字墙。
  */
 @Composable
-private fun ConversationCard(
-    from: String,
-    conversation: ChannelConversationStore.Conversation,
-    onOpen: () -> Unit,
-    onReset: () -> Unit,
-) {
+private fun ConversationCard(from: String, conversation: ChannelConversationStore.Conversation, onOpen: () -> Unit, onReset: () -> Unit) {
     val turns = conversation.turns
     val lastTurn = turns.lastOrNull()
     val timeText = remember(conversation.updatedAt) {

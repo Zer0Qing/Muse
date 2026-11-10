@@ -1,0 +1,101 @@
+{
+  "androidVerification": "待验",
+  "baselineStatus": "待基线",
+  "desktopContractProbe": "desktop SQLite FTS4 MATCH and matchinfo; not an Android SQLite proof",
+  "expectedOrder": [
+    "c-high",
+    "c-mid",
+    "c-low"
+  ],
+  "fixtureSetVersion": "r0-v1",
+  "higherTermFrequencyRanksEarlier": true,
+  "matchInfo": [
+    {
+      "bytes": 44,
+      "chunkId": "c-low",
+      "format": "pcx",
+      "ints": [
+        1,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        6,
+        3
+      ]
+    },
+    {
+      "bytes": 44,
+      "chunkId": "c-high",
+      "format": "pcx",
+      "ints": [
+        1,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        6,
+        3
+      ]
+    },
+    {
+      "bytes": 44,
+      "chunkId": "c-mid",
+      "format": "pcx",
+      "ints": [
+        1,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        6,
+        3
+      ]
+    }
+  ],
+  "negativeChunkIds": [
+    "c-zero"
+  ],
+  "notes": "FTS4 bm25 unavailable in the desktop contract probe; FTS5 bm25 is not assumed on Android 26.",
+  "query": "alpha",
+  "rows": [
+    {
+      "chunkId": "c-low",
+      "docId": "doc-low",
+      "termFrequency": 1,
+      "text": "alpha beta gamma delta"
+    },
+    {
+      "chunkId": "c-high",
+      "docId": "doc-high",
+      "termFrequency": 3,
+      "text": "alpha alpha alpha beta"
+    },
+    {
+      "chunkId": "c-mid",
+      "docId": "doc-mid",
+      "termFrequency": 2,
+      "text": "alpha alpha gamma"
+    },
+    {
+      "chunkId": "c-zero",
+      "docId": "doc-zero",
+      "termFrequency": 0,
+      "text": "beta gamma delta"
+    }
+  ],
+  "schemaVersion": 1,
+  "tableDdl": "CREATE VIRTUAL TABLE knowledge_chunks_fts USING fts4(chunkId, doc_id, text_content)"
+}

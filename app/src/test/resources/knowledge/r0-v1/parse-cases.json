@@ -1,0 +1,83 @@
+{
+  "baselineStatus": "待基线",
+  "cases": [
+    {
+      "caseId": "plain-text-complete",
+      "expectedMarkers": [
+        "R0_ALPHA_GUIDE_MARKER"
+      ],
+      "expectedStatus": "Complete",
+      "path": "docs/kb-alpha/同名指南.md"
+    },
+    {
+      "caseId": "scanned-needs-ocr",
+      "expectedStatus": "NeedsOcr",
+      "extractableTextExpected": false,
+      "pageCount": 1,
+      "path": "parse/scanned-needs-ocr.pdf",
+      "reason": "image_only_page"
+    },
+    {
+      "cappedPages": 200,
+      "caseId": "over-200-pages",
+      "expectedMarkersExcludedByCap": [
+        "R0_SYNTHETIC_PAGE_0201_TAIL_MARKER"
+      ],
+      "expectedMarkersInCappedText": [
+        "R0_SYNTHETIC_PAGE_0001_MARKER",
+        "R0_SYNTHETIC_PAGE_0200_MARKER"
+      ],
+      "expectedStatus": "Partial",
+      "path": "parse/over-200-pages.pdf",
+      "reason": "page_cap",
+      "totalPages": 201
+    },
+    {
+      "caseId": "missing-page",
+      "emptyPageNumbers": [
+        2
+      ],
+      "expectedMarkersInCappedText": [
+        "R0_MISSING_PAGE_0001_MARKER",
+        "R0_MISSING_PAGE_0003_MARKER"
+      ],
+      "expectedStatus": "Partial",
+      "path": "parse/missing-page.pdf",
+      "reason": "empty_page_text",
+      "totalPages": 3
+    },
+    {
+      "caseId": "corrupt-pdf",
+      "expectedEndMarker": "%%EOF",
+      "expectedEndMarkerPresent": false,
+      "expectedStatus": "Failed",
+      "path": "parse/corrupt.pdf",
+      "reason": "truncated_pdf"
+    },
+    {
+      "caseId": "long-preview-tail",
+      "expectedStatus": "Complete",
+      "fullTextHeadMarker": "R0_PREVIEW_HEAD_MARKER",
+      "fullTextTailMarker": "R0_PREVIEW_TAIL_MARKER",
+      "path": "long/preview-tail.txt",
+      "previewCapExcludesTailMarker": true
+    },
+    {
+      "caseId": "structured-window-boundary",
+      "codeFenceCrossesInputWindow": true,
+      "expectedMarkers": [
+        "R0_WINDOW_HEAD_MARKER",
+        "R0_TABLE_MARKER",
+        "R0_CODE_FENCE_MARKER",
+        "R0_WINDOW_TAIL_MARKER"
+      ],
+      "expectedStatus": "Complete",
+      "path": "structured/window-boundary.md"
+    }
+  ],
+  "fixtureSetVersion": "r0-v1",
+  "inputWindowChars": 8192,
+  "pdfPageCap": 200,
+  "previewCap": 500000,
+  "schemaVersion": 1
+}

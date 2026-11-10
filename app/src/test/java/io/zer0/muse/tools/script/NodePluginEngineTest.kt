@@ -6,7 +6,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -160,7 +159,10 @@ class NodePluginEngineTest {
         // 额度是进程级共享的，用完必须还得干干净净，否则后面的测试会莫名少一格
         val held = mutableListOf<NodePluginEngine>()
         try {
-            repeat(NodePluginEngine.MAX_CONCURRENT_PROCESSES) { check(engine.tryEnterSlot()); held += engine }
+            repeat(NodePluginEngine.MAX_CONCURRENT_PROCESSES) {
+                check(engine.tryEnterSlot())
+                held += engine
+            }
 
             assertFalse(
                 "满了要直接失败（排队会让调用方以为还在跑，超时更难归因）",

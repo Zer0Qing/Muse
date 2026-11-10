@@ -1,6 +1,5 @@
 package io.zer0.muse.schedule
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.Notification
 import android.app.Service
 import android.content.Context
@@ -14,6 +13,7 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

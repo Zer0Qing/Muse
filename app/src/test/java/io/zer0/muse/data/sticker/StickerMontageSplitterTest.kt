@@ -47,8 +47,8 @@ class StickerMontageSplitterTest {
     @Test
     fun `title bars and corner watermarks are not turned into stickers`() {
         val page = Page(800, 800)
-        page.fill(40, 20, 740, 60)                       // 标题条（细长）
-        page.fill(700, 760, 760, 782)                   // 角标水印（太小）
+        page.fill(40, 20, 740, 60) // 标题条（细长）
+        page.fill(700, 760, 760, 782) // 角标水印（太小）
         page.fill(60, 160, 180, 280)
         page.fill(340, 160, 460, 280)
 
@@ -84,5 +84,4 @@ class StickerMontageSplitterTest {
         assertEquals(2, cells.size)
         assertTrue(cells.first().top < cells.last().top)
     }
-
 }

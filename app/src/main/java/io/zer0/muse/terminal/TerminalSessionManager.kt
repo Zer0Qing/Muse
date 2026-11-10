@@ -1,8 +1,8 @@
 package io.zer0.muse.terminal
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import io.zer0.common.Logger
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

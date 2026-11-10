@@ -1,6 +1,7 @@
 package io.zer0.muse.miniphone.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -15,13 +16,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * 小手机自有色板。
+ * 小手机语义色槽。
  *
- * 本模块不继承宿主主题:宿主的配色是为聊天工作台调的(玻璃、渐变、表情皮肤),
- * 而小手机要的是纸的质感 —— 暖白打底,黛绿做强调,砖红只留给未读。
- *
- * 深色不是浅色的简单反转:背景压到近黑,卡片抬一档,强调色提亮保证可读,
- * 自己气泡改浅底深字(深底上再压白字对比不够)。
+ * R0 重构：小手机不再持有独立色板/美术体系——这些槽位的**值**一律从宿主
+ * `MaterialTheme.colorScheme` 派生（宿主外壳即主应用主题），从而与外面 UI 同一套
+ * 设计令牌与主题；换肤/深色时小手机跟随宿主，不再自带一套纸感配色。槽位名保留，组件无需逐个改写。
  */
 @Immutable
 @Suppress("LongParameterList")
@@ -45,70 +44,8 @@ data class MiniPhoneColors(
     val wallpaperBottom: Color,
 )
 
-/** 浅色四档:底、卡、主字、次字。 */
-private val LightBackground = Color(0xFFF5F3EF)
-private val LightSurface = Color(0xFFFFFFFF)
-private val LightTextPrimary = Color(0xFF1C1B19)
-private val LightTextSecondary = Color(0xFF8A857D)
-private val LightDivider = Color(0xFFE6E2DA)
-private val LightAccent = Color(0xFF4F6E5A)
-private val LightUnread = Color(0xFFC4644F)
-
-/** 深色四档。 */
-private val DarkBackground = Color(0xFF12110F)
-private val DarkSurface = Color(0xFF24211D)
-private val DarkTextPrimary = Color(0xFFEDE9E3)
-private val DarkTextSecondary = Color(0xFF8F887D)
-private val DarkDivider = Color(0xFF332F29)
-private val DarkAccent = Color(0xFF7C9B85)
-
-/** 浅色色板:宣纸暖白 + 黛绿。 */
-fun lightMiniPhoneColors(): MiniPhoneColors = MiniPhoneColors(
-    isDark = false,
-    background = LightBackground,
-    surface = LightSurface,
-    textPrimary = LightTextPrimary,
-    textSecondary = LightTextSecondary,
-    divider = LightDivider,
-    accent = LightAccent,
-    onAccent = LightSurface,
-    unreadDot = LightUnread,
-    unreadDotText = LightSurface,
-    bubbleSelf = LightAccent,
-    bubbleSelfText = LightSurface,
-    bubbleOther = LightSurface,
-    bubbleOtherText = LightTextPrimary,
-    bubbleOtherBorder = LightDivider,
-    wallpaperTop = Color(0xFFF8F6F2),
-    wallpaperBottom = Color(0xFFE4DED3),
-)
-
-/** 深色色板:同一套语义,亮度全部重算。 */
-fun darkMiniPhoneColors(): MiniPhoneColors = MiniPhoneColors(
-    isDark = true,
-    background = DarkBackground,
-    surface = DarkSurface,
-    textPrimary = DarkTextPrimary,
-    textSecondary = DarkTextSecondary,
-    divider = DarkDivider,
-    accent = DarkAccent,
-    onAccent = DarkBackground,
-    unreadDot = LightUnread,
-    unreadDotText = LightSurface,
-    bubbleSelf = DarkAccent,
-    bubbleSelfText = DarkBackground,
-    bubbleOther = DarkSurface,
-    bubbleOtherText = DarkTextPrimary,
-    bubbleOtherBorder = DarkDivider,
-    wallpaperTop = Color(0xFF191713),
-    wallpaperBottom = Color(0xFF100F0D),
-)
-
 /**
- * 字号阶梯:标题 / 正文 / 次要 / 时间戳。
- *
- * 这里只定义字号与字重,颜色一律由使用处从 [MiniPhoneColors] 取,
- * 避免同一个 TextStyle 在不同底色上带着错误的颜色。
+ * 字号阶梯:标题 / 正文 / 次要 / 时间戳。值从宿主 typography 派生（见 [MiniPhoneTheme]）。
  */
 @Immutable
 data class MiniPhoneTypography(
@@ -147,22 +84,52 @@ data class MiniPhoneDimens(
     val coverHeight: Dp = 160.dp,
 )
 
-val LocalMiniPhoneColors = staticCompositionLocalOf { lightMiniPhoneColors() }
+val LocalMiniPhoneColors = staticCompositionLocalOf<MiniPhoneColors> { error("MiniPhoneTheme not applied") }
 val LocalMiniPhoneTypography = staticCompositionLocalOf { MiniPhoneTypography() }
 val LocalMiniPhoneDimens = staticCompositionLocalOf { MiniPhoneDimens() }
 
 /**
- * 小手机主题入口:按系统深色开关下发色板,同时下发字号与尺寸。
+ * 小手机主题入口：把宿主 MaterialTheme（= 主应用外面主题）映射进小手机语义槽。
  *
- * 只提供本模块自有的三套 token,不桥接宿主 MaterialTheme —— 小手机的界面不读宿主的
- * colorScheme / typography,读不到也就不会在宿主换肤时被带跑。
+ * 不再自带色板：颜色读宿主 colorScheme、字号读宿主 typography。宿主换肤或切深色，
+ * 小手机同步跟随，观感与外面近似。尺寸阶梯是结构规格，保持本模块定义。
  */
 @Composable
 fun MiniPhoneTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val colors = remember(darkTheme) { if (darkTheme) darkMiniPhoneColors() else lightMiniPhoneColors() }
+    val scheme = MaterialTheme.colorScheme
+    val hostTypography = MaterialTheme.typography
+    val colors = remember(scheme, darkTheme) {
+        MiniPhoneColors(
+            isDark = darkTheme,
+            background = scheme.background,
+            surface = scheme.surface,
+            textPrimary = scheme.onBackground,
+            textSecondary = scheme.onSurfaceVariant,
+            divider = scheme.outlineVariant,
+            accent = scheme.primary,
+            onAccent = scheme.onPrimary,
+            unreadDot = scheme.error,
+            unreadDotText = scheme.onError,
+            bubbleSelf = scheme.primary,
+            bubbleSelfText = scheme.onPrimary,
+            bubbleOther = scheme.surfaceVariant,
+            bubbleOtherText = scheme.onSurfaceVariant,
+            bubbleOtherBorder = scheme.outlineVariant,
+            wallpaperTop = scheme.background,
+            wallpaperBottom = scheme.surfaceVariant,
+        )
+    }
+    val typography = remember(hostTypography) {
+        MiniPhoneTypography(
+            title = hostTypography.titleMedium,
+            body = hostTypography.bodyLarge,
+            caption = hostTypography.bodySmall,
+            timestamp = hostTypography.labelSmall,
+        )
+    }
     CompositionLocalProvider(
         LocalMiniPhoneColors provides colors,
-        LocalMiniPhoneTypography provides MiniPhoneTypography(),
+        LocalMiniPhoneTypography provides typography,
         LocalMiniPhoneDimens provides MiniPhoneDimens(),
         content = content,
     )

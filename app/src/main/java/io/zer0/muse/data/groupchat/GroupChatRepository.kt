@@ -7,6 +7,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.MessageImageStore
 import io.zer0.muse.data.session.MuseDb
+import io.zer0.muse.data.sharing.takeCodePoints
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -490,7 +491,8 @@ class GroupChatRepository(
             docs.add(
                 GroupSharedDoc(
                     id = docId,
-                    title = title.take(200),
+                    // 标题会序列化进 sharedDocsJson：按码点截断，避免把 emoji 切成半个代理对
+                    title = title.takeCodePoints(200),
                     content = content,
                     addedAt = System.currentTimeMillis(),
                 ),

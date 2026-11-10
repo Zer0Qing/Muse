@@ -214,32 +214,26 @@ object WorkspaceFileSniffer {
     private fun bytes(vararg values: Int): ByteArray = ByteArray(values.size) { values[it].toByte() }
 
     /** RIFF 家族的通用判据：前 4 字节 RIFF，第 9..12 字节是派系名。 */
-    private fun riffTailIs(h: ByteArray, form: String): Boolean =
-        h.size >= 12 && String(h, 0, 4, Charsets.US_ASCII) == "RIFF" &&
-            String(h, 8, 4, Charsets.US_ASCII) == form
+    private fun riffTailIs(h: ByteArray, form: String): Boolean = h.size >= 12 && String(h, 0, 4, Charsets.US_ASCII) == "RIFF" &&
+        String(h, 8, 4, Charsets.US_ASCII) == form
 
     private fun isRiffWebp(h: ByteArray): Boolean = riffTailIs(h, "WEBP")
 
     private fun isRiffWave(h: ByteArray): Boolean = riffTailIs(h, "WAVE") || riffTailIs(h, "wave")
 
-    private fun isRiffAiff(h: ByteArray): Boolean =
-        riffTailIs(h, "AIFF") || riffTailIs(h, "AIFC") || riffTailIs(h, "16AF")
+    private fun isRiffAiff(h: ByteArray): Boolean = riffTailIs(h, "AIFF") || riffTailIs(h, "AIFC") || riffTailIs(h, "16AF")
 
     /** ISO-BMFF 容器（MP4/M4A/HEIF/AVIF）：第 5..8 字节是 "ftyp"。 */
-    private fun isFtyp(h: ByteArray): Boolean =
-        h.size >= 12 && String(h, 4, 4, Charsets.US_ASCII) == "ftyp"
+    private fun isFtyp(h: ByteArray): Boolean = h.size >= 12 && String(h, 4, 4, Charsets.US_ASCII) == "ftyp"
 
     /** HEIF/AVIF 归到说得出口的 MIME，不把 brand 字面量直接拼进子类型。 */
-    private fun imageBrandMime(brand: String): String =
-        if (brand == "avif" || brand == "avis") "image/avif" else "image/heif"
+    private fun imageBrandMime(brand: String): String = if (brand == "avif" || brand == "avis") "image/avif" else "image/heif"
 
     /** ADTS AAC：0xFF 开头，第二字节高 4 位全 1 且帧头位置位。 */
-    private fun isAdts(h: ByteArray): Boolean =
-        h.size >= 2 && h[0] == 0xFF.toByte() && (h[1].toInt() and 0xF6) == 0xF0
+    private fun isAdts(h: ByteArray): Boolean = h.size >= 2 && h[0] == 0xFF.toByte() && (h[1].toInt() and 0xF6) == 0xF0
 
     /** 无 ID3 头的裸 MP3：11 位帧同步（FF Ex）。 */
-    private fun isMp3FrameSync(h: ByteArray): Boolean =
-        h.size >= 4 && h[0] == 0xFF.toByte() && (h[1].toInt() and 0xE0) == 0xE0
+    private fun isMp3FrameSync(h: ByteArray): Boolean = h.size >= 4 && h[0] == 0xFF.toByte() && (h[1].toInt() and 0xE0) == 0xE0
 
     // ── 文本性判定 ──────────────────────────────────────────────────────
 

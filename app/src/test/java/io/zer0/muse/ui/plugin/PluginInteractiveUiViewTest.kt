@@ -1,9 +1,9 @@
 package io.zer0.muse.ui.plugin
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -43,8 +43,7 @@ class PluginInteractiveUiViewTest {
         }
     """.trimIndent()
 
-    private fun tree(source: String = formTree): PluginUiTree.Node =
-        requireNotNull(PluginUiTree.parse(source).root)
+    private fun tree(source: String = formTree): PluginUiTree.Node = requireNotNull(PluginUiTree.parse(source).root)
 
     @Test
     fun `unauthorized view disables submit and states the reason`() {

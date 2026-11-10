@@ -124,11 +124,7 @@ internal data class ToolRunLiveState(
  * 再挂一串 `a -> b -> c` 的工具名只是执行日志，既不是状态，也没人读。
  */
 @Composable
-private fun ToolRunLiveRow(
-    msgs: List<UIMessage>,
-    isActive: Boolean,
-    progressMessage: String?,
-) {
+private fun ToolRunLiveRow(msgs: List<UIMessage>, isActive: Boolean, progressMessage: String?) {
     if (!isActive) return
     val activity = resolveLiveActivity(
         msgs = msgs,
@@ -171,11 +167,7 @@ private fun thinkingPreview(raw: String?): String? {
  * 思考文字没落进消息时（刚发请求、首 token 未到）给一个占位词，
  * 否则这排会忽隐忽现，像卡住了。
  */
-private fun resolveLiveActivity(
-    msgs: List<UIMessage>,
-    progressMessage: String?,
-    thinkingPlaceholder: String,
-): String {
+private fun resolveLiveActivity(msgs: List<UIMessage>, progressMessage: String?, thinkingPlaceholder: String): String {
     if (!progressMessage.isNullOrBlank()) return progressMessage
     val raw = msgs.lastOrNull()?.reasoning?.takeIf { it.isNotBlank() }
         ?: msgs.lastOrNull { !it.reasoning.isNullOrBlank() }?.reasoning

@@ -91,7 +91,6 @@ class PluginScheduleRunner(
         return dispatched
     }
 
-
     private companion object {
         const val KIND_TOOL = "tool"
     }

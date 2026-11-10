@@ -1,8 +1,8 @@
 package io.zer0.muse.util
 
-import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * 长生命周期协程作用域的策略回归。

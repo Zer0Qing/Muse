@@ -116,9 +116,8 @@ object ProactiveReplyParser {
         return Result.Message(null, text, "")
     }
 
-    private fun stripFences(raw: String): String =
-        raw.replace(Regex("^```(?:json)?\\s*", RegexOption.MULTILINE), "")
-            .replace(Regex("\\s*```$", RegexOption.MULTILINE), "")
+    private fun stripFences(raw: String): String = raw.replace(Regex("^```(?:json)?\\s*", RegexOption.MULTILINE), "")
+        .replace(Regex("\\s*```$", RegexOption.MULTILINE), "")
 
     /** 从可能混着说明文字的输出里抠出第一个平衡的 JSON 对象。 */
     private fun extractJsonObject(text: String): String? {

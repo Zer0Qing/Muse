@@ -105,8 +105,7 @@ class EmbeddingVectorCacheTest {
             override val dimension: Int = 2
             override val modelName: String = "liar-model"
 
-            override suspend fun embed(texts: List<String>): List<FloatArray> =
-                texts.dropLast(1).map { floatArrayOf(1f, 2f) }
+            override suspend fun embed(texts: List<String>): List<FloatArray> = texts.dropLast(1).map { floatArrayOf(1f, 2f) }
         }
         assertNull(
             "条数不匹配时必须整体失败，不能把错位的向量配给别的文本",

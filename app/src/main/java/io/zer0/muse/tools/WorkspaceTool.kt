@@ -150,10 +150,14 @@ object WorkspaceTool {
         val media = manager.resolveMedia(path, scope) ?: notText.asMediaTarget()
         val context = manager.mediaContext
         val tooBigToProbe = media.sizeBytes > PROBE_CEILING_BYTES
-        val bytes = if (tooBigToProbe) null else media.uri?.let { uri ->
-            runCatching {
-                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            }.getOrNull()
+        val bytes = if (tooBigToProbe) {
+            null
+        } else {
+            media.uri?.let { uri ->
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }.getOrNull()
+            }
         }
         val dimensions = bytes?.let {
             val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -251,14 +255,13 @@ object WorkspaceTool {
      * 因为工具结果回填给模型只能带文本，图片得由编排器识别后另发一条带图 USER 消息。
      * 复用同一个约定，不再开第二条媒体通道。
      */
-    private fun screenshotJson(dataText: String, base64: String, display: String): String =
-        org.json.JSONObject().apply {
-            put("success", true)
-            put("data", dataText)
-            put("error", org.json.JSONObject.NULL)
-            put(BrowserAutomationTool.SCREENSHOT_RESULT_FIELD, base64)
-            put(BrowserAutomationTool.SCREENSHOT_CAPTION_FIELD, "[工作区图片] 以下是文件 $display 的原图。")
-        }.toString()
+    private fun screenshotJson(dataText: String, base64: String, display: String): String = org.json.JSONObject().apply {
+        put("success", true)
+        put("data", dataText)
+        put("error", org.json.JSONObject.NULL)
+        put(BrowserAutomationTool.SCREENSHOT_RESULT_FIELD, base64)
+        put(BrowserAutomationTool.SCREENSHOT_CAPTION_FIELD, "[工作区图片] 以下是文件 $display 的原图。")
+    }.toString()
 
     private fun WorkspaceManager.ReadResult.NotText.asMediaTarget(): WorkspaceManager.MediaTarget =
         WorkspaceManager.MediaTarget(display, kind, mimeType, sizeBytes, null)
@@ -505,11 +508,7 @@ object WorkspaceTool {
     }
 
     /** workspace_edit 的执行体：在全文快照上判唯一片段 → 替换 → 落盘 → 回行级 diff。 */
-    private suspend fun executeEdit(
-        args: Map<String, String>,
-        manager: WorkspaceManager,
-        scope: Set<String>?,
-    ): String {
+    private suspend fun executeEdit(args: Map<String, String>, manager: WorkspaceManager, scope: Set<String>?): String {
         val path = args["path"]?.trim()?.takeIf { it.isNotEmpty() }
         val oldString = args["old_string"]
         val newString = args["new_string"]
@@ -524,12 +523,14 @@ object WorkspaceTool {
         // 必须整份读：片段匹配要跑在对全文的一份快照上，分页读到的一半内容匹配不上。
         // 读与写被包在同一把路径锁里完成（[WorkspaceManager.editFile]）：
         // 只锁写等于没锁——两个并发调用会各自读到旧内容再各自写回，丢一次更新。
-        return when (val r = manager.editFile(path, scope) { original ->
-            when (val plan = planEdit(original, oldString, newString, path)) {
-                is EditPlan.Rejected -> WorkspaceManager.EditDecision.Abort(plan.message)
-                is EditPlan.Applied -> WorkspaceManager.EditDecision.Commit(plan.updated)
+        return when (
+            val r = manager.editFile(path, scope) { original ->
+                when (val plan = planEdit(original, oldString, newString, path)) {
+                    is EditPlan.Rejected -> WorkspaceManager.EditDecision.Abort(plan.message)
+                    is EditPlan.Applied -> WorkspaceManager.EditDecision.Commit(plan.updated)
+                }
             }
-        }) {
+        ) {
             is WorkspaceManager.EditResult.Applied -> renderEdited(path, r)
             is WorkspaceManager.EditResult.Rejected -> "Error: ${r.message}"
             is WorkspaceManager.EditResult.Failed -> "Error: ${r.message}"
@@ -565,8 +566,9 @@ object WorkspaceTool {
         val rejection = when {
             oldString.isEmpty() -> "old_string 不能为空：空片段在任何位置都能匹配,无法确定要改哪里"
             oldString == newString -> "新旧内容相同，无需修改：new_string 与 old_string 逐字一致"
-            occurrences > 1 -> "old_string 在 $path 中出现 $occurrences 次，请提供更多上下文使其唯一" +
-                "(本工具不会只替换第一处)"
+            occurrences > 1 ->
+                "old_string 在 $path 中出现 $occurrences 次，请提供更多上下文使其唯一" +
+                    "(本工具不会只替换第一处)"
             occurrences == 0 -> editMissingMessage(original, oldString, path)
             else -> null
         }

@@ -48,6 +48,8 @@ class MiniPhoneMomentsViewModel(
     private val material: MpCharacterMaterial,
     private val onlyMine: Boolean = false,
     private val random: Random = Random.Default,
+    /** 点赞人没设昵称时补称呼用；没有 Context 的替身退回空串（那一行会跳过空名，与以前一致）。 */
+    private val context: android.content.Context? = null,
 ) : ViewModel() {
 
     private val mutableState = MutableStateFlow(MomentsUiState())
@@ -257,6 +259,7 @@ class MiniPhoneMomentsViewModel(
                 likes = likes[entity.id].orEmpty(),
                 comments = comments[entity.id].orEmpty(),
                 characters = characters,
+                nameFallback = ::likeNameFallback,
             )
         }
     }
@@ -267,7 +270,18 @@ class MiniPhoneMomentsViewModel(
         likes = repository.likesOf(entity.id),
         comments = repository.commentsOf(entity.id),
         characters = characters,
+        nameFallback = ::likeNameFallback,
     )
+
+    /** 点赞人没设昵称时的称呼，按当前语言取。 */
+    private fun likeNameFallback(type: MpActorType): String {
+        val res = when (type) {
+            MpActorType.USER -> io.zer0.muse.miniphone.R.string.mp_moments_self_name
+            // 点赞只可能是本机用户或角色；系统不会点赞，真出现也按角色称呼显示，不留空行
+            MpActorType.CHARACTER, MpActorType.SYSTEM -> io.zer0.muse.miniphone.R.string.mp_moments_character_name
+        }
+        return context?.getString(res).orEmpty()
+    }
 
     private fun updateRow(momentId: String, transform: (MomentUi) -> MomentUi) {
         mutableState.update { state ->

@@ -163,8 +163,7 @@ class HookRegistry {
     fun size(): Int = allHooks.size
 
     /** 该 Hook 实例对应的接口桶。注册与注销共用一份口径。 */
-    private fun hookTypesOf(hook: SkillHook): List<KClass<out SkillHook>> =
-        HOOK_TYPES.filter { it.java.isInstance(hook) }
+    private fun hookTypesOf(hook: SkillHook): List<KClass<out SkillHook>> = HOOK_TYPES.filter { it.java.isInstance(hook) }
 
     private companion object {
         /**

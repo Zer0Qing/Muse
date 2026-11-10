@@ -96,13 +96,13 @@ class RoomConversationStoreTest {
     }
 
     private fun commandReceipt(commandId: String, fingerprint: String) = ConversationCommandReceiptEntity(
-            commandId = commandId,
-            fingerprint = fingerprint,
-            payloadJson = "{}",
-            sessionId = "session-1",
-            messageId = "user-1",
-            turnId = "turn-1",
-            acceptedAt = 1L,
-            resultJson = "{}",
-        )
+        commandId = commandId,
+        fingerprint = fingerprint,
+        payloadJson = "{}",
+        sessionId = "session-1",
+        messageId = "user-1",
+        turnId = "turn-1",
+        acceptedAt = 1L,
+        resultJson = "{}",
+    )
 }

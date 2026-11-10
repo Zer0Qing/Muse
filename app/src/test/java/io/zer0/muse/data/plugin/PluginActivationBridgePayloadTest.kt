@@ -40,8 +40,7 @@ class PluginActivationBridgePayloadTest {
         )
     }
 
-    private fun parse(payload: String): JsonObject =
-        io.zer0.common.AppJson.parseToJsonElement(payload).let { it as JsonObject }
+    private fun parse(payload: String): JsonObject = io.zer0.common.AppJson.parseToJsonElement(payload).let { it as JsonObject }
 
     @Test
     fun `a message payload names the event and carries the text`() {

@@ -7,12 +7,19 @@ package io.zer0.muse.miniphone.ui.chat
  */
 internal object MiniPhoneChatTags {
     const val PEER_NAME = "mp-chat-peer-name"
+
+    /** 顶栏的两个通话入口。 */
+    const val CHAT_CALL_VOICE = "mp-chat-call-voice"
+    const val CHAT_CALL_VIDEO = "mp-chat-call-video"
+
     const val TOP_AVATAR = "mp-chat-top-avatar"
     const val BACK_BUTTON = "mp-chat-back"
     const val MESSAGE_LIST = "mp-chat-list"
     const val INPUT_FIELD = "mp-chat-input"
     const val SEND_BUTTON = "mp-chat-send"
     const val PICK_IMAGE = "mp-chat-pick-image"
+    const val STICKER_BUTTON = "mp-chat-sticker-button"
+    const val STICKER_PANEL = "mp-chat-sticker-panel"
 
     /** 语音输入键:空闲时开始录音,录音中变成「结束」。 */
     const val MIC_BUTTON = "mp-chat-mic"
@@ -89,6 +96,7 @@ internal object MiniPhoneChatTags {
     fun bubble(id: String): String = "mp-chat-bubble-$id"
 
     fun image(id: String): String = "mp-chat-image-$id"
+    fun stickerItem(id: String): String = "mp-chat-sticker-$id"
 
     fun imageBroken(id: String): String = "mp-chat-image-broken-$id"
 

@@ -55,8 +55,8 @@ import io.zer0.muse.data.session.MigrationProgressBus
 import io.zer0.muse.intent.ShareIntentHandler
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.MuseRoutes
-import io.zer0.muse.ui.common.animation.MuseFluidSharedHost
 import io.zer0.muse.ui.SafeModeScreen
+import io.zer0.muse.ui.common.animation.MuseFluidSharedHost
 import io.zer0.muse.ui.common.feedback.MuseToastHost
 import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
@@ -734,47 +734,48 @@ private fun MuseNavGraph(
                     val navVisibleEntries by navController.visibleEntries.collectAsStateWithLifecycle()
                     val navTransitioning = navVisibleEntries.size > 1
 
-                    MuseFluidSharedHost { NavHost(
-                        navController = navController,
-                        startDestination = startDestination,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.background)
-                            .pointerInput(navTransitioning) {
-                                if (navTransitioning) {
-                                    awaitPointerEventScope {
-                                        while (true) {
-                                            awaitPointerEvent(PointerEventPass.Initial)
-                                                .changes.forEach { it.consume() }
+                    MuseFluidSharedHost {
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                                .pointerInput(navTransitioning) {
+                                    if (navTransitioning) {
+                                        awaitPointerEventScope {
+                                            while (true) {
+                                                awaitPointerEvent(PointerEventPass.Initial)
+                                                    .changes.forEach { it.consume() }
+                                            }
                                         }
                                     }
-                                }
-                            },
-                        // 默认过渡与各子 NavGraph 复用同一套 helper，避免根图和二级图的
-                        // 时长/位移/淡入淡出语义漂移。
-                        enterTransition = { MuseTransitions.horizontalPushEnter() },
-                        exitTransition = { MuseTransitions.horizontalPushExit() },
-                        popEnterTransition = { MuseTransitions.horizontalPopEnter() },
-                        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-                    ) {
-                        // P0-3: NavGraph 子图抽取 — 66 个 composable 拆分到 4 个域文件
-                        chatNavGraph(
-                            navController = navController,
-                            sharedViewModel = sharedViewModel,
-                        )
-                        assistantNavGraph(
-                            navController = navController,
-                            sharedViewModel = sharedViewModel,
-                        )
-                        settingsNavGraph(
-                            navController = navController,
-                            sharedViewModel = sharedViewModel,
-                        )
-                        toolsNavGraph(
-                            navController = navController,
-                            sharedViewModel = sharedViewModel,
-                        )
-                    }
+                                },
+                            // 默认过渡与各子 NavGraph 复用同一套 helper，避免根图和二级图的
+                            // 时长/位移/淡入淡出语义漂移。
+                            enterTransition = { MuseTransitions.horizontalPushEnter() },
+                            exitTransition = { MuseTransitions.horizontalPushExit() },
+                            popEnterTransition = { MuseTransitions.horizontalPopEnter() },
+                            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+                        ) {
+                            // P0-3: NavGraph 子图抽取 — 66 个 composable 拆分到 4 个域文件
+                            chatNavGraph(
+                                navController = navController,
+                                sharedViewModel = sharedViewModel,
+                            )
+                            assistantNavGraph(
+                                navController = navController,
+                                sharedViewModel = sharedViewModel,
+                            )
+                            settingsNavGraph(
+                                navController = navController,
+                                sharedViewModel = sharedViewModel,
+                            )
+                            toolsNavGraph(
+                                navController = navController,
+                                sharedViewModel = sharedViewModel,
+                            )
+                        }
                     } // 关闭共享元素宿主（全应用唯一 SharedTransitionLayout）
                     // 引导页里点「从备份恢复数据」:覆盖层先退场,这一帧之后再进云端备份页。
                     LaunchedEffect(pendingOnboardingRoute) {

@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.muse.ui.SsrfGuard
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

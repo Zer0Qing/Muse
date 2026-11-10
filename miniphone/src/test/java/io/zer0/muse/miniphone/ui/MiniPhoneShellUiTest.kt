@@ -1,6 +1,8 @@
 package io.zer0.muse.miniphone.ui
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -35,8 +37,6 @@ import io.zer0.muse.miniphone.ui.shell.assembleShellState
 import io.zer0.muse.miniphone.ui.shell.contactSectionsOf
 import io.zer0.muse.miniphone.ui.shell.miniPhoneVersionLabel
 import io.zer0.muse.miniphone.ui.theme.MiniPhoneTheme
-import io.zer0.muse.miniphone.ui.theme.darkMiniPhoneColors
-import io.zer0.muse.miniphone.ui.theme.lightMiniPhoneColors
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -203,7 +203,7 @@ class MiniPhoneShellUiTest {
             MiniPhoneTheme(darkTheme = false) {
                 MiniPhoneShell(
                     state = ShellUiState(contactSections = sections),
-                    chatContent = { threadId, _ ->
+                    chatContent = { threadId, _, _ ->
                         Text(text = "chat:$threadId", modifier = Modifier.testTag(FAKE_CHAT_TAG))
                     },
                     onOpenCharacterChat = { characterId ->
@@ -294,22 +294,27 @@ class MiniPhoneShellUiTest {
     }
 
     @Test
-    fun darkThemePassesDarkPaletteDown() {
-        assertEquals(Color(0xFFF5F3EF), lightMiniPhoneColors().background)
-        assertEquals(Color(0xFF12110F), darkMiniPhoneColors().background)
-        assertEquals(Color(0xFF24211D), darkMiniPhoneColors().surface)
-        assertEquals(Color(0xFF7C9B85), darkMiniPhoneColors().accent)
-
-        var captured: Color? = null
+    fun themeDerivesColorsFromHostMaterialTheme() {
+        val scheme = darkColorScheme(
+            background = Color(0xFF12110F),
+            surface = Color(0xFF24211D),
+            primary = Color(0xFF7C9B85),
+        )
+        var capturedBg: Color? = null
+        var capturedAccent: Color? = null
         compose.setContent {
-            MiniPhoneTheme(darkTheme = true) {
-                captured = MiniPhoneTheme.colors.background
-                MiniPhoneShell(state = ShellUiState())
+            MaterialTheme(colorScheme = scheme) {
+                MiniPhoneTheme(darkTheme = true) {
+                    capturedBg = MiniPhoneTheme.colors.background
+                    capturedAccent = MiniPhoneTheme.colors.accent
+                    MiniPhoneShell(state = ShellUiState())
+                }
             }
         }
         compose.waitForIdle()
 
-        assertEquals(Color(0xFF12110F), captured)
+        assertEquals("小手机颜色应等于宿主 colorScheme，不再自带色板", Color(0xFF12110F), capturedBg)
+        assertEquals(Color(0xFF7C9B85), capturedAccent)
     }
 
     @Test

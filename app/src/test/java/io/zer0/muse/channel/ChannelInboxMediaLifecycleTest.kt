@@ -45,7 +45,6 @@ class ChannelInboxMediaLifecycleTest {
         directory.deleteRecursively()
     }
 
-
     /** 全部分片 + 旧单文件的文本（迁移前后都能断言）。 */
     private fun persistedText(): String {
         val dir = File(directory, ChannelInbox.INBOX_DIR_NAME)

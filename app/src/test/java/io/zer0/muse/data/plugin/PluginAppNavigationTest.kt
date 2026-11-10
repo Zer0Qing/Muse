@@ -2,8 +2,8 @@ package io.zer0.muse.data.plugin
 
 import io.zer0.muse.tools.script.SkillBridge
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -60,8 +60,7 @@ class PluginAppNavigationTest {
 
     private fun hostApi() = PluginHostApi(writeConfig = { _, _, _ -> })
 
-    private fun navigateRequest(target: String) =
-        """{"__bridge__":true,"action":"app_navigate","params":{"target":"$target"}}"""
+    private fun navigateRequest(target: String) = """{"__bridge__":true,"action":"app_navigate","params":{"target":"$target"}}"""
 
     @Test
     fun `without the capability the action is refused`() = runTest {

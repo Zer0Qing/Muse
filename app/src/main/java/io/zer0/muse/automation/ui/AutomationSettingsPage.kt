@@ -9,7 +9,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,16 +42,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
-import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.AutomationSettingsStore
+import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSwitch
-import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -127,48 +127,11 @@ fun AutomationSettingsPage(
                 if (page != AutomationSubPage.LANDING) subPage = AutomationSubPage.LANDING else onBack()
             },
         ) {
-        // 顶部说明卡
-        item(key = "intro") {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.computer,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = stringResource(R.string.automation_settings_intro),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-
-        // 总闸关闭时，页面顶部先给一条醒目提示：否则用户只会看到「开关是关的」，
-        // 却不知道这意味着所有屏幕自动化工具此刻都在拒绝执行。
-        // 两条横幅**必须互斥**：一条说「为什么现在不能用」，一条说「去哪儿开回来」；
-        // 同时出现只会让用户读到两句互相矛盾的话。
-        // 以前这个互斥只靠两句手写条件（`!enabled` 与 `enabled && !a11y`）维持，
-        // 谁改一句就可能同时点亮 —— 所以把判定抽出来，见文件末尾的 [automationBannerKind]。
-        val bannerKind = automationBannerKind(
-            automationEnabled = automationEnabled,
-            accessibilityEnabled = permissionState.accessibilityEnabled,
-        )
-        when (bannerKind) {
-            AutomationBannerKind.MASTER_OFF -> {
-            item(key = "master-off-banner") {
+            // 顶部说明卡
+            item(key = "intro") {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
@@ -177,193 +140,234 @@ fun AutomationSettingsPage(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(
-                            imageVector = MuseIcons.shield,
+                            imageVector = MuseIcons.computer,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            text = stringResource(R.string.automation_master_off_banner),
+                            text = stringResource(R.string.automation_settings_intro),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             }
-        }
 
-        // R1: 总闸开着、但无障碍服务当前不可用（多半是被系统回收/用户关了开关）。
-        // 与上面的「总闸关闭」横幅互斥：那条说「为什么不能用」，这条说「去哪开回来」。
-            AutomationBannerKind.A11Y_OFF -> {
-            item(key = "a11y-off-banner") {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = MuseIcons.shield,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        )
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.automation_a11y_off_banner),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            )
-                            Text(
-                                text = stringResource(R.string.automation_a11y_off_action),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .padding(top = 6.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        manager.openSystemSettings(
-                                            AutomationManager.SystemSettingsTarget.ACCESSIBILITY,
-                                        )
-                                    }
-                                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                            )
+            // 总闸关闭时，页面顶部先给一条醒目提示：否则用户只会看到「开关是关的」，
+            // 却不知道这意味着所有屏幕自动化工具此刻都在拒绝执行。
+            // 两条横幅**必须互斥**：一条说「为什么现在不能用」，一条说「去哪儿开回来」；
+            // 同时出现只会让用户读到两句互相矛盾的话。
+            // 以前这个互斥只靠两句手写条件（`!enabled` 与 `enabled && !a11y`）维持，
+            // 谁改一句就可能同时点亮 —— 所以把判定抽出来，见文件末尾的 [automationBannerKind]。
+            val bannerKind = automationBannerKind(
+                automationEnabled = automationEnabled,
+                accessibilityEnabled = permissionState.accessibilityEnabled,
+            )
+            when (bannerKind) {
+                AutomationBannerKind.MASTER_OFF -> {
+                    item(key = "master-off-banner") {
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Icon(
+                                    imageVector = MuseIcons.shield,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                                Text(
+                                    text = stringResource(R.string.automation_master_off_banner),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // R1: 总闸开着、但无障碍服务当前不可用（多半是被系统回收/用户关了开关）。
+                // 与上面的「总闸关闭」横幅互斥：那条说「为什么不能用」，这条说「去哪开回来」。
+                AutomationBannerKind.A11Y_OFF -> {
+                    item(key = "a11y-off-banner") {
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Icon(
+                                    imageVector = MuseIcons.shield,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.automation_a11y_off_banner),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.automation_a11y_off_action),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .padding(top = 6.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                manager.openSystemSettings(
+                                                    AutomationManager.SystemSettingsTarget.ACCESSIBILITY,
+                                                )
+                                            }
+                                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                AutomationBannerKind.NONE -> Unit
+            }
+
+            // v2.x: 三通道权限配置已收敛到「权限配置向导」(消除两页逐层重复)
+            if (page == AutomationSubPage.ACCESS) {
+                item(key = "permissions-entry") {
+                    SettingsGroup {
+                        SettingsItemRow(
+                            icon = MuseIcons.shieldCheck,
+                            title = stringResource(R.string.permission_wizard_title),
+                            subtitle = stringResource(R.string.permission_wizard_desc),
+                            onClick = onOpenPermissionWizard,
+                        ) {
+                            ChevronRight()
                         }
                     }
                 }
             }
-        }
 
-            AutomationBannerKind.NONE -> Unit
-        }
-
-        // v2.x: 三通道权限配置已收敛到「权限配置向导」(消除两页逐层重复)
-        if (page == AutomationSubPage.ACCESS) item(key = "permissions-entry") {
-            SettingsGroup {
-                SettingsItemRow(
-                    icon = MuseIcons.shieldCheck,
-                    title = stringResource(R.string.permission_wizard_title),
-                    subtitle = stringResource(R.string.permission_wizard_desc),
-                    onClick = onOpenPermissionWizard,
-                ) {
-                    ChevronRight()
+            // 虚拟屏交接（P1-02）：任务跑完把屏留下来时，用户在这里看得到、也能自己点。
+            val handoffs = io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
+                .list(System.currentTimeMillis())
+            if (page == AutomationSubPage.ACCESS && handoffs.isNotEmpty()) {
+                item(key = "vdisplay-handoff") {
+                    VirtualDisplayHandoffSection(
+                        handoffs = handoffs,
+                        expandedId = handoffExpanded,
+                        onExpand = { id -> handoffExpanded = id },
+                        onClose = { id ->
+                            // 关闭 = 放弃交接 + 销毁：留着它就是一块用户看不见、还占资源的屏
+                            io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry.release(id)
+                            handoffExpanded = null
+                            scope.launch { io.zer0.muse.automation.AutomationRuntime.destroy(id) }
+                        },
+                    )
                 }
             }
-        }
 
-        // 虚拟屏交接（P1-02）：任务跑完把屏留下来时，用户在这里看得到、也能自己点。
-        val handoffs = io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
-            .list(System.currentTimeMillis())
-        if (page == AutomationSubPage.ACCESS && handoffs.isNotEmpty()) {
-            item(key = "vdisplay-handoff") {
-                VirtualDisplayHandoffSection(
-                    handoffs = handoffs,
-                    expandedId = handoffExpanded,
-                    onExpand = { id -> handoffExpanded = id },
-                    onClose = { id ->
-                        // 关闭 = 放弃交接 + 销毁：留着它就是一块用户看不见、还占资源的屏
-                        io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry.release(id)
-                        handoffExpanded = null
-                        scope.launch { io.zer0.muse.automation.AutomationRuntime.destroy(id) }
+            // 25: 两个并列总闸收进同一张卡，减少「一项一卡」的堆砌感；行为与开关各自独立不变。
+            item(key = "automation-master") {
+                SettingsGroup {
+                    SettingsItemRow(
+                        icon = MuseIcons.switch,
+                        title = stringResource(R.string.automation_master_title),
+                        subtitle = stringResource(R.string.automation_master_desc),
+                        onClick = null,
+                    ) {
+                        MuseSwitch(
+                            checked = automationEnabled,
+                            onCheckedChange = settings?.let { repository ->
+                                { enabled -> scope.launch { repository.saveAutomationEnabled(enabled) } }
+                            },
+                            contentDescription = stringResource(R.string.automation_master_title),
+                        )
+                    }
+                    // AUD-20261011-TASKER-ABUSE: exported broadcast remains opt-in and visibly warns about model cost.
+                    SettingsItemRow(
+                        icon = MuseIcons.link,
+                        title = stringResource(R.string.automation_tasker_title),
+                        subtitle = stringResource(R.string.automation_tasker_desc),
+                        onClick = null,
+                    ) {
+                        MuseSwitch(
+                            checked = taskerEnabled,
+                            onCheckedChange = settings?.let { repository ->
+                                { enabled -> scope.launch { repository.saveTaskerTriggerEnabled(enabled) } }
+                            },
+                            contentDescription = stringResource(R.string.automation_tasker_title),
+                        )
+                    }
+                }
+            }
+
+            // 25: 总览页的三个子页入口（默认全开：点进去即可配置，不再一页堆砌）。
+            if (page == AutomationSubPage.LANDING) {
+                item(key = "sub-menu") {
+                    SettingsGroup {
+                        SettingsItemRow(
+                            icon = MuseIcons.shieldCheck,
+                            title = stringResource(R.string.automation_sub_access),
+                            subtitle = stringResource(R.string.automation_sub_access_desc),
+                            onClick = { subPage = AutomationSubPage.ACCESS },
+                        ) { ChevronRight() }
+                        SettingsItemRow(
+                            icon = MuseIcons.computer,
+                            title = stringResource(R.string.automation_sub_autonomous),
+                            subtitle = stringResource(R.string.automation_sub_autonomous_desc),
+                            onClick = { subPage = AutomationSubPage.AUTONOMOUS },
+                        ) { ChevronRight() }
+                        SettingsItemRow(
+                            icon = MuseIcons.clock,
+                            title = stringResource(R.string.automation_sub_orchestration),
+                            subtitle = stringResource(R.string.automation_sub_orchestration_desc),
+                            onClick = { subPage = AutomationSubPage.ORCHESTRATION },
+                        ) { ChevronRight() }
+                    }
+                }
+            }
+
+            if (page == AutomationSubPage.AUTONOMOUS) {
+                item(key = "autonomous-accessibility") {
+                    AutonomousAccessibilityItem(
+                        loaded = autonomousLoaded,
+                        draft = autonomousDraft,
+                        packageEditor = packageEditor,
+                        taskPreview = taskPreview,
+                        grant = taskGrant,
+                        store = automationSettingsStore,
+                        onDraftChange = { autonomousDraft = it },
+                        onPackageEditorChange = { packageEditor = it },
+                        onGrantChange = { taskGrant = it },
+                    )
+                }
+            }
+
+            // v1.xxx: F-24 编排与测试子页（抽成独立函数，页内只留分流，降复杂度）。
+            if (page == AutomationSubPage.ORCHESTRATION) {
+                orchestrationSubPage(
+                    testing = testing,
+                    testResult = testResult,
+                    onRunTest = {
+                        scope.launch {
+                            testing = true
+                            testResult = null
+                            testResult = runScreenReadTest(manager, context)
+                            testing = false
+                        }
                     },
+                    onOpenScheduledTasks = onOpenScheduledTasks,
                 )
             }
         }
-
-        // 25: 两个并列总闸收进同一张卡，减少「一项一卡」的堆砌感；行为与开关各自独立不变。
-        item(key = "automation-master") {
-            SettingsGroup {
-                SettingsItemRow(
-                    icon = MuseIcons.switch,
-                    title = stringResource(R.string.automation_master_title),
-                    subtitle = stringResource(R.string.automation_master_desc),
-                    onClick = null,
-                ) {
-                    MuseSwitch(
-                        checked = automationEnabled,
-                        onCheckedChange = settings?.let { repository ->
-                            { enabled -> scope.launch { repository.saveAutomationEnabled(enabled) } }
-                        },
-                        contentDescription = stringResource(R.string.automation_master_title),
-                    )
-                }
-                // AUD-20261011-TASKER-ABUSE: exported broadcast remains opt-in and visibly warns about model cost.
-                SettingsItemRow(
-                    icon = MuseIcons.link,
-                    title = stringResource(R.string.automation_tasker_title),
-                    subtitle = stringResource(R.string.automation_tasker_desc),
-                    onClick = null,
-                ) {
-                    MuseSwitch(
-                        checked = taskerEnabled,
-                        onCheckedChange = settings?.let { repository ->
-                            { enabled -> scope.launch { repository.saveTaskerTriggerEnabled(enabled) } }
-                        },
-                        contentDescription = stringResource(R.string.automation_tasker_title),
-                    )
-                }
-            }
-        }
-
-        // 25: 总览页的三个子页入口（默认全开：点进去即可配置，不再一页堆砌）。
-        if (page == AutomationSubPage.LANDING) {
-            item(key = "sub-menu") {
-                SettingsGroup {
-                    SettingsItemRow(
-                        icon = MuseIcons.shieldCheck,
-                        title = stringResource(R.string.automation_sub_access),
-                        subtitle = stringResource(R.string.automation_sub_access_desc),
-                        onClick = { subPage = AutomationSubPage.ACCESS },
-                    ) { ChevronRight() }
-                    SettingsItemRow(
-                        icon = MuseIcons.computer,
-                        title = stringResource(R.string.automation_sub_autonomous),
-                        subtitle = stringResource(R.string.automation_sub_autonomous_desc),
-                        onClick = { subPage = AutomationSubPage.AUTONOMOUS },
-                    ) { ChevronRight() }
-                    SettingsItemRow(
-                        icon = MuseIcons.clock,
-                        title = stringResource(R.string.automation_sub_orchestration),
-                        subtitle = stringResource(R.string.automation_sub_orchestration_desc),
-                        onClick = { subPage = AutomationSubPage.ORCHESTRATION },
-                    ) { ChevronRight() }
-                }
-            }
-        }
-
-        if (page == AutomationSubPage.AUTONOMOUS) item(key = "autonomous-accessibility") {
-            AutonomousAccessibilityItem(
-                loaded = autonomousLoaded,
-                draft = autonomousDraft,
-                packageEditor = packageEditor,
-                taskPreview = taskPreview,
-                grant = taskGrant,
-                store = automationSettingsStore,
-                onDraftChange = { autonomousDraft = it },
-                onPackageEditorChange = { packageEditor = it },
-                onGrantChange = { taskGrant = it },
-            )
-        }
-
-        // v1.xxx: F-24 编排与测试子页（抽成独立函数，页内只留分流，降复杂度）。
-        if (page == AutomationSubPage.ORCHESTRATION) {
-            orchestrationSubPage(
-                testing = testing,
-                testResult = testResult,
-                onRunTest = {
-                    scope.launch {
-                        testing = true
-                        testResult = null
-                        testResult = runScreenReadTest(manager, context)
-                        testing = false
-                    }
-                },
-                onOpenScheduledTasks = onOpenScheduledTasks,
-            )
-        }
-    }
     }
 }
 
@@ -506,33 +510,32 @@ private fun automationSubPageTitleRes(subPage: AutomationSubPage): Int = when (s
 }
 
 /** 25: 屏幕读取自测的执行逻辑（从页面 onClick 抽出，页面只负责状态翻转）。 */
-private suspend fun runScreenReadTest(manager: AutomationManager, context: android.content.Context): ScreenTestResult =
-    runCatching {
-        manager.refreshPermissions()
-        val screen = manager.readScreen()
-        if (screen.source == "unavailable") {
-            ScreenTestResult(context.getString(R.string.automation_test_no_channel), success = false)
-        } else {
-            val unknown = context.getString(R.string.automation_test_unknown)
-            // ST-04: 包名与数据来源属开发者诊断信息,收进 devInfo 折叠区
-            ScreenTestResult(
-                message = buildString {
-                    appendLine(context.getString(R.string.automation_test_node_count, screen.nodes.size))
-                    appendLine(context.getString(R.string.automation_test_resolution, screen.screenWidth, screen.screenHeight))
-                }.trimEnd('\n'),
-                success = true,
-                devInfo = buildString {
-                    appendLine(context.getString(R.string.automation_test_current_app, screen.packageName ?: unknown))
-                    appendLine(context.getString(R.string.automation_test_source, screen.source))
-                }.trimEnd('\n'),
-            )
-        }
-    }.getOrElse {
+private suspend fun runScreenReadTest(manager: AutomationManager, context: android.content.Context): ScreenTestResult = runCatching {
+    manager.refreshPermissions()
+    val screen = manager.readScreen()
+    if (screen.source == "unavailable") {
+        ScreenTestResult(context.getString(R.string.automation_test_no_channel), success = false)
+    } else {
+        val unknown = context.getString(R.string.automation_test_unknown)
+        // ST-04: 包名与数据来源属开发者诊断信息,收进 devInfo 折叠区
         ScreenTestResult(
-            context.getString(R.string.automation_test_failed, it.message ?: context.getString(R.string.automation_test_unknown)),
-            success = false,
+            message = buildString {
+                appendLine(context.getString(R.string.automation_test_node_count, screen.nodes.size))
+                appendLine(context.getString(R.string.automation_test_resolution, screen.screenWidth, screen.screenHeight))
+            }.trimEnd('\n'),
+            success = true,
+            devInfo = buildString {
+                appendLine(context.getString(R.string.automation_test_current_app, screen.packageName ?: unknown))
+                appendLine(context.getString(R.string.automation_test_source, screen.source))
+            }.trimEnd('\n'),
         )
     }
+}.getOrElse {
+    ScreenTestResult(
+        context.getString(R.string.automation_test_failed, it.message ?: context.getString(R.string.automation_test_unknown)),
+        success = false,
+    )
+}
 
 /**
  * 虚拟屏交接区：一行入口 + 展开后的预览/触摸面板。
@@ -661,10 +664,7 @@ internal enum class AutomationBannerKind { NONE, MASTER_OFF, A11Y_OFF }
  * 规则：总闸关着时只说「为什么现在不能用」—— 那时候去开无障碍是没意义的，
  * 两句同时冒出来只会互相矛盾。因此总闸优先，且三者互斥。
  */
-internal fun automationBannerKind(
-    automationEnabled: Boolean,
-    accessibilityEnabled: Boolean,
-): AutomationBannerKind = when {
+internal fun automationBannerKind(automationEnabled: Boolean, accessibilityEnabled: Boolean): AutomationBannerKind = when {
     !automationEnabled -> AutomationBannerKind.MASTER_OFF
     !accessibilityEnabled -> AutomationBannerKind.A11Y_OFF
     else -> AutomationBannerKind.NONE

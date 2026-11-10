@@ -169,13 +169,7 @@ object ThoughtDeriver {
         val source: ThoughtSource,
     )
 
-    private fun draft(
-        base: Base,
-        kind: ThoughtKind,
-        urgency: ThoughtUrgency,
-        expiresAt: Long?,
-        weight: Float,
-    ) = PendingThoughtEntity(
+    private fun draft(base: Base, kind: ThoughtKind, urgency: ThoughtUrgency, expiresAt: Long?, weight: Float) = PendingThoughtEntity(
         id = "th_${base.now}_${base.ref.hashCode().toUInt().toString(16)}",
         assistantId = base.assistantId,
         kind = kind.name,
@@ -191,8 +185,7 @@ object ThoughtDeriver {
     /** 记忆的稳定标识，用于去重与回溯。 */
     private fun factRef(fact: FactStore.Fact): String = "fact_${fact.id}"
 
-    private fun parseMillis(iso: String?): Long? =
-        iso?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
+    private fun parseMillis(iso: String?): Long? = iso?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
 
     private fun parseDate(raw: String?): LocalDate? {
         val s = raw?.trim()?.takeIf { it.isNotBlank() } ?: return null

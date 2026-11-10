@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mp_discover_relation">Сеть отношений</string>
+    <string name="mp_relation_title">Сеть отношений</string>
+    <string name="mp_relation_no_characters">В контактах пока нет персонажей</string>
+    <string name="mp_relation_from_section">Как он видит других</string>
+    <string name="mp_relation_to_section">Как другие видят его</string>
+    <string name="mp_relation_from_empty">Он ещё не сказал, как кого видит</string>
+    <string name="mp_relation_to_empty">Никто ещё не сказал, как видит его</string>
+    <string name="mp_relation_set_title">Записать мнение</string>
+    <string name="mp_relation_target_hint">Выберите, о ком</string>
+    <string name="mp_relation_label_hint">например: близкий друг, соперник, незнакомец</string>
+    <string name="mp_relation_set">Записать</string>
+    <string name="mp_relation_describe">Пусть скажет сам</string>
+</resources>

@@ -149,11 +149,7 @@ class ProviderRuntimeFilterTest {
         )
     }
 
-    private fun provider(
-        id: String,
-        enabled: Boolean,
-        modelIds: List<String>,
-    ): ProviderConfig = ProviderConfig(
+    private fun provider(id: String, enabled: Boolean, modelIds: List<String>): ProviderConfig = ProviderConfig(
         id = id,
         displayName = id,
         // 测试不需要真 key:空 apiKey 跳过 Keystore 加解密(Robolectric 无 AndroidKeyStore)

@@ -127,8 +127,7 @@ class StickerDraftStore(private val draftsRoot: File) {
     }
 
     /** 全部未过期草稿（启动时用来发现"上次没导完"的东西）。 */
-    fun list(): List<StickerDraft> =
-        draftsRoot.listFiles()?.filter { it.isDirectory }?.mapNotNull { load(it.name) } ?: emptyList()
+    fun list(): List<StickerDraft> = draftsRoot.listFiles()?.filter { it.isDirectory }?.mapNotNull { load(it.name) } ?: emptyList()
 
     /** 提交或取消之后都要调：整个草稿目录删掉。 */
     fun delete(id: String) {

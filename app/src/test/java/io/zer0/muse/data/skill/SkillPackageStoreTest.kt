@@ -77,9 +77,12 @@ class SkillPackageStoreTest {
 
         assertTrue("应以 prompt_file: 前缀编码", SkillImporter.isPromptSkill(stored))
         assertEquals("存相对路径，不能是绝对路径", true, !stored.contains(context.filesDir.absolutePath))
-        assertEquals(manifestBody(), SkillPackageStore(context).instructionBodyByPath(
-            requireNotNull(SkillImporter.promptFilePath(stored)),
-        ))
+        assertEquals(
+            manifestBody(),
+            SkillPackageStore(context).instructionBodyByPath(
+                requireNotNull(SkillImporter.promptFilePath(stored)),
+            ),
+        )
     }
 
     @Test
@@ -193,8 +196,7 @@ class SkillPackageStoreTest {
         assertNull("越界解析必须返回 null", outside)
     }
 
-    private fun manifestBody(): String =
-        requireNotNull(SkillPackage.parse(manifest).getOrNull()).body
+    private fun manifestBody(): String = requireNotNull(SkillPackage.parse(manifest).getOrNull()).body
 
     private fun tempZip(name: String, write: (ZipOutputStream) -> Unit): File {
         val file = File(Files.createTempDirectory("pkg-zip").toFile(), name)

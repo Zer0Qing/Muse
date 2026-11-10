@@ -49,8 +49,7 @@ class PluginCapabilityGateway(
      * [declared] 必须来自**磁盘重验后的 manifest**（`SkillMediaToolsImpl.kt:181` 已是该口径），
      * 不能取注册表缓存字段 —— 否则改一下包内清单就能绕过授权。
      */
-    fun allowedActions(pluginId: String, declared: List<String>): Set<String> =
-        actionsOf(grantedCapabilities(pluginId, declared))
+    fun allowedActions(pluginId: String, declared: List<String>): Set<String> = actionsOf(grantedCapabilities(pluginId, declared))
 
     /** 只查账、不看清单：给拿不到已重验 manifest 的执行点用（Hook、激活、沙盒网络出口）。 */
     fun approvedActions(pluginId: String): Set<String> = actionsOf(liveCapabilities(pluginId))
@@ -78,8 +77,10 @@ class PluginCapabilityGateway(
         val allowed = !disabled && (
             action in ALWAYS_ALLOWED_ACTIONS ||
                 sharedStorageAllowed ||
-                (capability != null &&
-                    (session.take(pluginId, capability) || capability in grantedCapabilities(pluginId, declared)))
+                (
+                    capability != null &&
+                        (session.take(pluginId, capability) || capability in grantedCapabilities(pluginId, declared))
+                    )
             )
         return when {
             allowed -> {
@@ -159,10 +160,9 @@ class PluginCapabilityGateway(
     /**
      * 清单新增但尚未批准的能力。权限页据此出"待重新审核"标记；是否为空即"要不要重审"。
      */
-    fun addedCapabilities(pluginId: String, declared: List<String>): Set<String> =
-        canonicalCapabilities(declared) - canonicalCapabilities(
-            store.plugins[pluginId]?.declaredCapabilities.orEmpty(),
-        )
+    fun addedCapabilities(pluginId: String, declared: List<String>): Set<String> = canonicalCapabilities(declared) - canonicalCapabilities(
+        store.plugins[pluginId]?.declaredCapabilities.orEmpty(),
+    )
 
     /** 当前生效的能力集合：既不含未声明的，也不含"升级新增未批准的"。 */
     fun grantedCapabilities(pluginId: String, declared: List<String>): Set<String> {
@@ -199,20 +199,20 @@ class PluginCapabilityGateway(
                 // 它仍然留在 declaredCapabilities 里（看得见），只是默认关。
                 PluginCapabilityGrant(
                     allowed = capability != UI_INTERACTIVE &&
-                capability != EVENT_ON_MESSAGE &&
-                capability != EVENT_ON_TOOL_CALL &&
-                capability != HOOK_TOOL_CALL_BEFORE &&
-                capability != HOOK_SYSTEM_PROMPT &&
-                capability != SCHEDULE &&
-                capability != NETWORK_LOCAL &&
-                capability != APP_NAVIGATE &&
-                capability != APP_MESSAGES &&
-                capability != APP_THEME &&
-                capability != UI_SLOT &&
-                capability != RUNTIME_LONG &&
-                capability != SCHEDULE_BACKGROUND &&
-                capability != RUNTIME_SERVICE &&
-                capability != APP_SETTINGS,
+                        capability != EVENT_ON_MESSAGE &&
+                        capability != EVENT_ON_TOOL_CALL &&
+                        capability != HOOK_TOOL_CALL_BEFORE &&
+                        capability != HOOK_SYSTEM_PROMPT &&
+                        capability != SCHEDULE &&
+                        capability != NETWORK_LOCAL &&
+                        capability != APP_NAVIGATE &&
+                        capability != APP_MESSAGES &&
+                        capability != APP_THEME &&
+                        capability != UI_SLOT &&
+                        capability != RUNTIME_LONG &&
+                        capability != SCHEDULE_BACKGROUND &&
+                        capability != RUNTIME_SERVICE &&
+                        capability != APP_SETTINGS,
                     decidedBy = PluginCapabilityGrant.DECIDED_BY_INSTALL_AUTO,
                     decidedAt = now(),
                 )
@@ -238,13 +238,7 @@ class PluginCapabilityGateway(
         return Decision.Deny(capability, reason)
     }
 
-    private fun writeGrant(
-        pluginId: String,
-        capability: String,
-        allowed: Boolean,
-        declared: List<String>,
-        decidedBy: String,
-    ) {
+    private fun writeGrant(pluginId: String, capability: String, allowed: Boolean, declared: List<String>, decidedBy: String) {
         store = store.copy(
             plugins = store.plugins.withRecord(pluginId, declared) { record ->
                 record.copy(
@@ -268,63 +262,63 @@ class PluginCapabilityGateway(
         /** 联网能力名，与清单词汇一致（沙盒网络出口按它判定）。 */
         const val NETWORK = "network"
 
-    /**
-     * 允许访问**私网/本机**地址（局域网里的服务、127.0.0.1、`.local`）。
-     *
-     * 与 [NETWORK] 是两件事：前者是能不能联网，这条是能不能连内网。
-     * 默认关：内网地址能把请求打到家里的路由器、NAS、本机的其它服务上，
-     * 这属于要用户明确点头的事，而不是装个插件就默认拥有。
-     */
-    const val NETWORK_LOCAL = "network.local"
+        /**
+         * 允许访问**私网/本机**地址（局域网里的服务、127.0.0.1、`.local`）。
+         *
+         * 与 [NETWORK] 是两件事：前者是能不能联网，这条是能不能连内网。
+         * 默认关：内网地址能把请求打到家里的路由器、NAS、本机的其它服务上，
+         * 这属于要用户明确点头的事，而不是装个插件就默认拥有。
+         */
+        const val NETWORK_LOCAL = "network.local"
 
-    /** 让宿主跳转到某个页面（页面白名单见 `PluginAppNavigation`）。默认关。 */
-    const val APP_NAVIGATE = "app.navigate"
+        /** 让宿主跳转到某个页面（页面白名单见 `PluginAppNavigation`）。默认关。 */
+        const val APP_NAVIGATE = "app.navigate"
 
-    /**
-     * 往会话里写消息。默认关且敏感：写进去的内容用户会当成"助手说过的话"，
-     * 这是能伪造历史的能力，必须由用户明确打开。
-     */
-    const val APP_MESSAGES = "app.messages"
+        /**
+         * 往会话里写消息。默认关且敏感：写进去的内容用户会当成"助手说过的话"，
+         * 这是能伪造历史的能力，必须由用户明确打开。
+         */
+        const val APP_MESSAGES = "app.messages"
 
-    /** 切明暗模式（浅色/深色/跟随系统）。默认关。 */
-    const val APP_THEME = "app.theme"
+        /** 切明暗模式（浅色/深色/跟随系统）。默认关。 */
+        const val APP_THEME = "app.theme"
 
-    /**
-     * 写应用设置。默认关，且只开放**外观类、可逆**的四项
-     * （字号 / 动态取色 / 高对比 / 默认首页）—— 开关类与数据类被插件改掉后
-     * 用户很难意识到发生了什么，也很难改回来。
-     */
-    const val APP_SETTINGS = "app.settings"
+        /**
+         * 写应用设置。默认关，且只开放**外观类、可逆**的四项
+         * （字号 / 动态取色 / 高对比 / 默认首页）—— 开关类与数据类被插件改掉后
+         * 用户很难意识到发生了什么，也很难改回来。
+         */
+        const val APP_SETTINGS = "app.settings"
 
-    /**
-     * 往宿主界面槽位里放自己的界面片段。
-     *
-     * 默认关：这条能改变用户**看到的**界面，而且内容来自插件包，
-     * 属于"要用户点头才显示"的东西。
-     */
-    const val UI_SLOT = "ui.slot"
+        /**
+         * 往宿主界面槽位里放自己的界面片段。
+         *
+         * 默认关：这条能改变用户**看到的**界面，而且内容来自插件包，
+         * 属于"要用户点头才显示"的东西。
+         */
+        const val UI_SLOT = "ui.slot"
 
-    /**
-     * 长任务：单次执行可以超过默认的 10 秒（上限 10 分钟）。
-     *
-     * 默认关：长时间占用意味着更久的电量与内存占用，而且插件卡住时用户会更晚发现。
-     */
-    const val RUNTIME_LONG = "runtime.long"
+        /**
+         * 长任务：单次执行可以超过默认的 10 秒（上限 10 分钟）。
+         *
+         * 默认关：长时间占用意味着更久的电量与内存占用，而且插件卡住时用户会更晚发现。
+         */
+        const val RUNTIME_LONG = "runtime.long"
 
-    /**
-     * 后台唤醒：应用不在前台（甚至进程被回收）时，定时任务仍可被系统唤醒补跑。
-     *
-     * 与 [SCHEDULE] 分开是刻意的：`schedule` 管"能不能按时间跑"，
-     * 这条管"没人看着的时候能不能跑"。后者更敏感（耗电、无人值守），默认关。
-     */
-    const val SCHEDULE_BACKGROUND = "schedule.background"
+        /**
+         * 后台唤醒：应用不在前台（甚至进程被回收）时，定时任务仍可被系统唤醒补跑。
+         *
+         * 与 [SCHEDULE] 分开是刻意的：`schedule` 管"能不能按时间跑"，
+         * 这条管"没人看着的时候能不能跑"。后者更敏感（耗电、无人值守），默认关。
+         */
+        const val SCHEDULE_BACKGROUND = "schedule.background"
 
-    /**
-     * 前台服务：插件可以常驻运行（一条常驻通知承载所有服务型插件）。
-     *
-     * 默认关，且是**最重的一项**：它意味着应用会在用户不看着的时候一直活着。
-     */
-    const val RUNTIME_SERVICE = "runtime.service"
+        /**
+         * 前台服务：插件可以常驻运行（一条常驻通知承载所有服务型插件）。
+         *
+         * 默认关，且是**最重的一项**：它意味着应用会在用户不看着的时候一直活着。
+         */
+        const val RUNTIME_SERVICE = "runtime.service"
 
         /**
          * Python 运行时档：**清单不能自我授予**，只能由用户在权限面板显式打开。
@@ -346,39 +340,39 @@ class PluginCapabilityGateway(
          */
         const val UI_INTERACTIVE = "ui.interactive"
 
-    /**
-     * 懒激活事件（观察型）：每条用户消息、每次工具调用都会叫醒一次插件。
-     *
-     * 默认**关闭**：声明 ≠ 授权。这两个事件本身不改数据，但会持续运行插件代码，
-     * 属于"要用户点头才跑"的那一类；作者在清单里声明后，用户可在能力面板里打开。
-     */
-    const val EVENT_ON_MESSAGE = "event.onMessage"
+        /**
+         * 懒激活事件（观察型）：每条用户消息、每次工具调用都会叫醒一次插件。
+         *
+         * 默认**关闭**：声明 ≠ 授权。这两个事件本身不改数据，但会持续运行插件代码，
+         * 属于"要用户点头才跑"的那一类；作者在清单里声明后，用户可在能力面板里打开。
+         */
+        const val EVENT_ON_MESSAGE = "event.onMessage"
 
-    const val EVENT_ON_TOOL_CALL = "event.onToolCall"
+        const val EVENT_ON_TOOL_CALL = "event.onToolCall"
 
-    /**
-     * 决策型钩子：工具调用前能否**拦下**。
-     *
-     * 默认关闭且属于敏感能力：它能阻止用户本来能做的事，
-     * 也意味着插件能看到工具名与参数（参数里常有用户内容）。
-     */
-    const val HOOK_TOOL_CALL_BEFORE = "hook.toolCallBefore"
+        /**
+         * 决策型钩子：工具调用前能否**拦下**。
+         *
+         * 默认关闭且属于敏感能力：它能阻止用户本来能做的事，
+         * 也意味着插件能看到工具名与参数（参数里常有用户内容）。
+         */
+        const val HOOK_TOOL_CALL_BEFORE = "hook.toolCallBefore"
 
-    /**
-     * 决策型钩子：能否往系统提示词里追加文本。
-     *
-     * 默认关闭且属于敏感能力：系统提示词决定模型怎么理解自己的角色，
-     * 能往里写文本就等于能改写助手行为。追加内容一律带来源标记（见 PluginPromptInjection）。
-     */
-    const val HOOK_SYSTEM_PROMPT = "hook.systemPrompt"
+        /**
+         * 决策型钩子：能否往系统提示词里追加文本。
+         *
+         * 默认关闭且属于敏感能力：系统提示词决定模型怎么理解自己的角色，
+         * 能往里写文本就等于能改写助手行为。追加内容一律带来源标记（见 PluginPromptInjection）。
+         */
+        const val HOOK_SYSTEM_PROMPT = "hook.systemPrompt"
 
-    /**
-     * 定时执行：插件可以在应用存活期间按间隔跑自己的任务。
-     *
-     * 默认关闭且属于敏感能力：这是**无人值守**地运行插件代码，
-     * 用户不在场时它照样会动数据。
-     */
-    const val SCHEDULE = "schedule"
+        /**
+         * 定时执行：插件可以在应用存活期间按间隔跑自己的任务。
+         *
+         * 默认关闭且属于敏感能力：这是**无人值守**地运行插件代码，
+         * 用户不在场时它照样会动数据。
+         */
+        const val SCHEDULE = "schedule"
 
         /** 通路自检动作：不携带任何外泄面，始终放行。 */
         val ALWAYS_ALLOWED_ACTIONS: Set<String> = setOf("echo")
@@ -436,8 +430,7 @@ class PluginCapabilityGateway(
         )
 
         /** 把声明/查询里的能力名统一成映射表的规范名。 */
-        fun canonicalCapabilities(capabilities: Collection<String>): Set<String> =
-            capabilities.map { CAPABILITY_ALIASES[it] ?: it }.toSet()
+        fun canonicalCapabilities(capabilities: Collection<String>): Set<String> = capabilities.map { CAPABILITY_ALIASES[it] ?: it }.toSet()
 
         private val CAPABILITY_FOR_ACTION: Map<String, String> =
             CAPABILITY_ACTIONS.entries.flatMap { (capability, actions) -> actions.map { it to capability } }.toMap()
@@ -460,10 +453,12 @@ class PluginCapabilityGateway(
                 declaredCapabilities = canonicalCapabilities(declared).sorted(),
                 declarationHash = declarationHash(declared),
             )
-            return this + (pluginId to transform(existing).copy(
-                declaredCapabilities = canonicalCapabilities(declared).sorted(),
-                declarationHash = declarationHash(declared),
-            ))
+            return this + (
+                pluginId to transform(existing).copy(
+                    declaredCapabilities = canonicalCapabilities(declared).sorted(),
+                    declarationHash = declarationHash(declared),
+                )
+                )
         }
     }
 }

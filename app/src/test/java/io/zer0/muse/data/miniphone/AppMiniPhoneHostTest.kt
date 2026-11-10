@@ -22,8 +22,8 @@ import io.zer0.muse.miniphone.api.MpActivityKind
 import io.zer0.muse.miniphone.api.MpChatTurn
 import io.zer0.muse.miniphone.api.MpReplyEvent
 import io.zer0.muse.miniphone.data.db.MpActorType
-import io.zer0.muse.ui.speech.VoiceMessageArchiver
 import io.zer0.muse.ui.speech.TtsSynthResult
+import io.zer0.muse.ui.speech.VoiceMessageArchiver
 import io.zer0.muse.ui.speech.VoiceSynthesizer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -482,11 +482,7 @@ class AppMiniPhoneHostTest {
     )
 
     /** 语音用例专用的宿主:只关心 TTS 端口与存档端口的配合。 */
-    private fun voiceHost(
-        synthesizer: VoiceSynthesizer,
-        store: VoiceMessageArchiver,
-        cacheDir: File,
-    ): AppMiniPhoneHost = AppMiniPhoneHost(
+    private fun voiceHost(synthesizer: VoiceSynthesizer, store: VoiceMessageArchiver, cacheDir: File): AppMiniPhoneHost = AppMiniPhoneHost(
         assistantRepository = defaultRepo(),
         settingsRepository = mockk(relaxed = true),
         textGenerator = mockk(relaxed = true),

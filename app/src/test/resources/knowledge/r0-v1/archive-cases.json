@@ -1,0 +1,35 @@
+{
+  "archivePath": "archive/special-paths.zip",
+  "baselineStatus": "待基线",
+  "entries": [
+    "共享目录/同名 guide.md",
+    "folder%_wildcard/readme.md",
+    "folder_with_underscore/report.md",
+    "dir with spaces/中文 名字.md",
+    "nested/../safe-name.md",
+    "__MACOSX/._ignored",
+    "a/b/百分号%和_下划线.md"
+  ],
+  "entryCount": 7,
+  "expectedVirtualPaths": [
+    "共享目录/同名 guide.md",
+    "folder%_wildcard/readme.md",
+    "folder_with_underscore/report.md",
+    "dir with spaces/中文 名字.md",
+    "a/b/百分号%和_下划线.md"
+  ],
+  "fixtureSetVersion": "r0-v1",
+  "literalWildcardPaths": [
+    "folder%_wildcard/readme.md",
+    "folder_with_underscore/report.md",
+    "a/b/百分号%和_下划线.md"
+  ],
+  "notes": "特殊字符按字面路径处理；上跳形状条目不得进入可检索虚拟路径。",
+  "pathNormalizationStatus": "待基线",
+  "rejectedEntries": [
+    "nested/../safe-name.md",
+    "__MACOSX/._ignored"
+  ],
+  "schemaVersion": 1,
+  "traversalShapedEntry": "nested/../safe-name.md"
+}

@@ -1,0 +1,1 @@
+R0_VECTOR_SPACE_MARKER 同维度异模型不得混检。

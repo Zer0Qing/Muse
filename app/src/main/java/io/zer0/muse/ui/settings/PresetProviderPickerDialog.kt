@@ -45,8 +45,8 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.theme.MuseShapes
-import org.koin.compose.koinInject
 import io.zer0.muse.ui.theme.bodyLargeEmphasis
+import org.koin.compose.koinInject
 
 /**
  * v1.38: 预置供应商选择器 — 全屏页面(替代原 ModalBottomSheet,根治关闭后卡死 bug)。

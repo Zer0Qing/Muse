@@ -1,10 +1,10 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.muse.automation.core.AutomationAction
 import io.zer0.muse.automation.core.AutonomousAccessibilityGrant
 import io.zer0.muse.automation.core.AutonomousAccessibilityRuntimeSnapshot
 import io.zer0.muse.automation.core.AutonomousAccessibilityTaskScope
 import io.zer0.muse.automation.core.AutonomousAccessibilityWindow
-import io.zer0.muse.automation.core.AutomationAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test

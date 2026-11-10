@@ -63,12 +63,7 @@ object StickerGridLayout {
      * @param isBackground 由调用方提供的"这像素是不是背景"判定（背景色估计在渲染层做，
      *   那边才知道页面有没有被填白）
      */
-    fun layout(
-        pixels: IntArray,
-        width: Int,
-        height: Int,
-        isBackground: (Int) -> Boolean,
-    ): List<StickerMontageSplitter.Cell> {
+    fun layout(pixels: IntArray, width: Int, height: Int, isBackground: (Int) -> Boolean): List<StickerMontageSplitter.Cell> {
         if (width <= 0 || height <= 0 || pixels.size < width * height) return emptyList()
         val bands = rowBands(pixels, width, height, isBackground)
         if (bands.isEmpty() || bands.size > MAX_ROW_BANDS) return emptyList()
@@ -78,12 +73,7 @@ object StickerGridLayout {
     }
 
     /** 行带：整行墨量足够高的连续区段。 */
-    private fun rowBands(
-        pixels: IntArray,
-        width: Int,
-        height: Int,
-        isBackground: (Int) -> Boolean,
-    ): List<IntRange> {
+    private fun rowBands(pixels: IntArray, width: Int, height: Int, isBackground: (Int) -> Boolean): List<IntRange> {
         val profile = ArrayList<Float>()
         val indexes = ArrayList<Int>()
         var y = 0

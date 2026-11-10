@@ -39,11 +39,11 @@ import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.titleSmallStrong
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.koin.compose.koinInject
 import org.koin.core.qualifier.named
-import io.zer0.muse.ui.theme.titleSmallStrong
 
 /**
  * 崩溃上报页 — 一个按钮，没有需要用户填的东西。

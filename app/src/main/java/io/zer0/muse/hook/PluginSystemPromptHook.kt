@@ -30,6 +30,5 @@ class PluginSystemPromptHook(
         return bridge.composeSystemPromptAppend(payload).orEmpty()
     }
 
-    private fun quote(value: String): String =
-        io.zer0.common.AppJson.encodeToString(String.serializer(), value)
+    private fun quote(value: String): String = io.zer0.common.AppJson.encodeToString(String.serializer(), value)
 }

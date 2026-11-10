@@ -909,4 +909,3 @@ private fun StatusLine(done: Boolean, text: String) {
 }
 
 private fun buildGlobalActionsHelp(context: Context): String = context.getString(R.string.permission_action_id_help)
-

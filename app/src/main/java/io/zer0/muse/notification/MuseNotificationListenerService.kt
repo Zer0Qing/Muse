@@ -1,6 +1,5 @@
 package io.zer0.muse.notification
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
@@ -12,6 +11,7 @@ import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationManagerCompat
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -68,7 +68,7 @@ class MuseNotificationListenerService : NotificationListenerService() {
         private const val TAG = "MuseNotifListener"
         private const val REBIND_BACKOFF_MS = 30_000L
         private val stateLock = Any()
-    private val persistenceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
+        private val persistenceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
         private val persistenceMutex = Mutex()
 
         // 事件快速到达时,只允许最新快照落盘,防止并发 IO 把旧列表写回。

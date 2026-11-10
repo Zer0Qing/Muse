@@ -141,6 +141,5 @@ class SkillImportJournalTest {
         assertTrue("没有崩溃保险这件事必须进日志：$seen", seen.any { it.contains("崩溃保险") })
     }
 
-    private fun markerExists(skillId: String): Boolean =
-        File(root, ".importing-$skillId.journal").exists()
+    private fun markerExists(skillId: String): Boolean = File(root, ".importing-$skillId.journal").exists()
 }

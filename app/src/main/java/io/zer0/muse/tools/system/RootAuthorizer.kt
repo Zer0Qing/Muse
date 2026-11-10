@@ -106,15 +106,13 @@ class RootAuthorizer(private val context: Context) {
      * 内核 sucompat 直接拦截 execve，File.exists() 查不到；追加 /data/adb(root 方案数据目录)
      * 与已安装管理器作为预筛信号。存在这些都不代表已授权，授权以 [grantState] 为准。
      */
-    fun isAvailable(): Boolean =
-        SU_PATHS.any { File(it).exists() } ||
-            File("/data/adb").exists() ||
-            whichSu() ||
-            installedManager() != null
+    fun isAvailable(): Boolean = SU_PATHS.any { File(it).exists() } ||
+        File("/data/adb").exists() ||
+        whichSu() ||
+        installedManager() != null
 
     /** 已安装的 root 管理器展示名；无则 null。 */
-    fun installedManager(): String? =
-        MANAGER_PACKAGES.firstOrNull { (pkg, _) -> isPackageInstalled(pkg) }?.second
+    fun installedManager(): String? = MANAGER_PACKAGES.firstOrNull { (pkg, _) -> isPackageInstalled(pkg) }?.second
 
     fun isManagerInstalled(): Boolean = installedManager() != null
 

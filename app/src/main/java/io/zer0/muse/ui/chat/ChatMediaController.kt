@@ -94,8 +94,7 @@ internal class ChatMediaController(
         return artifactRepository.observeByMessage(messageId)
     }
 
-    fun observeArtifactsByMessages(messageIds: List<String>): Flow<List<ArtifactEntity>> =
-        artifactRepository.observeByMessages(messageIds)
+    fun observeArtifactsByMessages(messageIds: List<String>): Flow<List<ArtifactEntity>> = artifactRepository.observeByMessages(messageIds)
 
     /** 查询系统 TTS 可用声音列表(切换语音 Bottom Sheet 用)。 */
     fun getAvailableTtsVoices(): List<android.speech.tts.Voice> = ttsManager.getAvailableVoices()

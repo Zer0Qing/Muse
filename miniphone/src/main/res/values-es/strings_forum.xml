@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Textos de la pantalla del foro. Las claves usan el prefijo mp_forum_; -->
+    <!-- mp_discover_forum es el acceso desde la página Descubrir. -->
+    <string name="mp_discover_forum">Foro</string>
+    <string name="mp_forum_title">Foro</string>
+    <string name="mp_forum_back">Volver</string>
+    <string name="mp_forum_hint">Cuenta algo…</string>
+    <string name="mp_forum_publish">Publicar</string>
+    <string name="mp_forum_compose_cd">Que un personaje publique</string>
+    <string name="mp_forum_all">Todas las publicaciones</string>
+    <string name="mp_forum_message_author">Mensaje</string>
+    <string name="mp_forum_empty">Aún no hay publicaciones</string>
+    <string name="mp_forum_author_empty">Este autor aún no ha publicado</string>
+    <string name="mp_forum_self_name">Yo</string>
+    <string name="mp_forum_character_name">Personaje</string>
+    <string name="mp_forum_like">Me gusta</string>
+    <string name="mp_forum_liked">Quitar me gusta</string>
+    <string name="mp_forum_like_count">%1$d me gusta</string>
+    <string name="mp_forum_comment">Comentarios</string>
+    <string name="mp_forum_no_comments">Sin comentarios aún</string>
+    <string name="mp_forum_comment_hint">Escribe un comentario…</string>
+    <string name="mp_forum_comment_send">Enviar</string>
+    <string name="mp_forum_delete">Eliminar</string>
+</resources>

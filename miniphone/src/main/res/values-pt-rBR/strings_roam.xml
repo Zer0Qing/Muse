@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Vagar (R7): lugares fictícios, pedestres e estados vazios. -->
+    <string name="mp_discover_roam">Vagar</string>
+    <string name="mp_roam_title">Vagar</string>
+    <string name="mp_roam_empty">Ninguém saiu ainda. Escolha um personagem para passear.</string>
+    <string name="mp_roam_who">Quem sai</string>
+    <string name="mp_roam_location_hint">Para onde? Digite um lugar</string>
+    <string name="mp_roam_depart">Partir</string>
+    <string name="mp_roam_npc_title">Transeuntes por aqui</string>
+    <string name="mp_roam_encounter">Conhecer alguém</string>
+    <string name="mp_roam_clear">Limpar este lugar</string>
+    <string name="mp_roam_no_npc">Ainda não conheceu ninguém por aqui</string>
+</resources>

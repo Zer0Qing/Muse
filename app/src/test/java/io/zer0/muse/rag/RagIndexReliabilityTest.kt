@@ -180,4 +180,62 @@ class RagIndexReliabilityTest {
             stagingDir.deleteRecursively()
         }
     }
+
+    /**
+     * E（保尾 green guard）—— 完整正文走 inline 分支重建时,尾标记不得在预览线处丢失。
+     *
+     * 与上一个测试互补:上一个钉「正文只是预览 → 回源原件流式重建」;这一个钉
+     * 「正文本身就是完整内容(contentHash 与正文一致) → 直接 inline 重建」。
+     * 完整正文超过 500K 预览线,尾标记落在截断点之后;inline 分支必须把全文喂给
+     * indexDocumentInternal,尾标记同时到达 embedding 与落库 chunk。
+     *
+     * 这是 green guard(现状正确):若后续批次让 inline 重建在 REINDEX_PREVIEW_CHARS 处
+     * 截断正文,尾标记丢失 → 本测试转红。不提供 sourceContentProvider,确保走的是 inline
+     * 分支而非回源分支(回源分支在缺 provider 时会 error,从而暴露分支误走)。
+     */
+    @Test
+    fun `inline full-content reindex preserves tail beyond preview cap`() = runBlocking {
+        val tailMarker = "INLINE-TAIL-BEYOND-PREVIEW-CAP"
+        val fullContent = "inline-head " + "x".repeat(500_000) + " " + tailMarker
+        val doc = KnowledgeDocEntity(
+            id = "inline-doc",
+            title = "Inline complete document",
+            content = fullContent,
+            contentHash = RagService.computeContentHash(fullContent),
+            chunkCount = 1,
+            embeddingModel = "old-model",
+        )
+        val storedChunks = mutableListOf<KnowledgeChunkEntity>()
+        val chunkDao = mockk<KnowledgeChunkDao>(relaxed = true)
+        val docDao = mockk<KnowledgeDocDao>(relaxed = true)
+        val ftsDao = mockk<KnowledgeChunkFtsDao>(relaxed = true)
+        val provider = RecordingEmbeddingProvider()
+        coEvery { docDao.getById("inline-doc") } returns doc
+        coEvery { chunkDao.getFirstIndexedEmbeddingDim() } returns null
+        coEvery { chunkDao.getByDoc("inline-doc") } returns emptyList()
+        coEvery { chunkDao.insertAll(any()) } coAnswers { storedChunks.addAll(firstArg<List<KnowledgeChunkEntity>>()) }
+        val rag = service(chunkDao, docDao, ftsDao, provider = provider)
+
+        rag.reindexDocument(
+            docId = doc.id,
+            ragConfig = RagConfig(
+                chunkSize = 1000,
+                chunkOverlap = 100,
+                markdownAware = false,
+                hybridEnabled = false,
+                rerankEnabled = false,
+                threshold = 0f,
+                topK = 8,
+            ),
+        )
+
+        assertTrue(
+            "尾标记必须到达 embedding(inline 完整正文不得在预览线截断)",
+            provider.receivedTexts.any { it.contains(tailMarker) },
+        )
+        assertTrue(
+            "尾标记必须落库到 chunk(端到端保尾,而非只喂给 embedding)",
+            storedChunks.any { it.content.contains(tailMarker) },
+        )
+    }
 }

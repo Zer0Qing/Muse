@@ -460,8 +460,12 @@ class SubagentRunnerTest {
         coEvery { mockToolRegistry.executeFromJson("write_file", any()) } returns "written"
 
         val runner = SubagentRunner(
-            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
-            mockk(relaxed = true), router,
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            router,
         )
         val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
 
@@ -508,8 +512,12 @@ class SubagentRunnerTest {
         coEvery { mockToolRegistry.executeFromJson("write_file", any()) } returns "written"
 
         val runner = SubagentRunner(
-            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
-            mockk(relaxed = true), router,
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            router,
         )
         val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
 
@@ -544,8 +552,12 @@ class SubagentRunnerTest {
 
         // settings = null ⇒ 模式取不到,兜底 STRICT
         val runner = SubagentRunner(
-            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
-            mockk(relaxed = true), ToolApprovalRouter(),
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
         )
         val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
 
@@ -580,8 +592,13 @@ class SubagentRunnerTest {
         val settings = mockSettings(SessionPermissionMode.ASK)
 
         val runner = SubagentRunner(
-            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
-            mockk(relaxed = true), ToolApprovalRouter(), settings,
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+            settings,
         )
         val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
 
@@ -615,8 +632,13 @@ class SubagentRunnerTest {
         coEvery { mockToolRegistry.executeFromJson("write_file", any()) } returns "written"
 
         val runner = SubagentRunner(
-            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
-            mockk(relaxed = true), ToolApprovalRouter(), mockSettings(SessionPermissionMode.TRUSTED),
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+            mockSettings(SessionPermissionMode.TRUSTED),
         )
         val result = runner.run(SubagentRunner.Params(task = "写文件", maxToolCalls = 3))
 
@@ -665,8 +687,13 @@ class SubagentRunnerTest {
             coEvery { mockToolRegistry.executeFromJson(probeTool, any()) } returns "done"
 
             val runner = SubagentRunner(
-                mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
-                mockk(relaxed = true), ToolApprovalRouter(), mockSettings(SessionPermissionMode.TRUSTED),
+                mockChatService,
+                mockToolRegistry,
+                mockThreadStore(),
+                mockLimiter(),
+                mockk(relaxed = true),
+                ToolApprovalRouter(),
+                mockSettings(SessionPermissionMode.TRUSTED),
             )
             val result = runner.run(SubagentRunner.Params(task = "探针", maxToolCalls = 3))
 
@@ -772,8 +799,12 @@ class SubagentRunnerTest {
         } returns ChatCompletion(text = "完成", finishReason = "stop")
 
         val runner = SubagentRunner(
-            mockChatService, mockToolRegistry, mockThreadStore(), mockLimiter(),
-            mockk(relaxed = true), ToolApprovalRouter(),
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
         )
         runner.run(SubagentRunner.Params(task = "整理笔记"))
 

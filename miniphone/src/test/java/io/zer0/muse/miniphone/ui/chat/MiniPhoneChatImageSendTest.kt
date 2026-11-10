@@ -187,9 +187,7 @@ class MiniPhoneChatImageSendTest {
         var clock = NOW_BASE
         return MiniPhoneChatViewModel(
             threadId = THREAD_ID,
-            messageDao = db.messageDao(),
-            threadDao = db.threadDao(),
-            memberDao = db.threadMemberDao(),
+            db = db,
             groupStore = MpGroupChatStore(
                 db = db,
                 threadDao = db.threadDao(),

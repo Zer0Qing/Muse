@@ -8,20 +8,18 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import io.zer0.common.AppJson
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.Serializable
 
 internal object ConversationSelectionCodec {
     private val serializer = MapSerializer(String.serializer(), String.serializer())
 
-    fun encode(selection: Map<String, String>): String =
-        AppJson.encodeToString(serializer, selection)
+    fun encode(selection: Map<String, String>): String = AppJson.encodeToString(serializer, selection)
 
-    fun decode(json: String): Map<String, String> =
-        runCatching { AppJson.decodeFromString(serializer, json) }.getOrElse {
-            throw IllegalArgumentException("invalid persisted conversation selection", it)
-        }
+    fun decode(json: String): Map<String, String> = runCatching { AppJson.decodeFromString(serializer, json) }.getOrElse {
+        throw IllegalArgumentException("invalid persisted conversation selection", it)
+    }
 }
 
 @Entity(

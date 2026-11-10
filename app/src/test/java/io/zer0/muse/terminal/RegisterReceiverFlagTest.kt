@@ -143,8 +143,7 @@ class RegisterReceiverFlagTest {
 
     private fun lineOf(source: String, index: Int): Int = source.take(index).count { it == '\n' } + 1
 
-    private fun oneLine(call: String): String =
-        call.replace(WHITESPACE, " ").let { if (it.length > 160) it.take(160) + "..." else it }
+    private fun oneLine(call: String): String = call.replace(WHITESPACE, " ").let { if (it.length > 160) it.take(160) + "..." else it }
 
     /**
      * 把行注释、块注释（Kotlin 可嵌套）、字符串与字符字面量替换成空格，保留换行与长度，
@@ -230,21 +229,18 @@ class RegisterReceiverFlagTest {
         return i
     }
 
-    private fun sourceRoots(): List<File> =
-        listOf("app/src/main/java", "src/main/java")
-            .map(::File)
-            .filter(File::isDirectory)
-            .ifEmpty { listOfNotNull(File("../app/src/main/java").takeIf(File::isDirectory)) }
+    private fun sourceRoots(): List<File> = listOf("app/src/main/java", "src/main/java")
+        .map(::File)
+        .filter(File::isDirectory)
+        .ifEmpty { listOfNotNull(File("../app/src/main/java").takeIf(File::isDirectory)) }
 
-    private fun kotlinSources(root: File): List<File> =
-        // 用 java.io 遍历：单测跑在 android.jar 下，避免依赖未被 mock 的 NIO 目录 API。
+    private fun kotlinSources(root: File): List<File> = // 用 java.io 遍历：单测跑在 android.jar 下，避免依赖未被 mock 的 NIO 目录 API。
         root.walkTopDown().filter { it.isFile && it.name.endsWith(".kt") }.toList()
 
-    private fun relativeName(file: File): String =
-        file.path.replace('/', File.separatorChar).let { path ->
-            val marker = "src${File.separator}main${File.separator}java${File.separator}"
-            if (path.contains(marker)) path.substringAfter(marker) else file.name
-        }
+    private fun relativeName(file: File): String = file.path.replace('/', File.separatorChar).let { path ->
+        val marker = "src${File.separator}main${File.separator}java${File.separator}"
+        if (path.contains(marker)) path.substringAfter(marker) else file.name
+    }
 
     private companion object {
         const val EXPORTED = "RECEIVER_EXPORTED"
@@ -255,7 +251,6 @@ class RegisterReceiverFlagTest {
         val IDENTIFIER = Regex("""\b[A-Za-z_][A-Za-z0-9_]*\b""")
         val WHITESPACE = Regex("""\s+""")
 
-        fun declaredValue(name: String): Regex =
-            Regex("""\b(?:val|var)\s+${Regex.escape(name)}\b[^=\n]*=""")
+        fun declaredValue(name: String): Regex = Regex("""\b(?:val|var)\s+${Regex.escape(name)}\b[^=\n]*=""")
     }
 }

@@ -8,25 +8,25 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.plugin.PluginBridgeRouter
-import io.zer0.muse.data.plugin.PluginUiTree
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
 import io.zer0.muse.data.plugin.PluginCapabilityLedgers
-import io.zer0.muse.data.plugin.PluginFunctionInvoker
-import io.zer0.muse.tools.script.NodePluginEngine
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import io.zer0.muse.data.plugin.PluginManifest
 import io.zer0.muse.data.plugin.PluginChatBridge
+import io.zer0.muse.data.plugin.PluginFunctionInvoker
 import io.zer0.muse.data.plugin.PluginManager
+import io.zer0.muse.data.plugin.PluginManifest
+import io.zer0.muse.data.plugin.PluginUiTree
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.sticker.StickerLibraryRepository
+import io.zer0.muse.tools.script.NodePluginEngine
 import io.zer0.muse.tools.script.PythonSkillEngine
 import io.zer0.muse.tools.script.SkillBridge
 import io.zer0.muse.tools.script.SkillEngineResult
 import io.zer0.muse.tools.script.WebViewSkillEngine
 import io.zer0.muse.ui.qrcode.QrCodeGenerator
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * P1-3b 拆域：Skill 媒体/JS/插件工具实现（从 SkillExecutor.kt 迁移）。
@@ -211,7 +211,6 @@ class SkillMediaToolsImpl(
         val configJson = manager.getPluginConfigJson(verified.manifest)
         val argsJson = "[" + argumentsJson.ifBlank { "{}" } + "]"
 
-
         // v2.7 → P0-6: 按 manifest.runtime 分派执行引擎。
         //  - python：内置 CPython 子进程（高信任档，需用户单独允许）
         //  - node：内置 Node 子进程 + vm 无网络上下文（可打断、可杀，见 NodePluginEngine）
@@ -275,17 +274,17 @@ class SkillMediaToolsImpl(
         pluginId: String,
         manifest: PluginManifest,
     ): String = when (result) {
-            is SkillEngineResult.Success -> bridgeOrValue(result.valueJson, pluginId, manifest, manager)
-            is SkillEngineResult.Error -> {
-                if (JsSandbox.isCircuitBrokenFor(pluginId)) {
-                    resultOf { manager.setEnabled(pluginId, false) }
-                        .onError { msg, _ -> Logger.w("SkillMediaToolsImpl", "自动禁用插件失败: $msg") }
-                    "插件已自动禁用: JS 沙盒连续超时，请稍后重试"
-                } else {
-                    "插件工具执行失败: ${result.message}"
-                }
+        is SkillEngineResult.Success -> bridgeOrValue(result.valueJson, pluginId, manifest, manager)
+        is SkillEngineResult.Error -> {
+            if (JsSandbox.isCircuitBrokenFor(pluginId)) {
+                resultOf { manager.setEnabled(pluginId, false) }
+                    .onError { msg, _ -> Logger.w("SkillMediaToolsImpl", "自动禁用插件失败: $msg") }
+                "插件已自动禁用: JS 沙盒连续超时，请稍后重试"
+            } else {
+                "插件工具执行失败: ${result.message}"
             }
         }
+    }
 
     /**
      * 桥接动作按**能力账本**放行（P0-2）。此前这里无条件传 `ALL_ACTIONS`，
@@ -295,12 +294,8 @@ class SkillMediaToolsImpl(
      *  1. `fs_*` 仍锁定在插件自己的沙盒目录 `workspace/plugins/<pluginId>`，防路径逃逸；
      *  2. `http_*` 仍走 SSRF 防护（拒内网/本地地址）。
      */
-    private suspend fun bridgeOrValue(
-        value: String,
-        pluginId: String,
-        manifest: PluginManifest,
-        manager: PluginManager,
-    ): String = when (val bridge = bridgeHandle(value, pluginId, manifest, manager)) {
+    private suspend fun bridgeOrValue(value: String, pluginId: String, manifest: PluginManifest, manager: PluginManager): String =
+        when (val bridge = bridgeHandle(value, pluginId, manifest, manager)) {
             is SkillBridge.HandleResult.NotBridge ->
                 runCatching { AppJson.decodeFromString<String>(value) }.getOrElse { value.ifBlank { "null" } }
             // 桥接请求的执行结果作为技能返回值直接返回给 LLM
@@ -345,11 +340,7 @@ class SkillMediaToolsImpl(
      *     插件没法"先存再返回新界面"。这不是偏好，是运行时的既成限制，直说比静默失效诚实；
      *  4. handler 自己抛错 —— 原文带回，界面保留用户已填内容。
      */
-    suspend fun invokeUiSubmitHandler(
-        pluginId: String,
-        handlerName: String,
-        valuesJson: String,
-    ): UiSubmitResult {
+    suspend fun invokeUiSubmitHandler(pluginId: String, handlerName: String, valuesJson: String): UiSubmitResult {
         val prepared = prepareDeclaredCall(pluginId, handlerName, forInteractiveUi = true)
         val plan = prepared.plan
             ?: return UiSubmitResult.Rejected(prepared.reason ?: "无法开始这次界面提交")
@@ -389,11 +380,7 @@ class SkillMediaToolsImpl(
      * [forInteractiveUi] 只影响两条 UI 专属规则（`ui.interactive` 授权 + node 运行时）：
      * 命令没有这两条限制 —— js 档单轮桥接也能返回一段文本，没必要为此拒绝。
      */
-    private suspend fun prepareDeclaredCall(
-        pluginId: String,
-        handlerName: String,
-        forInteractiveUi: Boolean,
-    ): DeclaredCallPreparation {
+    private suspend fun prepareDeclaredCall(pluginId: String, handlerName: String, forInteractiveUi: Boolean): DeclaredCallPreparation {
         val manager = pluginManager
         val plugin = manager?.findPlugin(pluginId)
         val verified = manager?.loadVerifiedPlugin(pluginId)
@@ -463,7 +450,6 @@ class SkillMediaToolsImpl(
         }
     }
 
-
     /** 面板提交的两种结果。[UiSubmitResult.Rejected.reason] 要能直接显示给用户。 */
     sealed interface UiSubmitResult {
         data class Tree(val parsed: PluginUiTree.Parsed) : UiSubmitResult
@@ -471,8 +457,7 @@ class SkillMediaToolsImpl(
     }
 
     /** 引擎返回的是 JSON 字符串字面量（带引号），组件树要的是裸对象。 */
-    private fun unquoteJsonString(value: String): String =
-        runCatching { AppJson.decodeFromString<String>(value) }.getOrElse { value }
+    private fun unquoteJsonString(value: String): String = runCatching { AppJson.decodeFromString<String>(value) }.getOrElse { value }
 
     /** 把 RPC 请求 `{"action":...,"params":...}` 变成 js 档用的 `__bridge__` 哨兵文本。 */
     private fun bridgeSentinel(requestJson: String): String {
@@ -549,32 +534,27 @@ private val STICKER_MOOD_KEYWORDS: List<Pair<String, List<String>>> = listOf(
     "晚安/睡觉" to listOf("晚安", "睡", "困", "goodnight", "sleep"),
 )
 
-    internal fun buildCategoryGuide(categories: List<String>): String {
-        val guide = STICKER_MOOD_KEYWORDS.mapNotNull { (mood, keys) ->
-            val matched = categories.filter { cat -> keys.any { cat.contains(it, ignoreCase = true) } }
-            if (matched.isEmpty()) null else mood to matched
-        }
-        if (guide.isEmpty()) return ""
-        val covered = guide.flatMap { it.second }.toSet()
-        val rest = categories.filterNot { it in covered }
-        return buildString {
-            appendLine("按当前对话情绪挑分类:")
-            guide.forEach { (mood, cats) -> appendLine("- $mood → ${cats.joinToString("、")}") }
-            if (rest.isNotEmpty()) appendLine("- 其余分类按名称自行判断: ${rest.joinToString("、")}")
-            appendLine()
-        }
+internal fun buildCategoryGuide(categories: List<String>): String {
+    val guide = STICKER_MOOD_KEYWORDS.mapNotNull { (mood, keys) ->
+        val matched = categories.filter { cat -> keys.any { cat.contains(it, ignoreCase = true) } }
+        if (matched.isEmpty()) null else mood to matched
     }
-
+    if (guide.isEmpty()) return ""
+    val covered = guide.flatMap { it.second }.toSet()
+    val rest = categories.filterNot { it in covered }
+    return buildString {
+        appendLine("按当前对话情绪挑分类:")
+        guide.forEach { (mood, cats) -> appendLine("- $mood → ${cats.joinToString("、")}") }
+        if (rest.isNotEmpty()) appendLine("- 其余分类按名称自行判断: ${rest.joinToString("、")}")
+        appendLine()
+    }
+}
 
 /** 命令返回值收尾：普通文本直接用；桥接哨兵替它执行一次（js 单轮语义）。 */
-private suspend fun commandText(
-    raw: String,
-    pluginId: String,
-    manifest: PluginManifest,
-    router: PluginBridgeRouter,
-): String = when (val bridge = router.handle(raw, pluginId, manifest)) {
-    is SkillBridge.HandleResult.Output -> bridge.json
-    is SkillBridge.HandleResult.Failure -> "命令执行失败：${bridge.message}"
-    is SkillBridge.HandleResult.NotBridge ->
-        runCatching { AppJson.decodeFromString<String>(raw) }.getOrElse { raw }
-}
+private suspend fun commandText(raw: String, pluginId: String, manifest: PluginManifest, router: PluginBridgeRouter): String =
+    when (val bridge = router.handle(raw, pluginId, manifest)) {
+        is SkillBridge.HandleResult.Output -> bridge.json
+        is SkillBridge.HandleResult.Failure -> "命令执行失败：${bridge.message}"
+        is SkillBridge.HandleResult.NotBridge ->
+            runCatching { AppJson.decodeFromString<String>(raw) }.getOrElse { raw }
+    }

@@ -186,10 +186,12 @@ class RagStreamedIndexTest {
 
     @Test
     fun `streamed index does not truncate beyond legacy 500K char limit`() = runBlocking {
+        val storedChunks = mutableListOf<KnowledgeChunkEntity>()
         val chunkDao = mockk<KnowledgeChunkDao>(relaxed = true)
         val docDao = mockk<KnowledgeDocDao>(relaxed = true)
         val ftsDao = mockk<KnowledgeChunkFtsDao>(relaxed = true)
         coEvery { chunkDao.getFirstIndexedEmbeddingDim() } returns null
+        coEvery { chunkDao.insertAll(any()) } coAnswers { storedChunks.addAll(firstArg<List<KnowledgeChunkEntity>>()) }
         val provider = FakeEmbeddingProvider()
         val service = buildService(chunkDao, docDao, ftsDao, provider)
 
@@ -210,6 +212,11 @@ class RagStreamedIndexTest {
         val all = provider.batches.flatten().joinToString("\n")
         assertTrue("头部内容缺失", all.contains("HEAD-MARK"))
         assertTrue("尾部内容缺失(旧实现 500K 截断会丢尾部)", all.contains("TAIL-MARK"))
+        // E（保尾 green guard）:不仅 embedding 收到头尾标记,落库 chunk 也必须含 ——
+        // 钉端到端持久化保尾。若后续批次在 createChunkEntities/落库阶段截断正文,
+        // embedding 输入仍完整但落库丢尾 → 下面两条断言转红。
+        assertTrue("落库 chunk 必须含头部标记", storedChunks.any { it.content.contains("HEAD-MARK") })
+        assertTrue("落库 chunk 必须含尾部标记(端到端保尾)", storedChunks.any { it.content.contains("TAIL-MARK") })
     }
 
     @Test

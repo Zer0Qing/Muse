@@ -129,13 +129,7 @@ class TokenUsageDaoTest {
         assertEquals(0L, usage.completionTokens)
     }
 
-    private suspend fun message(
-        id: String,
-        sessionId: String,
-        prompt: Int,
-        completion: Int,
-        deletedAt: Long? = null,
-    ) {
+    private suspend fun message(id: String, sessionId: String, prompt: Int, completion: Int, deletedAt: Long? = null) {
         database.messageDao().upsert(
             MessageEntity(
                 id = id,

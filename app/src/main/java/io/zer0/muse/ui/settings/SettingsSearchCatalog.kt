@@ -6,8 +6,8 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.navigation.ComponentGalleryRoute
 import io.zer0.muse.ui.navigation.ConnectorSettingsRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
-import io.zer0.muse.ui.navigation.SettingsAppearanceRoute
 import io.zer0.muse.ui.navigation.SettingsAgentRoute
+import io.zer0.muse.ui.navigation.SettingsAppearanceRoute
 import io.zer0.muse.ui.navigation.SettingsChatRoute
 import io.zer0.muse.ui.navigation.SettingsCloudBackupRoute
 import io.zer0.muse.ui.navigation.SettingsMcpRoute
@@ -43,8 +43,7 @@ data class SettingsSearchRecord(
 const val SETTINGS_BREADCRUMB_SEPARATOR: String = " › "
 
 /** 拼搜索结果里的面包屑（分类在前，条目在后）。 */
-fun settingsBreadcrumb(groupTitle: String, entryTitle: String): String =
-    groupTitle + SETTINGS_BREADCRUMB_SEPARATOR + entryTitle
+fun settingsBreadcrumb(groupTitle: String, entryTitle: String): String = groupTitle + SETTINGS_BREADCRUMB_SEPARATOR + entryTitle
 
 /**
  * 按关键词过滤搜索索引。

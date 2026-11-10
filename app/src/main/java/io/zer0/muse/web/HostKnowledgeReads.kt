@@ -154,8 +154,7 @@ internal class DaoHostKnowledgeSource(
      * 而不是配置里的 `embeddingSource` —— 降级到本地关键词时两者不同,这里要的是实际在跑的那个。
      * 进程内还没解析过后端时返回 null,回执里该字段留空。
      */
-    private fun embeddingBackend(): String? =
-        embeddingService.activeBackend.value
-            ?.let { state -> state.modelName.ifBlank { state.backendId } }
-            ?.takeIf { it.isNotBlank() }
+    private fun embeddingBackend(): String? = embeddingService.activeBackend.value
+        ?.let { state -> state.modelName.ifBlank { state.backendId } }
+        ?.takeIf { it.isNotBlank() }
 }

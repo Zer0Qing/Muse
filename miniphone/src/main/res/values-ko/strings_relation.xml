@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mp_discover_relation">관계망</string>
+    <string name="mp_relation_title">관계망</string>
+    <string name="mp_relation_no_characters">연락처에 아직 캐릭터가 없어요</string>
+    <string name="mp_relation_from_section">그가 다른 사람을 보는 법</string>
+    <string name="mp_relation_to_section">다른 사람이 그를 보는 법</string>
+    <string name="mp_relation_from_empty">아직 누구에 대한 생각도 없어요</string>
+    <string name="mp_relation_to_empty">아직 그에 대한 생각이 없어요</string>
+    <string name="mp_relation_set_title">생각 하나 기록하기</string>
+    <string name="mp_relation_target_hint">대상 고르기</string>
+    <string name="mp_relation_label_hint">예: 절친, 라이벌, 낯선 사람</string>
+    <string name="mp_relation_set">기록</string>
+    <string name="mp_relation_describe">그가 직접 말하게 하기</string>
+</resources>

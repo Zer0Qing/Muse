@@ -168,13 +168,7 @@ class ChatMediaGenHost(
         }
 
         /** 把一条语音写到指定消息上(显示中走 UI 合并 + 立即落盘,否则按原会话落库)。 */
-        private suspend fun deliverVoiceTo(
-            messageId: Uuid,
-            content: String,
-            voiceUri: String,
-            durationMs: Long,
-            displayed: Boolean,
-        ) {
+        private suspend fun deliverVoiceTo(messageId: Uuid, content: String, voiceUri: String, durationMs: Long, displayed: Boolean) {
             if (displayed) {
                 streamCoordinator.appendMediaToAssistant(
                     id = messageId,

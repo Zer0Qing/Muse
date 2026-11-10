@@ -31,10 +31,9 @@ class BrowserAutomationToolTest {
         browser = mockk(relaxed = true)
     }
 
-    private fun run(tool: String, args: Map<String, String>): JsonObject =
-        BrowserAutomationTool.executeFromArgs(tool, args, browser).let {
-            io.zer0.common.AppJson.parseToJsonElement(it).jsonObject
-        }
+    private fun run(tool: String, args: Map<String, String>): JsonObject = BrowserAutomationTool.executeFromArgs(tool, args, browser).let {
+        io.zer0.common.AppJson.parseToJsonElement(it).jsonObject
+    }
 
     private fun JsonObject.success() = this["success"]!!.jsonPrimitive.content.toBoolean()
     private fun JsonObject.verified() = this["verified"]?.jsonPrimitive?.content?.toBoolean()

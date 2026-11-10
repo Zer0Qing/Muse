@@ -157,25 +157,19 @@ object MuseMotion {
     )
 
     /** 展开/折叠内容的统一进入过渡（时长只作用于淡入分量）。 */
-    fun expandFadeEnter(fadeDurationMillis: Int = MuseAnimation.NORMAL_MS): EnterTransition =
-        expandEnter() + fadeEnter(fadeDurationMillis)
+    fun expandFadeEnter(fadeDurationMillis: Int = MuseAnimation.NORMAL_MS): EnterTransition = expandEnter() + fadeEnter(fadeDurationMillis)
 
     /** 展开/折叠内容的统一退出过渡（时长只作用于淡出分量）。 */
-    fun expandFadeExit(fadeDurationMillis: Int = MuseAnimation.NORMAL_MS): ExitTransition =
-        expandExit() + fadeExit(fadeDurationMillis)
+    fun expandFadeExit(fadeDurationMillis: Int = MuseAnimation.NORMAL_MS): ExitTransition = expandExit() + fadeExit(fadeDurationMillis)
 
     /** 仅水平展开的统一进入过渡（尺寸分量 STEADY 弹簧；弹簧无时长语义，不收时长参数）。 */
-    fun horizontalExpandEnter(
-        expandFrom: Alignment.Horizontal = Alignment.Start,
-    ): EnterTransition = expandHorizontally(
+    fun horizontalExpandEnter(expandFrom: Alignment.Horizontal = Alignment.Start): EnterTransition = expandHorizontally(
         animationSpec = springSpec(MuseSpringTier.STEADY),
         expandFrom = expandFrom,
     )
 
     /** 仅水平收起的统一退出过渡（尺寸分量 STEADY 弹簧）。 */
-    fun horizontalExpandExit(
-        shrinkTowards: Alignment.Horizontal = Alignment.Start,
-    ): ExitTransition = shrinkHorizontally(
+    fun horizontalExpandExit(shrinkTowards: Alignment.Horizontal = Alignment.Start): ExitTransition = shrinkHorizontally(
         animationSpec = springSpec(MuseSpringTier.STEADY),
         shrinkTowards = shrinkTowards,
     )

@@ -33,11 +33,7 @@ class MemoryStatusBadgeUiTest {
         }
     }
 
-    private fun factItem(
-        mergedIntoId: Long? = null,
-        suppressed: Boolean = false,
-        superseded: Boolean = false,
-    ): MemoryItem = MemoryItem(
+    private fun factItem(mergedIntoId: Long? = null, suppressed: Boolean = false, superseded: Boolean = false): MemoryItem = MemoryItem(
         id = "7",
         title = "喜欢咖啡",
         content = "喜欢咖啡",

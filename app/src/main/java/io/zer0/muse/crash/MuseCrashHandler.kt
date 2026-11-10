@@ -297,25 +297,32 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
         }
 
         /**
-         * v1.104: 崩溃日志脱敏 — 用正则把 API key / Bearer token / Authorization 头替换为 ***。
+         * 崩溃日志脱敏 — 把凭据替换为 ***。
          *
-         * 崩溃堆栈可能包含 OkHttp 请求 URL(含 apiKey 查询参数)或自定义异常 message
-         * (含 Authorization 头)。这些敏感串若随 zip 邮件外发会泄露凭据。
-         * 覆盖常见模式:
-         *  - `apiKey=xxx` / `api_key=xxx`(URL 查询参数)
-         *  - `Authorization: Bearer xxx` / `Authorization: xxx`(HTTP 头)
-         *  - `Bearer xxx`(裸 token)
-         *  - `sk-` / `sk-ant-` 开头的 OpenAI/Anthropic key
+         * 崩溃堆栈可能包含 OkHttp 请求 URL(含查询串凭据)或自定义异常 message
+         * (含请求头)。这些敏感串若随 zip 邮件外发会泄露凭据。
+         *
+         * 覆盖的**形状**比「某几个参数名」更重要：同一份日志里凭据可能出现在
+         * 查询串、请求头、路径段、以及 PEM 块里。只认 `apiKey=` 一种写法时，
+         * `?key=`、`?token=`、`x-api-key:` 全都是漏网的。
          */
         private val REDACT_PATTERNS = listOf(
-            // URL 查询参数 apiKey=xxx / api_key=xxx
-            Regex("""(?i)(api[_-]?key=)[^&\s"'<>]+"""),
-            // Authorization: Bearer xxx / Authorization: xxx
-            Regex("""(?i)(authorization\s*:\s*)(bearer\s+)?[^\s\r\n<>]+"""),
+            // URL 查询串里的凭据：?key=… / &token=… / ?api_key=… / ?apikey=…
+            Regex("""(?i)([?&](?:key|token|api[_-]?key|apikey|access[_-]?token)=)[^&\s"'<>]+"""),
+            // 其它位置的 apiKey=xxx / api_key=xxx
+            Regex("""(?i)(api[_-]?key\s*[=:]\s*)[^&\s"'<>]+"""),
+            // 请求头：Authorization / x-api-key / x-auth-token
+            Regex("""(?i)((?:authorization|x-api-key|x-auth-token)\s*:\s*)(?:bearer\s+)?[^\s\r\n,;<>}]+"""),
             // 裸 Bearer xxx
             Regex("""(?i)(bearer\s+)[A-Za-z0-9\-_.=]+"""),
             // OpenAI sk- / Anthropic sk-ant- 开头的 key(至少 20 字符)
             Regex("""\bsk-(?:ant-)?[A-Za-z0-9\-_]{20,}"""),
+            // 令牌在路径里：/bot<数字>:<令牌>/ (Telegram Bot API 的形状)
+            Regex("""(/bot\d+:)[^/\s]+"""),
+            // PEM 私钥正文
+            Regex(
+                """-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----""",
+            ),
         )
 
         fun redactSensitive(text: String): String {

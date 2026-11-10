@@ -16,8 +16,7 @@ import java.util.UUID
  */
 class StickerDraftStoreTest {
 
-    private fun newRoot(): File =
-        kotlin.io.path.createTempDirectory("muse-drafts-" + UUID.randomUUID().toString().take(6)).toFile()
+    private fun newRoot(): File = kotlin.io.path.createTempDirectory("muse-drafts-" + UUID.randomUUID().toString().take(6)).toFile()
 
     private fun seed(name: String, bytes: ByteArray = byteArrayOf(1, 2, 3, 4)): File {
         val dir = newRoot().also { it.mkdirs() }

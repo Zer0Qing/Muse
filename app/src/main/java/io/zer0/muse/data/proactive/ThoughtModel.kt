@@ -156,7 +156,6 @@ enum class ProactiveIntensity(
          * 用 name 存而不是序号：序号会随枚举增删而错位，
          * 用户升级后可能从「标准」变成「黏人」。
          */
-        fun fromName(name: String?): ProactiveIntensity =
-            entries.firstOrNull { it.name == name } ?: DEFAULT
+        fun fromName(name: String?): ProactiveIntensity = entries.firstOrNull { it.name == name } ?: DEFAULT
     }
 }

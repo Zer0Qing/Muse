@@ -3,8 +3,8 @@ package io.zer0.muse.data.conversation
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.MessageEntity
+import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.SessionEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After

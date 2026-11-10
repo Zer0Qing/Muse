@@ -7,22 +7,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationAction
@@ -207,10 +207,7 @@ private fun AutonomousTaskSection(
 
 /** 允许自动化的包名编辑区（一行一个）。 */
 @Composable
-private fun AutonomousPackagesSection(
-    packageEditor: String,
-    onPackageEditorChange: (String) -> Unit,
-) {
+private fun AutonomousPackagesSection(packageEditor: String, onPackageEditorChange: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(12.dp)) {
         Text(
             text = stringResource(R.string.automation_autonomous_packages),
@@ -240,12 +237,7 @@ private fun AutonomousPackagesSection(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AutonomousTimePickerDialog(
-    title: String,
-    initialMinute: Int,
-    onDismiss: () -> Unit,
-    onPicked: (Int) -> Unit,
-) {
+private fun AutonomousTimePickerDialog(title: String, initialMinute: Int, onDismiss: () -> Unit, onPicked: (Int) -> Unit) {
     val state = rememberTimePickerState(
         initialHour = initialMinute / 60,
         initialMinute = initialMinute % 60,
@@ -271,10 +263,7 @@ private fun AutonomousTimePickerDialog(
  * 现在加动作只需往表里添一行。
  */
 @Composable
-private fun AutonomousActionRows(
-    allowed: Set<AutomationAction>,
-    onToggle: (AutomationAction) -> Unit,
-) {
+private fun AutonomousActionRows(allowed: Set<AutomationAction>, onToggle: (AutomationAction) -> Unit) {
     data class Spec(val action: AutomationAction, val titleRes: Int, val icon: ImageVector)
 
     val specs = listOf(

@@ -18,8 +18,7 @@ class ArtifactRepository(
 
     fun observeByMessage(messageId: String): Flow<List<ArtifactEntity>> = dao.observeByMessage(messageId)
 
-    fun observeByMessages(messageIds: List<String>): Flow<List<ArtifactEntity>> =
-        dao.observeByMessages(messageIds)
+    fun observeByMessages(messageIds: List<String>): Flow<List<ArtifactEntity>> = dao.observeByMessages(messageIds)
 
     suspend fun getById(id: String): ArtifactEntity? = dao.getById(id)
 

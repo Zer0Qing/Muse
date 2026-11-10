@@ -56,12 +56,7 @@ internal object HostMemoryReads {
     data class MemoryPage(val entries: List<HostMemoryEntry>, val hasMore: Boolean)
 
     /** `memory.list` 回执。[cursor] 为空表示第一页。 */
-    fun listEvent(
-        records: List<HostMemoryRecord>,
-        cursor: Long?,
-        limit: Int,
-        requestId: String?,
-    ): HostEvent {
+    fun listEvent(records: List<HostMemoryRecord>, cursor: Long?, limit: Int, requestId: String?): HostEvent {
         val page = page(records, cursor, limit)
         return HostEvent(
             type = TYPE_LIST,
@@ -72,11 +67,7 @@ internal object HostMemoryReads {
     }
 
     /** `memory.search` 回执:条目结构与列表一致,额外带命中片段。 */
-    fun searchEvent(
-        query: String,
-        records: List<HostMemoryRecord>,
-        requestId: String?,
-    ): HostEvent = HostEvent(
+    fun searchEvent(query: String, records: List<HostMemoryRecord>, requestId: String?): HostEvent = HostEvent(
         type = TYPE_SEARCH,
         requestId = requestId,
         memory = records.map { record ->

@@ -52,10 +52,10 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.util.ShareIntentHelper
-import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * v2.0.1: 富内容预览语言判定(svg / html / chart / mermaid) — type 与 language 双查。
@@ -401,8 +401,9 @@ private fun ArtifactActionBar(actions: Set<ArtifactAction>, showSource: Boolean,
                 ArtifactAction.Save -> MuseIcons.deviceFloppy to R.string.artifact_save_text
                 ArtifactAction.Share -> MuseIcons.share to R.string.action_share
                 ArtifactAction.OpenExternal -> MuseIcons.externalLink to R.string.artifact_open_external
-                ArtifactAction.ToggleSource -> MuseIcons.code to
-                    (if (showSource) R.string.artifact_view_rendered else R.string.artifact_view_source)
+                ArtifactAction.ToggleSource ->
+                    MuseIcons.code to
+                        (if (showSource) R.string.artifact_view_rendered else R.string.artifact_view_source)
                 ArtifactAction.Fullscreen -> MuseIcons.maximize to R.string.artifact_fullscreen
             }
             MuseTactileButton(

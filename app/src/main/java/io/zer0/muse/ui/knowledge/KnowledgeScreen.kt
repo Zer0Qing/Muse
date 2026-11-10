@@ -198,6 +198,8 @@ fun KnowledgeScreen(
     var currentFolderPath by rememberSaveable { mutableStateOf("") }
     var moveFolderTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
     var showImportTargetDialog by rememberSaveable { mutableStateOf(false) }
+    // 选完文件、还没决定导入到哪个库的那一批（普通文件才需要走这一步；压缩包直接开始）
+    var pendingImportUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     val kbs by kbDao.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
     // v2.4.6: 显式文件夹(含空文件夹)。当前浏览的 KB 下的文件夹记录。
     val explicitFolders by produceState<List<io.zer0.muse.data.knowledge.KnowledgeFolderEntity>>(
@@ -527,12 +529,13 @@ fun KnowledgeScreen(
         }
     }
 
-    // v2.6.x: 导入支持多选批量。目标知识库/文件夹在启动前算好,避免逐文件重算。
-    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        val targetKbId = importTargetKbId.ifBlank { "default" }
-        val targetFolderPath = importTargetFolderPath
-        // v1.67-B: 保存 Job 引用以便取消(取消会中断整个批量循环)
+    /**
+     * 一次导入的执行体：逐文件导入 + 进度 + 汇总。
+     *
+     * 抽出来是因为「先选文件」之后有两条入口都会走到这里：
+     * 压缩包直接开始，普通文件则要先经过目标库对话框。
+     */
+    fun startImport(uris: List<Uri>, targetKbId: String, targetFolderPath: String?) {
         importJob = scope.launch {
             importing = true
             var succeeded = 0
@@ -553,6 +556,39 @@ fun KnowledgeScreen(
             if (uris.size > 1) {
                 MuseToast.show(context.getString(R.string.knowledge_import_batch_done, succeeded, failed))
             }
+        }
+    }
+
+    // v2.6.x: 导入支持多选批量。目标知识库/文件夹在启动前算好,避免逐文件重算。
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+        val targetKbId = importTargetKbId.ifBlank { "default" }
+        val targetFolderPath = importTargetFolderPath
+        // 压缩包自带一套完整资料，直接解压成它自己的新库，不必先问放哪；
+        // 普通文件才需要问「进哪个库」。
+        if (uris.all { uri -> isArchiveUri(context, uri) }) {
+            startImport(uris, targetKbId = "", targetFolderPath = null)
+        } else if (importTargetKbId.isNotBlank()) {
+            startImport(uris, targetKbId, targetFolderPath)
+        } else {
+            pendingImportUris = uris
+            showImportTargetDialog = true
+        }
+    }
+
+    /**
+     * 目标库确定之后接着导入。
+     *
+     * 两条来源：①用户从文件选择器选完普通文件、刚在对话框里选了库 —— 用 pendingImportUris 直接开始；
+     * ②老路径：对话框是在拉选择器之前弹的 —— 那就继续拉选择器。两种情况都要能走通。
+     */
+    fun continueImportAfterTargetChosen() {
+        val pending = pendingImportUris
+        pendingImportUris = emptyList()
+        if (pending.isNotEmpty()) {
+            startImport(pending, importTargetKbId.ifBlank { "default" }, importTargetFolderPath)
+        } else {
+            importLauncher.launch(arrayOf("*/*"))
         }
     }
 
@@ -818,19 +854,12 @@ fun KnowledgeScreen(
         floatingActionButton = {
             MuseFloatingButton(
                 icon = MuseIcons.plus,
-                // F-31: 先选目标知识库,再选文件(向本知识库添加文档)
+                // 先选文件，选完再看类型：
+                //  - 压缩包自带一个完整资料集 → 直接解压成它自己的新库，不问你放哪；
+                //  - 单个/多个普通文件 → 才需要问一句要进哪个库。
+                // 原来反着来（先问库再选文件），导入压缩包时那个问题纯属多余。
                 onClick = {
-                    if (!importing) {
-                        importTargetKbId = browsingKbId ?: "default"
-                        importTargetFolderPath =
-                            KnowledgeFolderBrowser.importFolderPath(
-                                targetKbId = importTargetKbId,
-                                browsingKbId = browsingKbId,
-                                currentFolderPath = currentFolderPath,
-                                searchQuery = searchQuery,
-                            )
-                        showImportTargetDialog = true
-                    }
+                    if (!importing) importLauncher.launch(arrayOf("*/*"))
                 },
                 contentDescription = stringResource(R.string.knowledge_import),
             )
@@ -1328,10 +1357,14 @@ fun KnowledgeScreen(
         )
     }
 
+    // 取消要二次确认：导入几十上百个文件时，手指蹭到对话框外面就会把整批掐掉，
+    // 而已经写进去的那些行不会回滚 —— 用户看到「取消了」，却不知道有一部分其实进去了。
+    var confirmCancelImport by remember { mutableStateOf(false) }
+
     if (importing) {
         MuseDialog(
-            // v1.67-B: 导入可取消
-            onDismissRequest = { importJob?.cancel() },
+            // 点外面/按返回不再直接取消，先问一句
+            onDismissRequest = { confirmCancelImport = true },
             title = stringResource(R.string.knowledge_importing),
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1346,8 +1379,28 @@ fun KnowledgeScreen(
                 }
             },
             confirmText = stringResource(R.string.knowledge_cancel),
-            onConfirm = { importJob?.cancel() },
+            onConfirm = { confirmCancelImport = true },
             dismissText = null,
+        )
+    }
+
+    if (confirmCancelImport) {
+        MuseDialog(
+            onDismissRequest = { confirmCancelImport = false },
+            title = stringResource(R.string.knowledge_import_cancel_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.knowledge_import_cancel_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmText = stringResource(R.string.knowledge_import_cancel_confirm),
+            onConfirm = {
+                confirmCancelImport = false
+                importJob?.cancel()
+            },
+            dismissText = stringResource(R.string.common_continue),
+            onDismiss = { confirmCancelImport = false },
         )
     }
 
@@ -1413,7 +1466,7 @@ fun KnowledgeScreen(
                                     searchQuery = searchQuery,
                                 )
                             showImportTargetDialog = false
-                            importLauncher.launch(arrayOf("*/*"))
+                            continueImportAfterTargetChosen()
                         },
                         shape = MuseShapes.semiLarge,
                         color = if (importTargetKbId == "default" || importTargetKbId.isEmpty()) {
@@ -1451,7 +1504,7 @@ fun KnowledgeScreen(
                                         searchQuery = searchQuery,
                                     )
                                 showImportTargetDialog = false
-                                importLauncher.launch(arrayOf("*/*"))
+                                continueImportAfterTargetChosen()
                             },
                             shape = MuseShapes.semiLarge,
                             color = if (selected) {
@@ -1490,7 +1543,7 @@ fun KnowledgeScreen(
                         searchQuery = searchQuery,
                     )
                 showImportTargetDialog = false
-                importLauncher.launch(arrayOf("*/*"))
+                continueImportAfterTargetChosen()
             },
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showImportTargetDialog = false },

@@ -116,3 +116,21 @@ internal object KnowledgeArchivePolicy {
         return if (ext.isEmpty()) "entry_$stem" else "entry_$stem.$ext"
     }
 }
+
+/**
+ * 这个 uri 指向的是不是压缩包。
+ *
+ * 导入分流要用：压缩包自带一套完整资料，直接解压成新库、不先问「放到哪个库」；
+ * 普通文件才需要问。文件名优先取 `DISPLAY_NAME`（比 `lastPathSegment` 可靠），
+ * 取不到再退回 uri 末段 —— 两处都取不到就当作「不是压缩包」，让用户走正常那条路。
+ */
+internal fun isArchiveUri(context: android.content.Context, uri: android.net.Uri): Boolean {
+    val displayName = runCatching {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
+        }
+    }.getOrNull()
+    val name = displayName ?: uri.lastPathSegment.orEmpty()
+    return ArchiveFormat.fromFileName(name.lowercase()) != null
+}

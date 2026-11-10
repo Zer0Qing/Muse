@@ -93,7 +93,7 @@ class NodePluginBridgeRpcInstrumentedTest {
         assertTrue("错误里要带授予指引: ${error?.message}", error?.message?.contains("设置") == true)
     }
 
-@Test
+    @Test
     fun fetchWithoutNetworkCapabilityIsBlockedNotSilent() = runBlocking {
         // 探针实测：内置 Node **本身有全局 fetch**（`fetchType":"function"`）。
         // 所以沙盒里的 fetch 必须是我们注入的、走桥接的垫片 —— 否则插件一句 fetch 就绕开了 network 授权，

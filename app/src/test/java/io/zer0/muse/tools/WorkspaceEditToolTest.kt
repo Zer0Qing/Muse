@@ -38,24 +38,22 @@ class WorkspaceEditToolTest {
     }
 
     /** 读回文件全文。 */
-    private fun contentOf(path: String): String =
-        runBlocking {
-            val result = manager.readFile(path)
-            assertTrue("读取失败: $result", result is WorkspaceManager.ReadResult.Success)
-            (result as WorkspaceManager.ReadResult.Success).content
-        }
+    private fun contentOf(path: String): String = runBlocking {
+        val result = manager.readFile(path)
+        assertTrue("读取失败: $result", result is WorkspaceManager.ReadResult.Success)
+        (result as WorkspaceManager.ReadResult.Success).content
+    }
 
     /**
      * 一次 workspace_edit 调用。
      *
      * 故意走 [WorkspaceTool.execute] 而不是内部函数：这条链路才是模型实际走的那条。
      */
-    private fun edit(path: String, oldString: String, newString: String): String =
-        WorkspaceTool.execute(
-            WorkspaceTool.NAME_EDIT,
-            mapOf("path" to path, "old_string" to oldString, "new_string" to newString),
-            manager,
-        )
+    private fun edit(path: String, oldString: String, newString: String): String = WorkspaceTool.execute(
+        WorkspaceTool.NAME_EDIT,
+        mapOf("path" to path, "old_string" to oldString, "new_string" to newString),
+        manager,
+    )
 
     @Test
     fun `片段找不到时拒绝且文件未被修改`() {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Roam (R7): virtual places, passerby panel and empty states. -->
+    <string name="mp_discover_roam">Roam</string>
+    <string name="mp_roam_title">Roam</string>
+    <string name="mp_roam_empty">No one is out yet. Pick a character to wander.</string>
+    <string name="mp_roam_who">Who heads out</string>
+    <string name="mp_roam_location_hint">Where to? Type a place</string>
+    <string name="mp_roam_depart">Set off</string>
+    <string name="mp_roam_npc_title">Passersby around here</string>
+    <string name="mp_roam_encounter">Meet someone</string>
+    <string name="mp_roam_clear">Clear this spot</string>
+    <string name="mp_roam_no_npc">Haven\'t met anyone here yet</string>
+</resources>

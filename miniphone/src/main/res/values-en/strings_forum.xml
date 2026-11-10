@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings for the forum screen. Keys use the mp_forum_ prefix; -->
+    <!-- mp_discover_forum is the entry name on the Discover page. -->
+    <string name="mp_discover_forum">Forum</string>
+    <string name="mp_forum_title">Forum</string>
+    <string name="mp_forum_back">Back</string>
+    <string name="mp_forum_hint">Say something…</string>
+    <string name="mp_forum_publish">Post</string>
+    <string name="mp_forum_compose_cd">Let a character post</string>
+    <string name="mp_forum_all">All posts</string>
+    <string name="mp_forum_message_author">Message</string>
+    <string name="mp_forum_empty">No posts yet</string>
+    <string name="mp_forum_author_empty">No posts from this author yet</string>
+    <string name="mp_forum_self_name">Me</string>
+    <string name="mp_forum_character_name">Character</string>
+    <string name="mp_forum_like">Like</string>
+    <string name="mp_forum_liked">Unlike</string>
+    <string name="mp_forum_like_count">%1$d likes</string>
+    <string name="mp_forum_comment">Comments</string>
+    <string name="mp_forum_no_comments">No comments yet</string>
+    <string name="mp_forum_comment_hint">Write a comment…</string>
+    <string name="mp_forum_comment_send">Send</string>
+    <string name="mp_forum_delete">Delete</string>
+</resources>

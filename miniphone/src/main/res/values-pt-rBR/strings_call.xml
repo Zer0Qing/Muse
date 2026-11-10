@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通话进行中的页面文案。阶段与降级原因在数据层是记号，这里负责换成当前语言的话。 -->
+<resources>
+    <string name="mp_call_none">Nenhuma chamada em andamento</string>
+    <string name="mp_call_back">Voltar</string>
+    <string name="mp_call_dialing">Discando…</string>
+    <string name="mp_call_ringing">Aguardando resposta</string>
+    <string name="mp_call_connected">Conectado</string>
+    <string name="mp_call_ended">Chamada encerrada</string>
+    <string name="mp_call_failed">Não foi possível discar</string>
+    <string name="mp_call_no_answer">Sem resposta</string>
+    <string name="mp_call_hangup">Desligar</string>
+    <string name="mp_call_duration">Chamada %1$s</string>
+    <string name="mp_call_camera_denied">Permissão de câmera negada — mudou para chamada de voz</string>
+    <string name="mp_call_dial_failed">Nada chegou nesta rodada, a chamada terminou</string>
+    <string name="mp_call_mine">Eu</string>
+    <string name="mp_call_peer">A outra parte</string>
+    <string name="mp_call_play_voice">Reproduzir esta voz</string>
+    <string name="mp_call_say_hint">Diga algo…</string>
+    <string name="mp_call_say_send">Enviar</string>
+    <string name="mp_chat_call_voice">Chamada de voz</string>
+    <string name="mp_chat_call_video">Videochamada</string>
+</resources>

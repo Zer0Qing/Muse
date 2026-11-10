@@ -38,8 +38,8 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.safeFraction
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import org.koin.compose.koinInject
 import io.zer0.muse.ui.theme.bodySmallStrong
+import org.koin.compose.koinInject
 
 // ════════════════════════════════════════════════════════════════════════════
 // P3-2:本地数据分析面板 — 把 LocalAnalyticsTracker 已采集但未 UI 化的指标透出

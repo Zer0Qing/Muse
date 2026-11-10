@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 산책(R7): 가상 장소, 행인 패널, 빈 상태. -->
+    <string name="mp_discover_roam">산책</string>
+    <string name="mp_roam_title">산책</string>
+    <string name="mp_roam_empty">아직 아무도 나가지 않았어요. 캐릭터를 골라 거닐어 보세요.</string>
+    <string name="mp_roam_who">누가 나갈까</string>
+    <string name="mp_roam_location_hint">어디로? 장소를 입력하세요</string>
+    <string name="mp_roam_depart">출발</string>
+    <string name="mp_roam_npc_title">이 근처의 행인</string>
+    <string name="mp_roam_encounter">누군가 만나기</string>
+    <string name="mp_roam_clear">이 근처 비우기</string>
+    <string name="mp_roam_no_npc">이 근처에서 아직 아무도 만나지 못했어요</string>
+</resources>

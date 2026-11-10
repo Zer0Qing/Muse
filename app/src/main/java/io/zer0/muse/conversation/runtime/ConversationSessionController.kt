@@ -7,8 +7,8 @@ import io.zer0.muse.conversation.core.ConversationWindowReader
 import io.zer0.muse.conversation.core.SelectionSetId
 import io.zer0.muse.conversation.core.SlotKind
 import io.zer0.muse.conversation.render.LegacyConversationProjector
-import io.zer0.muse.conversation.ui.ConversationTimelineRows
 import io.zer0.muse.conversation.ui.ConversationPageModel
+import io.zer0.muse.conversation.ui.ConversationTimelineRows
 import io.zer0.muse.conversation.ui.TimelineRow
 import io.zer0.muse.data.conversation.RoomSubmitCommandPort
 import kotlinx.coroutines.sync.Mutex
@@ -42,12 +42,7 @@ class ConversationSessionController(
         }
     }
 
-    suspend fun load(
-        sessionId: String,
-        selectionSetId: String,
-        around: String? = null,
-        limit: Int = 50,
-    ) {
+    suspend fun load(sessionId: String, selectionSetId: String, around: String? = null, limit: Int = 50) {
         require(sessionId == this.sessionId) { "load belongs to another session" }
         val window = windowReader.load(
             address = ConversationAddress("main", sessionId),

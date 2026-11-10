@@ -177,8 +177,7 @@ class VoiceMessageStore(
         return storageDir.takeIf { it.isDirectory }
     }
 
-    private fun sameFile(a: File, b: File): Boolean =
-        runCatching { a.canonicalPath == b.canonicalPath }.getOrDefault(false)
+    private fun sameFile(a: File, b: File): Boolean = runCatching { a.canonicalPath == b.canonicalPath }.getOrDefault(false)
 
     /** 存档文件名 = key 的内容哈希 + 源文件扩展名（默认 wav）。 */
     private fun fileNameFor(key: String, extension: String): String {

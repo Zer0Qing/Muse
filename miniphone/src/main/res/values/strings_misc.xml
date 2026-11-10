@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- R9 四件本地玩法（衣橱换装 / 群红包 / 节日纪念日 / 通话铃声）的文案，独立成文件，键名按玩法分前缀。 -->
+    <string name="mp_discover_wardrobe">衣橱</string>
+    <string name="mp_wardrobe_title">衣橱换装</string>
+    <string name="mp_wardrobe_empty">衣橱还是空的</string>
+    <string name="mp_wardrobe_name_hint">给这件衣服起个名字</string>
+    <string name="mp_wardrobe_uri_hint">图片地址（可选）</string>
+    <string name="mp_wardrobe_add">添加</string>
+    <string name="mp_wardrobe_equip">穿上</string>
+    <string name="mp_wardrobe_equipped">穿着中</string>
+    <string name="mp_wardrobe_kind_top">上装</string>
+    <string name="mp_wardrobe_kind_bottom">下装</string>
+    <string name="mp_wardrobe_kind_dress">连衣裙</string>
+    <string name="mp_wardrobe_kind_shoes">鞋子</string>
+    <string name="mp_wardrobe_kind_accessory">配饰</string>
+
+    <string name="mp_discover_redpacket">群红包</string>
+    <string name="mp_redpacket_title">群红包</string>
+    <string name="mp_redpacket_empty">还没有红包</string>
+    <string name="mp_redpacket_rp_hint">金额仅作角色扮演展示，不涉及真实资金</string>
+    <string name="mp_redpacket_amount_hint">金额（玩法文案）</string>
+    <string name="mp_redpacket_note_hint">祝福语（可选）</string>
+    <string name="mp_redpacket_send">发红包</string>
+    <string name="mp_redpacket_claim">领取</string>
+    <string name="mp_redpacket_claim_count">%1$d 人已领</string>
+    <string name="mp_redpacket_state_open">可领取</string>
+    <string name="mp_redpacket_state_claimed">已领完</string>
+    <string name="mp_redpacket_state_expired">已过期</string>
+
+    <string name="mp_discover_holiday">节日纪念日</string>
+    <string name="mp_holiday_title">节日与纪念日</string>
+    <string name="mp_holiday_empty">还没有记录节日</string>
+    <string name="mp_holiday_recurring">每年重复</string>
+    <string name="mp_holiday_once">只发生一次</string>
+    <string name="mp_holiday_name_hint">节日或纪念日名字</string>
+    <string name="mp_holiday_date_hint">日期：MM-dd（每年重复）</string>
+    <string name="mp_holiday_date_once_hint">日期：yyyy-MM-dd（只一次）</string>
+    <string name="mp_holiday_year_hint">年份（如 2026）</string>
+    <string name="mp_holiday_note_hint">备注（可选）</string>
+    <string name="mp_holiday_add">添加</string>
+
+    <string name="mp_discover_ringtone">通话铃声</string>
+    <string name="mp_ringtone_title">通话铃声</string>
+    <string name="mp_ringtone_empty">还没有铃声</string>
+    <string name="mp_ringtone_general">通用</string>
+    <string name="mp_ringtone_voice">语音通话铃声</string>
+    <string name="mp_ringtone_video">视频通话铃声</string>
+    <string name="mp_ringtone_name_hint">铃声名字</string>
+    <string name="mp_ringtone_uri_hint">音频或视频地址</string>
+    <string name="mp_ringtone_add">添加</string>
+</resources>

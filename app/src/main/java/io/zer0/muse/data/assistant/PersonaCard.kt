@@ -86,14 +86,28 @@ object PersonaCardCodec {
         isLenient = false
     }
 
-    /** 人设正文各字段的长度上限。超限拒绝,而不是截断 —— 截断会静默改变人设。 */
+    /**
+     * 人设正文各字段的长度上限。超限拒绝,而不是截断 —— 截断会静默改变人设。
+     *
+     * 但「一律拒绝」有个死结：一份本来就超过这个数的卡，导入时被拒，
+     * 用户此后**永远改不动它**（连删减都存不进去），只能放弃这份人设。
+     * 所以导入路径用一个更宽的上限（[IMPORT_MAX_TEXT_CHARS]）：
+     * 只挡住真正会撑爆存储的极端值，正常超限的卡先让它进来、由用户自己删减。
+     */
     private const val MAX_TEXT_CHARS = 200_000
+
+    /** 导入时用的宽上限：只挡异常体积，不因「略超常规上限」就把整份人设拒之门外。 */
+    internal const val IMPORT_MAX_TEXT_CHARS = 2_000_000
     private const val MAX_NAME_CHARS = 80
 
     fun encode(card: PersonaCard): String = strict.encodeToString(card)
 
+    /**
+     * @param maxTextChars 正文各字段允许的最大长度。默认按常规上限校验；
+     *        导入外部卡片时传 [IMPORT_MAX_TEXT_CHARS]，避免「本来就超限的卡永远进不来」。
+     */
     @Suppress("TooGenericExceptionCaught") // 序列化失败的种类太多(键、类型、编码),任何一种都必须变成 Invalid,而不是崩到调用方
-    fun decode(text: String): PersonaParse {
+    fun decode(text: String, maxTextChars: Int = MAX_TEXT_CHARS): PersonaParse {
         val card = try {
             strict.decodeFromString(PersonaCard.serializer(), text)
         } catch (error: Exception) {
@@ -104,7 +118,7 @@ object PersonaCardCodec {
                 field = field,
             )
         }
-        return validate(card) ?: PersonaParse.Ok(card)
+        return validate(card, maxTextChars) ?: PersonaParse.Ok(card)
     }
 
     /**
@@ -114,46 +128,46 @@ object PersonaCardCodec {
      * 以后可能还有「开场白必须是合法 JSON 数组」)。写成 if 链每加一条就多一次 return;
      * 规则表只加一行,而且列表顺序就是判定顺序。
      */
-    private fun validate(card: PersonaCard): PersonaParse.Invalid? {
-        val broken = rules.firstOrNull { it.appliesTo(card) } ?: return null
+    private fun validate(card: PersonaCard, maxTextChars: Int = MAX_TEXT_CHARS): PersonaParse.Invalid? {
+        val broken = rules.firstOrNull { it.appliesTo(card, maxTextChars) } ?: return null
         return PersonaParse.Invalid(broken.reason(card), broken.field(card))
     }
 
     private class Rule(
-        val appliesTo: (PersonaCard) -> Boolean,
+        val appliesTo: (PersonaCard, Int) -> Boolean,
         val reason: (PersonaCard) -> String,
         val field: (PersonaCard) -> String,
     )
 
     /** 哪个正文段超限了;都没超返回 null。 */
-    private fun overLongField(card: PersonaCard): String? = listOf(
+    private fun overLongField(card: PersonaCard, maxTextChars: Int): String? = listOf(
         card.systemPrompt to "systemPrompt",
         card.personaDefinition to "personaDefinition",
         card.thinkingChain to "thinkingChain",
         card.messageTemplate to "messageTemplate",
         card.presetMessagesJson to "presetMessagesJson",
-    ).firstOrNull { (value, _) -> value.length > MAX_TEXT_CHARS }?.second
+    ).firstOrNull { (value, _) -> value.length > maxTextChars }?.second
 
     private val rules = listOf(
         Rule(
-            { it.kind != PersonaCard.KIND },
+            { card, _ -> card.kind != PersonaCard.KIND },
             { "这份文件不是 Muse 人设卡(kind 不符)" },
             { "kind" },
         ),
         Rule(
-            { it.schemaVersion != PersonaCard.VERSION },
+            { card, _ -> card.schemaVersion != PersonaCard.VERSION },
             { "人设结构版本是 ${it.schemaVersion},本机只认 ${PersonaCard.VERSION}" },
             { "schemaVersion" },
         ),
         Rule(
-            { it.name.isBlank() || it.name.length > MAX_NAME_CHARS },
+            { card, _ -> card.name.isBlank() || card.name.length > MAX_NAME_CHARS },
             { "名称必须存在且不超过 $MAX_NAME_CHARS 字" },
             { "name" },
         ),
         Rule(
-            { overLongField(it) != null },
-            { "人设正文过长(超过 $MAX_TEXT_CHARS 字),已拒绝" },
-            { overLongField(it) ?: "systemPrompt" },
+            { card, limit -> overLongField(card, limit) != null },
+            { "人设正文过长,已拒绝" },
+            { "systemPrompt" },
         ),
     )
 

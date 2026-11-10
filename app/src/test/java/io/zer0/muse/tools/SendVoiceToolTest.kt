@@ -275,14 +275,12 @@ class SendVoiceToolTest {
 
     // ── 夹具 ────────────────────────────────────────────────────────────
 
-    private fun tempFileOf(synth: FakeSynthesizer): File =
-        requireNotNull(synth.lastFile) { "合成端口未被调用，拿不到临时文件路径" }
+    private fun tempFileOf(synth: FakeSynthesizer): File = requireNotNull(synth.lastFile) { "合成端口未被调用，拿不到临时文件路径" }
 
     private fun realStore(): VoiceMessageStore =
         VoiceMessageStore(File(context.cacheDir, "voice-store-${System.nanoTime()}"), VoiceDurationProbe { 800L })
 
-    private fun storedFiles(store: VoiceMessageStore): List<File> =
-        store.storageDir.listFiles()?.filter { it.isFile }.orEmpty()
+    private fun storedFiles(store: VoiceMessageStore): List<File> = store.storageDir.listFiles()?.filter { it.isFile }.orEmpty()
 
     /** 合成端口假实现：可选结果/抛异常，成功时写点字节让 persist 有东西可搬。 */
     private class FakeSynthesizer(

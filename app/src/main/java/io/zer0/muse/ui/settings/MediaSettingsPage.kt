@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,12 +30,14 @@ import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.SpeechProviderResolver
+import io.zer0.muse.data.assistant.SpeechGuideStore
+import io.zer0.muse.data.assistant.SpeechGuideStyle
 import io.zer0.muse.data.assistant.VoiceReplyFrequency
 import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
-import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
@@ -54,8 +56,8 @@ import io.zer0.muse.ui.speech.TtsEngineSwitch
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.VoiceInfo
 import io.zer0.muse.ui.theme.MusePaddings
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
@@ -166,6 +168,9 @@ fun MediaSettingsPage(
 
         // ── 22③ / 2.6.24：语音回复频率（唯一设置处；约定页不再重复一份） ──
         globalVoiceFrequencySection()
+
+        // ── 发言指南：只改注入给模型的写作约束，不做客户端后处理 ──
+        speechGuideSection()
 
         // ── 2. 云端 TTS 引擎 ──
         item { SectionLabel(stringResource(R.string.settings_media_cloud_tts_section)) }
@@ -847,6 +852,50 @@ private fun hasAdvancedParams(engine: String): Boolean = engine == "elevenlabs" 
  * 抽成 LazyListScope 扩展而不是内联在 [MediaSettingsPage]，是为了不把已经很长的页面再撑过
  * 单函数长度门禁（127→回落到阈值内）；档位只改注入给模型的约定文案，不做客户端硬拦截（见 VoiceReplyPolicy）。
  */
+/**
+ * 发言指南：让回复正文像聊天里说话。
+ *
+ * 与语音频率同一套做法 —— 只改注入给模型的约定文案，不做客户端硬改：
+ * 客户端分不清「正文」与「内省/工具记录」，硬改会把不该动的部分一起改坏。
+ */
+private fun LazyListScope.speechGuideSection() {
+    item { SectionLabel(stringResource(R.string.speech_guide_section)) }
+    item {
+        val context = LocalContext.current
+        val store = remember { SpeechGuideStore.of(context) }
+        val current by store.snapshot.collectAsStateWithLifecycle(initialValue = SpeechGuideStyle.OFF)
+        val scope = rememberCoroutineScope()
+        SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
+            Column(Modifier.padding(MusePaddings.cardInner)) {
+                Text(
+                    text = stringResource(R.string.speech_guide_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SpeechGuideStyle.entries.forEach { style ->
+                        MuseChip(
+                            label = stringResource(
+                                when (style) {
+                                    SpeechGuideStyle.OFF -> R.string.speech_guide_off
+                                    SpeechGuideStyle.CONVERSATIONAL -> R.string.speech_guide_conversational
+                                },
+                            ),
+                            selected = style == current,
+                            onClick = { if (style != current) scope.launch { store.set(style) } },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 private fun LazyListScope.globalVoiceFrequencySection() {
     item { SectionLabel(stringResource(R.string.voice_reply_global_section)) }
     item {
@@ -862,10 +911,7 @@ private fun LazyListScope.globalVoiceFrequencySection() {
 }
 
 @Composable
-private fun GlobalVoiceFrequencySection(
-    current: VoiceReplyFrequency,
-    onSelect: (VoiceReplyFrequency) -> Unit,
-) {
+private fun GlobalVoiceFrequencySection(current: VoiceReplyFrequency, onSelect: (VoiceReplyFrequency) -> Unit) {
     val labels = mapOf(
         VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
         VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),

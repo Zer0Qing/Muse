@@ -797,11 +797,7 @@ class SubagentRunner(
         }
     }
 
-    private fun buildChineseSystemPrompt(
-        maxToolCalls: Int,
-        targetPaths: List<String>?,
-        access: SubagentAccess,
-    ): String {
+    private fun buildChineseSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?, access: SubagentAccess): String {
         return buildString {
             appendLine("你是一个被动子 agent,由主 agent 委托执行独立子任务。")
             appendLine()
@@ -824,11 +820,7 @@ class SubagentRunner(
         }
     }
 
-    private fun buildEnglishSystemPrompt(
-        maxToolCalls: Int,
-        targetPaths: List<String>?,
-        access: SubagentAccess,
-    ): String {
+    private fun buildEnglishSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?, access: SubagentAccess): String {
         return buildString {
             appendLine("You are a passive sub-agent executing an isolated subtask delegated by the main agent.")
             appendLine()
@@ -886,6 +878,7 @@ class SubagentRunner(
         }
     }
 }
+
 /**
  * 子 agent 超时时要交出去的那句话。
  *
@@ -893,19 +886,14 @@ class SubagentRunner(
  * `执行超时(${TIMEOUT_MS / 1000}s)`），而这里原先写的是 `240000ms` —— 一串没人能心算的数字，
  * 而主 Agent 恰恰要靠这句判断"要不要续接"。抽成纯函数也让它能被直接测到。
  */
-internal fun subagentTimeoutError(
-    timeoutMs: Long,
-    rounds: Int,
-    toolCalls: Int,
-    hasPartialOutput: Boolean,
-): String {
+internal fun subagentTimeoutError(timeoutMs: Long, rounds: Int, toolCalls: Int, hasPartialOutput: Boolean): String {
     val totalSeconds = (timeoutMs / 1000L).coerceAtLeast(0L)
     val span = if (totalSeconds < 60) {
-        "${totalSeconds} 秒"
+        "$totalSeconds 秒"
     } else {
         val minutes = totalSeconds / 60
         val rest = totalSeconds % 60
-        if (rest == 0L) "${minutes} 分钟" else "${minutes} 分 ${rest} 秒"
+        if (rest == 0L) "$minutes 分钟" else "$minutes 分 $rest 秒"
     }
     val outcome = if (hasPartialOutput) "，已产出部分总结" else "，无任何产出"
     return "子 agent 执行超时($span)，已执行 $rounds 轮、$toolCalls 次工具调用$outcome"

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通话进行中的页面文案。阶段与降级原因在数据层是记号，这里负责换成当前语言的话。 -->
+<resources>
+    <string name="mp_call_none">Нет активного вызова</string>
+    <string name="mp_call_back">Назад</string>
+    <string name="mp_call_dialing">Набираем номер…</string>
+    <string name="mp_call_ringing">Ожидаем ответа</string>
+    <string name="mp_call_connected">Соединено</string>
+    <string name="mp_call_ended">Вызов завершён</string>
+    <string name="mp_call_failed">Не удалось позвонить</string>
+    <string name="mp_call_no_answer">Абонент не ответил</string>
+    <string name="mp_call_hangup">Завершить</string>
+    <string name="mp_call_duration">Вызов %1$s</string>
+    <string name="mp_call_camera_denied">Доступ к камере не выдан — переключено на голосовой вызов</string>
+    <string name="mp_call_dial_failed">В этом раунде ничего не вернулось, вызов завершён</string>
+    <string name="mp_call_mine">Я</string>
+    <string name="mp_call_peer">Собеседник</string>
+    <string name="mp_call_play_voice">Прослушать это сообщение</string>
+    <string name="mp_call_say_hint">Скажите что-нибудь…</string>
+    <string name="mp_call_say_send">Отправить</string>
+    <string name="mp_chat_call_voice">Голосовой вызов</string>
+    <string name="mp_chat_call_video">Видеочат</string>
+</resources>

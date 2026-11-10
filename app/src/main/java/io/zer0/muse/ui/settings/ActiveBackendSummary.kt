@@ -23,10 +23,7 @@ private const val PRIMARY_SEPARATOR = " · "
  * @param degradedFallback 降级但后端没给原因时的兜底文案（由调用方传入本地化字符串）
  * @return 摘要；[state] 为 null 时返回 null，调用方据此整块不渲染
  */
-fun resolveActiveBackendSummary(
-    state: EmbeddingService.BackendState?,
-    degradedFallback: String,
-): ActiveBackendSummary? {
+fun resolveActiveBackendSummary(state: EmbeddingService.BackendState?, degradedFallback: String): ActiveBackendSummary? {
     if (state == null) return null
     val displayName = state.displayName.trim()
     val modelName = state.modelName.trim()

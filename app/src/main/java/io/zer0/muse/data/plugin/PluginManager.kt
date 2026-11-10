@@ -1266,13 +1266,12 @@ class PluginManager(
      * 授权判定放在这里而不是渲染层：渲染层只该关心"画什么"，不该再判一次权限 ——
      * 两处各判一次，迟早有一处先松动。
      */
-    fun loadSlotViews(slot: PluginSlot.Id, isAuthorized: (String) -> Boolean): List<SlotView> =
-        list().asSequence()
-            .filter { it.enabled && it.installationConfirmed }
-            .filter { isAuthorized(it.id) }
-            .mapNotNull { plugin -> slotViewOf(plugin, slot) }
-            .take(PluginSlot.MAX_SLOT_PLUGINS)
-            .toList()
+    fun loadSlotViews(slot: PluginSlot.Id, isAuthorized: (String) -> Boolean): List<SlotView> = list().asSequence()
+        .filter { it.enabled && it.installationConfirmed }
+        .filter { isAuthorized(it.id) }
+        .mapNotNull { plugin -> slotViewOf(plugin, slot) }
+        .take(PluginSlot.MAX_SLOT_PLUGINS)
+        .toList()
 
     /** 单个插件在某槽位的片段；没有贡献、文件缺失、解析失败都返回 null（不抛）。 */
     private fun slotViewOf(plugin: InstalledPlugin, slot: PluginSlot.Id): SlotView? {

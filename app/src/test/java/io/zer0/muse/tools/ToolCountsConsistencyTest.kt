@@ -56,19 +56,16 @@ class ToolCountsConsistencyTest {
 
     // ── 改动前的过滤实现（准绳，不参与生产代码） ─────────────────────
 
-    private fun legacyLocalDefs(
-        configuredToolIds: Set<String>,
-        mcpServerIds: Set<String>,
-        denied: Set<String>,
-    ): List<ToolDefinition> = registered.map { aiDef(it.name) }.filter { definition ->
-        val notDenied = definition.name !in denied
-        val selectedByTool =
-            configuredToolIds.isEmpty() || definition.name in configuredToolIds ||
-                definition.name == FindToolsTool.TOOL_NAME
-        val isMcpTool = definition.name.startsWith("mcp_") && definition.name.contains("__")
-        val selectedByMcp = !isMcpTool || mcpServerIds.any { s -> definition.name.startsWith("mcp_${s}__") }
-        notDenied && selectedByTool && selectedByMcp
-    }
+    private fun legacyLocalDefs(configuredToolIds: Set<String>, mcpServerIds: Set<String>, denied: Set<String>): List<ToolDefinition> =
+        registered.map { aiDef(it.name) }.filter { definition ->
+            val notDenied = definition.name !in denied
+            val selectedByTool =
+                configuredToolIds.isEmpty() || definition.name in configuredToolIds ||
+                    definition.name == FindToolsTool.TOOL_NAME
+            val isMcpTool = definition.name.startsWith("mcp_") && definition.name.contains("__")
+            val selectedByMcp = !isMcpTool || mcpServerIds.any { s -> definition.name.startsWith("mcp_${s}__") }
+            notDenied && selectedByTool && selectedByMcp
+        }
 
     private fun legacySkills(configuredSkillIds: Set<String>): List<SkillEntity> {
         val localToolNames = registered.map { it.name }.toSet()

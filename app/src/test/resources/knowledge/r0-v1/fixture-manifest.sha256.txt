@@ -1,0 +1,1 @@
+50705d39827d731808c98b2bd69fbf24cdf24dde1a146c3eca65d72c9b49ad1e  fixture-manifest.json

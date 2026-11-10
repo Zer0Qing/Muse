@@ -100,10 +100,7 @@ object TokenUsageTool {
 
     // ── 数据读取 ──
 
-    private suspend fun readSessionUsage(
-        sessionId: String,
-        reader: (suspend (String) -> SessionUsage?)?,
-    ): SessionUsage? {
+    private suspend fun readSessionUsage(sessionId: String, reader: (suspend (String) -> SessionUsage?)?): SessionUsage? {
         if (sessionId.isEmpty() || reader == null) return null
         return runCatching { reader(sessionId) }.getOrNull()
     }

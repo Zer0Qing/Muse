@@ -150,10 +150,7 @@ object PluginServiceEligibility {
     /** 只有 `kind = "service"` 的插件进服务宿主；工具型插件不该被常驻拉起。 */
     const val KIND_SERVICE = "service"
 
-    fun select(
-        plugins: List<PluginManager.InstalledPlugin>,
-        isGranted: (String) -> Boolean,
-    ): List<PluginManager.InstalledPlugin> = plugins
+    fun select(plugins: List<PluginManager.InstalledPlugin>, isGranted: (String) -> Boolean): List<PluginManager.InstalledPlugin> = plugins
         .filter { it.enabled && it.kind == KIND_SERVICE }
         .filter { isGranted(it.id) }
         .take(MAX_SERVICE_PLUGINS)

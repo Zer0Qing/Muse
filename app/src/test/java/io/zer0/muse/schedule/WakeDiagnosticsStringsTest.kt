@@ -45,8 +45,7 @@ class WakeDiagnosticsStringsTest {
         return matches.associate { it.groupValues[1] to it.groupValues[2] }
     }
 
-    private fun placeholdersOf(value: String): List<String> =
-        PLACEHOLDER.findAll(value).map { it.value }.sorted().toList()
+    private fun placeholdersOf(value: String): List<String> = PLACEHOLDER.findAll(value).map { it.value }.sorted().toList()
 
     @Test
     fun `every locale carries the same wake keys`() {

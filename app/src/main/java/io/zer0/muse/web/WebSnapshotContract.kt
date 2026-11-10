@@ -23,11 +23,7 @@ object WebSnapshotContract {
      * @param url 抓取时的页面地址；为空时写"未知"，不猜
      * @param fetchedAtMillis 抓取时刻
      */
-    fun header(
-        url: String?,
-        fetchedAtMillis: Long,
-        zone: TimeZone = TimeZone.getDefault(),
-    ): String {
+    fun header(url: String?, fetchedAtMillis: Long, zone: TimeZone = TimeZone.getDefault()): String {
         val formatter = SimpleDateFormat(TIME_PATTERN, Locale.getDefault()).apply { timeZone = zone }
         val stamp = formatter.format(Date(fetchedAtMillis))
         val source = url?.takeIf { it.isNotBlank() } ?: "未知"

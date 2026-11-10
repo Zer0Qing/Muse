@@ -46,12 +46,7 @@ class ToolCallGate(
      * @param argumentsJson 全量参数 JSON；判定用全量，审批卡只展示预览
      * @param subject 发起方称呼，出现在拒绝文案里（"子 agent" / "插件"）
      */
-    suspend fun gate(
-        toolName: String,
-        toolCallId: String,
-        argumentsJson: String,
-        subject: String,
-    ): Outcome {
+    suspend fun gate(toolName: String, toolCallId: String, argumentsJson: String, subject: String): Outcome {
         val args = parseToolArgs(toolName, argumentsJson)
         return if (approvalRouter.delegate != null) {
             viaBridge(toolName, toolCallId, argumentsJson, args, subject)
@@ -118,8 +113,7 @@ class ToolCallGate(
         }
     }
 
-    private fun denied(toolName: String, reason: String): Outcome =
-        Outcome(allowed = false, reason = "工具 '$toolName' $reason")
+    private fun denied(toolName: String, reason: String): Outcome = Outcome(allowed = false, reason = "工具 '$toolName' $reason")
 
     private fun gateRiskLevel(toolName: String): ToolRiskLevel = try {
         toolRegistry.getToolRiskLevel(toolName) ?: ToolRiskLevel.HIGH

@@ -190,11 +190,10 @@ class BackupRestoreSkipsMiniPhoneTest {
 
     private val backupJson = Json { encodeDefaults = true }
 
-    private fun <T> dataLine(type: String, serializer: kotlinx.serialization.KSerializer<T>, value: T): String =
-        buildJsonObject {
-            put("type", type)
-            put("data", backupJson.encodeToJsonElement(serializer, value))
-        }.toString()
+    private fun <T> dataLine(type: String, serializer: kotlinx.serialization.KSerializer<T>, value: T): String = buildJsonObject {
+        put("type", type)
+        put("data", backupJson.encodeToJsonElement(serializer, value))
+    }.toString()
 
     /** 走真实的 NDJSON 恢复入口（含恢复账本与回滚包装）。 */
     private suspend fun invokeNdJsonRecovery(service: BackupService, lines: Sequence<String>): Pair<Int, Int> =

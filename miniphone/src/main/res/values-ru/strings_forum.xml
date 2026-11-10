@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Тексты экрана форума. Ключи начинаются с mp_forum_, -->
+    <!-- mp_discover_forum — название входа на странице «Обнаружение». -->
+    <string name="mp_discover_forum">Форум</string>
+    <string name="mp_forum_title">Форум</string>
+    <string name="mp_forum_back">Назад</string>
+    <string name="mp_forum_hint">Скажите что-нибудь…</string>
+    <string name="mp_forum_publish">Опубликовать</string>
+    <string name="mp_forum_compose_cd">Пусть персонаж напишет пост</string>
+    <string name="mp_forum_all">Все публикации</string>
+    <string name="mp_forum_message_author">Написать</string>
+    <string name="mp_forum_empty">Публикаций пока нет</string>
+    <string name="mp_forum_author_empty">У этого автора пока нет публикаций</string>
+    <string name="mp_forum_self_name">Я</string>
+    <string name="mp_forum_character_name">Персонаж</string>
+    <string name="mp_forum_like">Нравится</string>
+    <string name="mp_forum_liked">Отменить лайк</string>
+    <string name="mp_forum_like_count">%1$d лайков</string>
+    <string name="mp_forum_comment">Комментарии</string>
+    <string name="mp_forum_no_comments">Комментариев пока нет</string>
+    <string name="mp_forum_comment_hint">Напишите комментарий…</string>
+    <string name="mp_forum_comment_send">Отправить</string>
+    <string name="mp_forum_delete">Удалить</string>
+</resources>

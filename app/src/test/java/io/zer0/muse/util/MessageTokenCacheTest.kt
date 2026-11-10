@@ -15,8 +15,7 @@ import org.junit.Test
  */
 class MessageTokenCacheTest {
 
-    private fun msg(content: String, role: MessageRole = MessageRole.USER) =
-        UIMessage(role = role, content = content)
+    private fun msg(content: String, role: MessageRole = MessageRole.USER) = UIMessage(role = role, content = content)
 
     @Test
     fun `numbers_match_uncached_estimate`() {

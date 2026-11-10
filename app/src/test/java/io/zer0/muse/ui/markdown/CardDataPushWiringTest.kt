@@ -18,8 +18,7 @@ import java.io.File
  */
 class CardDataPushWiringTest {
 
-    private fun readAppSource(relative: String): String =
-        File("src/main/java/io/zer0/muse/$relative").readText()
+    private fun readAppSource(relative: String): String = File("src/main/java/io/zer0/muse/$relative").readText()
 
     @Test
     fun `卡片脚本按能力标记选择推送或轮询`() {

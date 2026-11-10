@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 散策（R7）：架空の場所、通行人パネル、空の状態。 -->
+    <string name="mp_discover_roam">散策</string>
+    <string name="mp_roam_title">散策</string>
+    <string name="mp_roam_empty">まだ誰も出かけていません。キャラクターを選んで散歩しましょう。</string>
+    <string name="mp_roam_who">誰が出かける</string>
+    <string name="mp_roam_location_hint">どこへ？場所を入力</string>
+    <string name="mp_roam_depart">出発</string>
+    <string name="mp_roam_npc_title">このあたりの通行人</string>
+    <string name="mp_roam_encounter">誰かに出会う</string>
+    <string name="mp_roam_clear">このあたりを消去</string>
+    <string name="mp_roam_no_npc">このあたりではまだ誰にも会っていません</string>
+</resources>

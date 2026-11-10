@@ -46,7 +46,7 @@ class CardDataStoreShardTest {
         shardDir.deleteRecursively()
 
         val store = newStore()
-        store.remove("c-7")   // 恢复还没完成就删
+        store.remove("c-7") // 恢复还没完成就删
 
         val deadline = System.currentTimeMillis() + 10_000
         while (store.get("c-1") == null && System.currentTimeMillis() < deadline) {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Прогулка (R7): вымышленные места, прохожие и пустые состояния. -->
+    <string name="mp_discover_roam">Прогулка</string>
+    <string name="mp_roam_title">Прогулка</string>
+    <string name="mp_roam_empty">Пока никто не вышел. Выберите персонажа для прогулки.</string>
+    <string name="mp_roam_who">Кто отправится</string>
+    <string name="mp_roam_location_hint">Куда? Введите место</string>
+    <string name="mp_roam_depart">Отправиться</string>
+    <string name="mp_roam_npc_title">Прохожие поблизости</string>
+    <string name="mp_roam_encounter">Встретить кого-нибудь</string>
+    <string name="mp_roam_clear">Очистить это место</string>
+    <string name="mp_roam_no_npc">Здесь пока никого не встречали</string>
+</resources>

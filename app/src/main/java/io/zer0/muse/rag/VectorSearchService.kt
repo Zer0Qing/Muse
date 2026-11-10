@@ -138,8 +138,7 @@ class VectorSearchService(
      * 再多就要按真实内存预算重新论证。
      */
     private val cacheEntries = object : LinkedHashMap<String, List<CachedVector>>(4, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<CachedVector>>): Boolean =
-            size > MAX_CACHE_ENTRIES
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<CachedVector>>): Boolean = size > MAX_CACHE_ENTRIES
     }
 
     private val mutex = Mutex()
@@ -173,7 +172,10 @@ class VectorSearchService(
         // P2-33: 分批拉取(旧实现传 Int.MAX_VALUE,一次性把过滤结果全部载入内存)
         // 注意:SQL provider 只覆盖 docIds/tag/时间,标题/来源等条件仍需内存兜底判定,
         //       故 applyMetadataInMemory=true(SQL 为优化,内存判定为语义唯一真源)。
+        // R1 范围合同:metadata provider 路径必须与 scope 求交(空范围零结果,非空范围
+        // 由 scanPagedProvider 逐条判定),metadata 过滤不得成为绕过范围的通道。
         if (metadataFilter != null && !metadataFilter.isEmpty() && chunkPageByMetadataProvider != null) {
+            if (scopeDocIds != null && scopeDocIds.isEmpty()) return emptyList()
             return scanPagedProvider(
                 queryVector = queryVector,
                 queryNorm = queryNorm,
@@ -182,22 +184,29 @@ class VectorSearchService(
                 mmrLambda = mmrLambda,
                 applyMetadataInMemory = true,
                 metadataFilter = metadataFilter,
+                scopeDocIds = scopeDocIds?.toSet(),
                 pageProvider = { limit, offset -> chunkPageByMetadataProvider(metadataFilter, limit, offset) },
             )
         }
         // v1.133: scope 过滤路径 — 走 docIds provider(不走全量缓存)
         // P2-33: 同样分批拉取:定向检索不再把整个检索范围(大库可 >2000 chunk)一次性载入
-        if (scopeDocIds != null && scopeDocIds.isNotEmpty() && chunkPageByDocIdsProvider != null) {
-            return scanPagedProvider(
-                queryVector = queryVector,
-                queryNorm = queryNorm,
-                topK = topK,
-                threshold = threshold,
-                mmrLambda = mmrLambda,
-                applyMetadataInMemory = true,
-                metadataFilter = metadataFilter,
-                pageProvider = { limit, offset -> chunkPageByDocIdsProvider(scopeDocIds, limit, offset) },
-            )
+        // R1 范围合同:scopeDocIds 为显式空列表 = 显式空范围 = 零结果,不得当作「未限域」
+        // 载入全库(空集与 null 的语义在此分流);仅 null 才表示无范围约束。
+        if (scopeDocIds != null) {
+            if (scopeDocIds.isEmpty()) return emptyList()
+            if (chunkPageByDocIdsProvider != null) {
+                return scanPagedProvider(
+                    queryVector = queryVector,
+                    queryNorm = queryNorm,
+                    topK = topK,
+                    threshold = threshold,
+                    mmrLambda = mmrLambda,
+                    applyMetadataInMemory = true,
+                    metadataFilter = metadataFilter,
+                    scopeDocIds = scopeDocIds.toSet(),
+                    pageProvider = { limit, offset -> chunkPageByDocIdsProvider(scopeDocIds, limit, offset) },
+                )
+            }
         }
 
         val total = resultOf { chunkCountProvider() }.getOrNull() ?: 0
@@ -234,6 +243,9 @@ class VectorSearchService(
      * @param applyMetadataInMemory 是否按 metadataFilter 逐条内存判定。scope / metadata 两条
      *   provider 路径均需开启:provider 只承担候选范围裁剪,过滤语义统一由 [MetadataFilter.matches]
      *   在内存中判定(避免标题/来源等 provider 未覆盖的条件被静默忽略)。
+     * @param scopeDocIds R1 范围合同:候选必须落在该文档集合内(null = 无范围约束)。
+     *   metadata provider 路径传入后逐条判定,使 metadata 过滤无法绕过范围(内存判定为
+     *   语义唯一真源,provider 裁剪只是优化)。
      */
     private suspend fun scanPagedProvider(
         queryVector: FloatArray,
@@ -243,6 +255,7 @@ class VectorSearchService(
         mmrLambda: Float,
         applyMetadataInMemory: Boolean,
         metadataFilter: MetadataFilter?,
+        scopeDocIds: Set<String>? = null,
         pageProvider: suspend (limit: Int, offset: Int) -> List<ChunkWithDoc>,
     ): List<SearchResult> {
         val needsFullCandidates = mmrLambda < 1.0f
@@ -253,6 +266,7 @@ class VectorSearchService(
             val page = resultOf { pageProvider(BATCH_SIZE, offset) }.getOrNull() ?: emptyList()
             if (page.isEmpty()) break
             for (chunk in page) {
+                if (scopeDocIds != null && chunk.docId !in scopeDocIds) continue
                 if (applyMetadataInMemory && !chunkMatchesMetadata(chunk, metadataFilter)) continue
                 val vector = parseEmbedding(chunk) ?: continue
                 val n = norm(vector)
@@ -349,13 +363,14 @@ class VectorSearchService(
         topK: Int,
         threshold: Float,
         mmrLambda: Float,
-        // P2-30: 限定检索范围的文档集合;null/空 = 全库
+        // R1 范围合同: null = 无范围约束(全库);空列表 = 显式空范围(必然零结果,上游已截)
         scopeDocIds: List<String>?,
         metadataFilter: MetadataFilter?,
     ): List<SearchResult> {
         // 流式场景下 MMR 难以应用(需全量候选集算 sim),降级为纯相似度 + topK×5 候选再做 MMR
         val candidatePoolSize = if (mmrLambda < 1.0f) topK * 5 else topK
-        val scopeSet = scopeDocIds?.toHashSet()?.takeIf { it.isNotEmpty() }
+        // 显式空范围在此即为空过滤集:所有候选都被剔除,返回零结果(不再退化为全库扫描)。
+        val scopeSet = scopeDocIds?.toHashSet()
         val heap = PriorityQueue<Pair<CachedVector, Float>>(candidatePoolSize + 1) { a, b ->
             a.second.compareTo(b.second)
         }
@@ -401,7 +416,8 @@ class VectorSearchService(
             synchronized(cacheEntries) { cacheEntries[key] }?.let { return@withLock it }
             val chunks = chunkPageProvider(total, 0)
             // v1.133: 若有 scope,在内存中过滤(避免 provider 走全量)
-            val filtered = if (scopeDocIds != null && scopeDocIds.isNotEmpty()) {
+            // R1 范围合同: 空列表 = 显式空范围 → 过滤结果必然为空,零结果(不退化为全量)
+            val filtered = if (scopeDocIds != null) {
                 chunks.filter { it.docId in scopeDocIds }
             } else {
                 chunks

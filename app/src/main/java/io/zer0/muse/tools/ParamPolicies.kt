@@ -42,9 +42,9 @@ object ParamPolicies {
                 url.startsWith("http://") || url.startsWith("https://") -> ToolApprovalState.Auto
                 url.startsWith("file://") ->
                     ToolApprovalState.Denied(
-                    "不允许打开本地文件链接(file://),已拦截",
-                    source = DenySource.POLICY,
-                )
+                        "不允许打开本地文件链接(file://),已拦截",
+                        source = DenySource.POLICY,
+                    )
                 else -> ToolApprovalState.Pending
             }
         }

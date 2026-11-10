@@ -1,6 +1,5 @@
 package io.zer0.muse.notification
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -24,6 +23,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.proactive.ProactiveDismissProtocol
 import io.zer0.muse.proactive.ProactiveDismissReceiver
 import io.zer0.muse.ui.theme.presets.WarmPaperTheme
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -93,10 +93,10 @@ class MuseNotificationManager(private val context: Context) {
                 val notif = buildGenerationNotification(latest.sessionTitle, latest.currentChars, latest.target)
                 resultOf { nm.notify(NOTIF_ID_LIVE_UPDATE, notif) }
                     .onError { msg, t ->
-                Logger.w(TAG, "updateLiveProgress failed: $msg")
-                // 权限被拒不是普通失败:记下来,让前台界面在合适的时机提出授权请求
-                if (t is SecurityException) NotificationPermissionBus.needed.value = true
-            }
+                        Logger.w(TAG, "updateLiveProgress failed: $msg")
+                        // 权限被拒不是普通失败:记下来,让前台界面在合适的时机提出授权请求
+                        if (t is SecurityException) NotificationPermissionBus.needed.value = true
+                    }
             }
         }
     }
@@ -643,8 +643,9 @@ class MuseNotificationManager(private val context: Context) {
         private const val NOTIF_ID_CHAT_COMPLETED = 1001
         private const val NOTIF_ID_CHAT_PENDING_APPROVAL = 1005
         private const val NOTIF_ID_LIVE_UPDATE = 1002
-    /** 工具阶段通知：与流式进度分开，避免互相覆盖。 */
-    private const val NOTIF_ID_TASK_STAGE = 1005
+
+        /** 工具阶段通知：与流式进度分开，避免互相覆盖。 */
+        private const val NOTIF_ID_TASK_STAGE = 1005
 
         // v2.0: 流式进度通知最小发送间隔(毫秒)
         private const val LIVE_PROGRESS_MIN_INTERVAL_MS = 900L

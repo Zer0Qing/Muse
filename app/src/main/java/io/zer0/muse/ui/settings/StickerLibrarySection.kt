@@ -47,8 +47,8 @@ import io.zer0.muse.data.STICKER_FREQ_FREQUENT
 import io.zer0.muse.data.STICKER_FREQ_NORMAL
 import io.zer0.muse.data.STICKER_FREQ_OCCASIONALLY
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.STICKER_DEFAULT_CATEGORY
+import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -341,7 +341,7 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                 onClick = { galleryLauncher.launch(arrayOf("image/*")) },
             ) { ChevronRight() }
 
-    // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)
+            // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)
             if (importingSticker) {
                 Column(
                     modifier =

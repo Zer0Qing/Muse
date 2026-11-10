@@ -725,6 +725,10 @@
     <string name="knowledge_folder_created">Carpeta «%1$s» creada</string>
     <string name="knowledge_folder_renamed">Renombrada a «%1$s»</string>
     <string name="knowledge_folder_deleted">Carpeta eliminada</string>
+    <string name="knowledge_import_cancel_title">¿Cancelar la importación?</string>
+    <string name="knowledge_import_cancel_body">Los archivos ya importados se conservarán; el resto hay que importarlos de nuevo.</string>
+    <string name="knowledge_import_cancel_confirm">Detener</string>
+    <string name="common_continue">Seguir importando</string>
     <string name="chat_set_background">Fondo del chat</string>
     <string name="chat_background_saved">Fondo de la conversación actualizado</string>
     <string name="chat_background_save_failed">No se pudo guardar el fondo</string>

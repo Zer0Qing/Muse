@@ -97,8 +97,7 @@ internal class HostMediaStore(
         return bytes.takeIf { it.isNotEmpty() && it.size <= MAX_INLINE_BYTES }
     }
 
-    private fun normalizedMime(declared: String?): String? =
-        declared?.lowercase(Locale.ROOT)?.substringBefore(';')
+    private fun normalizedMime(declared: String?): String? = declared?.lowercase(Locale.ROOT)?.substringBefore(';')
 
     /**
      * 路由侧反查：token → 此刻仍存在于允许目录内的文件。
@@ -177,10 +176,9 @@ internal class HostMediaStore(
 
     private fun newToken(): String = UUID.randomUUID().toString().replace("-", "")
 
-    private fun contentHash(bytes: ByteArray): String =
-        MessageDigest.getInstance("SHA-256").digest(bytes)
-            .joinToString("") { "%02x".format(it) }
-            .take(HASH_CHARS)
+    private fun contentHash(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes)
+        .joinToString("") { "%02x".format(it) }
+        .take(HASH_CHARS)
 
     internal companion object {
         private const val TAG = "HostMediaStore"

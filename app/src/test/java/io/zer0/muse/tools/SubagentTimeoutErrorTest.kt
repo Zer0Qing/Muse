@@ -13,12 +13,7 @@ import org.junit.Test
  */
 class SubagentTimeoutErrorTest {
 
-    private fun text(
-        timeoutMs: Long,
-        rounds: Int = 3,
-        toolCalls: Int = 7,
-        hasPartialOutput: Boolean = true,
-    ) = subagentTimeoutError(
+    private fun text(timeoutMs: Long, rounds: Int = 3, toolCalls: Int = 7, hasPartialOutput: Boolean = true) = subagentTimeoutError(
         timeoutMs = timeoutMs,
         rounds = rounds,
         toolCalls = toolCalls,

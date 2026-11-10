@@ -52,8 +52,7 @@ class ExperienceTextCacheTest {
 
     // ── 接线：打分路径必须真的走缓存 ────────────────────────────
 
-    private fun assemblerSource(): String =
-        File("src/main/java/io/zer0/muse/transformer/SystemPromptAssembler.kt").readText()
+    private fun assemblerSource(): String = File("src/main/java/io/zer0/muse/transformer/SystemPromptAssembler.kt").readText()
 
     @Test
     fun `experience_relevance_uses_the_cache`() {

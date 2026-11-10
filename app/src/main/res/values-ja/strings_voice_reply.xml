@@ -13,4 +13,8 @@
     <string name="voice_reply_global_default_fmt">全体デフォルト：%1$s</string>
     <string name="voice_reply_global_section">音声返信の頻度</string>
     <string name="voice_reply_global_hint">すべてのアシスタントがこの 1 段階に従います。プロンプトにのみ影響し、強制ブロックはしません。</string>
+    <string name="speech_guide_section">話し方ガイド</string>
+    <string name="speech_guide_hint">返信をチャットらしく：口語的で軽めに。長い内容やリスト・手順・コードが必要なら構造化して書く。送信本文だけに効く。</string>
+    <string name="speech_guide_off">オフ（既定）</string>
+    <string name="speech_guide_conversational">口語優先</string>
 </resources>

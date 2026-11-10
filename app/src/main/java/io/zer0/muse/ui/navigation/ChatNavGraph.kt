@@ -14,14 +14,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import io.zer0.muse.ui.ArchivedChatsScreen
 import io.zer0.muse.ui.ChatListScreen
-import io.zer0.muse.ui.FolderDetailScreen
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
+import io.zer0.muse.ui.FolderDetailScreen
 import io.zer0.muse.ui.HomeScreen
 import io.zer0.muse.ui.HtmlPreviewScreen
 import io.zer0.muse.ui.RecentlyDeletedScreen
 import io.zer0.muse.ui.SearchScreen
+import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
@@ -45,33 +45,33 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.verticalPushPopExit() },
     ) {
         CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
-        HomeScreen(
-            onOpenSettings = { navController.navigate(SettingsRoute) },
-            onOpenAssistants = { navController.navigate(AssistantsRoute) },
-            onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
-            onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
-            onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
-            onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
-            onOpenMiniPhone = { navController.navigate(MiniPhoneRoute) },
-            // v0.27: 点击任务项 / 新建任务 → push 到独立聊天详情页(右滑入场,滑动式 push 过渡)
-            onOpenChat = { navController.navigate(ChatDetailRoute) },
-            // v0.45: 右上角搜索 → 独立全局搜索页
-            onOpenSearch = { navController.navigate(SearchRoute) },
-            onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
-            // v1.30: 群聊卡片点击 → 群聊详情页(右滑入场)
-            onOpenGroupChat = { chatId ->
-                navController.navigate(GroupChatDetailRoute(chatId))
-            },
-            onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
-            onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
-            onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
-            // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
-            onHtmlPreview = { html ->
-                navController.navigate(HtmlPreviewRoute(html))
-            },
-            onOpenSkills = { navController.navigate(SkillsRoute) },
-            onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
-        )
+            HomeScreen(
+                onOpenSettings = { navController.navigate(SettingsRoute) },
+                onOpenAssistants = { navController.navigate(AssistantsRoute) },
+                onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
+                onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
+                onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
+                onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
+                onOpenMiniPhone = { navController.navigate(MiniPhoneRoute) },
+                // v0.27: 点击任务项 / 新建任务 → push 到独立聊天详情页(右滑入场,滑动式 push 过渡)
+                onOpenChat = { navController.navigate(ChatDetailRoute) },
+                // v0.45: 右上角搜索 → 独立全局搜索页
+                onOpenSearch = { navController.navigate(SearchRoute) },
+                onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
+                // v1.30: 群聊卡片点击 → 群聊详情页(右滑入场)
+                onOpenGroupChat = { chatId ->
+                    navController.navigate(GroupChatDetailRoute(chatId))
+                },
+                onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
+                onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
+                onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
+                // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
+                onHtmlPreview = { html ->
+                    navController.navigate(HtmlPreviewRoute(html))
+                },
+                onOpenSkills = { navController.navigate(SkillsRoute) },
+                onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+            )
         } // 关闭共享元素作用域注入（目的地级 AnimatedVisibilityScope，见 F2 基建）
     }
     // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入)
@@ -108,7 +108,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
     }
 
     // 小手机与它的子路由只受 [MINI_PHONE] 控制：模块在包里就注册；
-                    // 首页/设置入口另由 MINI_PHONE_ENTRY 与 browseVisible 决定。
+    // 首页/设置入口另由 MINI_PHONE_ENTRY 与 browseVisible 决定。
     if (io.zer0.muse.feature.FeatureFlags.MINI_PHONE) {
         // 小手机入口：整页由 :miniphone 模块自绘，主 App 只提供路由。
         composable<MiniPhoneRoute> {
@@ -196,92 +196,92 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
-        val state by sharedViewModel.state.collectAsStateWithLifecycle()
-        val widthClass = rememberWindowWidthClass()
-        if (widthClass == WindowWidthClass.Expanded) {
-            // P1-4: Expanded 双列布局 — 左列任务列表(40%) + 右列聊天(60%)
-            Row(modifier = Modifier.fillMaxSize()) {
-                // 左列:任务列表(与 HomeScreen Tab 0 同源,共享 sharedViewModel.state)
-                Box(modifier = Modifier.weight(0.4f).fillMaxSize()) {
-                    ChatListScreen(
-                        sessions = state.sessions,
-                        folders = state.folders,
-                        currentSessionId = state.currentSessionId,
-                        onSelect = { id -> sharedViewModel.switchSession(id) },
-                        onCreate = { sharedViewModel.createNewSession() },
-                        onDelete = sharedViewModel::deleteSession,
-                        onRename = { session ->
-                            sharedViewModel.renameSession(session.id, session.title)
-                        },
-                        onRenameTo = { session, newName ->
-                            sharedViewModel.renameSession(session.id, newName)
-                        },
-                        onTogglePinned = sharedViewModel::togglePinned,
-                        // 宽屏双栏遗漏修复:此前未传该回调,默认空 lambda 让置顶拖拽排序松手即失效。
-                        onReorderPinned = sharedViewModel::reorderPinnedSessions,
-                        onMoveSessionToFolder = sharedViewModel::moveSessionToFolder,
-                        onCreateFolder = sharedViewModel::createFolder,
-                        onRenameFolder = sharedViewModel::renameFolder,
-                        onDeleteFolder = sharedViewModel::deleteFolder,
-                        onToggleFolderExpanded = sharedViewModel::toggleFolderExpanded,
-                        onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
-                        assistants = state.assistants,
-                        currentAssistant = state.currentAssistant,
-                        archivedSessions = state.archivedSessions,
-                        onArchive = { id -> sharedViewModel.setSessionArchived(id, true) },
+            val state by sharedViewModel.state.collectAsStateWithLifecycle()
+            val widthClass = rememberWindowWidthClass()
+            if (widthClass == WindowWidthClass.Expanded) {
+                // P1-4: Expanded 双列布局 — 左列任务列表(40%) + 右列聊天(60%)
+                Row(modifier = Modifier.fillMaxSize()) {
+                    // 左列:任务列表(与 HomeScreen Tab 0 同源,共享 sharedViewModel.state)
+                    Box(modifier = Modifier.weight(0.4f).fillMaxSize()) {
+                        ChatListScreen(
+                            sessions = state.sessions,
+                            folders = state.folders,
+                            currentSessionId = state.currentSessionId,
+                            onSelect = { id -> sharedViewModel.switchSession(id) },
+                            onCreate = { sharedViewModel.createNewSession() },
+                            onDelete = sharedViewModel::deleteSession,
+                            onRename = { session ->
+                                sharedViewModel.renameSession(session.id, session.title)
+                            },
+                            onRenameTo = { session, newName ->
+                                sharedViewModel.renameSession(session.id, newName)
+                            },
+                            onTogglePinned = sharedViewModel::togglePinned,
+                            // 宽屏双栏遗漏修复:此前未传该回调,默认空 lambda 让置顶拖拽排序松手即失效。
+                            onReorderPinned = sharedViewModel::reorderPinnedSessions,
+                            onMoveSessionToFolder = sharedViewModel::moveSessionToFolder,
+                            onCreateFolder = sharedViewModel::createFolder,
+                            onRenameFolder = sharedViewModel::renameFolder,
+                            onDeleteFolder = sharedViewModel::deleteFolder,
+                            onToggleFolderExpanded = sharedViewModel::toggleFolderExpanded,
+                            onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
+                            assistants = state.assistants,
+                            currentAssistant = state.currentAssistant,
+                            archivedSessions = state.archivedSessions,
+                            onArchive = { id -> sharedViewModel.setSessionArchived(id, true) },
                             onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
-                        onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
-                        onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
-                        onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
-                        onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
-                        onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
-                        onOpenAssistants = { navController.navigate(AssistantsRoute) },
-                        isSessionsLoading = state.isSessionsLoading,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                            onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
+                            onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
+                            onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
+                            onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
+                            onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
+                            onOpenAssistants = { navController.navigate(AssistantsRoute) },
+                            isSessionsLoading = state.isSessionsLoading,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    // 右列:聊天页(onBack=null,列表常驻无需返回按钮)
+                    Box(modifier = Modifier.weight(0.6f).fillMaxSize()) {
+                        ChatScreen(
+                            onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+                            onOpenAssistants = { navController.navigate(AssistantsRoute) },
+                            onBack = null,
+                            isAgentMode = state.isAgentMode,
+                            viewModel = sharedViewModel,
+                            onHtmlPreview = { html ->
+                                navController.navigate(HtmlPreviewRoute(html))
+                            },
+                            onOpenSkills = { navController.navigate(SkillsRoute) },
+                            onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
+                            onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+                        )
+                    }
                 }
-                // 右列:聊天页(onBack=null,列表常驻无需返回按钮)
-                Box(modifier = Modifier.weight(0.6f).fillMaxSize()) {
-                    ChatScreen(
-                        onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
-                        onOpenAssistants = { navController.navigate(AssistantsRoute) },
-                        onBack = null,
-                        isAgentMode = state.isAgentMode,
-                        viewModel = sharedViewModel,
-                        onHtmlPreview = { html ->
-                            navController.navigate(HtmlPreviewRoute(html))
-                        },
-                        onOpenSkills = { navController.navigate(SkillsRoute) },
-                        onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
-                        onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
-                    )
-                }
+            } else {
+                ChatScreen(
+                    onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+                    onOpenAssistants = { navController.navigate(AssistantsRoute) },
+                    onBack = {
+                        // 退出对话时触发 AI 摘要命名(仅当标题仍为默认值且有至少一轮完整对话)
+                        val currentSessionId = sharedViewModel.state.value.currentSessionId
+                        if (!sharedViewModel.state.value.isAgentMode && currentSessionId != null) {
+                            sharedViewModel.autoTitleOnExit(currentSessionId)
+                        }
+                        if (sharedViewModel.state.value.isAgentMode) {
+                            sharedViewModel.setAgentMode(false)
+                        }
+                        navController.popBackStack()
+                    },
+                    isAgentMode = state.isAgentMode,
+                    // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
+                    onHtmlPreview = { html ->
+                        navController.navigate(HtmlPreviewRoute(html))
+                    },
+                    onOpenSkills = { navController.navigate(SkillsRoute) },
+                    onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
+                    onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+                )
             }
-        } else {
-            ChatScreen(
-                onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
-                onOpenAssistants = { navController.navigate(AssistantsRoute) },
-                onBack = {
-                    // 退出对话时触发 AI 摘要命名(仅当标题仍为默认值且有至少一轮完整对话)
-                    val currentSessionId = sharedViewModel.state.value.currentSessionId
-                    if (!sharedViewModel.state.value.isAgentMode && currentSessionId != null) {
-                        sharedViewModel.autoTitleOnExit(currentSessionId)
-                    }
-                    if (sharedViewModel.state.value.isAgentMode) {
-                        sharedViewModel.setAgentMode(false)
-                    }
-                    navController.popBackStack()
-                },
-                isAgentMode = state.isAgentMode,
-                // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
-                onHtmlPreview = { html ->
-                    navController.navigate(HtmlPreviewRoute(html))
-                },
-                onOpenSkills = { navController.navigate(SkillsRoute) },
-                onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
-                onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
-            )
-        }
         } // 关闭共享元素作用域注入
     }
     // v1.30: 群聊详情页 — 从群聊列表 push 进入,右滑入场 + 左滑返回

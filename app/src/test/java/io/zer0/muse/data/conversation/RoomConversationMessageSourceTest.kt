@@ -7,8 +7,8 @@ import io.zer0.ai.core.AttachmentRef
 import io.zer0.muse.data.session.MessageEntity
 import io.zer0.muse.data.session.MessageImageStore
 import io.zer0.muse.data.session.MuseDb
-import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.session.SessionEntity
+import io.zer0.muse.data.session.SessionRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -53,9 +53,9 @@ class RoomConversationMessageSourceTest {
                     role = "ASSISTANT",
                     content = "world",
                     attachmentsJson =
-                        "[{\"id\":\"a1\",\"name\":\"report.pdf\",\"mimeType\":\"application/pdf\",\"size\":42," +
-                            "\"sourceType\":\"FILE\",\"extractedText\":null," +
-                            "\"workspacePath\":\"attachments/report.pdf\"}]",
+                    "[{\"id\":\"a1\",\"name\":\"report.pdf\",\"mimeType\":\"application/pdf\",\"size\":42," +
+                        "\"sourceType\":\"FILE\",\"extractedText\":null," +
+                        "\"workspacePath\":\"attachments/report.pdf\"}]",
                     artifactIdsJson = """["artifact-1"]""",
                     createdAt = 2,
                 ),

@@ -13,11 +13,7 @@ import org.junit.Test
  */
 class UsableProviderPresentTest {
 
-    private fun provider(
-        key: String = "",
-        enabled: Boolean = true,
-        allowMissing: Boolean = false,
-    ) = ProviderConfig(
+    private fun provider(key: String = "", enabled: Boolean = true, allowMissing: Boolean = false) = ProviderConfig(
         id = "p-${key.ifBlank { "empty" }}-$enabled-$allowMissing",
         displayName = "测试供应商",
         apiKey = key,

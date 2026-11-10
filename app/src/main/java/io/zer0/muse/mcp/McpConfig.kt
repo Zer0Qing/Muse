@@ -200,8 +200,7 @@ data class McpServerConfig(
      * 于是 stdio server 在"自动连接 / 添加 / 更新 / 就绪判断 / 等待工具"五条路径上
      * 全被当成没配置 —— 只有 `reconnect()` 不带这个判定。
      */
-    fun isConnectable(): Boolean =
-        enabled && if (transportType == McpTransportType.STDIO) command.isNotBlank() else url.isNotBlank()
+    fun isConnectable(): Boolean = enabled && if (transportType == McpTransportType.STDIO) command.isNotBlank() else url.isNotBlank()
 
     /**
      * 合并 headers 和 authToken,Authorization 优先用 headers 里的。

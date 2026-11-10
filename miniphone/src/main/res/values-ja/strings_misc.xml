@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- R9 ローカル玩法の文言：クローゼット、グループ紅包、記念日、着信音。 -->
+    <string name="mp_discover_wardrobe">クローゼット</string>
+    <string name="mp_wardrobe_title">着せ替え</string>
+    <string name="mp_wardrobe_empty">クローゼットはまだ空です</string>
+    <string name="mp_wardrobe_name_hint">この服の名前</string>
+    <string name="mp_wardrobe_uri_hint">画像URL（任意）</string>
+    <string name="mp_wardrobe_add">追加</string>
+    <string name="mp_wardrobe_equip">着る</string>
+    <string name="mp_wardrobe_equipped">着用中</string>
+    <string name="mp_wardrobe_kind_top">トップス</string>
+    <string name="mp_wardrobe_kind_bottom">ボトムス</string>
+    <string name="mp_wardrobe_kind_dress">ワンピース</string>
+    <string name="mp_wardrobe_kind_shoes">靴</string>
+    <string name="mp_wardrobe_kind_accessory">小物</string>
+
+    <string name="mp_discover_redpacket">グループ紅包</string>
+    <string name="mp_redpacket_title">グループ紅包</string>
+    <string name="mp_redpacket_empty">紅包はまだありません</string>
+    <string name="mp_redpacket_rp_hint">金額はロールプレイ用の表示だけで、実際のお金は動きません</string>
+    <string name="mp_redpacket_amount_hint">金額（ロールプレイ用）</string>
+    <string name="mp_redpacket_note_hint">メッセージ（任意）</string>
+    <string name="mp_redpacket_send">送る</string>
+    <string name="mp_redpacket_claim">受け取る</string>
+    <string name="mp_redpacket_claim_count">%1$d 人が受取済み</string>
+    <string name="mp_redpacket_state_open">受取可能</string>
+    <string name="mp_redpacket_state_claimed">受取済み</string>
+    <string name="mp_redpacket_state_expired">期限切れ</string>
+
+    <string name="mp_discover_holiday">記念日</string>
+    <string name="mp_holiday_title">祝日と記念日</string>
+    <string name="mp_holiday_empty">記念日はまだありません</string>
+    <string name="mp_holiday_recurring">毎年</string>
+    <string name="mp_holiday_once">一度だけ</string>
+    <string name="mp_holiday_name_hint">祝日や記念日の名前</string>
+    <string name="mp_holiday_date_hint">日付：MM-dd（毎年）</string>
+    <string name="mp_holiday_date_once_hint">日付：yyyy-MM-dd（一度）</string>
+    <string name="mp_holiday_year_hint">年（例：2026）</string>
+    <string name="mp_holiday_note_hint">メモ（任意）</string>
+    <string name="mp_holiday_add">追加</string>
+
+    <string name="mp_discover_ringtone">着信音</string>
+    <string name="mp_ringtone_title">通話の着信音</string>
+    <string name="mp_ringtone_empty">着信音はまだありません</string>
+    <string name="mp_ringtone_general">共通</string>
+    <string name="mp_ringtone_voice">音声通話の着信音</string>
+    <string name="mp_ringtone_video">ビデオ通話の着信音</string>
+    <string name="mp_ringtone_name_hint">着信音の名前</string>
+    <string name="mp_ringtone_uri_hint">音声または動画のURL</string>
+    <string name="mp_ringtone_add">追加</string>
+</resources>

@@ -293,6 +293,37 @@ class MiniPhoneMomentsUiTest {
 
     private fun nineImages(): List<String> = (0 until 9).map { index -> "content://img/$index" }
 
+    @Test
+    fun `没设昵称的人点了赞 自己不会从点赞行里消失`() {
+        // 落库侧不再把「我」写进数据，读出来可能是空串；buildMomentUi 用调用方给的称呼补上，
+        // 否则没设昵称的用户点了赞，自己会从点赞行里消失（likersLineOf 会滤掉空串）。
+        val mine = io.zer0.muse.miniphone.data.db.entity.MpMomentLikeEntity(
+            momentId = "m1",
+            likerType = io.zer0.muse.miniphone.data.db.MpActorType.USER,
+            likerId = "local",
+            likerName = "",
+            createdAt = 1L,
+        )
+        val row = buildMomentUi(
+            entity = io.zer0.muse.miniphone.data.db.entity.MpMomentEntity(
+                id = "m1",
+                authorId = "c1",
+                authorName = "阿离",
+                content = "正文",
+                createdAt = 1L,
+                source = io.zer0.muse.miniphone.data.db.MpMomentSource.USER,
+            ),
+            likes = listOf(mine),
+            comments = emptyList(),
+            characters = emptyMap(),
+            nameFallback = { type ->
+                if (type == io.zer0.muse.miniphone.data.db.MpActorType.USER) "我" else "角色"
+            },
+        )
+        assertEquals(listOf("我"), row.likes)
+        assertEquals("点赞行要能画出来", "\u2764\ufe0f 我", likersLineOf(context, row.likes))
+    }
+
     private companion object {
         const val TOLERANCE: Float = 0.5f
     }

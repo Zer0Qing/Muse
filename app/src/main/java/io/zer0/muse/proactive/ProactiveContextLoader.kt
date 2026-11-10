@@ -47,7 +47,6 @@ class ProactiveContextLoader(
          * 主动消息接的是「刚才那句」，接不上就干脆别说。
          */
         const val CONTEXT_CHAR_BUDGET = 6000
-
     }
 
     /** 一轮巡检需要的会话侧材料。 */
@@ -85,10 +84,7 @@ class ProactiveContextLoader(
      * 失败返回空上下文而不是 null：没有历史对话时仍然可以主动开口
      * （比如用户刚设置了一条提醒），不该因此整轮跳过。
      */
-    suspend fun loadSessionContext(
-        sessionId: String,
-        assistantId: String = "",
-    ): SessionContext {
+    suspend fun loadSessionContext(sessionId: String, assistantId: String = ""): SessionContext {
         val all = runCatching { runtime.sessions.observeMessages(sessionId).first() }
             .getOrDefault(emptyList())
         // 工具消息不进上下文：主动消息要接的是「人说的话」，工具往返只是过程噪音。
@@ -138,10 +134,7 @@ class ProactiveContextLoader(
      *
      * 全部失败就返回空列表 —— 防重复是锦上添花，拿不到不该让整轮巡检停下。
      */
-    private suspend fun recentProactiveTexts(
-        allMessages: List<UIMessage>,
-        assistantId: String,
-    ): List<String> {
+    private suspend fun recentProactiveTexts(allMessages: List<UIMessage>, assistantId: String): List<String> {
         if (assistantId.isBlank()) return emptyList()
         return runCatching {
             val ids = stores.outcomes.getRecent(assistantId, RECENT_PROACTIVE_COUNT)
@@ -187,16 +180,13 @@ class ProactiveContextLoader(
      * 这里只保留对外入口，类型 `SessionPick` / `SessionSource` 也仍声明在本类里 ——
      * 它们是对外契约，挪走会波及 `ProactiveManualTestRoute` 与多处测试。
      */
-    suspend fun resolveSession(assistant: AssistantEntity): String? =
-        picker.resolveSessionPick(assistant)?.sessionId
+    suspend fun resolveSession(assistant: AssistantEntity): String? = picker.resolveSessionPick(assistant)?.sessionId
 
     /** 同上，但返回选中原因（日志与「消息到底发去了哪个房间」的排查靠它）。 */
-    suspend fun resolveSessionPick(assistant: AssistantEntity): SessionPick? =
-        picker.resolveSessionPick(assistant)
+    suspend fun resolveSessionPick(assistant: AssistantEntity): SessionPick? = picker.resolveSessionPick(assistant)
 
     /** 手动「测试发送」走的路由：诊断路径，不允许借用普通任务会话。 */
-    suspend fun resolveManualTestRoute(assistant: AssistantEntity): SessionPick? =
-        picker.resolveManualTestRoute(assistant)
+    suspend fun resolveManualTestRoute(assistant: AssistantEntity): SessionPick? = picker.resolveManualTestRoute(assistant)
 
     /** 最近一条主动消息的发出时间，用于抑制连发。 */
     suspend fun lastSentAt(assistantId: String): Long = runCatching {
@@ -204,8 +194,7 @@ class ProactiveContextLoader(
     }.getOrDefault(0L)
 
     /** 找某会话里还在等反应的主动消息。 */
-    suspend fun findPendingOutcome(sessionId: String): ProactiveOutcomeEntity? =
-        stores.outcomes.findPendingInSession(sessionId)
+    suspend fun findPendingOutcome(sessionId: String): ProactiveOutcomeEntity? = stores.outcomes.findPendingInSession(sessionId)
 
     /**
      * 从记忆与里程碑推导新牵挂。

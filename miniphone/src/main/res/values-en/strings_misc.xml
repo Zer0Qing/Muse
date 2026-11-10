@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- R9 local gameplay strings: wardrobe, group red packets, holidays, call ringtones. -->
+    <string name="mp_discover_wardrobe">Wardrobe</string>
+    <string name="mp_wardrobe_title">Wardrobe</string>
+    <string name="mp_wardrobe_empty">The wardrobe is empty</string>
+    <string name="mp_wardrobe_name_hint">Name this outfit</string>
+    <string name="mp_wardrobe_uri_hint">Image URL (optional)</string>
+    <string name="mp_wardrobe_add">Add</string>
+    <string name="mp_wardrobe_equip">Wear</string>
+    <string name="mp_wardrobe_equipped">Wearing</string>
+    <string name="mp_wardrobe_kind_top">Top</string>
+    <string name="mp_wardrobe_kind_bottom">Bottom</string>
+    <string name="mp_wardrobe_kind_dress">Dress</string>
+    <string name="mp_wardrobe_kind_shoes">Shoes</string>
+    <string name="mp_wardrobe_kind_accessory">Accessory</string>
+
+    <string name="mp_discover_redpacket">Group red packets</string>
+    <string name="mp_redpacket_title">Group red packets</string>
+    <string name="mp_redpacket_empty">No red packets yet</string>
+    <string name="mp_redpacket_rp_hint">Amounts are role-play text only, no real money is involved</string>
+    <string name="mp_redpacket_amount_hint">Amount (role-play text)</string>
+    <string name="mp_redpacket_note_hint">Greeting (optional)</string>
+    <string name="mp_redpacket_send">Send</string>
+    <string name="mp_redpacket_claim">Claim</string>
+    <string name="mp_redpacket_claim_count">%1$d claimed</string>
+    <string name="mp_redpacket_state_open">Available</string>
+    <string name="mp_redpacket_state_claimed">Fully claimed</string>
+    <string name="mp_redpacket_state_expired">Expired</string>
+
+    <string name="mp_discover_holiday">Holidays</string>
+    <string name="mp_holiday_title">Holidays and anniversaries</string>
+    <string name="mp_holiday_empty">No holidays recorded yet</string>
+    <string name="mp_holiday_recurring">Every year</string>
+    <string name="mp_holiday_once">Once only</string>
+    <string name="mp_holiday_name_hint">Holiday or anniversary name</string>
+    <string name="mp_holiday_date_hint">Date: MM-dd (yearly)</string>
+    <string name="mp_holiday_date_once_hint">Date: yyyy-MM-dd (once)</string>
+    <string name="mp_holiday_year_hint">Year (e.g. 2026)</string>
+    <string name="mp_holiday_note_hint">Note (optional)</string>
+    <string name="mp_holiday_add">Add</string>
+
+    <string name="mp_discover_ringtone">Call ringtones</string>
+    <string name="mp_ringtone_title">Call ringtones</string>
+    <string name="mp_ringtone_empty">No ringtones yet</string>
+    <string name="mp_ringtone_general">General</string>
+    <string name="mp_ringtone_voice">Voice call ringtone</string>
+    <string name="mp_ringtone_video">Video call ringtone</string>
+    <string name="mp_ringtone_name_hint">Ringtone name</string>
+    <string name="mp_ringtone_uri_hint">Audio or video URL</string>
+    <string name="mp_ringtone_add">Add</string>
+</resources>

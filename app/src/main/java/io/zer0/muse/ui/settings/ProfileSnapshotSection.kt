@@ -133,12 +133,7 @@ internal fun ProfileSnapshotSection() {
 
 /** 单段快照行:标题 + 正文 + 「覆盖/恢复自动」动作。 */
 @Composable
-private fun ProfileSnapshotRow(
-    row: ProfileSnapshotEntity,
-    body: String,
-    onOverride: () -> Unit,
-    onRevert: () -> Unit,
-) {
+private fun ProfileSnapshotRow(row: ProfileSnapshotEntity, body: String, onOverride: () -> Unit, onRevert: () -> Unit) {
     val overridden = !row.manualContent.isNullOrBlank()
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -207,8 +202,7 @@ private fun ProfileSnapshotOverrideDialog(
 }
 
 /** 六段按注入顺序排列;未知段名放最后(前向兼容新增段)。 */
-private fun sectionOrderIndex(section: String): Int =
-    ProfileSection.ORDER.indexOf(section).takeIf { it >= 0 } ?: Int.MAX_VALUE
+private fun sectionOrderIndex(section: String): Int = ProfileSection.ORDER.indexOf(section).takeIf { it >= 0 } ?: Int.MAX_VALUE
 
 /** 六段的本地化标题。 */
 @Composable

@@ -157,6 +157,8 @@ val appModule = module {
             lorebookRepository = get(),
             promptInjectionRepository = get(),
             settingsRepository = get(),
+            // 动态世界书的关键词触发段；与主对话注册进 hookRegistry 的是同一个类、同一份仓库
+            worldBookHook = io.zer0.muse.worldbook.WorldBookHook(get()),
         )
     }
     single { AuditLogger(get()) } // P2-4: 审计日志记录器
@@ -636,12 +638,8 @@ val appModule = module {
                 override suspend fun synthesizeTo(text: String, file: java.io.File, emotion: String?) =
                     tts.synthesizeTo(text, file, emotion)
 
-                override suspend fun synthesizeToWithVoice(
-                    text: String,
-                    file: java.io.File,
-                    emotion: String?,
-                    voiceId: String,
-                ) = tts.synthesizeToWithClonedVoice(text, file, emotion, voiceId)
+                override suspend fun synthesizeToWithVoice(text: String, file: java.io.File, emotion: String?, voiceId: String) =
+                    tts.synthesizeToWithClonedVoice(text, file, emotion, voiceId)
             },
             voiceMessageStore = get<io.zer0.muse.ui.speech.VoiceMessageStore>(),
         )
@@ -1021,15 +1019,14 @@ val miniPhoneHostModule = module {
                 override suspend fun synthesizeTo(text: String, file: java.io.File, emotion: String?) =
                     tts.synthesizeTo(text, file, emotion)
 
-                override suspend fun synthesizeToWithVoice(
-                    text: String,
-                    file: java.io.File,
-                    emotion: String?,
-                    voiceId: String,
-                ) = tts.synthesizeToWithClonedVoice(text, file, emotion, voiceId)
+                override suspend fun synthesizeToWithVoice(text: String, file: java.io.File, emotion: String?, voiceId: String) =
+                    tts.synthesizeToWithClonedVoice(text, file, emotion, voiceId)
             },
             voiceStore = get<io.zer0.muse.ui.speech.VoiceMessageStore>(),
             cacheDir = androidContext().cacheDir,
+            libraryBridge = io.zer0.muse.data.miniphone.MiniPhoneLibraryBridge(
+                stickers = get(),
+            ),
         )
     }
     single<io.zer0.muse.data.miniphone.MiniPhoneTextGenerator> {

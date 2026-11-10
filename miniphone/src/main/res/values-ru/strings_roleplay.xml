@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 跑团模块的文案。各语言保持同一组键，不让业务代码决定成品语言。 -->
+    <string name="mp_discover_roleplay">Ролевая игра</string>
+    <string name="mp_rp_title">Библиотека сценариев</string>
+    <string name="mp_rp_back">Назад</string>
+    <string name="mp_rp_empty">Сценариев пока нет. Сначала напишите вступление.</string>
+    <string name="mp_rp_script_title_hint">Название сценария</string>
+    <string name="mp_rp_script_body_hint">Вступление и правила</string>
+    <string name="mp_rp_create_script">Новый сценарий</string>
+    <string name="mp_rp_update_script">Сохранить изменения</string>
+    <string name="mp_rp_cancel_edit">Отменить редактирование</string>
+    <string name="mp_rp_edit_script">Изменить</string>
+    <string name="mp_rp_delete_script">Удалить сценарий</string>
+    <string name="mp_rp_no_characters">Добавьте персонажа, чтобы начать игру.</string>
+    <string name="mp_rp_start_run">Начать игру</string>
+    <string name="mp_rp_saves">Сохранения</string>
+    <string name="mp_rp_saves_empty">У этого сценария пока нет сохранений</string>
+    <string name="mp_rp_endings">Финалы</string>
+    <string name="mp_rp_endings_empty">Финалов пока нет</string>
+    <string name="mp_rp_turn">Ход %1$d</string>
+    <string name="mp_rp_roll">Бросок %1$d</string>
+    <string name="mp_rp_action_hint">Что делаете в этом ходу…</string>
+    <string name="mp_rp_advance">Продвинуть</string>
+    <string name="mp_rp_conclude">Завершить</string>
+    <string name="mp_rp_delete_save">Удалить сохранение</string>
+    <string name="mp_rp_state_unreadable">Снимок состояния не читается</string>
+</resources>

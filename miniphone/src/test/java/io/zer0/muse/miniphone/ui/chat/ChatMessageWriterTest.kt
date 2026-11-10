@@ -1,11 +1,13 @@
 package io.zer0.muse.miniphone.ui.chat
 
+import io.zer0.muse.miniphone.data.chat.MpOfflineQueueStore
 import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.MpActorType
 import io.zer0.muse.miniphone.data.db.MpMessageStatus
 import io.zer0.muse.miniphone.data.db.MpMessageType
 import io.zer0.muse.miniphone.data.db.entity.MpThreadEntity
 import io.zer0.muse.miniphone.newInMemoryMiniPhoneDb
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -58,6 +60,7 @@ class ChatMessageWriterTest {
         stored: MutableList<io.zer0.muse.miniphone.ui.chat.ChatMessageUi> = mutableListOf(),
         changed: MutableList<Pair<String, MpMessageStatus>> = mutableListOf(),
         deleted: MutableList<String> = mutableListOf(),
+        offlineQueue: MpOfflineQueueStore? = null,
     ): ChatMessageWriter = ChatMessageWriter(
         threadId = OWN,
         messageDao = db.messageDao(),
@@ -67,6 +70,7 @@ class ChatMessageWriterTest {
         onStored = { stored += it },
         onStatusChanged = { id, status -> changed += id to status },
         onDeleted = { deleted += it },
+        offlineQueue = offlineQueue,
     )
 
     private fun outgoing(threadId: String = OWN, content: String = "在吗") = ChatOutgoingMessage(
@@ -173,4 +177,48 @@ class ChatMessageWriterTest {
         changed: MutableList<Pair<String, MpMessageStatus>> = mutableListOf(),
         deleted: MutableList<String> = mutableListOf(),
     ): ChatMessageWriter = writer(changed = changed, deleted = deleted)
+
+    @Test
+    fun `用户发出的发送中消息会入待应答队列`() = runBlocking {
+        val queue = MpOfflineQueueStore(db.offlineMessageDao())
+        val id = writer(offlineQueue = queue).append(outgoing(content = "在吗"))
+        val rows = queue.observeByThread(OWN).first()
+        assertEquals(1, rows.size)
+        assertEquals(id, rows.single().id)
+        assertEquals("在吗", rows.single().content)
+    }
+
+    @Test
+    fun `应答有了结果就清掉队列里那一行`() = runBlocking {
+        val queue = MpOfflineQueueStore(db.offlineMessageDao())
+        val w = writer(offlineQueue = queue)
+        val id = w.append(outgoing())
+        w.updateStatus(id, MpMessageStatus.SENT)
+        assertEquals(0, queue.observeByThread(OWN).first().size)
+    }
+
+    @Test
+    fun `明确失败也清掉队列 不留悬挂行`() = runBlocking {
+        val queue = MpOfflineQueueStore(db.offlineMessageDao())
+        val w = writer(offlineQueue = queue)
+        val id = w.append(outgoing())
+        w.updateStatus(id, MpMessageStatus.FAILED)
+        assertEquals(0, queue.observeByThread(OWN).first().size)
+    }
+
+    @Test
+    fun `角色回复与已发出的消息不入队`() = runBlocking {
+        val queue = MpOfflineQueueStore(db.offlineMessageDao())
+        val w = writer(offlineQueue = queue)
+        w.append(outgoing().copy(sender = MpActorType.CHARACTER))
+        w.append(outgoing().copy(status = MpMessageStatus.SENT))
+        assertEquals(0, queue.observeAll().first().size)
+    }
+
+    @Test
+    fun `没有传队列时写入路径照常工作`() = runBlocking {
+        val id = writer().append(outgoing())
+        assertEquals(id, db.messageDao().getMessage(id)?.id)
+        assertEquals(0, MpOfflineQueueStore(db.offlineMessageDao()).observeAll().first().size)
+    }
 }

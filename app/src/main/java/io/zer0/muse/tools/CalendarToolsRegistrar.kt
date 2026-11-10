@@ -337,11 +337,7 @@ class CalendarToolsRegistrar(
      * `ORIGINAL_INSTANCE_TIME` 指向该次开始、`STATUS = STATUS_CANCELED`。
      * 直接删原事件会把整个系列删掉 —— 那是完全不同的语义。
      */
-    private fun cancelSingleOccurrence(
-        cr: android.content.ContentResolver,
-        eventId: Long,
-        occurrenceTime: Long,
-    ): String = resultOf {
+    private fun cancelSingleOccurrence(cr: android.content.ContentResolver, eventId: Long, occurrenceTime: Long): String = resultOf {
         val original = readEventForException(cr, eventId)
             ?: return@resultOf context.getString(R.string.tool_calendar_event_not_found, eventId.toString())
         val values = android.content.ContentValues().apply {
@@ -363,10 +359,7 @@ class CalendarToolsRegistrar(
         .getOrNull() ?: context.getString(R.string.tool_calendar_delete_failed, "")
 
     /** 读原事件的日历 id 与时间（写例外行需要）。 */
-    private fun readEventForException(
-        cr: android.content.ContentResolver,
-        eventId: Long,
-    ): Pair<Long, Long>? = resultOf {
+    private fun readEventForException(cr: android.content.ContentResolver, eventId: Long): Pair<Long, Long>? = resultOf {
         cr.query(
             android.provider.CalendarContract.Events.CONTENT_URI,
             arrayOf(

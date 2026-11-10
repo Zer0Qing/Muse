@@ -1,6 +1,5 @@
 package io.zer0.muse.mcp
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -8,6 +7,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.tools.ToolPermissionResolver
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

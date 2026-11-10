@@ -476,6 +476,10 @@
     <string name="knowledge_sort_created">按创建时间</string>
     <string name="knowledge_sort_title">按标题</string>
     <string name="knowledge_sort_size">按大小</string>
+    <string name="knowledge_import_cancel_title">取消导入？</string>
+    <string name="knowledge_import_cancel_body">已经导入的文件会保留，未完成的部分需要重新导入。</string>
+    <string name="knowledge_import_cancel_confirm">停止导入</string>
+    <string name="common_continue">继续导入</string>
 
     <!-- ===== ui/stats ===== -->
     <string name="stats_back">返回</string>

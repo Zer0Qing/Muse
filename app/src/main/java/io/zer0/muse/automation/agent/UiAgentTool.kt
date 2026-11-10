@@ -23,7 +23,7 @@ class UiAgentTool(private val runner: UiAgentRunner) {
                 parameters = mapOf(
                     "task" to "必填。要完成的任务描述,尽量具体(目标 App、对象、操作意图)",
                     "max_steps" to "可选。最大步数 3-30,默认 15",
-            "budget_minutes" to "可选。总时间预算 1-15 分钟,默认 5;长任务或界面很慢时可调大",
+                    "budget_minutes" to "可选。总时间预算 1-15 分钟,默认 5;长任务或界面很慢时可调大",
                     "display" to "可选。auto(默认) 有目标包名时优先独立虚拟屏，否则前台；也可指定 foreground 或 virtual",
                     "package_name" to "可选目标应用包名，例如 com.example.app；virtual 模式必填，auto 模式提供后会先尝试隔离运行",
                 ),

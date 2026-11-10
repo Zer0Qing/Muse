@@ -234,4 +234,35 @@ class TextChunkerTest {
         // 不抛异常 + 至少一个 chunk
         assertTrue("应至少产生 1 个 chunk", result.isNotEmpty())
     }
+
+    @Test
+    fun `Windows 换行的文档不会把回车符带进分块内容`() {
+        val chunker = TextChunker(targetSize = 100, overlap = 10)
+        val cr = Char(13)
+        val crlf = "$cr${Char(10)}"
+        val text = "第一段${crlf}${crlf}第二段"
+        val result = chunker.split(text)
+        assertTrue("应该有内容", result.isNotEmpty())
+        result.forEach { chunk ->
+            assertTrue("分块里不该残留回车符: ${chunk.content}", !chunk.content.contains(cr))
+        }
+        val joined = result.joinToString("") { it.content }
+        assertTrue("两段都要在: $joined", joined.contains("第一段") && joined.contains("第二段"))
+    }
+
+    @Test
+    fun `Windows 换行的代码块仍被当成整体`() {
+        val chunker = TextChunker(targetSize = 100, overlap = 10)
+        val cr = 13.toChar()
+        val crlf = "$cr${10.toChar()}"
+        val fence = "`".repeat(3)
+        val text = listOf("说明", fence, "val x = 1", fence, "之后").joinToString(crlf)
+        val result = chunker.split(text)
+        val joined = result.joinToString("") { it.content }
+        // 代码块边界识别成功时，围栏与其内容是同一结构单元，不会被拆到两个块里各留一半
+        assertTrue("代码块内容要在: $joined", joined.contains("val x = 1"))
+        result.forEach { chunk ->
+            assertTrue("分块里不该残留回车符: ${chunk.content}", !chunk.content.contains(cr))
+        }
+    }
 }

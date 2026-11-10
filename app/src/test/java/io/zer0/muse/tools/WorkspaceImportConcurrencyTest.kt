@@ -46,12 +46,11 @@ class WorkspaceImportConcurrencyTest {
         return Uri.fromFile(file)
     }
 
-    private fun importedContent(relativePath: String): String =
-        runBlocking {
-            val result = manager.readFile(relativePath)
-            assertTrue("导入结果读不回来: $relativePath -> $result", result is WorkspaceManager.ReadResult.Success)
-            (result as WorkspaceManager.ReadResult.Success).content
-        }
+    private fun importedContent(relativePath: String): String = runBlocking {
+        val result = manager.readFile(relativePath)
+        assertTrue("导入结果读不回来: $relativePath -> $result", result is WorkspaceManager.ReadResult.Success)
+        (result as WorkspaceManager.ReadResult.Success).content
+    }
 
     @Test
     fun `并发导入同名文件时得到两个不同文件名且两份内容都在`() {

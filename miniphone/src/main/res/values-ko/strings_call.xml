@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通话进行中的页面文案。阶段与降级原因在数据层是记号，这里负责换成当前语言的话。 -->
+<resources>
+    <string name="mp_call_none">진행 중인 통화가 없습니다</string>
+    <string name="mp_call_back">돌아가기</string>
+    <string name="mp_call_dialing">걸고 있습니다…</string>
+    <string name="mp_call_ringing">상대의 응답을 기다리는 중</string>
+    <string name="mp_call_connected">연결됨</string>
+    <string name="mp_call_ended">통화가 끝났습니다</string>
+    <string name="mp_call_failed">전화를 걸지 못했습니다</string>
+    <string name="mp_call_no_answer">상대가 받지 않았습니다</string>
+    <string name="mp_call_hangup">끊기</string>
+    <string name="mp_call_duration">통화 %1$s</string>
+    <string name="mp_call_camera_denied">카메라 권한을 받지 못해 음성 통화로 바꿨습니다</string>
+    <string name="mp_call_dial_failed">이번 차례에 내용이 돌아오지 않아 통화를 끝냈습니다</string>
+    <string name="mp_call_mine">나</string>
+    <string name="mp_call_peer">상대</string>
+    <string name="mp_call_play_voice">이 음성 재생</string>
+    <string name="mp_call_say_hint">무엇이든 말해 보세요…</string>
+    <string name="mp_call_say_send">보내기</string>
+    <string name="mp_chat_call_voice">음성 통화</string>
+    <string name="mp_chat_call_video">영상 채팅</string>
+</resources>

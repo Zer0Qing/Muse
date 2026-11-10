@@ -607,9 +607,11 @@ internal fun ProviderEditPage(
     //  - 与 testConnection 区别:testConnection 只测 /models 端点(轻量),testModel 验证完整 chat 链路
     fun testModel(model: io.zer0.ai.core.Model) {
         if (apiKey.isBlank()) {
-            modelTestStatuses = modelTestStatuses + (model.id to ModelTestStatus.Failed(
-                context.getString(R.string.provider_test_no_api_key),
-            ))
+            modelTestStatuses = modelTestStatuses + (
+                model.id to ModelTestStatus.Failed(
+                    context.getString(R.string.provider_test_no_api_key),
+                )
+                )
             return
         }
         // 置为 InProgress,禁用测试按钮
@@ -889,11 +891,11 @@ internal fun ProviderEditPage(
             // Auth Code Flow 需要 Activity 上下文
             val activity = context.findActivity() ?: run {
                 MuseToast.show(
-                context.getString(
-                    R.string.oauth_login_failed,
-                    context.getString(R.string.oauth_reason_no_activity),
-                ),
-            )
+                    context.getString(
+                        R.string.oauth_login_failed,
+                        context.getString(R.string.oauth_reason_no_activity),
+                    ),
+                )
                 return@lambda
             }
             ioScope.launch { OAuthManager.launchAuthorizationCodeFlow(activity, oauthConfig, config.id) }
@@ -1288,9 +1290,9 @@ internal fun ProviderEditPage(
                 }.onFailure {
                     MuseToast.show(
                         context.getString(
-                        R.string.oauth_login_failed,
-                        it.message ?: context.getString(R.string.oauth_reason_no_browser),
-                    ),
+                            R.string.oauth_login_failed,
+                            it.message ?: context.getString(R.string.oauth_reason_no_browser),
+                        ),
                     )
                 }
             },

@@ -19,9 +19,8 @@ class StickerDocumentScannerTest {
         "word/media/image2.png" to ByteArray(120) { 2 },
     )
 
-    private fun imageBlock(rid: String) =
-        """<w:p><w:r><w:drawing><inline><graphic><graphicData><pic><blipFill><a:blip r:embed="$rid"/>""" +
-            """</blipFill></pic></graphicData></graphic></inline></drawing></w:r></w:p>"""
+    private fun imageBlock(rid: String) = """<w:p><w:r><w:drawing><inline><graphic><graphicData><pic><blipFill><a:blip r:embed="$rid"/>""" +
+        """</blipFill></pic></graphicData></graphic></inline></drawing></w:r></w:p>"""
 
     private fun textBlock(text: String) = """<w:p><w:r><w:t>$text</w:t></w:r></w:p>"""
 

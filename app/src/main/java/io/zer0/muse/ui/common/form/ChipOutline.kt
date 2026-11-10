@@ -19,12 +19,11 @@ import io.zer0.muse.ui.theme.semiLarge
  * 用法：`MuseChip(..., modifier = Modifier.chipOutline(selected = selected))`
  */
 @Composable
-fun Modifier.chipOutline(selected: Boolean): Modifier =
-    if (selected) {
-        this
-    } else {
-        this.border(
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            shape = MuseShapes.semiLarge,
-        )
-    }
+fun Modifier.chipOutline(selected: Boolean): Modifier = if (selected) {
+    this
+} else {
+    this.border(
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = MuseShapes.semiLarge,
+    )
+}

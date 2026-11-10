@@ -42,18 +42,16 @@ class ToolExecutionAdapter(
         }
     }
 
-    fun riskOf(toolName: String): ToolRisk =
-        when (registry.getToolRiskLevel(toolName)) {
-            ToolRiskLevel.SAFE -> ToolRisk.Safe
-            ToolRiskLevel.NORMAL -> ToolRisk.Normal
-            ToolRiskLevel.HIGH, null -> ToolRisk.High
-        }
+    fun riskOf(toolName: String): ToolRisk = when (registry.getToolRiskLevel(toolName)) {
+        ToolRiskLevel.SAFE -> ToolRisk.Safe
+        ToolRiskLevel.NORMAL -> ToolRisk.Normal
+        ToolRiskLevel.HIGH, null -> ToolRisk.High
+    }
 
-    private fun parseArguments(json: String): Map<String, String>? =
-        runCatching {
-            val element = io.zer0.common.AppJson.parseToJsonElement(json)
-            element as? kotlinx.serialization.json.JsonObject
-        }.getOrNull()?.entries?.associate { (key, value) ->
-            key to ((value as? kotlinx.serialization.json.JsonPrimitive)?.content ?: value.toString())
-        }
+    private fun parseArguments(json: String): Map<String, String>? = runCatching {
+        val element = io.zer0.common.AppJson.parseToJsonElement(json)
+        element as? kotlinx.serialization.json.JsonObject
+    }.getOrNull()?.entries?.associate { (key, value) ->
+        key to ((value as? kotlinx.serialization.json.JsonPrimitive)?.content ?: value.toString())
+    }
 }

@@ -150,10 +150,7 @@ class MiniPhoneToolTurnRunnerTest {
      *
      * 同一份桩同时记下每轮请求的工具集与消息列表,断言据此展开。
      */
-    private fun stubCompletions(
-        chatService: ChatService,
-        answer: (index: Int, tools: List<ToolDefinition>?) -> ChatCompletion,
-    ): Captured {
+    private fun stubCompletions(chatService: ChatService, answer: (index: Int, tools: List<ToolDefinition>?) -> ChatCompletion): Captured {
         val captured = Captured()
         val toolsSlot = slot<List<ToolDefinition>?>()
         val messagesSlot = slot<List<UIMessage>>()
@@ -173,15 +170,12 @@ class MiniPhoneToolTurnRunnerTest {
         return captured
     }
 
-    private fun runner(
-        chatService: ChatService,
-        registry: ToolRegistry,
-        timeoutMs: Long = DEFAULT_TIMEOUT_MS,
-    ): MiniPhoneToolTurnRunner = MiniPhoneToolTurnRunner(
-        chatService = chatService,
-        toolRegistry = registry,
-        timeoutMs = timeoutMs,
-    )
+    private fun runner(chatService: ChatService, registry: ToolRegistry, timeoutMs: Long = DEFAULT_TIMEOUT_MS): MiniPhoneToolTurnRunner =
+        MiniPhoneToolTurnRunner(
+            chatService = chatService,
+            toolRegistry = registry,
+            timeoutMs = timeoutMs,
+        )
 
     private fun registryWith(vararg definitions: ToolDefinition): ToolRegistry {
         val registry = mockk<ToolRegistry>(relaxed = true)

@@ -168,10 +168,7 @@ class EmbeddingServiceCacheTest {
 
     // ── fixtures ────────────────────────────────────────────
 
-    private fun cloudConfig(
-        cloudProviderId: String = "openai-main",
-        cloudModel: String = "text-embedding-3-small",
-    ): RagConfig = RagConfig(
+    private fun cloudConfig(cloudProviderId: String = "openai-main", cloudModel: String = "text-embedding-3-small"): RagConfig = RagConfig(
         embeddingSource = RagConfig.EmbeddingSource.CLOUD,
         cloudProviderId = cloudProviderId,
         cloudModel = cloudModel,

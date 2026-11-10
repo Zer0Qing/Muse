@@ -196,11 +196,13 @@ class SkillPackageImporter(
                 FileOutputStream(target).use { output -> copyWithLimit(input, output) }
             }
         }.getOrElse {
-            target.delete(); staging.delete()
+            target.delete()
+            staging.delete()
             null
         }
         if (copied == null || copied > MAX_IMPORT_BYTES) {
-            target.delete(); staging.delete()
+            target.delete()
+            staging.delete()
             return null
         }
         return target
@@ -226,6 +228,7 @@ class SkillPackageImporter(
 
     private companion object {
         const val CATEGORY = "custom"
+
         /** 与 [SkillPackageStore] 的常量不同名，避免这里再复制一份路径拼接逻辑。 */
         const val MAX_IMPORT_BYTES = 32L * 1024 * 1024
         const val CHUNK_BYTES = 64 * 1024

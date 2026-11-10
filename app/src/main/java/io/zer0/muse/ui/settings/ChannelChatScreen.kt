@@ -176,12 +176,7 @@ private fun ChannelBubble(turn: ChannelConversationStore.Turn) {
  * 这一页是「看对话怎么接的」，不是图库；图片给一行占位说明就够。
  * 视觉降级的描述如果有，优先用它，那本来就是给模型看的文字版。
  */
-private fun turnBody(
-    turn: ChannelConversationStore.Turn,
-    imageLabel: String,
-    attachmentLabel: String,
-    emptyLabel: String,
-): String = when {
+private fun turnBody(turn: ChannelConversationStore.Turn, imageLabel: String, attachmentLabel: String, emptyLabel: String): String = when {
     turn.mediaDescription.isNotBlank() -> turn.mediaDescription
     turn.mediaKind == "image" -> imageLabel
     turn.mediaPath.isNotBlank() -> attachmentLabel
@@ -189,8 +184,7 @@ private fun turnBody(
     else -> emptyLabel
 }
 
-private fun formatTime(at: Long): String =
-    SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(at))
+private fun formatTime(at: Long): String = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(at))
 
 /** 气泡最多占屏宽的多少。留出对侧空白，才看得出是「谁说的」。 */
 private const val BUBBLE_WIDTH_FRACTION = 0.82f

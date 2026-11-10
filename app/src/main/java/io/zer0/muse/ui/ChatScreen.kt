@@ -97,8 +97,8 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.session.MessageMarkers
-import io.zer0.muse.perf.MessagePaginator
 import io.zer0.muse.perf.ChatMessageWindow
+import io.zer0.muse.perf.MessagePaginator
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.chat.BrowserStatusCapsule
 import io.zer0.muse.ui.chat.ChatContextDivider
@@ -113,6 +113,7 @@ import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.ToolApprovalCard
 import io.zer0.muse.ui.chat.ToolPausedBanner
+import io.zer0.muse.ui.chat.WorkspaceQuickPickDialog
 import io.zer0.muse.ui.chat.toolMessageIdsCoveredByTaskCards
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
@@ -127,7 +128,6 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
@@ -138,6 +138,7 @@ import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
+import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.markdown.CardAction
 import io.zer0.muse.ui.speech.SpeechInput
 import io.zer0.muse.ui.speech.TtsControllerWidget
@@ -158,7 +159,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.chat.WorkspaceQuickPickDialog
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =
@@ -279,8 +279,7 @@ internal fun imageGenPromptsByMessage(
 }
 
 /** 从 generate_image 的参数 JSON 里取 prompt；解析失败当作「没有提示词」。 */
-private fun promptOfImageGenCall(args: String): String? =
-    runCatching { org.json.JSONObject(args).optString("prompt") }.getOrNull()
+private fun promptOfImageGenCall(args: String): String? = runCatching { org.json.JSONObject(args).optString("prompt") }.getOrNull()
 
 /**
  * Phase 8.10: 拦截音量键上/下键事件,转为滚动操作。
@@ -720,35 +719,35 @@ fun ChatScreen(
                     isLastMessage = message.id == lastVisibleMessageId,
                     allowSplitting = !state.selectionMode,
                     hasRenderableFooter =
-                        !ChatMessageRenderRows.needsFooterDecision(
-                            message = message,
-                            isStreaming = isStreaming,
-                            hasRichContent = hasRichContent,
-                        ) ||
-                            ChatMessageRenderRows.hasRenderableFooter(
-                                ChatMessageRenderRows.FooterFacts(
-                                    message = message,
-                                    isStreaming = isStreaming,
-                                    isTranslating =
-                                        state.isTranslating &&
-                                            state.translatingMessageId == message.id,
-                                    isLastAssistant =
-                                        message.id == lastVisibleMessageId &&
-                                            message.role == MessageRole.ASSISTANT,
-                                    chatPreferences = state.chatPreferences,
-                                    showsModelName = state.chatPreferences.showModelName,
-                                    showsTokenStats =
-                                        message.id == lastVisibleMessageId &&
-                                            state.tokenEstimateEnabled,
-                                    branchCount = message.variantCount,
-                                    canContinue =
-                                        message.id == lastVisibleMessageId &&
-                                            (
-                                                MessageMarkers.isInterrupted(message.content) ||
-                                                    MessageMarkers.isTruncated(message.content, truncatedMarker)
-                                ),
+                    !ChatMessageRenderRows.needsFooterDecision(
+                        message = message,
+                        isStreaming = isStreaming,
+                        hasRichContent = hasRichContent,
+                    ) ||
+                        ChatMessageRenderRows.hasRenderableFooter(
+                            ChatMessageRenderRows.FooterFacts(
+                                message = message,
+                                isStreaming = isStreaming,
+                                isTranslating =
+                                state.isTranslating &&
+                                    state.translatingMessageId == message.id,
+                                isLastAssistant =
+                                message.id == lastVisibleMessageId &&
+                                    message.role == MessageRole.ASSISTANT,
+                                chatPreferences = state.chatPreferences,
+                                showsModelName = state.chatPreferences.showModelName,
+                                showsTokenStats =
+                                message.id == lastVisibleMessageId &&
+                                    state.tokenEstimateEnabled,
+                                branchCount = message.variantCount,
+                                canContinue =
+                                message.id == lastVisibleMessageId &&
+                                    (
+                                        MessageMarkers.isInterrupted(message.content) ||
+                                            MessageMarkers.isTruncated(message.content, truncatedMarker)
+                                        ),
                             ),
-                            ),
+                        ),
                 )
             }
         }
@@ -866,10 +865,10 @@ fun ChatScreen(
                 }
             }
             // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移,agent_hint/load_more 存在时定位不错位
-                val messageOffset = state.lastHistoryLoadCount
-                val rowOffset =
-                    ChatRenderRowIndex.firstRowForMessage(renderRows, messageOffset)
-                listState.scrollToItem(messageStartIndex + rowOffset, savedScrollOffset)
+            val messageOffset = state.lastHistoryLoadCount
+            val rowOffset =
+                ChatRenderRowIndex.firstRowForMessage(renderRows, messageOffset)
+            listState.scrollToItem(messageStartIndex + rowOffset, savedScrollOffset)
             viewModel.clearHistoryLoadCount()
             savedScrollOffset = 0
         }
@@ -1878,242 +1877,242 @@ fun ChatScreen(
                                         text = currentInput,
                                         onPick = { entry -> viewModel.updateInput("/" + entry.name + " ") },
                                     )
-                                RichInputBar(
-                                    // v1.0.20 (Task 3): input/isStreaming 读派生值,避免其他字段变化触发 bottomBar 重组
-                                    text = currentInput,
-                                    assistantName = state.currentAssistant?.name?.takeIf { it.isNotBlank() } ?: "Muse",
-                                    isStreaming = isStreaming,
-                                    isWaitingFirstToken = isWaitingFirstToken,
-                                    isDrawMode = state.isDrawMode,
-                                    isWebSearchEnabled = state.webSearchEnabled,
-                                    isDeepThinkingEnabled = state.deepThinkingEnabled,
-                                    // v1.0.47 P5-6: 深度思考级别胶囊(激活时显示,点击循环)
-                                    deepThinkingLevel = state.deepThinkingLevel,
-                                    onCycleDeepThinkingLevel = viewModel::cycleDeepThinkingLevel,
-                                    imageGenParams = state.imageGenParams,
-                                    onImageGenParamsChange = viewModel::updateImageGenParams,
-                                    // v1.0.75 fix: 格式工具条已移除,不再传 formatEnabled
-                                    showExpandButton = state.chatPreferences.showExpandButton,
-                                    glassActive = glassActive,
-                                    glassConfig = glassConfig,
-                                    onTextChanged = viewModel::updateInput,
-                                    // v1.0.47 P5: 硬件键盘上/下箭头遍历输入历史
-                                    onNavigateInputHistory = viewModel::navigateInputHistory,
-                                    // v1.97: 斜杠命令拦截 — / 开头的输入走 executeSlashCommand,不发送给 LLM
-                                    onSend = {
-                                        // 从 ViewModel 读取点击瞬间的值,不依赖 Composable 闭包可能捕获的旧快照。
-                                        val text = viewModel.state.value.input
-                                        // 首条消息才飞：后面每条都飞会变成噪音，
-                                        // 而第一句恰好是「对话开始」这件事本身。
-                                        val isFirstMessage = messages.none { it.role == MessageRole.USER }
-                                        // 插件命令也走"不发给模型"的分支，动画同理跳过
-                                        val isCommandLike = SlashCommand.isSlashCommand(text) ||
-                                            io.zer0.muse.ui.plugin.shouldQueryPluginCommands(text)
-                                        if (isFirstMessage && !isCommandLike) {
-                                            sendFlight = computeSendFlight(
-                                                text = text,
-                                                input = inputWindowBounds,
-                                                list = listWindowBounds,
-                                            )
-                                        }
-                                        if (SlashCommand.isSlashCommand(text)) {
-                                            viewModel.executeSlashCommand(text)
-                                        } else {
-                                            pluginCommandScope.launch {
-                                                // 只有真的命中插件命令才拦截；否则按普通消息发送
-                                                if (!pluginCommandHost.handle(text)) {
-                                                    viewModel.send()
-                                                    focusManager.clearFocus()
-                                                }
+                                    RichInputBar(
+                                        // v1.0.20 (Task 3): input/isStreaming 读派生值,避免其他字段变化触发 bottomBar 重组
+                                        text = currentInput,
+                                        assistantName = state.currentAssistant?.name?.takeIf { it.isNotBlank() } ?: "Muse",
+                                        isStreaming = isStreaming,
+                                        isWaitingFirstToken = isWaitingFirstToken,
+                                        isDrawMode = state.isDrawMode,
+                                        isWebSearchEnabled = state.webSearchEnabled,
+                                        isDeepThinkingEnabled = state.deepThinkingEnabled,
+                                        // v1.0.47 P5-6: 深度思考级别胶囊(激活时显示,点击循环)
+                                        deepThinkingLevel = state.deepThinkingLevel,
+                                        onCycleDeepThinkingLevel = viewModel::cycleDeepThinkingLevel,
+                                        imageGenParams = state.imageGenParams,
+                                        onImageGenParamsChange = viewModel::updateImageGenParams,
+                                        // v1.0.75 fix: 格式工具条已移除,不再传 formatEnabled
+                                        showExpandButton = state.chatPreferences.showExpandButton,
+                                        glassActive = glassActive,
+                                        glassConfig = glassConfig,
+                                        onTextChanged = viewModel::updateInput,
+                                        // v1.0.47 P5: 硬件键盘上/下箭头遍历输入历史
+                                        onNavigateInputHistory = viewModel::navigateInputHistory,
+                                        // v1.97: 斜杠命令拦截 — / 开头的输入走 executeSlashCommand,不发送给 LLM
+                                        onSend = {
+                                            // 从 ViewModel 读取点击瞬间的值,不依赖 Composable 闭包可能捕获的旧快照。
+                                            val text = viewModel.state.value.input
+                                            // 首条消息才飞：后面每条都飞会变成噪音，
+                                            // 而第一句恰好是「对话开始」这件事本身。
+                                            val isFirstMessage = messages.none { it.role == MessageRole.USER }
+                                            // 插件命令也走"不发给模型"的分支，动画同理跳过
+                                            val isCommandLike = SlashCommand.isSlashCommand(text) ||
+                                                io.zer0.muse.ui.plugin.shouldQueryPluginCommands(text)
+                                            if (isFirstMessage && !isCommandLike) {
+                                                sendFlight = computeSendFlight(
+                                                    text = text,
+                                                    input = inputWindowBounds,
+                                                    list = listWindowBounds,
+                                                )
                                             }
-                                        }
-                                    },
-                                    onStop = viewModel::stop,
-                                    onInterject = viewModel::interject,
-                                    onEnqueuePending = viewModel::enqueuePendingSend,
-                                    replyingTo =
-                                    state.replyingTo?.let { r ->
-                                        // v1.0.72 fix: 引用块用最新消息对象 — 流式消息内容实时更新,
-                                        // 引用时捕获的旧对象可能 content 为空(第一条消息引用 UI 为空的根因)
-                                        messages.find { it.id == r.id } ?: r
-                                    },
-                                    onClearReply = { viewModel.setReplyingTo(null) },
-                                    replyQuoteOverride = state.replyQuoteOverride,
-                                    onEditReply = { viewModel.setReplyQuoteOverride(it) },
-                                    onPickDocument = {
-                                        runCatching {
-                                            documentLauncher.launch(
-                                                // v2.6.13: 附件已改为「原件落工作区」，不再本地解压/解析，
-                                                // 所以选择器不再限定文档类 MIME —— 压缩包、代码、数据文件
-                                                // 一律可以原样存入工作区，由模型按需读取。
-                                                arrayOf(
-                                                    "*/*",
-                                                    "text/*",
-                                                    "application/pdf",
-                                                    "application/zip",
-                                                    "application/x-zip-compressed",
-                                                    "application/octet-stream",
-                                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                                    "application/msword",
-                                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                                    "application/vnd.ms-excel",
-                                                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                                                    "application/epub+zip",
-                                                ),
-                                            )
-                                        }.onFailure {
-                                            viewModel.reportError(
-                                                context.getString(R.string.chat_err_open_file_picker, it.message),
-                                            )
-                                        }
-                                    },
-                                    onToggleDrawMode = viewModel::toggleDrawMode,
-                                    onToggleWebSearch = viewModel::toggleWebSearch,
-                                    onToggleDeepThinking = viewModel::toggleDeepThinking,
-                                    // v1.24: Agent 模式在加号工具栏显示"重启上下文",普通会话不显示
-                                    showRestartContext = isAgentMode,
-                                    onRestartContext = viewModel::restartContext,
-                                    // v1.25: 委托给助手入口
-                                    assistants = state.assistants,
-                                    onDelegateToAssistant = { sheetState.showDelegateSheet = DelegateSheetMode.Input },
-                                    // v0.29 P1-6: 知识库 @mention 文档选择 sheet
-                                    onPickKnowledge = { sheetState.showKnowledgeSheet = true },
-                                    onOpenPromptTemplates = { sheetState.showPromptTemplateSheet = true },
-                                    // 加号菜单 → 技能入口
-                                    onOpenSkills = onOpenSkills,
-                                    // v0.31: 回车键发送开关传给 InputBar
-                                    enterToSend = state.chatPreferences.enterToSend,
-                                    // Phase 8.5:快捷消息
-                                    quickMessages = state.quickMessages,
-                                    // Phase 8.6: 多模态图片输入
-                                    pendingImages = state.pendingImages,
-                                    onPickImage = { asOcr ->
-                                        imagePickAsOcr = asOcr
-                                        runCatching {
-                                            visualMediaLauncher.launch(
-                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
-                                            )
-                                        }.onFailure {
-                                            viewModel.reportError(
-                                                context.getString(R.string.chat_err_open_image_picker, it.message),
-                                            )
-                                        }
-                                    },
-                                    // v0.53: 工具菜单中最近相册图片点击直接加入待发送
-                                    onPickGalleryImage = { uri ->
-                                        viewModel.pickImage(uri, context, asOcr = false)
-                                    },
-                                    onRemovePendingImage = viewModel::removePendingImage,
-                                    // v1.136 T10: 待发送文档芯片
-                                    pendingDocuments = state.pendingDocuments,
-                                    onRemovePendingDocument = viewModel::removePendingDocument,
-                                    onInsertQuickMessage = { qm ->
-                                        // Phase 8.5 修复: clipboard 读取切到 IO 线程,避免主线程 IPC ANR
-                                        ioScope.launch {
-                                            val clipboard =
-                                                withContext(Dispatchers.IO) {
-                                                    runCatching {
-                                                        val cm =
-                                                            context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
-                                                                as android.content.ClipboardManager
-                                                        cm.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString() ?: ""
-                                                    }.getOrDefault("")
-                                                }
-                                            viewModel.insertQuickMessage(qm, clipboard)
-                                        }
-                                    },
-                                    // Phase 9.3 (M2): ASR 录音
-                                    // v1.49: 移除 Vosk 后,两条路径:
-                                    //  - API 模式(有 apiKey):长按录音 + 松开识别 + 上滑取消
-                                    //  - SYSTEM 模式(无 apiKey):长按麦克风松开后弹系统语音识别 Intent
-                                    isRecording = state.asrState.isRecording || systemRecording,
-                                    asrStatus = state.asrState.status,
-                                    asrErrorMessage = state.asrState.errorMessage,
-                                    recordingAmplitudes = state.asrState.amplitudes,
-                                    onStartRecording = {
-                                        if (viewModel.shouldUseApiRecording()) {
-                                            // API 路径:先检查 RECORD_AUDIO 权限,未授权则申请
-                                            val granted =
-                                                ContextCompat.checkSelfPermission(
-                                                    context, Manifest.permission.RECORD_AUDIO,
-                                                ) == PackageManager.PERMISSION_GRANTED
-                                            if (granted) {
-                                                viewModel.startStreamingAsr()
-                                                true
+                                            if (SlashCommand.isSlashCommand(text)) {
+                                                viewModel.executeSlashCommand(text)
                                             } else {
-                                                micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                                // U-17: 权限缺失时给出明确反馈,避免长按静默无响应
-                                                MuseToast.show(context.getString(R.string.chat_err_mic_permission))
-                                                false
-                                            }
-                                        } else {
-                                            // SYSTEM 路径:检查系统语音识别服务是否可用,可用则长按松开后弹 Intent
-                                            if (!SpeechInput.isAvailable(context)) {
-                                                Logger.w("ChatScreen", "系统语音服务不可用")
-                                                // U-17: 服务未就绪单独提示,与"权限缺失"区分
-                                                MuseToast.show(context.getString(R.string.chat_voice_not_ready))
-                                                false
-                                            } else {
-                                                // 返回 false:不进入"录音中"状态(系统 Intent 会接管 UI)
-                                                // 实际 launch 在松手时触发,避免长按期间反复 launch
-                                                systemRecording = true
-                                                true
-                                            }
-                                        }
-                                    },
-                                    onStopRecording = {
-                                        if (viewModel.shouldUseApiRecording()) {
-                                            viewModel.stopStreamingAsr()
-                                        } else {
-                                            systemRecording = false
-                                            // v1.95: 仅首次使用提示,后续直接调起系统 Intent
-                                            ioScope.launch {
-                                                val shown = settings.asrTipShownFlow.first()
-                                                if (!shown) {
-                                                    sheetState.asrTipDialogShown = true
-                                                    settings.saveAsrTipShown(true)
-                                                } else {
-                                                    resultOf {
-                                                        speechLauncher.launch(
-                                                            SpeechInput.createIntent(context.getString(R.string.speech_speak_prompt)),
-                                                        )
-                                                    }.onError { msg, _ ->
-                                                        // v1.98: 移除弹窗提示,静默处理
-                                                        Logger.w("ChatScreen", "启动语音识别失败: $msg")
+                                                pluginCommandScope.launch {
+                                                    // 只有真的命中插件命令才拦截；否则按普通消息发送
+                                                    if (!pluginCommandHost.handle(text)) {
+                                                        viewModel.send()
+                                                        focusManager.clearFocus()
                                                     }
                                                 }
                                             }
-                                        }
-                                    },
-                                    onCancelRecording = {
-                                        if (viewModel.shouldUseApiRecording()) {
-                                            viewModel.cancelStreamingAsr()
-                                        } else {
-                                            systemRecording = false
-                                        }
-                                        // SYSTEM 路径无取消概念(尚未 launch Intent)
-                                    },
-                                    // 仅在实时 ASR Provider 已配置 API Key 时显示麦克风;未配置时保留发送按钮,
-                                    // 避免用户点击一个必然不可用的语音入口。DASHSCOPE_FILE 仍只支持文件转录。
-                                    showMic = viewModel.shouldUseApiRecording() && state.asrConfig.apiKey.isNotBlank(),
-                                    // v1.97: 工具/任务进度 pill(优先用 plan 进度,否则用 toolCallHistory)
-                                    toolCallCompleted = toolCallCompleted,
-                                    toolCallTotal = toolCallTotal,
-                                    onShowToolCalls = { sheetState.showToolCallSheet = true },
-                                    // v2.6.7: 不再向输入栏传草稿标记（UI 不留痕迹）
-                                    // Entering a conversation must not open the keyboard.
-                                    // The input still focuses normally when the user taps it.
-                                    autoFocus = false,
-                                    // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏底部显示 Token 统计条)
-                                    tokenEstimateEnabled = state.tokenEstimateEnabled,
-                                    historyTokens = state.contextTokenCount,
-                                    contextWindow = state.contextMaxTokens,
-                                    // v1.0.47 P5-2: 长文本粘贴转文件(默认开启,粘贴超阈值文本时提示转为附件)
-                                    pasteAsFileEnabled = state.pasteAsFileEnabled,
-                                    pasteAsFileThreshold = state.pasteAsFileThreshold,
-                                    onAddPastedTextAsDocument = viewModel::addPastedTextAsDocument,
-                                )
-                            }
+                                        },
+                                        onStop = viewModel::stop,
+                                        onInterject = viewModel::interject,
+                                        onEnqueuePending = viewModel::enqueuePendingSend,
+                                        replyingTo =
+                                        state.replyingTo?.let { r ->
+                                            // v1.0.72 fix: 引用块用最新消息对象 — 流式消息内容实时更新,
+                                            // 引用时捕获的旧对象可能 content 为空(第一条消息引用 UI 为空的根因)
+                                            messages.find { it.id == r.id } ?: r
+                                        },
+                                        onClearReply = { viewModel.setReplyingTo(null) },
+                                        replyQuoteOverride = state.replyQuoteOverride,
+                                        onEditReply = { viewModel.setReplyQuoteOverride(it) },
+                                        onPickDocument = {
+                                            runCatching {
+                                                documentLauncher.launch(
+                                                    // v2.6.13: 附件已改为「原件落工作区」，不再本地解压/解析，
+                                                    // 所以选择器不再限定文档类 MIME —— 压缩包、代码、数据文件
+                                                    // 一律可以原样存入工作区，由模型按需读取。
+                                                    arrayOf(
+                                                        "*/*",
+                                                        "text/*",
+                                                        "application/pdf",
+                                                        "application/zip",
+                                                        "application/x-zip-compressed",
+                                                        "application/octet-stream",
+                                                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                                        "application/msword",
+                                                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                                        "application/vnd.ms-excel",
+                                                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                                                        "application/epub+zip",
+                                                    ),
+                                                )
+                                            }.onFailure {
+                                                viewModel.reportError(
+                                                    context.getString(R.string.chat_err_open_file_picker, it.message),
+                                                )
+                                            }
+                                        },
+                                        onToggleDrawMode = viewModel::toggleDrawMode,
+                                        onToggleWebSearch = viewModel::toggleWebSearch,
+                                        onToggleDeepThinking = viewModel::toggleDeepThinking,
+                                        // v1.24: Agent 模式在加号工具栏显示"重启上下文",普通会话不显示
+                                        showRestartContext = isAgentMode,
+                                        onRestartContext = viewModel::restartContext,
+                                        // v1.25: 委托给助手入口
+                                        assistants = state.assistants,
+                                        onDelegateToAssistant = { sheetState.showDelegateSheet = DelegateSheetMode.Input },
+                                        // v0.29 P1-6: 知识库 @mention 文档选择 sheet
+                                        onPickKnowledge = { sheetState.showKnowledgeSheet = true },
+                                        onOpenPromptTemplates = { sheetState.showPromptTemplateSheet = true },
+                                        // 加号菜单 → 技能入口
+                                        onOpenSkills = onOpenSkills,
+                                        // v0.31: 回车键发送开关传给 InputBar
+                                        enterToSend = state.chatPreferences.enterToSend,
+                                        // Phase 8.5:快捷消息
+                                        quickMessages = state.quickMessages,
+                                        // Phase 8.6: 多模态图片输入
+                                        pendingImages = state.pendingImages,
+                                        onPickImage = { asOcr ->
+                                            imagePickAsOcr = asOcr
+                                            runCatching {
+                                                visualMediaLauncher.launch(
+                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
+                                                )
+                                            }.onFailure {
+                                                viewModel.reportError(
+                                                    context.getString(R.string.chat_err_open_image_picker, it.message),
+                                                )
+                                            }
+                                        },
+                                        // v0.53: 工具菜单中最近相册图片点击直接加入待发送
+                                        onPickGalleryImage = { uri ->
+                                            viewModel.pickImage(uri, context, asOcr = false)
+                                        },
+                                        onRemovePendingImage = viewModel::removePendingImage,
+                                        // v1.136 T10: 待发送文档芯片
+                                        pendingDocuments = state.pendingDocuments,
+                                        onRemovePendingDocument = viewModel::removePendingDocument,
+                                        onInsertQuickMessage = { qm ->
+                                            // Phase 8.5 修复: clipboard 读取切到 IO 线程,避免主线程 IPC ANR
+                                            ioScope.launch {
+                                                val clipboard =
+                                                    withContext(Dispatchers.IO) {
+                                                        runCatching {
+                                                            val cm =
+                                                                context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                                                                    as android.content.ClipboardManager
+                                                            cm.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString() ?: ""
+                                                        }.getOrDefault("")
+                                                    }
+                                                viewModel.insertQuickMessage(qm, clipboard)
+                                            }
+                                        },
+                                        // Phase 9.3 (M2): ASR 录音
+                                        // v1.49: 移除 Vosk 后,两条路径:
+                                        //  - API 模式(有 apiKey):长按录音 + 松开识别 + 上滑取消
+                                        //  - SYSTEM 模式(无 apiKey):长按麦克风松开后弹系统语音识别 Intent
+                                        isRecording = state.asrState.isRecording || systemRecording,
+                                        asrStatus = state.asrState.status,
+                                        asrErrorMessage = state.asrState.errorMessage,
+                                        recordingAmplitudes = state.asrState.amplitudes,
+                                        onStartRecording = {
+                                            if (viewModel.shouldUseApiRecording()) {
+                                                // API 路径:先检查 RECORD_AUDIO 权限,未授权则申请
+                                                val granted =
+                                                    ContextCompat.checkSelfPermission(
+                                                        context, Manifest.permission.RECORD_AUDIO,
+                                                    ) == PackageManager.PERMISSION_GRANTED
+                                                if (granted) {
+                                                    viewModel.startStreamingAsr()
+                                                    true
+                                                } else {
+                                                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                                    // U-17: 权限缺失时给出明确反馈,避免长按静默无响应
+                                                    MuseToast.show(context.getString(R.string.chat_err_mic_permission))
+                                                    false
+                                                }
+                                            } else {
+                                                // SYSTEM 路径:检查系统语音识别服务是否可用,可用则长按松开后弹 Intent
+                                                if (!SpeechInput.isAvailable(context)) {
+                                                    Logger.w("ChatScreen", "系统语音服务不可用")
+                                                    // U-17: 服务未就绪单独提示,与"权限缺失"区分
+                                                    MuseToast.show(context.getString(R.string.chat_voice_not_ready))
+                                                    false
+                                                } else {
+                                                    // 返回 false:不进入"录音中"状态(系统 Intent 会接管 UI)
+                                                    // 实际 launch 在松手时触发,避免长按期间反复 launch
+                                                    systemRecording = true
+                                                    true
+                                                }
+                                            }
+                                        },
+                                        onStopRecording = {
+                                            if (viewModel.shouldUseApiRecording()) {
+                                                viewModel.stopStreamingAsr()
+                                            } else {
+                                                systemRecording = false
+                                                // v1.95: 仅首次使用提示,后续直接调起系统 Intent
+                                                ioScope.launch {
+                                                    val shown = settings.asrTipShownFlow.first()
+                                                    if (!shown) {
+                                                        sheetState.asrTipDialogShown = true
+                                                        settings.saveAsrTipShown(true)
+                                                    } else {
+                                                        resultOf {
+                                                            speechLauncher.launch(
+                                                                SpeechInput.createIntent(context.getString(R.string.speech_speak_prompt)),
+                                                            )
+                                                        }.onError { msg, _ ->
+                                                            // v1.98: 移除弹窗提示,静默处理
+                                                            Logger.w("ChatScreen", "启动语音识别失败: $msg")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onCancelRecording = {
+                                            if (viewModel.shouldUseApiRecording()) {
+                                                viewModel.cancelStreamingAsr()
+                                            } else {
+                                                systemRecording = false
+                                            }
+                                            // SYSTEM 路径无取消概念(尚未 launch Intent)
+                                        },
+                                        // 仅在实时 ASR Provider 已配置 API Key 时显示麦克风;未配置时保留发送按钮,
+                                        // 避免用户点击一个必然不可用的语音入口。DASHSCOPE_FILE 仍只支持文件转录。
+                                        showMic = viewModel.shouldUseApiRecording() && state.asrConfig.apiKey.isNotBlank(),
+                                        // v1.97: 工具/任务进度 pill(优先用 plan 进度,否则用 toolCallHistory)
+                                        toolCallCompleted = toolCallCompleted,
+                                        toolCallTotal = toolCallTotal,
+                                        onShowToolCalls = { sheetState.showToolCallSheet = true },
+                                        // v2.6.7: 不再向输入栏传草稿标记（UI 不留痕迹）
+                                        // Entering a conversation must not open the keyboard.
+                                        // The input still focuses normally when the user taps it.
+                                        autoFocus = false,
+                                        // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏底部显示 Token 统计条)
+                                        tokenEstimateEnabled = state.tokenEstimateEnabled,
+                                        historyTokens = state.contextTokenCount,
+                                        contextWindow = state.contextMaxTokens,
+                                        // v1.0.47 P5-2: 长文本粘贴转文件(默认开启,粘贴超阈值文本时提示转为附件)
+                                        pasteAsFileEnabled = state.pasteAsFileEnabled,
+                                        pasteAsFileThreshold = state.pasteAsFileThreshold,
+                                        onAddPastedTextAsDocument = viewModel::addPastedTextAsDocument,
+                                    )
+                                }
                             } // I3: 输入区错误边界收尾
                         }
                     }
@@ -2382,12 +2381,11 @@ fun ChatScreen(
                                     imageGenPromptsByMessage(visibleMessages)
                                 }
                             val messagesById = chatWindow.byId
-                            fun groupingRole(role: io.zer0.ai.core.MessageRole) =
-                                if (role == io.zer0.ai.core.MessageRole.TOOL) {
-                                    io.zer0.ai.core.MessageRole.ASSISTANT
-                                } else {
-                                    role
-                                }
+                            fun groupingRole(role: io.zer0.ai.core.MessageRole) = if (role == io.zer0.ai.core.MessageRole.TOOL) {
+                                io.zer0.ai.core.MessageRole.ASSISTANT
+                            } else {
+                                role
+                            }
                             val visibleMessagesKey =
                                 remember(visibleMessages) {
                                     visibleMessages.joinToString("\u001f") { it.id.toString() }
@@ -2418,10 +2416,10 @@ fun ChatScreen(
                                     // B6-02: 全屏情绪皮肤(在消息列表背后)
                                     MoodSkinOverlay(visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.moodSkin)
                                     // 插件槽位（ui.slot）：放在消息列表**上方**，不参与消息滚动。
-            // 只渲染拿到 ui.slot 授权的插件；没有内容时这个调用不占任何空间。
-            io.zer0.muse.ui.plugin.PluginSlotHost(slot = io.zer0.muse.data.plugin.PluginSlot.Id.CHAT_TOP)
+                                    // 只渲染拿到 ui.slot 授权的插件；没有内容时这个调用不占任何空间。
+                                    io.zer0.muse.ui.plugin.PluginSlotHost(slot = io.zer0.muse.data.plugin.PluginSlot.Id.CHAT_TOP)
 
-            LazyColumn(
+                                    LazyColumn(
                                         state = listState,
                                         modifier =
                                         Modifier
@@ -2466,9 +2464,9 @@ fun ChatScreen(
                                             // 输入岛自身的高度余量：输入岛是浮层，Scaffold 量到的
                                             // 高度不含它凸出/抬高的部分，最后一条消息会被压住。
                                             bottom =
-                                                innerPadding.calculateBottomPadding() +
-                                                    MusePaddings.inputIslandBottomGap +
-                                                    MusePaddings.inputIslandVertical * 2,
+                                            innerPadding.calculateBottomPadding() +
+                                                MusePaddings.inputIslandBottomGap +
+                                                MusePaddings.inputIslandVertical * 2,
                                             end = if (showMessageMap) MESSAGE_MAP_RESERVED_WIDTH else 0.dp,
                                         ),
                                     ) {
@@ -2564,11 +2562,11 @@ fun ChatScreen(
                                                     row = row,
                                                     chatPreferences = state.chatPreferences,
                                                     highlightText =
-                                                        if (msg.id.toString() == state.highlightedMessageId) {
-                                                            state.searchHighlightQuery
-                                                        } else {
-                                                            null
-                                                        },
+                                                    if (msg.id.toString() == state.highlightedMessageId) {
+                                                        state.searchHighlightQuery
+                                                    } else {
+                                                        null
+                                                    },
                                                     onHtmlPreview = onHtmlPreview,
                                                     onCardAction = { action ->
                                                         handleCardAction(msg.id.toString(), action)
@@ -3545,7 +3543,7 @@ fun ChatScreen(
                     MessageMapBar(
                         messages = visibleMessages,
                         listState = listState,
-                                                messageIndexForListIndex = { rowIndex ->
+                        messageIndexForListIndex = { rowIndex ->
                             ChatRenderRowIndex.messageAtRow(
                                 renderRows,
                                 rowIndex - messageStartIndex,

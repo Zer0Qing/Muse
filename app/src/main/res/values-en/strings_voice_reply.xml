@@ -13,4 +13,8 @@
     <string name="voice_reply_global_default_fmt">Global default: %1$s</string>
     <string name="voice_reply_global_section">Voice reply frequency</string>
     <string name="voice_reply_global_hint">All assistants follow this single tier; it only shapes the prompt, no hard blocking.</string>
+    <string name="speech_guide_section">Speech guide</string>
+    <string name="speech_guide_hint">Make replies read like chat: conversational and light; switch to structured writing for long content, lists, steps or code. Only constrains the posted reply body.</string>
+    <string name="speech_guide_off">Off (default)</string>
+    <string name="speech_guide_conversational">Conversational</string>
 </resources>

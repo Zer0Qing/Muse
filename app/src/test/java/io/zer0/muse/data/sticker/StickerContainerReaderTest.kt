@@ -18,11 +18,7 @@ import java.util.zip.ZipOutputStream
  */
 class StickerContainerReaderTest {
 
-    private fun docxBytes(
-        document: String,
-        rels: String,
-        media: Map<String, ByteArray> = emptyMap(),
-    ): ByteArray {
+    private fun docxBytes(document: String, rels: String, media: Map<String, ByteArray> = emptyMap()): ByteArray {
         val out = ByteArrayOutputStream()
         ZipOutputStream(out, Charsets.UTF_8).use { zos ->
             fun put(path: String, bytes: ByteArray) {

@@ -770,10 +770,9 @@ internal fun approvalRawJson(entries: List<Pair<String, String>>): String? {
 }
 
 /** 按 key 优先级取第一个非空值。 */
-internal fun approvalValueOf(entries: List<Pair<String, String>>, keys: List<String>): String? =
-    keys.firstNotNullOfOrNull { key ->
-        entries.firstOrNull { it.first == key }?.second?.takeIf { it.isNotBlank() && it != "null" }
-    }
+internal fun approvalValueOf(entries: List<Pair<String, String>>, keys: List<String>): String? = keys.firstNotNullOfOrNull { key ->
+    entries.firstOrNull { it.first == key }?.second?.takeIf { it.isNotBlank() && it != "null" }
+}
 
 /** 摘要之外的其余参数(最多 6 条,单值超过 100 字符先截断,完整值看展开视图)。 */
 internal fun approvalExtraArguments(entries: List<Pair<String, String>>): List<Pair<String, String>> {
@@ -792,12 +791,7 @@ internal fun approvalExtraArguments(entries: List<Pair<String, String>>): List<P
  * 「高级详情」这种次要点用弱色。
  */
 @Composable
-private fun ApprovalArgumentsToggle(
-    label: String,
-    expanded: Boolean,
-    highlighted: Boolean,
-    onClick: () -> Unit,
-) {
+private fun ApprovalArgumentsToggle(label: String, expanded: Boolean, highlighted: Boolean, onClick: () -> Unit) {
     val tint = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = Modifier

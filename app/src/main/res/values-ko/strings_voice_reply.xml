@@ -13,4 +13,8 @@
     <string name="voice_reply_global_default_fmt">전역 기본값: %1$s</string>
     <string name="voice_reply_global_section">음성 회신 빈도</string>
     <string name="voice_reply_global_hint">모든 어시스턴트가 이 단계 하나를 따릅니다. 프롬프트에만 영향을 주며 강제 차단은 하지 않습니다.</string>
+    <string name="speech_guide_section">말투 가이드</string>
+    <string name="speech_guide_hint">답장을 채팅처럼: 구어체로 가볍게. 길거나 목록·단계·코드가 필요하면 구조화해서 쓸 것. 전송 본문에만 적용.</string>
+    <string name="speech_guide_off">꺼짐(기본)</string>
+    <string name="speech_guide_conversational">구어체 우선</string>
 </resources>

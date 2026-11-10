@@ -169,10 +169,7 @@ object BackgroundWakeDiagnostics {
      * @param candidates unique work 名 → 该系统名下的 [WorkInfo] 投影;值为 null 表示这次查询失败
      *  (WorkManager 未初始化 / 查询抛异常),与「查到了但为空(未注册)」区分开。
      */
-    internal fun toEntries(
-        kind: WakeWorkKind,
-        candidates: Map<String, List<WakeWorkSnapshot>?>,
-    ): List<WakeWorkEntry> {
+    internal fun toEntries(kind: WakeWorkKind, candidates: Map<String, List<WakeWorkSnapshot>?>): List<WakeWorkEntry> {
         val present = candidates.filterValues { snapshots -> !snapshots.isNullOrEmpty() }
         if (present.isEmpty()) {
             val firstName = candidates.keys.firstOrNull() ?: return emptyList()
@@ -255,22 +252,21 @@ object BackgroundWakeDiagnostics {
      *  (读取失败)。总控关闭时唤醒照旧发生,但各执行体读到 false 会直接返回 —— 这是
      *  「有唤醒、没执行」的常见原因,所以必须一起展示。
      */
-    suspend fun collect(context: Context, backgroundWorkEnabled: Boolean?): WakeDiagnostics =
-        withContext(Dispatchers.IO) {
-            val appContext = context.applicationContext
-            // 面板不能因为一次意外异常就永久停在加载态:收集失败也交回一份带 error 的报告,
-            // 让界面能把原因显式说出来。
-            val collected = resultOf { collectOnce(appContext, backgroundWorkEnabled) }
-                .onError { message, throwable ->
-                    Logger.w(TAG, "收集后台唤醒状态失败: $message", throwable)
-                }
-            collected.getOrNull() ?: buildDiagnostics(
-                appContext = appContext,
-                entries = emptyList(),
-                backgroundWorkEnabled = backgroundWorkEnabled,
-                error = (collected as? io.zer0.common.Result.Error)?.message,
-            )
-        }
+    suspend fun collect(context: Context, backgroundWorkEnabled: Boolean?): WakeDiagnostics = withContext(Dispatchers.IO) {
+        val appContext = context.applicationContext
+        // 面板不能因为一次意外异常就永久停在加载态:收集失败也交回一份带 error 的报告,
+        // 让界面能把原因显式说出来。
+        val collected = resultOf { collectOnce(appContext, backgroundWorkEnabled) }
+            .onError { message, throwable ->
+                Logger.w(TAG, "收集后台唤醒状态失败: $message", throwable)
+            }
+        collected.getOrNull() ?: buildDiagnostics(
+            appContext = appContext,
+            entries = emptyList(),
+            backgroundWorkEnabled = backgroundWorkEnabled,
+            error = (collected as? io.zer0.common.Result.Error)?.message,
+        )
+    }
 
     /**
      * 从 Koin 读「后台任务总控」再采集。

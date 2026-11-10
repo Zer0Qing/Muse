@@ -54,8 +54,7 @@ class VectorSearchCacheTest {
         chunkCountProvider = { provider.chunks.size },
     )
 
-    private fun filterOf(tag: String): VectorSearchService.MetadataFilter =
-        VectorSearchService.MetadataFilter(tag = tag)
+    private fun filterOf(tag: String): VectorSearchService.MetadataFilter = VectorSearchService.MetadataFilter(tag = tag)
 
     @Test
     fun `alternating_filters_do_not_thrash_the_cache`() = runBlocking {

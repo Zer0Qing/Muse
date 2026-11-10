@@ -5,8 +5,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
-import java.io.File
-import java.util.UUID
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import kotlinx.coroutines.runBlocking
@@ -18,6 +16,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
+import java.util.UUID
 
 /**
  * 删会话时「FTS 索引必须排在 messages 级联删之前」这条顺序的守卫与实验。
@@ -81,10 +81,9 @@ class SessionFtsDeleteOrderTest {
         MessageFtsRuntime.useFts5 = previousFtsMode
     }
 
-    private fun countRows(table: String): Int =
-        database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM $table").use { c ->
-            if (c.moveToFirst()) c.getInt(0) else -1
-        }
+    private fun countRows(table: String): Int = database.openHelper.readableDatabase.query("SELECT COUNT(*) FROM $table").use { c ->
+        if (c.moveToFirst()) c.getInt(0) else -1
+    }
 
     private fun seed(): String {
         val now = System.currentTimeMillis()

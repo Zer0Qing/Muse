@@ -13,7 +13,6 @@ import io.zer0.muse.conversation.core.CommandResult
 import io.zer0.muse.conversation.core.ConversationCommand
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun ConversationHost(
     sessionId: String,

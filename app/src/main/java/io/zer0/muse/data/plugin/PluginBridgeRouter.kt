@@ -3,8 +3,8 @@ package io.zer0.muse.data.plugin
 import android.content.Context
 import io.zer0.muse.tools.script.SkillBridge
 import kotlinx.serialization.json.JsonElement
-import kotlin.coroutines.coroutineContext
 import java.io.File
+import kotlin.coroutines.coroutineContext
 
 /**
  * 桥接判定的**唯一实现**：能力账本 → 宿主 API → [SkillBridge] 兜底。

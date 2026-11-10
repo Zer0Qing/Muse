@@ -25,9 +25,9 @@ import io.zer0.muse.R
 import io.zer0.muse.data.AgentTeam
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
-import io.zer0.muse.ui.common.form.chipOutline
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.chipOutline
 
 /**
  * 新建群聊对话框。

@@ -78,9 +78,8 @@ fun extractUrls(text: String): List<String> {
     return URL_REGEX.findAll(text).map { it.value.trimEnd('.', ',', ')', '(', '[', ']', '!', '?', ';', ':') }.distinct().toList()
 }
 
-internal fun shouldResolveLinkPreviews(text: String): Boolean =
-    text.contains("http://", ignoreCase = true) ||
-        text.contains("https://", ignoreCase = true)
+internal fun shouldResolveLinkPreviews(text: String): Boolean = text.contains("http://", ignoreCase = true) ||
+    text.contains("https://", ignoreCase = true)
 
 /**
  * Phase 2: 从 URL 提取展示用来源域名(去掉 www. 前缀;解析失败回退原始 URL)。

@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.quicknotes
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -34,6 +33,7 @@ import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.notification.MuseNotificationTarget
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

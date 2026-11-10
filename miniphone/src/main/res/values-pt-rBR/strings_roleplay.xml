@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 跑团模块的文案。各语言保持同一组键，不让业务代码决定成品语言。 -->
+    <string name="mp_discover_roleplay">Interpretação</string>
+    <string name="mp_rp_title">Biblioteca de roteiros</string>
+    <string name="mp_rp_back">Voltar para Descobrir</string>
+    <string name="mp_rp_empty">Nenhum roteiro ainda. Escreva primeiro uma introdução.</string>
+    <string name="mp_rp_script_title_hint">Título do roteiro</string>
+    <string name="mp_rp_script_body_hint">Introdução e regras</string>
+    <string name="mp_rp_create_script">Novo roteiro</string>
+    <string name="mp_rp_update_script">Salvar alterações</string>
+    <string name="mp_rp_cancel_edit">Cancelar edição</string>
+    <string name="mp_rp_edit_script">Editar</string>
+    <string name="mp_rp_delete_script">Excluir roteiro</string>
+    <string name="mp_rp_no_characters">Adicione um personagem antes de iniciar uma sessão.</string>
+    <string name="mp_rp_start_run">Iniciar sessão</string>
+    <string name="mp_rp_saves">Sessões salvas</string>
+    <string name="mp_rp_saves_empty">Ainda não há sessões salvas deste roteiro</string>
+    <string name="mp_rp_endings">Finais</string>
+    <string name="mp_rp_endings_empty">Ainda não há finais</string>
+    <string name="mp_rp_turn">Turno %1$d</string>
+    <string name="mp_rp_roll">Rolagem %1$d</string>
+    <string name="mp_rp_action_hint">O que você faz neste turno…</string>
+    <string name="mp_rp_advance">Avançar</string>
+    <string name="mp_rp_conclude">Encerrar</string>
+    <string name="mp_rp_delete_save">Excluir sessão</string>
+    <string name="mp_rp_state_unreadable">Não foi possível ler o snapshot</string>
+</resources>

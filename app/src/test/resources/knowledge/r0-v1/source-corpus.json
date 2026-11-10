@@ -1,0 +1,336 @@
+{
+  "baselineStatus": "待基线",
+  "corpusFiles": [
+    "corpus/doc-answer-absent.md",
+    "corpus/doc-archive-path.md",
+    "corpus/doc-backup-orphan.md",
+    "corpus/doc-code.md",
+    "corpus/doc-en-direct.md",
+    "corpus/doc-folder-shared-alpha.md",
+    "corpus/doc-folder-shared-beta.md",
+    "corpus/doc-internal.md",
+    "corpus/doc-ja-direct.md",
+    "corpus/doc-library-alpha.md",
+    "corpus/doc-library-beta.md",
+    "corpus/doc-long-text.md",
+    "corpus/doc-metadata-legal.md",
+    "corpus/doc-session-a.md",
+    "corpus/doc-session-b.md",
+    "corpus/doc-vector-space.md",
+    "corpus/doc-zh-direct.md"
+  ],
+  "docCount": 17,
+  "documents": [
+    {
+      "content": "R0_DIRECT_MARKER 合成直接答案位于第一块。",
+      "docId": "doc-zh-direct",
+      "folderPath": "基础",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "zh",
+      "locators": [
+        "doc-zh-direct:block-1"
+      ],
+      "marker": "R0_DIRECT_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "direct"
+      ],
+      "title": "合成直接答案"
+    },
+    {
+      "content": "R0_EN_MARKER The synthetic answer lives in block one.",
+      "docId": "doc-en-direct",
+      "folderPath": "基础",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "en",
+      "locators": [
+        "doc-en-direct:block-1"
+      ],
+      "marker": "R0_EN_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "direct",
+        "english"
+      ],
+      "title": "Synthetic English Answer"
+    },
+    {
+      "content": "R0_JA_MARKER 合成回答は最初のブロックにあります。",
+      "docId": "doc-ja-direct",
+      "folderPath": "基礎",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "ja",
+      "locators": [
+        "doc-ja-direct:block-1"
+      ],
+      "marker": "R0_JA_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "direct",
+        "japanese"
+      ],
+      "title": "合成日本語回答"
+    },
+    {
+      "content": "R0_ABSENT_MARKER 本文件只含无关信息。",
+      "docId": "doc-answer-absent",
+      "folderPath": "基础",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "zh",
+      "locators": [
+        "doc-answer-absent:block-1"
+      ],
+      "marker": "R0_ABSENT_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "absent"
+      ],
+      "title": "Answer Absent Document"
+    },
+    {
+      "content": "R0_LONG_HEAD_MARKER\n长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充长文填充\nR0_LONG_TAIL_MARKER\n",
+      "docId": "doc-long-text",
+      "folderPath": "长文",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "zh",
+      "locators": [
+        "doc-long-text:block-tail"
+      ],
+      "marker": "R0_LONG_TAIL_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "long"
+      ],
+      "title": "长文保尾"
+    },
+    {
+      "content": "R0_CODE_MARKER\n```text\nval answer = \"R0_CODE_ANSWER_MARKER\"\n```\n",
+      "docId": "doc-code",
+      "folderPath": "代码",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "en",
+      "locators": [
+        "doc-code:block-fence"
+      ],
+      "marker": "R0_CODE_ANSWER_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "code"
+      ],
+      "title": "Code Fence Document"
+    },
+    {
+      "content": "R0_LIBRARY_ALPHA_MARKER 只在 alpha 库。",
+      "docId": "doc-library-alpha",
+      "folderPath": "范围/库",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "zh",
+      "locators": [
+        "doc-library-alpha:block-1"
+      ],
+      "marker": "R0_LIBRARY_ALPHA_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "scope",
+        "library"
+      ],
+      "title": "Alpha Library Scope"
+    },
+    {
+      "content": "R0_LIBRARY_BETA_MARKER 只在 beta 库。",
+      "docId": "doc-library-beta",
+      "folderPath": "范围/库",
+      "isInternal": false,
+      "kbId": "kb-beta",
+      "language": "zh",
+      "locators": [
+        "doc-library-beta:block-1"
+      ],
+      "marker": "R0_LIBRARY_BETA_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "scope",
+        "library"
+      ],
+      "title": "Beta Library Scope"
+    },
+    {
+      "content": "R0_ALPHA_SAME_NAME_MARKER alpha 库共享目录说明。",
+      "docId": "doc-folder-shared-alpha",
+      "folderPath": "共享目录",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "zh",
+      "locators": [
+        "doc-folder-shared-alpha:block-1"
+      ],
+      "marker": "R0_ALPHA_SAME_NAME_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "scope",
+        "folder",
+        "same_name"
+      ],
+      "title": "同名指南"
+    },
+    {
+      "content": "R0_BETA_SAME_NAME_MARKER beta 库共享目录说明。",
+      "docId": "doc-folder-shared-beta",
+      "folderPath": "共享目录",
+      "isInternal": false,
+      "kbId": "kb-beta",
+      "language": "zh",
+      "locators": [
+        "doc-folder-shared-beta:block-1"
+      ],
+      "marker": "R0_BETA_SAME_NAME_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "scope",
+        "folder",
+        "same_name"
+      ],
+      "title": "同名指南"
+    },
+    {
+      "content": "R0_SESSION_A_MARKER 仅属于 session-a。",
+      "docId": "doc-session-a",
+      "folderPath": null,
+      "isInternal": false,
+      "kbId": null,
+      "language": "zh",
+      "locators": [
+        "doc-session-a:block-1"
+      ],
+      "marker": "R0_SESSION_A_MARKER",
+      "ownerKind": "SessionAttachment",
+      "sessionId": "session-a",
+      "tags": [
+        "scope",
+        "session"
+      ],
+      "title": "Session A Attachment"
+    },
+    {
+      "content": "R0_SESSION_B_MARKER 仅属于 session-b。",
+      "docId": "doc-session-b",
+      "folderPath": null,
+      "isInternal": false,
+      "kbId": null,
+      "language": "zh",
+      "locators": [
+        "doc-session-b:block-1"
+      ],
+      "marker": "R0_SESSION_B_MARKER",
+      "ownerKind": "SessionAttachment",
+      "sessionId": "session-b",
+      "tags": [
+        "scope",
+        "session"
+      ],
+      "title": "Session B Attachment"
+    },
+    {
+      "content": "R0_METADATA_LEGAL_MARKER 标签为 legal。",
+      "docId": "doc-metadata-legal",
+      "folderPath": "元数据",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "zh",
+      "locators": [
+        "doc-metadata-legal:block-1"
+      ],
+      "marker": "R0_METADATA_LEGAL_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "metadata",
+        "legal"
+      ],
+      "title": "Metadata Legal Document"
+    },
+    {
+      "content": "R0_INTERNAL_MARKER 内置帮助不应进入普通用户库。",
+      "corpusVersion": "r0-v1-help",
+      "docId": "doc-internal",
+      "folderPath": null,
+      "isInternal": true,
+      "kbId": null,
+      "language": "zh",
+      "locators": [
+        "doc-internal:block-1"
+      ],
+      "marker": "R0_INTERNAL_MARKER",
+      "ownerKind": "BuiltinHelp",
+      "tags": [
+        "internal"
+      ],
+      "title": "Internal Help Exclusion"
+    },
+    {
+      "content": "R0_ARCHIVE_PATH_MARKER 归档路径含百分号和下划线。",
+      "docId": "doc-archive-path",
+      "folderPath": "a/b",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "zh",
+      "locators": [
+        "doc-archive-path:block-1"
+      ],
+      "marker": "R0_ARCHIVE_PATH_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "archive",
+        "path"
+      ],
+      "title": "Archive Path Document"
+    },
+    {
+      "content": "R0_BACKUP_ORPHAN_MARKER 旧库缺少所属知识库。",
+      "docId": "doc-backup-orphan",
+      "folderPath": "共享目录",
+      "isInternal": false,
+      "kbId": "kb-missing",
+      "language": "zh",
+      "locators": [
+        "doc-backup-orphan:block-1"
+      ],
+      "marker": "R0_BACKUP_ORPHAN_MARKER",
+      "ownerKind": "LegacyOrphan",
+      "tags": [
+        "backup",
+        "orphan"
+      ],
+      "title": "Backup Orphan Document"
+    },
+    {
+      "content": "R0_VECTOR_SPACE_MARKER 同维度异模型不得混检。",
+      "docId": "doc-vector-space",
+      "folderPath": "向量",
+      "isInternal": false,
+      "kbId": "kb-alpha",
+      "language": "zh",
+      "locators": [
+        "doc-vector-space:block-1"
+      ],
+      "marker": "R0_VECTOR_SPACE_MARKER",
+      "ownerKind": "UserLibrary",
+      "tags": [
+        "vector",
+        "space"
+      ],
+      "title": "Vector Space Document",
+      "vectorSpace": "space-local-768-a"
+    }
+  ],
+  "fixtureSetVersion": "r0-v1",
+  "questionLabelFile": "source-questions.json",
+  "schemaVersion": 1,
+  "synthetic": true
+}

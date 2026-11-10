@@ -259,7 +259,11 @@ open class ShellExecutor(
                     }
                 }
             }
-        }.apply { isDaemon = true; name = "muse-shell-reader"; start() }
+        }.apply {
+            isDaemon = true
+            name = "muse-shell-reader"
+            start()
+        }
 
         val finished = runCatching { proc.waitFor(commandTimeoutMs, TimeUnit.MILLISECONDS) }.getOrDefault(false)
         if (!finished) {
@@ -375,7 +379,11 @@ open class ShellExecutor(
                         }
                     }
                 }
-            }.apply { isDaemon = true; name = "muse-shell-binary-reader"; start() }
+            }.apply {
+                isDaemon = true
+                name = "muse-shell-binary-reader"
+                start()
+            }
 
             val finished = runCatching { proc.waitFor(commandTimeoutMs, TimeUnit.MILLISECONDS) }.getOrDefault(false)
             if (!finished) {

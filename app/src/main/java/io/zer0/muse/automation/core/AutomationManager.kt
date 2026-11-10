@@ -613,8 +613,7 @@ class AutomationManager(
         ;
 
         companion object {
-            fun fromWire(value: String?): SystemSettingsTarget? =
-                entries.firstOrNull { it.wireName == value?.trim()?.lowercase() }
+            fun fromWire(value: String?): SystemSettingsTarget? = entries.firstOrNull { it.wireName == value?.trim()?.lowercase() }
         }
     }
 

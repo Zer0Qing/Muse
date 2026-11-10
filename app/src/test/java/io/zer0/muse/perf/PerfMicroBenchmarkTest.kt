@@ -55,7 +55,7 @@ class PerfMicroBenchmarkTest {
     }
 
     /** 日志链路的成本分解（P22/P23 前后对比）。 */
-    private fun probeLoggingCosts() {        // 6) 一条日志的完整代价（PII 脱敏 + 文件追加），见 Logger.d 的实现
+    private fun probeLoggingCosts() { // 6) 一条日志的完整代价（PII 脱敏 + 文件追加），见 Logger.d 的实现
         val logDir = java.nio.file.Files.createTempDirectory("muse-log-bench").toFile()
         io.zer0.common.Logger.initFileLog(
             androidx.test.core.app.ApplicationProvider.getApplicationContext(),
@@ -152,7 +152,8 @@ class PerfMicroBenchmarkTest {
     }
 
     /** 三项"一直被注释承认为 O(n)、但从没量过"的残余成本（第 36 轮）。 */
-    private fun probeResidualCosts() {        val longHistory = (0 until 200).map { index ->
+    private fun probeResidualCosts() {
+        val longHistory = (0 until 200).map { index ->
             UIMessage(
                 role = if (index % 2 == 0) MessageRole.USER else MessageRole.ASSISTANT,
                 content = "第 $index 条消息正文，长度接近真实对话，用来估量整表复制的成本。".repeat(3),
@@ -272,8 +273,6 @@ class PerfMicroBenchmarkTest {
         row("单条 5KB 消息的输出 token 估算（流式每帧）", perFrameEstimate, 0.0)
 
         probeLoggingCosts()
-
-
 
         // 7) 冷启动里的"工具注册"到底多贵（启动期同步做的就是这件事）
         val ctx = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()

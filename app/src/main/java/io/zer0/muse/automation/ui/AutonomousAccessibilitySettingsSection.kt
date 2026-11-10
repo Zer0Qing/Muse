@@ -18,36 +18,33 @@ data class AutonomousAccessibilityDraftState(
         return copy(allowedActions = next)
     }
 
-    fun toWindow(): AutonomousAccessibilityWindow =
-        AutonomousAccessibilityWindow(
-            enabled = enabled,
-            startMinuteOfDay = startMinute.coerceIn(0, 24 * 60 - 1),
-            endMinuteOfDay = endMinute.coerceIn(0, 24 * 60 - 1),
-            allowedPackages = allowedPackages.filter(String::isNotBlank).toSet(),
-            allowedActions = allowedActions,
-            maxRunsPerDay = maxRunsPerDay.coerceIn(0, 100),
-        )
+    fun toWindow(): AutonomousAccessibilityWindow = AutonomousAccessibilityWindow(
+        enabled = enabled,
+        startMinuteOfDay = startMinute.coerceIn(0, 24 * 60 - 1),
+        endMinuteOfDay = endMinute.coerceIn(0, 24 * 60 - 1),
+        allowedPackages = allowedPackages.filter(String::isNotBlank).toSet(),
+        allowedActions = allowedActions,
+        maxRunsPerDay = maxRunsPerDay.coerceIn(0, 100),
+    )
 
     companion object {
         private const val DEFAULT_PACKAGE = "com.xingin.xhs"
 
-        fun fromWindow(window: AutonomousAccessibilityWindow): AutonomousAccessibilityDraftState =
-            AutonomousAccessibilityDraftState(
-                enabled = window.enabled,
-                startMinute = window.startMinuteOfDay,
-                endMinute = window.endMinuteOfDay,
-                allowedPackages = window.allowedPackages.ifEmpty { setOf(DEFAULT_PACKAGE) },
-                allowedActions = window.allowedActions,
-                maxRunsPerDay = window.maxRunsPerDay,
-            )
+        fun fromWindow(window: AutonomousAccessibilityWindow): AutonomousAccessibilityDraftState = AutonomousAccessibilityDraftState(
+            enabled = window.enabled,
+            startMinute = window.startMinuteOfDay,
+            endMinute = window.endMinuteOfDay,
+            allowedPackages = window.allowedPackages.ifEmpty { setOf(DEFAULT_PACKAGE) },
+            allowedActions = window.allowedActions,
+            maxRunsPerDay = window.maxRunsPerDay,
+        )
     }
 }
 
-internal fun parseAutonomousPackages(raw: String): Set<String> =
-    raw.lineSequence()
-        .map(String::trim)
-        .filter(String::isNotBlank)
-        .toSet()
+internal fun parseAutonomousPackages(raw: String): Set<String> = raw.lineSequence()
+    .map(String::trim)
+    .filter(String::isNotBlank)
+    .toSet()
 
 internal fun formatMinuteOfDay(minute: Int): String =
     "%02d:%02d".format(minute.coerceIn(0, 24 * 60 - 1) / 60, minute.coerceIn(0, 24 * 60 - 1) % 60)

@@ -1,6 +1,5 @@
 package io.zer0.muse.intent
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -13,6 +12,7 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.notification.MuseNotificationTarget
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

@@ -24,8 +24,7 @@ import java.util.TimeZone
 @Config(sdk = [33])
 class CalendarSemanticsTest {
 
-    private fun utcMidnightOf(date: String): Long =
-        LocalDate.parse(date).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    private fun utcMidnightOf(date: String): Long = LocalDate.parse(date).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
 
     private fun localMidnightOf(date: String, zone: String): Long =
         LocalDate.parse(date).atStartOfDay(ZoneId.of(zone)).toInstant().toEpochMilli()

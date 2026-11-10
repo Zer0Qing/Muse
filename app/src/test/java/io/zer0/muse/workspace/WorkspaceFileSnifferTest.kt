@@ -119,8 +119,12 @@ class WorkspaceFileSnifferTest {
     fun `image report promises an attachment only when one exists`() {
         val attached = WorkspaceMediaReport.image(
             ImageReportInput(
-                display = "attachments/a.png", mimeType = "image/png", dimensions = 1024 to 768,
-                sizeBytes = 240 * 1024, attached = true, ocrText = "识别到：会议纪要",
+                display = "attachments/a.png",
+                mimeType = "image/png",
+                dimensions = 1024 to 768,
+                sizeBytes = 240 * 1024,
+                attached = true,
+                ocrText = "识别到：会议纪要",
             ),
         )
         assertTrue(attached.contains("image |"))
@@ -133,8 +137,11 @@ class WorkspaceFileSnifferTest {
 
         val skipped = WorkspaceMediaReport.image(
             ImageReportInput(
-                display = "b.jpg", mimeType = "image/jpeg", dimensions = null,
-                sizeBytes = 9 * 1024 * 1024, attached = false,
+                display = "b.jpg",
+                mimeType = "image/jpeg",
+                dimensions = null,
+                sizeBytes = 9 * 1024 * 1024,
+                attached = false,
                 attachSkipReason = "原图 9.0MB 超过随附上限 4.0MB",
             ),
         )
@@ -145,8 +152,11 @@ class WorkspaceFileSnifferTest {
         // 没读入内容时不能说「没识别到」，那是把未尝试说成已尝试。
         val notTried = WorkspaceMediaReport.image(
             ImageReportInput(
-                display = "c.png", mimeType = "image/png", dimensions = null,
-                sizeBytes = 30L * 1024 * 1024, attached = false,
+                display = "c.png",
+                mimeType = "image/png",
+                dimensions = null,
+                sizeBytes = 30L * 1024 * 1024,
+                attached = false,
                 attachSkipReason = "文件超过 12.0MB，不为了读内容把整张图拉进内存",
                 ocrAttempted = false,
             ),

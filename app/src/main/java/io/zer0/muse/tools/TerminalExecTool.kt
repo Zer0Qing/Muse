@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.common.Logger
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,7 +51,7 @@ object TerminalExecTool {
         val forbidden = ShellCommandBoundary.forbidReason(command, workspaceDir)
         if (forbidden != null) {
             Logger.w(TAG, "硬边界拒绝:$forbidden")
-            return "Error: 命令被安全边界拒绝 — ${forbidden}。"
+            return "Error: 命令被安全边界拒绝 — $forbidden。"
         }
         // 第二档:有破坏力但属于正常工作,不在这里拦(由 HIGH 风险的逐次审批承担),只留可回溯的日志。
         ShellCommandBoundary.cautionReason(command)?.let { note ->

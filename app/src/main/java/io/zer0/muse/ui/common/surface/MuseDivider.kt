@@ -35,12 +35,11 @@ import io.zer0.muse.ui.theme.MusePaddings
  * 有 leading: 对齐图标右侧的文字列 = 行内边距 + 图标 + 图标-文字间距,
  * 三项与 [MuseListItem] 的 leading 布局逐一对应,避免假定缩进漂移。
  */
-fun museDividerStartIndent(hasLeading: Boolean): Dp =
-    if (hasLeading) {
-        MusePaddings.screen + MuseIconSizes.icon + MusePaddings.screen
-    } else {
-        MusePaddings.screen
-    }
+fun museDividerStartIndent(hasLeading: Boolean): Dp = if (hasLeading) {
+    MusePaddings.screen + MuseIconSizes.icon + MusePaddings.screen
+} else {
+    MusePaddings.screen
+}
 
 @Composable
 fun MuseDivider(

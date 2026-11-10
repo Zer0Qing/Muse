@@ -119,4 +119,27 @@ internal object MiniPhoneTags {
     fun groupPickMark(characterId: String): String = "mp-group-pick-mark-$characterId"
 
     fun threadMenuAction(action: ThreadMenuAction): String = "mp-thread-menu-${action.name.lowercase()}"
+
+    /** 38: 小房间页、它的地板画布、切房间、家具锚点与人物图钉。 */
+    const val ROOM_ENTRY = "mp-room-entry"
+    const val MEMO_ENTRY = "mp-memo-entry"
+    const val CALLS_ENTRY = "mp-calls-entry"
+    const val CHECKUP_ENTRY = "mp-checkup-entry"
+    const val FORUM_ENTRY = "mp-forum-entry"
+    const val RELATION_ENTRY = "mp-relation-entry"
+    const val ROAM_ENTRY = "mp-roam-entry"
+    const val ROLEPLAY_ENTRY = "mp-roleplay-entry"
+    const val WARDROBE_ENTRY = "mp-wardrobe-entry"
+    const val RED_PACKET_ENTRY = "mp-red_packet-entry"
+    const val HOLIDAY_ENTRY = "mp-holiday-entry"
+    const val RINGTONE_ENTRY = "mp-ringtone-entry"
+    const val ROOM_PAGE = "mp-room-page"
+    const val ROOM_CANVAS = "mp-room-canvas"
+    const val ROOM_BACK = "mp-room-back"
+
+    fun roomSwitcher(roomId: String): String = "mp-room-switch-$roomId"
+
+    fun roomAnchor(anchorId: String): String = "mp-room-anchor-$anchorId"
+
+    fun roomFigure(participant: String): String = "mp-room-figure-$participant"
 }

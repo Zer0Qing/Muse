@@ -1,0 +1,350 @@
+{
+  "baselineStatus": "待基线",
+  "counts": {
+    "archiveCases": 1,
+    "corpusDocuments": 17,
+    "corpusFiles": 17,
+    "deviceRecords": 0,
+    "pdfCases": 4,
+    "performanceTierFixtures": 0,
+    "questionCategories": 19,
+    "questionCount": 133
+  },
+  "designIssueCoverage": {
+    "archive_special_paths": [
+      "archive/special-paths.zip",
+      "archive-cases.json"
+    ],
+    "backup_orphan_and_paths": [
+      "backup-old-library.json",
+      "backup-old-library.ndjson"
+    ],
+    "clamp_citation_consistency": [
+      "source-questions.json",
+      "documents.json"
+    ],
+    "empty_binding": [
+      "binding-scopes.json"
+    ],
+    "fts4_real_sql_ranking": [
+      "fts4-ranking.json"
+    ],
+    "full_text_edit_tail_preservation": [
+      "long/preview-tail.txt",
+      "parse-cases.json"
+    ],
+    "internal_exclusion": [
+      "docs/internal/builtin-help.md",
+      "binding-scopes.json"
+    ],
+    "invalid_binding": [
+      "binding-scopes.json"
+    ],
+    "metadata_intersection": [
+      "metadata-scope.json"
+    ],
+    "parse_completeness": [
+      "parse/scanned-needs-ocr.pdf",
+      "parse/over-200-pages.pdf",
+      "parse/missing-page.pdf",
+      "parse/corrupt.pdf",
+      "parse-cases.json",
+      "structured/window-boundary.md"
+    ],
+    "performance_baseline": [],
+    "same_dimension_different_model": [
+      "vector-spaces.json"
+    ],
+    "same_name_directories": [
+      "docs/kb-alpha/共享目录/说明.md",
+      "docs/kb-beta/共享目录/说明.md",
+      "binding-scopes.json"
+    ],
+    "same_name_documents": [
+      "docs/kb-alpha/同名指南.md",
+      "docs/kb-beta/同名指南.md",
+      "documents.json"
+    ],
+    "session_attachments": [
+      "sessions/session-a/attachment.md",
+      "sessions/session-b/attachment.md",
+      "binding-scopes.json"
+    ]
+  },
+  "fileCount": 42,
+  "files": [
+    {
+      "bytes": 1282,
+      "path": "archive/special-paths.zip",
+      "sha256": "043f3c1e859d05433bd0ef86eaf9c3d32110201faf15e0d82e1c3f9b73777a06"
+    },
+    {
+      "bytes": 1064,
+      "path": "archive-cases.json",
+      "sha256": "d87f929d84324072f562e1d27683b4bd903397c3c129896b89967e351c0097bb"
+    },
+    {
+      "bytes": 2948,
+      "path": "backup-old-library.json",
+      "sha256": "52bd1dae563aeeb425d23ae96ce47269196a506e0b4e8185b792fa674b84f3ad"
+    },
+    {
+      "bytes": 1362,
+      "path": "backup-old-library.ndjson",
+      "sha256": "f5c6abf9b394edd0b75ad667c2465dca9dd8cb6f1886161ed14039a4f453c9b3"
+    },
+    {
+      "bytes": 3896,
+      "path": "binding-scopes.json",
+      "sha256": "bfa5b9c65c8432ca71f4ce670236fbff8c029b7615e33cb0d45caec91c6d5bf1"
+    },
+    {
+      "bytes": 47,
+      "path": "corpus/doc-answer-absent.md",
+      "sha256": "991632cb0ed8d5a3a4a434b6dd4bd91b9493cf39570d9fae52799aee62003efd"
+    },
+    {
+      "bytes": 62,
+      "path": "corpus/doc-archive-path.md",
+      "sha256": "4e3ea2ac553ec1663e4267720b9c2c9e558a655dc293d6aa4d5991aec496eb04"
+    },
+    {
+      "bytes": 54,
+      "path": "corpus/doc-backup-orphan.md",
+      "sha256": "5a3bd6075c722e796ce8a7b931c08b021b69b7d0f5b9b8997b7a210c5ec044b4"
+    },
+    {
+      "bytes": 64,
+      "path": "corpus/doc-code.md",
+      "sha256": "a7bb4d9a7cd6f6aef20ce2dfd9644aeb10a484647c71ee01347a88e25db5c6e4"
+    },
+    {
+      "bytes": 53,
+      "path": "corpus/doc-en-direct.md",
+      "sha256": "85894013a014bef1e272cde52085c25ef70edb29da9efc766e6ba627436b5d72"
+    },
+    {
+      "bytes": 56,
+      "path": "corpus/doc-folder-shared-alpha.md",
+      "sha256": "4abed84950ec4c36c8698c22680b6d898c073f142bacd8823e3eaaf0c1c9a7b2"
+    },
+    {
+      "bytes": 54,
+      "path": "corpus/doc-folder-shared-beta.md",
+      "sha256": "7b65ba2965e6dbee2969eefdf1454c97b4632727c3d592751b394165417da217"
+    },
+    {
+      "bytes": 61,
+      "path": "corpus/doc-internal.md",
+      "sha256": "41d7d40b17ed81679d5e1a573b2c8f825246253161ed8853912ab09f4d154ec2"
+    },
+    {
+      "bytes": 67,
+      "path": "corpus/doc-ja-direct.md",
+      "sha256": "dfeff4fc8f0fc16dd65fc2d62d709ffdffac220580d510cb2663de849cfb4c05"
+    },
+    {
+      "bytes": 43,
+      "path": "corpus/doc-library-alpha.md",
+      "sha256": "8cb4448b21a1e17a60a88ed649685e4fa2cab3df4f810c7038b401203a0fbd43"
+    },
+    {
+      "bytes": 41,
+      "path": "corpus/doc-library-beta.md",
+      "sha256": "5e60a6167f533aa4dd3d02553087b03dbc7dc6492e6b8678776e33cd2f0ddde2"
+    },
+    {
+      "bytes": 8441,
+      "path": "corpus/doc-long-text.md",
+      "sha256": "7499aa1075f8d255d932ad58795334dd6779382c080306046c42829e48630242"
+    },
+    {
+      "bytes": 43,
+      "path": "corpus/doc-metadata-legal.md",
+      "sha256": "d20a824147daef2e2b73009cb270828cecad57f96616f3531887cce001724b41"
+    },
+    {
+      "bytes": 42,
+      "path": "corpus/doc-session-a.md",
+      "sha256": "1a80d11f7ce284752920b54b0a98127e887af2893f95ad91e8f1238a274168cd"
+    },
+    {
+      "bytes": 42,
+      "path": "corpus/doc-session-b.md",
+      "sha256": "3704153f5609d821721b3d90bd3f9b7c4b28b04c6ecf6deda61abdf713ef3c88"
+    },
+    {
+      "bytes": 56,
+      "path": "corpus/doc-vector-space.md",
+      "sha256": "3e2bed2c4dc677764942372b6ba7945f354bb1d8b8b2563bb213ceae6a364287"
+    },
+    {
+      "bytes": 53,
+      "path": "corpus/doc-zh-direct.md",
+      "sha256": "ee7a9dcc76aab0e65b8d50314747eab7f4b733621b143ecb8c07556574d839c4"
+    },
+    {
+      "bytes": 73,
+      "path": "docs/internal/builtin-help.md",
+      "sha256": "288778d1895c50298c312b0fc5b62fde559ca2f53d8b5c755e3bac35e7bef66a"
+    },
+    {
+      "bytes": 58,
+      "path": "docs/kb-alpha/共享目录/说明.md",
+      "sha256": "773029c8309ba1929b749ac43b64d6fddb7437f71bcbffd1b7a7b8e5083cbac7"
+    },
+    {
+      "bytes": 53,
+      "path": "docs/kb-alpha/同名指南.md",
+      "sha256": "af39ad5f0ea62ffd72f1a42af1fdaa5dc926cd69bc5afb33434e9a282940d4c1"
+    },
+    {
+      "bytes": 56,
+      "path": "docs/kb-beta/共享目录/说明.md",
+      "sha256": "481de52d13d60d5b702d0f4786bffb6612a281890a4cac42d55bc298cad1f10d"
+    },
+    {
+      "bytes": 51,
+      "path": "docs/kb-beta/同名指南.md",
+      "sha256": "b285813c16f809ac946f530be25c5d7a9b09b7fcc80a141375c7df40d58d4541"
+    },
+    {
+      "bytes": 8099,
+      "path": "documents.json",
+      "sha256": "f190f8ab53824b8c12daf62611353bf5a6c5cf4c532a6e279a52bf8f3abaf91f"
+    },
+    {
+      "bytes": 1827,
+      "path": "fts4-ranking.json",
+      "sha256": "994d7c9ac3f528df6140e8fc1151f846abbc7ee3dce990c59b1ca71cef4b8c00"
+    },
+    {
+      "bytes": 500051,
+      "path": "long/preview-tail.txt",
+      "sha256": "0fe5434d482529c3e628b6bd72ebc0b407fcee0c34f32bf64ed42c691639e28a"
+    },
+    {
+      "bytes": 1300,
+      "path": "metadata-scope.json",
+      "sha256": "0d3e805acfa8e3804478fbada6bc482347376a3da869a03ba7be65843184e74f"
+    },
+    {
+      "bytes": 53,
+      "path": "parse/corrupt.pdf",
+      "sha256": "c1fbecc8dfe65c7d1e35692b9715002d96b8daecd3b5ebdc536f9d31766cd9ad"
+    },
+    {
+      "bytes": 1110,
+      "path": "parse/missing-page.pdf",
+      "sha256": "04aeba6ac04f149b756a29b5c5a72521b193d4483f4919e7493bb4738818a90a"
+    },
+    {
+      "bytes": 58427,
+      "path": "parse/over-200-pages.pdf",
+      "sha256": "0c9b51a2f846303aab621653187c0cdc8b72f05cb71736fb649598c7a8e4fe53"
+    },
+    {
+      "bytes": 542,
+      "path": "parse/scanned-needs-ocr.pdf",
+      "sha256": "af24aa6a088a451a1540a6f8b7acac9fb70dbf624fabac91fef9f4eaca7a19d8"
+    },
+    {
+      "bytes": 2225,
+      "path": "parse-cases.json",
+      "sha256": "e52ad8e29eccab4660e6d0cc0ee6c51cac4586c6a17b9fef94ddef19e00cd95b"
+    },
+    {
+      "bytes": 63,
+      "path": "sessions/session-a/attachment.md",
+      "sha256": "3e454e116ac1125a453fc88ffc80d343b9022dacb4cd6ed4653d5db26353c6a4"
+    },
+    {
+      "bytes": 63,
+      "path": "sessions/session-b/attachment.md",
+      "sha256": "4b4ebda69f834a6da2e270f5b9bc29500a6e9ad37588de77c6b43def4de7f53a"
+    },
+    {
+      "bytes": 17147,
+      "path": "source-corpus.json",
+      "sha256": "60f6a4fd621c5919b0f3cbcff28a70dc0c394af584b5f5faf3f93029ee6d65f0"
+    },
+    {
+      "bytes": 117891,
+      "path": "source-questions.json",
+      "sha256": "b14fbfab3ef613a84754119a1dd6b92c61421f8acc5caf8a0f5f05a5b096f120"
+    },
+    {
+      "bytes": 24340,
+      "path": "structured/window-boundary.md",
+      "sha256": "3cad49a58441af116e4c1ba8aa70bd0cb87a42095282b643b31e3d06f6a184e3"
+    },
+    {
+      "bytes": 1438,
+      "path": "vector-spaces.json",
+      "sha256": "27369c6ca1ac2301afaa9dacec950cae8ab0fee32cbcf2acc3f34cfe1700de46"
+    }
+  ],
+  "fixtureSetVersion": "r0-v1",
+  "limits": {
+    "inputWindowChars": 8192,
+    "pdfPageCap": 200,
+    "previewCap": 500000
+  },
+  "manifestHashSha256File": "fixture-manifest.sha256.txt",
+  "resourcePaths": [
+    "archive-cases.json",
+    "archive/special-paths.zip",
+    "backup-old-library.json",
+    "backup-old-library.ndjson",
+    "binding-scopes.json",
+    "corpus/doc-answer-absent.md",
+    "corpus/doc-archive-path.md",
+    "corpus/doc-backup-orphan.md",
+    "corpus/doc-code.md",
+    "corpus/doc-en-direct.md",
+    "corpus/doc-folder-shared-alpha.md",
+    "corpus/doc-folder-shared-beta.md",
+    "corpus/doc-internal.md",
+    "corpus/doc-ja-direct.md",
+    "corpus/doc-library-alpha.md",
+    "corpus/doc-library-beta.md",
+    "corpus/doc-long-text.md",
+    "corpus/doc-metadata-legal.md",
+    "corpus/doc-session-a.md",
+    "corpus/doc-session-b.md",
+    "corpus/doc-vector-space.md",
+    "corpus/doc-zh-direct.md",
+    "docs/internal/builtin-help.md",
+    "docs/kb-alpha/共享目录/说明.md",
+    "docs/kb-alpha/同名指南.md",
+    "docs/kb-beta/共享目录/说明.md",
+    "docs/kb-beta/同名指南.md",
+    "documents.json",
+    "fixture-manifest.json",
+    "fixture-manifest.sha256.txt",
+    "fts4-ranking.json",
+    "long/preview-tail.txt",
+    "metadata-scope.json",
+    "parse-cases.json",
+    "parse/corrupt.pdf",
+    "parse/missing-page.pdf",
+    "parse/over-200-pages.pdf",
+    "parse/scanned-needs-ocr.pdf",
+    "sessions/session-a/attachment.md",
+    "sessions/session-b/attachment.md",
+    "source-corpus.json",
+    "source-questions.json",
+    "structured/window-boundary.md",
+    "vector-spaces.json"
+  ],
+  "schemaVersion": 1,
+  "synthetic": true,
+  "totalHashedBytes": 754698,
+  "verification": {
+    "androidFts4Ranking": "待验",
+    "androidRestore": "待验",
+    "devicePerformance": "待验",
+    "gradleCompile": "未运行",
+    "unitTests": "未运行"
+  }
+}

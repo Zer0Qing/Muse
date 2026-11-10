@@ -364,7 +364,9 @@ object CodeHighlighter {
      * 逐行独立着色,与 MarkdownText 的逐行高亮调用方式兼容。
      */
     private fun highlightDiff(code: String, colors: HighlightColors): AnnotatedString = buildAnnotatedString {
-        code.split("\n").forEachIndexed { index, line ->
+        // 用统一的换行分割：直接 split("\n") 会让 \r\n 的每行末尾留下 \r，
+        // 关键字与 diff 分类都会因此匹配失败。
+        code.split(MARKDOWN_LINE_SPLIT).forEachIndexed { index, line ->
             if (index > 0) append("\n")
             val kind = classifyDiffLine(line)
             val style = when (kind) {

@@ -89,7 +89,7 @@ class MpMomentsRepository(
             MpMomentEntity(
                 id = newId(),
                 authorId = MP_LOCAL_ACTOR_ID,
-                authorName = authorName.ifBlank { DEFAULT_SELF_NAME },
+                authorName = authorName.trim(),
                 content = text,
                 imagesJson = encodeMomentImages(images),
                 visibleToJson = visibleTo.trim(),
@@ -111,7 +111,7 @@ class MpMomentsRepository(
             MpMomentEntity(
                 id = newId(),
                 authorId = character.id,
-                authorName = character.name.ifBlank { DEFAULT_CHARACTER_NAME },
+                authorName = character.name.trim(),
                 content = text,
                 imagesJson = encodeMomentImages(emptyList()),
                 visibleToJson = "",
@@ -137,7 +137,7 @@ class MpMomentsRepository(
                 momentId = momentId,
                 likerType = likerType,
                 likerId = likerId,
-                likerName = likerName.ifBlank { DEFAULT_SELF_NAME },
+                likerName = likerName.trim(),
                 createdAt = now(),
             ),
         )
@@ -165,7 +165,7 @@ class MpMomentsRepository(
             parentId = parentId?.takeIf(String::isNotBlank),
             senderType = senderType,
             senderId = senderId,
-            senderName = senderName.ifBlank { DEFAULT_SELF_NAME },
+            senderName = senderName.trim(),
             content = text,
             createdAt = now(),
         )
@@ -196,11 +196,6 @@ class MpMomentsRepository(
     private suspend fun insert(moment: MpMomentEntity): MpMomentEntity {
         momentDao.insert(moment)
         return moment
-    }
-
-    private companion object {
-        const val DEFAULT_SELF_NAME: String = "我"
-        const val DEFAULT_CHARACTER_NAME: String = "角色"
     }
 }
 

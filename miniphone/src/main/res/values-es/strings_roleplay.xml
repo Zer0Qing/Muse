@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 跑团模块的文案。各语言保持同一组键，不让业务代码决定成品语言。 -->
+    <string name="mp_discover_roleplay">Rol</string>
+    <string name="mp_rp_title">Biblioteca de guiones</string>
+    <string name="mp_rp_back">Volver a Descubrir</string>
+    <string name="mp_rp_empty">Todavía no hay guiones. Escribe primero una introducción.</string>
+    <string name="mp_rp_script_title_hint">Título del guion</string>
+    <string name="mp_rp_script_body_hint">Introducción y reglas</string>
+    <string name="mp_rp_create_script">Nuevo guion</string>
+    <string name="mp_rp_update_script">Guardar cambios</string>
+    <string name="mp_rp_cancel_edit">Cancelar edición</string>
+    <string name="mp_rp_edit_script">Editar</string>
+    <string name="mp_rp_delete_script">Eliminar guion</string>
+    <string name="mp_rp_no_characters">Añade un personaje antes de iniciar una partida.</string>
+    <string name="mp_rp_start_run">Iniciar partida</string>
+    <string name="mp_rp_saves">Partidas guardadas</string>
+    <string name="mp_rp_saves_empty">Todavía no hay partidas guardadas de este guion</string>
+    <string name="mp_rp_endings">Finales</string>
+    <string name="mp_rp_endings_empty">Todavía no hay finales</string>
+    <string name="mp_rp_turn">Turno %1$d</string>
+    <string name="mp_rp_roll">Tirada %1$d</string>
+    <string name="mp_rp_action_hint">¿Qué haces este turno…</string>
+    <string name="mp_rp_advance">Avanzar</string>
+    <string name="mp_rp_conclude">Finalizar</string>
+    <string name="mp_rp_delete_save">Eliminar partida</string>
+    <string name="mp_rp_state_unreadable">No se puede leer el estado</string>
+</resources>

@@ -51,10 +51,7 @@ object AutonomousAccessibilityPolicy {
     // 拧成单一返回会把原因塞进可空值再层层解包，读的人反而看不出谁在挡 ——
     // 这是规则的已知误报（阈值 4），逐点豁免并把理由留在这里。
     @Suppress("ReturnCount")
-    fun evaluate(
-        window: AutonomousAccessibilityWindow,
-        request: AutonomousAccessibilityRequest,
-    ): AutonomousAccessibilityDecision {
+    fun evaluate(window: AutonomousAccessibilityWindow, request: AutonomousAccessibilityRequest): AutonomousAccessibilityDecision {
         if (!window.enabled) return denied("自主调用未开启")
         if (!request.userConfirmed) return denied("需要用户明确授权本次任务")
         if (!isWithinWindow(request.minuteOfDay, window.startMinuteOfDay, window.endMinuteOfDay)) {
@@ -98,10 +95,7 @@ object AutonomousAccessibilityTaskScope {
      * A user request counts as task-level confirmation only when it asks for
      * device operation and names the same foreground package.
      */
-    fun confirms(
-        latestUserMessage: String?,
-        packageName: String,
-    ): Boolean {
+    fun confirms(latestUserMessage: String?, packageName: String): Boolean {
         if (latestUserMessage.isNullOrBlank()) return false
         if (packageName.isBlank()) return false
         val appHint = packageLabel(packageName)
@@ -112,16 +106,12 @@ object AutonomousAccessibilityTaskScope {
     }
 
     /** Stable, content-addressed scope; no mutable or monotonic clock involved. */
-    fun fingerprint(latestUserMessage: String): String =
-        sha256(latestUserMessage.trim().replace(Regex("\\s+"), " "), "task")
+    fun fingerprint(latestUserMessage: String): String = sha256(latestUserMessage.trim().replace(Regex("\\s+"), " "), "task")
 
     /**
      * The raw text intentionally never reaches logs or audit rows.
      */
-    fun sha256(
-        text: String,
-        prefix: String,
-    ): String {
+    fun sha256(text: String, prefix: String): String {
         val digest =
             java.security.MessageDigest
                 .getInstance("SHA-256")

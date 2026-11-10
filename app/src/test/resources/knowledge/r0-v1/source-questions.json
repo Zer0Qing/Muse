@@ -1,0 +1,4354 @@
+{
+  "baselineStatus": "待基线",
+  "categoryCount": 19,
+  "fixtureSetVersion": "r0-v1",
+  "measurementContract": {
+    "currentRunStatus": "待基线",
+    "modelAnswerFieldAllowed": false,
+    "requiredBaselineFields": [
+      "recallAt10Status",
+      "wrongSourceStatus",
+      "finalEvidenceStatus"
+    ]
+  },
+  "minimumRequired": 120,
+  "questionCount": 133,
+  "questions": [
+    {
+      "answerExists": true,
+      "category": "direct",
+      "expectedChunkLocators": [
+        "doc-zh-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-zh-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-zh-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-zh-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-001",
+      "language": "zh",
+      "notes": "答案存在，直接定位第一块。",
+      "query": "定位：合成直接答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "direct",
+      "expectedChunkLocators": [
+        "doc-zh-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-zh-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-zh-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-zh-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-002",
+      "language": "zh",
+      "notes": "答案存在，直接定位第一块。",
+      "query": "查找：合成直接答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "direct",
+      "expectedChunkLocators": [
+        "doc-zh-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-zh-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-zh-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-zh-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-003",
+      "language": "zh",
+      "notes": "答案存在，直接定位第一块。",
+      "query": "请给出：合成直接答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "direct",
+      "expectedChunkLocators": [
+        "doc-zh-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-zh-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-zh-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-zh-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-004",
+      "language": "zh",
+      "notes": "答案存在，直接定位第一块。",
+      "query": "Locate: 合成直接答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "direct",
+      "expectedChunkLocators": [
+        "doc-zh-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-zh-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-zh-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-zh-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-005",
+      "language": "zh",
+      "notes": "答案存在，直接定位第一块。",
+      "query": "Find: 合成直接答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "direct",
+      "expectedChunkLocators": [
+        "doc-zh-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-zh-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-zh-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-zh-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-006",
+      "language": "zh",
+      "notes": "答案存在，直接定位第一块。",
+      "query": "検索: 合成直接答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "direct",
+      "expectedChunkLocators": [
+        "doc-zh-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-zh-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-zh-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-zh-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-007",
+      "language": "zh",
+      "notes": "答案存在，直接定位第一块。",
+      "query": "質問: 合成直接答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "answer_absent",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-008",
+      "language": "zh",
+      "notes": "答案不存在，最终证据应为空。",
+      "query": "定位：不存在的答案",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "answer_absent",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-009",
+      "language": "zh",
+      "notes": "答案不存在，最终证据应为空。",
+      "query": "查找：不存在的答案",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "answer_absent",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-010",
+      "language": "zh",
+      "notes": "答案不存在，最终证据应为空。",
+      "query": "请给出：不存在的答案",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "answer_absent",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-011",
+      "language": "zh",
+      "notes": "答案不存在，最终证据应为空。",
+      "query": "Locate: 不存在的答案",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "answer_absent",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-012",
+      "language": "zh",
+      "notes": "答案不存在，最终证据应为空。",
+      "query": "Find: 不存在的答案",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "answer_absent",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-013",
+      "language": "zh",
+      "notes": "答案不存在，最终证据应为空。",
+      "query": "検索: 不存在的答案",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "answer_absent",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-answer-absent"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-014",
+      "language": "zh",
+      "notes": "答案不存在，最终证据应为空。",
+      "query": "質問: 不存在的答案",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-answer-absent"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_en",
+      "expectedChunkLocators": [
+        "doc-en-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-en-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-en-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-en-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-015",
+      "language": "en",
+      "notes": "英文查询应命中英文文档。",
+      "query": "定位：English answer marker",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_en",
+      "expectedChunkLocators": [
+        "doc-en-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-en-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-en-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-en-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-016",
+      "language": "en",
+      "notes": "英文查询应命中英文文档。",
+      "query": "查找：English answer marker",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_en",
+      "expectedChunkLocators": [
+        "doc-en-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-en-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-en-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-en-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-017",
+      "language": "en",
+      "notes": "英文查询应命中英文文档。",
+      "query": "请给出：English answer marker",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_en",
+      "expectedChunkLocators": [
+        "doc-en-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-en-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-en-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-en-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-018",
+      "language": "en",
+      "notes": "英文查询应命中英文文档。",
+      "query": "Locate: English answer marker",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_en",
+      "expectedChunkLocators": [
+        "doc-en-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-en-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-en-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-en-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-019",
+      "language": "en",
+      "notes": "英文查询应命中英文文档。",
+      "query": "Find: English answer marker",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_en",
+      "expectedChunkLocators": [
+        "doc-en-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-en-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-en-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-en-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-020",
+      "language": "en",
+      "notes": "英文查询应命中英文文档。",
+      "query": "検索: English answer marker",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_en",
+      "expectedChunkLocators": [
+        "doc-en-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-en-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-en-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-en-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-021",
+      "language": "en",
+      "notes": "英文查询应命中英文文档。",
+      "query": "質問: English answer marker",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_ja",
+      "expectedChunkLocators": [
+        "doc-ja-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-ja-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-ja-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-ja-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-022",
+      "language": "ja",
+      "notes": "日文查询应命中日文文档。",
+      "query": "定位：日本語回答マーカー",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_ja",
+      "expectedChunkLocators": [
+        "doc-ja-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-ja-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-ja-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-ja-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-023",
+      "language": "ja",
+      "notes": "日文查询应命中日文文档。",
+      "query": "查找：日本語回答マーカー",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_ja",
+      "expectedChunkLocators": [
+        "doc-ja-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-ja-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-ja-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-ja-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-024",
+      "language": "ja",
+      "notes": "日文查询应命中日文文档。",
+      "query": "请给出：日本語回答マーカー",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_ja",
+      "expectedChunkLocators": [
+        "doc-ja-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-ja-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-ja-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-ja-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-025",
+      "language": "ja",
+      "notes": "日文查询应命中日文文档。",
+      "query": "Locate: 日本語回答マーカー",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_ja",
+      "expectedChunkLocators": [
+        "doc-ja-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-ja-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-ja-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-ja-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-026",
+      "language": "ja",
+      "notes": "日文查询应命中日文文档。",
+      "query": "Find: 日本語回答マーカー",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_ja",
+      "expectedChunkLocators": [
+        "doc-ja-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-ja-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-ja-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-ja-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-027",
+      "language": "ja",
+      "notes": "日文查询应命中日文文档。",
+      "query": "検索: 日本語回答マーカー",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "language_ja",
+      "expectedChunkLocators": [
+        "doc-ja-direct:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-ja-direct"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-ja-direct"
+        ],
+        "shouldContainLocators": [
+          "doc-ja-direct:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-028",
+      "language": "ja",
+      "notes": "日文查询应命中日文文档。",
+      "query": "質問: 日本語回答マーカー",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "long_text",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-029",
+      "language": "zh",
+      "notes": "长文尾部不应被预览上限丢弃。",
+      "query": "定位：长文尾部标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "long_text",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-030",
+      "language": "zh",
+      "notes": "长文尾部不应被预览上限丢弃。",
+      "query": "查找：长文尾部标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "long_text",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-031",
+      "language": "zh",
+      "notes": "长文尾部不应被预览上限丢弃。",
+      "query": "请给出：长文尾部标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "long_text",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-032",
+      "language": "zh",
+      "notes": "长文尾部不应被预览上限丢弃。",
+      "query": "Locate: 长文尾部标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "long_text",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-033",
+      "language": "zh",
+      "notes": "长文尾部不应被预览上限丢弃。",
+      "query": "Find: 长文尾部标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "long_text",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-034",
+      "language": "zh",
+      "notes": "长文尾部不应被预览上限丢弃。",
+      "query": "検索: 长文尾部标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "long_text",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-035",
+      "language": "zh",
+      "notes": "长文尾部不应被预览上限丢弃。",
+      "query": "質問: 长文尾部标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "code",
+      "expectedChunkLocators": [
+        "doc-code:block-fence"
+      ],
+      "expectedDocIds": [
+        "doc-code"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-code"
+        ],
+        "shouldContainLocators": [
+          "doc-code:block-fence"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-036",
+      "language": "en",
+      "notes": "代码围栏应保持可定位。",
+      "query": "定位：代码围栏答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "code",
+      "expectedChunkLocators": [
+        "doc-code:block-fence"
+      ],
+      "expectedDocIds": [
+        "doc-code"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-code"
+        ],
+        "shouldContainLocators": [
+          "doc-code:block-fence"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-037",
+      "language": "en",
+      "notes": "代码围栏应保持可定位。",
+      "query": "查找：代码围栏答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "code",
+      "expectedChunkLocators": [
+        "doc-code:block-fence"
+      ],
+      "expectedDocIds": [
+        "doc-code"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-code"
+        ],
+        "shouldContainLocators": [
+          "doc-code:block-fence"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-038",
+      "language": "en",
+      "notes": "代码围栏应保持可定位。",
+      "query": "请给出：代码围栏答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "code",
+      "expectedChunkLocators": [
+        "doc-code:block-fence"
+      ],
+      "expectedDocIds": [
+        "doc-code"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-code"
+        ],
+        "shouldContainLocators": [
+          "doc-code:block-fence"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-039",
+      "language": "en",
+      "notes": "代码围栏应保持可定位。",
+      "query": "Locate: 代码围栏答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "code",
+      "expectedChunkLocators": [
+        "doc-code:block-fence"
+      ],
+      "expectedDocIds": [
+        "doc-code"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-code"
+        ],
+        "shouldContainLocators": [
+          "doc-code:block-fence"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-040",
+      "language": "en",
+      "notes": "代码围栏应保持可定位。",
+      "query": "Find: 代码围栏答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "code",
+      "expectedChunkLocators": [
+        "doc-code:block-fence"
+      ],
+      "expectedDocIds": [
+        "doc-code"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-code"
+        ],
+        "shouldContainLocators": [
+          "doc-code:block-fence"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-041",
+      "language": "en",
+      "notes": "代码围栏应保持可定位。",
+      "query": "検索: 代码围栏答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "code",
+      "expectedChunkLocators": [
+        "doc-code:block-fence"
+      ],
+      "expectedDocIds": [
+        "doc-code"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-code"
+        ],
+        "shouldContainLocators": [
+          "doc-code:block-fence"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-042",
+      "language": "en",
+      "notes": "代码围栏应保持可定位。",
+      "query": "質問: 代码围栏答案标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_library",
+      "expectedChunkLocators": [
+        "doc-library-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-library-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-library-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-library-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-043",
+      "language": "zh",
+      "notes": "库范围只允许命中选定库。",
+      "query": "定位：库范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_library",
+      "expectedChunkLocators": [
+        "doc-library-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-library-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-library-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-library-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-044",
+      "language": "zh",
+      "notes": "库范围只允许命中选定库。",
+      "query": "查找：库范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_library",
+      "expectedChunkLocators": [
+        "doc-library-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-library-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-library-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-library-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-045",
+      "language": "zh",
+      "notes": "库范围只允许命中选定库。",
+      "query": "请给出：库范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_library",
+      "expectedChunkLocators": [
+        "doc-library-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-library-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-library-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-library-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-046",
+      "language": "zh",
+      "notes": "库范围只允许命中选定库。",
+      "query": "Locate: 库范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_library",
+      "expectedChunkLocators": [
+        "doc-library-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-library-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-library-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-library-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-047",
+      "language": "zh",
+      "notes": "库范围只允许命中选定库。",
+      "query": "Find: 库范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_library",
+      "expectedChunkLocators": [
+        "doc-library-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-library-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-library-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-library-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-048",
+      "language": "zh",
+      "notes": "库范围只允许命中选定库。",
+      "query": "検索: 库范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_library",
+      "expectedChunkLocators": [
+        "doc-library-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-library-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-library-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-library-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-049",
+      "language": "zh",
+      "notes": "库范围只允许命中选定库。",
+      "query": "質問: 库范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_folder",
+      "expectedChunkLocators": [
+        "doc-folder-shared-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-050",
+      "language": "zh",
+      "notes": "同名目录必须带库归属。",
+      "query": "定位：共享目录范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Folders",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_folder",
+      "expectedChunkLocators": [
+        "doc-folder-shared-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-051",
+      "language": "zh",
+      "notes": "同名目录必须带库归属。",
+      "query": "查找：共享目录范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Folders",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_folder",
+      "expectedChunkLocators": [
+        "doc-folder-shared-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-052",
+      "language": "zh",
+      "notes": "同名目录必须带库归属。",
+      "query": "请给出：共享目录范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Folders",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_folder",
+      "expectedChunkLocators": [
+        "doc-folder-shared-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-053",
+      "language": "zh",
+      "notes": "同名目录必须带库归属。",
+      "query": "Locate: 共享目录范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Folders",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_folder",
+      "expectedChunkLocators": [
+        "doc-folder-shared-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-054",
+      "language": "zh",
+      "notes": "同名目录必须带库归属。",
+      "query": "Find: 共享目录范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Folders",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_folder",
+      "expectedChunkLocators": [
+        "doc-folder-shared-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-055",
+      "language": "zh",
+      "notes": "同名目录必须带库归属。",
+      "query": "検索: 共享目录范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Folders",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_folder",
+      "expectedChunkLocators": [
+        "doc-folder-shared-alpha:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-alpha:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-056",
+      "language": "zh",
+      "notes": "同名目录必须带库归属。",
+      "query": "質問: 共享目录范围标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Folders",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_session",
+      "expectedChunkLocators": [
+        "doc-session-a:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-session-a"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-session-a"
+        ],
+        "shouldContainLocators": [
+          "doc-session-a:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-session-b"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-057",
+      "language": "zh",
+      "notes": "会话附件只能命中所属会话。",
+      "query": "定位：会话附件标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "SessionAttachments",
+      "wrongSourceDocIds": [
+        "doc-session-b"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_session",
+      "expectedChunkLocators": [
+        "doc-session-a:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-session-a"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-session-a"
+        ],
+        "shouldContainLocators": [
+          "doc-session-a:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-session-b"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-058",
+      "language": "zh",
+      "notes": "会话附件只能命中所属会话。",
+      "query": "查找：会话附件标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "SessionAttachments",
+      "wrongSourceDocIds": [
+        "doc-session-b"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_session",
+      "expectedChunkLocators": [
+        "doc-session-a:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-session-a"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-session-a"
+        ],
+        "shouldContainLocators": [
+          "doc-session-a:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-session-b"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-059",
+      "language": "zh",
+      "notes": "会话附件只能命中所属会话。",
+      "query": "请给出：会话附件标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "SessionAttachments",
+      "wrongSourceDocIds": [
+        "doc-session-b"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_session",
+      "expectedChunkLocators": [
+        "doc-session-a:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-session-a"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-session-a"
+        ],
+        "shouldContainLocators": [
+          "doc-session-a:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-session-b"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-060",
+      "language": "zh",
+      "notes": "会话附件只能命中所属会话。",
+      "query": "Locate: 会话附件标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "SessionAttachments",
+      "wrongSourceDocIds": [
+        "doc-session-b"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_session",
+      "expectedChunkLocators": [
+        "doc-session-a:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-session-a"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-session-a"
+        ],
+        "shouldContainLocators": [
+          "doc-session-a:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-session-b"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-061",
+      "language": "zh",
+      "notes": "会话附件只能命中所属会话。",
+      "query": "Find: 会话附件标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "SessionAttachments",
+      "wrongSourceDocIds": [
+        "doc-session-b"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_session",
+      "expectedChunkLocators": [
+        "doc-session-a:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-session-a"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-session-a"
+        ],
+        "shouldContainLocators": [
+          "doc-session-a:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-session-b"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-062",
+      "language": "zh",
+      "notes": "会话附件只能命中所属会话。",
+      "query": "検索: 会话附件标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "SessionAttachments",
+      "wrongSourceDocIds": [
+        "doc-session-b"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "scope_session",
+      "expectedChunkLocators": [
+        "doc-session-a:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-session-a"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-session-a"
+        ],
+        "shouldContainLocators": [
+          "doc-session-a:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-session-b"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-063",
+      "language": "zh",
+      "notes": "会话附件只能命中所属会话。",
+      "query": "質問: 会话附件标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "SessionAttachments",
+      "wrongSourceDocIds": [
+        "doc-session-b"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "metadata",
+      "expectedChunkLocators": [
+        "doc-metadata-legal:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-metadata-legal"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-metadata-legal"
+        ],
+        "shouldContainLocators": [
+          "doc-metadata-legal:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta",
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-064",
+      "language": "zh",
+      "notes": "metadata 条件应与范围取交集。",
+      "query": "定位：legal 元数据标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta",
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "metadata",
+      "expectedChunkLocators": [
+        "doc-metadata-legal:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-metadata-legal"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-metadata-legal"
+        ],
+        "shouldContainLocators": [
+          "doc-metadata-legal:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta",
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-065",
+      "language": "zh",
+      "notes": "metadata 条件应与范围取交集。",
+      "query": "查找：legal 元数据标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta",
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "metadata",
+      "expectedChunkLocators": [
+        "doc-metadata-legal:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-metadata-legal"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-metadata-legal"
+        ],
+        "shouldContainLocators": [
+          "doc-metadata-legal:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta",
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-066",
+      "language": "zh",
+      "notes": "metadata 条件应与范围取交集。",
+      "query": "请给出：legal 元数据标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta",
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "metadata",
+      "expectedChunkLocators": [
+        "doc-metadata-legal:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-metadata-legal"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-metadata-legal"
+        ],
+        "shouldContainLocators": [
+          "doc-metadata-legal:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta",
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-067",
+      "language": "zh",
+      "notes": "metadata 条件应与范围取交集。",
+      "query": "Locate: legal 元数据标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta",
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "metadata",
+      "expectedChunkLocators": [
+        "doc-metadata-legal:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-metadata-legal"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-metadata-legal"
+        ],
+        "shouldContainLocators": [
+          "doc-metadata-legal:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta",
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-068",
+      "language": "zh",
+      "notes": "metadata 条件应与范围取交集。",
+      "query": "Find: legal 元数据标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta",
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "metadata",
+      "expectedChunkLocators": [
+        "doc-metadata-legal:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-metadata-legal"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-metadata-legal"
+        ],
+        "shouldContainLocators": [
+          "doc-metadata-legal:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta",
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-069",
+      "language": "zh",
+      "notes": "metadata 条件应与范围取交集。",
+      "query": "検索: legal 元数据标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta",
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "metadata",
+      "expectedChunkLocators": [
+        "doc-metadata-legal:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-metadata-legal"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-metadata-legal"
+        ],
+        "shouldContainLocators": [
+          "doc-metadata-legal:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta",
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-070",
+      "language": "zh",
+      "notes": "metadata 条件应与范围取交集。",
+      "query": "質問: legal 元数据标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-library-beta",
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "same_name",
+      "expectedChunkLocators": [
+        "doc-folder-shared-beta:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-beta:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-071",
+      "language": "zh",
+      "notes": "同名文档不得跨库混淆。",
+      "query": "定位：同名指南区分",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "same_name",
+      "expectedChunkLocators": [
+        "doc-folder-shared-beta:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-beta:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-072",
+      "language": "zh",
+      "notes": "同名文档不得跨库混淆。",
+      "query": "查找：同名指南区分",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "same_name",
+      "expectedChunkLocators": [
+        "doc-folder-shared-beta:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-beta:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-073",
+      "language": "zh",
+      "notes": "同名文档不得跨库混淆。",
+      "query": "请给出：同名指南区分",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "same_name",
+      "expectedChunkLocators": [
+        "doc-folder-shared-beta:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-beta:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-074",
+      "language": "zh",
+      "notes": "同名文档不得跨库混淆。",
+      "query": "Locate: 同名指南区分",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "same_name",
+      "expectedChunkLocators": [
+        "doc-folder-shared-beta:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-beta:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-075",
+      "language": "zh",
+      "notes": "同名文档不得跨库混淆。",
+      "query": "Find: 同名指南区分",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "same_name",
+      "expectedChunkLocators": [
+        "doc-folder-shared-beta:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-beta:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-076",
+      "language": "zh",
+      "notes": "同名文档不得跨库混淆。",
+      "query": "検索: 同名指南区分",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "same_name",
+      "expectedChunkLocators": [
+        "doc-folder-shared-beta:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-folder-shared-beta"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-folder-shared-beta"
+        ],
+        "shouldContainLocators": [
+          "doc-folder-shared-beta:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-077",
+      "language": "zh",
+      "notes": "同名文档不得跨库混淆。",
+      "query": "質問: 同名指南区分",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "internal_excluded",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-internal"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-078",
+      "language": "zh",
+      "notes": "普通用户库不应命中内置排除项。",
+      "query": "定位：内置帮助排除",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-internal"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "internal_excluded",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-internal"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-079",
+      "language": "zh",
+      "notes": "普通用户库不应命中内置排除项。",
+      "query": "查找：内置帮助排除",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-internal"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "internal_excluded",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-internal"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-080",
+      "language": "zh",
+      "notes": "普通用户库不应命中内置排除项。",
+      "query": "请给出：内置帮助排除",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-internal"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "internal_excluded",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-internal"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-081",
+      "language": "zh",
+      "notes": "普通用户库不应命中内置排除项。",
+      "query": "Locate: 内置帮助排除",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-internal"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "internal_excluded",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-internal"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-082",
+      "language": "zh",
+      "notes": "普通用户库不应命中内置排除项。",
+      "query": "Find: 内置帮助排除",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-internal"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "internal_excluded",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-internal"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-083",
+      "language": "zh",
+      "notes": "普通用户库不应命中内置排除项。",
+      "query": "検索: 内置帮助排除",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-internal"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "internal_excluded",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-internal"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-084",
+      "language": "zh",
+      "notes": "普通用户库不应命中内置排除项。",
+      "query": "質問: 内置帮助排除",
+      "recallAt10Status": "待基线",
+      "scopeType": "AllUserLibraries",
+      "wrongSourceDocIds": [
+        "doc-internal"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "archive_path",
+      "expectedChunkLocators": [
+        "doc-archive-path:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-archive-path"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-archive-path"
+        ],
+        "shouldContainLocators": [
+          "doc-archive-path:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-085",
+      "language": "zh",
+      "notes": "百分号与下划线应按字面路径处理。",
+      "query": "定位：归档特殊路径",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "archive_path",
+      "expectedChunkLocators": [
+        "doc-archive-path:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-archive-path"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-archive-path"
+        ],
+        "shouldContainLocators": [
+          "doc-archive-path:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-086",
+      "language": "zh",
+      "notes": "百分号与下划线应按字面路径处理。",
+      "query": "查找：归档特殊路径",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "archive_path",
+      "expectedChunkLocators": [
+        "doc-archive-path:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-archive-path"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-archive-path"
+        ],
+        "shouldContainLocators": [
+          "doc-archive-path:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-087",
+      "language": "zh",
+      "notes": "百分号与下划线应按字面路径处理。",
+      "query": "请给出：归档特殊路径",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "archive_path",
+      "expectedChunkLocators": [
+        "doc-archive-path:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-archive-path"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-archive-path"
+        ],
+        "shouldContainLocators": [
+          "doc-archive-path:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-088",
+      "language": "zh",
+      "notes": "百分号与下划线应按字面路径处理。",
+      "query": "Locate: 归档特殊路径",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "archive_path",
+      "expectedChunkLocators": [
+        "doc-archive-path:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-archive-path"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-archive-path"
+        ],
+        "shouldContainLocators": [
+          "doc-archive-path:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-089",
+      "language": "zh",
+      "notes": "百分号与下划线应按字面路径处理。",
+      "query": "Find: 归档特殊路径",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "archive_path",
+      "expectedChunkLocators": [
+        "doc-archive-path:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-archive-path"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-archive-path"
+        ],
+        "shouldContainLocators": [
+          "doc-archive-path:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-090",
+      "language": "zh",
+      "notes": "百分号与下划线应按字面路径处理。",
+      "query": "検索: 归档特殊路径",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "archive_path",
+      "expectedChunkLocators": [
+        "doc-archive-path:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-archive-path"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-archive-path"
+        ],
+        "shouldContainLocators": [
+          "doc-archive-path:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-091",
+      "language": "zh",
+      "notes": "百分号与下划线应按字面路径处理。",
+      "query": "質問: 归档特殊路径",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "backup_orphan",
+      "expectedChunkLocators": [
+        "doc-backup-orphan:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-backup-orphan"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-backup-orphan"
+        ],
+        "shouldContainLocators": [
+          "doc-backup-orphan:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-092",
+      "language": "zh",
+      "notes": "旧库孤儿不得归入默认库。",
+      "query": "定位：旧库孤儿文档",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "backup_orphan",
+      "expectedChunkLocators": [
+        "doc-backup-orphan:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-backup-orphan"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-backup-orphan"
+        ],
+        "shouldContainLocators": [
+          "doc-backup-orphan:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-093",
+      "language": "zh",
+      "notes": "旧库孤儿不得归入默认库。",
+      "query": "查找：旧库孤儿文档",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "backup_orphan",
+      "expectedChunkLocators": [
+        "doc-backup-orphan:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-backup-orphan"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-backup-orphan"
+        ],
+        "shouldContainLocators": [
+          "doc-backup-orphan:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-094",
+      "language": "zh",
+      "notes": "旧库孤儿不得归入默认库。",
+      "query": "请给出：旧库孤儿文档",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "backup_orphan",
+      "expectedChunkLocators": [
+        "doc-backup-orphan:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-backup-orphan"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-backup-orphan"
+        ],
+        "shouldContainLocators": [
+          "doc-backup-orphan:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-095",
+      "language": "zh",
+      "notes": "旧库孤儿不得归入默认库。",
+      "query": "Locate: 旧库孤儿文档",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "backup_orphan",
+      "expectedChunkLocators": [
+        "doc-backup-orphan:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-backup-orphan"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-backup-orphan"
+        ],
+        "shouldContainLocators": [
+          "doc-backup-orphan:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-096",
+      "language": "zh",
+      "notes": "旧库孤儿不得归入默认库。",
+      "query": "Find: 旧库孤儿文档",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "backup_orphan",
+      "expectedChunkLocators": [
+        "doc-backup-orphan:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-backup-orphan"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-backup-orphan"
+        ],
+        "shouldContainLocators": [
+          "doc-backup-orphan:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-097",
+      "language": "zh",
+      "notes": "旧库孤儿不得归入默认库。",
+      "query": "検索: 旧库孤儿文档",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "backup_orphan",
+      "expectedChunkLocators": [
+        "doc-backup-orphan:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-backup-orphan"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-backup-orphan"
+        ],
+        "shouldContainLocators": [
+          "doc-backup-orphan:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-folder-shared-alpha"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-098",
+      "language": "zh",
+      "notes": "旧库孤儿不得归入默认库。",
+      "query": "質問: 旧库孤儿文档",
+      "recallAt10Status": "待基线",
+      "scopeType": "Libraries",
+      "wrongSourceDocIds": [
+        "doc-folder-shared-alpha"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "fts_ranking",
+      "expectedChunkLocators": [
+        "fts4-ranking.json:pcx:c-high",
+        "fts4-ranking.json:pcx:c-mid",
+        "fts4-ranking.json:pcx:c-low"
+      ],
+      "expectedDocIds": [
+        "c-high",
+        "c-mid",
+        "c-low"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "c-high",
+          "c-mid",
+          "c-low"
+        ],
+        "shouldContainLocators": [
+          "fts4-ranking.json:pcx:c-high",
+          "fts4-ranking.json:pcx:c-mid",
+          "fts4-ranking.json:pcx:c-low"
+        ],
+        "shouldExcludeDocIds": [
+          "c-zero"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-099",
+      "language": "en",
+      "notes": "词法排序应使用真实词频，负例不匹配。",
+      "query": "定位：alpha 词频排序",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "c-zero"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "fts_ranking",
+      "expectedChunkLocators": [
+        "fts4-ranking.json:pcx:c-high",
+        "fts4-ranking.json:pcx:c-mid",
+        "fts4-ranking.json:pcx:c-low"
+      ],
+      "expectedDocIds": [
+        "c-high",
+        "c-mid",
+        "c-low"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "c-high",
+          "c-mid",
+          "c-low"
+        ],
+        "shouldContainLocators": [
+          "fts4-ranking.json:pcx:c-high",
+          "fts4-ranking.json:pcx:c-mid",
+          "fts4-ranking.json:pcx:c-low"
+        ],
+        "shouldExcludeDocIds": [
+          "c-zero"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-100",
+      "language": "en",
+      "notes": "词法排序应使用真实词频，负例不匹配。",
+      "query": "查找：alpha 词频排序",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "c-zero"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "fts_ranking",
+      "expectedChunkLocators": [
+        "fts4-ranking.json:pcx:c-high",
+        "fts4-ranking.json:pcx:c-mid",
+        "fts4-ranking.json:pcx:c-low"
+      ],
+      "expectedDocIds": [
+        "c-high",
+        "c-mid",
+        "c-low"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "c-high",
+          "c-mid",
+          "c-low"
+        ],
+        "shouldContainLocators": [
+          "fts4-ranking.json:pcx:c-high",
+          "fts4-ranking.json:pcx:c-mid",
+          "fts4-ranking.json:pcx:c-low"
+        ],
+        "shouldExcludeDocIds": [
+          "c-zero"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-101",
+      "language": "en",
+      "notes": "词法排序应使用真实词频，负例不匹配。",
+      "query": "请给出：alpha 词频排序",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "c-zero"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "fts_ranking",
+      "expectedChunkLocators": [
+        "fts4-ranking.json:pcx:c-high",
+        "fts4-ranking.json:pcx:c-mid",
+        "fts4-ranking.json:pcx:c-low"
+      ],
+      "expectedDocIds": [
+        "c-high",
+        "c-mid",
+        "c-low"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "c-high",
+          "c-mid",
+          "c-low"
+        ],
+        "shouldContainLocators": [
+          "fts4-ranking.json:pcx:c-high",
+          "fts4-ranking.json:pcx:c-mid",
+          "fts4-ranking.json:pcx:c-low"
+        ],
+        "shouldExcludeDocIds": [
+          "c-zero"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-102",
+      "language": "en",
+      "notes": "词法排序应使用真实词频，负例不匹配。",
+      "query": "Locate: alpha 词频排序",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "c-zero"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "fts_ranking",
+      "expectedChunkLocators": [
+        "fts4-ranking.json:pcx:c-high",
+        "fts4-ranking.json:pcx:c-mid",
+        "fts4-ranking.json:pcx:c-low"
+      ],
+      "expectedDocIds": [
+        "c-high",
+        "c-mid",
+        "c-low"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "c-high",
+          "c-mid",
+          "c-low"
+        ],
+        "shouldContainLocators": [
+          "fts4-ranking.json:pcx:c-high",
+          "fts4-ranking.json:pcx:c-mid",
+          "fts4-ranking.json:pcx:c-low"
+        ],
+        "shouldExcludeDocIds": [
+          "c-zero"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-103",
+      "language": "en",
+      "notes": "词法排序应使用真实词频，负例不匹配。",
+      "query": "Find: alpha 词频排序",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "c-zero"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "fts_ranking",
+      "expectedChunkLocators": [
+        "fts4-ranking.json:pcx:c-high",
+        "fts4-ranking.json:pcx:c-mid",
+        "fts4-ranking.json:pcx:c-low"
+      ],
+      "expectedDocIds": [
+        "c-high",
+        "c-mid",
+        "c-low"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "c-high",
+          "c-mid",
+          "c-low"
+        ],
+        "shouldContainLocators": [
+          "fts4-ranking.json:pcx:c-high",
+          "fts4-ranking.json:pcx:c-mid",
+          "fts4-ranking.json:pcx:c-low"
+        ],
+        "shouldExcludeDocIds": [
+          "c-zero"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-104",
+      "language": "en",
+      "notes": "词法排序应使用真实词频，负例不匹配。",
+      "query": "検索: alpha 词频排序",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "c-zero"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "fts_ranking",
+      "expectedChunkLocators": [
+        "fts4-ranking.json:pcx:c-high",
+        "fts4-ranking.json:pcx:c-mid",
+        "fts4-ranking.json:pcx:c-low"
+      ],
+      "expectedDocIds": [
+        "c-high",
+        "c-mid",
+        "c-low"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "c-high",
+          "c-mid",
+          "c-low"
+        ],
+        "shouldContainLocators": [
+          "fts4-ranking.json:pcx:c-high",
+          "fts4-ranking.json:pcx:c-mid",
+          "fts4-ranking.json:pcx:c-low"
+        ],
+        "shouldExcludeDocIds": [
+          "c-zero"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-105",
+      "language": "en",
+      "notes": "词法排序应使用真实词频，负例不匹配。",
+      "query": "質問: alpha 词频排序",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "c-zero"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "vector_space",
+      "expectedChunkLocators": [
+        "doc-vector-space:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-vector-space"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-vector-space"
+        ],
+        "shouldContainLocators": [
+          "doc-vector-space:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-106",
+      "language": "zh",
+      "notes": "同维度不同模型不得混检。",
+      "query": "定位：同维异模型隔离",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "vector_space",
+      "expectedChunkLocators": [
+        "doc-vector-space:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-vector-space"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-vector-space"
+        ],
+        "shouldContainLocators": [
+          "doc-vector-space:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-107",
+      "language": "zh",
+      "notes": "同维度不同模型不得混检。",
+      "query": "查找：同维异模型隔离",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "vector_space",
+      "expectedChunkLocators": [
+        "doc-vector-space:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-vector-space"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-vector-space"
+        ],
+        "shouldContainLocators": [
+          "doc-vector-space:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-108",
+      "language": "zh",
+      "notes": "同维度不同模型不得混检。",
+      "query": "请给出：同维异模型隔离",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "vector_space",
+      "expectedChunkLocators": [
+        "doc-vector-space:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-vector-space"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-vector-space"
+        ],
+        "shouldContainLocators": [
+          "doc-vector-space:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-109",
+      "language": "zh",
+      "notes": "同维度不同模型不得混检。",
+      "query": "Locate: 同维异模型隔离",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "vector_space",
+      "expectedChunkLocators": [
+        "doc-vector-space:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-vector-space"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-vector-space"
+        ],
+        "shouldContainLocators": [
+          "doc-vector-space:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-110",
+      "language": "zh",
+      "notes": "同维度不同模型不得混检。",
+      "query": "Find: 同维异模型隔离",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "vector_space",
+      "expectedChunkLocators": [
+        "doc-vector-space:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-vector-space"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-vector-space"
+        ],
+        "shouldContainLocators": [
+          "doc-vector-space:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-111",
+      "language": "zh",
+      "notes": "同维度不同模型不得混检。",
+      "query": "検索: 同维异模型隔离",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "vector_space",
+      "expectedChunkLocators": [
+        "doc-vector-space:block-1"
+      ],
+      "expectedDocIds": [
+        "doc-vector-space"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-vector-space"
+        ],
+        "shouldContainLocators": [
+          "doc-vector-space:block-1"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-library-beta"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-112",
+      "language": "zh",
+      "notes": "同维度不同模型不得混检。",
+      "query": "質問: 同维异模型隔离",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-library-beta"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "pdf_partial",
+      "expectedChunkLocators": [
+        "parse/over-200-pages.pdf:page-200"
+      ],
+      "expectedDocIds": [
+        "parse/over-200-pages.pdf"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "parse/over-200-pages.pdf"
+        ],
+        "shouldContainLocators": [
+          "parse/over-200-pages.pdf:page-200"
+        ],
+        "shouldExcludeDocIds": [
+          "parse/over-200-pages.pdf:page-201"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-113",
+      "language": "zh",
+      "notes": "第 201 页尾标记应被页数上限排除。",
+      "query": "定位：页数上限尾标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "parse/over-200-pages.pdf:page-201"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "pdf_partial",
+      "expectedChunkLocators": [
+        "parse/over-200-pages.pdf:page-200"
+      ],
+      "expectedDocIds": [
+        "parse/over-200-pages.pdf"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "parse/over-200-pages.pdf"
+        ],
+        "shouldContainLocators": [
+          "parse/over-200-pages.pdf:page-200"
+        ],
+        "shouldExcludeDocIds": [
+          "parse/over-200-pages.pdf:page-201"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-114",
+      "language": "zh",
+      "notes": "第 201 页尾标记应被页数上限排除。",
+      "query": "查找：页数上限尾标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "parse/over-200-pages.pdf:page-201"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "pdf_partial",
+      "expectedChunkLocators": [
+        "parse/over-200-pages.pdf:page-200"
+      ],
+      "expectedDocIds": [
+        "parse/over-200-pages.pdf"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "parse/over-200-pages.pdf"
+        ],
+        "shouldContainLocators": [
+          "parse/over-200-pages.pdf:page-200"
+        ],
+        "shouldExcludeDocIds": [
+          "parse/over-200-pages.pdf:page-201"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-115",
+      "language": "zh",
+      "notes": "第 201 页尾标记应被页数上限排除。",
+      "query": "请给出：页数上限尾标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "parse/over-200-pages.pdf:page-201"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "pdf_partial",
+      "expectedChunkLocators": [
+        "parse/over-200-pages.pdf:page-200"
+      ],
+      "expectedDocIds": [
+        "parse/over-200-pages.pdf"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "parse/over-200-pages.pdf"
+        ],
+        "shouldContainLocators": [
+          "parse/over-200-pages.pdf:page-200"
+        ],
+        "shouldExcludeDocIds": [
+          "parse/over-200-pages.pdf:page-201"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-116",
+      "language": "zh",
+      "notes": "第 201 页尾标记应被页数上限排除。",
+      "query": "Locate: 页数上限尾标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "parse/over-200-pages.pdf:page-201"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "pdf_partial",
+      "expectedChunkLocators": [
+        "parse/over-200-pages.pdf:page-200"
+      ],
+      "expectedDocIds": [
+        "parse/over-200-pages.pdf"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "parse/over-200-pages.pdf"
+        ],
+        "shouldContainLocators": [
+          "parse/over-200-pages.pdf:page-200"
+        ],
+        "shouldExcludeDocIds": [
+          "parse/over-200-pages.pdf:page-201"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-117",
+      "language": "zh",
+      "notes": "第 201 页尾标记应被页数上限排除。",
+      "query": "Find: 页数上限尾标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "parse/over-200-pages.pdf:page-201"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "pdf_partial",
+      "expectedChunkLocators": [
+        "parse/over-200-pages.pdf:page-200"
+      ],
+      "expectedDocIds": [
+        "parse/over-200-pages.pdf"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "parse/over-200-pages.pdf"
+        ],
+        "shouldContainLocators": [
+          "parse/over-200-pages.pdf:page-200"
+        ],
+        "shouldExcludeDocIds": [
+          "parse/over-200-pages.pdf:page-201"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-118",
+      "language": "zh",
+      "notes": "第 201 页尾标记应被页数上限排除。",
+      "query": "検索: 页数上限尾标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "parse/over-200-pages.pdf:page-201"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "pdf_partial",
+      "expectedChunkLocators": [
+        "parse/over-200-pages.pdf:page-200"
+      ],
+      "expectedDocIds": [
+        "parse/over-200-pages.pdf"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "parse/over-200-pages.pdf"
+        ],
+        "shouldContainLocators": [
+          "parse/over-200-pages.pdf:page-200"
+        ],
+        "shouldExcludeDocIds": [
+          "parse/over-200-pages.pdf:page-201"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-119",
+      "language": "zh",
+      "notes": "第 201 页尾标记应被页数上限排除。",
+      "query": "質問: 页数上限尾标记",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "parse/over-200-pages.pdf:page-201"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "citation_clamp",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-120",
+      "language": "zh",
+      "notes": "最终文本裁剪后引用应与实际发送片段一致。",
+      "query": "定位：裁剪后引用一致",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "citation_clamp",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-121",
+      "language": "zh",
+      "notes": "最终文本裁剪后引用应与实际发送片段一致。",
+      "query": "查找：裁剪后引用一致",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "citation_clamp",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-122",
+      "language": "zh",
+      "notes": "最终文本裁剪后引用应与实际发送片段一致。",
+      "query": "请给出：裁剪后引用一致",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "citation_clamp",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-123",
+      "language": "zh",
+      "notes": "最终文本裁剪后引用应与实际发送片段一致。",
+      "query": "Locate: 裁剪后引用一致",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "citation_clamp",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-124",
+      "language": "zh",
+      "notes": "最终文本裁剪后引用应与实际发送片段一致。",
+      "query": "Find: 裁剪后引用一致",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "citation_clamp",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-125",
+      "language": "zh",
+      "notes": "最终文本裁剪后引用应与实际发送片段一致。",
+      "query": "検索: 裁剪后引用一致",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": true,
+      "category": "citation_clamp",
+      "expectedChunkLocators": [
+        "doc-long-text:block-tail"
+      ],
+      "expectedDocIds": [
+        "doc-long-text"
+      ],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [
+          "doc-long-text"
+        ],
+        "shouldContainLocators": [
+          "doc-long-text:block-tail"
+        ],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-126",
+      "language": "zh",
+      "notes": "最终文本裁剪后引用应与实际发送片段一致。",
+      "query": "質問: 裁剪后引用一致",
+      "recallAt10Status": "待基线",
+      "scopeType": "Documents",
+      "wrongSourceDocIds": [
+        "doc-zh-direct"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "none_scope",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-library-alpha",
+          "doc-session-a"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-127",
+      "language": "zh",
+      "notes": "None 选择不得检索任何文档。",
+      "query": "定位：None 选择",
+      "recallAt10Status": "待基线",
+      "scopeType": "None",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-library-alpha",
+        "doc-session-a"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "none_scope",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-library-alpha",
+          "doc-session-a"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-128",
+      "language": "zh",
+      "notes": "None 选择不得检索任何文档。",
+      "query": "查找：None 选择",
+      "recallAt10Status": "待基线",
+      "scopeType": "None",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-library-alpha",
+        "doc-session-a"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "none_scope",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-library-alpha",
+          "doc-session-a"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-129",
+      "language": "zh",
+      "notes": "None 选择不得检索任何文档。",
+      "query": "请给出：None 选择",
+      "recallAt10Status": "待基线",
+      "scopeType": "None",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-library-alpha",
+        "doc-session-a"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "none_scope",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-library-alpha",
+          "doc-session-a"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-130",
+      "language": "zh",
+      "notes": "None 选择不得检索任何文档。",
+      "query": "Locate: None 选择",
+      "recallAt10Status": "待基线",
+      "scopeType": "None",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-library-alpha",
+        "doc-session-a"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "none_scope",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-library-alpha",
+          "doc-session-a"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-131",
+      "language": "zh",
+      "notes": "None 选择不得检索任何文档。",
+      "query": "Find: None 选择",
+      "recallAt10Status": "待基线",
+      "scopeType": "None",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-library-alpha",
+        "doc-session-a"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "none_scope",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-library-alpha",
+          "doc-session-a"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-132",
+      "language": "zh",
+      "notes": "None 选择不得检索任何文档。",
+      "query": "検索: None 选择",
+      "recallAt10Status": "待基线",
+      "scopeType": "None",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-library-alpha",
+        "doc-session-a"
+      ],
+      "wrongSourceStatus": "待基线"
+    },
+    {
+      "answerExists": false,
+      "category": "none_scope",
+      "expectedChunkLocators": [],
+      "expectedDocIds": [],
+      "expectedFinalEvidence": {
+        "shouldContainDocIds": [],
+        "shouldContainLocators": [],
+        "shouldExcludeDocIds": [
+          "doc-zh-direct",
+          "doc-library-alpha",
+          "doc-session-a"
+        ],
+        "status": "待基线"
+      },
+      "finalEvidenceStatus": "待基线",
+      "id": "q-133",
+      "language": "zh",
+      "notes": "None 选择不得检索任何文档。",
+      "query": "質問: None 选择",
+      "recallAt10Status": "待基线",
+      "scopeType": "None",
+      "wrongSourceDocIds": [
+        "doc-zh-direct",
+        "doc-library-alpha",
+        "doc-session-a"
+      ],
+      "wrongSourceStatus": "待基线"
+    }
+  ],
+  "questionsPerCategory": 7,
+  "schemaVersion": 1,
+  "synthetic": true
+}

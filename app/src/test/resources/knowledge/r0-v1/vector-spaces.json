@@ -1,0 +1,72 @@
+{
+  "baselineStatus": "待基线",
+  "chunks": [
+    {
+      "chunkId": "v-a-1",
+      "spaceId": "space-local-768-a",
+      "vectorPreview": [
+        0.1,
+        0.2,
+        0.3
+      ]
+    },
+    {
+      "chunkId": "v-b-1",
+      "spaceId": "space-local-768-b",
+      "vectorPreview": [
+        0.1,
+        0.2,
+        0.3
+      ]
+    },
+    {
+      "chunkId": "v-c-1",
+      "spaceId": "space-local-1536-c",
+      "vectorPreview": [
+        0.1,
+        0.2,
+        0.3
+      ]
+    }
+  ],
+  "expected": {
+    "dimensionMismatchMustNotBeMixed": true,
+    "mixedSpaceQueryMustBeRejected": true,
+    "sameDimensionDifferentModelMustNotBeMixed": true
+  },
+  "fixtureSetVersion": "r0-v1",
+  "sameDimensionDifferentModelDocIds": [
+    "v-a-1",
+    "v-b-1"
+  ],
+  "schemaVersion": 1,
+  "spaces": [
+    {
+      "compatibleSpaceIds": [
+        "space-local-768-a"
+      ],
+      "dimension": 768,
+      "model": "synthetic-model-a",
+      "provider": "synthetic-a",
+      "spaceId": "space-local-768-a"
+    },
+    {
+      "compatibleSpaceIds": [
+        "space-local-768-b"
+      ],
+      "dimension": 768,
+      "model": "synthetic-model-b",
+      "provider": "synthetic-b",
+      "spaceId": "space-local-768-b"
+    },
+    {
+      "compatibleSpaceIds": [
+        "space-local-1536-c"
+      ],
+      "dimension": 1536,
+      "model": "synthetic-model-c",
+      "provider": "synthetic-c",
+      "spaceId": "space-local-1536-c"
+    }
+  ]
+}

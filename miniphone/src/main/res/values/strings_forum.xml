@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 论坛界面的文案。独立成一份文件，键名统一 mp_forum_ 前缀，
+         mp_discover_forum 是发现页入口的名字，与 :app 的同名资源隔开。 -->
+    <string name="mp_discover_forum">论坛</string>
+    <string name="mp_forum_title">论坛</string>
+    <string name="mp_forum_back">返回</string>
+    <string name="mp_forum_hint">说点什么…</string>
+    <string name="mp_forum_publish">发布</string>
+    <string name="mp_forum_compose_cd">让角色发帖</string>
+    <string name="mp_forum_all">全部帖子</string>
+    <string name="mp_forum_message_author">发私信</string>
+    <string name="mp_forum_empty">还没有帖子</string>
+    <string name="mp_forum_author_empty">这个人还没有发过帖</string>
+    <string name="mp_forum_self_name">我</string>
+    <string name="mp_forum_character_name">角色</string>
+    <string name="mp_forum_like">点赞</string>
+    <string name="mp_forum_liked">取消点赞</string>
+    <string name="mp_forum_like_count">%1$d 赞</string>
+    <string name="mp_forum_comment">评论</string>
+    <string name="mp_forum_no_comments">还没有评论</string>
+    <string name="mp_forum_comment_hint">写条评论…</string>
+    <string name="mp_forum_comment_send">发送</string>
+    <string name="mp_forum_delete">删除</string>
+</resources>

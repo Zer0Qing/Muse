@@ -133,7 +133,6 @@ class OneShotAsrTranscriber(
     }
 }
 
-
 /** 请求前的判定结果。 */
 internal enum class AsrGate {
     /** 可以发请求。 */

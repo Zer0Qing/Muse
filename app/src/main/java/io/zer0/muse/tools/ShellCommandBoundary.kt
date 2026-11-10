@@ -72,8 +72,7 @@ internal object ShellCommandBoundary {
      *
      * @return 破坏性的描述;命令没有破坏力时返回 null
      */
-    fun cautionReason(command: String): String? =
-        ShellSegment.split(command).firstNotNullOfOrNull(::cautionForSegment)
+    fun cautionReason(command: String): String? = ShellSegment.split(command).firstNotNullOfOrNull(::cautionForSegment)
 
     private fun cautionForSegment(segment: ShellSegment): String? {
         val verb = segment.verb() ?: return null
@@ -141,21 +140,16 @@ internal object ShellCommandBoundary {
         }
     }
 
-    private fun permissionTargetReason(
-        verb: String,
-        scope: ShellScope,
-        recursive: Boolean,
-        worldWritable: Boolean,
-        raw: String,
-    ): String? = when {
-        scope == ShellScope.DEVICE_ROOT -> "$verb 作用在设备根上:$raw"
-        scope == ShellScope.SYSTEM -> "$verb 作用在系统分区上:$raw"
-        scope == ShellScope.APP_DATA -> "$verb 作用在 /data 下工作区以外的应用私有数据上:$raw"
-        recursive && worldWritable && scope in OUT_OF_SCOPE_STORAGE -> {
-            "递归放开工作区外路径的写权限:$verb $raw"
+    private fun permissionTargetReason(verb: String, scope: ShellScope, recursive: Boolean, worldWritable: Boolean, raw: String): String? =
+        when {
+            scope == ShellScope.DEVICE_ROOT -> "$verb 作用在设备根上:$raw"
+            scope == ShellScope.SYSTEM -> "$verb 作用在系统分区上:$raw"
+            scope == ShellScope.APP_DATA -> "$verb 作用在 /data 下工作区以外的应用私有数据上:$raw"
+            recursive && worldWritable && scope in OUT_OF_SCOPE_STORAGE -> {
+                "递归放开工作区外路径的写权限:$verb $raw"
+            }
+            else -> null
         }
-        else -> null
-    }
 
     /** 格式化与块设备:这些命令的作用对象不可能是工作区里的文件。 */
     private fun formatReason(segment: ShellSegment): String? {
@@ -219,11 +213,10 @@ internal object ShellCommandBoundary {
     }
 
     /** 重定向落盘的目标:`> /system/...`、`>> /data/data/...`。`2>&1` 这类不是落盘。 */
-    private fun redirectReason(command: String, locator: ShellLocator): String? =
-        REDIRECT.findAll(command)
-            .map { ShellCommandLex.stripQuotes(it.groupValues[1]) }
-            .filter { it.isNotEmpty() && !it.startsWith("&") }
-            .firstNotNullOfOrNull { raw -> unacceptable("重定向写入", locator.target(raw), raw) }
+    private fun redirectReason(command: String, locator: ShellLocator): String? = REDIRECT.findAll(command)
+        .map { ShellCommandLex.stripQuotes(it.groupValues[1]) }
+        .filter { it.isNotEmpty() && !it.startsWith("&") }
+        .firstNotNullOfOrNull { raw -> unacceptable("重定向写入", locator.target(raw), raw) }
 
     /** 目标落在「绝对不可接受」的区域时的原因;其余区域由调用方按档位判断。 */
     private fun unacceptable(label: String, target: ShellTarget, raw: String): String? = when (target.scope) {

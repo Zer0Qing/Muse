@@ -327,9 +327,8 @@ class ProactiveTimingEngineTest {
     )
 
     /** 构造本地时区的时间戳，避免用 fixed offset 在别的时区跑测试时漂移。 */
-    private fun localMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long =
-        java.util.Calendar.getInstance().apply {
-            clear()
-            set(year, month - 1, day, hour, minute, 0)
-        }.timeInMillis
+    private fun localMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long = java.util.Calendar.getInstance().apply {
+        clear()
+        set(year, month - 1, day, hour, minute, 0)
+    }.timeInMillis
 }

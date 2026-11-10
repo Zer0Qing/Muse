@@ -124,7 +124,15 @@ class MiniPhoneDbMigration1To2Test {
     }
 
     private fun openMigrated(name: String): MiniPhoneDb = Room.databaseBuilder(context, MiniPhoneDb::class.java, name)
-        .addMigrations(MINI_PHONE_MIGRATION_1_2, MINI_PHONE_MIGRATION_2_3, MINI_PHONE_MIGRATION_3_4, MINI_PHONE_MIGRATION_4_5)
+        .addMigrations(
+            MINI_PHONE_MIGRATION_1_2,
+            MINI_PHONE_MIGRATION_2_3,
+            MINI_PHONE_MIGRATION_3_4,
+            MINI_PHONE_MIGRATION_4_5,
+            MINI_PHONE_MIGRATION_5_6,
+            MINI_PHONE_MIGRATION_6_7,
+            MINI_PHONE_MIGRATION_7_8,
+        )
         .allowMainThreadQueries()
         .build()
 

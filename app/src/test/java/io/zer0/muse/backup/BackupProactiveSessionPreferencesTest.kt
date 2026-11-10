@@ -1,11 +1,11 @@
 package io.zer0.muse.backup
 
+import io.zer0.common.AppJson
 import io.zer0.muse.data.conversation.ConversationCommandReceiptEntity
 import io.zer0.muse.data.conversation.ConversationDisplaySlotEntity
 import io.zer0.muse.data.conversation.ConversationSelectionEntity
 import io.zer0.muse.proactive.SessionProactivePreferenceEntity
 import kotlinx.serialization.builtins.ListSerializer
-import io.zer0.common.AppJson
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
