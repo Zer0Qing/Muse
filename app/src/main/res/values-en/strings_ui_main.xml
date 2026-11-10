@@ -232,7 +232,7 @@
     <string name="settings_group_automation">Automation</string>
     <string name="settings_group_automation_desc">Proactive messages, schedules, notifications and keep-alive</string>
     <string name="settings_group_appearance">Appearance</string>
-    <string name="settings_group_appearance_desc">Themes, font size and mini phone</string>
+    <string name="settings_group_appearance_desc">Themes and font size</string>
     <string name="settings_group_data_privacy">Data and Privacy</string>
     <string name="settings_group_data_privacy_desc">Data, workspace, backup, import and privacy switches</string>
     <string name="settings_group_about_developer">About and Developer</string>

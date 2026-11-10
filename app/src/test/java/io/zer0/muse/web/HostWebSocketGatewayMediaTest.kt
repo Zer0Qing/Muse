@@ -86,10 +86,7 @@ class HostWebSocketGatewayMediaTest {
     }
 
     /** 起一条连接,取它收到的第一份快照(与 serve 建立时下发的那份同源)。 */
-    private fun snapshotOf(
-        messages: List<UIMessage>,
-        state: ChatUiState = defaultState(),
-    ): HostEvent {
+    private fun snapshotOf(messages: List<UIMessage>, state: ChatUiState = defaultState()): HostEvent {
         var captured: HostEvent? = null
         runTest {
             val connection = FakeConnection()

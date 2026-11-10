@@ -26,7 +26,8 @@ class WebSearchCoordinatorTest {
 
     @Test
     fun `duplicate query is rejected in same turn`() = runTest {
-        val service = FakeService(mutableListOf(listOf(result("one"))))
+        // 结果标题需含查询主题词，否则会被召回质量门禁判为不相关（那是另一条契约）。
+        val service = FakeService(mutableListOf(listOf(result("DeepSeek V4"))))
         val coordinator = WebSearchCoordinator(service)
         val first = coordinator.search(WebSearchRequest("  DeepSeek V4  "), "turn-1")
         val second = coordinator.search(WebSearchRequest("deepseek v4"), "turn-1")

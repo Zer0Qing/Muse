@@ -73,11 +73,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.isUnspecified
+import coil.compose.SubcomposeAsyncImage
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.resultOf
 import io.zer0.muse.R
-import coil.compose.SubcomposeAsyncImage
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.transformer.InternalMarkupSanitizer
@@ -125,10 +125,10 @@ import io.zer0.muse.ui.theme.glassBorder
 import io.zer0.muse.ui.theme.glassEdgeHighlight
 import io.zer0.muse.ui.theme.glassFakeSurfaceColor
 import io.zer0.muse.ui.theme.tiny
+import io.zer0.muse.ui.theme.titleMediumStrong
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import io.zer0.muse.ui.theme.titleMediumStrong
 
 internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。
@@ -182,8 +182,7 @@ private fun shouldRenderStandaloneToolCard(
 // 渲染层统一剥离,避免把 UUID 明文展示给用户(真实产物由 artifactIds 卡片列表展示)。
 private val ARTIFACT_MARKER_RE = Regex("""\[artifact:[0-9a-fA-F-]{36}\]""")
 
-internal fun needsBubbleTextSanitization(text: String): Boolean =
-    "files/stickers/" in text || "[artifact:" in text
+internal fun needsBubbleTextSanitization(text: String): Boolean = "files/stickers/" in text || "[artifact:" in text
 
 internal enum class MessageBubbleRole {
     USER,
@@ -201,7 +200,6 @@ internal data class BubbleText(
     val titleText: String?,
     val bodyContent: String,
 )
-
 
 /**
  * 正文渲染所需的派生值。
@@ -241,12 +239,12 @@ internal fun deriveBubbleText(
         content = rawContent,
         titleText = if (heading) firstLine else null,
         bodyContent =
-            if (needsBubbleTextSanitization(content)) {
-                (if (heading) rawContent.substring(firstLineEnd + 1).trimStart() else rawContent)
-                    .replace(ARTIFACT_MARKER_RE, "")
-            } else {
-                if (heading) rawContent.substring(firstLineEnd + 1).trimStart() else rawContent
-            },
+        if (needsBubbleTextSanitization(content)) {
+            (if (heading) rawContent.substring(firstLineEnd + 1).trimStart() else rawContent)
+                .replace(ARTIFACT_MARKER_RE, "")
+        } else {
+            if (heading) rawContent.substring(firstLineEnd + 1).trimStart() else rawContent
+        },
     )
 }
 
@@ -1094,15 +1092,17 @@ internal fun MessageBubble(
                 val monoFlatGlass = userGlassActive && MuseBubbleStyles.isMonoBubbleTheme()
                 val userGlassModifier = when {
                     !userGlassActive -> Modifier
-                    monoFlatGlass -> Modifier
-                        .clip(userShape)
-                        .glassEdgeHighlight(userShape, glassConfig)
-                        .glassBorder(userShape, glassConfig)
-                    else -> Modifier
-                        .clip(userShape)
-                        .background(glassFakeSurfaceColor(MuseBubbleStyles.userSurfaceColor(), glassConfig))
-                        .glassEdgeHighlight(userShape, glassConfig)
-                        .glassBorder(userShape, glassConfig)
+                    monoFlatGlass ->
+                        Modifier
+                            .clip(userShape)
+                            .glassEdgeHighlight(userShape, glassConfig)
+                            .glassBorder(userShape, glassConfig)
+                    else ->
+                        Modifier
+                            .clip(userShape)
+                            .background(glassFakeSurfaceColor(MuseBubbleStyles.userSurfaceColor(), glassConfig))
+                            .glassEdgeHighlight(userShape, glassConfig)
+                            .glassBorder(userShape, glassConfig)
                 }
                 Surface(
                     color = if (userGlassActive && !monoFlatGlass) Color.Transparent else userSurfaceColor,
@@ -1111,7 +1111,13 @@ internal fun MessageBubble(
                     // v1.0.29: 移除阴影,避免浅色气泡在深色/浅色背景下出现奇怪阴影边缘。
                     modifier = userGlassModifier
                         .then(bubbleClickModifier)
-                        .padding(horizontal = MusePaddings.tinyGap, vertical = 3.dp),
+                        // 右侧留出与屏幕边距同档的空间，长消息贴到屏边时圆角才不会被裁平。
+                        .padding(
+                            start = MusePaddings.tinyGap,
+                            top = 3.dp,
+                            end = MusePaddings.screen,
+                            bottom = 3.dp,
+                        ),
                 ) {
                     Column(
                         modifier = Modifier
@@ -1494,13 +1500,13 @@ internal fun MessageBubble(
                             // 统一显示源:优先用 imageUrls,避免 Gemini 同时有 imageUrls(data URI) 和 imageBase64List 时重复渲染
                             // v1.95: 同时扫描 content 中的表情包绝对路径(filesDir/stickers/...),由 send_sticker 工具产生
                             val displayImageUris = remember(
-        rendersBody,
-        msg.imageUrls,
-        msg.imageBase64List,
-        msg.content,
-        isLastAssistant,
-        isStreaming,
-    ) {
+                                rendersBody,
+                                msg.imageUrls,
+                                msg.imageBase64List,
+                                msg.content,
+                                isLastAssistant,
+                                isStreaming,
+                            ) {
                                 val fromUrls = if (msg.imageUrls.isNotEmpty()) {
                                     msg.imageUrls
                                 } else {
@@ -2117,7 +2123,13 @@ internal fun MessageBubble(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
-                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                        // 自定义端点常见带分组前缀的长模型名，贴屏右缘会被裁；
+                        // 两侧留边距并超长省略，保证标签完整可读。
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MusePaddings.screen, vertical = 2.dp),
                     )
                 }
                 // P1 UI: Token 统计独立一行(快捷按钮下方,不再挤占按钮行)

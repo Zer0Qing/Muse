@@ -52,12 +52,8 @@ class WebAccessAddressTest {
         assertEquals(false, address.localOnly)
     }
 
-    private fun candidate(
-        name: String,
-        address: String,
-        siteLocal: Boolean = true,
-        loopback: Boolean = false,
-    ) = LanIpCandidate(interfaceName = name, address = address, siteLocal = siteLocal, loopback = loopback)
+    private fun candidate(name: String, address: String, siteLocal: Boolean = true, loopback: Boolean = false) =
+        LanIpCandidate(interfaceName = name, address = address, siteLocal = siteLocal, loopback = loopback)
 
     /** 多张网卡时优先无线：即便 wlan 在枚举顺序里靠后。 */
     @Test

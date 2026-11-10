@@ -70,11 +70,7 @@ class HostMessageCommandsTest {
         val favorites: MutableMap<String, Boolean>,
     )
 
-    private fun harness(
-        initial: List<UIMessage>,
-        streaming: Boolean = false,
-        entities: Map<String, MessageEntity> = emptyMap(),
-    ): Harness {
+    private fun harness(initial: List<UIMessage>, streaming: Boolean = false, entities: Map<String, MessageEntity> = emptyMap()): Harness {
         val chat = mockk<ChatViewModel>(relaxed = true)
         val messagesFlow = MutableStateFlow(initial)
         val favorites = mutableMapOf<String, Boolean>()

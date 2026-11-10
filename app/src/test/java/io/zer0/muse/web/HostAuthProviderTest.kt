@@ -13,7 +13,6 @@ import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
@@ -199,12 +198,7 @@ class HostAuthProviderTest {
         fun text(): String = String(body, Charsets.UTF_8)
     }
 
-    private fun get(
-        port: Int,
-        path: String,
-        authorization: String? = null,
-        cookie: String? = null,
-    ): Response {
+    private fun get(port: Int, path: String, authorization: String? = null, cookie: String? = null): Response {
         val connection = URL("http://127.0.0.1:$port$path").openConnection() as HttpURLConnection
         connection.connectTimeout = 5_000
         connection.readTimeout = 5_000

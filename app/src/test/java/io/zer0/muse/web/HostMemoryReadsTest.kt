@@ -12,18 +12,14 @@ import org.junit.Test
 /** `memory.list` / `memory.search` 的载荷投影测试(分页、截断、片段、来源类别)。 */
 class HostMemoryReadsTest {
 
-    private fun record(
-        id: Long,
-        content: String = "记忆 $id",
-        source: String = HostMemorySourceKind.CONVERSATION,
-        pinned: Boolean = false,
-    ) = HostMemoryRecord(
-        id = id.toString(),
-        content = content,
-        createdAt = "2026-10-31T0$id:00:00Z",
-        source = source,
-        pinned = pinned,
-    )
+    private fun record(id: Long, content: String = "记忆 $id", source: String = HostMemorySourceKind.CONVERSATION, pinned: Boolean = false) =
+        HostMemoryRecord(
+            id = id.toString(),
+            content = content,
+            createdAt = "2026-10-31T0$id:00:00Z",
+            source = source,
+            pinned = pinned,
+        )
 
     /** 1..[count] 号条目,模拟自增 id。 */
     private fun records(count: Int): List<HostMemoryRecord> = (1..count).map { record(it.toLong()) }

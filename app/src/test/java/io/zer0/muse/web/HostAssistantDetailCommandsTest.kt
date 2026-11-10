@@ -22,10 +22,7 @@ class HostAssistantDetailCommandsTest {
 
     private fun mediaLinks() = HostMediaLinks(HostMediaStore(imageDir, voiceDir, avatarDir))
 
-    private fun assistant(
-        personaDefinition: String = "冷静、话少的写作搭档。",
-        systemPrompt: String = "你叫 Muse。".repeat(12),
-    ) = AssistantEntity(
+    private fun assistant(personaDefinition: String = "冷静、话少的写作搭档。", systemPrompt: String = "你叫 Muse。".repeat(12)) = AssistantEntity(
         id = "default",
         name = "Muse",
         enabled = false,

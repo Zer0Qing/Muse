@@ -57,6 +57,82 @@ class SkillSearchToolsImplTest {
                     isInternal = true,
                 ),
             )
+            db.knowledgeDocDao().upsert(
+                KnowledgeDocEntity(
+                    id = "doc-user",
+                    title = "User notes",
+                    content = "virtual display recovery notes",
+                    fileType = "txt",
+                    isInternal = false,
+                ),
+            )
+            // R1 入口许可合同:include_internal 是执行器侧的许可,不是模型可自报的扩权参数。
+            // 上下文允许时(true)模型传 true 生效;上下文不允许(或未接)时一律按 false 处理。
+            val toolsAllowed = SkillSearchToolsImpl(
+                context = context,
+                client = OkHttpClient(),
+                webSearchService = null,
+                knowledgeDocDao = db.knowledgeDocDao(),
+                ragService = null,
+                trustedContextProvider = { ToolSearchContext(allowInternalDocs = true) },
+            )
+            val toolsDenied = SkillSearchToolsImpl(
+                context = context,
+                client = OkHttpClient(),
+                webSearchService = null,
+                knowledgeDocDao = db.knowledgeDocDao(),
+                ragService = null,
+                trustedContextProvider = { ToolSearchContext(allowInternalDocs = false) },
+            )
+
+            val allowedResult = toolsAllowed.execKnowledgeSearch(
+                mapOf("query" to "virtual", "include_internal" to "true"),
+            )
+            val deniedResult = toolsDenied.execKnowledgeSearch(
+                mapOf("query" to "virtual", "include_internal" to "true"),
+            )
+
+            assertTrue(
+                "上下文允许 internal 时模型传 true 应可见内部文档",
+                allowedResult.contains("Agent capabilities"),
+            )
+            assertFalse(
+                "上下文不允许 internal 时模型传 true 不得越权(只能收窄)",
+                deniedResult.contains("Agent capabilities"),
+            )
+            assertTrue("收窄后普通文档检索不受影响", deniedResult.contains("User notes"))
+        } finally {
+            db.close()
+        }
+    }
+
+    /**
+     * R1 步骤「未接可信上下文的外部入口不能先开放全库」:
+     * 无 trustedContextProvider(= 外部/未授权入口)时,include_internal 一律按 false 处理,
+     * 模型自报 true 不得打开内部文档;普通检索保持可用(不得因缺上下文而不可用)。
+     */
+    @Test
+    fun untrustedEntryWithoutTrustedContextCannotExposeInternalDocs() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java).build()
+        try {
+            db.knowledgeDocDao().upsert(
+                KnowledgeDocEntity(
+                    id = "devdoc-agent",
+                    title = "Agent capabilities",
+                    content = "virtual display recovery",
+                    fileType = "devdoc",
+                    isInternal = true,
+                ),
+            )
+            db.knowledgeDocDao().upsert(
+                KnowledgeDocEntity(
+                    id = "doc-user",
+                    title = "User notes",
+                    content = "virtual display recovery notes",
+                    fileType = "txt",
+                    isInternal = false,
+                ),
+            )
             val tools = SkillSearchToolsImpl(
                 context = context,
                 client = OkHttpClient(),
@@ -69,7 +145,62 @@ class SkillSearchToolsImplTest {
                 mapOf("query" to "virtual", "include_internal" to "true"),
             )
 
-            assertTrue(result.contains("Agent capabilities"))
+            assertFalse(
+                "未接可信上下文时模型传 include_internal=true 不得返回内部文档",
+                result.contains("Agent capabilities"),
+            )
+            assertTrue("普通检索保持可用", result.contains("User notes"))
+        } finally {
+            db.close()
+        }
+    }
+
+    /**
+     * R1 步骤「工具使用执行器提供的上下文,模型参数只能收窄」:
+     * 可信上下文给定绑定文档许可后,模型的 folder/top_k 等参数只能在该许可内收窄,
+     * 不得通过省略 folder 之类的方式访问许可之外的文档。
+     */
+    @Test
+    fun modelParametersCannotWidenBeyondTrustedScope() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java).build()
+        try {
+            db.knowledgeDocDao().upsert(
+                KnowledgeDocEntity(
+                    id = "doc-in-scope",
+                    title = "In scope note",
+                    content = "virtual display recovery",
+                    fileType = "txt",
+                    isInternal = false,
+                    metadataJson = """{"folder_path":"合同"}""",
+                ),
+            )
+            db.knowledgeDocDao().upsert(
+                KnowledgeDocEntity(
+                    id = "doc-out-of-scope",
+                    title = "Out of scope note",
+                    content = "virtual display recovery",
+                    fileType = "txt",
+                    isInternal = false,
+                ),
+            )
+            val tools = SkillSearchToolsImpl(
+                context = context,
+                client = OkHttpClient(),
+                webSearchService = null,
+                knowledgeDocDao = db.knowledgeDocDao(),
+                ragService = null,
+                trustedContextProvider = {
+                    ToolSearchContext(allowedDocIds = setOf("doc-in-scope"))
+                },
+            )
+
+            // 模型不传 folder(试图访问全库) → 结果必须仍被许可裁剪
+            val widened = tools.execKnowledgeSearch(mapOf("query" to "virtual"))
+            assertFalse(
+                "许可外文档不得出现(模型省略 folder 不能扩权),实际=$widened",
+                widened.contains("Out of scope note"),
+            )
+            assertTrue("许可内文档可见", widened.contains("In scope note"))
         } finally {
             db.close()
         }

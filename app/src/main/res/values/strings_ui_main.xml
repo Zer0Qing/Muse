@@ -272,7 +272,7 @@
     <string name="settings_group_automation">自动化</string>
     <string name="settings_group_automation_desc">主动消息、定时任务、通知监听与后台常驻</string>
     <string name="settings_group_appearance">外观</string>
-    <string name="settings_group_appearance_desc">主题字号与小手机</string>
+    <string name="settings_group_appearance_desc">主题与字号</string>
     <string name="settings_group_data_privacy">数据与隐私</string>
     <string name="settings_group_data_privacy_desc">数据、工作区、备份、导入与隐私开关</string>
     <string name="settings_group_about_developer">关于与开发者</string>

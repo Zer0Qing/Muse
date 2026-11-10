@@ -43,14 +43,7 @@ class HostTaskCatalogTest {
         database.close()
     }
 
-    private suspend fun seedTask(
-        id: String,
-        name: String,
-        cron: String,
-        enabled: Boolean,
-        nextRunAt: Long,
-        lastRunAt: Long = 0L,
-    ) {
+    private suspend fun seedTask(id: String, name: String, cron: String, enabled: Boolean, nextRunAt: Long, lastRunAt: Long = 0L) {
         database.scheduledTaskDao().upsert(
             ScheduledTaskEntity(
                 id = id,

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +58,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -84,6 +88,7 @@ import io.zer0.muse.ui.theme.PresetThemes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.util.AppLocales
+import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -123,7 +128,17 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     // ── 各步骤状态 ──
-    var selectedLanguage by rememberSaveable { mutableStateOf("zh") }
+    // 勾选态必须从真实语言设置推导：写死 "zh" 会让英文系统用户看到「已选简体中文」
+    // 却仍是英文界面。跟随系统时按生效 Locale 归到候选项，但不落库，
+    // 只有用户主动点选才 saveLanguage，保持「跟随系统」语义不变。
+    var selectedLanguage by rememberSaveable {
+        mutableStateOf(
+            AppLocales.resolveDisplayLanguageCode(
+                stored = settings.getLanguageSync(),
+                locale = context.resources.configuration.locales[0],
+            ),
+        )
+    }
     var selectedThemeId by rememberSaveable { mutableStateOf("mono") }
     var userName by rememberSaveable { mutableStateOf("") }
     var agentName by rememberSaveable { mutableStateOf("Muse") }
@@ -174,7 +189,9 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
-            .navigationBarsPadding(),
+            .navigationBarsPadding()
+            // 键盘弹起时把底部按钮顶到输入法上方，否则命名页的 Previous/Next 被完全遮挡。
+            .imePadding(),
     ) {
         // 顶部进度圆点
         ProgressDots(
@@ -743,6 +760,7 @@ private fun ThemeColorBlock(
 // ── 步骤 2：你的名字 ──────────────────────────────────────────
 @Composable
 private fun StepNames(userName: String, onUserNameChange: (String) -> Unit, agentName: String, onAgentNameChange: (String) -> Unit) {
+    val keyboardController = LocalSoftwareKeyboardController.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -775,6 +793,7 @@ private fun StepNames(userName: String, onUserNameChange: (String) -> Unit, agen
             // 提示语不再重复上方标签,改为给一个示例:用户看到的是"这里该填什么形态的内容"。
             placeholder = { Text(stringResource(R.string.onboarding_names_user_placeholder)) },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
@@ -789,6 +808,8 @@ private fun StepNames(userName: String, onUserNameChange: (String) -> Unit, agen
             onValueChange = onAgentNameChange,
             placeholder = { Text(stringResource(R.string.onboarding_names_agent_placeholder)) },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
@@ -1272,12 +1293,16 @@ private fun ModelItem(model: Model, selected: Boolean, onClick: () -> Unit) {
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(modifier = Modifier.height(MusePaddings.tightGap))
-                Text(
-                    text = model.id,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                // 拉取的模型清单里 name 常与 id 相同(自定义兼容端点尤其如此)，
+                // 此时再画一行 id 只是把同一个字符串重复一遍，白占一行。
+                if (model.name != model.id) {
+                    Spacer(modifier = Modifier.height(MusePaddings.tightGap))
+                    Text(
+                        text = model.id,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Spacer(modifier = Modifier.height(MusePaddings.tightGap))
                 // v2.x: 能力徽章 — 与供应商编辑页同口径(复用同一组件)
                 ModelAbilityChips(model = model)

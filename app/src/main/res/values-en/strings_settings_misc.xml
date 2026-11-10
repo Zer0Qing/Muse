@@ -18,8 +18,6 @@
     <string name="settings_web_search_enable_subtitle">Global default state; when off, the input bar chip can still toggle it temporarily</string>
     <string name="settings_web_search_engine">Search Engine</string>
     <string name="settings_web_search_api_key_label">API Key (optional)</string>
-    <string name="settings_web_search_multi_key_title">Multi-engine API keys</string>
-    <string name="settings_web_search_multi_key_subtitle">Configure a key per search engine; Auto mode falls back in order</string>
     <string name="settings_saved">Saved</string>
     <string name="settings_web_search_save_api_key">Save API Key</string>
     <string name="settings_web_search_save_endpoint">Save Endpoint</string>
@@ -329,4 +327,15 @@
     <string name="settings_model_action_test_chat_short">Test</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>
     <string name="settings_web_search_path_user_api">User API</string>
+    <string name="settings_web_search_provider_type_title">Search Service Type</string>
+    <string name="settings_web_search_provider_type_desc">Choose a type first, then fill in the details it requires</string>
+    <string name="settings_web_search_custom_url_optional">Custom URL (optional)</string>
+    <string name="settings_web_search_custom_url_hint">Leave blank to use the default address</string>
+    <string name="settings_web_search_key_pool_label">API Key</string>
+    <string name="settings_web_search_key_pool_hint">Paste multiple API keys: one per line, or separated by commas</string>
+    <string name="settings_web_search_model_optional">Model name (optional)</string>
+    <string name="settings_web_search_instance_url_required">Instance URL is required</string>
+    <string name="settings_web_search_status_connected">Connected</string>
+    <string name="settings_web_search_status_failed">Connection failed</string>
+    <string name="settings_web_search_status_untested">Not tested</string>
 </resources>

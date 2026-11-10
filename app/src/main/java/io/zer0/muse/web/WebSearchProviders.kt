@@ -89,15 +89,26 @@ class BaiduProvider(
 
 class SearXNGProvider(
     private val client: OkHttpClient,
-    private val endpoint: String = "https://searx.be",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("SearXNG")!!,
 ) : WebSearchService {
     override val name: String = "SearXNG"
 
-    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = withContext(AppDispatchers.io) {
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = searchInternal(query, maxResults, null)
+
+    override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+        searchInternal(query, maxResults, options.dateRangeOrNull())
+
+    private suspend fun searchInternal(query: String, maxResults: Int, dateRange: String?): List<WebSearchResult> = withContext(
+        AppDispatchers.io,
+    ) {
         // H-WS1: 用 resultOf 替代 runCatching,避免吞 CancellationException
         resultOf {
+            // 语言不再写死 zh-CN：中文查询用 zh-CN，其余留空让引擎按查询自己判断。
+            // 写死中文会让英文资料与专有名词被严重限流（用户看到的就是「搜不到」）。
+            val langParam = if (query.any { it in '㐀'..'鿿' }) "&language=zh-CN" else ""
+            val timeParam = dateRange.toTimeRangeWord()?.let { "&time_range=$it" }.orEmpty()
             val url = "$endpoint/search?q=${java.net.URLEncoder.encode(query, "UTF-8")}" +
-                "&format=json&categories=general&language=zh-CN"
+                "&format=json&categories=general$langParam$timeParam"
             val req = Request.Builder().url(url)
                 .header("User-Agent", "muse/1.0 (Android LLM client)")
                 .header("Accept", "application/json")
@@ -151,11 +162,18 @@ class SearXNGProvider(
 class TavilyProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://api.tavily.com",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Tavily")!!,
 ) : WebSearchService {
     override val name: String = "Tavily"
 
-    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = withContext(AppDispatchers.io) {
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = searchInternal(query, maxResults, null)
+
+    override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+        searchInternal(query, maxResults, options.dateRangeOrNull())
+
+    private suspend fun searchInternal(query: String, maxResults: Int, dateRange: String?): List<WebSearchResult> = withContext(
+        AppDispatchers.io,
+    ) {
         if (apiKey.isBlank()) {
             Logger.w("Tavily", "no API key configured, skip")
             return@withContext emptyList()
@@ -173,6 +191,7 @@ class TavilyProvider(
                 put("query", kotlinx.serialization.json.JsonPrimitive(query))
                 put("max_results", kotlinx.serialization.json.JsonPrimitive(maxResults))
                 put("search_depth", kotlinx.serialization.json.JsonPrimitive("basic"))
+                dateRange.toTimeRangeWord()?.let { put("time_range", kotlinx.serialization.json.JsonPrimitive(it)) }
             }.toString()
             val req = Request.Builder().url("$endpoint/search")
                 .header("Content-Type", "application/json")
@@ -240,7 +259,7 @@ internal val DEEPSEEK_SEARCH_ENGINE =
     CustomSearchEngine(
         id = "preset_deepseek_search",
         name = "DeepSeek",
-        endpoint = "https://api.deepseek.com/v1/tools/search",
+        endpoint = WebSearchProviderCatalog.defaultEndpoint("DeepSeek")!!,
         method = "POST",
         bodyTemplate = "{\"query\":\"{query}\",\"count\":{count},\"need_content\":false}",
         resultsPath = "results",
@@ -267,7 +286,13 @@ class AutoWebSearchService(
         }
     }
 
-    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> {
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = searchInternal(query, maxResults, emptyMap())
+
+    /** 把 date_range 等选项转发给链内每个 provider，不再静默丢弃。 */
+    override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+        searchInternal(query, maxResults, options)
+
+    private suspend fun searchInternal(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> {
         // 全局限速预检查
         if (!SearchRateLimiter.await(name)) {
             throw SearchRateLimitException(
@@ -284,7 +309,6 @@ class AutoWebSearchService(
         }
 
         val attempts = mutableListOf<String>()
-        var firstLowQualityResults: List<WebSearchResult>? = null
 
         for (provider in chain) {
             val providerName = provider.name
@@ -294,22 +318,34 @@ class AutoWebSearchService(
                     attempts.add("$providerName: rate-limited")
                     continue
                 }
-                val results = provider.search(query, maxResults)
+                val results = if (options.isEmpty()) {
+                    provider.search(query, maxResults)
+                } else {
+                    provider.searchWithOptions(query, maxResults, options)
+                }
                 if (results.isEmpty()) {
                     attempts.add("$providerName: empty")
                     continue
                 }
                 if (isLikelyLowQualityResults(query, results)) {
                     attempts.add("$providerName: low-quality")
-                    if (firstLowQualityResults == null) {
-                        firstLowQualityResults = results
-                    }
                     continue
                 }
                 attempts.add("$providerName: ok(${results.size})")
                 Logger.i("AutoWebSearch", "query='$query' attempts=$attempts")
                 return normalizeResults(query, results, maxResults)
             } catch (e: SearchRateLimitException) {
+                // 该家配了 Key 池时，429 把当前 Key 降优先级；下一次建链（含本轮后续查询）
+                // 会由 resolveProviderKey → KeyRoulette.pick 拿到另一把。
+                currentConfig.providerEntries
+                    .firstOrNull { it.enabled && it.type.equals(providerName, ignoreCase = true) }
+                    ?.let { entry ->
+                        val pool = entry.apiKeys.filter { it.isNotBlank() }
+                        if (pool.size > 1) {
+                            val current = WebSearchKeyRoulette.pick(entry.id, pool)
+                            WebSearchKeyRoulette.pickNext(entry.id, pool, current)
+                        }
+                    }
                 attempts.add("$providerName: rate-limit")
             } catch (e: Exception) {
                 attempts.add("$providerName: error(${e.message})")
@@ -317,18 +353,13 @@ class AutoWebSearchService(
             }
         }
 
-        // 全部 fallback 均失败或低质量:返回第一次拿到的低质量结果兜底,避免完全空手
-        if (firstLowQualityResults != null) {
-            Logger.w("AutoWebSearch", "query='$query' all low-quality, returning first attempt. attempts=$attempts")
-            return normalizeResults(query, firstLowQualityResults, maxResults)
-        }
-
-        Logger.w("AutoWebSearch", "query='$query' all failed. attempts=$attempts")
+        // 全部 fallback 均失败或低质量：返回空，由上层给出明确原因。
+        // 不再把噪声结果兜底返回——不相关材料会诱导 LLM 基于错误事实作答。
+        Logger.w("AutoWebSearch", "query='$query' all failed or low-quality, returning empty. attempts=$attempts")
         return emptyList()
     }
 
-    private fun buildProviderChain(cfg: WebSearchConfig): List<WebSearchService> =
-        buildSearchChain(client, cfg)
+    private fun buildProviderChain(cfg: WebSearchConfig): List<WebSearchService> = buildSearchChain(client, cfg)
 
     companion object {
         /** 已知低质量域名(日期计算器、单位换算等工具站)。 */
@@ -357,6 +388,9 @@ class AutoWebSearchService(
             "hours calculator",
             "time calculator",
         )
+
+        /** 低质量结果的降权分：足够让它沉到相关结果之后，但不至于把唯一的结果也抹掉。 */
+        internal const val LOW_QUALITY_PENALTY = 100
 
         private fun hasCjk(text: String): Boolean = text.any { it in '\u3400'..'\u9fff' }
 
@@ -388,6 +422,10 @@ class AutoWebSearchService(
         }
 
         /** 计算结果与查询的相关性得分,用于排序。 */
+        /** 排序用的最终分：相关性分减去低质量惩罚。低质量只降权、不剔除。 */
+        internal fun rankingScore(query: String, result: WebSearchResult): Int =
+            scoreResult(query, result) - if (isLowQualityResult(query, result)) LOW_QUALITY_PENALTY else 0
+
         private fun scoreResult(query: String, result: WebSearchResult): Int {
             val terms = query.split(Regex("\\s+")).filter { it.length > 1 }
             val lowerTitle = result.title.lowercase()
@@ -404,14 +442,18 @@ class AutoWebSearchService(
         }
 
         /**
-         * 规范化结果:过滤空字段、去重、移除低质量、按相关性排序、截断。
+         * 规范化结果:过滤空字段、去重、按相关性排序（低质量**降权而不是丢弃**）、截断。
+         *
+         * 为什么不再整条丢弃：低质量判定靠的是「标题/摘要里出现了『词典』『字典』这类词」这种子串规则。
+         * 中文查询时正文里出现这些词是常态，一刀切会把真正相关的结果也删光 ——
+         * 用户看到的就是「搜了 4.7 秒、零结果」。降权之后坏结果自然沉底，
+         * 好结果只要存在就还能被选中；全都很差时也不至于空手而归。
          */
         private fun normalizeResults(query: String, results: List<WebSearchResult>, maxResults: Int): List<WebSearchResult> = results
             .asSequence()
             .filter { it.title.isNotBlank() && it.url.isNotBlank() }
-            .filter { !isLowQualityResult(query, it) }
             .distinctBy { it.url.lowercase().trimEnd('/') }
-            .sortedByDescending { scoreResult(query, it) }
+            .sortedByDescending { result -> rankingScore(query, result) }
             .take(maxResults)
             .toList()
     }
@@ -440,7 +482,13 @@ class CompositeWebSearchService(
     @Volatile
     private var delegate: WebSearchService = buildDelegate(config)
 
-    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> {
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = searchInternal(query, maxResults, emptyMap())
+
+    /** 把 date_range 等选项转发给实际 provider，避免编排层把它静默丢弃。 */
+    override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+        searchInternal(query, maxResults, options)
+
+    private suspend fun searchInternal(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> {
         // 限速预检查：退避期内直接抛 SearchRateLimitException，不发起请求，避免反复撞 429/402 被封禁
         if (!SearchRateLimiter.await(name)) {
             throw SearchRateLimitException(
@@ -448,7 +496,11 @@ class CompositeWebSearchService(
                 retryAfterMs = SearchRateLimiter.getRetryAfterMs(name),
             )
         }
-        return delegate.search(query, maxResults)
+        return if (options.isEmpty()) {
+            delegate.search(query, maxResults)
+        } else {
+            delegate.searchWithOptions(query, maxResults, options)
+        }
     }
 
     /** 切换配置(运行时改 provider/apiKey/endpoint)。同步重建 delegate,避免 stale client。 */
@@ -476,28 +528,62 @@ class CompositeWebSearchService(
                 //  有 apiKey 走 Tavily 兼容接口,无 apiKey 走 SearXNG 兼容接口(原先无条件映射到 SearXNG,忽略 apiKey)
                 "Custom API" ->
                     if (cfg.apiKey.isNotBlank()) {
-                        TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" })
+                        TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Tavily")!! })
                     } else {
-                        SearXNGProvider(client, cfg.endpoint.ifBlank { "https://searx.be" })
+                        SearXNGProvider(client, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("SearXNG")!! })
                     }
-                "SearXNG" -> SearXNGProvider(client, cfg.endpoint.ifBlank { "https://searx.be" })
-                "Tavily" -> TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" })
+                "SearXNG" -> SearXNGProvider(client, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("SearXNG")!! })
+                "Tavily" -> TavilyProvider(
+                    client,
+                    cfg.apiKey,
+                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Tavily")!! },
+                )
                 // v1.97: 新增搜索 provider
-                "Zhipu" -> ZhipuSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://open.bigmodel.cn/api/paas/v4" })
+                "Zhipu" -> ZhipuSearchProvider(
+                    client,
+                    cfg.apiKey,
+                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Zhipu")!! },
+                )
                 // v2.6.10: DeepSeek 搜索 —— 复用通用适配器
                 "DeepSeek" ->
                     GenericSearchProvider(
                         client,
                         DEEPSEEK_SEARCH_ENGINE.copy(apiKey = cfg.apiKey),
                     )
-                "Brave" -> BraveSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.search.brave.com/res/v1" })
-                "Serper" -> SerperSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://google.serper.dev" })
-                "Bocha" -> BochaSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.bochaai.com/v1" })
-                "Metaso" -> MetasoSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://metaso.cn/api/v1" })
-                "Exa" -> ExaSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.exa.ai" })
-                "Firecrawl" -> FirecrawlProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.firecrawl.dev/v1" })
+                "Brave" -> BraveSearchProvider(
+                    client,
+                    cfg.apiKey,
+                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Brave")!! },
+                )
+                "Serper" -> SerperSearchProvider(
+                    client,
+                    cfg.apiKey,
+                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Serper")!! },
+                )
+                "Bocha" -> BochaSearchProvider(
+                    client,
+                    cfg.apiKey,
+                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Bocha")!! },
+                )
+                "Metaso" -> MetasoSearchProvider(
+                    client,
+                    cfg.apiKey,
+                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Metaso")!! },
+                )
+                "Exa" -> ExaSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Exa")!! })
+                "Firecrawl" -> FirecrawlProvider(
+                    client,
+                    cfg.apiKey,
+                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Firecrawl")!! },
+                )
                 // Perplexity AI 搜索 API(sonar-pro 模型 + citations)
-                "Perplexity" -> PerplexitySearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.perplexity.ai" })
+                "Perplexity" -> PerplexitySearchProvider(
+                    client,
+                    cfg.apiKey,
+                    cfg.endpoint.ifBlank {
+                        WebSearchProviderCatalog.defaultEndpoint("Perplexity")!!
+                    },
+                )
                 // 默认用 Bing HTTP(免费,无需 API key)
                 else -> BingProvider(client)
             }
@@ -652,7 +738,7 @@ class JinaProvider(
 class ZhipuSearchProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://open.bigmodel.cn/api/paas/v4",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Zhipu")!!,
 ) : WebSearchService {
     override val name: String = "Zhipu"
 
@@ -716,18 +802,32 @@ class ZhipuSearchProvider(
 class BraveSearchProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://api.search.brave.com/res/v1",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Brave")!!,
 ) : WebSearchService {
     override val name: String = "Brave"
 
-    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = withContext(AppDispatchers.io) {
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = searchInternal(query, maxResults, null)
+
+    override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+        searchInternal(query, maxResults, options.dateRangeOrNull())
+
+    private suspend fun searchInternal(query: String, maxResults: Int, dateRange: String?): List<WebSearchResult> = withContext(
+        AppDispatchers.io,
+    ) {
         if (apiKey.isBlank()) {
             Logger.w("Brave", "no API key configured, skip")
             return@withContext emptyList()
         }
         resultOf {
+            val freshness = when (dateRange) {
+                "past_day" -> "pd"
+                "past_week" -> "pw"
+                "past_month" -> "pm"
+                "past_year" -> "py"
+                else -> null
+            }?.let { "&freshness=$it" }.orEmpty()
             val url = "$endpoint/web/search?q=" +
-                java.net.URLEncoder.encode(query, "UTF-8") + "&count=$maxResults"
+                java.net.URLEncoder.encode(query, "UTF-8") + "&count=$maxResults$freshness"
             val req = Request.Builder().url(url)
                 .header("Accept", "application/json")
                 .header("X-Subscription-Token", apiKey)
@@ -779,19 +879,34 @@ class BraveSearchProvider(
 class SerperSearchProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://google.serper.dev",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Serper")!!,
 ) : WebSearchService {
     override val name: String = "Serper"
 
-    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = withContext(AppDispatchers.io) {
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = searchInternal(query, maxResults, null)
+
+    override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+        searchInternal(query, maxResults, options.dateRangeOrNull())
+
+    private suspend fun searchInternal(query: String, maxResults: Int, dateRange: String?): List<WebSearchResult> = withContext(
+        AppDispatchers.io,
+    ) {
         if (apiKey.isBlank()) {
             Logger.w("Serper", "no API key configured, skip")
             return@withContext emptyList()
         }
         resultOf {
+            val tbs = when (dateRange) {
+                "past_day" -> "qdr:d"
+                "past_week" -> "qdr:w"
+                "past_month" -> "qdr:m"
+                "past_year" -> "qdr:y"
+                else -> null
+            }
             val payload = kotlinx.serialization.json.buildJsonObject {
                 put("q", kotlinx.serialization.json.JsonPrimitive(query))
                 put("num", kotlinx.serialization.json.JsonPrimitive(maxResults))
+                tbs?.let { put("tbs", kotlinx.serialization.json.JsonPrimitive(it)) }
             }.toString()
             val req = Request.Builder().url("$endpoint/search")
                 .header("Content-Type", "application/json")
@@ -844,7 +959,7 @@ class SerperSearchProvider(
 class BochaSearchProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://api.bochaai.com/v1",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Bocha")!!,
 ) : WebSearchService {
     override val name: String = "Bocha"
 
@@ -913,7 +1028,7 @@ class BochaSearchProvider(
 class MetasoSearchProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://metaso.cn/api/v1",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Metaso")!!,
 ) : WebSearchService {
     override val name: String = "Metaso"
 
@@ -979,19 +1094,41 @@ class MetasoSearchProvider(
 class ExaSearchProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://api.exa.ai",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Exa")!!,
 ) : WebSearchService {
     override val name: String = "Exa"
 
-    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = withContext(AppDispatchers.io) {
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = searchInternal(query, maxResults, null)
+
+    override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+        searchInternal(query, maxResults, options.dateRangeOrNull())
+
+    private suspend fun searchInternal(query: String, maxResults: Int, dateRange: String?): List<WebSearchResult> = withContext(
+        AppDispatchers.io,
+    ) {
         if (apiKey.isBlank()) {
             Logger.w("Exa", "no API key configured, skip")
             return@withContext emptyList()
         }
         resultOf {
+            // Exa 用 ISO 起始日期表达时敏，需把相对范围换算成绝对日期。
+            val startPublishedDate = dateRange?.let { range ->
+                val days = when (range) {
+                    "past_day" -> 1L
+                    "past_week" -> 7L
+                    "past_month" -> 31L
+                    "past_year" -> 366L
+                    else -> null
+                }
+                days?.let { d ->
+                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT)
+                    sdf.format(java.util.Date(System.currentTimeMillis() - java.util.concurrent.TimeUnit.DAYS.toMillis(d)))
+                }
+            }
             val payload = kotlinx.serialization.json.buildJsonObject {
                 put("query", kotlinx.serialization.json.JsonPrimitive(query))
                 put("numResults", kotlinx.serialization.json.JsonPrimitive(maxResults))
+                startPublishedDate?.let { put("startPublishedDate", kotlinx.serialization.json.JsonPrimitive(it)) }
                 put(
                     "contents",
                     kotlinx.serialization.json.buildJsonObject {
@@ -1053,7 +1190,7 @@ class ExaSearchProvider(
 class FirecrawlProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://api.firecrawl.dev/v1",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Firecrawl")!!,
 ) : WebSearchService {
     override val name: String = "Firecrawl"
 
@@ -1124,11 +1261,18 @@ class FirecrawlProvider(
 class PerplexitySearchProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
-    private val endpoint: String = "https://api.perplexity.ai",
+    private val endpoint: String = WebSearchProviderCatalog.defaultEndpoint("Perplexity")!!,
 ) : WebSearchService {
     override val name: String = "Perplexity"
 
-    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = withContext(AppDispatchers.io) {
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = searchInternal(query, maxResults, null)
+
+    override suspend fun searchWithOptions(query: String, maxResults: Int, options: Map<String, String>): List<WebSearchResult> =
+        searchInternal(query, maxResults, options.dateRangeOrNull())
+
+    private suspend fun searchInternal(query: String, maxResults: Int, dateRange: String?): List<WebSearchResult> = withContext(
+        AppDispatchers.io,
+    ) {
         if (apiKey.isBlank()) {
             Logger.w("Perplexity", "no API key configured, skip")
             return@withContext emptyList()
@@ -1136,6 +1280,13 @@ class PerplexitySearchProvider(
         // H-WS1: 用 resultOf 替代 runCatching,避免吞 CancellationException
         resultOf {
             // 用 buildJsonObject 构造请求体,字符串转义由序列化库处理
+            val recency = when (dateRange) {
+                "past_day" -> "day"
+                "past_week" -> "week"
+                "past_month" -> "month"
+                "past_year" -> "year"
+                else -> null
+            }
             val payload = kotlinx.serialization.json.buildJsonObject {
                 put("model", kotlinx.serialization.json.JsonPrimitive("sonar-pro"))
                 put(
@@ -1151,6 +1302,7 @@ class PerplexitySearchProvider(
                 )
                 put("return_citations", kotlinx.serialization.json.JsonPrimitive(true))
                 put("return_images", kotlinx.serialization.json.JsonPrimitive(false))
+                recency?.let { put("search_recency_filter", kotlinx.serialization.json.JsonPrimitive(it)) }
             }.toString()
             val req = Request.Builder().url("$endpoint/chat/completions")
                 .header("Content-Type", "application/json")
@@ -1214,7 +1366,6 @@ class PerplexitySearchProvider(
         }.getOrElse { "Perplexity Citation" }
     }
 }
-
 
 /**
  * Auto 链的**内置顺序**（引擎名，按尝试先后）。
@@ -1290,7 +1441,7 @@ internal suspend fun probeSearchProvider(
         effective.customEngines.firstOrNull { it.name == name }
             ?.let { GenericSearchProvider(client, it) }
     } else {
-        AUTO_CHAIN_BUILDERS[providerKey]?.invoke(client, effective, { key -> effective.apiKeys[key].orEmpty() })
+        AUTO_CHAIN_BUILDERS[providerKey]?.invoke(client, effective, { key -> resolveProviderKey(effective, key) })
     }
     if (service == null) {
         // 没配 Key / 键不存在：直接判不可用，且**刻意不发请求** ——
@@ -1332,23 +1483,29 @@ internal suspend fun probeSearchProvider(
     )
 }
 
-internal val AUTO_CHAIN_PROVIDER_KEYS: List<String> = listOf(
-    "Tavily",
-    "Perplexity",
-    "Brave",
-    "Serper",
-    "Zhipu",
-    "Bocha",
-    "Metaso",
-    "Exa",
-    "Firecrawl",
-    "Jina",
-    "DeepSeek",
-    "SearXNG",
-    "Custom API",
-    "Bing",
-    "Baidu",
-)
+/** 单一真源：[WebSearchProviderCatalog.chainKeys]；顺序与存量 `providerOrder` 里的引擎名保持一致。 */
+internal val AUTO_CHAIN_PROVIDER_KEYS: List<String> = WebSearchProviderCatalog.chainKeys
+
+/**
+ * 取某家 provider 当前应使用的 Key，供建链与「测试连接」共用，避免两处口径漂移。
+ *
+ * 优先级：v3 `providerEntries` 的 Key 池首把 → 旧 `apiKeys` 映射 → 旧全局 `apiKey`
+ * （仅当 providerName 指向该家）。旧配置（未迁移或只在旧 UI 改了旧字段）因此零回归。
+ * 429/401 时的换 key 由 [WebSearchKeyRoulette] 在请求层处理，这里只负责「首把」。
+ */
+internal fun resolveProviderKey(cfg: WebSearchConfig, provider: String): String {
+    val entry = cfg.providerEntries
+        .firstOrNull { it.enabled && it.type.equals(provider, ignoreCase = true) }
+    val poolKeys = entry?.apiKeys.orEmpty().filter { it.isNotBlank() }
+    if (poolKeys.isNotEmpty()) {
+        // 走轮换器：429 后 pickNext 会把当前 Key 加入软黑名单，下一次建链时这里自动拿到另一把。
+        // 单把 Key 时 pick 原样返回，行为与旧版一致。
+        return WebSearchKeyRoulette.pick(entry?.id ?: provider, poolKeys)
+    }
+    return cfg.apiKeys[provider].orEmpty().ifBlank {
+        cfg.apiKey.takeIf { cfg.providerName.equals(provider, ignoreCase = true) }.orEmpty()
+    }
+}
 
 /**
  * 按配置构造 Auto 回退链，返回 `(引擎名, 服务)`，顺序 = 用户顺序（未设置时 = 内置顺序）。
@@ -1356,10 +1513,7 @@ internal val AUTO_CHAIN_PROVIDER_KEYS: List<String> = listOf(
  * 提成顶层函数是为了**可测**：类里的版本要走 Koin 与运行时配置，
  * 而"配了哪几家、按什么顺序试、关掉回退时取谁"这三条判据不该靠真机或联网验证。
  */
-internal fun buildSearchChain(
-    client: OkHttpClient,
-    cfg: WebSearchConfig,
-): List<WebSearchService> {
+internal fun buildSearchChain(client: OkHttpClient, cfg: WebSearchConfig): List<WebSearchService> {
     val chain = mutableListOf<Pair<String, WebSearchService>>()
 
     // v2.6.10: 用户自定义引擎排最前。
@@ -1368,11 +1522,11 @@ internal fun buildSearchChain(
         .filter { it.enabled && it.endpoint.isNotBlank() }
         .forEach { engine -> chain.add(customSearchOrderKey(engine.name) to GenericSearchProvider(client, engine)) }
 
-    // 用户配置的搜索 API 优先于免费抓取。apiKeys 是新格式，apiKey 是旧格式；
-    // 旧格式仅在 providerName 指向该 provider 时回退，避免把一个 key 误发给其他供应商。
-    fun keyFor(provider: String): String = cfg.apiKeys[provider].orEmpty().ifBlank {
-        cfg.apiKey.takeIf { cfg.providerName.equals(provider, ignoreCase = true) }.orEmpty()
-    }
+    // 用户配置的搜索 API 优先于免费抓取。
+    // v3: 先读 providerEntries 里该家的 Key 池首把；旧配置（未迁移/只在 UI 里改了旧字段）
+    // 仍按 apiKeys → apiKey 两级回退，保证存量配置零回归。
+    // 旧格式 apiKey 仅在 providerName 指向该 provider 时回退，避免把一把 key 误发给别家。
+    fun keyFor(provider: String): String = resolveProviderKey(cfg, provider)
 
     AUTO_CHAIN_PROVIDER_KEYS.forEach { key ->
         // 工厂可以返回 null（该引擎这次不进链），所以先取值再判空，
@@ -1430,7 +1584,7 @@ internal val AUTO_CHAIN_BUILDERS: Map<
     },
     "Custom API" to { client, cfg, _ ->
         if (cfg.providerName.equals("Custom API", ignoreCase = true) && cfg.apiKey.isNotBlank()) {
-            TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" })
+            TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Tavily")!! })
         } else {
             null
         }
@@ -1451,10 +1605,7 @@ internal val AUTO_CHAIN_BUILDERS: Map<
  * 抽成纯函数是为了能被单独测：链的构造要拉 OkHttp 与真实 provider，
  * 而"顺序到底有没有被尊重"这条判据不该靠联网测试来证明。
  */
-internal fun orderWebSearchChain(
-    chain: List<Pair<String, WebSearchService>>,
-    order: List<String>,
-): List<Pair<String, WebSearchService>> {
+internal fun orderWebSearchChain(chain: List<Pair<String, WebSearchService>>, order: List<String>): List<Pair<String, WebSearchService>> {
     if (order.isEmpty() || chain.size <= 1) return chain
     val byKey = chain.toMap()
     val wanted = order.mapNotNull { key -> byKey.entries.firstOrNull { it.key == key }?.toPair() }

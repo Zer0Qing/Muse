@@ -667,6 +667,10 @@
     <string name="knowledge_folder_created">Folder \"%1$s\" created</string>
     <string name="knowledge_folder_renamed">Renamed to \"%1$s\"</string>
     <string name="knowledge_folder_deleted">Folder deleted</string>
+    <string name="knowledge_import_cancel_title">Cancel import?</string>
+    <string name="knowledge_import_cancel_body">Files already imported will be kept; the rest need importing again.</string>
+    <string name="knowledge_import_cancel_confirm">Stop import</string>
+    <string name="common_continue">Keep importing</string>
     <string name="chat_set_background">Chat background</string>
     <string name="chat_background_saved">Conversation background updated</string>
     <string name="chat_background_save_failed">Failed to save background</string>
@@ -804,7 +808,7 @@
     </plurals>
     <string name="workspace_go_root">Back to workspace root</string>
     <string name="artifact_center_empty_hint">Artifacts are the images, files and long texts the assistant produces in chat - keep them here to review and share</string>
-    <string name="daily_summary_light_fallback">Nothing to catch up on today - I\'m here whenever something comes up.</string>
+    <string name="daily_summary_light_fallback">Nothing to catch up on today — I\'m here whenever something comes up.</string>
     <string name="daily_summary_rest_fallback">Long day - get some rest.</string>
     <string name="daily_summary_none_fallback">No new conversation today.</string>
 </resources>

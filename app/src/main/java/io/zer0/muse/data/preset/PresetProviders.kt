@@ -168,10 +168,12 @@ class PresetProviders(
      * SiliconFlow 普通供应商置顶,用户可在配置页填写自己的 API Key。
      */
     val onboardingPresets: List<ProviderConfig> = (
-        overseas.take(3) +
+        // 自定义兼容端点置顶：它排在 9 个预设之后时首屏不可见，需滚动才发现，
+        // 而「接自己的服务」恰恰是不用预设的那批用户的第一选择。
+        listOf(customOpenAI()) +
+            overseas.take(3) +
             domestic.take(3) +
-            relay.take(3) +
-            customOpenAI()
+            relay.take(3)
         ).map { preset ->
         preset.copy(specId = preset.id.removePrefix("preset_").ifBlank { null })
     }

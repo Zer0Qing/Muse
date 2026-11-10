@@ -31,8 +31,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
@@ -54,8 +52,6 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.web.CompositeWebSearchService
 import io.zer0.muse.web.WebSearchConfig
-import io.zer0.muse.web.WebSearchProbeReason
-import io.zer0.muse.web.probeSearchProvider
 import io.zer0.muse.web.WebSearchCoordinator
 import io.zer0.muse.web.WebSearchMode
 import kotlinx.coroutines.launch
@@ -331,7 +327,11 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
                         ) {
                             Text(
                                 p,
-                                color = if (p == webSearchConfig.providerName) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                color = if (p == webSearchConfig.providerName) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                                 fontWeight = if (p == webSearchConfig.providerName) FontWeight.SemiBold else FontWeight.Normal,
                             )
                         }
@@ -344,122 +344,14 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         )
     }
 
-    // 多引擎 API Key:所有需要 key 的搜索引擎各配各的(底层写入 apiKeys 映射;
-    // Auto 模式按顺序回退)。此前 UI 只显示“当前选中引擎”的输入框,让人误以为只能配一个。
-    SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
-        Column(Modifier.padding(MusePaddings.cardInner)) {
-            Text(
-                text = stringResource(R.string.settings_web_search_multi_key_title),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(R.string.settings_web_search_multi_key_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-            WebSearchConfig.PROVIDERS_NEEDING_API_KEY
-                // v2.x: 去重 — 自定义 API 不参与 Auto 回退链,其 Key 与接口地址在下方「当前引擎」组统一配置;
-                // 此处排除两种写法,同一 Key 不再出现两个输入入口。
-                .filter { it !in WebSearchConfig.CUSTOM_PROVIDER_NAMES }
-                .forEach { provider ->
-                    val savedKey = webSearchConfig.apiKeys[provider].orEmpty()
-                    // 草稿与「有没有动过」分开记：动过才可能删除。
-                    // 以前这里直接把已保存的 Key 回填进输入框，一打开设置页每个引擎的
-                    // 密钥都明文摆在屏幕上；改成默认掩码后，"留空"就再也不能被读成"清空"，
-                    // 否则用户什么都没做、只按一次保存就会把密钥删掉。
-                    var keyDraft by remember(provider) { mutableStateOf("") }
-                    var keyEdited by remember(provider) { mutableStateOf(false) }
-                    var keyRevealed by remember(provider) { mutableStateOf(false) }
-                    var verifying by remember(provider) { mutableStateOf(false) }
-                    var verifyText by remember(provider) { mutableStateOf<String?>(null) }
-                    Spacer(Modifier.height(10.dp))
-                    SettingField(
-                        label = provider,
-                        value = WebSearchKeyFieldState.displayValue(savedKey, keyDraft, keyEdited),
-                        onValueChange = {
-                            keyDraft = it
-                            keyEdited = true
-                        },
-                        visualTransformation =
-                        if (WebSearchKeyFieldState.shouldMask(savedKey, keyRevealed)) {
-                            PasswordVisualTransformation()
-                        } else {
-                            VisualTransformation.None
-                        },
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (WebSearchKeyFieldState.canToggleVisibility(savedKey)) {
-                            SavePill(
-                                stringResource(
-                                    if (keyRevealed) R.string.channel_secret_hide else R.string.channel_secret_show,
-                                ),
-                            ) { keyRevealed = !keyRevealed }
-                        }
-                        SavePill(
-                            stringResource(
-                                if (verifying) R.string.settings_web_search_testing
-                                else R.string.settings_web_search_key_verify,
-                            ),
-                        ) {
-                            if (verifying) return@SavePill
-                            verifying = true
-                            // 清掉上一次的结论：留着它会让人以为这次也还没点
-                            verifyText = null
-                            scope.launch {
-                                val outcome = probeSearchProvider(
-                                    client = webSearchClient,
-                                    cfg = webSearchConfig,
-                                    providerKey = provider,
-                                    apiKeyDraft =
-                                        if (keyEdited) keyDraft
-                                        else savedKey, // 没编辑就用已存的那把 Key 去验，不误用空串
-                                )
-                                verifyText = when {
-                                    outcome.ok -> context.getString(
-                                        R.string.settings_web_search_key_verify_ok,
-                                        outcome.results,
-                                    )
-
-                                    outcome.reason == WebSearchProbeReason.NOT_USABLE ->
-                                        context.getString(R.string.settings_web_search_key_verify_no_key)
-
-                                    outcome.reason == WebSearchProbeReason.EMPTY ->
-                                        context.getString(R.string.settings_web_search_key_verify_empty)
-
-                                    else -> context.getString(
-                                        R.string.settings_web_search_key_verify_failed,
-                                        outcome.detail ?: "",
-                                    )
-                                }
-                                verifying = false
-                            }
-                        }
-                        SavePill(stringResource(R.string.settings_web_search_save_api_key)) {
-                            scope.launch {
-                                val value = WebSearchKeyFieldState.valueToSave(savedKey, keyDraft, keyEdited)
-                                val keys = webSearchConfig.apiKeys.toMutableMap().apply {
-                                    if (value.isNullOrEmpty()) remove(provider) else put(provider, value)
-                                }
-                                settings.saveWebSearchConfig(webSearchConfig.copy(apiKeys = keys))
-                                keyDraft = ""
-                                keyEdited = false
-                                MuseToast.show(savedText)
-                            }
-                        }
-                    }
-                    verifyText?.let { text ->
-                        Text(
-                            text = text,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                }
-        }
-    }
+    // 供应商填写：先选类型 → 按类型动态表单（类型/默认端点读 WebSearchProviderCatalog）。
+    // 抽成独立组件，避免本页继续膨胀；执行层与排序语义不变。
+    WebSearchProviderTypeSection(
+        config = webSearchConfig,
+        settings = settings,
+        scope = scope,
+        webSearchClient = webSearchClient,
+    )
 
     // 「搜索顺序」：Auto 回退链的尝试顺序可调，且与链构造共用同一份顺序表
     // （AUTO_CHAIN_PROVIDER_KEYS）—— 界面自己抄一份顺序的话，用户拖完看到的是假顺序。
@@ -479,8 +371,8 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
     )
 
     val needsApiConfig = webSearchConfig.providerName in WebSearchConfig.PROVIDERS_NEEDING_API_KEY
-    // v2.x: 去重 — 需 Key 的引擎中,只有「自定义 API」(不在 Auto 回退链)在本组就近配置 Key;
-    // 其余引擎的 Key 统一在上方「多引擎 API Key」列表编辑,本组仅保留接口地址与测试。
+    // 「自定义 API」(不在 Auto 回退链)在本组就近配置端点与测试；
+    // 其余引擎的 Key 池与 URL 在上方「先选类型 → 动态表单」里编辑，避免两处重复入口。
     val isCustomApi = webSearchConfig.providerName.equals("Custom API", ignoreCase = true) ||
         webSearchConfig.providerName == WebSearchConfig.CUSTOM_PROVIDER_NAME
     if (needsApiConfig) {

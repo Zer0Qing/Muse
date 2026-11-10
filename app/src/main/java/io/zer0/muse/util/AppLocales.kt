@@ -45,4 +45,26 @@ object AppLocales {
         "pt-rBR" -> Locale("pt", "BR")
         else -> null
     }
+
+    /** 把 Locale 归到 [Language] 候选；未覆盖的语言返回 null，由调用方决定回落值。 */
+    fun codeFor(locale: Locale): String? = when (locale.language) {
+        "zh" -> Language.ZH.code
+        "en" -> Language.EN.code
+        "ja" -> Language.JA.code
+        "ko" -> Language.KO.code
+        "ru" -> Language.RU.code
+        "es" -> Language.ES.code
+        "pt" -> Language.PT_BR.code
+        else -> null
+    }
+
+    /**
+     * 语言选择器的初始勾选：已显式保存过语言就用保存值；跟随系统时按当前生效
+     * Locale 归到候选项，让勾选态与实际界面语言一致。未覆盖的系统语言回落到
+     * 默认资源语言，避免没有任何一项被勾选。
+     */
+    fun resolveDisplayLanguageCode(stored: String, locale: Locale): String =
+        Language.entries.firstOrNull { it.code == stored }?.code
+            ?: codeFor(locale)
+            ?: Language.ZH.code
 }

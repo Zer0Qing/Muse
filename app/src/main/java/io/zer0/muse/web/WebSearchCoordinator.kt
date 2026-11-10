@@ -50,14 +50,41 @@ class WebSearchCoordinator(
         }
 
         val started = System.currentTimeMillis()
+        // 查询分析只产出「整句 + 主题词/约束/时效信号」，outboundQuery 仍是整句，
+        // 发给语义引擎的查询不会被压成词袋。
+        val plan = WebSearchQueryAnalyzer.analyze(normalized, explicitDateRange = request.dateRange)
+        val options = buildMap<String, String> {
+            plan.effectiveDateRange?.let { put("date_range", it) }
+        }
         return try {
-            val results = service.searchWithOptions(
-                normalized,
-                request.maxResults,
-                mapOfNotNull(request.dateRange?.let { "date_range" to it }),
+            val raw = service.searchWithOptions(plan.outboundQuery, request.maxResults, options)
+            val outcome = WebSearchResultPostProcessor.process(
+                raw,
+                plan,
+                plan.effectiveDateRange,
+                System.currentTimeMillis(),
             )
-            val status = if (results.isEmpty()) WebSearchStatus.EMPTY else WebSearchStatus.RESULTS
+            // 召回门禁失败：返回空 + 明确原因，不把噪声交给上层 LLM。
+            val results = if (outcome.recallOk) outcome.results else emptyList()
+            val status = when {
+                !outcome.recallOk && raw.isNotEmpty() -> WebSearchStatus.RECALL_IRRELEVANT
+                results.isEmpty() -> WebSearchStatus.EMPTY
+                else -> WebSearchStatus.RESULTS
+            }
             mutex.withLock { if (results.isEmpty()) state.empty++ else state.empty = 0 }
+            val debug = WebSearchDebug(
+                outboundQuery = plan.outboundQuery,
+                effectiveProvider = service.name,
+                appliedDateRange = plan.effectiveDateRange,
+                inferredDateRange = request.dateRange == null && plan.inferredDateRange != null,
+                constraints = plan.constraints,
+                unsupportedOperators = plan.unsupportedOperators,
+                recalledCount = outcome.recalledCount,
+                afterFilterCount = outcome.afterFilterCount,
+                afterDedupCount = outcome.afterDedupCount,
+                finalCount = outcome.finalCount,
+                reason = outcome.reason,
+            )
             WebSearchResponse(
                 request.query,
                 normalized,
@@ -69,14 +96,17 @@ class WebSearchCoordinator(
                         if (results.isEmpty()) WebSearchAttemptStatus.EMPTY else WebSearchAttemptStatus.SUCCESS,
                         results.size,
                         System.currentTimeMillis() - started,
+                        outcome.reason,
                     ),
                 ),
                 status,
+                debug,
             ).also {
                 Logger.i(
                     "WebSearch",
                     "outcome provider=${service.name}, status=${it.status}, results=${it.results.size}, " +
-                        "elapsedMs=${it.attempts.firstOrNull()?.elapsedMs ?: 0}, query=${normalized.take(80)}",
+                        "recalled=${debug.recalledCount}->filtered=${debug.afterFilterCount}->dedup=${debug.afterDedupCount}, " +
+                        "dateRange=${debug.appliedDateRange}, query=${plan.outboundQuery.take(80)}",
                 )
                 _lastResponse.value = it
             }
@@ -113,5 +143,3 @@ class WebSearchCoordinator(
         mutex.withLock { turns.remove(turnKey) }
     }
 }
-
-private fun <K, V> mapOfNotNull(pair: Pair<K, V>?): Map<K, V> = if (pair == null) emptyMap() else mapOf(pair)

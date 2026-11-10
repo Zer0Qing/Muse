@@ -18,8 +18,6 @@
     <string name="settings_web_search_enable_subtitle">グローバルなデフォルト状態。</string>
     <string name="settings_web_search_engine">検索エンジン</string>
     <string name="settings_web_search_api_key_label">API キー (オプション)</string>
-    <string name="settings_web_search_multi_key_title">複数エンジンの API キー</string>
-    <string name="settings_web_search_multi_key_subtitle">検索エンジンごとにキーを設定。Auto モードは順にフォールバックします</string>
     <string name="settings_saved">保存されました</string>
     <string name="settings_web_search_save_api_key">APIキーの保存</string>
     <string name="settings_web_search_save_endpoint">エンドポイントの保存</string>
@@ -327,4 +325,15 @@
     <string name="settings_model_action_test_chat_short">テスト</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>
     <string name="settings_web_search_path_user_api">ユーザー API</string>
+    <string name="settings_web_search_provider_type_title">検索サービスの種類</string>
+    <string name="settings_web_search_provider_type_desc">まず種類を選び、その種類に応じた必要事項を入力してください</string>
+    <string name="settings_web_search_custom_url_optional">カスタム URL（任意）</string>
+    <string name="settings_web_search_custom_url_hint">空欄の場合は既定のアドレスを使用します</string>
+    <string name="settings_web_search_key_pool_label">API キー</string>
+    <string name="settings_web_search_key_pool_hint">複数の API キーを貼り付けられます。1 行に 1 つ、またはカンマ区切りで入力してください</string>
+    <string name="settings_web_search_model_optional">モデル名（任意）</string>
+    <string name="settings_web_search_instance_url_required">インスタンス URL は必須です</string>
+    <string name="settings_web_search_status_connected">接続済み</string>
+    <string name="settings_web_search_status_failed">接続失敗</string>
+    <string name="settings_web_search_status_untested">未テスト</string>
 </resources>

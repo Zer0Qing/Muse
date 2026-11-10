@@ -18,8 +18,6 @@
     <string name="settings_web_search_enable_subtitle">Estado predeterminado global;</string>
     <string name="settings_web_search_engine">Motor de búsqueda</string>
     <string name="settings_web_search_api_key_label">Clave API (opcional)</string>
-    <string name="settings_web_search_multi_key_title">Claves API multi-motor</string>
-    <string name="settings_web_search_multi_key_subtitle">Configura una clave por buscador; el modo Auto recurre en orden</string>
     <string name="settings_saved">Guardado</string>
     <string name="settings_web_search_save_api_key">Guardar clave API</string>
     <string name="settings_web_search_save_endpoint">Guardar punto final</string>
@@ -327,4 +325,15 @@
     <string name="settings_model_action_test_chat_short">Probar</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>
     <string name="settings_web_search_path_user_api">API del usuario</string>
+    <string name="settings_web_search_provider_type_title">Tipo de servicio de búsqueda</string>
+    <string name="settings_web_search_provider_type_desc">Elige primero el tipo y completa los datos que requiere</string>
+    <string name="settings_web_search_custom_url_optional">URL personalizada (opcional)</string>
+    <string name="settings_web_search_custom_url_hint">Déjalo vacío para usar la dirección predeterminada</string>
+    <string name="settings_web_search_key_pool_label">Clave API</string>
+    <string name="settings_web_search_key_pool_hint">Pega varias claves API: una por línea o separadas por comas</string>
+    <string name="settings_web_search_model_optional">Nombre del modelo (opcional)</string>
+    <string name="settings_web_search_instance_url_required">La URL de la instancia es obligatoria</string>
+    <string name="settings_web_search_status_connected">Conectado</string>
+    <string name="settings_web_search_status_failed">Error de conexión</string>
+    <string name="settings_web_search_status_untested">Sin probar</string>
 </resources>

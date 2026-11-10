@@ -32,10 +32,9 @@ class PluginCapabilityCopyTest {
     }
 
     /** 权威词表 = 映射表的键 + 同义拼写 + 不在映射表里的特殊档（Python、交互界面）。 */
-    private fun vocabulary(): Set<String> =
-        PluginCapabilityGateway.CAPABILITY_ACTIONS.keys +
-            PluginCapabilityGateway.CAPABILITY_ALIASES.keys +
-            setOf(PluginCapabilityGateway.RUNTIME_PYTHON, PluginCapabilityGateway.UI_INTERACTIVE, "ui.skin")
+    private fun vocabulary(): Set<String> = PluginCapabilityGateway.CAPABILITY_ACTIONS.keys +
+        PluginCapabilityGateway.CAPABILITY_ALIASES.keys +
+        setOf(PluginCapabilityGateway.RUNTIME_PYTHON, PluginCapabilityGateway.UI_INTERACTIVE, "ui.skin")
 
     @Test
     fun `every known capability has a human sentence`() {

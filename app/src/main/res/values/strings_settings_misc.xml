@@ -18,8 +18,6 @@
     <string name="settings_web_search_enable_subtitle">全局默认状态；关闭后输入栏 chip 仍可临时开启</string>
     <string name="settings_web_search_engine">搜索引擎</string>
     <string name="settings_web_search_api_key_label">API Key(可选)</string>
-    <string name="settings_web_search_multi_key_title">多引擎 API Key</string>
-    <string name="settings_web_search_multi_key_subtitle">为每个搜索引擎单独配置 Key;Auto 模式会按顺序回退</string>
     <string name="settings_saved">已保存</string>
     <string name="settings_web_search_save_api_key">保存 API Key</string>
     <string name="settings_web_search_save_endpoint">保存接口地址</string>
@@ -331,5 +329,16 @@
     <string name="settings_web_search_endpoint_optional">接口地址（可选）</string>
     <string name="settings_web_search_path_baidu">百度 HTTP</string>
     <string name="settings_web_search_path_user_api">用户 API</string>
+    <string name="settings_web_search_provider_type_title">搜索服务类型</string>
+    <string name="settings_web_search_provider_type_desc">先选类型，再按类型填写所需信息</string>
+    <string name="settings_web_search_custom_url_optional">自定义 URL（可选）</string>
+    <string name="settings_web_search_custom_url_hint">留空使用默认地址</string>
+    <string name="settings_web_search_key_pool_label">API Key</string>
+    <string name="settings_web_search_key_pool_hint">可粘贴多个 API Key：每行一个，或用逗号分隔</string>
+    <string name="settings_web_search_model_optional">模型名（可选）</string>
+    <string name="settings_web_search_instance_url_required">实例 URL 必填</string>
+    <string name="settings_web_search_status_connected">已连接</string>
+    <string name="settings_web_search_status_failed">连接失败</string>
+    <string name="settings_web_search_status_untested">未测试</string>
 </resources>
 

@@ -487,15 +487,19 @@ class SettingsRepository(
                     WebSearchConfig.serializer(),
                     "WebSearchConfig",
                 )?.decrypted() ?: WebSearchConfig()
-            // 策略迁移：
+            // 策略迁移（顺序执行，幂等）：
             //  v1 时代旧配置无版本号,可能保存旧默认预算 2;
-            //  v2(本次):预算放开 —— 历史上默认被夹在 5(且 Koin 侧 coerceIn(1,5)),
+            //  v2:预算放开 —— 历史上默认被夹在 5(且 Koin 侧 coerceIn(1,5)),
             //   导致模型“搜不上”。未到 v2 的配置一律提升到新默认 50(用户可再调)。
-            if (config.policyVersion < 2) {
+            //  v3:旧的单 key / 单 endpoint / 每家一把 key 归并为 providerEntries。
+            //   必须显式迁移,不能依赖 AppJson 的宽容解码 —— 那只会给新字段默认值,
+            //   旧值会静默留在旧字段里,用户升级后 Key 与自定义端点凭空消失。
+            val withBudget = if (config.policyVersion < 2) {
                 config.copy(maxSearchesPerTurn = 50, policyVersion = 2)
             } else {
                 config
             }
+            WebSearchConfig.migrateToV3(withBudget)
         }.catch {
             // M-SR3: 解密/解析异常回退默认值,避免 Flow 永久失效
             Logger.w("SettingsRepository", "webSearchConfigFlow 异常,回退默认值", it)

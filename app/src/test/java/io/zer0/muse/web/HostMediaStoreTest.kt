@@ -22,12 +22,10 @@ class HostMediaStoreTest {
     private val voiceDir = File(workDir, "voice_messages").apply { mkdirs() }
     private val outsideDir = File(workDir, "shared_prefs").apply { mkdirs() }
 
-    private fun store(maxEntries: Int = HostMediaStore.DEFAULT_MAX_ENTRIES) =
-        HostMediaStore(imageDir, voiceDir, maxEntries = maxEntries)
+    private fun store(maxEntries: Int = HostMediaStore.DEFAULT_MAX_ENTRIES) = HostMediaStore(imageDir, voiceDir, maxEntries = maxEntries)
 
     /** 写一个带媒体文件头的图片/音频文件,返回文件本身。 */
-    private fun mediaFile(dir: File, name: String, bytes: ByteArray = PNG_BYTES): File =
-        File(dir, name).apply { writeBytes(bytes) }
+    private fun mediaFile(dir: File, name: String, bytes: ByteArray = PNG_BYTES): File = File(dir, name).apply { writeBytes(bytes) }
 
     @Test
     fun `file reference inside allowed dir yields a token that resolves back to the file`() {

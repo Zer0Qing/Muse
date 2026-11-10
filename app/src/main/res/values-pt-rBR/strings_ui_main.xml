@@ -223,7 +223,7 @@
     <string name="settings_group_automation">Automação</string>
     <string name="settings_group_automation_desc">Mensagens proativas, tarefas agendadas, notificações e segundo plano</string>
     <string name="settings_group_appearance">Aparência</string>
-    <string name="settings_group_appearance_desc">Temas, tamanho da fonte e mini telefone</string>
+    <string name="settings_group_appearance_desc">Temas e tamanho da fonte</string>
     <string name="settings_group_data_privacy">Dados e privacidade</string>
     <string name="settings_group_data_privacy_desc">Dados, área de trabalho, backup, importação e privacidade</string>
     <string name="settings_group_about_developer">Sobre e desenvolvedor</string>

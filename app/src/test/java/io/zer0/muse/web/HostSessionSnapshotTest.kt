@@ -107,12 +107,7 @@ class HostSessionSnapshotTest {
         )
     }
 
-    private fun session(
-        id: String,
-        archived: Boolean = false,
-        deletedAt: Long? = null,
-        assistantId: String = "default",
-    ) = SessionEntity(
+    private fun session(id: String, archived: Boolean = false, deletedAt: Long? = null, assistantId: String = "default") = SessionEntity(
         id = id,
         title = id,
         createdAt = 1L,

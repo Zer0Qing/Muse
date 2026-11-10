@@ -28,6 +28,21 @@ import java.util.concurrent.TimeUnit
  * P1-3b 拆域：Skill 搜索/HTTP 工具实现（从 SkillExecutor.kt 迁移）。
  * 由 SkillExecutor 委托调用。
  */
+
+/**
+ * R1 工具入口许可上下文(执行器在每轮工具执行前提供;未提供 = 未接可信上下文)。
+ *
+ * 合同(由 SkillSearchToolsImplTest 钉住):
+ *  - [allowInternalDocs] 是执行器侧许可;模型的 `include_internal` 参数只能在该许可内
+ *    收窄(true→false 允许,false→true 禁止),未接可信上下文时一律按 false 处理;
+ *  - [allowedDocIds] 是许可文档集(null = 执行器未限制,保持既有全库语义;非 null 时
+ *    模型参数不得越界,最终结果必须是许可与模型收窄参数的交集)。
+ */
+data class ToolSearchContext(
+    val allowedDocIds: Set<String>? = null,
+    val allowInternalDocs: Boolean = false,
+)
+
 @Suppress("LongParameterList") // 依赖注入聚合点：可选依赖（DAOs / 服务 / 策略提供器）集中注入，与 RagService / SkillExecutor 同口径
 class SkillSearchToolsImpl(
     private val context: Context,
@@ -39,6 +54,11 @@ class SkillSearchToolsImpl(
     private val webSearchCoordinator: io.zer0.muse.web.WebSearchCoordinator? = null,
     private val webSearchPolicyProvider: suspend () -> WebSearchPolicy = { WebSearchPolicy() },
     private val builtInKnowledgeDocSeeder: BuiltInKnowledgeDocSeeder? = null,
+    /**
+     * R1: 执行器提供的可信上下文(每轮工具执行前刷新)。null = 未接可信上下文(外部/未授权入口),
+     * knowledge_search 按 include_internal=false 的安全侧处理。
+     */
+    private val trustedContextProvider: (suspend () -> ToolSearchContext?)? = null,
 ) {
     fun validatePublicUrl(url: String): Boolean {
         val uri =
@@ -264,18 +284,19 @@ class SkillSearchToolsImpl(
             return formatCoordinatedSearchResponse(response, maxResults)
         }
         // 兼容测试环境/旧注入链：没有 coordinator 时直接调用 service。
-        // date_range / time_period: 时间范围(可选,二选一,time_period 兼容同义)
-        val dateRange = args["date_range"]?.takeIf { it.isNotBlank() }
-        val timePeriod = args["time_period"]?.takeIf { it.isNotBlank() }
-        val options =
-            buildMap<String, String> {
-                dateRange?.let { put("date_range", it) }
-                timePeriod?.let { put("time_period", it) }
-            }
+        // 与 coordinator 路径同口径：先分析查询，再对结果做去重/过滤/门禁。
+        val plan = io.zer0.muse.web.WebSearchQueryAnalyzer.analyze(
+            query,
+            explicitDateRange = args["date_range"]?.takeIf { it.isNotBlank() }
+                ?: args["time_period"]?.takeIf { it.isNotBlank() },
+        )
+        val options = buildMap<String, String> {
+            plan.effectiveDateRange?.let { put("date_range", it) }
+        }
         // H-SE1: 改用 resultOf{}(正确重抛 CancellationException)
-        val results =
+        val raw =
             resultOf {
-                service.searchWithOptions(query, maxResults, options)
+                service.searchWithOptions(plan.outboundQuery, maxResults, options)
             }.onError { msg, t ->
                 // search-rate-limiter: 被限速时返回友好提示给 LLM，避免反复撞 429/402
                 if (t is SearchRateLimitException) {
@@ -285,6 +306,15 @@ class SkillSearchToolsImpl(
                 }
                 Logger.w("SkillExecutor", "web_search 失败: $msg")
             }.getOrNull() ?: emptyList()
+        val outcome = io.zer0.muse.web.WebSearchResultPostProcessor.process(
+            raw, plan, plan.effectiveDateRange, System.currentTimeMillis(),
+        )
+        if (!outcome.recallOk && raw.isNotEmpty()) {
+            return "搜索“${plan.outboundQuery}”没有返回与问题相关的结果。" +
+                (outcome.reason?.let { "原因：$it。" } ?: "") +
+                "请如实告诉用户没搜到可靠资料，不要凭记忆编造；可以建议换更具体的关键词再试。"
+        }
+        val results = if (outcome.recallOk) outcome.results else emptyList()
         if (results.isEmpty()) return context.getString(R.string.skill_search_no_result, query)
         val sb = StringBuilder(context.getString(R.string.skill_search_result_header, query, maxResults))
         results.forEachIndexed { idx, r ->
@@ -296,6 +326,15 @@ class SkillSearchToolsImpl(
         return sb.toString().trimEnd()
     }
 
+    /** 搜索尝试的状态 → 给模型看的人话。枚举名对模型没有信息量。 */
+    private fun attemptStatusLabel(status: io.zer0.muse.web.WebSearchAttemptStatus): String = when (status) {
+        io.zer0.muse.web.WebSearchAttemptStatus.SUCCESS -> "有结果"
+        io.zer0.muse.web.WebSearchAttemptStatus.EMPTY -> "返回空"
+        io.zer0.muse.web.WebSearchAttemptStatus.RATE_LIMITED -> "被限速"
+        io.zer0.muse.web.WebSearchAttemptStatus.FAILED -> "失败"
+        io.zer0.muse.web.WebSearchAttemptStatus.BLOCKED -> "被拦截"
+    }
+
     private fun formatCoordinatedSearchResponse(response: io.zer0.muse.web.WebSearchResponse, maxResults: Int): String {
         if (response.status != io.zer0.muse.web.WebSearchStatus.RESULTS || response.results.isEmpty()) {
             return when (response.status) {
@@ -303,7 +342,26 @@ class SkillSearchToolsImpl(
                 io.zer0.muse.web.WebSearchStatus.DUPLICATE_QUERY -> "这个搜索词本轮已经搜过了，请不要重复搜索。"
                 io.zer0.muse.web.WebSearchStatus.RATE_LIMITED -> "搜索服务被限速了，请稍后再试。"
                 io.zer0.muse.web.WebSearchStatus.FAILED -> "搜索服务失败：${response.attempts.lastOrNull()?.message ?: "网络异常"}"
-                else -> "搜索“${response.normalizedQuery}”没有找到结果。"
+                io.zer0.muse.web.WebSearchStatus.RECALL_IRRELEVANT ->
+                    "搜索“${response.normalizedQuery}”没有返回与问题相关的结果。" +
+                        (response.debug?.reason?.let { "原因：$it。" } ?: "") +
+                        "请如实告诉用户没搜到可靠资料，不要凭记忆编造；可以建议换更具体的关键词再试。"
+                // 空结果时把「查了哪些源、各自什么结局」一并交出去：
+                // 只说「没有找到结果」会让模型以为信息不存在，进而凭记忆作答；
+                // 说清是限速/超时/源返回空，它才能如实告诉用户「是搜索没通，不是我查不到」。
+                else -> buildString {
+                    appendLine("搜索“${response.normalizedQuery}”没有返回可用结果。")
+                    val attempts = response.attempts
+                    if (attempts.isEmpty()) {
+                        appendLine("原因：没有任何搜索源被调用（可能未配置引擎或全部不可用）。")
+                    } else {
+                        appendLine("各搜索源的结局：")
+                        attempts.forEach { attempt ->
+                            appendLine("- ${attempt.provider}：${attemptStatusLabel(attempt.status)}（${attempt.elapsedMs}ms）")
+                        }
+                        appendLine("请如实告诉用户搜索没有返回结果，不要凭记忆编造；可以建议换个更具体的说法再试。")
+                    }
+                }
             }
         }
         val sb = StringBuilder(context.getString(R.string.skill_search_result_header, response.normalizedQuery, response.results.size))
@@ -313,6 +371,17 @@ class SkillSearchToolsImpl(
             sb.appendLine("    摘要: ${r.snippet}")
         }
         sb.appendLine("\n搜索来源：${response.provider ?: "未知"}；本轮状态：${response.status}")
+        // 可观测性：把实际生效引擎、构造后的 query、各阶段结果数交出去，
+        // 线上召回问题不必再靠用户反馈反推。只在有 debug 时附加，不影响旧调用方。
+        response.debug?.let { d ->
+            sb.appendLine("检索词：${d.outboundQuery}")
+            if (d.appliedDateRange != null) {
+                sb.appendLine("时间范围：${d.appliedDateRange}${if (d.inferredDateRange) "（由查询推断）" else ""}")
+            }
+            if (!d.constraints.isEmpty()) sb.appendLine("已应用约束：${d.constraints}")
+            if (d.unsupportedOperators.isNotEmpty()) sb.appendLine("未支持的操作符（已忽略）：${d.unsupportedOperators.joinToString()}")
+            sb.appendLine("结果数：召回 ${d.recalledCount} → 过滤 ${d.afterFilterCount} → 去重 ${d.afterDedupCount} → 最终 ${d.finalCount}")
+        }
         return sb.toString().trimEnd()
     }
 
@@ -433,7 +502,17 @@ class SkillSearchToolsImpl(
         val topK = args["top_k"]?.toIntOrNull()?.coerceIn(1, 50) ?: 5
         val threshold = args["threshold"]?.toFloatOrNull()?.coerceIn(0f, 1f) ?: 0.3f
         // v1.97: include_internal — 是否包含内部开发文档(devdoc),默认 false
-        val includeInternal = args["include_internal"]?.toBoolean() ?: false
+        // R1 入口许可合同:include_internal 是执行器侧许可,不是模型可自报的扩权参数。
+        // 模型参数只能收窄:上下文不允许或未接可信上下文(外部入口)时一律按 false 处理。
+        val trustedContext = trustedContextProvider?.let { provider ->
+            resultOf { provider() }
+                .onError { msg, t -> Logger.w("SkillExecutor", "可信上下文获取失败,按最窄许可处理: $msg", t) }
+                .getOrNull()
+        }
+        val includeInternal =
+            (args["include_internal"]?.toBoolean() ?: false) && trustedContext?.allowInternalDocs == true
+        // R1: 许可文档集(执行器侧);null = 执行器未限制(保持既有全库语义)。
+        val permittedDocIds = trustedContext?.allowedDocIds
         // v2.4.6: folder — 限定检索的文件夹(知识库内路径)。一个文件夹 = 一个独立检索域,
         //   传入后只在该文件夹及其子文件夹内检索,不串到其它文件夹。
         val folderArg = args["folder"]?.trim()?.takeIf { it.isNotBlank() }
@@ -443,7 +522,9 @@ class SkillSearchToolsImpl(
         }
 
         // v2.4.6: 文件夹作用域 → docId 集合(路径前缀匹配,含子目录)
-        var folderScopeDocIds: List<String>? = null
+        // R1: folder 参数是模型侧「收窄」手段 — 最终 scope 必须落在许可(permittedDocIds)内,
+        // 模型省略 folder 不能越过许可;许可与 folder 命中都存在时取交集。
+        var folderScopeDocIds: List<String>? = permittedDocIds?.toList()
         if (folderArg != null) {
             val path = io.zer0.muse.rag.KnowledgeFolderBrowser.normalize(folderArg)
             val allDocs = resultOf { dao.observeAllUser().first() }.getOrNull().orEmpty()
@@ -451,7 +532,11 @@ class SkillSearchToolsImpl(
                 val p = io.zer0.muse.rag.KnowledgeFolderBrowser.folderPath(doc)
                 p == path || p.startsWith("$path/")
             }
-            folderScopeDocIds = hit.map { it.id }
+            val hitIds = hit.map { it.id }
+            folderScopeDocIds = when {
+                permittedDocIds == null -> hitIds
+                else -> hitIds.filter { it in permittedDocIds }
+            }
             if (folderScopeDocIds.isEmpty()) {
                 return context.getString(R.string.skill_knowledge_no_match, folderArg, threshold.toString())
             }

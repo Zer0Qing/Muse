@@ -223,7 +223,7 @@
     <string name="settings_group_automation">Автоматизация</string>
     <string name="settings_group_automation_desc">Проактивные сообщения, задачи по расписанию, уведомления и работа в фоне</string>
     <string name="settings_group_appearance">Внешний вид</string>
-    <string name="settings_group_appearance_desc">Темы, размер шрифта и мини-телефон</string>
+    <string name="settings_group_appearance_desc">Темы и размер шрифта</string>
     <string name="settings_group_data_privacy">Данные и приватность</string>
     <string name="settings_group_data_privacy_desc">Данные, рабочая область, резервные копии, импорт и приватность</string>
     <string name="settings_group_about_developer">О приложении и разработчику</string>

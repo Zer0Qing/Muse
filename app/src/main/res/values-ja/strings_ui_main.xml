@@ -223,7 +223,7 @@
     <string name="settings_group_automation">自動化</string>
     <string name="settings_group_automation_desc">自発メッセージ、定時タスク、通知、常駐</string>
     <string name="settings_group_appearance">外観</string>
-    <string name="settings_group_appearance_desc">テーマと文字サイズ、ミニフォン</string>
+    <string name="settings_group_appearance_desc">テーマと文字サイズ</string>
     <string name="settings_group_data_privacy">データとプライバシー</string>
     <string name="settings_group_data_privacy_desc">データ、ワークスペース、バックアップ、インポート、プライバシー</string>
     <string name="settings_group_about_developer">情報と開発者</string>

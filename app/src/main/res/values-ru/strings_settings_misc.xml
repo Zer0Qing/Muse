@@ -18,8 +18,6 @@
     <string name="settings_web_search_enable_subtitle">Глобальное состояние по умолчанию;</string>
     <string name="settings_web_search_engine">Поисковая система</string>
     <string name="settings_web_search_api_key_label">Ключ API (необязательно)</string>
-    <string name="settings_web_search_multi_key_title">Ключи API для нескольких движков</string>
-    <string name="settings_web_search_multi_key_subtitle">Настройте ключ для каждого поисковика; режим Auto перебирает их по порядку</string>
     <string name="settings_saved">Сохранено</string>
     <string name="settings_web_search_save_api_key">Сохранить ключ API</string>
     <string name="settings_web_search_save_endpoint">Сохранить конечную точку</string>
@@ -327,4 +325,15 @@
     <string name="settings_model_action_test_chat_short">Тест</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>
     <string name="settings_web_search_path_user_api">API пользователя</string>
+    <string name="settings_web_search_provider_type_title">Тип поискового сервиса</string>
+    <string name="settings_web_search_provider_type_desc">Сначала выберите тип, затем заполните нужные для него поля</string>
+    <string name="settings_web_search_custom_url_optional">Пользовательский URL (необязательно)</string>
+    <string name="settings_web_search_custom_url_hint">Оставьте пустым, чтобы использовать адрес по умолчанию</string>
+    <string name="settings_web_search_key_pool_label">Ключ API</string>
+    <string name="settings_web_search_key_pool_hint">Можно вставить несколько ключей API: по одному на строку или через запятую</string>
+    <string name="settings_web_search_model_optional">Имя модели (необязательно)</string>
+    <string name="settings_web_search_instance_url_required">URL экземпляра обязателен</string>
+    <string name="settings_web_search_status_connected">Подключено</string>
+    <string name="settings_web_search_status_failed">Ошибка подключения</string>
+    <string name="settings_web_search_status_untested">Не проверялось</string>
 </resources>

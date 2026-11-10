@@ -223,7 +223,7 @@
     <string name="settings_group_automation">자동화</string>
     <string name="settings_group_automation_desc">능동 메시지, 예약 작업, 알림, 상주 실행</string>
     <string name="settings_group_appearance">외형</string>
-    <string name="settings_group_appearance_desc">테마와 글자 크기, 미니폰</string>
+    <string name="settings_group_appearance_desc">테마와 글자 크기</string>
     <string name="settings_group_data_privacy">데이터 및 개인정보</string>
     <string name="settings_group_data_privacy_desc">데이터, 작업 공간, 백업, 가져오기, 개인정보</string>
     <string name="settings_group_about_developer">정보 및 개발자</string>

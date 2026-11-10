@@ -68,10 +68,7 @@ class HostChatQuoteTest {
     )
 
     /** 假 ViewModel：send() 按 App 的方式把 replyingTo 拼成 `> …` 前缀后追加一条用户消息。 */
-    private fun harness(
-        initial: List<UIMessage>,
-        entities: Map<String, MessageEntity>,
-    ): Harness {
+    private fun harness(initial: List<UIMessage>, entities: Map<String, MessageEntity>): Harness {
         val chat = mockk<ChatViewModel>(relaxed = true)
         val messagesFlow = MutableStateFlow(initial)
         var replying: UIMessage? = null
