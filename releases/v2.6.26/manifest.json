@@ -1,0 +1,29 @@
+{
+  "versionName": "2.6.26",
+  "versionCode": 290,
+  "dbVersion": 125,
+  "apkFile": "app-arm64-v8a-release.apk",
+  "apkSizeBytes": 104681775,
+  "apkSha256": "3d091679cccc3b058cbc32d95dd49d4b7bbde96380b2d88845daef9b2ccccc65",
+  "apkArtifacts": [
+    {
+      "name": "app-arm64-v8a-release.apk",
+      "sizeBytes": 104681775,
+      "sha256": "3d091679cccc3b058cbc32d95dd49d4b7bbde96380b2d88845daef9b2ccccc65"
+    },
+    {
+      "name": "app-armeabi-v7a-release.apk",
+      "sizeBytes": 60614234,
+      "sha256": "3568f61db2bb02bc359ec7aef7c4272873a7bae1e2f3b69d47496f2c66169622"
+    },
+    {
+      "name": "app-universal-release.apk",
+      "sizeBytes": 188684788,
+      "sha256": "7aa01ddfcbf64074f002e991b01f187864a900bc65890774d98a921b82c3df97"
+    }
+  ],
+  "releaseNotesRef": "releases/v2.6.26/release_body.md",
+  "sourceCommit": "d1083b20d26cf67584a3d9b07af006a1001e5173",
+  "sourceRef": "local-dirty-worktree-d1083b20",
+  "generatedAt": "2026-11-10T04:54:11+00:00"
+}

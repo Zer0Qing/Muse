@@ -1,0 +1,98 @@
+Muse v2.6.26 本地测试候选包校验记录
+生成时间: 2026-11-10 12:55 +08:00
+versionName=2.6.26  versionCode=290  applicationId=io.zer0.muse
+状态: **本地测试候选，未公开发布**。未提交、未 push、未打 tag、未建 Release、未部署官网。
+      用户当次授权仅为「打包供测试」，按 AGENTS.md §1 七个独立动作各自授权。
+
+## 构建来源（不隐瞒，这是本记录最重要的一节）
+
+构建工作树就是当前脏工作树 E:\1Project\Muse\1muse，未创建 clean worktree，
+未执行 stash / checkout / reset / clean / git add / commit。
+assembleRelease 直接编译该目录源码，因此**工作树上其他 Agent 的全部未提交改动都在包内**：
+- 顶层分布: app 436、miniphone 192、.audit 27、ai 4、releases 1、SECURITY.md 1、
+  CONTRIBUTING.md 1、.gitignore 1（按 git status 计）。
+- 按模块: app 436、miniphone 192、ai 4；另有 197 个未跟踪路径。
+- 合计 663 项状态（打包前 662，本记录与 release_body/manifest 新增若干）。
+
+基础 commit: d1083b20d26cf67584a3d9b07af006a1001e5173 (main, 与 origin/main 一致)。
+脏树指纹（可复核，见外层 Muse/build/walk-release/dirty-fingerprint.txt）:
+- tracked diff SHA-256: b5ca8bfaf64260383c91d19a6d0497d8d06423dcc2f6887ac253cd11286edab1
+- staged diff SHA-256:  d5a1290716096759c80f7d06b352769880a3d3f1b4636f70a84d20b2941b9ee2
+- tracked changed paths: 476；untracked paths: 197
+
+依据 PROJECT_GUIDE §7.1「脏树候选必须记录基础 commit、sourceRef、dirty 状态及可复核内容指纹；
+generate_release_manifest.py 没有 dirty 指纹参数，需在校验记录附真实证据，不捏造脚本自动支持」：
+manifest.json 的 sourceCommit 填真实基础 commit，sourceRef 填
+"local-dirty-worktree-d1083b20"，**没有把它伪装成 v2.6.26 tag**。tag v2.6.26 不存在
+（git tag -l v2.6.26 为空），也未被脚本或本记录暗示存在。
+本包的源码基线不是任何单一已提交 commit，正式发布前必须先把各工作线分批提交并重新构建，
+使包与 tag 同源（v2.6.24 曾在此踩过坑，v2.6.25 已修正为干净树构建）。
+
+## 版本号
+
+aapt dump badging (arm64-v8a):
+package: name='io.zer0.muse' versionCode='290' versionName='2.6.26' compileSdkVersion='36'
+minSdkVersion 26  targetSdkVersion 36
+构建命令: ./gradlew :app:assembleRelease -PversionName=2.6.26 -PversionCode=290 --console=plain
+日志: build/walk-release-build.log → GRADLE_EXIT=0, BUILD SUCCESSFUL in 8m 21s,
+      421 actionable tasks: 73 executed, 8 from cache, 340 up-to-date.
+未传 releaseSkipVersionCheck / releaseSkipKeystoreCheck，走真实 release 签名与版本硬约束。
+output-metadata.json 四个变体（universal / armeabi-v7a / arm64-v8a / x86_64）均 2.6.26 / 290。
+APK 时间戳 2026-11-10 12:51，为本次新产物（旧包为 11-08 22:53，已覆盖）。
+
+## 签名（apksigner verify --print-certs）
+
+validate_release_apks.py 首跑 EXIT=1：脚本在 PATH / ANDROID_HOME 下找不到 apksigner。
+未绕过校验，改为显式 --apksigner 绝对路径（build-tools/36.0.0/apksigner.bat）重跑：
+EXIT=0，三个分发包全部「签名校验 PASS」。
+Signer #1 certificate DN: CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN
+SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+与 v2.6.22 / v2.6.24 / v2.6.25 同一证书，可直接覆盖升级，确非 debug 签名。
+
+## 产物（分发三包 + 本机 x86_64 + manifest + 说明 + 本记录）
+
+Muse_v2.6.26_arm64-v8a.apk     104681775 bytes  sha256=3d091679cccc3b058cbc32d95dd49d4b7bbde96380b2d88845daef9b2ccccc65
+Muse_v2.6.26_armeabi-v7a.apk    60614234 bytes  sha256=3568f61db2bb02bc359ec7aef7c4272873a7bae1e2f3b69d47496f2c66169622
+Muse_v2.6.26_universal.apk     188684788 bytes  sha256=7aa01ddfcbf64074f002e991b01f187864a900bc65890774d98a921b82c3df97
+Muse_v2.6.26_x86_64.apk        105964517 bytes  sha256=a21733347d7040f5301713b4a9e355479e9e5a7382291be5a672e48d613435c7
+                                                  （本机模拟器用，按 PROJECT_GUIDE §7.3 不进公开分发）
+
+四包均为 Gradle 产物直接改名，逐字节一致（sha256 逐一比对 True），无二次处理。
+manifest.json 的 3 个 apkArtifacts 的 sizeBytes 与 sha256 与归档文件逐项复核一致。
+
+## 包内运行时资产（HANDOFF §四 的坑：漏带会让 APK 从 103MB/84 项掉到 53MB/10 项）
+
+zipfile 核对 arm64-v8a 包: 总条目 1981、assets 235、lib/arm64-v8a 84 项，
+与 v2.6.24 / v2.6.25 的 1981 / 235 / 84 完全对齐。关键资产全部存在:
+- assets/muse-python-assets.zip、assets/muse-runtime-assets.zip
+- lib/arm64-v8a/libmuse_node.so、libpython3.14.so、libicudata.so
+- assets/a11y/accessibility-provider.apk
+- assets/muse-web/ 网页 bundle 10 项
+jniLibs 现场: arm64-v8a 74 个 .so、x86_64 74 个 .so、armeabi-v7a 无 .so
+（armeabi-v7a 分包历来为纯 Java/资源包，v2.6.25 同口径 60MB，属既有设计，非本版缺失）。
+
+## manifest 与校验脚本（两次真实 FAIL 如实记录）
+
+generate_release_manifest.py EXIT=0 → releases/v2.6.26/manifest.json
+  versionName=2.6.26 versionCode=290 dbVersion=125 apkArtifacts=3
+  sourceCommit=d1083b20d26cf67584a3d9b07af006a1001e5173
+  sourceRef=local-dirty-worktree-d1083b20
+
+validate_release_manifest.py 两次均 FAIL，原因是该脚本假定「tag 正式发布」场景:
+  1) --tag local-dirty-worktree-d1083b20 → FAIL「versionName 与 tag 不一致」
+  2) --tag 2.6.26                        → FAIL「sourceRef 与 tag 不一致」
+没有通过把 sourceRef 伪造成 v2.6.26 来凑绿——那等于把脏树冒充正式 tag 来源。
+本包是本地测试候选、没有 tag，该脚本在此场景结构上不适用；
+manifest 的可信度改由上面「三包 sha256/sizeBytes 与磁盘逐项一致」的独立核对承担。
+check_release_body_bilingual.py PASS（中文段 + 独立 --- + 英文段）。
+
+## 未执行 / 未达标（诚实边界）
+
+- 未跑 ci/run_ci_checks.ps1 完整五条 lane。本批次已完成的验证：app + miniphone 编译
+  （GRADLE_EXIT=0）、定向回归 34 个 TEST XML / 221 例 / 0 failures / 0 errors。
+- 静态护栏存在工作树原有存量红：check_hardcoded_cjk（MemoryViewModel.kt 1 处）、
+  check_component_convergence（当前 23 > 基线 14）、:app ktlint 存量红；
+  均非本批次引入，未为凑绿删基线或加 Suppress。
+- 全量单测与真机验收由测试环节完成。重点关注小手机 v5→v8 迁移（有旧数据的覆盖安装、
+  备份恢复、升级中途被杀）——这是项目长期记录的唯一硬前置，本包特意包含该未提交改动供实测。
+- 未 push、未打 tag、未建 Release、未部署官网；工作树保持未提交，HEAD 仍 d1083b20。
