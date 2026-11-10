@@ -16,47 +16,17 @@ keystore.properties
 .DS_Store
 Thumbs.db
 
-# 项目文档（仅保留首页 README）
+# 项目文档：源码仓库只保留插件作者需要的那一份，其余归入外层工作区
 /docs/*
-!/docs/README.md
-!/docs/README_EN.md
-!/docs/ENGINEERING_DISCIPLINE.md
-!/docs/后台保活与进程恢复.md
-!/docs/回归资产清单.md
-!/docs/tech-debt-plan.md
-!/docs/refactor-plan-chatviewmodel.md
-!/docs/rebuild/
-!/docs/rebuild/**
 !/docs/plugin/
 !/docs/plugin/**
-!/docs/sticker/
-!/docs/sticker/**
-!/docs/miniphone/
-!/docs/miniphone/**
-!/docs/memory/
-!/docs/memory/**
-!/docs/conversation-core/
-!/docs/conversation-core/**
-!/docs/ai/
-!/docs/ai/**
-!/docs/common/
-!/docs/common/**
-!/docs/accessibility/
-!/docs/accessibility/**
-!/docs/material3/
-!/docs/material3/**
-!/docs/virtual-display/
-!/docs/virtual-display/**
-!/docs/quality/
-!/docs/quality/**
-!/docs/assets/
-!/docs/assets/readme/
-!/docs/assets/readme/**
 
-# 贡献/安全/计划文档（项目代码不包含这些）
+# 内部审查工作区：不随源码发布（含历史事故记录与凭据线索）
+/.audit/
+
+# 贡献与计划文档：SECURITY.md 属于希望公开的安全政策，必须入库
 CONTRIBUTING.md
 !/CONTRIBUTING.md
-SECURITY.md
 Muse_Product_Enhancement_Plan.md
 _skill_existing.txt
 report_*.txt

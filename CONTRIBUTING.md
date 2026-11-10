@@ -24,7 +24,7 @@
 ### 提交 Pull Request
 
 1. Fork 本仓库并创建您的分支
-2. 遵循现有代码风格（Kotlin 官方风格）
+2. 遵循 `.editorconfig` 声明的代码风格（这是唯一真源，IDE 与 ktlint 共用）
 3. 新功能请包含单元测试
 4. 确保 `./ci/run_ci_checks.ps1 -Lane static` 通过（detekt、ktlint、lint 和覆盖率门禁）
 5. 确保 `./ci/run_ci_checks.ps1 -Lane unit` 全部通过
