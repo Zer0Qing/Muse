@@ -86,6 +86,10 @@ data object SettingsWebSearchRoute
 @Serializable
 data object SettingsAsrRoute
 
+/** 语音识别 →「模型下载」三级页（本地离线模型的后台下载与状态管理）。 */
+@Serializable
+data object SettingsLocalAsrModelRoute
+
 @Serializable
 data object SettingsMcpRoute
 

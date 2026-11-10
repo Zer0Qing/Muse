@@ -35,6 +35,7 @@ import io.zer0.muse.ui.settings.SecuritySettingsPage
 import io.zer0.muse.ui.settings.SettingsAboutPage
 import io.zer0.muse.ui.settings.SettingsAppearancePage
 import io.zer0.muse.ui.settings.SettingsAsrPage
+import io.zer0.muse.ui.settings.SettingsLocalAsrModelPage
 import io.zer0.muse.ui.settings.SettingsAssistantResourcesPage
 import io.zer0.muse.ui.settings.SettingsDataImportPage
 import io.zer0.muse.ui.settings.SettingsDataPage
@@ -152,7 +153,15 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         SettingsAsrPage(
             onBack = { navController.popBackStack() },
             onOpenProviderSettings = { navController.navigate(SettingsModelRoute) },
+            onOpenLocalModel = { navController.navigate(SettingsLocalAsrModelRoute) },
         )
+    }
+    // 语音识别 →「模型下载」三级页：下载是应用级后台任务，本页只做观察与操作
+    composable<SettingsLocalAsrModelRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        SettingsLocalAsrModelPage(onBack = { navController.popBackStack() })
     }
     // v1.133: 设置二级页 — MCP 服务器(从 SettingsModelPage 拆出)
     composable<SettingsMcpRoute>(

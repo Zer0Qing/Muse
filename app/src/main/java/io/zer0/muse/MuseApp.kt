@@ -173,6 +173,8 @@ class MuseApp : Application(), ImageLoaderFactory {
         // v2.5.3 (P1-2): 暴露 Application Context 给 DataStore 损坏备份逻辑,
         // 使 muse_settings 文件损坏时能在重建前备份现场。
         io.zer0.muse.data.SettingsStoreContextHolder.applicationContext = applicationContext
+        // 本地离线语音:给 asr 包注入 Application Context,小手机的整段转写据此判断模型是否就绪
+        io.zer0.muse.asr.local.LocalModelStoreBridge.init(applicationContext)
         // Phase 11.3: 文件日志(便于真机验证后回捞,cacheDir 卸载自动清理)
         Logger.initFileLog(this)
         // v2.6.23(S4): 主线程卡顿计数(诊断卡数据源)。Printer 只做时间戳差值,

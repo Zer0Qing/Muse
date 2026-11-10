@@ -94,6 +94,35 @@
     <string name="asr_reconnecting_message">连接中断，正在重连…(第 %1$d/%2$d 次)</string>
     <string name="asr_reconnect_exhausted">语音连接中断，自动重连 3 次仍未恢复。已识别的内容已保留，请检查网络后重新开始录音。</string>
 
+    <!-- 本地离线语音识别(SenseVoice) -->
+    <string name="settings_asr_provider_local_sensevoice">本地离线模型</string>
+    <string name="settings_asr_desc_local_sensevoice">识别在本机完成，无需联网；首次使用需下载模型（约 241 MB）</string>
+    <string name="asr_local_error_model_missing">离线语音模型未下载，请到设置中下载</string>
+    <string name="asr_local_error_inference">本地识别失败，请重试</string>
+    <string name="asr_error_capture_generic">录音失败，请重试</string>
+    <string name="asr_error_capture_failed">麦克风读取失败（错误码：%1$d）</string>
+    <string name="asr_local_download_title">离线语音模型</string>
+    <string name="asr_local_download_desc">下载后识别在本机完成，无需联网；模型约 241 MB</string>
+    <string name="asr_local_download_action">下载</string>
+    <string name="asr_local_download_cancel">取消</string>
+    <string name="asr_local_download_retry">重试</string>
+    <string name="asr_local_download_delete">删除模型</string>
+    <string name="asr_local_download_use">使用本地识别</string>
+    <string name="asr_local_download_use_done">已切换为本地识别</string>
+    <string name="asr_local_download_ready">已就绪 · %1$s</string>
+    <string name="asr_local_download_incomplete">下载不完整，请重新下载</string>
+    <string name="asr_local_download_metered_confirm">当前使用移动数据，下载约需 %1$s，是否继续？</string>
+    <string name="asr_local_download_insufficient_space">存储空间不足，还需 %1$s，请清理后重试</string>
+    <string name="asr_local_download_delete_confirm">删除离线语音模型？删除后本地识别不可用，可随时重新下载。</string>
+    <!-- 语音识别 → 模型下载入口行 / 三级页 -->
+    <string name="settings_asr_local_model_entry_title">离线语音模型</string>
+    <string name="settings_asr_local_model_entry_not_downloaded">未下载 · 约 241 MB</string>
+    <string name="settings_asr_local_model_entry_downloading">下载中 %1$d%%</string>
+    <string name="settings_asr_local_model_entry_ready">已就绪 · %1$s</string>
+    <string name="settings_asr_local_model_entry_incomplete">下载不完整，点此重新下载</string>
+    <string name="settings_asr_local_model_entry_failed">上次下载失败，点此重试</string>
+    <string name="asr_local_model_page_hint">下载在本应用内后台进行：切换页面或锁屏不会中断，关闭应用后重新打开会从断点继续。识别全部在本机完成，不联网、不产生流量费用。</string>
+
     <!-- 语音对话模式(全屏连续对话:ASR + AI + TTS) -->
     <string name="voice_conversation_close_cd">关闭语音对话</string>
     <string name="voice_conversation_change_voice">切换语音</string>
