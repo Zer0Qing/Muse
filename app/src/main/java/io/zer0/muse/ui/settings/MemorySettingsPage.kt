@@ -99,7 +99,7 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                 SettingsItemRow(
                     icon = null,
                     title = stringResource(R.string.memory_space_manage_title),
-                    subtitle = "管理工作 / 生活 / 学习等多个记忆空间,切换时互不干扰",
+                    subtitle = stringResource(R.string.code_gap_memory_spaces_subtitle),
                     onClick = onOpenMemorySpace,
                 )
             }

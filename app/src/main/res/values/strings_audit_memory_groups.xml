@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_memory_space_create_failed">创建 Space 失败: %1$s</string>
+    <string name="audit_memory_space_created">已创建空间: %1$s</string>
+    <string name="audit_memory_space_rename_failed">重命名失败: %1$s</string>
+    <string name="audit_memory_space_renamed">已重命名</string>
+    <string name="audit_memory_space_delete_failed">删除失败: %1$s</string>
+    <string name="audit_memory_space_deleted">已删除空间,事实已迁回默认空间</string>
+    <string name="audit_memory_space_default_not_deletable">默认空间不可删除</string>
+    <string name="audit_group_memory_clear_failed">清空群聊记忆失败</string>
+    <string name="audit_group_attachment_image">[图片]</string>
+    <string name="audit_group_attachment_file">[文件]</string>
+</resources>

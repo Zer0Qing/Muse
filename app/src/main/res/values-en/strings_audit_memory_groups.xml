@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_memory_space_create_failed">Failed to create space: %1$s</string>
+    <string name="audit_memory_space_created">Space created: %1$s</string>
+    <string name="audit_memory_space_rename_failed">Failed to rename space: %1$s</string>
+    <string name="audit_memory_space_renamed">Space renamed</string>
+    <string name="audit_memory_space_delete_failed">Failed to delete space: %1$s</string>
+    <string name="audit_memory_space_deleted">Space deleted; facts moved back to the default space</string>
+    <string name="audit_memory_space_default_not_deletable">The default space cannot be deleted</string>
+    <string name="audit_group_memory_clear_failed">Failed to clear group chat memory</string>
+    <string name="audit_group_attachment_image">[Image]</string>
+    <string name="audit_group_attachment_file">[File]</string>
+</resources>

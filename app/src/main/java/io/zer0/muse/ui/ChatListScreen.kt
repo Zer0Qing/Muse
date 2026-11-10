@@ -254,18 +254,19 @@ fun ChatListScreen(
             // v1.x: 个性化问候 — 缓存优先(当天),未命中则 LLM 生成,失败回退规则版。
             runCatching {
                 val today = java.time.LocalDate.now().toString()
+                val cachePrefix = "$today|${context.resources.configuration.locales[0].toLanguageTag()}|"
                 val cached = settings.getGreetingHintCache()
-                if (cached?.startsWith("$today|") == true) {
+                if (cached?.startsWith(cachePrefix) == true) {
                     resolvedGreetingHint = GreetingHelper.compactGreetingText(
-                        cached.substringAfter("|"),
+                        cached.removePrefix(cachePrefix),
                         GreetingHelper.PERSONALIZED_HINT_MAX_LENGTH,
                     )
                     greetingHint = resolvedGreetingHint
                 } else {
-                    greetingHintGenerator.generate(facts)?.let { hint ->
+                    greetingHintGenerator.generate(facts, context.resources)?.let { hint ->
                         resolvedGreetingHint = hint
                         greetingHint = hint
-                        settings.saveGreetingHintCache("$today|$hint")
+                        settings.saveGreetingHintCache("$cachePrefix$hint")
                     }
                 }
             }.onFailure { e -> Logger.w("ChatListScreen", "问候语生成失败: ${e.message}") }

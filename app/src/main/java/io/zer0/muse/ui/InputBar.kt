@@ -729,6 +729,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                     // v2.x: 联网搜索图标修正为 globe(原 languages 是翻译语义)
                                     icon = MuseIcons.globe,
                                     title = stringResource(R.string.chat_web_search_cd),
+                                    titleRes = R.string.chat_web_search_cd,
                                     isActive = isWebSearchEnabled,
                                     showArrow = false,
                                     onClick = {
@@ -741,6 +742,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 ToolEntry(
                                     icon = MuseIcons.brain,
                                     title = deepThinkingTitle,
+                                    titleRes = R.string.chat_deep_thinking_cd,
                                     isActive = isDeepThinkingEnabled,
                                     showArrow = false,
                                     onClick = {
@@ -758,6 +760,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 ToolEntry(
                                     icon = MuseIcons.paperclip,
                                     title = stringResource(R.string.chat_tool_attachment),
+                                    titleRes = R.string.chat_tool_attachment,
                                     onClick = {
                                         MuseHaptics.light(hapticFeedback)
                                         showToolSheet = false
@@ -769,6 +772,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 ToolEntry(
                                     icon = MuseIcons.book,
                                     title = stringResource(R.string.chat_tool_knowledge),
+                                    titleRes = R.string.chat_tool_knowledge,
                                     subtitle = stringResource(R.string.chat_tool_knowledge_subtitle),
                                     onClick = {
                                         MuseHaptics.light(hapticFeedback)

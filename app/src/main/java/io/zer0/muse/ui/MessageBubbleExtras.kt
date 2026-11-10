@@ -175,9 +175,9 @@ internal fun ToolCallCard(
     val imageSources = remember(toolName, result) {
         if (toolName in IMAGE_PREVIEW_TOOL_NAMES) extractImageSources(result) else emptyList()
     }
-    val summary = remember(toolName, arguments, result, isSuccess) {
+    val summary = remember(toolName, arguments, result, isSuccess, isRunning, resources.configuration) {
         when {
-            isRunning -> "正在执行…"
+            isRunning -> resources.getString(R.string.tool_trace_running).trimEnd('.', '…') + "…"
             else -> ToolCallVisuals.terminalSummaryFor(result, resources)
                 ?: ToolCallVisuals.summaryFor(toolName, arguments, result, isSuccess, resources)
         }
@@ -315,7 +315,7 @@ internal fun ToolCallCard(
                         )
                     } else {
                         // 参数：键值对展示（不再裸 {"k":"v"}）
-                        val paramRows = remember(arguments) { parseParamRows(arguments) }
+                        val paramRows = remember(arguments, resources.configuration) { parseParamRows(arguments, resources) }
                         if (paramRows.isNotEmpty()) {
                             ParamSection(rows = paramRows)
                         }
@@ -551,7 +551,7 @@ private const val RESULT_PREVIEW_CHARS = 500
 private data class ParamRow(val key: String, val value: String)
 
 /** 把 arguments JSON 解析成键值对行；非 JSON 或空时返回空列表（UI 不显示参数区）。 */
-private fun parseParamRows(arguments: String): List<Pair<String, String>> {
+private fun parseParamRows(arguments: String, resources: android.content.res.Resources): List<Pair<String, String>> {
     val t = arguments.trim()
     if (t.isEmpty() || !t.startsWith("{")) return emptyList()
     val obj = runCatching { JSONObject(t) }.getOrNull() ?: return emptyList()
@@ -563,7 +563,7 @@ private fun parseParamRows(arguments: String): List<Pair<String, String>> {
         val display: String = when (v) {
             is String -> v
             is Boolean, is Number -> v.toString()
-            is JSONArray -> "[${v.length()} 项]"
+            is JSONArray -> resources.getString(R.string.code_more_array_items, v.length())
             is JSONObject -> "{…}"
             else -> v.toString()
         }

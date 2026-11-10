@@ -242,14 +242,14 @@
     <string name="settings_mcp_no_text">(Sin texto)</string>
     <string name="settings_mcp_browse_prompts_title">Explorar mensajes</string>
     <string name="settings_mcp_load_prompts_failed">No se pudieron cargar los mensajes: %1$s</string>
-    <string name="settings_mcp_no_prompts">No hay avisos disponibles (requiere un servidor conectado que muestre avisos)</string>
+    <string name="settings_mcp_no_prompts">No hay prompts disponibles (se necesita un servidor conectado que los ofrezca)</string>
     <string name="settings_mcp_prompt_args">Argumentos: %1$s</string>
     <string name="settings_mcp_prompt_title">Mensaje: %1$s</string>
     <string name="settings_mcp_getting">Conseguir...</string>
     <string name="settings_mcp_prompt_no_args">Este mensaje no requiere argumentos</string>
     <string name="settings_mcp_get">Conseguir</string>
     <string name="settings_mcp_get_failed">Obtener error: %1$s</string>
-    <string name="settings_mcp_prompt_result">Resultado inmediato</string>
+    <string name="settings_mcp_prompt_result">Resultado del prompt</string>
     <string name="settings_mcp_no_messages">(Sin mensajes)</string>
 
     <!-- ==================== WebServer Settings ==================== -->
@@ -295,7 +295,7 @@
     <string name="settings_web_status_failed">Error al iniciar el servicio: %1$s</string>
 
     <!-- ==================== Chat Settings ==================== -->
-    <string name="settings_chat_title">Charlar</string>
+    <string name="settings_chat_title">Chat</string>
     <string name="settings_chat_message_display">Visualización de mensajes</string>
     <string name="settings_chat_show_mood">Mostrar bloque MOOD</string>
     <string name="settings_chat_show_mood_subtitle">Borrador interno de IA (Vibe/Sparks/Reflections/Will)</string>
@@ -338,13 +338,13 @@
     <string name="settings_chat_reflection_expand_subtitle">Contraído de forma predeterminada cuando está apagado</string>
     <string name="settings_chat_interaction">Interacción</string>
     <string name="settings_chat_context_section">Gestión de contexto</string>
-    <string name="settings_chat_streaming">Respuesta de transmisión</string>
+    <string name="settings_chat_streaming">Respuesta en streaming</string>
     <string name="settings_chat_streaming_subtitle">Salida toda a la vez cuando está apagado (espera más larga)</string>
     <string name="settings_chat_auto_scroll">Desplazamiento automático hacia abajo</string>
     <string name="settings_chat_auto_scroll_subtitle">Desplazamiento automático en mensajes nuevos</string>
     <string name="settings_chat_volume_scroll">Desplazamiento de la tecla de volumen</string>
     <string name="settings_chat_volume_scroll_subtitle">Utilice las teclas de volumen para desplazarse por la lista de chat</string>
-    <string name="settings_chat_enter_send">Ingresar para Enviar</string>
+    <string name="settings_chat_enter_send">Enviar con Intro</string>
     <string name="settings_chat_enter_send_subtitle">Enter inserta una nueva línea cuando está desactivado</string>
     <string name="settings_chat_haptic">Retroalimentación háptica</string>
     <string name="settings_chat_haptic_subtitle">Retroalimentación de vibración al tocar/presionar prolongadamente</string>
@@ -468,8 +468,8 @@
     <string name="settings_provider_keys_count">%1$d claves configuradas</string>
     <string name="settings_provider_remove_key">Eliminar esta clave</string>
     <string name="settings_provider_test_connection_endpoint">Probar conexión (punto final)</string>
-    <string name="settings_provider_test_connection_endpoint_sub">Envia un mensaje real para verificar el modelo</string>
-    <string name="settings_provider_test_success_chat_ok">Conexion correcta · %1$s respondio</string>
+    <string name="settings_provider_test_connection_endpoint_sub">Envía un mensaje real para verificar el modelo</string>
+    <string name="settings_provider_test_success_chat_ok">Conexión correcta · %1$s respondió</string>
     <string name="settings_rag_config_read_failed">No se pudo leer la configuración</string>
     <string name="settings_screen_desc_user_profile">Nombre / preferencias / estilo de comunicación</string>
     <string name="settings_screen_desc_appearance_customize">Burbujas / fondo / detalles del tema</string>
@@ -487,4 +487,31 @@
     <string name="settings_mcp_add_action">Añadir servidor</string>
     <string name="settings_model_catalog_counts">%1$d proveedores · %2$d modelos</string>
     <string name="settings_provider_api_key_pool_hint">Pega una o más claves de API, separadas por saltos de línea o comas</string>
+
+    <string name="settings_slider_input_hint">Introduce un valor directamente</string>
+    <string name="settings_slider_input_confirm">Aplicar</string>
+    <string name="settings_rag_embedding_provider_hint">Los servicios intermediarios pueden ofrecer modelos de embeddings o no. Usa el botón de prueba para comprobarlo.</string>
+    <string name="settings_rag_onnx_section">Modelo sin conexión</string>
+    <string name="settings_rag_onnx_model_title">Modelo ONNX local</string>
+    <string name="settings_rag_onnx_model_empty">Ningún modelo seleccionado</string>
+    <string name="settings_rag_onnx_pick">Elegir archivo</string>
+    <string name="settings_rag_onnx_clear">Eliminar modelo</string>
+    <string name="settings_rag_onnx_hint">Importa un modelo ONNX de embeddings para habilitar la búsqueda semántica totalmente sin conexión</string>
+    <string name="settings_rag_onnx_picked">Modelo importado</string>
+    <string name="settings_rag_onnx_pick_failed">No se pudo importar el modelo: %1$s</string>
+    <string name="settings_rag_embedding_test">Probar embeddings</string>
+    <string name="settings_rag_embedding_testing">Probando…</string>
+    <string name="settings_rag_embedding_test_ok">Embeddings correctos: %1$d dimensiones, %2$d ms</string>
+    <string name="settings_rag_embedding_test_failed">La prueba de embeddings ha fallado: %1$s</string>
+    <string name="settings_provider_test_success_chat_only">Conexión correcta (lista de modelos no admitida; verificada con un mensaje de prueba)</string>
+    <string name="settings_backup_export_session">Exportar una conversación</string>
+    <string name="settings_backup_export_session_subtitle">Elige una conversación y exporta todo su historial como archivo JSON</string>
+    <string name="settings_backup_export_session_title">Elige una conversación para exportar</string>
+    <string name="settings_backup_export_session_empty">Aún no hay conversaciones para exportar</string>
+    <string name="settings_backup_export_session_search">Buscar por título de conversación</string>
+    <string name="settings_backup_export_session_count">%1$d mensajes</string>
+    <string name="settings_backup_export_session_success">Conversación exportada: %1$d mensajes</string>
+    <string name="settings_backup_export_session_failed">No se pudo exportar la conversación: %1$s</string>
+    <string name="settings_chat_fast_reply">Respuestas rápidas</string>
+    <string name="settings_chat_fast_reply_subtitle">Envía respuestas breves predefinidas con un toque</string>
 </resources>

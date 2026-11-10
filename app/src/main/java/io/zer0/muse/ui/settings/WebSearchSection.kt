@@ -274,14 +274,21 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
             )
         } else {
             Column(Modifier.padding(MusePaddings.cardInner)) {
-                Text("查询：${response.normalizedQuery}", style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "状态：${response.status}   来源：${response.provider ?: "未知"}",
+                    text = stringResource(R.string.settings_web_search_diagnostic_query, response.normalizedQuery),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.settings_web_search_diagnostic_status,
+                        response.status,
+                        response.provider ?: stringResource(R.string.settings_web_search_diagnostic_unknown_provider),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "结果：${response.results.size} 条",
+                    text = stringResource(R.string.settings_web_search_diagnostic_results, response.results.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -506,13 +506,13 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                     InlineError(message = err, onDismiss = { addError = null })
                 }
                 Text(
-                    text = "配置模板",
+                    text = stringResource(R.string.code_gap_mcp_config_template),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Box {
                     MuseCapsuleButton(
-                        text = selectedTemplate.displayName,
+                        text = (selectedTemplate.displayNameResId?.let { context.getString(it) } ?: selectedTemplate.displayName),
                         onClick = { templateMenuExpanded = true },
                         variant = IosCapsuleButtonVariant.Text,
                         fillWidth = false,
@@ -528,7 +528,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                                     name = if (template.id == McpServerTemplates.CUSTOM_ID) {
                                         ""
                                     } else {
-                                        template.displayName
+                                        (template.displayNameResId?.let { context.getString(it) } ?: template.displayName)
                                     }
                                     url = ""
                                     command = if (template.transportType == McpTransportType.STDIO) {
@@ -548,9 +548,9 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                                 },
                                 headlineContent = {
                                     Column {
-                                        Text(template.displayName)
+                                        Text((template.displayNameResId?.let { context.getString(it) } ?: template.displayName))
                                         Text(
-                                            text = template.summary,
+                                            text = (template.summaryResId?.let { context.getString(it) } ?: template.summary),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -561,7 +561,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                     }
                 }
                 Text(
-                    text = selectedTemplate.summary,
+                    text = (selectedTemplate.summaryResId?.let { context.getString(it) } ?: selectedTemplate.summary),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -588,7 +588,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                         label = "URL",
                         value = url,
                         onValueChange = { url = it },
-                        placeholder = selectedTemplate.urlPlaceholder,
+                        placeholder = (selectedTemplate.urlPlaceholderResId?.let { context.getString(it) } ?: selectedTemplate.urlPlaceholder),
                     )
                 }
                 Text(stringResource(R.string.settings_mcp_transport_type), style = MaterialTheme.typography.labelMedium)
@@ -628,19 +628,19 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                 )
                 if (feishuAutoRefresh) {
                     SettingField(
-                        label = "飞书 App ID",
+                        label = stringResource(R.string.code_gap_feishu_app_id),
                         value = feishuAppId,
                         onValueChange = { feishuAppId = it },
                         placeholder = "cli_xxxxx",
                     )
                     SettingField(
-                        label = "飞书 App Secret",
+                        label = stringResource(R.string.code_gap_feishu_app_secret),
                         value = feishuAppSecret,
                         onValueChange = { feishuAppSecret = it },
                         visualTransformation = PasswordVisualTransformation(),
                     )
                     Text(
-                        text = "Muse 会自动获取并续期 tenant_access_token，不需要每 2 小时手动更换 TAT。",
+                        text = stringResource(R.string.code_gap_feishu_token_refresh_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -743,13 +743,13 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
             if (transportType == McpTransportType.STDIO && command.isBlank()) {
                 addError = context.getString(R.string.settings_mcp_stdio_command_required)
             } else if (transportType != McpTransportType.STDIO && url.isBlank()) {
-                addError = context.getString(R.string.settings_mcp_failed, "URL 不能为空")
+                addError = context.getString(R.string.settings_mcp_failed, context.getString(R.string.audit_mcp_empty_url))
             } else if (feishuAutoRefresh && (feishuAppId.isBlank() || feishuAppSecret.isBlank())) {
-                addError = context.getString(R.string.settings_mcp_failed, "飞书模板需要填写 App ID 和 App Secret")
+                addError = context.getString(R.string.settings_mcp_failed, context.getString(R.string.audit_mcp_feishu_credentials))
             } else {
                 val config = McpServerConfig(
                     id = "mcp-" + System.currentTimeMillis(),
-                    name = name.ifBlank { selectedTemplate.displayName },
+                    name = name.ifBlank { (selectedTemplate.displayNameResId?.let { context.getString(it) } ?: selectedTemplate.displayName) },
                     transportType = transportType,
                     url = url.trim(),
                     command = command.trim(),

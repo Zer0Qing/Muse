@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="code_gap_gallery_selected">已选 %1$d 张</string>
+    <string name="code_gap_skill_file_too_large">文件过大,超过 %1$dMB 限制</string>
+    <string name="code_gap_memory_spaces_subtitle">管理工作 / 生活 / 学习等多个记忆空间,切换时互不干扰</string>
+    <string name="code_gap_mcp_config_template">配置模板</string>
+    <string name="code_gap_feishu_app_id">飞书 App ID</string>
+    <string name="code_gap_feishu_app_secret">飞书 App Secret</string>
+    <string name="code_gap_feishu_token_refresh_hint">Muse 会自动获取并续期 tenant_access_token，不需要每 2 小时手动更换 TAT。</string>
+    <string name="code_gap_markdown_cover">封面</string>
+    <string name="code_gap_vision_probe_empty">视觉模型返回空结果或降级</string>
+    <string name="code_gap_note_encrypt_empty">没有可加密的内容</string>
+    <string name="code_gap_note_encrypt_failed">加密失败,笔记保持原样</string>
+    <string name="code_gap_note_encrypted">已加密</string>
+    <string name="code_gap_note_decrypt_failed">解密失败,笔记保持加密</string>
+    <string name="code_gap_note_decrypted">已解密</string>
+    <string name="code_gap_memory_multiple_layers">多</string>
+</resources>

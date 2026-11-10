@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_web_search_diagnostic_query">查询：%1$s</string>
+    <string name="settings_web_search_diagnostic_status">状态：%1$s   来源：%2$s</string>
+    <string name="settings_web_search_diagnostic_unknown_provider">未知</string>
+    <string name="settings_web_search_diagnostic_results">结果：%1$d 条</string>
+    <string name="license_view_source">查看源码</string>
+</resources>

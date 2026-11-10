@@ -3,6 +3,7 @@ package io.zer0.muse.ui.chat
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.resultOf
+import io.zer0.muse.R
 import io.zer0.muse.data.chat.ConversationTree
 import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
 import io.zer0.muse.data.chat.mergeRebuildMessages
@@ -44,6 +45,8 @@ class ChatMessageController(
      */
     var scrollPersister: ScrollPositionPersister? = null
 
+    var localizeString: ((Int, Array<out Any>) -> String)? = null
+
     /** 滚动位置写盘端口。 */
     fun interface ScrollPositionPersister {
         suspend fun persist(sessionId: String, index: Int, offset: Int)
@@ -80,7 +83,13 @@ class ChatMessageController(
         persistedToolMessages.forEach { merged[it.id.toString()] = it }
         visibleMessages.forEach { merged[it.id.toString()] = it }
         val history = orderConversationMessages(merged.values.toList())
-        val plans = restoreAgentPlansFromHistory(history, sessionId, settleUnfinished)
+        val plans = restoreAgentPlansFromHistory(
+            history,
+            sessionId,
+            settleUnfinished,
+            defaultTitle = { auditStateString(localizeString, R.string.audit_plan_default_title, "任务计划") },
+            defaultStepTitle = { auditStateString(localizeString, R.string.audit_plan_default_step, "步骤 %1\$d", it) },
+        )
         // UI 投影和工具执行缓存必须同时恢复；恢复只替换当前会话，避免并行会话串计划。
         skillExecutor.restoreActivePlans(plans, sessionId)
         return plans

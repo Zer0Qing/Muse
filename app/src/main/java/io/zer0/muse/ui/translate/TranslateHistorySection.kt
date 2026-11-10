@@ -169,7 +169,7 @@ private fun TranslateHistoryItemCard(
     onToggleFavorite: () -> Unit,
     onLongPressCopy: () -> Unit,
 ) {
-    val timeText = remember(item.timestamp) { formatHistoryTime(item.timestamp) }
+    val timeText = formatHistoryTime(item.timestamp)
 
     Surface(
         shape = MuseShapes.large,
@@ -294,13 +294,14 @@ private fun HistoryTextLine(label: String, text: String) {
 }
 
 /** 格式化历史时间戳为相对时间。 */
+@Composable
 private fun formatHistoryTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
     return when {
-        diff < 60_000 -> "刚刚"
-        diff < 60 * 60_000 -> "${diff / 60_000} 分钟前"
-        diff < 24 * 60 * 60_000 -> "${diff / (60 * 60_000)} 小时前"
+        diff < 60_000 -> stringResource(R.string.chat_list_time_just_now)
+        diff < 60 * 60_000 -> stringResource(R.string.chat_list_time_minutes_ago, diff / 60_000)
+        diff < 24 * 60 * 60_000 -> stringResource(R.string.chat_list_time_hours_ago, diff / (60 * 60_000))
         else -> SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(timestamp))
     }
 }

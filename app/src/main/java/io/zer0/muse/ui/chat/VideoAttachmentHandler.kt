@@ -7,6 +7,7 @@ import android.util.Base64
 import io.zer0.common.FileSizeFormatter
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -90,7 +91,7 @@ class VideoAttachmentHandler {
                 // 1. 校验文件大小（>50MB 拒绝）
                 val size = queryFileSize(uri, context)
                 require(size in 1..MAX_VIDEO_SIZE_BYTES) {
-                    "视频过大（${formatBytes(size)}），请压缩到 50MB 以内后重试"
+                    context.getString(R.string.code_more_video_too_large, formatBytes(size))
                 }
 
                 // 2. 提取元数据

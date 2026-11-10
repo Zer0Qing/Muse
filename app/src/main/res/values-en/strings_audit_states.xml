@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_memory_conflict_not_applied">Conflict resolution did not take effect (the records may have been reorganized or deleted)</string>
+    <string name="audit_plan_default_title">Task plan</string>
+    <string name="audit_plan_default_step">Step %1$d</string>
+    <string name="audit_retry_manual_required">High-risk tool %1$s will not be retried automatically. Submit a new request to confirm again</string>
+    <string name="audit_retry_execution_error">Retry execution error: %1$s</string>
+    <string name="audit_retry_cancelled">Retry of %1$s cancelled</string>
+    <string name="audit_retry_timeout">Retry of %1$s did not respond within %2$d seconds and was terminated</string>
+    <string name="audit_resume_approval_pending">%1$d tool calls were awaiting approval before the process ended. Automatic recovery was blocked; discard them and submit a new request.</string>
+    <string name="audit_assistant_save_failed">Failed to save assistant state: %1$s</string>
+    <string name="audit_export_time">Exported at: %1$s</string>
+    <string name="audit_export_model">Model: %1$s</string>
+    <string name="audit_export_estimated_tokens">Estimated tokens: ~%1$d</string>
+    <string name="audit_export_default_title">muse conversation</string>
+    <string name="audit_crash_time">Crash time: %1$s</string>
+    <string name="audit_crash_stack">Crash stack trace:</string>
+    <string name="audit_crash_info_empty">(No crash information)</string>
+</resources>

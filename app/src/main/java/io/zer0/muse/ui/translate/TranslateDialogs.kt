@@ -60,6 +60,7 @@ internal fun StylePickerDialog(
             ) {
                 styles.forEach { style ->
                     val selected = style == currentStyle
+                    val labelResId = TranslateViewModel.translationStyleLabelResId(style)
                     Surface(
                         onClick = { onSelect(style) },
                         shape = MuseShapes.semiLarge,
@@ -78,7 +79,7 @@ internal fun StylePickerDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = style,
+                                text = labelResId?.let { stringResource(it) } ?: style,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (selected) {
                                     MaterialTheme.colorScheme.onPrimaryContainer

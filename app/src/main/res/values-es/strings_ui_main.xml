@@ -6,10 +6,10 @@
     <string name="assistant_detail_loading">Cargando...</string>
     <string name="assistant_detail_basic">Básico</string>
     <string name="assistant_detail_basic_desc">Nombre / Avatar / Modelo / Muestreo</string>
-    <string name="assistant_detail_prompt">Inmediato</string>
+    <string name="assistant_detail_prompt">Instrucciones</string>
     <string name="assistant_detail_prompt_desc">systemPrompt / Plantilla de mensaje / Mensajes preestablecidos</string>
     <string name="assistant_detail_extensions">Extensiones</string>
-    <string name="assistant_detail_extensions_desc">Mensajes rápidos / Libro de historia / Inyección / Habilidades / MCP</string>
+    <string name="assistant_detail_extensions_desc">Mensajes rápidos / Libro de trasfondo / Inyección / Habilidades / MCP</string>
     <string name="assistant_detail_memory">Memoria</string>
     <string name="assistant_detail_memory_desc">Alternar memoria/Memoria global/Referencia de chat reciente/Recordatorio de tiempo</string>
     <string name="assistant_detail_advanced">Avanzado</string>
@@ -17,9 +17,9 @@
     <string name="assistant_detail_avatar_save_failed">No se pudo guardar el avatar</string>
     <string name="assistant_detail_no_image_app">No hay ninguna aplicación disponible para abrir imágenes.</string>
     <string name="assistant_detail_pick_image">Seleccionar imagen</string>
-    <string name="assistant_detail_clear">Claro</string>
+    <string name="assistant_detail_clear">Borrar</string>
     <string name="assistant_detail_avatar">Avatar</string>
-    <string name="assistant_detail_avatar_image_set">Conjunto de avatar de imagen</string>
+    <string name="assistant_detail_avatar_image_set">Imagen de avatar configurada</string>
     <string name="assistant_detail_avatar_emoji">Usando avatar emoji</string>
     <string name="assistant_detail_avatar_initial">Usando la inicial del nombre</string>
     <string name="assistant_detail_name">Nombre</string>
@@ -34,7 +34,7 @@
     <string name="assistant_detail_max_tokens_label">Tokens máximos (déjelo vacío por defecto)</string>
     <string name="assistant_detail_context_message_count">Incluye los últimos %1$d mensajes del historial</string>
     <string name="assistant_detail_reasoning_level">Nivel de razonamiento</string>
-    <string name="assistant_detail_stream_output">Salida de flujo</string>
+    <string name="assistant_detail_stream_output">Respuesta en streaming</string>
     <string name="assistant_detail_stream_output_desc">Cuando está desactivado, devuelve la respuesta completa a la vez.</string>
     <!-- v1.0.19: Assistant field completion (summary / useAssistantName / allowGroupChat) -->
     <string name="assistant_detail_summary">Resumen de una línea</string>
@@ -44,19 +44,19 @@
     <string name="assistant_detail_allow_group_chat">Permitir unirse al chat grupal</string>
     <string name="assistant_detail_allow_group_chat_desc">Cuando esté desactivado, este asistente no aparecerá en la selección de miembros del chat grupal</string>
     <string name="assistant_detail_select_model">Seleccionar modelo exclusivo</string>
-    <string name="assistant_detail_close">Cerca</string>
+    <string name="assistant_detail_close">Cerrar</string>
     <string name="assistant_detail_global_default_selected">Valor predeterminado global (seleccionado)</string>
     <string name="assistant_detail_model_selected">%1$s (Seleccionado)</string>
     <!-- Phase 6: Model picker UX improvements -->
     <string name="assistant_detail_use_global_default_card">Utilice el modelo predeterminado global</string>
     <string name="assistant_detail_using_global_model">Actualmente se utiliza el modelo predeterminado global: %1$s</string>
     <string name="assistant_detail_model_hint">Consejo: puedes elegir un modelo dedicado para cada asistente en la configuración del asistente.</string>
-    <string name="assistant_detail_system_prompt_label">Aviso del sistema (rol/reglas)</string>
+    <string name="assistant_detail_system_prompt_label">Instrucciones del sistema (rol/reglas)</string>
     <string name="assistant_detail_message_template_label">Plantilla de mensaje (admite {{date}} {{time}} {{session_id}}, etc.)</string>
     <string name="assistant_detail_preset_messages_label">Mensajes preestablecidos JSON (avanzado, por ejemplo, [{\"role\":\"system\",\"content\":\"...\"}])</string>
     <string name="assistant_detail_ext_quick_message">Mensajes rápidos</string>
-    <string name="assistant_detail_ext_lorebook">libro de historia</string>
-    <string name="assistant_detail_ext_mode_injection">Inyección inmediata</string>
+    <string name="assistant_detail_ext_lorebook">Libro de trasfondo</string>
+    <string name="assistant_detail_ext_mode_injection">Inyección de instrucciones</string>
     <string name="assistant_detail_ext_skill">Habilidad</string>
     <string name="assistant_detail_ext_mcp_server">Servidor MCP</string>
     <string name="assistant_detail_ext_tool">Herramienta</string>
@@ -442,7 +442,7 @@
     <string name="skill_label_category">Categoría</string>
     <string name="skill_label_implementation">Implementación</string>
     <string name="skill_label_source">Fuente</string>
-    <string name="skill_close">Cerca</string>
+    <string name="skill_close">Cerrar</string>
     <string name="skill_row_cd">%1$s, %2$s, toque para ver detalles</string>
     <string name="skill_use_case_read_file">Cuando necesite leer notas, configuraciones o archivos en caché en la aplicación, el LLM lo llamará automáticamente.</string>
     <string name="skill_use_case_write_file">Cuando necesite guardar notas, generar documentos o conservar datos, el LLM lo llamará automáticamente.</string>
@@ -582,7 +582,7 @@
     <string name="settings_screen_mcp">Servidores conectados</string>
     <string name="settings_screen_mcp_desc">Servidores de herramientas de protocolo de contexto modelo</string>
     <string name="settings_screen_assistant_resources">Recursos del asistente</string>
-    <string name="settings_screen_assistant_resources_desc">Favoritos / Libro de historia / Mensajes rápidos / Inyección rápida / Habilidades</string>
+    <string name="settings_screen_assistant_resources_desc">Favoritos / Libro de trasfondo / Mensajes rápidos / Inyección de instrucciones / Habilidades</string>
     <string name="settings_assistant_resources_title">Recursos del asistente</string>
     <string name="video_gen_title">Generación de vídeo</string>
     <string name="video_gen_prompt">Describe el vídeo que deseas generar.</string>
@@ -908,4 +908,102 @@
     <string name="audit_log_result_fail">Fallido</string>
     <string name="permission_advanced_channels">Canales avanzados (Root / Termux)</string>
     <string name="channel_weclaw_summary">Conecta una cuenta personal mediante el protocolo iLink de WeChat. Un mismo WeChat solo puede tener un canal: al vincular uno nuevo, el anterior queda fuera. Los avisos proactivos necesitan una ventana de respuesta abierta por un mensaje reciente; si no llegan, manda un WeChat a este canal para reabrirla.</string>
+
+    <string name="reasoning_level_off">Desactivado</string>
+    <string name="reasoning_level_auto">Automático</string>
+    <string name="reasoning_level_low">Ligero</string>
+    <string name="reasoning_level_medium">Medio</string>
+    <string name="reasoning_level_high">Profundo</string>
+    <string name="reasoning_level_xhigh">Muy profundo</string>
+    <string name="permission_termux_grant_toast">Si no aparece ningún diálogo, abre Termux y vuelve a intentarlo.</string>
+    <string name="permission_termux_grant_manual_hint">Si no aparece ningún diálogo, abre Termux y vuelve a intentarlo.</string>
+    <string name="permission_termux_copy_cmd">Copiar comando</string>
+    <string name="permission_termux_copy_cmd_done">Comando copiado. Pégalo en Termux para ejecutarlo.</string>
+    <string name="channel_platform_feishu">Feishu</string>
+    <string name="channel_platform_qq">QQ</string>
+    <string name="channel_platform_weclaw">WeChat</string>
+    <string name="channel_platform_telegram">Telegram</string>
+    <string name="channel_platform_dingtalk">DingTalk</string>
+    <string name="channel_how_to">¿Cómo se configura?</string>
+    <string name="channel_tutorial_title">Guía de conexión de plataformas</string>
+    <string name="channel_tutorial_close">Entendido</string>
+    <string name="channel_secret_stored_placeholder">Guardado. Introduce un nuevo valor para sustituirlo</string>
+    <string name="channel_secret_show">Mostrar</string>
+    <string name="channel_secret_hide">Ocultar</string>
+    <string name="channel_test_connection">Probar conexión</string>
+    <string name="channel_test_failed">La prueba ha fallado</string>
+    <string name="channel_owner_select">¿Cuál es tu cuenta?</string>
+    <string name="channel_owner_none">Envía un mensaje para poder seleccionarla</string>
+    <string name="channel_owner_warning">La cuenta seleccionada recibirá las respuestas de este canal. Asegúrate de que sea tuya.</string>
+    <string name="channel_field_region">Región</string>
+    <string name="channel_region_feishu_cn">Feishu (China)</string>
+    <string name="channel_region_lark_global">Lark (internacional)</string>
+    <string name="channel_field_telegram_token">Token del bot</string>
+    <string name="channel_field_corp_id">Corp ID</string>
+    <string name="channel_field_client_id">Client ID / AppKey</string>
+    <string name="channel_field_client_secret">Client Secret / AppSecret</string>
+    <string name="channel_field_robot_code">Robot Code</string>
+    <string name="channel_robot_code_hint">En los bots internos suele coincidir con Client ID; se puede dejar vacío.</string>
+    <string name="channel_field_api_base">URL base de la API</string>
+    <string name="channel_dingtalk_api_default">https://api.dingtalk.com/v1.0</string>
+    <string name="channel_field_assistant">Asistente de respuesta automática</string>
+    <string name="channel_assistant_default">Asistente predeterminado</string>
+    <string name="channel_assistant_hint">Selecciona el asistente que responderá a los mensajes de este canal. Se usarán su personalidad, modelo y parámetros.</string>
+    <string name="channel_open_chat">Chat</string>
+    <string name="channel_conversations_title">Conversaciones del canal</string>
+    <string name="channel_conversations_empty">Este canal aún no tiene conversaciones. Se crearán automáticamente cuando lleguen mensajes.</string>
+    <string name="channel_conversation_meta">%1$d mensajes · %2$s</string>
+    <string name="channel_conversation_summary">Resumen: %1$s</string>
+    <string name="channel_conversation_reset">Reiniciar contexto</string>
+    <string name="channel_conversation_reset_confirm_title">¿Reiniciar el contexto?</string>
+    <string name="channel_conversation_reset_confirm_text">Se borrarán el historial y el resumen de esta conversación. Las respuestas futuras ya no recordarán los mensajes anteriores.</string>
+    <string name="channel_conversation_expand">Expandir conversación</string>
+    <string name="channel_conversation_collapse">Contraer</string>
+    <string name="channel_weclaw_logged_in">Sesión iniciada</string>
+    <string name="channel_weclaw_need_scan">Sesión no iniciada — escanea el código para continuar</string>
+    <string name="channel_weclaw_scan">Escanear para iniciar sesión</string>
+    <string name="channel_weclaw_rescan">Volver a iniciar sesión</string>
+    <string name="channel_weclaw_unbind">Desvincular</string>
+    <string name="channel_weclaw_unbind_confirm">Se borrarán el token y la conversación de destino. Para volver a vincular la cuenta, tendrás que escanear el código QR de nuevo. ¿Desvincular?</string>
+    <string name="channel_feishu_hint">Obtén las credenciales en la plataforma abierta de Feishu. Los eventos se reciben mediante una conexión persistente; no hace falta una URL de callback local.</string>
+    <string name="channel_qq_hint">Obtén las credenciales en la plataforma abierta de bots de QQ (q.qq.com/qqbot)</string>
+    <string-array name="channel_tutorial_weclaw_steps">
+        <item>Pulsa «Escanear para iniciar sesión» y escanea el código QR con WeChat.</item>
+        <item>Confirma en tu teléfono. Cuando se complete el proceso, aparecerá «Sesión iniciada».</item>
+    </string-array>
+    <string-array name="channel_tutorial_telegram_steps">
+        <item>Busca @BotFather en Telegram y abre el chat.</item>
+        <item>Envía /newbot y sigue las instrucciones para definir un nombre y un nombre de usuario.</item>
+        <item>BotFather te enviará un token del bot, por ejemplo, 123456:ABC-DEF…</item>
+        <item>Pega el token arriba, prueba la conexión y guarda los cambios.</item>
+        <item>Busca tu bot en Telegram y envíale un mensaje de prueba.</item>
+    </string-array>
+    <string-array name="channel_tutorial_feishu_steps">
+        <item>Ve a open.feishu.cn, inicia sesión y abre la consola de desarrolladores.</item>
+        <item>Crea una aplicación interna de empresa e introduce su nombre y descripción.</item>
+        <item>Copia App ID y App Secret desde la sección de credenciales e información básica.</item>
+        <item>En la sección para añadir funciones a la aplicación, añade la función de bot.</item>
+        <item>En la gestión de permisos, busca y activa im:message.</item>
+        <item>En eventos y callbacks, elige recibir eventos mediante una conexión persistente.</item>
+        <item>Añade el evento im.message.receive_v1.</item>
+        <item>En la gestión de versiones y publicación, crea y publica una versión.</item>
+        <item>Pega App ID y App Secret arriba, prueba la conexión y guarda los cambios.</item>
+    </string-array>
+    <string-array name="channel_tutorial_dingtalk_steps">
+        <item>Ve a open.dingtalk.com y abre la consola de desarrolladores.</item>
+        <item>Copia el Corp ID de la empresa desde la información de la organización.</item>
+        <item>Crea una aplicación interna de empresa y copia Client ID/AppKey y Client Secret/AppSecret.</item>
+        <item>Añade la función de bot de la aplicación y copia Robot Code desde sus detalles.</item>
+        <item>Activa los permisos necesarios para enviar y recibir mensajes del bot y publica la aplicación para los usuarios de la empresa que deban utilizarla.</item>
+        <item>Mantén la URL base de la API predeterminada, https://api.dingtalk.com/v1.0, salvo que quieras usar una pasarela compatible.</item>
+        <item>Pega las credenciales arriba, prueba la conexión y guarda los cambios.</item>
+    </string-array>
+    <string-array name="channel_tutorial_qq_steps">
+        <item>Ve a la plataforma abierta de bots de QQ (q.qq.com/qqbot), inicia sesión y crea un bot.</item>
+        <item>Copia App ID y App Secret desde la configuración del bot.</item>
+        <item>Pégalos arriba, prueba la conexión y guarda los cambios.</item>
+    </string-array>
+    <string name="oauth_codex_account_bound">Cuenta de Codex vinculada (prefijo del ID: %1$s)</string>
+    <string name="voice_cloning_key_saved">Voz seleccionada como actual y clave de API guardada</string>
+    <string name="voice_cloning_key_from_provider">Voz seleccionada como actual; se usa la clave de API del proveedor</string>
 </resources>

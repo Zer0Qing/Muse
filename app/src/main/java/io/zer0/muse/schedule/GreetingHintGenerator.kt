@@ -1,11 +1,13 @@
 package io.zer0.muse.schedule
 
+import android.content.res.Resources
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactEntity
+import io.zer0.muse.R
 import io.zer0.muse.ui.GreetingHelper
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -37,16 +39,16 @@ class GreetingHintGenerator(
     /**
      * 生成问候语后缀。无近期事项返回 null;LLM 失败回退规则版。
      */
-    suspend fun generate(facts: List<FactEntity>): String? {
+    suspend fun generate(facts: List<FactEntity>, resources: Resources): String? {
         val events = GreetingHelper.recentEvents(facts)
         if (events.isEmpty()) return null
-        val fallback = GreetingHelper.getMemoryHint(facts)
+        val fallback = GreetingHelper.getMemoryHint(facts, res = resources)
         if (fallback == null) return null
 
         val llmHint = resultOf {
             withTimeoutOrNull(LLM_TIMEOUT_MS) {
                 chatService.completeText(
-                    messages = buildPrompt(events),
+                    messages = buildPrompt(events, resources),
                     temperature = 0.8f,
                     maxTokens = 32,
                 )
@@ -66,14 +68,10 @@ class GreetingHintGenerator(
         return compactHint ?: fallback
     }
 
-    private fun buildPrompt(events: List<String>): List<UIMessage> {
+    private fun buildPrompt(events: List<String>, resources: Resources): List<UIMessage> {
         val system = UIMessage(
             role = MessageRole.SYSTEM,
-            content = buildString {
-                appendLine("你正在给用户的问候语补一句近期事项提醒。")
-                appendLine("只依据给出的事项,不要推测;保留事项中的相对时间,不要重复时间词。")
-                appendLine("只保留一个最重要的事项,输出 8-14 字的一句话,用\"你\"称呼用户,自然口语,不要引号、前缀、解释或分段。")
-            },
+            content = resources.getString(R.string.greeting_hint_generation_prompt),
         )
         val user = UIMessage(
             role = MessageRole.USER,

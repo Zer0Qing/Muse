@@ -86,7 +86,7 @@
     <string name="plugin_kill_switch_desc">Es el interruptor del modo seguro: herramientas, comandos, eventos, hooks y tareas no se ejecutan. Restaura para volver a activarlos.</string>
     <string name="plugin_kill_switch_restore">Restaurar plugins</string>
     <string name="plugin_kill_switch_disable">Desactivar todos los plugins</string>
-    <string name="workspace_location_title">Ubicacion del espacio de trabajo</string>
+    <string name="workspace_location_title">Ubicación del espacio de trabajo</string>
     <string name="workspace_location_downloads">Descargas (Download/Muse): visible en cualquier gestor de archivos</string>
     <string name="workspace_location_internal">Carpeta privada de la app: invisible para otras apps</string>
     <string name="workspace_location_move_downloads">Mover a Descargas</string>
@@ -147,4 +147,9 @@
     <string name="schedule_tool_advanced_hint">Consejo: las funciones avanzadas suelen ser más fáciles de describir con IA</string>
     <string name="schedule_tool_templates_title">Relleno rápido de herramientas comunes (toca para autocompletar)</string>
     <string name="schedule_view_all_history">Ver todo el historial</string>
+
+    <string name="notif_chat_pending_approval_title">MUSE espera tu aprobación</string>
+    <string name="notif_chat_pending_approval_text">%1$s necesita tu confirmación</string>
+    <string name="notif_memory_title">Memoria de notificaciones</string>
+    <string name="notif_memory_desc">Al activar esta opción, el asistente resume periódicamente tus notificaciones (entregas, calendario, facturas y compromisos) y las guarda en la memoria para mencionarlas en mensajes proactivos. Las notificaciones pueden contener información privada; actívala solo si lo consideras adecuado.</string>
 </resources>

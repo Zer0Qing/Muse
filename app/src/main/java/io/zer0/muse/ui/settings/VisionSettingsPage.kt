@@ -239,7 +239,7 @@ fun VisionSettingsPage(onBack: () -> Unit) {
                                             )
                                             else -> ProbeState.Failed(
                                                 result.getOrNull()?.text
-                                                    ?: "视觉模型返回空结果或降级",
+                                                    ?: context.getString(R.string.code_gap_vision_probe_empty),
                                             )
                                         }
                                     }

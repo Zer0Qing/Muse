@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_memory_conflict_not_applied">矛盾裁决未生效(记录可能已被整理或删除)</string>
+    <string name="audit_plan_default_title">任务计划</string>
+    <string name="audit_plan_default_step">步骤 %1$d</string>
+    <string name="audit_retry_manual_required">高危工具 %1$s 不自动重试，请重新发起以再次确认</string>
+    <string name="audit_retry_execution_error">重试执行异常: %1$s</string>
+    <string name="audit_retry_cancelled">重试 %1$s 已取消</string>
+    <string name="audit_retry_timeout">重试 %1$s 超过 %2$d 秒未响应,已终止</string>
+    <string name="audit_resume_approval_pending">有 %1$d 个工具调用在进程终止前等待审批，已阻止自动恢复；请丢弃后重新发起请求。</string>
+    <string name="audit_assistant_save_failed">助手状态保存失败: %1$s</string>
+    <string name="audit_export_time">导出时间: %1$s</string>
+    <string name="audit_export_model">模型: %1$s</string>
+    <string name="audit_export_estimated_tokens">估算 Token: ~%1$d</string>
+    <string name="audit_export_default_title">muse 对话</string>
+    <string name="audit_crash_time">崩溃时间: %1$s</string>
+    <string name="audit_crash_stack">崩溃堆栈:</string>
+    <string name="audit_crash_info_empty">(无崩溃信息)</string>
+</resources>

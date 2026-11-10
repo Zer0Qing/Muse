@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_memory_conflict_not_applied">La resolución del conflicto no surtió efecto (los registros pueden haberse reorganizado o eliminado)</string>
+    <string name="audit_plan_default_title">Plan de tareas</string>
+    <string name="audit_plan_default_step">Paso %1$d</string>
+    <string name="audit_retry_manual_required">La herramienta de alto riesgo %1$s no se reintentará automáticamente. Envía una nueva solicitud para volver a confirmar</string>
+    <string name="audit_retry_execution_error">Error al ejecutar el reintento: %1$s</string>
+    <string name="audit_retry_cancelled">Se canceló el reintento de %1$s</string>
+    <string name="audit_retry_timeout">El reintento de %1$s no respondió en %2$d segundos y se interrumpió</string>
+    <string name="audit_resume_approval_pending">Había %1$d llamadas a herramientas pendientes de aprobación antes de que finalizara el proceso. Se bloqueó la recuperación automática; descártalas y envía una nueva solicitud.</string>
+    <string name="audit_assistant_save_failed">No se pudo guardar el estado del asistente: %1$s</string>
+    <string name="audit_export_time">Fecha de exportación: %1$s</string>
+    <string name="audit_export_model">Modelo: %1$s</string>
+    <string name="audit_export_estimated_tokens">Tokens estimados: ~%1$d</string>
+    <string name="audit_export_default_title">Conversación de Muse</string>
+    <string name="audit_crash_time">Fecha del fallo: %1$s</string>
+    <string name="audit_crash_stack">Traza de pila del fallo:</string>
+    <string name="audit_crash_info_empty">(Sin información del fallo)</string>
+</resources>

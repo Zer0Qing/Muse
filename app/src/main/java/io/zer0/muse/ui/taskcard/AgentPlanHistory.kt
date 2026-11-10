@@ -24,6 +24,8 @@ internal fun restoreAgentPlansFromHistory(
     messages: List<UIMessage>,
     sessionId: String = "default",
     settleUnfinished: Boolean = true,
+    defaultTitle: () -> String = { "任务计划" },
+    defaultStepTitle: (Int) -> String = { "步骤 $it" },
 ): Map<String, AgentPlan> {
     if (messages.none { it.toolCallInfo?.toolName == "task_plan" }) return emptyMap()
 
@@ -31,7 +33,7 @@ internal fun restoreAgentPlansFromHistory(
     messages.forEach { message ->
         val toolInfo = message.toolCallInfo ?: return@forEach
         when (toolInfo.toolName) {
-            "task_plan" -> parseHistoricalPlan(message, toolInfo, sessionId)?.let { plan ->
+            "task_plan" -> parseHistoricalPlan(message, toolInfo, sessionId, defaultTitle, defaultStepTitle)?.let { plan ->
                 plans[plan.id] = plan
             }
             "update_plan_step" -> applyHistoricalPlanUpdate(plans, message, toolInfo)
@@ -48,9 +50,15 @@ internal fun restoreAgentPlansFromHistory(
     }
 }
 
-private fun parseHistoricalPlan(message: UIMessage, toolInfo: ToolCallInfo, sessionId: String): AgentPlan? {
+private fun parseHistoricalPlan(
+    message: UIMessage,
+    toolInfo: ToolCallInfo,
+    sessionId: String,
+    defaultTitle: () -> String,
+    defaultStepTitle: (Int) -> String,
+): AgentPlan? {
     val arguments = parseHistoricalToolArguments(toolInfo.arguments) ?: return null
-    val steps = parseHistoricalPlanSteps(arguments["steps"])
+    val steps = parseHistoricalPlanSteps(arguments["steps"], defaultStepTitle)
     if (steps.isEmpty()) return null
 
     val planId = HISTORICAL_PLAN_ID_PATTERN.find(toolInfo.result)
@@ -61,7 +69,7 @@ private fun parseHistoricalPlan(message: UIMessage, toolInfo: ToolCallInfo, sess
     val title = historicalJsonText(arguments["title"])
         ?.trim()
         ?.takeIf { it.isNotBlank() }
-        ?: "任务计划"
+        ?: defaultTitle()
 
     return AgentPlan(
         id = planId,
@@ -121,7 +129,10 @@ private fun parseHistoricalToolArguments(arguments: String): JsonObject? = runCa
     AppJson.decodeFromString(JsonObject.serializer(), arguments)
 }.getOrNull()
 
-private fun parseHistoricalPlanSteps(value: JsonElement?): List<AgentPlanStep> {
+private fun parseHistoricalPlanSteps(
+    value: JsonElement?,
+    defaultStepTitle: (Int) -> String,
+): List<AgentPlanStep> {
     val array = when (value) {
         is JsonArray -> value
         is JsonPrimitive -> runCatching {
@@ -137,7 +148,7 @@ private fun parseHistoricalPlanSteps(value: JsonElement?): List<AgentPlanStep> {
             title = historicalJsonText(obj["title"])
                 ?.trim()
                 ?.takeIf { it.isNotBlank() }
-                ?: "步骤 ${index + 1}",
+                ?: defaultStepTitle(index + 1),
             description = historicalJsonText(obj["description"])
                 ?.trim()
                 .orEmpty(),

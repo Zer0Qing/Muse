@@ -110,10 +110,12 @@ fun PlanCard(plan: AgentPlan, modifier: Modifier = Modifier) {
                         } else {
                             null
                         }
+                    val completedLabel = stringResource(R.string.code_more_plan_steps, plan.completedSteps, plan.totalSteps)
+                    val failedLabel = stringResource(R.string.code_more_plan_failed, plan.failedSteps)
                     Text(
                         text = buildString {
-                            append("${plan.completedSteps}/${plan.totalSteps} 步完成")
-                            if (plan.failedSteps > 0) append(" · ${plan.failedSteps} 失败")
+                            append(completedLabel)
+                            if (plan.failedSteps > 0) append(" · " + failedLabel)
                             if (nextStepLabel != null) append(" · " + nextStepLabel)
                         },
                         style = MaterialTheme.typography.labelSmall,

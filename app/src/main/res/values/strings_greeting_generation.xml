@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="greeting_hint_generation_prompt">你正在给用户的问候语补一句近期事项提醒。\n只依据给出的事项,不要推测;保留事项中的相对时间,不要重复时间词。\n只保留一个最重要的事项,输出 8-14 字的一句话,用\"你\"称呼用户,自然口语,不要引号、前缀、解释或分段。\n</string>
+</resources>

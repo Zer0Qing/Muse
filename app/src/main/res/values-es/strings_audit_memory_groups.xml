@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_memory_space_create_failed">No se pudo crear el espacio: %1$s</string>
+    <string name="audit_memory_space_created">Espacio creado: %1$s</string>
+    <string name="audit_memory_space_rename_failed">No se pudo cambiar el nombre del espacio: %1$s</string>
+    <string name="audit_memory_space_renamed">Nombre del espacio actualizado</string>
+    <string name="audit_memory_space_delete_failed">No se pudo eliminar el espacio: %1$s</string>
+    <string name="audit_memory_space_deleted">Espacio eliminado; los hechos se han trasladado al espacio predeterminado</string>
+    <string name="audit_memory_space_default_not_deletable">No se puede eliminar el espacio predeterminado</string>
+    <string name="audit_group_memory_clear_failed">No se pudo borrar la memoria del chat grupal</string>
+    <string name="audit_group_attachment_image">[Imagen]</string>
+    <string name="audit_group_attachment_file">[Archivo]</string>
+</resources>
