@@ -16,7 +16,11 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
+import okhttp3.Response
+import kotlin.coroutines.resumeWithException
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -110,7 +114,7 @@ class OpenAIEmbeddingProvider(
         coroutineContext.ensureActive()
         // v1.0.30: 加 10s 超时，防止 embedding API 挂了阻塞整个生成链路
         val response = kotlinx.coroutines.withTimeout(10_000L) {
-            client.newCall(request).execute()
+            client.newCall(request).awaitResponse()
         }
         if (!response.isSuccessful) {
             val errBody = response.body?.string()?.take(500) ?: ""
@@ -160,4 +164,24 @@ class OpenAIEmbeddingProvider(
                 "Gemini's embedding API is not fully compatible with OpenAI's. Please specify an embedding model in RAG settings or switch to an OpenAI-compatible Provider",
             )
     }
-}
+
+    /**
+     * 可取消的等待:协程取消时真正调用 OkHttp `Call.cancel()`,
+     * 不等阻塞中的 execute 返回(计划 R5/R6「验证网络 Call.cancel 生效」)。
+     */
+    private suspend fun Call.awaitResponse(): Response = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        enqueue(
+            object : Callback {
+                override fun onFailure(call: Call, e: java.io.IOException) {
+                    cont.resumeWithException(e)
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    cont.resume(response) { _, _, _ -> response.close() }
+                }
+            },
+        )
+        cont.invokeOnCancellation {
+            runCatching { cancel() }
+        }
+    }}

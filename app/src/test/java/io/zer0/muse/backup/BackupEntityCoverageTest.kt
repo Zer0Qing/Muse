@@ -69,6 +69,12 @@ class BackupEntityCoverageTest {
         "ConversationCommandReceiptEntity" to "conversationCommandReceipts",
         "ConversationSelectionEntity" to "conversationSelections",
         "ConversationDisplaySlotEntity" to "conversationDisplaySlots",
+        // R9: 知识库 V2 用户数据由嵌入式便携备份对象统一承载
+        // (KnowledgePortableBackup: docs/revisions/folders/bindings)。
+        "io.zer0.muse.data.knowledge.KnowledgeV2DocEntity" to "knowledgeV2Portable",
+        "io.zer0.muse.data.knowledge.KnowledgeV2RevisionEntity" to "knowledgeV2Portable",
+        "io.zer0.muse.data.knowledge.KnowledgeV2FolderEntity" to "knowledgeV2Portable",
+        "io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity" to "knowledgeV2Portable",
     )
 
     /** 运维/派生表: 明确不纳入备份(重建成本低、含机器元数据)。新数据表不得落入此集合。 */
@@ -83,6 +89,16 @@ class BackupEntityCoverageTest {
         // 用量流水：纯统计派生数据，不是用户资产。
         // 不备份是有意为之 —— 若随备份恢复，历史流水会与升级回填的数据重复计数。
         "io.zer0.muse.data.stats.UsageRecordEntity",
+        // R9: 知识库 V2 的作业账本、代、epoch、租约与词法/向量派生物：
+        // 可由完整 revision 重建，不是独立用户资产；便携备份只承载 docs/revisions/folders/bindings。
+        "io.zer0.muse.data.knowledge.KnowledgeV2DatasetEpochEntity",
+        "io.zer0.muse.data.knowledge.KnowledgeV2RetentionLeaseEntity",
+        "io.zer0.muse.data.knowledge.KnowledgeJobEntity",
+        "io.zer0.muse.data.knowledge.KnowledgeJobItemEntity",
+        "io.zer0.muse.data.knowledge.KnowledgeGenerationEntity",
+        "io.zer0.muse.data.knowledge.KnowledgeGenChunkEntity",
+        "io.zer0.muse.data.knowledge.KnowledgeGenLexicalEntity",
+        "io.zer0.muse.data.knowledge.KnowledgeActiveGenerationEntity",
     )
 
     /** 从 MuseDb.kt 源码提取 @Database 声明实体(保持与 Room 真源一致,规避注解反射不可见问题)。 */

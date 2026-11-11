@@ -1242,6 +1242,19 @@ class MuseDbMigrationTest {
 
     /** 用反射收集 MuseDb 已注册迁移,按 fromVersion 排序得到完整升级链。 */
     private fun migrationsFrom(fromVersion: Int, imageDir: File = imageStorageDir): List<androidx.room.migration.Migration> {
+        // 迁移真源是 MuseDb.migrations(context):它已包含 MIGRATION_* 与
+        // migrate75To76/migrate76To77 两个工厂函数(后者无 getter,反射枚举会漏)。
+        // 这里按 fromVersion 过滤,避免用反射重建链条时遗漏工厂函数段。
+        return MuseDb.migrations(context)
+            .filter { it.startVersion >= fromVersion }
+            .sortedBy { it.startVersion }
+    }
+
+    @Suppress("unused")
+    private fun migrationsFromReflectionLegacy(
+        fromVersion: Int,
+        imageDir: File = imageStorageDir,
+    ): List<androidx.room.migration.Migration> {
         // MIGRATION_* 是 MuseDb companion object 里的 val。编译后 Kotlin 只为它们生成
         // 公开 getter(getMIGRATION_x_y),反射取不到对应的字段(实体字段被隐藏/合成),
         // 因此这里从 Companion 实例的公开方法枚举 —— MuseDb::class.java.declaredFields 也是空的。

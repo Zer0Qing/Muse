@@ -781,7 +781,16 @@ object SettingsCatalog {
                     SettingsEntryAction.Action(SettingsActionId.CHECK_UPDATE),
                     keywords = listOf("检查更新", "更新", "update", "版本", "升级", "jianchagengxin", "gengxin", "shengji", "jcgc", "gx", "sj"),
                 ),
-                // v2.6.23(S4): 运行诊断 —— 「记忆页慢/后台没跑」不再靠猜;导出不含内容只含体积与计数。
+            ),
+        ),
+        group(
+            SettingsGroupKind.DEVELOPER,
+            R.string.settings_group_developer,
+            R.string.settings_group_developer_desc,
+            MuseIcons.terminal,
+            entries(
+                // 运行诊断 —— 「记忆页慢/后台没跑」不再靠猜;导出不含内容只含体积与计数。
+                // 归属开发者组：它是排障入口，普通用户不需要出现在「关于」里。
                 entry(
                     SettingsEntryId.DIAGNOSTICS,
                     R.string.settings_screen_diagnostics,
@@ -792,14 +801,6 @@ object SettingsCatalog {
                         "诊断", "运行", "卡顿", "存储", "日志", "diagnostics", "zhenduan", "yunhang", "kadun", "cunchu", "rizhi", "zd",
                     ),
                 ),
-            ),
-        ),
-        group(
-            SettingsGroupKind.DEVELOPER,
-            R.string.settings_group_developer,
-            R.string.settings_group_developer_desc,
-            MuseIcons.terminal,
-            entries(
                 entry(
                     SettingsEntryId.STATS,
                     R.string.settings_screen_stats,

@@ -16,7 +16,7 @@ class FreeModelConfigTest {
     fun `resolveApiKey skips fallback when user key present`() {
         val result = FreeModelConfig.resolveApiKey(
             providerId = FreeModelConfig.FREE_PROVIDER_ID,
-            baseUrl = "https://api.siliconflow.cn/v1",
+            baseUrl = "https://apihub.agnes-ai.com/v1",
             modelId = "THUDM/GLM-4-9B-0414",
             userApiKey = "sk-user",
         )
@@ -38,7 +38,7 @@ class FreeModelConfigTest {
     fun `resolveApiKey returns null for non whitelisted model`() {
         val result = FreeModelConfig.resolveApiKey(
             providerId = FreeModelConfig.FREE_PROVIDER_ID,
-            baseUrl = "https://api.siliconflow.cn/v1",
+            baseUrl = "https://apihub.agnes-ai.com/v1",
             modelId = "not-in-whitelist",
             userApiKey = "",
         )
@@ -50,21 +50,21 @@ class FreeModelConfigTest {
         assertTrue(
             FreeModelConfig.isFreeProvider(
                 FreeModelConfig.FREE_PROVIDER_ID,
-                "https://api.siliconflow.cn/v1",
+                "https://apihub.agnes-ai.com/v1",
                 "",
             ),
         )
         assertFalse(
             FreeModelConfig.isFreeProvider(
                 "preset_siliconflow",
-                "https://api.siliconflow.cn/v1",
+                "https://apihub.agnes-ai.com/v1",
                 "",
             ),
         )
         assertFalse(
             FreeModelConfig.isFreeProvider(
                 FreeModelConfig.FREE_PROVIDER_ID,
-                "https://api.siliconflow.cn/v1",
+                "https://apihub.agnes-ai.com/v1",
                 "sk-user",
             ),
         )
@@ -78,7 +78,7 @@ class FreeModelConfigTest {
         assertTrue(
             FreeModelConfig.isFreeProvider(
                 "legacy-provider",
-                "https://api.siliconflow.cn/v1",
+                "https://apihub.agnes-ai.com/v1",
                 "",
                 hiddenFromSettings = true,
             ),
@@ -89,13 +89,13 @@ class FreeModelConfigTest {
     fun `fallback availability is consistent with whitelisted resolve`() {
         val resolved = FreeModelConfig.resolveApiKey(
             providerId = FreeModelConfig.FREE_PROVIDER_ID,
-            baseUrl = "https://api.siliconflow.cn/v1",
-            modelId = "Qwen/Qwen3-8B",
+            baseUrl = "https://apihub.agnes-ai.com/v1",
+            modelId = "agnes-2.5-flash",
             userApiKey = "",
         )
         if (FreeModelConfig.isFallbackKeyAvailable()) {
             assertNotNull(resolved)
-            assertEquals(FreeModelConfig.FALLBACK_API_KEY, resolved)
+            assertEquals(FreeModelConfig.currentApiKey(), resolved)
         } else {
             assertNull(resolved)
         }
@@ -105,8 +105,8 @@ class FreeModelConfigTest {
     fun `regular siliconflow provider never receives free fallback`() {
         val result = FreeModelConfig.resolveApiKey(
             providerId = "preset_siliconflow",
-            baseUrl = "https://api.siliconflow.cn/v1",
-            modelId = "Qwen/Qwen3-8B",
+            baseUrl = "https://apihub.agnes-ai.com/v1",
+            modelId = "agnes-2.5-flash",
             userApiKey = "",
         )
         assertNull(result)
@@ -116,8 +116,8 @@ class FreeModelConfigTest {
     fun `hidden legacy provider can retain free fallback`() {
         val result = FreeModelConfig.resolveApiKey(
             providerId = "legacy-provider",
-            baseUrl = "https://api.siliconflow.cn/v1",
-            modelId = "Qwen/Qwen3-8B",
+            baseUrl = "https://apihub.agnes-ai.com/v1",
+            modelId = "agnes-2.5-flash",
             userApiKey = "",
             hiddenFromSettings = true,
         )

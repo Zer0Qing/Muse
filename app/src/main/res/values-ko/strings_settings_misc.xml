@@ -287,7 +287,7 @@
     <string name="settings_crash_done_failed">전송하지 못했습니다. 기록은 보관되며 나중에 다시 시도할 수 있습니다</string>
     <string name="settings_crash_pending_section">충돌 보고서 보류 중</string>
     <string name="settings_crash_pending_count">보류 중인 충돌 보고서: %1$d</string>
-    <string name="settings_crash_pending_hint_active">보고하려면 아래 버튼을 탭하세요(먼저 활성화하고 구성하세요).</string>
+    <string name="settings_crash_pending_hint_active">아래 버튼을 눌러 보고하세요. 별도 설정이 필요하지 않습니다.</string>
     <string name="settings_crash_pending_hint_idle">충돌이 보류 중인 대기열에 자동으로 추가됩니다.</string>
     <string name="settings_crash_report_now_button">지금 대기 중인 충돌을 보고하세요.</string>
     <string name="settings_crash_settings_section">보고서 설정</string>

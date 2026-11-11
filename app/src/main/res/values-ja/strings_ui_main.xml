@@ -606,7 +606,7 @@
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow">SiliconFlow</string>
-    <string name="preset_siliconflow_free">内蔵無料モデル</string>
+    <string name="preset_siliconflow_free">無料モデル（不定期ローテーション）</string>
     <string name="free_model_service_unavailable">無料枠サービスは利用できません。API Key を追加するか、後でもう一度お試しください。</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
@@ -904,5 +904,4 @@
     <string name="audit_log_result_ok">成功</string>
     <string name="audit_log_result_fail">失敗</string>
     <string name="permission_advanced_channels">高度なチャネル（Root / Termux）</string>
-    <string name="channel_weclaw_summary">WeChat の iLink プロトコルで個人アカウントを接続します。1 つの WeChat ID は 1 チャネルのみ紐付けでき、新しく紐付けると前は無効になります。能動通知は直近の受信メッセージで開く返信ウィンドウに依存します。届かない場合はこのチャネルへ WeChat を送って窓を開けてください。</string>
-</resources>
+    <string name="channel_weclaw_summary">WeChat の iLink プロトコルで個人アカウントを接続します。1 つの WeChat ID は 1 チャネルのみ紐付けでき、新しく紐付けると前は無効になります。能動通知は直近の受信メッセージで開く返信ウィンドウに依存します。届かない場合はこのチャネルへ WeChat を送って窓を開けてください。</string></resources>

@@ -193,6 +193,21 @@ import java.io.File
         io.zer0.muse.data.proactive.ProactiveRelationEntity::class,
         io.zer0.muse.proactive.SessionProactivePreferenceEntity::class,
         io.zer0.muse.data.terms.SessionTermEntity::class,
+        // R2: 知识库 V2(原件/revision/epoch/租约四表;新装与迁移同构,不载入旧行)
+        io.zer0.muse.data.knowledge.KnowledgeV2DocEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeV2RevisionEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeV2DatasetEpochEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeV2RetentionLeaseEntity::class,
+        // R4: 作业账本 + generation 化索引表(旧 knowledge_chunks/FTS 不动)
+        io.zer0.muse.data.knowledge.KnowledgeJobEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeJobItemEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeGenerationEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeGenChunkEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeGenLexicalEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeActiveGenerationEntity::class,
+        // R8: 稳定目录身份与绑定(旧 knowledge_folders 保持原样)
+        io.zer0.muse.data.knowledge.KnowledgeV2FolderEntity::class,
+        io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity::class,
     ],
     version = MuseDb.LATEST_SCHEMA_VERSION,
     exportSchema = true,
@@ -201,6 +216,9 @@ import java.io.File
 abstract class MuseDb : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun messageDao(): MessageDao
+    abstract fun knowledgeV2Dao(): io.zer0.muse.data.knowledge.KnowledgeV2Dao
+    abstract fun knowledgeJobDao(): io.zer0.muse.data.knowledge.KnowledgeJobDao
+    abstract fun knowledgeFolderV2Dao(): io.zer0.muse.data.knowledge.KnowledgeFolderV2Dao
     abstract fun messageFtsDao(): MessageFtsDao
     abstract fun artifactDao(): ArtifactDao
     abstract fun sessionProactivePreferenceDao(): io.zer0.muse.proactive.SessionProactivePreferenceDao
@@ -306,7 +324,7 @@ abstract class MuseDb : RoomDatabase() {
 
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 125
+        const val LATEST_SCHEMA_VERSION = 130
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -3599,6 +3617,11 @@ abstract class MuseDb : RoomDatabase() {
             MIGRATION_122_123,
             MIGRATION_123_124,
             MIGRATION_124_125,
+            io.zer0.muse.data.knowledge.KnowledgeSchemaMigrations.MIGRATION_125_126,
+            io.zer0.muse.data.knowledge.KnowledgeJobSchemaMigrations.MIGRATION_126_127,
+            io.zer0.muse.data.knowledge.KnowledgeVectorSchemaMigrations.MIGRATION_127_128,
+            io.zer0.muse.data.knowledge.KnowledgeFolderSchemaMigrations.MIGRATION_128_129,
+            io.zer0.muse.data.knowledge.KnowledgeEvidenceSchemaMigrations.MIGRATION_129_130,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

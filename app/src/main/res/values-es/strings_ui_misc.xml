@@ -114,7 +114,7 @@ Toca actualizar para obtener la lista</string>
     <string name="model_switch_group_count">%1$s (%2$d)</string>
     <!-- v1.0.18: Free model badge/hint (aligns with FreeModelConfig) -->
     <string name="model_switch_free_badge">Gratis</string>
-    <string name="model_switch_free_provider_hint">No es necesario iniciar sesión, listo para usar</string>
+    <string name="model_switch_free_provider_hint">Modelo gratuito. El endpoint y la clave rotan periódicamente en el servidor; no se necesita clave API.</string>
     <string name="model_switch_context_limit">Contexto %1$s</string>
     <string name="model_switch_output_limit">Límite de salida: %1$s tokens</string>
     <string name="model_switch_metadata_unverified">Capacidades sin verificar</string>

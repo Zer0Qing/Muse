@@ -255,6 +255,11 @@ class BackupService(
         // 这两类此前完全不进备份,恢复后引用全失效。见 [BackupBinaryFiles]。
         // 旧备份无此字段时反序列化为空 map,恢复照常;新备份被旧版本读取时该字段被忽略。
         val binaryFiles: Map<String, String> = emptyMap(),
+        /**
+         * R9: 知识库 V2 便携备份（完整 revision/目录/绑定/legacy chunks）。
+         * 旧备份无此字段时为 null，恢复照常；新备份被旧版本读取时该字段被忽略。
+         */
+        val knowledgeV2Portable: io.zer0.muse.knowledge.backup.KnowledgePortableBackup? = null,
     )
 
     /** 空备份保护需要覆盖所有导出表,不能只检查 sessions/messages。 */
@@ -279,7 +284,8 @@ class BackupService(
         sessionProactivePreferences.isNotEmpty() || sessionTerms.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
         cardEntities.isNotEmpty() ||
-        settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty()
+        settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty() ||
+        knowledgeV2Portable?.docs?.isNotEmpty() == true
 
     /**
      * 导出全部会话 + 消息 + memory 数据到指定 URI。
@@ -539,6 +545,12 @@ class BackupService(
                 // v2.6.8: 卡片实体（NDJSON 导出，与单 JSON 同一定序）。
                 // v2.6.9: 走 DAO 全量查询，不再手写列清单（见 CardEntityBackup.kt）。
                 cardEntities = db.cardEntityDao().getAll().map { it.toRecord() }.inDockOrder(),
+                // R9: 知识库 V2 便携备份，与上述表同一事务快照。
+                knowledgeV2Portable = io.zer0.muse.knowledge.backup.KnowledgePortableBackupService(
+                    v2Dao = db.knowledgeV2Dao(),
+                    folderDao = db.knowledgeFolderV2Dao(),
+                    jobDao = db.knowledgeJobDao(),
+                ).export(),
             )
         }
         val sessions = muse.sessions
@@ -591,6 +603,7 @@ class BackupService(
         val groupChatMemories = muse.groupChatMemories
         // v2.6.8: 卡片实体。
         val cardEntities = muse.cardEntities
+        val knowledgeV2Portable = muse.knowledgeV2Portable
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFactIds = listScopedFactDbIds()
         val settingsSnapshot = settings.exportSettingsSnapshot(includeSecrets)
@@ -658,6 +671,8 @@ class BackupService(
             put("settings", if (settingsSnapshot.isEmpty()) 0 else 1)
             put("fileStores", fileStores.size)
             put("binaryFiles", binaryFiles.items.size)
+            // R9: 知识库 V2 便携备份作为单条记录写出(0/1)。
+            put("knowledgeV2Portable", if (knowledgeV2Portable.docs.isEmpty()) 0 else 1)
         }
         writer.write(meta.toString())
         writer.newLine()
@@ -793,6 +808,21 @@ class BackupService(
             knowledgeFolders,
             io.zer0.muse.data.knowledge.KnowledgeFolderEntity.serializer(),
         )
+        // R9: 知识库 V2 便携备份单条记录(完整 revision/目录/绑定/legacy chunks)。
+        if (knowledgeV2Portable.docs.isNotEmpty()) {
+            val line = buildJsonObject {
+                put("type", "knowledgeV2Portable")
+                put(
+                    "data",
+                    json.encodeToJsonElement(
+                        io.zer0.muse.knowledge.backup.KnowledgePortableBackup.serializer(),
+                        knowledgeV2Portable,
+                    ),
+                )
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
         writeTypedLines(writer, "subagentThread", subagentThreads, SubagentThreadEntity.serializer())
         writeTypedLines(writer, "toolRound", toolRounds, ToolRoundEntity.serializer())
         writeTypedLines(writer, "sessionBranchHead", sessionBranchHeads, SessionBranchHeadEntity.serializer())
@@ -989,6 +1019,8 @@ class BackupService(
         /** v2.6.8: 卡片实体（`card_entities`）—— 停靠卡离开消息流后唯一的存身处。 */
         val cardEntities: List<CardEntityRecord>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
+        /** R9: 知识库 V2 便携备份快照(与其它表同一 MuseDb 事务内读取)。 */
+        val knowledgeV2Portable: io.zer0.muse.knowledge.backup.KnowledgePortableBackup,
     )
 
     /**
@@ -1052,6 +1084,8 @@ class BackupService(
         // v4.1: 目录型文件(笔记附件/头像),同样在 try 外,尾部与文件型存储一同写入。
         // Buffer 在累积阶段就做白名单与容量裁剪,避免恶意备份先吃内存再校验。
         val binaryFileBuf = BackupBinaryFiles.Buffer()
+        // R9: 知识库 V2 便携备份(单条记录),在 MuseDb 事务内恢复。
+        var knowledgeV2PortableBuf: io.zer0.muse.knowledge.backup.KnowledgePortableBackup? = null
         try {
             // buffer 声明在事务外(尾部 memory/fact 事务块也要访问)
             val sessionBuf = mutableListOf<SessionEntity>()
@@ -1168,6 +1202,19 @@ class BackupService(
                 db.groupChatMemoryDao().deleteAll()
                 // v2.6.8: 卡片实体。
                 db.cardEntityDao().deleteAll()
+                // R9: 知识库 V2 真源清空(恢复前);旧表由既有 deleteAll 覆盖。
+                db.knowledgeJobDao().deleteAllGenLexical()
+                db.knowledgeJobDao().deleteAllGenChunks()
+                db.knowledgeJobDao().deleteAllGenerations()
+                db.knowledgeJobDao().deleteAllActiveGenerations()
+                db.knowledgeJobDao().deleteAllJobItems()
+                db.knowledgeJobDao().deleteAllJobs()
+                db.knowledgeV2Dao().deleteAllRevisions()
+                db.knowledgeV2Dao().deleteAllDocs()
+                db.knowledgeV2Dao().deleteAllEpochs()
+                db.knowledgeV2Dao().deleteAllLeases()
+                db.knowledgeFolderV2Dao().deleteAllFolders()
+                db.knowledgeFolderV2Dao().deleteAllBindings()
 
                 // 2. 逐行解析 + 分批插入(仍在 db.withTransaction 事务内,任一失败整体回滚)
                 remaining.forEachIndexed { idx, line ->
@@ -1367,6 +1414,12 @@ class BackupService(
                                     knowChunkBuf,
                                 ) { batch -> db.withTransaction { db.knowledgeChunkDao().insertAll(batch) } }
                             }
+                        }
+                        "knowledgeV2Portable" -> obj["data"]?.let {
+                            knowledgeV2PortableBuf = json.decodeFromJsonElement(
+                                io.zer0.muse.knowledge.backup.KnowledgePortableBackup.serializer(),
+                                it,
+                            )
                         }
                         "experience" -> obj["data"]?.let {
                             experienceBuf.add(json.decodeFromJsonElement(ExperienceEntity.serializer(), it))
@@ -1800,6 +1853,16 @@ class BackupService(
                 // v2.6.8: 卡片实体尾部 flush（停靠卡与未停靠卡同一顺序写回）。
                 flushBatch(cardEntityBuf) { batch ->
                     db.withTransaction { db.appendCardEntities(batch) }
+                }
+
+                // R9: 恢复知识库 V2 便携备份(同一 MuseDb 事务;失败随整体回滚)。
+                knowledgeV2PortableBuf?.let { portable ->
+                    val report = io.zer0.muse.knowledge.backup.KnowledgePortableBackupService(
+                        v2Dao = db.knowledgeV2Dao(),
+                        folderDao = db.knowledgeFolderV2Dao(),
+                        jobDao = db.knowledgeJobDao(),
+                    ).restore(portable)
+                    check(report.success) { "知识库 V2 恢复失败: ${report.failureReason}" }
                 }
 
                 // v2.6.0 (AUD-DATA-B34): 入库后对账 —— B-34 原先只核对“解析行数”，
@@ -2643,6 +2706,8 @@ class BackupService(
         /** v2.6.8: 卡片实体。 */
         val cardEntities: List<CardEntityRecord>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
+        /** R9: 知识库 V2 便携备份快照(与其它表同一 MuseDb 事务内读取)。 */
+        val knowledgeV2Portable: io.zer0.muse.knowledge.backup.KnowledgePortableBackup,
     )
 
     /** v4: 读取文件型存储快照(缺失/失败跳过)。 */
@@ -2732,6 +2797,11 @@ class BackupService(
                 // v2.6.8 / v2.6.9: 卡片实体。走 DAO 全量查询（Room 生成的映射，
                 // 实体加列不会再静默丢字段）。导出即按停靠顺序定序。
                 cardEntities = db.cardEntityDao().getAll().map { it.toRecord() }.inDockOrder(),
+                knowledgeV2Portable = io.zer0.muse.knowledge.backup.KnowledgePortableBackupService(
+                    v2Dao = db.knowledgeV2Dao(),
+                    folderDao = db.knowledgeFolderV2Dao(),
+                    jobDao = db.knowledgeJobDao(),
+                ).export(),
             )
         }
         val sessions = snap.sessions
@@ -2774,6 +2844,7 @@ class BackupService(
         // AUD-20261011-NDJSON-FOLDERS: 快照已读到 folders,但此前 Backup(...) 构造漏传 ——
         // 单 JSON 导出丢文件夹,且 recovery point(本函数产物)回滚会清空全部文件夹。
         val knowledgeFolders = snap.knowledgeFolders
+        val knowledgeV2Portable = snap.knowledgeV2Portable
         val subagentThreads = snap.subagentThreads
         val toolRounds = snap.toolRounds
         val sessionBranchHeads = snap.sessionBranchHeads
@@ -2850,6 +2921,7 @@ class BackupService(
             settingsSnapshot = settingsSnapshot,
             fileStores = fileStores,
             binaryFiles = binaryFiles,
+            knowledgeV2Portable = knowledgeV2Portable,
         )
     }
 
@@ -3188,6 +3260,15 @@ class BackupService(
             backup.translateHistories.forEach { db.translateHistoryDao().insert(it) }
             backup.knowledgeBases.forEach { db.knowledgeBaseDao().upsert(it) }
             backup.knowledgeFolders.forEach { db.knowledgeFolderDao().upsert(it) }
+            // R9: 恢复知识库 V2 便携备份(完整 revision/目录/绑定/legacy chunks)。
+            backup.knowledgeV2Portable?.let { portable ->
+                val report = io.zer0.muse.knowledge.backup.KnowledgePortableBackupService(
+                    v2Dao = db.knowledgeV2Dao(),
+                    folderDao = db.knowledgeFolderV2Dao(),
+                    jobDao = db.knowledgeJobDao(),
+                ).restore(portable)
+                check(report.success) { "知识库 V2 恢复失败: ${report.failureReason}" }
+            }
             // v2.6.7: 待办随备份恢复 —— 只导出不恢复等于「备份了但没用」。
             backup.sessionTodos.forEach { db.sessionTodoDao().upsert(it) }
             // v2.6.9: 牵挂账本 / 结果账 / 关系
@@ -3349,6 +3430,7 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "scheduledTaskExecution" to "scheduledTaskExecutions",
     "knowledgeDoc" to "knowledgeDocs",
     "knowledgeChunk" to "knowledgeChunks",
+    "knowledgeV2Portable" to "knowledgeV2Portable",
     "experience" to "experiences",
     "milestone" to "milestones",
     "agentMessage" to "agentMessages",

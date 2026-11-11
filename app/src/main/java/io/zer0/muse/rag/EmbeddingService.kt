@@ -152,8 +152,16 @@ class EmbeddingService(
      * 再加上解析后的 Provider 身份(baseUrl/apiKey/模型名)—— 这些改了但 RagConfig 没变时,
      * 光靠配置 hash 是察觉不到的。
      */
+    /**
+     * 编码指纹 —— **只包含决定向量语义的字段**。
+     *
+     * 关键修复(R5):此前把 `ragConfig.hashCode()`(覆盖全部配置面)放进指纹,
+     * 改 topK / chunkSize / threshold / rerank 等**纯检索参数**也会让指纹变化,
+     * 进而被判成「嵌入模型切换」并触发不必要的重编码(冷启动反复重建)。
+     * 按设计 §9.1,编码身份与查询策略必须分离:指纹只跟随编码来源、模型路径/名称、
+     * Provider 身份与 apiKey 摘要。
+     */
     private fun fingerprintOf(ragConfig: RagConfig, target: CloudTarget): String = buildString {
-        append(ragConfig.hashCode()).append('|')
         append(ragConfig.embeddingSource.name).append('|')
         append(ragConfig.localModelPath.trim()).append('|')
         when (ragConfig.embeddingSource) {

@@ -109,6 +109,8 @@ android {
 
     sourceSets.getByName("main").assets.srcDir(museWebAssetsDir)
     sourceSets.getByName("main").assets.srcDir(vdServerAssetsDir)
+    // R9: 迁移矩阵测试通过 MigrationTestHelper 读取导出的 schema JSON(125→129 全链校验)。
+    sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
 
     namespace = "io.zer0.muse"
     compileSdk = 36
@@ -546,6 +548,8 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.core.ktx)
+    // R9: 125→129 真实迁移矩阵测试
+    androidTestImplementation(libs.androidx.room.testing)
     // 真机 Compose 界面测试：BOM 与主源码集一致，避免版本漂移
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

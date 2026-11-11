@@ -56,15 +56,36 @@ object CrashReporterFactory {
      * 而配的代理，很可能根本到不了开发者的服务器（甚至把它整个封掉）——
      * 于是上报永远失败，而这跟“服务器挂了”从外部看一模一样。
      *
-     * 这里显式把 proxy 设为 NO_PROXY：崩溃上报这种基建链路不该受用户代理配置影响。
+     * **关键点：只设 `proxy(Proxy.NO_PROXY)` 是不够的。**
+     * OkHttp 在建立连接时**优先使用 `proxySelector`**，`proxy(...)` 会被 selector 的
+     * 返回结果覆盖。共享 client 上的 selector 是动态的（每次建连都读当前配置），
+     * 所以必须把它换成一个「永远返回 NO_PROXY」的 selector，否则用户的代理配置
+     * 依然会把崩溃上报劫走 —— 这正是「服务器一直是好的，客户端却报不可达」的原因。
+     *
+     * 同时清掉 proxyAuthenticator：直连请求不应携带任何代理凭据。
      */
     internal fun directClient(base: OkHttpClient): OkHttpClient = base.newBuilder()
         .proxy(Proxy.NO_PROXY)
+        // 覆盖动态 selector：两者同时存在时 selector 优先，必须显式替换。
+        .proxySelector(NoProxySelector)
         .proxyAuthenticator { _, _ -> null }
         .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .build()
+
+    /**
+     * 永远直连的 ProxySelector。
+     *
+     * 单独抽出来便于单测断言「上报链路不使用用户代理」，也避免每次 build 都新建对象。
+     */
+    internal object NoProxySelector : java.net.ProxySelector() {
+        override fun select(uri: java.net.URI?): List<Proxy> = listOf(Proxy.NO_PROXY)
+
+        override fun connectFailed(uri: java.net.URI?, sa: java.net.SocketAddress?, ioe: java.io.IOException?) {
+            // 直连失败不重试：交给 OkHttp 的重试与上层错误处理。
+        }
+    }
 
     /** 服务端单次提交超时（秒）。崩溃后不该为了上报把用户卡在这里。 */
     internal const val CONNECT_TIMEOUT_SECONDS = 10L

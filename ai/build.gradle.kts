@@ -36,6 +36,24 @@ android {
                 }
                 ?: "PLACEHOLDER"
         buildConfigField("String", "FREE_MODEL_KEY", "\"$freeModelKey\"")
+
+        // 免费档派发端点：接口/密钥/模型由服务端不定期轮换，客户端只认这个地址。
+        // 优先级: -P > 环境变量 > local.properties > 官方默认（空串 = 关闭派发）。
+        val freeModelDispatchUrl =
+            (project.findProperty("FREE_MODEL_DISPATCH_URL") as String?)
+                ?: System.getenv("FREE_MODEL_DISPATCH_URL")
+                ?: run {
+                    val lp = rootProject.file("local.properties")
+                    if (lp.exists()) {
+                        val props = Properties()
+                        lp.inputStream().use { props.load(it) }
+                        props.getProperty("FREE_MODEL_DISPATCH_URL")
+                    } else {
+                        null
+                    }
+                }
+                ?: "https://museai.ltd/api/free-model.json"
+        buildConfigField("String", "FREE_MODEL_DISPATCH_URL", "\"$freeModelDispatchUrl\"")
     }
 
     compileOptions {

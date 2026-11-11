@@ -107,6 +107,8 @@ class BackupRoundTripSerializationTest {
             groupChatId = "g1",
             assistantId = "a1",
             summary = "摘要",
+            // 显式时间戳:encodeDefaults=false 时默认值会在解码时重新求值,造成 1-2ms 时基 flake。
+            createdAt = 100L,
         )
 
         val backup = BackupService.Backup(

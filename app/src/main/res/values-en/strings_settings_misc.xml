@@ -289,7 +289,7 @@
     <string name="diagnostic_export_subject">Muse Diagnostics</string>
     <string name="settings_crash_pending_section">Pending crash reports</string>
     <string name="settings_crash_pending_count">Pending crash reports: %1$d</string>
-    <string name="settings_crash_pending_hint_active">Tap the button below to report (enable and configure first)</string>
+    <string name="settings_crash_pending_hint_active">Tap the button below to report; no setup needed.</string>
     <string name="settings_crash_pending_hint_idle">Crashes will be added to the pending queue automatically</string>
     <string name="settings_crash_report_now_button">Report pending crashes now</string>
     <string name="settings_crash_settings_section">Report settings</string>

@@ -853,25 +853,15 @@ class PresetProviders(
         id = SiliconFlowFreeModels.PROVIDER_ID,
         displayName = context.getString(R.string.preset_siliconflow_free),
         type = ProviderType.OPENAI,
-        baseUrl = ENDPOINT_SILICONFLOW,
-        apiKey = "", // 空,触发 FreeModelConfig 免费模型 fallback 机制
+        // 端点随服务端轮换：每次构建预设都取当前生效值，不在代码里写死某一家网关。
+        baseUrl = SiliconFlowFreeModels.BASE_URL,
+        apiKey = "", // 空：触发免费档派发 key
         builtIn = true,
         hiddenFromSettings = true,
         category = ProviderCategory.OFFICIAL,
-        allowMissingApiKey = true, // v1.0.18: 允许不填 key,由 fallback key 兜底
-        models = listOf(
-            // 与 FreeModelConfig.FREE_MODEL_IDS 保持一致：两边不同步会让用户选到没有额度的模型。
-            chatModel(
-                SiliconFlowFreeModels.PROVIDER_ID,
-                "agnes-2.5-flash",
-                "agnes-2.5-flash (免费)",
-                contextWindow = 512_000,
-                maxOutputTokens = 65_536,
-                supportsVision = true,
-                reasoning = true,
-                supportsTools = true,
-            ),
-        ),
+        allowMissingApiKey = true,
+        // 模型清单同样按当前派发配置投影；派发不可用时为空，由 UI 提示等待恢复。
+        models = SiliconFlowFreeModels.MODELS,
     )
 
     // ── 国产官方(新增)──────────────────────────────

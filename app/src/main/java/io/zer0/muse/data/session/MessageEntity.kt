@@ -88,6 +88,13 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "[]") val citationUrlsJson: String = "[]",
     /** v1.133: 知识库引用列表(JSON 序列化 [io.zer0.ai.core.RagCitation])。 */
     @ColumnInfo(defaultValue = "[]") val ragCitationsJson: String = "[]",
+    /**
+     * R7: 本轮证据快照(JSON 序列化 `EvidenceBundleSnapshot`)。
+     *
+     * 与 [ragCitationsJson] 的区别:本列保存**实际发送给模型的文本 + 实际片段 + 提供/已引用区分**,
+     * 用于回答「这条回答实际收到了哪些证据」。空串 = 旧消息或未启用知识库。
+     */
+    @ColumnInfo(defaultValue = "") val knowledgeEvidenceJson: String = "",
     /** Phase 8.6: 本地图片 base64 列表(JSON 数组,无 data: 前缀)。 */
     @ColumnInfo(defaultValue = "[]") val imageBase64Json: String = "[]",
     /**

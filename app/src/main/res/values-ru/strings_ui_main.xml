@@ -606,7 +606,7 @@
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow">SiliconFlow</string>
-    <string name="preset_siliconflow_free">Встроенная бесплатная модель</string>
+    <string name="preset_siliconflow_free">Бесплатная модель (периодическая ротация)</string>
     <string name="free_model_service_unavailable">Бесплатная квота недоступна. Добавьте API-ключ или попробуйте позже.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
@@ -865,5 +865,4 @@
     <string name="audit_log_result_ok">Успех</string>
     <string name="audit_log_result_fail">Сбой</string>
     <string name="permission_advanced_channels">Дополнительные каналы (Root / Termux)</string>
-    <string name="channel_weclaw_summary">Подключает личный аккаунт через протокол iLink в WeChat. Один аккаунт WeChat может быть привязан только к одному каналу: новая привязка отменяет прежнюю. Инициативные уведомления зависят от окна ответа, открытого недавним входящим сообщением; если они не приходят, отправьте этому каналу сообщение в WeChat.</string>
-</resources>
+    <string name="channel_weclaw_summary">Подключает личный аккаунт через протокол iLink в WeChat. Один аккаунт WeChat может быть привязан только к одному каналу: новая привязка отменяет прежнюю. Инициативные уведомления зависят от окна ответа, открытого недавним входящим сообщением; если они не приходят, отправьте этому каналу сообщение в WeChat.</string></resources>

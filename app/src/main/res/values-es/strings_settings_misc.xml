@@ -287,7 +287,7 @@
     <string name="settings_crash_done_failed">No se pudo enviar; los registros se conservan para reintentar</string>
     <string name="settings_crash_pending_section">Informes de fallos pendientes</string>
     <string name="settings_crash_pending_count">Informes de fallos pendientes: %1$d</string>
-    <string name="settings_crash_pending_hint_active">Toque el botón a continuación para informar (habilite y configure primero)</string>
+    <string name="settings_crash_pending_hint_active">Toca el botón de abajo para informar; no se necesita configuración.</string>
     <string name="settings_crash_pending_hint_idle">Los fallos se agregarán automáticamente a la cola pendiente</string>
     <string name="settings_crash_report_now_button">Informar fallos pendientes ahora</string>
     <string name="settings_crash_settings_section">Configuración de informes</string>

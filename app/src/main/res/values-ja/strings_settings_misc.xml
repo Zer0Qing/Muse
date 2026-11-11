@@ -287,7 +287,7 @@
     <string name="settings_crash_done_failed">送信できませんでした。記録は保持しているので後で再試行できます</string>
     <string name="settings_crash_pending_section">保留中のクラッシュレポート</string>
     <string name="settings_crash_pending_count">保留中のクラッシュ レポート: %1$d</string>
-    <string name="settings_crash_pending_hint_active">報告するには下のボタンをタップしてください (最初に有効にして設定します)</string>
+    <string name="settings_crash_pending_hint_active">下のボタンで報告できます。設定は不要です。</string>
     <string name="settings_crash_pending_hint_idle">クラッシュは保留キューに自動的に追加されます</string>
     <string name="settings_crash_report_now_button">保留中のクラッシュを今すぐ報告する</string>
     <string name="settings_crash_settings_section">レポート設定</string>

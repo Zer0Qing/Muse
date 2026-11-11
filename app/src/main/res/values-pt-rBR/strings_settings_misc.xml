@@ -287,7 +287,7 @@
     <string name="settings_crash_done_failed">Falha no envio; os registros foram mantidos para tentar depois</string>
     <string name="settings_crash_pending_section">Relatórios de falhas pendentes</string>
     <string name="settings_crash_pending_count">Relatórios de falhas pendentes: %1$d</string>
-    <string name="settings_crash_pending_hint_active">Toque no botão abaixo para denunciar (habilite e configure primeiro)</string>
+    <string name="settings_crash_pending_hint_active">Toque o botão abaixo para enviar; nenhuma configuração necessária.</string>
     <string name="settings_crash_pending_hint_idle">As falhas serão adicionadas à fila pendente automaticamente</string>
     <string name="settings_crash_report_now_button">Relate falhas pendentes agora</string>
     <string name="settings_crash_settings_section">Configurações de relatório</string>

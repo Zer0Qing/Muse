@@ -1,6 +1,7 @@
 package io.zer0.muse.knowledge
 
 import io.zer0.muse.knowledge.storage.KnowledgeContentStore
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -34,9 +35,11 @@ class KnowledgeContentStoreTest {
     fun `put publishes content addressed file and returns hash reference`() {
         val s = store()
         val ref = s.put("file", "原始字节".toByteArray())
-        assertEquals("发布引用 = 内容 hash(64 hex 字符)", 64, ref.length)
-        assertTrue("发布文件存在", s.exists(ref))
-        assertEquals("读回字节一致", "原始字节".toByteArray(), s.read(ref))
+        assertTrue("前置:正常路径 put 成功", ref != null)
+        val refValue = ref!! // 断言非空后使用
+        assertEquals("发布引用 = 内容 hash(64 hex 字符)", 64, refValue.length)
+        assertTrue("发布文件存在", s.exists(refValue))
+        assertArrayEquals("读回字节一致", "原始字节".toByteArray(), s.read(refValue))
     }
 
     @Test
@@ -53,27 +56,29 @@ class KnowledgeContentStoreTest {
     fun `staging failure leaves existing originals untouched and returns null`() {
         val s = store()
         val existing = s.put("first", "已有原件".toByteArray())
+        assertTrue("前置:首次 put 成功", existing != null)
+        val existingRef = existing!! // 断言非空后使用(测试内可接受,合同由 assertNull 保证)
 
-        val ref = store(KnowledgeContentStore.FailurePoint.STAGING_WRITE)
-            .let { failed ->
-                // 失败实例必须指向同一物理目录才能验证「不删已有」
-                KnowledgeContentStore(
-                    rootDirectory = s.rootDirectory,
-                    injectedFailures = setOf(KnowledgeContentStore.FailurePoint.STAGING_WRITE),
-                ).also { }
-            }.put("second", "新字节".toByteArray())
+        // 失败实例指向同一物理目录才能验证「不删已有」
+        val failing = KnowledgeContentStore(
+            rootDirectory = s.rootDirectory,
+            injectedFailures = setOf(KnowledgeContentStore.FailurePoint.STAGING_WRITE),
+        )
+        val ref = failing.put("second", "新字节".toByteArray())
 
         assertNull("staging 失败必须返回 null,不得返回假引用", ref)
-        assertTrue("已有原件必须完好", s.exists(existing))
-        assertEquals("已有原件内容不变", "已有原件".toByteArray(), s.read(existing))
+        assertTrue("已有原件必须完好", s.exists(existingRef))
+        assertArrayEquals("已有原件内容不变", "已有原件".toByteArray(), s.read(existingRef))
     }
 
     @Test
     fun `close verification failure removes staging and does not publish`() {
         val s = store(KnowledgeContentStore.FailurePoint.CLOSE_VERIFY)
-        val ref = s.put("x", "字节".toByteArray())
+        val bytes = "字节".toByteArray()
+        val ref = s.put("x", bytes)
         assertNull("关闭校验失败不得发布", ref)
-        assertFalse("不得存在发布文件", s.exists("字节".toByteArray().let { "" })) // 占位:见下方 staging 清理断言
+        // 发布名 = hash;校验失败时该内容文件不得存在
+        assertFalse("不得存在该内容的发布文件", s.exists(KnowledgeContentStore.hashOf(bytes)))
         assertTrue("staging 残留必须已清理", s.listStaging().isEmpty())
     }
 
@@ -81,13 +86,15 @@ class KnowledgeContentStoreTest {
     fun `publish failure leaves staging cleaned and originals intact`() {
         val s = store()
         val existing = s.put("first", "已有原件".toByteArray())
+        assertTrue("前置:首次 put 成功", existing != null)
+        val existingRef = existing!! // 断言非空后使用
         val failing = KnowledgeContentStore(
             rootDirectory = s.rootDirectory,
             injectedFailures = setOf(KnowledgeContentStore.FailurePoint.PUBLISH_RENAME),
         )
         val ref = failing.put("second", "新内容".toByteArray())
         assertNull("发布失败返回 null", ref)
-        assertTrue("已有原件完好", s.exists(existing))
+        assertTrue("已有原件完好", s.exists(existingRef))
         assertTrue("失败写入的 staging 已清理", s.listStaging().isEmpty())
     }
 
@@ -108,12 +115,14 @@ class KnowledgeContentStoreTest {
     fun `orphan cleanup removes only unreferenced staging files and never published ones`() {
         val s = store()
         val published = s.put("keep", "保留".toByteArray())
+        assertTrue("前置:发布成功", published != null)
+        val publishedRef = published!! // 断言非空后使用
         // 制造一个 staging 残留(模拟历史中断)
         s.stageRaw("orphan-staging")
 
         s.cleanupOrphans(maxAgeMs = 0L)
 
-        assertTrue("已发布原件不得被清理", s.exists(published))
+        assertTrue("已发布原件不得被清理", s.exists(publishedRef))
         assertTrue("孤儿 staging 被清理", s.listStaging().isEmpty())
     }
 

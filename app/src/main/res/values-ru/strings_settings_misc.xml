@@ -287,7 +287,7 @@
     <string name="settings_crash_done_failed">Отправка не удалась; записи сохранены, можно повторить позже</string>
     <string name="settings_crash_pending_section">Ожидаемые отчеты о сбоях</string>
     <string name="settings_crash_pending_count">Ожидаемые отчеты о сбоях: %1$d</string>
-    <string name="settings_crash_pending_hint_active">Нажмите кнопку ниже, чтобы сообщить о проблеме (сначала включите и настройте)</string>
+    <string name="settings_crash_pending_hint_active">Нажмите кнопку ниже, чтобы отправить; настройка не требуется.</string>
     <string name="settings_crash_pending_hint_idle">Сбои будут автоматически добавлены в очередь ожидания.</string>
     <string name="settings_crash_report_now_button">Сообщите об ожидающих сбоях прямо сейчас</string>
     <string name="settings_crash_settings_section">Настройки отчета</string>

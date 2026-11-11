@@ -1605,6 +1605,11 @@ class SettingsRepository(
             // 卡片渲染链路还在重做，默认开着会把不可靠的东西摆到用户第一眼。
             runStartupStep("卡片输出一次性关闭") { chatSettings.migrateCardOutputOnOnce() }
             // 注入与「让位」必须串行：先让位再注入，否则两者并发时谁先跑不确定。
+            // 免费档端点/密钥/模型由服务端不定期轮换：启动时刷新一次，失败静默回退缓存/内置默认。
+            runStartupStep("刷新免费模型配置") {
+                io.zer0.ai.core.FreeModelConfig.installCacheDirectory(appContext.filesDir)
+                io.zer0.ai.core.FreeModelConfig.refresh(force = true)
+            }
             runStartupStep("注入免费供应商") { injectFreeProviderIfAbsent() }
             // v2.3: 恢复连接测试缓存
             runStartupStep("恢复连接测试缓存") { restoreConnectionTestCache() }

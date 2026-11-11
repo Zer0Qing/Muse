@@ -96,9 +96,10 @@ class SettingsGroupLayoutTest {
             SettingsEntryId.TUTORIAL,
             SettingsEntryId.ABOUT,
             SettingsEntryId.CHECK_UPDATE,
-            SettingsEntryId.DIAGNOSTICS,
         ),
         SettingsGroupKind.DEVELOPER to listOf(
+            // 运行诊断已从「关于」移入开发者组。
+            SettingsEntryId.DIAGNOSTICS,
             SettingsEntryId.STATS,
             SettingsEntryId.EXPERIMENTS,
             SettingsEntryId.DEBUG_LOG,
@@ -167,9 +168,9 @@ class SettingsGroupLayoutTest {
                 SettingsEntryId.TUTORIAL,
                 SettingsEntryId.ABOUT,
                 SettingsEntryId.CHECK_UPDATE,
-                SettingsEntryId.DIAGNOSTICS,
             ),
             SettingsGroupKind.DEVELOPER to listOf(
+                SettingsEntryId.DIAGNOSTICS,
                 SettingsEntryId.STATS,
                 SettingsEntryId.EXPERIMENTS,
                 SettingsEntryId.DEBUG_LOG,
@@ -213,6 +214,6 @@ class SettingsGroupLayoutTest {
 
         /** 与上方 expectedLayout 一一对应的条目数，用来锁住分布均衡、没有过大的单类。 */
         // v2.7.x(E2): 记忆类 +1（术语页）；2.6.24: 表情包库并入聊天设置，聊天类 -1
-        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 1, 1, 3, 3, 3, 2, 3, 5, 4, 1, 1, 5, 2, 4, 5)
+        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 1, 1, 3, 3, 3, 2, 3, 5, 4, 1, 1, 5, 2, 3, 6)
     }
 }

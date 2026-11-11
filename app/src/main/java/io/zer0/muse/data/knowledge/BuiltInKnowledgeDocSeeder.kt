@@ -184,4 +184,13 @@ class BuiltInKnowledgeDocSeeder(
         const val ASSET_DIR = "devdocs"
         const val TAG = "BuiltInKnowledgeDocSeeder"
     }
+
+    /**
+     * R9: 恢复/配置变更后允许重新检查 seed 与索引 —— 清掉单实例布尔短路，
+     * 下一次 ensureSeeded/ensureIndexed 会重新核对资产版本与索引状态。
+     */
+    suspend fun invalidateForRestore() {
+        seedMutex.withLock { seeded = false }
+        indexMutex.withLock { indexed = false }
+    }
 }

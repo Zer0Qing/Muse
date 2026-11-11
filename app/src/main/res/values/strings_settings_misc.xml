@@ -294,7 +294,7 @@
     <string name="diagnostic_export_subject">Muse 诊断信息</string>
     <string name="settings_crash_pending_section">待上报崩溃</string>
     <string name="settings_crash_pending_count">待上报崩溃： %1$d 条</string>
-    <string name="settings_crash_pending_hint_active">点击下方按钮上报（需先启用并配置）</string>
+    <string name="settings_crash_pending_hint_active">点击下方按钮上报，无需任何配置</string>
     <string name="settings_crash_pending_hint_idle">应用崩溃后会自动加入待上报队列</string>
     <string name="settings_crash_report_now_button">立即上报待处理崩溃</string>
     <string name="settings_crash_settings_section">上报设置</string>

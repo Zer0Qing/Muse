@@ -563,8 +563,8 @@ private fun ModelRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                // v1.0.18: SiliconFlow 免费白名单模型追加「免费」徽章(对齐 FreeModelConfig.FREE_MODEL_IDS)
-                if (FreeModelConfig.FREE_MODEL_IDS.any { it.equals(model.id, ignoreCase = true) }) {
+                // 免费档白名单模型追加「免费」徽章(白名单随服务端轮换)
+                if (FreeModelConfig.allowedModelIds().any { it.equals(model.id, ignoreCase = true) }) {
                     Spacer(Modifier.width(6.dp))
                     FreeBadge()
                 }
