@@ -5,9 +5,12 @@ import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.feature.FeatureFlags
 import io.zer0.muse.ui.settings.SettingsCatalog
+import io.zer0.muse.ui.settings.SettingsGroupKind
 import io.zer0.muse.ui.settings.SettingsEntryAction
 import io.zer0.muse.ui.settings.SettingsToggleKey
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,7 +34,10 @@ class HostSettingsCatalogTest {
 
     @Test
     fun `catalog groups match the settings groups and order`() {
-        val appGroups = SettingsCatalog.groups.map { resourceName(it.titleRes) }
+        // 2.6.27: 小手机整体收起后，两侧都不再列出该分组。
+        // 这里按「可见分组」比对：镜像契约要求的是**用户能看到的清单一致**，
+        // 而不是把已收起的分类强行留在协议侧。
+        val appGroups = visibleAppGroups()
         assertEquals(
             "分组与设置清单不一致:\nApp = $appGroups\n协议 = ${HostSettingsCatalog.groups.map { it.key }}",
             appGroups,
@@ -39,9 +45,21 @@ class HostSettingsCatalogTest {
         )
     }
 
+    /** App 侧用户可见的分组（与 [HostSettingsCatalog] 的收起口径一致）。 */
+    private fun visibleAppGroups(): List<String> =
+        SettingsCatalog.groups
+            .filter { group ->
+                group.kind != SettingsGroupKind.MINI_PHONE || FeatureFlags.MINI_PHONE
+            }
+            .map { resourceName(it.titleRes) }
+
     @Test
     fun `catalog entries match each group's declared entries`() {
-        SettingsCatalog.groups.forEachIndexed { index, group ->
+        // 只比对用户可见的分组：已收起的分类不参与镜像契约。
+        val visibleGroups = SettingsCatalog.groups.filter { group ->
+            group.kind != SettingsGroupKind.MINI_PHONE || FeatureFlags.MINI_PHONE
+        }
+        visibleGroups.forEachIndexed { index, group ->
             val hostGroup = HostSettingsCatalog.groups[index]
             val appEntries = group.entries
             assertEquals(
@@ -127,12 +145,14 @@ class HostSettingsCatalogTest {
 
     @Test
     fun `compile time gated entries keep their flag state`() {
-        val hostMiniPhone = HostSettingsCatalog.entries.single { it.id == "miniphone" }
-        assertEquals(
-            "小手机入口的可用状态必须与编译期闸门一致",
-            FeatureFlags.MINI_PHONE,
-            hostMiniPhone.enabled,
-        )
+        // 闸门关掉时整组都不出现：既不该有 enabled=false 的死条目，也不该出现在扁平视图里。
+        val hostMiniPhone = HostSettingsCatalog.entries.firstOrNull { it.id == "miniphone" }
+        if (FeatureFlags.MINI_PHONE) {
+            assertNotNull("闸门开启时协议侧必须有该入口", hostMiniPhone)
+            assertEquals(true, hostMiniPhone?.enabled)
+        } else {
+            assertNull("闸门关闭时协议侧不该出现该入口", hostMiniPhone)
+        }
     }
 
     private fun expectedKind(action: SettingsEntryAction): String = when (action) {

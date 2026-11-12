@@ -18,8 +18,6 @@
     <string name="settings_web_search_enable_subtitle">Estado predeterminado global;</string>
     <string name="settings_web_search_engine">Motor de búsqueda</string>
     <string name="settings_web_search_api_key_label">Clave API (opcional)</string>
-    <string name="settings_web_search_multi_key_title">Claves API multi-motor</string>
-    <string name="settings_web_search_multi_key_subtitle">Configura una clave para cada buscador. El modo automático probará los buscadores sucesivamente si alguno falla.</string>
     <string name="settings_saved">Guardado</string>
     <string name="settings_web_search_save_api_key">Guardar clave API</string>
     <string name="settings_web_search_save_endpoint">Guardar punto final</string>

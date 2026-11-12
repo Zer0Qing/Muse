@@ -167,26 +167,37 @@ internal object HostSettingsCatalog {
             link("tutorial", "settings_screen_tutorial", "settings_screen_tutorial_desc", "school"),
             link("about", "settings_screen_about", "settings_screen_about_desc", "info"),
             action("check_update", "settings_screen_check_update", "settings_screen_check_update_desc", "refresh"),
-            // v2.6.23(S4/S5): App 端「运行诊断」子页的 1:1 镜像条目。
-            // S5 已在 Web 端补出「运行」三 Tab 页(runtime.logs / runtime.diagnostics / runtime.stats),
-            // 因此点亮;标题与说明沿用 App 侧同一组字符串,不再造第二个叫法。
-            link("diagnostics", "settings_screen_diagnostics", "settings_screen_diagnostics_desc", "bug"),
         ),
         group(
             "settings_group_developer",
+            // 「运行诊断」在 App 侧已移入开发者组，协议侧必须同步，
+            // 否则 Web 设置页的分类归属与 App 不一致。
+            // S5 已在 Web 端补出「运行」三 Tab 页(runtime.logs / runtime.diagnostics / runtime.stats)。
+            link("diagnostics", "settings_screen_diagnostics", "settings_screen_diagnostics_desc", "bug"),
             link("stats", "settings_screen_stats", "settings_screen_stats_desc", "chartBar"),
             link("experiments", "settings_screen_experiments", "settings_screen_experiments_desc", "flask"),
             link("debug_log", "settings_screen_debug_log", "settings_screen_debug_log_desc", "bug"),
             link("crash_report", "settings_crash_page_title", "settings_screen_desc_crash_report", "shieldCheck"),
             link("audit_log", "settings_audit_log", "settings_screen_desc_audit_log", "history"),
         ),
-    )
+    ).let(::visibleGroups)
 
     /** 全部入口的扁平视图,顺序与界面渲染一致。 */
     val entries: List<HostSettingsEntry> = groups.flatMap { it.entries }
 
     private fun group(key: String, vararg entries: HostSettingsEntry): HostSettingsGroup =
         HostSettingsGroup(key = key, entries = entries.map { it.copy(groupKey = key) })
+
+    /**
+     * 整组可见性过滤。
+     *
+     * 小手机在 2.6.27 整体收起：Android 侧入口已由编译期闸门关掉，
+     * Web 设置页若还把「小手机」分类列出来（哪怕条目是 disabled），
+     * 用户看到的就是一个点不动的死分类 —— 与「界面上不出现任何痕迹」不一致。
+     * 这里按同一口径把整组摘掉。
+     */
+    private fun visibleGroups(all: List<HostSettingsGroup>): List<HostSettingsGroup> =
+        all.filter { group -> group.key != "settings_group_miniphone" || FeatureFlags.MINI_PHONE }
 
     private fun link(id: String, titleKey: String, descKey: String?, iconKey: String, enabled: Boolean = true): HostSettingsEntry =
         HostSettingsEntry(

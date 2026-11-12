@@ -13,9 +13,8 @@ import org.junit.Test
  */
 class SettingsEntryVisibilityTest {
 
-    // 2.6.26: 小手机随 R0–R10 重写完成放出入口，不再是「暂不展示」；网页版仍是暂不主推。
-    // 小手机那一位是否展示由下面「只认编译期总闸」那条单独钉住（它与 MINI_PHONE_ENTRY 相等）。
-    private val hiddenIds = listOf(SettingsEntryId.WEB_ACCESS)
+    // 2.6.27: 小手机整体收起，入口回到「暂不展示」；是否展示仍由编译期总闸 MINI_PHONE_ENTRY 决定。
+    private val hiddenIds = listOf(SettingsEntryId.WEB_ACCESS, SettingsEntryId.MINIPHONE)
 
     @Test
     fun `暂不展示的入口标了 browseVisible=false`() {

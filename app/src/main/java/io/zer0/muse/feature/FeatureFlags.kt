@@ -27,13 +27,16 @@ object FeatureFlags {
      * 2.6.24 / 2.6.25 两个正式包整体收起过（入口、路由、后台唤醒一并停），
      * 2.6.26 起随 R0–R10 重写完成重新放出。
      *
+     * **2.6.27 再次整体收起**：入口、路由、后台唤醒全部停掉，界面上不出现任何小手机痕迹。
+     * 代码一行未删，改回 true 即可恢复。
+     *
      * **恢复前必须知道的一条**：v2.6.18–v2.6.22 三个已发布版本里这一项是 true，
      * 启动时会无条件注册每 3 小时唤醒的 Worker，而它会解析 Koin 并打开 `miniphone.db`（当时是 v5）。
      * 也就是说老用户设备上可能已经有一个 v5 库，升级上来要走 v5→v6→v7→v8 整条迁移链。
      * 迁移链有整链测试（`MiniPhoneDbMigrationChainTest`，逐段点名核对表），但那是 Robolectric 的 SQLite；
      * 真机库文件、备份恢复、以及「升级中途被杀」仍需真机自验。
      */
-    const val MINI_PHONE: Boolean = true
+    const val MINI_PHONE: Boolean = false
 
     /**
      * 小手机是否在首页与设置分类页露出入口。
@@ -41,9 +44,10 @@ object FeatureFlags {
      * 与本功能本身的存放分开：[MINI_PHONE] 控制模块与路由是否存在，
      * 这一项只控制“看不看得见”。
      *
-     * 2.6.24 / 2.6.25 先不露入口；2.6.26 起随小手机一起打开（与 [MINI_PHONE] 同为 true）。
+     * 2.6.24 / 2.6.25 先不露入口；2.6.26 起随小手机一起打开；
+     * **2.6.27 起再次关闭**（与 [MINI_PHONE] 同为 false）。
      */
-    const val MINI_PHONE_ENTRY: Boolean = true
+    const val MINI_PHONE_ENTRY: Boolean = false
 
     /** 小手机内嵌的"AI 朋友圈"（Moments）。依赖 [MINI_PHONE]。 */
     const val MOMENTS: Boolean = MINI_PHONE

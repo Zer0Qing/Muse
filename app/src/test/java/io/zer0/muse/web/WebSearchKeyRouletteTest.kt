@@ -60,8 +60,12 @@ class WebSearchKeyRouletteTest {
 
     @Test
     fun `resolveProviderKey 从 Key 池首把读 旧字段兼容回退`() {
+        // 轮换器是进程内单例：上面 `429 换 key` 那条用例已经用 id="Tavily" 轮换过，
+        // 这里若继续用同一个 id，就会读到被推进过的下标（本用例曾因此偶发失败）。
+        // 换成独有 id，把「首把读取」这条语义钉在与轮换状态无关的输入上。
+        val poolId = "first-read-isolation"
         val v3 = WebSearchConfig(
-            providerEntries = listOf(WebSearchProviderEntry(id = "Tavily", type = "Tavily", apiKeys = listOf("first", "second"))),
+            providerEntries = listOf(WebSearchProviderEntry(id = poolId, type = "Tavily", apiKeys = listOf("first", "second"))),
         )
         assertEquals("first", resolveProviderKey(v3, "Tavily"))
         val legacy = WebSearchConfig(apiKeys = mapOf("Brave" to "legacy"))

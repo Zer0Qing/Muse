@@ -33,8 +33,8 @@ class HostSettingsEntryAvailabilityTest {
     private val allowedDisabled = mapOf(
         // 内置浏览器设置只有 App 侧有页面；Web 端列出但不进子页。
         "browser" to "浏览器设置是 App 侧 WebView 行为，网页端没有对应子页",
-        // 小手机由编译期总闸决定：关掉时保留展示但不可进入（既有约定，不是我新加的规则）。
-        "miniphone" to "由 FeatureFlags.MINI_PHONE 决定的实验功能，关闸时只展示",
+        // 2.6.27: 小手机整体收起后整组不再出现在协议侧，因此不再属于「允许的禁用行」。
+        // 它的显隐由 `HostSettingsCatalogTest` 的闸门用例单独钉住。
         // 用户约定的编辑与注入都只在 App 侧；Web 端要能进，得先在客户端补子页并登记 entryIds。
         "agent_directives" to "「它该做与不该做的事」只有 App 侧编辑页，网页端列出但不进子页",
         // S4 加的 1:1 镜像条目；S5 已在 Web 端补出「运行」三 Tab 页并点亮。
