@@ -189,7 +189,7 @@
     <string name="assistant_enable_cd">Activar asistente</string>
     <string name="assistant_diff_name">Nombre</string>
     <string name="assistant_diff_summary">Resumen</string>
-    <string name="assistant_diff_system_prompt">Prompt del sistema</string>
+    <string name="assistant_diff_system_prompt">Instrucciones del sistema</string>
     <string name="assistant_diff_persona_definition">Persona</string>
     <string name="assistant_diff_thinking_chain">Cadena de razonamiento</string>
     <string name="assistant_diff_message_template">Plantilla de mensaje</string>

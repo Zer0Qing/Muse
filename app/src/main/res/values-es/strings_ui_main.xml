@@ -536,7 +536,7 @@
     <!-- ===== P1-4: Tablet adaptation (responsive layout) ===== -->
 
     <!-- ===== P2-2: Upstream model diff sheet (ModelDiffSheet) ===== -->
-    <string name="model_diff_title">Diferencia de modelo ascendente</string>
+    <string name="model_diff_title">Cambios en los modelos del proveedor</string>
     <string name="model_diff_new">Upstream Nuevo (%1$d)</string>
     <string name="model_diff_removed">Eliminado (%1$d)</string>
     <string name="model_diff_unchanged">Sin cambios (%1$d)</string>
