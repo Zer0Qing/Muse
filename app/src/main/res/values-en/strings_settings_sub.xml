@@ -862,4 +862,6 @@
     <string name="kb_settings_embedding">Embedding</string>
     <string name="kb_settings_retrieval">Retrieval</string>
     <string name="kb_settings_title">Knowledge settings</string>
+    <string name="settings_about_contributors">Contributors</string>
+    <string name="settings_about_contributors_subtitle">Spanish localization: %1$s</string>
 </resources>

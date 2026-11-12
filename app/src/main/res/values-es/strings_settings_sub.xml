@@ -856,4 +856,6 @@
     <string name="settings_agent_all_day_subtitle">Los mensajes pueden llegar a cualquier hora, sin respetar el horario de silencio</string>
     <string name="settings_agent_agent_session_enabled">Sesiones del agente</string>
     <string name="settings_agent_agent_session_enabled_subtitle">Al desactivar esta opción, no se envían mensajes proactivos a las sesiones del agente ni se crean sesiones del agente para ellos</string>
+    <string name="settings_about_contributors">Colaboradores</string>
+    <string name="settings_about_contributors_subtitle">Localización al español: %1$s</string>
 </resources>

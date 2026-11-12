@@ -867,4 +867,6 @@
     <string name="kb_settings_embedding">编码</string>
     <string name="kb_settings_retrieval">检索</string>
     <string name="kb_settings_title">知识库设置</string>
+    <string name="settings_about_contributors">贡献者</string>
+    <string name="settings_about_contributors_subtitle">西班牙语本地化：%1$s</string>
 </resources>

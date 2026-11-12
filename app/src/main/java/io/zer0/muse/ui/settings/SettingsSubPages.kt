@@ -920,6 +920,25 @@ fun SettingsAboutPage(
                 }
             }
         }
+        // 贡献者：本地化等外部贡献的署名。
+        // 不写进提交作者（保持历史作者单一），但必须在用户能看到的界面里留名，
+        // 否则贡献者的工作在成品上完全不可见。
+        item {
+            SectionLabel(stringResource(R.string.settings_about_contributors))
+        }
+        item {
+            SettingsGroup(
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                SettingsItemRow(
+                    title = "joselofarias-byte",
+                    subtitle = stringResource(
+                        R.string.settings_about_contributors_subtitle,
+                        "José Luis Farías",
+                    ),
+                )
+            }
+        }
         // P3-14: 反馈入口 — 调起邮件 Intent,fallback 到剪贴板
         item {
             SectionLabel(stringResource(R.string.settings_about_feedback_section))

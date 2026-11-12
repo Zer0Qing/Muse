@@ -837,4 +837,6 @@
     <string name="kb_settings_embedding">Кодирование</string>
     <string name="kb_settings_retrieval">Поиск</string>
     <string name="kb_settings_title">Настройки знаний</string>
+    <string name="settings_about_contributors">Участники</string>
+    <string name="settings_about_contributors_subtitle">Испанская локализация: %1$s</string>
 </resources>

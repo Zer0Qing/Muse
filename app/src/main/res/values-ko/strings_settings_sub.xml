@@ -837,4 +837,6 @@
     <string name="kb_settings_embedding">인코딩</string>
     <string name="kb_settings_retrieval">검색</string>
     <string name="kb_settings_title">지식 설정</string>
+    <string name="settings_about_contributors">기여자</string>
+    <string name="settings_about_contributors_subtitle">스페인어 현지화: %1$s</string>
 </resources>

@@ -837,4 +837,6 @@
     <string name="kb_settings_embedding">Codificação</string>
     <string name="kb_settings_retrieval">Recuperação</string>
     <string name="kb_settings_title">Configurações de conhecimento</string>
+    <string name="settings_about_contributors">Colaboradores</string>
+    <string name="settings_about_contributors_subtitle">Localização em espanhol: %1$s</string>
 </resources>
