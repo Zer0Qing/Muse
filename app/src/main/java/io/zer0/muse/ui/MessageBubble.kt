@@ -83,6 +83,7 @@ import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.artifact.ArtifactCardList
+import io.zer0.muse.ui.chat.TextSelectionPanel
 import io.zer0.muse.ui.chat.BranchSelector
 import io.zer0.muse.ui.chat.MessageInfoSheet
 import io.zer0.muse.ui.chat.QuickAction
@@ -484,9 +485,9 @@ internal fun MessageBubble(
     // 语言子菜单属于完整菜单层；否则快捷翻译会先落到精简点按菜单。
     val showExtendedMenu = actionSurface == MessageActionSurface.Extended ||
         actionSurface == MessageActionSurface.TranslationLanguages
-    // v1.0.72: 文本选择模式 — 长按菜单点"选择文本"后进入,支持划选复制;
-    // 点击气泡或再次长按退出
-    var textSelectMode by remember { mutableStateOf(false) }
+    // 全屏「选择文本」面板：点「选择文本」直接铺满一屏纯文本，长按即出系统菜单。
+    // 取代旧行为（只把气泡切到可选 + 弹提示，用户还要在窄气泡里再长按一次）。
+    var showTextSelectionPanel by remember { mutableStateOf(false) }
     // P2-13: 桌面端右键上下文菜单(仅 Expanded 窗口 + 物理键盘场景显示)
     var showDesktopContextMenu by remember { mutableStateOf(false) }
     // v1.60-B: 全屏媒体查看器状态 — 图片列表 + 初始索引
@@ -640,15 +641,10 @@ internal fun MessageBubble(
                     onClick = {
                         if (selectionMode) {
                             onToggleSelection?.invoke()
-                        } else if (textSelectMode) textSelectMode = false
+                        }
                     },
                     onLongClick = {
                         MuseHaptics.medium(hapticFeedback)
-                        if (textSelectMode) {
-                            // v1.0.72: 文本选择模式下长按交给 SelectionContainer 激活系统选择手柄,
-                            // 不弹操作菜单(否则长按被抢走,永远选不了文字)
-                            return@combinedClickable
-                        }
                         if (selectionMode) {
                             onToggleSelection?.invoke()
                         } else if (desktopShortcutsEnabled) {
@@ -1826,7 +1822,7 @@ internal fun MessageBubble(
                                                 // v1.0.72: 选择模式或文本选择模式都禁用链接检测:
                                                 // 文本选择模式必须禁用,否则 LinkableText 的 pointerInput 拦截长按,
                                                 // 系统文本选择手柄永远无法激活(用户反馈"选择文本完全失效")
-                                                disableLinks = selectionMode || textSelectMode,
+                                                disableLinks = selectionMode,
                                                 onHtmlPreview = onHtmlPreview,
                                                 onCardAction = onCardAction,
                                                 // v2.6.13: 卡片身份必须直通 —— 正文里的 ```html / ```svg
@@ -1834,7 +1830,6 @@ internal fun MessageBubble(
                                                 cardId = msg.id.toString(),
                                                 // v1.0.72: 长按非链接区域 → 弹气泡长按菜单(修复长按消息无反应)
                                                 onLongPressOutside = {
-                                                    textSelectMode = false
                                                     actionSurface = MessageActionSurface.Compact
                                                 },
                                             )
@@ -1842,10 +1837,6 @@ internal fun MessageBubble(
                                     }
                                     if (dataCard != null) {
                                         io.zer0.muse.ui.markdown.DataCardRenderer(card = dataCard)
-                                    } else if (textSelectMode) {
-                                        // v1.0.72: 仅"选择文本"模式下用 SelectionContainer 支持划选复制;
-                                        // 其余情况不用(否则 SelectionContainer 会拦截长按,弹不出操作菜单)
-                                        SelectionContainer { markdownContent() }
                                     } else {
                                         markdownContent()
                                     }
@@ -2260,11 +2251,11 @@ internal fun MessageBubble(
                                 onCopyMessage(messageCopyText(msg.content, msg.reasoning))
                             },
                             onSelectText = {
-                                // v1.0.72: "选择文本"= 进入文本选择模式(长按文字激活系统选择手柄)
+                                // 直接打开全屏选择面板：一屏纯文本、长按即出系统菜单（复制/全选/搜索）。
+                                // 不再走「切可选状态 + 弹提示 + 用户再长按」那条旧路。
                                 actionSurface = MessageActionSurface.Hidden
-                                actionSurface = MessageActionSurface.Hidden
-                                textSelectMode = true
-                                MuseToast.show(context.getString(R.string.chat_select_text_hint))
+                                MuseHaptics.light(hapticFeedback)
+                                showTextSelectionPanel = true
                             },
                             onShare = {
                                 actionSurface = MessageActionSurface.Hidden
@@ -2667,6 +2658,14 @@ internal fun MessageBubble(
                                 }
                         }
                     },
+                )
+            }
+            // 全屏「选择文本」面板：点菜单里的「选择文本」直接打开，
+            // 一屏纯文本、长按即出系统上下文菜单（复制/全选/搜索）。
+            if (showTextSelectionPanel) {
+                TextSelectionPanel(
+                    text = body,
+                    onDismiss = { showTextSelectionPanel = false },
                 )
             }
             if (showDeleteConfirm) {
