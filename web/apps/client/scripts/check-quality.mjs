@@ -287,7 +287,7 @@ try {
   assert(mod.resolveLocale(undefined, ["en-GB"]) === "en", "没有语言值时按浏览器语言");
   assert(mod.FALLBACK_LOCALE === "zh" && mod.resolveLocale("system", []) === "zh", "认不出的语言回落 zh（与手机端一致）");
   assert(mod.resolveLocale("fr", ["fr-FR"]) === "zh", "Host 给了不认识的语言值时也是 zh 兜底");
-  assert(mod.LOCALES.join(",") === "zh,en,ja,ko,ru", "支持 zh / en / ja / ko / ru 五种语言");
+  assert(mod.LOCALES.join(",") === "zh,en,ja,ko,ru,es", "支持 zh / en / ja / ko / ru / es 六种语言");
 
   const zhKeys = Object.keys(mod.ZH);
   const enKeys = Object.keys(mod.EN);

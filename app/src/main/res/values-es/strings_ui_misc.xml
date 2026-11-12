@@ -9,11 +9,11 @@
     <string name="common_cancel">Cancelar</string>
     <string name="common_confirm">Confirmar</string>
     <string name="common_got_it">Entiendo</string>
-    <string name="common_close">Cerca</string>
-    <string name="common_retry">Rever</string>
+    <string name="common_close">Cerrar</string>
+    <string name="common_retry">Reintentar</string>
     <string name="common_collapse">Colapsar</string>
     <string name="common_expand">Expandir</string>
-    <string name="common_avatar_cd">%1$s avatar</string>
+    <string name="common_avatar_cd">Avatar de %1$s</string>
     <string name="common_slider_cd">Control deslizante, valor actual %1$s</string>
     <string name="common_open_file_failed">No se puede abrir el archivo: %1$s</string>
 
@@ -23,7 +23,7 @@
     <!-- v1.97: URL click confirmation -->
     <string name="markdown_open_link_confirm_title">Abrir enlace</string>
     <string name="markdown_open_link_confirm_message">¿Abrir este enlace en su navegador?</string>
-    <string name="markdown_open_link_confirm_open">Abierto</string>
+    <string name="markdown_open_link_confirm_open">Abrir</string>
     <string name="markdown_open_link_confirm_copy">Copiar enlace</string>
     <string name="markdown_open_link_dont_ask_again">No volver a preguntar en esta sesión (una pulsación larga abre directamente)</string>
     <string name="markdown_link_copied">Enlace copiado</string>
@@ -33,18 +33,18 @@
     <string name="markdown_collapse_remaining">Mostrar %1$d más líneas</string>
     <string name="markdown_svg_label">Gráfico SVG</string>
     <string name="markdown_html_label">Tarjeta HTML</string>
-    <string name="markdown_chart_label">Cuadro</string>
-    <string name="markdown_mermaid_label">Diagrama de sirena</string>
-    <string name="markdown_plantuml_label">Diagrama UML de planta</string>
+    <string name="markdown_chart_label">Gráfico</string>
+    <string name="markdown_mermaid_label">Diagrama Mermaid</string>
+    <string name="markdown_plantuml_label">Diagrama PlantUML</string>
     <string name="markdown_svg_cd">gráfico SVG</string>
     <string name="markdown_html_cd">contenido HTML</string>
     <string name="markdown_chart_cd">Gráfico: %1$s</string>
-    <string name="markdown_mermaid_cd">Diagrama de sirena: %1$s</string>
+    <string name="markdown_mermaid_cd">Diagrama Mermaid: %1$s</string>
     <string name="markdown_plantuml_cd">Diagrama PlantUML: %1$s</string>
     <string name="markdown_formula_cd">Fórmula matemática: %1$s</string>
     <string name="markdown_chart_render_failed">Error al renderizar el gráfico</string>
     <string name="markdown_chart_show_source">Mostrar fuente</string>
-    <string name="markdown_chart_loading">Representación…</string>
+    <string name="markdown_chart_loading">Renderizando…</string>
     <string name="markdown_chart_render_failed_prefix">Error de renderizado: </string>
     <!-- HTML preview feature -->
     <string name="html_preview_title">Vista previa HTML</string>
@@ -96,9 +96,9 @@
     <string name="model_switch_provider_label">Proveedor</string>
     <string name="model_switch_no_provider_selected">Ningún proveedor seleccionado</string>
     <string name="model_switch_models_label">Modelos (%1$s)</string>
-    <string name="model_switch_fetching">Atractivo</string>
+    <string name="model_switch_fetching">Obteniendo…</string>
     <string name="model_switch_refresh">Refrescar</string>
-    <string name="model_switch_fetching_upstream">Obteniendo modelos desde aguas arriba...</string>
+    <string name="model_switch_fetching_upstream">Obteniendo modelos del proveedor...</string>
     <string name="model_switch_no_models">Este proveedor aún no tiene modelos
 Toca actualizar para obtener la lista</string>
     <string name="model_switch_default">%1$s (predeterminado)</string>
@@ -131,7 +131,7 @@ Toca actualizar para obtener la lista</string>
     <string name="favorites_title">Favoritos (%1$d)</string>
     <string name="favorites_empty_title">Aún no hay favoritos</string>
     <string name="favorites_empty_subtitle">Toque la estrella en un mensaje en el chat para marcarlo como favorito.</string>
-    <string name="favorites_role_user">A mí</string>
+    <string name="favorites_role_user">Yo</string>
     <string name="favorites_role_system">Sistema</string>
     <string name="favorites_role_tool">Herramienta</string>
     <string name="favorites_unfavorite_cd">Eliminar favorito</string>

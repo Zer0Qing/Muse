@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="doc_preview_title">"PDF 预览"</string>
+    <string name="doc_preview_waiting">"正在等待文档数据…"</string>
+    <string name="doc_preview_failed">"文档渲染失败："</string>
+</resources>

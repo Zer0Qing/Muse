@@ -17,47 +17,47 @@
     <string name="prompt_template_name_summarize_meeting">Notas de la reunión</string>
     <string name="prompt_template_name_code_review">Revisión de código</string>
     <string name="prompt_template_name_code_explain">Explicar el código</string>
-    <string name="prompt_template_name_code_refactor">Código de refactorización</string>
+    <string name="prompt_template_name_code_refactor">Refactorizar código</string>
     <string name="prompt_template_name_learn_concept">Explicar el concepto</string>
     <string name="prompt_template_name_learn_quiz">Generar cuestionario</string>
     <string name="prompt_template_name_creative_story">Historia creativa</string>
-    <string name="prompt_template_name_creative_brainstorm">Idea genial</string>
+    <string name="prompt_template_name_creative_brainstorm">Lluvia de ideas</string>
 
     <!-- v2.6.0: built-in prompt template bodies (previously hardcoded Chinese) -->
-    <string name="prompt_template_content_write_email">Write an email for me on the following topic:\n\n{Topic}\n\nRequirements: formal and concise tone; include a salutation, body, and closing sign-off.</string>
-    <string name="prompt_template_content_write_article">Write a well-structured article on the following topic:\n\n{Topic}\n\nRequirements: include an introduction, body (2-3 key points), and conclusion; about 800 words.</string>
-    <string name="prompt_template_content_translate_zh_en">Translate the following Chinese into natural, fluent English, preserving the meaning and matching native English usage:\n\n{Chinese content}</string>
-    <string name="prompt_template_content_translate_en_zh">Translate the following English into natural, fluent Chinese, preserving the meaning and matching idiomatic Chinese usage:\n\n{English content}</string>
-    <string name="prompt_template_content_summarize">Summarize the following content into 3-5 bullet points, one sentence each, keeping the key information:\n\n{Content}</string>
-    <string name="prompt_template_content_summarize_meeting">Turn the following meeting notes into structured minutes, including: meeting topic, key discussion points, decisions, and follow-up action items (with owners):\n\n{Meeting notes}</string>
-    <string name="prompt_template_content_code_review">Review the following code and give improvement suggestions across four dimensions: readability, performance, security, and edge cases:\n\n```\n{Code}\n```</string>
-    <string name="prompt_template_content_code_explain">Explain the following code line by line, describing what it does and how it works in plain language:\n\n```\n{Code}\n```</string>
-    <string name="prompt_template_content_code_refactor">Refactor the following code to improve readability and maintainability, and explain the reason for each change:\n\n```\n{Code}\n```</string>
-    <string name="prompt_template_content_learn_concept">Explain the following concept in plain language, giving a definition, key points, and a real-life example:\n\n{Concept}</string>
-    <string name="prompt_template_content_learn_quiz">Create 5 multiple-choice questions (with answers and explanations) on the following topic, ordered from easy to hard:\n\n{Topic}</string>
-    <string name="prompt_template_content_creative_story">Write a short story (about 500 words) based on the following premise, focusing on atmosphere and plot twists:\n\n{Premise}</string>
-    <string name="prompt_template_content_creative_brainstorm">Brainstorm 10 creative approaches to the following problem, one sentence each:\n\n{Problem}</string>
+    <string name="prompt_template_content_write_email">Escribe un correo electrónico sobre el siguiente tema:\n\n{Tema}\n\nRequisitos: usa un tono formal y conciso; incluye un saludo, el cuerpo del mensaje y una despedida.</string>
+    <string name="prompt_template_content_write_article">Escribe un artículo bien estructurado sobre el siguiente tema:\n\n{Tema}\n\nRequisitos: incluye una introducción, un desarrollo con 2 o 3 puntos clave y una conclusión; unas 800 palabras.</string>
+    <string name="prompt_template_content_translate_zh_en">Traduce el siguiente texto chino a un inglés natural y fluido, conservando el significado y las expresiones propias de hablantes nativos:\n\n{Texto en chino}</string>
+    <string name="prompt_template_content_translate_en_zh">Traduce el siguiente texto inglés a un chino natural y fluido, conservando el significado y usando expresiones idiomáticas:\n\n{Texto en inglés}</string>
+    <string name="prompt_template_content_summarize">Resume el siguiente contenido en una lista de 3 a 5 puntos, con una oración por punto y conservando la información clave:\n\n{Contenido}</string>
+    <string name="prompt_template_content_summarize_meeting">Convierte las siguientes notas en un acta estructurada que incluya el tema de la reunión, los puntos principales del debate, las decisiones y las tareas de seguimiento con sus responsables:\n\n{Notas de la reunión}</string>
+    <string name="prompt_template_content_code_review">Revisa el siguiente código y sugiere mejoras en cuatro aspectos: legibilidad, rendimiento, seguridad y casos límite:\n\n```\n{Código}\n```</string>
+    <string name="prompt_template_content_code_explain">Explica el siguiente código línea por línea, indicando qué hace y cómo funciona en un lenguaje sencillo:\n\n```\n{Código}\n```</string>
+    <string name="prompt_template_content_code_refactor">Refactoriza el siguiente código para mejorar su legibilidad y facilitar su mantenimiento, y explica el motivo de cada cambio:\n\n```\n{Código}\n```</string>
+    <string name="prompt_template_content_learn_concept">Explica el siguiente concepto en un lenguaje sencillo, con una definición, sus puntos clave y un ejemplo de la vida cotidiana:\n\n{Concepto}</string>
+    <string name="prompt_template_content_learn_quiz">Crea 5 preguntas de opción múltiple sobre el siguiente tema, con respuestas y explicaciones, ordenadas de menor a mayor dificultad:\n\n{Tema}</string>
+    <string name="prompt_template_content_creative_story">Escribe un relato de unas 500 palabras a partir de la siguiente premisa, centrándote en la ambientación y los giros de la trama:\n\n{Premisa}</string>
+    <string name="prompt_template_content_creative_brainstorm">Propón 10 enfoques creativos para el siguiente problema, con una oración por enfoque:\n\n{Problema}</string>
 
     <!-- ===== data/preset ===== -->
     <!-- Preset provider displayName (domestic + relay with Chinese) -->
-    <string name="preset_provider_deepseek">búsqueda profunda</string>
+    <string name="preset_provider_deepseek">DeepSeek</string>
     <string name="preset_provider_qwen">Qwen</string>
     <string name="preset_provider_zhipu">Zhipu GLM</string>
-    <string name="preset_provider_moonshot">kimi</string>
+    <string name="preset_provider_moonshot">Kimi</string>
     <string name="preset_provider_doubao">Doubao</string>
     <string name="preset_provider_baichuan">Baichuan</string>
-    <string name="preset_provider_lingyi">yi</string>
-    <string name="preset_provider_stepfun">paso divertido</string>
+    <string name="preset_provider_lingyi">Yi</string>
+    <string name="preset_provider_stepfun">StepFun</string>
     <string name="preset_provider_api2d">API2D</string>
     <string name="preset_provider_aihubmix">AiHubMix</string>
-    <string name="preset_provider_deepbricks">Ladrillos profundos</string>
+    <string name="preset_provider_deepbricks">DeepBricks</string>
     <string name="preset_provider_oneapi">OneAPI (autohospedado)</string>
-    <string name="preset_provider_newapi">Nueva API (autohospedada)</string>
+    <string name="preset_provider_newapi">NewAPI (autohospedada)</string>
     <!-- v1.0.6: New providers  -->
     <string name="preset_provider_hunyuan">Tencent Hunyuan</string>
-    <string name="preset_provider_baidu_cloud">Nube de Baidu (ERNIE)</string>
-    <string name="preset_provider_modelscope">ModeloScope</string>
-    <string name="preset_provider_infini">infinito</string>
+    <string name="preset_provider_baidu_cloud">Baidu Cloud (ERNIE)</string>
+    <string name="preset_provider_modelscope">ModelScope</string>
+    <string name="preset_provider_infini">Infini</string>
     <string name="preset_provider_mimo">Xiaomi MiMo</string>
     <string name="preset_provider_dashscope_coding">Plan de codificación DashScope</string>
     <string name="preset_provider_volcengine_coding">Plan de codificación Volcengine</string>
@@ -78,11 +78,11 @@
     <string name="import_error_session_failed">Error al importar la conversación: %1$s</string>
     <string name="import_error_rikka_parse_failed">Error en el análisis de la copia de seguridad de RikkaHub: %1$s</string>
     <string name="import_error_kelivo_parse_failed">Error en el análisis de la copia de seguridad de Kelivo: %1$s</string>
-    <string name="import_error_messages_skipped">%1$d los mensajes no se pudieron analizar y se omitieron</string>
+    <string name="import_error_messages_skipped">No se pudieron analizar %1$d mensajes y se omitieron</string>
 
     <!-- ===== data/SettingsRepository ===== -->
     <!-- Account default user name (persisted to DataStore) -->
-    <string name="settings_repo_default_user_name">Usuario de musa</string>
+    <string name="settings_repo_default_user_name">Usuario de Muse</string>
     <string name="settings_repo_guest_name">Invitado</string>
 
     <!-- ===== data/promptinjection ===== -->
@@ -109,23 +109,23 @@
 
     <!-- ===== data/artifact ===== -->
     <!-- Untitled artifact default title (persisted to Room) -->
-    <string name="artifact_default_title">Intitulado</string>
+    <string name="artifact_default_title">Sin título</string>
 
     <!-- ===== data/DocumentParser ===== -->
     <!-- Document parsing error messages (via Result.Error to UI) -->
     <string name="doc_err_open_pdf">No se puede abrir el archivo PDF</string>
     <string name="doc_err_pdf_text_empty">La extracción de texto del PDF está vacía (puede ser un PDF escaneado que requiere OCR). Total de páginas: %1$d.</string>
-    <string name="doc_err_docx_no_document">No se puede leer DOCX: falta palabra/document.xml</string>
+    <string name="doc_err_docx_no_document">No se puede leer DOCX: falta word/document.xml</string>
     <string name="doc_err_pptx_no_slides">No se puede leer PPTX: no se encontraron diapositivas</string>
     <string name="doc_err_xlsx_no_sheets">No se puede leer XLSX: no se encontraron hojas de trabajo</string>
     <string name="doc_err_epub_no_container">No se puede leer EPUB: falta META-INF/container.xml</string>
-    <string name="doc_err_epub_no_opf">No se puede leer EPUB: contenedor.xml no declara OPF</string>
+    <string name="doc_err_epub_no_opf">No se puede leer EPUB: container.xml no declara OPF</string>
     <string name="doc_err_epub_missing_opf">No se puede leer EPUB: falta el archivo OPF (%1$s)</string>
 
     <!-- ===== data/MemoryLlmClientImpl ===== -->
     <!-- Memory compilation exception messages (may surface to UI) -->
     <string name="memory_llm_no_model_configured">Ningún modelo configurado.</string>
-    <string name="memory_llm_call_text_failed">llamada de texto falló</string>
+    <string name="memory_llm_call_text_failed">Error en la llamada de texto</string>
 
     <!-- ===== mcp/McpRegistry ===== -->
     <string name="mcp_tool_no_description">(sin descripción)</string>

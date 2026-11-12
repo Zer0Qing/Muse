@@ -134,7 +134,12 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                                 if (read <= 0) break
                                 total += read
                                 if (total > MAX_READ_BYTES) {
-                                    error("文件过大,超过 ${MAX_READ_BYTES / 1024 / 1024}MB 限制")
+                                    error(
+                                        context.getString(
+                                            R.string.code_gap_skill_file_too_large,
+                                            MAX_READ_BYTES / 1024 / 1024,
+                                        ),
+                                    )
                                 }
                                 sb.append(buffer, 0, read)
                             }
@@ -758,7 +763,7 @@ private fun ParameterSchemaView(parametersJson: String, requiredSet: Set<String>
                     if (isRequired) {
                         Spacer(Modifier.size(6.dp))
                         Text(
-                            text = "必填",
+                            text = stringResource(R.string.tools_param_required),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                         )

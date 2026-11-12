@@ -50,7 +50,7 @@
     <string name="err_image_gen_failed">Error al generar la imagen: %1$s</string>
     <string name="err_image_gen_no_result">La generación de imágenes no arrojó ningún resultado.</string>
     <string name="err_image_gen_save_failed">No se pudo guardar el resultado de la generación de imágenes: %1$s</string>
-    <string name="err_image_gen_no_image">No se devolvió ninguna imagen;</string>
+    <string name="err_image_gen_no_image">No se generó ninguna imagen. Comprueba que el modelo admite la generación de imágenes.</string>
 
     <!-- ── GroupChatViewModel ── -->
     <string name="err_group_chat_delete_failed">No se pudo eliminar el chat grupal</string>
@@ -64,7 +64,7 @@
     <string name="err_chat_misc_rename_folder_failed">No se pudo cambiar el nombre de la carpeta: %1$s</string>
     <string name="err_chat_misc_delete_folder_failed">No se pudo eliminar la carpeta: %1$s</string>
     <string name="err_chat_misc_move_session_failed">No se pudo mover la sesión: %1$s</string>
-    <string name="err_chat_misc_toggle_pin_failed">No se pudo alternar el pin: %1$s</string>
+    <string name="err_chat_misc_toggle_pin_failed">No se pudo cambiar el estado de fijación: %1$s</string>
     <string name="err_chat_misc_favorite_failed">No se pudo marcar como favorito: %1$s</string>
     <string name="err_chat_misc_set_tag_failed">No se pudo configurar el grupo: %1$s</string>
     <string name="err_chat_misc_delete_msg_failed">No se pudo eliminar: %1$s</string>
@@ -81,7 +81,7 @@
     <string name="err_chat_stream_broken">La respuesta de la transmisión se interrumpió. Vuelve a intentarlo.</string>
     <string name="err_chat_request_failed">Solicitud fallida: %1$s</string>
     <string name="err_chat_compress_too_few">Muy pocos mensajes para comprimir</string>
-    <string name="err_chat_compress_memory_failed">Error en la actualización de la memoria, solo el historial comprimido</string>
+    <string name="err_chat_compress_memory_failed">No se pudo actualizar la memoria; solo se comprimió el historial</string>
     <string name="err_chat_compress_done">Contexto comprimido</string>
     <string name="err_chat_compress_no_need">Memoria actualizada, no se necesita compresión de mensajes</string>
     <string name="err_chat_compress_failed">Error de compresión: %1$s</string>
@@ -91,7 +91,7 @@
     <string name="err_chat_fetch_models_timeout">Se agotó el tiempo de conexión</string>
     <string name="err_chat_fetch_models_not_supported">Este proveedor no admite el punto final /models</string>
     <string name="err_chat_fetch_models_failed_msg">Error de recuperación: %1$s</string>
-    <string name="err_chat_model_switched_toast">Modelo cambiado;</string>
+    <string name="err_chat_model_switched_toast">Modelo cambiado</string>
     <string name="settings_mcp_connected_tools">(%1$d herramientas)</string>
     <string name="settings_mcp_last_connected">Última conexión: %1$s</string>
     <string name="settings_mcp_connected_no_tools">Conectado, pero sin herramientas disponibles (verifique la lista de herramientas del servidor o el enlace de extensión del asistente)</string>
@@ -117,22 +117,22 @@
     <string name="err_chat_assistant_delete_failed">No se pudo eliminar el asistente: %1$s</string>
     <string name="err_chat_assistant_delete_last">Se deben conservar al menos dos asistentes para poder eliminar uno</string>
     <string name="err_chat_voice_no_asr">El modo de conversación de voz requiere configurar primero una API ASR en la configuración</string>
-    <string name="err_chat_tool_timeout">[Tiempo de espera] La herramienta %1$s no respondió en %2$d segundos, finalizada</string>
+    <string name="err_chat_tool_timeout">[Tiempo de espera agotado] La herramienta %1$s no respondió en %2$d segundos. Se canceló la ejecución.</string>
 
     <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
     <string name="err_chat_img_generating">Generando imagen…</string>
     <string name="err_chat_img_generated">Imagen generada</string>
     <string name="err_chat_img_cancelled">Generación de imagen cancelada</string>
     <string name="err_chat_img_gen_failed">Error al generar la imagen: %1$s</string>
-    <string name="err_chat_video_generating">Generar vídeo, esto puede tardar decenas de segundos...</string>
-    <string name="err_chat_video_progress">Generación de video en progreso, esperó %1$d segundos…</string>
+    <string name="err_chat_video_generating">Generando video; esto puede tardar decenas de segundos…</string>
+    <string name="err_chat_video_progress">Generando video; han transcurrido %1$d segundos…</string>
     <string name="err_chat_video_generated">Vídeo generado</string>
     <string name="err_chat_video_cancelled">Generación de video cancelada</string>
     <string name="err_chat_video_gen_failed">Falló la generación de video: %1$s</string>
     <string name="err_chat_voice_generated">Mensaje de voz enviado</string>
     <string name="err_chat_voice_cancelled">Mensaje de voz cancelado</string>
     <string name="err_chat_voice_gen_failed">Falló la síntesis de voz: %1$s</string>
-    <string name="err_chat_qr_generated">código QR generado</string>
+    <string name="err_chat_qr_generated">Código QR generado</string>
     <string name="err_chat_misc_reorder_pinned_failed">Error al guardar el orden fijado: %1$s</string>
     <string name="asr_system_unavailable">El sistema no ofrece servicio de reconocimiento de voz. Configura el reconocimiento de voz en línea en los ajustes.</string>
     <string name="err_group_chat_attachment_read_failed">Error al leer el adjunto. Inténtalo de nuevo.</string>

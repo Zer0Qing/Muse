@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -510,7 +511,11 @@ fun CloudBackupPage(onBack: () -> Unit) {
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = "${sliderValue.toInt()} 天",
+                                text = pluralStringResource(
+                                    R.plurals.cloud_backup_interval_days,
+                                    sliderValue.toInt(),
+                                    sliderValue.toInt(),
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 // LAYOUT-01: 天数数值列限 1 行,不反向挤占标签。

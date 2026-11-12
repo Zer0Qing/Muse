@@ -93,7 +93,10 @@ internal data class ToolEntry(
     val showArrow: Boolean = true,
     val onClick: () -> Unit,
     val onLongClick: (() -> Unit)? = null,
+    val titleRes: Int? = null,
 )
+
+internal fun List<ToolEntry>.findToolEntry(titleRes: Int): ToolEntry? = firstOrNull { it.titleRes == titleRes }
 
 /**
  * v1.0.72: 输入栏加号工具面板(浮层式重写)。
@@ -263,7 +266,7 @@ internal fun MuseToolSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "已选 ${selectedGalleryImages.size} 张",
+                    text = stringResource(R.string.code_gap_gallery_selected, selectedGalleryImages.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -287,11 +290,8 @@ internal fun MuseToolSheet(
         Spacer(Modifier.height(MusePaddings.cardGap))
 
         // ── 第二行:联网搜索 + 深度思考 ──
-        val findEntry: (String) -> ToolEntry? = { keyword ->
-            entries.firstOrNull { it.title.contains(keyword) || keyword in it.title }
-        }
-        val webSearchEntry = findEntry("联网")
-        val deepThinkingEntry = findEntry("深度思考")
+        val webSearchEntry = entries.findToolEntry(R.string.chat_web_search_cd)
+        val deepThinkingEntry = entries.findToolEntry(R.string.chat_deep_thinking_cd)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
@@ -335,10 +335,10 @@ internal fun MuseToolSheet(
                     },
                 ),
             )
-            entries.firstOrNull { it.title.contains("附件") || it.title.contains("文档") }?.let { entry ->
+            entries.findToolEntry(R.string.chat_tool_attachment)?.let { entry ->
                 add(QuickAttachEntry(entry.icon, entry.title, onClick = entry.onClick))
             }
-            entries.firstOrNull { it.title.contains("知识库") }?.let { entry ->
+            entries.findToolEntry(R.string.chat_tool_knowledge)?.let { entry ->
                 add(QuickAttachEntry(entry.icon, entry.title, onClick = entry.onClick))
             }
             // 第三层容纳所有剩余杂项：提示词、技能、绘图、委托、重启上下文等。

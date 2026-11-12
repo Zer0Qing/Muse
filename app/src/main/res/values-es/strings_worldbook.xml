@@ -8,7 +8,7 @@
     <string name="worldbook_new_default_name">Nueva entrada</string>
     <string name="worldbook_new_title">Nuevo libro mundial</string>
     <string name="worldbook_edit_title">Editar libro mundial</string>
-    <string name="worldbook_save">Ahorrar</string>
+    <string name="worldbook_save">Guardar</string>
     <string name="worldbook_unsaved_title">Cambios no guardados</string>
     <string name="worldbook_unsaved_content">Tienes cambios sin guardar.</string>
     <string name="worldbook_discard">Desechar</string>
@@ -33,7 +33,7 @@
     <string name="worldbook_section_basic">Básico</string>
     <string name="worldbook_section_content">Contenido</string>
     <string name="worldbook_section_injection">Inyección</string>
-    <string name="worldbook_section_behavior">Pareo</string>
+    <string name="worldbook_section_behavior">Reglas de coincidencia</string>
 
     <!-- Fields -->
     <string name="worldbook_field_name">Nombre</string>
@@ -41,7 +41,7 @@
     <string name="worldbook_field_keywords_placeholder">Separe varias palabras clave con comas</string>
     <string name="worldbook_field_content">Contenido</string>
     <string name="worldbook_field_priority">Prioridad (mayor = inyectado primero)</string>
-    <string name="worldbook_field_inject_target">Inyectar objetivo</string>
+    <string name="worldbook_field_inject_target">Destino de la inyección</string>
     <string name="worldbook_field_inject_position">Posición de inyección</string>
 <string name="worldbook_inject_target_system">Sistema</string>
 <string name="worldbook_inject_target_user">Usuario</string>
@@ -54,7 +54,7 @@
     <string name="worldbook_field_case_sensitive">Distingue mayúsculas y minúsculas</string>
     <string name="worldbook_field_case_sensitive_desc">Haga coincidir las palabras clave con distinción entre mayúsculas y minúsculas</string>
     <string name="worldbook_field_whole_word">Palabra completa</string>
-    <string name="worldbook_field_whole_word_desc">La palabra clave debe coincidir como palabra completa (solo modo subcadena; los terminos CJK vuelven al modo automatico)</string>
+    <string name="worldbook_field_whole_word_desc">La palabra clave debe coincidir como palabra completa (solo en modo subcadena; las palabras clave CJK usan automáticamente el modo alternativo)</string>
     <string name="worldbook_field_is_regex">Coincidencia de expresiones regulares</string>
     <string name="worldbook_field_is_regex_desc">Trate las palabras clave como expresiones regulares (avanzado)</string>
     <string name="worldbook_field_always_active">Siempre activo</string>
@@ -63,7 +63,7 @@
     <string name="worldbook_field_enabled_desc">Las entradas deshabilitadas no se inyectan</string>
 
     <!-- 前端修复 (i18n-8): export toast -->
-    <string name="worldbook_exported_to">Exported to %1$s</string>
+    <string name="worldbook_exported_to">Exportado a %1$s</string>
 
     <!-- Settings entry -->
     <string name="settings_assistant_worldbook">Libro mundial dinámico</string>

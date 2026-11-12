@@ -511,15 +511,15 @@ private fun manualClearData(context: Context) {
 private fun copyCrashInfo(context: Context, crashTime: String?, crashTrace: String?) {
     val text = buildString {
         if (!crashTime.isNullOrBlank()) {
-            appendLine("崩溃时间: $crashTime")
+            appendLine(context.getString(R.string.audit_crash_time, crashTime))
             appendLine()
         }
         if (!crashTrace.isNullOrBlank()) {
-            appendLine("崩溃堆栈:")
+            appendLine(context.getString(R.string.audit_crash_stack))
             append(crashTrace)
         }
         if (isEmpty()) {
-            append("(无崩溃信息)")
+            append(context.getString(R.string.audit_crash_info_empty))
         }
     }
     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

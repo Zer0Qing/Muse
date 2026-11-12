@@ -1,6 +1,6 @@
 <resources>
     <!-- App -->
-    <string name="app_name">Musa</string>
+    <string name="app_name">Muse</string>
     <!-- Splash -->
 
     <!-- Widget -->
@@ -13,8 +13,8 @@
     <string name="widget_voice_input">Entrada de voz rápida</string>
     <string name="widget_chat_pick_assistant">Elige el asistente a mostrar</string>
     <string name="widget_quick_pick_assistant">Elige el asistente de los accesos</string>
-    <string name="widget_launcher_title">Musa</string>
-    <string name="widget_launcher_open">Abrir Musa</string>
+    <string name="widget_launcher_title">Muse</string>
+    <string name="widget_launcher_open">Abrir Muse</string>
 
     <!-- Bottom navigation -->
 
@@ -215,7 +215,7 @@
     <string name="settings_agent_night_patrol_subtitle">Fuera del horario permitido: escribir diario/notas nocturnas en silencio, sin notificaciones</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
     <string name="moment_sender_user">Yo</string>
-    <string name="moment_banner_liked_by">%1$s te gustó</string>
+    <string name="moment_banner_liked_by">A %1$s le gustó tu publicación</string>
     <string name="moment_banner_commented_by">%1$s comentó en tu publicación</string>
     <string name="moment_separator_and">, </string>
     <string name="moment_separator_dot"> · </string>
@@ -283,4 +283,9 @@
     <string name="workspace_media_info">%1$s | %2$s | %3$s. Este archivo no tiene texto legible.</string>
     <string name="workspace_media_open_external">Abrir con otra aplicación</string>
     <string name="workspace_media_no_handler">Ninguna aplicación de este dispositivo puede abrir este tipo de archivo</string>
+
+    <string name="voice_conversation_cd_listening_waiting">Toca para empezar a hablar</string>
+    <string name="tool_approval_show_full_args">Mostrar argumentos completos</string>
+    <string name="tool_approval_hide_full_args">Ocultar argumentos completos</string>
+    <string name="tool_approval_args_hidden">Hay %1$d caracteres más sin mostrar</string>
 </resources>

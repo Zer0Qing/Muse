@@ -22,6 +22,14 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
   }
 
+  let renderFailedLabel = '文档渲染失败：';
+  window.setDocumentLabels = function (labels) {
+    document.documentElement.lang = labels.language;
+    document.title = labels.title;
+    document.getElementById('hint').textContent = labels.waiting;
+    renderFailedLabel = labels.failed;
+  };
+
   window.renderPdf = async function (b64) {
     try {
       const hint = document.getElementById('hint');
@@ -43,7 +51,7 @@
       }
       hint.style.display = 'none';
     } catch (e) {
-      document.getElementById('hint').textContent = '文档渲染失败：' + (e && e.message ? e.message : e);
+      document.getElementById('hint').textContent = renderFailedLabel + (e && e.message ? e.message : e);
     }
   };
 </script>

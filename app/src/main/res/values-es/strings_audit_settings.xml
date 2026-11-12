@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_regex_visual_only">Solo visualización</string>
+    <string name="audit_unknown_model">Modelo desconocido (%1$s)</string>
+    <string name="audit_aggregation_merge">Combinar</string>
+    <string name="audit_aggregation_vote">Votación</string>
+    <string name="audit_aggregation_expert">Revisión experta</string>
+    <string name="audit_aggregation_first">Primer resultado correcto</string>
+    <string name="audit_aggregation_llm">Revisión integral con LLM</string>
+    <string name="audit_mode_sequential">Secuencial</string>
+    <string name="audit_mode_parallel">En paralelo</string>
+    <string name="audit_mode_conditional">Condicional</string>
+    <string name="audit_mode_sequential_short">Sec.</string>
+    <string name="audit_mode_parallel_short">Par.</string>
+    <string name="audit_mode_conditional_short">Cond.</string>
+    <string name="audit_color_laurel">Verde laurel</string>
+    <string name="audit_color_ocean">Azul marino profundo</string>
+    <string name="audit_color_dusk">Violeta del crepúsculo</string>
+    <string name="audit_color_sunset">Rojo atardecer</string>
+    <string name="audit_color_amber">Naranja ámbar</string>
+    <string name="audit_color_celadon">Verde celadón</string>
+    <string name="audit_color_ink">Gris tinta</string>
+    <string name="audit_color_cherry">Rosa flor de cerezo</string>
+    <string name="audit_licenses_empty">No hay datos de licencias</string>
+    <string name="audit_licenses_no_link_app">No se encontró ninguna aplicación para abrir este enlace</string>
+    <string name="audit_licenses_view">Ver licencia</string>
+    <string name="audit_licenses_missing_text">No se encontró el texto de la licencia</string>
+    <string name="audit_licenses_project">Página del proyecto</string>
+    <string name="audit_licenses_website">Sitio oficial: museai.ltd</string>
+    <string name="audit_licenses_note">Si tienes dudas sobre las licencias, consulta los textos completos en los enlaces de abajo. Los datos de esta página se actualizan con cada compilación (generatedAt indica la fecha y hora).</string>
+    <string name="audit_mcp_empty_url">La URL no puede estar vacía</string>
+    <string name="audit_mcp_feishu_credentials">La plantilla de Feishu requiere un App ID y un App Secret</string>
+</resources>

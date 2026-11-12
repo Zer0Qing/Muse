@@ -346,8 +346,9 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
  * 注意:此函数只在 UI 层做名称展示,LlmAggregator.resolveReviewModel() 在调用时会做
  * 同样的查找并降级处理,二者查找逻辑保持一致。
  */
+@Composable
 private fun resolveReviewModelName(reviewModelId: String?, providers: List<ProviderConfig>, activeProviderId: String?): String {
-    if (reviewModelId.isNullOrBlank()) return "默认模型"
+    if (reviewModelId.isNullOrBlank()) return stringResource(R.string.schedule_default_model)
     // 优先在激活 Provider 中查找(最常见情况)
     val activeProvider = providers.firstOrNull { it.id == activeProviderId }
     activeProvider?.models?.firstOrNull { it.id == reviewModelId }?.let { model ->
@@ -360,7 +361,7 @@ private fun resolveReviewModelName(reviewModelId: String?, providers: List<Provi
             return matched.name.ifBlank { matched.id }
         }
     }
-    return "未知模型($reviewModelId)"
+    return stringResource(R.string.audit_unknown_model, reviewModelId)
 }
 
 /**
@@ -919,24 +920,27 @@ private fun WorkflowNodeEditDialog(
     )
 }
 
+@Composable
 private fun aggregationName(strategy: DelegationContract.TeamWorkflow.AggregationStrategy): String = when (strategy) {
-    DelegationContract.TeamWorkflow.AggregationStrategy.MERGE -> "合并"
-    DelegationContract.TeamWorkflow.AggregationStrategy.VOTE -> "投票"
-    DelegationContract.TeamWorkflow.AggregationStrategy.EXPERT_REVIEW -> "专家评审"
-    DelegationContract.TeamWorkflow.AggregationStrategy.FIRST_SUCCESS -> "首个成功"
-    DelegationContract.TeamWorkflow.AggregationStrategy.LLM_REVIEW -> "LLM 综合评审"
+    DelegationContract.TeamWorkflow.AggregationStrategy.MERGE -> stringResource(R.string.audit_aggregation_merge)
+    DelegationContract.TeamWorkflow.AggregationStrategy.VOTE -> stringResource(R.string.audit_aggregation_vote)
+    DelegationContract.TeamWorkflow.AggregationStrategy.EXPERT_REVIEW -> stringResource(R.string.audit_aggregation_expert)
+    DelegationContract.TeamWorkflow.AggregationStrategy.FIRST_SUCCESS -> stringResource(R.string.audit_aggregation_first)
+    DelegationContract.TeamWorkflow.AggregationStrategy.LLM_REVIEW -> stringResource(R.string.audit_aggregation_llm)
 }
 
+@Composable
 private fun modeName(mode: DelegationContract.TeamWorkflowNode.Mode): String = when (mode) {
-    DelegationContract.TeamWorkflowNode.Mode.SEQUENTIAL -> "串行"
-    DelegationContract.TeamWorkflowNode.Mode.PARALLEL -> "并行"
-    DelegationContract.TeamWorkflowNode.Mode.CONDITIONAL -> "条件"
+    DelegationContract.TeamWorkflowNode.Mode.SEQUENTIAL -> stringResource(R.string.audit_mode_sequential)
+    DelegationContract.TeamWorkflowNode.Mode.PARALLEL -> stringResource(R.string.audit_mode_parallel)
+    DelegationContract.TeamWorkflowNode.Mode.CONDITIONAL -> stringResource(R.string.audit_mode_conditional)
 }
 
+@Composable
 private fun modeShortName(mode: DelegationContract.TeamWorkflowNode.Mode): String = when (mode) {
-    DelegationContract.TeamWorkflowNode.Mode.SEQUENTIAL -> "串"
-    DelegationContract.TeamWorkflowNode.Mode.PARALLEL -> "并"
-    DelegationContract.TeamWorkflowNode.Mode.CONDITIONAL -> "条"
+    DelegationContract.TeamWorkflowNode.Mode.SEQUENTIAL -> stringResource(R.string.audit_mode_sequential_short)
+    DelegationContract.TeamWorkflowNode.Mode.PARALLEL -> stringResource(R.string.audit_mode_parallel_short)
+    DelegationContract.TeamWorkflowNode.Mode.CONDITIONAL -> stringResource(R.string.audit_mode_conditional_short)
 }
 
 /**

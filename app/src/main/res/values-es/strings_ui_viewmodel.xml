@@ -4,7 +4,7 @@
     <!-- Top bar -->
     <string name="quick_msg_screen_title">Mensajes rápidos</string>
     <string name="quick_msg_new_cd">Nuevo mensaje rápido</string>
-    <string name="quick_msg_intro">Plantillas de mensajes preestablecidos.</string>
+    <string name="quick_msg_intro">Plantillas de mensajes preestablecidos. Admite variables: {{input}} (entrada actual) / {{clipboard}} (portapapeles) / {{date}} (fecha).</string>
     <string name="quick_msg_empty_title">Aún no hay mensajes rápidos</string>
     <string name="quick_msg_empty_subtitle">Toca + en la parte inferior derecha para crear</string>
     <string name="quick_msg_delete_title">Eliminar mensaje rápido</string>
@@ -25,7 +25,7 @@
     <string name="quick_msg_discard">Desechar</string>
     <string name="quick_msg_new_title">Nuevo mensaje rápido</string>
     <string name="quick_msg_edit_title">Editar mensaje rápido</string>
-    <string name="quick_msg_save">Ahorrar</string>
+    <string name="quick_msg_save">Guardar</string>
     <string name="quick_msg_section_basic">Básico</string>
     <string name="quick_msg_field_name">Nombre</string>
     <string name="quick_msg_section_content">Contenido de la plantilla</string>
@@ -34,20 +34,20 @@
     <string name="quick_msg_field_scope">Alcance</string>
     <string name="quick_msg_scope_global_opt">Global (compartido por todos los asistentes)</string>
     <string name="quick_msg_scope_assistant_opt">Vinculado al asistente (se muestra solo para el asistente especificado)</string>
-    <string name="quick_msg_field_bind_assistant">Asistente de enlace</string>
+    <string name="quick_msg_field_bind_assistant">Vincular asistente</string>
     <string name="quick_msg_section_behavior">Comportamiento</string>
-    <string name="quick_msg_field_sort_index">Ordenar índice (menor = anterior)</string>
+    <string name="quick_msg_field_sort_index">Índice de orden (menor = antes)</string>
     <string name="quick_msg_field_enabled">Activado</string>
     <string name="quick_msg_field_enabled_desc">Cuando está desactivado, esta entrada no aparecerá en la fila del chip de la barra de entrada.</string>
 
     <!-- ===== LorebookScreen ===== -->
     <!-- Top bar -->
-    <string name="lorebook_screen_title">libro de historia</string>
-    <string name="lorebook_new_cd">Nuevo libro de historia</string>
+    <string name="lorebook_screen_title">Libro de trasfondo</string>
+    <string name="lorebook_new_cd">Nuevo libro de trasfondo</string>
     <string name="lorebook_intro">Inyección de contexto activada por palabras clave.</string>
-    <string name="lorebook_empty_title">Aún no hay libro de historia</string>
+    <string name="lorebook_empty_title">Aún no hay libros de trasfondo</string>
     <string name="lorebook_empty_subtitle">Toca + en la parte inferior derecha para crear</string>
-    <string name="lorebook_delete_title">Eliminar libro de historia</string>
+    <string name="lorebook_delete_title">Eliminar libro de trasfondo</string>
     <!-- Card -->
     <string name="lorebook_new_default_name">Nueva entrada</string>
     <string name="lorebook_unnamed">(Sin nombre)</string>
@@ -61,13 +61,13 @@
     <string name="lorebook_unsaved_title">Cambios no guardados</string>
     <string name="lorebook_unsaved_content">Al salir se descartarán las ediciones actuales.</string>
     <string name="lorebook_discard">Desechar</string>
-    <string name="lorebook_new_title">Nuevo libro de historia</string>
-    <string name="lorebook_edit_title">Editar libro de historia</string>
-    <string name="lorebook_save">Ahorrar</string>
+    <string name="lorebook_new_title">Nuevo libro de trasfondo</string>
+    <string name="lorebook_edit_title">Editar libro de trasfondo</string>
+    <string name="lorebook_save">Guardar</string>
     <string name="lorebook_section_basic">Básico</string>
     <string name="lorebook_field_name">Nombre</string>
     <string name="lorebook_field_keywords">Palabras clave de activación (separadas por comas)</string>
-    <string name="lorebook_field_keywords_placeholder">p.ej.</string>
+    <string name="lorebook_field_keywords_placeholder">p. ej., magia, hechizo, conjuro</string>
     <string name="lorebook_section_content">Contenido de inyección</string>
     <string name="lorebook_field_content">Contenido (inyectado como contexto del SISTEMA cuando las palabras clave coinciden)</string>
     <string name="lorebook_section_behavior">Comportamiento</string>
@@ -86,12 +86,12 @@
 
     <!-- ===== PromptInjectionScreen ===== -->
     <!-- Top bar -->
-    <string name="prompt_injection_screen_title">Inyección inmediata</string>
-    <string name="prompt_injection_new_cd">Nueva inyección rápida</string>
+    <string name="prompt_injection_screen_title">Inyección de instrucciones</string>
+    <string name="prompt_injection_new_cd">Nueva inyección de instrucciones</string>
     <string name="prompt_injection_intro">Inyección de contexto activada por modo.</string>
-    <string name="prompt_injection_empty_title">Aún no hay inyección rápida</string>
+    <string name="prompt_injection_empty_title">Aún no hay inyecciones de instrucciones</string>
     <string name="prompt_injection_empty_subtitle">Toca + en la parte inferior derecha para crear</string>
-    <string name="prompt_injection_delete_title">Eliminar PromptInjection</string>
+    <string name="prompt_injection_delete_title">Eliminar inyección de instrucciones</string>
     <!-- Card -->
     <string name="prompt_injection_new_default_name">Nueva inyección</string>
     <string name="prompt_injection_unnamed">(Sin nombre)</string>
@@ -105,9 +105,9 @@
     <string name="prompt_injection_unsaved_title">Cambios no guardados</string>
     <string name="prompt_injection_unsaved_content">Al salir se descartarán las ediciones actuales.</string>
     <string name="prompt_injection_discard">Desechar</string>
-    <string name="prompt_injection_new_title">Nueva inyección rápida</string>
-    <string name="prompt_injection_edit_title">Editar inyección rápida</string>
-    <string name="prompt_injection_save">Ahorrar</string>
+    <string name="prompt_injection_new_title">Nueva inyección de instrucciones</string>
+    <string name="prompt_injection_edit_title">Editar inyección de instrucciones</string>
+    <string name="prompt_injection_save">Guardar</string>
     <string name="prompt_injection_section_basic">Básico</string>
     <string name="prompt_injection_field_name">Nombre</string>
     <string name="prompt_injection_field_mode">Modo</string>
@@ -115,7 +115,7 @@
     <string name="prompt_injection_section_content">Contenido de inyección</string>
     <string name="prompt_injection_field_content">Contenido (inyectado como contexto del SISTEMA al cambiar a este modo)</string>
     <string name="prompt_injection_section_behavior">Comportamiento</string>
-    <string name="prompt_injection_field_priority">Prioridad (pedido de múltiples inyecciones del mismo modo; mayor número = inyectado primero)</string>
+    <string name="prompt_injection_field_priority">Prioridad (orden de las inyecciones de un mismo modo; número mayor = se inyecta primero)</string>
     <string name="prompt_injection_field_insertion_position">Posición de inserción</string>
     <string name="prompt_injection_field_enabled">Activado</string>
     <string name="prompt_injection_field_enabled_desc">Cuando esté desactivada, esta entrada ya no activará la inyección.</string>
@@ -142,13 +142,13 @@
     <string name="assistant_move_up">Subir</string>
     <string name="assistant_move_down_cd">Bajar</string>
     <string name="assistant_move_down">Mover hacia abajo</string>
-    <string name="assistant_clone_cd">Clon</string>
-    <string name="assistant_clone">Clon</string>
+    <string name="assistant_clone_cd">Clonar</string>
+    <string name="assistant_clone">Clonar</string>
     <string name="assistant_export_card_cd">Exportar tarjeta de personaje</string>
     <string name="assistant_export_card">Exportar tarjeta de personaje</string>
     <string name="assistant_delete_cd">Borrar</string>
     <string name="assistant_delete">Borrar</string>
-    <string name="assistant_close">Cerca</string>
+    <string name="assistant_close">Cerrar</string>
     <string name="assistant_delete_title">Eliminar asistente</string>
     <!-- Toast -->
     <string name="assistant_toast_exported">Tarjeta de personaje exportada: %1$s</string>
@@ -189,7 +189,7 @@
     <string name="assistant_enable_cd">Activar asistente</string>
     <string name="assistant_diff_name">Nombre</string>
     <string name="assistant_diff_summary">Resumen</string>
-    <string name="assistant_diff_system_prompt">Prompt del sistema</string>
+    <string name="assistant_diff_system_prompt">Instrucciones del sistema</string>
     <string name="assistant_diff_persona_definition">Persona</string>
     <string name="assistant_diff_thinking_chain">Cadena de razonamiento</string>
     <string name="assistant_diff_message_template">Plantilla de mensaje</string>

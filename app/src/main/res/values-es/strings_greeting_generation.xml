@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="greeting_hint_generation_prompt">Añade un recordatorio breve de un próximo evento al saludo. Usa solo los eventos proporcionados, sin suponer detalles. Conserva las referencias temporales sin repetirlas. Elige el evento más importante. Escribe una frase natural en español, de tú, con un máximo de 18 caracteres. No incluyas comillas, prefijos, explicaciones ni saltos de línea.</string>
+</resources>

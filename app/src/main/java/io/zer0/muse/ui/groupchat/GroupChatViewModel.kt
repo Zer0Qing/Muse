@@ -148,6 +148,18 @@ class GroupChatViewModel(
         private const val LOAD_MORE_PAGE_SIZE = GroupChatRepository.LOAD_MORE_PAGE_SIZE
     }
 
+    private fun auditGroupString(@androidx.annotation.StringRes resourceId: Int): String {
+        val locale = io.zer0.muse.util.AppLocales.parse(settings.getLanguageSync())
+        val context = if (locale == null) {
+            appContext
+        } else {
+            val configuration = android.content.res.Configuration(appContext.resources.configuration)
+            configuration.setLocale(locale)
+            appContext.createConfigurationContext(configuration)
+        }
+        return context.getString(resourceId)
+    }
+
     private val _state = MutableStateFlow(GroupChatUiState())
     private val json = Json { ignoreUnknownKeys = true }
     val state: StateFlow<GroupChatUiState> = _state.asStateFlow()
@@ -622,8 +634,8 @@ class GroupChatViewModel(
         // v1.0.52: text 为空但有图片时,给 body 添加占位文本,
         // 让 LLM 知道用户发了图片(否则空 body 可能被 scheduler/LLM 忽略)
         val effectiveText = when {
-            text.isBlank() && images.isNotEmpty() -> "[图片]"
-            text.isBlank() && fileAttachments.isNotEmpty() -> "[文件]"
+            text.isBlank() && images.isNotEmpty() -> auditGroupString(R.string.audit_group_attachment_image)
+            text.isBlank() && fileAttachments.isNotEmpty() -> auditGroupString(R.string.audit_group_attachment_file)
             else -> text
         }
         // v1.0.21: 乐观 UI 更新 — 立即把用户消息追加到 currentMessages,
@@ -836,7 +848,7 @@ class GroupChatViewModel(
                 Logger.i(TAG, "已清空群聊记忆: $chatId")
             } catch (e: Exception) {
                 Logger.e(TAG, "清空群聊记忆失败", e)
-                _state.update { it.copy(errorMessage = "清空群聊记忆失败") }
+                _state.update { it.copy(errorMessage = auditGroupString(R.string.audit_group_memory_clear_failed)) }
             }
         }
     }

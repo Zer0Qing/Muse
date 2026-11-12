@@ -142,10 +142,10 @@
     <string name="chat_err_open_file_picker">No se puede abrir el selector de archivos: %1$s</string>
     <string name="chat_err_open_image_picker">No se puede abrir el selector de imágenes: %1$s</string>
     <string name="chat_error_cd">Error: %1$s, vuelva a intentarlo o cierre</string>
-    <string name="chat_retry">Rever</string>
+    <string name="chat_retry">Reintentar</string>
 
     <!-- Share -->
-    <string name="chat_share_subject">conversación musa</string>
+    <string name="chat_share_subject">Conversación de Muse</string>
     <string name="chat_share_chooser_title">Compartir chat</string>
 
     <!-- Copy toast -->
@@ -185,7 +185,7 @@
 
     <!-- Empty state guide -->
     <string name="chat_avatar_assistant_cd">avatar asistente</string>
-    <string name="chat_avatar_muse_cd">icono de musa</string>
+    <string name="chat_avatar_muse_cd">Icono de Muse</string>
     <string name="chat_empty_guide_title">¿Sobre qué te gustaría charlar hoy?</string>
 
     <!-- Image generation placeholder -->
@@ -203,7 +203,7 @@
         <item quantity="other">%1$d acciones</item>
     </plurals>
     <string name="chat_reasoning_elapsed">%1$ds</string>
-    <string name="chat_reasoning_collapse_cd">Colapso de razonamiento</string>
+    <string name="chat_reasoning_collapse_cd">Contraer razonamiento</string>
     <string name="chat_reasoning_expand_cd">Expandir razonamiento</string>
     <string name="chat_reflection_title">Reflexión</string>
     <string name="chat_reflection_collapse_cd">Colapso de reflexión</string>
@@ -669,4 +669,9 @@
     <string name="onboarding_connect_error_server">El proveedor no está disponible. Inténtalo más tarde; si continúa, el modelo puede estar retirado.</string>
     <string name="onboarding_connect_error_no_model">No hay ningún modelo para probar. Obtén primero la lista de modelos.</string>
     <string name="sticker_category_default">Predeterminado</string>
+
+    <string name="chat_tool_run_steps">%1$d pasos</string>
+    <string name="chat_token_estimated_cost">Coste histórico estimado: $%1$s (cálculo aproximado con las tarifas actuales del modelo)</string>
+    <string name="chat_tool_runs_title">Árbol de tareas</string>
+    <string name="chat_tool_run_item_title">Tarea %1$d</string>
 </resources>

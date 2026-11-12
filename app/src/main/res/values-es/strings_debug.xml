@@ -4,7 +4,7 @@
     <!-- Clear confirmation dialog -->
     <string name="debug_clear_logs_title">Borrar registros de depuración</string>
     <string name="debug_clear_logs_confirm">¿Borrar todos los registros %1$d?</string>
-    <string name="debug_action_clear">Claro</string>
+    <string name="debug_action_clear">Borrar</string>
     <string name="debug_cleared_toast">Borrado</string>
 
     <!-- Copy logs -->
@@ -19,11 +19,11 @@
     <!-- Top bar / titles -->
     <string name="debug_screen_title">Registros de depuración</string>
     <string name="debug_cd_resume_follow">Continuar siguiendo</string>
-    <string name="debug_cd_pause_follow">Pausa siguiendo</string>
+    <string name="debug_cd_pause_follow">Pausar seguimiento</string>
     <string name="debug_cd_crash_logs">Registros de fallos</string>
     <string name="debug_cd_analytics">Análisis locales</string>
     <string name="debug_cd_db_integrity">Integridad de la base de datos</string>
-    <string name="debug_cd_clear">Claro</string>
+    <string name="debug_cd_clear">Borrar</string>
     <string name="debug_cd_export">Exportar</string>
     <string name="debug_cd_copy">Copiar</string>
 
@@ -64,7 +64,7 @@
     <string name="debug_metric_total_sessions">Sesiones totales</string>
     <string name="debug_metric_total_messages">Mensajes totales</string>
     <string name="debug_metric_launch_count">Lanzamientos</string>
-    <string name="debug_metric_crash_count">Accidentes</string>
+    <string name="debug_metric_crash_count">Fallos</string>
     <string name="debug_metric_crash_count_value">%1$d (%2$s)</string>
     <string name="debug_status_first_chat">Primer chat completado</string>
     <string name="debug_status_memory_adopted">Sistema de memoria adoptado</string>
@@ -93,7 +93,7 @@
     <string name="debug_db_error_advice">Sugerencia: restaure la última copia de seguridad automática desde \"Configuración → Copia de seguridad &amp; Recuperación\", o exporte conversaciones críticas y reinstale la aplicación.</string>
     <string name="debug_integrity_check_passed">Se pasó el control de integridad</string>
     <string name="debug_integrity_check_failed">La verificación de integridad falló; consulte los detalles</string>
-    <string name="debug_checking">De cheques…</string>
+    <string name="debug_checking">Comprobando…</string>
     <string name="debug_check_now">Compruébalo ahora</string>
     <string name="debug_no_check_record">Aún no hay registro de verificación\n\nToque el botón a continuación para ejecutar una verificación de integridad ahora.</string>
 </resources>

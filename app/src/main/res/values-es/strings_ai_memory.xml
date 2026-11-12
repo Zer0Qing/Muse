@@ -212,4 +212,22 @@
     <string name="memory_merge_error_empty_result">El resultado de la fusión no puede estar vacío</string>
     <string name="memory_merge_error_commit_failed">La fusión falló, los recuerdos no cambiaron</string>
     <string name="memory_space_default_name">Predeterminado</string>
+
+    <string name="memory_graph_settings_title">Ajustes de la constelación</string>
+    <string name="memory_graph_ai_enhance_title">Refinamiento de relaciones con IA</string>
+    <string name="memory_graph_ai_enhance_desc">Usa un LLM para determinar la relación exacta (causa, contradicción, etc.) de los vínculos débiles. Es más preciso, pero consume una llamada por vínculo.</string>
+    <string name="memory_graph_frequency_title">Frecuencia de creación de vínculos</string>
+    <string name="memory_graph_frequency_session_end">Después de cada conversación</string>
+    <string name="memory_graph_frequency_on_open">Al abrir esta página</string>
+    <string name="memory_graph_frequency_manual">Solo manualmente</string>
+    <string name="memory_graph_rebuild_now">Reconstruir vínculos ahora</string>
+    <string name="memory_graph_rebuild_hint">Vuelve a crear los vínculos de todos los recuerdos del ámbito actual (se omiten los vínculos existentes).</string>
+    <string name="memory_graph_rebuild_started">Reconstruyendo vínculos…</string>
+    <string name="memory_graph_link_action">Vincular manualmente</string>
+    <string name="memory_graph_link_pick_target">Toca otro nodo para terminar</string>
+    <string name="memory_graph_link_type_title">Elegir tipo de relación</string>
+    <string name="memory_graph_link_type_related">Relacionado</string>
+    <string name="memory_graph_link_type_causes">Causa</string>
+    <string name="memory_graph_link_type_part_of">Parte de</string>
+    <string name="memory_graph_link_type_contradicts">Contradice</string>
 </resources>

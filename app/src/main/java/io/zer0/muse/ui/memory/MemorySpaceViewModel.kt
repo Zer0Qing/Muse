@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.R
 import io.zer0.memory.space.MemorySpaceEntity
 import io.zer0.memory.space.MemorySpaceRepository
 import io.zer0.memory.space.MemorySpaceWithCount
@@ -35,6 +36,23 @@ class MemorySpaceViewModel(
     private val spaceRepository: MemorySpaceRepository,
 ) : AndroidViewModel(application) {
 
+    private val settings by lazy {
+        org.koin.core.context.GlobalContext.get().get<io.zer0.muse.data.SettingsRepository>()
+    }
+
+    private fun auditMemoryString(@androidx.annotation.StringRes resourceId: Int, vararg args: Any): String {
+        val application = getApplication<Application>()
+        val locale = io.zer0.muse.util.AppLocales.parse(settings.getLanguageSync())
+        val context = if (locale == null) {
+            application
+        } else {
+            val configuration = android.content.res.Configuration(application.resources.configuration)
+            configuration.setLocale(locale)
+            application.createConfigurationContext(configuration)
+        }
+        return context.getString(resourceId, *args)
+    }
+
     /**
      * Space 列表(含事实数量),响应式更新。
      * UI 通过此 Flow 自动刷新列表。
@@ -61,13 +79,13 @@ class MemorySpaceViewModel(
             val id = withContext(Dispatchers.IO) {
                 resultOf { spaceRepository.createSpace(name, icon, description) }
                     .onError { msg, t ->
-                        _operationMessage.value = "创建 Space 失败: $msg"
+                        _operationMessage.value = auditMemoryString(R.string.audit_memory_space_create_failed, msg)
                         Logger.w("MemorySpaceViewModel", "createSpace 失败: $msg", t)
                     }
                     .getOrNull()
             }
             if (id != null) {
-                _operationMessage.value = "已创建空间: $name"
+                _operationMessage.value = auditMemoryString(R.string.audit_memory_space_created, name)
             }
         }
     }
@@ -78,12 +96,12 @@ class MemorySpaceViewModel(
             val ok = withContext(Dispatchers.IO) {
                 resultOf { spaceRepository.renameSpace(id, newName) }
                     .onError { msg, t ->
-                        _operationMessage.value = "重命名失败: $msg"
+                        _operationMessage.value = auditMemoryString(R.string.audit_memory_space_rename_failed, msg)
                         Logger.w("MemorySpaceViewModel", "renameSpace 失败: $msg", t)
                     }
                     .getOrNull() ?: false
             }
-            if (ok) _operationMessage.value = "已重命名"
+            if (ok) _operationMessage.value = auditMemoryString(R.string.audit_memory_space_renamed)
         }
     }
 
@@ -117,12 +135,16 @@ class MemorySpaceViewModel(
             val ok = withContext(Dispatchers.IO) {
                 resultOf { spaceRepository.deleteSpace(id) }
                     .onError { msg, t ->
-                        _operationMessage.value = "删除失败: $msg"
+                        _operationMessage.value = auditMemoryString(R.string.audit_memory_space_delete_failed, msg)
                         Logger.w("MemorySpaceViewModel", "deleteSpace 失败: $msg", t)
                     }
                     .getOrNull() ?: false
             }
-            _operationMessage.value = if (ok) "已删除空间,事实已迁回默认空间" else "默认空间不可删除"
+            _operationMessage.value = if (ok) {
+                auditMemoryString(R.string.audit_memory_space_deleted)
+            } else {
+                auditMemoryString(R.string.audit_memory_space_default_not_deletable)
+            }
         }
     }
 

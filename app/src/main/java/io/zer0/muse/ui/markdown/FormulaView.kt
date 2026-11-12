@@ -74,8 +74,9 @@ fun FormulaView(latex: String, modifier: Modifier = Modifier) {
     }
 
     // 缓存 HTML 模板:latex 或颜色变化时才重新生成
-    val html = remember(latex, textColorHex, errorColorHex) {
-        buildHtml(latex, textColorHex, errorColorHex)
+    val errorPrefix = stringResource(R.string.audit_formula_error)
+    val html = remember(latex, textColorHex, errorColorHex, errorPrefix) {
+        buildHtml(latex, textColorHex, errorColorHex, errorPrefix)
     }
 
     Spacer(Modifier.height(6.dp))
@@ -115,7 +116,8 @@ fun FormulaView(latex: String, modifier: Modifier = Modifier) {
  * @param textColorHex 正文颜色(ARGB 转 #RRGGBB)
  * @param errorColorHex 错误提示颜色(L-MD14: 由调用方传入主题 error 色)
  */
-private fun buildHtml(latex: String, textColorHex: String, errorColorHex: String): String {
+private fun buildHtml(latex: String, textColorHex: String, errorColorHex: String, errorPrefix: String): String {
+    val errorPrefixJs = kotlinx.serialization.json.JsonPrimitive(errorPrefix).toString().replace("</", "<\\/")
     // 转义 latex 中的特殊字符,避免破坏 JS 字符串
     val escaped = latex
         .replace("\\", "\\\\")
@@ -171,7 +173,7 @@ private fun buildHtml(latex: String, textColorHex: String, errorColorHex: String
       });
     } catch (e) {
       // L5 修复: 用 textContent 替代 innerHTML,避免 e.message 被解析为 HTML 造成注入
-      document.getElementById("formula").textContent = '公式错误: ' + e.message;
+      document.getElementById("formula").textContent = $errorPrefixJs + e.message;
     }
   };
 </script>

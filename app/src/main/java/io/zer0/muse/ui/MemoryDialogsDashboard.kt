@@ -251,7 +251,7 @@ internal fun OverviewStatCard(state: MemoryUiState) {
                     VerticalHairline()
                     OverviewStatColumn(
                         // U-9: 层数不再写死"4",改为不带数字的"多",避免过度诊断化硬编码
-                        value = "多",
+                        value = stringResource(R.string.code_gap_memory_multiple_layers),
                         label = stringResource(R.string.memory_overview_layers),
                         modifier = Modifier.weight(1f),
                     )

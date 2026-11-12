@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_regex_visual_only">Display only</string>
+    <string name="audit_unknown_model">Unknown model (%1$s)</string>
+    <string name="audit_aggregation_merge">Merge</string>
+    <string name="audit_aggregation_vote">Vote</string>
+    <string name="audit_aggregation_expert">Expert review</string>
+    <string name="audit_aggregation_first">First success</string>
+    <string name="audit_aggregation_llm">LLM synthesis review</string>
+    <string name="audit_mode_sequential">Sequential</string>
+    <string name="audit_mode_parallel">Parallel</string>
+    <string name="audit_mode_conditional">Conditional</string>
+    <string name="audit_mode_sequential_short">Seq.</string>
+    <string name="audit_mode_parallel_short">Par.</string>
+    <string name="audit_mode_conditional_short">Cond.</string>
+    <string name="audit_color_laurel">Laurel green</string>
+    <string name="audit_color_ocean">Deep ocean blue</string>
+    <string name="audit_color_dusk">Dusk purple</string>
+    <string name="audit_color_sunset">Sunset red</string>
+    <string name="audit_color_amber">Amber orange</string>
+    <string name="audit_color_celadon">Celadon teal</string>
+    <string name="audit_color_ink">Ink gray</string>
+    <string name="audit_color_cherry">Cherry blossom pink</string>
+    <string name="audit_licenses_empty">No license data available</string>
+    <string name="audit_licenses_no_link_app">No app found to open this link</string>
+    <string name="audit_licenses_view">View license</string>
+    <string name="audit_licenses_missing_text">License text not found</string>
+    <string name="audit_licenses_project">Project homepage</string>
+    <string name="audit_licenses_website">Official website: museai.ltd</string>
+    <string name="audit_licenses_note">For license questions, see the full statements linked below. This page’s data is updated with each build (generatedAt indicates the timestamp).</string>
+    <string name="audit_mcp_empty_url">URL cannot be empty</string>
+    <string name="audit_mcp_feishu_credentials">The Feishu template requires an App ID and App Secret</string>
+</resources>

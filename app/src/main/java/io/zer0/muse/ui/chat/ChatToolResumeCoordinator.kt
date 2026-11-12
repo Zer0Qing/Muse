@@ -74,7 +74,7 @@ internal class ChatToolResumeCoordinator(
                 host.stateStore.state.update { it.copy(pendingToolCallCount = pendings.size) }
                 host.addError(
                     ChatErrorType.TOOL_ERROR,
-                    "有 ${approvalPending.size} 个工具调用在进程终止前等待审批，已阻止自动恢复；请丢弃后重新发起请求。",
+                    host.appContext.getString(R.string.audit_resume_approval_pending, approvalPending.size),
                     true,
                 )
                 Logger.w(

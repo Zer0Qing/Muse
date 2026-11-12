@@ -120,7 +120,7 @@ fun LicensesScreen(onBack: () -> Unit, repository: LicenseRepository = koinInjec
             ) {
                 MuseEmptyState(
                     icon = MuseIcons.info,
-                    title = "暂无许可数据",
+                    title = stringResource(R.string.audit_licenses_empty),
                 )
             }
             return@MusePageScaffold
@@ -154,7 +154,7 @@ fun LicensesScreen(onBack: () -> Unit, repository: LicenseRepository = koinInjec
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 context.startActivity(intent)
                             }.onError { msg, t ->
-                                MuseToast.show("未找到可打开链接的应用")
+                                MuseToast.show(context.getString(R.string.audit_licenses_no_link_app))
                             }
                         },
                     )
@@ -260,7 +260,7 @@ private fun LicenseGroupSection(
             }
             Spacer(Modifier.weight(1f))
             Text(
-                text = "查看协议",
+                text = stringResource(R.string.audit_licenses_view),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )
@@ -339,7 +339,7 @@ private fun DependencyRow(entry: LicenseEntry, onClickUrl: (String) -> Unit) {
         if (entry.hasUrl) {
             Icon(
                 imageVector = MuseIcons.externalLink,
-                contentDescription = "查看源码",
+                contentDescription = stringResource(R.string.license_view_source),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(16.dp),
             )
@@ -358,15 +358,14 @@ private fun FooterNote() {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "如对协议有疑问,可查阅下方链接的完整声明。" +
-                "本页面数据每构建一次更新一次(generatedAt 标记时间)。",
+            text = stringResource(R.string.audit_licenses_note),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             listOf(
-                "项目主页" to "https://github.com/Zer0Qing/Muse",
-                "官网 museai.ltd" to "https://museai.ltd",
+                stringResource(R.string.audit_licenses_project) to "https://github.com/Zer0Qing/Muse",
+                stringResource(R.string.audit_licenses_website) to "https://museai.ltd",
             ).forEach { (label, url) ->
                 Text(
                     text = label,
@@ -377,7 +376,7 @@ private fun FooterNote() {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             context.startActivity(intent)
-                        }.onError { _, _ -> MuseToast.show("未找到可打开链接的应用") }
+                        }.onError { _, _ -> MuseToast.show(context.getString(R.string.audit_licenses_no_link_app)) }
                     },
                 )
             }
@@ -406,7 +405,7 @@ private fun LicenseTextDialog(title: String, text: String?, isLoading: Boolean, 
                         size = 24.dp,
                     )
                     text.isNullOrBlank() -> Text(
-                        text = "未找到该协议文本",
+                        text = stringResource(R.string.audit_licenses_missing_text),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )

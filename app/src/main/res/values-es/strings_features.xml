@@ -125,23 +125,23 @@
     <string name="schedule_hide_advanced">Ocultar automatización avanzada</string>
 
     <!-- 前端修复 (i18n-5): describeCron human-readable schedule descriptions -->
-    <string name="schedule_cron_daily">Every day at %1$s</string>
-    <string name="schedule_cron_hourly">Every hour at minute %1$s</string>
-    <string name="schedule_cron_every_minute">Every minute</string>
-    <string name="schedule_cron_workday">Weekdays (Mon-Fri) at %1$s</string>
-    <string name="schedule_cron_weekend">Weekends at %1$s</string>
-    <string name="schedule_cron_weekdays">%1$s at %2$s</string>
-    <string name="schedule_cron_monthly">On day %1$s of every month at %2$s</string>
-    <string name="schedule_cron_sun">Sun</string>
-    <string name="schedule_cron_mon">Mon</string>
-    <string name="schedule_cron_tue">Tue</string>
-    <string name="schedule_cron_wed">Wed</string>
-    <string name="schedule_cron_thu">Thu</string>
-    <string name="schedule_cron_fri">Fri</string>
-    <string name="schedule_cron_sat">Sat</string>
-    <string name="schedule_chain_cycle_error">Cannot select a task that would create a cycle</string>
-    <string name="schedule_default_model">Default model</string>
-    <string name="schedule_assistant_tools">%1$s · %2$d tools</string>
+    <string name="schedule_cron_daily">Cada día a las %1$s</string>
+    <string name="schedule_cron_hourly">Cada hora, en el minuto %1$s</string>
+    <string name="schedule_cron_every_minute">Cada minuto</string>
+    <string name="schedule_cron_workday">De lunes a viernes a las %1$s</string>
+    <string name="schedule_cron_weekend">Fines de semana a las %1$s</string>
+    <string name="schedule_cron_weekdays">%1$s a las %2$s</string>
+    <string name="schedule_cron_monthly">El día %1$s de cada mes a las %2$s</string>
+    <string name="schedule_cron_sun">Dom</string>
+    <string name="schedule_cron_mon">Lun</string>
+    <string name="schedule_cron_tue">Mar</string>
+    <string name="schedule_cron_wed">Mié</string>
+    <string name="schedule_cron_thu">Jue</string>
+    <string name="schedule_cron_fri">Vie</string>
+    <string name="schedule_cron_sat">Sáb</string>
+    <string name="schedule_chain_cycle_error">No se puede seleccionar una tarea que crearía un ciclo</string>
+    <string name="schedule_default_model">Modelo predeterminado</string>
+    <string name="schedule_assistant_tools">%1$s · %2$d herramientas</string>
     <string name="schedule_condition_title">Condición de activación</string>
     <string name="schedule_condition_type_always">Siempre</string>
     <string name="schedule_condition_type_network_available">Red disponible</string>
@@ -285,8 +285,8 @@
     <string name="knowledge_doc_not_indexed">· No indexado</string>
 
     <!-- 前端修复 (i18n-7): PDF metadata card -->
-    <string name="knowledge_doc_info">Document info</string>
-    <string name="knowledge_doc_outline">Outline (%1$d items)</string>
+    <string name="knowledge_doc_info">Información del documento</string>
+    <string name="knowledge_doc_outline">Esquema (%1$d elementos)</string>
     <string name="knowledge_sort_updated">Por hora actualizada</string>
     <string name="knowledge_sort_created">Por tiempo creado</string>
     <string name="knowledge_sort_title">Por título</string>
@@ -381,11 +381,11 @@
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">Tareas de subagente en segundo plano</string>
     <string name="skill_impl_not_configured">Herramientas de archivo no configuradas</string>
-    <string name="subagent_task_detail_assistant">Assistant</string>
-    <string name="subagent_task_detail_user">User</string>
-    <string name="subagent_task_detail_count">Messages: %1$d</string>
-    <string name="subagent_task_detail_loading">Loading conversation...</string>
-    <string name="subagent_task_detail_empty">No conversation history yet</string>
+    <string name="subagent_task_detail_assistant">Asistente</string>
+    <string name="subagent_task_detail_user">Usuario</string>
+    <string name="subagent_task_detail_count">Mensajes: %1$d</string>
+    <string name="subagent_task_detail_loading">Cargando conversación…</string>
+    <string name="subagent_task_detail_empty">Aún no hay historial de conversación</string>
     <string name="subagent_task_list_count">%1$d tarea(s)</string>
     <string name="subagent_task_completed">Terminado</string>
     <string name="subagent_task_failed">Fallido</string>
@@ -491,10 +491,10 @@
     <string name="groupchat_tool_mention">@Mencionar</string>
 
     <!-- 前端修复 (i18n-1/2): group chat detail background desc, clear memory -->
-    <string name="groupchat_bg_cd">Chat background</string>
-    <string name="groupchat_clear_memory">Clear group memory</string>
-    <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
-    <string name="groupchat_clear_memory_btn">Clear</string>
+    <string name="groupchat_bg_cd">Fondo del chat</string>
+    <string name="groupchat_clear_memory">Borrar memoria del grupo</string>
+    <string name="groupchat_clear_memory_confirm">¿Borrar la memoria de este grupo? Los asistentes dejarán de usar los resúmenes de discusiones anteriores (incluidos el tono y el estilo).</string>
+    <string name="groupchat_clear_memory_btn">Borrar</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">Archivar</string>
@@ -873,4 +873,38 @@
     <string name="daily_summary_light_fallback">Hoy no hay mucho que repasar; aquí estoy cuando quieras hablar.</string>
     <string name="daily_summary_rest_fallback">Ha sido un día largo; descansa.</string>
     <string name="daily_summary_none_fallback">Hoy no hay conversaciones nuevas.</string>
+
+    <string name="groupchat_meeting">Reunión</string>
+    <string name="groupchat_round_pause">Pausar</string>
+    <string name="groupchat_round_resume">Reanudar</string>
+    <string name="groupchat_round_skip">Omitir el resto</string>
+    <string name="groupchat_summary_card_title">Resumen de la discusión</string>
+    <string name="groupchat_summary_copy">Copiar</string>
+    <string name="groupchat_summary_share">Compartir</string>
+    <string name="groupchat_summary_save_doc">Guardar como documento compartido</string>
+    <string name="groupchat_summary_continue">Pasar a la acción</string>
+    <string name="groupchat_vote_card_title">Votación</string>
+    <string name="groupchat_length_title">Longitud de las respuestas</string>
+    <string name="groupchat_length_brief">Breve</string>
+    <string name="groupchat_length_standard">Estándar</string>
+    <string name="groupchat_length_detailed">Detallada</string>
+    <string name="groupchat_round_upcoming">A continuación:</string>
+    <string name="groupchat_template_title">Plantillas rápidas</string>
+    <string name="groupchat_template_review">Revisión</string>
+    <string name="groupchat_template_debate">Debate</string>
+    <string name="groupchat_template_brainstorm">Lluvia de ideas</string>
+    <string name="groupchat_template_retro">Retrospectiva</string>
+    <string name="groupchat_collapsed_round">%1$d mensajes más en esta ronda; toca para expandir</string>
+    <string name="groupchat_observers">Observadores (en silencio)</string>
+    <string name="chat_committee">Discusión</string>
+    <string name="chat_committee_hint">Reúne a varios asistentes para una discusión rápida. La conclusión volverá aquí automáticamente.</string>
+    <string name="chat_committee_topic">Tema</string>
+    <string name="chat_committee_members">Miembros (al menos 2)</string>
+    <string name="chat_committee_start">Iniciar discusión</string>
+    <string name="knowledge_fts_repaired_partial_with_reason">Índice reparado, pero no se pudieron reindexar %1$d documentos: %2$s</string>
+    <string name="knowledge_doc_index_broken">El índice se ha perdido (la reconstrucción falló antes de terminar) y el documento no aparecerá en las búsquedas. Mantén pulsado para reindexarlo.</string>
+    <string name="task_card_pause">Pausar herramientas pendientes</string>
+    <string name="task_card_resume">Reanudar herramientas pendientes</string>
+    <string name="task_card_pause_step">Pausar esta herramienta</string>
+    <string name="task_card_resume_step">Reanudar esta herramienta</string>
 </resources>

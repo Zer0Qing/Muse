@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="greeting_hint_generation_prompt">Add a brief upcoming-event reminder to the greeting. Use only the supplied events; do not infer details. Preserve relative times without repeating them. Choose the most important event. Write one natural sentence in English, addressing the user as you, at most 18 characters. Do not include quotes, prefixes, explanations or line breaks.</string>
+</resources>

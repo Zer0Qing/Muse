@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE, type Locale } from "./locale.js";
+import type { MessageKey } from "./messages.js";
 import { translate } from "./translate.js";
 
 /**
@@ -66,24 +67,28 @@ export function formatRelativeTime(
   const ms = toMillis(value);
   if (ms === undefined) return "";
   const diff = now - ms;
+  const relative = (key: MessageKey, count: number, unit: Intl.RelativeTimeFormatUnit, future = false): string =>
+    locale === "es"
+      ? new Intl.RelativeTimeFormat(locale, { numeric: "always" }).format(future ? count : -count, unit)
+      : translate(locale, key, { count });
   // 未来时间（例如下次执行）：说「N 后」而不是「刚刚」。
   if (diff < 0) {
     const ahead = -diff;
     if (ahead < MINUTE) return translate(locale, "time.inMoments");
-    if (ahead < HOUR) return translate(locale, "time.inMinutes", { count: Math.floor(ahead / MINUTE) });
-    if (ahead < DAY) return translate(locale, "time.inHours", { count: Math.floor(ahead / HOUR) });
-    if (ahead < 7 * DAY) return translate(locale, "time.inDays", { count: Math.floor(ahead / DAY) });
+    if (ahead < HOUR) return relative("time.inMinutes", Math.floor(ahead / MINUTE), "minute", true);
+    if (ahead < DAY) return relative("time.inHours", Math.floor(ahead / HOUR), "hour", true);
+    if (ahead < 7 * DAY) return relative("time.inDays", Math.floor(ahead / DAY), "day", true);
     return formatMonthDay(ms, locale, now);
   }
   if (diff < MINUTE) return translate(locale, "time.justNow");
-  if (diff < HOUR) return translate(locale, "time.minutesAgo", { count: Math.floor(diff / MINUTE) });
-  if (diff < DAY && sameDay(ms, now)) return translate(locale, "time.hoursAgo", { count: Math.floor(diff / HOUR) });
+  if (diff < HOUR) return relative("time.minutesAgo", Math.floor(diff / MINUTE), "minute");
+  if (diff < DAY && sameDay(ms, now)) return relative("time.hoursAgo", Math.floor(diff / HOUR), "hour");
 
   const yesterday = new Date(now);
   yesterday.setHours(0, 0, 0, 0);
   yesterday.setDate(yesterday.getDate() - 1);
   if (sameDay(ms, yesterday.getTime())) return translate(locale, "time.yesterday");
-  if (diff < 7 * DAY) return translate(locale, "time.daysAgo", { count: Math.floor(diff / DAY) });
+  if (diff < 7 * DAY) return relative("time.daysAgo", Math.floor(diff / DAY), "day");
   return formatMonthDay(ms, locale, now);
 }
 

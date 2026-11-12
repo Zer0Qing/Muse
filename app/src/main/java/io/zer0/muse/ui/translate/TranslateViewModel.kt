@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.translate
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -692,6 +693,20 @@ class TranslateViewModel(
             "润色",
             "简洁",
         )
+
+        private val translationStyleLabelResIds = listOf(
+            R.string.audit_translate_style_general,
+            R.string.audit_translate_style_academic,
+            R.string.audit_translate_style_business,
+            R.string.audit_translate_style_conversational,
+            R.string.audit_translate_style_polished,
+            R.string.audit_translate_style_concise,
+        )
+
+        // Localize labels only; persisted values and prompt selection remain unchanged.
+        @StringRes
+        fun translationStyleLabelResId(style: String): Int? =
+            translationStyleLabelResIds.getOrNull(TRANSLATION_STYLES.indexOf(style))
 
         /**
          * 构建翻译 prompt。

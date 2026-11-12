@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_web_search_diagnostic_query">Consulta: %1$s</string>
+    <string name="settings_web_search_diagnostic_status">Estado: %1$s   Fuente: %2$s</string>
+    <string name="settings_web_search_diagnostic_unknown_provider">Desconocido</string>
+    <string name="settings_web_search_diagnostic_results">Resultados: %1$d</string>
+    <string name="license_view_source">Ver código fuente</string>
+</resources>
