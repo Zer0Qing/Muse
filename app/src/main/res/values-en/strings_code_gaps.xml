@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="code_gap_gallery_selected">Selected images: %1$d</string>
+    <string name="code_gap_skill_file_too_large">File too large; exceeds the %1$d MB limit</string>
+    <string name="code_gap_memory_spaces_subtitle">Manage separate memory spaces for work, life, study, and more; switching between them keeps them independent</string>
+    <string name="code_gap_mcp_config_template">Configuration template</string>
+    <string name="code_gap_feishu_app_id">Feishu App ID</string>
+    <string name="code_gap_feishu_app_secret">Feishu App Secret</string>
+    <string name="code_gap_feishu_token_refresh_hint">Muse automatically obtains and renews tenant_access_token, so you do not need to manually replace the TAT every 2 hours.</string>
+    <string name="code_gap_markdown_cover">Cover</string>
+    <string name="code_gap_vision_probe_empty">The vision model returned an empty result or fell back</string>
+    <string name="code_gap_note_encrypt_empty">No content to encrypt</string>
+    <string name="code_gap_note_encrypt_failed">Encryption failed; the note is unchanged</string>
+    <string name="code_gap_note_encrypted">Encrypted</string>
+    <string name="code_gap_note_decrypt_failed">Decryption failed; the note remains encrypted</string>
+    <string name="code_gap_note_decrypted">Decrypted</string>
+    <string name="code_gap_memory_multiple_layers">Multiple</string>
+</resources>

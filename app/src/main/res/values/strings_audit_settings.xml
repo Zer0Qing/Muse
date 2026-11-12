@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_regex_visual_only">仅显示</string>
+    <string name="audit_unknown_model">未知模型(%1$s)</string>
+    <string name="audit_aggregation_merge">合并</string>
+    <string name="audit_aggregation_vote">投票</string>
+    <string name="audit_aggregation_expert">专家评审</string>
+    <string name="audit_aggregation_first">首个成功</string>
+    <string name="audit_aggregation_llm">LLM 综合评审</string>
+    <string name="audit_mode_sequential">串行</string>
+    <string name="audit_mode_parallel">并行</string>
+    <string name="audit_mode_conditional">条件</string>
+    <string name="audit_mode_sequential_short">串</string>
+    <string name="audit_mode_parallel_short">并</string>
+    <string name="audit_mode_conditional_short">条</string>
+    <string name="audit_color_laurel">月桂绿</string>
+    <string name="audit_color_ocean">深海蓝</string>
+    <string name="audit_color_dusk">暮色紫</string>
+    <string name="audit_color_sunset">赤霞红</string>
+    <string name="audit_color_amber">琥珀橙</string>
+    <string name="audit_color_celadon">青瓷青</string>
+    <string name="audit_color_ink">墨纸灰</string>
+    <string name="audit_color_cherry">樱花粉</string>
+    <string name="audit_licenses_empty">暂无许可数据</string>
+    <string name="audit_licenses_no_link_app">未找到可打开链接的应用</string>
+    <string name="audit_licenses_view">查看协议</string>
+    <string name="audit_licenses_missing_text">未找到该协议文本</string>
+    <string name="audit_licenses_project">项目主页</string>
+    <string name="audit_licenses_website">官网 museai.ltd</string>
+    <string name="audit_licenses_note">如对协议有疑问,可查阅下方链接的完整声明。本页面数据每构建一次更新一次(generatedAt 标记时间)。</string>
+    <string name="audit_mcp_empty_url">URL 不能为空</string>
+    <string name="audit_mcp_feishu_credentials">飞书模板需要填写 App ID 和 App Secret</string>
+</resources>

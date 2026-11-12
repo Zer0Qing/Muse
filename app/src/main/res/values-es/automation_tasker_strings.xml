@@ -2,4 +2,38 @@
 <resources>
     <string name="automation_tasker_title">Tasker / activación de automatización externa</string>
     <string name="automation_tasker_desc">Permite que otras aplicaciones envíen una solicitud de texto. No concede acceso a herramientas, pero puede consumir cuota del modelo.</string>
+
+    <string name="automation_master_title">Permitir automatización de pantalla</string>
+    <string name="automation_master_desc">Interruptor general. Al desactivarlo, ninguna herramienta de lectura de pantalla, pulsación, entrada de texto o tareas de varios pasos se ejecutará hasta que lo vuelvas a activar.</string>
+    <string name="automation_master_off_banner">Actualmente desactivado: ninguna herramienta de lectura de pantalla, pulsación, entrada de texto o tareas de varios pasos se ejecutará hasta que vuelvas a activar el interruptor de arriba.</string>
+    <string name="automation_a11y_off_banner">El servicio de accesibilidad no está conectado (es posible que el sistema lo haya detenido). La lectura de pantalla y las pulsaciones fallarán.</string>
+    <string name="automation_a11y_off_action">Activar accesibilidad</string>
+    <string name="automation_autonomous_title">Accesibilidad autónoma por horario</string>
+    <string name="automation_autonomous_desc">Asigna primero una tarea explícita en el chat. Durante el horario permitido, solo se pueden ejecutar automáticamente las lecturas de pantalla, pulsaciones y desplazamientos autorizados. Las acciones de introducir texto, enviar, publicar, pagar y eliminar siguen requiriendo aprobación.</string>
+    <string name="automation_autonomous_enabled">Activar accesibilidad autónoma</string>
+    <string name="automation_autonomous_enabled_desc">La automatización solo se ejecuta cuando coinciden el horario, la aplicación, la acción y el límite diario permitidos.</string>
+    <string name="automation_autonomous_window">Horario permitido</string>
+    <string name="automation_autonomous_start">Hora de inicio</string>
+    <string name="automation_autonomous_end">Hora de fin</string>
+    <string name="automation_autonomous_packages">Paquetes de aplicaciones permitidos</string>
+    <string name="automation_autonomous_packages_desc">Un paquete por línea. El paquete predeterminado de Xiaohongshu es com.xingin.xhs.</string>
+    <string name="automation_autonomous_actions">Acciones permitidas</string>
+    <string name="automation_autonomous_read">Leer pantalla</string>
+    <string name="automation_autonomous_click">Pulsar</string>
+    <string name="automation_autonomous_scroll">Desplazar</string>
+    <string name="automation_autonomous_input">Introducir texto</string>
+    <string name="automation_autonomous_daily_limit">Máximo de ejecuciones al día</string>
+    <string name="automation_autonomous_daily_limit_desc">Solo se cuentan las ejecuciones completadas correctamente. Alcanzar el límite revoca la autorización de la tarea actual.</string>
+    <string name="automation_autonomous_task">Autorización de tareas del chat</string>
+    <string name="automation_autonomous_task_desc">Un horario por sí solo nunca concede acceso. Indica el paquete y la operación en el chat y confírmalos aquí. La autorización solo es válida para el último mensaje del usuario en ese chat.</string>
+    <string name="automation_autonomous_confirm_task">Confirmar tarea actual</string>
+    <string name="automation_autonomous_confirm_required">Indica primero la tarea y el paquete en el chat actual</string>
+    <string name="automation_autonomous_saved">Ajustes de accesibilidad autónoma guardados</string>
+    <string name="automation_autonomous_task_confirmed">Tarea actual autorizada en este chat</string>
+    <string name="automation_autonomous_task_cleared">Autorización de la tarea de accesibilidad autónoma revocada</string>
+    <string name="automation_autonomous_task_missing_session">Abre un chat antes de confirmar una tarea</string>
+    <string name="automation_autonomous_task_text">Tarea actual: %1$s</string>
+    <string name="automation_autonomous_active_until">Autorización: activa cuando coinciden el horario y la aplicación en primer plano</string>
+    <string name="automation_autonomous_no_grant">Autorización: ninguna</string>
+    <string name="automation_autonomous_save">Guardar ajustes</string>
 </resources>

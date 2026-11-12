@@ -192,15 +192,15 @@ private fun intervalToLabel(interval: String): String = when (interval) {
  */
 private data class ToolTemplate(
     val id: String,
-    val label: String,
+    @androidx.annotation.StringRes val labelRes: Int,
     val paramsJson: String,
 )
 
 private val TOOL_TEMPLATES = listOf(
-    ToolTemplate("clipboard_read", "读取剪贴板", "{}"),
-    ToolTemplate("get_current_time", "获取当前时间", "{\"timezone\":\"Asia/Shanghai\"}"),
-    ToolTemplate("calculator", "计算", "{\"expression\":\"1+2*3\"}"),
-    ToolTemplate("browser_navigate", "打开网页", "{\"url\":\"https://example.com\"}"),
+    ToolTemplate("clipboard_read", R.string.audit_schedule_template_clipboard, "{}"),
+    ToolTemplate("get_current_time", R.string.audit_schedule_template_time, "{\"timezone\":\"Asia/Shanghai\"}"),
+    ToolTemplate("calculator", R.string.audit_schedule_template_calculate, "{\"expression\":\"1+2*3\"}"),
+    ToolTemplate("browser_navigate", R.string.audit_schedule_template_webpage, "{\"url\":\"https://example.com\"}"),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1499,7 +1499,7 @@ private fun AutomationActionSection(
                                     onToolParamsChange(t.paramsJson)
                                     showToolTemplates = false
                                 },
-                                headlineContent = { Text(t.label) },
+                                headlineContent = { Text(stringResource(t.labelRes)) },
                             )
                         }
                     }

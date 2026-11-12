@@ -6,9 +6,9 @@
     <string name="automation_sub_autonomous">Acciones autónomas</string>
     <string name="automation_sub_autonomous_desc">Franja horaria, lista de acciones y límite diario</string>
     <string name="automation_sub_orchestration">Orquestación y prueba</string>
-    <string name="automation_sub_orchestration_desc">Orquestación de tareas y autoprueba de lectura de pantalla</string>
+    <string name="automation_sub_orchestration_desc">Orquestación de tareas programadas y autoprueba de lectura de pantalla</string>
     <string name="automation_settings_subtitle">Permisos de lectura y operación de pantalla</string>
-    <string name="accessibility_service_description">Permite que Muse lea el contenido de la pantalla y simule toques, deslizamientos y otros gestos para automatizar tareas entre aplicaciones. Muse no ejecutará acciones sin tu confirmación.</string>
+    <string name="accessibility_service_description">Permite que Muse lea el contenido de la pantalla de cualquier aplicación (incluida la información sensible que muestran otras aplicaciones, como códigos de verificación o mensajes de chat) y simule toques, deslizamientos y otros gestos para automatizar tareas entre aplicaciones. Activa este servicio solo si confías en él; Muse no ejecutará acciones de alto riesgo sin tu confirmación.</string>
     <string name="automation_permission_a11y">Automatización UI de Muse</string>
     <string name="automation_settings_unavailable">No se pueden abrir los ajustes del sistema. Ábrelos manualmente para activar el permiso.</string>
     <!-- Página de permisos de automatización de UI (v1.x): tarjetas de nivel, solicitud de Root y autoprueba -->

@@ -37,6 +37,7 @@ import io.zer0.muse.ui.common.media.LifecycleAwareWebViewFactory
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.theme.MuseIconSizes
+import org.json.JSONObject
 
 /**
  * v2.0.1: 文档预览（PDF）— 全屏 WebView + pdf.js（assets 离线分发）。
@@ -118,9 +119,15 @@ fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDi
                                     settings.allowContentAccess = false
                                     settings.mediaPlaybackRequiresUserGesture = true
                                     setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                                    val labels = JSONObject().apply {
+                                        put("title", ctx.getString(R.string.doc_preview_title))
+                                        put("waiting", ctx.getString(R.string.doc_preview_waiting))
+                                        put("failed", ctx.getString(R.string.doc_preview_failed))
+                                        put("language", ctx.resources.configuration.locales[0].toLanguageTag())
+                                    }
                                     webViewClient = object : WebViewClient() {
                                         override fun onPageFinished(view: WebView?, url: String?) {
-                                            view?.evaluateJavascript("window.renderPdf('$b64')", null)
+                                            view?.evaluateJavascript("window.setDocumentLabels($labels); window.renderPdf('$b64')", null)
                                         }
                                     }
                                     webViewRef[0] = this

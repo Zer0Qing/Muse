@@ -38,7 +38,7 @@ function HostLogin({ onLogin }: { readonly onLogin: () => void }) {
         <HostVersionBanner />
         <input
           className="host-pin-input"
-          aria-label="Host PIN"
+          aria-label={t("login.pinLabel")}
           inputMode="numeric"
           autoComplete="one-time-code"
           pattern="\d*"

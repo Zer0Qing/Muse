@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -36,9 +38,9 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 /** 厂商识别结果与引导内容。 */
 data class KeepAliveGuide(
     /** 品牌显示名,如"小米"。 */
-    val brandName: String,
+    @StringRes val brandNameResId: Int,
     /** 引导步骤(用户手动操作路径)。 */
-    val steps: List<String>,
+    val stepResIds: List<Int>,
     /** 尝试跳转系统设置;失败或无专用 intent 时回退应用详情页。返回是否成功发起跳转。 */
     val openSystemSettings: (Context) -> Boolean,
 )
@@ -77,21 +79,21 @@ fun detectKeepAliveGuide(): KeepAliveGuide {
     }
     return when {
         manufacturer.contains("huawei") || manufacturer.contains("honor") -> KeepAliveGuide(
-            brandName = "华为",
-            steps = listOf(
-                "打开系统「设置」→「应用」→「应用启动管理」",
-                "找到 Muse，关闭「自动管理」，手动允许「自启动」「关联启动」「后台活动」",
-                "在「设置」→「电池」→「更多电池设置」中关闭「休眠时始终保持网络连接」的限制",
+            brandNameResId = R.string.audit_keep_alive_brand_huawei,
+            stepResIds = listOf(
+                R.string.audit_keep_alive_step_1,
+                R.string.audit_keep_alive_step_2,
+                R.string.audit_keep_alive_step_3,
             ),
             openSystemSettings = fallbackToDetails,
         )
         manufacturer.contains("xiaomi") || manufacturer.contains("redmi") || manufacturer.contains("poco") ->
             KeepAliveGuide(
-                brandName = "小米",
-                steps = listOf(
-                    "打开「设置」→「应用设置」→「应用管理」→ 找到 Muse",
-                    "开启「自启动」，在「省电策略」中选择「无限制」",
-                    "或直接跳转系统自启动管理页（下方按钮）",
+                brandNameResId = R.string.audit_keep_alive_brand_xiaomi,
+                stepResIds = listOf(
+                    R.string.audit_keep_alive_step_4,
+                    R.string.audit_keep_alive_step_5,
+                    R.string.audit_keep_alive_step_autostart_shortcut,
                 ),
                 openSystemSettings = { ctx ->
                     attemptSettings(
@@ -108,11 +110,11 @@ fun detectKeepAliveGuide(): KeepAliveGuide {
             )
         manufacturer.contains("oppo") || manufacturer.contains("oneplus") || manufacturer.contains("realme") ->
             KeepAliveGuide(
-                brandName = "OPPO",
-                steps = listOf(
-                    "打开「设置」→「应用」→「应用管理」→ 找到 Muse",
-                    "开启「自启动」，在「电池」→「耗电管理」中选择「允许后台运行」",
-                    "或直接跳转系统自启动管理页（下方按钮）",
+                brandNameResId = R.string.audit_keep_alive_brand_oppo,
+                stepResIds = listOf(
+                    R.string.audit_keep_alive_step_7,
+                    R.string.audit_keep_alive_step_8,
+                    R.string.audit_keep_alive_step_autostart_shortcut,
                 ),
                 openSystemSettings = { ctx ->
                     attemptSettings(
@@ -136,11 +138,11 @@ fun detectKeepAliveGuide(): KeepAliveGuide {
                 },
             )
         manufacturer.contains("vivo") || manufacturer.contains("iqoo") -> KeepAliveGuide(
-            brandName = "vivo",
-            steps = listOf(
-                "打开「设置」→「应用与权限」→「权限管理」→ 找到 Muse",
-                "开启「自启动」，在「电池」→「后台高耗电」中选择「允许后台运行」",
-                "或直接跳转系统自启动管理页（下方按钮）",
+            brandNameResId = R.string.audit_keep_alive_brand_vivo,
+            stepResIds = listOf(
+                R.string.audit_keep_alive_step_10,
+                R.string.audit_keep_alive_step_11,
+                R.string.audit_keep_alive_step_autostart_shortcut,
             ),
             openSystemSettings = { ctx ->
                 attemptSettings(
@@ -160,11 +162,11 @@ fun detectKeepAliveGuide(): KeepAliveGuide {
             },
         )
         else -> KeepAliveGuide(
-            brandName = "通用",
-            steps = listOf(
-                "在系统设置中允许 Muse 的「自启动 / 后台运行」",
-                "在电池优化中把 Muse 设为「不限制」（下方按钮可直达）",
-                "不要使用「强行停止」，直接划掉最近任务即可",
+            brandNameResId = R.string.audit_keep_alive_brand_generic,
+            stepResIds = listOf(
+                R.string.audit_keep_alive_step_13,
+                R.string.audit_keep_alive_step_14,
+                R.string.audit_keep_alive_step_15,
             ),
             openSystemSettings = { ctx ->
                 val ok = runCatching {
@@ -189,7 +191,7 @@ fun KeepAliveGuideDialog(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     val guide = rememberKeepAliveGuide()
     MuseDialog(
         onDismissRequest = onDismiss,
-        title = context.getString(R.string.keep_alive_dialog_title, guide.brandName),
+        title = context.getString(R.string.keep_alive_dialog_title, stringResource(guide.brandNameResId)),
         content = {
             Column(
                 modifier = modifier,
@@ -210,9 +212,9 @@ fun KeepAliveGuideDialog(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
                     )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    guide.steps.forEachIndexed { index, step ->
+                    guide.stepResIds.forEachIndexed { index, stepResId ->
                         Text(
-                            text = "${index + 1}. $step",
+                            text = "${index + 1}. ${stringResource(stepResId)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
                         )

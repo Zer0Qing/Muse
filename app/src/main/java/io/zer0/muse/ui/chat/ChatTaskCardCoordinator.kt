@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.chat
 
 import io.zer0.common.resultOf
+import io.zer0.muse.R
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.ui.taskcard.TaskCardPhase
 import io.zer0.muse.ui.taskcard.TaskStep
@@ -35,6 +36,7 @@ class ChatTaskCardCoordinator(
     private val toolRegistry: ToolRegistry,
     /** Phase 3: 单步重试执行超时(默认 2 分钟,与工具执行超时对齐);测试可注入更短值。 */
     private val retryTimeoutMs: Long = DEFAULT_RETRY_TIMEOUT_MS,
+    private val localizeString: ((Int, Array<out Any>) -> String)? = null,
 ) {
     private val routeGuard = io.zer0.muse.tools.ToolRouteExecutionGuard(toolRegistry)
 
@@ -261,7 +263,12 @@ class ChatTaskCardCoordinator(
                         taskCardId = taskCardId,
                         stepId = step.id,
                         status = TaskStepStatus.FAILED,
-                        result = "[需手动] 高危工具 ${step.title} 不自动重试，请重新发起以再次确认",
+                        result = "[需手动] " + auditStateString(
+                            localizeString,
+                            R.string.audit_retry_manual_required,
+                            "高危工具 %1\$s 不自动重试，请重新发起以再次确认",
+                            step.title,
+                        ),
                         startedAt = startedAt,
                         finishedAt = System.currentTimeMillis(),
                         autoExpand = true,
@@ -279,7 +286,12 @@ class ChatTaskCardCoordinator(
                             }
                         ) {
                             is io.zer0.common.Result.Success -> r.data
-                            is io.zer0.common.Result.Error -> "重试执行异常: ${r.message}"
+                            is io.zer0.common.Result.Error -> auditStateString(
+                                localizeString,
+                                R.string.audit_retry_execution_error,
+                                "重试执行异常: %1\$s",
+                                r.message,
+                            )
                         }
                     }
                 } catch (ce: CancellationException) {
@@ -289,7 +301,7 @@ class ChatTaskCardCoordinator(
                             taskCardId = taskCardId,
                             stepId = step.id,
                             status = TaskStepStatus.CANCELLED,
-                            result = "[取消] 重试 ${step.title} 已取消",
+                            result = "[取消] " + auditStateString(localizeString, R.string.audit_retry_cancelled, "重试 %1\$s 已取消", step.title),
                             startedAt = startedAt,
                             finishedAt = System.currentTimeMillis(),
                             autoExpand = false,
@@ -301,7 +313,13 @@ class ChatTaskCardCoordinator(
 
                 val timedOut = retryResult == null
                 val toolResult = retryResult
-                    ?: "[超时] 重试 ${step.title} 超过 ${retryTimeoutMs / 1000} 秒未响应,已终止"
+                    ?: ("[超时] " + auditStateString(
+                        localizeString,
+                        R.string.audit_retry_timeout,
+                        "重试 %1\$s 超过 %2\$d 秒未响应,已终止",
+                        step.title,
+                        retryTimeoutMs / 1000,
+                    ))
                 val isSuccess = !timedOut && isToolResultSuccess(toolResult)
                 writeRetriedStep(
                     taskCardId = taskCardId,

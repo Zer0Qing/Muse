@@ -1,7 +1,7 @@
 /** 支持的语言与解析规则（纯函数，便于断言）。 */
-export type Locale = "zh" | "en" | "ja" | "ko" | "ru";
+export type Locale = "zh" | "en" | "ja" | "ko" | "ru" | "es";
 
-export const LOCALES: readonly Locale[] = ["zh", "en", "ja", "ko", "ru"];
+export const LOCALES: readonly Locale[] = ["zh", "en", "ja", "ko", "ru", "es"];
 
 /**
  * 浏览器语言也认不出来（例如 fr）时用的语言：**zh**。
@@ -32,7 +32,7 @@ export function matchLocale(tag: string | undefined): Locale | undefined {
 
 /**
  * 解析界面语言：
- *  - 设置里给了具体语言（zh/en/ja/ko/ru）就用它；
+ *  - 设置里给了具体语言（zh/en/ja/ko/ru/es）就用它；
  *  - `system`（或没给 / 不认识的值）按 navigator.language 列表逐个匹配；
  *  - 都匹配不到回落 en（FALLBACK_LOCALE）。
  */

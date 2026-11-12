@@ -1611,6 +1611,19 @@ class MemoryViewModel(
         }
     }
 
+    private fun auditMemoryString(@androidx.annotation.StringRes resourceId: Int): String {
+        val application = getApplication<Application>()
+        val locale = io.zer0.muse.util.AppLocales.parse(settings.getLanguageSync())
+        val context = if (locale == null) {
+            application
+        } else {
+            val configuration = android.content.res.Configuration(application.resources.configuration)
+            configuration.setLocale(locale)
+            application.createConfigurationContext(configuration)
+        }
+        return context.getString(resourceId)
+    }
+
     /**
      * v2.6.23(M2): 用户裁决 —— [keepId] 一句是对的,另一方按 v18 让位(不删行,可回退)。
      *
@@ -1624,7 +1637,9 @@ class MemoryViewModel(
                     .getOrNull() ?: false
             }
             if (!ok) {
-                _state.update { it.copy(errorTrace = "矛盾裁决未生效(记录可能已被整理或删除)") }
+                _state.update {
+                    it.copy(errorTrace = auditMemoryString(R.string.audit_memory_conflict_not_applied))
+                }
             }
             loadAll(silent = true)
         }
@@ -1832,7 +1847,8 @@ class MemoryViewModel(
                 GroupChatMemoryUiItem(
                     id = m.id,
                     groupChatId = m.groupChatId,
-                    groupChatName = groupChatNameById[m.groupChatId] ?: "群聊",
+                    groupChatName = groupChatNameById[m.groupChatId]
+                        ?: auditMemoryString(R.string.groupchat_default_name),
                     assistantName = assistantNameById[m.assistantId] ?: m.assistantId.take(8),
                     summary = m.summary,
                     createdAt = m.createdAt,

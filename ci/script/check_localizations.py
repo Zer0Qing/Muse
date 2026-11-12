@@ -2,15 +2,15 @@
 """
 check_localizations.py — Android 字符串资源完整性校验。
 
-对比 values/(基准)与各 values-<locale>/ 目录下 strings_*.xml 的 key 差异,
+对比 values/(基准)与各 values-<locale>/ 目录下 XML 字符串资源的 key 差异,
 报告每个 locale 缺失的 key。CI 中用于强制保证翻译完整性。
 
 用法:
     python ci/script/check_localizations.py [--res-dir app/src/main/res] [--strict-locales en]
 
 退出码:
-    0 — strict locales(默认 en)无缺失 key
-    1 — 存在缺失 key(CI 失败)
+    0 — strict locales(默认 en)无缺失 key 且所有 locale 资源类型匹配
+    1 — 存在缺失 key 或资源类型不匹配(CI 失败)
 
 说明:
     v1.0.56: 新增 --strict-locales — 只有列出的 locale 缺失 key 才算失败;
@@ -38,11 +38,13 @@ STRING_NAME_RE = re.compile(r'<string\s+name="([^"]+)"', re.IGNORECASE)
 # 声明为 translatable="false" 的 key 是故意不翻译的(语言自称、专有名词),
 # 不该算进各 locale 的完整性缺口;开标签正则用于把属性和 name 一起认出来。
 STRING_TAG_OPEN_RE = re.compile(r"<string\s[^>]*>", re.IGNORECASE)
+RESOURCE_TAG_OPEN_RE = re.compile(r"<(string-array|plurals|string)\b([^>]*)>", re.IGNORECASE)
+XML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 NAME_ATTR_RE = re.compile(r'name="([^"]+)"')
 NOT_TRANSLATABLE_RE = re.compile(r'translatable\s*=\s*"false"', re.IGNORECASE)
 
 # 需要扫描的文件模式
-STRING_FILE_PATTERN = "strings*.xml"
+STRING_FILE_PATTERN = "*.xml"
 # 默认 values 目录名(基准)
 DEFAULT_VALUES_DIR = "values"
 # 支持的 locale 目录前缀
@@ -50,7 +52,7 @@ LOCALE_DIR_PREFIX = "values-"
 
 
 def extract_keys_from_file(file_path: Path) -> set:
-    """从单个 strings_*.xml 文件中提取所有 string key。"""
+    """从单个 XML 字符串资源文件中提取所有 string key。"""
     if not file_path.exists():
         return set()
     try:
@@ -81,7 +83,7 @@ def extract_untranslatable_keys_from_file(file_path: Path) -> set:
 
 def extract_all_keys(values_dir: Path) -> dict:
     """
-    从 values 目录中提取所有 strings_*.xml 的 key。
+    从 values 目录中提取所有 XML 文件的字符串 key。
 
     返回: {filename: set(keys)} 如 {"strings_ui_main.xml": {"key1", "key2"}}
     """
@@ -91,6 +93,18 @@ def extract_all_keys(values_dir: Path) -> dict:
     for xml_file in sorted(values_dir.glob(STRING_FILE_PATTERN)):
         keys = extract_keys_from_file(xml_file)
         result[xml_file.name] = keys
+    return result
+
+
+def extract_resource_kinds(values_dir: Path) -> dict:
+    """Collect named text resource kinds across files, ignoring XML comments."""
+    result = {}
+    for xml_file in sorted(values_dir.glob(STRING_FILE_PATTERN)):
+        content = XML_COMMENT_RE.sub("", xml_file.read_text(encoding="utf-8"))
+        for kind, attributes in RESOURCE_TAG_OPEN_RE.findall(content):
+            name = NAME_ATTR_RE.search(attributes)
+            if name:
+                result.setdefault(name.group(1), set()).add(kind.lower())
     return result
 
 
@@ -122,10 +136,11 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
     """
     校验所有 locale 的 key 完整性。
 
-    返回: 缺失 key 的总数(0 表示全部完整)
+    返回: 0 表示严格语言完整且所有语言资源类型匹配,否则返回 1
     """
     default_dir = res_dir / DEFAULT_VALUES_DIR
     baseline = extract_all_keys(default_dir)
+    baseline_kinds = extract_resource_kinds(default_dir)
     # 自称/专有名词类 key 只存在于 values/,各 locale 不复制它们,所以不参与缺失比对。
     baseline_untranslatable = set()
     for xml_file in sorted(default_dir.glob(STRING_FILE_PATTERN)):
@@ -135,7 +150,7 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
     }
 
     if not baseline:
-        print(f"ERROR: 基准目录 {default_dir} 无 strings_*.xml 文件", file=sys.stderr)
+        print(f"ERROR: 基准目录 {default_dir} 无 XML 字符串资源文件", file=sys.stderr)
         return 1
 
     total_baseline_keys = sum(len(keys) for keys in baseline.values())
@@ -149,10 +164,18 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
         return 0
 
     total_missing = 0
+    total_type_mismatches = 0
 
     for locale_dir in locale_dirs:
         locale_name = locale_dir.name
         locale_keys = extract_all_keys(locale_dir)
+        locale_kinds = extract_resource_kinds(locale_dir)
+        type_mismatches = {
+            key: (baseline_kinds[key], kinds)
+            for key, kinds in locale_kinds.items()
+            if key in baseline_kinds and kinds != baseline_kinds[key]
+        }
+        total_type_mismatches += len(type_mismatches)
 
         locale_total = sum(len(keys) for keys in locale_keys.values())
         # v1.0.56: 改为跨文件 key 集合比对 — key 分布在不同 strings_*.xml 是合法的
@@ -173,7 +196,14 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
             status = "OK"
         else:
             status = f"MISSING {missing_count} keys" + (" (FAIL)" if is_strict else " (WARN)")
+        if type_mismatches:
+            status += f"; TYPE MISMATCH {len(type_mismatches)} (FAIL)"
         print(f"  {locale_name}: {locale_total} keys [{status}]")
+        for key, (expected, actual) in sorted(type_mismatches.items()):
+            print(
+                f"    TYPE MISMATCH: {key}: expected {', '.join(sorted(expected))}; "
+                f"found {', '.join(sorted(actual))}"
+            )
 
         if missing_keys:
             for key in sorted(missing_keys):
@@ -184,6 +214,10 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
                 print(f"    EXTRA:   {key}")
 
     print()
+    if total_type_mismatches:
+        print(f"✗ Resource kind mismatches: {total_type_mismatches}", file=sys.stderr)
+        if total_missing == 0:
+            return 1
     if total_missing == 0:
         print(f"✓ strict locales({', '.join(sorted(strict_locales))}) 翻译完整(0 缺失)")
         return 0

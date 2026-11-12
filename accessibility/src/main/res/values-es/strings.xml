@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">Servicio de automatización de la interfaz de Muse. Permite a Muse leer el contenido de la pantalla de cualquier aplicación y realizar acciones como tocar, deslizar e introducir texto para que el asistente de IA controle el teléfono. Actívalo solo si confías en él; no supervisa en segundo plano.</string>
+</resources>

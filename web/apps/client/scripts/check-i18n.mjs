@@ -16,10 +16,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TEMP = join(ROOT, ".i18n-check.mjs");
 
 const ENTRY = `
-export { MESSAGES, ZH, EN, JA, KO, RU, type MessageKey } from "./src/i18n/messages.ts";
+export { MESSAGES, ZH, EN, JA, KO, RU, ES, type MessageKey } from "./src/i18n/messages.ts";
 export { formatMessage, translate, createTranslator, resolveTemplate } from "./src/i18n/translate.ts";
 export { resolveLocale, matchLocale, isLocale, DEFAULT_LOCALE, LOCALES } from "./src/i18n/locale.ts";
-export { formatRelativeTime, formatDayLabel, formatSessionTime, formatNumber } from "./src/i18n/format.ts";
+export { formatRelativeTime, formatDayLabel, formatSessionTime, formatNumber, formatDuration, formatBytes } from "./src/i18n/format.ts";
 `;
 
 let failures = 0;
@@ -66,8 +66,8 @@ try {
   const untranslated = enKeys.filter((key) => mod.EN[key] === mod.ZH[key] && /[\u4e00-\u9fff]/.test(mod.EN[key]));
   assert(untranslated.length === 0, `英文词条里没有残留中文${untranslated.length === 0 ? "" : `：${untranslated.join(",")}`}`);
 
-  // ── 2. ja / ko / ru：键集与 zh 完全一致、无空串、真的翻译了 ──
-  const DICTS = { ja: mod.JA, ko: mod.KO, ru: mod.RU };
+  // ── 2. ja / ko / ru / es：键集与 zh 完全一致、无空串、真的翻译了 ──
+  const DICTS = { ja: mod.JA, ko: mod.KO, ru: mod.RU, es: mod.ES };
   for (const [locale, dict] of Object.entries(DICTS)) {
     const keys = Object.keys(dict).sort();
     const missing = zhKeys.filter((key) => !(key in dict));
@@ -128,11 +128,24 @@ try {
     assert(text.length > 0 && text !== "chat.jumpLatest", `${locale} 不会露出 key 名`);
   }
 
+  const partialEs = { ...mod.ES };
+  delete partialEs["common.close"];
+  assert(mod.resolveTemplate("es", "common.close", { ...mod.MESSAGES, es: partialEs }) === mod.EN["common.close"], "es 缺词条时回落英文");
+  assert(mod.resolveTemplate("es", "common.cancel", { ...mod.MESSAGES, es: partialEs }) === mod.ES["common.cancel"], "es 其余词条仍用自己的");
+
+  assert(mod.translate("es", "login.pinLabel") === "PIN del dispositivo", "es etiqueta accesible del PIN");
+  for (const locale of ["zh", "en", "ja", "ko", "ru"]) {
+    assert(mod.translate(locale, "login.pinLabel") === "Host PIN", `${locale} conserva la etiqueta del PIN`);
+  }
+  assert(readFileSync(join(ROOT, "src/host/HostApp.tsx"), "utf8").includes('aria-label={t("login.pinLabel")}'), "Host PIN usa el catálogo de traducción");
+
   // ── 3. 占位符插值 ───────────────────────────────────────────
   assert(mod.formatMessage("第 {count} 条", { count: 3 }) === "第 3 条", "占位符被替换");
   assert(mod.formatMessage("没有参数的占位符 {x}", {}) === "没有参数的占位符 {x}", "缺参数时占位符原样保留");
   assert(mod.translate("zh", "chat.selectedCount", { count: 2 }) === "已选 2 条", "词条 + 插值");
   assert(mod.translate("en", "chat.selectedCount", { count: 2 }) === "2 selected", "英文插值");
+
+  assert(mod.translate("es", "chat.selectedCount", { count: 2 }) === "2 seleccionados", "西班牙文插值");
 
   // ── 4. 语言解析 ─────────────────────────────────────────────
   assert(mod.resolveLocale("en", ["zh-CN"]) === "en", "设置里指定了就优先");
@@ -142,6 +155,13 @@ try {
   assert(mod.resolveLocale("system", ["en-US"]) === "en", "区域标签取主语言");
   assert(mod.matchLocale("ko_KR") === "ko" && mod.matchLocale("xx") === undefined, "matchLocale 处理下划线与未知语言");
   assert(mod.resolveLocale("nonsense", ["en-GB"]) === "en", "不认识的值当作 system 处理");
+
+  assert(mod.isLocale("es") && mod.LOCALES.includes("es"), "es 已注册");
+  assert(mod.resolveLocale("es", ["zh-CN"]) === "es", "明确选择 es 优先于浏览器语言");
+  for (const tag of ["es-ES", "es-MX", "es_MX", " ES-es "]) {
+    assert(mod.matchLocale(tag) === "es", `${tag} 匹配 es`);
+    assert(mod.resolveLocale("system", ["fr-FR", tag, "en-US"]) === "es", `${tag} 浏览器语言解析为 es`);
+  }
 
   // ── 5. 相对时间（zh / en 各分支）────────────────────────────
   const now = new Date(2026, 9, 30, 15, 0, 0).getTime();
@@ -162,12 +182,36 @@ try {
   assert(/Jun/.test(mod.formatRelativeTime(longAgo, now, "en")), "en：超过一周给日期（Intl 缩写）");
   assert(mod.formatRelativeTime(undefined, now, "zh") === "", "没有时间戳返回空串");
 
+  const spanishRelative = [
+    [0.2, "Ahora mismo"], [1, "hace 1 minuto"], [12, "hace 12 minutos"],
+    [60, "hace 1 hora"], [180, "hace 3 horas"], [3 * 24 * 60, "hace 3 días"],
+    [-0.2, "En un momento"], [-1, "dentro de 1 minuto"], [-12, "dentro de 12 minutos"],
+    [-60, "dentro de 1 hora"], [-180, "dentro de 3 horas"],
+    [-24 * 60, "dentro de 1 día"], [-3 * 24 * 60, "dentro de 3 días"],
+  ];
+  for (const [minutes, expected] of spanishRelative) {
+    assert(mod.formatRelativeTime(at(minutes), now, "es") === expected, `es tiempo relativo: ${expected}`);
+  }
+  assert(mod.formatRelativeTime(yesterday, now, "es") === "Ayer", "es 昨天");
+  assert(mod.formatRelativeTime(undefined, now, "es") === "", "es 没有时间戳返回空串");
+  const spanishDate = (value) => new Intl.DateTimeFormat("es", { month: "short", day: "numeric" }).format(value);
+  assert(mod.formatRelativeTime(longAgo, now, "es") === spanishDate(longAgo), "es 超过一周给 Intl 日期");
+  assert(mod.formatRelativeTime(at(-10 * 24 * 60), now, "es") === spanishDate(at(-10 * 24 * 60)), "es 一周后的未来给 Intl 日期");
+
   // ── 6. 日期/数字走 Intl ─────────────────────────────────────
   const sample = new Date(2026, 9, 28, 14, 25, 0).getTime();
   assert(mod.formatNumber(1234.5, "en", { maximumFractionDigits: 1 }) === "1,234.5", "数字本地化（en 分组）");
   assert(mod.formatDayLabel(sample, now, "zh").startsWith("10月28日"), "分隔条日期（zh）");
   assert(/Oct 28/.test(mod.formatDayLabel(sample, now, "en")), "分隔条日期（en）");
   assert(mod.formatSessionTime(sample, "zh", now) === "10月28日", "会话时间（zh）");
+
+  assert(mod.formatNumber(12345.5, "es", { maximumFractionDigits: 1 }) === "12.345,5", "es 数字本地化");
+  assert(mod.formatSessionTime(sample, "es", now) === spanishDate(sample), "es 会话日期走 Intl");
+  const spanishClock = new Intl.DateTimeFormat("es", { hour: "2-digit", minute: "2-digit", hour12: false }).format(now);
+  assert(mod.formatDayLabel(now, now, "es") === `Hoy ${spanishClock}`, "es 今天分隔条");
+  assert(mod.formatDayLabel(yesterday, now, "es").startsWith("Ayer "), "es 昨天分隔条");
+  assert(mod.formatDuration(120_000, "es") === new Intl.NumberFormat("es", { style: "unit", unit: "minute", maximumFractionDigits: 0 }).format(2), "es 时长走 Intl");
+  assert(mod.formatBytes(2048, "es") === new Intl.NumberFormat("es", { style: "unit", unit: "kilobyte", maximumFractionDigits: 1 }).format(2), "es 文件大小走 Intl");
 
   // ── 7. 源码里没有硬编码中文 ─────────────────────────────────
   const hostDir = join(ROOT, "src", "host");

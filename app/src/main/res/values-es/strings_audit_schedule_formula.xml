@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audit_schedule_template_clipboard">"Leer portapapeles"</string>
+    <string name="audit_schedule_template_time">"Obtener hora actual"</string>
+    <string name="audit_schedule_template_calculate">"Calcular"</string>
+    <string name="audit_schedule_template_webpage">"Abrir página web"</string>
+    <string name="audit_formula_error">"Error de fórmula: "</string>
+</resources>

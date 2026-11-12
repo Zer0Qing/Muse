@@ -1,6 +1,8 @@
 package io.zer0.muse.ui.chat
 
+import androidx.annotation.StringRes
 import io.zer0.ai.core.MessageRole
+import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.muse.data.session.SessionRepository
@@ -9,6 +11,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+
+internal fun auditStateString(
+    localizeString: ((Int, Array<out Any>) -> String)?,
+    @StringRes resourceId: Int,
+    fallback: String,
+    vararg args: Any,
+): String = localizeString?.invoke(resourceId, args)
+    ?: String.format(java.util.Locale.ROOT, fallback, *args)
 
 enum class ExportFormat { MARKDOWN, PLAIN_TEXT, JSON }
 
@@ -46,6 +56,7 @@ class ChatExportCoordinator(
     private val sessionRepository: SessionRepository,
     /** P2-4: 审计日志记录器(导出完成时记录)。 */
     private val auditLogger: AuditLogger? = null,
+    private val localizeString: ((Int, Array<out Any>) -> String)? = null,
 ) {
 
     private val json = Json {
@@ -71,13 +82,13 @@ class ChatExportCoordinator(
         if (tpl.includeTimestamp) {
             val now = java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, java.util.Locale.getDefault())
                 .format(java.util.Date())
-            meta.add("导出时间: $now")
+            meta.add(auditStateString(localizeString, R.string.audit_export_time, "导出时间: %1\$s", now))
         }
         if (tpl.includeModelName) {
             val model = state.providers.firstOrNull { it.id == state.activeProviderId }
                 ?.models?.firstOrNull { it.id == state.selectedModelId }
-            val modelName = model?.name ?: model?.id ?: "未知模型"
-            meta.add("模型: $modelName")
+            val modelName = model?.name ?: model?.id ?: auditStateString(localizeString, R.string.stats_unknown_model, "未知模型")
+            meta.add(auditStateString(localizeString, R.string.audit_export_model, "模型: %1\$s", modelName))
         }
         meta.forEach { sb.append("> ").append(it).append("  \n") }
         if (meta.isNotEmpty()) sb.append("\n")
@@ -86,20 +97,27 @@ class ChatExportCoordinator(
 
         var totalChars = 0
         allMessages.forEach { msg ->
-            val role = if (msg.role == MessageRole.USER) "用户" else "助手"
+            val role = auditStateString(
+                localizeString,
+                if (msg.role == MessageRole.USER) R.string.worldbook_inject_target_user
+                else R.string.worldbook_inject_target_assistant,
+                if (msg.role == MessageRole.USER) "用户" else "助手",
+            )
             sb.append("**").append(role).append("**: ").append(msg.content).append("\n\n")
             totalChars += msg.content.length
             if (tpl.includeMoodBlock && !msg.mood.isNullOrBlank()) {
                 sb.append("<mood>\n").append(msg.mood).append("\n</mood>\n\n")
             }
             if (tpl.includeReasoning && !msg.reasoning.isNullOrBlank()) {
-                sb.append("### 思考过程\n\n").append(msg.reasoning).append("\n\n")
+                sb.append("### ").append(auditStateString(localizeString, R.string.chat_reasoning_title, "思考过程"))
+                    .append("\n\n").append(msg.reasoning).append("\n\n")
             }
         }
 
         if (tpl.includeTokenCount) {
             val estTokens = totalChars / 3
-            sb.append("> 估算 Token: ~").append(estTokens).append("  \n\n")
+            sb.append("> ").append(auditStateString(localizeString, R.string.audit_export_estimated_tokens, "估算 Token: ~%1\$d", estTokens))
+                .append("  \n\n")
         }
 
         val output = when (tpl.format) {
@@ -172,7 +190,12 @@ class ChatExportCoordinator(
 
         val allMessages = loadAllMessages(state)
         allMessages.forEach { msg ->
-            val role = if (msg.role == MessageRole.USER) "用户" else "助手"
+            val role = auditStateString(
+                localizeString,
+                if (msg.role == MessageRole.USER) R.string.worldbook_inject_target_user
+                else R.string.worldbook_inject_target_assistant,
+                if (msg.role == MessageRole.USER) "用户" else "助手",
+            )
             sb.append("[$role]\n").append(msg.content).append("\n\n")
         }
         val output = sb.toString()
@@ -243,7 +266,7 @@ class ChatExportCoordinator(
     /** 解析当前会话标题(空标题回退为 "muse 对话")。 */
     private fun resolveTitle(state: io.zer0.muse.ui.ChatUiState): String {
         val sessionId = resolveSessionId(state)
-        return state.sessions.find { it.id == sessionId }?.title?.takeIf { it.isNotBlank() } ?: "muse 对话"
+        return state.sessions.find { it.id == sessionId }?.title?.takeIf { it.isNotBlank() } ?: auditStateString(localizeString, R.string.audit_export_default_title, "muse 对话")
     }
 
     private suspend fun loadAllMessages(state: io.zer0.muse.ui.ChatUiState): List<io.zer0.ai.core.UIMessage> {

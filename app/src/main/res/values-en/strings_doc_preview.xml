@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="doc_preview_title">"PDF preview"</string>
+    <string name="doc_preview_waiting">"Waiting for document data…"</string>
+    <string name="doc_preview_failed">"Document rendering failed: "</string>
+</resources>

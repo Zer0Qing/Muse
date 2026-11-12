@@ -192,7 +192,7 @@ private fun RegexRulesSection(rulesJson: String, onRulesChange: (String) -> Unit
                                 "user" -> stringResource(R.string.assistant_detail_regex_scope_user)
                                 "assistant" -> stringResource(R.string.assistant_detail_regex_scope_assistant)
                                 else -> stringResource(R.string.assistant_detail_regex_scope_both)
-                            } + if (rule.visualOnly) " · 仅显示" else "",
+                            } + if (rule.visualOnly) " · ${stringResource(R.string.audit_regex_visual_only)}" else "",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline,
                         )

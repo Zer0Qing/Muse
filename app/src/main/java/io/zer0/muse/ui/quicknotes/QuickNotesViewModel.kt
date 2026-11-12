@@ -412,23 +412,23 @@ class QuickNotesViewModel(
                 // 原实现 getOrElse 返回明文写入 encryptedContent,UI 显示"已加密"实为明文,
                 // 用户误以为受保护。失败时保持原样并提示。
                 if (existing.content.isBlank()) {
-                    MuseToast.show("没有可加密的内容")
+                    MuseToast.show(context.getString(R.string.code_gap_note_encrypt_empty))
                     return@launch
                 }
                 val cipher = runCatching { noteCipher.encrypt(existing.content) }.getOrNull()
                 if (cipher == null) {
-                    MuseToast.show("加密失败,笔记保持原样")
+                    MuseToast.show(context.getString(R.string.code_gap_note_encrypt_failed))
                     Logger.w(TAG, "快捷笔记加密失败,保持明文未标记加密")
                     return@launch
                 }
                 dao.setEncrypted(id, true, cipher)
-                MuseToast.show("已加密")
+                MuseToast.show(context.getString(R.string.code_gap_note_encrypted))
             } else {
                 // 审计修复 (0.7): 解密失败保留密文与加密标记,不得把密文当明文写入 content。
                 if (existing.encryptedContent.isNotBlank()) {
                     val plain = runCatching { noteCipher.decrypt(existing.encryptedContent) }.getOrNull()
                     if (plain == null) {
-                        MuseToast.show("解密失败,笔记保持加密")
+                        MuseToast.show(context.getString(R.string.code_gap_note_decrypt_failed))
                         Logger.w(TAG, "快捷笔记解密失败,保留密文")
                         return@launch
                     }
@@ -436,7 +436,7 @@ class QuickNotesViewModel(
                 } else {
                     dao.setEncrypted(id, false, existing.content)
                 }
-                MuseToast.show("已解密")
+                MuseToast.show(context.getString(R.string.code_gap_note_decrypted))
             }
         }
     }

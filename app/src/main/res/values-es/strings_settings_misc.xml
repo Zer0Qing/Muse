@@ -9,8 +9,8 @@
     <string name="settings_provider_type_openai">Compatible con OpenAI</string>
 
     <string name="settings_provider_type_openai_responses">OpenAI Responses</string>
-    <string name="settings_provider_type_anthropic">claudio</string>
-    <string name="settings_provider_type_gemini">Géminis</string>
+    <string name="settings_provider_type_anthropic">Claude</string>
+    <string name="settings_provider_type_gemini">Gemini</string>
 
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">Búsqueda web</string>
@@ -172,7 +172,7 @@
 
     <!-- Chapter 1 -->
     <string name="settings_tutorial_ch1_title">Capítulo 1: Primeros pasos (se requiere principiante)</string>
-    <string name="settings_tutorial_ch1_s1_title">¿Qué es Musa?</string>
+    <string name="settings_tutorial_ch1_s1_title">¿Qué es Muse?</string>
     <string name="settings_tutorial_ch1_s1_content">Muse es una aplicación de asistente inteligente de IA.</string>
     <string name="settings_tutorial_ch1_s2_title">¿Qué hacer para el primer uso?</string>
     <string name="settings_tutorial_ch1_s2_content">No se preocupe, solo tres pasos para comenzar:\n\n1.</string>
@@ -188,7 +188,7 @@
     <string name="settings_tutorial_ch2_s1_title">¿Por qué necesito configurar un modelo?</string>
     <string name="settings_tutorial_ch2_s1_content">Muse en sí no contiene IA; necesita conectarse a un servicio de IA externo.</string>
     <string name="settings_tutorial_ch2_s2_title">¿Dónde solicitar una clave API?</string>
-    <string name="settings_tutorial_ch2_s2_content">Here are some commonly used AI providers (in no particular order):\n\n• DeepSeek — domestic, affordable, great results\n  Website: platform.deepseek.com\n\n• Zhipu AI — domestic, free quota available\n  Website: open.bigmodel.cn\n\n• Alibaba Tongyi Qianwen — domestic, free quota available\n  Website: dashscope.aliyun.com\n\n• Moonshot Kimi — domestic, strong long-context capability\n  Website: platform.moonshot.cn\n\n• OpenAI (ChatGPT) — international, best results but requires overseas payment\n  Website: platform.openai.com\n\n• Anthropic (Claude) — international, excellent at writing and reasoning\n  Website: console.anthropic.com\n\n• Google Gemini — international, strong multimodal capability\n  Website: ai.google.dev\n\nBeginners should start with DeepSeek or Zhipu. After registering, find the \"API Keys\" page in the dashboard, click \"Create new Key\", and copy the code. Most domestic providers offer free credit on signup, so you can try it for free first.</string>
+    <string name="settings_tutorial_ch2_s2_content">Estos son algunos proveedores de IA habituales (sin un orden específico):\n\n• DeepSeek — chino, económico y con buenos resultados\n  Sitio web: platform.deepseek.com\n\n• Zhipu AI — chino, con cuota gratuita disponible\n  Sitio web: open.bigmodel.cn\n\n• Alibaba Tongyi Qianwen — chino, con cuota gratuita disponible\n  Sitio web: dashscope.aliyun.com\n\n• Moonshot Kimi — chino, con buena capacidad para contextos largos\n  Sitio web: platform.moonshot.cn\n\n• OpenAI (ChatGPT) — internacional, con resultados excelentes, pero requiere un medio de pago internacional\n  Sitio web: platform.openai.com\n\n• Anthropic (Claude) — internacional, destaca en escritura y razonamiento\n  Sitio web: console.anthropic.com\n\n• Google Gemini — internacional, con gran capacidad multimodal\n  Sitio web: ai.google.dev\n\nSi estás empezando, prueba DeepSeek o Zhipu. Tras registrarte, busca la página \"API Keys\" en el panel, haz clic en \"Create new Key\" y copia el código. La mayoría de los proveedores chinos ofrecen crédito gratuito al registrarte para que puedas probarlos sin coste.</string>
     <string name="settings_tutorial_ch2_s3_title">Cómo agregar un proveedor en Muse</string>
     <string name="settings_tutorial_ch2_s3_content">1. Toque la parte inferior derecha o superior izquierda para ingresar a \"Configuración\"\n2.</string>
     <string name="settings_tutorial_ch2_s4_title">Cómo seleccionar el modelo actual</string>
@@ -327,4 +327,7 @@
     <string name="settings_model_action_test_chat_short">Probar</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>
     <string name="settings_web_search_path_user_api">API del usuario</string>
+
+    <string name="diagnostic_export_title">Exportar diagnóstico</string>
+    <string name="diagnostic_export_subject">Diagnóstico de Muse</string>
 </resources>

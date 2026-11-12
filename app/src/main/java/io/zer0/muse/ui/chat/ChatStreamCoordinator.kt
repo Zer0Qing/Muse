@@ -463,7 +463,13 @@ class ChatStreamCoordinator(
             } catch (e: Exception) {
                 Logger.e(tag, "persistCurrentAssistant failed", e)
                 // v1.65: 助手持久化失败给用户反馈
-                addError(ChatErrorType.UNKNOWN, "助手状态保存失败: ${e.message ?: "未知错误"}")
+                addError(
+                    ChatErrorType.UNKNOWN,
+                    appContext.getString(
+                        R.string.audit_assistant_save_failed,
+                        e.message ?: appContext.getString(R.string.err_chat_unknown),
+                    ),
+                )
             }
         }
     }
