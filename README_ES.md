@@ -34,11 +34,11 @@
 
 ## Qué es Muse
 
-**Muse es un agente personal que corre en tu propio teléfono.**
+Muse es un agente personal que corre en tu propio teléfono.
 
-La mayoría de los agentes personales de 2026 viven en la nube. Te recuerdan y te resuelven el trabajo, y el precio es que todo lo tuyo sigue en el servidor de otra persona, ejecutándose fuera de tu vista.
+La mayoría de los agentes personales de 2026 corren en la nube. Te recuerdan y te resuelven trabajo, pero la conversación, la memoria y la ejecución están en el servidor de otra persona.
 
-Muse va en la dirección contraria. Vive en tu Android, acepta el modelo que le pongas (más de 40 proveedores predefinidos), deja tus datos en el dispositivo por defecto y, cuando hay algo que hacer, opera el teléfono de verdad: lee la pantalla, toca, ejecuta comandos, lee y escribe archivos.
+Muse devuelve todo eso al dispositivo. Vive en tu Android, acepta el modelo que le pongas (más de 40 proveedores predefinidos) y deja tus datos en el teléfono por defecto. Cuando hay algo que hacer, opera el teléfono directamente: lee la pantalla, toca, ejecuta comandos, lee y escribe archivos.
 
 Hace cuatro cosas:
 
@@ -100,44 +100,42 @@ Descarga el APK más reciente desde la página oficial [museai.ltd/download](htt
 ## Primeros pasos
 
 1. **Configura un proveedor de modelos**: abre **Ajustes → Modelos y razonamiento → Proveedores**, elige un proveedor predefinido (DeepSeek, Qwen, Zhipu y otros regalan crédito al registrarte), pega tu API Key, prueba la conexión y obtén la lista de modelos.
-2. **Empieza a conversar**: vuelve al inicio y envía tu primer mensaje. La memoria empieza a acumularse desde ese momento; cambia de modelo o de sesión y te seguirá recordando.
-3. **Desbloquea capacidades del sistema (opcional)**: si quieres que "actúe", abre **Ajustes → Asistente de permisos** y activa los canales que necesites entre Accesibilidad / Shizuku / Root / Termux; cada paso incluye detección y pruebas integradas.
+2. **Empieza a conversar**: vuelve al inicio y envía tu primer mensaje. La memoria empieza a acumularse desde ese momento, y te sigue reconociendo aunque cambies de modelo o de sesión.
+3. **Desbloquea capacidades del sistema (opcional)**: si quieres que actúe, abre **Ajustes → Asistente de permisos** y activa los canales que necesites entre Accesibilidad / Shizuku / Root / Termux. Cada paso incluye detección y pruebas integradas.
 
-> La guía de uso completa (con todos los gestos y las operaciones menos visibles) está en el [manual de usuario (chino)](用户手册.md) o dentro de la app en **Ajustes → Tutorial**.
+> La guía completa (con todos los gestos y las operaciones menos visibles) está en el [manual de usuario (chino)](用户手册.md) o dentro de la app en **Ajustes → Tutorial**.
 
 ## Por qué Muse
 
-### 1. Es tuyo, no alquilado
+### 1. Corre en un dispositivo que es tuyo
 
-Un agente en la nube te da un servicio: inicias sesión, él te recuerda, los datos viven allí. Muse te da un proceso que corre en un dispositivo que es tuyo.
+Un agente en la nube te da un servicio: inicias sesión, él te recuerda, los datos viven allí. Muse es un proceso permanente en un dispositivo que es tuyo.
 
 - Las conversaciones, la memoria y la base de conocimiento viven en una base de datos Room local; sin telemetría, sin analítica, sin registro
 - Cualquier modelo: más de 40 proveedores predefinidos, además de endpoints compatibles con OpenAI autoalojados o en tu red local
 - Los ajustes sensibles pasan por Android Keystore; la PII se enmascara antes de enviarse y se restaura en la respuesta
 
-### 2. Recuerda a una persona, no una conversación
+### 2. La memoria se organiza por persona, no por sesión
 
-Una arquitectura de memoria en cuatro capas, que avanza desde la conversación a corto plazo hasta el procesamiento profundo a largo plazo:
+Cuatro capas de memoria, de la conversación a corto plazo al procesamiento a largo plazo:
 
 ```
 conversación --> extracción de hechos --> resumen acumulativo --> compilación --> procesamiento profundo
 corto plazo      datos clave              compresión              dedup/fusión    comprensión profunda
 ```
 
-- **Los hechos críticos no se desvanecen nunca** (salud, finanzas e identidad central están protegidos), mientras la información cotidiana se olvida de forma natural, como en una persona
-- Cada recuerdo se puede rastrear hasta su origen, y se puede editar, reponderar y buscar; los recuerdos se aíslan por espacio
-- El mismo en todos los canales: WeChat / QQ / Feishu / Telegram / DingTalk, cada contacto con su propio contexto y su resumen acumulativo
+- Los hechos de salud, finanzas e identidad central no decaen; la información cotidiana se olvida según su uso
+- Cada recuerdo se puede rastrear hasta su origen, y editar, reponderar o buscar; los recuerdos de distinto propósito se aíslan por espacio
+- Un mismo asistente en WeChat / QQ / Feishu / Telegram / DingTalk, con contexto y resumen acumulativo por contacto
 
-### 3. Avanza por su cuenta
+### 3. No espera a que le hables
 
-No espera a que le hables.
-
-- **Libro de lo que te quiere decir**: el asistente apunta lo que quiere preguntarte y elige una entrada cuando llega el momento, en lugar de inventar charla
+- **Libro de lo que te quiere decir**: el asistente apunta lo que quiere preguntarte y elige una entrada cuando llega el momento
 - **Libro de resultados**: abierto, respondido o descartado, todo queda registrado; de ahí aprende la intimidad para decidir cuántas veces puede hablar hoy
 - **Horas de silencio**: calla cuando deberías estar durmiendo
 - **Tareas programadas**: se ejecutan a su hora y el resultado vuelve a la conversación
 
-### 4. De verdad hace cosas en este teléfono
+### 4. Puede operar el teléfono directamente
 
 | Canal | Capacidades | Requisito |
 |------|------|------|
@@ -147,17 +145,17 @@ No espera a que le hables.
 | Termux | Entorno Linux completo (apt / pip / gcc / ffmpeg) | Instalar Termux y autorizar |
 
 - **Más de 200 herramientas**, expuestas por capas por defecto; las capacidades de cola larga se cargan a demanda con `find_tools`
-- Cada herramienta indica la autorización que requiere y su estado de preparación; si no está lista, **falla rápido antes de ejecutarse** y da instrucciones claras
-- Terminal integrada (PTY propio + xterm), **pantalla virtual** en segundo plano, **GUI Agent** guiado por visión, automatización de navegador
+- Cada herramienta indica la autorización que requiere y su estado de preparación; si no está lista, falla antes de ejecutarse y da instrucciones claras
+- Terminal integrada (PTY propio + xterm), pantalla virtual en segundo plano, GUI Agent guiado por visión, automatización de navegador
 - Límites de seguridad: lista blanca de comandos, aprobación por riesgo (Confianza / Consultar / Estricto), tiempos de espera duros, sandbox del espacio de trabajo
 
-### 5. Tiene mundo interior, y también equipo
+### 5. Borradores, persona y varios asistentes
 
 - **Mood en cuatro dimensiones**: Vibe / Sparks / Reflections / Will antes de cada respuesta, plegado por defecto
 - **Persona en tres capas**: capa de persona / capa de relación / capa de estilo, con las variables de plantilla `{{user_name}}` / `{{char}}`
-- **Multiagente**: delega con `@nombre-del-asistente`, tarjetas de tarea que muestran el estado de cada paso, subagentes en ventanas flotantes, bandeja de mensajes privados entre asistentes
-- **Reuniones de grupo**: tarjeta de resumen / votaciones / observadores / plantillas rápidas / controles de reunión
-- **Hitos**: el primer mensaje, los días 7 / 30 / 100 juntos, los mensajes 100 / 1000... todo queda registrado por ti
+- **Multiagente**: delega con `@nombre-del-asistente`, las tarjetas de tarea muestran el estado de cada paso, los subagentes corren en ventanas flotantes y los asistentes pueden enviarse mensajes
+- **Reuniones de grupo**: tarjeta de resumen, votaciones, observadores, plantillas rápidas, controles de reunión
+- **Hitos**: el primer mensaje, los días 7 / 30 / 100, los mensajes 100 / 1000
 
 ### En qué se diferencia de un agente en la nube
 
@@ -174,36 +172,36 @@ No espera a que le hables.
 <details>
 <summary><b>Experiencia de chat</b>: streaming y continuidad / sesiones / acciones sobre mensajes / multimodelo / voz / multimodal / búsqueda</summary>
 
-- **Streaming y tolerancia a fallos**: salida palabra por palabra vía SSE, con parada en cualquier momento; si el flujo se corta, se reanuda solo (sigue escribiendo cuando vuelve la red). El stream-guard integrado detecta el "fin prematuro del stream" (stream vacío o sin primer paquete) y reintenta sin streaming; un watchdog de primer evento (45 s en modelos normales, 90 s en modelos de razonamiento sin primer paquete) cambia el modo de petición automáticamente, así los modelos lentos dejan de dejarte esperando frente a una pantalla en blanco.
-- **Gestión de sesiones**: fijar / archivar / borrado con deshacer / agrupar en carpetas / reordenar las fijadas arrastrando; búsqueda global con índice de texto completo de SQLite FTS5 (con retroceso automático a FTS4 en entornos compatibles); cada sesión tiene su propia ventana de contexto y las conversaciones muy largas se comprimen con resúmenes acumulativos.
-- **Acciones sobre mensajes**: regenerar conservando varias versiones (conmutador `1/3`, sin perder el historial); ramificar (abrir una línea nueva desde cualquier mensaje del usuario, la original se conserva intacta); responder citando (el texto citado se inyecta en el contexto); anotaciones en mensajes; menú de pulsación larga con copiar (texto plano / Markdown), reenviar, compartir, guardar en favoritos, editar, traducir, leer en voz alta y eliminar.
+- **Streaming y tolerancia a fallos**: salida palabra por palabra vía SSE, con parada en cualquier momento; si el flujo se corta, se reanuda cuando vuelve la red. El stream-guard integrado detecta el "fin prematuro del stream" (stream vacío o sin primer paquete) y reintenta sin streaming; un watchdog de primer evento (45 s en modelos normales, 90 s en modelos de razonamiento sin primer paquete) cambia el modo de petición automáticamente.
+- **Gestión de sesiones**: fijar, archivar, borrado con deshacer, agrupar en carpetas y reordenar las fijadas arrastrando. La búsqueda global usa el índice de texto completo de SQLite FTS5, con retroceso a FTS4 donde no está disponible. Cada sesión tiene su propia ventana de contexto y las conversaciones muy largas se comprimen con resúmenes acumulativos.
+- **Acciones sobre mensajes**: regenerar conservando varias versiones (conmutador `1/3`, sin perder el historial); ramificar abre una línea nueva desde cualquier mensaje del usuario y la original queda intacta; responder citando inyecta el texto citado en el contexto. Menú de pulsación larga con copiar (texto plano / Markdown), reenviar, compartir, guardar en favoritos, editar, traducir, leer en voz alta, eliminar, además de anotaciones en mensajes.
 - **Favoritos**: gestión centralizada, con etiquetas de grupo al mantener pulsado.
-- **Experiencia de entrada**: entrada a pantalla completa (para textos largos), comandos de barra (`/new` `/compact` `/reset` `/pin` `/archive`), pegar como archivo (umbral configurable), mensajes rápidos; una llamada de herramienta interrumpida se puede reanudar o descartar con un toque.
-- **Captura rápida**: cápsula flotante (opcional), notas rápidas desde cualquier pantalla, guardadas en la biblioteca local de notas.
-- **Razonamiento profundo**: niveles OFF / AUTO / LOW / MEDIUM / HIGH / XHIGH (presupuesto de pensamiento de 1000 a 16000 tokens), con el proceso de razonamiento plegado.
-- **Multimodelo**: soporte nativo de los protocolos de OpenAI / Anthropic / Gemini y de cualquier endpoint compatible con OpenAI; más de 40 proveedores predefinidos con lista de modelos obtenida dinámicamente; matriz de capacidades por modelo (visión / razonamiento / herramientas); las tareas auxiliares van por niveles separados de modelo "herramienta pequeña / herramienta grande" (títulos, compresión, resúmenes y compilación de memoria); cabeceras y cuerpo de petición personalizados, y proxy de red.
-- **Voz**: reconocimiento de voz en streaming (transcripción mientras hablas, visualización de la onda, deslizar hacia arriba para cancelar); TTS con voces del sistema o voces en la nube (OpenAI / MiniMax / Edge y otros), configurado por asistente; clonación de voz en la nube (ElevenLabs / FishAudio).
+- **Experiencia de entrada**: entrada a pantalla completa para textos largos, comandos de barra (`/new` `/compact` `/reset` `/pin` `/archive`), pegar como archivo con umbral configurable, mensajes rápidos. Una llamada de herramienta interrumpida se puede reanudar o descartar con un toque.
+- **Captura rápida**: cápsula flotante opcional para notas desde cualquier pantalla, guardadas en la biblioteca local.
+- **Razonamiento profundo**: niveles OFF / AUTO / LOW / MEDIUM / HIGH / XHIGH, de 1000 a 16000 tokens de presupuesto, con el proceso de razonamiento plegado.
+- **Multimodelo**: soporte nativo de los protocolos de OpenAI / Anthropic / Gemini y de cualquier endpoint compatible con OpenAI; más de 40 proveedores predefinidos con lista de modelos obtenida dinámicamente. Cada modelo indica sus capacidades de visión, razonamiento y herramientas. Las tareas auxiliares (títulos, compresión, resúmenes, compilación de memoria) van por niveles separados de modelo "herramienta pequeña / herramienta grande". Cabeceras, cuerpo de petición y proxy de red son configurables.
+- **Voz**: reconocimiento de voz en streaming con transcripción en vivo, visualización de la onda y deslizar hacia arriba para cancelar. TTS con voces del sistema o voces en la nube (OpenAI / MiniMax / Edge y otros) configurado por asistente, más clonación de voz en la nube (ElevenLabs / FishAudio).
 - **Entrada multimodal**: varias imágenes por mensaje; análisis automático de PDF / DOCX / EPUB / TXT; OCR offline para documentos escaneados.
-- **Asistencia visual**: al enviar imágenes a un modelo sin visión, se llama automáticamente a un modelo de visión que genera una descripción estructurada en ocho dimensiones (resumen general / texto OCR / objetos y disposición / datos de gráficos / reformulación de la petición / respuesta a la petición / evidencia visual / incertidumbre), con grounding por coordenadas; las descripciones se cachean por "imagen + petición + versión del prompt"; análisis concurrente de varias imágenes, tiempo límite de 60 segundos y degradación automática a una descripción textual si falla.
-- **Búsqueda y navegación web**: fuentes de búsqueda configurables (búsqueda nativa del modelo / Bing / Baidu / SearXNG / Tavily / DeepSeek / motores personalizados) con respaldo en cascada; un motor personalizado puede apuntar a cualquier servicio de búsqueda que devuelva JSON (un SearXNG propio, una pasarela interna), con GET / POST, mapeo de rutas de los campos del resultado y autenticación Bearer opcional, y se coloca al principio de la cadena Auto; la extracción del cuerpo de las páginas usa Jina Reader; navegador integrado por sesión, con una cápsula superior que se expande en imagen en vivo mientras la IA navega.
+- **Asistencia visual**: al enviar imágenes a un modelo sin visión, un modelo de visión genera una descripción estructurada en ocho dimensiones (resumen general, texto OCR, objetos y disposición, datos de gráficos, reformulación de la petición, respuesta, evidencia visual, incertidumbre) con grounding por coordenadas. Las descripciones se cachean por imagen, petición y versión del prompt; el análisis de varias imágenes corre en paralelo con un límite de 60 segundos y degradación a texto si falla.
+- **Búsqueda y navegación web**: fuentes de búsqueda configurables (búsqueda nativa del modelo, Bing, Baidu, SearXNG, Tavily, DeepSeek, motores personalizados) con respaldo en cascada. Un motor personalizado puede apuntar a cualquier servicio de búsqueda que devuelva JSON (un SearXNG propio, una pasarela interna), admite GET o POST, mapeo de rutas de los campos del resultado y autenticación Bearer opcional, y se coloca al principio de la cadena Auto. La extracción del cuerpo de las páginas usa Jina Reader. Cada sesión tiene su navegador integrado, y la cápsula superior se expande en imagen en vivo mientras la IA navega.
 - **Traducción y lectura en voz alta**: traduce o lee cualquier mensaje con una pulsación larga; el modelo de traducción se configura por separado; se conserva el historial de traducciones.
-- **Renderizado y tarjetas**: renderizado completo de Markdown (resaltado de código para más de 20 lenguajes, fórmulas KaTeX, diagramas Mermaid, tablas); la IA puede emitir tarjetas interactivas y tarjetas de artefactos (código / documentos / tablas), gestionadas en un centro de artefactos con vista a pantalla completa y exportación.
+- **Renderizado y tarjetas**: renderizado completo de Markdown con resaltado de código para más de 20 lenguajes, fórmulas KaTeX, diagramas Mermaid y tablas. La IA puede emitir tarjetas interactivas y tarjetas de artefactos (código / documentos / tablas), gestionadas en un centro de artefactos con vista a pantalla completa y exportación.
 
 </details>
 
 <details>
 <summary><b>Memoria y crecimiento</b>: pipeline de cuatro capas / decaimiento y protección / continuidad del contexto / biblioteca de experiencias / base de conocimiento / mensajes proactivos</summary>
 
-- **Pipeline de memoria en cuatro capas**: (1) el flujo original de la conversación; (2) extracción de hechos (se extraen automáticamente los hechos clave, con su importancia y su origen); (3) resúmenes acumulativos (las conversaciones largas se comprimen sin perder el hilo); (4) procesamiento profundo (compilación en segundo plano, deduplicación y fusión hasta formar memoria a largo plazo). Los hechos se indexan a texto completo y son consultables.
-- **Importancia y decaimiento**: los hechos críticos (salud, finanzas, identidad central) están protegidos y no decaen; la información cotidiana se olvida según su frecuencia de uso, como en una persona.
-- **Panel de memoria**: navegación por espacio o categoría; añadir y borrar entradas, ajustar la importancia, filtrar por fecha o por peso; pulsación larga para seleccionar varias y borrar en lote (tanto en la lista como en la línea de tiempo, sin volver al principio al terminar); cada recuerdo se puede rastrear hasta la sesión de origen; las entradas largas se expanden al tocarlas.
+- **Pipeline de memoria en cuatro capas**: (1) el flujo original de la conversación; (2) extracción de hechos, con los hechos clave y su importancia y origen; (3) resúmenes acumulativos, que comprimen las conversaciones largas sin perder el hilo; (4) procesamiento profundo, compilando, deduplicando y fusionando en segundo plano hasta formar memoria a largo plazo. Los hechos se indexan a texto completo y son consultables.
+- **Importancia y decaimiento**: los hechos de salud, finanzas e identidad central están protegidos y no decaen; la información cotidiana se olvida según su frecuencia de uso.
+- **Panel de memoria**: navegación por espacio o categoría; añadir, editar y borrar entradas, ajustar la importancia, filtrar por fecha o por peso. La pulsación larga permite seleccionar varias y borrar en lote tanto en la lista como en la línea de tiempo, sin volver al principio al terminar. Cada recuerdo se rastrea hasta su sesión de origen y las entradas largas se expanden al tocarlas.
 - **Espacios de memoria**: los recuerdos de distintos propósitos quedan aislados y no se contaminan entre sí.
-- **Continuidad del contexto**: el historial que queda fuera de la ventana de contexto ya no se descarta en silencio: se genera un extracto determinista del historial (conservando fragmentos literales de la conversación y entradas de herramientas) que se inserta delante de la ventana; al comprimir los turnos de herramientas se conservan "las notas del asistente"; el resumen de compresión indica "qué archivos se tocaron en este tramo"; las tareas largas ya no pierden la memoria.
-- **Continuidad entre sesiones**: una conversación nueva puede traer los últimos turnos de la anterior (entre 4 y 40, ajustable, desactivado por defecto), para retomar el mismo tema sin volver a explicar el contexto.
+- **Continuidad del contexto**: el historial que queda fuera de la ventana de contexto no se descarta en silencio. Se genera un extracto determinista del historial, conservando fragmentos literales de la conversación y entradas de herramientas, que se inserta delante de la ventana; al comprimir los turnos de herramientas se conservan las notas del asistente; el resumen de compresión indica qué archivos se tocaron en ese tramo.
+- **Continuidad entre sesiones**: una conversación nueva puede traer los últimos turnos de la anterior (entre 4 y 40, ajustable, desactivado por defecto).
 - **Biblioteca de experiencias**: convierte "este tipo de problema se resuelve así" en experiencia reutilizable que las tareas futuras consultan automáticamente (se puede activar o desactivar).
 - **Base de conocimiento (RAG)**: los documentos importados se analizan, se fragmentan y se indexan; la recuperación combina búsqueda semántica y coincidencia de palabras clave; con @ se limita la búsqueda a documentos concretos; los archivos muy grandes se indexan en streaming; en entornos sin conexión se degrada a búsqueda local; las citas remiten a los fragmentos originales.
-- **Resumen diario y saludos**: a la hora configurada se genera un repaso del día (visible en el inicio, con notificación opcional); el saludo de la mañana lo genera el modelo a partir de los asuntos recientes en la memoria, no es una plantilla fija.
-- **Mensajes proactivos**: no hay sondeos a intervalos fijos. Funciona con un "libro de lo que te quiere decir": el asistente anota ahí lo que te quiere preguntar y elige una entrada cuando llega el momento. Que lo abras, respondas o lo descartes queda en un libro de resultados, y de ahí aprende la intimidad para decidir cuántas veces puede hablar hoy. Cinco niveles (Silencioso / Reservado / Estándar / Activo / Pegajoso), con la opción de volver al nivel por defecto y poner a cero la cuota del día; se respetan las horas de silencio; si no tiene nada que aportar, prefiere no escribir; y hay una red de seguridad (si llevan mucho tiempo sin hablar, saluda por iniciativa propia). De madrugada sigue ordenando recuerdos sin molestarte; el contenido de las notificaciones diarias es configurable (resumen diario).
+- **Resumen diario y saludos**: a la hora configurada se genera un repaso del día, visible en el inicio y con notificación opcional. El saludo de la mañana lo genera el modelo a partir de los asuntos recientes en la memoria, no es una plantilla fija.
+- **Mensajes proactivos**: no hay sondeos a intervalos fijos. Funciona con un libro de lo que te quiere decir: el asistente anota ahí lo que te quiere preguntar y elige una entrada cuando llega el momento. Que lo abras, respondas o lo descartes queda en un libro de resultados, y de ahí aprende la intimidad para decidir cuántas veces puede hablar hoy. Cinco niveles (Silencioso / Reservado / Estándar / Activo / Pegajoso), con la opción de volver al nivel por defecto y poner a cero la cuota del día; se respetan las horas de silencio; si no tiene nada que aportar, prefiere no escribir; y tras mucho tiempo sin hablar, saluda por iniciativa propia. De madrugada sigue ordenando recuerdos sin molestarte, y el contenido de las notificaciones diarias es configurable.
 - **Hitos**: el primer mensaje, los días 7 / 30 / 100 juntos, los mensajes 100 / 1000 y otros momentos se registran automáticamente y se pueden revisar en la página de hitos.
 - **Estadísticas y panel de actividad**: la página de estadísticas incluye el total de conversaciones y mensajes, la media diaria, la racha de días y un mapa de calor diario; el panel de actividad muestra el historial de ejecución de tareas programadas, heartbeats y compilación de memoria.
 
@@ -212,19 +210,19 @@ No espera a que le hables.
 <details>
 <summary><b>Herramientas y automatización</b>: más de 200 herramientas / capas de permisos / aprobaciones y presupuestos / cuatro canales / terminal / pantalla virtual / GUI Agent</summary>
 
-- **Sistema de herramientas**: más de 200 herramientas, expuestas por capas (núcleo / comunes / opcionales / avanzadas); por defecto solo se envían las comunes para mantener el contexto ligero, y las capacidades de cola larga se buscan y cargan con `find_tools` por palabra clave (una vez cargadas siguen disponibles durante la sesión); el prompt del sistema incluye un índice vivo de capacidades, con el número realmente disponible en cada ronda y no una constante escrita a mano.
-- **Capas de permisos**: cada herramienta que necesita Shizuku / Root, Accesibilidad o Termux declara sus dependencias y su estado (READY / NOT READY); si no está lista, falla rápido antes de ejecutarse y devuelve un error estructurado `permission_required` con instrucciones de autorización.
+- **Sistema de herramientas**: más de 200 herramientas, expuestas por capas (núcleo / comunes / opcionales / avanzadas). Por defecto solo se envían las comunes para mantener el contexto ligero, y las capacidades de cola larga se buscan y cargan con `find_tools` por palabra clave, quedando disponibles durante la sesión. El prompt del sistema incluye un índice vivo de capacidades con el número realmente disponible en cada ronda.
+- **Capas de permisos**: cada herramienta que necesita Shizuku / Root, Accesibilidad o Termux declara sus dependencias y su estado (READY / NOT READY); si no está lista, falla antes de ejecutarse y devuelve un error estructurado `permission_required` con instrucciones de autorización.
 - **Sistema de aprobación**: nivel de riesgo (seguro / normal / alto) combinado con tres modos (Confianza / Consultar / Estricto); se admite "permitir en esta sesión" y políticas personalizadas por herramienta; las acciones de alto riesgo se preguntan antes de ejecutarse.
-- **Motor de ejecución**: las herramientas de solo lectura se ejecutan en paralelo de forma controlada (máximo 3) para ganar velocidad; las herramientas bloqueantes usan un pool de hilos dedicado con tiempos de espera duros; las salidas demasiado grandes se guardan en disco y en el contexto solo queda una vista previa con una referencia para `read_file`; criterio unificado de éxito o fallo; parada temprana automática tras fallos repetidos, indicando el motivo real; las rondas de herramientas no tienen límite por defecto (se puede fijar un máximo), y hay protecciones de circuito por llamadas idénticas repetidas, rondas sin progreso y número total de llamadas.
-- **Cuatro canales de ejecución**: Accesibilidad (proveedor en proceso independiente y comunicación AIDL, que sobrevive a las actualizaciones de la app) / Shizuku (elevación por Binder) / Root (su) / Termux (RUN_COMMAND): el nivel se elige automáticamente según lo que esté disponible.
+- **Motor de ejecución**: las herramientas de solo lectura se ejecutan en paralelo de forma controlada (máximo 3) para ganar velocidad; las bloqueantes usan un pool de hilos dedicado con tiempos de espera duros; las salidas demasiado grandes se guardan en disco y en el contexto solo queda una vista previa con una referencia para `read_file`. El criterio de éxito o fallo es unificado, los fallos repetidos paran pronto indicando el motivo real, y las rondas de herramientas no tienen límite por defecto (se puede fijar un máximo), con protecciones de circuito por llamadas idénticas repetidas, rondas sin progreso y número total de llamadas.
+- **Cuatro canales de ejecución**: Accesibilidad (proveedor en proceso independiente y comunicación AIDL, que sobrevive a las actualizaciones de la app), Shizuku (elevación por Binder), Root (su) y Termux (RUN_COMMAND); el nivel se elige automáticamente según lo que esté disponible.
 - **Comandos de dispositivo**: `device_shell` pasa por una lista blanca de verbos (dumpsys / settings / am / pm / input / screencap / uiautomator / cmd / svc / wm / getprop / content, etc.); las tuberías, las redirecciones y el encadenamiento están prohibidos, y todo lo que quede fuera de la lista blanca se rechaza.
-- **Terminal integrada**: motor PTY propio con página de terminal xterm; tres entornos: la terminal del sandbox de la app, el canal de comandos del dispositivo y el Linux completo de Termux (apt / pip / gcc / ffmpeg).
+- **Terminal integrada**: motor PTY propio con página de terminal xterm, en tres entornos: la terminal del sandbox de la app, el canal de comandos del dispositivo y el Linux completo de Termux (apt / pip / gcc / ffmpeg).
 - **Pantalla virtual**: un proceso servidor independiente crea una pantalla oculta en segundo plano, de modo que todo el flujo de operaciones del agente no ocupa tu pantalla principal; los fotogramas se capturan a demanda.
 - **GUI Agent**: bucle de varios pasos guiado por visión: captura de pantalla → decisión del modelo de visión → tocar / deslizar / escribir → nueva captura para verificar, hasta completar la tarea.
 - **Automatización de navegador**: navigate / click / type / extract / scroll / get_html / snapshot; una instancia de navegador independiente por sesión.
 - **Espacio de trabajo**: espacio de archivos controlado (leer / escribir / listar / mover / borrar), con las operaciones limitadas a los límites del sandbox.
 - **Programaciones y recordatorios**: tareas programadas con expresiones cron e historial de ejecución; alarmas, temporizadores, eventos de calendario y notas que se ejecutan o avisan a su hora.
-- **Escucha de notificaciones**: lee el flujo de notificaciones del dispositivo y responde o hace sugerencias de forma inteligente.
+- **Escucha de notificaciones**: lee el flujo de notificaciones del dispositivo y responde o hace sugerencias.
 - **Asistente de permisos**: detección y guía de los cuatro canales en un solo lugar, con una prueba en vivo de "leer pantalla".
 
 </details>
@@ -232,29 +230,29 @@ No espera a que le hables.
 <details>
 <summary><b>Asistentes y ecosistema</b>: reuniones de grupo / world book / Skills / mercado de plugins / MCP / cinco canales de mensajería</summary>
 
-- **Varios asistentes**: cada asistente configura su propio modelo / prompt de sistema / parámetros de muestreo / recursos vinculados / lista blanca de herramientas / skills; delega con `@nombre` y la tarjeta de tarea muestra el estado de cada paso; los subagentes ejecutan tareas largas en ventanas flotantes sin ocupar la conversación principal; los asistentes tienen una bandeja de mensajes privados propia.
-- **Asistentes avanzados**: world book (entradas permanentes + disparadores por palabra clave + inyección por profundidad); inyecciones de prompt (fragmentos personalizados según el modo); recursos asociados (vincular una base de conocimiento para priorizar la recuperación); importación y exportación: se admiten tarjetas de personaje de SillyTavern, y tus propios asistentes se pueden empaquetar para compartirlos.
-- **Reuniones de grupo**: cuatro modos de discusión (por turnos / libre / debate / con moderador); antes de cada ronda se lee el contexto del grupo; se puede saltar el turno; memoria aislada por asistente. Capacidades de reunión: tarjeta dedicada de resumen de la discusión (copiar / compartir / guardar como documento compartido), renderizado de votos, miembros observadores, documentos compartidos del grupo y contexto privado de la IA, control de la cola de palabra (pausar / continuar / saltar), plantillas rápidas (revisión de propuestas / debate a favor y en contra / lluvia de ideas / retrospectiva de proyecto), plegado de rondas, y las interrupciones durante un turno no se pierden.
-- **Sistema de Skills**: las skills integradas funcionan sin configurar nada; importación y exportación de `.skill.json` (con esquema de parámetros); las skills de prompt aceptan parámetros de entrada (marcadores `{{input}}` / `{{args}}`); la instalación pasa por listas blancas de implementación y protección contra inyección.
-- **Mercado de plugins**: buscar / instalar / activar / desactivar / desinstalar con gestión de confianza; los plugins pueden aportar herramientas, paneles de UI, skins para las burbujas de mensaje y más; el asistente puede escribir borradores de plugins en JS, que solo surten efecto después de firmarlos y activarlos manualmente; los plugins se ejecutan dentro de los límites del sandbox.
-- **Protocolo MCP**: conecta MCP Servers externos para ampliar el conjunto de herramientas (autenticación OAuth / transporte SSE / descubrimiento automático).
-- **Conectores OAuth**: integra servicios de terceros con credenciales cifradas en local; el centro de conexiones gestiona modelos, canales y conectores en un solo lugar.
-- **Cinco canales de mensajería**: WeChat (vinculación por QR) / QQ (bot por WebSocket) / Feishu (eventos por conexión persistente) / Telegram / DingTalk (modo Stream); cada contacto tiene su propio contexto de sesión y su resumen acumulativo; las imágenes y los mensajes de voz se guardan y se transcriben automáticamente; cada canal puede vincularse a un asistente y un modelo distintos; cada plataforma trae su propio asistente de configuración y prueba de conexión.
+- **Varios asistentes**: cada asistente configura su modelo, prompt de sistema, parámetros de muestreo, recursos vinculados, lista blanca de herramientas y skills. Delega con `@nombre` y la tarjeta de tarea muestra el estado de cada paso; los subagentes ejecutan tareas largas en ventanas flotantes sin ocupar la conversación principal, y los asistentes pueden escribirse entre ellos.
+- **Asistentes avanzados**: world book (entradas permanentes, disparadores por palabra clave, inyección por profundidad); inyecciones de prompt (fragmentos personalizados según el modo); recursos asociados (vincular una base de conocimiento para priorizar la recuperación). Se admiten tarjetas de personaje de SillyTavern, y tus propios asistentes se pueden empaquetar para compartirlos.
+- **Reuniones de grupo**: cuatro modos de discusión (por turnos / libre / debate / con moderador). Antes de cada ronda se lee el contexto del grupo, se puede saltar el turno y cada asistente tiene memoria aislada. Capacidades de reunión: tarjeta dedicada de resumen (copiar / compartir / guardar como documento compartido), renderizado de votos, miembros observadores, documentos compartidos del grupo y contexto privado de la IA, control de la cola de palabra (pausar / continuar / saltar), plantillas rápidas (revisión de propuestas / debate a favor y en contra / lluvia de ideas / retrospectiva de proyecto) y plegado de rondas. Las interrupciones durante un turno no se pierden.
+- **Sistema de Skills**: las skills integradas funcionan sin configurar nada; importación y exportación de `.skill.json` con esquema de parámetros; las skills de prompt aceptan parámetros de entrada (marcadores `{{input}}` / `{{args}}`); la instalación pasa por listas blancas de implementación y protección contra inyección.
+- **Mercado de plugins**: buscar, instalar, activar, desactivar y desinstalar con gestión de confianza; los plugins pueden aportar herramientas, paneles de UI y skins para las burbujas de mensaje; el asistente puede escribir borradores de plugins en JS, que solo surten efecto después de firmarlos y activarlos manualmente; los plugins se ejecutan dentro de los límites del sandbox.
+- **Protocolo MCP**: conecta MCP Servers externos para ampliar el conjunto de herramientas, con autenticación OAuth, transporte SSE y descubrimiento automático.
+- **Conectores OAuth**: integra servicios de terceros con credenciales cifradas en local, gestionados desde un centro de conexiones junto a modelos y canales.
+- **Cinco canales de mensajería**: WeChat (vinculación por QR), QQ (bot por WebSocket), Feishu (eventos por conexión persistente), Telegram y DingTalk (modo Stream). Cada contacto tiene su propio contexto de sesión y resumen acumulativo; las imágenes y los mensajes de voz se guardan y se transcriben; cada canal puede vincularse a un asistente y un modelo distintos; cada plataforma trae su asistente de configuración y prueba de conexión.
 
 </details>
 
 <details>
 <summary><b>Interfaz y apariencia</b>: temas / skins de burbujas / iconos / idiomas / copia de seguridad y datos</summary>
 
-- **Sistema de temas**: 12 temas completos (cada uno con modo claro y oscuro) + 8 paletas accesibles para daltonismo; color dinámico (Android 12+), cambio programado día / noche y temas personalizados.
-- **Burbujas y apariencia**: radio de las esquinas de las burbujas ajustable; sistema de skins de burbujas, con skins extendidas que aportan los plugins (por ejemplo alto contraste o brillo suave).
-- **Iconos dibujados a mano**: 176 iconos propios (rejilla de 24dp, trazo redondeado de 1.7dp, adaptación a claro y oscuro), con código abierto en [muse-icons](https://github.com/Zer0Qing/muse-icons) (MIT).
-- **Tipografía e idiomas**: fuente / tamaño / espaciado entre letras, botón atrás predictivo, adaptación de accesibilidad; la interfaz está disponible en chino / inglés / japonés / coreano / español / portugués / ruso.
-- **Copia de seguridad y restauración**: exportación local con un toque (JSON / NDJSON por bloques, con cifrado opcional); copia automática diaria (paquete con instantáneas de muse.db / memory.db / facts.db); sincronización en la nube con S3 / WebDAV; el libro de lo que te quiere decir de los mensajes proactivos, el libro de resultados y la intimidad de la relación se incluyen en la copia; antes de restaurar se guarda una copia de protección y, si falla, se revierte automáticamente.
-- **Importación de datos**: migración con un toque desde CherryStudio / Chatbox / ChatGPT / RikkaHub / Kelivo; importación de historiales de conversación en varios formatos.
+- **Sistema de temas**: 12 temas completos, cada uno con modo claro y oscuro, más 8 paletas accesibles para daltonismo; color dinámico (Android 12+), cambio programado día / noche y temas personalizados.
+- **Burbujas y apariencia**: radio de las esquinas de las burbujas ajustable; sistema de skins de burbujas, con skins extendidas que aportan los plugins (alto contraste, brillo suave).
+- **Iconos dibujados a mano**: 179 iconos propios (rejilla de 24dp, trazo redondeado de 1.7dp, adaptación a claro y oscuro), con código abierto en [muse-icons](https://github.com/Zer0Qing/muse-icons) (MIT).
+- **Tipografía e idiomas**: fuente, tamaño y espaciado entre letras, botón atrás predictivo, adaptación de accesibilidad; la interfaz está disponible en chino / inglés / japonés / coreano / español / portugués / ruso.
+- **Copia de seguridad y restauración**: exportación local con un toque (JSON / NDJSON por bloques, con cifrado opcional); copia automática diaria empaquetando instantáneas de muse.db, memory.db y facts.db; sincronización en la nube con S3 / WebDAV; el libro de lo que te quiere decir, el libro de resultados y la intimidad de la relación se incluyen en la copia; antes de restaurar se guarda una copia de protección y, si falla, se revierte.
+- **Importación de datos**: migración con un toque desde CherryStudio / Chatbox / ChatGPT / RikkaHub / Kelivo, e importación de historiales de conversación en varios formatos.
 - **Biblioteca de stickers**: importación de archivos zip con estructura de carpetas y categorización automática; tres niveles de frecuencia de envío (ocasional / normal / frecuente); borrado por lotes y vaciado.
 - **Widget de pantalla de inicio**: crear una conversación con un toque; menú rápido al mantener pulsado el icono de la app.
-- **Centro de cuenta**: avatar y apodo se gestionan en local, sin registro ni inicio de sesión: no hay cuenta que se pueda "perder".
+- **Centro de cuenta**: avatar y apodo se gestionan en local, sin registro ni inicio de sesión, así que no hay cuenta que perder.
 - **Registro de auditoría y proxy**: las llamadas de herramientas y las acciones clave quedan registradas; se admite proxy de red personalizado.
 
 </details>
@@ -263,10 +261,10 @@ No espera a que le hables.
 <summary><b>Seguridad y privacidad</b>: todo en local / cifrado / enmascarado de PII / límites del sandbox</summary>
 
 - **Todo en local**: conversaciones, memorias y bases de conocimiento se guardan en una base de datos Room local; sin telemetría, sin analítica y sin recogida de datos; sin registro ni inicio de sesión; las funciones de red están desactivadas por defecto.
-- **Enmascarado automático de PII**: los números de teléfono, documentos de identidad y tarjetas bancarias se sustituyen por marcadores antes de enviar, y los marcadores se restauran en la respuesta del modelo: la información real no llega al proveedor.
-- **Canales cifrados**: la configuración sensible usa Android Keystore (AES-256-GCM); las contraseñas de las copias en la nube usan PBKDF2 + AES-256-GCM.
-- **Protección de enlaces**: confirmación antes de abrir un enlace; la salida se sanea antes de renderizarse en WebView (sin iframe / form / pseudoprotocolos).
-- **Límites de las herramientas**: lista blanca de comandos, aprobación por riesgo, tiempos de espera duros, verificación previa de permisos y devolución honesta del motivo del fallo; los plugins se ejecutan en sandbox por defecto.
+- **Enmascarado automático de PII**: los números de teléfono, documentos de identidad y tarjetas bancarias se sustituyen por marcadores antes de enviar, y los marcadores se restauran en la respuesta del modelo, así que la información real no llega al proveedor.
+- **Canales cifrados**: la configuración sensible usa Android Keystore (AES-256-GCM); las contraseñas de las copias en la nube usan PBKDF2 y AES-256-GCM.
+- **Protección de enlaces**: confirmación antes de abrir un enlace; la salida se sanea antes de renderizarse en WebView, descartando iframe, form y pseudoprotocolos.
+- **Límites de las herramientas**: lista blanca de comandos, aprobación por riesgo, tiempos de espera duros, verificación previa de permisos, y el motivo del fallo se devuelve tal cual; los plugins se ejecutan en sandbox por defecto.
 - **Registros de fallos**: solo se guardan en local y se pueden exportar manualmente en modo seguro.
 
 </details>
@@ -322,6 +320,7 @@ python ci/script/validate_release_apks.py --apk "app/build/outputs/apk/release/*
 Las contribuciones son bienvenidas:
 
 - [Guía de contribución](CONTRIBUTING.md) · [Política de seguridad](SECURITY.md) · [Normas de mantenimiento de la biblioteca de componentes de UI](UI组件库维护规范.md)
+- La documentación de desarrollo de plugins está en [`docs/plugin/`](docs/plugin/): guía para autores, declaraciones de tipos y ejemplos
 - Antes de abrir un PR, pasa los scripts de verificación locales y los tests unitarios; cada cadena nueva debe sincronizarse en todos los paquetes de idioma
 - Los scripts de verificación y del pipeline de publicación están en `ci/script/`; el tutorial integrado en la app (Ajustes → Tutorial) se mantiene en paralelo
 
