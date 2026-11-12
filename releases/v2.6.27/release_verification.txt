@@ -1,0 +1,42 @@
+Muse 2.6.27 构建与校验记录
+生成时间: 11/12/2026 16:48:08
+源码提交: 753bbe3f48957a19ad47ec8b31a408a81ea89d39
+工作树: 干净（打包前 git status 无未提交改动）
+
+版本
+  versionName = 2.6.27
+  versionCode = 291
+  dbVersion   = 130
+
+产物
+  app-arm64-v8a-release.apk
+    size   = 104491615 bytes (99.7 MB)
+    sha256 = 71e8fdb41c764ccb816c63a00057280f0b2e15965e28c543322ca00427fb592b
+  app-armeabi-v7a-release.apk
+    size   = 60424078 bytes (57.6 MB)
+    sha256 = a37308cb47f2faa6b35ebc574571ce614ebc2677696ff6aefad98956d962830d
+  app-universal-release.apk
+    size   = 188494628 bytes (179.8 MB)
+    sha256 = 7bc957d600141d76f1deccce61091740c728be345d8212528a74ef0d361de0ec
+  app-x86_64-release.apk
+    size   = 105774357 bytes (100.9 MB)
+    sha256 = c796f97315dea1104b657c5f2b920920e274b266ddc99ea2dfc7f5142ef187a0
+
+签名
+  DN      = CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN
+  SHA-256 = e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+  与 2.6.26 同一证书，可直接覆盖安装
+
+构建
+  命令: gradlew :app:assembleRelease -PversionName=2.6.27 -PversionCode=291
+  结果: BUILD SUCCESSFUL
+
+验证（构建机实测）
+  :memory 模块单测            60 类 / 449 用例 / 0 失败
+  记忆+会话+记忆UI 联合回归    97 类 / 589 用例 / 0 失败
+  设置+Web 协议侧回归          33 类 / 200 用例 / 0 失败
+  选择文本合同测试             4 用例 / 0 失败
+
+未验证（需真机）
+  文件夹计数归位、记忆时间轴归位、选择文本手势手感、小手机入口彻底消失
+  模拟器通过不等同真机通过
