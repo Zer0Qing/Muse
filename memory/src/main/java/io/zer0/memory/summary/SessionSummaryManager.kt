@@ -105,6 +105,15 @@ class SessionSummaryManager(
      * A-19: [mainAssistantId] 非 null 时只返回主助手(及历史遗留无归属行)的摘要 —
      * 编译管道(today/facts)注入到主助手 prompt,子助手会话摘要不得串台。
      * 语义: assistant_id == mainAssistantId 或 空/旧数据行 保留,其余排除。
+     *
+     * ## 为什么按 `source_time_range` 而不是 `updated_at` 归属日期
+     *
+     * `updated_at` 是「这一行最后一次被写入的时间」。滚动摘要是**覆盖式**重写，
+     * 每聊一句都会把 `updated_at` 刷成当下 —— 于是很久以前的对话只要被重新摘要过一次，
+     * 就会被算进「今天」，在记忆时间轴上跑到最近几天，而它的真实对话时间在几个月前。
+     *
+     * `source_time_range` 记录的是这段摘要**覆盖的对话消息**的时间跨度（start/end/localDates），
+     * 是真正的时间归属。这里以它为准，缺失时才退回 `updated_at`（旧数据兼容）。
      */
     suspend fun getSummariesInRange(
         start: Instant,
@@ -113,7 +122,54 @@ class SessionSummaryManager(
         mainAssistantId: String? = null,
         spaceId: String? = null,
     ): List<SummaryData> = withContext(Dispatchers.IO) {
-        dao.getInRange(start.toString(), end.toString(), since, mainAssistantId, spaceId).map { it.toSummaryData() }
+        // 先按 SQL 做粗筛（含时间上下界，避免全表扫），再按真实时间归属精筛。
+        val rows = dao.getInRange(start.toString(), end.toString(), since, mainAssistantId, spaceId)
+        rows.filter { entity -> entityBelongsToRange(entity, start, end, since) }
+            .map { it.toSummaryData() }
+    }
+
+    /**
+     * 判断一条摘要是否真的属于 [start, end] 区间。
+     *
+     * - 有 `source_time_range` 且能解析出消息时间 → 用消息时间判定（与 `updated_at` 无关）；
+     * - 解析失败或没有该字段 → 退回 `updated_at`（旧数据只有这个可用）。
+     *
+     * [since] 是增量编译游标，语义是「只要这条摘要在游标之后有过真实内容变化」，
+     * 因此用消息时间的 end 与之比较，而不是 `updated_at`。
+     */
+    private fun entityBelongsToRange(
+        entity: SessionSummaryEntity,
+        start: Instant,
+        end: Instant,
+        since: String?,
+    ): Boolean {
+        val range = entity.sourceTimeRange?.let { raw ->
+            runCatching {
+                json.decodeFromString(TimeContext.SourceTimeRange.serializer(), raw)
+            }.onFailure { e ->
+                Logger.w("SessionSummaryManager", "sourceTimeRange JSON 解析失败(${entity.sessionId.take(8)}…): ${e.message}")
+            }.getOrNull()
+        }
+        val messageEnd = range?.end?.let { TimeContext.parseInstant(it) }
+        val messageStart = range?.start?.let { TimeContext.parseInstant(it) }
+        if (messageEnd != null) {
+            // 真实对话时间与窗口有交集即算命中（跨天会话的任一端落在窗口内）。
+            val overlaps = (messageStart ?: messageEnd) <= end && messageEnd >= start
+            if (!overlaps) return false
+            if (since != null) {
+                val cursor = TimeContext.parseInstant(since) ?: return true
+                if (messageEnd <= cursor) return false
+            }
+            return true
+        }
+        // 旧数据：没有真实时间范围，只能按写入时间判定。
+        val updated = TimeContext.parseInstant(entity.updatedAt) ?: return false
+        if (updated < start || updated > end) return false
+        if (since != null) {
+            val cursor = TimeContext.parseInstant(since) ?: return true
+            if (updated <= cursor) return false
+        }
+        return true
     }
 
     /** 清空所有摘要。 */

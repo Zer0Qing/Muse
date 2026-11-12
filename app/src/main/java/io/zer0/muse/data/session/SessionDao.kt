@@ -189,6 +189,16 @@ interface SessionDao {
     suspend fun updatePreviewOnly(id: String, preview: String, now: Long)
 
     /** 按 id 删除会话(级联删消息)。 */
+    /**
+     * 按 folderId 统计**活跃**会话数，用于校准 `folders.sessionCount`。
+     *
+     * 口径与列表查询一致：排除已软删除的会话，否则「最近删除」里的会被重复计入。
+     */
+    @Query(
+        "SELECT folderId AS folderId, COUNT(*) AS count FROM sessions " +
+            "WHERE folderId IS NOT NULL AND deletedAt IS NULL GROUP BY folderId"
+    )
+    suspend fun countActiveSessionsByFolder(): List<FolderSessionCount>
     @Query("DELETE FROM sessions WHERE id = :id")
     suspend fun deleteById(id: String)
 
@@ -303,3 +313,9 @@ interface SessionDao {
     )
     suspend fun getRecentChatByAssistant(assistantId: String): SessionEntity?
 }
+
+/** 文件夹会话计数投影（校准 `folders.sessionCount` 用）。 */
+data class FolderSessionCount(
+    val folderId: String,
+    val count: Int,
+)

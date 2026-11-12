@@ -949,8 +949,17 @@ class MemoryTicker(
         if (_stopped) return scope.launch { /* no-op */ }
         val capturedTarget = _sessionNotificationTargets.remove(sessionId)
         val count = _turnCounts.remove(sessionId) ?: 0
-        if (count == 0) return scope.launch { /* no-op */ }
         if (!isMemoryEnabled()) return scope.launch { /* no-op */ }
+        // 计数为 0 原本直接 return —— 但 `_turnCounts` 只是内存表，
+        // 进程重启后归零，于是「重启 → 进会话 → 退出」这条路径会静默跳过收尾摘要，
+        // 摘要停在旧版本，下一次靠阈值触发时把整段对话重新摘要一遍
+        // （用户观感就是「记忆被反复重新处理」）。
+        //
+        // 这里不再只信内存计数，而是同时看消息条数：有实际对话就允许跑收尾。
+        // 收尾本身是幂等的（rollingSummary 按 messageCount 增量、compileToday 有指纹），
+        // 重复调用不会产生新内容，代价只是可能的空转，比「该收尾却没跑」划算。
+        val hasConversation = count > 0 || messages.any { it.role == io.zer0.ai.core.MessageRole.USER }
+        if (!hasConversation) return scope.launch { /* no-op */ }
         return launchTracked {
             runSessionEndPipeline(
                 sessionId = sessionId,
@@ -982,8 +991,9 @@ class MemoryTicker(
     ): Job {
         if (_stopped) return scope.launch { /* no-op */ }
         val capturedTarget = _sessionNotificationTargets.remove(sessionId)
-        val count = _turnCounts.remove(sessionId) ?: 0
-        if (count == 0) return scope.launch { /* no-op */ }
+        // 与 notifySessionEnd 同理：内存计数在进程重启后归零，不能作为「要不要收尾」的唯一依据。
+        // 这里从持久层取完整历史，`messages.size < 2` 已经足够判定「没有可摘要的对话」。
+        _turnCounts.remove(sessionId)
         if (!isMemoryEnabled()) return scope.launch { /* no-op */ }
         return launchTracked {
             val messages = messagesProvider()

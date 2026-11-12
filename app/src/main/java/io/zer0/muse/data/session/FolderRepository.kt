@@ -63,6 +63,34 @@ class FolderRepository(
         folderDao.setExpanded(id, expanded)
     }
 
+    /**
+     * 校准 `folders.sessionCount`（幂等，只在发现漂移时写库）。
+     *
+     * 为什么需要：这个计数是冗余字段，靠「移动会话」时双写维护。
+     * 删除会话的路径长期没有递减，于是「往文件夹加一个会话再删掉」会留下 -1。
+     * 只修删除逻辑不能自愈存量脏数据，所以启动时按真实行数校正一次。
+     *
+     * 统计口径必须与列表查询一致：排除已软删除（`deletedAt IS NOT NULL`）的会话，
+     * 否则会把「最近删除」里的会话又算回去。
+     *
+     * @return 被修正的文件夹数量（0 表示本来就一致，不写库）
+     */
+    suspend fun reconcileSessionCounts(): Int = withContext(Dispatchers.IO) {
+        var fixed = 0
+        database.withTransaction {
+            val actual = sessionDao.countActiveSessionsByFolder().associate { it.folderId to it.count }
+            folderDao.getAll().forEach { folder ->
+                val expected = actual[folder.id] ?: 0
+                if (folder.sessionCount != expected) {
+                    folderDao.setSessionCount(folder.id, expected)
+                    fixed++
+                }
+            }
+        }
+        if (fixed > 0) Logger.i(TAG, "文件夹会话计数校准：修正 $fixed 个文件夹")
+        fixed
+    }
+
     /** 删除文件夹(关联会话的 folderId 清空,移到"未分组")。 */
     suspend fun deleteFolder(id: String) {
         // M-SESS8: 先清空该文件夹下所有会话的 folderId,再删除文件夹,避免悬空引用;

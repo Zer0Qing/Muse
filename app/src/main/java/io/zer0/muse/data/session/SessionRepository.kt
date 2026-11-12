@@ -76,6 +76,14 @@ class SessionRepository(
      * null 时跳过(单测/无 DI 环境)。
      */
     private val sessionMemoryCleanup: io.zer0.muse.data.memory.SessionMemoryCleanup? = null,
+    /**
+     * 文件夹冗余计数的维护者。
+     *
+     * `folders.sessionCount` 是双写字段：移动会话时由 [FolderRepository] 增减，
+     * 删除会话时也必须递减，否则计数会漂移（往文件夹加一个再删掉会变成 -1）。
+     * null 时跳过（单测/无 DI 环境）。
+     */
+    private val folderDao: FolderDao? = null,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -549,8 +557,16 @@ class SessionRepository(
         withContext(Dispatchers.IO) {
             val messageIds = database.withTransaction {
                 val deletedMessageIds = messageDao.getMessageIdsBySessionId(id)
+                // 删除前记下归属文件夹：`folders.sessionCount` 是冗余字段，靠双写维护。
+                // 旧实现只在「移动会话」时增减，删除会话时没人递减 ——
+                // 表现就是「往文件夹里加一个会话再删掉，计数变成 -1」。
+                val folderId = sessionDao.getById(id)?.folderId
                 syncFtsDeleteBySession(id)
                 sessionDao.deleteById(id)
+                // 在同一个事务里递减：放到事务外一旦进程被杀，会话没了但计数还挂着。
+                if (folderId != null && folderId != CARD_FAVORITE_SESSION_MARKER) {
+                    folderDao?.incrementSessionCount(folderId, -1)
+                }
                 deletedMessageIds
             }
             deleteMessageImages(messageIds)

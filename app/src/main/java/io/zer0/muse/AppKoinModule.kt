@@ -180,7 +180,8 @@ val appModule = module {
         )
     }
     // +MuseDb: 跨表事务(H-SESS1); +SessionMemoryCleanup: 删会话连带清记忆
-    single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get(), get(), get()) }
+    // 末尾多注入一个 FolderDao：删除会话时要递减 folders.sessionCount（冗余字段双写）。
+    single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get()) }
     single { io.zer0.muse.data.artifact.ArtifactRepository(get()) } // v1.43: 会话产物仓库
     single {
         AssistantRepository(get(), androidContext(), get(), get(), get())

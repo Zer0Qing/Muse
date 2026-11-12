@@ -72,6 +72,8 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     // v1.0.52 P2-2: 记忆空间仓库,启动时确保默认 Space 存在
     private val memorySpaceRepository: io.zer0.memory.space.MemorySpaceRepository by inject()
+    /** 文件夹冗余计数校准（`folders.sessionCount` 双写漂移修复）。 */
+    private val folderRepository: io.zer0.muse.data.session.FolderRepository by inject()
     private val subagentThreadStore: io.zer0.muse.data.subagent.SubagentThreadStore by inject()
 
     private val assistantRepository: AssistantRepository by inject()
@@ -354,6 +356,13 @@ class MuseApp : Application(), ImageLoaderFactory {
             appScope.launch {
                 resultOf { memorySpaceRepository.ensureDefaultSpaceExists() }
                     .onError { msg, t -> Logger.w("MuseApp", "ensureDefaultSpaceExists 失败: $msg", t) }
+            }
+            // 文件夹会话计数校准：`folders.sessionCount` 是冗余字段，删除会话的路径
+            // 长期没有递减，存量数据里会留下 -1 之类的漂移值。这里按真实行数校正一次，
+            // 幂等且只在发现不一致时写库（正常情况零写入），失败不影响启动。
+            appScope.launch {
+                resultOf { folderRepository.reconcileSessionCounts() }
+                    .onError { msg, t -> Logger.w("MuseApp", "文件夹计数校准失败: $msg", t) }
             }
             // B5-01: 启动时恢复被强杀的中断生成(已产出内容 + [已中断] 标记)
             appScope.launch {
