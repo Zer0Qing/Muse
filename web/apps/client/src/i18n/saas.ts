@@ -75,7 +75,7 @@ export const SAAS_ES = {
   "{name} 已上传并登记，地址有效至 {time}": "{name} se ha subido y registrado; la dirección es válida hasta las {time}",
   "文件上传失败": "No se pudo subir el archivo",
   "文件": "Archivos",
-  "API 不接收文件字节，浏览器直传 S3-compatible 存储": "La API no recibe los bytes del archivo; el navegador los sube directamente a un almacenamiento compatible con S3",
+  "API 不接收文件字节，浏览器直传 S3-compatible 存储": "El navegador sube el archivo directamente a un almacenamiento compatible con S3, sin pasar por la API.",
   "选择文件": "Elegir archivo",
   "浏览器支持 Push": "El navegador admite Push",
   "当前浏览器不支持 Push": "Este navegador no admite Push",
