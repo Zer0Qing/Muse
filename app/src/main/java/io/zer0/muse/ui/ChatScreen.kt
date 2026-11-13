@@ -523,6 +523,10 @@ fun ChatScreen(
             io.zer0.muse.ui.theme.BubbleSkinStore(context, pluginSkinSource)
         }
     val bubbleSkin by bubbleSkinStore.selectedSkinFlow.collectAsStateWithLifecycle(initialValue = null)
+    // 本地离线语音模型是否就绪：输入栏「发送键 ↔ 语音键」的唯一开关。
+    // 模型下载完成/删除时由 asr 包推 StateFlow，不在这里轮询文件系统。
+    val localModelReady by io.zer0.muse.asr.local.LocalModelStoreBridge.readyFlow
+        .collectAsStateWithLifecycle()
     val proactiveSessionPreferences: io.zer0.muse.proactive.ProactiveSessionPreferenceRepository = koinInject()
     val effectiveSessionId = effectiveChatSessionId(state)
     var proactiveSessionMuted by remember(effectiveSessionId) { mutableStateOf(false) }
@@ -2092,9 +2096,14 @@ fun ChatScreen(
                                             }
                                             // SYSTEM 路径无取消概念(尚未 launch Intent)
                                         },
-                                        // 仅在实时 ASR Provider 已配置 API Key 时显示麦克风;未配置时保留发送按钮,
-                                        // 避免用户点击一个必然不可用的语音入口。DASHSCOPE_FILE 仍只支持文件转录。
-                                        showMic = viewModel.shouldUseApiRecording() && state.asrConfig.apiKey.isNotBlank(),
+                                        // 输入栏语音入口是否可用：判据集中在 isAsrInputAvailable，
+                                        // 与录音协调器共用一份，避免「键在但按下去没反应」。
+                                        // 本地引擎看模型文件是否就绪，云端引擎看 apiKey。
+                                        showMic = io.zer0.muse.asr.isAsrInputAvailable(
+                                            provider = state.asrConfig.provider,
+                                            apiKey = state.asrConfig.apiKey,
+                                            localModelReady = localModelReady,
+                                        ),
                                         // v1.97: 工具/任务进度 pill(优先用 plan 进度,否则用 toolCallHistory)
                                         toolCallCompleted = toolCallCompleted,
                                         toolCallTotal = toolCallTotal,

@@ -84,6 +84,7 @@ object AsrClientFactory {
         AsrProviderType.OPENAI_WHISPER -> null
         AsrProviderType.OPENAI_REALTIME -> null
         AsrProviderType.AGNES -> null
+        AsrProviderType.LOCAL_SENSEVOICE -> null
     }
 
     /**
@@ -101,6 +102,8 @@ object AsrClientFactory {
         AsrProviderType.OPENAI_WHISPER -> OpenAiWhisperAsrController(config, sharedClient, context)
         AsrProviderType.OPENAI_REALTIME -> OpenAiRealtimeAsrController(config, sharedClient, context)
         AsrProviderType.AGNES -> OpenAiWhisperAsrController(config, sharedClient, context)
+        AsrProviderType.LOCAL_SENSEVOICE ->
+            io.zer0.muse.asr.local.SenseVoiceController(context)
         AsrProviderType.SYSTEM, AsrProviderType.DASHSCOPE_FILE -> null
     }
 }

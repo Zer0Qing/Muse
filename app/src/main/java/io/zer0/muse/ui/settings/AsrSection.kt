@@ -70,6 +70,7 @@ internal fun AsrSection(
     asrConfig: AsrConfig,
     settings: SettingsRepository,
     onOpenProviderSettings: () -> Unit = {},
+    onOpenLocalModel: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -143,7 +144,13 @@ internal fun AsrSection(
         }
     }
 
-    if (asrConfig.provider != AsrProviderType.SYSTEM) {
+    // ---- 本地模型入口 ----
+    // 不挂在引擎选中状态上：用户先看见「模型下载」才可能去下模型；选了本地引擎却
+    // 找不到下载入口，只会看到「模型缺失」的错误。
+    LocalModelEntryRow(onClick = onOpenLocalModel)
+
+    if (asrConfig.provider != AsrProviderType.SYSTEM && asrConfig.provider != AsrProviderType.LOCAL_SENSEVOICE) {
+        // 本地引擎不联网，连接/识别分组对它没有意义；模型卡片在上面已给出全部所需配置。
         // ---- 连接 ----
         SectionLabel(
             stringResource(R.string.settings_asr_group_connection),
@@ -627,6 +634,7 @@ private fun asrProviderName(provider: AsrProviderType): String = when (provider)
     AsrProviderType.OPENAI_WHISPER -> stringResource(R.string.settings_asr_provider_openai_whisper)
     AsrProviderType.OPENAI_REALTIME -> stringResource(R.string.settings_asr_provider_openai_realtime)
     AsrProviderType.AGNES -> stringResource(R.string.settings_asr_provider_agnes)
+    AsrProviderType.LOCAL_SENSEVOICE -> stringResource(R.string.settings_asr_provider_local_sensevoice)
 }
 
 @Composable
@@ -638,6 +646,7 @@ private fun asrProviderDesc(provider: AsrProviderType): String = when (provider)
     AsrProviderType.OPENAI_WHISPER -> stringResource(R.string.settings_asr_desc_whisper)
     AsrProviderType.OPENAI_REALTIME -> stringResource(R.string.settings_asr_desc_realtime)
     AsrProviderType.AGNES -> stringResource(R.string.settings_asr_desc_agnes)
+    AsrProviderType.LOCAL_SENSEVOICE -> stringResource(R.string.settings_asr_desc_local_sensevoice)
 }
 
 private fun asrProviderIcon(provider: AsrProviderType): ImageVector = when (provider) {
@@ -648,6 +657,7 @@ private fun asrProviderIcon(provider: AsrProviderType): ImageVector = when (prov
     AsrProviderType.OPENAI_WHISPER -> MuseIcons.microphone
     AsrProviderType.OPENAI_REALTIME -> MuseIcons.waveSine
     AsrProviderType.AGNES -> MuseIcons.wind
+    AsrProviderType.LOCAL_SENSEVOICE -> MuseIcons.deviceMobile
 }
 
 /**

@@ -50,6 +50,10 @@ class OneShotAsrTranscriber(
         // 走到这里 gate == GO，等价于 config 非空；用局部非空名把类型收窄回来，
         // 而不是到处写 !! —— 判据只有 asrGate 一处，这里只是配合它的结论。
         val ready = checkNotNull(config)
+        // 本地引擎不走 HTTP：WAV 解回 PCM，喂给 SenseVoice 推理（与流式控制器同一引擎单例）
+        if (ready.provider == AsrProviderType.LOCAL_SENSEVOICE) {
+            return io.zer0.muse.asr.local.LocalOneShotTranscriber.transcribe(wavBytes)
+        }
         val base = ready.baseUrl.ifBlank { ready.defaultBaseUrl().ifBlank { DEFAULT_BASE_URL } }
         return requestTranscription(
             url = oneShotTranscriptionUrl(base),
@@ -71,6 +75,10 @@ class OneShotAsrTranscriber(
     /** 读一次设置,把「跟随供应商」解析进配置;没配 apiKey 就没有可用的识别服务。 */
     private suspend fun effectiveConfig(): AsrConfig? {
         val config = settings.asrConfigFlow.first()
+        // 本地引擎不走网络,也没有 apiKey:可用性由模型文件决定,不能在这里被 apiKey 判空拦掉。
+        if (config.provider == AsrProviderType.LOCAL_SENSEVOICE) {
+            return config.takeIf { io.zer0.muse.asr.local.LocalModelStoreBridge.isReady() }
+        }
         val providers = settings.providersFlow.first()
         val resolved = SpeechProviderResolver.resolveAsr(config, providers)
         if (resolved.isProviderFallback) {
@@ -193,6 +201,9 @@ internal fun parseOneShotTranscription(body: String): String? = runCatching {
  * 也会在发请求前就返回 null。
  */
 internal fun AsrConfig.supportsFileTranscription(): Boolean {
+    // 本地引擎没有 HTTP 端点，但"整段 WAV 进、文本出"本来就是它的原生工作方式：
+    // 可用性只看模型文件在不在，与 apiKey 无关。
+    if (provider == AsrProviderType.LOCAL_SENSEVOICE) return io.zer0.muse.asr.local.LocalModelStoreBridge.isReady()
     if (provider != AsrProviderType.OPENAI_WHISPER && provider != AsrProviderType.AGNES) return false
     if (apiKey.isBlank()) return false
     val base = baseUrl.ifBlank { defaultBaseUrl() }

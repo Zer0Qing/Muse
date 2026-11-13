@@ -77,7 +77,13 @@ class ChatAudioCoordinator(
         val cfg = accessor.snapshot.asrConfig
         val supportsStreaming = cfg.provider != AsrProviderType.SYSTEM &&
             cfg.provider != AsrProviderType.DASHSCOPE_FILE
-        if (!supportsStreaming || cfg.apiKey.isBlank()) {
+        // 与输入栏共用同一判据：本地引擎看模型文件，云端引擎看 apiKey。
+        val configured = io.zer0.muse.asr.isAsrInputAvailable(
+            provider = cfg.provider,
+            apiKey = cfg.apiKey,
+            localModelReady = io.zer0.muse.asr.local.LocalModelStoreBridge.isReady(),
+        )
+        if (!supportsStreaming || !configured) {
             // Provider 切回系统识别或清空 API Key 时,旧 Controller 不能继续占用麦克风/网络。
             if (asrController != null || asrStateJob != null) {
                 asrGeneration++
@@ -88,13 +94,17 @@ class ChatAudioCoordinator(
                 asrControllerConfig = null
                 accessor.update { it.copy(asrState = ASRState()) }
             }
-            if (cfg.apiKey.isBlank() && supportsStreaming) {
+            if (!configured && supportsStreaming) {
                 accessor.update {
                     it.copy(
                         asrState = ASRState(
                             status = io.zer0.muse.asr.ASRStatus.Error,
                             isAvailable = false,
-                            errorMessage = context.getString(R.string.asr_missing_api_key_error),
+                            errorMessage = if (cfg.provider == AsrProviderType.LOCAL_SENSEVOICE) {
+                                context.getString(R.string.asr_local_error_model_missing)
+                            } else {
+                                context.getString(R.string.asr_missing_api_key_error)
+                            },
                         ),
                     )
                 }

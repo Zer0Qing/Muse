@@ -101,6 +101,35 @@
     <string name="asr_reconnecting_message">Connection lost, reconnecting… (attempt %1$d/%2$d)</string>
     <string name="asr_reconnect_exhausted">Voice connection lost. Auto-reconnect failed after 3 attempts. Recognized content has been preserved. Check your network and start recording again.</string>
 
+    <!-- Local offline ASR (SenseVoice) -->
+    <string name="settings_asr_provider_local_sensevoice">Local offline model</string>
+    <string name="settings_asr_desc_local_sensevoice">Recognition runs on-device, no network needed; first use requires downloading the model (~241 MB)</string>
+    <string name="asr_local_error_model_missing">Offline speech model not downloaded. Please download it in Settings.</string>
+    <string name="asr_local_error_inference">Local recognition failed. Please try again.</string>
+    <string name="asr_error_capture_generic">Recording failed. Please try again.</string>
+    <string name="asr_error_capture_failed">Microphone read failed (error code: %1$d)</string>
+    <string name="asr_local_download_title">Offline speech model</string>
+    <string name="asr_local_download_desc">After downloading, recognition runs on-device with no network needed; the model is about 241 MB</string>
+    <string name="asr_local_download_action">Download</string>
+    <string name="asr_local_download_cancel">Cancel</string>
+    <string name="asr_local_download_retry">Retry</string>
+    <string name="asr_local_download_delete">Delete model</string>
+    <string name="asr_local_download_use">Use local recognition</string>
+    <string name="asr_local_download_use_done">Switched to local recognition</string>
+    <string name="asr_local_download_ready">Ready · %1$s</string>
+    <string name="asr_local_download_incomplete">Download incomplete, please download again</string>
+    <string name="asr_local_download_metered_confirm">You are on mobile data. Downloading needs about %1$s. Continue?</string>
+    <string name="asr_local_download_insufficient_space">Not enough storage; %1$s more is needed. Free up space and try again.</string>
+    <string name="asr_local_download_delete_confirm">Delete the offline speech model? Local recognition will be unavailable until you download it again.</string>
+    <!-- Speech recognition → model download entry row / sub-page -->
+    <string name="settings_asr_local_model_entry_title">Offline speech model</string>
+    <string name="settings_asr_local_model_entry_not_downloaded">Not downloaded · about 241 MB</string>
+    <string name="settings_asr_local_model_entry_downloading">Downloading %1$d%%</string>
+    <string name="settings_asr_local_model_entry_ready">Ready · %1$s</string>
+    <string name="settings_asr_local_model_entry_incomplete">Download incomplete, tap to retry</string>
+    <string name="settings_asr_local_model_entry_failed">Last download failed, tap to retry</string>
+    <string name="asr_local_model_page_hint">The download runs in the background inside this app: switching pages or locking the screen won\'t stop it, and reopening the app resumes from where it stopped. Recognition happens entirely on this device — no network, no data cost.</string>
+
     <!-- Memory add fact -->
     <string name="memory_add_fact">Add Fact</string>
     <string name="memory_add_fact_dialog_title">Add Fact</string>

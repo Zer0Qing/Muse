@@ -38,6 +38,12 @@ enum class AsrProviderType {
 
     /** Agnes 中转站(OpenAI 兼容,内部走 [OPENAI_WHISPER] 适配器,baseUrl 不同)。 */
     AGNES,
+
+    /**
+     * 本地离线识别(端侧 ONNX 模型,整段非流式)。
+     * 无 apiKey 依赖,可用性由模型文件是否存在决定(见 LocalModelStore.isReady)。
+     */
+    LOCAL_SENSEVOICE,
 }
 
 /**
@@ -101,9 +107,11 @@ data class AsrConfig(
     /** 跟随模式下所选模型 id(空串表示未选)。 */
     val modelId: String = "",
 ) {
-    /** 是否已配置可用(SYSTEM 总是可用,API 模式需要 apiKey)。 */
+    /** 是否已配置可用(SYSTEM 与本地模型不依赖 apiKey;API 模式需要 apiKey)。 */
     val isConfigured: Boolean
-        get() = provider == AsrProviderType.SYSTEM || apiKey.isNotBlank()
+        get() = provider == AsrProviderType.SYSTEM ||
+            provider == AsrProviderType.LOCAL_SENSEVOICE ||
+            apiKey.isNotBlank()
 
     /** 根据 provider 返回默认模型名。 */
     fun defaultModel(): String = when (provider) {
@@ -114,6 +122,8 @@ data class AsrConfig(
         AsrProviderType.OPENAI_REALTIME -> "gpt-realtime-whisper"
         AsrProviderType.AGNES -> "whisper-1"
         AsrProviderType.SYSTEM -> ""
+        // 本地模型名固定,不暴露给用户改(改了也对不上文件名)
+        AsrProviderType.LOCAL_SENSEVOICE -> "sensevoice-small-int8"
     }
 
     /**
