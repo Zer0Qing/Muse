@@ -12,6 +12,13 @@ package io.zer0.muse.web
  */
 object WebSearchProviderCatalog {
 
+    /** 供应商列表上显示的最小配置状态；详情页仍负责具体字段与测试。 */
+    enum class ProviderSetupState {
+        READY,
+        NEEDS_KEY,
+        NEEDS_URL,
+    }
+
     /** 一家供应商的填写契约。 */
     data class Meta(
         val key: String,
@@ -57,17 +64,17 @@ object WebSearchProviderCatalog {
 
     private val entries: Map<String, Meta> = listOf(
         Meta("Auto"),
-        Meta("Tavily", needsKey = true, defaultEndpoint = "https://api.tavily.com", supportsCustomUrl = true),
-        Meta("Perplexity", needsKey = true, defaultEndpoint = "https://api.perplexity.ai", supportsCustomUrl = true, needsModel = true),
-        Meta("Brave", needsKey = true, defaultEndpoint = "https://api.search.brave.com/res/v1", supportsCustomUrl = true),
-        Meta("Serper", needsKey = true, defaultEndpoint = "https://google.serper.dev", supportsCustomUrl = true),
-        Meta("Zhipu", needsKey = true, defaultEndpoint = "https://open.bigmodel.cn/api/paas/v4", supportsCustomUrl = true),
-        Meta("Bocha", needsKey = true, defaultEndpoint = "https://api.bochaai.com/v1", supportsCustomUrl = true),
-        Meta("Metaso", needsKey = true, defaultEndpoint = "https://metaso.cn/api/v1", supportsCustomUrl = true),
-        Meta("Exa", needsKey = true, defaultEndpoint = "https://api.exa.ai", supportsCustomUrl = true),
-        Meta("Firecrawl", needsKey = true, defaultEndpoint = "https://api.firecrawl.dev/v1", supportsCustomUrl = true),
-        Meta("Jina", needsKey = true, defaultEndpoint = "https://s.jina.ai/", supportsCustomUrl = true),
-        Meta("DeepSeek", needsKey = true, defaultEndpoint = "https://api.deepseek.com/v1/tools/search", supportsCustomUrl = true),
+        Meta("Tavily", needsKey = true, defaultEndpoint = "https://api.tavily.com"),
+        Meta("Perplexity", needsKey = true, defaultEndpoint = "https://api.perplexity.ai", needsModel = true),
+        Meta("Brave", needsKey = true, defaultEndpoint = "https://api.search.brave.com/res/v1"),
+        Meta("Serper", needsKey = true, defaultEndpoint = "https://google.serper.dev"),
+        Meta("Zhipu", needsKey = true, defaultEndpoint = "https://open.bigmodel.cn/api/paas/v4"),
+        Meta("Bocha", needsKey = true, defaultEndpoint = "https://api.bochaai.com/v1"),
+        Meta("Metaso", needsKey = true, defaultEndpoint = "https://metaso.cn/api/v1"),
+        Meta("Exa", needsKey = true, defaultEndpoint = "https://api.exa.ai"),
+        Meta("Firecrawl", needsKey = true, defaultEndpoint = "https://api.firecrawl.dev/v1"),
+        Meta("Jina", needsKey = true, defaultEndpoint = "https://s.jina.ai/"),
+        Meta("DeepSeek", needsKey = true, defaultEndpoint = "https://api.deepseek.com/v1/tools/search"),
         Meta(
             "SearXNG",
             defaultEndpoint = "https://searx.be",
@@ -83,6 +90,15 @@ object WebSearchProviderCatalog {
     /** 未知类型返回空 Meta（不抛异常，沿用 `orderWebSearchChain` 的容错语义）。 */
     fun meta(key: String): Meta = entries[key] ?: Meta(key)
 
+    /** 将持久化/深链中的历史别名归一化为目录键。 */
+    fun canonicalKey(key: String): String {
+        val normalized = key.trim()
+        if (normalized.equals(WebSearchConfig.CUSTOM_PROVIDER_NAME, ignoreCase = true)) {
+            return WebSearchConfig.CUSTOM_PROVIDER_NAME_EN
+        }
+        return selectableTypes.firstOrNull { it.equals(normalized, ignoreCase = true) } ?: normalized
+    }
+
     fun defaultEndpoint(key: String): String? = entries[key]?.defaultEndpoint
 
     fun needsKey(key: String): Boolean = entries[key]?.needsKey == true
@@ -92,6 +108,40 @@ object WebSearchProviderCatalog {
     fun needsInstanceUrl(key: String): Boolean = entries[key]?.needsInstanceUrl == true
 
     fun needsModel(key: String): Boolean = entries[key]?.needsModel == true
+
+    /**
+     * 计算列表摘要所需的配置状态，不把目录默认地址误判成已保存的自托管实例。
+     * 普通免 Key 抓取服务无需配置即可使用；需要 Key 或实例地址的服务必须已有对应值。
+     */
+    fun setupState(config: WebSearchConfig, key: String): ProviderSetupState {
+        val canonical = canonicalKey(key)
+        val meta = meta(canonical)
+        if (canonical == "Auto" || (!meta.needsKey && !meta.needsInstanceUrl)) {
+            return ProviderSetupState.READY
+        }
+
+        val entry = config.providerEntries.firstOrNull {
+            canonicalKey(it.type).equals(canonical, ignoreCase = true)
+        }
+        if (meta.needsKey) {
+            val entryHasKey = entry?.apiKeys.orEmpty().any { it.isNotBlank() }
+            val mappedHasKey = config.apiKeys.entries.any { (storedKey, value) ->
+                canonicalKey(storedKey).equals(canonical, ignoreCase = true) && value.isNotBlank()
+            }
+            val legacyHasKey = config.apiKey.isNotBlank() &&
+                canonicalKey(config.providerName).equals(canonical, ignoreCase = true)
+            if (!entryHasKey && !mappedHasKey && !legacyHasKey) {
+                return ProviderSetupState.NEEDS_KEY
+            }
+        }
+        if (meta.needsInstanceUrl) {
+            val entryHasUrl = entry?.customUrl?.isNotBlank() == true
+            val legacyHasUrl = config.endpoint.isNotBlank() &&
+                canonicalKey(config.providerName).equals(canonical, ignoreCase = true)
+            if (!entryHasUrl && !legacyHasUrl) return ProviderSetupState.NEEDS_URL
+        }
+        return ProviderSetupState.READY
+    }
 
     /** 需要 API Key 的类型集合，供 UI 与校验共用；含两种自定义 API 历史写法。 */
     val keysNeedingApiKey: Set<String> =

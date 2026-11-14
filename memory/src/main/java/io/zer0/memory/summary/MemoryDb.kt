@@ -4,9 +4,12 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import io.zer0.memory.dream.MemoryDreamDao
+import io.zer0.memory.dream.MemoryDreamRevisionEntity
+import io.zer0.memory.dream.MemoryDreamStateEntity
 
 // v2.6.23(S4): public —— 诊断卡(DiagnosticsSnapshot.AppSection)要展示当前 schema 版本。
-const val MEMORY_DB_VERSION = 5
+const val MEMORY_DB_VERSION = 9
 
 /**
  * Memory 模块的 Room 数据库。
@@ -28,6 +31,8 @@ const val MEMORY_DB_VERSION = 5
         DailyStateEntity::class,
         CompiledSectionEntity::class,
         ScopedCompiledSectionEntity::class,
+        MemoryDreamRevisionEntity::class,
+        MemoryDreamStateEntity::class,
     ],
     version = MEMORY_DB_VERSION,
     // v1.78 (H4): 开启 schema 导出,为未来 version 升级编写 Migration 提供基线
@@ -39,6 +44,7 @@ abstract class MemoryDb : RoomDatabase() {
     abstract fun dailyStateDao(): DailyStateDao
     abstract fun compiledSectionDao(): CompiledSectionDao
     abstract fun scopedCompiledSectionDao(): ScopedCompiledSectionDao
+    abstract fun memoryDreamDao(): MemoryDreamDao
 
     companion object {
         /** 仅增加列，旧摘要全部归入 default，不删除任何历史数据。 */
@@ -117,6 +123,75 @@ abstract class MemoryDb : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "ALTER TABLE context_checkpoints ADD COLUMN total_covered_count INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE session_summaries ADD COLUMN summary_revision INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "ALTER TABLE session_summaries ADD COLUMN source_fingerprint TEXT NOT NULL DEFAULT ''",
+                )
+                db.execSQL(
+                    "ALTER TABLE session_summaries ADD COLUMN fact_replacement_required INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE daily_state ADD COLUMN failed_steps TEXT NOT NULL DEFAULT '{}'",
+                )
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE compiled_sections_scoped ADD COLUMN source_fingerprint TEXT NOT NULL DEFAULT ''",
+                )
+                db.execSQL(
+                    "ALTER TABLE compiled_sections_scoped ADD COLUMN status TEXT NOT NULL DEFAULT 'READY'",
+                )
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS memory_dream_revisions (
+                        revisionId TEXT NOT NULL,
+                        assistantId TEXT NOT NULL,
+                        scope TEXT NOT NULL,
+                        spaceId TEXT NOT NULL,
+                        trigger TEXT NOT NULL,
+                        beforeFingerprint TEXT NOT NULL,
+                        beforeJson TEXT NOT NULL,
+                        nextJson TEXT NOT NULL,
+                        publishedAt TEXT NOT NULL,
+                        PRIMARY KEY(revisionId, assistantId, scope, spaceId)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS memory_dream_states (
+                        assistantId TEXT NOT NULL,
+                        scope TEXT NOT NULL,
+                        spaceId TEXT NOT NULL,
+                        running INTEGER NOT NULL,
+                        runId TEXT,
+                        lastRevisionId TEXT,
+                        activeRevisionId TEXT,
+                        lastError TEXT,
+                        PRIMARY KEY(assistantId, scope, spaceId)
+                    )
+                    """.trimIndent(),
                 )
             }
         }

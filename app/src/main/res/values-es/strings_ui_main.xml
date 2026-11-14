@@ -1006,4 +1006,7 @@
     <string name="oauth_codex_account_bound">Cuenta de Codex vinculada (prefijo del ID: %1$s)</string>
     <string name="voice_cloning_key_saved">Voz seleccionada como actual y clave de API guardada</string>
     <string name="voice_cloning_key_from_provider">Voz seleccionada como actual; se usa la clave de API del proveedor</string>
+    <string name="assistant_detail_pinned_injection">Inyectar recuerdos fijados</string>
+    <string name="assistant_detail_pinned_injection_desc">Al desactivarlo, los elementos fijados siguen en la memoria pero ya no se inyectan en cada turno</string>
+    <string name="assistant_detail_pinned_remove_cd">Dejar de fijar</string>
 </resources>

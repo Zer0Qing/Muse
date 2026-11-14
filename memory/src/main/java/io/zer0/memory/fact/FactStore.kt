@@ -88,6 +88,13 @@ class FactStore(
     /** v6: 是否已经做过 FTS 索引一致性检查(避免每次搜索都重复 COUNT)。 */
     private var ftsConsistencyChecked = false
 
+    /** v21: 事实投影 generation 状态值。 */
+    private enum class ProjectionState(val raw: String) {
+        STAGED("STAGED"),
+        ACTIVE("ACTIVE"),
+        ORPHANED("ORPHANED"),
+    }
+
     /** 元事实数据(业务层结构,与 Entity 分离)。 */
     data class Fact(
         val id: Long = 0,
@@ -1241,6 +1248,117 @@ class FactStore(
         }
         scheduleReconcile(touched, scope, spaceId)
         inserted
+    }
+
+    /**
+     * v21: 暂存一个 session 的事实 generation。
+     *
+     * 只写 fact_projections 与 staged facts；发布由 [publishSessionFacts] 在 source revision
+     * 仍相同时完成。generationId 由调用方生成，避免跨 session 重复。
+     */
+    suspend fun stageSessionFacts(
+        generationId: String,
+        sessionId: String,
+        sourceRevision: Long,
+        facts: List<Fact>,
+        scope: String,
+        spaceId: String,
+    ): String = withContext(Dispatchers.IO) {
+        require(generationId.isNotBlank()) { "generationId must not be blank" }
+        require(sessionId.isNotBlank()) { "sessionId must not be blank" }
+        require(sourceRevision >= 0L) { "sourceRevision must be non-negative" }
+        require(scope.isNotBlank() && spaceId.isNotBlank()) { "scope/spaceId must not be blank" }
+
+        db.withTransaction {
+            db.factProjectionDao().upsert(
+                FactProjectionEntity(
+                    generationId = generationId,
+                    sessionId = sessionId,
+                    sourceRevision = sourceRevision,
+                    scope = scope,
+                    spaceId = spaceId,
+                    state = ProjectionState.STAGED.raw,
+                    createdAt = Instant.now().toString(),
+                    updatedAt = Instant.now().toString(),
+                ),
+            )
+            facts.forEach { fact ->
+                val now = Instant.now().toString()
+                dao.insert(
+                    FactEntity(
+                        fact = fact.fact,
+                        tags = json.encodeToString(ListSerializer(String.serializer()), fact.tags),
+                        time = fact.time,
+                        sessionId = sessionId,
+                        createdAt = fact.createdAt.ifBlank { now },
+                        importance = fact.importance.coerceIn(0, 2),
+                        category = fact.category.takeIf { it.isNotBlank() } ?: "general",
+                        confidence = fact.confidence.coerceIn(0f, 1f),
+                        source = fact.source.takeIf { it.isNotBlank() } ?: "inferred",
+                        expiresAt = fact.expiresAt,
+                        lastConfirmedAt = fact.lastConfirmedAt,
+                        lastHitAt = fact.lastHitAt ?: now,
+                        scope = scope,
+                        spaceId = spaceId,
+                        pinnedAt = fact.pinnedAt,
+                        entityKey = fact.entityKey,
+                        evidenceQuote = normalizeEvidence(fact.evidenceQuote),
+                        evidenceMessageId = fact.evidenceMessageId,
+                    ),
+                ).also { id ->
+                    dao.insertFts(id, FactFtsManager.toNgram(fact.fact))
+                }
+            }
+        }
+        generationId
+    }
+
+    /**
+     * v21: 按 source revision 发布 staged generation。
+     *
+     * 该 session 已有更高 ACTIVE revision 时拒绝；同一 generation 重复发布幂等。
+     */
+    suspend fun publishSessionFacts(generationId: String, sessionId: String, sourceRevision: Long): ProjectionPublishResult =
+        withContext(Dispatchers.IO) {
+            val result = db.withTransaction {
+                val existing = db.factProjectionDao().get(generationId)
+                    ?: return@withTransaction ProjectionPublishResult.Missing(generationId)
+                if (existing.sessionId != sessionId || existing.sourceRevision != sourceRevision) {
+                    return@withTransaction ProjectionPublishResult.Missing(generationId)
+                }
+                if (existing.state == ProjectionState.ACTIVE.raw) {
+                    return@withTransaction ProjectionPublishResult.Published(generationId, sourceRevision)
+                }
+                val active = db.factProjectionDao().activeForSession(sessionId)
+                if (active != null && active.sourceRevision > sourceRevision) {
+                    return@withTransaction ProjectionPublishResult.Superseded(active.sourceRevision)
+                }
+                active?.let { old ->
+                    val oldProjection = db.factProjectionDao().get(old.generationId)
+                    db.factProjectionDao().updateState(old.generationId, ProjectionState.ORPHANED.raw, Instant.now().toString())
+                    if (oldProjection != null) {
+                        dao.deleteBySessionAndScopeSpace(existing.sessionId, oldProjection.scope, oldProjection.spaceId)
+                    }
+                }
+                db.factProjectionDao().updateState(generationId, ProjectionState.ACTIVE.raw, Instant.now().toString())
+                ProjectionPublishResult.Published(generationId, sourceRevision)
+            }
+            result
+        }
+
+    suspend fun orphanProjection(generationId: String) = withContext(Dispatchers.IO) {
+        db.factProjectionDao().updateState(generationId, ProjectionState.ORPHANED.raw, Instant.now().toString())
+    }
+
+    suspend fun reconcileOrphanedProjections(): Int = withContext(Dispatchers.IO) {
+        val orphaned = db.factProjectionDao().orphaned()
+        var removed = 0
+        for (projection in orphaned) {
+            val deleted = dao.deleteBySession(projection.sessionId)
+            removed += deleted
+            db.factProjectionDao().updateState(projection.generationId, "CLEANED", Instant.now().toString())
+        }
+        removed
     }
 
     /**

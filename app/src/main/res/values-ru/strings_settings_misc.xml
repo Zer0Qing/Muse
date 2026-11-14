@@ -329,6 +329,8 @@
     <string name="settings_web_search_provider_type_desc">Сначала выберите тип, затем заполните нужные для него поля</string>
     <string name="settings_web_search_custom_url_optional">Пользовательский URL (необязательно)</string>
     <string name="settings_web_search_custom_url_hint">Оставьте пустым, чтобы использовать адрес по умолчанию</string>
+    <string name="settings_web_search_endpoint_label">Конечная точка подключения</string>
+    <string name="settings_web_search_endpoint_managed">Настраивается Muse автоматически; обычно менять не нужно</string>
     <string name="settings_web_search_key_pool_label">Ключ API</string>
     <string name="settings_web_search_key_pool_hint">Можно вставить несколько ключей API: по одному на строку или через запятую</string>
     <string name="settings_web_search_model_optional">Имя модели (необязательно)</string>

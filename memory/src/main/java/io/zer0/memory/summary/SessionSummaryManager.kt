@@ -70,11 +70,31 @@ class SessionSummaryManager(
         val snapshotAt: String? = null,
         val assistantId: String = "",
         val spaceId: String = "default",
+        val summaryRevision: Long = 0,
+        val sourceFingerprint: String = "",
+        val factReplacementRequired: Boolean = false,
     )
 
     /** 读取指定 session 的摘要,不存在返回 null。 */
     suspend fun getSummary(sessionId: String): SummaryData? = withContext(Dispatchers.IO) {
         dao.get(sessionId)?.toSummaryData()
+    }
+
+    /** 读取摘要 revision token；不存在返回 null。 */
+    suspend fun readRevisionToken(sessionId: String): io.zer0.memory.runtime.SummaryRevisionToken? = withContext(Dispatchers.IO) {
+        val entity = dao.get(sessionId) ?: return@withContext null
+        io.zer0.memory.runtime.SummaryRevisionToken(
+            sessionId = entity.sessionId,
+            revision = entity.summaryRevision,
+            messageCount = entity.messageCount,
+            sourceFingerprint = entity.sourceFingerprint,
+            assistantId = entity.assistantId,
+            spaceId = entity.spaceId,
+        )
+    }
+
+    suspend fun isRevisionCurrent(sessionId: String, revision: Long): Boolean = withContext(Dispatchers.IO) {
+        dao.revisionOf(sessionId) == revision
     }
 
     /** 写入摘要(覆盖式)。 */
@@ -92,6 +112,11 @@ class SessionSummaryManager(
     /** 标记 session 已被深度记忆处理(snapshot = summary)。 */
     suspend fun markProcessed(sessionId: String) = withContext(Dispatchers.IO) {
         dao.markProcessed(sessionId, Instant.now().toString())
+    }
+
+    /** 仅当 revision 仍为 [expectedRevision] 时标记已处理；否则 false。 */
+    suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long): Boolean = withContext(Dispatchers.IO) {
+        dao.markProcessedIfCurrent(sessionId, expectedRevision, Instant.now().toString()) > 0
     }
 
     /** 获取所有摘要(按 updated_at 降序)。 */
@@ -137,12 +162,7 @@ class SessionSummaryManager(
      * [since] 是增量编译游标，语义是「只要这条摘要在游标之后有过真实内容变化」，
      * 因此用消息时间的 end 与之比较，而不是 `updated_at`。
      */
-    private fun entityBelongsToRange(
-        entity: SessionSummaryEntity,
-        start: Instant,
-        end: Instant,
-        since: String?,
-    ): Boolean {
+    private fun entityBelongsToRange(entity: SessionSummaryEntity, start: Instant, end: Instant, since: String?): Boolean {
         val range = entity.sourceTimeRange?.let { raw ->
             runCatching {
                 json.decodeFromString(TimeContext.SourceTimeRange.serializer(), raw)
@@ -211,10 +231,20 @@ class SessionSummaryManager(
     ): RollingResult = withContext(Dispatchers.IO) {
         // v2.6.2（记忆审计）: 整个 read-modify-write 按 session 串行，避免并发覆盖。
         lockFor(sessionId).withLock {
+            val current = readRevisionToken(sessionId)
             val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, ownership)
                 ?: return@withLock RollingResult(summary = "", changed = false)
             if (draft.changed && draft.data != null) {
-                saveSummary(sessionId, draft.data)
+                val data = draft.data
+                val expectedRevision = current?.revision
+                if (expectedRevision != null && !isRevisionCurrent(sessionId, expectedRevision)) {
+                    Logger.w("SessionSummaryManager", "rollingSummary CAS superseded for ${sessionId.take(8)}")
+                    return@withLock RollingResult(summary = draft.summary, changed = false)
+                }
+                saveSummary(sessionId, data)
+                if (expectedRevision != null) {
+                    dao.bumpRevisionIfCurrent(sessionId, expectedRevision, draft.data?.sourceFingerprint ?: "")
+                }
             }
             RollingResult(summary = draft.summary, changed = draft.changed)
         }
@@ -446,6 +476,9 @@ class SessionSummaryManager(
             snapshotAt = snapshotAt,
             assistantId = assistantId,
             spaceId = spaceId,
+            summaryRevision = summaryRevision,
+            sourceFingerprint = sourceFingerprint,
+            factReplacementRequired = factReplacementRequired,
         )
     }
 
@@ -464,6 +497,9 @@ class SessionSummaryManager(
             snapshotAt = snapshotAt,
             assistantId = assistantId,
             spaceId = spaceId,
+            summaryRevision = summaryRevision,
+            sourceFingerprint = sourceFingerprint,
+            factReplacementRequired = factReplacementRequired,
         )
     }
 

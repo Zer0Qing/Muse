@@ -39,6 +39,10 @@ data class DailyStateEntity(
     @ColumnInfo(name = "completed_steps")
     val completedSteps: String = "{}",
 
+    /** 最近失败步骤 JSON: {"compileFacts":"errorCode"}，供重启后诊断与重试。 */
+    @ColumnInfo(name = "failed_steps", defaultValue = "{}")
+    val failedSteps: String = "{}",
+
     /** 全部完成的时刻(ISO),null 表示当天还没全跑完。 */
     @ColumnInfo(name = "daily_completed_at")
     val dailyCompletedAt: String? = null,

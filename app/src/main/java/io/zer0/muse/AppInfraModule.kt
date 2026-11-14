@@ -7,7 +7,10 @@ import io.zer0.muse.web.CompositeWebSearchService
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchService
 import io.zer0.muse.web.createWebSearchClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -100,8 +103,14 @@ val appInfraModule = module {
         createWebSearchClient()
     }
     single<WebSearchService> {
-        // config 不在 Koin 初始化时同步读取(避免主线程 ANR),交给 CompositeWebSearchService 懒加载
-        CompositeWebSearchService(get(named("webSearch")), WebSearchConfig())
+        // 配置流在后台异步驱动 service，避免设置页保存后必须重启进程才能生效。
+        // 初始值仍使用空配置，防止 Koin 构造阶段阻塞主线程；flow 首次发射后会立即替换它。
+        val service = CompositeWebSearchService(get(named("webSearch")), WebSearchConfig())
+        val settings = get<SettingsRepository>()
+        get<CoroutineScope>().launch {
+            settings.webSearchConfigFlow.collect(service::updateConfig)
+        }
+        service
     }
 
     // MemoryTicker: 在 app 模块注册(需 SettingsRepository 与 memory 开关)

@@ -70,6 +70,7 @@ val appPromptModule = module {
             // 审计修复 (S-03): 透传 pinnedMemoryStore,统一置顶记忆数据源
             // (此前注入侧读无人写入的 pinned_memories.json,置顶内容永不注入)
             pinnedMemoryStore = get(),
+            memoryRuntime = getOrNull(),
             // P1-1: 透传 hookRegistry,SystemPromptComposeHook 在 build 末尾调用
             hookRegistry = get(),
             // v2.x: 透传 stickerRepository,库非空且开关开启时注入表情包使用指南

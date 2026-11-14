@@ -96,9 +96,11 @@ import java.util.zip.ZipInputStream
  */
 internal suspend fun <T> withBackupImportWriteGate(block: suspend () -> T): T {
     require(io.zer0.common.ProcessWriteGate.begin()) { "已有备份导入或恢复正在进行,请勿重复操作" }
+    io.zer0.memory.runtime.DefaultMemoryWriteGate.shared.open()
     return try {
         block()
     } finally {
+        io.zer0.memory.runtime.DefaultMemoryWriteGate.shared.close()
         io.zer0.common.ProcessWriteGate.end()
     }
 }

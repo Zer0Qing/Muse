@@ -59,7 +59,7 @@ import java.time.format.DateTimeFormatter
  * 历史缺陷正是守卫写死旧值(13)导致 v14 真库被误判为"未知高版本"反复归档清空。
  */
 // v2.6.23(S4): public —— 诊断卡(DiagnosticsSnapshot.AppSection)要展示当前 schema 版本。
-const val FACT_DB_VERSION = 20
+const val FACT_DB_VERSION = 21
 
 @Database(
     entities = [
@@ -70,6 +70,7 @@ const val FACT_DB_VERSION = 20
         FactRevisionEntity::class,
         FactTombstoneEntity::class,
         ProfileSnapshotEntity::class,
+        FactProjectionEntity::class,
     ],
     version = FACT_DB_VERSION,
     // v1.78 (H4): 开启 schema 导出,未来 v4+ 升级时编写 Migration 替代 destructive
@@ -92,6 +93,9 @@ abstract class FactDb : RoomDatabase() {
 
     /** v20(M3): 画像快照 DAO。 */
     abstract fun profileSnapshotDao(): ProfileSnapshotDao
+
+    /** v21: 事实投影 generation DAO。 */
+    abstract fun factProjectionDao(): FactProjectionDao
 
     companion object {
         /**
@@ -480,6 +484,32 @@ abstract class FactDb : RoomDatabase() {
             }
 
         /**
+         * v20→v21: 新增 fact_projections 表，承接 staged/publish/orphan 幂等发布。
+         * 纯增表，不触碰既有 facts/FTS/墓碑/修订数据。
+         */
+        val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS fact_projections (
+                        generation_id TEXT NOT NULL,
+                        session_id TEXT NOT NULL,
+                        source_revision INTEGER NOT NULL,
+                        scope TEXT NOT NULL,
+                        space_id TEXT NOT NULL,
+                        state TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        PRIMARY KEY(generation_id)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_fact_projections_session_id ON fact_projections(session_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_fact_projections_state ON fact_projections(state)")
+            }
+        }
+
+        /**
          * R-DB-03: 归档早期 v1/v2 或损坏的 facts 数据库。
          * 归档为 <name>.bak 后由 Room 重建空库,避免打开时崩溃。
          */
@@ -667,6 +697,7 @@ abstract class FactDb : RoomDatabase() {
                     MIGRATION_17_18,
                     MIGRATION_18_19,
                     MIGRATION_19_20,
+                    MIGRATION_20_21,
                 )
                 .addCallback(
                     object : Callback() {

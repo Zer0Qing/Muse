@@ -11,7 +11,7 @@ import org.junit.Test
  * 全量修复后的链路契约：
  * ① date_range 不再被客户端丢弃，能到达 provider；
  * ② 时效词自动推断 date_range；
- * ③ 操作符从 outboundQuery 剥离并在结果层生效；
+ * ③ site 操作符保留在 outboundQuery，并在结果层再次生效；
  * ④ 整句透传（不压成词袋）；
  * ⑤ 召回全不相关时返回空 + 原因（而非噪声兜底）；
  * ⑥ 响应带调试信息。
@@ -74,7 +74,7 @@ class WebSearchPipelineTest {
     }
 
     @Test
-    fun `site 操作符从 outboundQuery 剥离并在结果层过滤`() = runTest {
+    fun `site 操作符同时发送给 provider 并在结果层过滤`() = runTest {
         val service = RecordingService(
             listOf(
                 result("transformer github", "https://github.com/a/transformers"),
@@ -85,7 +85,7 @@ class WebSearchPipelineTest {
             WebSearchRequest("site:github.com transformer"),
             "t1",
         )
-        assertEquals("transformer", service.lastQuery)
+        assertEquals("site:github.com transformer", service.lastQuery)
         assertTrue("只保留约束域名", response.results.all { it.url.contains("github.com") })
         assertEquals(listOf("github.com"), response.debug?.constraints?.domains)
     }

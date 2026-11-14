@@ -72,6 +72,7 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     // v1.0.52 P2-2: 记忆空间仓库,启动时确保默认 Space 存在
     private val memorySpaceRepository: io.zer0.memory.space.MemorySpaceRepository by inject()
+
     /** 文件夹冗余计数校准（`folders.sessionCount` 双写漂移修复）。 */
     private val folderRepository: io.zer0.muse.data.session.FolderRepository by inject()
     private val subagentThreadStore: io.zer0.muse.data.subagent.SubagentThreadStore by inject()
@@ -79,6 +80,9 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val assistantRepository: AssistantRepository by inject()
     private val skillRepository: SkillRepository by inject()
     private val builtInKnowledgeDocSeeder: io.zer0.muse.data.knowledge.BuiltInKnowledgeDocSeeder by inject()
+
+    /** 默认知识库兜底（文档挂在 kb_id="default" 下但库里没有该行时补建）。 */
+    private val knowledgeDefaultKbEnsurer: io.zer0.muse.data.knowledge.KnowledgeDefaultKbEnsurer by inject()
     private val notificationManager: MuseNotificationManager by inject()
 
     /** 插件定时任务的检查间隔：一分钟一次足够（任务间隔下限是 15 分钟）。 */
@@ -628,6 +632,14 @@ class MuseApp : Application(), ImageLoaderFactory {
                 resultOf {
                     SkillExecutor.BUILT_IN_SKILLS.forEach { skillRepository.seedOrRefreshBuiltIn(it) }
                 }.onError { msg, t -> Logger.w("MuseApp", "内置 Skills 初始化失败", t) }
+            }
+            // 默认知识库兜底：文档写的是 kb_id="default"，但没有任何路径建过这一行
+            // （MIGRATION_38_39 只建表不插数据）。缺了它，知识库页面顶层列不出 KB，
+            // 直接显示「知识库为空」，而首页计数仍能数到文档 —— 表现为「导入进去不显示」。
+            // 必须在 seedDevDocs 之前跑：内置文档也要有可归属的库。
+            appScope.launch {
+                resultOf { knowledgeDefaultKbEnsurer.ensureExists() }
+                    .onError { msg, t -> Logger.w("MuseApp", "默认知识库兜底失败", t) }
             }
             // v0.43: seed 内置开发文档到知识库(用稳定 id,升级时内容更新但不重复;fileType="devdoc" 用于 UI 过滤)
             // v2.4.x: seed 后追加内部文档向量索引(增量、后台;embedding 不可用时保留关键词兜底)
@@ -1230,15 +1242,14 @@ class MuseApp : Application(), ImageLoaderFactory {
                 add(GifDecoder.Factory())
             }
         }
-        // v2.6.22: 内存预算 - 25% → 15%。
-        // 本应用同时有三套图片缓存：Coil（本处）、data-URI 位图（DataUriImageCache）、
-        // 消息 base64 字符串（MessageImageStore 64MB）。三者各自按堆比例定容、互不知情，
-        // 在 256MB 堆的机型上占到约 160MB，留给 Compose、请求体、渲染缓冲的空间不够，
-        // 表现为随机位置的 OOM（Compose 快照、协程调度器、厂商回调都在同一堆里分配）。
-        // 15% 仍在 Coil 推荐区间内；配合 MuseApp.onTrimMemory 的释放，图片能回来。
+        // 内存预算由 [MemoryBudget] 统一分配。
+        // 本应用有三套图片缓存：Coil（本处）、data-URI 位图（DataUriImageCache）、
+        // 消息 base64 字符串（MessageImageStore）。此前三者各自按堆比例定容、互不知情，
+        // 在 256MB 堆的机型上合计可占到 95MB 以上，留给 Compose、请求体、渲染缓冲的
+        // 空间不够，表现为随机位置的 OOM。现在三套都从同一个总预算切分。
         .memoryCache {
             MemoryCache.Builder(this)
-                .maxSizePercent(0.15)
+                .maxSizeBytes(io.zer0.muse.perf.MemoryBudget.coilBytes.toInt())
                 .build()
         }
         .diskCache {

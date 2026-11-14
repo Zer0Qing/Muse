@@ -88,6 +88,10 @@ private class EmptySessionSummaryDao : SessionSummaryDao {
     override suspend fun deleteById(sessionId: String) = Unit
     // 助手被删除时要清掉它名下的摘要；空数据 fake 里没有可删的行。
     override suspend fun deleteByAssistant(assistantId: String): Int = 0
+    override suspend fun revisionOf(sessionId: String): Long? = null
+    override suspend fun bumpRevisionIfCurrent(sessionId: String, expectedRevision: Long, sourceFingerprint: String): Int = 0
+    override suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long, now: String): Int = 0
+    override suspend fun markBranchChanged(sessionId: String, retainedMessageCount: Int): Int = 0
 }
 
 private class CapturingMemoryLlmClient(
@@ -145,6 +149,31 @@ private class InMemorySessionSummaryDao : SessionSummaryDao {
         val victims = rows.filterValues { it.assistantId == assistantId }.keys.toList()
         victims.forEach { rows.remove(it) }
         return victims.size
+    }
+    override suspend fun revisionOf(sessionId: String): Long? = rows[sessionId]?.summaryRevision
+    override suspend fun bumpRevisionIfCurrent(sessionId: String, expectedRevision: Long, sourceFingerprint: String): Int {
+        val current = rows[sessionId]
+        if (current == null || current.summaryRevision != expectedRevision) return 0
+        rows[sessionId] = current.copy(
+            summaryRevision = expectedRevision + 1,
+            sourceFingerprint = sourceFingerprint,
+        )
+        return 1
+    }
+    override suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long, now: String): Int {
+        val current = rows[sessionId]
+        if (current == null || current.summaryRevision != expectedRevision) return 0
+        rows[sessionId] = current.copy(snapshot = current.summary, snapshotAt = now)
+        return 1
+    }
+    override suspend fun markBranchChanged(sessionId: String, retainedMessageCount: Int): Int {
+        val current = rows[sessionId] ?: return 0
+        rows[sessionId] = current.copy(
+            summaryRevision = current.summaryRevision + 1,
+            messageCount = retainedMessageCount,
+            factReplacementRequired = true,
+        )
+        return 1
     }
 }
 

@@ -55,9 +55,20 @@ class WebSearchQueryNormalizerTest {
     }
 
     @Test
-    fun `refine truncates over long query at word boundary`() {
-        val long = "请" + " keyword".repeat(20).trim()
+    fun `refine keeps all terms in an overlong query`() {
+        val long = "请 " + "keyword ".repeat(20).trim()
         val refined = WebSearchQueryNormalizer.refine(long)
-        assert(refined.length <= 64) { "refined too long: ${refined.length}" }
+        assertEquals(20, refined.split(" ").count { it == "keyword" })
+    }
+
+    @Test
+    fun `refine preserves meaningful terms near the end of a long query`() {
+        val raw =
+            "please search the latest comprehensive guide for mobile development packaging deployment permissions " +
+                "networking debugging and troubleshooting details about python android termux"
+        val refined = WebSearchQueryNormalizer.refine(raw)
+        assert(refined.contains("python", ignoreCase = true)) { "python was discarded: $refined" }
+        assert(refined.contains("android", ignoreCase = true)) { "android was discarded: $refined" }
+        assert(refined.contains("termux", ignoreCase = true)) { "termux was discarded: $refined" }
     }
 }

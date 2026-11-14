@@ -13,4 +13,15 @@
     <string name="settings_web_search_key_verify_failed">Verification failed: %1$s</string>
     <string name="settings_web_search_key_verify_no_key">This engine has no usable key yet</string>
     <string name="settings_web_search_key_verify_empty">Reached the service, but it returned no results</string>
+    <string name="settings_web_search_provider_current">In use</string>
+    <string name="settings_web_search_provider_configure">Configure</string>
+    <string name="settings_web_search_provider_selection">Current search engine</string>
+    <string name="settings_web_search_provider_set_current">Use as current search engine</string>
+    <string name="settings_web_search_provider_set_current_subtitle">Search requests will use %1$s</string>
+    <string name="settings_web_search_provider_auto_desc">Auto mode tries configured services in search order. Most users do not need to enter anything else.</string>
+    <string name="settings_web_search_provider_list_title">Search services</string>
+    <string name="settings_web_search_provider_list_desc">Choose a service first, then configure its key, test the connection, and save it on the detail page. Muse manages endpoints for standard services.</string>
+    <string name="settings_web_search_provider_status_ready">Configured</string>
+    <string name="settings_web_search_provider_status_needs_key">API key required</string>
+    <string name="settings_web_search_provider_status_needs_url">Instance URL required</string>
 </resources>

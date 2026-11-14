@@ -326,21 +326,36 @@ data class WebSearchConfig(
          * 用户升级后所有已配的 Key 和自定义端点凭空消失。旧字段一律保留做兼容读取。
          */
         fun migrateToV3(config: WebSearchConfig): WebSearchConfig {
-            if (config.policyVersion >= 3) return config
-            val budgetFixed = if (config.maxSearchesPerTurn < 50) 50 else config.maxSearchesPerTurn
+            // 历史版本曾把自定义 API 按界面语言写入 providerName；先归一化别名，
+            // 再做迁移，避免 v3 之后的建链与设置页各自维护一套兼容判断。
+            val normalizedApiKeys = LinkedHashMap<String, String>()
+            config.apiKeys.forEach { (provider, key) ->
+                val canonical = WebSearchProviderCatalog.canonicalKey(provider)
+                if (key.isNotBlank()) normalizedApiKeys.putIfAbsent(canonical, key)
+            }
+            val normalizedEntries = config.providerEntries.map { entry ->
+                entry.copy(type = WebSearchProviderCatalog.canonicalKey(entry.type))
+            }
+            val normalized = config.copy(
+                providerName = WebSearchProviderCatalog.canonicalKey(config.providerName),
+                apiKeys = normalizedApiKeys,
+                providerEntries = normalizedEntries,
+            )
+            if (normalized.policyVersion >= 3) return normalized
+            val budgetFixed = if (normalized.maxSearchesPerTurn < 50) 50 else normalized.maxSearchesPerTurn
             val merged = LinkedHashMap<String, MutableList<String>>()
 
             // 1. apiKeys 映射：每家一把 → 每家 Key 池的第一把。
-            config.apiKeys.forEach { (provider, key) ->
+            normalized.apiKeys.forEach { (provider, key) ->
                 if (key.isNotBlank()) merged.getOrPut(provider) { mutableListOf() }.add(key)
             }
             // 2. 旧单 apiKey + providerName：并入该家（若该家还没有 key）。
-            if (config.providerName != "Auto" && config.apiKey.isNotBlank()) {
-                val pool = merged.getOrPut(config.providerName) { mutableListOf() }
-                if (!pool.contains(config.apiKey)) pool.add(config.apiKey)
+            if (normalized.providerName != "Auto" && normalized.apiKey.isNotBlank()) {
+                val pool = merged.getOrPut(normalized.providerName) { mutableListOf() }
+                if (!pool.contains(normalized.apiKey)) pool.add(normalized.apiKey)
             }
             // 3. 旧全局 endpoint 归到当前生效那家（Auto 时不属于任何一家，不臆造）。
-            val endpointOwner = config.providerName.takeIf { it != "Auto" && config.endpoint.isNotBlank() }
+            val endpointOwner = normalized.providerName.takeIf { it != "Auto" && normalized.endpoint.isNotBlank() }
             // 4. customEngines 各自成条目，端点与 key 都带过去。
             val customEntries = config.customEngines.map { engine ->
                 WebSearchProviderEntry(
@@ -355,7 +370,7 @@ data class WebSearchConfig(
                 WebSearchProviderEntry(
                     id = provider,
                     type = provider,
-                    customUrl = if (provider == endpointOwner) config.endpoint else "",
+                    customUrl = if (provider == endpointOwner) normalized.endpoint else "",
                     apiKeys = keys.distinct(),
                 )
             }
@@ -367,13 +382,13 @@ data class WebSearchConfig(
                     WebSearchProviderEntry(
                         id = owner,
                         type = owner,
-                        customUrl = config.endpoint,
+                        customUrl = normalized.endpoint,
                     )
                 }
             // 自定义引擎与 apiKeys 里同名的条目去重：以自定义引擎（信息更全）为准。
             val customIds = customEntries.map { it.id }.toSet()
             val entries = customEntries + apiEntries.filter { it.id !in customIds } + listOfNotNull(endpointOnlyEntry)
-            return config.copy(
+            return normalized.copy(
                 maxSearchesPerTurn = budgetFixed,
                 policyVersion = 3,
                 providerEntries = entries,

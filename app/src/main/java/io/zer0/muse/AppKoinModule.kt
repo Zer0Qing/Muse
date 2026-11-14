@@ -181,6 +181,9 @@ val appModule = module {
     }
     // +MuseDb: 跨表事务(H-SESS1); +SessionMemoryCleanup: 删会话连带清记忆
     // 末尾多注入一个 FolderDao：删除会话时要递减 folders.sessionCount（冗余字段双写）。
+    // 默认知识库兜底：普通文件导入写 kb_id="default"，但没有任何路径建过这一行。
+    // 缺了它，知识库页面顶层列不出 KB，直接显示「知识库为空」而文档其实都在。
+    single { io.zer0.muse.data.knowledge.KnowledgeDefaultKbEnsurer(get()) }
     single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get()) }
     single { io.zer0.muse.data.artifact.ArtifactRepository(get()) } // v1.43: 会话产物仓库
     single {
@@ -487,6 +490,7 @@ val appModule = module {
                     compiler.searchCompiledSections(query, scope, spaceId, limit)
                 }
             },
+            memoryUseCases = getOrNull<io.zer0.memory.runtime.MemoryUseCases>(),
         )
     }
     // v2.x: current-session original conversation recall, scoped by host context.

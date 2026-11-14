@@ -40,6 +40,7 @@ val appViewModelModule = module {
             // v2.6.23(M2): 矛盾改在 facts 行上落 pending,VM 直接走 FactStore;JSON 清单 store 不再注入 VM。
             // v1.0.92: LLM 记忆整合器(手动"整理记忆"与每日自动整合共用同一实现)
             factConsolidator = get(),
+            memoryUseCases = get(),
         )
     }
 

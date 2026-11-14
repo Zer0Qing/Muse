@@ -35,17 +35,19 @@ import io.zer0.muse.ui.settings.SecuritySettingsPage
 import io.zer0.muse.ui.settings.SettingsAboutPage
 import io.zer0.muse.ui.settings.SettingsAppearancePage
 import io.zer0.muse.ui.settings.SettingsAsrPage
-import io.zer0.muse.ui.settings.SettingsLocalAsrModelPage
 import io.zer0.muse.ui.settings.SettingsAssistantResourcesPage
 import io.zer0.muse.ui.settings.SettingsDataImportPage
 import io.zer0.muse.ui.settings.SettingsDataPage
 import io.zer0.muse.ui.settings.SettingsDiagnosticsPage
 import io.zer0.muse.ui.settings.SettingsGroupPage
+import io.zer0.muse.ui.settings.SettingsLocalAsrModelPage
 import io.zer0.muse.ui.settings.SettingsMcpPage
 import io.zer0.muse.ui.settings.SettingsModelPage
 import io.zer0.muse.ui.settings.SettingsSessionTermsPage
 import io.zer0.muse.ui.settings.SettingsTutorialPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
+import io.zer0.muse.ui.settings.SettingsWebSearchProviderDetailPage
+import io.zer0.muse.ui.settings.SettingsWebSearchProviderListPage
 import io.zer0.muse.ui.settings.TaskRoutingSettingsPage
 import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.UserPreferencePage
@@ -142,6 +144,28 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsWebSearchPage(
+            onBack = { navController.popBackStack() },
+            onOpenProviderList = { navController.navigate(SettingsWebSearchProviderListRoute) },
+        )
+    }
+    composable<SettingsWebSearchProviderListRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        SettingsWebSearchProviderListPage(
+            onBack = { navController.popBackStack() },
+            onOpenProvider = { providerKey ->
+                navController.navigate(SettingsWebSearchProviderRoute(providerKey))
+            },
+        )
+    }
+    composable<SettingsWebSearchProviderRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { backStackEntry ->
+        val route = backStackEntry.toRoute<SettingsWebSearchProviderRoute>()
+        SettingsWebSearchProviderDetailPage(
+            providerKey = route.providerKey,
             onBack = { navController.popBackStack() },
         )
     }

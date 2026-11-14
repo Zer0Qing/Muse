@@ -16,13 +16,28 @@ interface ScopedCompiledSectionDao {
     @Query("SELECT * FROM compiled_sections_scoped")
     suspend fun getAll(): List<ScopedCompiledSectionEntity>
 
+    @Query("SELECT * FROM compiled_sections_scoped WHERE scope = :scope AND space_id = :spaceId")
+    suspend fun getForScope(scope: String, spaceId: String): List<ScopedCompiledSectionEntity>
+
+    @Query("DELETE FROM compiled_sections_scoped WHERE scope = :scope AND space_id = :spaceId")
+    suspend fun deleteForScope(scope: String, spaceId: String)
+
     @Query(
-        "INSERT INTO compiled_sections_scoped (section_key, scope, space_id, content, fingerprint, updated_at) " +
-            "VALUES (:key, :scope, :spaceId, :content, :fingerprint, :now) " +
+        "INSERT INTO compiled_sections_scoped (section_key, scope, space_id, content, fingerprint, updated_at, source_fingerprint, status) " +
+            "VALUES (:key, :scope, :spaceId, :content, :fingerprint, :now, :sourceFingerprint, :status) " +
             "ON CONFLICT(section_key, scope, space_id) DO UPDATE SET " +
-            "content = :content, fingerprint = :fingerprint, updated_at = :now",
+            "content = :content, fingerprint = :fingerprint, updated_at = :now, source_fingerprint = :sourceFingerprint, status = :status",
     )
-    suspend fun updateContent(key: String, scope: String, spaceId: String, content: String, fingerprint: String?, now: String)
+    suspend fun updateContent(
+        key: String,
+        scope: String,
+        spaceId: String,
+        content: String,
+        fingerprint: String?,
+        now: String,
+        sourceFingerprint: String = "",
+        status: String = "READY",
+    )
 
     @Query("UPDATE compiled_sections_scoped SET content = '', fingerprint = NULL, updated_at = :now")
     suspend fun clearAll(now: String)

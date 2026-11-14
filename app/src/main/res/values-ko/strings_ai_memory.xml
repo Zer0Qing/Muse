@@ -212,4 +212,6 @@
     <string name="memory_merge_error_empty_result">병합 결과는 비울 수 없습니다</string>
     <string name="memory_merge_error_commit_failed">병합에 실패했습니다. 기억은 변경되지 않았습니다</string>
     <string name="memory_space_default_name">기본</string>
+    <string name="memory_pinned_dedup_none">병합할 중복 고정 항목이 없습니다</string>
+    <plurals name="memory_pinned_dedup_done"><item quantity="other">중복 고정 항목 %1$d개를 병합했습니다</item></plurals>
 </resources>

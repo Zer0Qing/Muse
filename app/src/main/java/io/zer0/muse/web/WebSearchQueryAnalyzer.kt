@@ -6,8 +6,9 @@ import java.util.Locale
  * 联网搜索查询分析。
  *
  * 职责边界（重要）：本对象**不改写发给搜索引擎的 query**。[analyze] 产出的
- * [WebSearchQueryPlan.outboundQuery] 仍是与用户输入等价的整句（仅剥离检索操作符），
- * 原样交给各 provider。原因是 Tavily / Exa / Perplexity 这类语义引擎以整句为输入，
+ * [WebSearchQueryPlan.outboundQuery] 仍是与用户输入等价的整句（保留 site 约束，
+ * 剥离不稳定的 filetype/intitle 及未知操作符），原样交给各 provider。原因是
+ * Tavily / Exa / Perplexity 这类语义引擎以整句为输入，
  * 把自然语言压成词袋会让召回变差；历史上也从未做过「只取第一个词」的改写。
  *
  * 分析产物只服务检索**之后**的环节：
@@ -98,7 +99,7 @@ object WebSearchQueryAnalyzer {
             )
         }
 
-        // 1. 操作符预提取：按 token 解析，从发往引擎的 query 中剥离。
+        // 1. 操作符预提取：按 token 解析；site 继续发给上游，其余操作符只在结果层执行。
         // 按 token 而不是整串正则，URL 里的 "a:b"、scheme 后的 ":" 才不会被误判成操作符。
         val domains = mutableListOf<String>()
         var filetype: String? = null
@@ -117,7 +118,11 @@ object WebSearchQueryAnalyzer {
             val key = match.groupValues[1].lowercase(Locale.ROOT)
             val value = match.groupValues[2].trim().trimEnd(',', '，', ';', '；')
             when (key) {
-                "site" -> if (value.isNotBlank()) domains += value.lowercase(Locale.ROOT)
+                "site" -> if (value.isNotBlank()) {
+                    domains += value.lowercase(Locale.ROOT)
+                    // 保留 site 约束给上游引擎，同时由结果层再次校验域名。
+                    keptTokens += "site:$value"
+                }
                 "filetype" -> if (value.isNotBlank()) filetype = value.lowercase(Locale.ROOT)
                 "intitle" -> if (value.isNotBlank()) titleContains += value
                 else -> {
@@ -128,6 +133,10 @@ object WebSearchQueryAnalyzer {
             }
         }
         val stripped = keptTokens.joinToString(" ").trim()
+        // site 约束要发给上游，但不是内容主题；否则域名 token 会稀释正文词的召回权重。
+        val topicSource = keptTokens
+            .filterNot { it.startsWith("site:", ignoreCase = true) }
+            .joinToString(" ")
 
         // 2. 时效信号：只推断，不删词。
         val lower = original.lowercase(Locale.ROOT)
@@ -138,7 +147,7 @@ object WebSearchQueryAnalyzer {
         // 只剥离多字弱词；单字虚词（的/了/和…）若 replace 会把中文连续串切碎，
         // 它们只在下方按「候选词整词相等」过滤。
         val fillers = ZH_STOP_WORDS + ZH_WEAK_WORDS.filter { it.length >= 2 }
-        val zhCleaned = fillers.fold(stripped) { acc, word -> acc.replace(word, " ") }
+        val zhCleaned = fillers.fold(topicSource) { acc, word -> acc.replace(word, " ") }
         val candidates = zhCleaned
             .split(Regex("[\\s,，。、;；:：!！?？()（）\\[\\]\"'“”‘’/]+"))
             .map { it.trim() }
@@ -202,7 +211,7 @@ data class WebSearchConstraints(
 /**
  * 查询分析产物。
  *
- * @param outboundQuery 发给上游引擎的整句（仅剥离操作符）；**不要**用 topics 拼装替换它。
+ * @param outboundQuery 发给上游引擎的整句（保留 site，剥离不稳定操作符）；**不要**用 topics 拼装替换它。
  * @param effectiveDateRange 显式传入优先，否则用时效词推断值。
  */
 data class WebSearchQueryPlan(

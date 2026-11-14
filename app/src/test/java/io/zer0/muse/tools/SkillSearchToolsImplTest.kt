@@ -7,7 +7,10 @@ import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.data.session.MuseDb
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
+import io.zer0.muse.web.WebSearchResult
+import io.zer0.muse.web.WebSearchService
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,6 +30,57 @@ class SkillSearchToolsImplTest {
         knowledgeDocDao = null,
         ragService = null,
     )
+
+    @Test
+    fun `web search tool boundary preserves every query token`() = runBlocking {
+        class RecordingSearchService : WebSearchService {
+            override val name: String = "Recording"
+            val queries = mutableListOf<String>()
+
+            override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> {
+                queries += query
+                return listOf(
+                    WebSearchResult(
+                        title = query,
+                        url = if (query.startsWith("site:github.com")) {
+                            "https://github.com/example/python"
+                        } else {
+                            "https://example.com/$maxResults"
+                        },
+                        snippet = query,
+                        source = name,
+                    ),
+                )
+            }
+        }
+
+        val service = RecordingSearchService()
+        val tools = SkillSearchToolsImpl(
+            context = context,
+            client = OkHttpClient(),
+            webSearchService = service,
+            knowledgeDocDao = null,
+            ragService = null,
+        )
+
+        listOf(
+            "python android",
+            "android python",
+            "天气 成都",
+            "site:github.com python",
+        ).forEach { query ->
+            val args = ToolArgsParser.parse(
+                "{\"query\":\"$query\",\"max_results\":5}",
+                "web_search",
+            )
+            tools.execWebSearch(args, turnKey = "tool-boundary-$query")
+        }
+
+        assertEquals(
+            listOf("python android", "android python", "天气 成都", "site:github.com python"),
+            service.queries,
+        )
+    }
 
     @Test
     fun validatePublicUrl_rejectsPrivateAndLoopback() {

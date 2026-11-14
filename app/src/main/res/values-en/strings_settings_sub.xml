@@ -864,4 +864,7 @@
     <string name="kb_settings_title">Knowledge settings</string>
     <string name="settings_about_contributors">Contributors</string>
     <string name="settings_about_contributors_subtitle">Spanish localization: %1$s</string>
+    <string name="settings_about_memory_limit">Memory limit %1$dMB (%2$s)</string>
+    <string name="settings_about_memory_low_heap">low-memory device</string>
+    <string name="settings_about_memory_normal_heap">largeHeap enabled</string>
 </resources>

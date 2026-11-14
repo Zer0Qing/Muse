@@ -13,4 +13,15 @@
     <string name="settings_web_search_key_verify_failed">検証に失敗しました：%1$s</string>
     <string name="settings_web_search_key_verify_no_key">このエンジンに利用可能な Key がありません</string>
     <string name="settings_web_search_key_verify_empty">接続できたが結果は返されませんでした</string>
+    <string name="settings_web_search_provider_current">使用中</string>
+    <string name="settings_web_search_provider_configure">設定</string>
+    <string name="settings_web_search_provider_selection">現在の検索エンジン</string>
+    <string name="settings_web_search_provider_set_current">現在の検索エンジンにする</string>
+    <string name="settings_web_search_provider_set_current_subtitle">検索リクエストに %1$s を使用します</string>
+    <string name="settings_web_search_provider_auto_desc">自動モードでは、設定済みのサービスを検索順に試します。通常は追加の入力は必要ありません。</string>
+    <string name="settings_web_search_provider_list_title">検索サービス</string>
+    <string name="settings_web_search_provider_list_desc">サービスを選択してから、詳細ページでキーを設定し、接続をテストして保存します。標準サービスのエンドポイントは Muse が管理します。</string>
+    <string name="settings_web_search_provider_status_ready">設定済み</string>
+    <string name="settings_web_search_provider_status_needs_key">API Key が必要</string>
+    <string name="settings_web_search_provider_status_needs_url">インスタンス URL が必要</string>
 </resources>

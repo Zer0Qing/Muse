@@ -329,6 +329,8 @@
     <string name="settings_web_search_provider_type_desc">유형을 먼저 선택한 뒤 해당 유형에 필요한 정보를 입력하세요</string>
     <string name="settings_web_search_custom_url_optional">사용자 지정 URL(선택 사항)</string>
     <string name="settings_web_search_custom_url_hint">비워 두면 기본 주소가 사용됩니다</string>
+    <string name="settings_web_search_endpoint_label">연결 엔드포인트</string>
+    <string name="settings_web_search_endpoint_managed">Muse가 자동으로 설정하며 일반적으로 변경할 필요가 없습니다</string>
     <string name="settings_web_search_key_pool_label">API 키</string>
     <string name="settings_web_search_key_pool_hint">여러 API 키를 붙여 넣을 수 있습니다. 한 줄에 하나씩 또는 쉼표로 구분하세요</string>
     <string name="settings_web_search_model_optional">모델 이름(선택 사항)</string>

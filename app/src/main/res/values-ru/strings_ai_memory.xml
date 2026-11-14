@@ -212,4 +212,6 @@
     <string name="memory_merge_error_empty_result">Результат объединения не может быть пустым</string>
     <string name="memory_merge_error_commit_failed">Объединение не удалось, воспоминания не изменены</string>
     <string name="memory_space_default_name">По умолчанию</string>
+    <string name="memory_pinned_dedup_none">Нет дублирующихся закреплённых записей</string>
+    <plurals name="memory_pinned_dedup_done"><item quantity="one">Объединена %1$d дублирующаяся запись</item><item quantity="few">Объединено %1$d дублирующиеся записи</item><item quantity="many">Объединено %1$d дублирующихся записей</item><item quantity="other">Объединено %1$d дублирующейся записи</item></plurals>
 </resources>

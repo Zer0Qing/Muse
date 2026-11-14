@@ -57,6 +57,7 @@ import io.zer0.muse.auth.OAuthManager
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.perf.MemoryBudget
 import io.zer0.muse.ui.chat.usableProviderPresent
 import io.zer0.muse.ui.common.feedback.MuseAlertDialog
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -603,13 +604,19 @@ fun SettingsModelPage(
  * 仅渲染 [WebSearchSection],让"模型与服务"页只保留供应商列表。
  */
 @Composable
-fun SettingsWebSearchPage(onBack: () -> Unit) {
+fun SettingsWebSearchPage(onBack: () -> Unit, onOpenProviderList: () -> Unit = {}) {
     val settings: SettingsRepository = koinInject()
     val webSearchConfig by settings.webSearchConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.web.WebSearchConfig(),
     )
     SettingsSubPageScaffold(title = stringResource(R.string.settings_web_search_section), onBack = onBack) {
-        item { WebSearchSection(webSearchConfig = webSearchConfig, settings = settings) }
+        item {
+            WebSearchSection(
+                webSearchConfig = webSearchConfig,
+                settings = settings,
+                onOpenProviderList = onOpenProviderList,
+            )
+        }
     }
 }
 
@@ -649,11 +656,7 @@ fun SettingsAssistantResourcesPage(
  * v1.133: 二级页 — 语音识别 ASR(从 SettingsModelPage 拆出)。
  */
 @Composable
-fun SettingsAsrPage(
-    onBack: () -> Unit,
-    onOpenProviderSettings: () -> Unit = {},
-    onOpenLocalModel: () -> Unit = {},
-) {
+fun SettingsAsrPage(onBack: () -> Unit, onOpenProviderSettings: () -> Unit = {}, onOpenLocalModel: () -> Unit = {}) {
     val settings: SettingsRepository = koinInject()
     val asrConfig by settings.asrConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.asr.AsrConfig(),
@@ -925,6 +928,21 @@ fun SettingsAboutPage(
                     Text(
                         // v1.66: 改为动态 BuildConfig 值,不再硬编码 "debug"
                         text = "Build: ${if (BuildConfig.DEBUG) "debug" else "release"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        // 堆上限由 ROM 决定( dalvik.vm.heapsize / heapgrowthlimit ),
+                        // 应用无法调大。写在这里是为了让“为什么堆只有这么点”有据可查。
+                        text = stringResource(
+                            R.string.settings_about_memory_limit,
+                            MemoryBudget.heapMaxMb,
+                            if (MemoryBudget.isLowHeap) {
+                                stringResource(R.string.settings_about_memory_low_heap)
+                            } else {
+                                stringResource(R.string.settings_about_memory_normal_heap)
+                            },
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

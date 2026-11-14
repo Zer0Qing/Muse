@@ -839,4 +839,7 @@
     <string name="kb_settings_title">Configurações de conhecimento</string>
     <string name="settings_about_contributors">Colaboradores</string>
     <string name="settings_about_contributors_subtitle">Localização em espanhol: %1$s</string>
+    <string name="settings_about_memory_limit">Limite de memória %1$dMB (%2$s)</string>
+    <string name="settings_about_memory_low_heap">dispositivo de baixa memória</string>
+    <string name="settings_about_memory_normal_heap">largeHeap ativado</string>
 </resources>

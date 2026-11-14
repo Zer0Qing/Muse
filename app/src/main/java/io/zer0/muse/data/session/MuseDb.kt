@@ -324,7 +324,7 @@ abstract class MuseDb : RoomDatabase() {
 
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 130
+        const val LATEST_SCHEMA_VERSION = 131
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -1560,6 +1560,15 @@ abstract class MuseDb : RoomDatabase() {
          * 索引名沿用 Room 的命名规则(`index_<表>_<列...>`)—— 名字不一致时
          * Room 会在升级后校验阶段报"unexpected index",而不是安静通过。
          */
+        val MIGRATION_130_131 = object : Migration(130, 131) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 置顶记忆注入独立开关：默认 1（保持现有行为，升级用户不会突然失去置顶注入）。
+                db.execSQL(
+                    "ALTER TABLE `assistants` ADD COLUMN `enablePinnedInjection` INTEGER NOT NULL DEFAULT 1",
+                )
+            }
+        }
+
         val MIGRATION_124_125 = object : Migration(124, 125) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -3622,6 +3631,7 @@ abstract class MuseDb : RoomDatabase() {
             io.zer0.muse.data.knowledge.KnowledgeVectorSchemaMigrations.MIGRATION_127_128,
             io.zer0.muse.data.knowledge.KnowledgeFolderSchemaMigrations.MIGRATION_128_129,
             io.zer0.muse.data.knowledge.KnowledgeEvidenceSchemaMigrations.MIGRATION_129_130,
+            MIGRATION_130_131,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

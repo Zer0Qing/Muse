@@ -29,4 +29,10 @@ data class ToolExecutionContext(
      * `progressText`（与 skill 执行分支同一条通道）。
      */
     val onProgress: ((String) -> Unit)? = null,
+
+    /**
+     * 子代理/渠道等非可信上下文。默认 false 保持旧行为。
+     * 为 true 时，host 侧应限制长期记忆写入口（pin/unpin/save/delete/record_experience）。
+     */
+    val isSubagentContext: Boolean = false,
 )

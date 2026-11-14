@@ -452,8 +452,25 @@ private fun decodeDataUriBitmap(base64Part: String): android.graphics.Bitmap? = 
     while (options.outWidth / sampleSize > targetSize || options.outHeight / sampleSize > targetSize) {
         sampleSize *= 2
     }
-    val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
-    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+    val decodeOptions = android.graphics.BitmapFactory.Options().apply {
+        inSampleSize = sampleSize
+        // 位图放到 Native/显存侧:不占用 Java 堆的 256MB 额度。
+        // 本图只用于 Image(bitmap = ...) 显示,HARDWARE 位图不可读像素、不可 copy 的
+        // 限制对这里无影响。个别 OEM ROM 上 HARDWARE 解码可能失败,所以外层有
+        // runCatching + 回退到 ARGB_8888(见下)。
+        inPreferredConfig = android.graphics.Bitmap.Config.HARDWARE
+    }
+    val hardwareBitmap = runCatching {
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+    }.getOrNull()
+    if (hardwareBitmap != null) {
+        hardwareBitmap
+    } else {
+        // HARDWARE 解码失败(旧 ROM / 厂商裁剪):回退到普通配置。
+        // 此时仍然保留降采样,只是位图回到 Java 堆。
+        val fallback = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, fallback)
+    }
 }.onFailure { Logger.w("MessageBubble", "base64 image decode failed: ${it.message}", it) }.getOrNull()
 
 /**

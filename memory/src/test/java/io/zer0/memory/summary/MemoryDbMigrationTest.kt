@@ -46,6 +46,10 @@ class MemoryDbMigrationTest {
                 MemoryDb.MIGRATION_2_3,
                 MemoryDb.MIGRATION_3_4,
                 MemoryDb.MIGRATION_4_5,
+                MemoryDb.MIGRATION_5_6,
+                MemoryDb.MIGRATION_6_7,
+                MemoryDb.MIGRATION_7_8,
+                MemoryDb.MIGRATION_8_9,
             )
             .build()
         try {
@@ -80,7 +84,14 @@ class MemoryDbMigrationTest {
 
         val db = Room.databaseBuilder(context, MemoryDb::class.java, file.absolutePath)
             .allowMainThreadQueries()
-            .addMigrations(MemoryDb.MIGRATION_3_4, MemoryDb.MIGRATION_4_5)
+            .addMigrations(
+                MemoryDb.MIGRATION_3_4,
+                MemoryDb.MIGRATION_4_5,
+                MemoryDb.MIGRATION_5_6,
+                MemoryDb.MIGRATION_6_7,
+                MemoryDb.MIGRATION_7_8,
+                MemoryDb.MIGRATION_8_9,
+            )
             .build()
         try {
             // ① 旧摘要仍在
@@ -122,6 +133,60 @@ class MemoryDbMigrationTest {
     }
 
     /**
+     * v6→v7：daily_state 新增 failed_steps 列，旧进度默认空失败记录、不打断已完成步骤。
+     */
+    @Test
+    fun `v6 to v7 adds failed steps column to daily state`() {
+        val dbFile = Files.createTempDirectory("memory-v6").toFile()
+        tempFiles += dbFile
+        val file = File(dbFile, "memory.db")
+        val factory = FrameworkSQLiteOpenHelperFactory()
+        val helper = factory.create(
+            SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(file.absolutePath)
+                .callback(object : SupportSQLiteOpenHelper.Callback(6) {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        db.execSQL(
+                            """
+                            CREATE TABLE daily_state (
+                                `key` TEXT NOT NULL,
+                                schema_version INTEGER NOT NULL,
+                                logical_date TEXT NOT NULL,
+                                reset_at TEXT,
+                                facts_mode TEXT NOT NULL,
+                                completed_steps TEXT NOT NULL,
+                                daily_completed_at TEXT,
+                                updated_at TEXT NOT NULL,
+                                PRIMARY KEY(`key`)
+                            )
+                            """.trimIndent(),
+                        )
+                        db.execSQL(
+                            "INSERT INTO daily_state (`key`, schema_version, logical_date, reset_at, facts_mode, completed_steps, daily_completed_at, updated_at) " +
+                                "VALUES ('main|default', 2, '2026-11-13', NULL, 'legacy', '{}', NULL, 'now')",
+                        )
+                    }
+
+                    override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+                })
+                .build(),
+        ).writableDatabase
+
+        MemoryDb.MIGRATION_6_7.migrate(helper)
+
+        helper.query("PRAGMA table_info(daily_state)").use { cursor ->
+            val cols = mutableListOf<String>()
+            while (cursor.moveToNext()) cols.add(cursor.getString(1))
+            assertTrue("failed_steps 列应存在", "failed_steps" in cols)
+        }
+        helper.query("SELECT failed_steps FROM daily_state").use { cursor ->
+            assertTrue("旧行应保留", cursor.moveToFirst())
+            assertEquals("{}", cursor.getString(0))
+        }
+        helper.close()
+    }
+
+    /**
      * v4 → v5：检查点增加"累计并入摘要条数"列。
      *
      * 断言：旧检查点保留、新列存在且默认 0（展示层遇到 0 按"未知"处理）。
@@ -147,6 +212,10 @@ class MemoryDbMigrationTest {
                 MemoryDb.MIGRATION_2_3,
                 MemoryDb.MIGRATION_3_4,
                 MemoryDb.MIGRATION_4_5,
+                MemoryDb.MIGRATION_5_6,
+                MemoryDb.MIGRATION_6_7,
+                MemoryDb.MIGRATION_7_8,
+                MemoryDb.MIGRATION_8_9,
             )
             .build()
         try {

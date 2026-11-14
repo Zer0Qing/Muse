@@ -40,9 +40,6 @@ object WebSearchQueryNormalizer {
     /** 超过该长度才做"口语提炼",避免把正常短 query 误删。 */
     private const val REFINE_MIN_LENGTH = 12
 
-    /** 提炼后的 query 长度上限(超出按词边界截断)。 */
-    private const val REFINE_MAX_LENGTH = 64
-
     fun normalize(raw: String): String {
         var query = Normalizer.normalize(raw, Normalizer.Form.NFKC)
             .replace('\u2018', ' ')
@@ -73,7 +70,7 @@ object WebSearchQueryNormalizer {
      *     短 keyword(如 "DeepSeek V4 Flash 模型")原样保留;
      *  2. 只剔口语噪声 — 去句首客套/提问套话、句末语气词,不做分词/去停用词
      *     (中文停用词误删风险高,宁可保守);
-     *  3. 超长截断 — 超过 [REFINE_MAX_LENGTH] 时按词边界截断,防整段被当 query。
+     *  3. 不截断 — 查询长度由上游 provider 自己约束；本层不能静默丢掉尾部主题词。
      *
      * 注意:本函数幂等 — refine(refine(x)) == refine(x)。
      */
@@ -99,13 +96,6 @@ object WebSearchQueryNormalizer {
                 query = query.dropLast(filler.length).trimEnd(' ', ',', '，', '。', '?', '？')
                 break
             }
-        }
-
-        // 3. 超长按词边界截断
-        if (query.length > REFINE_MAX_LENGTH) {
-            val cut = query.take(REFINE_MAX_LENGTH)
-            val boundary = cut.lastIndexOf(' ')
-            query = if (boundary > REFINE_MAX_LENGTH / 2) cut.substring(0, boundary).trim() else cut.trim()
         }
 
         return query.ifBlank { normalize(raw) }

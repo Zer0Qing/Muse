@@ -83,6 +83,14 @@ data object SettingsModelRoute
 @Serializable
 data object SettingsWebSearchRoute
 
+/** 联网搜索单个供应商的配置详情页。 */
+@Serializable
+data class SettingsWebSearchProviderRoute(val providerKey: String)
+
+/** 联网搜索供应商选择列表页。 */
+@Serializable
+data object SettingsWebSearchProviderListRoute
+
 @Serializable
 data object SettingsAsrRoute
 

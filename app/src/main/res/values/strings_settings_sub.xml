@@ -869,4 +869,7 @@
     <string name="kb_settings_title">知识库设置</string>
     <string name="settings_about_contributors">贡献者</string>
     <string name="settings_about_contributors_subtitle">西班牙语本地化：%1$s</string>
+    <string name="settings_about_memory_limit">内存上限 %1$dMB（%2$s）</string>
+    <string name="settings_about_memory_low_heap">低内存设备</string>
+    <string name="settings_about_memory_normal_heap">largeHeap 已启用</string>
 </resources>

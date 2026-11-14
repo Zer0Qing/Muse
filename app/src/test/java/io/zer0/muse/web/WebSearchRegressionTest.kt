@@ -109,7 +109,7 @@ class WebSearchRegressionTest {
                 r("transformers 源码", "https://github.com/huggingface/transformers"),
             ),
         )
-        assertEquals("transformer", plan.outboundQuery)
+        assertEquals("site:github.com transformer", plan.outboundQuery)
         assertEquals(listOf("github.com"), plan.constraints.domains)
         assertTrue("必须全是 github.com", out.results.all { it.url.contains("github.com") })
         assertEquals(1, out.results.size)
@@ -125,7 +125,7 @@ class WebSearchRegressionTest {
             ),
         )
         assertEquals(listOf("sc.gov.cn"), plan.constraints.domains)
-        assertFalse("操作符不该留在 outboundQuery", plan.outboundQuery.contains("site:"))
+        assertTrue("site 约束应保留在 outboundQuery", plan.outboundQuery.contains("site:sc.gov.cn"))
         assertTrue(out.results.all { it.url.contains("sc.gov.cn") })
     }
 

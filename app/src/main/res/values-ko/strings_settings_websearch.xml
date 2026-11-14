@@ -13,4 +13,15 @@
     <string name="settings_web_search_key_verify_failed">확인 실패: %1$s</string>
     <string name="settings_web_search_key_verify_no_key">이 엔진에 사용 가능한 키가 없습니다</string>
     <string name="settings_web_search_key_verify_empty">연결은 되었으나 결과를 반환하지 않았습니다</string>
+    <string name="settings_web_search_provider_current">사용 중</string>
+    <string name="settings_web_search_provider_configure">구성</string>
+    <string name="settings_web_search_provider_selection">현재 검색 엔진</string>
+    <string name="settings_web_search_provider_set_current">현재 검색 엔진으로 사용</string>
+    <string name="settings_web_search_provider_set_current_subtitle">검색 요청에 %1$s을(를) 사용합니다</string>
+    <string name="settings_web_search_provider_auto_desc">자동 모드는 검색 순서에 따라 구성된 서비스를 시도합니다. 대부분의 사용자는 추가 입력이 필요하지 않습니다.</string>
+    <string name="settings_web_search_provider_list_title">검색 서비스</string>
+    <string name="settings_web_search_provider_list_desc">서비스를 먼저 선택한 다음 상세 페이지에서 키를 설정하고 연결을 테스트한 뒤 저장하세요. 일반 서비스의 엔드포인트는 Muse가 관리합니다.</string>
+    <string name="settings_web_search_provider_status_ready">설정됨</string>
+    <string name="settings_web_search_provider_status_needs_key">API Key 필요</string>
+    <string name="settings_web_search_provider_status_needs_url">인스턴스 URL 필요</string>
 </resources>

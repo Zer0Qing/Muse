@@ -36,6 +36,8 @@ class WebSearchProviderCatalogTest {
         assertEquals("https://searx.be", WebSearchProviderCatalog.defaultEndpoint("SearXNG"))
         assertTrue(WebSearchProviderCatalog.needsInstanceUrl("SearXNG"))
         assertTrue(WebSearchProviderCatalog.supportsCustomUrl("SearXNG"))
+        assertFalse(WebSearchProviderCatalog.supportsCustomUrl("Tavily"))
+        assertTrue(WebSearchProviderCatalog.supportsCustomUrl("Custom API"))
         assertFalse(WebSearchProviderCatalog.needsKey("Bing"))
     }
 
@@ -46,6 +48,18 @@ class WebSearchProviderCatalogTest {
         assertTrue(set.contains(WebSearchConfig.CUSTOM_PROVIDER_NAME_EN))
         assertTrue(set.contains("Tavily"))
         assertTrue(set.contains("Perplexity"))
+    }
+
+    @Test
+    fun `旧中文自定义 API 键归一化为目录键`() {
+        assertEquals(
+            WebSearchConfig.CUSTOM_PROVIDER_NAME_EN,
+            WebSearchProviderCatalog.canonicalKey(WebSearchConfig.CUSTOM_PROVIDER_NAME),
+        )
+        assertEquals(
+            WebSearchConfig.CUSTOM_PROVIDER_NAME_EN,
+            WebSearchProviderCatalog.canonicalKey(WebSearchConfig.CUSTOM_PROVIDER_NAME_EN),
+        )
     }
 
     @Test
@@ -77,5 +91,28 @@ class WebSearchProviderCatalogTest {
         val names = buildSearchChain(client, cfg).map { it.name }
         assertTrue(names.contains("Brave"))
         assertFalse("没配 Key 的 Tavily 不该空转", names.contains("Tavily"))
+    }
+
+    @Test
+    fun `provider list distinguishes ready key and instance setup`() {
+        val empty = WebSearchConfig()
+        assertEquals(WebSearchProviderCatalog.ProviderSetupState.READY, WebSearchProviderCatalog.setupState(empty, "Auto"))
+        assertEquals(WebSearchProviderCatalog.ProviderSetupState.READY, WebSearchProviderCatalog.setupState(empty, "Bing"))
+        assertEquals(WebSearchProviderCatalog.ProviderSetupState.NEEDS_KEY, WebSearchProviderCatalog.setupState(empty, "Tavily"))
+        assertEquals(WebSearchProviderCatalog.ProviderSetupState.NEEDS_URL, WebSearchProviderCatalog.setupState(empty, "SearXNG"))
+
+        val tavily = empty.copy(
+            providerEntries = listOf(
+                WebSearchProviderEntry(id = "Tavily", type = "Tavily", apiKeys = listOf("key")),
+            ),
+        )
+        assertEquals(WebSearchProviderCatalog.ProviderSetupState.READY, WebSearchProviderCatalog.setupState(tavily, "Tavily"))
+
+        val searx = empty.copy(
+            providerEntries = listOf(
+                WebSearchProviderEntry(id = "SearXNG", type = "SearXNG", customUrl = "https://search.example"),
+            ),
+        )
+        assertEquals(WebSearchProviderCatalog.ProviderSetupState.READY, WebSearchProviderCatalog.setupState(searx, "SearXNG"))
     }
 }

@@ -212,4 +212,6 @@
     <string name="memory_merge_error_empty_result">統合結果を空にはできません</string>
     <string name="memory_merge_error_commit_failed">統合に失敗しました。記憶は変わっていません</string>
     <string name="memory_space_default_name">既定</string>
+    <string name="memory_pinned_dedup_none">統合できる重複した固定項目はありません</string>
+    <plurals name="memory_pinned_dedup_done"><item quantity="other">重複した固定項目を %1$d 件統合しました</item></plurals>
 </resources>

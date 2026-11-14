@@ -1,9 +1,6 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,12 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
-import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -43,15 +38,15 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
 /**
- * 联网搜索供应商的「先选类型 → 按类型动态表单」填写区。
+ * 联网搜索供应商的单家详情表单。
  *
  * 抽成独立文件是为了让 WebSearchSection 不再继续膨胀；这里只负责填写与落库，
  * 不改执行层：类型、默认端点、字段声明全部读 [WebSearchProviderCatalog]，
  * 生效语义仍是 providerName 单选 + providerOrder 排序 + fallbackEnabled 全链回退。
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun WebSearchProviderTypeSection(
+    providerKey: String,
     config: WebSearchConfig,
     settings: SettingsRepository,
     scope: CoroutineScope,
@@ -59,27 +54,46 @@ internal fun WebSearchProviderTypeSection(
 ) {
     val context = LocalContext.current
     val savedText = stringResource(R.string.settings_saved)
-    var selectedType by remember { mutableStateOf(WebSearchProviderCatalog.chainKeys.first()) }
+    val selectedType = providerKey
     val meta = WebSearchProviderCatalog.meta(selectedType)
-    val existing = config.providerEntries.firstOrNull { it.type == selectedType }
+    val existing = config.providerEntries.firstOrNull {
+        WebSearchProviderCatalog.canonicalKey(it.type).equals(selectedType, ignoreCase = true)
+    }
+    val currentProviderKey = WebSearchProviderCatalog.canonicalKey(config.providerName)
     // 已保存池：新真源优先，旧 apiKeys 映射作兼容回退（迁移前的配置仍可能只有旧字段）。
     val savedPool = existing?.apiKeys.orEmpty().ifEmpty {
-        listOfNotNull(config.apiKeys[selectedType]?.takeIf { it.isNotBlank() })
+        listOfNotNull(
+            config.apiKeys.entries.firstOrNull {
+                WebSearchProviderCatalog.canonicalKey(it.key).equals(selectedType, ignoreCase = true) &&
+                    it.value.isNotBlank()
+            }?.value,
+            config.apiKey.takeIf {
+                it.isNotBlank() && currentProviderKey.equals(selectedType, ignoreCase = true)
+            },
+        ).distinct()
     }
 
     // 草稿与已保存值分开：默认显示掩码，留空不代表清空，避免「打开就按保存」把密钥删掉。
     var keyDraft by remember(selectedType) { mutableStateOf("") }
     var keyEdited by remember(selectedType) { mutableStateOf(false) }
-    var urlDraft by remember(selectedType) { mutableStateOf(existing?.customUrl.orEmpty()) }
+    // 普通内置服务的地址由目录托管；旧配置里的 customUrl 只为兼容读取保留，不能继续显示成可用地址。
+    val defaultUrl = if (meta.supportsCustomUrl) {
+        existing?.customUrl?.takeIf { it.isNotBlank() }
+            ?: config.endpoint.takeIf {
+                it.isNotBlank() && currentProviderKey.equals(selectedType, ignoreCase = true)
+            }
+            ?: meta.defaultEndpoint.orEmpty()
+    } else {
+        meta.defaultEndpoint.orEmpty()
+    }
+    val storedCustomUrl = existing?.customUrl.orEmpty()
+    var urlDraft by remember(selectedType) { mutableStateOf(defaultUrl) }
     var modelDraft by remember(selectedType) { mutableStateOf(existing?.model.orEmpty()) }
     var verifyText by remember(selectedType) { mutableStateOf<String?>(null) }
     var status by remember(selectedType) { mutableStateOf(ProviderFormStatus.UNTESTED) }
     var testing by remember(selectedType) { mutableStateOf(false) }
 
-    SectionLabel(
-        stringResource(R.string.settings_web_search_provider_type_title),
-        modifier = Modifier.padding(top = MusePaddings.cardGap),
-    )
+    SectionLabel(stringResource(R.string.settings_web_search_provider_type_title))
     SettingsGroup {
         Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(
@@ -87,22 +101,6 @@ internal fun WebSearchProviderTypeSection(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(MusePaddings.contentGap))
-            // chip 网格：用项目自有 MuseChip（已含 selected/Role/48dp 触控），不直接用 M3 FilterChip。
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-            ) {
-                WebSearchProviderCatalog.chainKeys.forEach { type ->
-                    MuseChip(
-                        selected = selectedType == type,
-                        onClick = { selectedType = type },
-                        label = type,
-                    )
-                }
-            }
-            Spacer(Modifier.height(MusePaddings.contentGap))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = when (status) {
@@ -178,7 +176,7 @@ internal fun WebSearchProviderTypeSection(
                                 val entry = WebSearchProviderEntry(
                                     id = existing?.id ?: selectedType,
                                     type = selectedType,
-                                    customUrl = existing?.customUrl.orEmpty(),
+                                    customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
                                     apiKeys = remaining,
                                     model = existing?.model.orEmpty(),
                                     enabled = existing?.enabled ?: true,
@@ -197,7 +195,7 @@ internal fun WebSearchProviderTypeSection(
                                 }
                             },
                             contentDescription = stringResource(R.string.settings_provider_remove_key),
-                            size = 32.dp,
+                            size = MuseIconSizes.touchTarget,
                             iconSize = MuseIconSizes.iconSmall,
                             tint = MaterialTheme.colorScheme.error,
                         )
@@ -214,9 +212,7 @@ internal fun WebSearchProviderTypeSection(
                 MuseTextField(
                     value = urlDraft,
                     onValueChange = { urlDraft = it },
-                    placeholder = {
-                        Text(meta.defaultEndpoint ?: stringResource(R.string.settings_web_search_custom_url_hint))
-                    },
+                    placeholder = { Text(stringResource(R.string.settings_web_search_custom_url_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
                 )
@@ -232,6 +228,25 @@ internal fun WebSearchProviderTypeSection(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+            } else if (defaultUrl.isNotBlank()) {
+                Spacer(Modifier.height(MusePaddings.contentGap))
+                Text(
+                    stringResource(R.string.settings_web_search_endpoint_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    defaultUrl,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = MusePaddings.tightGap),
+                )
+                Text(
+                    stringResource(R.string.settings_web_search_endpoint_managed),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = MusePaddings.tightGap),
+                )
             }
             if (meta.needsModel) {
                 Spacer(Modifier.height(MusePaddings.contentGap))
@@ -278,7 +293,7 @@ internal fun WebSearchProviderTypeSection(
                                     WebSearchProviderEntry(
                                         id = selectedType,
                                         type = selectedType,
-                                        customUrl = urlDraft.trim(),
+                                        customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
                                         apiKeys = draftKeys,
                                     ),
                                 ) + config.providerEntries.filter { it.type != selectedType },
@@ -313,7 +328,7 @@ internal fun WebSearchProviderTypeSection(
                     val entry = WebSearchProviderEntry(
                         id = existing?.id ?: selectedType,
                         type = selectedType,
-                        customUrl = urlDraft.trim(),
+                        customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
                         apiKeys = keys,
                         model = modelDraft.trim(),
                         enabled = existing?.enabled ?: true,

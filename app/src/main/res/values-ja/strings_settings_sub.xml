@@ -839,4 +839,7 @@
     <string name="kb_settings_title">知識ベース設定</string>
     <string name="settings_about_contributors">コントリビューター</string>
     <string name="settings_about_contributors_subtitle">スペイン語ローカライズ：%1$s</string>
+    <string name="settings_about_memory_limit">メモリ上限 %1$dMB（%2$s）</string>
+    <string name="settings_about_memory_low_heap">低メモリ端末</string>
+    <string name="settings_about_memory_normal_heap">largeHeap 有効</string>
 </resources>

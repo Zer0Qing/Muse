@@ -2,6 +2,10 @@ package io.zer0.muse.tools
 
 import io.zer0.memory.compile.CompiledSectionHit
 import io.zer0.memory.fact.FactStore
+import io.zer0.memory.runtime.MemoryScopeKey
+import io.zer0.memory.runtime.MemorySearchRequest
+import io.zer0.memory.runtime.MemorySearchResult
+import io.zer0.memory.runtime.MemoryUseCases
 
 /**
  * search_memory 工具。
@@ -68,6 +72,51 @@ object SearchMemoryTool {
         compiledSearch: CompiledSummarySearch?,
     ): String = executeInternal(args, factStore, executionContext, compiledSearch)
 
+    /**
+     * 统一读取入口。
+     *
+     * 工具层不再自行选择 FactStore；作用域由宿主上下文转换为可信键，
+     * 标签、日期和抑制状态由 MemoryUseCases 统一执行。
+     */
+    suspend fun executeWithUseCases(
+        args: Map<String, String>,
+        useCases: MemoryUseCases,
+        executionContext: ToolExecutionContext,
+        compiledSearch: CompiledSummarySearch? = null,
+    ): String {
+        val query = args["query"]?.trim().orEmpty()
+        if (query.isEmpty()) return "Error: query parameter is required."
+        val tags = args["tags"]
+            ?.split(',')
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            .orEmpty()
+        val from = args["from"]?.trim()?.takeIf { it.isNotEmpty() }
+        val to = args["to"]?.trim()?.takeIf { it.isNotEmpty() }
+        val limit = args["limit"]?.toIntOrNull()?.coerceIn(1, 50) ?: 10
+        val result = useCases.search(
+            MemorySearchRequest(
+                scope = MemoryScopeKey(
+                    assistantId = executionContext.assistantId?.takeIf { it.isNotBlank() } ?: "default",
+                    scope = executionContext.scope,
+                    spaceId = executionContext.spaceId,
+                ),
+                query = query,
+                tags = tags,
+                dateRange = if (from != null || to != null) FactStore.DateRange(from, to) else null,
+                limit = limit,
+                includeSuppressed = false,
+            ),
+        )
+        return when (result) {
+            is MemorySearchResult.Found -> renderFactHits(result.facts)
+            MemorySearchResult.Empty -> {
+                val hits = compiledSearch?.search(query, executionContext.scope, executionContext.spaceId, limit).orEmpty()
+                if (hits.isEmpty()) "No matching memories found." else renderCompiledHits(hits)
+            }
+        }
+    }
+
     private suspend fun executeInternal(
         args: Map<String, String>,
         factStore: FactStore,
@@ -99,26 +148,28 @@ object SearchMemoryTool {
             return if (hits.isEmpty()) "No matching memories found." else renderCompiledHits(hits)
         }
 
-        return buildString {
-            appendLine("Found ${facts.size} memory fact(s):")
-            appendLine()
-            facts.forEachIndexed { index, fact ->
-                appendLine("${index + 1}. ${fact.fact}")
-                appendLine("   ID: ${fact.id}")
-                if (fact.tags.isNotEmpty()) {
-                    appendLine("   Tags: ${fact.tags.joinToString(", ")}")
-                }
-                if (fact.category.isNotBlank() && fact.category != "general") {
-                    appendLine("   Category: ${fact.category}")
-                }
-                if (fact.confidence < 1.0f) {
-                    appendLine("   Confidence: ${fact.confidence}")
-                }
-                fact.time?.let { appendLine("   Time: $it") }
-                appendLine()
-            }
-        }.trimEnd()
+        return renderFactHits(facts)
     }
+
+    private fun renderFactHits(facts: List<FactStore.Fact>): String = buildString {
+        appendLine("Found ${facts.size} memory fact(s):")
+        appendLine()
+        facts.forEachIndexed { index, fact ->
+            appendLine("${index + 1}. ${fact.fact}")
+            appendLine("   ID: ${fact.id}")
+            if (fact.tags.isNotEmpty()) {
+                appendLine("   Tags: ${fact.tags.joinToString(", ")}")
+            }
+            if (fact.category.isNotBlank() && fact.category != "general") {
+                appendLine("   Category: ${fact.category}")
+            }
+            if (fact.confidence < 1.0f) {
+                appendLine("   Confidence: ${fact.confidence}")
+            }
+            fact.time?.let { appendLine("   Time: $it") }
+            appendLine()
+        }
+    }.trimEnd()
 
     /** 按有无执行上下文 / 标签分别走标签检索或两段式全文检索。 */
     private suspend fun searchFacts(

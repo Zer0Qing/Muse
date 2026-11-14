@@ -53,4 +53,16 @@ data class SessionSummaryEntity(
     /** v2: 所属记忆空间；旧摘要统一兼容到 default。 */
     @ColumnInfo(name = "space_id", defaultValue = "default")
     val spaceId: String = "default",
+
+    /** v6：摘要版本。每次 CAS 成功后 +1。 */
+    @ColumnInfo(name = "summary_revision", defaultValue = "0")
+    val summaryRevision: Long = 0,
+
+    /** v6：来源指纹，用于判断摘要覆盖的原始输入是否变化。 */
+    @ColumnInfo(name = "source_fingerprint", defaultValue = "")
+    val sourceFingerprint: String = "",
+
+    /** v6：该摘要是否需要事实替换（分支失效/重试场景）。 */
+    @ColumnInfo(name = "fact_replacement_required", defaultValue = "0")
+    val factReplacementRequired: Boolean = false,
 )

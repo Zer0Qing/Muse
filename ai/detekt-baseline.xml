@@ -100,6 +100,7 @@
     <ID>MaxLineLength:ToolTraceProjection.kt$ToolTraceProjection$"""(?i)(?:\berror\b|\bfail(?:ed|ure)?\b|\btimeout\b|\btimed out\b|\bdenied\b|\bblocked\b|\babort(?:ed)?\b|\bcancel(?:led|ed)?\b|\bexception\b|\bunavailable\b|\binvalid\b|\bpermission\b|\brate limit\b|\bhttp\s*[45][0-9][0-9]\b|失败|错误|超时|拒绝|阻止|未执行|中断|取消|异常|不可用|无权限|限流)"""</ID>
     <ID>NestedBlockDepth:AgnesImageProvider.kt$AgnesImageProvider.Companion$suspend fun resolveReferenceImage(ref: String, urlValidator: RefImageUrlValidator? = null): String</ID>
     <ID>NestedBlockDepth:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$fun readBodyCappedStreaming(response: Response, maxBytes: Int): Pair&lt;String, Boolean&gt;</ID>
+    <ID>ReturnCount:FreeModelConfigSource.kt$FreeModelConfigSource$fun refresh(force: Boolean = false): FetchOutcome</ID>
     <ID>ReturnCount:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$override fun onOpen(eventSource: EventSource, response: Response)</ID>
     <ID>ReturnCount:ImageProviderRegistry.kt$ImageProviderRegistry$fun selectFor(config: ProviderConfig): ImageProvider?</ID>
     <ID>ReturnCount:KnownModels.kt$KnownModels$fun lookup(modelId: String): KnownModelInfo?</ID>
@@ -120,6 +121,7 @@
     <ID>TooGenericExceptionCaught:AgnesImageProvider.kt$AgnesImageProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:AnthropicProvider.kt$AnthropicProvider$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirstEventWatchdog.kt$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FreeModelConfigSource.kt$FreeModelConfigSource$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GeminiImageProvider.kt$GeminiImageProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GeminiProvider.kt$GeminiProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GeminiProvider.kt$GeminiProvider$t: Throwable</ID>

@@ -133,7 +133,7 @@ internal object MarkdownParseCache {
     fun clear() = cache.clear()
 }
 
-/** 位图缓存按堆大小自适应:堆越宽裕留得越多,但不超过 [IMAGE_CACHE_MAX_BYTES_CEILING]。 */
+/** 位图缓存按堆大小自适应：由 [MemoryBudget] 统一分配，不再自己按比例定容。 */
 private const val IMAGE_CACHE_MAX_BYTES_CEILING = 32 * 1024 * 1024
 private const val IMAGE_CACHE_HEAP_FRACTION = 10
 
@@ -153,10 +153,13 @@ private const val IMAGE_CACHE_HEAP_FRACTION = 10
 internal object DataUriImageCache {
     private val bitmaps = BoundedLruCache<String, Bitmap>(maxBytes()) { it.byteCount.coerceAtLeast(1) }
 
-    private fun maxBytes(): Int = minOf(
-        IMAGE_CACHE_MAX_BYTES_CEILING,
-        (Runtime.getRuntime().maxMemory() / IMAGE_CACHE_HEAP_FRACTION).toInt(),
-    )
+    /**
+     * 缓存上限：取自 [MemoryBudget] 的统一图片预算。
+     *
+     * 改动前是 `min(32MB, 堆/10)`，与 Coil、base64 缓存各自定容，256MB 堆下
+     * 三者合计约 95MB。现在由 MemoryBudget 先算总预算再按职责切分。
+     */
+    private fun maxBytes(): Int = MemoryBudget.dataUriBitmapBytes.toInt()
 
     /**
      * 图片缓存 key:整条 data-URI 的长度 + hash。
@@ -175,6 +178,9 @@ internal object DataUriImageCache {
 
     /** 当前持有的位图字节数（崩溃现场诊断用，不是缓存上限）。 */
     fun bytes(): Int = bitmaps.totalSize()
+
+    /** 缓存上限（字节），崩溃报告用它和实际占用做对比。 */
+    fun maxBytesForReport(): Int = maxBytes()
 
     fun clear() = bitmaps.clear()
 }

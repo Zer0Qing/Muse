@@ -1,34 +1,34 @@
 {
   "versionName": "2.6.27",
   "versionCode": 291,
-  "dbVersion": 130,
-  "apkFile": "app-arm64-v8a-release.apk",
-  "apkSizeBytes": 104491615,
-  "apkSha256": "71e8fdb41c764ccb816c63a00057280f0b2e15965e28c543322ca00427fb592b",
+  "dbVersion": 131,
+  "apkFile": "Muse_v2.6.27_arm64-v8a.apk",
+  "apkSizeBytes": 104648847,
+  "apkSha256": "e73b356052bb24c39278f15cec2c097d32da7708a64f6af63cc02450e9a2502d",
   "apkArtifacts": [
     {
-      "name": "app-arm64-v8a-release.apk",
-      "sizeBytes": 104491615,
-      "sha256": "71e8fdb41c764ccb816c63a00057280f0b2e15965e28c543322ca00427fb592b"
+      "name": "Muse_v2.6.27_arm64-v8a.apk",
+      "sizeBytes": 104648847,
+      "sha256": "e73b356052bb24c39278f15cec2c097d32da7708a64f6af63cc02450e9a2502d"
     },
     {
-      "name": "app-armeabi-v7a-release.apk",
-      "sizeBytes": 60424078,
-      "sha256": "a37308cb47f2faa6b35ebc574571ce614ebc2677696ff6aefad98956d962830d"
+      "name": "Muse_v2.6.27_armeabi-v7a.apk",
+      "sizeBytes": 60581310,
+      "sha256": "74b5822c92747b148597cde20fd99bcc4218c3d3a31ae7592540cc8b4fec12da"
     },
     {
-      "name": "app-universal-release.apk",
-      "sizeBytes": 188494628,
-      "sha256": "7bc957d600141d76f1deccce61091740c728be345d8212528a74ef0d361de0ec"
+      "name": "Muse_v2.6.27_universal.apk",
+      "sizeBytes": 188651860,
+      "sha256": "a645c56e6152ae274cc3fbc252eb1fb4ed38d9a963c5fd39d78c1c49b5914d73"
     },
     {
-      "name": "app-x86_64-release.apk",
-      "sizeBytes": 105774357,
-      "sha256": "c796f97315dea1104b657c5f2b920920e274b266ddc99ea2dfc7f5142ef187a0"
+      "name": "Muse_v2.6.27_x86_64.apk",
+      "sizeBytes": 105931589,
+      "sha256": "5eeb7b2b658b1f7b4bbdc6bdb64292a5b4d12612cb238f7255678f4c96e9c09d"
     }
   ],
-  "releaseNotesRef": "releases/v2.6.27/release_body.md",
-  "sourceCommit": "753bbe3f48957a19ad47ec8b31a408a81ea89d39",
-  "sourceRef": "local-clean-worktree-753bbe3f",
-  "generatedAt": "2026-11-12T08:48:08+00:00"
+  "releaseNotesRef": "release_body.md",
+  "sourceCommit": "6e2b4bed3a70f55f99ea7f434b03e4982c8528dd",
+  "sourceRef": "local-dirty-worktree-6e2b4bed",
+  "generatedAt": "2026-11-13T16:00:58+00:00"
 }

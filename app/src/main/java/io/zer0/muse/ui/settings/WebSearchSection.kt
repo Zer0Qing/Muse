@@ -1,7 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -12,33 +10,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.feedback.MuseDialog
-import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
@@ -48,36 +35,19 @@ import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.web.CompositeWebSearchService
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchCoordinator
 import io.zer0.muse.web.WebSearchMode
+import io.zer0.muse.web.WebSearchProviderCatalog
 import kotlinx.coroutines.launch
-import org.koin.core.context.GlobalContext
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: SettingsRepository) {
+internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: SettingsRepository, onOpenProviderList: () -> Unit) {
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val savedText = stringResource(R.string.settings_saved)
     val coordinator: WebSearchCoordinator = org.koin.compose.koinInject()
-    // 验证单个引擎要用搜索侧那个独立 OkHttpClient（Koin 里以 named("webSearch") 绑定，
-    // 与 SSE 长连接分开）；在 UI 里自己新建会白占一套连接池。
-    val webSearchClient: okhttp3.OkHttpClient = org.koin.compose.koinInject(
-        org.koin.core.qualifier.named("webSearch"),
-    )
     val lastSearch by coordinator.lastResponse.collectAsStateWithLifecycle()
-    var wsProviderExpanded by remember { mutableStateOf(false) }
-    var apiKeyText by remember(webSearchConfig.providerName) {
-        mutableStateOf(webSearchConfig.apiKeys[webSearchConfig.providerName] ?: webSearchConfig.apiKey)
-    }
-    var endpointText by remember(webSearchConfig.endpoint) { mutableStateOf(webSearchConfig.endpoint) }
-    var testQuery by remember { mutableStateOf("") }
-    var testing by remember { mutableStateOf(false) }
-    var testResult by remember { mutableStateOf<String?>(null) }
+    val currentProviderKey = WebSearchProviderCatalog.canonicalKey(webSearchConfig.providerName)
 
     SectionLabel(stringResource(R.string.settings_web_search_section))
     SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
@@ -307,8 +277,8 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         SettingsItemRow(
             icon = MuseIcons.plug,
             title = stringResource(R.string.settings_web_search_engine),
-            subtitle = webSearchConfig.providerName,
-            onClick = { wsProviderExpanded = true },
+            subtitle = currentProviderKey,
+            onClick = onOpenProviderList,
         ) { ChevronRight() }
         Text(
             text = stringResource(R.string.settings_web_search_api_services_desc),
@@ -317,48 +287,6 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
             modifier = Modifier.padding(MusePaddings.cardInner),
         )
     }
-
-    if (wsProviderExpanded) {
-        MuseDialog(
-            onDismissRequest = { wsProviderExpanded = false },
-            title = stringResource(R.string.settings_web_search_engine),
-            content = {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    WebSearchConfig.SUPPORTED_PROVIDERS.forEach { p ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clickable(role = Role.Button) {
-                                wsProviderExpanded = false
-                                scope.launch { settings.saveWebSearchConfig(webSearchConfig.copy(providerName = p)) }
-                            }.padding(vertical = 12.dp, horizontal = MusePaddings.iconPadding),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                p,
-                                color = if (p == webSearchConfig.providerName) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                                fontWeight = if (p == webSearchConfig.providerName) FontWeight.SemiBold else FontWeight.Normal,
-                            )
-                        }
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.common_close),
-            onConfirm = { wsProviderExpanded = false },
-            onDismiss = { wsProviderExpanded = false },
-        )
-    }
-
-    // 供应商填写：先选类型 → 按类型动态表单（类型/默认端点读 WebSearchProviderCatalog）。
-    // 抽成独立组件，避免本页继续膨胀；执行层与排序语义不变。
-    WebSearchProviderTypeSection(
-        config = webSearchConfig,
-        settings = settings,
-        scope = scope,
-        webSearchClient = webSearchClient,
-    )
 
     // 「搜索顺序」：Auto 回退链的尝试顺序可调，且与链构造共用同一份顺序表
     // （AUTO_CHAIN_PROVIDER_KEYS）—— 界面自己抄一份顺序的话，用户拖完看到的是假顺序。
@@ -376,106 +304,6 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
         webSearchConfig = webSearchConfig,
         settings = settings,
     )
-
-    val needsApiConfig = webSearchConfig.providerName in WebSearchConfig.PROVIDERS_NEEDING_API_KEY
-    // 「自定义 API」(不在 Auto 回退链)在本组就近配置端点与测试；
-    // 其余引擎的 Key 池与 URL 在上方「先选类型 → 动态表单」里编辑，避免两处重复入口。
-    val isCustomApi = webSearchConfig.providerName.equals("Custom API", ignoreCase = true) ||
-        webSearchConfig.providerName == WebSearchConfig.CUSTOM_PROVIDER_NAME
-    if (needsApiConfig) {
-        SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
-            Column(Modifier.padding(MusePaddings.cardInner)) {
-                if (isCustomApi) {
-                    SettingField(
-                        label = stringResource(R.string.settings_web_search_api_key_label),
-                        value = apiKeyText,
-                        onValueChange = { apiKeyText = it },
-                    )
-                }
-                SavePill(
-                    stringResource(
-                        if (isCustomApi) R.string.settings_web_search_save_api_key else R.string.settings_web_search_save_endpoint,
-                    ),
-                ) {
-                    scope.launch {
-                        val provider = webSearchConfig.providerName
-                        val key = apiKeyText.trim()
-                        val keys = if (isCustomApi) {
-                            webSearchConfig.apiKeys.toMutableMap().apply {
-                                if (key.isNotEmpty()) put(provider, key) else remove(provider)
-                            }
-                        } else {
-                            webSearchConfig.apiKeys
-                        }
-                        settings.saveWebSearchConfig(
-                            webSearchConfig.copy(
-                                apiKey = if (isCustomApi) key else webSearchConfig.apiKey,
-                                apiKeys = keys,
-                                endpoint = endpointText.trim(),
-                            ),
-                        )
-                        MuseToast.show(savedText)
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                SettingField(
-                    label = stringResource(R.string.settings_web_search_endpoint_optional),
-                    value = endpointText,
-                    onValueChange = { endpointText = it },
-                    placeholder = "https://api.example.com",
-                )
-                Spacer(Modifier.height(12.dp))
-                SettingField(
-                    label = stringResource(R.string.settings_web_search_test_query_label),
-                    value = testQuery,
-                    onValueChange = { testQuery = it },
-                    placeholder = stringResource(R.string.settings_web_search_test_query_placeholder),
-                )
-                Spacer(Modifier.height(8.dp))
-                MuseCapsuleButton(
-                    text = if (testing) {
-                        stringResource(R.string.settings_web_search_testing)
-                    } else {
-                        stringResource(R.string.settings_web_search_test)
-                    },
-                    onClick = {
-                        val q = testQuery.trim()
-                        if (q.isEmpty() || testing) return@MuseCapsuleButton
-                        testing = true
-                        testResult = null
-                        scope.launch {
-                            try {
-                                val client = GlobalContext.get().get<okhttp3.OkHttpClient>(org.koin.core.qualifier.named("webSearch"))
-                                val provider = CompositeWebSearchService.buildDelegate(client, webSearchConfig)
-                                val results = provider.search(q, maxResults = webSearchConfig.maxResults)
-                                testResult = formatTestResult(context, results)
-                            } catch (e: Exception) {
-                                testResult =
-                                    context.getString(
-                                        R.string.settings_web_search_test_failed,
-                                        e.message ?: context.getString(R.string.settings_web_search_test_failed_unknown),
-                                    )
-                            } finally {
-                                testing = false
-                            }
-                        }
-                    },
-                    enabled = testQuery.isNotBlank() && !testing,
-                    loading = testing,
-                    variant = IosCapsuleButtonVariant.Secondary,
-                    fillWidth = false,
-                )
-                testResult?.let {
-                    Text(
-                        it,
-                        modifier = Modifier.padding(top = 8.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -495,42 +323,4 @@ private fun PathRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-}
-
-@Composable
-private fun SavePill(text: String, onClick: () -> Unit) {
-    Surface(
-        shape = MuseShapes.pill,
-        color = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        modifier = Modifier
-            .padding(top = 8.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-            ),
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(MusePaddings.cardInnerSpaced),
-        )
-    }
-}
-
-/**
- * 测试搜索的结果文案。
- *
- * 抽出来是因为内联写法需要两层嵌套 getString，单行接近 200 字符：
- * 既过不了行宽检查，也看不出「成功时带前三条标题」这层意图。
- */
-private fun formatTestResult(context: android.content.Context, results: List<io.zer0.muse.web.WebSearchResult>): String {
-    if (results.isEmpty()) {
-        return context.getString(R.string.settings_web_search_test_empty)
-    }
-    val preview = results.take(3).joinToString("\n") { "  • ${it.title}" }
-    return context.getString(R.string.settings_web_search_test_success, results.size, preview)
 }

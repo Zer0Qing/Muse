@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.imageLoader
 import coil.request.ImageRequest
@@ -89,6 +90,9 @@ fun QrCodeShareDialog(content: String, onDismiss: () -> Unit, includesSecret: Bo
                 ) {
                     Text(
                         text = stringResource(R.string.qr_share_include_key),
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )

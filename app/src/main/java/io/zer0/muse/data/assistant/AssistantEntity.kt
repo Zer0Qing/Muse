@@ -73,6 +73,14 @@ data class AssistantEntity(
     @ColumnInfo(defaultValue = "1") val memoryEnabled: Boolean = true,
     // Keep the SQL default aligned with the existing Room schema; Room inserts use this safer Kotlin default.
     @ColumnInfo(defaultValue = "1") val useGlobalMemory: Boolean = false,
+    /**
+     * 是否将置顶记忆注入 system prompt。
+     *
+     * 与 [useGlobalMemory] 独立：后者控制“能否看到其他助手的记忆”，
+     * 本开关只控制“已选中的置顶条目要不要每轮带上”。
+     * 置顶内容比普通记忆更稳定，用户可能想留着但不希望每轮付上下文成本。
+     */
+    @ColumnInfo(defaultValue = "1") val enablePinnedInjection: Boolean = true,
     @ColumnInfo(defaultValue = "1") val enableRecentChatsReference: Boolean = true,
 
     // ── 提醒 ──

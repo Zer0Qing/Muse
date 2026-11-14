@@ -13,4 +13,15 @@
     <string name="settings_web_search_key_verify_failed">验证失败：%1$s</string>
     <string name="settings_web_search_key_verify_no_key">该引擎还没有可用的 Key</string>
     <string name="settings_web_search_key_verify_empty">连接正常，但没有返回结果</string>
+    <string name="settings_web_search_provider_current">当前使用</string>
+    <string name="settings_web_search_provider_configure">点击配置</string>
+    <string name="settings_web_search_provider_selection">当前搜索引擎</string>
+    <string name="settings_web_search_provider_set_current">设为当前搜索引擎</string>
+    <string name="settings_web_search_provider_set_current_subtitle">搜索请求将使用 %1$s</string>
+    <string name="settings_web_search_provider_auto_desc">自动模式会按搜索顺序尝试已配置的服务。普通用户无需填写额外信息。</string>
+    <string name="settings_web_search_provider_list_title">搜索服务</string>
+    <string name="settings_web_search_provider_list_desc">先选择搜索服务，再在详情页配置 Key、测试连接和保存。普通服务的地址由 Muse 自动维护。</string>
+    <string name="settings_web_search_provider_status_ready">已配置</string>
+    <string name="settings_web_search_provider_status_needs_key">需要 API Key</string>
+    <string name="settings_web_search_provider_status_needs_url">需要实例地址</string>
 </resources>

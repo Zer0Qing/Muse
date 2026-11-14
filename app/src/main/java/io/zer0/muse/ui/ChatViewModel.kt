@@ -1286,6 +1286,7 @@ class ChatViewModel(
     private val groupChatScheduler: io.zer0.muse.schedule.GroupChatScheduler? = null,
     private val groupChatRepository: io.zer0.muse.data.groupchat.GroupChatRepository? = null,
     private val conversationSummaryManager: SessionSummaryManager? = null,
+    private val memoryRuntime: io.zer0.memory.runtime.MemoryRuntime? = null,
     /**
      * v2.6.7: 关系仓库 —— 用户发消息时记录一次真实互动。
      *
@@ -2329,7 +2330,7 @@ class ChatViewModel(
             .add(io.zer0.muse.transformer.MoodTagTransformer())
             .add(contextCompressTransformer)
         conversationSummaryManager?.let { manager ->
-            builder.add(ConversationMemoryInjectionTransformer(manager))
+            builder.add(ConversationMemoryInjectionTransformer(manager, memoryRuntime))
         }
         return builder.build()
     }

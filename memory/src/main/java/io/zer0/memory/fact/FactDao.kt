@@ -40,6 +40,9 @@ interface FactDao {
     @Query("SELECT * FROM facts WHERE session_id = :sessionId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     suspend fun getBySession(sessionId: String): List<FactEntity>
 
+    @Query("DELETE FROM facts WHERE session_id = :sessionId AND scope = :scope AND space_id = :spaceId")
+    suspend fun deleteBySessionAndScopeSpace(sessionId: String, scope: String, spaceId: String): Int
+
     /**
      * 会话被删除时清掉它产生的全部事实(含已出场/已合并的行)。
      *

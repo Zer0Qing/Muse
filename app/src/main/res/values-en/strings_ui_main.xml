@@ -1008,4 +1008,7 @@
     <string name="audit_log_result_ok">Success</string>
     <string name="audit_log_result_fail">Failed</string>
     <string name="permission_advanced_channels">Advanced channels (Root / Termux)</string>
-    <string name="channel_weclaw_summary">Connects a personal account through the WeChat iLink protocol. One WeChat account can hold only one channel - binding a new one retires the old. Proactive reminders need a reply window opened by a recent incoming message; if one does not arrive, send this channel a WeChat message to reopen it.</string></resources>
+    <string name="channel_weclaw_summary">Connects a personal account through the WeChat iLink protocol. One WeChat account can hold only one channel - binding a new one retires the old. Proactive reminders need a reply window opened by a recent incoming message; if one does not arrive, send this channel a WeChat message to reopen it.</string>    <string name="assistant_detail_pinned_injection">Inject pinned memories</string>
+    <string name="assistant_detail_pinned_injection_desc">When off, pinned items stay in memory but are no longer injected into each turn</string>
+    <string name="assistant_detail_pinned_remove_cd">Unpin</string>
+</resources>

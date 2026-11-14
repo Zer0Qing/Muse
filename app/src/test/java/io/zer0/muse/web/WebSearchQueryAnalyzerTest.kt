@@ -53,17 +53,18 @@ class WebSearchQueryAnalyzerTest {
     }
 
     @Test
-    fun `site 操作符被预提取并从 outbound query 剥离`() {
+    fun `site 操作符被预提取并保留在 outbound query`() {
         val plan = WebSearchQueryAnalyzer.analyze("site:github.com transformer")
         assertEquals(listOf("github.com"), plan.constraints.domains)
-        assertEquals("transformer", plan.outboundQuery)
+        assertEquals("site:github.com transformer", plan.outboundQuery)
+        assertTrue("site 域名不是主题词", plan.topics.none { it.text.equals("github.com", ignoreCase = true) })
     }
 
     @Test
     fun `中文 site 操作符与后续词`() {
         val plan = WebSearchQueryAnalyzer.analyze("site:sc.gov.cn 专升本 2027")
         assertEquals(listOf("sc.gov.cn"), plan.constraints.domains)
-        assertFalse("操作符不该留在发往引擎的 query", plan.outboundQuery.contains("site:"))
+        assertTrue("site 约束应同时交给上游引擎", plan.outboundQuery.contains("site:sc.gov.cn"))
         assertTrue(plan.outboundQuery.contains("专升本"))
     }
 

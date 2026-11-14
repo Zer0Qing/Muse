@@ -37,14 +37,17 @@ class MessageImageStore(
 
     /**
      * R-DB-04: 文件→base64 LRU 缓存(access-order)。
-     * 同时按条目数(MAX_CACHE_ENTRIES)与总字节数(MAX_CACHE_BYTES)淘汰,
+     * 同时按条目数(MAX_CACHE_ENTRIES)与总字节数淘汰,
      * 避免多张 base64 大图滞留数百 MB(审计 J-P2)。
      * 避免消息列表映射时对同一张图片重复磁盘读(N+1)。
+     *
+     * 字节上限取自 [io.zer0.muse.perf.MemoryBudget] 的统一图片预算,
+     * 不再自己定一个固定值。
      */
     private var imageCacheBytes = 0L
     private val imageCache = object : LinkedHashMap<String, String>(MAX_CACHE_ENTRIES, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean =
-            if (size > MAX_CACHE_ENTRIES || imageCacheBytes > MAX_CACHE_BYTES) {
+            if (size > MAX_CACHE_ENTRIES || imageCacheBytes > maxCacheBytes) {
                 eldest?.let { imageCacheBytes -= it.value.length }
                 true
             } else {
@@ -213,9 +216,7 @@ class MessageImageStore(
         /** LRU 缓存条目数上限。 */
         private const val MAX_CACHE_ENTRIES = 64
 
-        /** LRU 缓存字节上限(约 32MB),防止 base64 大图滞留数百 MB。
-         *  v2.6.22: 64MB → 32MB。堆只有 256MB 的机型上,这份 base64 与 Coil 位图缓存、
-         *  data-URI 位图缓存会同时存在;淘汰后只需重读文件,代价远低于一次 OOM。 */
-        private const val MAX_CACHE_BYTES = 32L * 1024 * 1024
+        /** LRU 缓存字节上限：由 [io.zer0.muse.perf.MemoryBudget] 统一分配。 */
+        private val maxCacheBytes: Long get() = io.zer0.muse.perf.MemoryBudget.base64StringBytes
     }
 }

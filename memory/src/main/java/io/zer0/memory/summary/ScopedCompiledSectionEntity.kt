@@ -26,4 +26,12 @@ data class ScopedCompiledSectionEntity(
     val fingerprint: String? = null,
     @ColumnInfo(name = "updated_at")
     val updatedAt: String,
+
+    /** 来源指纹：事实/摘要输入的变化会让投影重新生成。空表示旧数据未知来源。 */
+    @ColumnInfo(name = "source_fingerprint", defaultValue = "")
+    val sourceFingerprint: String = "",
+
+    /** 投影状态：READY/STALE/FAILED/ORPHANED。 */
+    @ColumnInfo(name = "status", defaultValue = "READY")
+    val status: String = "READY",
 )

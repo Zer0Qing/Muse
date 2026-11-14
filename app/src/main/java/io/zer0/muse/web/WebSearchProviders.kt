@@ -519,70 +519,77 @@ class CompositeWebSearchService(
          * 使用 UI 中最新的 WebSearchConfig,直接实例化对应 Provider,不经过 Composite 层。
          */
         fun buildDelegate(client: OkHttpClient, cfg: WebSearchConfig): WebSearchService {
-            return when (cfg.providerName) {
+            val providerName = WebSearchProviderCatalog.canonicalKey(cfg.providerName)
+            return when (providerName) {
                 // v1.135: Auto 多引擎 fallback
                 "Auto" -> AutoWebSearchService(client, cfg)
                 "Bing" -> BingProvider(client)
-                "Jina" -> JinaProvider(client, cfg.apiKey)
+                "Jina" -> JinaProvider(
+                    client,
+                    resolveProviderKey(cfg, "Jina"),
+                    resolveProviderEndpoint(cfg, "Jina"),
+                )
                 // M-WS3: 自定义 API — 按 apiKey 是否非空二次分发:
                 //  有 apiKey 走 Tavily 兼容接口,无 apiKey 走 SearXNG 兼容接口(原先无条件映射到 SearXNG,忽略 apiKey)
                 "Custom API" ->
-                    if (cfg.apiKey.isNotBlank()) {
-                        TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Tavily")!! })
+                    if (resolveProviderKey(cfg, providerName).isNotBlank()) {
+                        TavilyProvider(
+                            client,
+                            resolveProviderKey(cfg, providerName),
+                            resolveProviderEndpoint(cfg, providerName, "Tavily"),
+                        )
                     } else {
-                        SearXNGProvider(client, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("SearXNG")!! })
+                        SearXNGProvider(client, resolveProviderEndpoint(cfg, providerName, "SearXNG"))
                     }
-                "SearXNG" -> SearXNGProvider(client, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("SearXNG")!! })
+                "SearXNG" -> SearXNGProvider(client, resolveProviderEndpoint(cfg, "SearXNG"))
                 "Tavily" -> TavilyProvider(
                     client,
-                    cfg.apiKey,
-                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Tavily")!! },
+                    resolveProviderKey(cfg, "Tavily"),
+                    resolveProviderEndpoint(cfg, "Tavily"),
                 )
                 // v1.97: 新增搜索 provider
                 "Zhipu" -> ZhipuSearchProvider(
                     client,
-                    cfg.apiKey,
-                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Zhipu")!! },
+                    resolveProviderKey(cfg, "Zhipu"),
+                    resolveProviderEndpoint(cfg, "Zhipu"),
                 )
                 // v2.6.10: DeepSeek 搜索 —— 复用通用适配器
                 "DeepSeek" ->
                     GenericSearchProvider(
                         client,
-                        DEEPSEEK_SEARCH_ENGINE.copy(apiKey = cfg.apiKey),
+                        DEEPSEEK_SEARCH_ENGINE.copy(apiKey = resolveProviderKey(cfg, "DeepSeek")),
                     )
                 "Brave" -> BraveSearchProvider(
                     client,
-                    cfg.apiKey,
-                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Brave")!! },
+                    resolveProviderKey(cfg, "Brave"),
+                    resolveProviderEndpoint(cfg, "Brave"),
                 )
                 "Serper" -> SerperSearchProvider(
                     client,
-                    cfg.apiKey,
-                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Serper")!! },
+                    resolveProviderKey(cfg, "Serper"),
+                    resolveProviderEndpoint(cfg, "Serper"),
                 )
                 "Bocha" -> BochaSearchProvider(
                     client,
-                    cfg.apiKey,
-                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Bocha")!! },
+                    resolveProviderKey(cfg, "Bocha"),
+                    resolveProviderEndpoint(cfg, "Bocha"),
                 )
                 "Metaso" -> MetasoSearchProvider(
                     client,
-                    cfg.apiKey,
-                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Metaso")!! },
+                    resolveProviderKey(cfg, "Metaso"),
+                    resolveProviderEndpoint(cfg, "Metaso"),
                 )
-                "Exa" -> ExaSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Exa")!! })
+                "Exa" -> ExaSearchProvider(client, resolveProviderKey(cfg, "Exa"), resolveProviderEndpoint(cfg, "Exa"))
                 "Firecrawl" -> FirecrawlProvider(
                     client,
-                    cfg.apiKey,
-                    cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Firecrawl")!! },
+                    resolveProviderKey(cfg, "Firecrawl"),
+                    resolveProviderEndpoint(cfg, "Firecrawl"),
                 )
                 // Perplexity AI 搜索 API(sonar-pro 模型 + citations)
                 "Perplexity" -> PerplexitySearchProvider(
                     client,
-                    cfg.apiKey,
-                    cfg.endpoint.ifBlank {
-                        WebSearchProviderCatalog.defaultEndpoint("Perplexity")!!
-                    },
+                    resolveProviderKey(cfg, "Perplexity"),
+                    resolveProviderEndpoint(cfg, "Perplexity"),
                 )
                 // 默认用 Bing HTTP(免费,无需 API key)
                 else -> BingProvider(client)
@@ -671,11 +678,16 @@ class BingProvider(
 class JinaProvider(
     private val client: OkHttpClient,
     private val apiKey: String = "",
+    private val configuredEndpoint: String? = null,
 ) : WebSearchService {
     override val name: String = "Jina"
 
     override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> = withContext(AppDispatchers.io) {
-        val endpoints = listOf("https://s.jinaai.cn/", "https://s.jina.ai/")
+        val endpoints = listOfNotNull(
+            configuredEndpoint?.trim()?.takeIf { it.isNotBlank() },
+            "https://s.jinaai.cn/",
+            "https://s.jina.ai/",
+        ).distinct()
         for (endpoint in endpoints) {
             val result = resultOf {
                 val payload = kotlinx.serialization.json.buildJsonObject {
@@ -1494,18 +1506,55 @@ internal val AUTO_CHAIN_PROVIDER_KEYS: List<String> = WebSearchProviderCatalog.c
  * 429/401 时的换 key 由 [WebSearchKeyRoulette] 在请求层处理，这里只负责「首把」。
  */
 internal fun resolveProviderKey(cfg: WebSearchConfig, provider: String): String {
+    val canonicalProvider = WebSearchProviderCatalog.canonicalKey(provider)
     val entry = cfg.providerEntries
-        .firstOrNull { it.enabled && it.type.equals(provider, ignoreCase = true) }
+        .firstOrNull {
+            it.enabled && WebSearchProviderCatalog.canonicalKey(it.type)
+                .equals(canonicalProvider, ignoreCase = true)
+        }
     val poolKeys = entry?.apiKeys.orEmpty().filter { it.isNotBlank() }
     if (poolKeys.isNotEmpty()) {
         // 走轮换器：429 后 pickNext 会把当前 Key 加入软黑名单，下一次建链时这里自动拿到另一把。
         // 单把 Key 时 pick 原样返回，行为与旧版一致。
         return WebSearchKeyRoulette.pick(entry?.id ?: provider, poolKeys)
     }
-    return cfg.apiKeys[provider].orEmpty().ifBlank {
-        cfg.apiKey.takeIf { cfg.providerName.equals(provider, ignoreCase = true) }.orEmpty()
+    val mappedKey = cfg.apiKeys.entries.firstOrNull { (key, value) ->
+        value.isNotBlank() && WebSearchProviderCatalog.canonicalKey(key)
+            .equals(canonicalProvider, ignoreCase = true)
+    }?.value.orEmpty()
+    return mappedKey.ifBlank {
+        cfg.apiKey.takeIf {
+            WebSearchProviderCatalog.canonicalKey(cfg.providerName)
+                .equals(canonicalProvider, ignoreCase = true)
+        }.orEmpty()
     }
 }
+
+/** 返回该供应商明确配置过的端点；没有配置时返回 null，让调用方决定是否启用该供应商。 */
+internal fun resolveConfiguredProviderEndpoint(cfg: WebSearchConfig, provider: String): String? {
+    val canonicalProvider = WebSearchProviderCatalog.canonicalKey(provider)
+    // 普通内置供应商的地址由目录托管；旧配置里的 customUrl/endpoint 不能绕过这个契约。
+    // 只有明确支持自定义地址的类型才读取用户端点，避免 UI 只读而执行层仍走旧地址。
+    if (!WebSearchProviderCatalog.supportsCustomUrl(canonicalProvider)) return null
+    val entryEndpoint = cfg.providerEntries
+        .firstOrNull {
+            it.enabled && WebSearchProviderCatalog.canonicalKey(it.type)
+                .equals(canonicalProvider, ignoreCase = true)
+        }
+        ?.customUrl
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+    if (entryEndpoint != null) return entryEndpoint
+    return cfg.endpoint.trim().takeIf {
+        it.isNotBlank() && WebSearchProviderCatalog.canonicalKey(cfg.providerName)
+            .equals(canonicalProvider, ignoreCase = true)
+    }
+}
+
+/** 返回供应商实际使用的端点：配置值优先，旧字段次之，最后使用目录默认值。 */
+internal fun resolveProviderEndpoint(cfg: WebSearchConfig, provider: String, defaultKey: String = provider): String =
+    resolveConfiguredProviderEndpoint(cfg, provider)
+        ?: WebSearchProviderCatalog.defaultEndpoint(defaultKey).orEmpty()
 
 /**
  * 按配置构造 Auto 回退链，返回 `(引擎名, 服务)`，顺序 = 用户顺序（未设置时 = 内置顺序）。
@@ -1557,34 +1606,85 @@ internal val AUTO_CHAIN_BUILDERS: Map<
     String,
     (OkHttpClient, WebSearchConfig, (String) -> String) -> WebSearchService?,
     > = mapOf(
-    "Tavily" to { client, _, keyFor -> keyFor("Tavily").takeIf { it.isNotBlank() }?.let { TavilyProvider(client, it) } },
-    "Perplexity" to { client, _, keyFor ->
-        keyFor("Perplexity").takeIf { it.isNotBlank() }?.let { PerplexitySearchProvider(client, it) }
+    "Tavily" to { client, cfg, keyFor ->
+        keyFor("Tavily").takeIf { it.isNotBlank() }?.let {
+            TavilyProvider(client, it, resolveProviderEndpoint(cfg, "Tavily"))
+        }
     },
-    "Brave" to { client, _, keyFor -> keyFor("Brave").takeIf { it.isNotBlank() }?.let { BraveSearchProvider(client, it) } },
-    "Serper" to { client, _, keyFor -> keyFor("Serper").takeIf { it.isNotBlank() }?.let { SerperSearchProvider(client, it) } },
-    "Zhipu" to { client, _, keyFor -> keyFor("Zhipu").takeIf { it.isNotBlank() }?.let { ZhipuSearchProvider(client, it) } },
-    "Bocha" to { client, _, keyFor -> keyFor("Bocha").takeIf { it.isNotBlank() }?.let { BochaSearchProvider(client, it) } },
-    "Metaso" to { client, _, keyFor -> keyFor("Metaso").takeIf { it.isNotBlank() }?.let { MetasoSearchProvider(client, it) } },
-    "Exa" to { client, _, keyFor -> keyFor("Exa").takeIf { it.isNotBlank() }?.let { ExaSearchProvider(client, it) } },
-    "Firecrawl" to { client, _, keyFor -> keyFor("Firecrawl").takeIf { it.isNotBlank() }?.let { FirecrawlProvider(client, it) } },
-    "Jina" to { client, _, keyFor -> keyFor("Jina").takeIf { it.isNotBlank() }?.let { JinaProvider(client, it) } },
-    "DeepSeek" to { client, _, keyFor ->
+    "Perplexity" to { client, cfg, keyFor ->
+        keyFor("Perplexity").takeIf { it.isNotBlank() }?.let {
+            PerplexitySearchProvider(client, it, resolveProviderEndpoint(cfg, "Perplexity"))
+        }
+    },
+    "Brave" to { client, cfg, keyFor ->
+        keyFor("Brave").takeIf {
+            it.isNotBlank()
+        }?.let { BraveSearchProvider(client, it, resolveProviderEndpoint(cfg, "Brave")) }
+    },
+    "Serper" to { client, cfg, keyFor ->
+        keyFor("Serper").takeIf {
+            it.isNotBlank()
+        }?.let { SerperSearchProvider(client, it, resolveProviderEndpoint(cfg, "Serper")) }
+    },
+    "Zhipu" to { client, cfg, keyFor ->
+        keyFor("Zhipu").takeIf {
+            it.isNotBlank()
+        }?.let { ZhipuSearchProvider(client, it, resolveProviderEndpoint(cfg, "Zhipu")) }
+    },
+    "Bocha" to { client, cfg, keyFor ->
+        keyFor("Bocha").takeIf {
+            it.isNotBlank()
+        }?.let { BochaSearchProvider(client, it, resolveProviderEndpoint(cfg, "Bocha")) }
+    },
+    "Metaso" to { client, cfg, keyFor ->
+        keyFor("Metaso").takeIf {
+            it.isNotBlank()
+        }?.let { MetasoSearchProvider(client, it, resolveProviderEndpoint(cfg, "Metaso")) }
+    },
+    "Exa" to { client, cfg, keyFor ->
+        keyFor("Exa").takeIf {
+            it.isNotBlank()
+        }?.let { ExaSearchProvider(client, it, resolveProviderEndpoint(cfg, "Exa")) }
+    },
+    "Firecrawl" to { client, cfg, keyFor ->
+        keyFor("Firecrawl").takeIf {
+            it.isNotBlank()
+        }?.let { FirecrawlProvider(client, it, resolveProviderEndpoint(cfg, "Firecrawl")) }
+    },
+    "Jina" to { client, cfg, keyFor ->
+        keyFor("Jina").takeIf { it.isNotBlank() }?.let {
+            JinaProvider(client, it, resolveProviderEndpoint(cfg, "Jina"))
+        }
+    },
+    "DeepSeek" to { client, cfg, keyFor ->
         keyFor("DeepSeek").takeIf { it.isNotBlank() }?.let {
-            GenericSearchProvider(client, DEEPSEEK_SEARCH_ENGINE.copy(apiKey = it))
+            GenericSearchProvider(
+                client,
+                DEEPSEEK_SEARCH_ENGINE.copy(
+                    apiKey = it,
+                    endpoint = resolveProviderEndpoint(cfg, "DeepSeek"),
+                ),
+            )
         }
     },
     // 自托管 SearXNG 属于用户自己的搜索服务，优先于公共免费抓取。
     "SearXNG" to { client, cfg, _ ->
-        if (cfg.endpoint.isNotBlank() && cfg.providerName.equals("SearXNG", ignoreCase = true)) {
-            SearXNGProvider(client, cfg.endpoint)
-        } else {
-            null
-        }
+        resolveConfiguredProviderEndpoint(cfg, "SearXNG")?.let { SearXNGProvider(client, it) }
     },
     "Custom API" to { client, cfg, _ ->
-        if (cfg.providerName.equals("Custom API", ignoreCase = true) && cfg.apiKey.isNotBlank()) {
-            TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { WebSearchProviderCatalog.defaultEndpoint("Tavily")!! })
+        val selected = WebSearchProviderCatalog.canonicalKey(cfg.providerName)
+        val hasEntry = cfg.providerEntries.any {
+            it.enabled && WebSearchProviderCatalog.canonicalKey(it.type)
+                .equals("Custom API", ignoreCase = true)
+        }
+        if ((selected.equals("Custom API", ignoreCase = true) || hasEntry) &&
+            resolveProviderKey(cfg, "Custom API").isNotBlank()
+        ) {
+            TavilyProvider(
+                client,
+                resolveProviderKey(cfg, "Custom API"),
+                resolveProviderEndpoint(cfg, "Custom API", "Tavily"),
+            )
         } else {
             null
         }

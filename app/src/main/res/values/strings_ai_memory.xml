@@ -233,4 +233,6 @@
     <string name="memory_merge_error_empty_result">合并结果不能为空</string>
     <string name="memory_merge_error_commit_failed">合并失败，记忆未改变</string>
     <string name="memory_space_default_name">默认</string>
+    <string name="memory_pinned_dedup_none">没有可合并的重复置顶</string>
+    <plurals name="memory_pinned_dedup_done"><item quantity="other">已合并 %1$d 条重复置顶</item></plurals>
 </resources>

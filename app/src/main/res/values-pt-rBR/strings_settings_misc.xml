@@ -329,6 +329,8 @@
     <string name="settings_web_search_provider_type_desc">Escolha o tipo primeiro e preencha os dados exigidos por ele</string>
     <string name="settings_web_search_custom_url_optional">URL personalizada (opcional)</string>
     <string name="settings_web_search_custom_url_hint">Deixe em branco para usar o endereço padrão</string>
+    <string name="settings_web_search_endpoint_label">Endpoint de conexão</string>
+    <string name="settings_web_search_endpoint_managed">Gerenciado automaticamente pelo Muse; normalmente não precisa ser alterado</string>
     <string name="settings_web_search_key_pool_label">Chave de API</string>
     <string name="settings_web_search_key_pool_hint">Cole várias chaves de API: uma por linha ou separadas por vírgulas</string>
     <string name="settings_web_search_model_optional">Nome do modelo (opcional)</string>

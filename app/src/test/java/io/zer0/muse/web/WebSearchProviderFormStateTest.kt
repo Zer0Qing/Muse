@@ -22,10 +22,10 @@ class WebSearchProviderFormStateTest {
     }
 
     @Test
-    fun `商用 API 只要 Key 与可选 URL`() {
+    fun `商用 API 只要 Key 默认地址由目录接管`() {
         val f = fieldsFor("Tavily")
         assertTrue("keys" in f)
-        assertTrue("url" in f)
+        assertFalse("url" in f)
         assertFalse("model" in f)
     }
 

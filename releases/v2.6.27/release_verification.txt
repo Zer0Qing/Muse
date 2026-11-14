@@ -1,42 +1,81 @@
-Muse 2.6.27 构建与校验记录
-生成时间: 11/12/2026 16:48:08
-源码提交: 753bbe3f48957a19ad47ec8b31a408a81ea89d39
-工作树: 干净（打包前 git status 无未提交改动）
+Muse 2.6.27 本地候选包构建与校验记录
+生成时间: 2026-11-14 00:01 +08:00
+
+发布决定: 用户明确同意沿用本候选包 APK 资产发布 v2.6.27 正式 Release。
+APK 由当时本地脏树构建；源码随后已提交到 main 并打 v2.6.27 tag。
+
+源码来源
+  HEAD: 6e2b4bed3a70f55f99ea7f434b03e4982c8528dd
+  提交: merge: integrate local SenseVoice ASR into main
+  工作树: dirty candidate；未提交、未 push、未 tag、未建 Release
+  dirty paths: 130（tracked modified 103，untracked 27）
+  dirty status sha256: 6552d4d2a3b12d220776e7fc23e180f57ee8c201f7679f2fdbf3541eec43f54d
+  生产输入分类: 99（源码/资源/schema 等 Gradle 输入）
+  测试输入分类: 28（src/test 与 src/androidTest，仅用于验证，不进入 APK）
+  文档与发行记录: 3（release_body、manifest、verification，不进入 APK）
+  结论边界: 本次 Release 构建从当前工作树读取生产源码、资源和相关 schema；测试文件、文档、manifest、验证记录不属于 APK 内容。
 
 版本
   versionName = 2.6.27
   versionCode = 291
-  dbVersion   = 130
-
-产物
-  app-arm64-v8a-release.apk
-    size   = 104491615 bytes (99.7 MB)
-    sha256 = 71e8fdb41c764ccb816c63a00057280f0b2e15965e28c543322ca00427fb592b
-  app-armeabi-v7a-release.apk
-    size   = 60424078 bytes (57.6 MB)
-    sha256 = a37308cb47f2faa6b35ebc574571ce614ebc2677696ff6aefad98956d962830d
-  app-universal-release.apk
-    size   = 188494628 bytes (179.8 MB)
-    sha256 = 7bc957d600141d76f1deccce61091740c728be345d8212528a74ef0d361de0ec
-  app-x86_64-release.apk
-    size   = 105774357 bytes (100.9 MB)
-    sha256 = c796f97315dea1104b657c5f2b920920e274b266ddc99ea2dfc7f5142ef187a0
-
-签名
-  DN      = CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN
-  SHA-256 = e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
-  与 2.6.26 同一证书，可直接覆盖安装
+  app DB version = 131
+  sourceRef = local-dirty-worktree-6e2b4bed
 
 构建
-  命令: gradlew :app:assembleRelease -PversionName=2.6.27 -PversionCode=291
-  结果: BUILD SUCCESSFUL
+  命令: .\gradlew.bat :app:assembleRelease '-PversionName=2.6.27' '-PversionCode=291' '--rerun-tasks' '--console=plain'
+  结果: BUILD SUCCESSFUL；421 actionable tasks executed；耗时 6m 31s
+  日志: E:\1Project\Muse\build\release-2.6.27-final-verification.log
+  构建输出: app/build/outputs/apk/release
+  归档目录: releases/v2.6.27
+  运行时载荷抽查（arm64 APK）: lib/ 84 条，assets/ 235 条；包含被 gitignore 的运行时输入。
 
-验证（构建机实测）
-  :memory 模块单测            60 类 / 449 用例 / 0 失败
-  记忆+会话+记忆UI 联合回归    97 类 / 589 用例 / 0 失败
-  设置+Web 协议侧回归          33 类 / 200 用例 / 0 失败
-  选择文本合同测试             4 用例 / 0 失败
+APK（均由本次构建输出复制）
+  Muse_v2.6.27_arm64-v8a.apk
+    size = 104648847 bytes
+    sha256 = e73b356052bb24c39278f15cec2c097d32da7708a64f6af63cc02450e9a2502d
+  Muse_v2.6.27_armeabi-v7a.apk
+    size = 60581310 bytes
+    sha256 = 74b5822c92747b148597cde20fd99bcc4218c3d3a31ae7592540cc8b4fec12da
+  Muse_v2.6.27_universal.apk
+    size = 188651860 bytes
+    sha256 = a645c56e6152ae274cc3fbc252eb1fb4ed38d9a963c5fd39d78c1c49b5914d73
+  Muse_v2.6.27_x86_64.apk
+    size = 105931589 bytes
+    sha256 = 5eeb7b2b658b1f7b4bbdc6bdb64292a5b4d12612cb238f7255678f4c96e9c09d
+  x86_64 仅保留本机/模拟器覆盖测试，不作为公开 Release 分发包。
 
-未验证（需真机）
-  文件夹计数归位、记忆时间轴归位、选择文本手势手感、小手机入口彻底消失
-  模拟器通过不等同真机通过
+APK 元数据
+  aapt2: Android SDK build-tools 36.0.0 dump badging 通过（4/4）
+  包名: io.zer0.muse（4/4）
+  versionName/versionCode: 2.6.27 / 291（4/4）
+  ABI: arm64-v8a、armeabi-v7a、universal(arm64-v8a/armeabi-v7a/x86/x86_64)、x86_64，与文件名一致
+
+签名
+  validate_release_apks.py（显式指定 SDK build-tools 36.0.0/apksigner.bat）: 4/4 PASS
+  证书 SHA-256: e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644f
+
+测试回归
+  memory: .\gradlew.bat :memory:testDebugUnitTest --rerun-tasks --console=plain
+  memory XML 汇总: 71 classes / 493 tests / failures=0 / errors=0 / skipped=0
+  app: .\gradlew.bat :app:testDebugUnitTest --tests（12 个搜索/设置定向类） --rerun-tasks --console=plain
+  app XML 汇总: 12 classes / 93 tests / failures=0 / errors=0 / skipped=0
+  搜索四条请求回归: python android、android python、天气 成都、site:github.com python
+  覆盖内容: ToolArgsParser → SkillSearchToolsImpl → WebSearchCoordinator/provider 边界、端点优先级、详情表单、Key 池、旧自定义 API 键归一化与配置迁移。
+  记忆覆盖: MemoryRuntime、revision fence、事实投影、置顶去重、Dream/Experience、备份写门、迁移路径。
+
+静态与文档检查
+  git diff --check: PASS（仅报告既有 CRLF 转换提示，无 whitespace error）
+  release manifest: releases/v2.6.27/manifest.json 已按四个 APK 的实际大小与 SHA-256 重生成
+  manifest sourceCommit = 6e2b4bed3a70f55f99ea7f434b03e4982c8528dd
+  manifest sourceRef = local-dirty-worktree-6e2b4bed
+  真实公共搜索探测: SearXNG TLS 握手失败；百度返回拦截页（非结果集），不能作为真实召回通过证据
+  标准正式 Release manifest 校验不用于宣称公开发布通过；sourceRef 明确是脏树候选。
+
+未验证（需覆盖安装、真实凭据或真机）
+  覆盖安装后的完整迁移、备份恢复中途被杀、文件夹计数、记忆时间轴、真实搜索供应商 Key 连接测试。
+  设置页视觉与触控手感、网络环境下的真实召回结果、性能与后台重启。
+  当前 adb 未连接物理设备；因此不能声称真机可用，也没有执行安装或覆盖数据。
+
+交付边界
+  本包用于本地覆盖安装测试，未提交、未 push、未 tag、未创建 GitHub Release。
+  用户安装前应保留旧版本回滚包；覆盖安装会保留应用数据，但数据库会迁移到 131。

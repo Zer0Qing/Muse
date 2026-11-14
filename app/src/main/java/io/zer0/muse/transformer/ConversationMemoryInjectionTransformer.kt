@@ -4,13 +4,17 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.memory.runtime.MemoryReadRequest
+import io.zer0.memory.runtime.MemoryRuntime
+import io.zer0.memory.runtime.MemoryScopeKey
 import io.zer0.memory.summary.SessionSummaryManager
 
 /**
  * Adds the current session's editable summary only after older history has been compressed.
  */
 internal class ConversationMemoryInjectionTransformer(
-    private val summaryManager: SessionSummaryManager,
+    private val summaryManager: SessionSummaryManager? = null,
+    private val memoryRuntime: MemoryRuntime? = null,
 ) : Transformer {
 
     override val name: String = "ConversationMemoryInjection"
@@ -24,20 +28,36 @@ internal class ConversationMemoryInjectionTransformer(
         if (compressedIndex < 0) return messages
         if (messages.any { it.role == MessageRole.SYSTEM && CONVERSATION_MEMORY_MARKER in it.content }) return messages
 
-        val summary = resultOf { summaryManager.getSummary(sessionId) }
+        val scope = (context.extra("current_scope") as? String)?.takeIf { it.isNotBlank() } ?: "main"
+        val expectedAssistantId =
+            (context.extra("assistant_id") as? String)?.takeIf { it.isNotBlank() }
+                ?: if (scope == "main") "default" else scope
+        val currentSpace = (context.extra("current_space") as? String)?.takeIf { it.isNotBlank() } ?: "default"
+        val summary = resultOf {
+            if (memoryRuntime != null) {
+                memoryRuntime.read(
+                    MemoryReadRequest(
+                        scope = MemoryScopeKey(expectedAssistantId, scope, currentSpace),
+                        tokenBudget = 0,
+                        includeCompiled = false,
+                        includeFacts = false,
+                        includePinned = false,
+                        includeSessionSummary = true,
+                        sessionId = sessionId,
+                    ),
+                ).sessionSummary
+            } else {
+                summaryManager?.getSummary(sessionId)
+            }
+        }
             .onError { message, error ->
                 Logger.w("ConversationMemoryInjection", "session summary read failed: $message", error)
             }
             .getOrNull() ?: return messages
         if (summary.summary.isBlank()) return messages
 
-        val scope = (context.extra("current_scope") as? String)?.takeIf { it.isNotBlank() } ?: "main"
-        val expectedAssistantId =
-            (context.extra("assistant_id") as? String)?.takeIf { it.isNotBlank() }
-                ?: if (scope == "main") "default" else scope
         if (summary.assistantId.ifBlank { "default" } != expectedAssistantId) return messages
 
-        val currentSpace = (context.extra("current_space") as? String)?.takeIf { it.isNotBlank() } ?: "default"
         if (summary.spaceId.ifBlank { "default" } != currentSpace) return messages
 
         val boundedSummary = summary.summary.take(MAX_SUMMARY_CHARS)

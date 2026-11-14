@@ -839,4 +839,7 @@
     <string name="kb_settings_title">Настройки знаний</string>
     <string name="settings_about_contributors">Участники</string>
     <string name="settings_about_contributors_subtitle">Испанская локализация: %1$s</string>
+    <string name="settings_about_memory_limit">Лимит памяти %1$dMB (%2$s)</string>
+    <string name="settings_about_memory_low_heap">устройство с малым объёмом памяти</string>
+    <string name="settings_about_memory_normal_heap">largeHeap включён</string>
 </resources>

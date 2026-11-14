@@ -51,6 +51,7 @@ internal fun filterAssistantAttributedMemoryEntries(summary: String): String = s
 class DeepMemoryProcessor(
     private val factDbProvider: io.zer0.memory.fact.FactDbProvider,
     private val llmClient: MemoryLlmClient,
+    private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
 ) {
 
     companion object {
@@ -106,6 +107,9 @@ class DeepMemoryProcessor(
         locale: String = "zh-CN",
         config: MemoryConfig = MemoryConfig(),
     ): ProcessResult = withContext(Dispatchers.IO) {
+        if (writeGate?.isBlocked(io.zer0.memory.runtime.MemoryScopeKey("default", "main", "default")) == true) {
+            return@withContext ProcessResult(0, 0, 0)
+        }
         val dirty = summaryManager.getDirtySessions()
         if (dirty.isEmpty()) return@withContext ProcessResult(0, 0, 0)
 
@@ -159,6 +163,9 @@ class DeepMemoryProcessor(
         locale: String = "zh-CN",
         config: MemoryConfig = MemoryConfig(),
     ): Int = withContext(Dispatchers.IO) {
+        if (writeGate?.isBlocked(io.zer0.memory.runtime.MemoryScopeKey("default", "main", "default")) == true) {
+            return@withContext 0
+        }
         val summary = summaryManager.getSummary(sessionId) ?: return@withContext 0
         // 只处理 dirty session(summary !== snapshot)
         if (summary.summary == summary.snapshot) return@withContext 0
@@ -284,7 +291,38 @@ class DeepMemoryProcessor(
                     )
                 }
                 // 摘要携带空间归属，深度提取不能再落入 default。
-                val added = factStore.addBatch(atomicity.facts, scope = scope, spaceId = summary.spaceId)
+                val generationId = buildGenerationId(
+                    sessionId = summary.sessionId,
+                    revision = summary.summaryRevision,
+                    fingerprint = summary.sourceFingerprint,
+                )
+                factStore.stageSessionFacts(
+                    generationId = generationId,
+                    sessionId = summary.sessionId,
+                    sourceRevision = summary.summaryRevision,
+                    facts = atomicity.facts,
+                    scope = scope,
+                    spaceId = summary.spaceId,
+                )
+                // 提取期间摘要 revision/fingerprint 不能变，否则旧 generation 不能发布。
+                if (!summaryManager.isRevisionCurrent(summary.sessionId, summary.summaryRevision)) {
+                    factStore.orphanProjection(generationId)
+                    failureCounts[summary.sessionId] = (failureCounts[summary.sessionId] ?: 0) + 1
+                    throw IllegalStateException("session summary changed during fact extraction")
+                }
+                val published = factStore.publishSessionFacts(generationId, summary.sessionId, summary.summaryRevision)
+                if (published !is io.zer0.memory.fact.ProjectionPublishResult.Published) {
+                    factStore.orphanProjection(generationId)
+                    failureCounts[summary.sessionId] = (failureCounts[summary.sessionId] ?: 0) + 1
+                    throw IllegalStateException("fact projection publish rejected: $published")
+                }
+                // 发布成功后 markProcessedIfCurrent 再防一道 CAS：仍是旧并发路径时保持 dirty。
+                val marked = summaryManager.markProcessedIfCurrent(summary.sessionId, summary.summaryRevision)
+                if (!marked) {
+                    factStore.orphanProjection(generationId)
+                    failureCounts[summary.sessionId] = (failureCounts[summary.sessionId] ?: 0) + 1
+                    throw IllegalStateException("summary revision advanced before markProcessedIfCurrent")
+                }
                 // v0.32: 接入 MemoryConfig —— 每个脏 session 处理完后顺手跑一次衰减,
                 // 让 decayPerDay / forgetSpeed / compileThreshold / baseImportance 真正生效。
                 // 单 session 的 fact 增量很小,applyDecay 的开销可忽略;失败也不阻塞主流程。
@@ -295,8 +333,7 @@ class DeepMemoryProcessor(
                     Logger.w("DeepMemoryProcessor", "applyDecay failed for ${summary.sessionId.take(8)}…: $msg", t)
                 }
                 failureCounts.remove(summary.sessionId)
-                summaryManager.markProcessed(summary.sessionId)
-                return added
+                return atomicity.facts.size
             } catch (e: CancellationException) {
                 // v1.78 (H5): 必须重抛,否则协程取消信号丢失,repeat 循环继续重试无法退出
                 throw e
@@ -366,6 +403,12 @@ class DeepMemoryProcessor(
         val localDatesLabel = if (isZh) "本地日期" else "Local dates"
         val timezoneLabel = if (isZh) "时区" else "Timezone"
         return "$timezoneLabel: ${range.timezone}\n$localDatesLabel: ${range.localDates.joinToString(", ")}"
+    }
+
+    /** 生成深记忆投影 generation id。revision/fingerprint 变化会让旧 generation 失去可发布性。 */
+    internal fun buildGenerationId(sessionId: String, revision: Long, fingerprint: String): String {
+        val safeSession = sessionId.replace(Regex("[^a-zA-Z0-9_.-]"), "_")
+        return "deep_" + safeSession + "_" + revision + "_" + fingerprint.hashCode()
     }
 
     /**

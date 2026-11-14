@@ -333,6 +333,8 @@
     <string name="settings_web_search_provider_type_desc">先选类型，再按类型填写所需信息</string>
     <string name="settings_web_search_custom_url_optional">自定义 URL（可选）</string>
     <string name="settings_web_search_custom_url_hint">留空使用默认地址</string>
+    <string name="settings_web_search_endpoint_label">连接地址</string>
+    <string name="settings_web_search_endpoint_managed">由 Muse 自动配置，通常不需要修改</string>
     <string name="settings_web_search_key_pool_label">API Key</string>
     <string name="settings_web_search_key_pool_hint">可粘贴多个 API Key：每行一个，或用逗号分隔</string>
     <string name="settings_web_search_model_optional">模型名（可选）</string>

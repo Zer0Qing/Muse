@@ -381,6 +381,7 @@ fun MemoryScreen(
                                 onImportance = { importanceItem = it },
                                 // 时间轴卡片长按:先出动作面板,删除再走二次确认
                                 onTimelineActions = { timelineActionTarget = it },
+                                onDedupPinned = { viewModel.dedupPinnedExact() },
                                 selectionMode = selectionMode,
                                 isSelected = { factKeyOf(it) in selectedFactKeys },
                                 onLongPressItem = {
@@ -984,6 +985,8 @@ private fun LazyListScope.memoryStreamItems(
     onPin: (MemoryItem) -> Unit,
     onImportance: (MemoryItem) -> Unit,
     onTimelineActions: (TimelineItem) -> Unit,
+    /** 置顶记忆精确去重（由 ViewModel 执行，完成后重载列表）。 */
+    onDedupPinned: () -> Unit,
     selectionMode: Boolean,
     isSelected: (MemoryItem) -> Boolean,
     onLongPressItem: (MemoryItem) -> Unit,
@@ -1004,7 +1007,11 @@ private fun LazyListScope.memoryStreamItems(
                         updatedAt = item.pinnedAt ?: item.createdAt ?: item.time.orEmpty(),
                     )
                 },
-                onRemove = { id -> items.firstOrNull { it.id == id }?.let(onPin) },
+                onUnpin = { id -> items.firstOrNull { it.id == id }?.let(onPin) },
+                // 删除：真正从记忆库移除（onDelete 已在作用域内）。
+                // 此前这里调的是 onPin（切换置顶），条目并未删除，与垃圾桶图标的语义相反。
+                onDelete = { id -> items.firstOrNull { it.id == id }?.let(onDelete) },
+                onDedup = onDedupPinned,
             )
         }
     }

@@ -143,6 +143,16 @@ private class SingleSessionSummaryDao(
 
     // 助手被删除时要清掉它名下的摘要;单会话假件里没有这条助手的数据,固定返回 0 行。
     override suspend fun deleteByAssistant(assistantId: String): Int = 0
+
+    override suspend fun revisionOf(sessionId: String): Long? = summary.takeIf { it.sessionId == sessionId }?.summaryRevision
+
+    override suspend fun bumpRevisionIfCurrent(sessionId: String, expectedRevision: Long, sourceFingerprint: String): Int =
+        if (summary.sessionId == sessionId && summary.summaryRevision == expectedRevision) 1 else 0
+
+    override suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long, now: String): Int =
+        if (summary.sessionId == sessionId && summary.summaryRevision == expectedRevision) 1 else 0
+
+    override suspend fun markBranchChanged(sessionId: String, retainedMessageCount: Int): Int = if (summary.sessionId == sessionId) 1 else 0
 }
 
 private object NoCallMemoryLlmClient : MemoryLlmClient {

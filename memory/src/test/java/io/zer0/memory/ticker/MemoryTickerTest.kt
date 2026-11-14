@@ -667,6 +667,10 @@ private class FakeSessionSummaryDao : SessionSummaryDao {
     override suspend fun deleteById(sessionId: String) {}
     // 助手被删除时要清掉它名下的摘要；空数据 fake 里没有可删的行。
     override suspend fun deleteByAssistant(assistantId: String): Int = 0
+    override suspend fun revisionOf(sessionId: String): Long? = null
+    override suspend fun bumpRevisionIfCurrent(sessionId: String, expectedRevision: Long, sourceFingerprint: String): Int = 0
+    override suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long, now: String): Int = 0
+    override suspend fun markBranchChanged(sessionId: String, retainedMessageCount: Int): Int = 0
 }
 
 /** Fake [CompiledSectionDao]: 内存 map 存储,空实现。 */

@@ -21,6 +21,21 @@ class WebSearchConfigMigrationTest {
     }
 
     @Test
+    fun `旧中文自定义 API 配置迁移为目录键并合并旧 key`() {
+        val old = WebSearchConfig(
+            providerName = WebSearchConfig.CUSTOM_PROVIDER_NAME,
+            apiKey = "legacy-key",
+            apiKeys = mapOf(WebSearchConfig.CUSTOM_PROVIDER_NAME to "mapped-key"),
+        )
+
+        val out = WebSearchConfig.migrateToV3(old)
+
+        assertEquals(WebSearchConfig.CUSTOM_PROVIDER_NAME_EN, out.providerName)
+        val entry = out.providerEntries.single { it.type == WebSearchConfig.CUSTOM_PROVIDER_NAME_EN }
+        assertEquals(listOf("mapped-key", "legacy-key"), entry.apiKeys)
+    }
+
+    @Test
     fun `只有旧单 apiKey 时归并到 providerName 那家`() {
         val old = WebSearchConfig(providerName = "Tavily", apiKey = "tvly-old", policyVersion = 2)
         val out = WebSearchConfig.migrateToV3(old)

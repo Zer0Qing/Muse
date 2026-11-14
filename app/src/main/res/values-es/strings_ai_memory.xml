@@ -230,4 +230,6 @@
     <string name="memory_graph_link_type_causes">Causa</string>
     <string name="memory_graph_link_type_part_of">Parte de</string>
     <string name="memory_graph_link_type_contradicts">Contradice</string>
+    <string name="memory_pinned_dedup_none">No hay elementos fijados duplicados para combinar</string>
+    <plurals name="memory_pinned_dedup_done"><item quantity="one">Se combinó %1$d elemento fijado duplicado</item><item quantity="other">Se combinaron %1$d elementos fijados duplicados</item></plurals>
 </resources>

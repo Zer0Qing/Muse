@@ -157,6 +157,25 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
      */
     private fun appendMemoryDetail(pw: PrintWriter) {
         pw.println("----- Memory Detail -----")
+        // 堆上限来自 ROM 的 dalvik.vm.heapsize(largeHeap) 或 heapgrowthlimit,
+        // 应用改不了。同时记下 ActivityManager 的两个值和 isLowRamDevice,
+        // 才能判断「这台机器到底给了多少」以及 largeHeap 是否真的生效。
+        runCatching {
+            val am = appContext.getSystemService(android.content.Context.ACTIVITY_SERVICE)
+                as? android.app.ActivityManager
+            if (am != null) {
+                pw.println("memory class: ${am.memoryClass}MB")
+                pw.println("large memory class: ${am.largeMemoryClass}MB")
+                pw.println("is low ram device: ${am.isLowRamDevice}")
+            }
+        }
+        runCatching {
+            pw.println(
+                "memory budget: heap=${io.zer0.muse.perf.MemoryBudget.heapMaxMb}MB " +
+                    "lowHeap=${io.zer0.muse.perf.MemoryBudget.isLowHeap} " +
+                    "imageTotal=${io.zer0.muse.perf.MemoryBudget.imageCacheBytes / (1024 * 1024)}MB",
+            )
+        }
         runCatching {
             val nativeMb = android.os.Debug.getNativeHeapAllocatedSize() / (1024 * 1024)
             pw.println("native heap allocated: ${nativeMb}MB")
@@ -172,7 +191,8 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
         runCatching {
             pw.println(
                 "data-uri bitmaps: ${io.zer0.muse.perf.DataUriImageCache.size()} entries, " +
-                    "${io.zer0.muse.perf.DataUriImageCache.bytes() / (1024 * 1024)}MB",
+                    "${io.zer0.muse.perf.DataUriImageCache.bytes() / (1024 * 1024)}MB " +
+                    "/ ${io.zer0.muse.perf.DataUriImageCache.maxBytesForReport() / (1024 * 1024)}MB",
             )
         }
         runCatching {

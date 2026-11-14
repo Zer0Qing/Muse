@@ -10,6 +10,7 @@ import io.zer0.memory.summary.MemoryDbArchiveRecovery
 import io.zer0.memory.summary.MemoryDbDowngradeGuard
 import io.zer0.memory.summary.SessionSummaryManager
 import io.zer0.memory.ticker.MemoryTicker
+import io.zer0.memory.runtime.MemoryScopeKey
 import kotlinx.coroutines.CoroutineScope
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
@@ -44,6 +45,10 @@ val memoryModule: Module = module {
                 io.zer0.memory.summary.MemoryDb.MIGRATION_2_3,
                 io.zer0.memory.summary.MemoryDb.MIGRATION_3_4,
                 io.zer0.memory.summary.MemoryDb.MIGRATION_4_5,
+                io.zer0.memory.summary.MemoryDb.MIGRATION_5_6,
+                io.zer0.memory.summary.MemoryDb.MIGRATION_6_7,
+                io.zer0.memory.summary.MemoryDb.MIGRATION_7_8,
+                io.zer0.memory.summary.MemoryDb.MIGRATION_8_9,
             )
             // 仅允许降级时重建；打开前 guard 已归档更高版本库及 WAL sidecars。
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
@@ -72,6 +77,7 @@ val memoryModule: Module = module {
     single { get<MemoryDb>().dailyStateDao() }
     single { get<MemoryDb>().compiledSectionDao() }
     single { get<MemoryDb>().scopedCompiledSectionDao() }
+    single { get<MemoryDb>().memoryDreamDao() }
     single { get<FactDb>().factDao() }
     // v13 (T4-1): 事实修订记录 DAO
     single { get<FactDb>().factRevisionDao() }
@@ -104,7 +110,13 @@ val memoryModule: Module = module {
     // 互不相干 —— 同一次写入能被两边各排一次对账，两条并发写也能同时进去重判定。
     // **锁只在实例内有效，双实例等于把它悄悄废掉**，而这种错要跑很久才在数据上显形。
     single { get<io.zer0.memory.fact.FactDbProvider>().getFactStore("default") }
-    single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) } // factDbProvider + llmClient
+    single {
+        DeepMemoryProcessor(
+            factDbProvider = get<io.zer0.memory.fact.FactDbProvider>(),
+            llmClient = get(),
+            writeGate = get<io.zer0.memory.runtime.MemoryWriteGate>(),
+        )
+    }
 
     // v2.6.2（用户反馈）: 通知 → 记忆 梳理器（大工具模型梳理/整合/去重后落库）。
     single { io.zer0.memory.ai.NotificationMemoryDigest(get(), get()) } // factDbProvider + llmClient
@@ -147,6 +159,40 @@ val memoryModule: Module = module {
 
     // 置顶记忆存储
     single { io.zer0.memory.pin.PinnedMemoryStore(java.io.File(androidContext().filesDir, "pinned_memory")) }
+    single { io.zer0.memory.experience.ExperienceStore(java.io.File(androidContext().filesDir, "experience")) }
+    single { io.zer0.memory.experience.ExperienceRepository(get()) }
+    single<io.zer0.memory.runtime.MemoryWriteGate> { io.zer0.memory.runtime.DefaultMemoryWriteGate.shared }
+
+    single<io.zer0.memory.dream.MemoryDreamService> {
+        val database = get<MemoryDb>()
+        io.zer0.memory.dream.DefaultMemoryDreamService(
+            db = database,
+            snapshotReader = { scopeKey: MemoryScopeKey ->
+                val rows = database.scopedCompiledSectionDao().getForScope(scopeKey.scope, scopeKey.spaceId)
+                rows.filter { row -> row.status == "READY" }
+                    .associate { row -> Pair(row.sectionKey, row.content) }
+            },
+            writeGate = get(),
+        )
+    }
+
+    single<io.zer0.memory.runtime.MemoryRuntime> {
+        io.zer0.memory.runtime.DefaultMemoryRuntime(
+            factDbProvider = get(),
+            compiler = get(),
+            summaryManager = get(),
+            pinnedMemoryStore = get(),
+        )
+    }
+
+    single<io.zer0.memory.runtime.MemoryUseCases> {
+        io.zer0.memory.runtime.DefaultMemoryUseCases(
+            factStoreProvider = { assistantId ->
+                get<io.zer0.memory.fact.FactDbProvider>().getFactStore(assistantId)
+            },
+            pinnedMemoryStore = get(),
+        )
+    }
 }
 
 private const val MEMORY_DB_NAME = "memory.db"

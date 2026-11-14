@@ -161,6 +161,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
                 FactDb.MIGRATION_19_20,
+                FactDb.MIGRATION_20_21,
             )
             .allowMainThreadQueries()
             .build()
@@ -237,6 +238,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
                 FactDb.MIGRATION_19_20,
+                FactDb.MIGRATION_20_21,
             )
             .allowMainThreadQueries()
             .build()
@@ -399,6 +401,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
                 FactDb.MIGRATION_19_20,
+                FactDb.MIGRATION_20_21,
             )
             .allowMainThreadQueries()
             .build()
@@ -569,6 +572,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
                 FactDb.MIGRATION_19_20,
+                FactDb.MIGRATION_20_21,
             )
             .allowMainThreadQueries()
             .build()
@@ -647,6 +651,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_17_18,
                 FactDb.MIGRATION_18_19,
                 FactDb.MIGRATION_19_20,
+                FactDb.MIGRATION_20_21,
             )
             .allowMainThreadQueries()
             .build()

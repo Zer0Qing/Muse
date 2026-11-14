@@ -234,4 +234,6 @@
     <string name="memory_merge_error_empty_result">The merged text cannot be empty</string>
     <string name="memory_merge_error_commit_failed">Merge failed, memories unchanged</string>
     <string name="memory_space_default_name">Default</string>
+    <string name="memory_pinned_dedup_none">No duplicate pinned items to merge</string>
+    <plurals name="memory_pinned_dedup_done"><item quantity="one">Merged %1$d duplicate pinned item</item><item quantity="other">Merged %1$d duplicate pinned items</item></plurals>
 </resources>

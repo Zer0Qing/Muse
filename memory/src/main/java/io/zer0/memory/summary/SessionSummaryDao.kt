@@ -49,6 +49,43 @@ interface SessionSummaryDao {
     @Query("UPDATE session_summaries SET snapshot = summary, snapshot_at = :now WHERE session_id = :sessionId")
     suspend fun markProcessed(sessionId: String, now: String)
 
+    @Query("SELECT summary_revision FROM session_summaries WHERE session_id = :sessionId")
+    suspend fun revisionOf(sessionId: String): Long?
+
+    @Query(
+        """
+        UPDATE session_summaries
+        SET summary_revision = summary_revision + 1,
+            source_fingerprint = :sourceFingerprint
+        WHERE session_id = :sessionId
+          AND summary_revision = :expectedRevision
+        """,
+    )
+    suspend fun bumpRevisionIfCurrent(sessionId: String, expectedRevision: Long, sourceFingerprint: String): Int
+
+    @Query(
+        """
+        UPDATE session_summaries
+        SET snapshot = summary,
+            snapshot_at = :now,
+            fact_replacement_required = 0
+        WHERE session_id = :sessionId
+          AND summary_revision = :expectedRevision
+        """,
+    )
+    suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long, now: String): Int
+
+    @Query(
+        """
+        UPDATE session_summaries
+        SET summary_revision = summary_revision + 1,
+            message_count = :retainedMessageCount,
+            fact_replacement_required = 1
+        WHERE session_id = :sessionId
+        """,
+    )
+    suspend fun markBranchChanged(sessionId: String, retainedMessageCount: Int): Int
+
     @Query("DELETE FROM session_summaries")
     suspend fun deleteAll()
 

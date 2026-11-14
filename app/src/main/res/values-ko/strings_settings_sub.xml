@@ -839,4 +839,7 @@
     <string name="kb_settings_title">지식 설정</string>
     <string name="settings_about_contributors">기여자</string>
     <string name="settings_about_contributors_subtitle">스페인어 현지화: %1$s</string>
+    <string name="settings_about_memory_limit">메모리 상한 %1$dMB (%2$s)</string>
+    <string name="settings_about_memory_low_heap">저메모리 기기</string>
+    <string name="settings_about_memory_normal_heap">largeHeap 활성화됨</string>
 </resources>

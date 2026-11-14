@@ -858,4 +858,7 @@
     <string name="settings_agent_agent_session_enabled_subtitle">Al desactivar esta opción, no se envían mensajes proactivos a las sesiones del agente ni se crean sesiones del agente para ellos</string>
     <string name="settings_about_contributors">Colaboradores</string>
     <string name="settings_about_contributors_subtitle">Localización al español: %1$s</string>
+    <string name="settings_about_memory_limit">Límite de memoria %1$dMB (%2$s)</string>
+    <string name="settings_about_memory_low_heap">dispositivo de baja memoria</string>
+    <string name="settings_about_memory_normal_heap">largeHeap activado</string>
 </resources>

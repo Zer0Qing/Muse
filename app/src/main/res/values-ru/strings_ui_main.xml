@@ -865,4 +865,7 @@
     <string name="audit_log_result_ok">Успех</string>
     <string name="audit_log_result_fail">Сбой</string>
     <string name="permission_advanced_channels">Дополнительные каналы (Root / Termux)</string>
-    <string name="channel_weclaw_summary">Подключает личный аккаунт через протокол iLink в WeChat. Один аккаунт WeChat может быть привязан только к одному каналу: новая привязка отменяет прежнюю. Инициативные уведомления зависят от окна ответа, открытого недавним входящим сообщением; если они не приходят, отправьте этому каналу сообщение в WeChat.</string></resources>
+    <string name="channel_weclaw_summary">Подключает личный аккаунт через протокол iLink в WeChat. Один аккаунт WeChat может быть привязан только к одному каналу: новая привязка отменяет прежнюю. Инициативные уведомления зависят от окна ответа, открытого недавним входящим сообщением; если они не приходят, отправьте этому каналу сообщение в WeChat.</string>    <string name="assistant_detail_pinned_injection">Вставлять закреплённые воспоминания</string>
+    <string name="assistant_detail_pinned_injection_desc">Если выключено, закреплённые записи остаются в памяти, но больше не добавляются в каждый запрос</string>
+    <string name="assistant_detail_pinned_remove_cd">Открепить</string>
+</resources>

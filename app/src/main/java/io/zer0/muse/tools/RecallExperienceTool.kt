@@ -1,6 +1,6 @@
 package io.zer0.muse.tools
 
-import io.zer0.muse.data.experience.ExperienceRepository
+import io.zer0.memory.experience.ExperienceRepository
 
 /**
  * recall_experience 工具。
@@ -22,9 +22,10 @@ object RecallExperienceTool {
         riskLevel = ToolRiskLevel.SAFE,
     )
 
-    suspend fun execute(args: Map<String, String>, repo: ExperienceRepository): String {
+    suspend fun execute(args: Map<String, String>, repo: ExperienceRepository, executionContext: ToolExecutionContext? = null): String {
         val category = args["category"]?.trim()
-        val all = repo.getAll()
+        val assistantId = executionContext?.assistantId?.takeIf { it.isNotBlank() } ?: "default"
+        val all = repo.list(assistantId, category)
         if (all.isEmpty()) return "Experience library is empty. No experiences recorded yet."
 
         return if (category.isNullOrEmpty()) {
@@ -42,10 +43,7 @@ object RecallExperienceTool {
             }
                 .trimEnd()
         } else {
-            val matches = all.filter {
-                it.category.equals(category, ignoreCase = true) ||
-                    it.category.contains(category, ignoreCase = true)
-            }
+            val matches = all
             if (matches.isEmpty()) {
                 "No experiences found for category '$category'."
             } else {

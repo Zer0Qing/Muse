@@ -1,14 +1,21 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.memory.experience.ExperienceRepository
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
+import io.zer0.memory.runtime.DeleteMemoryRequest
+import io.zer0.memory.runtime.MemoryScopeKey
+import io.zer0.memory.runtime.MemoryUseCases
+import io.zer0.memory.runtime.PinMemoryRequest
+import io.zer0.memory.runtime.SaveMemoryRequest
+import io.zer0.memory.runtime.UnpinMemoryRequest
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.data.experience.ExperienceRepository
 import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.notification.MuseNotificationManager
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 
 /**
  * Agent 工具注册器（实现自既有工具系统）。
@@ -66,6 +73,8 @@ class AgentToolsRegistrar(
     private val contextOccupancy: (() -> Pair<Int, Int>?)? = null,
     /** facts 表查不到时的编译摘要回落口；为空时 search_memory 只报事实表结果。 */
     private val compiledSummarySearch: SearchMemoryTool.CompiledSummarySearch? = null,
+    /** 统一记忆 use cases；为空时保留旧直接 store 调用路径。 */
+    private val memoryUseCases: MemoryUseCases? = null,
 ) {
     init {
         registerAll()
@@ -116,7 +125,27 @@ class AgentToolsRegistrar(
 
         // Phase 1C：置顶记忆
         toolRegistry.registerWithContext(PinMemoryTool.toolDef()) { args, executionContext ->
-            PinMemoryTool.execute(args, pinnedMemoryStore, executionContext.assistantId)
+            when {
+                executionContext.isSubagentContext -> "Error: subagent context cannot write long-term memory"
+                memoryUseCases != null -> {
+                    val content = args["content"]?.trim().orEmpty()
+                    if (content.isBlank()) {
+                        "Error: content parameter is required."
+                    } else {
+                        when (
+                            val result = runBlocking {
+                                memoryUseCases.pin(PinMemoryRequest(executionContext.scopeKey(), content))
+                            }
+                        ) {
+                            is io.zer0.memory.runtime.PinMemoryResult.Pinned ->
+                                "Pinned successfully (id: ${result.id.take(8)}...)."
+                            is io.zer0.memory.runtime.PinMemoryResult.Rejected ->
+                                "Error: ${result.reason}"
+                        }
+                    }
+                }
+                else -> PinMemoryTool.execute(args, pinnedMemoryStore, executionContext.assistantId)
+            }
         }
         // 记忆系统参数：此前只有内容读写，参数只能在设置页手拖。
         toolRegistry.registerWithContext(MemoryConfigTool.getDef()) { _, _ ->
@@ -126,31 +155,134 @@ class AgentToolsRegistrar(
             MemoryConfigTool.set(args, settings)
         }
         toolRegistry.registerWithContext(UnpinMemoryTool.toolDef()) { args, executionContext ->
-            UnpinMemoryTool.execute(args, pinnedMemoryStore, executionContext.assistantId)
+            when {
+                executionContext.isSubagentContext -> "Error: subagent context cannot modify long-term memory"
+                memoryUseCases != null -> when (
+                    val result = runBlocking {
+                        memoryUseCases.unpin(
+                            UnpinMemoryRequest(
+                                scope = executionContext.scopeKey(),
+                                id = args["id"]?.trim(),
+                                keyword = args["keyword"]?.trim(),
+                            ),
+                        )
+                    }
+                ) {
+                    io.zer0.memory.runtime.UnpinMemoryResult.Removed -> "Unpinned successfully."
+                    io.zer0.memory.runtime.UnpinMemoryResult.Missing -> "No matching pinned memory found."
+                }
+                else -> UnpinMemoryTool.execute(args, pinnedMemoryStore, executionContext.assistantId)
+            }
         }
 
         // Phase 3B：经验工具
-        toolRegistry.register(RecallExperienceTool.toolDef()) { args ->
-            RecallExperienceTool.execute(args, experienceRepository)
+        toolRegistry.registerOutcomeWithContext(RecallExperienceTool.toolDef()) { args, executionContext ->
+            ToolOutcome.ok(RecallExperienceTool.execute(args, experienceRepository, executionContext))
         }
-        toolRegistry.register(RecordExperienceTool.toolDef()) { args ->
-            RecordExperienceTool.execute(args, experienceRepository)
+        toolRegistry.registerWithContext(RecordExperienceTool.toolDef()) { args, executionContext ->
+            RecordExperienceTool.execute(args, experienceRepository, executionContext)
         }
 
         // Phase 1 v6：长期记忆搜索
         toolRegistry.registerWithContext(SearchMemoryTool.toolDef()) { args, executionContext ->
-            val scopedStore = factDbProvider?.getFactStore(executionContext.assistantId ?: "default") ?: factStore
-            SearchMemoryTool.execute(args, scopedStore, executionContext, compiledSummarySearch)
+            memoryUseCases?.let { useCases ->
+                SearchMemoryTool.executeWithUseCases(args, useCases, executionContext, compiledSummarySearch)
+            } ?: run {
+                val scopedStore = factDbProvider?.getFactStore(executionContext.assistantId ?: "default") ?: factStore
+                SearchMemoryTool.execute(args, scopedStore, executionContext, compiledSummarySearch)
+            }
         }
 
         // v2.x: 记忆库显式写入/删除 — 助手自管记忆能力(作用域/空间走执行上下文,不可伪造)
         toolRegistry.registerWithContext(SaveMemoryTool.toolDef()) { args, executionContext ->
-            val scopedStore = factDbProvider?.getFactStore(executionContext.assistantId ?: "default") ?: factStore
-            SaveMemoryTool.execute(args, scopedStore, executionContext)
+            when {
+                executionContext.isSubagentContext -> "Error: subagent context cannot save long-term memory"
+                memoryUseCases != null -> {
+                    val content = args["content"]?.trim().orEmpty()
+                    if (content.isEmpty()) {
+                        "Error: content parameter is required."
+                    } else {
+                        val tags = args["tags"]?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+                        val importance = (args["importance"]?.toIntOrNull() ?: 0).coerceIn(0, 2)
+                        val category = args["category"]?.trim()?.takeIf { it.isNotEmpty() } ?: "general"
+                        when (
+                            val result = runBlocking {
+                                memoryUseCases.save(
+                                    SaveMemoryRequest(
+                                        scope = executionContext.scopeKey(),
+                                        fact = io.zer0.memory.fact.FactStore.Fact(
+                                            fact = content,
+                                            tags = tags,
+                                            importance = importance,
+                                            category = category,
+                                            source = "user_explicit",
+                                            confidence = 1.0f,
+                                        ),
+                                    ),
+                                )
+                            }
+                        ) {
+                            is io.zer0.memory.runtime.SaveMemoryResult.Saved -> "Saved to long-term memory (id: ${result.id})."
+                            is io.zer0.memory.runtime.SaveMemoryResult.Rejected -> "Error: ${result.reason}"
+                        }
+                    }
+                }
+                else -> {
+                    val scopedStore = factDbProvider?.getFactStore(executionContext.assistantId ?: "default") ?: factStore
+                    SaveMemoryTool.execute(args, scopedStore, executionContext)
+                }
+            }
         }
         toolRegistry.registerWithContext(DeleteMemoryTool.toolDef()) { args, executionContext ->
-            val scopedStore = factDbProvider?.getFactStore(executionContext.assistantId ?: "default") ?: factStore
-            DeleteMemoryTool.execute(args, scopedStore, executionContext)
+            val idArg = args["id"]?.trim()?.toLongOrNull()
+            when {
+                executionContext.isSubagentContext -> "Error: subagent context cannot delete long-term memory"
+                memoryUseCases != null -> {
+                    val scope = executionContext.scopeKey()
+                    val targetId = if (idArg != null && idArg > 0) {
+                        idArg
+                    } else {
+                        val match = args["match"]?.trim().orEmpty()
+                        if (match.isBlank()) {
+                            null
+                        } else {
+                            runBlocking {
+                                when (
+                                    val found = memoryUseCases.search(
+                                        io.zer0.memory.runtime.MemorySearchRequest(
+                                            scope = scope,
+                                            query = match,
+                                            limit = 5,
+                                            includeSuppressed = true,
+                                        ),
+                                    )
+                                ) {
+                                    is io.zer0.memory.runtime.MemorySearchResult.Found -> found.facts.firstOrNull()?.id
+                                    io.zer0.memory.runtime.MemorySearchResult.Empty -> null
+                                }
+                            }
+                        }
+                    }
+                    if (targetId == null) {
+                        "No matching memory found to delete."
+                    } else {
+                        when (
+                            val result = runBlocking {
+                                memoryUseCases.delete(DeleteMemoryRequest(scope, targetId))
+                            }
+                        ) {
+                            is io.zer0.memory.runtime.DeleteMemoryResult.Deleted ->
+                                "Deleted from long-term memory (id: ${result.id})."
+                            io.zer0.memory.runtime.DeleteMemoryResult.Missing -> "No matching memory found to delete."
+                            is io.zer0.memory.runtime.DeleteMemoryResult.Rejected -> "Error: ${result.reason}"
+                        }
+                    }
+                }
+                else -> {
+                    val scopedStore = factDbProvider?.getFactStore(executionContext.assistantId ?: "default") ?: factStore
+                    DeleteMemoryTool.execute(args, scopedStore, executionContext)
+                }
+            }
         }
 
         // v2.x 阶段3:工具库按需检索(命中即装载,后续轮次可见;装载 ≠ 放行)
@@ -312,3 +444,9 @@ class AgentToolsRegistrar(
         }
     }
 }
+
+private fun io.zer0.muse.tools.ToolExecutionContext.scopeKey(): MemoryScopeKey = MemoryScopeKey(
+    assistantId = assistantId?.takeIf { it.isNotBlank() } ?: "default",
+    scope = scope,
+    spaceId = spaceId,
+)

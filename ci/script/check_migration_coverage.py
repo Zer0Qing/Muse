@@ -32,6 +32,11 @@ FACT_DB_PATH = REPO_ROOT / "memory/src/main/java/io/zer0/memory/fact/FactDb.kt"
 MEMORY_DB_PATH = REPO_ROOT / "memory/src/main/java/io/zer0/memory/summary/MemoryDb.kt"
 MEMORY_DB_BUILDER_PATH = REPO_ROOT / "memory/src/main/java/io/zer0/memory/MemoryModule.kt"
 MEMORY_DB_TEST = REPO_ROOT / "memory/src/test/java/io/zer0/memory/summary/MemoryDbMigrationTest.kt"
+APP_SOURCE_ROOT = REPO_ROOT / "app/src/main/java"
+
+# 68 -> 74 is retained as a historical dead declaration. The live chain uses
+# 68 -> 69, so registering both would make Room choose the wrong branch.
+KNOWN_UNREGISTERED_MUSE_MIGRATIONS = {(68, 74)}
 
 STATIC_DECL = re.compile(r"val\s+(MIGRATION_(\d+)_(\d+))\s*=\s*object\s*:\s*Migration")
 DYNAMIC_DECL = re.compile(r"fun\s+(migrate(\d+)To(\d+))\b")
@@ -40,6 +45,10 @@ TEST_REF = re.compile(r"MuseDb\.(?:MIGRATION_(\d+)_(\d+)|migrate(\d+)To(\d+))")
 VERSION_RE = re.compile(r"version\s*=\s*(\d+)")
 # `version = SOME_CONST` 形式(如 FactDb 的 FACT_DB_VERSION)与其常量声明
 CONST_VERSION_RE = re.compile(r"version\s*=\s*([A-Za-z_][A-Za-z0-9_]*)")
+MIGRATION_LIST_START = re.compile(
+    r"(?m)^\s*(?:internal\s+|private\s+|public\s+)?fun\s+migrations\s*\([^)]*\)\s*"
+    r":\s*List\s*<\s*Migration\s*>\s*=\s*listOf\s*\(",
+)
 
 
 def resolve_current_version(db_text: str) -> int | None:
@@ -72,28 +81,71 @@ def name_to_pair(name: str) -> tuple[int, int] | None:
     return None
 
 
-def extract_add_migrations(text: str) -> list[tuple[int, int]]:
-    """从 .addMigrations( 到匹配闭合括号的区间内提取全部 (from, to)。"""
-    start = text.find(".addMigrations(")
-    if start < 0:
-        return []
+def _balanced_call_block(text: str, start: int) -> str:
+    """Return a parenthesized call/list block beginning at ``start``."""
+    opening = text.find("(", start)
+    if opening < 0:
+        return ""
     depth = 0
-    for i in range(start, len(text)):
-        ch = text[i]
+    for index in range(opening, len(text)):
+        ch = text[index]
         if ch == "(":
             depth += 1
         elif ch == ")":
             depth -= 1
             if depth == 0:
-                block = text[start : i + 1]
-                break
-    else:
-        block = text[start:]
+                return text[opening : index + 1]
+    return text[opening:]
+
+
+def _extract_migration_tokens(block: str) -> list[tuple[int, int]]:
+    """Extract migration names while ignoring Kotlin comments."""
+    without_comments = re.sub(r"/\*.*?\*/", "", block, flags=re.DOTALL)
+    without_comments = re.sub(r"//[^\r\n]*", "", without_comments)
     return [
         (int(a), int(b))
-        for a, b, c, d in ADD_MIG_TOKEN.findall(block)
+        for a, b, c, d in ADD_MIG_TOKEN.findall(without_comments)
         for a, b in ([(a, b)] if a else [(c, d)])
     ]
+
+
+def _collect_external_static_migrations() -> set[tuple[int, int]]:
+    """Collect migrations declared in app-owned schema helper objects.
+
+    Knowledge schema migrations live beside MuseDb but are registered through
+    the single MuseDb list with qualified names, so they are not declarations
+    in MuseDb.kt itself. They still must be checked as valid registration
+    targets, while their dedicated module tests remain responsible for test
+    coverage.
+    """
+    pairs: set[tuple[int, int]] = set()
+    if not APP_SOURCE_ROOT.is_dir():
+        return pairs
+    for source in APP_SOURCE_ROOT.rglob("*.kt"):
+        try:
+            text = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        pairs.update((int(a), int(b)) for _, a, b in STATIC_DECL.findall(text))
+    return pairs
+
+
+def extract_add_migrations(text: str) -> list[tuple[int, int]]:
+    """从 Room 注册入口提取全部迁移。
+
+    旧代码把迁移对象直接列在 ``addMigrations(...)`` 参数中；当前代码先
+    构造 ``migrations(context): List<Migration> = listOf(...)``，再把包装后的
+    vararg 传入 Room。两种写法都必须被门禁识别，否则真实注册链会被误报为空。
+    """
+    start = text.find(".addMigrations(")
+    direct = _extract_migration_tokens(_balanced_call_block(text, start)) if start >= 0 else []
+    if direct:
+        return direct
+
+    migration_list = MIGRATION_LIST_START.search(text)
+    if migration_list is None:
+        return []
+    return _extract_migration_tokens(_balanced_call_block(text, migration_list.end() - 1))
 
 
 def fail(msg: str, count: list[int]) -> None:
@@ -134,7 +186,11 @@ def check_extra_db_static_chain(
     registration_text = registration_file.read_text(encoding="utf-8")
     registered = extract_add_migrations(registration_text)
     registered_set = set(registered)
-    reachable_static = {(f, t) for (f, t) in declared_static if f < current_version}
+    reachable_static = {
+        (f, t)
+        for (f, t) in declared_static
+        if f < current_version and (f, t) not in KNOWN_UNREGISTERED_MUSE_MIGRATIONS
+    }
     print(f"{db_name} version = {current_version}, 注册迁移数 = {len(registered)} (min 版本 {min_version})")
 
     missing_decl = sorted(registered_set - set(declared_static))
@@ -201,6 +257,7 @@ def main() -> int:
     declared_static = {
         (int(a), int(b)): name for name, a, b in STATIC_DECL.findall(db_text)
     }
+    external_static = _collect_external_static_migrations() - set(declared_static)
     declared_dynamic = {
         (int(a), int(b)): name for name, a, b in DYNAMIC_DECL.findall(db_text)
     }
@@ -218,12 +275,16 @@ def main() -> int:
     print(f"动态迁移声明数 = {len(declared_dynamic)}")
 
     registered_set = set(registered)
-    reachable_static = {(f, t) for (f, t) in declared_static if f < current_version}
+    reachable_static = {
+        (f, t)
+        for (f, t) in declared_static
+        if f < current_version and (f, t) not in KNOWN_UNREGISTERED_MUSE_MIGRATIONS
+    }
 
     print("\n[校验 A] 静态注册一致")
     for pair in sorted(registered_set & set(declared_dynamic)):
         pass  # 动态迁移见校验 C
-    missing_decl = sorted(registered_set - set(declared_static) - set(declared_dynamic))
+    missing_decl = sorted(registered_set - set(declared_static) - external_static - set(declared_dynamic))
     for pair in missing_decl:
         fail(f"addMigrations 引用了未声明/未定义的迁移 {pair}", failures)
     unregistered = sorted(reachable_static - registered_set)

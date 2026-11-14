@@ -1688,6 +1688,18 @@ fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
                         )
                     },
                 )
+                // 置顶注入独立开关：与「使用全局记忆」解耦。
+                // 置顶内容比普通记忆稳定，用户可能想留着但不希望每轮付上下文成本。
+                item(
+                    headlineContent = { Text(stringResource(R.string.assistant_detail_pinned_injection)) },
+                    supportingContent = { Text(stringResource(R.string.assistant_detail_pinned_injection_desc)) },
+                    trailingContent = {
+                        MuseSwitch(
+                            checked = a.enablePinnedInjection,
+                            onCheckedChange = { v -> update { it.copy(enablePinnedInjection = v) } },
+                        )
+                    },
+                )
             }
         }
         // 手动记忆入口
@@ -1729,6 +1741,28 @@ fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
                                 Text(entry.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             },
                             supportingContent = { Text(entry.createdAt) },
+                            // 置顶记忆可单条取消：此前这里只能看，没有任何操作入口。
+                            trailingContent = {
+                                MuseTactileButton(
+                                    icon = MuseIcons.trash,
+                                    onClick = {
+                                        scope.launch {
+                                            resultOf {
+                                                pinnedMemoryStore.removeByIdForAssistant(
+                                                    id = entry.id,
+                                                    assistantId = assistantId,
+                                                    includeGlobal = includeGlobalPinned,
+                                                )
+                                            }.onError { message, error ->
+                                                Logger.w("AssistantMemoryPage", "取消置顶失败: $message", error)
+                                            }
+                                            refreshKey++
+                                        }
+                                    },
+                                    contentDescription = stringResource(R.string.assistant_detail_pinned_remove_cd),
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
                         )
                     }
                 }

@@ -25,10 +25,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * R3 的**组件级**渲染判据：类型 chip 网格读 Catalog，选中不同类型时字段集真的切换。
+ * 组件级渲染判据：单家详情表单读 Catalog，不同 providerKey 的字段集正确切换。
  *
  * 与 `WebSearchProviderFormStateTest`（纯函数）和模拟器走查互补：这里在 CI 里固化
- * 「先选类型 → 动态表单」这条渲染链，防止有人把动态表单改回静态平铺而不被单测发现。
+ * 「进入详情 → 动态表单」这条渲染链，防止不同供应商的字段互相串用而不被单测发现。
  * 用文本而非 testTag 定位，因为该组件面向用户，文本才是契约。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -39,7 +39,7 @@ class WebSearchProviderFormTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun show(config: WebSearchConfig = WebSearchConfig(), repo: SettingsRepository = settings) {
+    private fun show(providerKey: String = "Tavily", config: WebSearchConfig = WebSearchConfig(), repo: SettingsRepository = settings) {
         composeTestRule.setContent {
             MaterialTheme {
                 // 生产里这一段是 SettingsSubPageScaffold 的 LazyColumn item（可滚动）。
@@ -47,6 +47,7 @@ class WebSearchProviderFormTest {
                 // 不滚动时屏外节点 performClick 会静默点空、assertIsDisplayed 会假红。
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     WebSearchProviderTypeSection(
+                        providerKey = providerKey,
                         config = config,
                         settings = repo,
                         scope = CoroutineScope(SupervisorJob()),
@@ -67,36 +68,39 @@ class WebSearchProviderFormTest {
         composeTestRule.onNodeWithText(text).performScrollTo().assertIsDisplayed()
     }
 
-    private fun clickType(type: String) {
-        composeTestRule.onNodeWithText(type).performScrollTo().performClick()
-        composeTestRule.waitForIdle()
-    }
-
-    @Test
-    fun `默认渲染类型 chip 网格 且默认选中 Tavily`() {
-        show()
-        // 15 家都应出现在 chip 网格里
-        io.zer0.muse.web.WebSearchProviderCatalog.chainKeys.forEach { key ->
-            assertEquals("类型「$key」应渲染为 chip", 1, countOf(key))
-        }
-        // 状态胶囊：未测试
-        assertVisible("Not tested")
-    }
-
     @Test
     fun `默认 Tavily 显示 Key 池与默认端点 hint 不显示模型名`() {
         show()
         assertVisible("API Key")
-        assertVisible("Custom URL (optional)")
-        // 默认端点作为 hint 出现
+        assertVisible("Connection endpoint")
+        assertVisible("Managed automatically by Muse; changes are usually unnecessary")
+        // 普通供应商的默认端点只读展示，不再要求用户填写 URL。
         assertEquals(1, countOf("https://api.tavily.com"))
+        assertEquals(0, countOf("Custom URL (optional)"))
         assertEquals("Tavily 不需要模型名", 0, countOf("Model name (optional)"))
     }
 
     @Test
+    fun `普通供应商不显示旧配置里的自定义地址`() {
+        show(
+            config = WebSearchConfig(
+                providerEntries = listOf(
+                    io.zer0.muse.web.WebSearchProviderEntry(
+                        id = "Tavily",
+                        type = "Tavily",
+                        customUrl = "https://legacy.example.invalid/search",
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals("仍显示目录默认地址", 1, countOf("https://api.tavily.com"))
+        assertEquals("不把旧 customUrl 当成当前地址", 0, countOf("https://legacy.example.invalid/search"))
+    }
+
+    @Test
     fun `切到 Bing 后 Key 与 URL 字段都消失`() {
-        show()
-        clickType("Bing")
+        show(providerKey = "Bing")
 
         assertEquals("Bing 不该有 API Key 字段", 0, countOf("API Key"))
         assertEquals("Bing 不该有自定义 URL 字段", 0, countOf("Custom URL (optional)"))
@@ -107,8 +111,7 @@ class WebSearchProviderFormTest {
 
     @Test
     fun `切到 Perplexity 后显示模型名字段与对应默认端点`() {
-        show()
-        clickType("Perplexity")
+        show(providerKey = "Perplexity")
 
         assertVisible("Model name (optional)")
         assertEquals(1, countOf("https://api.perplexity.ai"))
@@ -116,11 +119,10 @@ class WebSearchProviderFormTest {
 
     @Test
     fun `切到 SearXNG 后显示实例 URL 必填提示`() {
-        show()
-        clickType("SearXNG")
+        show(providerKey = "SearXNG")
 
-        // 自托管类型 URL 留空时给必填校验提示
-        assertVisible("Instance URL is required")
+        // 详情页直接填入目录里的默认实例地址，不要求用户重复输入。
+        assertEquals("默认实例地址已填入", 0, countOf("Instance URL is required"))
         assertEquals(1, countOf("https://searx.be"))
     }
 
@@ -142,7 +144,7 @@ class WebSearchProviderFormTest {
 
     @Test
     fun `已保存的多把 Key 逐条掩码展示 不回显完整 Key`() {
-        show(seededConfig)
+        show(config = seededConfig)
 
         // 每把一行：长 Key 掩码只露头尾各 3 位
         assertVisible("tvl…333")
@@ -154,7 +156,7 @@ class WebSearchProviderFormTest {
 
     @Test
     fun `删除其中一把后按剩余池落库`() {
-        show(seededConfig)
+        show(config = seededConfig)
 
         val deleteButtons = composeTestRule.onAllNodes(
             androidx.compose.ui.test.hasContentDescription("Delete this key"),

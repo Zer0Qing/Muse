@@ -128,9 +128,42 @@ def test_memory_database_companion_version_constant_resolves():
         assert failures == [0], failures
 
 
+def test_migration_registry_list_is_followed_through_room_wrapper():
+    with tempfile.TemporaryDirectory() as raw_dir:
+        root = Path(raw_dir)
+        db = write(root / "MemoryDb.kt", DB_SOURCE)
+        builder = write(
+            root / "MemoryModule.kt",
+            """
+            .addMigrations(*MigrationRegistry(all = migrations(context)).timed())
+            internal fun migrations(context: Context): List<Migration> = listOf(
+                MemoryDb.MIGRATION_1_2,
+                // MemoryDb.MIGRATION_9_10 is historical text, not a registration.
+                MemoryDb.MIGRATION_2_3,
+            )
+            """,
+        )
+        test = write(
+            root / "MemoryDbMigrationTest.kt",
+            "MemoryDb.MIGRATION_1_2\nMemoryDb.MIGRATION_2_3",
+        )
+
+        failures = [0]
+        check_extra_db_static_chain(
+            db,
+            "MemoryDb",
+            1,
+            failures,
+            registration_path=builder,
+            test_path=test,
+        )
+        assert failures == [0], failures
+
+
 if __name__ == "__main__":
     test_memory_database_registration_and_test_coverage()
     test_memory_database_missing_registration_fails()
     test_memory_database_missing_test_reference_fails()
     test_memory_database_companion_version_constant_resolves()
+    test_migration_registry_list_is_followed_through_room_wrapper()
     print("all migration coverage tests passed")

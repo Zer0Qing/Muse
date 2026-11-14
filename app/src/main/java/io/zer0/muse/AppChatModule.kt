@@ -113,6 +113,7 @@ val appChatModule = module {
             toolConfigStore = get(),
             // MCP 注册表:首条消息前等待助手绑定的 server 完成 tools/list
             mcpRegistry = get(),
+            memoryRuntime = get(),
             // 统一生成/工具执行资源注册表
             executionRegistry = get(),
             // P2-23: 媒体生成工具实现(AppKoinModule 单例) —

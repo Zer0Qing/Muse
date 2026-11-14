@@ -13,4 +13,15 @@
     <string name="settings_web_search_key_verify_failed">Falha na verificação: %1$s</string>
     <string name="settings_web_search_key_verify_no_key">Este mecanismo ainda não tem uma chave utilizável</string>
     <string name="settings_web_search_key_verify_empty">Conectou, mas não devolveu resultados</string>
+    <string name="settings_web_search_provider_current">Em uso</string>
+    <string name="settings_web_search_provider_configure">Configurar</string>
+    <string name="settings_web_search_provider_selection">Mecanismo de busca atual</string>
+    <string name="settings_web_search_provider_set_current">Usar como mecanismo atual</string>
+    <string name="settings_web_search_provider_set_current_subtitle">As buscas usarão %1$s</string>
+    <string name="settings_web_search_provider_auto_desc">O modo automático tenta os serviços configurados na ordem de busca. A maioria dos usuários não precisa informar mais nada.</string>
+    <string name="settings_web_search_provider_list_title">Serviços de busca</string>
+    <string name="settings_web_search_provider_list_desc">Escolha um serviço e, na página de detalhes, configure a chave, teste a conexão e salve. O Muse gerencia os endpoints dos serviços padrão.</string>
+    <string name="settings_web_search_provider_status_ready">Configurado</string>
+    <string name="settings_web_search_provider_status_needs_key">Chave de API necessária</string>
+    <string name="settings_web_search_provider_status_needs_url">URL da instância necessária</string>
 </resources>

@@ -212,4 +212,6 @@
     <string name="memory_merge_error_empty_result">O resultado da mesclagem não pode ficar vazio</string>
     <string name="memory_merge_error_commit_failed">A mesclagem falhou, as memórias não mudaram</string>
     <string name="memory_space_default_name">Padrão</string>
+    <string name="memory_pinned_dedup_none">Não há itens fixados duplicados para mesclar</string>
+    <plurals name="memory_pinned_dedup_done"><item quantity="one">%1$d item fixado duplicado mesclado</item><item quantity="other">%1$d itens fixados duplicados mesclados</item></plurals>
 </resources>
