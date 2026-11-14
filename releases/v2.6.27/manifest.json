@@ -23,7 +23,7 @@
     }
   ],
   "releaseNotesRef": "releases/v2.6.27/release_body.md",
-  "sourceCommit": "16360fe34c0a615ca74cb65fcdd50ce8d8579681",
+  "sourceCommit": "e0618aebf63642fbc1a29dadfa53c595db36c226",
   "sourceRef": "v2.6.27",
-  "generatedAt": "2026-11-14T08:38:22+00:00"
+  "generatedAt": "2026-11-14T08:40:35+00:00"
 }
