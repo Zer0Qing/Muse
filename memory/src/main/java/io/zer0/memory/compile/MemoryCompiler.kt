@@ -192,6 +192,19 @@ class MemoryCompiler(
         readStoredSection(section.key, target)?.content ?: ""
     }
 
+    /**
+     * 读取某个 scope/space 下的全部段落行（含 status / fingerprint）。
+     *
+     * 与 [readSection] 的区别：那个只给内容，调用方无法判断这段是不是失败的投影。
+     * 需要 provenance 的场景（runtime 读取、UI 展示、备份导出）必须用这个方法。
+     */
+    suspend fun readScopedSectionRows(scope: String, spaceId: String): List<io.zer0.memory.summary.ScopedCompiledSectionEntity> =
+        withContext(Dispatchers.IO) {
+            val normalizedScope = scope.ifBlank { "main" }
+            val normalizedSpace = spaceId.ifBlank { "default" }
+            scopedSectionDao?.getForScope(normalizedScope, normalizedSpace).orEmpty()
+        }
+
     /** 按显式 scope + space 读取，供 system prompt 注入避免依赖全局默认槽位。 */
     suspend fun readSection(section: Section, scope: String, spaceId: String): String = withContext(Dispatchers.IO) {
         val normalizedScope = scope.ifBlank { "main" }

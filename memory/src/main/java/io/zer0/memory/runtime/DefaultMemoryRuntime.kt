@@ -30,18 +30,31 @@ class DefaultMemoryRuntime(
         val sources = mutableListOf<MemorySourceRevision>()
 
         val compiled = if (request.includeCompiled) {
-            val sections = MemoryCompiler.Section.ALL.associate { section ->
-                section.key to compiler.readSection(section, normalized.scope, normalized.spaceId)
-            }
-            val compiled = CompiledMemorySnapshot(
-                sections = sections,
-                sourceRevisions = MemoryCompiler.Section.ALL.map { section ->
+            // 走行级读取而不是 readSection：只有拿到 status/fingerprint 才能判断
+            // 「这段是不是失败的投影」。默认只暴露 READY —— 失败/过期的内容一旦进入
+            // prompt，模型会把它当成当前事实，而用户毫不知情。
+            val rows = compiler.readScopedSectionRows(normalized.scope, normalized.spaceId)
+            val sections = MemoryCompiledProjection.visibleSections(
+                rows,
+                includeNonReady = request.includeNonReadyCompiled,
+            )
+            val revisions = rows
+                .filter { row -> sections.containsKey(row.sectionKey) }
+                .map { row ->
+                    val provenance = MemoryCompiledProjection.provenanceOf(row)
                     MemorySourceRevision(
                         kind = MemorySourceKind.COMPILED_SECTION,
-                        key = section.key,
+                        key = row.sectionKey,
+                        // revision 用内容指纹的长度没有意义；这里给 0，真实判等靠 fingerprint。
                         revision = 0,
-                        fingerprint = "",
+                        fingerprint = provenance.contentFingerprint,
                     )
+                }
+            val compiled = CompiledMemorySnapshot(
+                sections = sections,
+                sourceRevisions = revisions,
+                provenance = rows.associate { row ->
+                    row.sectionKey to MemoryCompiledProjection.provenanceOf(row)
                 },
             )
             sources += compiled.sourceRevisions

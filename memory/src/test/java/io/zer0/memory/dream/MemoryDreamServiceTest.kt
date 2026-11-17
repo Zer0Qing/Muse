@@ -97,4 +97,53 @@ class MemoryDreamServiceTest {
         assertTrue(service.start(scope, DreamTrigger.MANUAL, mapOf("facts" to "A")) is DreamStartResult.Rejected)
         assertTrue(service.restore(scope, "missing") is DreamRestoreResult.Rejected)
     }
+
+    @Test
+    fun `planner output is validated before it becomes a revision`() = runTest {
+        // 模型想改 today，同时夹带一个不存在的 section：整份计划必须作废，
+        // 而不是「把能认的写进去」——部分采纳会让记忆处于半新半旧的状态。
+        val planner = object : MemoryDreamPlanner {
+            override suspend fun plan(current: Map<String, String>) = MemoryDreamPlan(
+                sections = mapOf(
+                    "today" to "今天修好了搜索",
+                    "profile" to "模型编出来的段落",
+                ),
+            )
+        }
+        val service = DefaultMemoryDreamService(planner = planner)
+
+        val result = service.start(scope, DreamTrigger.MANUAL, mapOf("today" to "旧内容"))
+
+        assertTrue(result is DreamStartResult.Rejected)
+        assertTrue((result as DreamStartResult.Rejected).reason.contains("profile"))
+        assertFalse(service.status(scope).running)
+    }
+
+    @Test
+    fun `planner failure keeps previous sections and records reason`() = runTest {
+        val planner = object : MemoryDreamPlanner {
+            override suspend fun plan(current: Map<String, String>): MemoryDreamPlan =
+                throw IllegalStateException("upstream 502")
+        }
+        val service = DefaultMemoryDreamService(planner = planner)
+
+        val result = service.start(scope, DreamTrigger.MANUAL, mapOf("facts" to "- 用户喜欢猫"))
+
+        assertTrue(result is DreamStartResult.Rejected)
+        assertEquals("upstream 502", service.status(scope).lastError)
+        assertFalse(service.status(scope).running)
+    }
+
+    @Test
+    fun `empty plan does not wipe existing sections`() = runTest {
+        val planner = object : MemoryDreamPlanner {
+            override suspend fun plan(current: Map<String, String>) = MemoryDreamPlan(sections = emptyMap())
+        }
+        val service = DefaultMemoryDreamService(planner = planner)
+
+        val result = service.start(scope, DreamTrigger.MANUAL, mapOf("facts" to "- 用户喜欢猫"))
+
+        assertTrue(result is DreamStartResult.Rejected)
+        assertEquals("dream plan is empty", (result as DreamStartResult.Rejected).reason)
+    }
 }

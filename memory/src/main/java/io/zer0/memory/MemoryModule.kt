@@ -173,6 +173,8 @@ val memoryModule: Module = module {
                     .associate { row -> Pair(row.sectionKey, row.content) }
             },
             writeGate = get(),
+            // planner 由 app 层实现（要调模型链路），memory 模块只认接口。
+            planner = getOrNull(),
         )
     }
 

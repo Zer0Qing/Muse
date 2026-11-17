@@ -22,6 +22,8 @@ class DefaultMemoryDreamService(
     private val scopeStates: Map<String, MemoryDreamState> = emptyMap(),
     private val snapshotReader: (suspend (MemoryScopeKey) -> Map<String, String>)? = null,
     private val writeGate: MemoryWriteGate? = null,
+    /** 计划生成器。为 null 时退化为「只做长度收敛」，不产生内容变化（保持既有测试语义）。 */
+    private val planner: MemoryDreamPlanner? = null,
 ) : MemoryDreamService {
     private val states = scopeStates.toMutableMap()
     private val mutex = Mutex()
@@ -63,12 +65,36 @@ class DefaultMemoryDreamService(
                 val runId = UUID.randomUUID().toString()
                 state.start(runId)
                 persist(scope, state)
+                // 先让 planner 产出候选，再校验；模型输出永远不直接落库。
+                // planner 为 null 时走纯长度收敛，保持「Dream 只整理不生成」的旧行为。
+                val planned: Map<String, String> = if (planner == null) {
+                    preserveAndTrimSections(currentSections)
+                } else {
+                    when (val result = runPlanner(planner, currentSections)) {
+                        is DreamPlanResult.Planned -> currentSections + result.sections
+                        DreamPlanResult.Empty -> {
+                            state.markStopped()
+                            persist(scope, state)
+                            return@withContext DreamStartResult.Rejected("dream plan is empty")
+                        }
+                        is DreamPlanResult.Rejected -> {
+                            state.markFailure(result.reason)
+                            persist(scope, state)
+                            return@withContext DreamStartResult.Rejected(result.reason)
+                        }
+                        is DreamPlanResult.Failed -> {
+                            state.markFailure(result.reason)
+                            persist(scope, state)
+                            return@withContext DreamStartResult.Rejected(result.reason)
+                        }
+                    }
+                }
                 val revision = MemoryDreamRevision(
                     runId,
                     trigger,
                     fingerprintCompiled(currentSections),
                     currentSections,
-                    preserveAndTrimSections(currentSections),
+                    planned,
                     Instant.now().toString(),
                 )
                 try {
@@ -103,6 +129,16 @@ class DefaultMemoryDreamService(
                     DreamStartResult.Rejected("dream publish failed")
                 }
             }
+        }
+
+    override suspend fun currentSections(scope: MemoryScopeKey): Map<String, String> =
+        withContext(Dispatchers.IO) {
+            snapshotReader?.invoke(scope)
+                ?: db?.scopedCompiledSectionDao()
+                    ?.getForScope(scope.scope, scope.spaceId)
+                    ?.filter { row -> row.status == "READY" }
+                    ?.associate { row -> row.sectionKey to row.content }
+                ?: emptyMap()
         }
 
     override suspend fun stop(scope: MemoryScopeKey): DreamStopResult = mutex.withLock {
@@ -181,6 +217,20 @@ class DefaultMemoryDreamService(
             value.lastError,
         )
     }
+
+    /**
+     * 跑一次 planner 并把异常收敛成 [DreamPlanResult.Failed]。
+     *
+     * 取消必须原样抛出：它表示上层主动停止，不是「计划失败」，吞掉会让 stop 语义失效。
+     */
+    private suspend fun runPlanner(planner: MemoryDreamPlanner, current: Map<String, String>): DreamPlanResult =
+        try {
+            MemoryDreamPlanValidator.validate(planner.plan(current), current)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            DreamPlanResult.Failed(error.message ?: "dream planner failed")
+        }
 
     private fun preserveAndTrimSections(current: Map<String, String>) = buildMap {
         val facts = current[MemoryCompiler.Section.FACTS.key].orEmpty()
