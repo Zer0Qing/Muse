@@ -83,6 +83,8 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     /** 默认知识库兜底（文档挂在 kb_id="default" 下但库里没有该行时补建）。 */
     private val knowledgeDefaultKbEnsurer: io.zer0.muse.data.knowledge.KnowledgeDefaultKbEnsurer by inject()
+    /** 经验库统一数据源：旧表一次性导入。 */
+    private val experienceLegacyImporter: io.zer0.muse.data.experience.ExperienceLegacyImporter by inject()
     private val notificationManager: MuseNotificationManager by inject()
 
     /** 插件定时任务的检查间隔：一分钟一次足够（任务间隔下限是 15 分钟）。 */
@@ -657,6 +659,12 @@ class MuseApp : Application(), ImageLoaderFactory {
             appScope.launch {
                 resultOf { migrateQuickNotesIfNeeded() }
                     .onError { msg, t -> Logger.w("MuseApp", "快速记录迁移失败: ${t?.message ?: msg}", t) }
+            }
+            // 经验库统一数据源：旧 Room 表一次性导入到文件存储，此后生产链路只读经验库。
+            // fire-and-forget：失败不阻塞启动，且不写完成标志，下次启动继续补剩下的行。
+            appScope.launch {
+                resultOf { experienceLegacyImporter.importOnce() }
+                    .onError { msg, t -> Logger.w("MuseApp", "经验库导入失败: $msg", t) }
             }
             // v1.0.12: 启动时从 filesDir/rag/hnsw_index.bin 异步加载 HNSW 索引
             // (startKoin 之后、RagService 首次使用之前)。加载失败时首次检索走暴力遍历

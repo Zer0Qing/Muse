@@ -466,8 +466,8 @@
     <string name="settings_provider_clear_keys">すべてクリア</string>
     <string name="settings_provider_keys_count">%1$d 個のキーを設定済み</string>
     <string name="settings_provider_remove_key">このキーを削除</string>
-    <string name="settings_provider_test_connection_endpoint">接続テスト（エンドポイント）</string>
-    <string name="settings_provider_test_connection_endpoint_sub">実際にメッセージを送ってモデルを確認します</string>
+    <string name="settings_provider_test_connection_endpoint">テストして自動判定</string>
+    <string name="settings_provider_test_connection_endpoint_sub">各プロトコルを試し、通ったものを保存します</string>
     <string name="settings_provider_test_success_chat_ok">接続正常 · %1$s が応答しました</string>
     <string name="settings_rag_config_read_failed">設定の読み込みに失敗しました</string>
     <string name="settings_screen_desc_user_profile">呼び方 / 好み / 話し方</string>

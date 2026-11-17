@@ -2,6 +2,7 @@ package io.zer0.muse.mcp
 
 import android.content.Context
 import io.zer0.muse.runtime.MuseRuntime
+import io.zer0.muse.runtime.RuntimeBridge
 import java.io.File
 
 /**
@@ -23,6 +24,8 @@ object McpStdioCommand {
         data class Error(val message: String) : Result()
     }
 
+    private const val GUEST_NODE = "/usr/local/bin/node"
+
     /** 空白分词，支持双引号包裹（保留引号内空格）。 */
     fun tokenize(commandLine: String): List<String> {
         val tokens = mutableListOf<String>()
@@ -42,6 +45,41 @@ object McpStdioCommand {
         }
         if (sb.isNotEmpty()) tokens.add(sb.toString())
         return tokens
+    }
+
+    /**
+     * 外置运行环境下的命令解析：node/npm/npx 指向 guest 内的 Node 发行版。
+     *
+     * 与 [resolve] 分开是为了不让旧路径判断和 guest 路径混在一起：宿主侧的
+     * nativeLibraryDir 在 proot 里不可见，能用的只有 filesDir 挂载点。
+     */
+    fun resolveForGuest(commandLine: String, context: Context): Result {
+        val tokens = tokenize(commandLine)
+        if (tokens.isEmpty()) return Result.Error("命令为空")
+        val head = tokens[0]
+        val rest = tokens.drop(1)
+        // Node 发行版自带 npm，直接用 rootfs 里的副本，不依赖 APK 的 npm 数据包。
+        val npmCli = "/usr/local/lib/node_modules/npm/bin/npm-cli.js"
+        val npxCli = "/usr/local/lib/node_modules/npm/bin/npx-cli.js"
+        return when {
+            head == "node" -> Result.Ok(listOf(GUEST_NODE) + rest)
+            head == "npm" -> Result.Ok(listOf(GUEST_NODE, npmCli) + rest)
+            head == "npx" -> Result.Ok(listOf(GUEST_NODE, npxCli) + rest)
+            head.startsWith("/") -> {
+                val root = runCatching { context.filesDir.canonicalPath }.getOrNull()
+                    ?: return Result.Error("无法解析应用目录")
+                val file = runCatching { File(head).canonicalPath }.getOrNull()
+                    ?: return Result.Error("无法解析路径")
+                if (root.isNotBlank() && file.startsWith(root) && File(file).isFile) {
+                    Result.Ok(listOf(RuntimeBridge.toGuestPath(context, file)) + rest)
+                } else {
+                    Result.Error("仅允许应用运行时内的程序路径")
+                }
+            }
+            else -> Result.Error(
+                "不支持的命令 '$head'（当前支持 node / npm / npx 或应用运行时内的绝对路径）",
+            )
+        }
     }
 
     /** 解析命令行 → 可执行 argv。 */

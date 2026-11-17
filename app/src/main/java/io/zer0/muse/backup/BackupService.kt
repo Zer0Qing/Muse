@@ -3306,7 +3306,13 @@ class BackupService(
             backup.contextCheckpoints.forEach { memoryDb.contextCheckpointDao().upsert(it) }
             backup.dailyStates.forEach { memoryDb.dailyStateDao().upsert(it) }
             backup.compiledSections.forEach { memoryDb.compiledSectionDao().upsert(it) }
-            backup.scopedCompiledSections.forEach { memoryDb.scopedCompiledSectionDao().upsert(it) }
+            // 旧备份没有 provenance 字段：归一化后打上 legacy 基线，避免把「来路不明」
+            // 当成「当前可信」；已知不可用（FAILED/STALE/ORPHANED）的行原样保留。
+            backup.scopedCompiledSections.forEach {
+                memoryDb.scopedCompiledSectionDao().upsert(
+                    io.zer0.memory.runtime.MemoryCompiledProjection.normalizeRestored(it),
+                )
+            }
         }
 
         // 3. 导入 facts (FactDb)

@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -226,6 +227,19 @@ class QqReceiver(
         }
     }
 
+    /**
+     * 全量模式下判断这条群消息是不是提到了机器人。
+     *
+     * QQ 的群消息会把被 @ 的对象放在 `mentions` 里，机器人自己的那条带 `bot: true`；
+     * 拿不到 mentions（部分旧格式事件）时不能猜，宁可不回——猜错就是群里刷屏。
+     */
+    private fun isBotMentioned(data: JsonObject): Boolean {
+        val mentions = data["mentions"] as? JsonArray ?: return false
+        return mentions.any { item ->
+            ((item as? JsonObject)?.get("bot")?.jsonPrimitive?.booleanOrNull) == true
+        }
+    }
+
     /** Dispatch 事件(op=0)。 */
     private fun handleDispatch(obj: JsonObject, channelId: String) {
         val eventType = obj["t"]?.jsonPrimitive?.contentOrNull
@@ -236,7 +250,15 @@ class QqReceiver(
                 "GROUP_AT_MESSAGE_CREATE" -> handleGroupMessage(d, channelId)
                 // 开启「接收所有消息」后群里每条消息都会推这个事件。直接当 @ 消息处理
                 // 会让机器人对群里每句话都回复（刷屏），这里只留痕，不触发回复。
-                "GROUP_MESSAGE_CREATE" -> Logger.i(TAG, "QQ 群全量消息(未@机器人),不自动回复")
+                // 开了「接收所有消息」之后，@ 机器人的那条也走全量事件，
+                // 不会再单独推一个 GROUP_AT_MESSAGE_CREATE；以前一律忽略，
+                // 用户看到的就是「圈了它也不说话」。这里只放行确实提到了机器人的。
+                "GROUP_MESSAGE_CREATE" ->
+                    if (isBotMentioned(d)) {
+                        handleGroupMessage(d, channelId)
+                    } else {
+                        Logger.i(TAG, "QQ 群全量消息(未@机器人),不自动回复")
+                    }
                 "READY" -> {
                     val username = d["user"]?.jsonObject
                         ?.get("username")?.jsonPrimitive?.contentOrNull.orEmpty()

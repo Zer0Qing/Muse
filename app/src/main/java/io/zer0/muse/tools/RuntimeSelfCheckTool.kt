@@ -3,10 +3,12 @@ package io.zer0.muse.tools
 import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.muse.runtime.MuseRuntime
+import io.zer0.muse.runtime.RuntimeBridge
 import io.zer0.muse.runtime.PythonRuntime
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import java.io.File
 
 /**
  * v2.x 扩展运行时（P0 打样）：内置 Node 沙盒自检工具。
@@ -37,12 +39,13 @@ object RuntimeSelfCheckTool {
         val sb = StringBuilder("【内置运行时自检】")
 
         val node = MuseRuntime.nodeBinary(context)
-        sb.append("\n- Node 二进制: ").append(
-            if (node.isFile) {
-                "存在 (${node.length() / 1024 / 1024}MB)"
-            } else {
-                "缺失 (${MuseRuntime.nativeLibDir(context)})"
-            },
+        val externalReady = RuntimeBridge.isReady(context)
+        sb.append("\n- Node 来源: ").append(
+            when {
+                externalReady -> "外置运行环境（proot）"
+                node.isFile -> "包内二进制 (${node.length() / 1024 / 1024}MB)"
+                else -> "缺失 (${MuseRuntime.nativeLibDir(context)})"
+            }
         )
 
         val nodeV = runCatching { MuseRuntime.execNode(context, listOf("-v"), timeoutMs = 20_000) }.getOrNull()
@@ -66,8 +69,12 @@ object RuntimeSelfCheckTool {
             },
         )
 
-        val npmCli = MuseRuntime.npmCli(context)
-        if (npmCli.isFile) {
+        val npmCli = if (externalReady) {
+            File("/usr/local/lib/node_modules/npm/bin/npm-cli.js")
+        } else {
+            MuseRuntime.npmCli(context)
+        }
+        if (externalReady || npmCli.isFile) {
             val npmV = runCatching {
                 MuseRuntime.execNode(context, listOf(npmCli.absolutePath, "-v"), timeoutMs = 60_000)
             }.getOrNull()

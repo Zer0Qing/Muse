@@ -64,6 +64,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.common.Logger
@@ -72,6 +73,9 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.preset.PresetProviders
 import io.zer0.muse.data.provider.ProviderModelFetcher
+import io.zer0.muse.runtime.RuntimeInstallService
+import io.zer0.muse.runtime.RuntimeInstallStatus
+import io.zer0.muse.runtime.RuntimeState
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -102,8 +106,8 @@ private sealed class TestStatus {
 }
 
 /**
- * 开机引导页面 — 全屏 HorizontalPager,8 步完成初始配置:
- * 欢迎(多语言问候轮播) → 语言 → 认识 → 记忆 → 接入 → 模型 → 外观 → 出发。
+ * 开机引导页面 — 全屏 HorizontalPager,9 步完成初始配置:
+ * 欢迎(多语言问候轮播) → 语言 → 认识 → 记忆 → 接入 → 模型 → 外观 → 运行环境 → 出发。
  *
  * 数据流：OnboardingScreen 接收 [onComplete] 回调，内部用 koinInject 获取
  * [SettingsRepository] / [AssistantRepository] / [PresetProviders]，
@@ -123,7 +127,7 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
     val context = LocalContext.current
     // 引导走到第几步存几步:中途按返回退出后再进来,不该从第 1 步重来。
     var lastPage by rememberSaveable { mutableStateOf(0) }
-    val pagerState = rememberPagerState(initialPage = lastPage, pageCount = { 8 })
+    val pagerState = rememberPagerState(initialPage = lastPage, pageCount = { 9 })
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -181,7 +185,7 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
         }
     }
 
-    val pageCount = 8
+    val pageCount = 9
     val currentPage = pagerState.currentPage
 
     Column(
@@ -327,7 +331,8 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
                         scope.launch { settings.saveThemeId(id) }
                     },
                 )
-                7 -> StepComplete(
+                7 -> StepRuntime()
+                8 -> StepComplete(
                     onOpenSection = { route ->
                         scope.launch {
                             // 走这条路也要落"引导已完成":否则下次冷启动又从头再来一遍。
@@ -1318,7 +1323,81 @@ private fun ModelItem(model: Model, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
-// ── 步骤 5：完成页 ──────────────────────────────────────────────
+// ── 步骤 6：运行环境预装页 ──────────────────────────────────────────────
+
+/**
+ * 运行环境预装页（绑模型之后、收尾之前）。
+ *
+ * 只做说明与一个可选安装按钮：选「跳过」也不阻塞引导，直接用底部下一步继续。
+ * 安装进度来自 [RuntimeInstallStatus]，与聊天安装卡和设置页同源。
+ */
+@Composable
+private fun StepRuntime() {
+    val context = LocalContext.current
+    val state by RuntimeInstallStatus.state.collectAsStateWithLifecycle()
+    val progress by RuntimeInstallStatus.progress.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { RuntimeInstallStatus.refresh(context) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = MusePaddings.screen),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.size(80.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = MuseIcons.terminal,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(36.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
+        Text(
+            text = stringResource(R.string.runtime_card_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(MusePaddings.contentGap))
+        Text(
+            text = stringResource(R.string.runtime_card_desc),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
+        when {
+            state is RuntimeState.Ready -> Text(
+                text = stringResource(R.string.runtime_notif_done),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            progress != null -> Text(
+                text = stringResource(R.string.runtime_notif_installing),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            else -> MuseCapsuleButton(
+                text = stringResource(R.string.runtime_card_install),
+                onClick = { RuntimeInstallService.start(context) },
+                variant = IosCapsuleButtonVariant.Secondary,
+                fillWidth = false,
+            )
+        }
+    }
+}
+
+// ── 步骤 7：完成页 ──────────────────────────────────────────────
 @Composable
 private fun StepComplete(onOpenSection: (String) -> Unit) {
     val tutorials = listOf(
@@ -1566,8 +1645,8 @@ private fun BottomButtons(currentPage: Int, canGoNext: Boolean, onPrevious: () -
                         .padding(MusePaddings.screen),
                 )
             }
-            // 步骤 7：只有"开始使用"按钮（居中）
-            7 -> {
+            // 步骤 8：只有"开始使用"按钮（居中）
+            8 -> {
                 // v2.0 修复: Surface 内部为 Box,两个按钮直接并列会叠画导致文字重叠 —
                 // 改为垂直排列(主按钮在上、游客入口在下)。
                 Column(

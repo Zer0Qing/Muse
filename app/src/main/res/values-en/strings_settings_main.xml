@@ -471,8 +471,8 @@
     <string name="settings_provider_clear_keys">Clear all</string>
     <string name="settings_provider_keys_count">%1$d keys configured</string>
     <string name="settings_provider_remove_key">Delete this key</string>
-    <string name="settings_provider_test_connection_endpoint">Test connection (endpoint)</string>
-    <string name="settings_provider_test_connection_endpoint_sub">Sends a real message to verify the model works</string>
+    <string name="settings_provider_test_connection_endpoint">Test and auto-detect</string>
+    <string name="settings_provider_test_connection_endpoint_sub">Tries each protocol and saves the one that works</string>
     <string name="settings_provider_test_success_chat_ok">Connected · %1$s answered</string>
 
     <!-- 补齐 strict=en 门禁缺口 -->

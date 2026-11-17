@@ -30,6 +30,8 @@ object DeleteMemoryTool {
         riskLevel = ToolRiskLevel.HIGH,
     )
 
+    // 生产链路不再走这里：pin/unpin/save/delete/search 的统一入口是 AgentToolsRegistrar 里的 MemoryUseCases 分支。
+    // 仅保留给单测与历史调用点；新增调用请走 use cases。
     suspend fun execute(args: Map<String, String>, factStore: FactStore, executionContext: ToolExecutionContext): String {
         val idArg = args["id"]?.trim()?.toLongOrNull()
         val match = args["match"]?.trim().orEmpty()

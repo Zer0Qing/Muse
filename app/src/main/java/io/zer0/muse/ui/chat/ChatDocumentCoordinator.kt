@@ -34,6 +34,9 @@ import org.koin.core.context.GlobalContext
  *
  * 不持有 state,通过 [accessor] 读写。
  */
+/** 视频附件自动抽帧的帧数：三帧足够看出「这是什么」，再多就是白蝬 token。 */
+private const val VIDEO_KEY_FRAME_COUNT = 3
+
 class ChatDocumentCoordinator(
     private val accessor: ChatStateAccessor,
     private val documentParser: DocumentParser,
@@ -93,12 +96,36 @@ class ChatDocumentCoordinator(
         // 音频/视频没有可提取文本，解析只会报「空或不支持」，用户根本发不出去。
         // 二进制多媒体保留原始 Uri + MIME，随消息原样发给支持多模态的模型。
         if (mime.startsWith("audio/") || mime.startsWith("video/")) {
+            // 二进制多媒体保留原始 Uri 给支持多模态的模型，同时必须留一行占位说明：
+            // 不支持视频的模型（目前是绠大多数）拿不到任何内容，
+            // 于是用户看到的是「我发了文件」，模型看到的是「只说了个这」——两边对不上。
+            val kindLabel = if (mime.startsWith("video/")) "[视频]" else "[音频]"
+            val sizeLabel = if (sizeBytes > 0L) {
+                " · " + FileSizeFormatter.format(sizeBytes)
+            } else {
+                ""
+            }
+            // 视频额外抽几张关键帧当图片一起发：能把视频传给模型的供应商本来就少，
+            // 抽帧是让「大多数模型」也能看到内容的唯一办法。抽不出来也不阻断发送。
+            val frames = if (mime.startsWith("video/")) {
+                // 抽帧靠 [VideoAttachmentHandler.extractKeyFrames]（MediaMetadataRetriever，不依赖外部二进制）
+                runCatching {
+                    VideoAttachmentHandler().extractKeyFrames(uri, context, frameCount = VIDEO_KEY_FRAME_COUNT)
+                }
+                    .onFailure { Logger.w("ChatDoc", "视频抽帧失败，仅发占位说明: ${it.message}") }
+                    .getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
+            val frameNote = if (frames.isNotEmpty()) "（已附 ${frames.size} 张关键帧）" else ""
+            val placeholder = "$kindLabel $fileName$sizeLabel$frameNote"
             accessor.update {
                 it.copy(
+                    pendingImages = it.pendingImages + frames,
                     pendingDocuments = it.pendingDocuments + PendingDocument(
                         name = fileName,
-                        content = "",
-                        charCount = 0,
+                        content = placeholder,
+                        charCount = placeholder.length,
                         uri = uri.toString(),
                         mimeType = mime,
                         sizeBytes = sizeBytes,

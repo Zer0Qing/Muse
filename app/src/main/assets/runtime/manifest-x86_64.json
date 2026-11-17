@@ -1,0 +1,24 @@
+{
+  "runtimeId": "ubuntu-node",
+  "revision": "r1",
+  "abi": "x86_64",
+  "upstream": {
+    "ubuntu": "24.04.5",
+    "node": "24.22.1"
+  },
+  "archive": {
+    "name": "rootfs.tar.gz",
+    "sizeBytes": 77984489,
+    "sha256": "f6026268cb7e221ab809433908060c18423ed37c77082be50d52cb35f895ea54",
+    "urls": [
+      "http://10.0.2.2:8777/rootfs-x86_64.tar.gz"
+    ]
+  },
+  "installedBytes": 214433166,
+  "bins": {
+    "proot": "3dd2e5b23aee8dd8588750117f03b1b7971314e7457067af803d78d57306391d",
+    "loader": "a836b0569c84b1661333d16bacf6b396ff08fea816a5c936a82e08ddeeca8341",
+    "libtalloc.so.2": "7fa6722a4320495b1b85832fc7fd02de0cb367b45f116c1921b2830a6936da90",
+    "libandroid-shmem.so": "092926060298acd3778e6239033d7aef1280dcb59aebe021a3719612e6a3465f"
+  }
+}

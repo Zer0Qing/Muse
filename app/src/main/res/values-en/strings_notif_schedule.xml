@@ -150,4 +150,24 @@
     <string name="schedule_tool_advanced_hint">Tip: advanced features are usually easier to describe with AI</string>
     <string name="schedule_tool_templates_title">Common tools quick-fill (select to auto-fill)</string>
     <string name="schedule_view_all_history">View all history</string>
+    <string name="runtime_notif_channel_name">Runtime setup</string>
+    <string name="runtime_notif_channel_desc">Download and install the files the runtime needs</string>
+    <string name="runtime_notif_installing">Installing runtime</string>
+    <string name="runtime_notif_done">Runtime ready</string>
+    <string name="runtime_notif_failed">Runtime install failed: %1$s</string>
+    <string name="runtime_card_title">Runtime not installed</string>
+    <string name="runtime_card_desc">Script tools need a runtime (Ubuntu + Node). About 76 MB to download and 230 MB installed.</string>
+    <string name="runtime_card_install">Install runtime</string>
+    <string name="runtime_card_later">Not now</string>
+    <string name="runtime_card_failed_detail">Install failed: %1$s</string>
+    <string name="runtime_upgrade_title">Runtime is now separate</string>
+    <string name="runtime_upgrade_desc">This version moves the Node runtime out of the APK, so the app is much smaller. Install it once before using scripts, MCP, or the terminal (about 76 MB download, 230 MB installed).</string>
+    <string name="terminal_send_to_ai_cd">Send this round to AI</string>
+    <string name="settings_provider_test_autofixed">Auto-fixed and saved a working setup: %1$s (%2$s).</string>
+    <string name="memory_dream_title">Tidy memory (Dream)</string>
+    <string name="memory_dream_desc">Re-summarize memory sections; every publish can be rolled back</string>
+    <string name="memory_dream_start">Start</string>
+    <string name="memory_dream_rollback">Roll back</string>
+    <string name="memory_dream_done">Done</string>
+    <string name="memory_dream_skipped">Skipped: %1$s</string>
 </resources>

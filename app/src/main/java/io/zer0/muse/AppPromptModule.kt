@@ -64,7 +64,6 @@ val appPromptModule = module {
             // v12 (T2-2): 透传 factStore,主助手构建 system prompt 时按当前问题 FTS 召回相关记忆
             // v2.7.x(E2): 会话术语注入（未确认条目标「不确定」，最多 5 条）
             sessionTermStore = get(),
-            factStore = get(),
             // v1.0.86: 相关记忆按当前 Assistant 选择独立 facts.db
             factDbProvider = get(),
             // 审计修复 (S-03): 透传 pinnedMemoryStore,统一置顶记忆数据源

@@ -147,4 +147,24 @@
     <string name="schedule_tool_advanced_hint">Dica: recursos avançados costumam ser mais fáceis de descrever com IA</string>
     <string name="schedule_tool_templates_title">Preenchimento rápido de ferramentas comuns (toque para preencher automaticamente)</string>
     <string name="schedule_view_all_history">Ver todo o histórico</string>
+    <string name="runtime_notif_channel_name">Instalação do ambiente</string>
+    <string name="runtime_notif_channel_desc">Baixa e instala os arquivos que o ambiente precisa</string>
+    <string name="runtime_notif_installing">Instalando o ambiente</string>
+    <string name="runtime_notif_done">Ambiente pronto</string>
+    <string name="runtime_notif_failed">Falha na instalação do ambiente: %1$s</string>
+    <string name="runtime_card_title">Ambiente de execução não instalado</string>
+    <string name="runtime_card_desc">Ferramentas de script precisam de um ambiente (Ubuntu + Node). Cerca de 76 MB para baixar e 230 MB instalado.</string>
+    <string name="runtime_card_install">Instalar ambiente</string>
+    <string name="runtime_card_later">Agora não</string>
+    <string name="runtime_card_failed_detail">Falha na instalação: %1$s</string>
+    <string name="runtime_upgrade_title">O ambiente agora é separado</string>
+    <string name="runtime_upgrade_desc">Esta versão move o ambiente Node para fora do APK, deixando o app bem menor. Instale uma vez antes de usar scripts, MCP ou terminal (cerca de 76 MB de download e 230 MB instalado).</string>
+    <string name="terminal_send_to_ai_cd">Enviar esta rodada para a IA</string>
+    <string name="settings_provider_test_autofixed">Corrigido e salvo automaticamente: %1$s (%2$s).</string>
+    <string name="memory_dream_title">Organizar memória (Dream)</string>
+    <string name="memory_dream_desc">Reorganiza as seções; cada publicação pode ser revertida</string>
+    <string name="memory_dream_start">Iniciar</string>
+    <string name="memory_dream_rollback">Reverter</string>
+    <string name="memory_dream_done">Concluído</string>
+    <string name="memory_dream_skipped">Ignorado: %1$s</string>
 </resources>

@@ -4,6 +4,7 @@ import java.util.Properties
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -13,6 +14,11 @@ plugins {
     // Phase 2.1: Kover — 插桩本模块字节码,数据上提到 root 聚合报告
     alias(libs.plugins.kover)
 }
+
+// 运行时外置开关：默认不把 Node/ICU 打进 APK（外置运行环境安装后使用）。
+// 需要在无运行环境的开发机上跑依赖包内 Node 的 instrumentation 时，
+// 传 -PmuseBundleNodeRuntime=true 恢复旧打包。
+val bundleNodeRuntime = providers.gradleProperty("museBundleNodeRuntime").orNull?.toBooleanStrictOrNull() ?: false
 
 // 性能整改专项（2026-11-01）：打开 Compose 编译器的稳定性报告与度量。
 // 只写 build/ 下的文本报告，不进包、不改运行时行为；作用是把「谁不可跳过、
@@ -215,12 +221,12 @@ android {
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
             // 默认值跟随当前发行线；正式构建仍显式注入并与 tag 核对。
-            ?: 291
+            ?: 292
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
             // 名称与编号保持同一发行线，防止本地构建无意产生错配。
-            ?: "2.6.27"
+            ?: "2.6.28"
     }
 
     signingConfigs {
@@ -335,22 +341,49 @@ android {
         // 使沙盒可从 nativeLibraryDir 直接 exec 内置 Node 运行时（libmuse_node.so）
         jniLibs {
             useLegacyPackaging = true
+            if (!bundleNodeRuntime) {
+                // 外置运行环境已覆盖 Node；这些库只服务包内 Node，不进包可以少 ~106MB/架构。
+                // Python 继续留在包内（rootfs 目前只有 Ubuntu + Node），所以 libz / libc++_shared 保留。
+                excludes += listOf(
+                    "**/libmuse_node.so",
+                    "**/libicudata.so",
+                    "**/libicui18n.so",
+                    "**/libicuuc.so",
+                    "**/libcares.so",
+                    "**/libcrypto.so",
+                    "**/libssl.so",
+                    "**/libsqlite3.so",
+                    "**/libffi.so",
+                )
+            }
             // 内置运行时二进制经 patchelf 重写过段布局，且已在 Termux 侧 strip 过；
             // 必须跳过 AGP 的 llvm-strip：对 patchelf 产物再 strip 会破坏段/程序头
             // 对应关系，导致执行时 SIGSEGV（已实测复现）。
-            keepDebugSymbols += listOf(
-                "**/libmuse_node.so",
-                "**/libc++_shared.so",
-                "**/libssl.so",
-                "**/libcrypto.so",
-                "**/libcares.so",
-                "**/libicui18n.so",
-                "**/libicuuc.so",
-                "**/libicudata.so",
-                "**/libsqlite3.so",
-                "**/libz.so",
-                "**/libffi.so",
-            )
+            keepDebugSymbols += buildList {
+                if (bundleNodeRuntime) {
+                    addAll(
+                        listOf(
+                            "**/libmuse_node.so",
+                            "**/libssl.so",
+                            "**/libcrypto.so",
+                            "**/libcares.so",
+                            "**/libicui18n.so",
+                            "**/libicuuc.so",
+                            "**/libicudata.so",
+                            "**/libsqlite3.so",
+                            "**/libffi.so",
+                        ),
+                    )
+                }
+                add("**/libc++_shared.so")
+                add("**/libz.so")
+                // 运行时外置：proot 与其依赖经 patchelf 改过 SONAME/NEEDED，
+                // 再 strip 会破坏对应关系，导致 loader 找不到库。
+                add("**/libmuse_proot.so")
+                add("**/libmuse_proot_loader.so")
+                add("**/libtalloc.so")
+                add("**/libandroid-shmem.so")
+            }
         }
         resources {
             excludes +=
@@ -574,7 +607,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 291/2.6.27。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode；当前默认候选线为 292/2.6.28。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()

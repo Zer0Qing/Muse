@@ -5,6 +5,7 @@ import android.util.JsonReader
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.runtime.MuseRuntime
+import io.zer0.muse.runtime.RuntimeBridge
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -75,7 +76,14 @@ class ProcessSkillEngine(private val context: Context) : SkillEngine {
     private fun buildWrapper(script: String, pluginConfigJson: String?): String {
         val scriptJson = JsonPrimitive(script).toString()
         val configJson = pluginConfigJson ?: "null"
-        val nodeModules = File(MuseRuntime.runtimeDir(context), "node_modules").absolutePath
+        val nodeModulesHost = File(MuseRuntime.runtimeDir(context), "node_modules").absolutePath
+        // guest 模式下 node_modules 在 proot 里看不到宿主路径，得换写成挂载点下的路径
+        val nodeModules =
+            if (RuntimeBridge.isReady(context)) {
+                RuntimeBridge.toGuestPath(context, nodeModulesHost)
+            } else {
+                nodeModulesHost
+            }
         val body =
             """
             |// muse-node-skill-wrapper (auto-generated)

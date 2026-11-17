@@ -467,8 +467,8 @@
     <string name="settings_provider_clear_keys">Limpar tudo</string>
     <string name="settings_provider_keys_count">%1$d chaves configuradas</string>
     <string name="settings_provider_remove_key">Excluir esta chave</string>
-    <string name="settings_provider_test_connection_endpoint">Testar conexão (ponto final)</string>
-    <string name="settings_provider_test_connection_endpoint_sub">Envia uma mensagem real para verificar o modelo</string>
+    <string name="settings_provider_test_connection_endpoint">Testar e detectar</string>
+    <string name="settings_provider_test_connection_endpoint_sub">Testa cada protocolo e salva o que funcionar</string>
     <string name="settings_provider_test_success_chat_ok">Conectado · %1$s respondeu</string>
     <string name="settings_rag_config_read_failed">Falha ao ler a configuração</string>
     <string name="settings_screen_desc_user_profile">Nome / preferências / estilo de comunicação</string>

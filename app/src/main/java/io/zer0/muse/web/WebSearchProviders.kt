@@ -53,12 +53,15 @@ class BaiduProvider(
                 .build()
             client.executeAsync(request).use { response ->
                 if (!response.isSuccessful) {
-                    Logger.w(name, "search failed: ${response.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = name,
+                    httpCode = response.code,
+                    detail = response.searchDiagnostic(),
+                    )
                 }
                 parseResults(response.body.string(), maxResults)
             }
-        }.onError { msg, t -> Logger.w(name, "search error: $msg", t) }
+        }.onError { msg, t -> if (t is SearchProviderFailure) throw t; Logger.w(name, "search error: $msg", t) }
             .getOrNull()
             ?: emptyList()
     }
@@ -118,15 +121,18 @@ class SearXNGProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("SearXNG", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "SearXNG",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 val body = resp.body.string()
                 parseResults(body, maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("SearXNG", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -203,15 +209,18 @@ class TavilyProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("Tavily", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "Tavily",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 val body = resp.body.string()
                 parseResults(body, maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Tavily", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -636,12 +645,15 @@ class BingProvider(
                 .build()
             client.executeAsync(request).use { response ->
                 if (!response.isSuccessful) {
-                    Logger.w(name, "HTTP search failed: ${response.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = name,
+                    httpCode = response.code,
+                    detail = response.searchDiagnostic(),
+                    )
                 }
                 parseHttpResults(response.body.string(), maxResults)
             }
-        }.onError { msg, t -> Logger.w(name, "HTTP search error: $msg", t) }
+        }.onError { msg, t -> if (t is SearchProviderFailure) throw t; Logger.w(name, "HTTP search error: $msg", t) }
             .getOrNull()
             ?: emptyList()
     }
@@ -709,7 +721,7 @@ class JinaProvider(
                     }
                 }
             }.onError { _, t ->
-                if (t is SearchRateLimitException) throw t
+                if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
                 Logger.w("Jina", "search error endpoint=$endpoint", t)
             }.getOrNull().orEmpty()
             if (result.isNotEmpty()) return@withContext result
@@ -773,14 +785,17 @@ class ZhipuSearchProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("Zhipu", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "Zhipu",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 parseResults(resp.body.string(), maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Zhipu", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -848,14 +863,17 @@ class BraveSearchProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("Brave", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "Brave",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 parseResults(resp.body.string(), maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Brave", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -929,14 +947,17 @@ class SerperSearchProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("Serper", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "Serper",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 parseResults(resp.body.string(), maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Serper", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -995,14 +1016,17 @@ class BochaSearchProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("Bocha", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "Bocha",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 parseResults(resp.body.string(), maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Bocha", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -1063,14 +1087,17 @@ class MetasoSearchProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("Metaso", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "Metaso",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 parseResults(resp.body.string(), maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Metaso", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -1162,14 +1189,17 @@ class ExaSearchProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("Exa", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "Exa",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 parseResults(resp.body.string(), maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Exa", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -1247,7 +1277,7 @@ class FirecrawlProvider(
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Firecrawl", "search error", t)
         }.getOrNull() ?: emptyList()
     }
@@ -1326,14 +1356,17 @@ class PerplexitySearchProvider(
                 // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
-                    Logger.w("Perplexity", "search failed: ${resp.searchDiagnostic()}")
-                    return@use emptyList()
+                    throw SearchProviderFailure(
+                    providerName = "Perplexity",
+                    httpCode = resp.code,
+                    detail = resp.searchDiagnostic(),
+                    )
                 }
                 parseResults(resp.body.string(), maxResults)
             }
         }.onError { _, t ->
             // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-            if (t is SearchRateLimitException) throw t
+            if (t is SearchRateLimitException || t is SearchProviderFailure) throw t
             Logger.w("Perplexity", "search error", t)
         }.getOrNull() ?: emptyList()
     }

@@ -99,6 +99,11 @@ import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.perf.ChatMessageWindow
 import io.zer0.muse.perf.MessagePaginator
+import io.zer0.muse.runtime.RuntimeId
+import io.zer0.muse.runtime.RuntimeInstallCardStore
+import io.zer0.muse.runtime.RuntimeInstallService
+import io.zer0.muse.runtime.RuntimeInstallStatus
+import io.zer0.muse.runtime.RuntimeState
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.chat.BrowserStatusCapsule
 import io.zer0.muse.ui.chat.ChatContextDivider
@@ -108,6 +113,7 @@ import io.zer0.muse.ui.chat.MESSAGE_MAP_RESERVED_WIDTH
 import io.zer0.muse.ui.chat.MessageMapBar
 import io.zer0.muse.ui.chat.PendingApprovalsSummary
 import io.zer0.muse.ui.chat.PendingQueueBar
+import io.zer0.muse.ui.chat.RuntimeInstallBanner
 import io.zer0.muse.ui.chat.SessionTodoBar
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.TokenStatsBar
@@ -366,6 +372,55 @@ fun ChatScreen(
     val conversationTree by viewModel.conversationTree.collectAsStateWithLifecycle()
     // B2-01: 消息列表独立 collect,输入框等高频 state 变化不再带动整个消息列表重组。
     val messages by viewModel.messages.collectAsStateWithLifecycle()
+    // M4a：工具返回 runtime_missing 时在本轮会话里挂出安装卡。卡片按消息 id 落库，
+    // 用户选过的「以后再说」要活过进程重启；只扫描最近 30 条，避免远古消息反复触发。
+    val runtimeAppContext = LocalContext.current
+    val runtimeMissingMessageId = remember(messages) {
+        messages.takeLast(30).lastOrNull { it.content.contains("runtime_missing") }?.id?.toString()
+    }
+    val runtimeMissing = runtimeMissingMessageId != null
+    var runtimeBannerDismissed by remember { mutableStateOf(false) }
+    val runtimeCardScope = rememberCoroutineScope()
+
+    // M4c：只在本次安装从“进行中”走到“就绪”时自动续跑一次，避免历史上已装好
+    // 的设备打开旧会话时又发一条无意义的“请继续”。
+    val runtimeState by RuntimeInstallStatus.state.collectAsStateWithLifecycle()
+    val runtimeProgress by RuntimeInstallStatus.progress.collectAsStateWithLifecycle()
+    val runtimeError by RuntimeInstallStatus.lastError.collectAsStateWithLifecycle()
+    val runtimeRevision by RuntimeInstallStatus.revision.collectAsStateWithLifecycle()
+    var runtimeInstallSeen by rememberSaveable { mutableStateOf(false) }
+    var runtimeAutoContinued by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(runtimeMissingMessageId) {
+        runtimeBannerDismissed = runtimeMissingMessageId?.let {
+            RuntimeInstallCardStore.isDismissed(runtimeAppContext, it)
+        } ?: false
+    }
+    LaunchedEffect(runtimeProgress) {
+        if (runtimeProgress != null) runtimeInstallSeen = true
+    }
+    // 卡片状态与安装进度同源写库；装好之后卡片没有意义，删行而不是留一条 READY 历史。
+    LaunchedEffect(runtimeMissingMessageId, runtimeProgress, runtimeState, runtimeError) {
+        val messageId = runtimeMissingMessageId ?: return@LaunchedEffect
+        if (runtimeState is RuntimeState.Ready) {
+            RuntimeInstallCardStore.clear(runtimeAppContext, messageId)
+        } else {
+            RuntimeInstallCardStore.record(
+                context = runtimeAppContext,
+                messageId = messageId,
+                runtimeId = RuntimeId.UBUNTU_NODE,
+                version = runtimeRevision,
+                progress = runtimeProgress,
+                error = runtimeError,
+                ready = false,
+            )
+        }
+    }
+    LaunchedEffect(runtimeState, runtimeMissing) {
+        if (runtimeInstallSeen && runtimeState is RuntimeState.Ready && !runtimeAutoContinued && runtimeMissing) {
+            runtimeAutoContinued = true
+            viewModel.sendFromCard("运行环境已就绪（node v24.22.1）。请继续刚才因缺少运行环境而中断的任务。")
+        }
+    }
 
     // 发送飞行：只在会话的第一条消息用。两端矩形都取 window 坐标，
     // 因为幽灵层画在独立窗口里（见 SendFlightWindow）。
@@ -1812,6 +1867,22 @@ fun ChatScreen(
                                     viewModel.setToolApprovalReferenceImage(approval.toolCallId, dataUri)
                                 },
                                 countdownPaused = !approvalsExpanded,
+                            )
+                        }
+                        if (runtimeMissing) {
+                            RuntimeInstallBanner(
+                                onInstall = { RuntimeInstallService.start(context) },
+                                onDismiss = {
+                                    val messageId = runtimeMissingMessageId
+                                    runtimeBannerDismissed = true
+                                    if (messageId != null) {
+                                        // 「以后再说」必须落库：否则重启后同一条缺失消息又把卡片推回眼前。
+                                        runtimeCardScope.launch {
+                                            RuntimeInstallCardStore.markDismissed(runtimeAppContext, messageId)
+                                        }
+                                    }
+                                },
+                                collapsed = runtimeBannerDismissed,
                             )
                         }
                         // v1.97: 计算工具/任务进度 — 优先用活跃 agentPlan,否则用 toolCallHistory

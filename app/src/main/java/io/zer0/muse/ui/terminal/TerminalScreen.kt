@@ -66,13 +66,16 @@ private const val TERMINAL_PROBES_ENABLED = false
  */
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
-fun TerminalScreen(onBack: () -> Unit) {
+fun TerminalScreen(onBack: () -> Unit, onSendToAi: ((String) -> Unit)? = null) {
     val context = LocalContext.current
     val session = remember { TerminalSessionStore.get(context) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val scope = rememberCoroutineScope()
 
     var input by remember { mutableStateOf("") }
+    // M5c: 手动「把这轮发给 AI」用的最近命令与输出尾巴。
+    var lastCommand by remember { mutableStateOf("") }
+    val recentOutput = remember { StringBuilder() }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var webReady by remember { mutableStateOf(false) }
     // 未就绪时的输出先入队,ready 后一次性冲刷(主线程访问,无并发问题)
@@ -111,9 +114,13 @@ fun TerminalScreen(onBack: () -> Unit) {
     DisposableEffect(Unit) {
         session.setListener(
             object : TerminalSessionManager.Listener {
-                override fun onOutput(bytes: ByteArray) = pushToTerminal(bytes)
+                override fun onOutput(bytes: ByteArray) {
+                    if (recentOutput.length < 16_000) recentOutput.append(String(bytes, Charsets.UTF_8))
+                    pushToTerminal(bytes)
+                }
 
                 override fun onExit(code: Int) {
+                    recentOutput.append("\n[exit=$code]\n")
                     pushText("\r\n" + context.getString(R.string.terminal_session_exited, code) + "\r\n")
                 }
             },
@@ -170,6 +177,20 @@ fun TerminalScreen(onBack: () -> Unit) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 solid = false,
             )
+            if (onSendToAi != null && lastCommand.isNotBlank()) {
+                MuseTopBarIconButton(
+                    icon = MuseIcons.share,
+                    contentDescription = stringResource(R.string.terminal_send_to_ai_cd),
+                    onClick = {
+                        val outputTail = recentOutput.toString().takeLast(4_000)
+                        onSendToAi(
+                            "【终端回执】\n命令：$lastCommand\n输出（末尾）：\n$outputTail",
+                        )
+                    },
+                    tint = MaterialTheme.colorScheme.primary,
+                    solid = false,
+                )
+            }
             MuseTopBarIconButton(
                 icon = MuseIcons.refresh,
                 contentDescription = stringResource(R.string.terminal_restart_cd),
@@ -312,6 +333,8 @@ fun TerminalScreen(onBack: () -> Unit) {
                 onClick = {
                     val cmd = input.trimEnd()
                     if (cmd.isNotBlank()) {
+                        lastCommand = cmd
+                        recentOutput.clear()
                         // PTY 下由终端自身回显输入与提示符;管道引擎本地回显
                         if (!session.isPty) pushText("❯ $cmd\r\n")
                         session.write(cmd + "\n")

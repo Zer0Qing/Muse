@@ -74,6 +74,28 @@ class ConversationCompressor(
         private const val CHUNK_BUDGET_RATIO = 0.4
 
         /**
+         * 取出上一版摘要里的「已否定」段。
+         *
+         * 这段内容不参与滚动衰减：每次增量压缩都必须把它单独带回去，
+         * 否则被否掉的方案会从摘要里消失，模型下一轮又会重新提出来。
+         */
+        internal fun extractNegatedSection(summary: String): String {
+            val lines = summary.lines()
+            val headingRegex = Regex("^(#{1,6})\\s*(已否定|Negated)\\s*$")
+            val start = lines.indexOfFirst { headingRegex.matches(it.trim()) }
+            if (start < 0) return ""
+            val level = headingRegex.find(lines[start].trim())?.groupValues?.get(1)?.length ?: return ""
+            val body = mutableListOf<String>()
+            for (i in start + 1 until lines.size) {
+                val line = lines[i]
+                val header = Regex("^(#{1,6})\\s+.+$").find(line.trim())
+                if (header != null && (header.groupValues[1].length <= level)) break
+                body.add(line)
+            }
+            return body.joinToString("\n").trim()
+        }
+
+        /**
          * v2.3.2: 单块压缩 prompt 的字符预算。
          *
          * 原实现只按条数切块(最多 256 条 × 单条 1500 字符 ≈ **38.4 万字符**),
@@ -217,14 +239,17 @@ class ConversationCompressor(
                 // v1.0.52: 用户自定义压缩指令
                 appendLine(customPrompt)
             } else {
-                // 默认结构化压缩指令
-                appendLine("请把下面的对话历史压缩成简洁的摘要,保留关键信息(事实/决策/用户偏好)。")
-                appendLine("按以下结构组织摘要(每节用要点形式,每点一行;某节无内容可省略):")
-                appendLine("- Key topics: 讨论了哪些主题,以及为什么重要(粗颗粒,不要流水账)")
-                appendLine("- Decisions: 做出了哪些决策,以及背后的理由")
-                appendLine("- Current work: 正在进行的工作及其当前状态")
-                appendLine("- Next steps: 待办的下一步、未解决的问题、需要后续跟进的事项")
-                appendLine("- User preferences: 用户表现出的偏好或约束(如有)")
+                // 默认结构化压缩指令：三段固定结构。
+                // 「已否定」单独成段，是为了避免压缩后旧方案被重新提出——
+                // 只写「已完成/待办」时，被否掉的方案会从摘要里消失，模型就会再提一次。
+                appendLine("请把下面的对话历史压缩成一份可交接的摘要，保留继续工作必需的信息。")
+                appendLine("必须只输出以下三个三级标题，顺序固定；每节用要点形式，每点一行：")
+                appendLine("### 已完成")
+                appendLine("- 已经完成并确认有效的事项、做出的决策及理由")
+                appendLine("### 已否定")
+                appendLine("- 已经明确否定、不再采纳的方案、结论或建议；没有则写 `- 无`。此节内容后续不得被重新提出")
+                appendLine("### 待办")
+                appendLine("- 尚未完成的工作、下一步、未解决问题和需要跟进的事项")
                 appendLine("- 不要编造未提及的内容")
                 appendLine("- 总长度不超过 800 字")
             }
@@ -237,6 +262,12 @@ class ConversationCompressor(
                 appendLine("- 已有摘要里的事实与决策一律保留,除非新对话明确推翻它")
                 appendLine("- 新对话带来的进展要覆盖旧结论(状态变了就写新的状态)")
                 appendLine("- 两边都有内容不要重复写两遍,合成一条")
+            }
+            val negated = previousSummary?.let(::extractNegatedSection).orEmpty()
+            if (negated.isNotBlank()) {
+                appendLine()
+                appendLine("已否定结论（不得重新提出，必须原样保留到新的「### 已否定」一节）:")
+                appendLine(negated)
             }
             appendLine()
             appendLine("对话历史:")

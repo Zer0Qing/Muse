@@ -147,4 +147,24 @@
     <string name="schedule_tool_advanced_hint">ヒント：高度な機能は通常 AI での記述のほうが簡単です</string>
     <string name="schedule_tool_templates_title">よく使うツールのクイック入力（タップで自動入力）</string>
     <string name="schedule_view_all_history">すべての履歴を表示</string>
+    <string name="runtime_notif_channel_name">実行環境のセットアップ</string>
+    <string name="runtime_notif_channel_desc">実行環境に必要なファイルをダウンロードしてインストールします</string>
+    <string name="runtime_notif_installing">実行環境をインストール中</string>
+    <string name="runtime_notif_done">実行環境の準備ができました</string>
+    <string name="runtime_notif_failed">実行環境のインストールに失敗しました: %1$s</string>
+    <string name="runtime_card_title">実行環境が未インストール</string>
+    <string name="runtime_card_desc">スクリプトツールには実行環境（Ubuntu + Node）が必要です。約76MBをダウンロードし、展開後は約230MBを使用します。</string>
+    <string name="runtime_card_install">実行環境をインストール</string>
+    <string name="runtime_card_later">後で</string>
+    <string name="runtime_card_failed_detail">インストールに失敗しました: %1$s</string>
+    <string name="runtime_upgrade_title">実行環境を分離しました</string>
+    <string name="runtime_upgrade_desc">このバージョンでは Node 実行環境を APK から分離し、アプリが大幅に小さくなりました。スクリプト・MCP・ターミナルを使う前に一度インストールしてください（約76MBのダウンロード、インストール後約230MB）。</string>
+    <string name="terminal_send_to_ai_cd">この結果をAIに送る</string>
+    <string name="settings_provider_test_autofixed">利用可能な設定に自動修正して保存しました：%1$s（%2$s）。</string>
+    <string name="memory_dream_title">記憶を整理（Dream）</string>
+    <string name="memory_dream_desc">記憶セクションを再構成。公開前に巻き戻し可能</string>
+    <string name="memory_dream_start">開始</string>
+    <string name="memory_dream_rollback">巻き戻す</string>
+    <string name="memory_dream_done">完了</string>
+    <string name="memory_dream_skipped">スキップ: %1$s</string>
 </resources>

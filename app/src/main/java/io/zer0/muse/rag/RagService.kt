@@ -650,7 +650,12 @@ class RagService(
         for (i in chunks.indices step embedBatchSize) {
             val batch = chunks.subList(i, minOf(i + embedBatchSize, chunks.size))
             val vectors = resultOf { provider.embed(batch.map { it.content }) }
-                .onError { msg, e -> Logger.e("RagService", "Embedding 批次 $i 失败: $msg", e) }
+                .onError { msg, e ->
+                    Logger.e("RagService", "Embedding 批次 $i 失败: $msg", e)
+                    // 索引期同样要熔断：embedding 端点不可用时，逐批重试只会把整条索引任务拖死，
+                    // 并把上游检索协程一起取消。标记 5 分钟，让检索先走本地关键词。
+                    embeddingFailureUntil = System.currentTimeMillis() + EMBEDDING_CIRCUIT_BREAKER_MS
+                }
                 .getOrThrow()
             check(vectors.size == batch.size) {
                 "Provider returned ${vectors.size} vectors for ${batch.size} chunks (batch $i)"
@@ -806,7 +811,10 @@ class RagService(
         suspend fun storeBatch(batch: List<TextChunker.Chunk>) {
             if (batch.isEmpty()) return
             val vectors = resultOf { provider.embed(batch.map { it.content }) }
-                .onError { msg, e -> Logger.e("RagService", "流式索引 embedding 批次失败(已索引 $totalIndexed 块): $msg", e) }
+                .onError { msg, e ->
+                    Logger.e("RagService", "流式索引 embedding 批次失败(已索引 $totalIndexed 块): $msg", e)
+                    embeddingFailureUntil = System.currentTimeMillis() + EMBEDDING_CIRCUIT_BREAKER_MS
+                }
                 .getOrThrow()
             check(vectors.size == batch.size) {
                 "Provider returned ${vectors.size} vectors for ${batch.size} chunks"

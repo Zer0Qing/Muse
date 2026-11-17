@@ -246,9 +246,10 @@ class DailySummaryService(
                             ),
                         ),
                         temperature = 0.6f,
-                        // v2.7: 放宽到 96 —— 提示词目标 18-40 字，96 token 留足余量，
-                        // 不会因上限过紧把句子写一半就断（用户反馈总结被截断）。
-                        maxTokens = 96,
+                        // 推理型模型会先花 token 推理再写正文：96 在 DeepSeek 这类模型上
+                        // 会被推理阶段吃光，上游回 incomplete / max_output_tokens、正文为空。
+                        // 提到 512 让推理 + 正文都放得下（目标正文仍只有 18-40 字）。
+                        maxTokens = 512,
                     ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
                 }
             }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -109,6 +110,9 @@ import org.koin.core.context.GlobalContext
  *
  * 页面过渡动画:首页 Tab 之间用 fade,详情页用右滑入/左滑出(滑动式 push 过渡)。
  */
+
+/** M5b：运行环境升级提示只弹一次的 SharedPreferences key。 */
+private const val RUNTIME_NOTICE_KEY = "runtime_upgrade_notice_shown"
 
 class MainActivity : ComponentActivity() {
 
@@ -490,6 +494,28 @@ private fun MuseNavGraph(
     // 引导覆盖层阶段还没有 NavHost,完成页的跳转只能记一笔,等主导航出现后再走。
     var pendingOnboardingRoute by rememberSaveable { mutableStateOf<String?>(null) }
     val showOnboarding = settingsReady && !onboardingShown && !onboardingCompleted
+
+    // M5b：老用户升级一次强提示 —— 只对「升级安装」（lastUpdateTime > firstInstallTime）
+    // 且运行环境未安装的设备显示，避免新装用户刚走完引导又被弹一次。
+    val runtimeNoticePrefs = remember {
+        context.getSharedPreferences("muse_runtime_migration", android.content.Context.MODE_PRIVATE)
+    }
+    var showRuntimeUpgradeNotice by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(settingsReady, onboardingShown, showOnboarding) {
+        val isUpgradeInstall = runCatching {
+            val info = context.packageManager.getPackageInfo(context.packageName, 0)
+            info.lastUpdateTime > info.firstInstallTime + 60_000L
+        }.getOrDefault(false)
+        if (
+            settingsReady &&
+            !showOnboarding &&
+            isUpgradeInstall &&
+            !runtimeNoticePrefs.getBoolean(RUNTIME_NOTICE_KEY, false) &&
+            !io.zer0.muse.runtime.RuntimeBridge.isReady(context)
+        ) {
+            showRuntimeUpgradeNotice = true
+        }
+    }
     val quickCaptureEnabled by settings.quickCaptureEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val quickCaptureOverlayEnabled by settings.quickCaptureOverlayEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
 
@@ -789,6 +815,34 @@ private fun MuseNavGraph(
                         pendingOnboardingRoute = null
                     }
                 } // 关闭 else(showOnboarding) 分支
+            }
+
+            if (showRuntimeUpgradeNotice) {
+                io.zer0.muse.ui.common.feedback.MuseDialog(
+                    onDismissRequest = {
+                        runtimeNoticePrefs.edit().putBoolean(RUNTIME_NOTICE_KEY, true).apply()
+                        showRuntimeUpgradeNotice = false
+                    },
+                    title = stringResource(R.string.runtime_upgrade_title),
+                    content = {
+                        Text(
+                            text = stringResource(R.string.runtime_upgrade_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    confirmText = stringResource(R.string.runtime_card_install),
+                    onConfirm = {
+                        runtimeNoticePrefs.edit().putBoolean(RUNTIME_NOTICE_KEY, true).apply()
+                        showRuntimeUpgradeNotice = false
+                        io.zer0.muse.runtime.RuntimeInstallService.start(context)
+                    },
+                    dismissText = stringResource(R.string.runtime_card_later),
+                    onDismiss = {
+                        runtimeNoticePrefs.edit().putBoolean(RUNTIME_NOTICE_KEY, true).apply()
+                        showRuntimeUpgradeNotice = false
+                    },
+                )
             }
 
             // 高频入口:在 Muse 内任何页面从右侧边缘左滑,唤起快速记录侧滑面板。

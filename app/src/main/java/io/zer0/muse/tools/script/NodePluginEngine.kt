@@ -4,6 +4,8 @@ import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.runtime.MuseRuntime
+import io.zer0.muse.runtime.NodeLauncher
+import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.runtime.classifyProcessExit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -82,13 +84,10 @@ class NodePluginEngine(private val context: Context) {
         val tmp = File(work, "plugin-${UUID.randomUUID()}.js")
         val errFile = File(work, tmp.name + ".err")
         return try {
-            if (!MuseRuntime.isReady(context)) {
+            if (!NodeLauncher.isAvailable(context)) {
                 // 这个检查必须在 try 里面：放在外面会从 finally 旁边绕过去，
                 // 永久吃掉一个并发槽位 —— 运行时没装好的设备上，两次调用就把插件全锁死了。
-                SkillEngineResult.Error(
-                    message = "内置 Node 运行时未就绪（设置 → 工具与扩展 → 扩展运行时）；" +
-                        "Node 档插件暂时无法执行，请安装运行时数据或改用 js/python 档",
-                )
+                SkillEngineResult.Error(message = RuntimeMissing.toJson())
             } else {
                 work.mkdirs()
                 tmp.writeText(buildWrapper(entryCode, functionName, argsJson, scopeKey, pluginConfigJson, timeoutMs))
@@ -122,17 +121,16 @@ class NodePluginEngine(private val context: Context) {
         timeoutMs: Long,
         bridgeHandler: suspend (String) -> SkillBridge.HandleResult,
     ): SkillEngineResult = withContext(Dispatchers.IO) {
-        val builder = ProcessBuilder(
-            listOf(
-                MuseRuntime.nodeBinary(context).absolutePath,
-                "--max-old-space-size=$MAX_HEAP_MB",
-                script.absolutePath,
-            ),
-        ).apply {
-            redirectError(errFile)
-            environment().clear()
-            environment().putAll(MuseRuntime.buildEnv(context))
+        val launch = NodeLauncher.prepareNode(
+            context = context,
+            args = listOf("--max-old-space-size=$MAX_HEAP_MB", script.absolutePath),
+        )
+        val builder = when (launch) {
+            is NodeLauncher.Launch.Missing ->
+                return@withContext SkillEngineResult.Error(message = launch.errorJson)
+            is NodeLauncher.Launch.Ready -> launch.builder
         }
+        builder.redirectError(errFile)
         val process = runCatching { builder.start() }
             .getOrElse { return@withContext SkillEngineResult.Error("Node 子进程启动失败: ${it.message}") }
         val outcome = try {

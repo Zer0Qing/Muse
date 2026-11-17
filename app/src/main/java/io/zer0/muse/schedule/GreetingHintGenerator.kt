@@ -50,7 +50,10 @@ class GreetingHintGenerator(
                 chatService.completeText(
                     messages = buildPrompt(events, resources),
                     temperature = 0.8f,
-                    maxTokens = 32,
+                    // 一句话提醒只需要几十字，但推理型模型会先吃预算：
+                    // 32 会让它推理完就没 token 写正文，结果永远回退规则版。
+                    maxTokens = 256,
+                    reasoningLevel = io.zer0.ai.core.ReasoningLevel.OFF,
                 )
             }
         }.onError { msg, t ->

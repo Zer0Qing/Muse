@@ -17,10 +17,13 @@ class TeamWorkflowExecutorTest {
         val calls = mutableListOf<String>()
         val chatService = mockk<ChatService>()
         coEvery {
+            // 用 any() 匹配可选参数：实际调用还带 reasoningLevel 等，
+            // 写死具体参数会让 mock 在实现调整后静默失配（表现为「条件判断恒失败」）。
             chatService.completeText(
                 messages = any(),
-                temperature = 0f,
-                maxTokens = 10,
+                temperature = any(),
+                maxTokens = any(),
+                reasoningLevel = any(),
             )
         } throws IllegalStateException("provider unavailable")
 
@@ -64,10 +67,13 @@ class TeamWorkflowExecutorTest {
         val calls = mutableListOf<String>()
         val chatService = mockk<ChatService>()
         coEvery {
+            // 用 any() 匹配可选参数：实际调用还带 reasoningLevel 等，
+            // 写死具体参数会让 mock 在实现调整后静默失配（表现为「条件判断恒失败」）。
             chatService.completeText(
                 messages = any(),
-                temperature = 0f,
-                maxTokens = 10,
+                temperature = any(),
+                maxTokens = any(),
+                reasoningLevel = any(),
             )
         } returns ChatCompletion(text = "NO")
 

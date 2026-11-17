@@ -93,34 +93,54 @@ class OpenAIEmbeddingProvider(
         }
     }
 
+    /**
+     * 已探明可用的完整 URL。
+     *
+     * embedding 404 的成因几乎都是路径差异（baseUrl 带不带 /v1、是否误把完整端点写进配置）。
+     * 首次调用把候选逐个试一遍，命中后记住，后续请求不再重复探测。
+     */
+    @Volatile
+    private var resolvedUrl: String? = null
+
     private val mediaType = "application/json; charset=utf-8".toMediaType()
 
     override suspend fun embed(texts: List<String>): List<FloatArray> = withContext(Dispatchers.IO) {
         if (texts.isEmpty()) return@withContext emptyList()
-        val url = config.resolvedBaseUrl().trimEnd('/') + embeddingsPath
+        val candidates = embeddingUrlCandidates()
         val body = buildJsonObject {
             put("model", modelName)
             put("input", JsonArray(texts.map { JsonPrimitive(it) }))
         }.toString().toRequestBody(mediaType)
 
-        val request = Request.Builder()
-            .url(url)
-            .header("Authorization", "Bearer ${config.apiKey}")
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .post(body)
-            .build()
-
-        coroutineContext.ensureActive()
-        // v1.0.30: 加 10s 超时，防止 embedding API 挂了阻塞整个生成链路
-        val response = kotlinx.coroutines.withTimeout(10_000L) {
-            client.newCall(request).awaitResponse()
+        var lastError: RuntimeException? = null
+        var response: okhttp3.Response? = null
+        for (candidate in candidates) {
+            val request = Request.Builder()
+                .url(candidate)
+                .header("Authorization", "Bearer ${config.apiKey}")
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .post(body)
+                .build()
+            coroutineContext.ensureActive()
+            // v1.0.30: 加 10s 超时，防止 embedding API 挂了阻塞整个生成链路
+            val attempt = kotlinx.coroutines.withTimeout(10_000L) {
+                client.newCall(request).awaitResponse()
+            }
+            if (attempt.isSuccessful) {
+                resolvedUrl = candidate
+                response = attempt
+                break
+            }
+            val errBody = attempt.body?.string()?.take(500).orEmpty()
+            attempt.close()
+            lastError = RuntimeException("Embedding API failed ${attempt.code}: $errBody")
+            // 只有「路径不存在」才换下一个地址；401/402/429 换地址没有意义。
+            if (attempt.code != 404 && attempt.code != 405 && attempt.code != 501) break
         }
-        if (!response.isSuccessful) {
-            val errBody = response.body?.string()?.take(500) ?: ""
-            throw RuntimeException("Embedding API failed ${response.code}: $errBody")
-        }
-        val raw = response.body?.string()
+        val successResponse = response ?: throw (lastError ?: RuntimeException("Embedding API 无可用地址"))
+        successResponse.use { resp ->
+        val raw = resp.body?.string()
             ?: throw RuntimeException("Embedding API returned empty body")
         val json = AppJson.parseToJsonElement(raw).jsonObject
         val dataArray = json["data"]?.jsonArray
@@ -134,6 +154,21 @@ class OpenAIEmbeddingProvider(
         }
         if (result.isNotEmpty()) cachedDimension = result[0].size
         result
+        }
+    }
+
+    /**
+     * embedding 地址候选：已探明地址优先，其次 baseUrl 原样、baseUrl+/v1。
+     *
+     * 只按路径差异扩展，不猜协议；命中后 [resolvedUrl] 固定，后续不再重复探测。
+     */
+    private fun embeddingUrlCandidates(): List<String> {
+        resolvedUrl?.let { return listOf(it) }
+        val base = config.resolvedBaseUrl().trimEnd('/')
+        val out = LinkedHashSet<String>()
+        out += base + embeddingsPath
+        if (!base.endsWith("/v1", ignoreCase = true)) out += base + "/v1" + embeddingsPath
+        return out.toList()
     }
 
     /** 根据 model 名猜测维度(首次调用前 UI 展示用)。 */

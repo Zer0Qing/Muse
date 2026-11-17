@@ -208,6 +208,8 @@ import java.io.File
         // R8: 稳定目录身份与绑定(旧 knowledge_folders 保持原样)
         io.zer0.muse.data.knowledge.KnowledgeV2FolderEntity::class,
         io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity::class,
+        // M4a: 会话内运行环境安装卡（「以后再说」与安装状态必须跨重启保留）
+        io.zer0.muse.data.runtime.RuntimeInstallCardEntity::class,
     ],
     version = MuseDb.LATEST_SCHEMA_VERSION,
     exportSchema = true,
@@ -218,6 +220,7 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun messageDao(): MessageDao
     abstract fun knowledgeV2Dao(): io.zer0.muse.data.knowledge.KnowledgeV2Dao
     abstract fun knowledgeJobDao(): io.zer0.muse.data.knowledge.KnowledgeJobDao
+    abstract fun runtimeInstallCardDao(): io.zer0.muse.data.runtime.RuntimeInstallCardDao
     abstract fun knowledgeFolderV2Dao(): io.zer0.muse.data.knowledge.KnowledgeFolderV2Dao
     abstract fun messageFtsDao(): MessageFtsDao
     abstract fun artifactDao(): ArtifactDao
@@ -324,7 +327,7 @@ abstract class MuseDb : RoomDatabase() {
 
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 131
+        const val LATEST_SCHEMA_VERSION = 132
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -1549,6 +1552,24 @@ abstract class MuseDb : RoomDatabase() {
                     "CREATE UNIQUE INDEX IF NOT EXISTS " +
                         "`index_session_proactive_preferences_sessionId` " +
                         "ON `session_proactive_preferences` (`sessionId`)",
+                )
+            }
+        }
+
+        /**
+         * M4a: 会话内运行环境安装卡。
+         *
+         * 只建表不动既有行。列与索引必须和 `RuntimeInstallCardEntity` 逐项一致 ——
+         * 名字对不上时 Room 在升级后的 schema 校验阶段会直接报 unexpected，而不是静默通过。
+         */
+        val MIGRATION_131_132 = object : Migration(131, 132) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `runtime_install_cards` (" +
+                        "`messageId` TEXT NOT NULL, `runtimeId` TEXT NOT NULL, `version` TEXT NOT NULL, " +
+                        "`state` TEXT NOT NULL, `progress` INTEGER NOT NULL DEFAULT 0, " +
+                        "`errorKind` TEXT, `dismissed` INTEGER NOT NULL DEFAULT 0, " +
+                        "`updatedAt` INTEGER NOT NULL, PRIMARY KEY(`messageId`))",
                 )
             }
         }
@@ -3632,6 +3653,7 @@ abstract class MuseDb : RoomDatabase() {
             io.zer0.muse.data.knowledge.KnowledgeFolderSchemaMigrations.MIGRATION_128_129,
             io.zer0.muse.data.knowledge.KnowledgeEvidenceSchemaMigrations.MIGRATION_129_130,
             MIGRATION_130_131,
+            MIGRATION_131_132,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

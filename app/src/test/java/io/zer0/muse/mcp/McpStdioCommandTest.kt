@@ -69,6 +69,27 @@ class McpStdioCommandTest {
     }
 
     @Test
+    fun resolveForGuestUsesRootfsNodeAndNpm() {
+        val npx = McpStdioCommand.resolveForGuest("npx -y some-pkg", context)
+        assertTrue("应为 Ok: $npx", npx is McpStdioCommand.Result.Ok)
+        assertEquals(
+            listOf("/usr/local/bin/node", "/usr/local/lib/node_modules/npm/bin/npx-cli.js", "-y", "some-pkg"),
+            (npx as McpStdioCommand.Result.Ok).argv,
+        )
+        val npm = McpStdioCommand.resolveForGuest("npm install foo", context)
+        assertEquals(
+            listOf("/usr/local/bin/node", "/usr/local/lib/node_modules/npm/bin/npm-cli.js", "install", "foo"),
+            (npm as McpStdioCommand.Result.Ok).argv,
+        )
+    }
+
+    @Test
+    fun resolveForGuestRejectsPathsOutsideFilesDir() {
+        val r = McpStdioCommand.resolveForGuest("/data/local/tmp/x.js", context)
+        assertTrue("只能放行 filesDir 内路径: $r", r is McpStdioCommand.Result.Error)
+    }
+
+    @Test
     fun rejectUnsupportedCommand() {
         val r = McpStdioCommand.resolve("rm -rf /", context)
         assertTrue("应拒绝: $r", r is McpStdioCommand.Result.Error)

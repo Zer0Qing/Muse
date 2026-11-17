@@ -118,6 +118,10 @@ data object SettingsDiagnosticsRoute
 @Serializable
 data object SettingsDataRoute
 
+/** 运行环境安装与状态（设置 → 数据与备份上方）。 */
+@Serializable
+data object SettingsRuntimeRoute
+
 @Serializable
 data object SettingsCloudBackupRoute
 

@@ -757,7 +757,10 @@ $previousResults
             service.completeText(
                 messages = messages,
                 temperature = 0f,
-                maxTokens = 10,
+                // 判断只要 YES/NO，但推理型模型会先把预算花在推理上：
+                // 10 个 token 会让它在推理阶段就耗尽，正文永远为空、判断恒失败。
+                maxTokens = 256,
+                reasoningLevel = io.zer0.ai.core.ReasoningLevel.OFF,
             )
         }.onError { msg, t ->
             Logger.w("TeamWorkflowExecutor", "CONDITIONAL 条件判断 LLM 调用失败,已阻止节点执行: $msg", t)

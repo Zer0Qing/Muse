@@ -70,4 +70,33 @@ class ConversationCompressorChunkTest {
     fun `空列表返回空块`() {
         assertTrue(ConversationCompressor.chunkMessages(emptyList(), 1_000).isEmpty())
     }
+    @Test
+    fun `已否定段单独抽出并保留到下一个同级标题前`() {
+        val summary = """
+            ### 已完成
+            - 把 Node 运行环境移出主包
+            ### 已否定
+            - 不再使用 HTML 卡片承载安装卡
+            - 不做 PWA 下线
+            ### 待办
+            - 真机验证
+        """.trimIndent()
+        assertEquals(
+            "- 不再使用 HTML 卡片承载安装卡\n- 不做 PWA 下线",
+            ConversationCompressor.extractNegatedSection(summary),
+        )
+    }
+
+    @Test
+    fun `没有已否定段时返回空串`() {
+        val summary = "### 已完成\n- a\n### 待办\n- b"
+        assertEquals("", ConversationCompressor.extractNegatedSection(summary))
+        assertEquals("", ConversationCompressor.extractNegatedSection(""))
+    }
+
+    @Test
+    fun `显式无内容的已否定段不算遗漏`() {
+        val summary = "### 已否定\n- 无"
+        assertEquals("- 无", ConversationCompressor.extractNegatedSection(summary))
+    }
 }

@@ -20,8 +20,6 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.experience.DEFAULT_EXPERIENCE_CATEGORY
-import io.zer0.muse.data.experience.ExperienceEntity
-import io.zer0.muse.data.experience.ExperienceRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseDateFormats
@@ -322,8 +320,13 @@ class MemoryViewModel(
     private val memoryTicker: MemoryTicker,
     /** v1.98: 注入 SettingsRepository 用于读取经验库开关。 */
     private val settings: SettingsRepository,
-    /** v1.98: 注入 ExperienceRepository 用于经验库 CRUD + observeAll。 */
-    private val experienceRepository: ExperienceRepository,
+    /**
+     * 经验库统一仓库（memory 侧，与工具写入同一份存储）。
+     *
+     * 旧实现读 app 侧 Room 表，导致「工具记了经验、记忆页看不到」；
+     * 现在 UI 与 prompt 都订阅 revision 后重读同一份文件存储。
+     */
+    private val experienceRepository: io.zer0.memory.experience.ExperienceRepository,
     /** v8: 注入 AssistantRepository 用于加载 availableScopes(主助手 + 子助手列表)。 */
     private val assistantRepository: AssistantRepository,
     private val sessionRepository: SessionRepository,
@@ -353,6 +356,13 @@ class MemoryViewModel(
     private val factConsolidator: io.zer0.memory.fact.LlmFactConsolidator? = null,
     /** 统一事实/置顶读写入口；旧参数保留以兼容无 memory 模块的测试宿主。 */
     private val memoryUseCases: MemoryUseCases? = null,
+    /**
+     * Dream 服务（记忆整理）。
+     *
+     * null = 测试宿主未装配：此时页面不展示 Dream 入口，
+     * 避免「按钮点了没反应」比「没有按钮」更糟。
+     */
+    private val dreamService: io.zer0.memory.dream.MemoryDreamService? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(MemoryUiState())
@@ -367,6 +377,19 @@ class MemoryViewModel(
      *
      * 修复前:UI 恒用默认库 + scope 列,子助手分库的事实读不到、UI 新增/删除对 AI 无效。
      */
+    /** 取某段正文（空白视为无内容）。 */
+    private fun sectionContent(
+        rows: List<io.zer0.memory.summary.ScopedCompiledSectionEntity>,
+        key: String,
+    ): String = rows.firstOrNull { it.sectionKey == key }?.content.orEmpty()
+
+    /** 取某段来源信息（可能为 null：该段尚未编译过）。 */
+    private fun sectionProvenance(
+        rows: List<io.zer0.memory.summary.ScopedCompiledSectionEntity>,
+        key: String,
+    ): io.zer0.memory.runtime.SectionProvenance? =
+        rows.firstOrNull { it.sectionKey == key }?.let { io.zer0.memory.runtime.MemoryCompiledProjection.provenanceOf(it) }
+
     private fun storeForScope(scope: String?): FactStore = when {
         scope == null || scope == "main" -> factStore
         else -> factDbProvider.getFactStore(scope)
@@ -527,6 +550,82 @@ class MemoryViewModel(
                 _organizeRunning.value = false
                 if (_organizeStage.value != "complete") _organizeStage.value = null
             }
+        }
+    }
+
+    // ── Dream：整理记忆的独立入口 ──────────────────────────────────────
+    //
+    // 与 organizeMemory 的分工：organize 做「编译 + 去重」，Dream 做「重写分段并留 revision」。
+    // 两者都会改写用户记忆，所以 Dream 的每次发布都必须可回滚（restore）。
+
+    private val _dreamStatus = MutableStateFlow<io.zer0.memory.dream.DreamStatus?>(null)
+    val dreamStatus: StateFlow<io.zer0.memory.dream.DreamStatus?> = _dreamStatus.asStateFlow()
+
+    private val _dreamRunning = MutableStateFlow(false)
+    val dreamRunning: StateFlow<Boolean> = _dreamRunning.asStateFlow()
+
+    /** Dream 结果一次性提示（成功/失败/被拒），由 UI 消费后清空。 */
+    private val _dreamResult = MutableStateFlow<String?>(null)
+    val dreamResult: StateFlow<String?> = _dreamResult.asStateFlow()
+
+    /** 测试宿主/未装配时为 false，页面据此隐藏 Dream 入口。 */
+    fun hasDreamService(): Boolean = dreamService != null
+
+    fun consumeDreamResult() {
+        _dreamResult.value = null
+    }
+
+    /** 刷新 Dream 状态（进入页面 / 操作后调用）。 */
+    fun refreshDreamStatus() {
+        val service = dreamService ?: return
+        val scope = memoryScopeKey(_selectedScope.value) ?: return
+        viewModelScope.launch {
+            _dreamStatus.value = resultOf { service.status(scope) }.getOrNull()
+        }
+    }
+
+    /**
+     * 启动一次 Dream。
+     *
+     * 当前 sections 从数据库读 READY 行：与 service 内部 snapshotReader 同源，
+     * 保证 beforeFingerprint 反映的是用户此刻真正看到的记忆。
+     */
+    fun startDream() {
+        val service = dreamService ?: return
+        val scope = memoryScopeKey(_selectedScope.value) ?: return
+        if (_dreamRunning.value) return
+        _dreamRunning.value = true
+        viewModelScope.launch {
+            try {
+                val current = resultOf { service.currentSections(scope) }.getOrNull().orEmpty()
+                val result = service.start(scope, io.zer0.memory.dream.DreamTrigger.MANUAL, current)
+                _dreamResult.value = when (result) {
+                    is io.zer0.memory.dream.DreamStartResult.Started -> "done"
+                    is io.zer0.memory.dream.DreamStartResult.Rejected -> "rejected:${result.reason}"
+                }
+                if (result is io.zer0.memory.dream.DreamStartResult.Started) {
+                    // 发布成功才刷新：否则 UI 会先显示新内容、再回滚，用户看到闪烁。
+                    loadAll(silent = true)
+                }
+            } finally {
+                _dreamRunning.value = false
+                refreshDreamStatus()
+            }
+        }
+    }
+
+    /** 回滚到指定 revision。 */
+    fun restoreDream(revisionId: String) {
+        val service = dreamService ?: return
+        val scope = memoryScopeKey(_selectedScope.value) ?: return
+        viewModelScope.launch {
+            val result = service.restore(scope, revisionId)
+            _dreamResult.value = when (result) {
+                is io.zer0.memory.dream.DreamRestoreResult.Restored -> "restored"
+                is io.zer0.memory.dream.DreamRestoreResult.Rejected -> "rejected:${result.reason}"
+            }
+            if (result is io.zer0.memory.dream.DreamRestoreResult.Restored) loadAll(silent = true)
+            refreshDreamStatus()
         }
     }
 
@@ -746,9 +845,12 @@ class MemoryViewModel(
                 _state.update { it.copy(experienceEnabled = enabled) }
             }
         }
-        // v1.98: 订阅经验库条目流,CRUD 后自动刷新 UI(无需手动 loadAll)。
+        // v1.98: 订阅经验库写入信号,CRUD 后自动刷新 UI。
+        // 文件存储没有 Room 的 observeAll，revision 是「有人写过」的显式信号；
+        // 首帧即 emit，所以进入页面时也会加载一次。
         viewModelScope.launch {
-            experienceRepository.observeAll().collect { experiences ->
+            experienceRepository.revision.collect {
+                val experiences = resultOf { experienceRepository.listAll() }.getOrNull().orEmpty()
                 val items = experiences.map { it.toMemoryItem() }
                 _state.update {
                     it.copy(
@@ -974,28 +1076,17 @@ class MemoryViewModel(
                 // 「AI 对你的理解」编辑的是错误槽位(与注入读路径错位)。统一按当前
                 // scope(全部视图回退主助手)+ space 路由读。
                 val sectionScope = scope ?: "main"
-                val compileFacts = withContext(Dispatchers.IO) {
-                    // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.FACTS, sectionScope, spaceId) }
-                        .onError { msg, t -> Logger.w("MemoryViewModel", "readSection(FACTS) 失败: $msg", t) }
-                        .getOrNull() ?: ""
+                // 读行级数据而不是 readSection：只有拿到 status / fingerprint 才能在页面上
+                // 区分「这段是当前记忆」还是「上次投影失败留下的旧内容」。
+                val compiledRows = withContext(Dispatchers.IO) {
+                    resultOf { memoryCompiler.readScopedSectionRows(sectionScope, spaceId) }
+                        .onError { msg, t -> Logger.w("MemoryViewModel", "readScopedSectionRows 失败: $msg", t) }
+                        .getOrNull().orEmpty()
                 }
-                val compileToday = withContext(Dispatchers.IO) {
-                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.TODAY, sectionScope, spaceId) }
-                        .onError { msg, t -> Logger.w("MemoryViewModel", "readSection(TODAY) 失败: $msg", t) }
-                        .getOrNull() ?: ""
-                }
-                val compileWeek = withContext(Dispatchers.IO) {
-                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.WEEK, sectionScope, spaceId) }
-                        .onError { msg, t -> Logger.w("MemoryViewModel", "readSection(WEEK) 失败: $msg", t) }
-                        .getOrNull() ?: ""
-                }
-                val compileLongterm = withContext(Dispatchers.IO) {
-                    resultOf { memoryCompiler.readSection(MemoryCompiler.Section.LONGTERM, sectionScope, spaceId) }
-                        .onError { msg, t -> Logger.w("MemoryViewModel", "readSection(LONGTERM) 失败: $msg", t) }
-                        .getOrNull() ?: ""
-                }
-                // v0.51: 读取裁剪后的 compiledMarkdown(供"AI 对你的理解"卡片折叠展示)。
+                val compileFacts = sectionContent(compiledRows, MemoryCompiler.Section.FACTS.key)
+                val compileToday = sectionContent(compiledRows, MemoryCompiler.Section.TODAY.key)
+                val compileWeek = sectionContent(compiledRows, MemoryCompiler.Section.WEEK.key)
+                val compileLongterm = sectionContent(compiledRows, MemoryCompiler.Section.LONGTERM.key)                // v0.51: 读取裁剪后的 compiledMarkdown(供"AI 对你的理解"卡片折叠展示)。
                 // 与 ChatService 注入 system prompt 同源,反映 AI 真正"看到"的记忆。
                 // P2-33: 同样按当前 scope/space 读取,避免展示主助手编译段。
                 val compiledMarkdown = withContext(Dispatchers.IO) {
@@ -1092,11 +1183,20 @@ class MemoryViewModel(
                 )
                 val app = getApplication<Application>()
                 val compileItems = compileSections.mapNotNull { (key, labelRes, content) ->
-                    if (content.isNotBlank()) {
-                        MemoryItem(key, app.getString(labelRes), content, source = "Compile")
-                    } else {
-                        null
-                    }
+                    if (content.isBlank()) return@mapNotNull null
+                    // 段落来源一并带到条目上：UI 据此显示「状态 · 更新时间」，
+                    // 让「这段是当前记忆还是失败留下的旧内容」在界面上可判断。
+                    val provenance = sectionProvenance(compiledRows, key)
+                    MemoryItem(
+                        id = key,
+                        title = app.getString(labelRes),
+                        content = content,
+                        tags = provenance?.let { listOf(it.status.name, it.sourceFingerprint) }
+                            ?.filter { value -> value.isNotBlank() }
+                            ?: emptyList(),
+                        time = provenance?.updatedAt,
+                        source = "Compile",
+                    )
                 }
 
                 // v5: 计算统计
@@ -1854,19 +1954,18 @@ class MemoryViewModel(
         if (title.isBlank() || content.isBlank()) return
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val now = System.currentTimeMillis()
-                val entity = ExperienceEntity(
-                    id = "exp_${now}_${(0..9999).random()}",
-                    title = title.trim(),
-                    content = content.trim(),
-                    category = category.trim().ifBlank { DEFAULT_EXPERIENCE_CATEGORY },
-                    tagsJson = if (tags.isEmpty()) "[]" else AppJson.encodeToString(tags),
-                    source = "manual",
-                    createdAt = now,
-                    updatedAt = now,
-                )
+                // 经验库按助手隔离：记忆页没有「当前助手」概念时归到默认桶，
+                // 与 record_experience 工具在缺省上下文下的归属保持一致。
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                resultOf { experienceRepository.upsert(entity) }
+                resultOf {
+                    experienceRepository.record(
+                        assistantId = io.zer0.muse.data.experience.ExperienceLegacyImporter.DEFAULT_ASSISTANT_ID,
+                        category = category.trim().ifBlank { DEFAULT_EXPERIENCE_CATEGORY },
+                        content = content.trim(),
+                        title = title.trim(),
+                        tags = tags,
+                    )
+                }
                     .onError { msg, t ->
                         MuseToast.show(
                             getApplication<Application>().getString(R.string.memory_add_experience_failed, msg),
@@ -1892,15 +1991,17 @@ class MemoryViewModel(
             withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
                 resultOf {
-                    val existing = experienceRepository.getById(id) ?: return@resultOf
-                    val updated = existing.copy(
-                        title = title.trim(),
-                        content = content.trim(),
-                        category = category.trim().ifBlank { DEFAULT_EXPERIENCE_CATEGORY },
-                        tagsJson = if (tags.isEmpty()) "[]" else AppJson.encodeToString(tags),
-                        updatedAt = System.currentTimeMillis(),
+                    val existing = experienceRepository.listAll().firstOrNull { it.id == id }
+                        ?: return@resultOf
+                    experienceRepository.update(
+                        existing.copy(
+                            title = title.trim(),
+                            content = content.trim(),
+                            category = category.trim().ifBlank { DEFAULT_EXPERIENCE_CATEGORY },
+                            tags = tags,
+                            updatedAt = java.time.Instant.now().toString(),
+                        ),
                     )
-                    experienceRepository.upsert(updated)
                 }.onError { msg, t -> MuseToast.show(getApplication<Application>().getString(R.string.memory_edit_experience_failed, msg)) }
             }
         }
@@ -1924,24 +2025,23 @@ class MemoryViewModel(
     }
 
     /**
-     * v1.98: ExperienceEntity → MemoryItem 转换(复用 UI 统一形态)。
+     * 统一经验条目 → MemoryItem 转换(复用 UI 统一形态)。
      *
      * source 字段标注为 "Experience",供 UI 层区分来源。
      * tags 从 tagsJson(JSON 数组字符串)解析为 List<String>。
      */
-    private fun ExperienceEntity.toMemoryItem(): MemoryItem {
-        val parsedTags = runCatching {
-            AppJson.decodeFromString<List<String>>(tagsJson)
-        }.getOrDefault(emptyList())
+    private fun io.zer0.memory.experience.ExperienceEntry.toMemoryItem(): MemoryItem {
+        // 存储侧时间是 ISO-8601；UI 仍按原来的「年月日 时分秒」展示，
+        // 解析失败时留空而不是塞一个 1970 的假时间。
         val timeText = runCatching {
             java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, java.util.Locale.CHINA)
-                .format(java.util.Date(updatedAt))
+                .format(java.util.Date.from(java.time.Instant.parse(updatedAt)))
         }.getOrNull()
         return MemoryItem(
             id = id,
-            title = title,
+            title = title.ifBlank { content.lineSequence().firstOrNull().orEmpty().take(40) },
             content = content,
-            tags = parsedTags,
+            tags = tags,
             time = timeText,
             source = "Experience",
             category = category,

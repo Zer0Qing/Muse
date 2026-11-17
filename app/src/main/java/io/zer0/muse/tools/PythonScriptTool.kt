@@ -2,6 +2,7 @@ package io.zer0.muse.tools
 
 import android.content.Context
 import io.zer0.muse.runtime.PythonRuntime
+import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.tools.script.PythonSkillEngine
 import io.zer0.muse.tools.script.SkillEngineResult
 import kotlinx.coroutines.runBlocking
@@ -58,6 +59,7 @@ object PythonScriptTool {
         return when {
             code.isBlank() -> errorJson("参数 code 缺失或为空")
             code.length > MAX_SCRIPT_CHARS -> errorJson("脚本超过最大长度($MAX_SCRIPT_CHARS 字符)")
+            !PythonRuntime.pythonBinary(context).isFile -> RuntimeMissing.toJson()
             else -> formatResultJson(evaluate(context, code, timeoutMs))
         }
     }
@@ -67,6 +69,7 @@ object PythonScriptTool {
         return when {
             code.isBlank() -> SkillEngineResult.Error("参数 code 缺失或为空")
             code.length > MAX_SCRIPT_CHARS -> SkillEngineResult.Error("脚本超过最大长度($MAX_SCRIPT_CHARS 字符)")
+            !PythonRuntime.pythonBinary(context).isFile -> SkillEngineResult.Error(RuntimeMissing.toJson())
             else -> {
                 // 确保运行时数据（stdlib）已解压；首次调用会解压一次。
                 PythonRuntime.ensureData(context).getOrElse { e ->

@@ -65,8 +65,14 @@ class VideoAttachmentHandler {
     companion object {
         private const val TAG = "VideoAttachmentHandler"
 
-        /** 视频大小上限：50MB（避免内存溢出 + 与 Provider 上传限制对齐）。 */
-        const val MAX_VIDEO_SIZE_BYTES = 50L * 1024 * 1024
+        /**
+         * 视频大小上限。
+         *
+         * 原来卡 50MB：手机随手拍一段 4K 就超了，用户看到的是「传不过去」却不知道为什么。
+         * 现在只读元数据与抽帧，不把整个文件读进内存，所以上限放到 2GB ——
+         * 实际上等于不限制，同时留一个上界防止异常值把状态搞崩。
+         */
+        const val MAX_VIDEO_SIZE_BYTES = 2L * 1024 * 1024 * 1024
 
         /** 缩略图 JPEG 压缩质量（0-100）。 */
         private const val THUMBNAIL_JPEG_QUALITY = 80

@@ -99,6 +99,10 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.data.knowledge.KnowledgeGenChunkEntity",
         "io.zer0.muse.data.knowledge.KnowledgeGenLexicalEntity",
         "io.zer0.muse.data.knowledge.KnowledgeActiveGenerationEntity",
+        // 运行环境安装卡：messageId 指向某条会话消息的 UI 状态（进度/已读/失败原因）。
+        // 备份恢复后消息 id 会变，旧卡只会指向不存在的消息；运行时装好即自动消失，
+        // 因此它是可重建的派生状态，不是用户资产。
+        "io.zer0.muse.data.runtime.RuntimeInstallCardEntity",
     )
 
     /** 从 MuseDb.kt 源码提取 @Database 声明实体(保持与 Room 真源一致,规避注解反射不可见问题)。 */

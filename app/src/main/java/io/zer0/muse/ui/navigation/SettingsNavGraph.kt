@@ -31,6 +31,7 @@ import io.zer0.muse.ui.settings.ProactiveMessageSettingsPage
 import io.zer0.muse.ui.settings.ProxySettingsPage
 import io.zer0.muse.ui.settings.QuickActionsSettingsPage
 import io.zer0.muse.ui.settings.RagSettingsPage
+import io.zer0.muse.ui.settings.RuntimeSettingsPage
 import io.zer0.muse.ui.settings.SecuritySettingsPage
 import io.zer0.muse.ui.settings.SettingsAboutPage
 import io.zer0.muse.ui.settings.SettingsAppearancePage
@@ -238,6 +239,15 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         SettingsDataPage(
             onBack = { navController.popBackStack() },
             onOpenCloudBackup = { navController.navigate(SettingsCloudBackupRoute) },
+        )
+    }
+    // 运行时安装与状态（数据与备份上方）
+    composable<SettingsRuntimeRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        RuntimeSettingsPage(
+            onBack = { navController.popBackStack() },
         )
     }
     // v1.132: 设置二级页 — 云备份独立配置页(WebDAV/S3 表单 + 远端备份列表)
@@ -506,6 +516,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
     ) {
         TerminalScreen(
             onBack = { navController.popBackStack() },
+            onSendToAi = { text -> sharedViewModel.sendFromCard(text) },
         )
     }
     // 组件画廊 — 从设置 → 关于 → 组件画廊 进入,组件库全部组件的形态验收(正式版保留)

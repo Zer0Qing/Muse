@@ -161,4 +161,24 @@
     <string name="notif_permission_status_off">通知权限未开启</string>
     <string name="notif_permission_guide">开启后 Muse 才能推送消息完成提醒与备份通知</string>
     <string name="notif_permission_open">去开启</string>
+    <string name="runtime_notif_channel_name">运行环境安装</string>
+    <string name="runtime_notif_channel_desc">下载并安装运行时所需的文件</string>
+    <string name="runtime_notif_installing">正在安装运行环境</string>
+    <string name="runtime_notif_done">运行环境已就绪</string>
+    <string name="runtime_notif_failed">运行环境安装失败：%1$s</string>
+    <string name="runtime_card_title">运行环境未安装</string>
+    <string name="runtime_card_desc">脚本类工具需要「运行环境」（Ubuntu + Node）。安装约 76MB，解压后占用约 230MB。</string>
+    <string name="runtime_card_install">安装运行环境</string>
+    <string name="runtime_card_later">以后再说</string>
+    <string name="runtime_card_failed_detail">安装失败：%1$s</string>
+    <string name="runtime_upgrade_title">运行环境已独立</string>
+    <string name="runtime_upgrade_desc">新版把 Node 运行环境从安装包拆出来了，APK 体积更小。首次使用脚本、MCP 或终端前需要安装一次（下载约 76MB，安装后约 230MB）。</string>
+    <string name="terminal_send_to_ai_cd">把这轮发给 AI</string>
+    <string name="settings_provider_test_autofixed">已自动修正并保存为可用配置：%1$s（%2$s）。</string>
+    <string name="memory_dream_title">整理记忆（Dream）</string>
+    <string name="memory_dream_desc">重新归纳记忆分段，发布前可回滚</string>
+    <string name="memory_dream_start">开始整理</string>
+    <string name="memory_dream_rollback">回滚</string>
+    <string name="memory_dream_done">整理完成</string>
+    <string name="memory_dream_skipped">整理被跳过：%1$s</string>
 </resources>

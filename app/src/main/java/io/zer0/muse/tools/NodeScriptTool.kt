@@ -1,6 +1,8 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.muse.runtime.NodeLauncher
+import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.tools.script.ProcessSkillEngine
 import io.zer0.muse.tools.script.SkillEngineResult
 import kotlinx.coroutines.runBlocking
@@ -51,6 +53,7 @@ object NodeScriptTool {
         return when {
             code.isBlank() -> errorJson("参数 code 缺失或为空")
             code.length > MAX_SCRIPT_CHARS -> errorJson("脚本超过最大长度($MAX_SCRIPT_CHARS 字符)")
+            !NodeLauncher.isAvailable(context) -> RuntimeMissing.toJson()
             else -> formatResultJson(evaluate(context, code, timeoutMs))
         }
     }
@@ -60,6 +63,7 @@ object NodeScriptTool {
         return when {
             code.isBlank() -> SkillEngineResult.Error("参数 code 缺失或为空")
             code.length > MAX_SCRIPT_CHARS -> SkillEngineResult.Error("脚本超过最大长度($MAX_SCRIPT_CHARS 字符)")
+            !NodeLauncher.isAvailable(context) -> SkillEngineResult.Error(RuntimeMissing.toJson())
             else ->
                 ProcessSkillEngine(context).eval(
                     script = code,

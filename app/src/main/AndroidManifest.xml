@@ -322,6 +322,13 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- 运行环境安装：下载 76MB 的 runtime 包并解压，前台服务保它不被省电策略杀掉 -->
+        <service
+            android:name=".runtime.RuntimeInstallService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!--
             v2.6.9: 常驻保活服务（用户显式开启）。
             用 specialUse 而非 dataSync：它不在执行数据同步，而是在维持调度与消息通道，

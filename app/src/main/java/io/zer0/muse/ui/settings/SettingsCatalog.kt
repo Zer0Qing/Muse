@@ -37,6 +37,7 @@ import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
 import io.zer0.muse.ui.navigation.SettingsProactiveRoute
 import io.zer0.muse.ui.navigation.SettingsProxyRoute
 import io.zer0.muse.ui.navigation.SettingsRagRoute
+import io.zer0.muse.ui.navigation.SettingsRuntimeRoute
 import io.zer0.muse.ui.navigation.SettingsSecurityRoute
 import io.zer0.muse.ui.navigation.SettingsSessionTermsRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
@@ -114,6 +115,7 @@ enum class SettingsEntryId {
     MINIPHONE,
     DATA_MANAGEMENT,
     WORKSPACE,
+    RUNTIME,
     BACKUP,
     DATA_IMPORT,
     ARCHIVED_CHATS,
@@ -689,6 +691,17 @@ object SettingsCatalog {
                     keywords = listOf(
                         "工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli",
                         "wenjian", "mulu", "gzq", "wjgl", "wj", "ml",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.RUNTIME,
+                    R.string.runtime_notif_channel_name,
+                    R.string.runtime_card_desc,
+                    MuseIcons.terminal,
+                    SettingsEntryAction.Navigate(SettingsRuntimeRoute),
+                    keywords = listOf(
+                        "运行时", "运行环境", "Node", "Python", "runtime", "terminal", "终端",
+                        "yunxingshi", "yunxinghuanjing", "zhongduan", "yxs", "yxhj", "zd",
                     ),
                 ),
                 entry(

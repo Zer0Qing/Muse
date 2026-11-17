@@ -147,4 +147,24 @@
     <string name="schedule_tool_advanced_hint">Подсказка: расширенные функции обычно проще описать с помощью ИИ</string>
     <string name="schedule_tool_templates_title">Быстрое заполнение распространённых инструментов (нажмите для автозаполнения)</string>
     <string name="schedule_view_all_history">Показать всю историю</string>
+    <string name="runtime_notif_channel_name">Установка окружения</string>
+    <string name="runtime_notif_channel_desc">Загрузка и установка файлов, нужных окружению</string>
+    <string name="runtime_notif_installing">Установка окружения</string>
+    <string name="runtime_notif_done">Окружение готово</string>
+    <string name="runtime_notif_failed">Ошибка установки среды: %1$s</string>
+    <string name="runtime_card_title">Среда выполнения не установлена</string>
+    <string name="runtime_card_desc">Для скриптовых инструментов нужна среда (Ubuntu + Node). Загрузка около 76 МБ, после установки — около 230 МБ.</string>
+    <string name="runtime_card_install">Установить среду</string>
+    <string name="runtime_card_later">Не сейчас</string>
+    <string name="runtime_card_failed_detail">Ошибка установки: %1$s</string>
+    <string name="runtime_upgrade_title">Среда выполнения теперь отдельная</string>
+    <string name="runtime_upgrade_desc">В этой версии среда Node вынесена из APK, поэтому приложение стало намного меньше. Установите её один раз перед использованием скриптов, MCP или терминала (около 76 МБ загрузки и 230 МБ после установки).</string>
+    <string name="terminal_send_to_ai_cd">Отправить этот результат ИИ</string>
+    <string name="settings_provider_test_autofixed">Автоматически исправлено и сохранено: %1$s (%2$s).</string>
+    <string name="memory_dream_title">Упорядочить память (Dream)</string>
+    <string name="memory_dream_desc">Пересобирает разделы памяти; публикацию можно откатить</string>
+    <string name="memory_dream_start">Начать</string>
+    <string name="memory_dream_rollback">Откатить</string>
+    <string name="memory_dream_done">Готово</string>
+    <string name="memory_dream_skipped">Пропущено: %1$s</string>
 </resources>

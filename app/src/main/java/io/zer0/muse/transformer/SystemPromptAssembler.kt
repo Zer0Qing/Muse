@@ -139,8 +139,13 @@ class SystemPromptAssembler(
      * 可为 null(测试环境不注入),此时退化为旧版提示(不列出助手清单)。
      */
     private val assistantRepository: AssistantRepository? = null,
-    /** v1.98: 经验库仓库 — experienceEnabled=true 时注入经验条目到 system prompt。 */
-    private val experienceRepository: io.zer0.muse.data.experience.ExperienceRepository? = null,
+    /**
+     * 经验库仓库 — experienceEnabled=true 时注入经验条目到 system prompt。
+     *
+     * 读的是 memory 侧的统一经验库（与工具写入同一份存储），不再是旧的 app Room 表：
+     * 两处各读一张表时，工具记下的经验在提示词里永远看不到。
+     */
+    private val experienceRepository: io.zer0.memory.experience.ExperienceRepository? = null,
     /**
      * v1.202: Agent 间私信仓库 — 主助手(forSubagent=false)构建 system prompt 时,
      * 注入收件箱摘要(最近 5 条),让 agent 能感知其他助手的协作上下文。
@@ -157,12 +162,6 @@ class SystemPromptAssembler(
      * 为 null 时不注入(测试环境或未注入时降级)。
      */
     private val groupChatMemoryRepository: GroupChatMemoryRepository? = null,
-    /**
-     * v12 (T2-2): 元事实存储 — 用于运行时相关记忆检索(search_memory)。
-     * 按当前问题用 FTS 召回 top-K 相关事实注入 <relevant_memory> 段,
-     * 而非只依赖全量编译的 <long_term_memory>。为 null 时不注入(测试降级)。
-     */
-    private val factStore: io.zer0.memory.fact.FactStore? = null,
     /** v1.0.86: 每个助手使用独立 facts.db，避免相关记忆永远查默认助手。 */
     private val factDbProvider: FactDbProvider? = null,
     /**
@@ -1007,7 +1006,8 @@ class SystemPromptAssembler(
         val rows = resultOf {
             val db = provider.getFactDb("main")
             val dao = db.profileSnapshotDao()
-            val store = factStore ?: provider.getFactStore("main")
+            // 快照与相关记忆同源：都按助手从 provider 取库，不再有全局 factStore 这一档。
+            val store = provider.getFactStore("main")
             val facts = store.getByScope(scope = "main", includeSuppressed = false)
                 .filter { it.spaceId == "default" }
             ProfileSnapshotRefresher(dao).refresh(scope = "main", spaceId = "default", facts = facts)
@@ -1330,7 +1330,6 @@ class SystemPromptAssembler(
     internal suspend fun buildRelevantMemorySection(
         currentUserInput: String?,
         assistantId: String,
-        store: io.zer0.memory.fact.FactStore? = null,
         scope: String = "main",
         spaceId: String = "default",
         /**
@@ -1340,11 +1339,10 @@ class SystemPromptAssembler(
         excludeLines: Set<String> = emptySet(),
     ): String {
         val storeOwnerId = assistantId.takeIf { it.isNotBlank() } ?: return ""
-        val resolvedStore =
-            store
-                ?: factDbProvider?.getFactStore(storeOwnerId)
-                ?: factStore.takeIf { storeOwnerId == "default" }
-                ?: return ""
+        // 单一读取路径：相关记忆只从 factDbProvider 按助手取库。
+        // 之前还有 store 参数与全局 factStore 两档兜底，三档在「主助手」场景下指向同一个库，
+        // 差别只在出错时走哪条路 —— 那是第二个真相，不是兼容性。
+        val resolvedStore = factDbProvider?.getFactStore(storeOwnerId) ?: return ""
         val resolvedScope = scope.ifBlank { "main" }
         val resolvedSpaceId = spaceId.ifBlank { "default" }
         val input = currentUserInput?.trim().orEmpty()
@@ -1470,8 +1468,8 @@ class SystemPromptAssembler(
     private suspend fun buildExperienceSection(currentUserInput: String?): String {
         val repo = experienceRepository ?: return ""
         val experiences =
-            resultOf { repo.getAll() }
-                .onError { _, t -> Logger.w(TAG, "ExperienceRepository.getAll 失败", t) }
+            resultOf { repo.listAll() }
+                .onError { _, t -> Logger.w(TAG, "ExperienceRepository.listAll 失败", t) }
                 .getOrNull() ?: return ""
         if (experiences.isEmpty()) return ""
         val tokens = tokenizeExperience(currentUserInput?.trim().orEmpty())
@@ -1479,7 +1477,7 @@ class SystemPromptAssembler(
             experiences
                 .map { exp -> exp to experienceRelevance(exp, tokens) }
                 .sortedWith(
-                    compareByDescending<Pair<ExperienceEntity, Int>> { it.second }
+                    compareByDescending<Pair<io.zer0.memory.experience.ExperienceEntry, Int>> { it.second }
                         .thenByDescending { it.first.updatedAt },
                 )
                 .map { it.first }
@@ -1487,8 +1485,9 @@ class SystemPromptAssembler(
         // 限制条数,避免 prompt 膨胀
         val items =
             ranked.joinToString("\n\n") { exp ->
-                val tags = if (exp.tagsJson != "[]") " [${exp.tagsJson.removeSurrounding("[", "]")}]" else ""
-                "### ${exp.title}${tags}\n${exp.content}"
+                val title = exp.title.ifBlank { exp.content.lineSequence().firstOrNull().orEmpty().take(40) }
+                val tags = if (exp.tags.isEmpty()) "" else " [${exp.tags.joinToString(",")}]"
+                "### $title${tags}\n${exp.content}"
             }
         return "经验库(用户积累的最佳实践与经验,遇到相关任务时请参考)\n" +
             "<experience_library>\n$items\n</experience_library>"
@@ -1498,7 +1497,7 @@ class SystemPromptAssembler(
     private fun tokenizeExperience(text: String): List<String> = experienceTokenRegex.findAll(text.lowercase()).map { it.value }.toList()
 
     /** P2-34: 经验条目对当前问题的相关性打分 — 命中词计词长,标签命中额外加权。 */
-    private fun experienceRelevance(exp: ExperienceEntity, tokens: List<String>): Int {
+    private fun experienceRelevance(exp: io.zer0.memory.experience.ExperienceEntry, tokens: List<String>): Int {
         if (tokens.isEmpty()) return 0
         val titleTxt = if (exp.title.isBlank() && exp.content.isBlank()) {
             ""
@@ -1508,7 +1507,7 @@ class SystemPromptAssembler(
                     experienceTextCache.put(experienceTextCache.key(exp.id, exp.updatedAt), lowered)
                 }
         }
-        val tagsTxt = exp.tagsJson.lowercase()
+        val tagsTxt = exp.tags.joinToString(" ").lowercase()
         var score = 0
         for (tok in tokens) {
             if (tok.length >= 2 && tok in titleTxt) score += tok.length

@@ -16,6 +16,7 @@ import io.zer0.common.Perf
 import io.zer0.common.TextTruncation
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.ExperimentsConfig
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -2326,12 +2327,16 @@ class ToolOrchestrator(
         val toolResult = normalizeToolResult(tc.name, rawToolResult)
 
         val isSuccess = taskCardCoordinator.isToolResultSuccess(toolResult)
+        // runtime_missing 是「前置条件缺失」，不是工具执行失败：不计失败连击、
+        // 不进入失败引导与重试预算，UI 由安装卡接管。
+        val runtimeMissing = !isSuccess && RuntimeMissing.isRuntimeMissingPayload(toolResult)
+        val effectiveSuccess = isSuccess || runtimeMissing
         // Phase 3: 工具执行终态在任务卡上与 ToolExecStatus 保持一致 —
         // 超时 → TaskStepStatus.TIMED_OUT(不再被 isSuccess=false 折叠成 FAILED)。
         val execStatus =
             when {
                 timedOut -> ToolExecStatus.TIMED_OUT
-                isSuccess -> ToolExecStatus.SUCCESS
+                effectiveSuccess -> ToolExecStatus.SUCCESS
                 else -> ToolExecStatus.FAILED
             }
         // 按剩余上下文预算选择直传或"完整落盘 + 文件引用"；
@@ -2340,13 +2345,13 @@ class ToolOrchestrator(
         // v2.6.22: 工具产出图片时，结果里的 Base64 只是传输载体，不是正文。
         // 不拆这一层，几 MB 字符串会被当成普通超长输出：走截断、落盘到 tool_outputs，
         // 而模型和任务卡看到的只是被削头的 JSON。图片本体走单独的带图消息（见下）。
-        val screenshotPayload = screenshotOf(toolResult, isSuccess)
+        val screenshotPayload = screenshotOf(toolResult, effectiveSuccess)
         // 失败引导只进 LLM 历史,不泄漏到用户可见的任务卡/工具卡片。
         val baseResult = screenshotPayload?.let { ToolScreenshotPayload.resultText(it) }
             ?: prepareToolOutput(tc.id, tc.name, toolResult, inlineOutputBudgetTokens)
         // v1.0.47 P2-1: 结构化失败引导 — 仅拼进给 LLM 的历史消息,避免无效重试循环
         val llmResult =
-            if (isSuccess) {
+            if (effectiveSuccess) {
                 baseResult
             } else {
                 // v2.6.7: 先算出这条失败属于哪一类、能不能重试,再给引导 ——
@@ -2390,7 +2395,7 @@ class ToolOrchestrator(
             val execResult =
                 io.zer0.muse.hook.ToolExecutionResult(
                     toolName = tc.name,
-                    success = isSuccess,
+                    success = effectiveSuccess,
                     output = finalToolResult,
                     durationMs = System.currentTimeMillis() - toolStartAt,
                 )
@@ -2405,10 +2410,10 @@ class ToolOrchestrator(
         val executionFinishedAt = System.currentTimeMillis()
         val (clampedResult, wasTruncated) =
             withTurnLock(stateLock) {
-                host.onToolFinish(tc.id, tc.name, isSuccess, executionFinishedAt - toolStartAt)
+                host.onToolFinish(tc.id, tc.name, effectiveSuccess, executionFinishedAt - toolStartAt)
                 // M3.2: 执行落账(计数/失败连击/重复指纹)+ 输出大小上限
                 // (审批拒绝/预算拦截的路径已提前 return,不计入调用数)
-                execPolicy.afterExecute(tc.name, tc.arguments, isSuccess)
+                execPolicy.afterExecute(tc.name, tc.arguments, effectiveSuccess)
                 val clamped = execPolicy.clampOutput(finalToolResult)
                 // 记录实际回填字符数;输出总量默认不设上限。
                 execPolicy.recordOutputChars(clamped.first.length)
@@ -2426,7 +2431,7 @@ class ToolOrchestrator(
             idx,
             tc,
             clampedResult,
-            isSuccess,
+            effectiveSuccess,
             displayResult = displayResult,
             // v2.6.0: 若工具结果带截图(浏览器截图工具、工作区图片读取),提取出来交给调用方,
             // 由它追加一条带图用户消息让模型真的看到图。

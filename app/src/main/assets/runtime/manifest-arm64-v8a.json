@@ -1,0 +1,26 @@
+{
+  "runtimeId": "ubuntu-node",
+  "revision": "r1",
+  "abi": "arm64-v8a",
+  "upstream": {
+    "ubuntu": "24.04.5",
+    "node": "24.22.1"
+  },
+  "archive": {
+    "name": "rootfs.tar.gz",
+    "sizeBytes": 76628106,
+    "sha256": "8fbf636546513e1061baaa86a3e628b5758f7e82d514e99a1dd3dc28f04e5fa8",
+    "urls": [
+      "https://gh-proxy.com/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-arm64-v8a.tar.gz",
+      "https://ghproxy.net/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-arm64-v8a.tar.gz",
+      "https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-arm64-v8a.tar.gz"
+    ]
+  },
+  "installedBytes": 233573805,
+  "bins": {
+    "proot": "3621937c1c5a98d0d39ca599af573a6bc15128690606d535e8b05da00cec4f41",
+    "loader": "1da54355333cca3fb6ee10e3b82a24df24fb230c99241ce83809bf9e240609b5",
+    "libtalloc.so.2": "742b438c4d09e276985a61d44164c9de207b6d8cc268f3018cb3001961bcb309",
+    "libandroid-shmem.so": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731"
+  }
+}

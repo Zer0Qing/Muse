@@ -522,6 +522,86 @@ internal fun ProviderEditPage(
     //    UnknownHost → 无法连接服务器(短消息,与 fetchModels 的详细错误区分)
     //  - 成功显示模型数量(连接正常 · N 个模型)
     //  - 用 ioScope.launch 协程执行,避免阻塞 UI
+    /**
+     * 端点自动探测：把「读文档自查」换成「程序替你试一遍」。
+     *
+     * 只在失败像端点缺失（404/405/501/HTML 页/Invalid content-type）时才跑，
+     * 401/402/429 这类账号问题不浪费一次请求。候选顺序：原地址两种协议 → /v1 变体两种协议，
+     * 命中即返回，最多 4 次探测。
+     */
+    /**
+     * 探测该供应商可用的 embedding 路径。
+     *
+     * 只对 OpenAI 兼容协议有意义；失败不算供应商不可用 —— 很多聊天中转站确实没有 embeddings，
+     * 这时把路径留空，RAG 会按既有逻辑降级到本地关键词检索。
+     */
+    suspend fun probeEmbeddingPath(base: io.zer0.ai.core.ProviderConfig): io.zer0.ai.core.ProviderConfig {
+        if (base.type != ProviderType.OPENAI && base.type != ProviderType.OPENAI_RESPONSES) return base
+        val specific = base.specific as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI ?: return base
+        val probeClient = io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(8, TimeUnit.SECONDS)
+            .build()
+        val candidates = listOf("/embeddings", "/v1/embeddings")
+        for (path in candidates) {
+            val attempt = base.copy(specific = specific.copy(embeddingsPath = path))
+            val ok = runCatching {
+                val provider = io.zer0.muse.rag.OpenAIEmbeddingProvider(
+                    config = attempt,
+                    model = "",
+                    client = probeClient,
+                )
+                provider.embed(listOf("ping"))
+                true
+            }.getOrDefault(false)
+            if (ok) return attempt
+        }
+        return base
+    }
+    suspend fun autoProbeEndpoint(failed: io.zer0.ai.core.ProviderConfig): AutoFix? {
+        val probeModelId = failed.models.firstOrNull { it.id.isNotBlank() }?.id
+            ?: modelsState.firstOrNull { it.id.isNotBlank() }?.id
+            ?: return null
+        // 用户只填了一个地址：真正未知的是「这站实现哪套协议」，
+        // 所以按协议族逐个试，命中即停；已确认可用的那套直接写回表单与库。
+        val probes = io.zer0.ai.openai.OpenAiEndpointCandidates.protocolProbes(failed.baseUrl)
+        for (probe in probes) {
+            if (probe.baseUrl == failed.baseUrl &&
+                probe.protocol == io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_CHAT &&
+                failed.type == io.zer0.ai.core.ProviderType.OPENAI
+            ) {
+                continue
+            }
+            val attempt = failed.copy(
+                type = probe.protocol.toProviderType(),
+                baseUrl = probe.baseUrl,
+                specific = probe.protocol.toSpecific(),
+            )
+            val ok = runCatching {
+                val provider = io.zer0.ai.ProviderRegistry.create(attempt)
+                val probeModel = io.zer0.ai.core.Model(id = probeModelId, providerId = attempt.id)
+                provider.healthCheck(probeModel).success
+            }.getOrDefault(false)
+            if (ok) {
+                val message = context.getString(
+                    R.string.settings_provider_test_autofixed,
+                    probe.baseUrl,
+                    probe.protocol.label,
+                )
+                // 供应商通了不代表 embedding 通：顺手探一次，把可用路径写进配置，
+                // 免得用户之后在 RAG 里反复遇到 404 再回来改。
+                val withEmbedding = probeEmbeddingPath(attempt)
+                return AutoFix(
+                    baseUrl = probe.baseUrl,
+                    protocol = probe.protocol,
+                    message = message,
+                    config = withEmbedding,
+                )
+            }
+        }
+        return null
+    }
+
     val testConnection: () -> Unit = {
         // 复用 buildTempConfig() 构造临时配置 —— 手搓 ProviderConfig 会丢
         // useResponseApi / customHeaders 这类协议细节，测试结果就不可信。
@@ -589,8 +669,25 @@ internal fun ProviderEditPage(
                 testConnectionResult = result
                 testConnectionError = null
             } else {
-                testConnectionError = result
-                testConnectionResult = null
+                // 失败后不把「读文档自查」推给用户：若失败像端点缺失（404/405/HTML 页），
+                // 自动把 Base URL 的 /v1 变体与两种协议组合各试一次，能通就直接改正表单。
+                val autoFix = autoProbeEndpoint(tempConfig)
+                if (autoFix != null) {
+                    // 先写回表单让界面与落库内容一致，再直接保存 —— 用户点一次测试就完成修正，
+                    // 不必再去找「保存」按钮，也不会出现「表单显示已改、库里还是旧的」。
+                    baseUrl = autoFix.baseUrl
+                    type = autoFix.config.type
+                    if (autoFix.config.type == ProviderType.OPENAI || autoFix.config.type == ProviderType.OPENAI_RESPONSES) {
+                        openAIUseResponseApi =
+                            (autoFix.config.specific as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)?.useResponseApi ?: false
+                    }
+                    onSave(autoFix.config)
+                    testConnectionResult = autoFix.message
+                    testConnectionError = null
+                } else {
+                    testConnectionError = result
+                    testConnectionResult = null
+                }
             }
             isTestingConnection = false
             // v2.4: 缓存测试结果(5 分钟 TTL,下次进入页面直接显示)
@@ -1328,3 +1425,34 @@ internal fun ProviderEditPage(
         )
     }
 }
+
+/** 端点自动探测命中的可用配置。 */
+private data class AutoFix(
+    val baseUrl: String,
+    val protocol: io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind,
+    val message: String,
+    /** 探测成功的那份完整配置，用于直接落库。 */
+    val config: io.zer0.ai.core.ProviderConfig,
+)
+
+/** 协议 → ProviderType。Gemini/Anthropic 各走自己的 Provider。 */
+private fun io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.toProviderType(): io.zer0.ai.core.ProviderType =
+    when (this) {
+        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_CHAT -> io.zer0.ai.core.ProviderType.OPENAI
+        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_RESPONSES -> io.zer0.ai.core.ProviderType.OPENAI_RESPONSES
+        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.ANTHROPIC -> io.zer0.ai.core.ProviderType.ANTHROPIC
+        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.GEMINI -> io.zer0.ai.core.ProviderType.GEMINI
+    }
+
+/** 协议 → specific 配置。只给出该协议必需的默认值，其余交给用户后续调整。 */
+private fun io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.toSpecific(): io.zer0.ai.core.ProviderSpecificConfig =
+    when (this) {
+        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_CHAT ->
+            io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = false)
+        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_RESPONSES ->
+            io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = true)
+        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.ANTHROPIC ->
+            io.zer0.ai.core.ProviderSpecificConfig.Anthropic()
+        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.GEMINI ->
+            io.zer0.ai.core.ProviderSpecificConfig.Gemini()
+    }

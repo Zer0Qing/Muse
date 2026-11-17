@@ -4,6 +4,10 @@ import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.runtime.MuseRuntime
+import io.zer0.muse.runtime.ProotRuntime
+import io.zer0.muse.runtime.RuntimeBridge
+import io.zer0.muse.runtime.RuntimeId
+import io.zer0.muse.runtime.RuntimeStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -46,19 +50,37 @@ class McpStdioTransport(
 
     /** 启动子进程并挂载 stdout/stderr 处理循环。返回是否启动成功。 */
     suspend fun start(): Boolean = withContext(Dispatchers.IO) {
-        val argv = when (val r = McpStdioCommand.resolve(config.command, context)) {
-            is McpStdioCommand.Result.Ok -> r.argv
+        val store = RuntimeStore(context)
+        val proot = ProotRuntime(context, store)
+        val useExternal = RuntimeBridge.isReady(context) && proot.isAvailable()
+        val resolved = if (useExternal) {
+            McpStdioCommand.resolveForGuest(config.command, context)
+        } else {
+            McpStdioCommand.resolve(config.command, context)
+        }
+        val argv = when (resolved) {
+            is McpStdioCommand.Result.Ok -> resolved.argv
             is McpStdioCommand.Result.Error -> {
-                Logger.w(TAG, "[${config.name}] 命令解析失败: ${r.message}")
+                Logger.w(TAG, "[${config.name}] 命令解析失败: ${resolved.message}")
                 return@withContext false
             }
         }
         val workdir = File(MuseRuntime.runtimeDir(context), "mcp/${config.id}").apply { mkdirs() }
         runCatching {
-            val pb = ProcessBuilder(argv)
-            pb.directory(workdir)
-            pb.environment().clear()
-            pb.environment().putAll(MuseRuntime.buildEnv(context))
+            val pb = if (useExternal) {
+                proot.processBuilder(
+                    id = RuntimeId.UBUNTU_NODE,
+                    argv = argv,
+                    binds = listOf("${context.filesDir.absolutePath}:${RuntimeBridge.GUEST_FILES}"),
+                    workdirGuest = RuntimeBridge.toGuestPath(context, workdir.absolutePath),
+                ) ?: return@withContext false
+            } else {
+                ProcessBuilder(argv).apply {
+                    directory(workdir)
+                    environment().clear()
+                    environment().putAll(MuseRuntime.buildEnv(context))
+                }
+            }
             val p = pb.start()
             process = p
             writer = p.outputStream.bufferedWriter()

@@ -2,6 +2,8 @@ package io.zer0.muse.tools
 
 import android.content.Context
 import io.zer0.muse.runtime.MuseRuntime
+import io.zer0.muse.runtime.RuntimeBridge
+import java.io.File
 
 /**
  * v2.x 扩展运行时：平台自检工具。
@@ -47,8 +49,13 @@ object PlatformSelfCheckTool {
         // ── 1. 内置 Node 运行时 ──────────────────────────────────────────
         sb.append("\n■ 内置 Node 运行时")
         val node = MuseRuntime.nodeBinary(context)
-        sb.append("\n  - Node 二进制: ").append(
-            if (node.isFile) "存在 (${node.length() / 1024 / 1024}MB)" else "缺失",
+        val externalReady = RuntimeBridge.isReady(context)
+        sb.append("\n  - Node 来源: ").append(
+            when {
+                externalReady -> "外置运行环境（proot）"
+                node.isFile -> "包内二进制 (${node.length() / 1024 / 1024}MB)"
+                else -> "缺失"
+            }
         )
         val nodeV = runCatching { MuseRuntime.execNode(context, listOf("-v"), timeoutMs = 20_000) }.getOrNull()
         sb.append("\n  - node -v: ").append(
@@ -62,8 +69,12 @@ object PlatformSelfCheckTool {
         sb.append("\n  - 运行时数据: ").append(
             if (data.isSuccess) "已就绪 (${MuseRuntime.RUNTIME_DATA_VERSION})" else "解压失败",
         )
-        val npmCli = MuseRuntime.npmCli(context)
-        if (npmCli.isFile) {
+        val npmCli = if (externalReady) {
+            File("/usr/local/lib/node_modules/npm/bin/npm-cli.js")
+        } else {
+            MuseRuntime.npmCli(context)
+        }
+        if (externalReady || npmCli.isFile) {
             val npmV = runCatching {
                 MuseRuntime.execNode(context, listOf(npmCli.absolutePath, "-v"), timeoutMs = 60_000)
             }.getOrNull()

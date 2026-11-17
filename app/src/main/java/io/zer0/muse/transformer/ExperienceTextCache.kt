@@ -30,6 +30,9 @@ internal class ExperienceTextCache(
 
     fun key(id: String, updatedAt: Long): String = "$id@$updatedAt"
 
+    /** ISO-8601 时间戳版本：统一经验库存的是字符串时间。 */
+    fun key(id: String, updatedAt: String): String = "$id@$updatedAt"
+
     fun get(key: String): String? = synchronized(entries) {
         val hit = entries[key]
         if (hit == null) misses += 1 else hits += 1

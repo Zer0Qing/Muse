@@ -171,6 +171,21 @@ val appModule = module {
     }
     single { io.zer0.muse.data.milestone.MilestoneChecker(get(), get(), get()) } // Phase 2 2B: milestone checker
     single { io.zer0.muse.data.experience.ExperienceRepository(get()) } // v1.98
+    // Dream 计划生成器：memory 模块只认接口，实现放在 app 层（要调 ChatService）。
+    single<io.zer0.memory.dream.MemoryDreamPlanner> {
+        io.zer0.muse.memory.LlmMemoryDreamPlanner(get())
+    }
+    // 统一经验数据源：旧 Room 表只作为一次性导入来源，生产读取全部走 memory 侧的经验库。
+    // 标志放这里而不是 importer 里，是为了让导入逻辑能在纯 JVM 测试里跑（不依赖 Android Context）。
+    single {
+        val migrationPrefs = androidContext().getSharedPreferences("muse_migration", android.content.Context.MODE_PRIVATE)
+        io.zer0.muse.data.experience.ExperienceLegacyImporter(
+            legacy = get(),
+            target = get(),
+            hasRun = { migrationPrefs.getBoolean("experience_legacy_imported", false) },
+            markRun = { migrationPrefs.edit().putBoolean("experience_legacy_imported", true).apply() },
+        )
+    }
     single { io.zer0.muse.data.agentdm.AgentDmRepository(get()) } // 既有工具系统 port: agent DM
     // v1.134 P1-2: 消息图片存储服务,负责 base64 ↔ 文件路径转换,
     // 让大图片落盘到 filesDir/muse_images/,DB 只存路径,避免 messages 表行体积膨胀
@@ -451,10 +466,7 @@ val appModule = module {
         val sessionRepository = get<SessionRepository>()
         io.zer0.muse.tools.AgentToolsRegistrar(
             toolRegistry = get(),
-            pinnedMemoryStore = get(),
             experienceRepository = get(),
-            factStore = get(),
-            factDbProvider = get(),
             settings = get(),
             notificationManager = get(),
             context = androidContext(),
@@ -490,7 +502,8 @@ val appModule = module {
                     compiler.searchCompiledSections(query, scope, spaceId, limit)
                 }
             },
-            memoryUseCases = getOrNull<io.zer0.memory.runtime.MemoryUseCases>(),
+            // 记忆读写只有一条生产入口；缺它就该启动失败，而不是悄悄退回直接 store。
+            memoryUseCases = get<io.zer0.memory.runtime.MemoryUseCases>(),
         )
     }
     // v2.x: current-session original conversation recall, scoped by host context.

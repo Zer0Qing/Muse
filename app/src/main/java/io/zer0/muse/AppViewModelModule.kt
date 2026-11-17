@@ -41,6 +41,8 @@ val appViewModelModule = module {
             // v1.0.92: LLM 记忆整合器(手动"整理记忆"与每日自动整合共用同一实现)
             factConsolidator = get(),
             memoryUseCases = get(),
+            // Dream：记忆整理（重写分段 + 可回滚 revision）
+            dreamService = get(),
         )
     }
 

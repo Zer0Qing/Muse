@@ -128,7 +128,7 @@ class SettingsGroupScreenTest {
             }
         }
 
-        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(5)
+        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(6)
     }
 
     @Test

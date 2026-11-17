@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -122,6 +123,10 @@ fun MemoryScreen(
     val timeRangeFilter by viewModel.timeRangeFilter.collectAsStateWithLifecycle()
     val organizing by viewModel.organizeRunning.collectAsStateWithLifecycle()
     val organizeStage by viewModel.organizeStage.collectAsStateWithLifecycle()
+    val dreamStatus by viewModel.dreamStatus.collectAsStateWithLifecycle()
+    val dreamRunning by viewModel.dreamRunning.collectAsStateWithLifecycle()
+    // 测试宿主可能没装配 Dream：没有服务就不显示入口，避免「点了没反应」。
+    val dreamServiceAvailable = remember { viewModel.hasDreamService() }
     // 多选合并：草稿 / 执行中 / 错误都由 ViewModel 持有，界面只负责展示与收集
     val mergeDraft by viewModel.mergeDraft.collectAsStateWithLifecycle()
     val mergeRunning by viewModel.mergeRunning.collectAsStateWithLifecycle()
@@ -341,6 +346,18 @@ fun MemoryScreen(
                             info = info,
                             running = archiveRecoveryRunning,
                             onRestore = { showArchiveRecoveryConfirm = true },
+                        )
+                    }
+                }
+                val dreamStatus = dreamStatus
+                if (dreamServiceAvailable) {
+                    item(key = "memory_dream") {
+                        MemoryDreamCard(
+                            running = dreamRunning,
+                            lastRevisionId = dreamStatus?.lastRevisionId,
+                            lastError = dreamStatus?.lastError,
+                            onStart = viewModel::startDream,
+                            onRestore = { id -> viewModel.restoreDream(id) },
                         )
                     }
                 }
@@ -847,6 +864,66 @@ private fun MemoryCapsuleTabs(selected: Int, onSelect: (Int) -> Unit) {
         onSelect = onSelect,
         modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 12.dp),
     )
+}
+
+/**
+ * Dream 入口卡片。
+ *
+ * 只做三件事：说明它会改写分段、给一个开始按钮、给一个回滚按钮。
+ * 回滚按钮只在存在上次 revision 时出现 —— 没有可回滚内容时摆一个灰按钮，
+ * 用户会以为功能坏了。
+ */
+@Composable
+private fun MemoryDreamCard(
+    running: Boolean,
+    lastRevisionId: String?,
+    lastError: String?,
+    onStart: () -> Unit,
+    onRestore: (String) -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
+        shape = MuseShapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+    ) {
+        Column(
+            modifier = Modifier.padding(MusePaddings.screen),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            Text(
+                text = stringResource(R.string.memory_dream_title),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = stringResource(R.string.memory_dream_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (!lastError.isNullOrBlank()) {
+                    Text(
+                    text = stringResource(R.string.memory_dream_skipped, lastError),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+                if (running) {
+                    MuseSpinner(size = MuseIconSizes.iconSmall)
+                } else {
+                    TextButton(onClick = onStart) {
+                        Text(stringResource(R.string.memory_dream_start))
+                    }
+                }
+                if (!lastRevisionId.isNullOrBlank() && !running) {
+                    TextButton(onClick = { onRestore(lastRevisionId) }) {
+                        Text(stringResource(R.string.memory_dream_rollback))
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

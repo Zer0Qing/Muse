@@ -1182,7 +1182,6 @@ internal class ChatGenerationController(
                                 resultOf {
                                     deps.systemPromptAssembler.buildRelevantMemorySection(
                                         currentUserInput = lastUserInput,
-                                        store = null,
                                         scope = memoryScope,
                                         spaceId = memorySpaceId,
                                         assistantId = relevantMemoryAssistantId,

@@ -76,8 +76,13 @@ object MuseRuntime {
     /** 运行时 bin 目录（PATH 首位，预留给 symlink/垫片）。 */
     fun binDir(ctx: Context): File = File(runtimeDir(ctx), "bin")
 
-    /** 运行时就绪（node 二进制存在且 npm 数据已解压）。 */
-    fun isReady(ctx: Context): Boolean = nodeBinary(ctx).isFile && npmCli(ctx).isFile
+    /**
+     * 运行时就绪：外置运行环境已装，或包内 node 与 npm 数据都在。
+     *
+     * 两个来源任一可用即可，避免「外置装好了但界面仍说未安装」。
+     */
+    fun isReady(ctx: Context): Boolean =
+        RuntimeBridge.isReady(ctx) || (nodeBinary(ctx).isFile && npmCli(ctx).isFile)
 
     // ── 数据解压 ─────────────────────────────────────────────────
 
@@ -199,20 +204,32 @@ object MuseRuntime {
         val captureError: String? = null,
     )
 
-    /** 执行内置 node（args 追加在 node 路径之后）。 */
+    /** 执行内置 node（args 追加在 node 路径之后）。
+     *
+     * 装了外置运行环境时走 proot 里的 Node，否则回退到 APK 自带的 node 二进制。
+     * 上层（ProcessSkillEngine 等）不用关心这件事。
+     */
     suspend fun execNode(
         ctx: Context,
         args: List<String>,
         timeoutMs: Long = 30_000L,
         workdir: File? = homeDir(ctx),
         env: Map<String, String> = emptyMap(),
-    ): ExecResult = exec(
-        ctx = ctx,
-        cmd = listOf(nodeBinary(ctx).absolutePath) + args,
-        timeoutMs = timeoutMs,
-        workdir = workdir,
-        env = env,
-    )
+    ): ExecResult {
+        RuntimeBridge.execNode(ctx, args, timeoutMs, workdir, env)?.let { return it }
+        if (!nodeBinary(ctx).isFile) {
+            // 外置未装且包内 Node 已移除：给出结构化错误，别让 ProcessBuilder 抛一个
+            // 只有开发日志里才看得到的 ENOENT。
+            return ExecResult(exitCode = -1, stdout = "", stderr = RuntimeMissing.toJson())
+        }
+        return exec(
+            ctx = ctx,
+            cmd = listOf(nodeBinary(ctx).absolutePath) + args,
+            timeoutMs = timeoutMs,
+            workdir = workdir,
+            env = env,
+        )
+    }
 
     /** 通用子进程执行（清空继承环境，使用 [buildEnv] 构造的环境）。 */
     suspend fun exec(

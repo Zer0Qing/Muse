@@ -152,4 +152,24 @@
     <string name="notif_chat_pending_approval_text">%1$s necesita tu confirmación</string>
     <string name="notif_memory_title">Memoria de notificaciones</string>
     <string name="notif_memory_desc">Al activar esta opción, el asistente resume periódicamente tus notificaciones (entregas, calendario, facturas y compromisos) y las guarda en la memoria para mencionarlas en mensajes proactivos. Las notificaciones pueden contener información privada; actívala solo si lo consideras adecuado.</string>
+    <string name="runtime_notif_channel_name">Instalación del entorno</string>
+    <string name="runtime_notif_channel_desc">Descarga e instala los archivos que necesita el entorno</string>
+    <string name="runtime_notif_installing">Instalando el entorno</string>
+    <string name="runtime_notif_done">Entorno listo</string>
+    <string name="runtime_notif_failed">Error de instalación del entorno: %1$s</string>
+    <string name="runtime_card_title">Entorno de ejecución no instalado</string>
+    <string name="runtime_card_desc">Las herramientas de script necesitan un entorno (Ubuntu + Node). Descarga de unos 76 MB y ocupa unos 230 MB.</string>
+    <string name="runtime_card_install">Instalar entorno</string>
+    <string name="runtime_card_later">Ahora no</string>
+    <string name="runtime_card_failed_detail">Error de instalación: %1$s</string>
+    <string name="runtime_upgrade_title">El entorno ahora es independiente</string>
+    <string name="runtime_upgrade_desc">Esta versión saca el entorno de Node del APK, por lo que la app ocupa mucho menos. Instálalo una vez antes de usar scripts, MCP o la terminal (unos 76 MB de descarga y 230 MB instalado).</string>
+    <string name="terminal_send_to_ai_cd">Enviar esta ronda a la IA</string>
+    <string name="settings_provider_test_autofixed">Corregido y guardado automáticamente: %1$s (%2$s).</string>
+    <string name="memory_dream_title">Ordenar memoria (Dream)</string>
+    <string name="memory_dream_desc">Reorganiza las secciones; cada publicación se puede revertir</string>
+    <string name="memory_dream_start">Empezar</string>
+    <string name="memory_dream_rollback">Revertir</string>
+    <string name="memory_dream_done">Hecho</string>
+    <string name="memory_dream_skipped">Omitido: %1$s</string>
 </resources>
