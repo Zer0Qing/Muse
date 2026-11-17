@@ -72,6 +72,7 @@ enum class SettingsGroupKind {
     APPEARANCE,
     MINI_PHONE,
     DATA_STORAGE,
+    OFFLINE,
     PRIVACY_SECURITY,
     ABOUT,
     DEVELOPER,
@@ -694,17 +695,6 @@ object SettingsCatalog {
                     ),
                 ),
                 entry(
-                    SettingsEntryId.RUNTIME,
-                    R.string.runtime_notif_channel_name,
-                    R.string.runtime_card_desc,
-                    MuseIcons.terminal,
-                    SettingsEntryAction.Navigate(SettingsRuntimeRoute),
-                    keywords = listOf(
-                        "运行时", "运行环境", "Node", "Python", "runtime", "terminal", "终端",
-                        "yunxingshi", "yunxinghuanjing", "zhongduan", "yxs", "yxhj", "zd",
-                    ),
-                ),
-                entry(
                     SettingsEntryId.BACKUP,
                     R.string.settings_screen_data_backup,
                     R.string.settings_screen_data_backup_desc,
@@ -730,6 +720,30 @@ object SettingsCatalog {
                     MuseIcons.archive,
                     SettingsEntryAction.Navigate(ArchivedChatsRoute),
                     keywords = listOf("归档", "archive", "已归档", "guidang", "gd"),
+                ),
+            ),
+        ),
+        // 下载类资源单独成组放在一级：运行环境和语音模型都是几百 MB 的按需下载，
+        // 以前一个在「数据与备份」里、一个在「语音识别」里再点一层，用户得记住两处。
+        // 合成一组后，设置首页一眼就能看到「还有个东西要下」。
+        group(
+            SettingsGroupKind.OFFLINE,
+            R.string.offline_resources_title,
+            R.string.offline_resources_desc,
+            MuseIcons.download,
+            entries(
+                entry(
+                    SettingsEntryId.RUNTIME,
+                    R.string.offline_resources_title,
+                    R.string.offline_resources_desc,
+                    MuseIcons.download,
+                    SettingsEntryAction.Navigate(SettingsRuntimeRoute),
+                    keywords = listOf(
+                        "运行时", "运行环境", "Node", "Python", "runtime", "terminal", "终端",
+                        "离线资源", "下载", "语音模型", "SenseVoice", "offline", "download", "asr",
+                        "yunxingshi", "yunxinghuanjing", "zhongduan", "yxs", "yxhj", "zd",
+                        "lixianziyuan", "xiazai", "yuyinmoxing", "lxzy", "xz", "yymx",
+                    ),
                 ),
             ),
         ),

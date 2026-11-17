@@ -128,7 +128,8 @@ class SettingsGroupScreenTest {
             }
         }
 
-        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(6)
+        // 运行环境已独立成「离线资源」一级分组，不再属于数据与备份，故为 5 条。
+        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(5)
     }
 
     @Test

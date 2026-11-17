@@ -167,4 +167,15 @@
     <string name="memory_dream_rollback">Откатить</string>
     <string name="memory_dream_done">Готово</string>
     <string name="memory_dream_skipped">Пропущено: %1$s</string>
+    <string name="offline_resources_title">Офлайн-ресурсы</string>
+    <string name="offline_resources_desc">Среда выполнения и локальная модель речи</string>
+    <string name="offline_resources_runtime">Среда выполнения (Node / Python)</string>
+    <string name="offline_resources_asr">Локальная модель речи (SenseVoice)</string>
+    <string name="offline_resources_asr_open">Открыть настройки речи</string>
+    <string name="offline_resources_ready">Готово</string>
+    <string name="offline_resources_not_installed">Не установлено</string>
+    <string name="offline_resources_downloading">Загрузка</string>
+    <string name="offline_resources_download">Скачать</string>
+    <string name="offline_resources_delete">Удалить</string>
+    <string name="offline_resources_manage">Управление</string>
 </resources>

@@ -167,4 +167,15 @@
     <string name="memory_dream_rollback">Reverter</string>
     <string name="memory_dream_done">Concluído</string>
     <string name="memory_dream_skipped">Ignorado: %1$s</string>
+    <string name="offline_resources_title">Recursos offline</string>
+    <string name="offline_resources_desc">Ambiente de execução e modelo de voz local</string>
+    <string name="offline_resources_runtime">Ambiente (Node / Python)</string>
+    <string name="offline_resources_asr">Modelo de voz local (SenseVoice)</string>
+    <string name="offline_resources_asr_open">Abrir ajustes de voz</string>
+    <string name="offline_resources_ready">Pronto</string>
+    <string name="offline_resources_not_installed">Não instalado</string>
+    <string name="offline_resources_downloading">Baixando</string>
+    <string name="offline_resources_download">Baixar</string>
+    <string name="offline_resources_delete">Excluir</string>
+    <string name="offline_resources_manage">Gerenciar</string>
 </resources>

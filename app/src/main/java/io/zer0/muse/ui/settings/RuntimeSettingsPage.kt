@@ -59,10 +59,10 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
     LaunchedEffect(Unit) { RuntimeInstallStatus.refresh(context) }
 
     SettingsSubPageScaffold(
-        title = stringResource(R.string.runtime_notif_channel_name),
+        title = stringResource(R.string.offline_resources_title),
         onBack = onBack,
     ) {
-        item { SectionLabel(stringResource(R.string.runtime_notif_channel_name)) }
+        item { SectionLabel(stringResource(R.string.offline_resources_runtime)) }
         item {
             SettingsGroup {
                 Row(
@@ -157,6 +157,25 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                     )
                 }
             }
+        }
+
+        // 语音模型和运行环境是同一类东西（都是几百 MB 的按需下载），
+        // 以前一个在语音设置页里再点一层、一个在数据与备份里，用户得记住两处。
+        // 现在统一在这页：先看清单，再决定下哪个。
+        item {
+            SectionLabel(
+                stringResource(R.string.offline_resources_asr),
+                modifier = Modifier.padding(top = MusePaddings.cardGap),
+            )
+        }
+        item { LocalModelDownloadCard() }
+        item {
+            Text(
+                text = stringResource(R.string.asr_local_model_page_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

@@ -178,7 +178,9 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         SettingsAsrPage(
             onBack = { navController.popBackStack() },
             onOpenProviderSettings = { navController.navigate(SettingsModelRoute) },
-            onOpenLocalModel = { navController.navigate(SettingsLocalAsrModelRoute) },
+            // 模型下载统一收在「离线资源」页：语音页不再有独立的三级下载页，
+            // 避免用户为了下一个模型要记住「在语音设置里再点一层」。
+            onOpenLocalModel = { navController.navigate(SettingsRuntimeRoute) },
         )
     }
     // 语音识别 →「模型下载」三级页：下载是应用级后台任务，本页只做观察与操作

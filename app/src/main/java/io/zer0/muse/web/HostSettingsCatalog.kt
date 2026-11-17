@@ -147,10 +147,14 @@ internal object HostSettingsCatalog {
             "settings_group_data_storage",
             link("data_management", "data_management_entry", "data_management_entry_desc", "database"),
             link("workspace", "workspace_title", "workspace_desc", "folder"),
-            link("runtime", "runtime_notif_channel_name", "runtime_card_desc", "terminal"),
             link("backup", "settings_screen_data_backup", "settings_screen_data_backup_desc", "cloud"),
             link("data_import", "settings_screen_data_import", "settings_screen_data_import_desc", "cloudUpload"),
             link("archived_chats", "settings_screen_entry_archived", "settings_screen_archived_desc", "archive"),
+        ),
+        // 与 App 侧同步：运行环境独立成「离线资源」一级分组。
+        group(
+            "offline_resources_title",
+            link("runtime", "offline_resources_title", "offline_resources_desc", "download"),
         ),
         group(
             "settings_group_privacy_security",

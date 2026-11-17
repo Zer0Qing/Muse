@@ -181,4 +181,15 @@
     <string name="memory_dream_rollback">回滚</string>
     <string name="memory_dream_done">整理完成</string>
     <string name="memory_dream_skipped">整理被跳过：%1$s</string>
+    <string name="offline_resources_title">离线资源</string>
+    <string name="offline_resources_desc">运行环境与本地语音模型</string>
+    <string name="offline_resources_runtime">运行环境（Node / Python）</string>
+    <string name="offline_resources_asr">本地语音模型（SenseVoice）</string>
+    <string name="offline_resources_asr_open">去语音设置查看</string>
+    <string name="offline_resources_ready">已就绪</string>
+    <string name="offline_resources_not_installed">未安装</string>
+    <string name="offline_resources_downloading">下载中</string>
+    <string name="offline_resources_download">下载</string>
+    <string name="offline_resources_delete">删除</string>
+    <string name="offline_resources_manage">管理</string>
 </resources>
