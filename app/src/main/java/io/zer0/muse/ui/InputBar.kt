@@ -205,7 +205,6 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
     }
     var expanded by remember { mutableStateOf(false) }
     // 长按输入栏弹出的动作菜单(全屏输入模式入口)
-    var showActionMenu by remember { mutableStateOf(false) }
     // v2.4.5 fix: 斜杠命令内联补全 — 输入 "/xxx"(尚未含空格)时在输入岛上方给出候选。
     // 此前 SlashCommand.allCommandNames() 只定义、从未被调用,用户输入 / 看不到任何提示。
     val slashQuery = text.takeIf { it.startsWith("/") && !it.contains(' ') && !it.contains('\n') }?.removePrefix("/")
@@ -655,17 +654,10 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                     .padding(
                         horizontal = MusePaddings.inputIslandInnerHorizontal,
                         vertical = MusePaddings.inputIslandRowVertical,
-                    )
-                    // 长按输入栏弹出动作菜单(全屏输入模式入口)
-                    .combinedClickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                        onLongClick = {
-                            MuseHaptics.medium(hapticFeedback)
-                            showActionMenu = true
-                        },
                     ),
+                // 整行不再挂长按手势：它会覆盖麦克风区域，和麦克风的长按抢手势，
+                // 表现为「长按说话却弹出全屏输入菜单」，且谁赢取决于触摸落点（看运气）。
+                // 全屏输入入口改到「+」菜单里，麦克风区域由自己的 pointerInput 独占。
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
@@ -753,6 +745,20 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                         // v2.x: 换等级用更重触感 + title 随等级即时更新(可见反馈)
                                         MuseHaptics.medium(hapticFeedback)
                                         onCycleDeepThinkingLevel()
+                                    },
+                                ),
+                            )
+                            // 全屏输入：原来挂在「长按输入栏」上，会和麦克风长按抢手势，
+                            // 移到「+」菜单后既保留了入口，也不再干扰录音。
+                            add(
+                                ToolEntry(
+                                    icon = MuseIcons.maximize,
+                                    title = stringResource(R.string.chat_input_action_fullscreen),
+                                    subtitle = stringResource(R.string.chat_input_action_fullscreen_subtitle),
+                                    onClick = {
+                                        MuseHaptics.light(hapticFeedback)
+                                        showToolSheet = false
+                                        expanded = true
                                     },
                                 ),
                             )
@@ -899,26 +905,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                     onAddPastedTextAsDocument = onAddPastedTextAsDocument,
                     onExpand = { expanded = true },
                 )
-                // 长按输入栏弹出的动作菜单(全屏输入模式入口)
-                MuseAnchoredMenu(
-                    expanded = showActionMenu,
-                    onDismissRequest = { showActionMenu = false },
-                ) {
-                    MuseListItem(
-                        onClick = {
-                            showActionMenu = false
-                            expanded = true
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = MuseIcons.maximize,
-                                contentDescription = null,
-                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                            )
-                        },
-                        headlineContent = { Text(stringResource(R.string.chat_input_action_fullscreen)) },
-                    )
-                }
+
                 // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中) / 插话(流式中输入非空)
                 val canInterject = text.isNotBlank() || pendingImages.isNotEmpty() || pendingVideo != null
                 if (isStreaming && !canInterject) {
@@ -1077,6 +1064,9 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                     )
                     // v1.79 (H-I2): 用 rememberUpdatedState 包装回调,
                     // 避免 pointerInput(Unit) 捕获过期 lambda(key 不变时不重组)
+                    // 短按提示文案在组合期解析：pointerInput 的 lambda 不是 Composable，
+                    // 那里取不到 stringResource。
+                    val holdToRecordHint = stringResource(R.string.chat_hold_to_record_hint)
                     val currentOnStart by rememberUpdatedState(onStartRecording)
                     val currentOnStop by rememberUpdatedState(onStopRecording)
                     val currentOnCancel by rememberUpdatedState(onCancelRecording)
@@ -1089,9 +1079,29 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 val slideThresholdPx = MuseIconSizes.touchTarget.toPx()
                                 awaitPointerEventScope {
                                     val down = awaitFirstDown()
-                                    // 必须真正长按后才开始录音;短按不再误触发系统 ASR 或上传空音频。
-                                    val longPress = awaitLongPressOrCancellation(down.id)
-                                    if (longPress == null) return@awaitPointerEventScope
+                                    // 不用 awaitLongPressOrCancellation：它要求手指几乎静止地按住，
+                                    // 任何微小位移都会取消（系统长按容差很小）。「按住说话」本来就带轻微
+                                    // 移动，结果就是「要点很多次才成功一次」。这里自己计时。
+                                    val startedAt = System.currentTimeMillis()
+                                    var held = false
+                                    var released = false
+                                    // 第一阶段：等到按住够久，或提前松手
+                                    while (!held) {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull() ?: continue
+                                        if (change.changedToUp()) {
+                                            released = true
+                                            break
+                                        }
+                                        if (System.currentTimeMillis() - startedAt >= HOLD_TO_RECORD_MS) {
+                                            held = true
+                                        }
+                                    }
+                                    if (released) {
+                                        // 按住时间不足：明确提示要长按，而不是静默什么都不发生。
+                                        MuseToast.show(holdToRecordHint)
+                                        return@awaitPointerEventScope
+                                    }
                                     // 长按开始录音;若模型未就绪/权限未授予,
                                     // onStartRecording 返回 false,直接退出不进入手势循环
                                     val started = currentOnStart()
@@ -1631,3 +1641,11 @@ private fun SlashCommandSuggestions(
         }
     }
 }
+
+/**
+ * 「按住说话」的最短按住时长。
+ *
+ * 400ms 比系统长按（约 500ms）略短：用户体感上「按一下就说话」，
+ * 同时又足以区分误触。真正的取消靠上滑，不靠时间。
+ */
+private const val HOLD_TO_RECORD_MS = 400L

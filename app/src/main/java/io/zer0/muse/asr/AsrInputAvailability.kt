@@ -11,13 +11,24 @@ package io.zer0.muse.asr
  * 而这在真机上极难被注意到 —— 所以判据只有这一份。
  *
  * 各引擎的「可用」含义不同，这正是它必须集中在一个函数里的原因：
- *  - SYSTEM：走系统 Intent，由系统判断可用性，这里不算「已配置」
+ *  - SYSTEM：走系统 Intent，可用性 = 设备上有没有能处理该 Intent 的识别器。
+ *    以前这里恒为 false，于是选了「系统识别」之后输入栏的麦克风直接不显示 ——
+ *    用户看到的是「按钮没了」，而不是「需要先装语音服务」。
  *  - DASHSCOPE_FILE：只做文件转录，没有实时录音入口
  *  - LOCAL_SENSEVOICE：不联网、没有 apiKey，可用性 = 模型文件是否就绪
  *  - 其余云端引擎：有 apiKey 才算配置好；空 key 的请求必然失败
+ *
+ * @param systemRecognizerAvailable 设备是否装有系统语音识别器；由调用方用
+ *   [io.zer0.muse.ui.speech.SpeechInput.isAvailable] 求值（纯函数不碰 Context）
  */
-internal fun isAsrInputAvailable(provider: AsrProviderType, apiKey: String, localModelReady: Boolean): Boolean = when (provider) {
-    AsrProviderType.SYSTEM, AsrProviderType.DASHSCOPE_FILE -> false
+internal fun isAsrInputAvailable(
+    provider: AsrProviderType,
+    apiKey: String,
+    localModelReady: Boolean,
+    systemRecognizerAvailable: Boolean = false,
+): Boolean = when (provider) {
+    AsrProviderType.SYSTEM -> systemRecognizerAvailable
+    AsrProviderType.DASHSCOPE_FILE -> false
     AsrProviderType.LOCAL_SENSEVOICE -> localModelReady
     AsrProviderType.DASHSCOPE,
     AsrProviderType.STEP,

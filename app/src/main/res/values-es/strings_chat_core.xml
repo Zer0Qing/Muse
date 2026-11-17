@@ -674,4 +674,6 @@
     <string name="chat_token_estimated_cost">Coste histórico estimado: $%1$s (cálculo aproximado con las tarifas actuales del modelo)</string>
     <string name="chat_tool_runs_title">Árbol de tareas</string>
     <string name="chat_tool_run_item_title">Tarea %1$d</string>
+    <string name="chat_hold_to_record_hint">Mantén pulsado para hablar, suelta para terminar</string>
+    <string name="chat_input_action_fullscreen_subtitle">Entrada a pantalla completa</string>
 </resources>

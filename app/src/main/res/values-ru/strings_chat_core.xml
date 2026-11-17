@@ -672,4 +672,6 @@
     <string name="onboarding_connect_error_server">Поставщик недоступен. Повторите позже; если ошибка не исчезает, модель могла быть отключена.</string>
     <string name="onboarding_connect_error_no_model">Нет модели для проверки. Сначала загрузите список моделей.</string>
     <string name="sticker_category_default">По умолчанию</string>
+    <string name="chat_hold_to_record_hint">Нажмите и удерживайте, чтобы говорить; отпустите, чтобы закончить</string>
+    <string name="chat_input_action_fullscreen_subtitle">Полноэкранный ввод</string>
 </resources>

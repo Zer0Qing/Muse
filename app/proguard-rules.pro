@@ -274,3 +274,14 @@
 # 关闭优化后仍然保留混淆（类名/成员名改写）与资源压缩，源码保护不受影响，
 # 代价是包体增大。根治方案是把这方法体拆小，拆分完成即可移除本开关。
 -dontoptimize
+
+# ── ONNX Runtime ──────────────────────────────────────────────────────────────
+# libonnxruntime4j_jni.so 通过 JNI 反射查找 Java 侧的类与方法（NewObject + GetMethodID）。
+# 这些名字被 R8 改写或裁剪后，native 侧拿到 mid == null，ART 直接 abort 整个进程：
+#   "JNI DETECTED ERROR IN APPLICATION: mid == null in call to NewObject"
+# 表现为「一松手就闪退、没有任何 Kotlin 异常和崩溃弹窗」——只有 tombstone 里能看到。
+# 本地语音识别（SenseVoice）与 RAG 的 ONNX embedding 都走这条链路，必须整体保留。
+-keep class ai.onnxruntime.** { *; }
+-keepclassmembers class ai.onnxruntime.** { *; }
+-keep interface ai.onnxruntime.** { *; }
+-dontwarn ai.onnxruntime.**

@@ -682,4 +682,6 @@
     <string name="onboarding_connect_error_server">The provider is unavailable. Try again later; if it continues, the model may be offline.</string>
     <string name="onboarding_connect_error_no_model">No model is available to test. Fetch the model list first.</string>
     <string name="sticker_category_default">Default</string>
+    <string name="chat_hold_to_record_hint">Press and hold to speak, release to finish</string>
+    <string name="chat_input_action_fullscreen_subtitle">Full-screen input</string>
 </resources>

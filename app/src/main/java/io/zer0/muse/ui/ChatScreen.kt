@@ -582,6 +582,9 @@ fun ChatScreen(
     // 模型下载完成/删除时由 asr 包推 StateFlow，不在这里轮询文件系统。
     val localModelReady by io.zer0.muse.asr.local.LocalModelStoreBridge.readyFlow
         .collectAsStateWithLifecycle()
+    // 系统语音识别器是否存在：只在 SYSTEM 引擎下影响麦克风是否出现。
+    // remember 住结果即可 —— 装/卸语音服务需要重启应用才会变，没必要每帧探测。
+    val systemRecognizerAvailable = remember { io.zer0.muse.ui.speech.SpeechInput.isAvailable(context) }
     val proactiveSessionPreferences: io.zer0.muse.proactive.ProactiveSessionPreferenceRepository = koinInject()
     val effectiveSessionId = effectiveChatSessionId(state)
     var proactiveSessionMuted by remember(effectiveSessionId) { mutableStateOf(false) }
@@ -2137,7 +2140,8 @@ fun ChatScreen(
                                         },
                                         onStopRecording = {
                                             if (viewModel.shouldUseApiRecording()) {
-                                                viewModel.stopStreamingAsr()
+                                                // 语音输入说完就发：识别文本落定后自动发送一次。
+                                                viewModel.stopStreamingAsrAndSend()
                                             } else {
                                                 systemRecording = false
                                                 // v1.95: 仅首次使用提示,后续直接调起系统 Intent
@@ -2174,6 +2178,9 @@ fun ChatScreen(
                                             provider = state.asrConfig.provider,
                                             apiKey = state.asrConfig.apiKey,
                                             localModelReady = localModelReady,
+                                            // SYSTEM 引擎没有 apiKey，「可用」等于设备上有没有识别器。
+                                            // 不传这一项会让选了系统识别的用户彻底看不到麦克风。
+                                            systemRecognizerAvailable = systemRecognizerAvailable,
                                         ),
                                         // v1.97: 工具/任务进度 pill(优先用 plan 进度,否则用 toolCallHistory)
                                         toolCallCompleted = toolCallCompleted,

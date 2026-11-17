@@ -667,4 +667,6 @@
     <string name="onboarding_connect_error_server">プロバイダーで問題が発生しています。後で再試行してください。続く場合、モデルが終了した可能性があります。</string>
     <string name="onboarding_connect_error_no_model">テストできるモデルがありません。先にモデル一覧を取得してください。</string>
     <string name="sticker_category_default">既定</string>
+    <string name="chat_hold_to_record_hint">長押しで話し、離すと終了します</string>
+    <string name="chat_input_action_fullscreen_subtitle">全画面入力</string>
 </resources>

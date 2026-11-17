@@ -5,12 +5,14 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.asr.ASRController
 import io.zer0.muse.asr.ASRState
+import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.asr.AsrClientFactory
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.asr.AsrProviderType
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.speech.TtsManager
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 
@@ -82,6 +84,7 @@ class ChatAudioCoordinator(
             provider = cfg.provider,
             apiKey = cfg.apiKey,
             localModelReady = io.zer0.muse.asr.local.LocalModelStoreBridge.isReady(),
+            systemRecognizerAvailable = io.zer0.muse.ui.speech.SpeechInput.isAvailable(context),
         )
         if (!supportsStreaming || !configured) {
             // Provider 切回系统识别或清空 API Key 时,旧 Controller 不能继续占用麦克风/网络。
@@ -187,6 +190,31 @@ class ChatAudioCoordinator(
         asrController = null
         asrControllerConfig = null
         accessor.update { it.copy(asrState = ASRState()) }
+    }
+
+    /**
+     * v2.6.29: 停止录音，最终文本落定后自动发送。
+     *
+     * 语音输入的预期是「说完就发」，不是「说完再点一次发送」。
+     * 但 stop() 是异步的：本地 SenseVoice 要跑完 ONNX 推理才把文本写进 input，
+     * 立刻发会把空串发出去。所以这里盯 state：Stopping → Idle 那一刻才发。
+     *
+     * @param onAutoSend 文本已写进输入框后调用；由调用方决定是否真的发送
+     */
+    fun stopStreamingAsrAndSend(onAutoSend: () -> Unit) {
+        val controller = asrController ?: return
+        if (!controller.state.value.isRecording) return
+        controller.stop()
+        val generation = asrGeneration
+        accessor.coroutineScope.launch {
+            // 只等「这一次」的收尾：generation 变了说明用户又开了新录音或取消了，
+            // 此时不能再把上一轮的文本发出去。
+            controller.state
+                .first { it.status == ASRStatus.Idle || it.status == ASRStatus.Error }
+            if (generation != asrGeneration) return@launch
+            if (controller.state.value.status == ASRStatus.Error) return@launch
+            onAutoSend()
+        }
     }
 
     /** v1.91: 停止流式录音,等待最后结果。 */

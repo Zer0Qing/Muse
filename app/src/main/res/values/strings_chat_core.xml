@@ -683,4 +683,6 @@
     <string name="onboarding_connect_error_server">供应商服务异常，稍后再试；若持续失败，可能是内置模型已下线</string>
     <string name="onboarding_connect_error_no_model">没有找到可测试的模型，请先点击「获取」拉取模型列表</string>
     <string name="sticker_category_default">默认</string>
+    <string name="chat_hold_to_record_hint">按住说话，松手结束</string>
+    <string name="chat_input_action_fullscreen_subtitle">全屏输入</string>
 </resources>

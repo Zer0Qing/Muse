@@ -31,6 +31,9 @@ internal object SenseVoiceEngine {
     /** ORT 推理线程数。与 RAG 侧 ONNX 会话同一量级，避免挤占 UI 线程核。 */
     private const val INTRA_OP_THREADS = 2
 
+    /** 标量张量形状 [1]。三个控制张量（x_length / language / text_norm）都是单元素。 */
+    private val ONE_SHAPE = longArrayOf(1)
+
     /** 从模型 metadata 读出的前处理参数，加载会话时一并缓存。 */
     class ModelParams(
         val lfrWindow: Int,
@@ -153,20 +156,35 @@ internal object SenseVoiceEngine {
         try {
             xTensor = OnnxTensor.createTensor(active.env, java.nio.FloatBuffer.wrap(flat), xShape)
             inputs["x"] = xTensor
-            lenTensor = OnnxTensor.createTensor(active.env, LongBuffer.wrap(longArrayOf(t.toLong())))
+            // 必须带 shape 参数：只传 (env, buffer) 会命中 createTensor(env, Object)，
+            // 那个重载按 Java 类型分派，遇到 HeapLongBuffer 直接抛
+            // "Cannot convert class java.nio.HeapLongBuffer to a OnnxTensor"——
+            // 表现为「录到了音但一个字都识别不出来」。
+            lenTensor = requireNotNull(OnnxTensor.createTensor(active.env, LongBuffer.wrap(longArrayOf(t.toLong())), ONE_SHAPE))
             if ("x_length" in active.inputNames) inputs["x_length"] = lenTensor
-            langTensor = OnnxTensor.createTensor(active.env, LongBuffer.wrap(longArrayOf(p.languageId.toLong())))
+            langTensor = requireNotNull(
+                OnnxTensor.createTensor(
+                    active.env,
+                    LongBuffer.wrap(longArrayOf(p.languageId.toLong())),
+                    ONE_SHAPE,
+                ),
+            )
             if ("language" in active.inputNames) inputs["language"] = langTensor
-            itnTensor = OnnxTensor.createTensor(
-                active.env,
-                LongBuffer.wrap(longArrayOf((if (withItn) p.withItnId else p.withoutItnId).toLong())),
+            itnTensor = requireNotNull(
+                OnnxTensor.createTensor(
+                    active.env,
+                    LongBuffer.wrap(longArrayOf((if (withItn) p.withItnId else p.withoutItnId).toLong())),
+                    ONE_SHAPE,
+                ),
             )
             if ("text_norm" in active.inputNames) inputs["text_norm"] = itnTensor
 
             active.session.run(inputs).use { result ->
                 @Suppress("UNCHECKED_CAST")
-                val logits = result[0].value as? Array<Array<FloatArray>>
-                    ?: throw IllegalStateException("SenseVoice 输出形状异常: ${result[0].info}")
+                val raw = result[0].value
+                // 形状不对时把「实际拿到了什么」写进日志：只报 info 看不出是维度差一层
+                // 还是类型完全不同，而这决定了是补一层解包还是换解析方式。
+                val logits = raw as? Array<Array<FloatArray>> ?: unpackNestedLogits(raw, result[0].info.toString())
                 val frames = logits[0]
                 val frameIds = IntArray(frames.size) { f ->
                     var best = 0
@@ -188,6 +206,25 @@ internal object SenseVoiceEngine {
             runCatching { langTensor?.close() }
             runCatching { itnTensor?.close() }
         }
+    }
+
+    /**
+     * 三维输出 [1][T][V] 的兼容解包。
+     *
+     * 某些导出的 SenseVoice 模型把 batch 维留在输出里，`as? Array<Array<FloatArray>>`
+     * 会失败。这里先记下实际类型（否则只能看到一句「形状异常」），再取第 0 维。
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun unpackNestedLogits(raw: Any?, info: String): Array<Array<FloatArray>> {
+        Logger.w(
+            TAG,
+            "输出形状不符预期: class=" + (raw?.javaClass?.name ?: "null") +
+                " info=" + info + " 期望=Array<Array<FloatArray>>",
+        )
+        val inner = (raw as? Array<*>)?.getOrNull(0) as? Array<Array<FloatArray>>
+        if (inner == null) throw IllegalStateException("SenseVoice 输出形状异常: " + info)
+        Logger.i(TAG, "按三维输出解包成功: frames=" + (inner.firstOrNull()?.size ?: 0))
+        return inner
     }
 
     /** 解析模型 metadata → [ModelParams]。缺关键键时抛异常而不是静默用默认值。 */

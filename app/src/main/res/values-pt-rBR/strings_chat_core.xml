@@ -669,4 +669,6 @@
     <string name="onboarding_connect_error_server">O provedor está indisponível. Tente mais tarde; se continuar, o modelo pode ter sido desativado.</string>
     <string name="onboarding_connect_error_no_model">Não há modelo para testar. Busque primeiro a lista de modelos.</string>
     <string name="sticker_category_default">Padrão</string>
+    <string name="chat_hold_to_record_hint">Pressione e segure para falar, solte para terminar</string>
+    <string name="chat_input_action_fullscreen_subtitle">Entrada em tela cheia</string>
 </resources>

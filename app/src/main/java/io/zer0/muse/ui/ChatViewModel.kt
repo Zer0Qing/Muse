@@ -5833,6 +5833,18 @@ class ChatViewModel(
         audioCoordinator.stopStreamingAsr()
     }
 
+    /**
+     * v2.6.29: 语音输入「说完就发」。
+     *
+     * 识别文本落定后自动触发一次发送；文本为空则不发送（静音/过短），
+     * 避免把空消息发出去。
+     */
+    fun stopStreamingAsrAndSend() {
+        audioCoordinator.stopStreamingAsrAndSend {
+            if (state.value.input.isNotBlank()) send()
+        }
+    }
+
     /** v1.91: 取消流式录音(恢复原始输入框文本)。v1.105: 委托至 [ChatAudioCoordinator]。 */
     fun cancelStreamingAsr() {
         audioCoordinator.cancelStreamingAsr()
