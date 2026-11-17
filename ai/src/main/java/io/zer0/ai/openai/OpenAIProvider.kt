@@ -42,6 +42,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOn
@@ -276,11 +278,40 @@ class OpenAIProvider(
         return normalizeDeepSeekModelId(base, baseUrl())
     }
 
+    /**
+     * 探测到 Responses 端点不存在后置位：本实例后续请求直接走 Chat Completions。
+     *
+     * 放在实例上而不是全局：ProviderRegistry 按配置指纹缓存实例，
+     * 同一份配置的后续轮次复用这个结论，换配置会重建实例重新探测。
+     */
+    @Volatile
+    private var responsesEndpointUnsupported = false
+
     override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> {
         // v1.0.7: useResponseApi=true 时走 Responses API 分支(修复"骗用户 bug")
-        if (useResponsesApi) return streamChatResponses(request)
+        if (useResponsesApi && !responsesEndpointUnsupported) {
+            return streamChatResponses(request).transform { event ->
+                if (event is ChatStreamEvent.Error && looksLikeEndpointMissing(event)) {
+                    // 用户不该为了「这站没实现 /responses」去读文档改开关：
+                    // 首帧之前的端点缺失直接换协议重放一次，并记住结论。
+                    responsesEndpointUnsupported = true
+                    Logger.w("OpenAIProvider", "Responses 端点不可用，自动回退 Chat Completions 重放一次")
+                    emitAll(streamChatCompletions(request))
+                } else {
+                    emit(event)
+                }
+            }
+        }
         return streamChatCompletions(request)
     }
+
+    /** 端点缺失判定：只认确定性信号，账号/限流问题不换协议。 */
+    private fun looksLikeEndpointMissing(event: ChatStreamEvent.Error): Boolean =
+        OpenAiEndpointCandidates.looksLikeMissingEndpoint(
+            status = (event.throwable as? OpenAIHttpException)?.code,
+            contentType = null,
+            message = event.message,
+        )
 
     /**
      * B-28: 日志 URL 脱敏 — 移除 query 参数(部分网关用 ?key= 传密钥,
@@ -1213,7 +1244,11 @@ class OpenAIProvider(
                         //   优先用 Throwable 信息,避免构造误导性的 "HTTP 200" 错误
                         val msg = response?.let {
                             if (it.code in 200..299) {
-                                t?.message?.takeIf { m -> m.isNotBlank() }
+                                // 2xx 也可能是网关/中转站的 HTML 拦截页：先判 HTML 再退回原始异常，
+                                // 否则用户只看到 okhttp-sse 的 "Invalid content-type: text/html"。
+                                val body = runCatching { ProviderHttpSupport.readBodySafely(it) }.getOrNull().orEmpty()
+                                explainSseHtmlFailure(it.header("Content-Type").orEmpty(), body, t?.message)
+                                    ?: t?.message?.takeIf { m -> m.isNotBlank() }
                                     ?: ErrorCode.STREAM_INTERRUPTED.toMessage()
                             } else {
                                 val bodyText = ProviderHttpSupport.readBodySafely(it)
@@ -1259,8 +1294,23 @@ class OpenAIProvider(
     override suspend fun completeText(request: ChatRequest): ChatCompletion = completeTextImpl(request, 0)
 
     private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion = withContext(Dispatchers.IO) {
-        // v1.0.7: useResponseApi=true 时走 Responses API 分支
-        if (useResponsesApi) return@withContext completeTextResponses(request, keySwitchDepth)
+        // v1.0.7: useResponseApi=true 时走 Responses API 分支；
+        // 端点缺失时自动换 Chat Completions 再试一次（与流式路径同一结论，只探测一次）。
+        if (useResponsesApi && !responsesEndpointUnsupported) {
+            try {
+                return@withContext completeTextResponses(request, keySwitchDepth)
+            } catch (error: Throwable) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                val missing = OpenAiEndpointCandidates.looksLikeMissingEndpoint(
+                    status = (error as? OpenAIHttpException)?.code,
+                    contentType = null,
+                    message = error.message,
+                )
+                if (!missing) throw error
+                responsesEndpointUnsupported = true
+                Logger.w("OpenAIProvider", "Responses 端点不可用，自动回退 Chat Completions（非流式）")
+            }
+        }
         val body = buildRequestBody(request, stream = false)
         // M-OAI4: 改用配置项 chatCompletionsPath(与 streamChat 一致)
         val url = baseUrl() + chatCompletionsPath()
@@ -2772,7 +2822,11 @@ class OpenAIProvider(
                         }
                         val msg = response?.let {
                             if (it.code in 200..299) {
-                                t?.message?.takeIf { m -> m.isNotBlank() }
+                                // 2xx 也可能是网关/中转站的 HTML 拦截页：先判 HTML 再退回原始异常，
+                                // 否则用户只看到 okhttp-sse 的 "Invalid content-type: text/html"。
+                                val body = runCatching { ProviderHttpSupport.readBodySafely(it) }.getOrNull().orEmpty()
+                                explainSseHtmlFailure(it.header("Content-Type").orEmpty(), body, t?.message)
+                                    ?: t?.message?.takeIf { m -> m.isNotBlank() }
                                     ?: ErrorCode.STREAM_INTERRUPTED.toMessage()
                             } else {
                                 val bodyText = ProviderHttpSupport.readBodySafely(it)
@@ -2877,6 +2931,21 @@ class OpenAIProvider(
                             finishReason = parsed.incompleteDetails?.reason ?: parsed.status,
                             toolCalls = null,
                             reasoningContent = null,
+                        )
+                    }
+                    // 推理模型会先花 token 推理再写正文。预算给小了，token 在推理阶段就用光，
+                    // 上游返回 status=incomplete / reason=max_output_tokens 且 output 只有 reasoning。
+                    // 这不是「上游给了空响应」，而是「这次请求的输出预算不够」—— 报成空响应会让
+                    // 调用方以为模型坏了，实际只需要把 maxTokens 提高。
+                    val truncatedByBudget = parsed.status == "incomplete" &&
+                        parsed.incompleteDetails?.reason == "max_output_tokens"
+                    if (truncatedByBudget) {
+                        throw ProviderException(
+                            ProviderError.InvalidRequest(
+                                httpCode = 200,
+                                displayMessage = "输出预算在推理阶段就用完了(max_output_tokens)，" +
+                                    "正文还没开始写。提高该请求的 maxTokens 后重试。",
+                            ),
                         )
                     }
                     throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
@@ -3348,6 +3417,25 @@ class OpenAIProvider(
  * v1.0.27 Phase 5-A: 改为继承 [ProviderException],让消费端可通过
  * `(throwable as? ProviderException)?.providerError` 拿到类型化错误。
  */
+/**
+ * 2xx 之后 SSE 仍然失败时，把「上游返回了一页 HTML」翻译成用户能行动的原因。
+ *
+ * okhttp-sse 在 2xx + 非 event-stream 时只抛 `Invalid content-type: text/html; charset=utf-8`：
+ * 用户既不知道这是网关拦截页，也不知道该改 Base URL 还是关掉 Responses 开关。
+ * 只有确认是 HTML 才返回提示，其它 2xx 失败仍保留原始异常信息。
+ */
+internal fun explainSseHtmlFailure(
+    contentType: String,
+    body: String,
+    throwableMessage: String?,
+): String? {
+    val looksHtml = contentType.contains("text/html", ignoreCase = true) ||
+        throwableMessage.orEmpty().contains("Invalid content-type", ignoreCase = true)
+    if (!looksHtml) return null
+    val hint = openAiHtmlEndpointHint(contentType, body) ?: return null
+    return hint + " （若该中转站只实现 /chat/completions，请把供应商类型改为 OpenAI 兼容并关闭 Responses API）"
+}
+
 internal fun openAiHtmlEndpointHint(contentType: String, body: String): String? {
     val prefix = body.trimStart().take(256).lowercase()
     val isHtml = contentType.contains("text/html", ignoreCase = true) ||

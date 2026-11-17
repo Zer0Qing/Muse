@@ -387,10 +387,13 @@ fun inferFromMessage(message: String, throwable: Throwable?): ProviderError? {
     if (message.isBlank() && throwable == null) return null
     val safeMessage = ProviderError.safeErrorDetail(message) ?: message.take(200)
     val msg = safeMessage.lowercase()
+    // 顺序很重要：显式 HTTP 状态 / 配额文案必须先于「IOException → Network」判定。
+    // SSE 断流时 okhttp 给的是 IOException，旧顺序会把「HTTP 402 余额不足」判成网络错误，
+    // 于是 UI 说"网络异常"并白白重试三次（用户实测）。
     return when {
-        throwable is IOException ||
-            msg.contains("timeout") || msg.contains("network") || msg.contains("网络") ->
-            ProviderError.Network(safeMessage, throwable)
+        msg.contains("402") || msg.contains("insufficient") || msg.contains("quota") ||
+            msg.contains("balance") ->
+            ProviderError.InsufficientQuota(httpCode = 402, displayMessage = safeMessage, cause = throwable)
         msg.contains("401") || msg.contains("403") ||
             msg.contains("api key") || msg.contains("unauthorized") ->
             ProviderError.AuthError(displayMessage = safeMessage, cause = throwable)
@@ -399,8 +402,11 @@ fun inferFromMessage(message: String, throwable: Throwable?): ProviderError? {
         msg.contains("500") || msg.contains("502") || msg.contains("503") ||
             msg.contains("504") || msg.contains("529") || msg.contains("overloaded") ->
             ProviderError.ServerError(httpCode = 529, displayMessage = safeMessage, cause = throwable)
-        msg.contains("400") || msg.contains("422") || msg.contains("404") ->
+        msg.contains("400") || msg.contains("422") || msg.contains("404") || msg.contains("413") ->
             ProviderError.InvalidRequest(displayMessage = safeMessage, cause = throwable)
+        throwable is IOException ||
+            msg.contains("timeout") || msg.contains("network") || msg.contains("网络") ->
+            ProviderError.Network(safeMessage, throwable)
         else -> null // 不强推断为 Unknown,让上层保留原行为
     }
 }

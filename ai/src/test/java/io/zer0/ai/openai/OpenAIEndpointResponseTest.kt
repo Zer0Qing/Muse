@@ -21,6 +21,29 @@ class OpenAIEndpointResponseTest {
     }
 
     @Test
+    fun `2xx html page gets an actionable sse hint`() {
+        val hint = explainSseHtmlFailure(
+            contentType = "text/html; charset=utf-8",
+            body = "<!doctype html><html><title>Web protection</title></html>",
+            throwableMessage = "Invalid content-type: text/html; charset=utf-8",
+        )
+
+        assertNotNull(hint)
+        assertTrue(hint!!.contains("/v1"))
+        assertTrue("要告诉用户这可能只是没实现 /responses", hint.contains("/chat/completions"))
+    }
+
+    @Test
+    fun `json sse failure keeps the original error`() {
+        assertNull(
+            explainSseHtmlFailure(
+                contentType = "application/json",
+                body = "{\"error\":\"boom\"}",
+                throwableMessage = "stream closed",
+            ),
+        )
+    }
+    @Test
     fun `json response is not classified as html`() {
         assertNull(openAiHtmlEndpointHint("application/json; charset=utf-8", "{\"data\":[]}"))
     }

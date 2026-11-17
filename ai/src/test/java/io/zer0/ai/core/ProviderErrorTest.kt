@@ -12,6 +12,18 @@ import java.time.temporal.ChronoUnit
 
 class ProviderErrorTest {
     @Test
+    fun `quota message wrapped in IOException is still insufficient quota`() {
+        // SSE 断流时 okhttp 抛的是 IOException，旧顺序把 402 判成 Network，
+        // UI 于是提示"网络异常"并重试三次 —— 用户实际只是余额不足。
+        val error = inferFromMessage(
+            "HTTP 402 [insufficient quota]: Insufficient Balance (request_id: x) (insufficient_balance_error)",
+            java.io.IOException("stream was reset"),
+        )
+
+        assertEquals(ProviderError.InsufficientQuota::class, error!!::class)
+        assertFalse("余额不足不该重试", error.isRetryable)
+    }
+    @Test
     fun payloadTooLargeIsNonRetryableInvalidRequest() {
         val error = ProviderError.from(413, "request entity too large")
 

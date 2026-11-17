@@ -762,16 +762,11 @@ class AnthropicProvider(
                                     },
                                 )
                             }
-                            // 审计修复 (7.4): 限制视觉输入 — 对齐 OpenAI(最多 4 张,单张 ≤2MB)。
-                            // 原实现全量发送,历史消息携带大量图片时请求体几十 MB,中转站超时。
+                            // 图片数量与单张体积不再设上限：上游接受度一直在变，
+                            // 在这里截断等于替用户决定哪几张图不重要。
                             msg.imageBase64List
                                 .filter { it.isNotEmpty() }
-                                .take(MAX_VISION_IMAGES)
                                 .forEach { b64 ->
-                                    if (b64.length > MAX_IMAGE_BASE64_LEN) {
-                                        Logger.w("AnthropicProvider", "drop oversize image (${b64.length} chars)")
-                                        return@forEach
-                                    }
                                     add(
                                         buildJsonObject {
                                             put("type", "image")
@@ -1068,8 +1063,12 @@ class AnthropicProvider(
         const val MAX_KEY_SWITCHES = 3
 
         // E-P2: 视觉输入限制,与 OpenAI 对齐(最多 4 张,单张 base64 ≤2MB)
-        const val MAX_VISION_IMAGES = 4
-        const val MAX_IMAGE_BASE64_LEN = 2 * 1024 * 1024
+        /** 已废弃：图片数量不再设上限（保留常量仅避免旧引用编译失败）。 */
+        @Deprecated("图片数量不再限制")
+        const val MAX_VISION_IMAGES = Int.MAX_VALUE
+        /** 已废弃：单张图片体积不再设上限。 */
+        @Deprecated("单张图片体积不再限制")
+        const val MAX_IMAGE_BASE64_LEN = Int.MAX_VALUE
     }
 }
 

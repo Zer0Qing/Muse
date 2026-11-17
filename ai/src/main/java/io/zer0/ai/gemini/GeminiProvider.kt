@@ -844,16 +844,9 @@ class GeminiProvider(
                         }
                         else -> {
                             // 普通 USER/ASSISTANT:图片在前(若存在)+ 视频(若存在)+ 文本
-                            // E-P2: 与 OpenAI/Anthropic 对齐 — 最多 4 张,单张 base64 ≤2MB
+                            // 图片数量与单张体积不再设上限，上游接受度一直在变。
                             val validImages = msg.imageBase64List.filter { it.isNotEmpty() }
-                            if (validImages.size > MAX_VISION_IMAGES) {
-                                Logger.w("GeminiProvider", "图片数量 ${validImages.size} 超过上限 $MAX_VISION_IMAGES,丢弃多余的")
-                            }
-                            validImages.take(MAX_VISION_IMAGES).forEach { b64 ->
-                                if (b64.length > MAX_IMAGE_BASE64_LEN) {
-                                    Logger.w("GeminiProvider", "图片 base64 长度 ${b64.length} 超过 $MAX_IMAGE_BASE64_LEN,丢弃")
-                                    return@forEach
-                                }
+                            validImages.forEach { b64 ->
                                 add(
                                     GeminiPart(
                                         inlineData = GeminiInlineData(
@@ -1312,7 +1305,11 @@ class GeminiProvider(
         const val FILE_POLL_INTERVAL_MS = 1_000L
 
         // E-P2: 视觉输入限制,与 OpenAI/Anthropic 对齐(最多 4 张,单张 base64 ≤2MB)
-        const val MAX_VISION_IMAGES = 4
-        const val MAX_IMAGE_BASE64_LEN = 2 * 1024 * 1024
+        /** 已废弃：图片数量不再设上限（保留常量仅避免旧引用编译失败）。 */
+        @Deprecated("图片数量不再限制")
+        const val MAX_VISION_IMAGES = Int.MAX_VALUE
+        /** 已废弃：单张图片体积不再设上限。 */
+        @Deprecated("单张图片体积不再限制")
+        const val MAX_IMAGE_BASE64_LEN = Int.MAX_VALUE
     }
 }
