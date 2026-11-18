@@ -37,7 +37,7 @@
     <string name="audit_mcp_feishu_remote_url_hint">Pega la URL del servicio MCP remoto de Feishu</string>
     <string name="audit_mcp_feishu_cli_bridge_name">Puente CLI de Feishu</string>
     <string name="audit_mcp_feishu_cli_bridge_summary">Expone una CLI local como HTTP/SSE mediante un puente de escritorio</string>
-    <string name="audit_mcp_feishu_cli_bridge_url_hint">http://direccion-del-equipo:puerto/sse</string>
+    <string name="audit_mcp_feishu_cli_bridge_url_hint">http://dirección-del-equipo:puerto/sse</string>
     <string name="audit_mcp_dingtalk_knowledge_name">Base de conocimientos de DingTalk</string>
     <string name="audit_mcp_dingtalk_knowledge_summary">MCP remoto o puente propio: lee documentos y bases de conocimientos de DingTalk</string>
     <string name="audit_mcp_dingtalk_knowledge_url_hint">Pega la URL del servicio MCP o puente de DingTalk</string>

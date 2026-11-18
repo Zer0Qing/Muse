@@ -50,7 +50,7 @@
     <string name="code_more_subagent_failed">La tarea del subagente ha fallado: %1$s</string>
     <string name="code_more_committee">Comité</string>
     <string name="code_more_committee_conclusion">[Conclusión del comité · %1$s]\n%2$s</string>
-    <string name="code_more_committee_no_summary">[Comité] Debate completado en el chat de grupo «%1$s», sin resumen. Tema: %2$s</string>
+    <string name="code_more_committee_no_summary">[Comité] Debate completado en el chat grupal «%1$s», sin resumen. Tema: %2$s</string>
     <string name="greeting_event_exam">examen</string>
     <string name="greeting_event_postgraduate_entrance_exam">examen de acceso a posgrado</string>
     <string name="greeting_event_college_entrance_exam">examen de acceso a la universidad</string>

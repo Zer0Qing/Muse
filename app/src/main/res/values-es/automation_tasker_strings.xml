@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="automation_tasker_title">Tasker / activación de automatización externa</string>
-    <string name="automation_tasker_desc">Permite que otras aplicaciones envíen una solicitud de texto. No concede acceso a herramientas, pero puede consumir cuota del modelo.</string>
+    <string name="automation_tasker_desc">Permite que otras aplicaciones activen una generación de texto mediante un broadcast. No concede acceso a herramientas, pero puede consumir cuota del modelo.</string>
 
     <string name="automation_master_title">Permitir automatización de pantalla</string>
     <string name="automation_master_desc">Interruptor general. Al desactivarlo, ninguna herramienta de lectura de pantalla, pulsación, entrada de texto o tareas de varios pasos se ejecutará hasta que lo vuelvas a activar.</string>

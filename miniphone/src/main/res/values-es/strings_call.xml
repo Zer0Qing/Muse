@@ -15,7 +15,7 @@
     <string name="mp_call_dial_failed">No llegó nada en esta ronda, la llamada terminó</string>
     <string name="mp_call_mine">Yo</string>
     <string name="mp_call_peer">La otra parte</string>
-    <string name="mp_call_play_voice">Reproducir esta voz</string>
+    <string name="mp_call_play_voice">Reproducir este mensaje de voz</string>
     <string name="mp_call_say_hint">Di algo…</string>
     <string name="mp_call_say_send">Enviar</string>
     <string name="mp_chat_call_voice">Llamada de voz</string>

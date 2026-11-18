@@ -48,7 +48,7 @@
     <string name="mp_me_clear_chats">Borrar historial de chats</string>
     <string name="mp_me_clear_chats_desc">Elimina todos los chats y mensajes; los momentos no se ven afectados</string>
     <string name="mp_me_version">Información de versión</string>
-    <string name="mp_me_version_label">Datos del miniphone v%1$d / aplicación %2$s</string>
+    <string name="mp_me_version_label">Datos de Mini Phone v%1$d / aplicación %2$s</string>
     <string name="mp_me_clear_dialog_title">¿Borrar el historial de chats?</string>
     <string name="mp_me_clear_dialog_hint">Se eliminarán todos los chats y mensajes sin recuperación. Los momentos no se tocan.</string>
     <string name="mp_cancel">Cancelar</string>
@@ -60,11 +60,11 @@
     <string name="mp_thread_delete">Eliminar chat</string>
     <string name="mp_thread_delete_title">¿Eliminar este chat?</string>
     <string name="mp_thread_delete_hint">El chat y todos sus mensajes se eliminan de este dispositivo y no se pueden recuperar.</string>
-    <string name="mp_me_version_module">Datos del miniphone v%1$d</string>
+    <string name="mp_me_version_module">Datos de Mini Phone v%1$d</string>
     <string name="mp_chat_input_placeholder">Di algo…</string>
     <string name="mp_chat_send_cd">Enviar</string>
     <string name="mp_chat_pick_image_cd">Elegir imagen</string>
-    <string name="mp_chat_sticker_cd">Stickers</string>
+    <string name="mp_chat_sticker_cd">Pegatinas</string>
     <string name="mp_chat_mic_cd">Mensaje de voz</string>
     <string name="mp_chat_stop">Terminar</string>
     <string name="mp_chat_transcribing">Transcribiendo…</string>
@@ -111,7 +111,7 @@
     <string name="mp_group_contacts_empty_hint">Añade personajes primero para formar un grupo</string>
     <string name="mp_moment_reply_prefix">Responder a %1$s</string>
     <string name="mp_activity_searching">Buscando algo…</string>
-    <string name="mp_activity_remembering">Les ha venido algo a la memoria…</string>
+    <string name="mp_activity_remembering">Le ha venido algo a la memoria…</string>
     <string name="mp_activity_calendar">Revisa el calendario…</string>
     <string name="mp_activity_weather">Ha mirado por la ventana…</string>
     <string name="mp_activity_notes">Revisa sus notas…</string>

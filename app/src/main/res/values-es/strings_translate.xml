@@ -2,14 +2,14 @@
 <resources>
     <!-- v1.97 gap8: Standalone translate page (TranslateScreen) strings -->
     <string name="translate_page_title">Traducir</string>
-    <string name="translate_page_input_placeholder">Ingrese el texto para traducir...</string>
+    <string name="translate_page_input_placeholder">Introduce el texto que quieres traducir...</string>
     <string name="translate_page_translate">Traducir</string>
     <string name="translate_page_copy">Copiar resultado</string>
     <string name="translate_page_paste">Pegar</string>
     <string name="translate_page_clear">Borrar</string>
     <string name="translate_page_source_language">Idioma de origen</string>
     <string name="translate_page_source_text">Texto original</string>
-    <string name="translate_page_target_language">Lengua de llegada</string>
+    <string name="translate_page_target_language">Idioma de destino</string>
     <string name="translate_page_error_failed">Error de traducción: %1$s</string>
     <string name="translate_page_copied">Copiado al portapapeles</string>
     <string name="translate_page_pasted">Pegado</string>
@@ -18,10 +18,10 @@
     <string name="translate_page_speak_source">Leer texto original en voz alta</string>
     <string name="translate_page_speak_result">Leer traducción en voz alta</string>
     <string name="translate_page_use_as_input">Usar como entrada</string>
-    <string name="translate_page_send_to_chat_session">enviar al chat</string>
+    <string name="translate_page_send_to_chat_session">Enviar al chat</string>
     <string name="translate_page_more">Más</string>
     <string name="translate_page_style_label">Estilo de traducción</string>
-    <string name="translate_page_tts_not_ready">TTS no está listo, inténtelo de nuevo más tarde</string>
+    <string name="translate_page_tts_not_ready">TTS no está listo; inténtalo de nuevo más tarde</string>
     <!-- v1.97: Translation history (in-memory, last 20 entries, not persisted) -->
     <string name="translate_page_history_section">Historial</string>
     <string name="translate_page_history_empty">Aún no hay historial de traducción</string>
@@ -30,8 +30,8 @@
     <string name="translate_page_history_clear_confirm_msg">Esto eliminará todo el historial de traducción guardado en esta sesión. Esta acción no se puede deshacer.</string>
     <string name="translate_page_history_loaded">Cargado a la entrada</string>
     <string name="translate_page_history_cleared">Historial borrado</string>
-    <string name="translate_page_history_source_short">S</string>
-    <string name="translate_page_history_translated_short">t</string>
+    <string name="translate_page_history_source_short">O</string>
+    <string name="translate_page_history_translated_short">T</string>
     <string name="translate_page_history_favorites_only">Solo favoritos</string>
     <string name="translate_page_history_show_all">Mostrar todo</string>
     <string name="translate_page_history_no_favorites">No hay traducciones favoritas</string>
@@ -48,7 +48,7 @@
     <string name="translate_page_batch_input_hint">Un texto por línea, se traducirá por lotes</string>
     <string name="translate_page_batch_run">Ejecutar traducción por lotes</string>
     <string name="translate_page_batch_cancel">Cancelar</string>
-    <string name="translate_page_batch_translating">Traducción por lotes...</string>
+    <string name="translate_page_batch_translating">Traduciendo por lotes…</string>
     <string name="translate_page_batch_results_title">Resultados de lotes (%1$d elementos)</string>
 
     <!-- v1.0.30 gap4.5: Custom styles -->
@@ -65,7 +65,7 @@
     <string name="translate_page_glossary">Glosario</string>
     <string name="translate_page_glossary_title">Glosario de traducción</string>
     <string name="translate_page_glossary_original">Término fuente</string>
-    <string name="translate_page_glossary_translated">Término objetivo</string>
+    <string name="translate_page_glossary_translated">Término traducido</string>
     <string name="translate_page_glossary_add">Agregar</string>
     <string name="translate_page_glossary_remove">Eliminar</string>
     <string name="translate_page_glossary_empty">No hay entradas en el glosario</string>

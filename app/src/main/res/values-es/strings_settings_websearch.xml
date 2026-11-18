@@ -22,6 +22,6 @@
     <string name="settings_web_search_provider_list_title">Servicios de búsqueda</string>
     <string name="settings_web_search_provider_list_desc">Elige primero un servicio y configura su clave, prueba la conexión y guarda los cambios en la página de detalles. Muse gestiona las direcciones de los servicios estándar.</string>
     <string name="settings_web_search_provider_status_ready">Configurado</string>
-    <string name="settings_web_search_provider_status_needs_key">Se requiere API Key</string>
+    <string name="settings_web_search_provider_status_needs_key">Se requiere clave API</string>
     <string name="settings_web_search_provider_status_needs_url">Se requiere URL de instancia</string>
 </resources>

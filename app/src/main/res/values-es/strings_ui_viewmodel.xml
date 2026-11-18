@@ -18,11 +18,11 @@
     <string name="quick_msg_enabled_cd">Activado</string>
     <string name="quick_msg_disabled_cd">Desactivado</string>
     <string name="quick_msg_edit_cd">Editar</string>
-    <string name="quick_msg_delete_cd">Borrar</string>
+    <string name="quick_msg_delete_cd">Eliminar</string>
     <!-- Edit page -->
     <string name="quick_msg_unsaved_title">Cambios no guardados</string>
-    <string name="quick_msg_unsaved_content">Al salir se descartarán las ediciones actuales.</string>
-    <string name="quick_msg_discard">Desechar</string>
+    <string name="quick_msg_unsaved_content">Si sales, perderás los cambios actuales. ¿Quieres descartarlos?</string>
+    <string name="quick_msg_discard">Descartar</string>
     <string name="quick_msg_new_title">Nuevo mensaje rápido</string>
     <string name="quick_msg_edit_title">Editar mensaje rápido</string>
     <string name="quick_msg_save">Guardar</string>
@@ -44,7 +44,7 @@
     <!-- Top bar -->
     <string name="lorebook_screen_title">Libro de trasfondo</string>
     <string name="lorebook_new_cd">Nuevo libro de trasfondo</string>
-    <string name="lorebook_intro">Inyección de contexto activada por palabras clave.</string>
+    <string name="lorebook_intro">Inyección de contexto activada por palabras clave. Cuando un mensaje del usuario coincide con una palabra clave, el contenido correspondiente se inyecta como contexto SYSTEM.</string>
     <string name="lorebook_empty_title">Aún no hay libros de trasfondo</string>
     <string name="lorebook_empty_subtitle">Toca + en la parte inferior derecha para crear</string>
     <string name="lorebook_delete_title">Eliminar libro de trasfondo</string>
@@ -56,11 +56,11 @@
     <string name="lorebook_enabled_cd">Activado</string>
     <string name="lorebook_disabled_cd">Desactivado</string>
     <string name="lorebook_edit_cd">Editar</string>
-    <string name="lorebook_delete_cd">Borrar</string>
+    <string name="lorebook_delete_cd">Eliminar</string>
     <!-- Edit page -->
     <string name="lorebook_unsaved_title">Cambios no guardados</string>
-    <string name="lorebook_unsaved_content">Al salir se descartarán las ediciones actuales.</string>
-    <string name="lorebook_discard">Desechar</string>
+    <string name="lorebook_unsaved_content">Si sales, perderás los cambios actuales. ¿Quieres descartarlos?</string>
+    <string name="lorebook_discard">Descartar</string>
     <string name="lorebook_new_title">Nuevo libro de trasfondo</string>
     <string name="lorebook_edit_title">Editar libro de trasfondo</string>
     <string name="lorebook_save">Guardar</string>
@@ -80,18 +80,18 @@
     <string name="lorebook_field_case_sensitive">Distingue mayúsculas y minúsculas</string>
     <string name="lorebook_field_case_sensitive_desc">Cuando está activado, la concordancia de palabras clave distingue entre mayúsculas y minúsculas.</string>
     <string name="lorebook_field_whole_word">Palabra completa</string>
-    <string name="lorebook_field_whole_word_desc">La palabra clave debe coincidir como palabra completa (para ingles; los terminos CJK vuelven al modo automatico)</string>
+    <string name="lorebook_field_whole_word_desc">La palabra clave debe coincidir como palabra completa (para inglés; con palabras clave CJK se desactiva automáticamente)</string>
     <string name="lorebook_field_enabled">Activado</string>
     <string name="lorebook_field_enabled_desc">Cuando esté desactivada, esta entrada ya no activará la inyección.</string>
 
     <!-- ===== PromptInjectionScreen ===== -->
     <!-- Top bar -->
-    <string name="prompt_injection_screen_title">Inyección de instrucciones</string>
-    <string name="prompt_injection_new_cd">Nueva inyección de instrucciones</string>
-    <string name="prompt_injection_intro">Inyección de contexto activada por modo.</string>
-    <string name="prompt_injection_empty_title">Aún no hay inyecciones de instrucciones</string>
+    <string name="prompt_injection_screen_title">Inyección de prompt</string>
+    <string name="prompt_injection_new_cd">Nueva inyección de prompt</string>
+    <string name="prompt_injection_intro">Inyección de contexto activada por modo. Cuando el usuario cambia de modo en una conversación (creativo, programación, juego de roles, etc.), la inyección correspondiente se aplica de inmediato.</string>
+    <string name="prompt_injection_empty_title">Aún no hay inyecciones de prompt</string>
     <string name="prompt_injection_empty_subtitle">Toca + en la parte inferior derecha para crear</string>
-    <string name="prompt_injection_delete_title">Eliminar inyección de instrucciones</string>
+    <string name="prompt_injection_delete_title">Eliminar inyección de prompt</string>
     <!-- Card -->
     <string name="prompt_injection_new_default_name">Nueva inyección</string>
     <string name="prompt_injection_unnamed">(Sin nombre)</string>
@@ -100,18 +100,18 @@
     <string name="prompt_injection_enabled_cd">Activado</string>
     <string name="prompt_injection_disabled_cd">Desactivado</string>
     <string name="prompt_injection_edit_cd">Editar</string>
-    <string name="prompt_injection_delete_cd">Borrar</string>
+    <string name="prompt_injection_delete_cd">Eliminar</string>
     <!-- Edit page -->
     <string name="prompt_injection_unsaved_title">Cambios no guardados</string>
-    <string name="prompt_injection_unsaved_content">Al salir se descartarán las ediciones actuales.</string>
-    <string name="prompt_injection_discard">Desechar</string>
-    <string name="prompt_injection_new_title">Nueva inyección de instrucciones</string>
-    <string name="prompt_injection_edit_title">Editar inyección de instrucciones</string>
+    <string name="prompt_injection_unsaved_content">Si sales, perderás los cambios actuales. ¿Quieres descartarlos?</string>
+    <string name="prompt_injection_discard">Descartar</string>
+    <string name="prompt_injection_new_title">Nueva inyección de prompt</string>
+    <string name="prompt_injection_edit_title">Editar inyección de prompt</string>
     <string name="prompt_injection_save">Guardar</string>
     <string name="prompt_injection_section_basic">Básico</string>
     <string name="prompt_injection_field_name">Nombre</string>
     <string name="prompt_injection_field_mode">Modo</string>
-    <string name="prompt_injection_field_display_name">Nombre para mostrar (se muestra en la interfaz de usuario; déjelo en blanco para usar el modo predeterminado)</string>
+    <string name="prompt_injection_field_display_name">Nombre visible (se muestra en la interfaz; déjalo vacío para usar el nombre predeterminado del modo)</string>
     <string name="prompt_injection_section_content">Contenido de inyección</string>
     <string name="prompt_injection_field_content">Contenido (inyectado como contexto del SISTEMA al cambiar a este modo)</string>
     <string name="prompt_injection_section_behavior">Comportamiento</string>
@@ -130,13 +130,13 @@
     <string name="assistant_default_picker_title">Elegir asistente predeterminado</string>
     <string name="assistant_default_hint">Asistente utilizado por defecto para nuevas tareas</string>
     <string name="assistant_section_actions">Agregar o importar</string>
-    <string name="assistant_empty_create">Aún no hay asistentes.</string>
+    <string name="assistant_empty_create">Aún no hay asistentes. Toca para crear uno.</string>
     <string name="assistant_unnamed">(Sin nombre)</string>
     <string name="assistant_current">Actual</string>
     <string name="assistant_more_cd">Más acciones</string>
     <string name="assistant_new_action">Nuevo asistente</string>
     <string name="assistant_new_default_name">Nuevo asistente</string>
-    <string name="assistant_clone_name">%1$s (Copiar)</string>
+    <string name="assistant_clone_name">%1$s (copia)</string>
     <!-- Action menu -->
     <string name="assistant_move_up_cd">Subir</string>
     <string name="assistant_move_up">Subir</string>
@@ -146,8 +146,8 @@
     <string name="assistant_clone">Clonar</string>
     <string name="assistant_export_card_cd">Exportar tarjeta de personaje</string>
     <string name="assistant_export_card">Exportar tarjeta de personaje</string>
-    <string name="assistant_delete_cd">Borrar</string>
-    <string name="assistant_delete">Borrar</string>
+    <string name="assistant_delete_cd">Eliminar</string>
+    <string name="assistant_delete">Eliminar</string>
     <string name="assistant_close">Cerrar</string>
     <string name="assistant_delete_title">Eliminar asistente</string>
     <!-- Toast -->
@@ -180,31 +180,31 @@
     <string name="assistant_detail_share_muse_failed">Error al compartir: %1$s</string>
     <!-- Toast -->
     <string name="assistant_toast_sillytavern_imported">Tarjeta de personaje de SillyTavern importada: %1$s</string>
-    <string name="assistant_toast_sillytavern_import_failed">Error al importar SillyTavern: %1$s</string>
+    <string name="assistant_toast_sillytavern_import_failed">Error al importar la tarjeta de personaje de SillyTavern: %1$s</string>
     <string name="assistant_toast_sillytavern_exported">Tarjeta de personaje de SillyTavern exportada</string>
-    <string name="assistant_toast_sillytavern_export_failed">Error al exportar SillyTavern: %1$s</string>
+    <string name="assistant_toast_sillytavern_export_failed">Error al exportar la tarjeta de personaje de SillyTavern: %1$s</string>
     <string name="assistant_disable">Desactivar</string>
     <string name="assistant_disable_cd">Desactivar asistente</string>
     <string name="assistant_enable">Activar</string>
     <string name="assistant_enable_cd">Activar asistente</string>
     <string name="assistant_diff_name">Nombre</string>
     <string name="assistant_diff_summary">Resumen</string>
-    <string name="assistant_diff_system_prompt">Instrucciones del sistema</string>
+    <string name="assistant_diff_system_prompt">Prompt del sistema</string>
     <string name="assistant_diff_persona_definition">Persona</string>
     <string name="assistant_diff_thinking_chain">Cadena de razonamiento</string>
     <string name="assistant_diff_message_template">Plantilla de mensaje</string>
     <string name="assistant_diff_preset_messages">Saludo</string>
     <string name="assistant_diff_temperature">Temperatura</string>
     <string name="assistant_diff_top_p">Top P</string>
-    <string name="assistant_diff_max_tokens">Tokens max.</string>
+    <string name="assistant_diff_max_tokens">Tokens máx.</string>
     <string name="assistant_diff_context_size">Mensajes de contexto</string>
     <string name="assistant_diff_reasoning_level">Nivel de razonamiento</string>
     <string name="assistant_diff_memory_enabled">Memoria</string>
     <string name="assistant_diff_use_global_memory">Memoria global</string>
     <string name="assistant_diff_allow_group_chat">Chat grupal</string>
-    <string name="assistant_diff_will_create">Se creara un asistente nuevo (el actual no cambia)</string>
+    <string name="assistant_diff_will_create">Se creará un asistente nuevo (el actual no cambia)</string>
     <string name="assistant_diff_will_change">Frente al asistente con el mismo nombre, cambian %1$d campos</string>
-    <string name="assistant_diff_legacy_pack">Tarjeta antigua: solo se toma la persona; claves, modelos y estadisticas no se transfieren</string>
+    <string name="assistant_diff_legacy_pack">Tarjeta antigua: solo se toma la persona; claves, modelos y estadísticas no se transfieren</string>
     <string name="assistant_diff_no_switch">Importar no cambia el asistente actual ni reasigna chats</string>
-    <string name="assistant_diff_more">...y %1$d mas</string>
+    <string name="assistant_diff_more">…y %1$d más</string>
 </resources>

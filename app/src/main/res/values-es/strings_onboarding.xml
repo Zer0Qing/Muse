@@ -20,16 +20,16 @@
     <string name="onboarding_memory_title">Déjame recordarte.</string>
     <string name="onboarding_memory_subtitle">Con esto activado, las conversaciones se organizan en memoria a largo plazo. Las actualizaciones frecuentes reducen el acierto de caché del modelo (desactivarlo suele ser más barato), pero la compañía a largo plazo mejora mucho.</string>
     <string name="onboarding_memory_switch_title">Activar memoria</string>
-    <string name="onboarding_memory_switch_subtitle">Se organiza al terminar cada charla; desactívalo cuando quieras.</string>
+    <string name="onboarding_memory_switch_subtitle">Se organiza al terminar cada chat; desactívalo cuando quieras en Ajustes</string>
 
     <!-- Step 3: Configure Provider -->
     <string name="onboarding_provider_title">Conecta un cerebro.</string>
     <string name="onboarding_provider_subtitle">Elige un servicio, introduce tu clave y prueba la conexión. Al conectar, se obtiene la lista de modelos y se emparejan sus capacidades.</string>
-    <string name="onboarding_provider_err_auth">Autenticación fallida: revisa tu API Key.</string>
+    <string name="onboarding_provider_err_auth">Autenticación fallida: comprueba que la clave API sea correcta.</string>
     <string name="onboarding_provider_err_empty">Conectado, pero el servidor no devolvió modelos — revisa la dirección.</string>
     <string name="onboarding_provider_err_other">Conexión fallida: %1$s</string>
     <string name="onboarding_provider_caps">Capacidades detectadas: Visión %1$d · Razonamiento %2$d · Herramientas %3$d</string>
-    <string name="onboarding_provider_select_label">Seleccionar Proveedor</string>
+    <string name="onboarding_provider_select_label">Seleccionar proveedor</string>
     <string name="onboarding_provider_apikey_label">Clave API</string>
     <string name="onboarding_provider_apikey_input">De la consola de tu proveedor; suele empezar por sk-</string>
     <string name="onboarding_provider_apikey_show">Mostrar clave</string>
@@ -48,20 +48,20 @@
     <string name="onboarding_model_title">Elige un modelo principal.</string>
     <string name="onboarding_model_search_label">Buscar modelos</string>
     <string name="onboarding_model_empty_title">Ningún proveedor configurado</string>
-    <string name="onboarding_model_empty_desc">Puede configurar un proveedor y seleccionar un modelo más adelante en Configuración.</string>
+    <string name="onboarding_model_empty_desc">Puedes configurar un proveedor y elegir un modelo más adelante en Ajustes.</string>
 
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">Todo listo.</string>
-    <string name="onboarding_provider_next_hint">Elige un servicio, añade su clave y pasa la prueba para continuar; también puedes configurarlo más abajo.</string>
+    <string name="onboarding_provider_next_hint">Elige un proveedor, añade su clave y supera la prueba para continuar; también puedes tocar abajo para configurarlo más tarde.</string>
     <string name="onboarding_welcome_greetings_caption">Un saludo, siete idiomas</string>
     <string name="onboarding_complete_subtitle">Algunas cosas para probar</string>
     <string name="onboarding_restore_from_backup">Restaurar datos desde una copia de seguridad</string>
     <string name="onboarding_tutorial_chat_title">Chat diario</string>
     <string name="onboarding_tutorial_chat_desc">Envía texto, fotos o archivos; respuestas naturales</string>
-    <string name="onboarding_tutorial_assistant_title">Asistentes &amp; Memoria</string>
-    <string name="onboarding_tutorial_assistant_desc">Personaje a tu gusto que recuerda lo que hablaron</string>
-    <string name="onboarding_tutorial_tools_title">Herramientas &amp; Base de conocimientos</string>
-    <string name="onboarding_tutorial_tools_desc">Alarmas, clima, búsqueda de documentos: solo pídelo</string>
+    <string name="onboarding_tutorial_assistant_title">Asistentes y memoria</string>
+    <string name="onboarding_tutorial_assistant_desc">Personaje a tu gusto que recuerda lo que habéis hablado</string>
+    <string name="onboarding_tutorial_tools_title">Herramientas y base de conocimientos</string>
+    <string name="onboarding_tutorial_tools_desc">Pon alarmas, consulta el tiempo, busca documentos: solo pídelo</string>
     <string name="onboarding_tutorial_backup_title">Copia de seguridad de datos</string>
     <string name="onboarding_tutorial_backup_desc">Copia en la nube WebDAV/S3 para no perder datos</string>
 
