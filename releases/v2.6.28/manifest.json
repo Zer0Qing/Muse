@@ -1,0 +1,31 @@
+{
+  "versionName": "2.6.28",
+  "versionCode": 292,
+  "dbVersion": 132,
+  "releasedAt": "2026-11-18",
+  "sourceCommit": "deb77e4d",
+  "buildNote": "从干净工作树构建，包与 tag v2.6.28 同源",
+  "apkArtifacts": [
+    {
+      "name": "app-arm64-v8a-release.apk",
+      "sizeBytes": 70012536,
+      "sha256": "f8c980e4b8c36edcbf58aca7c9de60de6ef15ca17907d9d257cad2838a6b1f02"
+    },
+    {
+      "name": "app-armeabi-v7a-release.apk",
+      "sizeBytes": 60695371,
+      "sha256": "ea2fbabd783547f799b8760b19d6112e9e5cb391062a587d37ff6fffdfb76796"
+    },
+    {
+      "name": "app-x86_64-release.apk",
+      "sizeBytes": 71991925,
+      "sha256": "34b825ca75997dc928408c9ad2568f06ad05083d33f92d8ca53c15eda47f0ae3"
+    },
+    {
+      "name": "app-universal-release.apk",
+      "sizeBytes": 119961820,
+      "sha256": "89377c232848c8d71d4a9b54734bb7925eb45e08eaeb569d0f1c4c7fa8593dba"
+    }
+  ],
+  "notes": "v2.6.27 → v2.6.28：运行时外置（148MB→67MB）、离线资源统一入口、供应商跨协议自动识别、搜索错误如实上报、错误提示修正、Dream 记忆整理、本地语音识别五项修复。"
+}
