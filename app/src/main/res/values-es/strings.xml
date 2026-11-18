@@ -288,4 +288,8 @@
     <string name="tool_approval_show_full_args">Mostrar argumentos completos</string>
     <string name="tool_approval_hide_full_args">Ocultar argumentos completos</string>
     <string name="tool_approval_args_hidden">Hay %1$d caracteres más sin mostrar</string>
+    <string name="settings_import_deepseek_desc">Exportación oficial de DeepSeek (.zip)</string>
+    <string name="settings_import_deepseek_step1">En DeepSeek web: Ajustes → Gestión de datos → Exportar datos</string>
+    <string name="settings_import_deepseek_step2">Espera a que termine la descarga: deepseek_data-[fecha].zip</string>
+    <string name="settings_import_deepseek_step3">Selecciona el zip directamente; no hace falta descomprimirlo</string>
 </resources>

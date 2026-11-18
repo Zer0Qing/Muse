@@ -50,11 +50,11 @@ import org.koin.compose.koinInject
 /**
  * v1.61-A: 数据迁移与导入页。
  *
- * 从第三方应用导入 Provider 配置、助手、会话和消息(RikkaHub / Kelivo / ChatGPT / CherryStudio / Chatbox)。
+ * 从第三方应用导入 Provider 配置、助手、会话和消息(RikkaHub / Kelivo / ChatGPT / DeepSeek / CherryStudio / Chatbox)。
  * v2.x: Muse 原生备份的还原统一在「数据与备份」页的「导入备份」,本页不再重复提供入口。
  * 页面结构:
  *  1. 顶部说明卡片
- *  2. 选择来源(RikkaHub / Kelivo / ChatGPT / CherryStudio / Chatbox),每个卡片含导出步骤折叠说明
+ *  2. 选择来源(RikkaHub / Kelivo / ChatGPT / DeepSeek / CherryStudio / Chatbox),每个卡片含导出步骤折叠说明
  *  3. 选择备份文件按钮
  *  4. 导入中进度
  *  5. 导入结果(数量统计 + 错误列表)
@@ -198,6 +198,23 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
                 ),
                 onSelect = {
                     filePicker.launch(arrayOf("application/zip", "application/octet-stream", "application/json", "text/plain", "*/*"))
+                },
+            )
+        }
+        // DeepSeek 官方导出(zip)：导出格式与 ChatGPT 不同，是每条会话一个 JSON 文件。
+        // 同一个「选择文件」按钮即可——导入器会按包内结构自动识别。
+        item {
+            ImportSourceCard(
+                title = "DeepSeek",
+                description = stringResource(R.string.settings_import_deepseek_desc),
+                steps = listOf(
+                    stringResource(R.string.settings_import_deepseek_step1),
+                    stringResource(R.string.settings_import_deepseek_step2),
+                    stringResource(R.string.settings_import_deepseek_step3),
+                    stringResource(R.string.settings_import_step_remember),
+                ),
+                onSelect = {
+                    filePicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
                 },
             )
         }

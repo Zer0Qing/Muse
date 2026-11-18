@@ -376,4 +376,8 @@
     <string name="workspace_media_info">%1$s ｜ %2$s ｜ %3$s。这个文件没有可读的正文。</string>
     <string name="workspace_media_open_external">用其他应用打开</string>
     <string name="workspace_media_no_handler">这台手机上没有能打开该类型文件的应用</string>
+    <string name="settings_import_deepseek_desc">DeepSeek 官方导出的对话记录（.zip）</string>
+    <string name="settings_import_deepseek_step1">在 DeepSeek 网页版进入「设置 → 数据管理 → 导出数据」</string>
+    <string name="settings_import_deepseek_step2">等待邮件或页面提示下载完成，得到 deepseek_data-YYYY-MM-DD.zip</string>
+    <string name="settings_import_deepseek_step3">解压与否都可以，直接选择这个 zip 文件</string>
 </resources>

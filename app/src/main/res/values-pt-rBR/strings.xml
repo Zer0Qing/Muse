@@ -283,4 +283,8 @@
     <string name="workspace_media_info">%1$s | %2$s | %3$s. Este arquivo não tem texto legível.</string>
     <string name="workspace_media_open_external">Abrir em outro aplicativo</string>
     <string name="workspace_media_no_handler">Nenhum aplicativo neste dispositivo abre esse tipo de arquivo</string>
+    <string name="settings_import_deepseek_desc">Exportação oficial do DeepSeek (.zip)</string>
+    <string name="settings_import_deepseek_step1">No DeepSeek web: Configurações → Gerenciamento de dados → Exportar dados</string>
+    <string name="settings_import_deepseek_step2">Aguarde o download: deepseek_data-[data].zip</string>
+    <string name="settings_import_deepseek_step3">Selecione o zip diretamente; não precisa descompactar</string>
 </resources>

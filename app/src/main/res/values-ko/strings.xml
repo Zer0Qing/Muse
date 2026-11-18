@@ -283,4 +283,8 @@
     <string name="workspace_media_info">%1$s ｜ %2$s ｜ %3$s. 이 파일에는 읽을 수 있는 본문이 없습니다.</string>
     <string name="workspace_media_open_external">다른 앱으로 열기</string>
     <string name="workspace_media_no_handler">이 형식을 열 수 있는 앱이 없습니다</string>
+    <string name="settings_import_deepseek_desc">DeepSeek 공식 내보내기(.zip)</string>
+    <string name="settings_import_deepseek_step1">DeepSeek 웹에서 설정 → 데이터 관리 → 데이터 내보내기</string>
+    <string name="settings_import_deepseek_step2">다운로드가 끝나면 deepseek_data-날짜.zip 파일이 생성됩니다</string>
+    <string name="settings_import_deepseek_step3">압축을 풀지 않고 zip 파일을 그대로 선택하세요</string>
 </resources>

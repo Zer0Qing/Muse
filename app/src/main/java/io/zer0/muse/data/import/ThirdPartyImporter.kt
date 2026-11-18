@@ -19,6 +19,8 @@ import io.zer0.muse.util.copyZipEntryWithLimit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
@@ -73,6 +75,15 @@ object ThirdPartyImporter {
      * 匹配该命名(用于 zip 解包白名单与分片合并)。
      */
     private val CONVERSATIONS_SHARD_REGEX = Regex("conversations-\\d+\\.json", RegexOption.IGNORE_CASE)
+
+    /** DeepSeek 官方导出的入口文件（含 export_format_version）。 */
+    private const val DEEPSEEK_MANIFEST = "manifest.json"
+
+    /** DeepSeek 官方导出的会话索引（标题、置顶、时间）。 */
+    private const val DEEPSEEK_INDEX = "chat_session_index.json"
+
+    /** DeepSeek 会话文件所在目录前缀。 */
+    private const val DEEPSEEK_SESSION_PREFIX = "chat_sessions/"
 
     /**
      * 自动检测备份格式并导入。
@@ -150,12 +161,21 @@ object ThirdPartyImporter {
                             entry = zis.nextEntry
                             continue
                         }
-                        val name = entry.name.substringAfterLast('/')
+                        // 用完整路径做 key：DeepSeek 导出的会话都在 chat_sessions/ 下，
+                        // 只取文件名会把它们和根目录的索引文件混成一锅，也丢了来源信息。
+                        val name = entry.name
                         // v2.4.6: 支持 ChatGPT 新版分层导出 — 会话被拆成
                         // conversations.json 或 conversations-000.json / conversations-001.json 分片。
-                        val keep = name == "settings.json" || name == "chats.json" ||
-                            name.endsWith("conversations.json") || name == "conversations.json" ||
-                            CONVERSATIONS_SHARD_REGEX.matches(name)
+                        val baseName = name.substringAfterLast('/')
+                        val keep = baseName == "settings.json" || baseName == "chats.json" ||
+                            baseName.endsWith("conversations.json") || baseName == "conversations.json" ||
+                            CONVERSATIONS_SHARD_REGEX.matches(baseName) ||
+                            // DeepSeek 官方导出：chat_sessions/<uuid>.json 每条会话一个文件，
+                            // 另有 chat_session_index.json 与 manifest.json 作为索引/版本信息。
+                            // 只认这三类，其余（图片等附件）不读进导入流程。
+                            entry.name == DEEPSEEK_MANIFEST ||
+                            entry.name == DEEPSEEK_INDEX ||
+                            DEEPSEEK_SESSION_PREFIX in entry.name
                         // 单文件兜底限制:流式落盘,避免把大条目整体读入 Android 堆。
                         if (keep) {
                             val tmp = java.io.File.createTempFile("zip_${name}_", ".tmp", context.cacheDir)
@@ -196,12 +216,19 @@ object ThirdPartyImporter {
         //  - ChatGPT 导出: conversations.json(顶层数组或 {conversations: [...]})或新版分片 conversations-000.json ...
         //  - Kelivo: chats.json + settings.json
         //  - RikkaHub: settings.json(且无 chats.json)
-        val settingsFile = extracted["settings.json"]
-        val chatsFile = extracted["chats.json"]
+        // key 现在是完整路径，这里按文件名取，兼容旧的根目录布局。
+        fun byBaseName(base: String): java.io.File? =
+            extracted.entries.firstOrNull { it.key == base || it.key.endsWith("/" + base) }?.value
+        val settingsFile = byBaseName("settings.json")
+        val chatsFile = byBaseName("chats.json")
         val hasChats = chatsFile != null
         // v2.4.6: 收集所有 conversations 文件(含分片),按名称排序(conversations.json 优先,分片次之)合并
         val conversationFiles = extracted.entries
-            .filter { it.key == "conversations.json" || it.key.endsWith("conversations.json") || CONVERSATIONS_SHARD_REGEX.matches(it.key) }
+            .filter {
+                val base = it.key.substringAfterLast('/')
+                base == "conversations.json" || base.endsWith("conversations.json") ||
+                    CONVERSATIONS_SHARD_REGEX.matches(base)
+            }
             .sortedBy { it.key }
             .map { it.value }
 
@@ -218,7 +245,22 @@ object ThirdPartyImporter {
                 mergeConversationShards(conversationFiles)
             }
 
+            // DeepSeek 官方导出：有 manifest.json + chat_sessions/*.json。
+            // 放在最前判断——它的文件组合与其他格式不重叠，先认出来最省事。
+            val deepSeekSessions = extracted.entries
+                .filter { it.key.startsWith(DEEPSEEK_SESSION_PREFIX) && it.key.endsWith(".json") }
+                .map { it.value }
+            val deepSeekManifest = byBaseName(DEEPSEEK_MANIFEST)
+            val isDeepSeek = deepSeekManifest != null && deepSeekSessions.isNotEmpty()
+
             when {
+                isDeepSeek -> importDeepSeek(
+                    ctx,
+                    deepSeekSessions,
+                    byBaseName(DEEPSEEK_INDEX),
+                    assistantRepo,
+                    sessionRepo,
+                )
                 hasChats -> importKelivo(
                     ctx,
                     settingsJson,
@@ -774,6 +816,151 @@ object ThirdPartyImporter {
         } catch (e: Exception) {
             Logger.w(TAG, "Claude 导出解析失败", e)
             errors.add(context.getString(R.string.import_error_chatgpt_parse_failed, e.message))
+        }
+
+        if (skippedMessages > 0) {
+            errors.add(context.getString(R.string.import_error_messages_skipped, skippedMessages))
+        }
+
+        return ImportResult(
+            conversationsImported = conversationsCount,
+            messagesImported = messagesCount,
+            errors = errors,
+        )
+    }
+
+    // ── DeepSeek 官方导出 ──
+    //
+    // 结构（export_format_version 3）：
+    //   manifest.json                    { "export_format_version": 3 }
+    //   chat_session_index.json          [{ id, title, pinned, message_count, inserted_at, updated_at }]
+    //   chat_sessions/<uuid>.json        { id, title, pinned, inserted_at, updated_at,
+    //                                      messages: [{ id, parent_id, role, status,
+    //                                                   inserted_at, fragments: [...] }] }
+    //
+    // fragment 的 type 有四种：REQUEST / RESPONSE / THINK / TOOL_SEARCH / TOOL_OPEN。
+    // 只有前三种是「对话内容」：REQUEST 是用户说的，RESPONSE 是模型答的，THINK 是思考过程。
+    // 搜索/打开网页是过程性记录，导入后没有对应展示位，丢弃——
+    // 硬塞进正文会让历史消息里混进一堆与对话无关的检索片段。
+    internal suspend fun importDeepSeek(
+        context: Context,
+        sessionFiles: List<java.io.File>,
+        indexFile: java.io.File?,
+        assistantRepo: AssistantRepository,
+        sessionRepo: SessionRepository,
+    ): ImportResult {
+        val errors = mutableListOf<String>()
+        var conversationsCount = 0
+        var messagesCount = 0
+        var skippedMessages = 0
+
+        val assistantIds = assistantRepo.getAll().map { it.id }
+        val defaultAssistantId = assistantIds.firstOrNull { it == "default" }
+            ?: assistantIds.firstOrNull()
+            ?: "default"
+
+        // 索引里有标题与置顶，会话文件里也有；以会话文件为准（它是主体），
+        // 索引只在会话文件缺标题时兜底。
+        val indexById: Map<String, JsonObject> = runCatching {
+            val text = indexFile?.readText()?.removePrefix("\uFEFF") ?: return@runCatching emptyMap()
+            val arr = AppJson.parseToJsonElement(text) as? JsonArray ?: return@runCatching emptyMap()
+            arr.mapNotNull { it as? JsonObject }
+                .mapNotNull { obj ->
+                    val id = obj["id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    id to obj
+                }
+                .toMap()
+        }.getOrDefault(emptyMap())
+
+        sessionFiles.forEach { file ->
+            try {
+                val text = file.readText().removePrefix("\uFEFF")
+                val root = AppJson.parseToJsonElement(text) as? JsonObject
+                    ?: return@forEach
+                val sessionId = root["id"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                val fromIndex = indexById[sessionId]
+                val title = root["title"]?.jsonPrimitive?.contentOrNull
+                    ?.takeIf { it.isNotBlank() }
+                    ?: fromIndex?.get("title")?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+                    ?: context.getString(R.string.import_default_session_title)
+
+                val messages = root["messages"] as? JsonArray ?: return@forEach
+                val parsed = ArrayList<Pair<String, Pair<String, Long>>>(messages.size)
+                for (msgElem in messages) {
+                    try {
+                        val msgObj = msgElem as? JsonObject ?: continue
+                        val role = when (msgObj["role"]?.jsonPrimitive?.contentOrNull) {
+                            "USER" -> "user"
+                            "ASSISTANT" -> "assistant"
+                            else -> continue
+                        }
+                        val fragments = msgObj["fragments"] as? JsonArray ?: continue
+                        // 同一轮里 THINK 与 RESPONSE 是两个 fragment，只取正文拼成一条消息：
+                        // Muse 的模型没有把思考与正文分开存，硬拆成两条会让历史看起来在自言自语。
+                        //
+                        // FILE 是用户发的图片/附件：跳过它会让「我发了张图」这段历史直接消失，
+                        // 所以留一句占位，把文件名带上——历史读起来仍然连贯。
+                        val response = StringBuilder()
+                        for (fragElem in fragments) {
+                            val frag = fragElem as? JsonObject ?: continue
+                            val type = frag["type"]?.jsonPrimitive?.contentOrNull ?: continue
+                            when (type) {
+                                "REQUEST", "RESPONSE" -> {
+                                    val content = frag["content"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                                    if (content.isBlank()) continue
+                                    if (response.isNotEmpty()) response.append("\n\n")
+                                    response.append(content)
+                                }
+                                "FILE" -> {
+                                    val names = (frag["files"] as? JsonArray).orEmpty()
+                                        .mapNotNull { fileElem ->
+                                            val obj = fileElem as? JsonObject ?: return@mapNotNull null
+                                            val fileName = obj["file_name"]?.jsonPrimitive?.contentOrNull
+                                                ?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                                            val isImage = obj["is_image"]?.jsonPrimitive?.booleanOrNull == true
+                                            (if (isImage) "[图片] " else "[附件] ") + fileName
+                                        }
+                                    if (names.isEmpty()) continue
+                                    if (response.isNotEmpty()) response.append("\n\n")
+                                    response.append(names.joinToString("\n"))
+                                }
+                            }
+                        }
+                        if (response.isBlank()) {
+                            skippedMessages++
+                            continue
+                        }
+                        val ts = parseIsoEpochMillis(msgObj["inserted_at"]?.jsonPrimitive?.contentOrNull)
+                        parsed.add(role to (response.toString() to ts))
+                    } catch (e: Exception) {
+                        skippedMessages++
+                        Logger.w(TAG, "DeepSeek 消息解析失败: ${e.message}")
+                    }
+                }
+                if (parsed.isEmpty()) return@forEach
+
+                // 导入预热：首轮全量补历史，与其它格式一致。
+                val newSessionId = sessionRepo.createSession(assistantId = defaultAssistantId, warmupPending = true)
+                sessionRepo.renameSession(newSessionId, title)
+                conversationsCount++
+                parsed.forEach { (role, payload) ->
+                    val (content, ts) = payload
+                    sessionRepo.appendMessage(
+                        newSessionId,
+                        UIMessage(
+                            id = Uuid.random(),
+                            role = if (role == "assistant") MessageRole.ASSISTANT else MessageRole.USER,
+                            content = content,
+                            createdAt = if (ts > 0) ts else System.currentTimeMillis(),
+                        ),
+                    )
+                    messagesCount++
+                }
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (e: Exception) {
+                errors.add(context.getString(R.string.import_error_session_failed, e.message))
+            }
         }
 
         if (skippedMessages > 0) {
