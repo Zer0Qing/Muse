@@ -2115,8 +2115,15 @@ fun ChatScreen(
                                                         context, Manifest.permission.RECORD_AUDIO,
                                                     ) == PackageManager.PERMISSION_GRANTED
                                                 if (granted) {
-                                                    viewModel.startStreamingAsr()
-                                                    true
+                                                    // 用真实返回值决定是否进入「录音中」：
+                                                    // 起不来时给出原因，而不是让界面假装在录。
+                                                    val ok = viewModel.startStreamingAsr()
+                                                    if (!ok) {
+                                                        MuseToast.show(
+                                                            context.getString(R.string.asr_missing_api_key_error),
+                                                        )
+                                                    }
+                                                    ok
                                                 } else {
                                                     micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                                     // U-17: 权限缺失时给出明确反馈,避免长按静默无响应

@@ -132,10 +132,17 @@ class ChatAudioCoordinator(
         return controller
     }
 
-    /** v1.91: 开始流式录音识别。 */
-    fun startStreamingAsr() {
-        val controller = getOrCreateAsrController() ?: return
-        if (controller.state.value.isRecording) return
+    /**
+     * v1.91: 开始流式录音识别。
+     *
+     * @return true 表示已真正开始；false 表示没起来（缺 key / 模型未就绪 / 已在录）。
+     *   返回值的意义：调用方据此决定是否进入「录音中」UI 状态。
+     *   以前无论起没起来都返回 Unit，UI 只好假定成功 ——
+     *   于是「按住没反应」时界面毫无反馈，用户以为按钮坏了。
+     */
+    fun startStreamingAsr(): Boolean {
+        val controller = getOrCreateAsrController() ?: return false
+        if (controller.state.value.isRecording) return false
         asrBaseText = accessor.snapshot.input
         lastAsrTranscript = ""
         val generation = ++asrGeneration
@@ -153,6 +160,7 @@ class ChatAudioCoordinator(
                 state.copy(input = base + spacer + transcript)
             }
         }
+        return true
     }
 
     /**

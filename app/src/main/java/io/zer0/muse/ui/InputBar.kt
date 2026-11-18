@@ -13,7 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -81,6 +81,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** L-IB1: 输入框字符上限,防止超长文本拖慢渲染或超出模型上下文窗口。 */
 internal const val INPUT_TEXT_MAX_LENGTH = 5000
@@ -1074,68 +1075,46 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                         modifier = Modifier
                             .size(MuseIconSizes.touchTarget)
                             .pointerInput(Unit) {
-                                // v1.79 (M-I10): 上滑取消阈值由 100dp 降至 48dp
-                                // (PointerInputScope 是 Density,可直接 toPx)
+                                // 用 detectTapGestures(onPress) 而不是手写 awaitPointerEventScope：
+                                // onPress 由 Compose 保证在按下时立即回调、松手/取消时挂起返回，
+                                // 不需要自己判断「按够久了没有」，也不受事件消费状态影响。
+                                // 之前的写法在手指按住不动时永远阻塞在 awaitPointerEvent()，
+                                // 时间判断执行不到，必须动一下手指才触发 —— 这就是「点很多次才成功」。
                                 val slideThresholdPx = MuseIconSizes.touchTarget.toPx()
-                                awaitPointerEventScope {
-                                    val down = awaitFirstDown()
-                                    // 不用 awaitLongPressOrCancellation：它要求手指几乎静止地按住，
-                                    // 任何微小位移都会取消（系统长按容差很小）。「按住说话」本来就带轻微
-                                    // 移动，结果就是「要点很多次才成功一次」。这里自己计时。
-                                    val startedAt = System.currentTimeMillis()
-                                    var held = false
-                                    var released = false
-                                    // 第一阶段：等到按住够久，或提前松手
-                                    while (!held) {
-                                        val event = awaitPointerEvent()
-                                        val change = event.changes.firstOrNull() ?: continue
-                                        if (change.changedToUp()) {
-                                            released = true
-                                            break
-                                        }
-                                        if (System.currentTimeMillis() - startedAt >= HOLD_TO_RECORD_MS) {
-                                            held = true
-                                        }
-                                    }
-                                    if (released) {
-                                        // 按住时间不足：明确提示要长按，而不是静默什么都不发生。
-                                        MuseToast.show(holdToRecordHint)
-                                        return@awaitPointerEventScope
-                                    }
-                                    // 长按开始录音;若模型未就绪/权限未授予,
-                                    // onStartRecording 返回 false,直接退出不进入手势循环
-                                    val started = currentOnStart()
-                                    if (!started) {
-                                        // v1.98: 移除 Toast 提示,静默处理
-                                        return@awaitPointerEventScope
-                                    }
-                                    MuseHaptics.medium(hapticFeedback)
-                                    var cancelled = false
-                                    try {
-                                        while (true) {
-                                            val event = awaitPointerEvent()
-                                            // v1.79 (H-I3): 改用 firstOrNull 防止越界
-                                            val change = event.changes.firstOrNull() ?: continue
-                                            // 上滑超过阈值 → 取消(放弃本次识别结果)
-                                            if (down.position.y - change.position.y > slideThresholdPx) {
-                                                cancelled = true
-                                                break
+                                detectTapGestures(
+                                    onPress = { offset ->
+                                        // 留一条可追踪的日志：真机上「点了没反应」最难区分
+                                        // 是「手势没到达」还是「到达了但启动失败」，
+                                        // 有这条就能一眼分开。
+                                        io.zer0.common.Logger.d("InputBar", "mic onPress at $offset")
+                                        val started = currentOnStart()
+                                        if (!started) io.zer0.common.Logger.w("InputBar", "mic onStartRecording 返回 false")
+                                        if (!started) return@detectTapGestures
+                                        MuseHaptics.medium(hapticFeedback)
+                                        // 上滑取消：按住期间跟踪纵向位移，超过阈值即视为放弃本次录音。
+                                        // 用 awaitPointerEventScope 只为读位移，不再靠它计时。
+                                        var cancelled = false
+                                        var released = true
+                                        awaitPointerEventScope {
+                                            while (true) {
+                                                val event = awaitPointerEvent()
+                                                val change = event.changes.firstOrNull() ?: continue
+                                                if (offset.y - change.position.y > slideThresholdPx) {
+                                                    cancelled = true
+                                                    break
+                                                }
+                                                if (change.changedToUp()) break
                                             }
-                                            // 松手 → 停止录音并处理结果
-                                            // (含快速点击:短按短放也走这里,正常处理录音)
-                                            if (change.changedToUp()) break
                                         }
-                                    } finally {
-                                        // v1.79 (H-I1): try/finally 保证 Composable 离开组合时
-                                        // 协程被取消也能释放录音资源
+                                        if (!released) cancelled = true
                                         if (cancelled) {
                                             currentOnCancel()
                                             showCancelledHint = true
                                         } else {
                                             currentOnStop()
                                         }
-                                    }
-                                }
+                                    },
+                                )
                             },
                         contentAlignment = Alignment.Center,
                     ) {

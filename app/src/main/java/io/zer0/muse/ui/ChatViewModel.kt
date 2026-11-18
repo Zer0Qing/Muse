@@ -5824,9 +5824,7 @@ class ChatViewModel(
     // ── v1.91: 流式 ASR(v1.105 委托至 ChatAudioCoordinator)─────────────
 
     /** v1.91: 开始流式录音识别。v1.105: 委托至 [ChatAudioCoordinator]。 */
-    fun startStreamingAsr() {
-        audioCoordinator.startStreamingAsr()
-    }
+    fun startStreamingAsr(): Boolean = audioCoordinator.startStreamingAsr()
 
     /** v1.91: 停止流式录音,等待最后结果。v1.105: 委托至 [ChatAudioCoordinator]。 */
     fun stopStreamingAsr() {
