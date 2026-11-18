@@ -3,13 +3,13 @@
     <!-- ===== DebugScreen.kt ===== -->
     <!-- Clear confirmation dialog -->
     <string name="debug_clear_logs_title">Borrar registros de depuración</string>
-    <string name="debug_clear_logs_confirm">¿Borrar todos los registros %1$d?</string>
+    <string name="debug_clear_logs_confirm">¿Borrar los %1$d registros? Esta acción no se puede deshacer.</string>
     <string name="debug_action_clear">Borrar</string>
     <string name="debug_cleared_toast">Borrado</string>
 
     <!-- Copy logs -->
     <string name="debug_no_logs_to_copy">No hay registros para copiar</string>
-    <string name="debug_logs_copied_toast">Copiado %1$d registros al portapapeles</string>
+    <string name="debug_logs_copied_toast">Se han copiado %1$d registros al portapapeles</string>
 
     <!-- Export logs -->
     <string name="debug_export_failed_no_logs">Falló la exportación: no hay registros o el directorio no se inicializó</string>
@@ -28,8 +28,8 @@
     <string name="debug_cd_copy">Copiar</string>
 
     <!-- Log count -->
-    <string name="debug_log_count">%1$d total de entradas</string>
-    <string name="debug_log_count_paused_suffix">· Seguimiento en pausa</string>
+    <string name="debug_log_count">%1$d entradas en total</string>
+    <string name="debug_log_count_paused_suffix"> · Seguimiento en pausa</string>
 
     <!-- Filter row -->
     <string name="debug_level_label">Nivel</string>
@@ -43,15 +43,15 @@
     <string name="debug_crash_log_title">Registros de fallos</string>
     <string name="debug_export_zip_and_share">Exportar ZIP y compartir</string>
     <string name="debug_loading_crash_logs">Cargando registros de fallos...</string>
-    <string name="debug_no_crash_logs">No hay registros de fallas\n\nLa aplicación no falló o los registros se limpiaron automáticamente (solo se conservan los 5 últimos).</string>
+    <string name="debug_no_crash_logs">No hay registros de fallos\n\nLa aplicación no ha fallado o los registros se han borrado automáticamente (solo se conservan los 5 últimos).</string>
     <string name="debug_crash_log_count">%1$d archivos (los más nuevos primero, solo se conservan los 5 últimos)</string>
     <string name="debug_cd_share_crash_log">Comparte este registro</string>
     <string name="debug_loading">Cargando…</string>
-    <string name="debug_crash_preview_truncated">Sólo se muestran los primeros caracteres %1$d.</string>
+    <string name="debug_crash_preview_truncated">Solo se muestran los primeros %1$d caracteres. Para ver el contenido completo, expórtalo con el botón de compartir.</string>
 
     <!-- Crash log sharing (non-Composable helpers, use context.getString) -->
     <string name="debug_export_failed_no_crash_logs">Error al exportar: no hay registros de fallos</string>
-    <string name="debug_share_crash_zip_chooser">Compartir registro de fallos ZIP</string>
+    <string name="debug_share_crash_zip_chooser">Compartir ZIP de registros de fallos</string>
     <string name="debug_share_failed_no_uri">Error al compartir: no se puede obtener el URI del archivo</string>
     <string name="debug_share_crash_log_chooser">Compartir registro de fallos</string>
 
@@ -68,7 +68,7 @@
     <string name="debug_metric_crash_count_value">%1$d (%2$s)</string>
     <string name="debug_status_first_chat">Primer chat completado</string>
     <string name="debug_status_memory_adopted">Sistema de memoria adoptado</string>
-    <string name="debug_status_last_active">Última fecha activa</string>
+    <string name="debug_status_last_active">Última fecha de actividad</string>
     <string name="debug_value_yes">Sí</string>
     <string name="debug_value_no">No</string>
 
@@ -90,10 +90,10 @@
     <string name="debug_db_size_label">Tamaño de base de datos: %1$s</string>
     <string name="debug_db_check_time_label">Hora de verificación: %1$s</string>
     <string name="debug_no_details">(Sin detalles)</string>
-    <string name="debug_db_error_advice">Sugerencia: restaure la última copia de seguridad automática desde \"Configuración → Copia de seguridad &amp; Recuperación\", o exporte conversaciones críticas y reinstale la aplicación.</string>
-    <string name="debug_integrity_check_passed">Se pasó el control de integridad</string>
-    <string name="debug_integrity_check_failed">La verificación de integridad falló; consulte los detalles</string>
+    <string name="debug_db_error_advice">Sugerencia: restaura la última copia de seguridad automática desde «Ajustes → Copia de seguridad y restauración», o exporta las conversaciones importantes y reinstala la aplicación.</string>
+    <string name="debug_integrity_check_passed">Verificación de integridad superada</string>
+    <string name="debug_integrity_check_failed">La verificación de integridad falló; consulta los detalles</string>
     <string name="debug_checking">Comprobando…</string>
-    <string name="debug_check_now">Compruébalo ahora</string>
-    <string name="debug_no_check_record">Aún no hay registro de verificación\n\nToque el botón a continuación para ejecutar una verificación de integridad ahora.</string>
+    <string name="debug_check_now">Comprobar ahora</string>
+    <string name="debug_no_check_record">Aún no hay registros de verificación\n\nToca el botón de abajo para ejecutar ahora una verificación de integridad.</string>
 </resources>

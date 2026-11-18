@@ -4,54 +4,54 @@
     <string name="common_state_enabled">Activado</string>
     <string name="common_state_disabled">Desactivado</string>
     <string name="common_confirm_delete_message">¿Eliminar \"%1$s\"?</string>
-    <string name="common_delete">Borrar</string>
+    <string name="common_delete">Eliminar</string>
     <string name="common_confirm_delete_consequence_default">Esta acción no se puede deshacer.</string>
     <string name="common_cancel">Cancelar</string>
     <string name="common_confirm">Confirmar</string>
-    <string name="common_got_it">Entiendo</string>
+    <string name="common_got_it">Entendido</string>
     <string name="common_close">Cerrar</string>
     <string name="common_retry">Reintentar</string>
-    <string name="common_collapse">Colapsar</string>
+    <string name="common_collapse">Contraer</string>
     <string name="common_expand">Expandir</string>
     <string name="common_avatar_cd">Avatar de %1$s</string>
     <string name="common_slider_cd">Control deslizante, valor actual %1$s</string>
     <string name="common_open_file_failed">No se puede abrir el archivo: %1$s</string>
 
     <!-- ===== ui/markdown Markdown rendering ===== -->
-    <string name="markdown_only_http">Sólo se admiten enlaces http/https</string>
+    <string name="markdown_only_http">Solo se admiten enlaces http/https</string>
     <string name="markdown_open_link_failed">No se puede abrir el enlace: %1$s</string>
     <!-- v1.97: URL click confirmation -->
     <string name="markdown_open_link_confirm_title">Abrir enlace</string>
-    <string name="markdown_open_link_confirm_message">¿Abrir este enlace en su navegador?</string>
+    <string name="markdown_open_link_confirm_message">¿Abrir este enlace en tu navegador?</string>
     <string name="markdown_open_link_confirm_open">Abrir</string>
     <string name="markdown_open_link_confirm_copy">Copiar enlace</string>
     <string name="markdown_open_link_dont_ask_again">No volver a preguntar en esta sesión (una pulsación larga abre directamente)</string>
     <string name="markdown_link_copied">Enlace copiado</string>
     <string name="markdown_line_count">%1$d líneas</string>
-    <string name="markdown_copied_lines">Copiado %1$d líneas de código</string>
+    <string name="markdown_copied_lines">Se han copiado %1$d líneas de código</string>
     <string name="markdown_copy_code_cd">Copiar código</string>
-    <string name="markdown_collapse_remaining">Mostrar %1$d más líneas</string>
+    <string name="markdown_collapse_remaining">Mostrar %1$d líneas más</string>
     <string name="markdown_svg_label">Gráfico SVG</string>
     <string name="markdown_html_label">Tarjeta HTML</string>
     <string name="markdown_chart_label">Gráfico</string>
     <string name="markdown_mermaid_label">Diagrama Mermaid</string>
     <string name="markdown_plantuml_label">Diagrama PlantUML</string>
-    <string name="markdown_svg_cd">gráfico SVG</string>
-    <string name="markdown_html_cd">contenido HTML</string>
+    <string name="markdown_svg_cd">Gráfico SVG</string>
+    <string name="markdown_html_cd">Contenido HTML</string>
     <string name="markdown_chart_cd">Gráfico: %1$s</string>
     <string name="markdown_mermaid_cd">Diagrama Mermaid: %1$s</string>
     <string name="markdown_plantuml_cd">Diagrama PlantUML: %1$s</string>
     <string name="markdown_formula_cd">Fórmula matemática: %1$s</string>
     <string name="markdown_chart_render_failed">Error al renderizar el gráfico</string>
-    <string name="markdown_chart_show_source">Mostrar fuente</string>
+    <string name="markdown_chart_show_source">Mostrar código fuente</string>
     <string name="markdown_chart_loading">Renderizando…</string>
     <string name="markdown_chart_render_failed_prefix">Error de renderizado: </string>
     <!-- HTML preview feature -->
     <string name="html_preview_title">Vista previa HTML</string>
     <string name="html_preview_open_in_browser_cd">Abrir en el navegador</string>
-    <string name="html_preview_copy_source_cd">Copiar fuente</string>
+    <string name="html_preview_copy_source_cd">Copiar código fuente</string>
     <string name="html_preview_open_in_browser_failed">No se puede abrir en un navegador externo: %1$s</string>
-    <string name="html_preview_source_copied">fuente HTML copiada</string>
+    <string name="html_preview_source_copied">Código fuente HTML copiado</string>
     <string name="html_preview_button_cd">Vista previa en pantalla completa</string>
     <!-- v1.0.47 P8-2: Download artifact -->
     <string name="html_preview_download_cd">Descargar</string>
@@ -78,26 +78,26 @@
     <string name="settings_theme_sleep_time_title">Hora de dormir (oscuro)</string>
 
     <!-- ===== ui/speech voice input and TTS ===== -->
-    <string name="speech_speak_prompt">Por favor habla...</string>
+    <string name="speech_speak_prompt">Por favor, habla…</string>
     <string name="speech_tts_init_failed">Error al inicializar el motor de voz, la lectura en voz alta no está disponible</string>
     <string name="speech_tts_play_error">Error de reproducción de voz</string>
-    <string name="speech_tts_fallback_to_system">Problema de red, cambiado al sistema TTS</string>
+    <string name="speech_tts_fallback_to_system">Problema de red; se ha cambiado al TTS del sistema</string>
     <string name="speech_tts_no_engine">No se encontró motor TTS. Instala un servicio de voz</string>
     <string name="speech_tts_engine_not_ready">El motor de voz no está listo o el texto está vacío</string>
-    <string name="speech_stop_reading_cd">dejar de leer</string>
+    <string name="speech_stop_reading_cd">Detener lectura</string>
     <string name="speech_playback_speed_cd">Velocidad de reproducción %1$sx</string>
-    <string name="speech_seek_forward_5s_cd">Adelante 5 segundos</string>
+    <string name="speech_seek_forward_5s_cd">Avanzar 5 segundos</string>
     <string name="speech_pause_cd">Pausa</string>
     <string name="speech_resume_cd">Reanudar</string>
 
     <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
     <string name="model_switch_title">Modelo</string>
-    <string name="model_switch_no_provider">Ningún proveedor configurado\nAgregue uno en Configuración → Gestión de proveedores</string>
+    <string name="model_switch_no_provider">Ningún proveedor configurado\nAñade uno en «Ajustes → Gestión de proveedores»</string>
     <string name="model_switch_provider_label">Proveedor</string>
     <string name="model_switch_no_provider_selected">Ningún proveedor seleccionado</string>
     <string name="model_switch_models_label">Modelos (%1$s)</string>
     <string name="model_switch_fetching">Obteniendo…</string>
-    <string name="model_switch_refresh">Refrescar</string>
+    <string name="model_switch_refresh">Actualizar</string>
     <string name="model_switch_fetching_upstream">Obteniendo modelos del proveedor...</string>
     <string name="model_switch_no_models">Este proveedor aún no tiene modelos
 Toca actualizar para obtener la lista</string>
@@ -130,7 +130,7 @@ Toca actualizar para obtener la lista</string>
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">Favoritos (%1$d)</string>
     <string name="favorites_empty_title">Aún no hay favoritos</string>
-    <string name="favorites_empty_subtitle">Toque la estrella en un mensaje en el chat para marcarlo como favorito.</string>
+    <string name="favorites_empty_subtitle">Toca la estrella de un mensaje en el chat para añadirlo a favoritos</string>
     <string name="favorites_role_user">Yo</string>
     <string name="favorites_role_system">Sistema</string>
     <string name="favorites_role_tool">Herramienta</string>
@@ -142,8 +142,8 @@ Toca actualizar para obtener la lista</string>
     <string name="favorites_tag_chip">%1$s (%2$d)</string>
     <string name="favorites_tag_edit_title">Establecer grupo</string>
     <string name="favorites_tag_edit_hint">Nombre del grupo (vacío = desagrupado)</string>
-    <string name="favorites_tag_edit_clear">Borrar grupo</string>
-    <string name="favorites_tag_edit_confirm">DE ACUERDO</string>
+    <string name="favorites_tag_edit_clear">Quitar grupo</string>
+    <string name="favorites_tag_edit_confirm">Aceptar</string>
     <string name="favorites_tag_edit_cancel">Cancelar</string>
     <string name="favorites_tag_label">Grupo: %1$s</string>
     <string name="favorites_empty_in_filter">No hay favoritos en este grupo.</string>
@@ -151,7 +151,7 @@ Toca actualizar para obtener la lista</string>
 
     <!-- ===== ui/ImageSaveUtils image saving ===== -->
     <string name="image_save_decode_failed">No se puede decodificar la imagen</string>
-    <string name="image_save_mediastore_insert_failed">Error al insertar MediaStore</string>
+    <string name="image_save_mediastore_insert_failed">Error al insertar en MediaStore</string>
     <string name="image_save_open_stream_failed">No se puede abrir el flujo de salida</string>
 
 
@@ -203,10 +203,10 @@ Toca actualizar para obtener la lista</string>
     <string name="user_persona_select">Usar</string>
     <string name="user_persona_new">Nueva máscara</string>
     <string name="user_persona_name">Nombre de máscara</string>
-    <string name="user_persona_text">Texto (tu identidad con este asistente)</string>
+    <string name="user_persona_text">Descripción de la máscara (tu identidad con este asistente)</string>
     <string name="favorites_select_mode">Seleccionar</string>
     <string name="favorites_exit_select">Salir de selección</string>
-    <string name="favorites_selected_count">%1$d seleccionadas</string>
+    <string name="favorites_selected_count">%1$d seleccionados</string>
     <string name="favorites_select_all">Seleccionar todo</string>
     <string name="favorites_batch_unfavorite">Quitar de favoritos</string>
     <string name="favorites_batch_group">Definir grupo</string>

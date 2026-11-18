@@ -11,8 +11,8 @@
     <string name="tools_stats_count">%1$d herramientas · %2$d alto riesgo</string>
 
     <!-- Built-in plugins -->
-    <string name="tools_plugins_section">Complementos integrados</string>
-    <string name="tools_plugins_desc">Los complementos son conjuntos de capacidades más generales que declaran los permisos necesarios y el momento de activación.</string>
+    <string name="tools_plugins_section">Plugins integrados</string>
+    <string name="tools_plugins_desc">Los plugins son conjuntos de capacidades más amplios que las herramientas y declaran los permisos que necesitan y cuándo se activan. Abajo tienes la lista de plugins integrados que incluye la app, para que veas los límites de lo que puede hacer la IA.</string>
 
     <!-- Risk level badges -->
     <string name="tools_risk_safe">Seguro</string>
@@ -31,11 +31,11 @@
     <!-- Tool categories -->
     <string name="tools_category_built_in">Herramientas integradas</string>
     <string name="tools_category_local">Herramientas locales</string>
-    <string name="tools_category_mcp">herramientas MCP</string>
+    <string name="tools_category_mcp">Herramientas MCP</string>
 
     <!-- Plugin capability captions -->
-    <string name="tools_permissions_label">Permisos:</string>
-    <string name="tools_activation_label">Activación:</string>
+    <string name="tools_permissions_label">Permisos: </string>
+    <string name="tools_activation_label">Activación: </string>
 
     <!-- ===== v1.0.20: ToolsSettingsPage.kt (Tool Approval Management) ===== -->
     <!-- Title and search -->
@@ -43,7 +43,7 @@
     <string name="tools_settings_search_hint">Buscar por nombre o descripción de herramienta</string>
 
     <!-- Stats (N tools · always-allow X · ask Y · always-deny Z) -->
-    <string name="tools_settings_stats">%1$d herramientas · permitir siempre %2$d · preguntar %3$d · negar siempre %4$d</string>
+    <string name="tools_settings_stats">%1$d herramientas · permitir siempre %2$d · preguntar %3$d · denegar siempre %4$d</string>
 
     <!-- Risk level group titles -->
     <string name="tools_settings_section_safe">Herramientas seguras (solo lectura/consulta)</string>
@@ -57,9 +57,9 @@
     <string name="tools_settings_footer_section">Explicación de la política</string>
     <string name="tools_settings_policy_always_allow">Permitir siempre</string>
     <string name="tools_settings_policy_always_allow_desc">Las llamadas a herramientas se aprueban automáticamente; no se muestra ninguna tarjeta de aprobación</string>
-    <string name="tools_settings_policy_ask">Pregunta cada vez</string>
+    <string name="tools_settings_policy_ask">Preguntar cada vez</string>
     <string name="tools_settings_policy_ask_desc">Se muestra una tarjeta de aprobación antes de la invocación; tú decides si aprobar o rechazar</string>
-    <string name="tools_settings_policy_always_deny">Negar siempre</string>
+    <string name="tools_settings_policy_always_deny">Denegar siempre</string>
     <string name="tools_settings_policy_always_deny_desc">La herramienta está deshabilitada; la IA no puede invocarla</string>
 
     <!-- Short labels for the per-tool segmented control -->
@@ -67,7 +67,7 @@
     <string name="tools_settings_policy_ask_short">Preguntar</string>
     <string name="tools_settings_policy_always_deny_short">Denegar</string>
     <string name="tools_empty_title">No hay herramientas registradas</string>
-    <string name="tools_empty_subtitle">Revisa la configuración de complementos o MCP y vuelve a abrir esta página.</string>
+    <string name="tools_empty_subtitle">Revisa la configuración de plugins o MCP y vuelve a abrir esta página.</string>
 
     <!-- I18N-01 batch2: ToolCallVisuals 摘要/标签 -->
     <string name="tool_summary_add_calendar_event">Añadió un evento de calendario</string>
@@ -79,7 +79,7 @@
     <string name="tool_summary_clipboard_write">Escribió en el portapapeles</string>
     <string name="tool_summary_cover_generation">Generó una portada</string>
     <string name="tool_summary_current_status">Consultó el estado</string>
-    <string name="tool_summary_delegate_agent">Delegó en un sub-agente</string>
+    <string name="tool_summary_delegate_agent">Delegó en un subagente</string>
     <string name="tool_summary_dns_lookup">Consulta DNS</string>
     <string name="tool_summary_download">Descargó un archivo</string>
     <string name="tool_summary_execute_code">Ejecutó código</string>
@@ -172,7 +172,7 @@
     <string name="tool_label_calendar_today">Ver calendario</string>
     <string name="tool_label_clipboard_read">Leer portapapeles</string>
     <string name="tool_label_clipboard_write">Escribir portapapeles</string>
-    <string name="tool_label_delegate_agent">Delegar sub-agente</string>
+    <string name="tool_label_delegate_agent">Delegar en subagente</string>
     <string name="tool_label_dns_lookup">Consulta DNS</string>
     <string name="tool_label_execute_code">Ejecutar código</string>
     <string name="tool_label_execute_javascript">Ejecutar script</string>
@@ -213,11 +213,11 @@
     <string name="tool_label_translate">Traducir</string>
     <string name="tool_label_web_search">Búsqueda web</string>
     <string name="tool_label_write_file">Escribir archivo</string>
-    <string name="tool_label_workspace_write">Escritura en workspace</string>
+    <string name="tool_label_workspace_write">Escritura en el espacio de trabajo</string>
     <string name="tool_trace_running">Ejecutando…</string>
     <string name="tool_trace_empty">Sin resultados</string>
     <string name="plugin_market_load_failed">No se pudo cargar el catálogo</string>
-    <string name="plugin_market_state_invalid">El estado del catálogo está desactualizado. Actualícelo.</string>
+    <string name="plugin_market_state_invalid">El estado del catálogo está desactualizado. Actualízalo.</string>
     <string name="plugin_download_failed">No se pudo descargar el plugin</string>
     <string name="plugin_review_failed">La revisión del paquete del plugin falló</string>
     <string name="plugin_install_failed">Error de instalación</string>

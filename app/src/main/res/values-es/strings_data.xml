@@ -2,11 +2,11 @@
 <resources>
     <!-- ===== data/prompttemplate ===== -->
     <!-- Preset template categories (UI grouping) -->
-    <string name="prompt_template_category_writing">Escribiendo</string>
+    <string name="prompt_template_category_writing">Escritura</string>
     <string name="prompt_template_category_translation">Traducción</string>
     <string name="prompt_template_category_summary">Resumen</string>
     <string name="prompt_template_category_code">Código</string>
-    <string name="prompt_template_category_learning">Aprendiendo</string>
+    <string name="prompt_template_category_learning">Aprendizaje</string>
     <string name="prompt_template_category_creative">Creativo</string>
     <!-- Preset template names (UI list) -->
     <string name="prompt_template_name_write_email">Escribir correo electrónico</string>
@@ -68,7 +68,7 @@
     <string name="import_error_read_file_failed">No se puede leer el archivo</string>
     <string name="import_error_unzip_size_exceeded">El contenido descomprimido supera el límite de tamaño</string>
     <string name="import_error_unzip_failed">No se puede descomprimir el archivo: %1$s</string>
-    <string name="import_error_unknown_format">Formato de copia de seguridad no reconocido.</string>
+    <string name="import_error_unknown_format">Formato de copia de seguridad no reconocido. Asegúrate de seleccionar un archivo ZIP de copia de seguridad de RikkaHub o Kelivo.</string>
     <string name="import_default_provider_name">Proveedor importado</string>
     <string name="import_default_assistant_name">Asistente importado</string>
     <string name="import_default_session_title">Conversación importada</string>
@@ -89,7 +89,7 @@
     <!-- Preset mode display names (UI selector) -->
     <string name="prompt_injection_mode_default">Por defecto</string>
     <string name="prompt_injection_mode_creative">Escritura creativa</string>
-    <string name="prompt_injection_mode_coding">Codificación</string>
+    <string name="prompt_injection_mode_coding">Programación</string>
     <string name="prompt_injection_mode_roleplay">Juego de roles</string>
     <string name="prompt_injection_mode_translation">Traducción</string>
     <string name="prompt_injection_mode_analysis">Análisis</string>
@@ -124,8 +124,8 @@
 
     <!-- ===== data/MemoryLlmClientImpl ===== -->
     <!-- Memory compilation exception messages (may surface to UI) -->
-    <string name="memory_llm_no_model_configured">Ningún modelo configurado.</string>
-    <string name="memory_llm_call_text_failed">Error en la llamada de texto</string>
+    <string name="memory_llm_no_model_configured">No hay ningún modelo configurado, así que no se puede ejecutar la compilación de memoria (añade un proveedor de modelos en Ajustes).</string>
+    <string name="memory_llm_call_text_failed">Error en callText</string>
 
     <!-- ===== mcp/McpRegistry ===== -->
     <string name="mcp_tool_no_description">(sin descripción)</string>

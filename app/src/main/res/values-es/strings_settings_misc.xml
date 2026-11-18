@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_experiments_session_attachment_rag">Búsqueda en adjuntos del chat</string>
-    <string name="settings_experiments_session_attachment_rag_subtitle">Los documentos subidos en un chat se indexan para que el asistente pueda citarlos. Función experimental; el índice se borra con la sesión.</string>
+    <string name="settings_experiments_session_attachment_rag_subtitle">Los documentos subidos en un chat se indexan para que el asistente pueda citarlos. Función experimental; el índice se borra con la conversación.</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">, Seleccionado</string>
 
@@ -15,12 +15,12 @@
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">Búsqueda web</string>
     <string name="settings_web_search_enable">Habilitar búsqueda web</string>
-    <string name="settings_web_search_enable_subtitle">Estado predeterminado global;</string>
+    <string name="settings_web_search_enable_subtitle">Estado predeterminado global; si está desactivada, el chip de la barra de entrada aún permite activarla temporalmente</string>
     <string name="settings_web_search_engine">Motor de búsqueda</string>
     <string name="settings_web_search_api_key_label">Clave API (opcional)</string>
     <string name="settings_saved">Guardado</string>
     <string name="settings_web_search_save_api_key">Guardar clave API</string>
-    <string name="settings_web_search_save_endpoint">Guardar punto final</string>
+    <string name="settings_web_search_save_endpoint">Guardar endpoint</string>
     <string name="settings_web_search_test_query_label">Consulta de prueba</string>
     <string name="settings_web_search_test_query_placeholder">Introduce una palabra clave para probar la búsqueda…</string>
     <string name="settings_web_search_test_success">Búsqueda exitosa, %1$d resultados:\n%2$s</string>
@@ -32,14 +32,14 @@
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
 
     <!-- ExperimentsSettingsPage.kt -->
-    <string name="settings_experiments_title">experimentos</string>
+    <string name="settings_experiments_title">Experimentos</string>
     <string name="settings_experiments_hint">Aviso</string>
-    <string name="settings_experiments_warning">Las siguientes funciones son experimentales y pueden ser inestables o afectar su experiencia</string>
+    <string name="settings_experiments_warning">Las siguientes funciones son experimentales y pueden ser inestables o afectar a tu experiencia</string>
     <string name="settings_experiments_features">Funciones experimentales</string>
     <string name="settings_experiments_force_mood">Forzar salida de MOOD</string>
-    <string name="settings_experiments_force_mood_subtitle">Intente requerir la salida del bloque MOOD incluso si el modelo no lo admite</string>
+    <string name="settings_experiments_force_mood_subtitle">Intentar exigir la salida del bloque MOOD aunque el modelo no lo admita</string>
     <string name="settings_experiments_debug_mode">Modo de depuración</string>
-    <string name="settings_experiments_debug_mode_subtitle">Mostrar más estados internos (MOOD/llamadas de herramientas/tokens)</string>
+    <string name="settings_experiments_debug_mode_subtitle">Mostrar más estados internos (MOOD/llamadas a herramientas/tokens)</string>
     <string name="settings_experiments_self_reflection">Autorreflexión</string>
     <string name="settings_experiments_self_reflection_subtitle">Verificar automáticamente la calidad después de responder</string>
     <string name="settings_experiments_long_memory_compression">Compresión de memoria larga</string>
@@ -49,57 +49,57 @@
     <string name="settings_user_profile_title">Perfil de usuario</string>
     <string name="settings_user_profile_appellation">Nombres</string>
     <string name="settings_user_profile_assistant_name">Nombre del asistente</string>
-    <string name="settings_user_profile_assistant_name_hint">p.ej.</string>
+    <string name="settings_user_profile_assistant_name_hint">p. ej.: Musa / JARVIS</string>
     <string name="settings_user_profile_your_name">Tu nombre</string>
-    <string name="settings_user_profile_your_name_hint">p.ej.</string>
+    <string name="settings_user_profile_your_name_hint">p. ej.: Juan / Jefe</string>
     <string name="settings_user_profile_basic_info">Información básica</string>
     <string name="settings_user_profile_age">Edad</string>
     <string name="settings_user_profile_city">Ciudad</string>
     <string name="settings_user_profile_occupation">Ocupación</string>
-    <string name="settings_user_profile_profession_field">Campo Profesional</string>
-    <string name="settings_user_profile_profession_field_hint">p.ej.</string>
-    <string name="settings_user_profile_interests_label">Intereses (separados por comas, por ejemplo, leer, codificar, viajar)</string>
+    <string name="settings_user_profile_profession_field">Campo profesional</string>
+    <string name="settings_user_profile_profession_field_hint">p. ej.: Desarrollo de software / Finanzas / Sanidad</string>
+    <string name="settings_user_profile_interests_label">Intereses (separados por comas, p. ej.: lectura, programación, viajes)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
-    <string name="settings_user_profile_intro">Esta información se incluirá en las instrucciones del sistema para que la IA te conozca mejor. Todos los campos son opcionales.</string>
+    <string name="settings_user_profile_intro">La información que rellenes se inyectará en el prompt del sistema de la IA para que te conozca de verdad. Todos los campos son opcionales.</string>
     <string name="settings_user_profile_assistant_name_desc">La IA se llamará a sí misma con este nombre</string>
     <string name="settings_user_profile_your_name_desc">La IA se dirigirá a ti con este nombre.</string>
     <string name="settings_user_profile_bio">Biografía</string>
     <string name="settings_user_profile_bio_hint">Un párrafo que te presenta y que le da a la IA una idea general de quién eres.</string>
-    <string name="settings_user_profile_bio_desc">Máxima prioridad;</string>
+    <string name="settings_user_profile_bio_desc">Máxima prioridad; le da a la IA una visión global de ti</string>
     <string name="settings_user_profile_timezone">Zona horaria</string>
-    <string name="settings_user_profile_timezone_hint">p.ej.</string>
-    <string name="settings_user_profile_background">Antecedentes &amp; Experiencia</string>
-    <string name="settings_user_profile_education">Educación</string>
-    <string name="settings_user_profile_education_hint">p.ej.</string>
+    <string name="settings_user_profile_timezone_hint">p. ej.: Asia/Shanghai / UTC+8</string>
+    <string name="settings_user_profile_background">Trayectoria y experiencia</string>
+    <string name="settings_user_profile_education">Formación</string>
+    <string name="settings_user_profile_education_hint">p. ej.: Grado en Informática / Máster en Ingeniería Financiera</string>
     <string name="settings_user_profile_skills">Habilidades</string>
-    <string name="settings_user_profile_skills_hint">p.ej.</string>
+    <string name="settings_user_profile_skills_hint">p. ej.: Python, aprendizaje automático, diseño de producto</string>
     <string name="settings_user_profile_communication">Preferencias de comunicación</string>
     <string name="settings_user_profile_comm_style">Estilo de comunicación</string>
-    <string name="settings_user_profile_comm_style_hint">p.ej.</string>
+    <string name="settings_user_profile_comm_style_hint">p. ej.: conciso / detallado / animado / serio</string>
     <string name="settings_user_profile_resp_length">Preferencia de longitud de respuesta</string>
-    <string name="settings_user_profile_resp_length_hint">p.ej.</string>
+    <string name="settings_user_profile_resp_length_hint">p. ej.: corta / media / larga</string>
     <string name="settings_user_profile_pref_tone">Tono preferido</string>
-    <string name="settings_user_profile_pref_tone_hint">p.ej.</string>
+    <string name="settings_user_profile_pref_tone_hint">p. ej.: amable / profesional / divertido / riguroso</string>
     <string name="settings_user_profile_pref_lang">Idioma de respuesta preferido</string>
     <string name="settings_user_profile_pref_lang_hint">Por ejemplo: español, inglés o ambos</string>
-    <string name="settings_user_profile_boundaries">Límites &amp; Temas evitados</string>
+    <string name="settings_user_profile_boundaries">Límites y temas evitados</string>
     <string name="settings_user_profile_avoid_topics">Temas evitados</string>
-    <string name="settings_user_profile_avoid_topics_hint">Separados por comas, p.</string>
+    <string name="settings_user_profile_avoid_topics_hint">Separados por comas, p. ej.: política, religión</string>
     <string name="settings_user_profile_avoid_topics_desc">La IA evitará estos temas de forma proactiva</string>
 
     <!-- PresetProviderPickerDialog.kt -->
-    <string name="settings_preset_select_provider">Seleccionar Proveedor</string>
-    <string name="settings_preset_subtitle">Cubre proveedores de retransmisión, oficiales nacionales y extranjeros: simplemente ingrese su clave API después de seleccionar</string>
-    <string name="settings_preset_group_overseas">Oficial en el extranjero</string>
-    <string name="settings_preset_group_domestic">Funcionario Nacional</string>
-    <string name="settings_preset_group_relay">Relé</string>
+    <string name="settings_preset_select_provider">Seleccionar proveedor</string>
+    <string name="settings_preset_subtitle">Incluye proveedores oficiales internacionales y chinos, además de intermediarios: tras elegir uno, solo tienes que introducir tu clave API</string>
+    <string name="settings_preset_group_overseas">Oficiales internacionales</string>
+    <string name="settings_preset_group_domestic">Oficiales chinos</string>
+    <string name="settings_preset_group_relay">Intermediarios</string>
     <string name="settings_preset_no_match">No hay proveedores coincidentes</string>
     <string name="settings_preset_search_hint">Buscar proveedores o dominios</string>
-    <string name="settings_preset_clear">Claro</string>
+    <string name="settings_preset_clear">Borrar</string>
     <string name="settings_preset_need_baseurl">URL base requerida</string>
     <string name="settings_preset_model_count">%1$d modelos</string>
     <string name="settings_preset_custom">Proveedor personalizado</string>
-    <string name="settings_preset_custom_desc">Ingrese manualmente baseUrl, clave API y lista de modelos</string>
+    <string name="settings_preset_custom_desc">Introduce manualmente baseUrl, clave API y lista de modelos</string>
 
     <!-- ProviderModelRow.kt -->
     <string name="settings_model_action_settings">Ajustes</string>
@@ -109,11 +109,11 @@
     <string name="settings_model_ability_streaming">Transmisión</string>
     <string name="settings_model_ability_image">Imagen</string>
     <string name="settings_model_ability_multimodal">Multimodal</string>
-    <string name="settings_model_ability_video">Video</string>
-    <string name="settings_model_ability_chat">Charlar</string>
+    <string name="settings_model_ability_video">Vídeo</string>
+    <string name="settings_model_ability_chat">Chat</string>
     <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->
-    <string name="settings_model_context_label">%1$s contexto</string>
-    <string name="settings_model_output_label">%1$s salida</string>
+    <string name="settings_model_context_label">%1$s de contexto</string>
+    <string name="settings_model_output_label">%1$s de salida</string>
     <!-- v1.0.8 (7.6): Model health check button + status text -->
     <string name="settings_model_test_in_progress">Probando…</string>
     <string name="settings_model_test_success">Conexión correcta</string>
@@ -124,23 +124,23 @@
     <!-- AssistantSection.kt -->
     <string name="settings_assistant_section">Asistente</string>
     <string name="settings_assistant_manage">Administrar asistentes</string>
-    <string name="settings_assistant_manage_subtitle">Administrar asistentes y sus libros del mundo</string>
+    <string name="settings_assistant_manage_subtitle">Gestionar asistentes y libros de trasfondo</string>
     <string name="settings_assistant_favorites">Favoritos</string>
-    <string name="settings_assistant_favorites_subtitle">Ver mensajes favoritos en todas las sesiones</string>
-    <string name="settings_assistant_lorebook">libro de historia</string>
-    <string name="settings_assistant_lorebook_subtitle">Inyección de contexto activada por palabras clave (juego de roles/construcción mundial)</string>
+    <string name="settings_assistant_favorites_subtitle">Ver mensajes favoritos de todas las conversaciones</string>
+    <string name="settings_assistant_lorebook">Libro de trasfondo</string>
+    <string name="settings_assistant_lorebook_subtitle">Inyección de contexto activada por palabras clave (juego de rol/ambientación del mundo)</string>
     <string name="settings_assistant_quick_messages">Mensajes rápidos</string>
-    <string name="settings_assistant_quick_messages_subtitle">Plantillas de mensajes preestablecidos con sustitución de variables, insértelas con un toque</string>
-    <string name="settings_assistant_prompt_injection">Inyección de instrucciones</string>
-    <string name="settings_assistant_prompt_injection_subtitle">Añade automáticamente las instrucciones específicas al cambiar de modo (creación, programación, juegos de rol, etc.).</string>
-    <string name="settings_assistant_skills">Gerente de Habilidades</string>
+    <string name="settings_assistant_quick_messages_subtitle">Plantillas de mensajes predefinidas con sustitución de variables; insértalas en el campo de texto con un toque</string>
+    <string name="settings_assistant_prompt_injection">Inyección de prompt</string>
+    <string name="settings_assistant_prompt_injection_subtitle">Inyecta automáticamente el prompt correspondiente al cambiar de modo (creativo/programación/rol, etc.)</string>
+    <string name="settings_assistant_skills">Gestión de habilidades</string>
     <string name="settings_assistant_skills_subtitle">Ver/habilitar/deshabilitar herramientas que el LLM puede llamar (E/S de archivos, HTTP, etc.)</string>
     <string name="settings_assistant_memory_enable">Habilitar sistema de memoria</string>
-    <string name="settings_assistant_memory_enable_subtitle">Cuando están desactivadas, las conversaciones ya no inyectan memoria a largo plazo y se detiene el resumen en segundo plano.</string>
+    <string name="settings_assistant_memory_enable_subtitle">Si se desactiva, las conversaciones dejan de inyectar memoria a largo plazo y se detiene la generación de resúmenes en segundo plano</string>
 
     <!-- MultiAgentSettingsPage.kt -->
     <string name="settings_multi_agent_title">Colaboración entre múltiples agentes</string>
-    <string name="settings_multi_agent_enable">Habilite la colaboración entre múltiples agentes</string>
+    <string name="settings_multi_agent_enable">Habilitar la colaboración entre múltiples agentes</string>
     <string name="settings_multi_agent_enable_subtitle">Cuando está habilitado, el asistente principal puede delegar tareas a los miembros del equipo.</string>
     <string name="settings_multi_agent_team_list">Lista de equipos</string>
     <string name="settings_multi_agent_no_team">Aún no hay equipos</string>
@@ -153,131 +153,131 @@
     <string name="settings_multi_agent_delete_team">Eliminar equipo</string>
     <string name="settings_multi_agent_unnamed_team">Equipo sin título</string>
     <string name="settings_multi_agent_no_members">Sin miembros</string>
-    <string name="settings_multi_agent_delete">Borrar</string>
+    <string name="settings_multi_agent_delete">Eliminar</string>
     <string name="settings_multi_agent_edit_team">Editar equipo</string>
     <string name="settings_multi_agent_team_name">Nombre del equipo</string>
-    <string name="settings_multi_agent_team_name_hint">p.ej.</string>
+    <string name="settings_multi_agent_team_name_hint">p. ej.: Grupo de escritura</string>
     <string name="settings_multi_agent_team_name_empty">El nombre del equipo no puede estar vacío</string>
     <string name="settings_multi_agent_description">Descripción (opcional)</string>
     <string name="settings_multi_agent_description_hint">Propósito del equipo o escenario de colaboración</string>
     <string name="settings_multi_agent_select_members">Seleccionar miembros</string>
-    <string name="settings_multi_agent_no_assistants">No hay asistentes disponibles.</string>
-    <string name="settings_multi_agent_save">Ahorrar</string>
+    <string name="settings_multi_agent_no_assistants">No hay asistentes disponibles. Crea uno primero en la página «Asistentes».</string>
+    <string name="settings_multi_agent_save">Guardar</string>
     <string name="settings_multi_agent_cancel">Cancelar</string>
 
     <!-- SettingsTutorialPage.kt -->
     <string name="settings_tutorial_title">Guía de uso</string>
 
     <!-- Chapter 1 -->
-    <string name="settings_tutorial_ch1_title">Capítulo 1: Primeros pasos</string>
+    <string name="settings_tutorial_ch1_title">Capítulo 1: Primeros pasos (imprescindible para principiantes)</string>
     <string name="settings_tutorial_ch1_s1_title">¿Qué es Muse?</string>
-    <string name="settings_tutorial_ch1_s1_content">Muse es una aplicación de asistente inteligente de IA.</string>
+    <string name="settings_tutorial_ch1_s1_content">Muse es una aplicación de asistente inteligente con IA. Puedes verla como un amigo siempre disponible: de día o de noche puedes hacerle preguntas, pedirle que te ayude a escribir, traducir, resumir o planificar, o incluso charlar con ella para pasar el rato.\n\nPuede hacer muchas cosas: escribir artículos, corregir código, resolver problemas de matemáticas, reconocer imágenes, generar vídeos, buscar en internet las últimas noticias e incluso recordar lo que le has contado. Puedes crear varios asistentes con distintas personalidades y especialidades, y cambiar entre ellos según lo necesites.\n\nTen en cuenta que Muse no incluye ninguna IA propia: necesita conexión a internet y un modelo de IA externo para funcionar, así que antes de usarla por primera vez hay que hacer una configuración sencilla (consulta el capítulo 2). Una vez configurada, usarla a diario es tan fácil como chatear en una app de mensajería.</string>
     <string name="settings_tutorial_ch1_s2_title">¿Qué hacer para el primer uso?</string>
-    <string name="settings_tutorial_ch1_s2_content">No se preocupe, solo tres pasos para comenzar:\n\n1.</string>
+    <string name="settings_tutorial_ch1_s2_content">No te preocupes, solo necesitas tres pasos para empezar:\n\n1. Consigue una clave API de un modelo de IA (es como un pase de acceso; consulta el capítulo 2)\n2. Añade esa clave en Ajustes\n3. Vuelve a la página de chat, escribe un mensaje y pulsa el botón de enviar\n\n¡Así de fácil!\n\nConsejo: la primera vez que abras la aplicación, normalmente verás una guía de inicio; solo tienes que seguirla. Si te la has saltado, no pasa nada: puedes volver a configurarlo todo en cualquier momento en «Ajustes».</string>
     <string name="settings_tutorial_ch1_s3_title">Cómo iniciar tu primera conversación</string>
-    <string name="settings_tutorial_ch1_s3_content">1. Abra la aplicación y vaya a la página de chat\n2.</string>
-    <string name="settings_tutorial_ch1_s4_title">Introducción a la interfaz: tareas, agentes y páginas de chat</string>
-    <string name="settings_tutorial_ch1_s4_content">La interfaz principal de Muse suele estar dividida en tres áreas.</string>
+    <string name="settings_tutorial_ch1_s3_content">1. Abre la aplicación y ve a la página de chat\n2. Toca el campo de texto de la parte inferior de la pantalla (donde pone «Enviar mensaje...»)\n3. Escribe lo que quieras preguntar, por ejemplo, «Hola» o «Escríbeme un poema sobre la primavera»\n4. Toca el botón de enviar de la derecha (el icono del avión de papel)\n5. Espera la respuesta de la IA: el texto irá apareciendo palabra a palabra; esto se llama «salida en streaming»\n6. Para seguir hablando, escribe y envía otro mensaje en el campo de texto; la IA responderá teniendo en cuenta el contexto\n\nLa primera vez, prueba con preguntas sencillas, como pedirle que se presente o que te explique un concepto, para familiarizarte con su estilo de respuesta.</string>
+    <string name="settings_tutorial_ch1_s4_title">Introducción a la interfaz: páginas Tareas, Agente y Chat</string>
+    <string name="settings_tutorial_ch1_s4_content">La interfaz principal de Muse suele dividirse en tres áreas; entender sus diferencias te ayudará a empezar más rápido:\n\n• Página de chat: la más utilizada, donde hablas a solas con la IA. Abajo está el campo de texto y arriba se muestra el historial del chat. Aquí se hacen las preguntas del día a día, la redacción y las traducciones.\n\n• Página Agente (página de asistentes): gestiona los asistentes de IA que has creado. Cada asistente puede tener su propio nombre, personalidad, especialidad y configuración. Aquí puedes crear, editar y cambiar de asistente; por ejemplo, puedes crear un «Traductor» y un «Profesor de redacción».\n\n• Página Tareas: el punto de acceso para ver y gestionar las tareas en segundo plano. Cuando pides a la IA algo que lleva tiempo (como generar un vídeo, un recordatorio programado o un procesamiento por lotes), la tarea muestra aquí su progreso y sus resultados.\n\nUsa la barra de navegación inferior o lateral para cambiar entre estas páginas. Si la disposición de tu versión es algo distinta, guíate por la interfaz real; la idea básica es la misma: prepara los asistentes en la página Agente, chatea con ellos en la página de chat y consulta las tareas complejas en la página Tareas.</string>
     <string name="settings_tutorial_ch1_s5_title">Errores y consejos para principiantes</string>
-    <string name="settings_tutorial_ch1_s5_content">• La IA puede equivocarse o inventar información. Verifica los datos importantes, especialmente los médicos, legales o financieros.\n• Explica el contexto y el resultado que necesitas. Por ejemplo, indica qué trabajo hiciste y a quién va dirigido un informe.\n• Puedes pedir cambios de estilo, correcciones o más detalles en los mensajes siguientes.\n• Mantén pulsada una respuesta para copiarla, regenerarla, marcarla como favorita o bifurcar la conversación.\n• El botón de adjuntos permite enviar imágenes, archivos y plantillas; el micrófono sirve para dictar.</string>
+    <string name="settings_tutorial_ch1_s5_content">• Error 1: creer que la IA lo sabe todo. La IA a veces se equivoca o se inventa cosas con total seguridad; comprueba siempre la información importante (médica, legal o financiera).\n• Error 2: pensar que cuanto más corta sea la pregunta, mejor. En realidad, si explicas bien el contexto, la IA responde con más precisión. Por ejemplo, «Escríbeme el informe semanal» funciona peor que «Soy ingeniero de frontend; esta semana he rediseñado la página de inicio de sesión y he corregido errores. Escríbeme el informe semanal».\n• Error 3: quedarse en una sola pregunta y respuesta. La IA brilla en las conversaciones de varios turnos: si no te convence la respuesta, pídele que la reescriba, que cambie de estilo o que añada detalles.\n• Consejo: si mantienes pulsada una respuesta de la IA, normalmente podrás copiarla, regenerarla, marcarla como favorita o bifurcar la conversación.\n• Consejo: el botón + a la izquierda del campo de texto permite enviar imágenes, archivos y plantillas, y el micrófono de la derecha sirve para dictar por voz. Explora estos botones.</string>
 
     <!-- Chapter 2 -->
-    <string name="settings_tutorial_ch2_title">Capítulo 2: Configurar el modelo de IA (Importante)</string>
+    <string name="settings_tutorial_ch2_title">Capítulo 2: Configurar el modelo de IA (importante)</string>
     <string name="settings_tutorial_ch2_s1_title">¿Por qué necesito configurar un modelo?</string>
-    <string name="settings_tutorial_ch2_s1_content">Muse se conecta a servicios de IA para generar respuestas. Para usar un proveedor propio, configura su clave API.\n\nLa clave identifica tu cuenta ante el proveedor, que aplica sus cuotas y tarifas. Puedes configurar varios proveedores y cambiar de modelo según la tarea. Conserva las claves en privado.</string>
+    <string name="settings_tutorial_ch2_s1_content">Muse no incluye ninguna IA propia: necesita conectarse a un servicio de IA externo. Igual que un teléfono necesita una tarjeta SIM para hacer llamadas, Muse necesita una «clave API» para conectarse a la IA.\n\nLa clave API es una contraseña formada por letras y números que obtienes del proveedor de IA. Sirve para demostrar que eres un usuario de pago, y el proveedor la usa para facturarte. Cada proveedor tiene precios y capacidades diferentes; puedes configurar varios a la vez y cambiar entre ellos según lo necesites.</string>
     <string name="settings_tutorial_ch2_s2_title">¿Dónde solicitar una clave API?</string>
     <string name="settings_tutorial_ch2_s2_content">Estos son algunos proveedores de IA habituales (sin un orden específico):\n\n• DeepSeek — chino, económico y con buenos resultados\n  Sitio web: platform.deepseek.com\n\n• Zhipu AI — chino, con cuota gratuita disponible\n  Sitio web: open.bigmodel.cn\n\n• Alibaba Tongyi Qianwen — chino, con cuota gratuita disponible\n  Sitio web: dashscope.aliyun.com\n\n• Moonshot Kimi — chino, con buena capacidad para contextos largos\n  Sitio web: platform.moonshot.cn\n\n• OpenAI (ChatGPT) — internacional, con resultados excelentes, pero requiere un medio de pago internacional\n  Sitio web: platform.openai.com\n\n• Anthropic (Claude) — internacional, destaca en escritura y razonamiento\n  Sitio web: console.anthropic.com\n\n• Google Gemini — internacional, con gran capacidad multimodal\n  Sitio web: ai.google.dev\n\nSi estás empezando, prueba DeepSeek o Zhipu. Tras registrarte, busca la página \"API Keys\" en el panel, haz clic en \"Create new Key\" y copia el código. La mayoría de los proveedores chinos ofrecen crédito gratuito al registrarte para que puedas probarlos sin coste.</string>
     <string name="settings_tutorial_ch2_s3_title">Cómo agregar un proveedor en Muse</string>
-    <string name="settings_tutorial_ch2_s3_content">1. Toque la parte inferior derecha o superior izquierda para ingresar a \"Configuración\"\n2.</string>
+    <string name="settings_tutorial_ch2_s3_content">1. Toca la esquina inferior derecha o la superior izquierda para entrar en «Ajustes»\n2. Busca «Modelos y servicios» o «Proveedores»\n3. Toca «Añadir proveedor»\n4. Elige el tipo de proveedor (p. ej., Compatible con OpenAI, Claude, Gemini, etc.). Si en la lista hay un proveedor predefinido, elegirlo es más cómodo: solo tienes que introducir la clave API\n5. Rellena:\n   - Nombre: el que quieras, por ejemplo, «Mi DeepSeek»\n   - Clave API: pega el código que acabas de copiar\n   - Endpoint: para DeepSeek, introduce https://api.deepseek.com (los proveedores predefinidos lo rellenan automáticamente)\n6. Toca Guardar\n7. Añade a la lista de modelos el que quieras usar (p. ej., deepseek-chat). Los proveedores predefinidos suelen cargar la lista de modelos automáticamente; solo tienes que marcar los que quieras\n\nDespués de guardar, puedes tocar el botón «Probar» para comprobar si la conexión funciona.</string>
     <string name="settings_tutorial_ch2_s4_title">Cómo seleccionar el modelo actual</string>
-    <string name="settings_tutorial_ch2_s4_content">En la página de chat, el nombre del modelo se muestra cerca de la barra superior o de entrada.</string>
+    <string name="settings_tutorial_ch2_s4_content">En la página de chat, el nombre del modelo aparece en la parte superior o cerca de la barra de entrada. Tócalo para abrir la lista de modelos y elige el que quieras usar. Cada conversación puede usar un modelo distinto.\n\nCambiar de modelo no borra la conversación actual, pero ten en cuenta que cada modelo entiende el contexto de forma diferente, así que después de cambiar puede parecer que la «personalidad» de la IA ha cambiado. Es normal.</string>
     <string name="settings_tutorial_ch2_s5_title">Cómo elegir un modelo adecuado &amp; capacidades del modelo</string>
-    <string name="settings_tutorial_ch2_s5_content">Elige el modelo según la tarea y las capacidades que indique su ficha:\n\n• Conversación y redacción: un modelo de propósito general.\n• Matemáticas, programación o problemas complejos: un modelo con razonamiento.\n• Análisis de imágenes: un modelo con visión o entrada multimodal.\n• Creación de imágenes: un modelo con generación de imágenes.\n• Creación de vídeo: un modelo con generación de vídeo, si el proveedor lo admite.\n\nLas fichas también indican si el modelo admite herramientas. Compara las capacidades, el costo y la velocidad; un modelo pequeño puede ser suficiente para tareas sencillas.</string>
+    <string name="settings_tutorial_ch2_s5_content">Con tantos modelos disponibles, si estás empezando puedes elegir así:\n\n• Chat diario y redacción: basta con un modelo conversacional general, como deepseek-chat, qwen-plus o gpt-4o-mini; son baratos y suficientes.\n• Razonamiento complejo, matemáticas y programación: elige un modelo con capacidad de «razonamiento» (como deepseek-reasoner, o1 o claude-3.5-sonnet), que piensa antes de responder.\n• Reconocimiento de imágenes: elige un modelo compatible con «visión/multimodal» (como gpt-4o, gemini-2.0-flash o qwen-vl); si no, no podrá reconocer imágenes.\n• Generación de imágenes: elige un modelo con capacidad de «imagen» (como dall-e o la serie flux).\n• Generación de vídeo: elige un modelo con capacidad de «vídeo» (depende del proveedor).\n\nLas tarjetas de modelo suelen mostrar iconos con las capacidades que admiten: chat, razonamiento, visión (multimodal), imagen, vídeo y llamada a herramientas. Elige según lo que necesites; no hace falta buscar siempre el modelo más potente: los modelos potentes son más caros y lentos, y para preguntas sencillas un modelo pequeño es más rápido y económico.\n\nSi estás empezando, configura primero un modelo general (como deepseek-chat) como respaldo y, cuando te familiarices, prueba otros.</string>
     <string name="settings_tutorial_ch2_s6_title">Consultas de saldo y rotación de múltiples claves</string>
-    <string name="settings_tutorial_ch2_s6_content">Si la clave de un proveedor se agota o tiene una velocidad limitada, puede configurar varias claves para que Muse gire automáticamente para que las conversaciones no se interrumpan.\n\n• Agregue varias claves: en la configuración del proveedor puede ingresar varias claves API (una por línea);</string>
+    <string name="settings_tutorial_ch2_s6_content">Si la clave de un proveedor se agota o alcanza el límite de uso, puedes configurar varias claves para que Muse las vaya rotando automáticamente y las conversaciones no se interrumpan.\n\n• Añadir varias claves: en los ajustes del proveedor puedes introducir varias claves API (una por línea); Muse cambiará automáticamente a la siguiente cuando una falle.\n• Consultar saldo: algunos proveedores permiten ver el saldo desde la aplicación. En la página de detalles del proveedor, toca «Consultar saldo»; así no tienes que ir a su web cada vez. Si no aparece, consulta el panel de la web oficial del proveedor, que es lo más fiable.\n• Consejo para ir sin preocupaciones: configura dos proveedores a la vez (p. ej., DeepSeek + Zhipu) para que se respalden entre sí; si uno falla, el otro toma el relevo y la experiencia es más estable.</string>
 
     <!-- Chapter 3 -->
     <string name="settings_tutorial_ch3_title">Capítulo 3: Chat diario</string>
     <string name="settings_tutorial_ch3_s1_title">Cómo iniciar una nueva conversación</string>
-    <string name="settings_tutorial_ch3_s1_content">Abre la lista de conversaciones y toca «Nueva conversación». El nuevo chat comienza sin el historial de los anteriores.\n\nCrea una conversación cuando cambies de tema o de tarea, o cuando no quieras que el contexto anterior influya en las respuestas.</string>
+    <string name="settings_tutorial_ch3_s1_content">En la lista de chats (en la barra lateral o volviendo a la lista de conversaciones), toca el botón «Nueva conversación» (normalmente un icono de +). La nueva conversación empieza en blanco y no se ve afectada por las anteriores.\n\n¿Cuándo conviene crear una nueva? Cuando cambies de tema o de tarea, o cuando no quieras que el contenido anterior interfiera en la conversación actual. Por ejemplo, si después de hablar de trabajo quieres charlar de otra cosa, crea una nueva para que la IA no arrastre el contexto del trabajo.</string>
     <string name="settings_tutorial_ch3_s2_title">Cómo volver a una conversación anterior</string>
-    <string name="settings_tutorial_ch3_s2_content">Abre la barra lateral desde el menú de la conversación y selecciona el chat que quieras continuar.\n\nLas conversaciones suelen aparecer de la más reciente a la más antigua. Sus títulos ayudan a identificar el tema.</string>
+    <string name="settings_tutorial_ch3_s2_content">Desde la página de chat, abre la barra lateral (toca el menú de la esquina superior izquierda o desliza desde el borde izquierdo hacia la derecha) y verás la lista de todas las conversaciones anteriores. Toca cualquiera para cambiar a ella.\n\nLa lista suele estar ordenada por fecha, con las más recientes arriba. Los títulos de las conversaciones suelen generarse automáticamente a partir del primer mensaje, para que encuentres rápido el tema que quieres retomar.</string>
     <string name="settings_tutorial_ch3_s3_title">Cómo eliminar una conversación</string>
-    <string name="settings_tutorial_ch3_s3_content">En la lista del historial de conversaciones, mantenga presionada la conversación que desea eliminar.</string>
+    <string name="settings_tutorial_ch3_s3_content">En la lista de conversaciones, mantén pulsada la que quieras eliminar; aparecerá un menú en el que debes elegir «Eliminar». Ten en cuenta que no se puede deshacer.\n\nSi quieres hacer una limpieza en lote, algunas versiones permiten la selección múltiple. Antes de eliminar, asegúrate de que no contiene nada importante que quieras conservar, o exporta antes una copia de seguridad (consulta el capítulo 6).</string>
     <string name="settings_tutorial_ch3_s4_title">Cómo buscar el historial de mensajes</string>
-    <string name="settings_tutorial_ch3_s4_content">En la página de chat o en la lista de conversaciones, busque el ícono de búsqueda (lupa), ingrese una palabra clave y se mostrarán todos los mensajes históricos que contengan esa palabra.\n\nEl contenido que se puede buscar incluye tanto sus mensajes como sus respuestas de IA.</string>
-    <string name="settings_tutorial_ch3_s5_title">¿Qué es una respuesta en tiempo real?</string>
-    <string name="settings_tutorial_ch3_s5_content">El texto aparece de forma progresiva mientras el modelo genera la respuesta. Así puedes empezar a leer antes de que termine.\n\nUna conexión inestable puede interrumpir la respuesta. Si la generación queda detenida durante mucho tiempo, toca Detener y vuelve a intentarlo. El texto recibido se guarda a medida que llega.</string>
+    <string name="settings_tutorial_ch3_s4_content">En la página de chat o en la lista de conversaciones, busca el icono de búsqueda (la lupa) e introduce una palabra clave: se mostrarán todos los mensajes del historial que la contengan.\n\nPuedes buscar tanto en tus mensajes como en las respuestas de la IA. Cuando no recuerdes de qué hablaste en una conversación, una búsqueda te ayudará a encontrarla rápidamente.</string>
+    <string name="settings_tutorial_ch3_s5_title">¿Qué es la salida en streaming?</string>
+    <string name="settings_tutorial_ch3_s5_content">Cuando la IA responde, el texto no aparece de golpe, sino palabra a palabra, como si alguien estuviera escribiendo. Esto se llama «salida en streaming». La ventaja es que no tienes que esperar mucho para ver la respuesta; el inconveniente es que necesita una conexión estable. Si la red va mal, puede quedarse atascada; espera un momento.\n\nSi no hay respuesta durante mucho tiempo, prueba a detener la generación actual y volver a enviar el mensaje. Durante el streaming, el texto que ves se guarda en tiempo real, así que no se pierde aunque salgas a mitad.</string>
     <string name="settings_tutorial_ch3_s6_title">Enviar imágenes, archivos &amp; asistencia visual</string>
-    <string name="settings_tutorial_ch3_s6_content">• Imágenes: abre el menú de adjuntos, elige una foto y envíala. Para analizarla directamente, selecciona un modelo con visión.\n\n• Archivos: adjunta documentos o código y explica qué necesitas, por ejemplo, resumir un PDF.\n\n• Asistencia visual: si el modelo actual no admite imágenes y hay un servicio visual disponible, Muse puede obtener una descripción de la imagen y enviársela como texto. Para analizar detalles visuales, conviene usar directamente un modelo con visión.</string>
-    <string name="settings_tutorial_ch3_s7_title">Usando herramientas &amp; ramas de mensajes</string>
-    <string name="settings_tutorial_ch3_s7_content">• Herramientas: permiten realizar acciones como consultar información, leer archivos o gestionar tareas, según las funciones y permisos activados. Pide la acción en lenguaje natural. El modelo debe admitir herramientas.\n\n• Regenerar: mantén pulsada una respuesta y elige la opción correspondiente para obtener otra versión.\n• Editar y reenviar: modifica un mensaje anterior para generar una nueva rama.\n• Bifurcar: crea una conversación a partir de un mensaje sin modificar la original.\n\nLas ramas permiten explorar respuestas alternativas y volver a versiones anteriores.</string>
+    <string name="settings_tutorial_ch3_s6_content">• Enviar imágenes: toca el botón + a la izquierda del campo de texto, elige «Imagen» y selecciona una foto de la galería para enviarla. La IA puede reconocer el contenido de la imagen, describirla y analizar capturas de pantalla. Necesitas un modelo compatible con «visión» (como GPT-4o, Gemini o Qwen-VL).\n\n• Enviar archivos: toca también el botón +, elige «Archivo» y podrás enviar documentos (como txt, pdf o archivos de código). La IA leerá el contenido y responderá a tus preguntas sobre él, por ejemplo, «Resume los puntos clave de este PDF».\n\n• Asistencia visual (una función práctica): si envías una imagen a un modelo que no admite visión, Muse no dará un error sin más, sino que usará automáticamente la capacidad de visión para describir la imagen en texto y pasársela al modelo actual, para que «vea indirectamente» su contenido. Así, aunque el modelo que elijas no sea bueno con las imágenes, podrá entenderlas a grandes rasgos. Eso sí, usar directamente un modelo con visión da mejores resultados.</string>
+    <string name="settings_tutorial_ch3_s7_title">Uso de herramientas y ramas de mensajes</string>
+    <string name="settings_tutorial_ch3_s7_content">• Usar herramientas (Tool): algunos modelos admiten «llamadas a herramientas», lo que significa que la IA puede realizar acciones reales por ti, como poner alarmas, consultar el tiempo, leer SMS, programar eventos o consultar cotizaciones de bolsa. Después de activar los permisos de herramientas en el campo de texto o en Ajustes, solo tienes que pedirlo en lenguaje natural, por ejemplo: «Ponme una alarma mañana a las 8 de la mañana». Las herramientas disponibles dependen de las habilidades (Skill) que tengas activadas (consulta el capítulo 4).\n\n• Ramas de mensajes y regeneración: las conversaciones tienen forma de árbol, no de línea única. Si no te convence una respuesta de la IA, puedes:\n  - Regenerar: mantén pulsada esa respuesta y elige «Regenerar»; la IA volverá a responder de otra manera, y la respuesta original se sustituirá o se conservará como una rama del historial.\n  - Editar y reenviar: mantén pulsado tu propio mensaje, elige «Editar», reformula la pregunta y vuelve a enviarla; a partir de ese mensaje se generará una nueva rama.\n  - Bifurcar la conversación: mantén pulsado un mensaje y elige «Bifurcar»; se creará una nueva conversación copiada a partir de ese mensaje, en la que podrás tomar otra dirección sin afectar a la original.\n\nCon las ramas puedes explorar varias posibilidades en una misma conversación: si algo no te convence, vuelve al mensaje anterior y prueba otro camino. Es muy flexible.</string>
 
     <!-- Chapter 4 -->
     <string name="settings_tutorial_ch4_title">Capítulo 4: Funciones avanzadas</string>
-    <string name="settings_tutorial_ch4_s1_title">¿Cuáles son los roles de asistente?</string>
-    <string name="settings_tutorial_ch4_s1_content">Cada asistente puede tener un nombre, una personalidad y unas instrucciones diferentes. Puedes crear, por ejemplo, un traductor o un asistente de redacción.\n\nAbre la gestión de asistentes, crea uno e indica cómo debe comportarse en sus instrucciones del sistema. Cuanto más claras y específicas sean, más fácil será obtener el estilo deseado. Después puedes cambiar de asistente según la tarea.</string>
+    <string name="settings_tutorial_ch4_s1_title">¿Qué son los roles de asistente?</string>
+    <string name="settings_tutorial_ch4_s1_content">Los roles de asistente son como ponerle a la IA distintos «sombreros». Por ejemplo, puedes crear un rol de «Traductor», que se centrará en traducir, o un rol de «Asistente de redacción», que destacará escribiendo artículos.\n\nBusca la entrada «Asistentes» en Ajustes o en la barra lateral, toca para crear uno nuevo, rellena el nombre y el prompt del sistema (donde le indicas cómo debe comportarse) y listo. Cuanto más específico sea el prompt del sistema, mejor encarnará el rol; por ejemplo: «Eres un profesor de lengua amable que responde a mis preguntas con un tono alentador».\n\nPuedes crear tantos asistentes como quieras y cambiar entre ellos según la situación.</string>
     <string name="settings_tutorial_ch4_s2_title">Cómo utilizar la búsqueda web</string>
-    <string name="settings_tutorial_ch4_s2_content">Activa el botón de búsqueda web del campo de entrada para que el asistente pueda consultar información en internet. Desactívalo cuando no lo necesites para reducir el uso de datos y tokens.\n\nConfigura el buscador en Ajustes; algunos requieren una clave API. Consulta las fuentes citadas para verificar la información.</string>
+    <string name="settings_tutorial_ch4_s2_content">Encima del campo de texto hay un icono de un globo terráqueo; tócalo para que se resalte y se activará la búsqueda web. La IA buscará primero en internet la información más reciente antes de responder, lo que es ideal para preguntas sobre actualidad y noticias. Cuando termines, vuelve a tocarlo para desactivarla y no gastar datos ni tokens.\n\nEl motor de búsqueda se puede configurar en Ajustes (p. ej., Brave, Bocha, etc.); algunos requieren una clave API. Con la búsqueda activada, la IA suele citar las fuentes para que puedas verificar la información.</string>
     <string name="settings_tutorial_ch4_s3_title">Cómo utilizar el modo de pensamiento profundo</string>
-    <string name="settings_tutorial_ch4_s3_content">Activa el botón de razonamiento del campo de entrada y selecciona un modelo que admita esa función. Puede ser útil para matemáticas, lógica y planificación compleja.\n\nEl razonamiento puede aumentar el tiempo de respuesta y el consumo de tokens. Algunos modelos muestran un resumen o contenido de razonamiento; la disponibilidad depende del proveedor.</string>
+    <string name="settings_tutorial_ch4_s3_content">Encima del campo de entrada hay un icono de cerebro; tócalo para resaltarlo y activar el modo. Con el modo activado, la IA «piensa» antes de responder, lo que resulta útil para problemas de matemáticas, razonamiento lógico, planificación compleja, etc. En las conversaciones normales no hace falta: activarlo solo hace que las respuestas sean más lentas y consuman más tokens.\n\nEl proceso de pensamiento suele mostrarse, así que puedes ver los pasos de razonamiento de la IA. Nota: no todos los modelos admiten el pensamiento profundo; tienes que elegir un modelo con capacidad de «razonamiento».</string>
     <string name="settings_tutorial_ch4_s4_title">Sistema de memoria a largo plazo</string>
-    <string name="settings_tutorial_ch4_s4_content">Con la memoria a largo plazo habilitada, la IA registra automáticamente información importante de las conversaciones (sus preferencias, identidad, acuerdos, eventos clave) y la recupera en conversaciones futuras, sin necesidad de repetirla cada vez.\n\n• Habilite: Configuración → Asistente → Memoria a largo plazo, active \"Activar sistema de memoria\".\n• Cómo funciona: en segundo plano, en los momentos apropiados</string>
+    <string name="settings_tutorial_ch4_s4_content">Con la memoria a largo plazo activada, la IA anota automáticamente la información importante de las conversaciones (tus preferencias, identidad, acuerdos y acontecimientos clave) y la recupera en las siguientes conversaciones, así que no tienes que repetirla cada vez.\n\n• Cómo activarla: Ajustes → Asistente → Memoria a largo plazo, y activa «Habilitar sistema de memoria».\n• Cómo funciona: en segundo plano y en el momento oportuno, las conversaciones se resumen en recuerdos que se guardan en el almacén de memoria; al principio de la siguiente conversación se insertan automáticamente los recuerdos relevantes.\n• Gestión: en la página de gestión de memoria puedes ver, editar o eliminar cualquier recuerdo; si no quieres que la IA recuerde algo, simplemente elimínalo.\n• Privacidad: los recuerdos solo se guardan en tu dispositivo (o en tu copia de seguridad en la nube) y nunca se suben a terceros.\n\nIdeal para un acompañamiento a largo plazo, por ejemplo, para que la IA recuerde tus preferencias alimentarias, tu agenda de trabajo o tu progreso en los estudios.</string>
     <string name="settings_tutorial_ch4_s5_title">Entrada de voz</string>
-    <string name="settings_tutorial_ch4_s5_content">Usa el micrófono del campo de entrada para convertir tu voz en texto. Configura primero el servicio de reconocimiento de voz (ASR) en Ajustes.\n\nLa precisión depende del servicio seleccionado. Revisa y corrige el texto reconocido antes de enviarlo.</string>
-    <string name="settings_tutorial_ch4_s6_title">Biblioteca de plantillas de mensajes</string>
-    <string name="settings_tutorial_ch4_s6_content">Toque el ícono más a la izquierda del cuadro de entrada y seleccione \"Plantilla de solicitud\" para ver una lista de plantillas preestablecidas (por ejemplo, escribir correo electrónico, traducir, resumir, reescribir).</string>
+    <string name="settings_tutorial_ch4_s5_content">Toca el icono del micrófono a la derecha del campo de entrada, habla y, al soltarlo, tu voz se convertirá automáticamente en texto. Para usarlo necesitas configurar un servicio de reconocimiento de voz (ASR).\n\nEs práctico cuando no te resulta cómodo escribir o para dictar textos largos. La precisión depende del servicio ASR que hayas configurado; puedes elegir el proveedor en Ajustes. Cuando termine el reconocimiento, aún puedes editar el texto antes de enviarlo.</string>
+    <string name="settings_tutorial_ch4_s6_title">Biblioteca de plantillas de prompts</string>
+    <string name="settings_tutorial_ch4_s6_content">Toca el icono «+» a la izquierda del campo de entrada y elige «Plantilla de prompt» para ver una lista de plantillas predefinidas (por ejemplo, escribir un correo, traducir, resumir o reescribir). Al tocar una plantilla, su contenido se rellena automáticamente en el campo de entrada; solo tienes que modificar los detalles concretos y enviarlo.\n\nTambién puedes añadir tus propias plantillas para guardar las preguntas que haces a menudo e insertarlas con un toque la próxima vez. Las plantillas admiten sustitución de variables; por ejemplo, {{tema}} se reemplaza automáticamente.</string>
     <string name="settings_tutorial_ch4_s7_title">Base de conocimientos RAG (deja que la IA aprenda tus documentos)</string>
-    <string name="settings_tutorial_ch4_s7_content">RAG (Generación de recuperación aumentada) permite que la IA responda basándose en los documentos que usted proporciona, como darle a la IA un \"libro de referencia personal\".\n\n• Uso: busque \"Base de conocimientos\" o \"RAG\" en Configuración, cargue sus documentos (PDF, Word, TXT, Markdown).</string>
+    <string name="settings_tutorial_ch4_s7_content">RAG (generación aumentada por recuperación) permite que la IA responda basándose en los documentos que le proporcionas, como si le dieras un «libro de consulta personal».\n\n• Uso: busca «Base de conocimientos» o «RAG» en Ajustes y sube tus documentos (PDF, Word, TXT, Markdown, etc.). El sistema divide los documentos en fragmentos y los indexa.\n• Preguntas: si activas la base de conocimientos en una conversación, la IA primero busca los fragmentos relevantes en tus documentos y luego responde combinándolos con lo recuperado, de modo que las respuestas se ajustan mejor a tu material y pueden citar las fuentes.\n• Casos de uso: consultar normativas de la empresa, estudiar tus propios apuntes, que la IA responda basándose en tu tesis, bases de conocimientos de atención al cliente, etc.\n• Nota: el contenido de los documentos se envía al modelo de IA para procesarlo; ten cuidado con los documentos sensibles o usa un modelo local.</string>
     <string name="settings_tutorial_ch4_s8_title">Chat grupal con múltiples agentes (varios roles de IA conversan juntos)</string>
-    <string name="settings_tutorial_ch4_s8_content">La colaboración entre agentes permite repartir una tarea entre varios asistentes.\n\n• Crea un equipo desde Ajustes y selecciona sus miembros.\n• Activa el equipo en la conversación para que el asistente principal pueda delegar trabajo.\n• Puedes combinar funciones como planificación, redacción y revisión.\n\nMás miembros pueden aumentar el consumo de tokens. Empieza con un equipo pequeño.</string>
-    <string name="settings_tutorial_ch4_s9_title">Generación de vídeo &amp; tareas programadas</string>
-    <string name="settings_tutorial_ch4_s9_content">• Generación de vídeo: selecciona un modelo compatible y describe el vídeo que necesitas. El procesamiento puede continuar en segundo plano; consulta el resultado desde Tareas. El tiempo y las capacidades dependen del proveedor.\n\n• Tareas programadas: configura cuándo debe ejecutarse una acción y qué debe hacer el asistente. Puedes usarlas para recordatorios, consultas o resúmenes periódicos. Revisa la programación y el contenido en la gestión de tareas.</string>
-    <string name="settings_tutorial_ch4_s10_title">Sistema de habilidades &amp; Complementos MCP</string>
-    <string name="settings_tutorial_ch4_s10_content">• Habilidades: añaden herramientas como lectura y escritura de archivos o solicitudes HTTP. Puedes consultarlas, activarlas y desactivarlas desde la gestión de habilidades. Activa las que necesites y revisa sus permisos.\n\n• MCP (Model Context Protocol): permite conectar herramientas y fuentes de datos externas. Configura los servidores desde el apartado MCP de Ajustes.\n\nLas habilidades incorporadas y las herramientas MCP amplían las acciones disponibles para el asistente.</string>
+    <string name="settings_tutorial_ch4_s8_content">La colaboración entre múltiples agentes permite que varios roles de IA se repartan el trabajo y se coordinen dentro de una misma conversación; incluso tú puedes unirte al chat grupal.\n\n• Crear un equipo: Ajustes → Colaboración entre múltiples agentes, crea un equipo y elige varios asistentes como miembros (por ejemplo, «Redactor», «Planificador creativo», «Revisor»).\n• Chat grupal: activa el equipo en una conversación; el asistente principal divide la tarea y la delega en los miembros adecuados, y cuando cada uno responde se recopilan los resultados, como si vieras a un grupo debatiendo.\n• Casos de uso: reparto de tareas complejas (escribir un guion + sugerencias de música), lluvia de ideas desde varios puntos de vista, partidas de rol con varios personajes, etc.\n• Consejo: cuantos más miembros, más tokens se consumen; lo ideal son entre 2 y 4 miembros.</string>
+    <string name="settings_tutorial_ch4_s9_title">Generación de vídeo y tareas programadas</string>
+    <string name="settings_tutorial_ch4_s9_content">• Generación de vídeo: si el modelo del proveedor admite vídeo, puedes pedirle a la IA que genere vídeos cortos a partir de una descripción de texto. Describe la escena que quieres en el campo de entrada, elige un modelo compatible con vídeo y envía el mensaje: la tarea se procesará en segundo plano y, cuando termine, podrás ver el resultado en la página «Tareas». La generación tarda bastante, así que ten paciencia; las capacidades concretas dependen del proveedor.\n\n• Tareas programadas y mensajes proactivos: puedes crear tareas programadas para que la IA te envíe mensajes o realice acciones por iniciativa propia a una hora determinada. Por ejemplo: «Envíame el tiempo y las tareas pendientes de hoy cada día a las 8 de la mañana» o «Resume las conversaciones de la semana cada domingo por la noche». Configura la hora de activación y el contenido en Ajustes o en la página «Tareas»; llegado el momento, la IA te lo enviará por iniciativa propia, como un secretario personal.</string>
+    <string name="settings_tutorial_ch4_s10_title">Sistema de habilidades y plugins MCP</string>
+    <string name="settings_tutorial_ch4_s10_content">• Sistema de habilidades: las habilidades son capacidades de herramienta que la IA puede invocar, como leer y escribir archivos locales, enviar solicitudes HTTP, consultar bases de datos o gestionar el calendario. En Ajustes → Asistente → Gestión de habilidades puedes ver, activar y desactivar cada habilidad. Una vez activadas, la IA las invoca automáticamente cuando las necesita para ayudarte a completar tus tareas. Actívalas según las necesites, no hace falta activarlas todas: así amplías sus capacidades y a la vez controlas los riesgos.\n\n• Plugins MCP: MCP (Model Context Protocol) es un protocolo estándar que permite a la IA conectarse a herramientas y fuentes de datos externas. Al instalar plugins MCP, la IA puede conectarse a más servicios de terceros (como aplicaciones de notas, bases de datos o API). Busca el apartado MCP en Ajustes y añade la configuración del plugin. Ideal para usuarios avanzados que quieran crear flujos de trabajo personalizados.\n\nRelación entre ambos: las habilidades son herramientas ligeras integradas y MCP es el canal estándar para incorporar capacidades externas; combinados, permiten que la IA haga casi cualquier cosa. Si estás empezando, usa primero las habilidades integradas y, cuando te familiarices, explora MCP.</string>
     <string name="settings_tutorial_ch4_s11_title">Tareas pendientes y equipos de escritura</string>
-    <string name="settings_tutorial_ch4_s11_content">• Lista de tareas: en trabajos complejos, el asistente puede dividir el objetivo en pasos. Abre el indicador de tareas para consultar el progreso y los pasos pendientes.\n\n• Equipo de redacción: usa la plantilla de equipo en la configuración de colaboración entre agentes. Agrega los asistentes en el orden esquema → primer borrador → revisión. Cada miembro se encargará de una etapa del trabajo.</string>
+    <string name="settings_tutorial_ch4_s11_content">• Tareas pendientes: cuando una tarea es compleja, la IA primero la divide en una lista de tareas pendientes. Encima del campo de entrada verás el progreso «Tareas pendientes · completadas/total»; tócalo para ver la lista completa y saber en todo momento por qué paso va la IA.\n\n• Equipos de escritura: ¿quieres que varios asistentes escriban juntos? Ve a Ajustes → Colaboración entre múltiples agentes, toca «Plantilla de equipo de escritura» para crear el equipo con un toque y añade los asistentes correspondientes como miembros en el orden «Esquema → Borrador → Pulido». Después, inicia una tarea de escritura en el chat grupal y cada uno se encargará de una fase para completarla en colaboración.</string>
 
     <!-- Chapter 5 -->
     <string name="settings_tutorial_ch5_title">Capítulo 5: Personalización</string>
-    <string name="settings_tutorial_ch5_s1_title">Tema &amp; Color dinámico</string>
-    <string name="settings_tutorial_ch5_s1_content">Ve a Ajustes → Apariencia y elige el tema claro, oscuro o la opción de seguir al sistema.\n\nLos colores dinámicos adaptan la interfaz a los colores del fondo de pantalla en Android 12 o posterior. Puedes desactivarlos y elegir un color de tema manualmente.</string>
+    <string name="settings_tutorial_ch5_s1_title">Tema y color dinámico</string>
+    <string name="settings_tutorial_ch5_s1_content">Ve a Ajustes → Apariencia → Modo de tema y elige «Seguir el sistema» (se adapta automáticamente a los ajustes del móvil), «Claro» u «Oscuro». El modo oscuro cansa menos la vista por la noche.\n\nColor dinámico (Dynamic Color): al activarlo, el color principal de la aplicación cambia automáticamente según el fondo de pantalla del móvil para que la interfaz resulte más armoniosa. Disponible en Android 12 y versiones posteriores. Si prefieres un estilo uniforme, puedes desactivarlo y elegir manualmente un color de tema.</string>
     <string name="settings_tutorial_ch5_s2_title">Ajustar el tamaño de fuente</string>
-    <string name="settings_tutorial_ch5_s2_content">Ve a Ajustes → Apariencia → Tamaño del texto y elige el tamaño que te resulte más cómodo. El tamaño mediano es el predeterminado.\n\nEste ajuste modifica el texto de la aplicación. Prueba un tamaño grande si necesitas mejorar la legibilidad.</string>
+    <string name="settings_tutorial_ch5_s2_content">Ve a Ajustes → Apariencia → Tamaño del texto y elige Pequeño/Mediano/Grande/Muy grande. Mediano es el tamaño predeterminado.\n\nEl tamaño de letra afecta a toda la aplicación; elige el que te resulte más cómodo. Para personas mayores o con problemas de vista se recomienda Grande o Muy grande.</string>
     <string name="settings_tutorial_ch5_s3_title">Cambiar idioma de interfaz</string>
-    <string name="settings_tutorial_ch5_s3_content">Configuración → Apariencia → Idioma, elija \"Seguir sistema\", \"Chino\" o \"Inglés\".</string>
+    <string name="settings_tutorial_ch5_s3_content">Ve a Ajustes → Apariencia → Idioma y elige «Seguir el sistema», «Chino» o «Inglés». La interfaz se actualiza al instante tras el cambio.\n\nNota: el idioma de la interfaz solo afecta a los menús y botones, no al idioma en que responde la IA. Si quieres que la IA responda en un idioma concreto, díselo directamente en la conversación o configura un idioma de respuesta preferido en el Perfil de usuario.</string>
     <string name="settings_tutorial_ch5_s4_title">Personalización del asistente: arquitectura de tres capas de persona/relación/estilo</string>
-    <string name="settings_tutorial_ch5_s4_content">Puedes personalizar al asistente en tres aspectos:\n\n• Personalidad: nombre, identidad, historia y rasgos del personaje.\n• Relación: cómo se relaciona contigo y cómo te llama.\n• Estilo: tono, extensión de las respuestas, nivel de detalle y uso de emojis.\n\nCompleta estos apartados en la edición del asistente. Puedes empezar por la personalidad y ajustar los demás después.</string>
-    <string name="settings_tutorial_ch5_s5_title">Perfil de usuario &amp; preferencias</string>
-    <string name="settings_tutorial_ch5_s5_content">Configuración → Perfil de usuario, complete su información básica (nombre, ocupación, intereses, preferencias de comunicación, temas evitados).</string>
+    <string name="settings_tutorial_ch5_s4_content">La personalización de asistentes de Muse usa una arquitectura de tres capas que, de dentro hacia fuera, determina cómo se comporta la IA:\n\n• Capa de persona (la más importante): define «quién es» la IA: nombre, identidad, historia de fondo y personalidad de base. Ejemplo: «Te llamas Xiao Miao y eres un asistente experto venido del futuro, de carácter amable y erudito».\n• Capa de relación (intermedia): define «qué relación tiene contigo» la IA: amigo, profesor, mayordomo, compañero… y cómo te llama. La relación influye en el tono y en el grado de cercanía.\n• Capa de estilo (la más externa): define «cómo habla» la IA: estilo de lenguaje (conciso/prolijo), tono (animado/serio), longitud de las respuestas, si usa emojis, etc.\n\nPuedes rellenar estas tres capas por separado en la página de edición del asistente. Combinadas, dan a la IA mucha profundidad; por ejemplo, «erudito (persona) + profesor estricto (relación) + humor y concisión (estilo)» da lugar a un personaje único. Si estás empezando, rellena primero la persona y completa después la relación y el estilo.</string>
+    <string name="settings_tutorial_ch5_s5_title">Perfil de usuario y preferencias</string>
+    <string name="settings_tutorial_ch5_s5_content">En Ajustes → Perfil de usuario, rellena tu información básica (cómo quieres que te llame, profesión, intereses, preferencias de comunicación, temas que prefieres evitar, etc.). Esta información se inserta en el prompt del sistema de la IA para que te conozca de verdad.\n\nCuanto más detallado, mejor te entenderá la IA: si sabe que eres programador, usará términos técnicos; si sabe que prefieres respuestas concisas, irá al grano; si sabe que hay un tema que prefieres evitar, lo esquivará por su cuenta. Todos los campos son opcionales: deja en blanco los que no quieras rellenar.\n\nEs un ajuste de «se rellena una vez y se aprovecha a largo plazo»; te recomendamos encarecidamente dedicarle unos minutos.</string>
 
     <!-- Chapter 6 -->
     <string name="settings_tutorial_ch6_title">Capítulo 6: Gestión de datos</string>
-    <string name="settings_tutorial_ch6_s1_title">Historial de chat de respaldo (nube WebDAV/S3)</string>
-    <string name="settings_tutorial_ch6_s1_content">Configura una copia de seguridad en la nube desde Ajustes → Datos y copia de seguridad.\n\n• WebDAV: introduce la dirección del servidor, las credenciales y la ruta de destino.\n• S3: introduce la dirección del servicio, la clave de acceso, la clave secreta y el nombre del contenedor.\n\nHaz una copia de prueba y comprueba que termine correctamente. Si quieres copias periódicas, activa la programación y elige su frecuencia. La copia puede incluir conversaciones, asistentes y configuraciones.</string>
+    <string name="settings_tutorial_ch6_s1_title">Copia de seguridad del historial de chat (WebDAV/S3 en la nube)</string>
+    <string name="settings_tutorial_ch6_s1_content">En Ajustes → Datos y copias de seguridad puedes configurar la copia de seguridad en la nube (WebDAV o S3). Una vez configurada, el historial de chat se copia automáticamente en la nube, así que no perderás nada aunque cambies de móvil.\n\n• WebDAV: para almacenamiento en la nube propio (como Nutstore o Nextcloud). Introduce la dirección del servidor, el usuario y la contraseña, y la ruta de la copia.\n• S3: para almacenamiento de objetos (como Alibaba Cloud OSS, AWS S3 o MinIO). Introduce el endpoint, la Access Key, el Secret y el Bucket.\n\nCuando termines la configuración, toca «Hacer copia ahora» para hacer una prueba y confirmar que la subida funciona. Te recomendamos activar la copia de seguridad automática con la frecuencia que prefieras. La copia incluye conversaciones, asistentes, ajustes, etc.</string>
     <string name="settings_tutorial_ch6_s2_title">Importar datos de otras aplicaciones</string>
-    <string name="settings_tutorial_ch6_s2_content">Desde la importación de datos puedes cargar copias compatibles de aplicaciones como RikkaHub o Kelivo. Exporta primero los datos desde la aplicación de origen y selecciona el archivo en Muse.\n\nSegún el formato, pueden importarse proveedores, asistentes y conversaciones. Crea una copia de seguridad de los datos actuales antes de importar.</string>
-    <string name="settings_tutorial_ch6_s3_title">Exportar tarjetas de personajes &amp; datos</string>
-    <string name="settings_tutorial_ch6_s3_content">Abre la gestión de asistentes, mantén pulsado uno y elige exportar su tarjeta de personaje. El archivo permite importar ese asistente en otra instalación de Muse.\n\nTambién puedes exportar una copia completa desde la gestión de datos. Guarda los archivos en un lugar seguro: pueden contener conversaciones, configuraciones y otra información privada.</string>
-    <string name="settings_tutorial_ch6_s4_title">Limpiar caché &amp; ahorrar espacio</string>
-    <string name="settings_tutorial_ch6_s4_content">Las imágenes y los archivos temporales pueden ocupar espacio con el uso. Consulta las opciones de almacenamiento y gestión de datos para borrar la caché.\n\nRevisa la descripción de la acción antes de confirmarla. Algunas imágenes deberán cargarse otra vez después de limpiar los archivos temporales. También puedes eliminar conversaciones que ya no necesites.</string>
-    <string name="settings_tutorial_ch6_s5_title">Seguridad de datos &amp; privacidad</string>
-    <string name="settings_tutorial_ch6_s5_content">Las conversaciones y configuraciones se guardan en el dispositivo y pueden incluirse en las copias de seguridad que configures. Las claves API se protegen en el almacenamiento local.\n\nAl usar un proveedor externo, se le envía el contenido necesario para procesar la solicitud. Revisa los mensajes y adjuntos antes de enviarlos. La protección de datos personales (PII) puede ayudar a ocultar información sensible, pero debes comprobar el resultado.</string>
+    <string name="settings_tutorial_ch6_s2_content">En Ajustes → Importación de datos puedes importar datos de aplicaciones similares, como RikkaHub o Kelivo. Elige el origen, sigue las indicaciones para exportar el archivo de copia de seguridad desde esa aplicación y, después, selecciónalo aquí. Se importan la configuración de proveedores, los asistentes y el historial de conversaciones.\n\nLa importación combina los datos automáticamente y los duplicados no se sobrescriben. Por si acaso, te recomendamos hacer una copia de seguridad de los datos actuales antes de importar.</string>
+    <string name="settings_tutorial_ch6_s3_title">Exportar tarjetas de personaje y datos</string>
+    <string name="settings_tutorial_ch6_s3_content">En la página de gestión de asistentes, mantén pulsado un asistente y elige «Exportar tarjeta de personaje»: se generará un archivo que puedes compartir con tus amigos. Al importarlo en Muse, podrán usar un asistente con la misma configuración.\n\nAdemás de las tarjetas de personaje, en la gestión de datos también puedes exportar una copia de seguridad completa (conversaciones + asistentes + ajustes) para guardarla en local o compartirla. Guarda bien los archivos exportados, ya que pueden contener información sensible.</string>
+    <string name="settings_tutorial_ch6_s4_title">Limpiar caché y ahorrar espacio</string>
+    <string name="settings_tutorial_ch6_s4_content">Con el uso prolongado, la aplicación acumula caché (imágenes, archivos temporales, listas de modelos, etc.) que ocupa espacio en el móvil.\n\n• Cómo limpiarla: Ajustes → Almacenamiento/Gestión de datos → Borrar caché. Normalmente no se eliminan tus conversaciones ni tu configuración, solo los archivos temporales.\n• Te recomendamos limpiarla con regularidad, sobre todo si envías imágenes a menudo. Si sigues teniendo poco espacio, puedes eliminar conversaciones antiguas que ya no necesites.\n• Nota: después de limpiar la caché, puede que algunas imágenes tengan que volver a cargarse, pero la integridad de los datos no se ve afectada.</string>
+    <string name="settings_tutorial_ch6_s5_title">Seguridad de datos y privacidad</string>
+    <string name="settings_tutorial_ch6_s5_content">La seguridad de tus datos es importante:\n• Por defecto, los datos de las conversaciones solo se guardan en tu dispositivo y en tu copia de seguridad en la nube; nunca se suben a los servidores de Muse.\n• La información sensible, como las claves API, se guarda cifrada en el dispositivo, nunca en texto sin cifrar.\n• El contenido que envías a la IA pasa por los servidores del proveedor; no reveles en las conversaciones números de tarjeta bancaria, contraseñas ni otra información sensible.\n• Para una mayor privacidad, activa el enmascaramiento de PII (consulta el capítulo 7) o usa un modelo desplegado en local.</string>
 
     <!-- Chapter 7 -->
     <string name="settings_tutorial_ch7_title">Capítulo 7: Preguntas frecuentes</string>
     <string name="settings_tutorial_ch7_s1_title">¿No hay respuesta en la conversación?</string>
-    <string name="settings_tutorial_ch7_s1_content">Si no recibes una respuesta, comprueba lo siguiente:\n\n1. La clave API es correcta y está activa.\n2. La conexión de red funciona.\n3. La cuenta dispone de saldo o cuota.\n4. La URL de la API coincide con la indicada por el proveedor.\n5. El identificador del modelo es válido.\n\nSi la generación queda en espera, toca Detener y vuelve a intentarlo.</string>
+    <string name="settings_tutorial_ch7_s1_content">Las causas más habituales:\n1. La clave API es incorrecta: revísala en Ajustes\n2. No hay conexión de red: prueba con otra red\n3. Saldo insuficiente: recarga en la web del proveedor\n4. La URL de la API es incorrecta: compruébala con la documentación oficial\n5. El nombre del modelo es incorrecto: por ejemplo, escribir deepseek-chat-v1 en lugar de deepseek-chat; guíate por la lista oficial\n\nSi se queda cargando sin parar, toca el botón de detener para interrumpirlo y vuelve a enviar el mensaje.</string>
     <string name="settings_tutorial_ch7_s2_title">¿Respuestas lentas?</string>
-    <string name="settings_tutorial_ch7_s2_content">Para mejorar la velocidad:\n\n1. Prueba un modelo más rápido.\n2. Comprueba la estabilidad de la conexión y del proxy, si lo usas.\n3. Desactiva el razonamiento profundo cuando no lo necesites.\n4. Consulta si el proveedor tiene una incidencia o alta demanda.\n5. Inicia una conversación nueva o comprime el contexto si el historial es muy largo.</string>
-    <string name="settings_tutorial_ch7_s3_title">¿Cómo ahorrar el uso de tokens?</string>
-    <string name="settings_tutorial_ch7_s3_content">Los tokens se facturan por recuento de caracteres; guardar tokens ahorra dinero:\n1.</string>
+    <string name="settings_tutorial_ch7_s2_content">1. Cambia a un modelo más rápido (los modelos pequeños suelen serlo, como gpt-4o-mini o deepseek-chat)\n2. Comprueba la conexión de red: con una conexión débil, el streaming se entrecorta\n3. Desactiva el modo «Pensamiento profundo» (el proceso de pensamiento lleva tiempo)\n4. Si usas OpenAI u otros servicios extranjeros desde China, necesitas un proxy estable\n5. Evita las horas punta: cuando los servidores del proveedor están saturados, también van más lentos\n6. Reduce la longitud del contexto de cada conversación (un historial demasiado largo ralentiza las respuestas)</string>
+    <string name="settings_tutorial_ch7_s3_title">¿Cómo ahorrar tokens?</string>
+    <string name="settings_tutorial_ch7_s3_content">Los tokens son la unidad con la que se factura según la cantidad de texto; ahorrar tokens es ahorrar dinero:\n1. Configura «Modelos auxiliares» en Ajustes para que un modelo pequeño se encargue de las llamadas a herramientas y el modelo principal solo de la conversación\n2. Desactiva la búsqueda web cuando no sea necesaria (las búsquedas consumen muchos tokens)\n3. Elige modelos chinos (DeepSeek, Zhipu, etc.), mucho más baratos que OpenAI\n4. Desactiva el pensamiento profundo cuando no lo necesites (el proceso de pensamiento también se factura)\n5. Empieza conversaciones nuevas de vez en cuando para que el historial no se acumule (el contexto largo se reenvía en cada turno)\n6. Activa la compresión de la memoria larga (resume automáticamente las conversaciones muy largas y reduce el consumo de tokens)\n7. Usa modelos pequeños para las preguntas sencillas y cambia a modelos grandes para las complejas</string>
     <string name="settings_tutorial_ch7_s4_title">Cómo borrar todos los datos</string>
-    <string name="settings_tutorial_ch7_s4_content">Configuración → Gestión de datos puede tener opciones relevantes.</string>
+    <string name="settings_tutorial_ch7_s4_content">Puede que encuentres opciones para ello en Ajustes → Gestión de datos. También puedes borrar los datos de Muse desde la «Gestión de aplicaciones» de los ajustes del sistema del móvil. Atención: esto elimina todas las conversaciones y la configuración y no se puede deshacer; haz una copia de seguridad antes (consulta el capítulo 6).\n\nSi solo quieres empezar de cero sin perder la configuración, puedes eliminar únicamente las conversaciones y conservar los ajustes de proveedores y asistentes.</string>
     <string name="settings_tutorial_ch7_s5_title">¿Errores de API 401/400?</string>
-    <string name="settings_tutorial_ch7_s5_content">• 401 (no autorizado): revisa la clave API, su vigencia y sus permisos. Comprueba que no tenga espacios adicionales.\n• 400 (solicitud incorrecta): revisa el identificador del modelo, los parámetros y la longitud de la entrada. Prueba con una conversación nueva y un mensaje breve.\n• 429 (demasiadas solicitudes): puedes haber superado el límite de frecuencia o la cuota. Espera o revisa los límites de tu cuenta.\n• 5xx (error del servidor): consulta el estado del proveedor y vuelve a intentarlo más tarde.\n\nEl mensaje de error de la aplicación puede aportar más detalles.</string>
-    <string name="settings_tutorial_ch7_s6_title">¿Cómo proteger la privacidad (redacción de PII)?</string>
-    <string name="settings_tutorial_ch7_s6_content">La redacción de PII (información de identificación personal) reemplaza automáticamente la información confidencial en las conversaciones (números de teléfono, números de identificación, tarjetas bancarias, correos electrónicos) con marcadores de posición antes de enviarla a la IA; la IA no puede ver la información real;</string>
+    <string name="settings_tutorial_ch7_s5_content">• 401 Unauthorized (no autorizado): suele ser un problema de la clave API. Comprueba que la hayas introducido bien, que no tenga espacios de más y que no haya caducado ni esté desactivada. Prueba a generar una clave nueva en el panel del proveedor.\n• 400 Bad Request (solicitud incorrecta): causas habituales: nombre de modelo mal escrito, solicitud demasiado larga o parámetros incompatibles. Comprueba que el nombre del modelo coincida con el de la web oficial y prueba con una conversación nueva y corta.\n• 429 Too Many Requests (límite de frecuencia): las solicitudes son demasiado frecuentes o has superado la cuota; espera un poco y vuelve a intentarlo, o cambia de clave o de proveedor.\n• 5xx (error del servidor): es un problema del proveedor; vuelve a intentarlo más tarde o consulta su página de estado para ver si hay una incidencia.\n\nCuando se produce un error, la aplicación suele mostrar el mensaje concreto; compáralo con estas indicaciones para resolverlo.</string>
+    <string name="settings_tutorial_ch7_s6_title">¿Cómo proteger la privacidad (enmascaramiento de PII)?</string>
+    <string name="settings_tutorial_ch7_s6_content">El enmascaramiento de PII (información de identificación personal) sustituye automáticamente la información sensible de las conversaciones (números de teléfono, de documento de identidad o de tarjeta bancaria, correos electrónicos, etc.) por marcadores antes de enviarla a la IA, de modo que la IA no ve los datos reales; al mostrar la respuesta, se restauran.\n\n• Cómo activarlo: Ajustes → Privacidad/Seguridad → Enmascaramiento de PII, y activa el interruptor.\n• Cómo funciona: detecta los patrones sensibles y los enmascara en el dispositivo; todo se procesa en local y no se sube nada adicional.\n• Casos de uso: cuando hables con la IA de temas con datos personales (por ejemplo, para que te ayude a organizar tus contactos o a analizar un contrato), activarlo te dará más tranquilidad.\n• Limitaciones: el enmascaramiento se basa en reglas y puede pasar datos por alto o dar falsos positivos; sigue teniendo cuidado con la información importante y no compartas por iniciativa propia contraseñas, códigos de verificación, etc.\n\nCombinando un modelo local con el enmascaramiento de PII se consigue un nivel de privacidad muy alto.</string>
 
     <!-- CrashReportSettings.kt -->
     <string name="settings_crash_page_title">Informe de fallos</string>
@@ -291,14 +291,14 @@
     <string name="settings_crash_pending_hint_idle">Los fallos se agregarán automáticamente a la cola pendiente</string>
     <string name="settings_crash_report_now_button">Informar fallos pendientes ahora</string>
     <string name="settings_crash_settings_section">Configuración de informes</string>
-    <string name="settings_crash_enable_subtitle">Los registros solo se envian al pulsar Informar ahora</string>
+    <string name="settings_crash_enable_subtitle">Los registros solo se envían al pulsar Informar ahora</string>
     <string name="settings_crash_privacy_section">Privacidad</string>
-    <string name="settings_crash_privacy_title">Promesa de privacidad de informes de fallas</string>
-    <string name="settings_crash_privacy_content">• Desactivado de forma predeterminada;</string>
+    <string name="settings_crash_privacy_title">Compromiso de privacidad de los informes de fallos</string>
+    <string name="settings_crash_privacy_content">• Desactivado por defecto; tienes que activarlo tú para que funcione\n• Antes de enviar se muestra un diálogo de confirmación; nunca se envía nada en silencio\n• Las trazas de los fallos se anonimizan (las claves API y los Bearer token se sustituyen automáticamente por ***)\n• Solo se recopila: modelo del dispositivo / versión de Android / versión de la app / marca de tiempo\n• No se recopilan el IMEI, el Android ID, la dirección MAC ni otros identificadores únicos del dispositivo\n• Por correo: se abre la aplicación de correo para que confirmes tú el envío\n• Por webhook: HTTP POST a la URL que configures</string>
     <string name="settings_crash_confirm_dialog_title">Confirmar informe de fallo</string>
-    <string name="settings_crash_confirm_dialog_content">Se enviaran %1$d registro(s) de fallo.\n\nIncluye: traza del fallo + modelo del dispositivo + version de Android + version de la app + marca de tiempo.\nLa traza ya esta anonimizada. Continuar?</string>
+    <string name="settings_crash_confirm_dialog_content">Se enviarán %1$d registro(s) de fallo.\n\nIncluye: traza del fallo + modelo del dispositivo + versión de Android + versión de la app + marca de tiempo.\nLa traza ya está anonimizada. ¿Continuar?</string>
     <string name="settings_crash_confirm_button">Confirmar informe</string>
-    <string name="settings_crash_no_pending">No hay fallas pendientes que reportar</string>
+    <string name="settings_crash_no_pending">No hay fallos pendientes de informar</string>
     <string name="settings_web_search_mode">Modo de búsqueda</string>
     <string name="settings_web_search_mode_desc">Prioriza la búsqueda del modelo, luego las API configuradas y después Bing y Baidu HTTP.</string>
     <string name="settings_web_search_mode_auto">Automático: priorizar búsqueda del modelo</string>
@@ -315,13 +315,13 @@
     <string name="settings_web_search_max_results">Resultados máximos por búsqueda</string>
     <string name="settings_web_search_fallback">Usar búsqueda alternativa tras un fallo</string>
     <string name="settings_web_search_api_services">Servicios de búsqueda API</string>
-    <string name="settings_web_search_api_services_desc">Los usuarios avanzados pueden configurar Tavily, Brave, Serper, Bocha y otros servicios.</string>
+    <string name="settings_web_search_api_services_desc">Los usuarios avanzados pueden configurar Tavily, Brave, Serper, Bocha y otros servicios; los usuarios normales no necesitan configurar nada.</string>
     <string name="settings_web_search_diagnosis">Último diagnóstico de búsqueda</string>
     <string name="settings_web_search_no_diagnosis">Aún no hay registros de búsqueda</string>
-    <string name="settings_web_search_endpoint_optional">Punto final (opcional)</string>
+    <string name="settings_web_search_endpoint_optional">Endpoint (opcional)</string>
     <string name="settings_experiments_parallel_tools">Herramientas de solo lectura en paralelo</string>
-    <string name="settings_experiments_parallel_tools_subtitle">Cuando todas las herramientas de una ronda son de solo lectura, se ejecutan en paralelo para ser más rápido y eficiente (activado por defecto; se puede desactivar para volver a serial)</string>
-    <string name="settings_model_action_test_chat">Conversación de prueba (canal completo)</string>
+    <string name="settings_experiments_parallel_tools_subtitle">Cuando todas las herramientas de una ronda son de solo lectura, se ejecutan en paralelo para ser más rápido y eficiente (activado por defecto; se puede desactivar para volver a la ejecución en serie)</string>
+    <string name="settings_model_action_test_chat">Probar conversación (flujo completo)</string>
     <string name="settings_model_action_test_chat_short">Probar</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>
     <string name="settings_web_search_path_user_api">API del usuario</string>

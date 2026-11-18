@@ -14,7 +14,7 @@
     <string name="settings_browser_engine_bing">Bing</string>
     <string name="settings_browser_engine_baidu">Baidu</string>
     <string name="settings_browser_engine_sogou">Sogou</string>
-    <string name="settings_browser_engine_360">360 Búsqueda</string>
+    <string name="settings_browser_engine_360">360 Search</string>
     <string name="settings_browser_engine_google">Google</string>
     <string name="settings_browser_engine_duckduckgo">DuckDuckGo</string>
 </resources>

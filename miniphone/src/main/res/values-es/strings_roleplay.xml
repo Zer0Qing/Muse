@@ -20,7 +20,7 @@
     <string name="mp_rp_endings_empty">Todavía no hay finales</string>
     <string name="mp_rp_turn">Turno %1$d</string>
     <string name="mp_rp_roll">Tirada %1$d</string>
-    <string name="mp_rp_action_hint">¿Qué haces este turno…</string>
+    <string name="mp_rp_action_hint">¿Qué quieres hacer en este turno?</string>
     <string name="mp_rp_advance">Avanzar</string>
     <string name="mp_rp_conclude">Finalizar</string>
     <string name="mp_rp_delete_save">Eliminar partida</string>

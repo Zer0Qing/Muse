@@ -44,17 +44,17 @@
     <string name="proxy_disabled">Desactivado</string>
     <string name="proxy_type">Tipo</string>
     <string name="proxy_type_http">HTTP</string>
-    <string name="proxy_type_socks5">CALCETINES5</string>
-    <string name="proxy_host">Anfitrión</string>
+    <string name="proxy_type_socks5">SOCKS5</string>
+    <string name="proxy_host">Host</string>
     <string name="proxy_port">Puerto</string>
     <string name="proxy_username">Nombre de usuario</string>
     <string name="proxy_password">Contraseña</string>
     <string name="proxy_restart_hint">Se aplica a las conexiones nuevas de inmediato; las conexiones keep-alive existentes duran hasta su reciclaje</string>
-    <string name="action_save">Ahorrar</string>
+    <string name="action_save">Guardar</string>
     <string name="action_cancel">Cancelar</string>
-    <string name="action_delete">Borrar</string>
+    <string name="action_delete">Eliminar</string>
     <string name="action_edit">Editar</string>
-    <string name="action_close">Cerca</string>
+    <string name="action_close">Cerrar</string>
     <string name="action_more">Más</string>
     <string name="action_send">Enviar</string>
     <string name="action_copy">Copiar</string>
@@ -63,10 +63,10 @@
     <string name="action_collapse">Colapsar</string>
 
     <!-- Quote reply -->
-    <string name="message_action_quote">Cita</string>
-    <string name="quote_label_user">Usuario de cotización</string>
-    <string name="quote_label_assistant">Asistente de cotizaciones</string>
-    <string name="quote_clear">Cancelar cotización</string>
+    <string name="message_action_quote">Citar</string>
+    <string name="quote_label_user">Citando al usuario</string>
+    <string name="quote_label_assistant">Citando al asistente</string>
+    <string name="quote_clear">Quitar cita</string>
 
     <!-- Edit message sheet -->
     <string name="edit_message_title">Editar mensaje</string>
@@ -79,17 +79,17 @@
 <string name="voice_reconnecting">Error de red, reconectando…</string>
 
 <!-- 前端修复 (i18n-6): stop button a11y label on voice message bar -->
-<string name="voice_stop_recording">Stop recording</string>
+<string name="voice_stop_recording">Detener grabación</string>
     <string name="voice_conversation_cd_idle">Toca para iniciar la conversación</string>
-    <string name="voice_conversation_cd_listening">Grabando, toca para interrumpir</string>
+    <string name="voice_conversation_cd_listening">Grabando, toca para terminar y enviar</string>
     <string name="voice_conversation_cd_thinking">IA pensando, toca para interrumpir</string>
     <string name="voice_conversation_cd_speaking">Hablando, toca para interrumpir</string>
 
     <!-- ASR config hint -->
-    <string name="asr_missing_api_key_error">No hay clave API configurada.</string>
+    <string name="asr_missing_api_key_error">No hay ninguna clave API configurada. La entrada de voz no está disponible.</string>
     <string name="asr_error_connect_failed">No se pudo establecer la conexión</string>
     <string name="asr_error_send_session_update_failed">No se pudo enviar session.update</string>
-    <string name="asr_error_no_apikey">API Key no configurada</string>
+    <string name="asr_error_no_apikey">Clave API no configurada</string>
     <string name="asr_error_send_run_task_failed">Error al enviar run-task</string>
     <string name="asr_error_no_task_started">No se recibió task-started</string>
     <string name="asr_error_connection_exception">Error de conexión</string>
@@ -100,6 +100,35 @@
     <string name="asr_reconnecting_message">Conexión perdida, reconectando… (intento %1$d/%2$d)</string>
     <string name="asr_reconnect_exhausted">Se perdió la conexión de voz. Falló la reconexión automática tras 3 intentos. El contenido reconocido se ha conservado. Comprueba la red y vuelve a iniciar la grabación.</string>
 
+    <!-- Local offline ASR (SenseVoice) -->
+    <string name="settings_asr_provider_local_sensevoice">Modelo local sin conexión</string>
+    <string name="settings_asr_desc_local_sensevoice">El reconocimiento se hace en el dispositivo, sin conexión a internet; la primera vez hay que descargar el modelo (unos 241 MB)</string>
+    <string name="asr_local_error_model_missing">El modelo de voz sin conexión no está descargado. Descárgalo en Ajustes.</string>
+    <string name="asr_local_error_inference">El reconocimiento local ha fallado. Inténtalo de nuevo.</string>
+    <string name="asr_error_capture_generic">No se ha podido grabar. Inténtalo de nuevo.</string>
+    <string name="asr_error_capture_failed">Error al leer el micrófono (código: %1$d)</string>
+    <string name="asr_local_download_title">Modelo de voz sin conexión</string>
+    <string name="asr_local_download_desc">Tras descargarlo, el reconocimiento se hace en el dispositivo, sin conexión a internet; el modelo ocupa unos 241 MB</string>
+    <string name="asr_local_download_action">Descargar</string>
+    <string name="asr_local_download_cancel">Cancelar</string>
+    <string name="asr_local_download_retry">Reintentar</string>
+    <string name="asr_local_download_delete">Eliminar modelo</string>
+    <string name="asr_local_download_use">Usar reconocimiento local</string>
+    <string name="asr_local_download_use_done">Se ha cambiado al reconocimiento local</string>
+    <string name="asr_local_download_ready">Listo · %1$s</string>
+    <string name="asr_local_download_incomplete">La descarga está incompleta. Vuelve a descargarlo.</string>
+    <string name="asr_local_download_metered_confirm">Estás usando datos móviles y la descarga ocupa unos %1$s. ¿Quieres continuar?</string>
+    <string name="asr_local_download_insufficient_space">No hay espacio suficiente: faltan %1$s. Libera espacio e inténtalo de nuevo.</string>
+    <string name="asr_local_download_delete_confirm">¿Eliminar el modelo de voz sin conexión? El reconocimiento local dejará de estar disponible, pero puedes volver a descargarlo cuando quieras.</string>
+    <!-- Speech recognition → model download entry row / sub-page -->
+    <string name="settings_asr_local_model_entry_title">Modelo de voz sin conexión</string>
+    <string name="settings_asr_local_model_entry_not_downloaded">No descargado · unos 241 MB</string>
+    <string name="settings_asr_local_model_entry_downloading">Descargando %1$d%%</string>
+    <string name="settings_asr_local_model_entry_ready">Listo · %1$s</string>
+    <string name="settings_asr_local_model_entry_incomplete">Descarga incompleta, toca para volver a descargar</string>
+    <string name="settings_asr_local_model_entry_failed">La última descarga falló, toca para reintentar</string>
+    <string name="asr_local_model_page_hint">La descarga se hace en segundo plano dentro de la app: cambiar de pantalla o bloquear el teléfono no la interrumpe, y si cierras la app, al volver a abrirla continúa donde se quedó. El reconocimiento se hace por completo en el dispositivo, sin conexión a internet ni consumo de datos.</string>
+
     <!-- Memory add fact -->
     <string name="memory_add_fact">Agregar hecho</string>
     <string name="memory_add_fact_dialog_title">Agregar hecho</string>
@@ -107,8 +136,8 @@
     <!-- v2.0: Favorite groups -->
     <string name="favorites_group_inspiration">Inspiración</string>
     <string name="favorites_group_code">Código</string>
-    <string name="favorites_group_learning">Aprendiendo</string>
-    <string name="favorites_group_custom">Costumbre</string>
+    <string name="favorites_group_learning">Aprendizaje</string>
+    <string name="favorites_group_custom">Personalizado</string>
 
     <!-- v2.0: Data Management -->
     <string name="data_management_title">Gestión de datos</string>
@@ -118,14 +147,14 @@
     <string name="data_management_db_size">Tamaño de la base de datos</string>
     <string name="data_management_cache_size">Tamaño de caché</string>
     <string name="data_management_clear_chats">Borrar todas las conversaciones</string>
-    <string name="data_management_clear_chats_confirm">¿Borrar todas las conversaciones?</string>
+    <string name="data_management_clear_chats_confirm">¿Borrar todas las conversaciones? Esta acción no se puede deshacer.</string>
     <string name="data_management_clear_chats_done">Todas las conversaciones borradas</string>
     <string name="data_management_clear_cache">Borrar caché</string>
-    <string name="data_management_clear_cache_confirm">¿Borrar todo el caché?</string>
+    <string name="data_management_clear_cache_confirm">¿Borrar todo el caché? Volver a cargar los datos puede llevar un tiempo.</string>
     <string name="data_management_clear_cache_done">Caché borrado</string>
     <string name="data_management_reset_memory">Restablecer memoria</string>
-    <string name="data_management_reset_memory_confirm">¿Restablecer toda la memoria?</string>
-    <string name="data_management_reset_memory_done">Restablecer memoria</string>
+    <string name="data_management_reset_memory_confirm">¿Restablecer toda la memoria? La IA olvidará lo que sabe de ti.</string>
+    <string name="data_management_reset_memory_done">Memoria restablecida</string>
     <string name="data_management_entry">Gestión de datos</string>
     <string name="data_management_entry_desc">Ver el uso, borrar el caché y administrar datos</string>
 
@@ -142,7 +171,7 @@
     <string name="memory_category_other">Otro</string>
     <string name="memory_filter_today">Hoy</string>
     <string name="memory_filter_week">Esta semana</string>
-    <string name="memory_filter_month">este mes</string>
+    <string name="memory_filter_month">Este mes</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">Eliminado recientemente</string>
@@ -150,7 +179,7 @@
     <string name="recently_deleted_restore">Restaurar</string>
     <string name="recently_deleted_restore_done">Restaurado</string>
     <string name="recently_deleted_permanent_delete">Eliminar permanentemente</string>
-    <string name="recently_deleted_permanent_delete_confirm">¿Eliminar permanentemente?</string>
+    <string name="recently_deleted_permanent_delete_confirm">¿Eliminar permanentemente? Esta acción no se puede deshacer.</string>
     <string name="recently_deleted_permanent_delete_done">Eliminado permanentemente</string>
     <string name="recently_deleted_auto_clear">Eliminado automáticamente después de 7 días</string>
 
@@ -164,31 +193,31 @@
     <string name="chat_list_time_yesterday">Ayer</string>
     <string name="chat_list_time_days_ago">Hace %1$d días</string>
     <string name="err_api_error">Se produjo un error de API.</string>
-    <string name="err_auth_failed">La autenticación falló.</string>
-    <string name="err_image_api_key_missing">La generación de imágenes requiere una clave API.</string>
+    <string name="err_auth_failed">Error de autenticación. Comprueba la clave API.</string>
+    <string name="err_image_api_key_missing">La generación de imágenes requiere una clave API. Configúrala en Ajustes &gt; Proveedor.</string>
     <string name="err_image_empty_response">La generación de imágenes arrojó una respuesta vacía.</string>
     <string name="err_image_invalid_uri">URI o ruta de imagen no válida.</string>
     <string name="err_image_no_results">No se generaron imágenes.</string>
     <string name="err_image_reference_download_failed">No se pudo descargar la imagen de referencia. (%1$s)</string>
-    <string name="err_image_reference_too_large">La imagen de referencia es demasiado grande. (%1$s)</string>
-    <string name="err_image_response_too_large">La imagen generada es demasiado grande para mostrarse. (%1$s)</string>
-    <string name="err_image_unsupported_model">El modelo seleccionado no admite la generación de imágenes. (%1$s)</string>
+    <string name="err_image_reference_too_large">La imagen de referencia es demasiado grande (%1$s MB); el límite es de 10 MB.</string>
+    <string name="err_image_response_too_large">La respuesta de generación de imagen es demasiado grande (%1$s MB); el límite es de 20 MB.</string>
+    <string name="err_image_unsupported_model">El proveedor actual no admite la generación de imágenes. (%1$s)</string>
     <string name="err_invalid_argument">Se proporcionó un argumento no válido.</string>
     <string name="err_invalid_response">Respuesta no válida del servidor. (%1$s)</string>
     <string name="err_memory_config_invalid">La configuración de la memoria no es válida. (%1$s)</string>
     <string name="err_memory_token_budget_invalid">Presupuesto de token de memoria no válido. (%1$s)</string>
-    <string name="err_network_error">Error de red.</string>
-    <string name="err_no_model_selected">Ningún modelo seleccionado.</string>
-    <string name="err_no_provider_configured">Ningún proveedor configurado.</string>
+    <string name="err_network_error">Se interrumpió la conexión de red. Comprueba tu conexión.</string>
+    <string name="err_no_model_selected">El proveedor no tiene ningún modelo configurado. Añade un modelo en Ajustes.</string>
+    <string name="err_no_provider_configured">No hay ningún proveedor configurado. Ve a Ajustes e introduce una clave API.</string>
     <string name="err_not_found">Recurso no encontrado.</string>
-    <string name="err_overloaded">El servidor está sobrecargado.</string>
+    <string name="err_overloaded">El servidor está sobrecargado. Inténtalo de nuevo más tarde.</string>
     <string name="err_permission_denied">Permiso denegado.</string>
     <string name="err_precondition_failed">La condición previa de la operación falló.</string>
-    <string name="err_rate_limited">Se superó el límite de tarifa.</string>
+    <string name="err_rate_limited">Demasiadas solicitudes. Espera un poco y vuelve a intentarlo.</string>
     <string name="err_request_timeout">Se agotó el tiempo de espera de la solicitud.</string>
-    <string name="err_resource_exhausted">Recurso agotado.</string>
-    <string name="err_service_unavailable">El servicio no está disponible temporalmente.</string>
-    <string name="err_stream_interrupted">La transmisión fue interrumpida.</string>
+    <string name="err_resource_exhausted">Cuota agotada. Inténtalo de nuevo más tarde.</string>
+    <string name="err_service_unavailable">El servicio no está disponible temporalmente. Inténtalo de nuevo más tarde.</string>
+    <string name="err_stream_interrupted">Se interrumpió la conexión de streaming. Puede que la respuesta esté incompleta.</string>
     <string name="err_vertex_ai_config_invalid">La configuración de Vertex AI no es válida. (%1$s)</string>
     <string name="err_vertex_ai_token_failed">No se pudo obtener el token de acceso de Vertex AI. (%1$s)</string>
 
@@ -202,7 +231,7 @@
     <string name="settings_multi_agent_workflow">Flujo de trabajo</string>
     <string name="settings_multi_agent_workflow_desc">Definir orden de ejecución, dependencias y estrategia de agregación.</string>
     <string name="settings_multi_agent_aggregation">Agregación</string>
-    <string name="settings_multi_agent_no_workflow">No hay flujo de trabajo configurado;</string>
+    <string name="settings_multi_agent_no_workflow">No hay flujo de trabajo configurado; los miembros se ejecutarán en orden, uno tras otro</string>
     <string name="settings_multi_agent_add_node">Agregar nodo</string>
     <string name="settings_multi_agent_edit_node">Editar nodo</string>
     <string name="settings_multi_agent_node_name">Nombre de nodo</string>
