@@ -31,6 +31,15 @@
 - 模型整理的结果不会直接写入：格式不对、段落不认识、内容过长，整份作废并保持原样，不会把记忆改坏。
 - 记忆页现在能看到每段内容的来源状态和更新时间，能分辨「这是当前记忆」还是「上次失败留下的旧内容」。
 
+### 本地语音识别修好了
+
+- 修复长按麦克风没反应、要点很多次才成功的问题。
+- 修复松手后立即闪退的问题（打包优化误删了识别引擎的关键代码，导致系统直接终止应用）。
+- 修复识别引擎参数类型错误导致「录到了音但一个字都不出」的问题。
+- 语音输入现在说完自动发送，不需要再点一次发送键。
+- 识别失败时会显示具体原因，不再静默无反应。
+- 长按输入栏不再弹出全屏输入菜单（它会和麦克风抢手势）；全屏输入入口移到「+」菜单。
+
 ### 其他修复
 
 - 修复每日总结、问候语在推理模型上经常生成空白的问题。
@@ -71,6 +80,15 @@
 - Every run keeps a snapshot, so you can roll back to the previous version.
 - Model output is never written directly: unknown sections, blank or oversized content reject the whole plan and leave memory untouched.
 - Each section now shows its source status and update time, so you can tell current memory from a stale leftover.
+
+### Local speech recognition fixed
+
+- Fixed the microphone requiring many attempts before it responded to a long press.
+- Fixed an immediate crash on release (the optimizer stripped code the recognition engine needs, so the system terminated the app).
+- Fixed a parameter type error that made recognition return nothing despite recording audio.
+- Voice input now sends automatically when you release, no extra tap needed.
+- Failures now show the actual reason instead of staying silent.
+- Long-pressing the input bar no longer opens the full-screen editor (it was competing with the microphone gesture); the entry moved into the "+" menu.
 
 ### Other fixes
 
