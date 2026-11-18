@@ -13,6 +13,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.speech.TtsManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 
@@ -212,13 +213,22 @@ class ChatAudioCoordinator(
     fun stopStreamingAsrAndSend(onAutoSend: () -> Unit) {
         val controller = asrController ?: return
         if (!controller.state.value.isRecording) return
-        controller.stop()
         val generation = asrGeneration
+        controller.stop()
         accessor.coroutineScope.launch {
-            // 只等「这一次」的收尾：generation 变了说明用户又开了新录音或取消了，
-            // 此时不能再把上一轮的文本发出去。
-            controller.state
-                .first { it.status == ASRStatus.Idle || it.status == ASRStatus.Error }
+            // 先等状态真正进入收尾（Stopping），再等它离开。
+            // 直接等 Idle 会踩到竞态：stop() 之前状态可能已经是 Idle，
+            // first{} 立刻返回，此时文本还没写进输入框，发出去就是空消息。
+            // 等最终状态落定。Stopping 是瞬态（本地引擎推理只要几十毫秒，
+            // 可能根本来不及被观察到），所以不强制先等 Stopping，只等「不再是录音中」。
+            // 加超时兜底：模型加载首次可能要几秒，但超过 20s 仍无结论就当失败，
+            // 不能让用户松手后无限等待。
+            withTimeoutOrNull(AUTO_SEND_WAIT_MS) {
+                controller.state.first {
+                    it.status == ASRStatus.Idle || it.status == ASRStatus.Error
+                }
+            }
+            // 只处理「这一次」的收尾：generation 变了说明用户又开了新录音或取消了。
             if (generation != asrGeneration) return@launch
             if (controller.state.value.status == ASRStatus.Error) return@launch
             onAutoSend()
@@ -282,3 +292,6 @@ class ChatAudioCoordinator(
         return p != AsrProviderType.SYSTEM && p != AsrProviderType.DASHSCOPE_FILE
     }
 }
+
+/** 松手后等待识别结论的上限。首次加载本地模型需要几秒，给足余量但不无限等。 */
+private const val AUTO_SEND_WAIT_MS = 20_000L

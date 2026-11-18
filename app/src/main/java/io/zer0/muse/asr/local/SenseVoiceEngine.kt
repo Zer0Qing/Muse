@@ -10,7 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
-import java.nio.LongBuffer
+import java.nio.IntBuffer
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -156,16 +156,17 @@ internal object SenseVoiceEngine {
         try {
             xTensor = OnnxTensor.createTensor(active.env, java.nio.FloatBuffer.wrap(flat), xShape)
             inputs["x"] = xTensor
-            // 必须带 shape 参数：只传 (env, buffer) 会命中 createTensor(env, Object)，
-            // 那个重载按 Java 类型分派，遇到 HeapLongBuffer 直接抛
-            // "Cannot convert class java.nio.HeapLongBuffer to a OnnxTensor"——
-            // 表现为「录到了音但一个字都识别不出来」。
-            lenTensor = requireNotNull(OnnxTensor.createTensor(active.env, LongBuffer.wrap(longArrayOf(t.toLong())), ONE_SHAPE))
+            // 三个控制张量必须用 int32：模型签名要求 int32，传 int64 会被 ONNX 拒绝，
+            // "Unexpected input data type. Actual: (tensor(int64)), expected: (tensor(int32))" ——
+            // 表现同样是「录到了音但一个字都识别不出来」。
+            // 另外必须带 shape 参数：只传 (env, buffer) 会命中 createTensor(env, Object)，
+            // 那个重载按 Java 类型分派，遇到 Heap 缓冲直接抛 "Cannot convert ..."。
+            lenTensor = requireNotNull(OnnxTensor.createTensor(active.env, IntBuffer.wrap(intArrayOf(t)), ONE_SHAPE))
             if ("x_length" in active.inputNames) inputs["x_length"] = lenTensor
             langTensor = requireNotNull(
                 OnnxTensor.createTensor(
                     active.env,
-                    LongBuffer.wrap(longArrayOf(p.languageId.toLong())),
+                    IntBuffer.wrap(intArrayOf(p.languageId)),
                     ONE_SHAPE,
                 ),
             )
@@ -173,7 +174,7 @@ internal object SenseVoiceEngine {
             itnTensor = requireNotNull(
                 OnnxTensor.createTensor(
                     active.env,
-                    LongBuffer.wrap(longArrayOf((if (withItn) p.withItnId else p.withoutItnId).toLong())),
+                    IntBuffer.wrap(intArrayOf(if (withItn) p.withItnId else p.withoutItnId)),
                     ONE_SHAPE,
                 ),
             )

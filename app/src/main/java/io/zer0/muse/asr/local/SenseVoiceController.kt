@@ -148,7 +148,14 @@ internal class SenseVoiceController(
                     setError(e.message ?: appContext.getString(io.zer0.muse.R.string.asr_local_error_inference))
                 }
             } finally {
-                _state.update { it.copy(status = ASRStatus.Idle, amplitudes = emptyList()) }
+                // 不能无条件写 Idle：识别失败时 setError 刚把状态置成 Error，
+                // 这里再盖成 Idle 会把错误提示瞬间抹掉，用户只看到「松手后什么都没发生」。
+                // 只有仍处于 Stopping（正常收尾）时才回 Idle。
+                if (_state.value.status == ASRStatus.Stopping) {
+                    _state.update { it.copy(status = ASRStatus.Idle, amplitudes = emptyList()) }
+                } else {
+                    _state.update { it.copy(amplitudes = emptyList()) }
+                }
             }
         }
     }
