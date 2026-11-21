@@ -56,9 +56,18 @@ class ImageModelCatalogTest {
         val model = ImageModelCatalog.resolveById("custom-model")
         assertEquals("custom-model", model?.id)
         assertEquals(1, model?.maxN)
-        assertFalse(model?.supportsReferenceImage == true)
         assertEquals(6, model?.supportedSizes?.size)
         assertNull(ImageModelCatalog.resolveById(null))
         assertNull(ImageModelCatalog.resolveById(""))
+    }
+
+    @Test
+    fun `未知模型默认允许参考图`() {
+        // 2026-11-21 用户反馈:中转站的绘图模型不在内置目录里,此前一律被判成
+        // 「不支持参考图」且界面无法覆盖。未收录模型现在默认放开,由服务端兜底。
+        assertTrue(ImageModelCatalog.resolveById("my-relay/qwen-image")?.supportsReferenceImage == true)
+        assertTrue(ImageModelCatalog.resolveById("custom-model")?.supportsReferenceImage == true)
+        // 已知不支持的模型仍须为 false,不能被这条放开波及
+        assertFalse(ImageModelCatalog.resolveById("dall-e-3")?.supportsReferenceImage == true)
     }
 }

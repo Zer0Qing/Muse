@@ -167,6 +167,14 @@ object ImageModelCatalog {
      * 对于目录中的已知模型(如 dall-e-3 / gpt-image-1)返回目录数据;
      * 对于用户自定义或未收录的模型,返回一组宽松默认值,
      * 使其仍能正常展示尺寸/质量/风格选项并走 Image API。
+     *
+     * 2026-11-21:未收录模型的 [ImageModel.supportsReferenceImage] 由 false 改为 true。
+     * 原因(用户反馈):中转站/自建网关的绘图模型 id 永远不在这个内置目录里,
+     * 于是「参考图」入口一律被判成「当前模型不支持参考图」并禁用,用户在界面上
+     * **没有任何办法**打开它 —— 即使上游确实支持图生图。
+     * 客户端拦掉的代价是能力被静默阉割;放开后若上游真的不支持,请求会带回明确的
+     * 服务端错误,用户至少知道原因。两害相权,选放开。
+     * 已知不支持参考图的模型仍由目录里的显式 false 拦住(如 dall-e-3)。
      */
     fun resolveById(id: String?): ImageModel? {
         if (id.isNullOrBlank()) return null
@@ -184,7 +192,7 @@ object ImageModelCatalog {
             ),
             supportedQualities = listOf("standard", "hd", "high", "medium", "low", "auto"),
             supportedStyles = listOf("vivid", "natural"),
-            supportsReferenceImage = false,
+            supportsReferenceImage = true,
             // L-IMG10: 未知模型 maxN 取保守值 1(原先 10 易触发按次计费超额)
             maxN = 1,
             supportsB64Json = true,
