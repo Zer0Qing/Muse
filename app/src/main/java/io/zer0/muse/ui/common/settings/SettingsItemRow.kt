@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,7 +28,6 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
 
 /**
  * 通用设置项行 — 左侧图标 + 标题 + 副标题,右侧 trailing 内容。
@@ -87,22 +84,15 @@ fun SettingsItemRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
+        // 与 SettingsSwitchRow 同口径：图标直接画，不套彩色方块。
+        // 一列同色圆角砖的视觉重量会盖过标题本身，图标独自出现已足够定位。
         if (icon != null) {
-            // 36dp 图标槽(圆角 8dp 背景色块)
-            Surface(
-                modifier = Modifier.size(36.dp),
-                shape = MuseShapes.small,
-                color = colorScheme.primaryContainer.copy(alpha = 0.15f),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = colorScheme.primary,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                }
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
+            )
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
