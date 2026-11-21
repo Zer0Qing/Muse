@@ -21,6 +21,8 @@ import io.zer0.muse.ui.ChatErrorType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.screen.SearchScreen
+import io.zer0.muse.ui.screen.LorebookScreen
 
 /**
  * v1.105 阶段 2: 从 ChatViewModel 抽离的杂项 Coordinator。

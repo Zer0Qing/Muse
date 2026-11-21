@@ -21,6 +21,8 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.workspace.WorkspaceManager
+import io.zer0.muse.ui.screen.WorkspaceScreen
+import io.zer0.muse.ui.screen.workspaceDirectoryLabelRes
 
 /**
  * 当前层的标题：根显示「工作区」；目录显示末段名；
@@ -104,7 +106,7 @@ internal fun WorkspaceQuickPickDialog(onOpen: (String) -> Unit, onDismiss: () ->
                     SettingsItemRow(
                         icon = MuseIcons.folder,
                         // 与 WorkspaceScreen 条目行同一份内置目录映射，选择器与打开页叫法一致。
-                        title = io.zer0.muse.ui.workspaceDirectoryLabelRes(entry.name)
+                        title = workspaceDirectoryLabelRes(entry.name)
                             ?.let { stringResource(it) } ?: entry.name,
                         onClick = {
                             stack.enter(WorkspacePickStack.normalize(entry.relativePath))

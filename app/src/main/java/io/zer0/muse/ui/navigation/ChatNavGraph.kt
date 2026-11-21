@@ -16,7 +16,6 @@ import io.zer0.muse.ui.ChatListScreen
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.HomeScreen
-import io.zer0.muse.ui.SearchScreen
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
@@ -31,6 +30,7 @@ import io.zer0.muse.ui.screen.MilestoneScreen
 import io.zer0.muse.ui.screen.FolderDetailScreen
 import io.zer0.muse.ui.screen.ArchivedChatsScreen
 import io.zer0.muse.ui.screen.RecentlyDeletedScreen
+import io.zer0.muse.ui.screen.SearchScreen
 
 /**
  * 聊天域 NavGraph — 包含首页、搜索、聊天详情、群聊详情、最近删除、快速记录、

@@ -15,10 +15,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import io.zer0.muse.R
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.LorebookScreen
-import io.zer0.muse.ui.PromptInjectionScreen
 import io.zer0.muse.ui.QuickMessageScreen
-import io.zer0.muse.ui.SkillScreen
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.WindowWidthClass
@@ -33,6 +30,9 @@ import io.zer0.muse.ui.assistant.AssistantExtensionsPage
 import io.zer0.muse.ui.assistant.AssistantMemoryPage
 import io.zer0.muse.ui.assistant.AssistantScreen
 import io.zer0.muse.ui.screen.FavoritesScreen
+import io.zer0.muse.ui.screen.SkillScreen
+import io.zer0.muse.ui.screen.LorebookScreen
+import io.zer0.muse.ui.screen.PromptInjectionScreen
 
 /**
  * 助手域 NavGraph — 包含助手管理、助手详情及 5 个子页、收藏夹、世界书、

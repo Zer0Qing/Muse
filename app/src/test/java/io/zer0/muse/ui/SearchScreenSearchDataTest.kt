@@ -4,6 +4,8 @@ import io.zer0.muse.data.session.SearchResult
 import io.zer0.muse.data.session.SessionEntity
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import io.zer0.muse.ui.screen.filterSearchSessions
+import io.zer0.muse.ui.screen.uniqueSearchResults
 
 class SearchScreenSearchDataTest {
 

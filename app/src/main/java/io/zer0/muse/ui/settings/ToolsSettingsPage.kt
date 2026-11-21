@@ -43,11 +43,12 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.screen.ToolsScreen
 
 /**
  * v1.0.20: 工具批准管理页 — 单工具粒度的审批策略。
  *
- * 与 [io.zer0.muse.ui.ToolsScreen] 的区别:
+ * 与 [ToolsScreen] 的区别:
  *  - ToolsScreen 是只读展示(工具列表 + 详情弹窗),不可控
  *  - 本页是可写管理页:每个工具可在三档策略间切换
  *    - ALWAYS_ALLOW:始终允许(等价于该工具的白名单)

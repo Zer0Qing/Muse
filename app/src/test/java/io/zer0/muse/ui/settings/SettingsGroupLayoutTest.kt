@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import io.zer0.muse.ui.screen.ToolsScreen
 
 /**
  * 设置入口清单的结构回归锁定。

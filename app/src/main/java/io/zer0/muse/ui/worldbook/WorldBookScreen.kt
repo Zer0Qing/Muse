@@ -66,6 +66,7 @@ import io.zer0.muse.worldbook.WorldBookRepository
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.util.UUID
+import io.zer0.muse.ui.screen.LorebookScreen
 
 /**
  * P1-2: Worldbook(动态世界书)管理页。

@@ -8,7 +8,6 @@ import androidx.navigation.toRoute
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.license.LicensesScreen
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.WorkspaceScreen
 import io.zer0.muse.ui.account.AccountScreen
 import io.zer0.muse.ui.dev.ComponentGalleryScreen
 import io.zer0.muse.ui.knowledge.KnowledgeScreen
@@ -58,6 +57,7 @@ import org.koin.compose.koinInject
 import io.zer0.muse.ui.debug.DebugScreen
 import io.zer0.muse.ui.memory.MemoryScreen
 import io.zer0.muse.ui.settings.SettingsScreen
+import io.zer0.muse.ui.screen.WorkspaceScreen
 
 /**
  * 设置域 NavGraph — 包含设置主页 + 31 个二级/三级设置页(账户/模型/外观/代理/多 Agent/

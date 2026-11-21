@@ -150,6 +150,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import io.zer0.muse.ui.memory.SessionMemoryCache
 import io.zer0.muse.ui.screen.FavoritesScreen
+import io.zer0.muse.ui.screen.SearchScreen
+import io.zer0.muse.ui.screen.LorebookScreen
+import io.zer0.muse.ui.screen.PromptInjectionScreen
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。

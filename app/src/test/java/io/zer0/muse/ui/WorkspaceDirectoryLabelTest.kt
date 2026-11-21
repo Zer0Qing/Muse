@@ -4,6 +4,7 @@ import io.zer0.muse.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import io.zer0.muse.ui.screen.workspaceDirectoryLabelRes
 
 /**
  * 内置目录中文映射（用户反馈 02①）。
