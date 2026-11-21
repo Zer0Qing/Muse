@@ -21,6 +21,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import io.zer0.muse.ui.assistant.AssistantScreen
 
 /**
  * v2.7.x(E3): 导入的隔离性与「不自动切换」。

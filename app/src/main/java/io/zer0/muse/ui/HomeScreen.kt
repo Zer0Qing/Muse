@@ -64,6 +64,7 @@ import io.zer0.muse.update.UpdateNotifier
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
 
 // M-CS7: tabs 列表提为文件级 val,避免每次 recomposition 重新创建(原在 Composable 内 listOf)
 // 存资源 id(Int) 与页面序号,UI 层统一用 stringResource 解析。

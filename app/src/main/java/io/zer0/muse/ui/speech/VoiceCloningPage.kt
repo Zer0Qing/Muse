@@ -65,6 +65,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.assistant.VideoGenerationPage
 
 /**
  * P2-9: 语音克隆页 — 全屏工具页。

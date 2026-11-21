@@ -68,6 +68,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
 
 /** v1.25: 委托给助手 Sheet 的两种触发模式。 */
 internal sealed class DelegateSheetMode {

@@ -50,7 +50,6 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.tools.DelegationContract
-import io.zer0.muse.ui.ModelSwitchSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseDropdown
@@ -74,6 +73,7 @@ import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.UUID
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
 
 /**
  * v1.25: 多 Agent 协作团队管理页。

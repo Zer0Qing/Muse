@@ -79,7 +79,6 @@ import io.zer0.muse.R
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
 import io.zer0.muse.ui.ChatSelectionBar
 import io.zer0.muse.ui.DateSeparator
-import io.zer0.muse.ui.ModelSwitchSheet
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.MusePopover
@@ -111,6 +110,7 @@ import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
 
 /**
  * 群聊详情页 — 消息流 + 输入栏 + Agent 轮转回复。

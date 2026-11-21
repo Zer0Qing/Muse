@@ -21,6 +21,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
 import java.io.File
+import io.zer0.muse.ui.assistant.AssistantScreen
 
 /**
  * Assistant 领域模型 + 仓库(Phase 8.2)。

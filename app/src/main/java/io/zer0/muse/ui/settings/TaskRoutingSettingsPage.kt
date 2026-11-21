@@ -32,7 +32,6 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.routing.UtilityModelBinding
 import io.zer0.muse.data.routing.UtilityModelHealth
 import io.zer0.muse.data.routing.UtilityTier
-import io.zer0.muse.ui.ModelSwitchSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -44,6 +43,7 @@ import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
 
 /**
  * v2.x: 辅助模型设置页(原"任务路由"页重构)。
