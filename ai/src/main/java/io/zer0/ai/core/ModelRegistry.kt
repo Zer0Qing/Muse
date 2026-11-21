@@ -773,19 +773,9 @@ object ModelRegistry {
         return matches
     }
 
-    /** 去掉常见聚合前缀后再匹配模型能力，保留原始 ID 只用于请求本身。 */
-    private fun stripAggregatorPrefix(modelId: String): String {
-        val raw = modelId.trim().lowercase()
-        // v2.6.1: 先剥中转站前导分组标签(如 `[ais]gemini-3.8-flash`),再按聚合前缀处理。
-        val deLabeled = stripChannelGroupLabels(raw)
-        val prefixes = listOf(
-            "openrouter/", "opencode-go/", "siliconflow/", "dashscope/",
-            "deepseek-ai/", "zhipu/", "qwen/", "openai/", "anthropic/",
-        )
-        return prefixes.firstOrNull { deLabeled.startsWith(it) }?.let(deLabeled::removePrefix)
-            ?: deLabeled.substringAfterLast('/').takeIf { it.isNotBlank() }
-            ?: deLabeled
-    }
+    /** 去掉聚合前缀后再匹配模型能力，保留原始 ID 只用于请求本身。
+     *  规则统一由 [normalizeModelIdForLookup] 提供，避免各处白名单漂移。 */
+    private fun stripAggregatorPrefix(modelId: String): String = normalizeModelIdForLookup(modelId)
 
     /**
      * 查询输入模态。未命中返回空集合(由调用方决定兜底,通常默认 ["text"])。

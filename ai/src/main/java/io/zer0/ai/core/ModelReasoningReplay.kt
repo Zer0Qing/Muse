@@ -42,19 +42,9 @@ data class ModelReasoningDeclaration(
  * （不像 thinkingFormat 注入会触发 400）。
  */
 object ModelReasoningReplayResolver {
-    /** 模型 id 归一化：去聚合站/厂商前缀，转小写。 */
-    private fun normalize(modelId: String): String {
-        val raw = modelId.trim().lowercase()
-        val prefixes =
-            listOf(
-                "openrouter/", "opencode-go/", "siliconflow/", "dashscope/",
-                "deepseek-ai/", "zhipu/", "qwen/", "openai/", "anthropic/",
-                "moonshotai/", "google/", "vertex/",
-            )
-        val stripped = prefixes.firstOrNull { raw.startsWith(it) }?.let(raw::removePrefix) ?: raw
-        // 剥离聚合前缀后可能仍带厂商段(如 "deepseek/deepseek-v4")，统一取最后一段。
-        return stripped.substringAfterLast('/').takeIf { it.isNotBlank() } ?: stripped
-    }
+    /** 模型 id 归一化：去渠道分组标签、聚合站/厂商前缀，转小写。
+     *  规则统一由 [normalizeModelIdForLookup] 提供（含白名单 + `/` 兜底）。 */
+    private fun normalize(modelId: String): String = normalizeModelIdForLookup(modelId)
 
     /**
      * 推断模型级回放声明；无声明时返回 null（由 ProviderCompat 或默认行为接管）。

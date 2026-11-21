@@ -89,4 +89,24 @@ class DeepSeekModelNameTest {
         // 模型名中间的方括号不属于前导标签,不剥离。
         assertEquals("model[1]", stripChannelGroupLabelsImpl("model[1]"))
     }
+
+    // ── 2026-11-21: 请求层默认不改写模型名 ────────────────────────
+    // 外部反馈(附真机验证):部分中转站把 [ais]xxx 当作真实模型名,剥掉反而 503。
+    // 模型名是上游的不透明标识,客户端不应替他改写。
+
+    @Test
+    fun `请求层默认原样透传带分组标签的模型名`() {
+        assertEquals("[ais]gemini-3.8-flash", outgoingModelId("[ais]gemini-3.8-flash", ""))
+        assertEquals("[A][vip]claude-3", outgoingModelId("[A][vip]claude-3", ""))
+    }
+
+    @Test
+    fun `显式配置 stripModelPrefix 时才剥离`() {
+        assertEquals("gemini-3.8-flash", outgoingModelId("[ais]gemini-3.8-flash", "[ais]"))
+        // 配置的前缀不匹配时不动
+        assertEquals("[ais]gemini-3.8-flash", outgoingModelId("[ais]gemini-3.8-flash", "openai/"))
+        // 富途/中转的斜杠前缀同样只在显式配置时剥
+        assertEquals("gpt-4o", outgoingModelId("openai/gpt-4o", "openai/"))
+        assertEquals("openai/gpt-4o", outgoingModelId("openai/gpt-4o", ""))
+    }
 }

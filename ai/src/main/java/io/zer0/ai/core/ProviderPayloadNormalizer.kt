@@ -144,10 +144,7 @@ object ProviderPayloadNormalizer {
      * 历史记录与当前选择常来自不同的展示形态（`[ais]gemini-3.8-flash` / `openrouter/x/y` /
      * 大小写差异），归一后才能判定为同一模型；归一后仍不同则按跨模型处理。
      */
-    private fun replayModelKey(modelId: String): String {
-        val stripped = stripChannelGroupLabels(modelId).trim().lowercase()
-        return stripped.substringAfterLast('/').ifBlank { stripped }
-    }
+    private fun replayModelKey(modelId: String): String = normalizeModelIdForLookup(modelId)
 
     /**
      * v1.x: 剥离 assistant 消息中的产物占位符标记 `[artifact:uuid]`。

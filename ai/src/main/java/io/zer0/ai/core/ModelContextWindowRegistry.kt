@@ -203,24 +203,9 @@ object ModelContextWindowRegistry {
     // ── 模型名 token 数推断正则(如 "model-128k" / "model-1m" / "model-200k") ──
     private val TOKEN_PATTERN = Regex("""(\d+)([km])""", RegexOption.IGNORE_CASE)
 
-    /**
-     * 部分中转/聚合平台会在模型 ID 前加 provider 前缀(如 openrouter/、opencode-go/)。
-     * 先把这些已知前缀剥掉,再用核心 modelId 去匹配注册表。
-     */
-    private val KNOWN_PREFIXES = listOf(
-        "opencode-go/",
-        "openrouter/",
-        "anthropic/",
-        "google/",
-        "openai/",
-        "meta-llama/",
-        "mistralai/",
-        "nousresearch/",
-        "deepinfra/",
-        "togethercomputer/",
-        "accounts/fireworks/models/",
-        "presets/",
-    )
+    // 前缀剥离统一走 normalizeModelIdForLookup(白名单 + `/` 兜底)。
+    // 此前这里自带一份白名单且**没有 `/` 兜底**,用户自建中转站的自定义前缀
+    // (如 `myrelay/gpt-4o`)查不到窗口 → 上下文窗口与输出上限均为 null。
 
     /**
      * v1.80 (M-CORE10): 运行时注册模型上下文窗口,支持新模型无需发版。
@@ -251,10 +236,10 @@ object ModelContextWindowRegistry {
         // v1.80 (M-CORE10): 动态注册优先
         synchronized(dynamicRegistry) { dynamicRegistry[id] }?.let { return it }
 
-        // 0. 剥掉常见 provider 前缀
-        KNOWN_PREFIXES.firstOrNull { id.startsWith(it) }?.let { prefix ->
-            id = id.removePrefix(prefix)
-            // 剥前缀后再查一次动态注册
+        // 0. 剥掉 provider 前缀(白名单 + `/` 兜底),剥后再查一次动态注册
+        val normalized = normalizeModelIdForLookup(id)
+        if (normalized != id) {
+            id = normalized
             synchronized(dynamicRegistry) { dynamicRegistry[id] }?.let { return it }
         }
 

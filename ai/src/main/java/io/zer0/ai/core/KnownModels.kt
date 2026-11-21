@@ -96,30 +96,12 @@ object KnownModels {
     private data class ProviderKey(val provider: String, val modelId: String)
 
     /**
-     * 部分中转/聚合平台会在模型 ID 前加 provider 前缀(如 openrouter/、openai/),
-     * 剥掉后再查核心 modelId。
+     * 前缀剥离统一走 [normalizeModelIdForLookup]。
+     *
+     * 此前这里自带一份白名单且**没有 `/` 兜底**,导致用户自建中转站的自定义前缀
+     * (如 `myrelay/gpt-4o`)查不到上下文窗口与输出上限 —— 表现为该模型「用不了」。
      */
-    private val KNOWN_PREFIXES: List<String> = listOf(
-        "openrouter/",
-        "opencode-go/",
-        "anthropic/",
-        "google/",
-        "openai/",
-        "meta-llama/",
-        "mistralai/",
-        "nousresearch/",
-        "deepinfra/",
-        "togethercomputer/",
-        "accounts/fireworks/models/",
-        "presets/",
-    )
-
-    private fun stripPrefix(id: String): String {
-        for (prefix in KNOWN_PREFIXES) {
-            if (id.startsWith(prefix)) return id.removePrefix(prefix)
-        }
-        return id
-    }
+    private fun stripPrefix(id: String): String = normalizeModelIdForLookup(id)
 
     /** 剥除聚合平台前缀并转小写，用于按模型家族判断（如 Anthropic 的 `claude` 前缀）。 */
     internal fun normalizeModelIdForFamily(modelId: String): String = stripPrefix(modelId.trim().lowercase())

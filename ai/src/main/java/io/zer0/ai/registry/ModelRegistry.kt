@@ -415,32 +415,16 @@ object ModelRegistry {
     }
 
     /**
-     * 剥掉常见中转/聚合平台前缀(如 openrouter/、opencode-go/)。
-     * 若不含前缀,则返回最后一个 `/` 之后的部分(兜底)。
+     * 剥掉中转/聚合平台前缀后再匹配能力定义。
      *
-     * v1.0.1 (P3): 补全国内常见中转站前缀(siliconflow/、dashscope/、baichuan/、lingyi/ 等),
-     *  兜底逻辑(substringAfterLast("/"))其实已能处理任意前缀,但显式列出可避免
-     *  某些带版本号前缀(如 "accounts/fireworks/models/")被错误剥离。
+     * 规则统一由 [io.zer0.ai.core.normalizeModelIdForLookup] 提供:
+     * 剥 `[分组]` 标签 → 命中白名单则精确剥 → 白名单外取最后一个 `/` 之后。
+     * 此前本文件自维护一份 27 项白名单,与 [io.zer0.ai.core.KnownModels] 的 12 项、
+     * [io.zer0.ai.core.ModelContextWindowRegistry] 的 12 项各不相同,导致同一模型 ID
+     * 在不同查表路径上得出不一致结果。
      */
-    private fun stripAggregatorPrefix(modelId: String): String {
-        val raw = modelId.trim().lowercase()
-        // v2.6.1: 先剥中转站前导分组标签(如 `[ais]gemini-3.8-flash`),再按聚合前缀处理。
-        val deLabeled = io.zer0.ai.core.stripChannelGroupLabels(raw)
-        val prefixes = listOf(
-            // 海外聚合站
-            "openrouter/", "opencode-go/", "anthropic/", "google/", "openai/",
-            "meta-llama/", "mistralai/", "nousresearch/", "deepinfra/", "togethercomputer/",
-            "accounts/fireworks/models/", "presets/",
-            // v1.0.1 (P3): 国内中转站 / 聚合站
-            "siliconflow/", "dashscope/", "baichuan/", "lingyi/", "lingyiwanwu/",
-            "stepfun/", "zhipu/", "bigmodel/", "minimax/", "moonshot/",
-            "doubao/", "volcengine/", "ark/", "hunyuan/", "qwen/", "aliyun/",
-        )
-        for (prefix in prefixes) {
-            if (deLabeled.startsWith(prefix)) return deLabeled.removePrefix(prefix)
-        }
-        return deLabeled.substringAfterLast("/").takeIf { it.isNotBlank() } ?: deLabeled
-    }
+    private fun stripAggregatorPrefix(modelId: String): String =
+        io.zer0.ai.core.normalizeModelIdForLookup(modelId)
 
     /**
      * 解析模型 ID 对应的能力。
