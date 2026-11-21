@@ -10,26 +10,20 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseCornerRadius
 
 /**
- * 分组容器 — 一组共用圆角容器,行间用细分割线分隔。
+ * 分组容器 — 一组共用圆角容器。
  *
- * v0.34: 自包含实现 — 渲染为 Surface 卡片(surfaceVariant 0.5f 背景 + 20dp 圆角),
- * 与 [io.zer0.muse.ui.common.surface.CardGroup] 视觉一致。保留此兼容封装供现有二级页
- * (BackupSection / ThemeSection / AboutSection 等)继续使用;一级设置页与新页面
- * 直接用 CardGroup + DSL item。
+ * **新代码不要用。** 用 [io.zer0.muse.ui.common.surface.CardGroup] + `item(...)`。
  *
- * 对齐系统设置列表的分组视觉。
+ * 保留原因：存量页面里有一部分分组内容不是标准「图标 + 标题 + 副标题 + 右侧控件」
+ * 四件套（内嵌 MuseCapsuleTab / MuseTextField / when 分支 / 表单列），
+ * 而本容器的 content 是 `@Composable` 作用域、CardGroup 的 item 是普通 DSL ——
+ * 两者作用域模型不同，这些页面无法机械迁移。
  *
- * 用法:
- * ```
- * SettingsGroup {
- *     SettingsItemRow(icon, "标题", "副标题") { onClick() }
- *     SettingsGroupDivider()
- *     SettingsSwitchRow(icon, "开关", checked) { onChange(it) }
- * }
- * ```
+ * 视觉上两者已经一致（同一 surface 背景、同一 outlineVariant 描边、圆角同源），
+ * 所以存量页面不迁也不影响观感。
  *
  * @param modifier Modifier(默认 fillMaxWidth)
- * @param content 分组内容(由调用方插入 [SettingsItemRow] / [SettingsSwitchRow] / [SettingsGroupDivider])
+ * @param content 分组内容
  */
 @Deprecated(
     "CMP-06: co-exists with CardGroup; consolidate to CardGroup + DSL items",
