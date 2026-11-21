@@ -3,7 +3,6 @@ package io.zer0.muse.ui
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -1021,7 +1020,7 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
             val bgContext = LocalContext.current
             val bgLauncher =
                 rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.PickVisualMedia(),
+                    contract = ActivityResultContracts.GetContent(),
                 ) { uri ->
                     uri?.let { picked ->
                         bgScope.launch {
@@ -1080,7 +1079,7 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                                         .clip(RoundedCornerShape(14.dp))
                                         .clickable {
                                             bgLauncher.launch(
-                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                                "image/*",
                                             )
                                         }
                                         .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -1090,7 +1089,7 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                     },
                     modifier =
                     Modifier.clickable {
-                        bgLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        bgLauncher.launch("image/*")
                     },
                 )
             }

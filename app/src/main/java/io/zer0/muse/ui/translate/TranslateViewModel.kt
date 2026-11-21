@@ -78,6 +78,14 @@ class TranslateViewModel(
         val batchTranslating: Boolean = false,
         /** v1.0.30 gap4.6: 术语表(原文 → 译文),由 UI 触发刷新后填充。 */
         val glossary: Map<String, String> = emptyMap(),
+        /**
+         * 2026-11-20 真机反馈(P1-16/P0-3):多模态翻译选中的图片(JPEG base64,无 data: 前缀)。
+         *
+         * 此前相机入口只走本地 OCR:OCR 不可用或识别为空时,用户选完图回到页面**什么都看不到**
+         * (原文框空、字数 0),像是选图没生效。改为:图片直接进这个字段并展示缩略图,
+         * 翻译时随 USER 消息一起发给视觉模型,不再依赖本地 OCR 是否可用。
+         */
+        val pendingImageBase64: String? = null,
     )
 
     /** v1.97: 翻译历史记录项。 */
@@ -185,23 +193,33 @@ class TranslateViewModel(
         _state.update { it.copy(translationStyle = style) }
     }
 
-    /** 交换源语言与目标语言,并将当前译文回填到输入框(便于继续翻译)。 */
-    fun swapLanguages() {
+    /**
+     * 交换源语言与目标语言,并将当前译文回填到输入框(便于继续翻译)。
+     *
+     * 2026-11-20(P3-12):源语言为「自动检测」时**不交换**,返回 false 让 UI 给提示。
+     * 旧实现会把源设成目标语言、目标再设成 `TARGET_LANGUAGES.first()`,两边常常正好相同,
+     * 用户看到的就是「点了没反应」——而且没有任何解释。
+     *
+     * @return true=已交换;false=源语言是自动检测,调用方应提示用户先选源语言
+     */
+    fun swapLanguages(): Boolean {
         val current = _state.value
+        if (current.sourceLanguage == SOURCE_AUTO) return false
         translateJob?.cancel()
         _state.update {
             it.copy(
                 sourceLanguage = current.targetLanguage,
-                targetLanguage = if (current.sourceLanguage == SOURCE_AUTO) TARGET_LANGUAGES.first() else current.sourceLanguage,
+                targetLanguage = current.sourceLanguage,
                 inputText = current.translatedText,
                 translatedText = "",
                 translating = false,
                 errorMessage = null,
             )
         }
+        return true
     }
 
-    /** 清空输入和译文。 */
+    /** 清空输入、译文与待翻译图片。 */
     fun clear() {
         translateJob?.cancel()
         _state.update {
@@ -210,8 +228,25 @@ class TranslateViewModel(
                 translatedText = "",
                 translating = false,
                 errorMessage = null,
+                pendingImageBase64 = null,
             )
         }
+    }
+
+    /**
+     * 2026-11-20(P1-16):挂上一张待翻译图片(JPEG base64,无 data: 前缀)。
+     *
+     * 选图后立刻进状态,UI 据此显示缩略图 —— 用户马上能看到"图确实选上了",
+     * 不再像修复前那样选完图回到页面一片空白。
+     */
+    fun attachImage(base64: String) {
+        if (base64.isBlank()) return
+        _state.update { it.copy(pendingImageBase64 = base64, errorMessage = null) }
+    }
+
+    /** 移除待翻译图片。 */
+    fun clearImage() {
+        _state.update { it.copy(pendingImageBase64 = null) }
     }
 
     /** v1.97: 加载历史记录项到输入框(重新翻译或查看)。 */
@@ -274,11 +309,18 @@ class TranslateViewModel(
     fun translate() {
         val current = _state.value
         if (current.translating) return
-        if (current.inputText.isBlank()) return
+        // 2026-11-20(P1-16):有图片时即使原文为空也允许翻译 —— 图片本身就是输入。
+        val hasImage = current.pendingImageBase64 != null
+        if (current.inputText.isBlank() && !hasImage) return
 
-        // gap4.8: 缓存命中直接返回
-        val cacheKey = buildCacheKey(current.inputText, current.targetLanguage, current.translationStyle)
-        val cached = translateCache.get(cacheKey)
+        // gap4.8: 缓存命中直接返回(图片输入不参与缓存:同一段文字配不同图片结果不同)
+        val cacheKey =
+            if (hasImage) {
+                null
+            } else {
+                buildCacheKey(current.inputText, current.targetLanguage, current.translationStyle)
+            }
+        val cached = cacheKey?.let { translateCache.get(it) }
         if (cached != null) {
             _state.update {
                 it.copy(
@@ -301,15 +343,32 @@ class TranslateViewModel(
 
         translateJob = viewModelScope.launch {
             try {
-                val prompt = buildTranslationPrompt(
-                    text = current.inputText,
-                    targetLanguage = current.targetLanguage,
-                    sourceLanguage = current.sourceLanguage,
-                    style = current.translationStyle,
-                    customStyles = current.customStyles,
-                    glossary = current.glossary,
+                val image = current.pendingImageBase64
+                val prompt = if (image != null) {
+                    // 图片翻译:让视觉模型直接读图,不再依赖本地 OCR。
+                    // 指令里明确"只输出译文",避免模型先复述原文再翻译。
+                    buildImageTranslationPrompt(
+                        text = current.inputText,
+                        targetLanguage = current.targetLanguage,
+                        sourceLanguage = current.sourceLanguage,
+                    )
+                } else {
+                    buildTranslationPrompt(
+                        text = current.inputText,
+                        targetLanguage = current.targetLanguage,
+                        sourceLanguage = current.sourceLanguage,
+                        style = current.translationStyle,
+                        customStyles = current.customStyles,
+                        glossary = current.glossary,
+                    )
+                }
+                val messages = listOf(
+                    UIMessage(
+                        role = MessageRole.USER,
+                        content = prompt,
+                        imageBase64List = image?.let { listOf(it) } ?: emptyList(),
+                    ),
                 )
-                val messages = listOf(UIMessage(role = MessageRole.USER, content = prompt))
 
                 // 优先 completeText(一次性返回,速度快)
                 val translated: String = try {
@@ -742,6 +801,29 @@ class TranslateViewModel(
             appendLine(text)
         }
 
+        /**
+         * 2026-11-20(P1-16):图片翻译 prompt。
+         *
+         * 与文本翻译分开写,因为要点不同:
+         *  - 图片里可能没有文字,需要给出降级行为(描述图片内容),而不是报错;
+         *  - 必须强调"只输出译文",否则模型容易先复述识别到的原文再给译文;
+         *  - 原文框有内容时作为补充说明一起带上,让用户能追加要求。
+         */
+        private fun buildImageTranslationPrompt(
+            text: String,
+            targetLanguage: String,
+            sourceLanguage: String,
+        ): String = buildString {
+            appendLine("你是翻译引擎。请翻译这张图片中的文字。")
+            appendLine("- 目标语言:$targetLanguage")
+            if (sourceLanguage != "自动检测") appendLine("- 源语言:$sourceLanguage")
+            appendLine("- 只输出译文,不要复述原文,不要加解释或引号")
+            appendLine("- 如果图片里没有可翻译的文字,用$targetLanguage 简要描述图片内容")
+            if (text.isNotBlank()) {
+                appendLine("- 用户的补充说明:")
+                appendLine(text)
+            }
+        }
         /**
          * v2.6.7: 风格与术语表指令——单条与批量翻译共用。
          *

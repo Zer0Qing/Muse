@@ -55,8 +55,16 @@ class GroupChatRepository(
         const val LOAD_MORE_PAGE_SIZE = 20
     }
 
-    /** 观察全部群聊(按 updatedAt 降序)。 */
+    /** 观察全部群聊(按 updatedAt 降序,排除已归档)。 */
     fun observeChats(): Flow<List<GroupChatEntity>> = groupChatDao.observeAll()
+
+    /**
+     * 观察已归档群聊(按 updatedAt 降序)。
+     *
+     * 2026-11-20 真机反馈补齐:此前 DAO 有 [GroupChatDao.observeArchived] 但仓储/UI 都没接,
+     * 导致群聊归档后**从列表消失且没有任何恢复入口**(数据还在 DB 里,用户找不到)。
+     */
+    fun observeArchivedChats(): Flow<List<GroupChatEntity>> = groupChatDao.observeArchived()
 
     /**
      * 观察指定群聊的消息(按 timestamp 升序,全量上限 200)。

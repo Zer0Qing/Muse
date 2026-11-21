@@ -301,7 +301,7 @@
     <string name="settings_crash_enable_subtitle">崩溃日志只在你点「立即上报」时才会发出</string>
     <string name="settings_crash_privacy_section">隐私说明</string>
     <string name="settings_crash_privacy_title">崩溃上报隐私承诺</string>
-    <string name="settings_crash_privacy_content">• 默认关闭，必须主动开启才生效\n• 上报前会弹窗确认，绝不静默上报\n• 崩溃堆栈已脱敏（API key / Bearer token 自动替换为 ***）\n• 仅收集：设备型号 / Android 版本 / App 版本 / 时间戳\n• 不收集 IMEI / Android ID / MAC 等唯一设备标识\n• 邮件方式：调起邮件应用由你确认发送\n• Webhook 方式：HTTP POST 到你配置的 URL</string>
+    <string name="settings_crash_privacy_content">• 崩溃上报默认关闭，必须主动开启才生效；ANR 检测默认开启，只在本地写日志、不参与上报\n• 上报前会弹窗确认，绝不静默上报\n• 崩溃堆栈已脱敏（API key / Bearer token 自动替换为 ***）\n• 仅收集：设备型号 / Android 版本 / App 版本 / 时间戳\n• 不收集 IMEI / Android ID / MAC 等唯一设备标识\n• 邮件方式：调起邮件应用由你确认发送\n• Webhook 方式：HTTP POST 到你配置的 URL</string>
     <string name="settings_crash_confirm_dialog_title">确认上报崩溃</string>
     <string name="settings_crash_confirm_dialog_content">即将上报 %1$d 条崩溃记录。\n\n上报内容包含：崩溃堆栈 + 设备型号 + Android 版本 + App 版本 + 时间戳。\n崩溃堆栈已脱敏处理。是否继续？</string>
     <string name="settings_crash_confirm_button">确认上报</string>

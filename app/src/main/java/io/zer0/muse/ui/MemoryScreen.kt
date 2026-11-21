@@ -362,7 +362,15 @@ fun MemoryScreen(
                     }
                 }
                 item(key = "memory_tabs") {
-                    MemoryCapsuleTabs(selected = tab, onSelect = { tab = it })
+                    MemoryCapsuleTabs(
+                        selected = tab,
+                        onSelect = { next ->
+                            tab = next
+                            // 2026-11-20(P2-25):错误只对产生它的那个标签有意义,切走就清掉,
+                            // 否则上一个标签的错误会一直挡着新标签的列表与搜索框。
+                            viewModel.clearErrorTrace()
+                        },
+                    )
                 }
                 val memoryError = state.errorTrace
                 if (memoryError != null) {
@@ -372,7 +380,9 @@ fun MemoryScreen(
                             memoryError.lineSequence().firstOrNull { it.isNotBlank() }?.take(240)
                                 ?: stringResource(R.string.memory_graph_load_failed),
                             onRetry = { viewModel.loadAll() },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 320.dp),
+                            // 可关闭:不必靠重新加载或退出整页才能恢复
+                            onDismiss = { viewModel.clearErrorTrace() },
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 } else {

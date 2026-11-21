@@ -164,6 +164,11 @@
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">归档</string>
     <string name="groupchat_unarchive">取消归档</string>
+    <!-- 2026-11-20: 群聊归档列表（归档后原本无任何恢复入口） -->
+    <string name="groupchat_archived_title">已归档群聊</string>
+    <string name="groupchat_empty_archived">还没有归档的群聊</string>
+    <string name="groupchat_empty_archived_sub">长按群聊可选择归档</string>
+    <string name="groupchat_unarchived">已取消归档</string>
 
     <!-- ===== ui/account ===== -->
     <string name="account_default_user">Muse 用户</string>

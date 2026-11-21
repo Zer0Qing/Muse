@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +41,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.channel.ChannelMediaUtils
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
@@ -103,28 +108,37 @@ fun TranslateScreen(onBack: () -> Unit, onSendToNewChat: (String) -> Unit = {}, 
         }
     }
 
-    // OCR 相册选择
+    // 2026-11-20(P1-16):选图 → 直接挂成待翻译图片(多模态),不再只走本地 OCR。
+    // 旧实现选完图只做 OCR:OCR 不可用或识别为空时,用户回到页面看到的是空原文框,
+    // 像是"选了图但没生效"(真机审计 P0)。现在图片本身进状态并显示缩略图,
+    // 翻译时随 USER 消息发给视觉模型;OCR 若可用,额外把文字填进原文框当可编辑草稿。
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         ocrRecognizing = true
         scope.launch {
-            val text = withContext(Dispatchers.IO) {
-                runCatching { ocrManager.recognize(uri, context) }
-                    .getOrElse {
-                        MuseToast.show(context.getString(R.string.translate_page_ocr_failed))
-                        ""
-                    }
+            val bytes = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }.getOrNull()
+            }
+            val base64 = bytes?.let {
+                withContext(Dispatchers.IO) { ChannelMediaUtils.toCompactImageBase64(it) }
+            }
+            if (base64 == null) {
+                ocrRecognizing = false
+                MuseToast.show(context.getString(R.string.translate_page_ocr_failed))
+                return@launch
+            }
+            viewModel.attachImage(base64)
+            // OCR 只是锦上添花:成功就把文字填进原文框,失败也不影响图片翻译。
+            val ocrText = withContext(Dispatchers.IO) {
+                runCatching { ocrManager.recognize(uri, context) }.getOrNull()
             }
             ocrRecognizing = false
-            when {
-                text.isBlank() -> MuseToast.show(context.getString(R.string.translate_page_ocr_empty))
-                else -> {
-                    viewModel.applyOcrText(text)
-                    MuseToast.show(context.getString(R.string.translate_page_ocr_applied))
-                }
-            }
+            if (!ocrText.isNullOrBlank()) viewModel.applyOcrText(ocrText)
+            MuseToast.show(context.getString(R.string.translate_page_image_attached))
         }
     }
 
@@ -148,7 +162,12 @@ fun TranslateScreen(onBack: () -> Unit, onSendToNewChat: (String) -> Unit = {}, 
                 targetLanguage = state.targetLanguage,
                 onSourceChange = { viewModel.updateSourceLanguage(it) },
                 onTargetChange = { viewModel.updateTargetLanguage(it) },
-                onSwap = { viewModel.swapLanguages() },
+                onSwap = {
+                    // P3-12:源语言是「自动检测」时没有可交换的对象,给一句明确提示
+                    if (!viewModel.swapLanguages()) {
+                        MuseToast.show(context.getString(R.string.translate_page_swap_needs_source))
+                    }
+                },
                 enabled = !state.translating,
             )
 
@@ -185,6 +204,9 @@ fun TranslateScreen(onBack: () -> Unit, onSendToNewChat: (String) -> Unit = {}, 
                 onStyle = { showStyleDialog = true },
                 // v2.6.7: 停止朗读 —— stopSpeaking 之前零调用，长文念起来停不下
                 onStopSpeaking = { viewModel.stopSpeaking() },
+                // 2026-11-20(P1-16):多模态翻译的待翻译图片
+                imageBase64 = state.pendingImageBase64,
+                onRemoveImage = { viewModel.clearImage() },
             )
 
             // ── 译文结果区 ──
@@ -574,6 +596,10 @@ private fun SourceInputCard(
     onStyle: () -> Unit,
     /** v2.6.7: 停止朗读（由外层传入，本组件拿不到 viewModel）。 */
     onStopSpeaking: () -> Unit = {},
+    /** 2026-11-20(P1-16):待翻译图片(JPEG base64,无 data: 前缀);null=纯文本翻译。 */
+    imageBase64: String? = null,
+    /** 移除待翻译图片。 */
+    onRemoveImage: () -> Unit = {},
 ) {
     var expandedMore by remember { mutableStateOf(false) }
 
@@ -609,6 +635,46 @@ private fun SourceInputCard(
                     color = MaterialTheme.colorScheme.outline,
                     maxLines = 1,
                 )
+            }
+
+            // 2026-11-20(P1-16):待翻译图片缩略图。选图后立刻可见,
+            // 解决"选完图回到页面一片空白、不知道有没有选上"的问题。
+            if (imageBase64 != null) {
+                val preview = remember(imageBase64) {
+                    runCatching {
+                        val bytes = android.util.Base64.decode(imageBase64, android.util.Base64.NO_WRAP)
+                        android.graphics.BitmapFactory
+                            .decodeByteArray(bytes, 0, bytes.size)
+                            ?.asImageBitmap()
+                    }.getOrNull()
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                ) {
+                    if (preview != null) {
+                        Image(
+                            bitmap = preview,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(MuseShapes.medium),
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.translate_page_image_attached),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MuseTactileButton(
+                        icon = MuseIcons.x,
+                        onClick = onRemoveImage,
+                        contentDescription = stringResource(R.string.translate_page_image_remove),
+                    )
+                }
             }
 
             // 输入框
@@ -714,9 +780,10 @@ private fun SourceInputCard(
                     }
                 }
 
+                // 2026-11-20(P1-16):有图片时即使原文为空也可翻译（图片即输入）
                 TranslateButton(
                     onClick = onTranslate,
-                    enabled = !translating && text.isNotBlank(),
+                    enabled = !translating && (text.isNotBlank() || imageBase64 != null),
                 )
             }
         }

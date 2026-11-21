@@ -49,6 +49,13 @@ data class GroupChatMessageExpandedState(
 
 data class GroupChatUiState(
     val chats: List<GroupChatEntity> = emptyList(),
+    /**
+     * 已归档群聊(独立于 [chats],后者已排除归档)。
+     *
+     * 2026-11-20 真机反馈:归档后群聊从列表消失且无恢复入口 ——
+     * 补这个字段 + 归档列表页,让用户能找到并取消归档。
+     */
+    val archivedChats: List<GroupChatEntity> = emptyList(),
     /** v1.72: 群聊列表首次加载标志(避免闪空状态) */
     val isChatsLoading: Boolean = true,
     val currentChat: GroupChatEntity? = null,
@@ -211,6 +218,14 @@ class GroupChatViewModel(
                 .guardUpstream("observeChats")
                 .collect { chats ->
                     _state.update { it.copy(chats = chats, isChatsLoading = false) }
+                }
+        }
+        // 观察已归档群聊(归档列表页用;与主列表分开收集,互不影响)
+        viewModelScope.launch {
+            groupChatRepository.observeArchivedChats()
+                .guardUpstream("observeArchivedChats")
+                .collect { archived ->
+                    _state.update { it.copy(archivedChats = archived) }
                 }
         }
         // 观察助手列表(新建群聊成员选择用)

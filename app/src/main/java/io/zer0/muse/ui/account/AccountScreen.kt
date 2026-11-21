@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.account
 
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -92,7 +91,7 @@ fun AccountScreen(
 
     // 头像选择 launcher — Photo Picker,只选图片
     val pickAvatarLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
+        contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
             scope.launch {
@@ -150,7 +149,7 @@ fun AccountScreen(
                 avatarUri = editAvatarUri,
                 onClick = {
                     pickAvatarLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        "image/*",
                     )
                 },
             )

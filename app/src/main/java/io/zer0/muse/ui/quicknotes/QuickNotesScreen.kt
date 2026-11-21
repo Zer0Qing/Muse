@@ -5,7 +5,6 @@ package io.zer0.muse.ui.quicknotes
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -140,7 +139,7 @@ fun QuickNotesScreen(
     // v2.6.7: 附件选图器。用 PickVisualMedia（系统照片选择器）而不是 OpenDocument，
     // 避免为了读一张图去申请全库权限。
     val attachImageLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
+        contract = ActivityResultContracts.GetContent(),
     ) { uri: Uri? ->
         val note = noteForAttach
         noteForAttach = null
@@ -262,8 +261,10 @@ fun QuickNotesScreen(
                 onBack = onBack,
                 largeTitle = true,
                 actions = {
+                    // 2026-11-20(P2-5):这个入口打开的是「快速记录设置」,却用了文档图标,
+                    // 看着像「记录文档」;换成滑杆(muse 里代表设置的那颗)。
                     MuseTactileButton(
-                        icon = MuseIcons.note,
+                        icon = MuseIcons.sliders,
                         onClick = { showQuickCaptureSettings = true },
                         contentDescription = stringResource(R.string.settings_screen_quick_notes),
                         tint = MaterialTheme.colorScheme.onSurface,
@@ -492,7 +493,7 @@ fun QuickNotesScreen(
                 noteForMenu = null
                 noteForAttach = note
                 attachImageLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    "image/*",
                 )
             },
             onRemoveAttachment = { path ->

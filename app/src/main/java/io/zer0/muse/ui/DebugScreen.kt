@@ -333,8 +333,10 @@ private fun ScaffoldLayout(
                         },
                     )
                     // 崩溃日志入口(P1-4):展示 MuseCrashHandler 已落盘的崩溃日志列表 + 一键打包 ZIP 分享
+                    // 2026-11-20(P2-5):原来用 history(带箭头的时间/刷新感),看着像「刷新日志」,
+                    // 实际打开的是崩溃日志。换成警示三角,与「崩溃」语义对上。
                     MuseTactileButton(
-                        icon = MuseIcons.history,
+                        icon = MuseIcons.alertTriangle,
                         onClick = onShowCrashLogs,
                         contentDescription = stringResource(R.string.debug_cd_crash_logs),
                     )

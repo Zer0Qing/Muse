@@ -76,7 +76,7 @@ fun VisionSettingsPage(onBack: () -> Unit) {
     // v1.0.1 (P0): 过滤前调用 enhanceModel 增强,识别中转站模型
     //  中转站拉取的模型列表通常不带 abilities/inputModalities 字段,直接 supportsVisionInput() 返回 false
     //  enhanceModel 通过 modelId token 匹配预设规则,自动补全 supportsVision=true
-    val visionModels = providers.flatMap { provider ->
+    val allModelItems = providers.flatMap { provider ->
         provider.models.map { model ->
             // 增强后的模型(若未匹配预设规则则原样返回)
             val enhanced = ModelRegistry.enhanceModel(model)
@@ -87,8 +87,12 @@ fun VisionSettingsPage(onBack: () -> Unit) {
                 providerName = provider.displayName,
                 supportsVision = enhanced.supportsVisionInput(),
             )
-        }.filter { showAllModels || it.supportsVision }
+        }
     }
+    // 2026-11-20(P3-13):「显示全部模型」只有在确实存在「未被识别为视觉」的模型时才有意义。
+    // 真机上只有一个视觉模型时,这个开关打开前后列表一模一样,用户会以为开关坏了。
+    val hiddenModelCount = allModelItems.count { !it.supportsVision }
+    val visionModels = allModelItems.filter { showAllModels || it.supportsVision }
 
     SettingsSubPageScaffold(
         title = stringResource(R.string.settings_vision_title),
@@ -125,8 +129,16 @@ fun VisionSettingsPage(onBack: () -> Unit) {
                     SettingsSwitchRow(
                         icon = MuseIcons.eye,
                         title = stringResource(R.string.settings_vision_show_all_models),
-                        subtitle = stringResource(R.string.settings_vision_show_all_models_subtitle),
+                        subtitle = stringResource(
+                            if (hiddenModelCount > 0) {
+                                R.string.settings_vision_show_all_models_subtitle
+                            } else {
+                                R.string.settings_vision_show_all_models_subtitle_no_hidden
+                            },
+                        ),
                         checked = showAllModels,
+                        // 没有可被「显示出来」的隐藏模型时置灰,并说明原因
+                        enabled = hiddenModelCount > 0,
                         onCheckedChange = { v -> showAllModels = v },
                     )
                     SettingsGroupDivider()

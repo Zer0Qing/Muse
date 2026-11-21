@@ -302,7 +302,19 @@ private fun DirectiveEditor(polarity: DirectivePolarity, onDismiss: () -> Unit, 
                 MuseTextField(
                     value = text,
                     onValueChange = { text = it },
-                    placeholder = { Text(stringResource(R.string.agent_directives_editor_placeholder)) },
+                    // 2026-11-20(P3-6):「不要做」和「要做」此前共用同一句示例
+                    // 「早上提醒我吃早饭」—— 只适用于「要做」,放在「不要做」里是反例。
+                    placeholder = {
+                        Text(
+                            stringResource(
+                                if (polarity == DirectivePolarity.MUST_NOT) {
+                                    R.string.agent_directives_editor_placeholder_forbidden
+                                } else {
+                                    R.string.agent_directives_editor_placeholder
+                                },
+                            ),
+                        )
+                    },
                 )
                 Text(
                     text = stringResource(R.string.agent_directives_text_limit),

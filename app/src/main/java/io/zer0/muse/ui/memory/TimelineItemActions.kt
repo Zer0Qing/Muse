@@ -48,8 +48,16 @@ internal fun TimelineItemActions(
     // 同一次长按里的删除目标固定不变,确认框与面板共用同一份还原结果
     val routable = remember(target) { target.toMemoryItem() }
     if (confirming) {
+        // 2026-11-20(P3-5):经验条目的确认框标题此前一律写「删除记忆」,
+        // 删的是经验库里的条目,标题对不上,用户会以为删错了东西。
+        val deleteTitle =
+            if (target.source == "Experience") {
+                stringResource(R.string.memory_delete_experience_title)
+            } else {
+                stringResource(R.string.memory_delete_confirm_title)
+            }
         ConfirmDeleteDialog(
-            title = stringResource(R.string.memory_delete_confirm_title),
+            title = deleteTitle,
             itemName = routable.title.ifBlank { routable.content },
             consequence = stringResource(R.string.memory_delete_consequence),
             onConfirm = {

@@ -93,35 +93,81 @@ object PiiEngine {
     private val BOT_PATH_TOKEN = Regex("/bot\\d+:[^/\\s]+/")
 
     private data class Rule(val label: String, val regex: Regex, val protected: Boolean = false)
+
+    /**
+     * 规则表初始化时编译失败的条目(格式 `label: 异常类: 消息`)。
+     *
+     * 正常应为空;非空说明某条正则写错了 —— 该条被跳过,其余规则照常工作。
+     * 暴露为 `internal` 供单测断言,不参与脱敏逻辑本身。
+     * 刻意不接 `Logger`:本文件是纯 Kotlin 规则表,不引入 Android 依赖。
+     */
+    internal val ruleLoadErrors: List<String> get() { rules; return loadErrors.toList() }
+    private val loadErrors = mutableListOf<String>()
+
+    /**
+     * 规则表快照 `(label, pattern)`,供单测做可移植性断言。
+     *
+     * 存在理由:有些正则语法在 JVM 上合法、在 Android ICU 上非法(典型如 `\p{IsHan}`),
+     * 纯 JVM 单测跑不出差异。把 pattern 暴露出来,测试才能断言「不许出现某个专有语法」。
+     */
+    internal fun rulePatterns(): List<Pair<String, String>> {
+        rules
+        return rules.map { it.label to it.regex.pattern }
+    }
+
+    /**
+     * 安全构造一条脱敏规则:单条正则编译失败只跳过该条,不拖垮整个引擎。
+     *
+     * 2026-11-20 真机事故:原实现把 `Regex(...)` 直接写在 [rules] 的惰性初始化列表里,
+     * 其中一条地址规则用了 Android ICU 不支持的 `\p{IsHan}` 语法,构造期抛
+     * `PatternSyntaxException` —— 整个 `rules` 初始化失败,连带 `scrubMemory`/`maskMemory`
+     * 全崩,记忆自动保存 100% 失效且只显示一句「解密失败」,排查成本极高。
+     * 教训:正则表是**配置数据**,一条写错不该让整个安全能力消失。
+     */
+    private fun safeRule(label: String, pattern: String, protected: Boolean = false): Rule? =
+        try {
+            Rule(label, Regex(pattern), protected)
+        } catch (e: Exception) {
+            // 单条规则编译失败不应让整个脱敏器失效:记为诊断信息后跳过该条。
+            // 捕获 Exception 而非更具体的类型,是因为不同 JDK/ICU 实现抛出的
+            // 异常类型不一致(JVM 是 PatternSyntaxException,Android ICU 也可能
+            // 包成 IllegalArgumentException),统一兜住才能保证「一条错不拖垮全部」。
+            loadErrors += "$label: ${e.javaClass.simpleName}: ${e.message}"
+            null
+        }
+
     private val rules by lazy {
-        listOf(
+        listOfNotNull(
             // `sk-` 后面必须允许连字符：OpenAI 项目钥匙是 `sk-proj-…`、Anthropic 是 `sk-ant-…`，
             // 原来的 `sk-[a-z0-9_]{20,}` 会在第一个 `-` 处断掉，于是聊天里贴的这类密钥
             // **原样进记忆**（2026-11-04 由 LoggerSanitizeTest 的同一条用例抓到）。
             Rule("api_key", BARE_API_KEY),
-            Rule(
+            safeRule(
                 "inline_secret",
-                Regex("(?i)(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|password)\\s*[:=]\\s*[a-z0-9_/+=.\\-]{16,}"),
+                "(?i)(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|password)\\s*[:=]\\s*[a-z0-9_/+=.\\-]{16,}",
             ),
             Rule("private_key", PRIVATE_KEY_BLOCK),
             Rule("id_card", ID_CARD),
             Rule("credit_card", CREDIT_CARD),
-            Rule("ssn", Regex("(?<!\\d)\\d{3}-\\d{2}-\\d{4}(?!\\d)")),
+            safeRule("ssn", "(?<!\\d)\\d{3}-\\d{2}-\\d{4}(?!\\d)"),
             Rule("email", EMAIL),
             Rule("phone", PHONE),
             Rule("ipv4", IPV4),
-            Rule(
+            // 2026-11-20 真机崩溃修复:原写法 `\p{IsHan}` 是 Java 正则语法,
+            // Android 的 ICU 实现不支持该属性名,`Regex(...)` 在构造期即抛
+            // `PatternSyntaxException: U_ILLEGAL_ARGUMENT_ERROR`,
+            // 导致 `rules` 这个 lazy 列表整体初始化失败 —— 记忆自动保存每次执行都崩。
+            // 改用 CJK 统一表意文字的基本区码点范围,Java 与 Android 均支持。
+            safeRule(
                 "address",
-                Regex(
-                    "[\\p{IsHan}]{2,12}(?:省|自治区|市|自治州|地区|盟)[\\p{IsHan}]{2,12}(?:区|县|旗|市|镇|乡|街道|路|街|巷|弄|村)(?:\\d{1,6}号?)?(?:[\\p{IsHan}\\d-]{0,20})?",
-                ),
+                "[\\u4e00-\\u9fa5]{2,12}(?:省|自治区|市|自治州|地区|盟)[\\u4e00-\\u9fa5]{2,12}(?:区|县|旗|市|镇|乡|街道|路|街|巷|弄|村)(?:\\d{1,6}号?)?(?:[\\u4e00-\\u9fa5\\d-]{0,20})?",
             ),
-            Rule(
+            safeRule(
                 "name",
-                Regex("(?:[$SURNAMES](?:$TITLES)|(?:叫|姓|名叫|叫作|称为|唤作|称作|称呼|姓名)\\s*[$SURNAMES][\\p{IsHan}]{1,2}(?![\\p{IsHan}]))"),
-                true,
+                "(?:[$SURNAMES](?:$TITLES)|(?:叫|姓|名叫|叫作|称为|唤作|称作|称呼|姓名)\\s*[$SURNAMES][\\u4e00-\u9fa5]{1,2}(?![\\u4e00-\u9fa5]))",
+                protected = true,
             ),
-            Rule("english_name", Regex("\\b[A-Z][a-z]{1,12}\\s+[A-Z][a-z]{1,12}\\b"), true),
+            safeRule("english_name", "\\b[A-Z][a-z]{1,12}\\s+[A-Z][a-z]{1,12}\\b", protected = true),
         )
     }
     data class ScrubResult(val cleaned: String, val detected: List<String>)

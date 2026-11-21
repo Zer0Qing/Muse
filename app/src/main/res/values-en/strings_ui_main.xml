@@ -467,7 +467,7 @@
 
     <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_hint">Search settings…</string>
-    <string name="settings_search_no_results">matches</string>
+    <string name="settings_search_no_results">No matching settings</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_translate">AI Translate</string>
@@ -508,7 +508,8 @@
     <!-- ===== Skill screen SkillScreen ===== -->
     <string name="skill_management">Skill Management</string>
     <string name="skill_import_cd">Import .skill.json</string>
-    <string name="skill_intro">Skills are tools that the LLM can call. When enabled, the assistant can invoke them during conversations as needed; when disabled, they are not exposed to the model. Tap the import button in the top right to import a .skill.json file.</string>
+    <string name="skill_intro">Skills are tools that the LLM can call. When enabled, the assistant can invoke them during conversations as needed; when disabled, they are not exposed to the model. Tap the Import button on the page to import a .skill.json file.</string>
+    <string name="skill_share_no_target">No app available to handle the share</string>
     <string name="skill_no_skill_title">No skills yet</string>
     <string name="skill_no_skill_subtitle">Just tell the AI "create a XX skill for me", or tap + in the bottom right to import a skill file</string>
     <string name="skill_importing">Importing</string>
@@ -762,6 +763,7 @@
     <string name="voice_cloning_key_from_provider">Voice set as current, API key taken from the provider</string>
     <string name="voice_cloning_failed">Cloning failed: %1$s</string>
     <string name="voice_cloning_audio_required">Please select sample audio first</string>
+    <string name="voice_cloning_api_key_required">Enter an API Key first</string>
 
     <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
     <!-- Shortcut descriptions (shown in settings/help pages) -->
@@ -792,6 +794,7 @@
     <string name="settings_vision_probe_success">Test succeeded: the vision model returned a %1$d-character description.</string>
     <string name="settings_vision_show_all_models">Show all models</string>
     <string name="settings_vision_show_all_models_subtitle">Relay advanced mode: shows all models, letting you manually pick a vision model not auto-detected</string>
+    <string name="settings_vision_show_all_models_subtitle_no_hidden">Every model is already recognized as vision-capable — nothing to reveal</string>
     <string name="skill_delete">Delete</string>
     <string name="skill_delete_confirm_message">Delete "%1$s"? This cannot be undone.</string>
     <string name="skill_delete_confirm_title">Confirm deletion</string>
@@ -817,6 +820,7 @@
     <string name="settings_screen_entry_rag_model">Retrieval model</string>
     <string name="settings_screen_entry_chunking">Chunking strategy</string>
     <string name="settings_screen_entry_tool_approval">Tool approval mode</string>
+    <string name="settings_screen_tool_approval_desc">Per-tool confirmation policy: always allow / ask every time / always deny</string>
     <string name="settings_screen_entry_collab">Collaborative assistants</string>
 
     <string name="settings_screen_archived_desc">View and restore archived sessions</string>

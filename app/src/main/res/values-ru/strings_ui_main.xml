@@ -371,7 +371,7 @@
 
     <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_hint">Поиск по настройкам…</string>
-    <string name="settings_search_no_results">совпадений</string>
+    <string name="settings_search_no_results">Нет подходящих настроек</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_translate">AI-перевод</string>
@@ -711,6 +711,7 @@
     <string name="settings_screen_entry_rag_model">Модель поиска</string>
     <string name="settings_screen_entry_chunking">Стратегия разбиения</string>
     <string name="settings_screen_entry_tool_approval">Режим одобрения инструментов</string>
+    <string name="settings_screen_tool_approval_desc">Политика подтверждения: всегда разрешать / спрашивать / всегда отклонять</string>
     <string name="settings_screen_entry_collab">Совместный ассистент</string>
     <string name="settings_screen_archived_desc">Просмотр и восстановление архивных диалогов</string>
     <string name="settings_screen_share">Поделиться</string>

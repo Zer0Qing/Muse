@@ -11,6 +11,7 @@
     <string name="agent_directives_add_forbidden">Añadir un «nunca»</string>
     <string name="agent_directives_add_desired">Añadir un «haz»</string>
     <string name="agent_directives_editor_placeholder">Por ejemplo: recuérdame desayunar</string>
+    <string name="agent_directives_editor_placeholder_forbidden">Por ejemplo: no me envíes recordatorios de madrugada</string>
     <string name="agent_directives_text_limit">Hasta 200 caracteres por regla</string>
     <string name="agent_directives_move_up">Subir</string>
     <string name="agent_directives_move_down">Bajar</string>

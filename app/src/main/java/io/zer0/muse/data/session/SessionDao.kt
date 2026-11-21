@@ -30,6 +30,19 @@ interface SessionDao {
     )
     fun observeTaskSessions(): Flow<List<SessionEntity>>
 
+    /**
+     * 2026-11-20(P2-3):找一条可复用的空会话。
+     *
+     * 真机反馈:每次从对话页返回再进,首页就多一条「新会话」——因为新建即落库,
+     * 而大部分空会话用户根本没说过话。这里取最近一条同助手、未归档、未删除、
+     * messageCount=0 的任务会话,让调用方直接复用而不是再插一条。
+     */
+    @Query(
+        "SELECT * FROM sessions WHERE archived = 0 AND isAgentSession = 0 AND deletedAt IS NULL " +
+            "AND messageCount = 0 AND assistantId = :assistantId ORDER BY updatedAt DESC LIMIT 1",
+    )
+    suspend fun findReusableEmptySession(assistantId: String): SessionEntity?
+
     /** v1.28: 观察 Agent Tab 会话(Agent 日常聊天)。 */
     @Query("SELECT * FROM sessions WHERE isAgentSession = 1 AND deletedAt IS NULL ORDER BY updatedAt DESC")
     fun observeAgentSessions(): Flow<List<SessionEntity>>

@@ -21,6 +21,11 @@ object TarGzExtractor {
     fun extract(archive: File, destDir: File, onProgress: (Long) -> Unit = {}): Long {
         destDir.mkdirs()
         var written = 0L
+        // 2026-11-20(P1-7):链接创建失败不能静默跳过。
+        // 真机事故:运行环境安装报「motd-news.timer 缺失」,根因就是 systemd 单元里的
+        // 符号链接创建失败被 onFailure 吞掉,包"解完了"但目录不完整,自检才在别处炸。
+        // 现在把失败条目攒起来,解包结束后统一抛出,让失败停在安装步骤且说清是哪几条。
+        val failedLinks = mutableListOf<String>()
         archive.inputStream().use { raw ->
             GZIPInputStream(raw, BUFFER_SIZE).use { gz ->
                 val header = ByteArray(HEADER_SIZE)
@@ -88,7 +93,10 @@ object TarGzExtractor {
                             target.parentFile?.mkdirs()
                             target.delete()
                             runCatching { java.nio.file.Files.createSymbolicLink(target.toPath(), File(link).toPath()) }
-                                .onFailure { Logger.w(TAG, "符号链接创建失败，已跳过: $name -> $link (${it.message})") }
+                                .onFailure { e ->
+                                    Logger.w(TAG, "符号链接创建失败: $name -> $link (${e.message})")
+                                    failedLinks += "$name -> $link"
+                                }
                             payload = 0
                         }
                         '1' -> {
@@ -98,7 +106,13 @@ object TarGzExtractor {
                             longLink = null
                             val source = File(destDir, link).canonicalFile
                             target.parentFile?.mkdirs()
-                            if (source.isFile) source.copyTo(target, overwrite = true)
+                            if (source.isFile) {
+                                source.copyTo(target, overwrite = true)
+                            } else {
+                                // 硬链接目标缺失同样意味着包不完整,不能当成功
+                                Logger.w(TAG, "硬链接源不存在: $name -> $link")
+                                failedLinks += "$name -> $link (硬链接源缺失)"
+                            }
                             payload = 0
                         }
                         '0', '\u0000', '7' -> {
@@ -121,6 +135,12 @@ object TarGzExtractor {
                     onProgress(written)
                 }
             }
+        }
+        if (failedLinks.isNotEmpty()) {
+            throw IllegalStateException(
+                "解包不完整:${failedLinks.size} 条链接创建失败 -> " +
+                    failedLinks.joinToString(limit = 10),
+            )
         }
         return written
     }

@@ -387,6 +387,15 @@ class SessionRepository(
     suspend fun getTotalMessageCount(): Int = messageDao.countMessages()
 
     /**
+     * 2026-11-20(P2-3):尝试复用一条空会话,避免每次进对话页都多出一条「新会话」。
+     *
+     * @return 可复用的会话 id;没有则 null(调用方照常新建)
+     */
+    suspend fun findReusableEmptySession(assistantId: String): String? = withContext(Dispatchers.IO) {
+        resultOf { sessionDao.findReusableEmptySession(assistantId) }.getOrNull()?.id
+    }
+
+    /**
      * 创建新会话。返回会话 id。标题默认"新会话"。
      * @param warmupPending v2.x 导入预热:外部导入/备份恢复的会话置 true,首轮以全量历史构建上下文。
      */

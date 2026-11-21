@@ -526,6 +526,10 @@
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">Archive</string>
     <string name="groupchat_unarchive">Unarchive</string>
+    <string name="groupchat_archived_title">Archived group chats</string>
+    <string name="groupchat_empty_archived">No archived group chats yet</string>
+    <string name="groupchat_empty_archived_sub">Long-press a group chat to archive it</string>
+    <string name="groupchat_unarchived">Unarchived</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">Human-in-the-loop</string>

@@ -309,8 +309,13 @@ fun VoiceCloningPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(enabled = !isCloning) {
+                            // 2026-11-20(P2-16):API Key 为空时原先复用「请先选择样本音频」,
+                            // 提示与真正原因不符,用户会去反复换音频。改为独立文案。
                             if (apiKey.isBlank()) {
-                                MuseToast.show(strAudioRequired, 2500)
+                                MuseToast.show(
+                                    context.getString(R.string.voice_cloning_api_key_required),
+                                    2500,
+                                )
                                 return@clickable
                             }
                             if (voiceName.isBlank()) {

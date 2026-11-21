@@ -24,6 +24,8 @@ import io.zer0.muse.ui.SearchScreen
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
+import io.zer0.muse.ui.groupchat.ArchivedGroupChatsScreen
+import io.zer0.muse.ui.groupchat.GroupChatViewModel
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import io.zer0.muse.ui.settings.PromptTemplateManagerPage
@@ -64,6 +66,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 },
                 onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
                 onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
+                onOpenArchivedGroupChats = { navController.navigate(ArchivedGroupChatsRoute) },
                 onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
                 // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
                 onHtmlPreview = { html ->
@@ -71,6 +74,8 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 },
                 onOpenSkills = { navController.navigate(SkillsRoute) },
                 onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+                // 首页与 Agent Tab 的「未配置模型」横幅要靠它给出可点的自救出口。
+                onOpenProviderSettings = { navController.navigate(SettingsModelRoute) },
             )
         } // 关闭共享元素作用域注入（目的地级 AnimatedVisibilityScope，见 F2 基建）
     }
@@ -159,6 +164,23 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             onRetry = { sharedViewModel.retryLoadArchivedSessions() },
             // ST-02: 取消归档可撤销 — 撤销 = 重新归档
             onUnarchiveUndo = { id -> sharedViewModel.setSessionArchived(id, true) },
+        )
+    }
+
+    // 已归档群聊列表 — 2026-11-20 补齐(群聊归档后此前无任何恢复入口)
+    composable<ArchivedGroupChatsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        val groupChatViewModel: GroupChatViewModel = koinViewModel()
+        val groupState by groupChatViewModel.state.collectAsStateWithLifecycle()
+        ArchivedGroupChatsScreen(
+            chats = groupState.archivedChats,
+            onBack = { navController.popBackStack() },
+            onUnarchive = { id -> groupChatViewModel.toggleArchive(id, false) },
+            onOpenChat = { id -> navController.navigate(GroupChatDetailRoute(id)) },
+            // 与 ArchivedChatsScreen 的 ST-02 一致:撤销 = 重新归档
+            onUnarchiveUndo = { id -> groupChatViewModel.toggleArchive(id, true) },
         )
     }
 

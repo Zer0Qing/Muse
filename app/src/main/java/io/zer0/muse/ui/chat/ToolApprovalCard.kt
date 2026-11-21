@@ -2,7 +2,6 @@ package io.zer0.muse.ui.chat
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -168,7 +167,7 @@ fun ToolApprovalCard(
     // v1.x: 相册选择器,仅对支持参考图的工具启用
     val supportsReferenceImage = toolName in REFERENCE_IMAGE_TOOL_NAMES
     val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
+        contract = ActivityResultContracts.GetContent(),
     ) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
         isLoadingRefImage = true
@@ -408,7 +407,7 @@ fun ToolApprovalCard(
                     onPick = {
                         runCatching {
                             imagePicker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                "image/*",
                             )
                         }.onFailure {
                             MuseToast.show(context.getString(R.string.chat_ref_image_load_failed, it.message ?: ""))

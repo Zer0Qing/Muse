@@ -367,6 +367,10 @@ data object RecentlyDeletedRoute
 @Serializable
 data object ArchivedChatsRoute
 
+/** 已归档群聊列表页（2026-11-20: 群聊归档后此前无任何恢复入口）。 */
+@Serializable
+data object ArchivedGroupChatsRoute
+
 /** 文件夹独立详情页：点文件夹进来，列出其中的对话，可新建到此文件夹 / 添加已有对话。 */
 @Serializable
 data class FolderDetailRoute(val folderId: String)

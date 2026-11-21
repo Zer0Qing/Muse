@@ -116,6 +116,8 @@ fun HomeScreen(
     onOpenRecentlyDeleted: () -> Unit = {},
     /** v0.45: 打开归档聊天列表页。 */
     onOpenArchivedChats: () -> Unit = {},
+    /** 2026-11-20: 打开已归档群聊列表页（群聊归档后此前没有任何恢复入口）。 */
+    onOpenArchivedGroupChats: () -> Unit = {},
     /** v1.0.72: 打开小手机 + AI 朋友圈沉浸页。 */
     onOpenMiniPhone: () -> Unit = {},
     /** HTML/SVG 代码块全屏预览回调(由 Tab 1 ChatScreen 触发)。 */
@@ -124,6 +126,14 @@ fun HomeScreen(
     onOpenSkills: () -> Unit = {},
     /** B0-07: 打开提示词模板管理页。 */
     onOpenPromptTemplateManager: () -> Unit = {},
+    /**
+     * 打开供应商设置页。
+     *
+     * 首页与 Agent Tab 的 ChatScreen 都靠这个回调提供"去配置模型"的出口；
+     * 此前 ChatScreen 的该参数默认是空 lambda 且这两处都没传，
+     * 于是「未配置模型」横幅上唯一的自救按钮点了没有任何反应。
+     */
+    onOpenProviderSettings: () -> Unit = {},
     // v1.131: ChatViewModel 在 AppKoinModule 中以 `single { }` 注册(见 v1.92 注释),
     // 全应用共享同一实例,故用 koinInject() 直接取单例即可。
     // koinViewModel() 对 single 注册也会返回同一实例,但语义上 koinInject 更准确。
@@ -257,8 +267,11 @@ fun HomeScreen(
                 val miniPhoneLabel = stringResource(R.string.home_miniphone_cd)
                 val workspaceLabel = stringResource(R.string.workspace_title)
                 val archivedEntryLabel = stringResource(R.string.chat_list_archived_entry, state.archivedSessions.size)
+                // 群聊归档数量来自 GroupChatViewModel；首页只做入口展示,不在此处收集。
+                val archivedGroupChatsLabel = stringResource(R.string.groupchat_archived_title)
                 val newFolderLabel = stringResource(R.string.chat_list_new_folder)
                 val editListLabel = stringResource(R.string.chat_list_edit)
+                val providerLabel = stringResource(R.string.chat_select_provider)
                 val topMenuItems = buildList {
                     add(
                         MuseFloatingActionItem(
@@ -278,6 +291,25 @@ fun HomeScreen(
                             ),
                         )
                     }
+                    // Agent Tab 是主聊天页,却没有任何换模型入口:ChatScreen 在
+                    // Agent 形态下整条顶栏都不渲染(isAgentMode && onBack == null),
+                    // 而这里的三点菜单此前只放了搜索/工作区/归档。
+                    // 用户想换模型只能滑回任务 Tab 点进会话 —— 找不到入口的人会认为
+                    // 这个应用不能换模型。ModelSwitchSheet 早就在本文件底部,
+                    // 只是没有一处把 showModelSheet 置 true。
+                    // 2026-11-20(P2-7):任务 Tab 也要有换模型入口。
+                    // 此前只有 Agent Tab(page 1)有 —— 任务列表页想换模型只能滑到 Agent,
+                    // 或点进某个会话再从会话顶栏找,等于藏起来了。
+                    if (pagerState.currentPage == 0 || pagerState.currentPage == 1) {
+                        add(
+                            MuseFloatingActionItem(
+                                key = "provider",
+                                icon = MuseIcons.memoryChip,
+                                label = providerLabel,
+                                onClick = { showModelSheet = true },
+                            ),
+                        )
+                    }
                     add(
                         MuseFloatingActionItem(
                             key = "workspace",
@@ -286,6 +318,20 @@ fun HomeScreen(
                             onClick = { showWorkspacePick = true },
                         ),
                     )
+                    // 2026-11-20: 群聊 Tab 的「已归档」入口。
+                    // 真机反馈:群聊长按归档后从列表消失,整机找不到恢复入口 ——
+                    // 会话那边有归档页,群聊这边当时漏了。归档入口常驻(含 0),
+                    // 避免用户看到「归档成功」却无处可回。
+                    if (pagerState.currentPage == 2) {
+                        add(
+                            MuseFloatingActionItem(
+                                key = "archived_group_chats",
+                                icon = MuseIcons.archive,
+                                label = archivedGroupChatsLabel,
+                                onClick = onOpenArchivedGroupChats,
+                            ),
+                        )
+                    }
                     // 01①: 任务列表的归档/新建文件夹/编辑从首屏快捷行收进这里，只在任务 Tab 出现。
                     // 归档入口常驻(含 0)：右滑归档的 toast 承诺"可到已归档中恢复"，入口不能时有时无。
                     if (pagerState.currentPage == 0) {
@@ -474,6 +520,7 @@ fun HomeScreen(
                                 // C4: 右栏消息 — onBack=null 不显示返回按钮,复用共享 ChatViewModel 单例
                                 ChatScreen(
                                     onOpenAssistants = onOpenAssistants,
+                                    onOpenProviderSettings = onOpenProviderSettings,
                                     isAgentMode = false,
                                     onHtmlPreview = onHtmlPreview,
                                     onOpenSkills = onOpenSkills,
@@ -537,13 +584,31 @@ fun HomeScreen(
                     // Tab 1 "Agent": 长效日常聊天搭子
                     // 独立聊天区域,不依赖任务 Tab 的会话选择
                     // M-CS6: 移除多余的 Column 包裹 — ChatScreen 内部已用 fillMaxSize 自撑,Column 仅增加一层无意义嵌套
-                    1 -> ChatScreen(
-                        onOpenAssistants = onOpenAssistants,
-                        isAgentMode = true,
-                        onHtmlPreview = onHtmlPreview,
-                        onOpenSkills = onOpenSkills,
-                        onOpenPromptTemplateManager = onOpenPromptTemplateManager,
-                    )
+                    1 -> {
+                        // 中枢是"接单 + 后台执行 + 审核后汇报"，与"一问一答"是两种
+                        // 心智模型。开关关着时走原来的 Agent 聊天，不改变既有行为。
+                        if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
+                            val botViewModel: io.zer0.muse.ui.agentbot.AgentBotViewModel = koinInject()
+                            LaunchedEffect(state.currentAssistant?.id) {
+                                // 绑定用 agentSessionId：那是 Agent Tab 自己的会话，
+                                // 不从"当前在看哪个任务会话"推断。
+                                botViewModel.bind(
+                                    botId = state.currentAssistant?.id ?: "default",
+                                    originSessionId = state.agentSessionId.orEmpty(),
+                                )
+                            }
+                            io.zer0.muse.ui.agentbot.AgentBotScreen(viewModel = botViewModel)
+                        } else {
+                            ChatScreen(
+                                onOpenAssistants = onOpenAssistants,
+                                onOpenProviderSettings = onOpenProviderSettings,
+                                isAgentMode = true,
+                                onHtmlPreview = onHtmlPreview,
+                                onOpenSkills = onOpenSkills,
+                                onOpenPromptTemplateManager = onOpenPromptTemplateManager,
+                            )
+                        }
+                    }
                     // Tab 2 "群聊": 多 Agent 群聊列表
                     // 点击群聊卡片 → 跳转到群聊详情页(通过 NavHost 路由)
                     2 -> GroupChatListScreen(

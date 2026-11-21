@@ -63,6 +63,8 @@ fun SettingsSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     contentPadding: PaddingValues = MusePaddings.cardInner,
+    /** 2026-11-20(P3-13):整行禁用。为 false 时点击无效、开关不可拖动、文字降透明度。 */
+    enabled: Boolean = true,
 ) {
     val enabledText = stringResource(R.string.common_state_enabled)
     val disabledText = stringResource(R.string.common_state_disabled)
@@ -83,6 +85,7 @@ fun SettingsSwitchRow(
             .clickable(
                 interactionSource = rowInteractionSource,
                 indication = null,
+                enabled = enabled,
             ) { onCheckedChange(!checked) }
             .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically,
@@ -108,7 +111,7 @@ fun SettingsSwitchRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.38f),
                 // LAYOUT-01: 标题限行。仅 weight 取宽不够 —— 剩余宽度极小时仍会逐字换行撑高整行，
                 // 由外层卡片裁掉(线上事故形态)。限 1 行 + 省略号是最后一道兜底。
                 maxLines = 1,
@@ -126,7 +129,8 @@ fun SettingsSwitchRow(
         }
         MuseSwitch(
             checked = checked,
-            onCheckedChange = onCheckedChange,
+            // 禁用时传 null:MuseSwitch 用可空回调表达不可交互
+            onCheckedChange = if (enabled) onCheckedChange else null,
             modifier = Modifier.semantics {
                 stateDescription = if (checked) enabledText else disabledText
             },

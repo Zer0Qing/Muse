@@ -11,6 +11,7 @@
     <string name="agent_directives_add_forbidden">Add a don’t</string>
     <string name="agent_directives_add_desired">Add a do</string>
     <string name="agent_directives_editor_placeholder">For example: remind me to eat breakfast</string>
+    <string name="agent_directives_editor_placeholder_forbidden">For example: don’t send me reminders late at night</string>
     <string name="agent_directives_text_limit">Up to 200 characters each</string>
     <string name="agent_directives_move_up">Move up</string>
     <string name="agent_directives_move_down">Move down</string>

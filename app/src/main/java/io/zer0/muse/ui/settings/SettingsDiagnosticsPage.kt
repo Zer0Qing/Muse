@@ -118,13 +118,19 @@ fun SettingsDiagnosticsPage(onBack: () -> Unit) {
                                         } else {
                                             context.getString(R.string.settings_diagnostics_export_failed)
                                         }
-                                        MuseToast.show(msg)
+                                        // 2026-11-20(P2-26):Toast 必须在主线程弹,否则偶发不显示
+                                        withContext(Dispatchers.Main) { MuseToast.show(msg) }
                                     }
                                 },
                             )
                             MuseCapsuleButton(
                                 text = stringResource(R.string.settings_diagnostics_refresh),
-                                onClick = { reload++ },
+                                onClick = {
+                                    reload++
+                                    // 2026-11-20(P2-26):同一组三个按钮此前只有「复制」有反馈,
+                                    // 「导出」有(但在 IO 线程弹)、「刷新」完全没反馈 —— 点了不知道有没有生效。
+                                    MuseToast.show(context.getString(R.string.settings_diagnostics_refreshing))
+                                },
                             )
                         }
                     },

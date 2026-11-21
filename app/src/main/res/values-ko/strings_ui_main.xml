@@ -371,7 +371,7 @@
 
     <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_hint">설정 항목 검색…</string>
-    <string name="settings_search_no_results">개 일치</string>
+    <string name="settings_search_no_results">일치하는 설정이 없습니다</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_translate">AI 번역</string>
@@ -714,6 +714,7 @@
     <string name="settings_screen_entry_rag_model">검색 모델</string>
     <string name="settings_screen_entry_chunking">청크 전략</string>
     <string name="settings_screen_entry_tool_approval">도구 승인 모드</string>
+    <string name="settings_screen_tool_approval_desc">도구별 확인 정책: 항상 허용 / 항상 묻기 / 항상 거부</string>
     <string name="settings_screen_entry_collab">협업 어시스턴트</string>
     <string name="settings_screen_archived_desc">보관된 대화 보기 및 복원</string>
     <string name="settings_screen_share">공유</string>

@@ -10,6 +10,7 @@
     <string name="code_gap_markdown_cover">Cover</string>
     <string name="code_gap_vision_probe_empty">The vision model returned an empty result or fell back</string>
     <string name="code_gap_note_encrypt_empty">No content to encrypt</string>
+    <string name="code_gap_note_encrypt_requires_lock">No screen lock is set on this device — encrypted notes may become unrecoverable. Set a screen lock in system settings and try again</string>
     <string name="code_gap_note_encrypt_failed">Encryption failed; the note is unchanged</string>
     <string name="code_gap_note_encrypted">Encrypted</string>
     <string name="code_gap_note_decrypt_failed">Decryption failed; the note remains encrypted</string>

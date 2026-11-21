@@ -10,6 +10,8 @@
     <string name="code_gap_markdown_cover">封面</string>
     <string name="code_gap_vision_probe_empty">视觉模型返回空结果或降级</string>
     <string name="code_gap_note_encrypt_empty">没有可加密的内容</string>
+    <!-- 2026-11-20(P1-6): 无锁屏设备上加密会导致密钥失效、笔记无法解密 -->
+    <string name="code_gap_note_encrypt_requires_lock">设备未设置锁屏，加密后可能无法解密。请先在系统设置中设置锁屏密码后再试</string>
     <string name="code_gap_note_encrypt_failed">加密失败,笔记保持原样</string>
     <string name="code_gap_note_encrypted">已加密</string>
     <string name="code_gap_note_decrypt_failed">解密失败,笔记保持加密</string>

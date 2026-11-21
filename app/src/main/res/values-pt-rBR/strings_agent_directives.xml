@@ -11,6 +11,7 @@
     <string name="agent_directives_add_forbidden">Adicionar um “nunca”</string>
     <string name="agent_directives_add_desired">Adicionar um “faça”</string>
     <string name="agent_directives_editor_placeholder">Exemplo: me lembre de tomar café da manhã</string>
+    <string name="agent_directives_editor_placeholder_forbidden">Exemplo: não me envie lembretes tarde da noite</string>
     <string name="agent_directives_text_limit">Até 200 caracteres por regra</string>
     <string name="agent_directives_move_up">Mover para cima</string>
     <string name="agent_directives_move_down">Mover para baixo</string>

@@ -371,7 +371,7 @@
 
     <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_hint">検索設定…</string>
-    <string name="settings_search_no_results">マッチ</string>
+    <string name="settings_search_no_results">一致する設定がありません</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_translate">AI翻訳</string>
@@ -714,6 +714,7 @@
     <string name="settings_screen_entry_rag_model">検索モデル</string>
     <string name="settings_screen_entry_chunking">チャンク戦略</string>
     <string name="settings_screen_entry_tool_approval">ツール承認モード</string>
+    <string name="settings_screen_tool_approval_desc">ツールごとの確認方針：常に許可 / 毎回確認 / 常に拒否</string>
     <string name="settings_screen_entry_collab">コラボアシスタント</string>
     <string name="settings_screen_archived_desc">アーカイブした会話の表示と復元</string>
     <string name="settings_screen_share">共有</string>

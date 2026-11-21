@@ -512,7 +512,7 @@
 
     <!-- v1.132: 设置搜索 + 分组重排 -->
     <string name="settings_search_hint">搜索设置项…</string>
-    <string name="settings_search_no_results">个匹配项</string>
+    <string name="settings_search_no_results">没有匹配的设置项</string>
     <plurals name="settings_search_result_count">
         <item quantity="other">找到 %1$d 项结果</item>
     </plurals>
@@ -536,6 +536,7 @@
     <!-- v1.0.1: 中转站支持 — 手动选择未识别视觉模型 -->
     <string name="settings_vision_show_all_models">显示全部模型</string>
     <string name="settings_vision_show_all_models_subtitle">中转站高级模式：显示所有模型，可手动选择未被自动识别的视觉模型</string>
+    <string name="settings_vision_show_all_models_subtitle_no_hidden">当前所有模型都已识别为视觉模型，无需打开</string>
     <string name="settings_vision_manual_selected">手动选择</string>
 
     <!-- v1.135: 视觉辅助状态提示 -->
@@ -615,7 +616,8 @@
     <!-- ===== Skill 页 SkillScreen ===== -->
     <string name="skill_management">Skill 管理</string>
     <string name="skill_import_cd">导入 .skill.json</string>
-    <string name="skill_intro">Skill 是 LLM 可调用的工具。开启后,Assistant 在对话中可按需调用；关闭则不暴露给模型。点击右上角导入按钮可导入 .skill.json。</string>
+    <string name="skill_intro">Skill 是 LLM 可调用的工具。开启后,Assistant 在对话中可按需调用；关闭则不暴露给模型。点击页面中的「导入」按钮可导入 .skill.json。</string>
+    <string name="skill_share_no_target">没有可用于分享的应用</string>
     <string name="skill_no_skill_title">还没有 Skill</string>
     <string name="skill_no_skill_subtitle">直接对 AI 说"帮我创建一个 XX 技能"，或点右下角 + 导入 Skill 文件</string>
     <string name="skill_importing">正在导入</string>
@@ -912,6 +914,7 @@
     <string name="voice_cloning_key_from_provider">音色已设为当前，API Key 沿用供应商配置</string>
     <string name="voice_cloning_failed">克隆失败：%1$s</string>
     <string name="voice_cloning_audio_required">请先选择样本音频</string>
+    <string name="voice_cloning_api_key_required">请先填写 API Key</string>
 
     <!-- ===== P2-13: 桌面端适配(ChromeOS / Android Desktop) ===== -->
     <!-- 快捷键说明(用于设置页或帮助页展示) -->
@@ -939,6 +942,7 @@
     <string name="settings_screen_entry_rag_model">检索模型</string>
     <string name="settings_screen_entry_chunking">分段策略</string>
     <string name="settings_screen_entry_tool_approval">工具批准模式</string>
+    <string name="settings_screen_tool_approval_desc">每个工具的确认策略：始终允许 / 每次询问 / 始终拒绝</string>
     <string name="settings_screen_entry_collab">协作助手</string>
 
     <!-- Phase 4: 已安装插件的声明式气泡皮肤 -->

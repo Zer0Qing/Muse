@@ -86,6 +86,23 @@ class TarGzExtractorTest {
         assertEquals("after-a", File(out, "b.txt").readText())
     }
 
+    @Test
+    fun `链接建立失败时必须让解包失败而不是静默跳过`() {
+        // 2026-11-20(P1-7) 真机事故:systemd 单元的符号链接没建出来,
+        // 解包却当成功返回,自检在很远的地方才报「motd-news.timer 缺失」。
+        // 这里用「硬链接源不存在」复现同类失败:必须抛异常并点名是哪条。
+        val archive = tarGz(
+            entry(name = "./orphan.link", type = '1', linkName = "never-existed.txt"),
+        )
+        val out = tmp.newFolder("out5")
+        val error =
+            runCatching { TarGzExtractor.extract(archive, out) }.exceptionOrNull()
+        assertTrue("解包应失败，实际=$error", error is IllegalStateException)
+        assertTrue(
+            "异常信息应点名失败的链接，实际=${error?.message}",
+            error?.message?.contains("orphan.link") == true,
+        )
+    }
     // ── 构造 tar 的小工具 ────────────────────────────────────────────────
 
     private class Entry(

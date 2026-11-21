@@ -47,6 +47,7 @@ import io.zer0.muse.ui.navigation.SettingsWebAccessRoute
 import io.zer0.muse.ui.navigation.SettingsWebSearchRoute
 import io.zer0.muse.ui.navigation.StatsRoute
 import io.zer0.muse.ui.navigation.ToolsScreenRoute
+import io.zer0.muse.ui.navigation.ToolsSettingsRoute
 import io.zer0.muse.ui.navigation.UserProfileEditRoute
 import io.zer0.muse.ui.navigation.VideoGenerationRoute
 import io.zer0.muse.ui.navigation.VoiceCloningRoute
@@ -97,6 +98,8 @@ enum class SettingsEntryId {
     TOOLS,
     PERMISSION_WIZARD,
     WEB_SEARCH,
+    /** 单工具审批策略页（可写）。此前只有搜索索引指向只读的 [ToolsScreenRoute]。 */
+    TOOL_APPROVAL,
     TTS,
     ASR,
     VOICE_CLONING,
@@ -330,6 +333,9 @@ object SettingsCatalog {
                     keywords = listOf(
                         "供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao",
                         "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商",
+                        // 2026-11-20(P2-6):真机在设置里搜英文 "model" 搜不到这一项 ——
+                        // 关键词里只有拼音 moxing 与中文「模型」，补上英文原词与常见写法。
+                        "model", "models", "model provider", "llm", "endpoint",
                     ),
                 ),
                 entry(
@@ -390,6 +396,22 @@ object SettingsCatalog {
                     keywords = listOf(
                         "联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo",
                         "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss",
+                    ),
+                ),
+                // 单工具审批策略此前只有搜索索引一条记录，且指向只读的 ToolsScreenRoute
+                // （那一页自述"不做全局开关…只做展示与说明"）。真正可写的页面挂在
+                // ConnectionCenterRoute 上，而那条路由全仓 0 处 navigate —— 用户搜到"工具批准"
+                // 点进去改不了任何东西，改得了的页面又找不到。这里把可写页接进分类页。
+                entry(
+                    SettingsEntryId.TOOL_APPROVAL,
+                    R.string.settings_screen_entry_tool_approval,
+                    R.string.settings_screen_tool_approval_desc,
+                    MuseIcons.shieldCheck,
+                    SettingsEntryAction.Navigate(ToolsSettingsRoute),
+                    keywords = listOf(
+                        "工具批准", "批准模式", "审批", "自动批准", "始终允许", "始终拒绝", "工具权限",
+                        "gongjupizhun", "pizhunmoshi", "shenpi", "zidongpizhun", "shizhongyunxu",
+                        "gjpz", "pzms", "sp", "zdpz", "szzx",
                     ),
                 ),
             ),
@@ -732,9 +754,11 @@ object SettingsCatalog {
             R.string.offline_resources_desc,
             MuseIcons.download,
             entries(
+                // 条目名与组名分开:此前两者共用 offline_resources_title,
+                // 首页那一行、页面标题、条目名三处同字,用户点进去会以为没跳转。
                 entry(
                     SettingsEntryId.RUNTIME,
-                    R.string.offline_resources_title,
+                    R.string.offline_resources_entry_title,
                     R.string.offline_resources_desc,
                     MuseIcons.download,
                     SettingsEntryAction.Navigate(SettingsRuntimeRoute),

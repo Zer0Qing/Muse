@@ -11,6 +11,7 @@
     <string name="agent_directives_add_forbidden">添加一条「不要做」</string>
     <string name="agent_directives_add_desired">添加一条「要做」</string>
     <string name="agent_directives_editor_placeholder">例如：早上提醒我吃早饭</string>
+    <string name="agent_directives_editor_placeholder_forbidden">例如：不要在深夜给我发提醒</string>
     <string name="agent_directives_text_limit">单条最多 200 字</string>
     <string name="agent_directives_move_up">上移</string>
     <string name="agent_directives_move_down">下移</string>

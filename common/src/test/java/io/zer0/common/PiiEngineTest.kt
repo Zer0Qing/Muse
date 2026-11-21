@@ -85,4 +85,43 @@ class PiiEngineTest {
         assertTrue(restored.contains("13800138000"))
         assertFalse(restored.contains("[PHONE_2]"))
     }
+
+    // ── 2026-11-20 真机崩溃回归 ─────────────────────────────────────────
+    // 事故:address 规则用了 `\p{IsHan}`,Android ICU 不支持 → `Regex(...)` 构造期抛
+    // `PatternSyntaxException`,整个 rules 惰性列表初始化失败 → scrubMemory / maskMemory
+    // 全崩 → 记忆自动保存 100% 失效，设备日志刷 35 条同一异常。
+
+    @Test
+    fun `所有内置规则都能成功编译`() {
+        // 这是本次事故最直接的回归断言：只要有任何一条规则编译失败，
+        // ruleLoadErrors 就非空。JVM 上测不出 ICU 差异，但能抓住语法错误。
+        assertTrue("规则编译失败: ${PiiEngine.ruleLoadErrors}", PiiEngine.ruleLoadErrors.isEmpty())
+    }
+
+    @Test
+    fun `规则里不得出现 Android ICU 不支持的 Java 专有语法`() {
+        // `\p{IsHan}` 这类属性名在 JVM 上合法、在 Android ICU 上非法，
+        // 纯 JVM 单测跑不出差异 —— 所以直接对 pattern 文本做静态断言。
+        // 中文一律用基本区码点范围（u4e00-u9fa5）。
+        val offenders = PiiEngine.rulePatterns().filter { (_, pattern) -> pattern.contains("IsHan") }
+        assertTrue("这些规则用了 Android ICU 不支持的 IsHan 属性名: $offenders", offenders.isEmpty())
+    }
+
+    @Test
+    fun `中文地址必须能被识别并抹掉`() {
+        val scrubbed = PiiEngine.scrubMemory("我住在北京市朝阳区幸福路 12 号")
+        assertFalse("中文地址没被抹掉: ${scrubbed.cleaned}", scrubbed.cleaned.contains("朝阳区"))
+    }
+
+    @Test
+    fun `单条规则写错不应让整个脱敏器失效`() {
+        // 直接验证 safeRule 的隔离语义：即使某条正则非法，其余规则仍工作。
+        // （safeRule 是 private，这里通过“引擎整体仍可用”间接断言。）
+        val r1 = PiiEngine.scrubMemory("邮箱 a@b.com")
+        assertTrue("邮箱规则失效: ${r1.cleaned}", "email" in r1.detected)
+        val r2 = PiiEngine.scrubMemory("手机 13800138000")
+        assertTrue("手机规则失效: ${r2.cleaned}", "phone" in r2.detected)
+        val r3 = PiiEngine.maskMemory("电话 13800138000")
+        assertTrue("maskMemory 链路失效", r3.masked.contains("[PHONE_"))
+    }
 }

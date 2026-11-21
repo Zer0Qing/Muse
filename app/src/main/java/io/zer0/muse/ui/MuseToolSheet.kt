@@ -607,6 +607,23 @@ private fun CameraLivePreviewBox(modifier: Modifier, onTap: () -> Unit) {
     // 持有 provider 引用;面板离开组合(onRelease)时解绑,避免相机在加号菜单关闭后
     // 仍绑定在 RESUMED Activity 上(指示灯常亮/耗电/阻塞其他相机应用)。
     val cameraProviderHolder = remember { arrayOfNulls<ProcessCameraProvider>(1) }
+    // 2026-11-20(P0-2):相机不可用时不要留一块纯黑方块。
+    // 真机审计「授权相机后摄像头入口变纯黑块」就是这条路径:入口渲染的是 PreviewView,
+    // 而设备没有可用摄像头(模拟器无相机 / 被其它应用占用 / 绑定失败)时 PreviewView 不出帧,
+    // 用户看到的是一块黑,既不知道这是什么,也不知道能不能点。
+    // 现在:检查不到摄像头或绑定失败 → 退回带图标与文字的 ToolMediaCard,点击行为不变。
+    var previewUnavailable by remember { mutableStateOf(false) }
+
+    if (previewUnavailable) {
+        ToolMediaCard(
+            icon = MuseIcons.camera,
+            label = stringResource(R.string.chat_tool_camera),
+            modifier = modifier,
+            onClick = { currentOnTap() },
+        )
+        return
+    }
+
     AndroidView(
         factory = { ctx ->
             val previewView = PreviewView(ctx).apply {
@@ -619,21 +636,32 @@ private fun CameraLivePreviewBox(modifier: Modifier, onTap: () -> Unit) {
                     runCatching {
                         val provider = providerFuture.get()
                         cameraProviderHolder[0] = provider
+                        // 先确认真的有后置/前置摄像头,否则 bindToLifecycle 之后永远是黑帧。
+                        val hasBack = provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)
+                        val hasFront = provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)
+                        if (!hasBack && !hasFront) {
+                            previewUnavailable = true
+                            return@runCatching
+                        }
+                        val selector =
+                            if (hasBack) {
+                                CameraSelector.DEFAULT_BACK_CAMERA
+                            } else {
+                                CameraSelector.DEFAULT_FRONT_CAMERA
+                            }
                         val preview = Preview.Builder().build().also {
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
                         provider.unbindAll()
-                        provider.bindToLifecycle(
-                            lifecycleOwner,
-                            CameraSelector.DEFAULT_BACK_CAMERA,
-                            preview,
-                        )
+                        provider.bindToLifecycle(lifecycleOwner, selector, preview)
                     }.onFailure { e ->
-                        Logger.w("MuseToolSheet", "相机预览绑定失败", e)
+                        Logger.w("MuseToolSheet", "相机预览绑定失败,降级为图标卡片", e)
+                        previewUnavailable = true
                     }
                 }, ContextCompat.getMainExecutor(ctx))
             }.onFailure { e ->
-                Logger.w("MuseToolSheet", "相机预览初始化失败", e)
+                Logger.w("MuseToolSheet", "相机预览初始化失败,降级为图标卡片", e)
+                previewUnavailable = true
             }
             previewView
         },

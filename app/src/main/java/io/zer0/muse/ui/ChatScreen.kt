@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.view.KeyEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -323,7 +322,14 @@ private fun Modifier.onVolumeKeyEvent(onScroll: (Float) -> Unit): Modifier = thi
 @Composable
 fun ChatScreen(
     onOpenAssistants: () -> Unit = {},
-    onOpenProviderSettings: () -> Unit = {},
+    /**
+     * 打开供应商设置页。
+     *
+     * 不给默认值:空 lambda 会让"漏传"静默通过编译,然后在用户点「去设置」时
+     * 毫无反应 —— 这正是首页与 Agent Tab 上曾经的样子。必填参数把这类漏接
+     * 提前到编译期。
+     */
+    onOpenProviderSettings: () -> Unit,
     /** v0.27: 从任务列表 push 进入时传入返回回调;为 null 时(Tab 模式)不显示返回按钮。 */
     onBack: (() -> Unit)? = null,
     /**
@@ -418,7 +424,9 @@ fun ChatScreen(
     LaunchedEffect(runtimeState, runtimeMissing) {
         if (runtimeInstallSeen && runtimeState is RuntimeState.Ready && !runtimeAutoContinued && runtimeMissing) {
             runtimeAutoContinued = true
-            viewModel.sendFromCard("运行环境已就绪（node v24.22.1）。请继续刚才因缺少运行环境而中断的任务。")
+            // 文案走资源:这是直接发进对话的可见消息,硬编码中文会让非中文用户
+            // 在恢复任务时收到一段读不懂的指令,而模型会按它继续干活。
+            viewModel.sendFromCard(runtimeAppContext.getString(R.string.runtime_ready_continue_prompt))
         }
     }
 
@@ -1298,11 +1306,13 @@ fun ChatScreen(
     // 照片按钮点击后走统一视觉媒体选择器;视频会被提取关键帧降级为图片发送。
     // 前端修复 (持久化-11): OCR 标记改 rememberSaveable,进程重建后选图回调仍按原意图处理
     var imagePickAsOcr by rememberSaveable { mutableStateOf(false) }
-    // 相册支持批量选择：一次选多张图/多个视频，逐个加入待发送队列。
-    // 旧实现是 PickVisualMedia（单选），想发多张得反复打开相册。
+    // 相册支持批量选择：一次选多张图，逐个加入待发送队列。
+    // 2026-11-20(P2-2):改用 GetMultipleContents 而不是 PickMultipleVisualMedia ——
+    // 后者依赖系统照片选择器(GMS/新版系统组件)，在没有 GMS 的设备上直接不可用。
+    // DocumentsUI 是 AOSP 基础组件，任何设备都有。
     val visualMediaLauncher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickMultipleVisualMedia(MAX_MULTI_PICK),
+            contract = ActivityResultContracts.GetMultipleContents(),
         ) { uris ->
             uris.forEach { uri ->
                 when (context.contentResolver.getType(uri)?.startsWith("video/")) {
@@ -1344,7 +1354,7 @@ fun ChatScreen(
     // v2.6.2（用户反馈）: 本对话背景选择器（更多菜单入口）
     val sessionBgLauncher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickVisualMedia(),
+            contract = ActivityResultContracts.GetContent(),
         ) { uri ->
             val sid = effectiveSessionIdForBg
             if (uri != null && !sid.isNullOrBlank()) {
@@ -1677,6 +1687,18 @@ fun ChatScreen(
                                                                     newMuted,
                                                                 )
                                                                 proactiveSessionMuted = newMuted
+                                                                // 2026-11-20(P2-15):这个开关此前点了没有任何反馈 ——
+                                                                // 后台其实已经在按新值工作(诊断面板能看到),但用户以为没生效。
+                                                                // 补一条 Toast 明确说出「本条会话」的主动消息开/关。
+                                                                MuseToast.show(
+                                                                    context.getString(
+                                                                        if (newMuted) {
+                                                                            R.string.chat_proactive_muted
+                                                                        } else {
+                                                                            R.string.chat_proactive_unmuted
+                                                                        },
+                                                                    ),
+                                                                )
                                                             }
                                                         },
                                                     ),
@@ -1752,7 +1774,7 @@ fun ChatScreen(
                                                         onClick = {
                                                             showTopMenu = false
                                                             sessionBgLauncher.launch(
-                                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                                                "image/*",
                                                             )
                                                         },
                                                     ),
@@ -2068,7 +2090,7 @@ fun ChatScreen(
                                             imagePickAsOcr = asOcr
                                             runCatching {
                                                 visualMediaLauncher.launch(
-                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
+                                                    "image/*",
                                                 )
                                             }.onFailure {
                                                 viewModel.reportError(

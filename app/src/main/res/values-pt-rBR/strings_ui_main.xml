@@ -371,7 +371,7 @@
 
     <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_hint">Configurações de pesquisa…</string>
-    <string name="settings_search_no_results">partidas</string>
+    <string name="settings_search_no_results">Nenhuma configuração correspondente</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_translate">Tradução IA</string>
@@ -714,6 +714,7 @@
     <string name="settings_screen_entry_rag_model">Modelo de recuperação</string>
     <string name="settings_screen_entry_chunking">Estratégia de fragmentação</string>
     <string name="settings_screen_entry_tool_approval">Modo de aprovação de ferramentas</string>
+    <string name="settings_screen_tool_approval_desc">Política por ferramenta: sempre permitir / sempre perguntar / sempre negar</string>
     <string name="settings_screen_entry_collab">Assistente colaborativo</string>
     <string name="settings_screen_archived_desc">Ver e restaurar conversas arquivadas</string>
     <string name="settings_screen_share">Compartilhar</string>

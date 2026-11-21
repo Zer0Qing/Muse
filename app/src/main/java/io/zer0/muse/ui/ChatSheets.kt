@@ -481,7 +481,14 @@ internal fun ChatSheetHost(
                                         )
                                     },
                                     supportingContent = {
-                                        val desc = assistant.systemPrompt.take(60)
+                                        // 2026-11-20(P2-9):这里显示的是助手 systemPrompt 的前 60 字,
+                                        // 未替换的 {{char}} / {{user_name}} 会原样漏到界面上。
+                                        // 委托列表只是让人认人,没必要渲染变量 —— 直接剥掉占位符。
+                                        val desc = assistant.systemPrompt
+                                            .replace(Regex("\\{\\{[^}]{1,40}\\}\\}"), " ")
+                                            .replace(Regex("\\s+"), " ")
+                                            .trim()
+                                            .take(60)
                                         if (desc.isNotBlank()) {
                                             Text(
                                                 text = desc,

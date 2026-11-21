@@ -127,7 +127,7 @@
     <string name="settings_agent_daily_guarantee_off">Off</string>
     <string name="settings_task_routing_utility_large_desc">Context compression, memory extraction, task breakdown</string>
     <string name="settings_crash_anr_title">ANR Detection</string>
-    <string name="settings_crash_anr_subtitle">Detect app not responding and record it in crash/audit logs</string>
+    <string name="settings_crash_anr_subtitle">Detect app not responding and record it in local crash/audit logs (on by default, local only, never uploaded)</string>
     <string name="settings_chat_compress_model">Compression Model</string>
     <string name="settings_chat_compress_model_default">Default model</string>
     <string name="settings_chat_paste_as_file">Long Paste to File</string>
@@ -795,6 +795,7 @@
     <string name="settings_diagnostics_export_hint">The export contains only sizes, counts and states — no messages, paths or credentials</string>
     <string name="settings_diagnostics_copy_json">Copy diagnostics JSON</string>
     <string name="settings_diagnostics_copied">Copied to clipboard</string>
+    <string name="settings_diagnostics_refreshing">Refreshing…</string>
     <string name="settings_diagnostics_export_file">Save to cache file</string>
     <string name="settings_diagnostics_exported">Written to diagnostics.json in app cache</string>
     <string name="settings_diagnostics_export_failed">Export failed</string>

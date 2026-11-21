@@ -163,7 +163,7 @@
     <string name="settings_agent_daily_guarantee_off">关闭</string>
     <string name="settings_task_routing_utility_large_desc">压缩、记忆提取、任务拆解等需要理解力的场景</string>
     <string name="settings_crash_anr_title">ANR 检测</string>
-    <string name="settings_crash_anr_subtitle">检测应用无响应并记录到崩溃/审计日志</string>
+    <string name="settings_crash_anr_subtitle">检测应用无响应并记录到本地崩溃/审计日志（默认开启，仅本地记录，不上传）</string>
     <string name="settings_chat_compress_model">压缩模型</string>
     <string name="settings_chat_compress_model_default">默认模型</string>
     <string name="settings_chat_paste_as_file">长文本粘贴转文件</string>
@@ -800,6 +800,7 @@
     <string name="settings_diagnostics_export_hint">导出内容只有体积、计数与状态,不含消息、路径与凭据</string>
     <string name="settings_diagnostics_copy_json">复制诊断 JSON</string>
     <string name="settings_diagnostics_copied">已复制到剪贴板</string>
+    <string name="settings_diagnostics_refreshing">正在刷新…</string>
     <string name="settings_diagnostics_export_file">保存到缓存文件</string>
     <string name="settings_diagnostics_exported">已写入应用缓存 diagnostics.json</string>
     <string name="settings_diagnostics_export_failed">导出失败</string>

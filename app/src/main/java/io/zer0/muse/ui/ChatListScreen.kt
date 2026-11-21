@@ -511,19 +511,32 @@ fun ChatListScreen(
                 onDismissRequest = { showCreateFolderDialog = false },
                 title = stringResource(R.string.chat_list_new_folder),
                 content = {
-                    MuseTextField(
-                        value = newFolderName,
-                        onValueChange = { newFolderName = it },
-                        placeholder = { Text(stringResource(R.string.chat_list_folder_name_placeholder)) },
-                        singleLine = true,
-                    )
+                    Column {
+                        MuseTextField(
+                            value = newFolderName,
+                            onValueChange = { newFolderName = it },
+                            placeholder = { Text(stringResource(R.string.chat_list_folder_name_placeholder)) },
+                            singleLine = true,
+                        )
+                        // 2026-11-20(P2-27):空名此前可以点「创建」——弹窗静默关掉、什么都没建。
+                        // 现在创建按钮在空名时禁用,并在下方常驻一句说明,避免"点了没反应"。
+                        if (newFolderName.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.chat_list_folder_name_required),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = MusePaddings.tightGap),
+                            )
+                        }
+                    }
                 },
                 confirmText = stringResource(R.string.chat_list_create),
+                confirmEnabled = newFolderName.isNotBlank(),
                 onConfirm = {
                     if (newFolderName.isNotBlank()) {
                         onCreateFolder(newFolderName.trim())
+                        showCreateFolderDialog = false
                     }
-                    showCreateFolderDialog = false
                 },
                 dismissText = stringResource(R.string.action_cancel),
                 onDismiss = { showCreateFolderDialog = false },

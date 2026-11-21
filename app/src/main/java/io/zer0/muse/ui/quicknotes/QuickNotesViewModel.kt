@@ -415,6 +415,18 @@ class QuickNotesViewModel(
                     MuseToast.show(context.getString(R.string.code_gap_note_encrypt_empty))
                     return@launch
                 }
+                // 2026-11-20(P1-6):加密前先确认设备设了锁屏。
+                // 真机事故:在没有锁屏的模拟器上加密后,NoteCipher 的 Keystore 密钥失效,
+                // 解密只报「解密失败」而没有任何找回入口,笔记等于永久丢失。
+                // 既然加密用的是要求设备安全的 Keystore 密钥,就不该允许在无锁屏设备上开启。
+                val keyguard =
+                    context.getSystemService(android.content.Context.KEYGUARD_SERVICE)
+                        as? android.app.KeyguardManager
+                if (keyguard?.isDeviceSecure != true) {
+                    MuseToast.show(context.getString(R.string.code_gap_note_encrypt_requires_lock))
+                    Logger.w(TAG, "设备未设置锁屏,拒绝加密笔记 $id")
+                    return@launch
+                }
                 val cipher = runCatching { noteCipher.encrypt(existing.content) }.getOrNull()
                 if (cipher == null) {
                     MuseToast.show(context.getString(R.string.code_gap_note_encrypt_failed))

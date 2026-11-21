@@ -48,9 +48,13 @@
     <string name="memory_edit_failed">Edit failed: %1$s</string>
     <string name="memory_set_failed">Set failed: %1$s</string>
     <string name="memory_add_failed">Add failed: %1$s</string>
+    <string name="memory_error_storage_invalid">The content was rejected — please check it and try again</string>
+    <string name="memory_error_storage_full">Not enough storage — free some space and try again</string>
+    <string name="memory_error_storage_generic">Could not write to storage — please try again later</string>
     <string name="memory_add_experience_failed">Add experience failed: %1$s</string>
     <string name="memory_edit_experience_failed">Edit experience failed: %1$s</string>
     <string name="memory_delete_experience_failed">Delete experience failed: %1$s</string>
+    <string name="memory_delete_experience_title">Delete experience</string>
 
     <!-- v6: Compile section display titles -->
     <string name="memory_compile_section_facts">Facts Summary</string>

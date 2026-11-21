@@ -600,22 +600,27 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // 2026-11-20(P2-23):三选一此前全是同一种 Text 样式,点完看不出选中了哪个。
+                    // 选中的用 Primary(实心),未选中的用 Text —— 与其它单选组保持同一套视觉。
+                    val sseSelected = transportType == McpTransportType.SSE
+                    val httpSelected = transportType == McpTransportType.STREAMABLE_HTTP
+                    val stdioSelected = transportType == McpTransportType.STDIO
                     MuseCapsuleButton(
                         text = "SSE",
                         onClick = { transportType = McpTransportType.SSE },
-                        variant = IosCapsuleButtonVariant.Text,
+                        variant = if (sseSelected) IosCapsuleButtonVariant.Primary else IosCapsuleButtonVariant.Text,
                         fillWidth = false,
                     )
                     MuseCapsuleButton(
                         text = "StreamableHTTP",
                         onClick = { transportType = McpTransportType.STREAMABLE_HTTP },
-                        variant = IosCapsuleButtonVariant.Text,
+                        variant = if (httpSelected) IosCapsuleButtonVariant.Primary else IosCapsuleButtonVariant.Text,
                         fillWidth = false,
                     )
                     MuseCapsuleButton(
                         text = "STDIO",
                         onClick = { transportType = McpTransportType.STDIO },
-                        variant = IosCapsuleButtonVariant.Text,
+                        variant = if (stdioSelected) IosCapsuleButtonVariant.Primary else IosCapsuleButtonVariant.Text,
                         fillWidth = false,
                     )
                 }

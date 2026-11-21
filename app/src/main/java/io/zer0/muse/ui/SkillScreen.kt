@@ -213,7 +213,14 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                                         putExtra(android.content.Intent.EXTRA_TEXT, json)
                                         putExtra(android.content.Intent.EXTRA_SUBJECT, "Muse Skills")
                                     }
+                                    // 2026-11-20(P2-5):此前这里只 runCatching 不处理失败 ——
+                                    // 设备上没有能接收 application/json 的应用时,点分享完全没反应。
                                     runCatching { context.startActivity(android.content.Intent.createChooser(sendIntent, null)) }
+                                        .onFailure {
+                                            MuseToast.show(
+                                                context.getString(R.string.skill_share_no_target),
+                                            )
+                                        }
                                 }
                             }
                         },

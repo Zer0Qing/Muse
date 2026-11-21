@@ -1002,8 +1002,10 @@ internal fun GroupChatInputBar(
                     iconSize = MuseIconSizes.icon,
                 )
                 // v2.x: 会议操作入口 — 表决/总结/@/成员/上下文/编辑从加号菜单提升为一级入口
+                // 2026-11-20(P2-5):原来用的是剪贴板图标,和「会议」毫无关系。
+                // 换成「一群人」,与会议/成员的语义一致。
                 MuseTactileButton(
-                    icon = MuseIcons.clipboard,
+                    icon = MuseIcons.users,
                     onClick = onOpenMeetingSheet,
                     contentDescription = stringResource(R.string.groupchat_meeting),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2000,6 +2002,38 @@ private fun CameraLivePreviewBox(modifier: Modifier, onTap: () -> Unit) {
     // 持有 provider 引用;面板离开组合(onRelease)时解绑,避免相机在菜单关闭后仍绑定
     // 在 RESUMED Activity 上(指示灯常亮/耗电/阻塞其他相机应用)。
     val cameraProviderHolder = remember { arrayOfNulls<ProcessCameraProvider>(1) }
+    // 2026-11-20(P0-2):与单聊加号菜单同修 —— 相机不可用时不留纯黑方块,
+    // 退回带图标与文字的入口卡片(点击行为不变)。
+    var previewUnavailable by remember { mutableStateOf(false) }
+
+    if (previewUnavailable) {
+        Surface(
+            shape = MuseShapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f),
+            modifier = modifier.clickable { currentOnTap() },
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = MuseIcons.camera,
+                    contentDescription = stringResource(R.string.chat_tool_camera),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(MuseIconSizes.iconLarge),
+                )
+                Spacer(Modifier.height(MusePaddings.auxGap))
+                Text(
+                    text = stringResource(R.string.chat_tool_camera),
+                    style = MaterialTheme.typography.bodyMediumStrong,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+        return
+    }
+
     AndroidView(
         factory = { ctx ->
             val previewView = PreviewView(ctx).apply {
@@ -2012,14 +2046,32 @@ private fun CameraLivePreviewBox(modifier: Modifier, onTap: () -> Unit) {
                     runCatching {
                         val provider = providerFuture.get()
                         cameraProviderHolder[0] = provider
+                        val hasBack = provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)
+                        val hasFront = provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)
+                        if (!hasBack && !hasFront) {
+                            previewUnavailable = true
+                            return@runCatching
+                        }
+                        val selector =
+                            if (hasBack) {
+                                CameraSelector.DEFAULT_BACK_CAMERA
+                            } else {
+                                CameraSelector.DEFAULT_FRONT_CAMERA
+                            }
                         val preview = Preview.Builder().build().also {
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
                         provider.unbindAll()
-                        provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview)
-                    }.onFailure { e -> Logger.w("GroupChatToolSheet", "相机预览绑定失败", e) }
+                        provider.bindToLifecycle(lifecycleOwner, selector, preview)
+                    }.onFailure { e ->
+                        Logger.w("GroupChatToolSheet", "相机预览绑定失败,降级为图标卡片", e)
+                        previewUnavailable = true
+                    }
                 }, ContextCompat.getMainExecutor(ctx))
-            }.onFailure { e -> Logger.w("GroupChatToolSheet", "相机预览初始化失败", e) }
+            }.onFailure { e ->
+                Logger.w("GroupChatToolSheet", "相机预览初始化失败,降级为图标卡片", e)
+                previewUnavailable = true
+            }
             previewView
         },
         onRelease = {

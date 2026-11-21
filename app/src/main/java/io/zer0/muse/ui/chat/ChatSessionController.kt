@@ -167,7 +167,12 @@ internal class ChatSessionController(
             val currentAssistantId =
                 assistantIdOverride
                     ?: sessionDeps.settings.defaultAssistantIdFlow.first().ifBlank { "default" }
-            val id = sessionRepository.createSession(assistantId = currentAssistantId)
+            // 2026-11-20(P2-3):先进已有空会话,没有再新建。
+            // 真机反馈「每次进对话页首页就多一条新会话」—— 新建即落库,而空会话用户往往
+            // 一句话都没发。只有在「新建到指定文件夹」时才强制新建(那是明确的一次创建意图)。
+            val reusableId =
+                if (folderId == null) sessionRepository.findReusableEmptySession(currentAssistantId) else null
+            val id = reusableId ?: sessionRepository.createSession(assistantId = currentAssistantId)
             // 文件夹详情页「新建到此文件夹」：新会话直接落进指定文件夹（null 时维持原行为）。
             if (folderId != null) sessionRepository.setSessionFolder(id, folderId)
             // v1.x: 新会话权限模式跟随全局默认
@@ -749,6 +754,11 @@ internal class ChatSessionController(
                     pendingToolApprovals = emptyList(),
                     // F-4: 切换会话清空消息级置顶横幅,避免跨会话残留
                     pinnedMessageContent = null,
+                    // 2026-11-20(P2-10):多选状态必须随会话切换清掉。
+                    // 真机复现两次:在 A 会话勾选几条消息,切到 B 会话后仍处于多选态,
+                    // 底部还挂着 A 会话的「已选 N 条」——操作会误落到 B 的消息上。
+                    selectionMode = false,
+                    selectedMessageIds = emptySet(),
                     toolCallHistory = emptyList(),
                     agentPlans = restoredAgentPlans,
                     sessionsError = null,

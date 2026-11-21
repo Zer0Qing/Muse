@@ -1042,6 +1042,17 @@ class MemoryViewModel(
      *  - scope 非 null 时:按 scope + spaceId 双重查询(getByScopeAndSpace)
      *  - 这样切换 Space 时,factItems 仅展示当前 Space 的事实
      */
+    /**
+     * 清掉当前错误提示。
+     *
+     * 2026-11-20(P2-25):记忆中心的错误态此前只能靠「重新加载」或退出整页消失,
+     * 它会盖住搜索框与列表;切换标签也不重置(错误来自上一个标签,却挡住下一个)。
+     * 现在错误条可以手动关掉,切标签时也会自动清。
+     */
+    fun clearErrorTrace() {
+        _state.update { it.copy(errorTrace = null) }
+    }
+
     fun loadAll(silent: Boolean = false) {
         // 审计修复 (3.2): 取消上一次加载协程,快速切换 scope 时旧协程不再覆盖新状态
         loadJob?.cancel()
@@ -1730,6 +1741,31 @@ class MemoryViewModel(
     }
 
     /**
+     * 把底层存储异常翻译成用户能看懂的话。
+     *
+     * 2026-11-20(P2-24):真机上添加元事实失败，提示直接显示 `U_ILLEGAL_ARGUMENT_ERROR`。
+     * 这类 `U_*` / `SQLITE_*` 是内部错误码，对用户没有信息量，也让人怀疑是不是自己填错了。
+     * 已知的映射成具体解释，其余统一给「存储写入失败，请稍后重试」。
+     *
+     * 注意：只做展示层翻译，原始 `msg` 仍会随日志/审计记录保留（见调用处 `t`）。
+     */
+    private fun friendlyStorageError(msg: String): String {
+        val raw = msg.trim()
+        if (raw.isEmpty()) return getApplication<Application>().getString(R.string.memory_error_storage_generic)
+        return when {
+            raw.contains("U_ILLEGAL_ARGUMENT", ignoreCase = true) ||
+                raw.contains("SQLITE_MISMATCH", ignoreCase = true) ||
+                raw.contains("SQLITE_CONSTRAINT", ignoreCase = true) ->
+                getApplication<Application>().getString(R.string.memory_error_storage_invalid)
+            raw.contains("SQLITE_FULL", ignoreCase = true) ->
+                getApplication<Application>().getString(R.string.memory_error_storage_full)
+            raw.matches(Regex("^[A-Z][A-Z0-9_]{3,}$")) ->
+                getApplication<Application>().getString(R.string.memory_error_storage_generic)
+            else -> raw
+        }
+    }
+
+    /**
      * 手动新增一条元事实。
      *
      * v8: 新增事实的 scope 取当前 [_selectedScope],若为 null(全部)则默认 "main"。
@@ -1756,7 +1792,10 @@ class MemoryViewModel(
                     storeForScope(scope).add(FactStore.Fact(fact = content.trim()), scope = scope, spaceId = spaceId)
                 }.onError { msg, t ->
                     // v2.6.7: 拆行修超长（原单行超 140 字符）；trace 必须先于 copy 求值。
-                    val trace = getApplication<Application>().getString(R.string.memory_add_failed, msg)
+                    // 2026-11-20(P2-24):数据库异常消息常常只有一个内部错误码
+                    // （真机上是 `U_ILLEGAL_ARGUMENT_ERROR`），直接拼进提示用户看不懂。
+                    val friendly = friendlyStorageError(msg)
+                    val trace = getApplication<Application>().getString(R.string.memory_add_failed, friendly)
                     _state.update {
                         it.copy(errorTrace = (it.errorTrace ?: "") + "\n" + trace)
                     }

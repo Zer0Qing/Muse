@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -191,7 +190,7 @@ fun ChatSettingsPage(
             val bgContext = LocalContext.current
             val bgLauncher =
                 rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.PickVisualMedia(),
+                    contract = ActivityResultContracts.GetContent(),
                 ) { uri ->
                     uri?.let { picked ->
                         bgScope.launch {
@@ -260,7 +259,7 @@ fun ChatSettingsPage(
                         .fillMaxWidth()
                         .heightIn(min = 56.dp)
                         .clickable {
-                            bgLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            bgLauncher.launch("image/*")
                         }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -323,7 +322,7 @@ fun ChatSettingsPage(
             val darkBgContext = LocalContext.current
             val darkBgLauncher =
                 rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.PickVisualMedia(),
+                    contract = ActivityResultContracts.GetContent(),
                 ) { uri ->
                     uri?.let { picked ->
                         darkBgScope.launch {
@@ -350,7 +349,7 @@ fun ChatSettingsPage(
                         .fillMaxWidth()
                         .heightIn(min = 56.dp)
                         .clickable {
-                            darkBgLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            darkBgLauncher.launch("image/*")
                         }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,

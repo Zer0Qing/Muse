@@ -11,6 +11,7 @@
     <string name="agent_directives_add_forbidden">Добавить «никогда не»</string>
     <string name="agent_directives_add_desired">Добавить «делай»</string>
     <string name="agent_directives_editor_placeholder">Например: напомни мне позавтракать</string>
+    <string name="agent_directives_editor_placeholder_forbidden">Например: не присылай напоминания поздно ночью</string>
     <string name="agent_directives_text_limit">Не более 200 символов на пункт</string>
     <string name="agent_directives_move_up">Вверх</string>
     <string name="agent_directives_move_down">Вниз</string>

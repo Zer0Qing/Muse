@@ -11,6 +11,7 @@
     <string name="agent_directives_add_forbidden">‘하지 말 것’ 추가</string>
     <string name="agent_directives_add_desired">‘할 것’ 추가</string>
     <string name="agent_directives_editor_placeholder">예: 아침에 식사 챙겨 주기</string>
+    <string name="agent_directives_editor_placeholder_forbidden">예: 늦은 밤에는 알림을 보내지 마</string>
     <string name="agent_directives_text_limit">항목당 최대 200자</string>
     <string name="agent_directives_move_up">위로 이동</string>
     <string name="agent_directives_move_down">아래로 이동</string>

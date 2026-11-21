@@ -468,10 +468,15 @@ private fun PromptInjectionEditPage(
                 value = insertionPosition,
                 onValueChange = { insertionPosition = it },
                 label = stringResource(R.string.prompt_injection_field_insertion_position),
+                // 2026-11-20(P3-14):原来 `.map { it to it }` 直接把存储值当显示文案,
+                // 界面上出现的是 `before_system` / `after_system` 这种原始枚举串。
+                // 存储值保持不变,只把展示文案换成中文标签。
                 options = listOf(
-                    PromptInjectionEntity.INSERTION_BEFORE_SYSTEM,
-                    PromptInjectionEntity.INSERTION_AFTER_SYSTEM,
-                ).map { it to it },
+                    PromptInjectionEntity.INSERTION_BEFORE_SYSTEM to
+                        stringResource(R.string.lorebook_insertion_before_system),
+                    PromptInjectionEntity.INSERTION_AFTER_SYSTEM to
+                        stringResource(R.string.lorebook_insertion_after_system),
+                ),
             )
             SettingsSwitchRow(
                 title = stringResource(R.string.prompt_injection_field_enabled),
