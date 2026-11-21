@@ -3,6 +3,7 @@ package io.zer0.muse.tools
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.groupchat.GroupChatRepository
@@ -247,7 +248,7 @@ class SkillAgentToolsImpl(
         if (messages.isEmpty()) return context.getString(R.string.skill_chat_no_messages, chatId)
 
         val sb = StringBuilder(context.getString(R.string.skill_chat_messages_header))
-        val timeFormatter = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
+        val timeFormatter = MuseDateFormats.dateTimeShort()
         for (msg in messages) {
             val timeStr = timeFormatter.format(java.util.Date(msg.timestamp))
             sb.appendLine("[${msg.senderName} | $timeStr] ${msg.body}")

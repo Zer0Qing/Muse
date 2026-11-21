@@ -31,6 +31,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.MainActivity
 import io.zer0.muse.R
 import io.zer0.muse.data.session.MessageDao
@@ -168,7 +169,7 @@ private fun MuseChatWidgetContent(data: ChatWidgetData, params: ActionParameters
 
 private fun formatTime(timestamp: Long): String {
     if (timestamp <= 0L) return ""
-    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    val sdf = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
 

@@ -3,6 +3,7 @@ package io.zer0.muse.web
 import io.zer0.common.AppDispatchers
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.util.stripHtmlSimple
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -1160,7 +1161,7 @@ class ExaSearchProvider(
                     else -> null
                 }
                 days?.let { d ->
-                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT)
+                    val sdf = java.text.SimpleDateFormat(MuseDateFormats.DATE_ONLY, java.util.Locale.ROOT)
                     sdf.format(java.util.Date(System.currentTimeMillis() - java.util.concurrent.TimeUnit.DAYS.toMillis(d)))
                 }
             }

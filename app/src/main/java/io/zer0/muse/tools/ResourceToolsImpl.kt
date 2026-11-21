@@ -1,6 +1,7 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.tools.resource.ResourceItem
 import io.zer0.muse.tools.resource.ResourceLibraryStore
@@ -65,7 +66,7 @@ class ResourceToolsImpl(
             item.id,
             item.title,
             item.tags.joinToString(","),
-            SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(item.createdAtMillis)),
+            SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date(item.createdAtMillis)),
             item.content,
         )
     }

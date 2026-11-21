@@ -1871,7 +1871,7 @@ private fun ScheduleTimeRow(
     onOnceAt: (Long) -> Unit,
 ) {
     val context = LocalContext.current
-    val timeFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val timeFmt = remember { SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()) }
     val fullFmt = remember { MuseDateFormats.dateTimeShort() }
     val label = when (interval) {
         "weekly" -> stringResource(R.string.schedule_time_weekly)

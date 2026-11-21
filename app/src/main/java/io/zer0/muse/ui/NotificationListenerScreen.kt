@@ -46,6 +46,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.notification.MuseNotificationListenerService
 import io.zer0.muse.notification.NotificationRecord
@@ -622,7 +623,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                        text = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, Locale.getDefault())
                             .format(Date(record.timestamp)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
@@ -720,7 +721,7 @@ private fun StatusBadge(connected: Boolean) {
 @Composable
 private fun NotificationRecordItem(record: NotificationRecord, onClick: () -> Unit, onDelete: () -> Unit, modifier: Modifier = Modifier) {
     val timeStr = remember(record.timestamp) {
-        SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(record.timestamp))
+        MuseDateFormats.dateTimeShort().format(Date(record.timestamp))
     }
     Surface(
         shape = MuseShapes.medium,

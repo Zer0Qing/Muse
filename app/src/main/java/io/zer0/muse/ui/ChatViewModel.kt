@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.tools.DenySource
 import android.content.Context
@@ -1983,6 +1984,7 @@ class ChatViewModel(
     private val documentCoordinator =
         ChatDocumentCoordinator(
             accessor = this,
+            appContext = appContext,
             documentParser = documentParser,
             settings = settings,
         )
@@ -3111,7 +3113,7 @@ class ChatViewModel(
         val taskId = "committee-" + java.util.UUID.randomUUID().toString()
         val chatName =
             resolveAuditStateString(R.string.code_more_committee, arrayOf()) + " · " +
-                java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
+                MuseDateFormats.dateTimeShort()
                     .format(java.util.Date())
         deferredResultStore.defer(
             taskId,

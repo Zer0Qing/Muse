@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.channel.ChannelConversationStore
 import io.zer0.muse.channel.ChannelInbox
@@ -154,7 +155,7 @@ private fun ConversationCard(from: String, conversation: ChannelConversationStor
         if (conversation.updatedAt <= 0L) {
             ""
         } else {
-            SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(conversation.updatedAt))
+            MuseDateFormats.dateTimeShort().format(Date(conversation.updatedAt))
         }
     }
 

@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.data.stats.DbIntegrityLogEntity
 import io.zer0.muse.data.stats.IntegrityChecker
@@ -722,7 +723,7 @@ private fun DbIntegritySheet(onDismiss: () -> Unit) {
     // ST-09: 读取失败原因 + 重试键(重试时 key 变化触发重跑 LaunchedEffect)
     var loadError by remember { mutableStateOf<String?>(null) }
     var reloadKey by remember { mutableStateOf(0) }
-    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
+    val dateFormat = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, Locale.getDefault()) }
 
     // 打开时拉一次最近状态(失败给可读原因 + 重试,不再裸转圈/静默)
     LaunchedEffect(reloadKey) {

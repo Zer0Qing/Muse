@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.notification.MuseNotificationListenerService
 import io.zer0.muse.util.MusePatterns
@@ -18,7 +19,7 @@ import java.util.Locale
  * 由 SystemToolsRegistrar 注册到 ToolRegistry。
  */
 class SystemToolsImpl(private val context: Context) {
-    private val fmtTimeMin = ThreadLocal.withInitial { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    private val fmtTimeMin = ThreadLocal.withInitial { SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()) }
 
     // ── 系统控制与邮件工具实现(5 个)──────────────────────────────────────
 
@@ -211,7 +212,7 @@ class SystemToolsImpl(private val context: Context) {
                 context.getString(R.string.tool_notification_not_connected)
             }
         } else {
-            val fmt = fmtTimeMin.get() ?: SimpleDateFormat("HH:mm", Locale.getDefault())
+            val fmt = fmtTimeMin.get() ?: SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault())
             records.joinToString("\n") { r ->
                 val time = fmt.format(Date(r.timestamp))
                 val source = r.appLabel.takeIf { it.isNotBlank() && it != r.packageName } ?: r.packageName

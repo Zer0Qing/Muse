@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.common.Logger
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.data.AgentTeam
 import io.zer0.muse.data.ChatPreferences
@@ -612,7 +613,7 @@ class GroupChatViewModel(
             val message = _state.value.currentMessages.firstOrNull { it.id == messageId } ?: return@launch
             if (message.body.isBlank()) return@launch
             // v2.3.1: 标题走字符串资源(7 语言);时间戳格式与语言无关,保持原样
-            val stamp = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
+            val stamp = MuseDateFormats.dateTimeShort()
                 .format(java.util.Date(message.timestamp))
             val title = appContext.getString(R.string.groupchat_summary_doc_title, stamp)
             runCatching {

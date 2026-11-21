@@ -1,6 +1,7 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
 import io.zer0.muse.tools.reminder.ReminderAlarmScheduler
@@ -72,7 +73,7 @@ class ReminderToolsRegistrar(
                 targetType = ReminderAlarmReceiver.TARGET_HOME,
                 targetId = "",
             )
-            val whenText = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(triggerAt))
+            val whenText = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date(triggerAt))
             if (!result.scheduled) {
                 // 排期彻底失败：保留条目（而非悄悄删除），并记录原因，让 list_reminders 能如实标注。
                 reminderStore.markScheduleFailed(id, result.error ?: "alarm_schedule_failed")
@@ -125,7 +126,7 @@ class ReminderToolsRegistrar(
             val list = reminderStore.list().sortedBy { it.triggerAtMillis }.take(limit)
             if (list.isEmpty()) return@register context.getString(R.string.tool_reminder_list_empty)
             val sb = StringBuilder(context.getString(R.string.tool_reminder_list_header, list.size))
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            val sdf = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault())
             list.forEach {
                 sb.appendLine(
                     context.getString(
@@ -154,8 +155,8 @@ class ReminderToolsRegistrar(
     private fun parseReminderTime(input: String): Long? {
         val trimmed = input.trim()
         val patterns = listOf(
-            "yyyy-MM-dd HH:mm" to SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()),
-            "yyyy-MM-dd HH:mm:ss" to SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
+            "yyyy-MM-dd HH:mm" to SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()),
+            "yyyy-MM-dd HH:mm:ss" to SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, Locale.getDefault()),
             "yyyy/MM/dd HH:mm" to SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault()),
         )
         patterns.forEach { (_, sdf) ->

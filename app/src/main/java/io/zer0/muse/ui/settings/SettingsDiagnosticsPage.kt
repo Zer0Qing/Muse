@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.memory.fact.MemoryAuditSource
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.diagnostics.DiagnosticsSnapshot
 import io.zer0.muse.diagnostics.MainThreadJankTracker
@@ -284,7 +285,7 @@ private fun formatBytes(bytes: Long): String = when {
     else -> "$bytes B"
 }
 
-private val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+private val timeFormat = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, Locale.getDefault())
 
 private fun formatTime(iso: String): String = runCatching {
     timeFormat.format(Date.from(java.time.Instant.parse(iso)))

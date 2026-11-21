@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.channel.ChannelConversationStore
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -184,7 +185,7 @@ private fun turnBody(turn: ChannelConversationStore.Turn, imageLabel: String, at
     else -> emptyLabel
 }
 
-private fun formatTime(at: Long): String = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(at))
+private fun formatTime(at: Long): String = MuseDateFormats.dateTimeShort().format(Date(at))
 
 /** 气泡最多占屏宽的多少。留出对侧空白，才看得出是「谁说的」。 */
 private const val BUBBLE_WIDTH_FRACTION = 0.82f

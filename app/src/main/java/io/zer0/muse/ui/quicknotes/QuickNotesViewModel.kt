@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.data.quicknote.NoteCipher
 import io.zer0.muse.data.quicknote.QuickNoteDao
@@ -539,7 +540,7 @@ class QuickNotesViewModel(
     suspend fun exportToMarkdown(): String {
         val notes = dao.observeActive(limit = MAX_LIMIT).first()
         if (notes.isEmpty()) return ""
-        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+        val fmt = java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, java.util.Locale.getDefault())
         return buildString {
             notes.forEach { note ->
                 if (note.title.isNotBlank()) {

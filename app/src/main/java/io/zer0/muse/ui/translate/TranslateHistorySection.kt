@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseIconContainer
@@ -302,6 +303,6 @@ private fun formatHistoryTime(timestamp: Long): String {
         diff < 60_000 -> stringResource(R.string.chat_list_time_just_now)
         diff < 60 * 60_000 -> stringResource(R.string.chat_list_time_minutes_ago, diff / 60_000)
         diff < 24 * 60 * 60_000 -> stringResource(R.string.chat_list_time_hours_ago, diff / (60 * 60_000))
-        else -> SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(timestamp))
+        else -> MuseDateFormats.dateTimeShort().format(Date(timestamp))
     }
 }

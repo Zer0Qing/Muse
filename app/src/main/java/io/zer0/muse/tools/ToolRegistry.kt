@@ -5,6 +5,7 @@ import io.zer0.ai.core.ToolDefinition
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -921,7 +922,7 @@ class ToolRegistry(
          * 旧实现每次都 `SimpleDateFormat(pattern, Locale).format(...)` 造成 GC 压力。
          * SimpleDateFormat 非线程安全,用 ThreadLocal 保证每线程独立实例。
          */
-        private val FMT_DATE = ThreadLocal.withInitial { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+        private val FMT_DATE = ThreadLocal.withInitial { SimpleDateFormat(MuseDateFormats.DATE_ONLY, Locale.getDefault()) }
 
         /** parseDateTime 尝试的所有格式(线程安全列表,内部 SimpleDateFormat 通过 ThreadLocal 隔离)。 */
         private val PARSE_FORMATS_PATTERNS =

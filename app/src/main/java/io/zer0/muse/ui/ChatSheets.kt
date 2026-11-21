@@ -924,7 +924,7 @@ private fun ToolRunTraceItem(index: Int, records: List<ToolCallRecord>) {
     val failedCount = records.size - successCount
     val firstMs = records.firstOrNull()?.let { it.startedAt ?: it.timestamp }
     val timeText = firstMs?.let {
-        java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it))
+        java.text.SimpleDateFormat(MuseDateFormats.TIME_SHORT, java.util.Locale.getDefault()).format(java.util.Date(it))
     }
     val accent = if (failedCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
 

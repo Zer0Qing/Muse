@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -203,7 +204,7 @@ private fun CrashLogItem(file: File, expanded: Boolean, expandedContent: String?
     // 文件名形如 crash-20260721-153012.txt;直接展示原文件名,保持与磁盘一致便于排查
     val sizeStr = remember(file.length()) { DebugFormatters.formatFileSize(file.length()) }
     val timeStr = remember(file.lastModified()) {
-        SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(file.lastModified()))
+        SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, Locale.US).format(Date(file.lastModified()))
     }
 
     Surface(

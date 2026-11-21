@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Process
 import androidx.core.content.ContextCompat
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.context.PhoneContext
 import io.zer0.muse.context.PhoneContextDispatcher
 import java.text.SimpleDateFormat
@@ -78,7 +79,7 @@ object PhoneContextTool {
         val now = System.currentTimeMillis()
         val start = now - days.coerceAtLeast(0) * 24L * 60 * 60 * 1000
         val uri = CalendarSemantics.instancesUri(start, now)
-        val formatter = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
+        val formatter = MuseDateFormats.dateTimeShort()
         val items = mutableListOf<String>()
         var truncated = false
         runCatching {
@@ -113,7 +114,7 @@ object PhoneContextTool {
         val windowMillis = days.coerceAtLeast(0) * 24L * 60 * 60 * 1000
         val cutoff = System.currentTimeMillis() - windowMillis
         val entries = store.recent(MAX_ITEMS).filter { it.atMillis >= cutoff }
-        val formatter = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
+        val formatter = MuseDateFormats.dateTimeShort()
         val items = entries.map { entry ->
             val whenText = formatter.format(java.util.Date(entry.atMillis))
             val body = entry.text.take(80)

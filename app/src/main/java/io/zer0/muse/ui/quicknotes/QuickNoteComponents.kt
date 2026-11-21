@@ -119,7 +119,7 @@ internal fun formatNoteTime(timestamp: Long, now: Long): String {
 
 @Composable
 internal fun formatReminderAt(timestamp: Long): String {
-    val fmt = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+    val fmt = remember { MuseDateFormats.dateTimeShort() }
     return fmt.format(Date(timestamp))
 }
 

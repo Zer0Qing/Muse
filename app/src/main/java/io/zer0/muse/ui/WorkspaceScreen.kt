@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import io.zer0.common.FileSizeFormatter
 import io.zer0.common.Logger
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -153,7 +154,7 @@ fun WorkspaceScreen(
     // 移除挂载的确认目标：移除只删授权登记，但用户容易与"删除文件"混淆，先讲清原件保留。
     var removeMountTarget by remember { mutableStateOf<WorkspaceMount?>(null) }
 
-    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+    val dateFormat = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
 
     /**
      * 重新加载当前目录内容。

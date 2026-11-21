@@ -1,6 +1,7 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.data.schedule.ScheduledTaskEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.schedule.ScheduledTaskRunner
@@ -14,7 +15,7 @@ import java.util.UUID
  * 由 ScheduledTaskToolsRegistrar 注册到 ToolRegistry。
  */
 class ScheduledTaskToolsImpl(private val context: Context) {
-    private val FMT_DATETIME_MIN = ThreadLocal.withInitial { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+    private val FMT_DATETIME_MIN = ThreadLocal.withInitial { MuseDateFormats.dateTimeShort() }
 
     // ── v1.0.17: 定时任务工具 ──────────────────────────────────────────
 
