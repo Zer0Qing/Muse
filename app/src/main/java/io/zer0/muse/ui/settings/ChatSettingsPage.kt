@@ -69,6 +69,7 @@ import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.chat.InputBar
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v0.31: 聊天二级设置页 — 给用户更多控制权。

@@ -42,6 +42,7 @@ import io.zer0.muse.ui.chat.isInlineDeliverableTool
 import io.zer0.muse.ui.chat.resolveDirectOutput
 import io.zer0.muse.ui.chat.DirectToolOutputInline
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 任务卡的单个步骤行。

@@ -31,7 +31,6 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.ChatScreen
 
 /**
  * 操作组卡 —— 把**连续的工具调用**聚合为一张卡。

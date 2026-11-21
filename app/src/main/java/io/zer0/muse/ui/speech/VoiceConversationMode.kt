@@ -72,6 +72,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 语音对话模式状态机(ASR 按钮 + TTS 自动播放的循环模型)。

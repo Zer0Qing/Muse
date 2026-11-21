@@ -5,6 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.ChatScreen
 
 class ProactiveSessionToggleWiringTest {
     @Test
@@ -44,7 +45,15 @@ class ProactiveSessionToggleWiringTest {
         val candidates =
             listOf(
                 Path.of("src/main/java/io/zer0/muse/ui/$relative"),
+
+                Path.of("src/main/java/io/zer0/muse/ui/chat/$relative"),
+
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/$relative"),
                 Path.of("app/src/main/java/io/zer0/muse/ui/$relative"),
+
+                Path.of("src/main/java/io/zer0/muse/ui/chat/$relative"),
+
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/$relative"),
             )
         val path =
             candidates.firstOrNull(Files::exists)

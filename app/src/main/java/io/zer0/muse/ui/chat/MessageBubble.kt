@@ -123,7 +123,6 @@ import kotlinx.coroutines.launch
 import io.zer0.muse.ui.screen.favoriteStarTint
 import io.zer0.muse.ui.screen.MessageActionSurface
 import io.zer0.muse.ui.common.saveImageToGallery
-import io.zer0.muse.ui.TranslationLanguages
 
 internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。

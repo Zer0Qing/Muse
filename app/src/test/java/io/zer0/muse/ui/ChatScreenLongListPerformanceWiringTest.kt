@@ -8,6 +8,7 @@ import java.nio.file.Path
 import io.zer0.muse.ui.chat.render.ChatRenderContinuationRow
 import io.zer0.muse.ui.chat.ChatMessageRenderRows
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatScreen
 
 class ChatScreenLongListPerformanceWiringTest {
     @Test
@@ -115,7 +116,15 @@ class ChatScreenLongListPerformanceWiringTest {
     private fun readUi(relative: String): String {
         val candidates = listOf(
             Path.of("src/main/java/io/zer0/muse/ui/$relative"),
+
+            Path.of("src/main/java/io/zer0/muse/ui/chat/$relative"),
+
+            Path.of("app/src/main/java/io/zer0/muse/ui/chat/$relative"),
             Path.of("app/src/main/java/io/zer0/muse/ui/$relative"),
+
+            Path.of("src/main/java/io/zer0/muse/ui/chat/$relative"),
+
+            Path.of("app/src/main/java/io/zer0/muse/ui/chat/$relative"),
         )
         val path = candidates.firstOrNull(Files::exists)
             ?: error("Unable to locate ui/$relative from ${System.getProperty("user.dir")}")

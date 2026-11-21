@@ -23,7 +23,6 @@ import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.LorebookScreen
-import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatUiState
 import io.zer0.muse.ui.ChatViewModel
 

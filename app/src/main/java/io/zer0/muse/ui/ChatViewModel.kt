@@ -166,6 +166,7 @@ import io.zer0.muse.ui.chat.VideoGenerationPlaceholder
 import io.zer0.muse.ui.chat.ThinkingBubble
 import io.zer0.muse.ui.chat.InputBar
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。

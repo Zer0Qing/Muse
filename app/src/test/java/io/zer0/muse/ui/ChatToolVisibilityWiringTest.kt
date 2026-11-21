@@ -5,6 +5,7 @@ import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v2.4.5 fix 回归: 「显示工具调用过程」开关必须同时管住两条渲染路径。
@@ -56,8 +57,16 @@ class ChatToolVisibilityWiringTest {
         val candidates =
             listOf(
                 Path.of("src/main/java/io/zer0/muse/ui/$fileName"),
+
+                Path.of("src/main/java/io/zer0/muse/ui/chat/$fileName"),
+
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/$fileName"),
                 Path.of("src/main/java/io/zer0/muse/ui/chat/$fileName"),
                 Path.of("app/src/main/java/io/zer0/muse/ui/$fileName"),
+
+                Path.of("src/main/java/io/zer0/muse/ui/chat/$fileName"),
+
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/$fileName"),
                 Path.of("app/src/main/java/io/zer0/muse/ui/chat/$fileName"),
             )
         val path = candidates.firstOrNull(Files::exists)

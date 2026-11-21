@@ -1,10 +1,11 @@
 package io.zer0.muse.asr
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 「现在这个语音输入入口能不能用」的唯一判据。
  *
  * 两个消费者必须答一致：
- *  - 输入栏：无文字时要不要把发送键换成语音键（[io.zer0.muse.ui.ChatScreen]）
+ *  - 输入栏：无文字时要不要把发送键换成语音键（[ChatScreen]）
  *  - 录音协调器：长按说话要不要真的去建控制器（[io.zer0.muse.ui.chat.ChatAudioCoordinator]）
  *
  * 一旦两边漂移，用户看到的就是「键在，按下去没反应」或「明明配好了却没有语音键」，

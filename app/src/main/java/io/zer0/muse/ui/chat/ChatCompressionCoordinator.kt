@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import io.zer0.muse.ui.common.ManualCompressionPhase
 import io.zer0.muse.ui.common.runManualCompressionStages
-import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
 
 /**

@@ -5,6 +5,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * [MessagePaginator] 的纯逻辑单测。

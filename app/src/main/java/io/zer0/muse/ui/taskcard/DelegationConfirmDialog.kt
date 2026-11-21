@@ -57,6 +57,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.chat.ChatScreen
 
 // CMP-08: 弹窗内边距 / 元素间距 / 最大宽度统一走主题令牌(与 MuseDialog 同源),
 // 仅内容区最大高度因含中间结果预览而比 MuseDialog 更高,保留本文件局部档位。

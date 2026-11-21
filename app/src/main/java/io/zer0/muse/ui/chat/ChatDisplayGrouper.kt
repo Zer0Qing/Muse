@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.chat
 
 import io.zer0.ai.core.UIMessage
-import io.zer0.muse.ui.ChatScreen
 
 /**
  * 聊天列表的渲染层展示单元。

@@ -5,6 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * Regression coverage for the long-chat message map entry point.
@@ -50,8 +51,8 @@ class ChatMessageMapWiringTest {
     private fun locateChatScreenSource(): String {
         val candidates =
             listOf(
-                Path.of("src/main/java/io/zer0/muse/ui/ChatScreen.kt"),
-                Path.of("app/src/main/java/io/zer0/muse/ui/ChatScreen.kt"),
+                Path.of("src/main/java/io/zer0/muse/ui/chat/ChatScreen.kt"),
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/ChatScreen.kt"),
             )
         val path = candidates.firstOrNull(Files::exists)
             ?: error("Unable to locate ChatScreen.kt from ${System.getProperty("user.dir")}")

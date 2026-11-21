@@ -98,6 +98,7 @@ import org.koin.compose.koinInject
 import org.koin.core.context.GlobalContext
 import io.zer0.muse.ui.settings.SafeModeScreen
 import io.zer0.muse.ui.screen.HomeScreen
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 应用唯一 Activity。

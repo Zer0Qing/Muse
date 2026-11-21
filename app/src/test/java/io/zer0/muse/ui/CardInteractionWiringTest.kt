@@ -14,6 +14,7 @@ import io.zer0.muse.ui.chat.isInlineDeliverableTool
 import io.zer0.muse.ui.chat.inlineDeliverableMessageIds
 import io.zer0.muse.ui.chat.DirectToolOutputInline
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v2.6.8 卡片交互链路回归（源码级 wiring 断言）。
@@ -220,7 +221,15 @@ class CardInteractionWiringTest {
     private fun readUi(relative: String): String {
         val candidates = listOf(
             Path.of("src/main/java/io/zer0/muse/ui/$relative"),
+
+            Path.of("src/main/java/io/zer0/muse/ui/chat/$relative"),
+
+            Path.of("app/src/main/java/io/zer0/muse/ui/chat/$relative"),
             Path.of("app/src/main/java/io/zer0/muse/ui/$relative"),
+
+            Path.of("src/main/java/io/zer0/muse/ui/chat/$relative"),
+
+            Path.of("app/src/main/java/io/zer0/muse/ui/chat/$relative"),
         )
         val path = candidates.firstOrNull(Files::exists)
             ?: error("Unable to locate ui/$relative from ${System.getProperty("user.dir")}")

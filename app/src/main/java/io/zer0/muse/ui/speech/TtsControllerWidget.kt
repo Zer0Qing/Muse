@@ -43,6 +43,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.chat.InputBar
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v1.4: 悬浮 TTS 控制器。

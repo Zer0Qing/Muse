@@ -1,6 +1,7 @@
 package io.zer0.muse.data
 import io.zer0.muse.ui.chat.InputBar
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v0.34: 图片生成默认参数配置。

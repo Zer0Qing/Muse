@@ -9,6 +9,7 @@ import io.zer0.muse.ui.chat.ToolRunCard
 import io.zer0.muse.ui.chat.ProcessTally
 import io.zer0.muse.ui.chat.ProcessStepState
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatScreen
 
 class ToolReasoningVisibilityWiringTest {
 
@@ -60,8 +61,8 @@ class ToolReasoningVisibilityWiringTest {
     fun `grouping predicate accepts reasoning-only messages as process steps`() {
         val source =
             read(
-                "src/main/java/io/zer0/muse/ui/ChatScreen.kt",
-                "app/src/main/java/io/zer0/muse/ui/ChatScreen.kt",
+                "src/main/java/io/zer0/muse/ui/chat/ChatScreen.kt",
+                "app/src/main/java/io/zer0/muse/ui/chat/ChatScreen.kt",
             )
         val groupingBlock = source.substringAfter("ChatDisplayGrouper.group(visibleMessages)")
             .substringBefore(".filterIsInstance")

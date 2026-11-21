@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.ListSerializer
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 气泡皮肤目录 — 纯逻辑(无 Android 依赖),负责皮肤的解析/过滤/选择语义。

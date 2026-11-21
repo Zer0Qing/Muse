@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -104,22 +104,6 @@ import io.zer0.muse.runtime.RuntimeInstallService
 import io.zer0.muse.runtime.RuntimeInstallStatus
 import io.zer0.muse.runtime.RuntimeState
 import io.zer0.muse.transformer.InternalMarkupSanitizer
-import io.zer0.muse.ui.chat.BrowserStatusCapsule
-import io.zer0.muse.ui.chat.ChatContextDivider
-import io.zer0.muse.ui.chat.ChatSurface
-import io.zer0.muse.ui.chat.MESSAGE_MAP_MIN_MESSAGES
-import io.zer0.muse.ui.chat.MESSAGE_MAP_RESERVED_WIDTH
-import io.zer0.muse.ui.chat.MessageMapBar
-import io.zer0.muse.ui.chat.PendingApprovalsSummary
-import io.zer0.muse.ui.chat.PendingQueueBar
-import io.zer0.muse.ui.chat.RuntimeInstallBanner
-import io.zer0.muse.ui.chat.SessionTodoBar
-import io.zer0.muse.ui.chat.SlashCommand
-import io.zer0.muse.ui.chat.TokenStatsBar
-import io.zer0.muse.ui.chat.ToolApprovalCard
-import io.zer0.muse.ui.chat.ToolPausedBanner
-import io.zer0.muse.ui.chat.WorkspaceQuickPickDialog
-import io.zer0.muse.ui.chat.toolMessageIdsCoveredByTaskCards
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.animation.SendFlight
@@ -173,35 +157,11 @@ import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.HomeScreen
 import io.zer0.muse.ui.common.ManualCompressionPhase
 import io.zer0.muse.ui.common.RegionErrorBoundary
-import io.zer0.muse.ui.chat.AgentModeHintCard
-import io.zer0.muse.ui.chat.ChatTopBanner
-import io.zer0.muse.ui.chat.resolveChatTopBanner
-import io.zer0.muse.ui.chat.ChatMessageRenderRowKind
-import io.zer0.muse.ui.chat.ChatMessageRenderRows
-import io.zer0.muse.ui.chat.LoadingDots
-import io.zer0.muse.ui.chat.SmartImage
-import io.zer0.muse.ui.chat.MessageBubbleHeader
-import io.zer0.muse.ui.chat.InChatFindBar
-import io.zer0.muse.ui.chat.RichInputBar
-import io.zer0.muse.ui.chat.ToolRunCard
-import io.zer0.muse.ui.chat.ToolRunLiveState
-import io.zer0.muse.ui.chat.ImageGenerationPlaceholder
-import io.zer0.muse.ui.chat.VideoGenerationPlaceholder
-import io.zer0.muse.ui.chat.HistoryLoadMorePlaceholder
-import io.zer0.muse.ui.chat.DateSeparator
-import io.zer0.muse.ui.chat.isSameDay
-import io.zer0.muse.ui.chat.HistoryLoadMoreEntry
-import io.zer0.muse.ui.chat.DelegateSheetMode
-import io.zer0.muse.ui.chat.ChatSheetState
-import io.zer0.muse.ui.chat.ChatSheetHost
-import io.zer0.muse.ui.chat.ChatSelectionBar
-import io.zer0.muse.ui.chat.EmptyChatGuide
-import io.zer0.muse.ui.chat.ThinkingBubble
-import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
-import io.zer0.muse.ui.chat.isInlineDeliverableTool
-import io.zer0.muse.ui.chat.inlineDeliverableMessageIds
-import io.zer0.muse.ui.chat.InputBar
-import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.ChatErrorType
+import io.zer0.muse.ui.ChatUiState
+import io.zer0.muse.ui.buildTranslationSourceText
+import io.zer0.muse.ui.effectiveChatSessionId
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =

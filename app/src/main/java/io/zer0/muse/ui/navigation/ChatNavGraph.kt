@@ -12,7 +12,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import io.zer0.muse.ui.ChatScreen
+import io.zer0.muse.ui.chat.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.screen.HomeScreen
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope

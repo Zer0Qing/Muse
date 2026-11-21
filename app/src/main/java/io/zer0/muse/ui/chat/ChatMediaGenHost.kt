@@ -9,7 +9,6 @@ import io.zer0.muse.tools.MediaGenKind
 import io.zer0.muse.tools.MediaGenResult
 import io.zer0.muse.tools.MediaGenSlot
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
 
 /**

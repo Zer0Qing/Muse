@@ -31,6 +31,7 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * Agent 中枢页。

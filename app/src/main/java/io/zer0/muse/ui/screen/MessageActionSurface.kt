@@ -1,5 +1,5 @@
 package io.zer0.muse.ui.screen
-import io.zer0.muse.ui.TranslationLanguages
+import io.zer0.muse.ui.chat.TranslationLanguages
 
 /**
  * 消息操作面板的互斥状态。

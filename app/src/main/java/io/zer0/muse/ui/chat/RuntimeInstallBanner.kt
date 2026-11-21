@@ -29,7 +29,6 @@ import io.zer0.muse.runtime.RuntimeInstaller
 import io.zer0.muse.runtime.RuntimeState
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.ChatScreen
 
 /**
  * 会话内的运行环境安装卡。

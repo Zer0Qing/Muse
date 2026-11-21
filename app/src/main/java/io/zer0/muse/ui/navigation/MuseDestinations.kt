@@ -3,6 +3,7 @@ package io.zer0.muse.ui.navigation
 import io.zer0.muse.ui.settings.SettingsGroupKind
 import kotlinx.serialization.Serializable
 import io.zer0.muse.ui.screen.MuseRoutes
+import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 类型安全路由目的地。
@@ -324,7 +325,7 @@ data object MiniPhoneRoute
  *
  * 与 [ChatDetailRoute] 分开：从「消息」Tab 点会话进这里，外壳是微信风格，
  * 返回回到小手机；[ChatDetailRoute] 仍是主 App 的完整对话页。
- * 复用同一个 [io.zer0.muse.ui.ChatScreen]（传 ChatSurface.MINI_PHONE），
+ * 复用同一个 [ChatScreen]（传 ChatSurface.MINI_PHONE），
  * 不另写一份聊天页，避免与主线长期分叉。
  */
 @Serializable

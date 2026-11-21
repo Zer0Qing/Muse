@@ -65,7 +65,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import io.zer0.muse.ui.ChatScreen
+import io.zer0.muse.ui.chat.ChatScreen
 import io.zer0.muse.ui.chat.isSameDay
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.chat.MessageBubble
