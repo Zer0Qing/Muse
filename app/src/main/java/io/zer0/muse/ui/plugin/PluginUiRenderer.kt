@@ -151,7 +151,7 @@ private fun StatBlock(label: String, value: String, hint: String?) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(text = value, style = MaterialTheme.typography.headlineSmall)
+        Text(text = value, style = MaterialTheme.typography.titleLarge)
         if (!hint.isNullOrBlank()) {
             Text(
                 text = hint,

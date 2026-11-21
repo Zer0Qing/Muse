@@ -190,13 +190,13 @@ class DesignTokenParityTest {
 
     @Test
     fun `type scale matches MuseTypography`() {
+        // 2026-11-22: displayMedium / displaySmall / headlineSmall 已从 Typography 删除
+        // （前两个与其它角色字号字重完全相同，后一个与 titleLarge 完全相同），
+        // 对应的 tokens.json 条目也一并移除，因此这里不再列出。
         listOf(
             "displayLarge" to MuseTypography.displayLarge,
-            "displayMedium" to MuseTypography.displayMedium,
-            "displaySmall" to MuseTypography.displaySmall,
             "headlineLarge" to MuseTypography.headlineLarge,
             "headlineMedium" to MuseTypography.headlineMedium,
-            "headlineSmall" to MuseTypography.headlineSmall,
             "titleLarge" to MuseTypography.titleLarge,
             "titleMedium" to MuseTypography.titleMedium,
             "titleSmall" to MuseTypography.titleSmall,

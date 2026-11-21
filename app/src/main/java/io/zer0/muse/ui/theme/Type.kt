@@ -39,18 +39,10 @@ val MuseTypography: Typography = Typography(
         lineHeight = 41.sp,
         letterSpacing = (-0.5).sp,
     ),
-    displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 34.sp,
-    ),
-    displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,
-    ),
+    // 2026-11-22: displayMedium / displaySmall 删除。
+    // 原来 displaySmall(24) 与 headlineLarge(24) 字号字重行高完全相同 ——
+    // 两个名字一个样式，调用方只能靠猜。displayMedium(28) 全仓零调用。
+    // 现在 24sp 只有 headlineLarge 一个真源。
     headlineLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
@@ -63,12 +55,8 @@ val MuseTypography: Typography = Typography(
         fontSize = 22.sp,
         lineHeight = 28.sp,
     ),
-    headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        lineHeight = 26.sp,
-    ),
+    // 2026-11-22: headlineSmall 删除 —— 与 titleLarge 字号/字重/行高完全相同（20/26/SemiBold），
+    // 两个名字一个样式。调用方 10 处已并入 titleLarge（23 处），20sp 只剩一个真源。
 
     // ── 标题层 ───────────────────────────────────────────────────────────
     titleLarge = TextStyle(

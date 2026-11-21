@@ -223,7 +223,7 @@ private fun WarningHeader() {
         Spacer(Modifier.height(MusePaddings.itemGap))
         Text(
             text = stringResource(R.string.safe_mode_warning_title),
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onBackground,
         )

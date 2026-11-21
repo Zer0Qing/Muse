@@ -357,7 +357,7 @@ fun MarkdownText(
                     // 上下留白交给 [markdownBlockGap](上大下小,标题贴近所引导的正文)。
                     val headingStyle = when (block.level) {
                         1 -> MaterialTheme.typography.headlineLarge
-                        2 -> MaterialTheme.typography.headlineSmall
+                        2 -> MaterialTheme.typography.titleLarge
                         3 -> MaterialTheme.typography.titleMedium
                         4 -> MaterialTheme.typography.titleSmall
                         else -> MaterialTheme.typography.labelLarge

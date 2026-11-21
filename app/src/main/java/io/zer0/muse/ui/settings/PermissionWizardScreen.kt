@@ -204,7 +204,7 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                             AndroidPermissionLevel.SHIZUKU -> stringResource(R.string.permission_level_shizuku)
                             AndroidPermissionLevel.ROOT -> stringResource(R.string.permission_level_root)
                         }
-                    Text(text = levelText, style = MaterialTheme.typography.headlineSmall)
+                    Text(text = levelText, style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(8.dp))
                     // 五张卡并列时看不出先做哪一步：基础通道没开就点名它，开了就说明其余是可选的。
                     Text(

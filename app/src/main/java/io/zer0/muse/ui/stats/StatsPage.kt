@@ -269,7 +269,7 @@ private fun DashboardHeader(state: StatsViewModel.StatsUiState, onBack: () -> Un
         // 大数字:总消息数
         Text(
             text = formatCount(state.totalMessages),
-            style = MaterialTheme.typography.displaySmall.copy(
+            style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 36.sp, // 统计大数字，固定展示层级
             ),

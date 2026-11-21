@@ -563,7 +563,7 @@ private fun StepWelcome() {
             ) { index ->
                 Text(
                     text = WELCOME_GREETINGS[index],
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
@@ -1340,7 +1340,7 @@ private fun StepRuntime() {
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
         Text(
             text = stringResource(R.string.runtime_card_title),
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )

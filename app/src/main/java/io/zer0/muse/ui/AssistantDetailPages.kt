@@ -315,7 +315,7 @@ fun AssistantDetailPage(
                 Text(
                     text = assistant?.name?.ifBlank { stringResource(R.string.assistant_detail_unnamed) }
                         ?: stringResource(R.string.assistant_detail_loading),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

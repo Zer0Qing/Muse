@@ -957,7 +957,7 @@ private fun MemoryOverviewCard(
                 // 再给数字加 weight 会与它平分空间、把右侧过滤入口挤走）
                 Text(
                     text = factCount.toString(),
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                 )

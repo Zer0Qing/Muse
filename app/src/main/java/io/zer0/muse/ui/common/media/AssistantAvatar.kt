@@ -87,7 +87,7 @@ fun AssistantAvatar(
                     if (assistant.avatarEmoji.isNotBlank()) {
                         Text(
                             text = assistant.avatarEmoji,
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleLarge,
                         )
                     } else {
                         Text(
@@ -115,7 +115,7 @@ fun AssistantAvatar(
             ) {
                 Text(
                     text = assistant.avatarEmoji,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                 )
             }
         }

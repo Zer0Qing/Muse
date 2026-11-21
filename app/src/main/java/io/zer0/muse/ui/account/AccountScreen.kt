@@ -326,7 +326,7 @@ private fun AvatarPicker(userName: String, avatarUri: String?, onClick: () -> Un
                         error = {
                             Text(
                                 text = userName.take(1).ifBlank { "M" },
-                                style = MaterialTheme.typography.displaySmall,
+                                style = MaterialTheme.typography.headlineLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
@@ -335,7 +335,7 @@ private fun AvatarPicker(userName: String, avatarUri: String?, onClick: () -> Un
                 } else {
                     Text(
                         text = userName.take(1).ifBlank { "M" },
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )

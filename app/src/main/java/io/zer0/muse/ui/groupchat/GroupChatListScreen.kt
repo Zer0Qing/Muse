@@ -149,7 +149,7 @@ fun GroupChatListScreen(onOpenChat: (String) -> Unit, viewModel: GroupChatViewMo
                         item(key = "page_title") {
                             Text(
                                 text = stringResource(R.string.groupchat_list_title),
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier
                                     .fillMaxWidth()
