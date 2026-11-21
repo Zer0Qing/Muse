@@ -1,4 +1,5 @@
 package io.zer0.muse.tools
+import io.zer0.muse.ui.chat.parseShowCardArgs
 
 /**
  * show_card 工具。

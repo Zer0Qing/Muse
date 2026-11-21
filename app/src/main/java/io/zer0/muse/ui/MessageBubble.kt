@@ -147,6 +147,15 @@ import io.zer0.muse.ui.chat.LinkPreviewCard
 import io.zer0.muse.ui.chat.ToolRunCard
 import io.zer0.muse.ui.chat.buildHighlightedText
 import io.zer0.muse.ui.chat.ThinkingBubble
+import io.zer0.muse.ui.chat.ToolCallCard
+import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
+import io.zer0.muse.ui.chat.STICKER_PATH_PATTERN
+import io.zer0.muse.ui.chat.extractStickerPaths
+import io.zer0.muse.ui.chat.extractMarkdownImageUrls
+import io.zer0.muse.ui.chat.isLongFormContent
+import io.zer0.muse.ui.chat.RagCitationChips
+import io.zer0.muse.ui.chat.MessageAttachmentChips
+import io.zer0.muse.ui.chat.AttachmentPreviewDialog
 
 internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。

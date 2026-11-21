@@ -37,6 +37,7 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.screen.RecentlyDeletedScreen
+import io.zer0.muse.ui.chat.ToolCallCard
 
 /**
  * 会话仓库:封装 SessionDao + MessageDao,提供领域模型 API。

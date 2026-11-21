@@ -37,6 +37,10 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.formatToolDuration
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.chat.DirectOutput
+import io.zer0.muse.ui.chat.isInlineDeliverableTool
+import io.zer0.muse.ui.chat.resolveDirectOutput
+import io.zer0.muse.ui.chat.DirectToolOutputInline
 
 /**
  * 任务卡的单个步骤行。
@@ -276,7 +280,7 @@ private fun TaskStepResult(step: TaskStep, cardId: String?, onCardAction: ((Stri
     // v2.6.7: 步骤结果是产物(卡片/图片/文件)时直接渲染产物，
     // 不再被截成 120 字纯文本埋在里面 —— 用户看不到就等于没生成。
     val stepOutput = remember(step.toolName, step.result, step.rawArgs) {
-        io.zer0.muse.ui.resolveDirectOutput(step.toolName, step.rawArgs, step.result)
+        resolveDirectOutput(step.toolName, step.rawArgs, step.result)
     }
     when {
         stepOutput == null -> StepResultText(step = step)
@@ -286,7 +290,7 @@ private fun TaskStepResult(step: TaskStep, cardId: String?, onCardAction: ((Stri
         // 步骤里，用户得先展开执行计划才能看见自己刚生成的卡 —— 而它就在同一条
         // 消息流里。所以卡片本体在消息流中作为一等内联卡渲染（见 ChatScreen /
         // MessageBubble 路径），任务卡里只留一行引用。
-        io.zer0.muse.ui.isInlineDeliverableTool(step.toolName) -> GeneratedCardReference()
+        isInlineDeliverableTool(step.toolName) -> GeneratedCardReference()
         else -> StepOutputCard(
             output = stepOutput,
             cardId = cardId,
@@ -320,14 +324,14 @@ private fun GeneratedCardReference() {
 /** v2.6.8: 步骤产物卡（图片/文件/非交付物卡片）。 */
 @Composable
 private fun StepOutputCard(
-    output: io.zer0.muse.ui.DirectOutput,
+    output: DirectOutput,
     cardId: String?,
     onCardAction: ((String, io.zer0.muse.ui.markdown.CardAction) -> Unit)?,
 ) {
     // 产物是给用户看的主体,不该被步骤行的状态图标列缩进挤窄。
     // 用 layout 向左扩展出图标列宽度,让卡片横向对齐到外层任务卡的左边缘;
     // 不能用负 padding —— Compose 会直接抛异常。
-    io.zer0.muse.ui.DirectToolOutputInline(
+    DirectToolOutputInline(
         output = output,
         // v2.6.8: 卡片身份用消息 id(任务卡的 id 即挂载它的助手消息 id)，
         // 不再用 toolCallId —— 两条卡片路径的身份必须同一个空间，否则

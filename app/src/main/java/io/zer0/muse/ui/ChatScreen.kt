@@ -197,6 +197,9 @@ import io.zer0.muse.ui.chat.ChatSheetHost
 import io.zer0.muse.ui.chat.ChatSelectionBar
 import io.zer0.muse.ui.chat.EmptyChatGuide
 import io.zer0.muse.ui.chat.ThinkingBubble
+import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
+import io.zer0.muse.ui.chat.isInlineDeliverableTool
+import io.zer0.muse.ui.chat.inlineDeliverableMessageIds
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =
@@ -761,7 +764,7 @@ fun ChatScreen(
                 taskCardOwnerIds = state.taskCards.keys,
             )
             if (covered.isEmpty()) return@derivedStateOf emptySet()
-            covered - io.zer0.muse.ui.inlineDeliverableMessageIds(visibleMessages)
+            covered - inlineDeliverableMessageIds(visibleMessages)
         }
     }
     val groupedRuns by remember(visibleMessages, state.taskCards, showToolCallDetails) {
@@ -774,7 +777,7 @@ fun ChatScreen(
             io.zer0.muse.ui.chat.ChatDisplayGrouper.group(
                 messages = visibleMessages,
                 isGroupable = { msg ->
-                    !io.zer0.muse.ui.isInlineDeliverableTool(msg.toolCallInfo?.toolName) &&
+                    !isInlineDeliverableTool(msg.toolCallInfo?.toolName) &&
                         // 「纯过程」= 没有最终正文。用净化后的可见文本判断，与渲染口径一致。
                         io.zer0.muse.transformer.InternalMarkupSanitizer
                             .displayContent(msg.content)

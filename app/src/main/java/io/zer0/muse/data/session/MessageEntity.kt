@@ -7,6 +7,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 import io.zer0.muse.ui.screen.FavoritesScreen
+import io.zer0.muse.ui.chat.ToolCallCard
 
 /**
  * 消息实体(持久化的 [io.zer0.ai.core.UIMessage])。

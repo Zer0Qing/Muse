@@ -9,6 +9,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
+import io.zer0.muse.ui.chat.isInlineDeliverableTool
+import io.zer0.muse.ui.chat.inlineDeliverableMessageIds
+import io.zer0.muse.ui.chat.DirectToolOutputInline
 
 /**
  * v2.6.8 卡片交互链路回归（源码级 wiring 断言）。
@@ -31,7 +35,7 @@ class CardInteractionWiringTest {
 
     @Test
     fun `inline direct output forwards the card bridge instead of nulling it`() {
-        val source = readUi("MessageBubbleExtras.kt")
+        val source = readUi("chat/MessageBubbleExtras.kt")
         val block = source.substringAfter("internal fun DirectToolOutputInline(")
             .substringBefore("@Composable\nprivate fun DirectToolOutput(")
 
@@ -153,7 +157,7 @@ class CardInteractionWiringTest {
             .substringBefore(".filterIsInstance")
         assertTrue(
             "组卡默认折叠，把交付物收进去等于又让卡片藏起来",
-            grouping.contains("!io.zer0.muse.ui.isInlineDeliverableTool(msg.toolCallInfo?.toolName)"),
+            grouping.contains("!isInlineDeliverableTool(msg.toolCallInfo?.toolName)"),
         )
     }
 
