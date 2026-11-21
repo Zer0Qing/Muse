@@ -124,7 +124,6 @@
     <string name="memory_center_tab_stream">記憶の流れ</string>
     <string name="memory_center_tab_constellation">記憶の星座</string>
     <string name="memory_center_library_title">事実ライブラリ</string>
-    <string name="memory_center_constellation_hint">重要な事実は中心に近く表示されます。関係を整理する前でも事実は表示されます。</string>
     <string name="memory_center_constellation_empty">表示できる事実がまだありません。事実を追加してから戻ってきてください。</string>
     <string name="memory_center_filter_empty">このスコープまたはスペースには事実がありません。上のフィルターを変更してください。</string>
     <string name="memory_center_scope_all">すべて</string>

@@ -142,7 +142,6 @@
     <string name="memory_center_tab_stream">记忆流</string>
     <string name="memory_center_tab_constellation">记忆星座</string>
     <string name="memory_center_library_title">事实库</string>
-    <string name="memory_center_constellation_hint">重要事实会优先靠近中心。关系还没整理出来时，节点也会单独显示。</string>
     <string name="memory_center_constellation_empty">目前没有可展示的事实节点。先产生或手动添加一条事实，再回来看看。</string>
     <string name="memory_center_filter_empty">当前作用域或空间里没有事实节点，试试切换上方筛选条件。</string>
     <string name="memory_center_scope_all">全部</string>

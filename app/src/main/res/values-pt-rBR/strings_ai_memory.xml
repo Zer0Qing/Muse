@@ -124,7 +124,6 @@
     <string name="memory_center_tab_stream">Fluxo de memória</string>
     <string name="memory_center_tab_constellation">Constelação</string>
     <string name="memory_center_library_title">Biblioteca de fatos</string>
-    <string name="memory_center_constellation_hint">Fatos importantes ficam perto do centro. Os fatos continuam visíveis antes das relações serem organizadas.</string>
     <string name="memory_center_constellation_empty">Ainda não há fatos para exibir. Adicione ou crie um fato e volte aqui.</string>
     <string name="memory_center_filter_empty">Não há fatos neste escopo ou espaço. Tente mudar os filtros acima.</string>
     <string name="memory_center_scope_all">Todos</string>

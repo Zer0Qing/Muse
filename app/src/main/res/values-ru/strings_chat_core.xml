@@ -342,7 +342,6 @@
     <string name="folder_detail_remove">Убрать из папки</string>
     <string name="chat_list_section_knowledge">Материалы</string>
     <!-- v2.x: recall bar + partners row -->
-    <string name="chat_list_recall_format">Последний чат с %1$s: «%2$s»</string>
     <string name="chat_list_add_partner">Добавить партнёра</string>
     <string name="chat_list_new_folder">Новая папка</string>
 

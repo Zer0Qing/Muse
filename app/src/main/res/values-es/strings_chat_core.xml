@@ -339,7 +339,6 @@
     <string name="folder_detail_remove">Quitar de carpeta</string>
     <string name="chat_list_section_knowledge">Recursos</string>
     <!-- v2.x: recall bar + partners row -->
-    <string name="chat_list_recall_format">Última charla con %1$s: «%2$s»</string>
     <string name="chat_list_add_partner">Añadir compañero</string>
     <string name="chat_list_new_folder">Nueva carpeta</string>
 

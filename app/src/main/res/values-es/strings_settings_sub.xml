@@ -675,8 +675,6 @@
     <string name="keep_alive_notification_title">Muse se ejecuta en segundo plano</string>
     <string name="keep_alive_notification_text">Mantiene tareas programadas y mensajes proactivos en línea</string>
     <string name="settings_keep_alive_title">Mantener en segundo plano</string>
-    <string name="settings_group_keep_alive">Siempre activo</string>
-    <string name="settings_group_miniphone">Mini Phone</string>
     <string name="settings_keep_alive_subtitle">Mantiene el proceso en primer plano con una notificación permanente</string>
     <string name="settings_keep_alive_hint">Muse mostrará una notificación permanente. Android lo exige para servicios en primer plano y no se puede ocultar. En algunas ROM chinas también hay que permitir el inicio automático.</string>
     <string name="settings_keep_alive_wakelock_title">Mantener conexión con la pantalla apagada</string>
@@ -797,7 +795,6 @@
     <string name="kb_settings_title">Ajustes de la base de conocimientos</string>
 
     <string name="settings_chat_quick_actions">Acciones rápidas de los mensajes</string>
-    <string name="settings_chat_quick_actions_desc">Elige qué acciones rápidas aparecen debajo de los mensajes</string>
     <string name="settings_memory_conversation_recall">Permitir recuperar el texto original de la conversación</string>
     <string name="settings_memory_conversation_recall_subtitle">Al activar esta opción, los resúmenes y la extracción de hechos leen la conversación completa cuando es necesario, en lugar de solo los mensajes cargados</string>
     <string name="settings_speech_model_hint">Los modelos se gestionan en el proveedor; aquí solo se selecciona uno</string>

@@ -7,7 +7,6 @@
     <string name="automation_sub_autonomous_desc">Janela de tempo, lista de ações e limite diário</string>
     <string name="automation_sub_orchestration">Orquestração e teste</string>
     <string name="automation_sub_orchestration_desc">Orquestração de tarefas e autoteste de leitura de tela</string>
-    <string name="automation_settings_subtitle">Permissões de leitura e operação de tela</string>
     <string name="accessibility_service_description">Permite que o Muse leia o conteúdo da tela e simule toques, deslizamentos e outros gestos para automatizar tarefas entre aplicativos. O Muse não executa ações sem a sua confirmação.</string>
     <string name="automation_permission_a11y">Automação de UI do Muse</string>
     <string name="automation_settings_unavailable">Não foi possível abrir as configurações do sistema. Abra-as manualmente para ativar a permissão.</string>

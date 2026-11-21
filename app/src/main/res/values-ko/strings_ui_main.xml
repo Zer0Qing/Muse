@@ -186,7 +186,6 @@
     <string name="settings_screen_title">설정</string>
     <!-- 설정 첫 단계 분류 -->
     <string name="settings_group_assistants">어시스턴트</string>
-    <string name="settings_group_chat">채팅</string>
     <string name="settings_group_models">모델 및 공급자</string>
     <string name="settings_group_tools">도구 및 권한</string>
     <string name="settings_group_voice">음성</string>
@@ -194,7 +193,6 @@
     <string name="settings_group_memory">기억 및 지식</string>
     <string name="settings_group_connection">연결</string>
     <string name="settings_group_automation">자동화</string>
-    <string name="settings_group_appearance">외형</string>
     <string name="settings_group_data_storage">데이터 및 백업</string>
     <string name="settings_group_privacy_security">개인정보 및 보안</string>
     <string name="settings_group_about">앱 정보</string>

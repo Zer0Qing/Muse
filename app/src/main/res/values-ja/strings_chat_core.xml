@@ -282,7 +282,6 @@
     <string name="folder_detail_remove">フォルダーから移出</string>
     <string name="chat_list_section_knowledge">資料</string>
     <!-- v2.x: recall bar + partners row -->
-    <string name="chat_list_recall_format">前回 %1$s と「%2$s」</string>
     <string name="chat_list_add_partner">パートナーを追加</string>
     <string name="chat_list_new_folder">新しいフォルダー</string>
 

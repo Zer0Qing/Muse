@@ -155,7 +155,6 @@
     <string name="memory_center_tab_stream">Memory stream</string>
     <string name="memory_center_tab_constellation">Memory constellation</string>
     <string name="memory_center_library_title">Fact library</string>
-    <string name="memory_center_constellation_hint">Important facts stay near the center. Facts remain visible even before relationships are organized.</string>
     <string name="memory_center_constellation_empty">There are no fact nodes to show yet. Add or create a fact, then come back here.</string>
     <string name="memory_center_filter_empty">There are no facts in this scope or space. Try changing the filters above.</string>
     <string name="memory_center_scope_all">All</string>

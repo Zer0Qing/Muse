@@ -124,7 +124,6 @@
     <string name="memory_center_tab_stream">Поток памяти</string>
     <string name="memory_center_tab_constellation">Созвездие памяти</string>
     <string name="memory_center_library_title">Библиотека фактов</string>
-    <string name="memory_center_constellation_hint">Важные факты находятся ближе к центру. Факты видны даже до сортировки связей.</string>
     <string name="memory_center_constellation_empty">Пока нет узлов фактов. Добавьте факт и вернитесь сюда.</string>
     <string name="memory_center_filter_empty">В этой области или пространстве нет фактов. Попробуйте изменить фильтры выше.</string>
     <string name="memory_center_scope_all">Все</string>

@@ -337,7 +337,6 @@
     <string name="folder_detail_remove">폴더에서 제거</string>
     <string name="chat_list_section_knowledge">자료</string>
     <!-- v2.x: recall bar + partners row -->
-    <string name="chat_list_recall_format">지난번 %1$s와(과) 「%2$s」</string>
     <string name="chat_list_add_partner">파트너 추가</string>
     <string name="chat_list_new_folder">새 폴더</string>
 

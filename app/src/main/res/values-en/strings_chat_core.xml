@@ -358,7 +358,6 @@
     <string name="folder_detail_remove">Remove from folder</string>
     <string name="chat_list_section_knowledge">Library</string>
     <!-- v2.x: recall bar + partners row -->
-    <string name="chat_list_recall_format">Last chat with %1$s: "%2$s"</string>
     <string name="chat_list_add_partner">Add partner</string>
     <string name="chat_list_new_folder">New Folder</string>
     <string name="chat_list_folder_name_required">Enter a folder name</string>

@@ -195,7 +195,6 @@
     <string name="settings_screen_title">Settings</string>
     <!-- Settings categories (first level of the settings screen) -->
     <string name="settings_group_assistants">Assistants</string>
-    <string name="settings_group_chat">Chat</string>
     <string name="settings_group_models">Models and Providers</string>
     <string name="settings_group_tools">Tools and Permissions</string>
     <string name="settings_group_voice">Voice</string>
@@ -203,7 +202,6 @@
     <string name="settings_group_memory">Memory and Knowledge</string>
     <string name="settings_group_connection">Connections</string>
     <string name="settings_group_automation">Automation</string>
-    <string name="settings_group_appearance">Appearance</string>
     <string name="settings_group_data_storage">Data and Backup</string>
     <string name="settings_group_privacy_security">Privacy and Security</string>
     <string name="settings_group_about">About</string>

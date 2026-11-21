@@ -395,7 +395,6 @@
     <string name="folder_detail_remove">移出文件夹</string>
     <string name="chat_list_section_knowledge">资料</string>
     <!-- v2.x: 回顾条 + 伙伴横排 -->
-    <string name="chat_list_recall_format">上次和 %1$s 聊到「%2$s」</string>
     <string name="chat_list_add_partner">添加伙伴</string>
     <string name="chat_list_new_folder">新建文件夹</string>
     <string name="chat_list_folder_name_required">请输入文件夹名称</string>

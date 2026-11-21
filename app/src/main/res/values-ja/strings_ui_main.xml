@@ -186,7 +186,6 @@
     <string name="settings_screen_title">設定</string>
     <!-- 設定の第一レベル分類 -->
     <string name="settings_group_assistants">アシスタント</string>
-    <string name="settings_group_chat">チャット</string>
     <string name="settings_group_models">モデルとプロバイダー</string>
     <string name="settings_group_tools">ツールと権限</string>
     <string name="settings_group_voice">音声</string>
@@ -194,7 +193,6 @@
     <string name="settings_group_memory">記憶と知識</string>
     <string name="settings_group_connection">接続</string>
     <string name="settings_group_automation">自動化</string>
-    <string name="settings_group_appearance">外観</string>
     <string name="settings_group_data_storage">データとバックアップ</string>
     <string name="settings_group_privacy_security">プライバシーとセキュリティ</string>
     <string name="settings_group_about">アプリについて</string>

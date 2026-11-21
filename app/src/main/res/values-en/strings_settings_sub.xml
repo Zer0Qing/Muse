@@ -3,7 +3,6 @@
     <string name="settings_chat_bubble_full_width">Full-width bubbles</string>
     <string name="settings_chat_bubble_full_width_subtitle">AI replies span the full row width; your messages stay compact on the right.</string>
         <string name="settings_chat_quick_actions">Message quick actions</string>
-    <string name="settings_chat_quick_actions_desc">Choose which quick actions appear below messages</string>
     <string name="settings_chat_quick_reset">Reset to default order</string>
     <string name="settings_chat_quick_enabled">Enabled (in display order)</string>
     <string name="settings_chat_quick_empty_hint">No actions enabled. Tap items in the pool below to add.</string>
@@ -698,8 +697,6 @@
     <string name="keep_alive_notification_title">Muse is running in the background</string>
     <string name="keep_alive_notification_text">Keeping scheduled tasks and proactive messages online</string>
     <string name="settings_keep_alive_title">Keep running in background</string>
-    <string name="settings_group_keep_alive">Always On</string>
-    <string name="settings_group_miniphone">Mini Phone</string>
     <string name="settings_keep_alive_subtitle">Hold the process in the foreground with a persistent notification</string>
     <string name="settings_keep_alive_hint">Muse will show a persistent notification. Android requires this for foreground services and it cannot be hidden. On some Chinese ROMs you also need to allow autostart in system settings.</string>
     <string name="settings_keep_alive_wakelock_title">Stay connected with screen off</string>

@@ -186,7 +186,6 @@
     <string name="settings_screen_title">Настройки</string>
     <!-- Категории настроек (первый уровень) -->
     <string name="settings_group_assistants">Ассистенты</string>
-    <string name="settings_group_chat">Чат</string>
     <string name="settings_group_models">Модели и провайдеры</string>
     <string name="settings_group_tools">Инструменты и права</string>
     <string name="settings_group_voice">Голос</string>
@@ -194,7 +193,6 @@
     <string name="settings_group_memory">Память и знания</string>
     <string name="settings_group_connection">Подключения</string>
     <string name="settings_group_automation">Автоматизация</string>
-    <string name="settings_group_appearance">Внешний вид</string>
     <string name="settings_group_data_storage">Данные и резервные копии</string>
     <string name="settings_group_privacy_security">Приватность и безопасность</string>
     <string name="settings_group_about">О приложении</string>

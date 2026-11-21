@@ -3,7 +3,6 @@
     <string name="settings_chat_bubble_full_width">气泡通栏显示</string>
     <string name="settings_chat_bubble_full_width_subtitle">AI 回复气泡撑满整行宽度；用户消息保持右侧紧凑气泡。</string>
     <string name="settings_chat_quick_actions">消息快捷按钮</string>
-    <string name="settings_chat_quick_actions_desc">选择消息下方显示哪些快捷操作</string>
     <!-- v2.6.0: 快捷按钮自定义页（Via 式） -->
     <string name="settings_chat_quick_reset">恢复默认排布</string>
     <string name="settings_chat_quick_enabled">已启用（按展示顺序）</string>
@@ -703,8 +702,6 @@
     <string name="keep_alive_notification_title">Muse 正在后台运行</string>
     <string name="keep_alive_notification_text">保持定时任务与主动消息在线</string>
     <string name="settings_keep_alive_title">常驻后台</string>
-    <string name="settings_group_keep_alive">常驻后台</string>
-    <string name="settings_group_miniphone">小手机</string>
     <string name="settings_keep_alive_subtitle">以常驻通知把进程保持在前台，减少被系统回收</string>
     <string name="settings_keep_alive_hint">开启后 Muse 会常驻一条通知。这是 Android 对前台服务的强制要求，无法隐藏。国产系统还需在系统设置里允许自启动，否则仍可能被清理。</string>
     <string name="settings_keep_alive_wakelock_title">屏幕关闭也保持连接</string>

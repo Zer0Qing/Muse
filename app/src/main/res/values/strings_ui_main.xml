@@ -235,7 +235,6 @@
          chat_display / data_privacy / proactive / storage / migrate 已不再使用，仅保留键。 -->
     <!-- ===== 设置一级分类（首页 12 行；顺序与 SettingsCatalog 一致） ===== -->
     <string name="settings_group_assistants">助手</string>
-    <string name="settings_group_chat">聊天</string>
     <string name="settings_group_models">模型与供应商</string>
     <string name="settings_group_tools">工具与权限</string>
     <string name="settings_group_voice">语音</string>
@@ -243,7 +242,6 @@
     <string name="settings_group_memory">记忆与知识</string>
     <string name="settings_group_connection">连接</string>
     <string name="settings_group_automation">自动化</string>
-    <string name="settings_group_appearance">外观</string>
     <string name="settings_group_data_storage">数据与备份</string>
     <string name="settings_group_privacy_security">隐私与安全</string>
     <string name="settings_group_about">关于</string>

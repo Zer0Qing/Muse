@@ -186,7 +186,6 @@
     <string name="settings_screen_title">Ajustes</string>
     <!-- Categorías de ajustes (primer nivel) -->
     <string name="settings_group_assistants">Asistentes</string>
-    <string name="settings_group_chat">Chat</string>
     <string name="settings_group_models">Modelos y proveedores</string>
     <string name="settings_group_tools">Herramientas y permisos</string>
     <string name="settings_group_voice">Voz</string>
@@ -194,7 +193,6 @@
     <string name="settings_group_memory">Memoria y conocimiento</string>
     <string name="settings_group_connection">Conexiones</string>
     <string name="settings_group_automation">Automatización</string>
-    <string name="settings_group_appearance">Apariencia</string>
     <string name="settings_group_data_storage">Datos y copias de seguridad</string>
     <string name="settings_group_privacy_security">Privacidad y seguridad</string>
     <string name="settings_group_about">Acerca de</string>
