@@ -61,7 +61,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.InputBar
-import io.zer0.muse.ui.ImageGenParamsPanel
+import io.zer0.muse.ui.chat.ImageGenParamsPanel
 
 /**
  * Tool approval card.

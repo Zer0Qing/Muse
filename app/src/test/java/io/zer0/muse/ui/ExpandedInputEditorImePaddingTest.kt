@@ -2,6 +2,7 @@ package io.zer0.muse.ui
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.ui.chat.MuseExpandedInputEditor
 
 /**
  * AUD-UI-F14: 全屏输入编辑页必须有 imePadding,否则键盘遮住输入框/发送按钮。
@@ -11,7 +12,7 @@ import org.junit.Test
  */
 class ExpandedInputEditorImePaddingTest {
 
-    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/MuseExpandedInputEditor.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/chat/MuseExpandedInputEditor.kt").readText()
 
     @Test
     fun `expanded editor root applies ime padding`() {

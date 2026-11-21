@@ -58,12 +58,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import io.zer0.muse.ui.chat.render.mergeFinalAssistantMedia
 import io.zer0.muse.ui.ThinkingBubble
-import io.zer0.muse.ui.PendingMessage
 import io.zer0.muse.ui.resumeOverlapToDrop
 import io.zer0.muse.ui.shouldReplaceOnResumeRewrite
 import io.zer0.muse.ui.shouldReplaceOnResumeSupersede
 import io.zer0.muse.ui.canUseToolModelForRound
 import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.PendingMessage
 
 /**
  * v2.6.15: 本轮 assistant 消息的产出模型戳。

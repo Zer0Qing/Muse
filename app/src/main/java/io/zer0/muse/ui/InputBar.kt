@@ -88,6 +88,9 @@ import io.zer0.muse.ui.chat.LoadingDots
 import io.zer0.muse.ui.chat.SmartImage
 import io.zer0.muse.ui.chat.MuseInputState
 import io.zer0.muse.ui.chat.InputBarCallbacks
+import io.zer0.muse.ui.chat.MuseExpandedInputEditor
+import io.zer0.muse.ui.chat.RecordingWaveform
+import io.zer0.muse.ui.chat.ImageGenParamsPanel
 
 /** L-IB1: 输入框字符上限,防止超长文本拖慢渲染或超出模型上下文窗口。 */
 internal const val INPUT_TEXT_MAX_LENGTH = 5000

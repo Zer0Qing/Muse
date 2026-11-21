@@ -15,7 +15,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import io.zer0.muse.R
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.QuickMessageScreen
+import io.zer0.muse.ui.chat.QuickMessageScreen
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.WindowWidthClass

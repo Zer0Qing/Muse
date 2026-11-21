@@ -92,7 +92,6 @@ import io.zer0.muse.ui.chat.QuickActionButton
 import io.zer0.muse.ui.chat.StickerAwareMarkdownBody
 import io.zer0.muse.ui.chat.VideoAttachment
 import io.zer0.muse.ui.chat.VoiceMessageBubble
-import io.zer0.muse.ui.chat.buildHighlightedText
 import io.zer0.muse.ui.chat.buildMoodSkinAnnotated
 import io.zer0.muse.ui.chat.parseQuotedContent
 import io.zer0.muse.ui.common.MusePopover
@@ -143,6 +142,9 @@ import io.zer0.muse.ui.chat.ThinkingIndicator
 import io.zer0.muse.ui.chat.TtsAudioPlayer
 import io.zer0.muse.ui.chat.formatMessageTime
 import io.zer0.muse.ui.chat.MessageBubbleFormatters
+import io.zer0.muse.ui.chat.rememberLinkPreviews
+import io.zer0.muse.ui.chat.LinkPreviewCard
+import io.zer0.muse.ui.chat.buildHighlightedText
 
 internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。

@@ -6,7 +6,6 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.ui.ChatInputState
 import io.zer0.muse.ui.ChatSessionState
 import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.PendingMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import io.zer0.muse.ui.PendingMessage
 
 /** 内存实现的 [ChatStateAccessor],供 Controller 纯逻辑测试。 */
 private class FakeAccessor(initial: ChatUiState) : ChatStateAccessor {

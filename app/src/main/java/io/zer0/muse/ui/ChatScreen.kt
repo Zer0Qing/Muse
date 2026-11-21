@@ -182,6 +182,7 @@ import io.zer0.muse.ui.chat.LoadingDots
 import io.zer0.muse.ui.chat.SmartImage
 import io.zer0.muse.ui.chat.MessageBubbleHeader
 import io.zer0.muse.ui.chat.InChatFindBar
+import io.zer0.muse.ui.chat.RichInputBar
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =

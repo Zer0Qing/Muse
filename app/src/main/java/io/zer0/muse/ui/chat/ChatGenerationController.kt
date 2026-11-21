@@ -59,6 +59,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.ThinkingBubble
+import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.InputBar
 
 /**
  * v1.x: 从 ChatViewModel 抽离的生成控制 Controller。

@@ -1,0 +1,446 @@
+package io.zer0.muse.ui.common
+
+import android.content.res.Resources
+import io.zer0.common.Logger
+import io.zer0.memory.fact.FactEntity
+import io.zer0.muse.R
+import java.time.LocalDate
+import java.time.LocalTime
+
+object GreetingHelper {
+    /** 首页问候区个性化提醒的单行字符预算。 */
+    internal const val PERSONALIZED_HINT_MAX_LENGTH = 18
+
+    /** 首页问候区每日总结的单行字符预算。 */
+    internal const val DAILY_SUMMARY_HINT_MAX_LENGTH = 24
+
+    /**
+     * v2.7: 每日总结展示的**宽松**安全上限（非截断目标）。
+     *
+     * 展示层不再把总结硬压到 24 字；长度由生成侧控制。这里只防止模型异常输出
+     * 极端长文撑爆首页，正常生成（≤60 字）远低于此值。
+     */
+    internal const val DAILY_SUMMARY_DISPLAY_SAFETY_LIMIT = 200
+
+    /** v2.3.1: 无资源环境(单元测试)下的日期模式兜底。 */
+    private const val DEFAULT_DATE_PATTERN = "MMM d, EEEE"
+
+    /**
+     * I18N-01: 优先用资源字符串,无资源(单元测试)回退中文常量。
+     * @param args 与资源占位符(%1$s 等)一一对应。
+     */
+    private fun zh(res: Resources?, id: Int, fallback: String, vararg args: Any): String = if (res != null) {
+        res.getString(id, *args)
+    } else if (args.isEmpty()) {
+        fallback
+    } else {
+        String.format(fallback, *args)
+    }
+
+    // 根据时间返回问候语
+    fun getTimeGreeting(hour: Int = LocalTime.now().hour, res: Resources? = null): String {
+        val id = when (hour) {
+            in 5..10 -> R.string.greeting_morning
+            in 11..13 -> R.string.greeting_noon
+            in 14..17 -> R.string.greeting_afternoon
+            in 18..22 -> R.string.greeting_evening
+            else -> R.string.greeting_late_night
+        }
+        return zh(
+            res,
+            id,
+            when (hour) {
+                in 5..10 -> "早上好"
+                in 11..13 -> "中午好"
+                in 14..17 -> "下午好"
+                in 18..22 -> "晚上好"
+                else -> "深夜了"
+            },
+        )
+    }
+
+    // 获取节气（v1.0.72: 用寿星公式按年份计算,替代固定日期表）
+    //
+    // 背景:旧实现是固定日期表(Triple(8,8,"立秋")),但节气是天文事件,
+    // 每年日期不同(2026 立秋在 8/7,旧表报 8/8 → 用户反馈"立秋是昨天的事")。
+    //
+    // 寿星公式: D = floor(Y*0.2422 + C) - floor(Y/4)
+    //   Y = 年份后两位,[] = 向下取整,C = 各节气世纪常数(21 世纪适用,误差 < 1 天;
+    //   20 世纪需 C-1)
+    fun getSolarTerm(date: LocalDate = LocalDate.now(), res: Resources? = null): String? {
+        // 24 节气世纪常数(顺序: 1月小寒/大寒 ... 12月大雪/冬至)
+        val cValues = doubleArrayOf(
+            5.4055, 20.12, // 1月
+            3.87, 18.73, // 2月
+            5.63, 20.646, // 3月
+            4.81, 20.1, // 4月
+            5.52, 21.04, // 5月
+            5.678, 21.37, // 6月
+            7.108, 22.83, // 7月
+            7.5, 23.13, // 8月
+            7.646, 23.042, // 9月
+            8.318, 23.438, // 10月
+            7.438, 22.36, // 11月
+            7.18, 21.94, // 12月
+        )
+        val termNames = listOf(
+            zh(res, R.string.greeting_solar_term_minor_cold, "小寒"),
+            zh(res, R.string.greeting_solar_term_major_cold, "大寒"),
+            zh(res, R.string.greeting_solar_term_spring_begins, "立春"),
+            zh(res, R.string.greeting_solar_term_rain_water, "雨水"),
+            zh(res, R.string.greeting_solar_term_awakening_of_insects, "惊蛰"),
+            zh(res, R.string.greeting_solar_term_spring_equinox, "春分"),
+            zh(res, R.string.greeting_solar_term_clear_and_bright, "清明"),
+            zh(res, R.string.greeting_solar_term_grain_rain, "谷雨"),
+            zh(res, R.string.greeting_solar_term_summer_begins, "立夏"),
+            zh(res, R.string.greeting_solar_term_grain_buds, "小满"),
+            zh(res, R.string.greeting_solar_term_grain_in_ear, "芒种"),
+            zh(res, R.string.greeting_solar_term_summer_solstice, "夏至"),
+            zh(res, R.string.greeting_solar_term_minor_heat, "小暑"),
+            zh(res, R.string.greeting_solar_term_major_heat, "大暑"),
+            zh(res, R.string.greeting_solar_term_autumn_begins, "立秋"),
+            zh(res, R.string.greeting_solar_term_end_of_heat, "处暑"),
+            zh(res, R.string.greeting_solar_term_white_dew, "白露"),
+            zh(res, R.string.greeting_solar_term_autumn_equinox, "秋分"),
+            zh(res, R.string.greeting_solar_term_cold_dew, "寒露"),
+            zh(res, R.string.greeting_solar_term_frost_descent, "霜降"),
+            zh(res, R.string.greeting_solar_term_winter_begins, "立冬"),
+            zh(res, R.string.greeting_solar_term_minor_snow, "小雪"),
+            zh(res, R.string.greeting_solar_term_major_snow, "大雪"),
+            zh(res, R.string.greeting_solar_term_winter_solstice, "冬至"),
+        )
+
+        /** 寿星公式: 某年某节气(索引 0-23)落在几号。 */
+        fun solarTermDay(year: Int, termIndex: Int): Int {
+            val y = (year % 100).toDouble()
+            val centuryAdj = if (year in 1900..1999) 1.0 else 0.0 // 20 世纪 C-1
+            return (Math.floor(y * 0.2422 + cValues[termIndex] - centuryAdj) - Math.floor(y / 4.0)).toInt()
+        }
+
+        /** 某天命中的节气名(无则 null)。 */
+        fun termFor(d: LocalDate): String? {
+            for (idx in termNames.indices) {
+                if (idx / 2 + 1 != d.monthValue) continue
+                if (solarTermDay(d.year, idx) == d.dayOfMonth) return termNames[idx]
+            }
+            return null
+        }
+
+        // 检查今天或明天是否是节气（提前告知）
+        termFor(date)?.let { return zh(res, R.string.greeting_calendar_today, "今天是%1\$s", it) }
+        termFor(date.plusDays(1))?.let { return zh(res, R.string.greeting_calendar_tomorrow, "明天是%1\$s", it) }
+        return null
+    }
+
+    // 获取节日
+    fun getFestival(date: LocalDate = LocalDate.now(), res: Resources? = null): String? {
+        val festivals = listOf(
+            Triple(1, 1, zh(res, R.string.greeting_festival_new_year, "元旦")),
+            Triple(2, 14, zh(res, R.string.greeting_festival_valentines_day, "情人节")),
+            Triple(3, 8, zh(res, R.string.greeting_festival_womens_day, "妇女节")),
+            Triple(5, 1, zh(res, R.string.greeting_festival_labour_day, "劳动节")),
+            Triple(5, 4, zh(res, R.string.greeting_festival_china_youth_day, "青年节")),
+            Triple(6, 1, zh(res, R.string.greeting_festival_childrens_day, "儿童节")),
+            Triple(7, 1, zh(res, R.string.greeting_festival_cpc_founding_anniversary, "建党节")),
+            Triple(8, 1, zh(res, R.string.greeting_festival_china_army_day, "建军节")),
+            Triple(9, 10, zh(res, R.string.greeting_festival_china_teachers_day, "教师节")),
+            Triple(10, 1, zh(res, R.string.greeting_festival_china_national_day, "国庆节")),
+            Triple(12, 25, zh(res, R.string.greeting_festival_christmas, "圣诞节")),
+        )
+        val today = festivals.firstOrNull { it.first == date.monthValue && it.second == date.dayOfMonth }
+        if (today != null) return zh(res, R.string.greeting_calendar_today, "今天是%1\$s", today.third)
+        val tomorrow = date.plusDays(1)
+        val tmr = festivals.firstOrNull { it.first == tomorrow.monthValue && it.second == tomorrow.dayOfMonth }
+        if (tmr != null) return zh(res, R.string.greeting_calendar_tomorrow, "明天是%1\$s", tmr.third)
+        return null
+    }
+
+    /**
+     * 近期事项关键词 — 命中这些词的记忆会被视为"近期事件"（考试/出行/会议等）。
+     * 命中后配合记忆的 time 字段（明天/后天/3 天内）生成个性化提醒。
+     */
+    private val EVENT_KEYWORDS = listOf(
+        "考试", "考研", "高考", "期末", "答辩", "面试",
+        "航班", "火车", "高铁", "飞机", "机票", "出发", "回程", "出差", "旅行", "旅游",
+        "会议", "开会", "报告", "截止", "报名", "提交",
+        "体检", "复诊", "复查", "手术", "取药",
+        "还款", "交租", "缴费", "deadline", "DDL",
+        "生日", "纪念日", "约会", "聚会", "婚礼",
+    )
+
+    private val eventLabelIds = mapOf(
+        "考试" to R.string.greeting_event_exam,
+        "考研" to R.string.greeting_event_postgraduate_entrance_exam,
+        "高考" to R.string.greeting_event_college_entrance_exam,
+        "期末" to R.string.greeting_event_final_exams,
+        "答辩" to R.string.greeting_event_thesis_defence,
+        "面试" to R.string.greeting_event_interview,
+        "航班" to R.string.greeting_event_flight,
+        "火车" to R.string.greeting_event_train,
+        "高铁" to R.string.greeting_event_high_speed_train,
+        "飞机" to R.string.greeting_event_plane,
+        "机票" to R.string.greeting_event_flight_ticket,
+        "出发" to R.string.greeting_event_departure,
+        "回程" to R.string.greeting_event_return_trip,
+        "出差" to R.string.greeting_event_business_trip,
+        "旅行" to R.string.greeting_event_trip,
+        "旅游" to R.string.greeting_event_holiday_trip,
+        "会议" to R.string.greeting_event_meeting,
+        "开会" to R.string.greeting_event_attend_meeting,
+        "报告" to R.string.greeting_event_report,
+        "截止" to R.string.greeting_event_deadline,
+        "报名" to R.string.greeting_event_registration,
+        "提交" to R.string.greeting_event_submission,
+        "体检" to R.string.greeting_event_medical_checkup,
+        "复诊" to R.string.greeting_event_followup_appointment,
+        "复查" to R.string.greeting_event_followup_examination,
+        "手术" to R.string.greeting_event_surgery,
+        "取药" to R.string.greeting_event_prescription_pickup,
+        "还款" to R.string.greeting_event_repayment,
+        "交租" to R.string.greeting_event_rent_payment,
+        "缴费" to R.string.greeting_event_payment,
+        "deadline" to R.string.greeting_event_deadline_english,
+        "DDL" to R.string.greeting_event_deadline_abbreviation,
+        "生日" to R.string.greeting_event_birthday,
+        "纪念日" to R.string.greeting_event_anniversary,
+        "约会" to R.string.greeting_event_date,
+        "聚会" to R.string.greeting_event_gathering,
+        "婚礼" to R.string.greeting_event_wedding,
+    )
+
+    /**
+     * 筛选近期事项候选(未来 1-3 天内、关键词命中),返回原始事项文本列表。
+     * 供 LLM 生成个性化提醒时作为输入;无候选返回空列表。
+     */
+    fun recentEvents(facts: List<FactEntity>, today: LocalDate = LocalDate.now()): List<String> {
+        if (facts.isEmpty()) return emptyList()
+        val events = mutableListOf<String>()
+        for (fact in facts) {
+            val text = fact.fact ?: continue
+            val time = fact.time ?: continue
+            if (!EVENT_KEYWORDS.any { text.contains(it) }) continue
+            val eventDate = runCatching { LocalDate.parse(time.substringBefore("T")) }
+                .onFailure { Logger.w("GreetingHelper", "忽略无法解析的记忆时间字段", it) }
+                .getOrNull() ?: continue
+            val diff = java.time.temporal.ChronoUnit.DAYS.between(today, eventDate)
+            if (diff !in 1..3) continue
+            val whenText = when (diff) {
+                1L -> "明天"
+                2L -> "后天"
+                else -> "${diff}天后"
+            }
+            events += "$whenText$text"
+        }
+        return events
+    }
+
+    /**
+     * 从记忆中提取个性化提示（生日、近期事项）。
+     *
+     * 优先级：明天 > 后天 > 3 天内。同一优先级取第一条。
+     * 返回的提示已按首页单行预算截断（≤ 18 字）。
+     */
+    fun getMemoryHint(facts: List<FactEntity>, today: LocalDate = LocalDate.now(), res: Resources? = null): String? {
+        if (facts.isEmpty()) return null
+        var best: Pair<Int, String>? = null // (diffDays, hint)
+        for (fact in facts) {
+            val text = fact.fact ?: continue
+            // 检查生日（支持"生日是 X月X日"）
+            if (text.contains("生日") || text.contains("出生")) {
+                val dateMatch = Regex("""(\d{1,2})[月/-](\d{1,2})""").find(text)
+                if (dateMatch != null) {
+                    val month = dateMatch.groupValues[1].toIntOrNull() ?: continue
+                    val day = dateMatch.groupValues[2].toIntOrNull() ?: continue
+                    // 审计修复 (2.2): 非法日期(如"13月45日")抛 DateTimeException 崩溃;
+                    // 空会话引导页必执行本函数,记忆含此类文本即崩。
+                    if (month !in 1..12 || day !in 1..31) continue
+                    val birthdayThisYear = runCatching { LocalDate.of(today.year, month, day) }.getOrNull() ?: continue
+                    val diff = java.time.temporal.ChronoUnit.DAYS.between(today, birthdayThisYear)
+                    // I18N-01: 提示语走资源,测试回退中文。
+                    val hint = when {
+                        diff == 0L -> zh(res, R.string.greeting_today_birthday, "今天是生日")
+                        diff == 1L -> zh(res, R.string.greeting_tomorrow_birthday, "明天是生日")
+                        diff in 2..7L -> zh(res, R.string.greeting_days_birthday, "%1\$d天后是生日", diff)
+                        else -> null
+                    }
+                    if (hint != null) best = betterHint(best, diff, hint)
+                }
+                continue
+            }
+            // 近期事项：关键词命中 + time 字段在 3 天内
+            if (EVENT_KEYWORDS.any { text.contains(it) }) {
+                val time = fact.time
+                if (time == null) continue
+                val eventDate = runCatching { LocalDate.parse(time.substringBefore("T")) }
+                    .onFailure { Logger.w("GreetingHelper", "忽略无法解析的记忆时间字段", it) }
+                    .getOrNull() ?: continue
+                val diff = java.time.temporal.ChronoUnit.DAYS.between(today, eventDate)
+                if (diff !in 1..3) continue
+                val rawKeyword = EVENT_KEYWORDS.firstOrNull { text.contains(it) } ?: "事"
+                val keyword = eventLabelIds[rawKeyword]?.let { zh(res, it, rawKeyword) } ?: rawKeyword
+                val hint = when (diff) {
+                    1L -> zh(res, R.string.greeting_tomorrow_event, "明天有%1\$s：%2\$s", keyword, text.take(16))
+                    else -> zh(res, R.string.greeting_days_event, "%1\$d天内有%2\$s：%3\$s", diff, keyword, text.take(14))
+                }
+                best = betterHint(best, diff, hint)
+            }
+        }
+        return best?.second
+            ?.replace("用户", "你")
+            ?.let { compactGreetingText(it, PERSONALIZED_HINT_MAX_LENGTH) }
+    }
+
+    /**
+     * 将模型、缓存或规则文本压缩成首页问候区可用的单行提示。
+     *
+     * 提示词与 maxTokens 只是软约束,旧缓存或异常 Provider 仍可能返回长文本,
+     * 因此展示前必须统一归一化并执行硬长度上限。
+     */
+    internal fun compactGreetingText(text: String?, maxChars: Int): String? {
+        if (text.isNullOrBlank() || maxChars <= 0) return null
+        // UI-FIX: 规则版提示会把事实原文连"(时间:…)"一起拼进来,展示前剥掉这段尾注
+        // 既是内部元数据、又容易把整行挤满导致看起来像被截断。
+        // 注:字样用 \u 转义,避免中文硬编码闸门把正则当成用户可见文案。
+        val normalized = text
+            .replace(Regex("[（(]\\s*\\u65F6\\u95F4\\s*[:：][^）)]*[）)]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        val compacted = normalized
+            .take(maxChars)
+            .trimEnd(' ', ',', '，', '.', '。', ';', '；', ':', '：')
+        if (compacted.isBlank()) return null
+        // v1.0.92: 超长时用省略号显式收尾 — 旧实现直接硬切,用户反馈"老是显示不全";
+        // 保持总长≤maxChars(take(maxChars-1) + 省略号)。
+        return if (normalized.length > maxChars) {
+            compacted.take((maxChars - 1).coerceAtLeast(1)) + "…"
+        } else {
+            compacted
+        }
+    }
+
+    /**
+     * 将最近一天内的每日总结归一化后展示在首页问候区。
+     *
+     * v2.7（用户反馈）：不再做单行/短字符硬压缩 —— 展示层不截断，文本自然换行、
+     * 向下排布（下方内容依次下移）。长度由生成侧（DailySummaryService 的提示词
+     * 与 maxTokens）控制。这里仅做：
+     *  - 去除内部元数据尾注（如“(时间:…)”）与多余空白
+     *  - 一个**宽松的**安全上限（防模型跑飞导致极端长文），远超正常生成长度
+     *
+     * 总结可能是在后台生成的，因此只接受今天或昨天的内容，避免用户几天没打开
+     * 应用后仍看到过期事项。
+     */
+    fun getDailySummaryHint(summary: String?, summaryDate: String?, today: LocalDate = LocalDate.now()): String? {
+        if (summary.isNullOrBlank() || summaryDate.isNullOrBlank()) return null
+        val date = runCatching {
+            LocalDate.parse(summaryDate.substringBefore("T"))
+        }.getOrNull() ?: return null
+        val age = java.time.temporal.ChronoUnit.DAYS.between(date, today)
+        if (age !in 0..1) return null
+        return normalizeGreetingText(summary, DAILY_SUMMARY_DISPLAY_SAFETY_LIMIT)
+    }
+
+    /**
+     * v2.7: 只做归一化（去尾注/空白）+ 宽松安全上限，不做短字符截断。
+     *
+     * 与 [compactGreetingText]（单行短提示用，带省略号硬切）区分：
+     * 每日总结是可多行展示的正文，不应在展示层被切短。
+     * [safetyLimit] 仅防止模型异常输出极端长文撑爆首页，正常长度远低于它。
+     */
+    internal fun normalizeGreetingText(text: String?, safetyLimit: Int): String? {
+        val normalized = text?.takeIf { it.isNotBlank() }?.let { raw ->
+            raw
+                .replace(Regex("[（(]\\s*\\u65F6\\u95F4\\s*[:：][^）)]*[）)]"), " ")
+                .replace(Regex("[ \\t]+"), " ")
+                .replace(Regex("\\n{3,}"), "\n\n")
+                .trim()
+        }?.takeIf { it.isNotBlank() } ?: return null
+        return if (safetyLimit > 0 && normalized.length > safetyLimit) {
+            normalized.take(safetyLimit).trimEnd() + "…"
+        } else {
+            normalized
+        }
+    }
+
+    /** 保留更紧急（diff 更小）的提示。 */
+    private fun betterHint(best: Pair<Int, String>?, diff: Long, hint: String): Pair<Int, String> {
+        return if (best == null || diff < best.first) diff.toInt() to hint else best
+    }
+
+    /**
+     * v2.6.7 fix (AUDIT F8): 跨会话未完成待办的提示（“还有 N 个会话留着没做完的事”）。
+     *
+     * `SessionTodoRepository` 的 `sessionsWithOpenItems` / `countSessionsWithOpenItems`
+     * 之前全仓零调用 —— 数据存了但“能主动提醒”的目标没交付。
+     * 首页问候是成本最低的交付位置：不打扰、不弹窗、用户一打开就看得到。
+     *
+     * @param openSessionCount 还有未完成项的会话数（0 或负数返回 null）
+     */
+    fun getOpenTodoHint(openSessionCount: Int, res: Resources? = null): String? {
+        if (openSessionCount <= 0) return null
+        // 无资源（单元测试/极早期）时返回 null，不内置中文字面量：
+        // 硬编码 CJK 门禁是「只降不升」，这里新增一条会造成债增加。
+        return res?.getString(R.string.greeting_open_todos, openSessionCount)
+    }
+
+    // 记忆提示语（人性化）— I18N-01: 文案走资源,测试回退中文。
+    fun getMemoryCountText(count: Int, assistantName: String = "Muse", res: Resources? = null): String {
+        return when (count) {
+            0 -> zh(res, R.string.greeting_memory_0, "$assistantName 还跟你不够熟悉", assistantName)
+            in 1..9 -> zh(res, R.string.greeting_memory_few, "$assistantName 正在慢慢认识你", assistantName)
+            in 10..49 -> zh(res, R.string.greeting_memory_mid, "$assistantName 已经记住了 $count 条记忆，开始熟悉了", assistantName, count)
+            in 50..99 -> zh(res, R.string.greeting_memory_many, "$assistantName 和你已经很熟了", assistantName)
+            in 100..199 -> zh(res, R.string.greeting_memory_max, "$assistantName 和你无话不谈了", assistantName)
+            else -> zh(res, R.string.greeting_memory_huge, "$assistantName 比谁都懂你，已记住 $count 条记忆", assistantName, count)
+        }
+    }
+
+    /**
+     * v2.x: 首页日期行(替代原"熟悉度"记忆计数行) — 例:9月27日 星期六。
+     *
+     * v2.3.1: 日期模式由字符串资源 [R.string.home_date_pattern] 按语言提供
+     * (zh/ja「M月d日 EEEE」、ko「M월 d일 EEEE」、其余「MMM d, EEEE」),不再在代码里硬编码;
+     * 无资源(单元测试)时退回 [DEFAULT_DATE_PATTERN]。格式化异常时回退 ISO 日期。
+     */
+    fun getDateLine(date: LocalDate = LocalDate.now(), res: Resources? = null): String {
+        val locale = runCatching { res?.configuration?.locales?.get(0) }.getOrNull()
+            ?: java.util.Locale.getDefault()
+        val pattern = runCatching { res?.getString(R.string.home_date_pattern) }.getOrNull()
+            ?: DEFAULT_DATE_PATTERN
+        return runCatching {
+            date.format(java.time.format.DateTimeFormatter.ofPattern(pattern, locale))
+        }.getOrElse { date.toString() }
+    }
+
+    /**
+     * 组装完整问候语。
+     *
+     * 个性化优先：记忆里有近期事项（考试/航班/会议等）时，只用记忆提示；
+     * 没有时再从节气/节日里随机选一个作为通用信息（避免每次都一样）。
+     * 长度控制：后缀只保留一条，整体 ≤ 约 28 字。
+     */
+    fun buildGreeting(
+        facts: List<FactEntity>,
+        hour: Int = LocalTime.now().hour,
+        date: LocalDate = LocalDate.now(),
+        dailySummary: String? = null,
+        dailySummaryDate: String? = null,
+        res: Resources? = null,
+    ): String {
+        val prefix = getTimeGreeting(hour, res)
+        // 1. 每日总结优先,让晚间生成的事项能在下一次打开首页时接上问候语
+        getDailySummaryHint(dailySummary, dailySummaryDate, date)?.let { hint ->
+            return zh(res, R.string.greeting_with_hint, "%1\$s，%2\$s", prefix, hint)
+        }
+        // 2. 记忆提示优先（个性化）
+        getMemoryHint(facts, date, res)?.let { hint ->
+            return zh(res, R.string.greeting_with_hint, "%1\$s，%2\$s", prefix, hint)
+        }
+        // 3. 无个性化提示：节气/节日随机选一（通用信息随机替换）
+        val extras = listOfNotNull(getSolarTerm(date, res), getFestival(date, res))
+        if (extras.isNotEmpty()) {
+            return zh(res, R.string.greeting_with_hint, "%1\$s，%2\$s", prefix, extras.random())
+        }
+        return prefix
+    }
+}

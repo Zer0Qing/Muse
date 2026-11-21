@@ -4,6 +4,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.RichInputBar
 
 class ChatInputAutoFocusWiringTest {
     @Test

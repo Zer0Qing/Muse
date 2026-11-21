@@ -160,6 +160,7 @@ import io.zer0.muse.ui.chat.resolveErrorVisibility
 import io.zer0.muse.ui.chat.StreamingCursor
 import io.zer0.muse.ui.chat.ERROR_VISIBLE_WAIT_MS
 import io.zer0.muse.ui.chat.ERROR_AUTO_DISMISS_MS
+import io.zer0.muse.ui.chat.QuickMessageScreen
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。
@@ -1996,7 +1997,6 @@ class ChatViewModel(
     private val documentCoordinator =
         ChatDocumentCoordinator(
             accessor = this,
-            appContext = appContext,
             documentParser = documentParser,
             settings = settings,
         )

@@ -1,6 +1,6 @@
 @file:Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod")
 
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

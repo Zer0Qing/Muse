@@ -3,6 +3,9 @@ package io.zer0.muse.ui
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
+import io.zer0.muse.ui.chat.LinkPreviewData
+import io.zer0.muse.ui.chat.shouldResolveLinkPreviews
+import io.zer0.muse.ui.chat.linkDomain
 
 /**
  * Phase 2: 链接预览纯逻辑测试(域名提取 + 新状态字段默认值)。

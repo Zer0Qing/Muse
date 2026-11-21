@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
@@ -10,6 +10,7 @@ import io.zer0.muse.data.quickmsg.QuickMessageEntity
 import io.zer0.muse.ui.chat.VideoAttachment
 import io.zer0.muse.ui.chat.MuseInputState
 import io.zer0.muse.ui.chat.InputBarCallbacks
+import io.zer0.muse.ui.InputBar
 
 /**
  * v1.0.75 fix (用户反馈): 输入栏上方 Markdown 格式工具条整条移除。

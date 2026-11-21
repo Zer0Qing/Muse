@@ -1,0 +1,528 @@
+package io.zer0.muse.ui.settings
+
+import android.app.Activity
+import android.app.ActivityManager
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import io.zer0.common.Logger
+import io.zer0.muse.R
+import io.zer0.muse.crash.MuseCrashHandler
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.surface.MuseCardPress
+import io.zer0.muse.ui.theme.MuseMonoFontFamily
+import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.util.ShareIntentHelper
+
+/**
+ * v2.0+: Safe Mode 极简 UI(上次崩溃后展示)。
+ *
+ * 极简恢复界面,使用 muse 设计 token 体系:
+ *  - 顶部:警告图标(MuseIcons.alertTriangle) + "上次启动崩溃" 标题
+ *  - 中部:崩溃时间 + 崩溃堆栈摘要(垂直滚动,等宽字体)
+ *  - 底部:垂直排列的操作按钮(MuseCardPress 触觉风格,无涟漪)
+ *    a) 继续正常启动 — 清除 Safe Mode 标记并杀进程冷启动
+ *    b) 查看完整崩溃日志 — 通过 Intent 分享崩溃日志文件
+ *    c) 清除所有数据并重启 — ActivityManager.clearApplicationUserData
+ *    d) 复制崩溃信息 — 复制到剪贴板
+ *
+ * 设计约束:
+ *  - 不依赖 Koin(崩溃可能就是 Koin 启动失败),全部使用 MuseCrashHandler 静态方法
+ *  - 崩溃信息从 SharedPreferences 读取(safe_mode_pending + crash_time + crash_trace),
+ *    SP 为空时回退到崩溃日志文件 readLatestCrashLog
+ *  - warm-paper 风格由外层 MuseTheme 提供(见 MainActivity 调用处),此处使用 MaterialTheme.colorScheme
+ */
+@Composable
+fun SafeModeScreen() {
+    val context = LocalContext.current
+
+    // v1.141 F2: 崩溃恢复引导 — 展示数据完好说明与云端备份恢复路径
+    var showRecoveryGuide by remember { mutableStateOf(false) }
+    var showClearDataConfirm by remember { mutableStateOf(false) }
+    // 插件总闸的当前状态：安全模式里要能一眼看出"现在插件是关的还是开的"。
+    var pluginsDisabled by remember {
+        mutableStateOf(io.zer0.muse.data.plugin.PluginKillSwitch.isDisabled(context))
+    }
+
+    // 优先从 SP 读取结构化崩溃信息(v2.0+),为空时回退到崩溃日志文件
+    val crashTime = remember { MuseCrashHandler.getCrashTime(context) }
+    val crashTrace = remember {
+        MuseCrashHandler.getCrashTrace(context) ?: MuseCrashHandler.readLatestCrashLog(context)
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = MusePaddings.screen)
+                .padding(vertical = MusePaddings.sectionGap)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.height(MusePaddings.sectionGap))
+
+            // ── 顶部:警告图标 + 标题 ────────────────────────────────────────
+            WarningHeader()
+
+            Spacer(Modifier.height(MusePaddings.sectionGap))
+
+            // ── 中部:崩溃信息卡片 ──────────────────────────────────────────
+            CrashInfoCard(crashTime = crashTime, crashTrace = crashTrace)
+
+            Spacer(Modifier.height(MusePaddings.sectionGap))
+
+            // ── 底部:操作按钮(垂直排列,MuseCardPress 触觉风格) ──────────────
+            ActionButtons(
+                crashTrace = crashTrace,
+                onContinueNormal = {
+                    // 清除 Safe Mode 标记(文件 flag + SP 持久化层)
+                    MuseCrashHandler.clearSafeModeFlag(context)
+                    // v1.91-hotfix 经验:必须杀进程!recreate() 仅重建 Activity,
+                    // Application.onCreate 不会再次执行 → startKoin 不被调用
+                    // → MainActivity by inject() 崩溃 "KoinApplication has been started"。
+                    // 杀进程后系统下次冷启动会重新走 Application.onCreate → startKoin 正常执行。
+                    (context as? Activity)?.finishAffinity()
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                },
+                onViewFullLog = { shareCrashLog(context) },
+                onClearData = { showClearDataConfirm = true },
+                onCopyInfo = { copyCrashInfo(context, crashTime, crashTrace) },
+                onShowRecoveryGuide = { showRecoveryGuide = true },
+                pluginsDisabled = pluginsDisabled,
+                onTogglePlugins = {
+                    // 不依赖 Koin：直接写标志文件，再冷启动让插件加载路径按新状态走。
+                    val nowDisabled = io.zer0.muse.data.plugin.PluginKillSwitch
+                        .setDisabled(context, !pluginsDisabled)
+                    MuseToast.show(
+                        context.getString(
+                            if (nowDisabled) R.string.plugin_kill_switch_title else R.string.plugin_kill_switch_restore,
+                        ),
+                    )
+                    (context as? Activity)?.finishAffinity()
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                },
+            )
+
+            Spacer(Modifier.height(MusePaddings.sectionGap))
+        }
+    }
+
+    // v1.141 F2: 崩溃恢复引导对话框(纯文案引导,不依赖 Koin)
+    if (showRecoveryGuide) {
+        MuseDialog(
+            onDismissRequest = { showRecoveryGuide = false },
+            title = stringResource(R.string.safe_mode_data_recovery_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.safe_mode_data_recovery_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.safe_mode_data_recovery_ok),
+            onConfirm = { showRecoveryGuide = false },
+            dismissText = null,
+            onDismiss = { showRecoveryGuide = false },
+        )
+    }
+
+    if (showClearDataConfirm) {
+        MuseDialog(
+            onDismissRequest = { showClearDataConfirm = false },
+            title = stringResource(R.string.safe_mode_clear_data_confirm_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.safe_mode_clear_data_confirm_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.safe_mode_clear_data_confirm_action),
+            onConfirm = {
+                showClearDataConfirm = false
+                clearApplicationData(context)
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showClearDataConfirm = false },
+            destructive = true,
+        )
+    }
+}
+
+/**
+ * 顶部警告图标 + "上次启动崩溃" 标题。
+ *
+ * 圆形 errorContainer 背景 + Warning outline 图标,对齐系统警告样式。
+ */
+@Composable
+private fun WarningHeader() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = MuseIcons.alertTriangle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(36.dp),
+            )
+        }
+        Spacer(Modifier.height(MusePaddings.itemGap))
+        Text(
+            text = stringResource(R.string.safe_mode_warning_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(MusePaddings.tightGap))
+        Text(
+            text = stringResource(R.string.main_activity_safe_mode_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * 中部崩溃信息卡片 — 崩溃时间 + 堆栈摘要(等宽字体 + 垂直滚动)。
+ */
+@Composable
+private fun CrashInfoCard(crashTime: String?, crashTrace: String?) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+        shape = MuseShapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+        ) {
+            // 崩溃时间行
+            if (!crashTime.isNullOrBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.safe_mode_crash_time_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(MusePaddings.contentGap))
+                    Text(
+                        text = crashTime,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Spacer(Modifier.height(MusePaddings.contentGap))
+            }
+            // 崩溃堆栈摘要
+            Text(
+                text = stringResource(R.string.safe_mode_stack_trace_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(MusePaddings.tightGap))
+            val traceText = crashTrace?.take(4000) ?: stringResource(R.string.safe_mode_no_crash_log)
+            Text(
+                text = traceText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 320.dp)
+                    .verticalScroll(rememberScrollState()),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = MuseMonoFontFamily,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+/**
+ * 操作按钮组(垂直排列,每个按钮使用 MuseCardPress 触觉风格)。
+ *
+ * 每个按钮:图标 + 标题文字,左对齐,无涟漪按压反馈,对齐系统列表项。
+ */
+// 6 个回调参数为操作按钮组固有结构(每个按钮一个动作),拆分反损可读性
+@Suppress("LongParameterList")
+@Composable
+private fun ActionButtons(
+    crashTrace: String?,
+    onContinueNormal: () -> Unit,
+    onViewFullLog: () -> Unit,
+    onClearData: () -> Unit,
+    onCopyInfo: () -> Unit,
+    onShowRecoveryGuide: () -> Unit,
+    pluginsDisabled: Boolean,
+    onTogglePlugins: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+    ) {
+        // a) 继续正常启动 — primary 强调色
+        SafeModeActionButton(
+            icon = MuseIcons.refresh,
+            label = stringResource(R.string.safe_mode_continue_normal),
+            description = stringResource(R.string.safe_mode_continue_normal_desc),
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            onClick = onContinueNormal,
+        )
+        // a1) 插件总闸：崩溃最常见的原因是插件，这一步要排在"数据恢复"之前
+        SafeModeActionButton(
+            icon = if (pluginsDisabled) MuseIcons.refresh else MuseIcons.alertTriangle,
+            label = stringResource(
+                if (pluginsDisabled) R.string.safe_mode_restore_plugins else R.string.safe_mode_disable_plugins,
+            ),
+            description = stringResource(R.string.safe_mode_disable_plugins_desc),
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            onClick = onTogglePlugins,
+        )
+        // a2) v1.141 F2: 数据恢复引导 — tertiary 强调色,崩溃后引导恢复路径
+        SafeModeActionButton(
+            icon = MuseIcons.cloudDownload,
+            label = stringResource(R.string.safe_mode_data_recovery),
+            description = stringResource(R.string.safe_mode_data_recovery_desc_short),
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            onClick = onShowRecoveryGuide,
+        )
+        // b) 查看完整崩溃日志
+        SafeModeActionButton(
+            icon = MuseIcons.fileText,
+            label = stringResource(R.string.safe_mode_view_full_log),
+            description = stringResource(R.string.safe_mode_view_full_log_desc),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            onClick = onViewFullLog,
+            enabled = !crashTrace.isNullOrBlank(),
+        )
+        // c) 清除所有数据并重启 — error 强调色,危险操作
+        SafeModeActionButton(
+            icon = MuseIcons.wand,
+            label = stringResource(R.string.safe_mode_clear_data_restart),
+            description = stringResource(R.string.safe_mode_clear_data_restart_desc),
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            onClick = onClearData,
+        )
+        // d) 复制崩溃信息
+        SafeModeActionButton(
+            icon = MuseIcons.copy,
+            label = stringResource(R.string.safe_mode_copy_crash_info),
+            description = stringResource(R.string.safe_mode_copy_crash_info_desc),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            onClick = onCopyInfo,
+            enabled = !crashTrace.isNullOrBlank(),
+        )
+    }
+}
+
+/**
+ * 单个 Safe Mode 操作按钮 — MuseCardPress 包装,左侧图标 + 文字。
+ *
+ * @param icon 图标
+ * @param label 按钮文字
+ * @param containerColor 背景色
+ * @param contentColor 文字和图标颜色
+ * @param onClick 点击回调
+ * @param enabled 是否可点击(禁用时降低透明度并吞掉点击事件)
+ */
+@Composable
+private fun SafeModeActionButton(
+    icon: ImageVector,
+    label: String,
+    description: String,
+    containerColor: Color,
+    contentColor: Color,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    MuseCardPress(
+        onClick = { if (enabled) onClick() },
+        modifier = Modifier.fillMaxWidth(),
+        shape = MuseShapes.medium,
+        containerColor = if (enabled) containerColor else containerColor.copy(alpha = 0.4f),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MusePaddings.cardInner),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (enabled) contentColor else contentColor.copy(alpha = 0.5f),
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(MusePaddings.iconPadding))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (enabled) contentColor else contentColor.copy(alpha = 0.5f),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (enabled) {
+                        contentColor.copy(alpha = 0.78f)
+                    } else {
+                        contentColor.copy(alpha = 0.4f)
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 通过 Intent 分享崩溃日志文件(txt)。
+ *
+ * 优先取最新一份崩溃日志文件,通过 FileProvider 暴露 URI,
+ * 用 ACTION_SEND 分享给外部应用(邮件 / 文件管理 / 聊天应用等)。
+ */
+private fun shareCrashLog(context: Context) {
+    val logs = MuseCrashHandler.listCrashLogs(context)
+    val logFile = logs.firstOrNull()
+    if (logFile == null) {
+        MuseToast.show(context.getString(R.string.safe_mode_no_crash_log))
+        return
+    }
+    runCatching {
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            logFile,
+        )
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "muse crash log — ${logFile.name}")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        ShareIntentHelper.startChooserSafely(
+            context,
+            shareIntent,
+            context.getString(R.string.safe_mode_view_full_log),
+        )
+    }.onFailure { e ->
+        Logger.w("SafeModeScreen", "shareCrashLog failed", e)
+        MuseToast.show(context.getString(R.string.safe_mode_share_log_failed))
+    }
+}
+
+/**
+ * 清除应用全部数据并重启。
+ *
+ * API 19+: ActivityManager.clearApplicationUserData 系统级清除(files / databases / SP / cache),
+ *           自动杀进程,下次启动相当于全新安装。
+ * 旧设备 fallback:手动删除核心目录后杀进程。
+ */
+private fun clearApplicationData(context: Context) {
+    Logger.w("SafeModeScreen", "clearApplicationData — 用户主动清除全部数据")
+    val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+    if (am != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        @Suppress("DEPRECATION")
+        val cleared = am.clearApplicationUserData()
+        if (cleared) {
+            // 系统会自动杀进程,这里兜底防返回
+            (context as? Activity)?.finishAffinity()
+            android.os.Process.killProcess(android.os.Process.myPid())
+        } else {
+            // 用户取消或失败,fallback 到手动清理
+            manualClearData(context)
+        }
+    } else {
+        manualClearData(context)
+    }
+}
+
+/** 旧设备 / clearApplicationUserData 失败时的手动清理 fallback。 */
+private fun manualClearData(context: Context) {
+    runCatching {
+        context.filesDir.deleteRecursively()
+        context.cacheDir.deleteRecursively()
+        context.deleteSharedPreferences("muse_safe_mode")
+    }
+    (context as? Activity)?.finishAffinity()
+    android.os.Process.killProcess(android.os.Process.myPid())
+}
+
+/**
+ * 复制崩溃信息(时间 + 堆栈)到剪贴板。
+ */
+private fun copyCrashInfo(context: Context, crashTime: String?, crashTrace: String?) {
+    val text = buildString {
+        if (!crashTime.isNullOrBlank()) {
+            appendLine(context.getString(R.string.audit_crash_time, crashTime))
+            appendLine()
+        }
+        if (!crashTrace.isNullOrBlank()) {
+            appendLine(context.getString(R.string.audit_crash_stack))
+            append(crashTrace)
+        }
+        if (isEmpty()) {
+            append(context.getString(R.string.audit_crash_info_empty))
+        }
+    }
+    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    cm.setPrimaryClip(ClipData.newPlainText("muse crash info", text))
+    MuseToast.show(context.getString(R.string.main_activity_crash_log_copied))
+}
