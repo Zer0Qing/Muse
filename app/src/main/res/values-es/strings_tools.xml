@@ -3,12 +3,9 @@
     <!-- ===== ToolsScreen.kt ===== -->
     <!-- Title and intro -->
     <string name="tools_screen_title">Herramientas de IA</string>
-    <string name="tools_intro_what">Las herramientas son capacidades a las que la IA puede recurrir, como leer notificaciones, calcular, ejecutar código, etc.</string>
     <string name="tool_exec_empty_result">La herramienta %1$s terminó, pero no devolvió contenido visible.</string>
-    <string name="tools_intro_manage">En la página de detalles del asistente → Extensiones → Herramientas, puedes habilitar o deshabilitar herramientas por asistente. Las herramientas de alto riesgo (por ejemplo, ejecutar código) requieren confirmación del usuario antes de invocarlas.</string>
 
     <!-- Stats -->
-    <string name="tools_stats_count">%1$d herramientas · %2$d alto riesgo</string>
 
     <!-- Built-in plugins -->
     <string name="tools_plugins_section">Plugins integrados</string>

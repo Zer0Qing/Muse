@@ -3,12 +3,9 @@
     <!-- ===== ToolsScreen.kt ===== -->
     <!-- Title and intro -->
     <string name="tools_screen_title">Ferramentas de IA</string>
-    <string name="tools_intro_what">Ferramentas são recursos que a IA pode chamar, como ler notificações, calcular, executar código, etc.</string>
     <string name="tool_exec_empty_result">A ferramenta %1$s foi concluída, mas não retornou conteúdo exibível.</string>
-    <string name="tools_intro_manage">Na página de detalhes do Assistente → Extensões → Ferramentas, você pode ativar/desativar ferramentas por assistente.</string>
 
     <!-- Stats -->
-    <string name="tools_stats_count">%1$d ferramentas · %2$d alto risco</string>
 
     <!-- Built-in plugins -->
     <string name="tools_plugins_section">Plug-ins integrados</string>

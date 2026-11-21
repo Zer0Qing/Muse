@@ -96,51 +96,6 @@ fun ToolsScreen(onBack: () -> Unit) {
             contentPadding = PaddingValues(vertical = MusePaddings.sectionGap),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
         ) {
-            // ── 说明卡片 ────────────────────────────────────────────────────
-            // v2.x: 动效补齐 — 列表项入场(令牌 animateItem)
-            item(key = "intro") {
-                Box(museAnimateItem()) {
-                    CardGroup(modifier = Modifier.padding(horizontal = MusePaddings.screen)) {
-                        item(
-                            leadingContent = {
-                                Icon(
-                                    imageVector = MuseIcons.info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(22.dp),
-                                )
-                            },
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(R.string.tools_intro_what),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            supportingContent = {
-                                Text(
-                                    text = stringResource(R.string.tools_intro_manage),
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-
-            // ── 工具总数 + 高风险数 ────────────────────────────────────────
-            // v2.x: 动效补齐 — 列表项入场(令牌 animateItem)
-            item(key = "stats") {
-                val highRiskCount = tools.count { it.riskLevel == ToolRiskLevel.HIGH }
-                Box(museAnimateItem()) {
-                    Text(
-                        text = stringResource(R.string.tools_stats_count, tools.size, highRiskCount),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = MusePaddings.screen),
-                    )
-                }
-            }
 
             // ── 按分类分组展示 ─────────────────────────────────────────────
             if (tools.isEmpty()) {
@@ -236,14 +191,13 @@ private fun CardGroupScope.ToolRow(tool: ToolRegistry.ToolDef, onClick: () -> Un
                 maxLines = 1,
             )
         },
-        supportingContent = {
-            Text(
-                text = tool.description,
-                maxLines = 2,
-            )
-        },
+        // 描述只在详情里看：列表每行两行描述把 160+ 个工具拉成十几屏，
+        // 而扫视时真正用来定位的是 name。
         trailingContent = {
-            RiskBadge(level = tool.riskLevel)
+            // 徽章只给 HIGH：SAFE/NORMAL 是绝大多数，逐行显示等于给每一行加一个色块。
+            if (tool.riskLevel == ToolRiskLevel.HIGH) {
+                RiskBadge(level = tool.riskLevel)
+            }
         },
     )
 }
