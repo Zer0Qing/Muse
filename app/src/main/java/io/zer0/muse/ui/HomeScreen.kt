@@ -511,7 +511,9 @@ fun HomeScreen(
                                     isSessionsLoading = state.isSessionsLoading,
                                     sessionsError = state.sessionsError,
                                     onRetryLoadSessions = viewModel::retryLoadSessions,
-                                    modifier = Modifier.fillMaxSize().width(400.dp),
+                                    // 2026-11-21:fillMaxSize 先撑满宽度,后面的 width(400.dp) 不生效,
+                                    // 右栏 weight(1f) 只能得到 0 宽。改为先定宽再撑高。
+                                    modifier = Modifier.width(400.dp).fillMaxHeight(),
                                 )
                                 VerticalDivider(
                                     modifier = Modifier.fillMaxHeight().width(1.dp),
@@ -525,7 +527,7 @@ fun HomeScreen(
                                     onHtmlPreview = onHtmlPreview,
                                     onOpenSkills = onOpenSkills,
                                     onOpenPromptTemplateManager = onOpenPromptTemplateManager,
-                                    modifier = Modifier.fillMaxSize().weight(1f),
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
                                 )
                             }
                         } else {

@@ -1,8 +1,12 @@
 package io.zer0.muse.ui.common.media
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import io.zer0.muse.ui.theme.MuseBreakpoints
 
 /**
@@ -46,11 +50,38 @@ enum class WindowWidthClass {
 @Composable
 fun rememberWindowWidthClass(): WindowWidthClass {
     val configuration = LocalConfiguration.current
-    return remember(configuration.screenWidthDp) {
-        when {
-            configuration.screenWidthDp >= MuseBreakpoints.EXPANDED_DP -> WindowWidthClass.Expanded
-            configuration.screenWidthDp >= MuseBreakpoints.MEDIUM_DP -> WindowWidthClass.Medium
-            else -> WindowWidthClass.Compact
+    val view = LocalView.current
+    val density = LocalDensity.current
+
+    // 2026-11-21(P2-8)：自由窗口 / 分屏被系统 resize 时，Configuration.screenWidthDp
+    // 在部分 OEM 上不会同步更新（仍报整屏宽度），窄窗口因此被误判成 Expanded：
+    // 首页任务页走双栏、右栏被挤出可视范围（点会话只换来按下高亮），
+    // 同时快捷胶囊因 isWideTasks=true 被隐藏。
+    // 改用承载 Compose 的窗口 View 实测宽度 —— 它跟随真实布局，不受该 OEM 缺陷影响。
+    val measuredWidthPx = remember { mutableIntStateOf(0) }
+    DisposableEffect(view, density) {
+        fun sync() {
+            if (view.width > 0) measuredWidthPx.intValue = view.width
         }
+        sync()
+        val listener =
+            android.view.View.OnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+                if (v.width > 0) measuredWidthPx.intValue = v.width
+            }
+        view.addOnLayoutChangeListener(listener)
+        onDispose { view.removeOnLayoutChangeListener(listener) }
+    }
+
+    // View 还没布局（宽度 0）时回退到 Configuration，避免首帧判成 Compact。
+    val widthDp =
+        measuredWidthPx.intValue
+            .takeIf { it > 0 }
+            ?.let { it / density.density }
+            ?: configuration.screenWidthDp.toFloat()
+
+    return when {
+        widthDp >= MuseBreakpoints.EXPANDED_DP -> WindowWidthClass.Expanded
+        widthDp >= MuseBreakpoints.MEDIUM_DP -> WindowWidthClass.Medium
+        else -> WindowWidthClass.Compact
     }
 }
