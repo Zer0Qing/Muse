@@ -14,10 +14,16 @@ import io.zer0.muse.ui.common.surface.museDividerStartIndent
  * 缩进跟随内容左边线:有 leading 图标时缩到图标右侧文字列,无图标卡落到行内边距。
  * 起点规则与 [io.zer0.muse.ui.common.surface.MuseDivider] 收敛到同一 [museDividerStartIndent]。
  *
+ * **2026-11-22 起默认不渲染。** 设置行本身已有卡面与行间距，逐行加分隔线只是重复表达
+ * 「这是两行」。全仓 221 处调用里绝大多数属于这种重复，只保留少数跨语义段的分隔。
+ * 需要保留时显式传 `visible = true`。
+ *
  * @param hasLeading 该组是否带 leading 图标(默认 true,对齐旧行为)
+ * @param visible 是否真的画出来。默认 false —— 不画就不占位，行距由容器负责。
  */
 @Composable
-fun SettingsGroupDivider(hasLeading: Boolean = true) {
+fun SettingsGroupDivider(hasLeading: Boolean = true, visible: Boolean = false) {
+    if (!visible) return
     HorizontalDivider(
         modifier = Modifier.padding(start = museDividerStartIndent(hasLeading)),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.08f),

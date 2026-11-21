@@ -186,7 +186,6 @@ internal fun AsrSection(
             }
 
             if (followActive) {
-                SettingsGroupDivider()
                 MuseListItem(
                     onClick = { providerPickerOpen = true },
                     leadingContent = { Icon(MuseIcons.server, contentDescription = null) },
@@ -292,7 +291,6 @@ internal fun AsrSection(
             }
 
             // ---- 模型：候选来自供应商，这里只负责选一个 ----
-            SettingsGroupDivider()
             val modelProvider = remember(providers, asrConfig.providerId) {
                 SpeechModelPicker.candidateProvider(providers, asrConfig.providerId)
             }
@@ -325,7 +323,6 @@ internal fun AsrSection(
                 title = stringResource(R.string.settings_asr_sample_rate),
                 subtitle = stringResource(R.string.settings_asr_sample_rate_subtitle, asrConfig.sampleRate),
             )
-            SettingsGroupDivider()
 
             var asrLang by remember(asrConfig.provider) { mutableStateOf(asrConfig.language ?: "zh") }
             var asrHotwords by remember(asrConfig.provider) {
@@ -381,7 +378,6 @@ internal fun AsrSection(
 
             // VAD(除 SYSTEM / OPENAI_REALTIME 外显示;OPENAI_REALTIME 走服务端 VAD)
             if (asrConfig.provider != AsrProviderType.OPENAI_REALTIME) {
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings_asr_vad),
                     subtitle = stringResource(R.string.settings_asr_vad_desc),
@@ -391,7 +387,6 @@ internal fun AsrSection(
                     },
                 )
                 if (asrConfig.vadEnabled) {
-                    SettingsGroupDivider()
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -430,7 +425,6 @@ internal fun AsrSection(
             } else {
                 // v2.0: OPENAI_REALTIME 的 VAD 由服务端处理,原实现整行隐藏,
                 // 用户不知道为何没有开关;补一条说明行。
-                SettingsGroupDivider()
                 Text(
                     text = stringResource(R.string.settings_asr_vad_realtime_note),
                     style = MaterialTheme.typography.bodySmall,
@@ -445,7 +439,6 @@ internal fun AsrSection(
             if (asrConfig.provider == AsrProviderType.DASHSCOPE ||
                 asrConfig.provider == AsrProviderType.DASHSCOPE_FILE
             ) {
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings_asr_punctuation),
                     subtitle = stringResource(R.string.settings_asr_punctuation_desc),
@@ -454,7 +447,6 @@ internal fun AsrSection(
                         scope.launch { settings.saveAsrConfig(asrConfig.copy(enablePunctuation = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings_asr_itn),
                     subtitle = stringResource(R.string.settings_asr_itn_desc),

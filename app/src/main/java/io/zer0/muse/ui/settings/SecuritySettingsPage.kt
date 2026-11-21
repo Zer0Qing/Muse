@@ -55,7 +55,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeTimestamp = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_model),
@@ -65,7 +64,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeModelName = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_tokens),
@@ -75,7 +73,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeTokenCount = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_mood),
@@ -85,7 +82,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeMoodBlock = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_reasoning),
@@ -95,7 +91,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeReasoning = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

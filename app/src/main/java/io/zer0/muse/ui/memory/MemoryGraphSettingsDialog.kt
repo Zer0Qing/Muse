@@ -59,7 +59,6 @@ fun MemoryGraphSettingsDialog(
                     checked = aiEnhance,
                     onCheckedChange = { aiEnhance = it },
                 )
-                SettingsGroupDivider()
                 Text(
                     text = stringResource(R.string.memory_graph_frequency_title),
                     style = MaterialTheme.typography.labelMedium,
@@ -86,7 +85,6 @@ fun MemoryGraphSettingsDialog(
                         onClick = { frequency = EdgeBuildFrequency.MANUAL },
                     )
                 }
-                SettingsGroupDivider()
                 Column(modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = 8.dp)) {
                     MuseCapsuleButton(
                         text = stringResource(R.string.memory_graph_rebuild_now),

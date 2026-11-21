@@ -19,7 +19,6 @@ import io.zer0.muse.ui.navigation.SettingsRagRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.SettingsWebSearchRoute
 import io.zer0.muse.ui.navigation.TerminalRoute
-import io.zer0.muse.ui.navigation.ToolsScreenRoute
 
 /**
  * 搜索索引里的一条记录。
@@ -217,12 +216,6 @@ internal object SettingsSearchExtras {
             SettingsGroupKind.TOOLS,
             SettingsEntryAction.Navigate(SettingsWebSearchRoute),
             listOf("搜索引擎", "Bing", "Jina", "SearXNG", "sousuoyinqing", "ssyq"),
-        ),
-        record(
-            R.string.settings_screen_entry_tool_approval,
-            SettingsGroupKind.TOOLS,
-            SettingsEntryAction.Navigate(ToolsScreenRoute),
-            listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"),
         ),
         record(
             R.string.settings_memory_keep_awake,

@@ -109,7 +109,6 @@ fun UserPreferencePage(onBack: () -> Unit, store: PreferenceStore = koinInject()
                         onDelete = { deleting = pref },
                     )
                     if (pref != preferences.lastOrNull()) {
-                        SettingsGroupDivider()
                     }
                 }
             }
@@ -163,7 +162,6 @@ private fun PreferenceRow(pref: UserPreference, onToggle: (Boolean) -> Unit, onD
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.trash,
             title = stringResource(R.string.settings_preference_delete),

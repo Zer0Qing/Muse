@@ -162,9 +162,7 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
                 }
             },
         )
-        SettingsGroupDivider()
         lanAccessSwitch(config = config, webServer = webServer)
-        SettingsGroupDivider()
         // v2.x: HTTPS 开关(自签证书);保存后重启服务即走 TLS
         httpsSwitch(config = config, webServer = webServer)
         // 端口
@@ -177,7 +175,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
                 showPortDialog = true
             },
         )
-        SettingsGroupDivider()
         // 密码(脱敏显示)
         SettingsItemRow(
             icon = MuseIcons.lock,
@@ -190,7 +187,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
                 "${config.password.take(2)}****"
             },
         )
-        SettingsGroupDivider()
         // 重新生成密码
         SettingsItemRow(
             icon = MuseIcons.lock,
@@ -209,7 +205,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
                 }
             },
         )
-        SettingsGroupDivider()
         // P2-13: 当前 PIN(明文显示,带复制按钮)
         SettingsItemRow(
             icon = MuseIcons.key,
@@ -230,7 +225,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
                 )
             }
         }
-        SettingsGroupDivider()
         // P2-13: 重新生成 PIN
         SettingsItemRow(
             icon = MuseIcons.key,
@@ -249,7 +243,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
                 }
             },
         )
-        SettingsGroupDivider()
         // 访问地址(动态 IP + 复制按钮)
         SettingsItemRow(
             icon = MuseIcons.wifi,
@@ -278,7 +271,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
         if (config.httpsEnabled && isRunning) {
             val fingerprint = webServer.status().fingerprint
             if (fingerprint != null) {
-                SettingsGroupDivider()
                 SettingsItemRow(
                     icon = MuseIcons.lock,
                     title = stringResource(R.string.settings_web_https_fingerprint),

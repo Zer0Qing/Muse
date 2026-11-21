@@ -140,7 +140,6 @@ fun TaskRoutingSettingsPage(
                 ) {
                     ChevronRight()
                 }
-                SettingsGroupDivider()
                 // 默认深度思考：免去每次新会话都要按按钮
                 SettingsSwitchRow(
                     icon = MuseIcons.atom,
@@ -197,7 +196,6 @@ fun TaskRoutingSettingsPage(
                         bound = utilityBinding != null,
                     )
                 }
-                SettingsGroupDivider()
                 // 大工具模型
                 SettingsItemRow(
                     icon = MuseIcons.bolt,
@@ -213,7 +211,6 @@ fun TaskRoutingSettingsPage(
                         bound = utilityLargeBinding != null,
                     )
                 }
-                SettingsGroupDivider()
                 // 压缩模型：跟随主对话默认模型，不单独配置
                 SettingsItemRow(
                     icon = MuseIcons.gauge,
@@ -221,7 +218,6 @@ fun TaskRoutingSettingsPage(
                     subtitle = stringResource(R.string.settings_chat_compress_model_default),
                     onClick = null,
                 )
-                SettingsGroupDivider()
                 // v2.x: 自定义压缩提示词(自记忆页归位;上下文压缩归大工具职责)
                 SettingsItemRow(
                     icon = MuseIcons.edit,
@@ -234,7 +230,6 @@ fun TaskRoutingSettingsPage(
                         showCompressPromptDialog = true
                     },
                 ) { ChevronRight() }
-                SettingsGroupDivider()
                 // 视觉辅助模型(跳独立页配置)
                 SettingsItemRow(
                     icon = MuseIcons.eye,

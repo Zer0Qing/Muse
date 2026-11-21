@@ -116,7 +116,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     checked = memoryEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveMemoryEnabled(v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.history,
                     title = stringResource(R.string.settings_memory_conversation_recall),
@@ -127,7 +126,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                         localConfig = localConfig.copy(conversationRecallEnabled = enabled)
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.server,
                     title = stringResource(R.string.settings_memory_experience_lib),
@@ -135,7 +133,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     checked = experienceEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveExperienceEnabled(v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.server,
                     iconContentDescription = stringResource(R.string.settings_memory_token_budget),
@@ -150,7 +147,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                         localConfig = localConfig.copy(tokenBudget = v.toInt())
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.trendingDown,
                     iconContentDescription = stringResource(R.string.settings_memory_decay_rate),
@@ -165,7 +161,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                         localConfig = localConfig.copy(decayPerDay = v)
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.bolt,
                     iconContentDescription = stringResource(R.string.settings_memory_hit_bonus),
@@ -181,7 +176,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                         localConfig = localConfig.copy(hitBonus = v)
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.arrowsVertical,
                     iconContentDescription = stringResource(R.string.settings_memory_compile_threshold),
@@ -196,7 +190,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                         localConfig = localConfig.copy(compileThreshold = v)
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.gauge,
                     iconContentDescription = stringResource(R.string.settings_memory_forget_speed),
@@ -211,7 +204,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                         localConfig = localConfig.copy(forgetSpeed = v)
                     },
                 )
-                SettingsGroupDivider()
                 // v1.78 (#21): 恢复默认按钮
                 SettingsActionRow(
                     title = stringResource(R.string.settings_memory_restore_default),
@@ -232,7 +224,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     onCheckedChange = { v -> scope.launch { settings.saveFloorLimiterEnabled(v) } },
                 )
                 if (floorLimiterEnabled) {
-                    SettingsGroupDivider()
                     val floorOptions =
                         listOf(
                             stringResource(R.string.settings_chat_floor_count, 8),

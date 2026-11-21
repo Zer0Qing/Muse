@@ -172,7 +172,6 @@ internal fun LazyListScope.providerListSection(
                 )
             }
             // v1.97: 扫描二维码导入 Provider
-            SettingsGroupDivider()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

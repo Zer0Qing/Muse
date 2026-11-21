@@ -260,7 +260,6 @@ private fun LazyListScope.directiveSection(
                     )
                 }
             }
-            SettingsGroupDivider()
             SettingsItemRow(
                 icon = MuseIcons.plus,
                 title = stringResource(copy.addRes),

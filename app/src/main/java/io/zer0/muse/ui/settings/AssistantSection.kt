@@ -46,7 +46,6 @@ internal fun AssistantEntriesSection(
         ) {
             ChevronRight()
         }
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.bookmark,
             title = stringResource(R.string.settings_assistant_favorites),
@@ -55,7 +54,6 @@ internal fun AssistantEntriesSection(
         ) {
             ChevronRight()
         }
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.book,
             title = stringResource(R.string.settings_assistant_lorebook),
@@ -64,7 +62,6 @@ internal fun AssistantEntriesSection(
         ) {
             ChevronRight()
         }
-        SettingsGroupDivider()
         // P1-2: 动态世界书(常驻/关键词/正则/深度注入,独立于 Lorebook)
         SettingsItemRow(
             icon = MuseIcons.globe,
@@ -74,7 +71,6 @@ internal fun AssistantEntriesSection(
         ) {
             ChevronRight()
         }
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.chat,
             title = stringResource(R.string.settings_assistant_quick_messages),
@@ -83,7 +79,6 @@ internal fun AssistantEntriesSection(
         ) {
             ChevronRight()
         }
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.swapHorizontal,
             title = stringResource(R.string.settings_assistant_prompt_injection),
@@ -92,7 +87,6 @@ internal fun AssistantEntriesSection(
         ) {
             ChevronRight()
         }
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.puzzle,
             title = stringResource(R.string.settings_assistant_skills),

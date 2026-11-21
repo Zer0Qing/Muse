@@ -543,14 +543,12 @@ private fun SettingsRowsSection() {
                 onClick = {},
                 trailing = { ChevronRight() },
             )
-            SettingsGroupDivider()
             SettingsItemRow(
                 icon = MuseIcons.bell,
                 title = "SettingsItemRow · trailing",
                 subtitle = "status dot in the trailing slot",
                 trailing = { StatusDot(color = MaterialTheme.colorScheme.primary, pulse = true) },
             )
-            SettingsGroupDivider()
             SettingsSwitchRow(
                 icon = MuseIcons.check,
                 title = "SettingsSwitchRow",
@@ -558,7 +556,6 @@ private fun SettingsRowsSection() {
                 checked = switchOn,
                 onCheckedChange = { switchOn = it },
             )
-            SettingsGroupDivider()
             SettingsSliderRow(
                 icon = MuseIcons.star,
                 title = "SettingsSliderRow",
@@ -569,7 +566,6 @@ private fun SettingsRowsSection() {
                 valueText = "${(slider * 100).toInt()}%",
                 onValueChange = { slider = it },
             )
-            SettingsGroupDivider()
             SettingsItemRow(
                 icon = MuseIcons.user,
                 title = "SettingsItemRow · disabled",

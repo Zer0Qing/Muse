@@ -138,7 +138,6 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
                     },
                 )
-                SettingsGroupDivider()
                 // 当前模式说明（动态显示）
                 val modeDescRes =
                     when (permissionMode) {
@@ -278,14 +277,12 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
                     title = stringResource(R.string.tools_settings_policy_always_allow),
                     description = stringResource(R.string.tools_settings_policy_always_allow_desc),
                 )
-                SettingsGroupDivider()
                 PolicyExplanationRow(
                     icon = MuseIcons.help,
                     iconTint = statusColors.warning,
                     title = stringResource(R.string.tools_settings_policy_ask),
                     description = stringResource(R.string.tools_settings_policy_ask_desc),
                 )
-                SettingsGroupDivider()
                 PolicyExplanationRow(
                     icon = MuseIcons.ban,
                     iconTint = statusColors.error,

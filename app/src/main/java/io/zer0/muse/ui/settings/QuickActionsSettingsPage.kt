@@ -182,7 +182,6 @@ fun QuickActionsSettingsPage(onBack: () -> Unit) {
                             )
                         }
                         if (index < currentOrder.lastIndex) {
-                            SettingsGroupDivider()
                         }
                     }
                 }
@@ -244,7 +243,6 @@ fun QuickActionsSettingsPage(onBack: () -> Unit) {
                             )
                         }
                         if (index < pool.lastIndex) {
-                            SettingsGroupDivider()
                         }
                     }
                 }

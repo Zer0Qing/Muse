@@ -143,7 +143,6 @@ fun MediaSettingsPage(
                     valueText = "%.1fx".format(speechRateDraft),
                     onValueChange = { v -> speechRateDraft = v },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.microphone,
                     title = stringResource(R.string.settings_media_pitch),
@@ -155,7 +154,6 @@ fun MediaSettingsPage(
                     onValueChange = { v -> pitchDraft = v },
                 )
                 // TTS 声音选择
-                SettingsGroupDivider()
                 TtsVoiceSelector(
                     ttsManager = ttsManager,
                     currentVoice = config.ttsVoiceName,
@@ -348,7 +346,6 @@ private fun CloudTtsConfigSection(
         TtsFollowProviderSection(config = config, settings = settings)
 
         // API Key
-        SettingsGroupDivider()
         var apiKey by remember(config.ttsEngine) { mutableStateOf(config.ttsApiKey) }
         var apiKeyVisible by remember { mutableStateOf(false) }
         Column(
@@ -387,7 +384,6 @@ private fun CloudTtsConfigSection(
         }
 
         // 音色 / Voice ID(手动输入 + 动态拉取)
-        SettingsGroupDivider()
         var voice by remember(config.ttsEngine) { mutableStateOf(config.ttsVoice) }
         var fetchedVoices by remember(config.ttsEngine) {
             mutableStateOf<List<VoiceInfo>>(emptyList())
@@ -494,7 +490,6 @@ private fun CloudTtsConfigSection(
         }
 
         // 模型：候选来自供应商，这里只负责选一个
-        SettingsGroupDivider()
         val ttsProviders by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
         val modelProvider = remember(ttsProviders, config.ttsProviderId) {
             SpeechModelPicker.candidateProvider(ttsProviders, config.ttsProviderId)
@@ -513,7 +508,6 @@ private fun CloudTtsConfigSection(
         )
 
         // 自定义 Endpoint
-        SettingsGroupDivider()
         var endpoint by remember(config.ttsEngine) { mutableStateOf(config.ttsEndpoint) }
         LaunchedEffect(apiKey, endpoint, voice, config) {
             reportDirty(
@@ -623,7 +617,6 @@ private fun TtsFollowProviderSection(config: MediaConfig, settings: SettingsRepo
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val unsetLabel = stringResource(R.string.settings_speech_follow_unset)
 
-    SettingsGroupDivider()
     SettingsSwitchRow(
         icon = MuseIcons.cloud,
         title = stringResource(R.string.settings_media_tts_follow_provider),
@@ -638,7 +631,6 @@ private fun TtsFollowProviderSection(config: MediaConfig, settings: SettingsRepo
         val selectedProvider = providers.firstOrNull { it.id == config.ttsProviderId }
         var providerExpanded by remember { mutableStateOf(false) }
 
-        SettingsGroupDivider()
         Box {
             SettingsItemRow(
                 icon = MuseIcons.server,
@@ -753,7 +745,6 @@ private fun AdvancedTtsParamsSection(
                 valueText = "%.2f".format(stability),
                 onValueChange = { stability = it },
             )
-            SettingsGroupDivider()
             SettingsSliderRow(
                 icon = MuseIcons.waveSine,
                 title = stringResource(R.string.settings_media_tts_similarity),
@@ -763,7 +754,6 @@ private fun AdvancedTtsParamsSection(
                 valueText = "%.2f".format(similarity),
                 onValueChange = { similarity = it },
             )
-            SettingsGroupDivider()
         }
 
         if (engine == "minimax") {
@@ -781,7 +771,6 @@ private fun AdvancedTtsParamsSection(
                     singleLine = true,
                 )
             }
-            SettingsGroupDivider()
         }
 
         if (supportsSpeed(engine)) {
@@ -794,12 +783,10 @@ private fun AdvancedTtsParamsSection(
                 valueText = "%.2fx".format(speed),
                 onValueChange = { speed = it },
             )
-            SettingsGroupDivider()
         }
 
         if (supportsResponseFormat(engine)) {
             ResponseFormatRow(current = responseFormat, onPicked = { responseFormat = it })
-            SettingsGroupDivider()
         }
 
         Column(

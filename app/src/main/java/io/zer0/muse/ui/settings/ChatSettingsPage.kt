@@ -150,7 +150,6 @@ fun ChatSettingsPage(
                         scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
                     },
                 )
-                SettingsGroupDivider()
                 // 当前模式说明（随选中档位动态切换）
                 val modeDescRes =
                     when (permissionMode) {
@@ -458,7 +457,6 @@ fun ChatSettingsPage(
                         )
                     }
                 }
-                SettingsGroupDivider()
                 Row(
                     modifier =
                     Modifier
@@ -505,7 +503,6 @@ fun ChatSettingsPage(
                     checked = prefs.showMoodBlock,
                     onCheckedChange = { v -> update { it.copy(showMoodBlock = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     // 思考过程的图形早已定为 brain(进程列表 think/reasoning 同一口径),atom 留给"反思"。
                     icon = MuseIcons.brain,
@@ -513,7 +510,6 @@ fun ChatSettingsPage(
                     checked = prefs.showReasoning,
                     onCheckedChange = { v -> update { it.copy(showReasoning = v) } },
                 )
-                SettingsGroupDivider()
                 // v2.6.1（用户反馈）: 强制模型返回思考 —— 打开后不被助手级 OFF/AUTO 压掉。
                 SettingsSwitchRow(
                     icon = MuseIcons.brain,
@@ -522,7 +518,6 @@ fun ChatSettingsPage(
                     checked = prefs.forceReasoning,
                     onCheckedChange = { v -> update { it.copy(forceReasoning = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     // 反思 = 助手回看自己的输出,用 reflect 的"绕回自身"图形;atom 留给真正的原子/模型类语义。
                     icon = MuseIcons.reflect,
@@ -531,7 +526,6 @@ fun ChatSettingsPage(
                     checked = prefs.showReflectionBlock,
                     onCheckedChange = { v -> update { it.copy(showReflectionBlock = v) } },
                 )
-                SettingsGroupDivider()
                 // v1.0.52: 移除 showTokenEstimate 死开关 — 该开关从未被任何 UI 读取,
                 // 用户反复开启它但无效果。真正生效的是"性能"分组里的"Token 估算"开关。
                 SettingsSwitchRow(
@@ -540,7 +534,6 @@ fun ChatSettingsPage(
                     checked = prefs.showModelName,
                     onCheckedChange = { v -> update { it.copy(showModelName = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.user,
                     title = stringResource(R.string.settings_chat_show_assistant_name),
@@ -548,7 +541,6 @@ fun ChatSettingsPage(
                     checked = prefs.showAssistantName,
                     onCheckedChange = { v -> update { it.copy(showAssistantName = v) } },
                 )
-                SettingsGroupDivider()
                 // 2.6.24: 与助手名字开关对称 —— 用户消息顶部是否显示自己的昵称。
                 SettingsSwitchRow(
                     icon = MuseIcons.user,
@@ -557,7 +549,6 @@ fun ChatSettingsPage(
                     checked = prefs.showUserName,
                     onCheckedChange = { v -> update { it.copy(showUserName = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_chat_show_timestamp),
@@ -581,7 +572,6 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> update { it.copy(carryOverEnabled = v) } },
                 )
                 if (prefs.carryOverEnabled) {
-                    SettingsGroupDivider()
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         Text(
                             text = stringResource(
@@ -692,7 +682,6 @@ fun ChatSettingsPage(
                         valueFormatter = { v -> "${(v * 100).toInt()}%" },
                     )
                 }
-                SettingsGroupDivider()
                 // 字间距:-0.02em ~ 0.08em
                 var letterSpacingDraft by remember { mutableStateOf(prefs.messageLetterSpacingEm) }
                 LaunchedEffect(prefs.messageLetterSpacingEm) {
@@ -831,7 +820,6 @@ fun ChatSettingsPage(
                         )
                     }
                 }
-                SettingsGroupDivider()
                 // 风格选择:concise/balanced/detailed
                 val styleOptions =
                     listOf(
@@ -861,7 +849,6 @@ fun ChatSettingsPage(
                         update { it.copy(responseStyle = value) }
                     },
                 )
-                SettingsGroupDivider()
                 // 语气选择:neutral/friendly/formal/humorous
                 val toneOptions =
                     listOf(
@@ -908,21 +895,18 @@ fun ChatSettingsPage(
                     checked = prefs.moodExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(moodExpandedByDefault = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_expand_button),
                     checked = prefs.showExpandButton,
                     onCheckedChange = { v -> update { it.copy(showExpandButton = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_reasoning_expand),
                     checked = prefs.reasoningExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(reasoningExpandedByDefault = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_reflection_expand),
@@ -942,7 +926,6 @@ fun ChatSettingsPage(
                     checked = prefs.streamResponse,
                     onCheckedChange = { v -> update { it.copy(streamResponse = v) } },
                 )
-                SettingsGroupDivider()
                 // issue #3.5: 快速回复模式 —— 跳过每轮的相关记忆检索(首字延迟大头)。
                 SettingsSwitchRow(
                     icon = MuseIcons.arrowRight,
@@ -951,21 +934,18 @@ fun ChatSettingsPage(
                     checked = prefs.fastReplyMode,
                     onCheckedChange = { v -> update { it.copy(fastReplyMode = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.arrowRight,
                     title = stringResource(R.string.settings_chat_auto_scroll),
                     checked = prefs.autoScrollToBottom,
                     onCheckedChange = { v -> update { it.copy(autoScrollToBottom = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.volume,
                     title = stringResource(R.string.settings_chat_volume_scroll),
                     checked = prefs.volumeKeyScroll,
                     onCheckedChange = { v -> update { it.copy(volumeKeyScroll = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.handFinger,
                     title = stringResource(R.string.settings_chat_enter_send),
@@ -973,14 +953,12 @@ fun ChatSettingsPage(
                     checked = prefs.enterToSend,
                     onCheckedChange = { v -> update { it.copy(enterToSend = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.bolt,
                     title = stringResource(R.string.settings_chat_haptic),
                     checked = prefs.hapticFeedback,
                     onCheckedChange = { v -> update { it.copy(hapticFeedback = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.handFinger,
                     title = stringResource(R.string.settings_chat_predictive_back),
@@ -1003,7 +981,6 @@ fun ChatSettingsPage(
                     checked = prefs.showToolCallDetails,
                     onCheckedChange = { v -> update { it.copy(showToolCallDetails = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.pause,
                     title = stringResource(R.string.settings_chat_pause_tool_execution),
@@ -1011,14 +988,12 @@ fun ChatSettingsPage(
                     checked = prefs.pauseToolExecution,
                     onCheckedChange = { v -> update { it.copy(pauseToolExecution = v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_chat_24h),
                     checked = prefs.use24Hour,
                     onCheckedChange = { v -> update { it.copy(use24Hour = v) } },
                 )
-                SettingsGroupDivider()
                 // v1.0.4 (P3-4): 性能模式 — 接入 MessagePaginator,超长会话仅渲染最近 N 条
                 SettingsSwitchRow(
                     icon = MuseIcons.gauge,
@@ -1027,10 +1002,8 @@ fun ChatSettingsPage(
                     checked = prefs.performanceMode,
                     onCheckedChange = { v -> update { it.copy(performanceMode = v) } },
                 )
-                SettingsGroupDivider()
                 // v2.x: 会话缓存上限(高级) — 后台保留的会话消息内存副本数,热更生效
                 SessionCacheSizeRow(settings = settings, scope = scope)
-                SettingsGroupDivider()
                 // v1.0.47 P5-3: Token 估算(默认关闭)——开启后输入栏显示 Token 计数按钮,点击查看上下文占用
                 // v1.0.52: 这是唯一真正生效的 Token 开关(消息显示分组里的"显示Token"已移除,因为它从未工作)
                 SettingsSwitchRow(
@@ -1040,7 +1013,6 @@ fun ChatSettingsPage(
                     checked = tokenEstimateEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveTokenEstimateEnabled(v) } },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.clipboard,
                     title = stringResource(R.string.settings_chat_paste_as_file),
@@ -1049,7 +1021,6 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> scope.launch { settings.savePasteAsFileEnabled(v) } },
                 )
                 if (pasteAsFileEnabled) {
-                    SettingsGroupDivider()
                     val thresholdOptions = listOf("1000", "2000", "5000")
                     val thresholdIndex =
                         when (pasteAsFileThreshold) {
@@ -1074,7 +1045,6 @@ fun ChatSettingsPage(
                         },
                     )
                 }
-                SettingsGroupDivider()
                 SettingsItemRow(
                     icon = MuseIcons.edit,
                     title = stringResource(R.string.settings_chat_custom_title_prompt),

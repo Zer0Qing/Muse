@@ -77,7 +77,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveExperiments(config.copy(forceMoodBlock = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.bug,
                     title = stringResource(R.string.settings_experiments_debug_mode),
@@ -87,7 +86,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveExperiments(config.copy(debugMode = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_experiments_self_reflection),
@@ -97,7 +95,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveExperiments(config.copy(selfReflection = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.server,
                     title = stringResource(R.string.settings_experiments_long_memory_compression),
@@ -107,7 +104,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveExperiments(config.copy(longMemoryCompression = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.arrowRight,
                     title = stringResource(R.string.settings_experiments_parallel_tools),

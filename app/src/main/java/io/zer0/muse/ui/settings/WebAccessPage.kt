@@ -349,7 +349,6 @@ private fun WebAccessSwitchGroup(
             checked = config.enabled,
             onCheckedChange = onToggleEnabled,
         )
-        SettingsGroupDivider()
         SettingsSwitchRow(
             icon = MuseIcons.wifi,
             title = stringResource(R.string.settings_web_access_lan),
@@ -361,7 +360,6 @@ private fun WebAccessSwitchGroup(
             checked = config.allowLan,
             onCheckedChange = onToggleLan,
         )
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.refresh,
             title = stringResource(R.string.settings_web_regenerate_pin),

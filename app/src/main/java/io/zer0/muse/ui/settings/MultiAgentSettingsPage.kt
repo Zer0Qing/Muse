@@ -132,7 +132,6 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
                         scope.launch { settings.saveLlmReviewEnabled(v) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsItemRow(
                     icon = MuseIcons.user,
                     title = stringResource(R.string.multi_agent_llm_review_model),

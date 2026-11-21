@@ -271,7 +271,6 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                 checked = stickerEnabled,
                 onCheckedChange = { v -> scope.launch { settings.saveStickerEnabled(v) } },
             )
-            SettingsGroupDivider()
             // v2.x: 发送频率档位(标记链路;替代旧概率滑块)
             Row(
                 modifier =
@@ -322,7 +321,6 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                     }
                 }
             }
-            SettingsGroupDivider()
             // 导入 zip(通过 SAF 选取压缩包)
             SettingsItemRow(
                 icon = MuseIcons.upload,
@@ -332,7 +330,6 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                     importLauncher.launch(arrayOf("*/*"))
                 },
             ) { ChevronRight() }
-            SettingsGroupDivider()
             // 从相册添加（多选）。图进当前查看的包，没选包就进"默认"。
             SettingsItemRow(
                 icon = MuseIcons.image,
@@ -360,7 +357,6 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             }
             // v1.112 (F1-F2): 批量删除 / 清空入口
             if (stickers.isNotEmpty()) {
-                SettingsGroupDivider()
                 Row(
                     modifier =
                     Modifier

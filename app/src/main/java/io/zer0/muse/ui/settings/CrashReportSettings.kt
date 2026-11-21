@@ -125,7 +125,6 @@ fun CrashReportSettingsPage(onBack: () -> Unit) {
                         MuseSpinner(size = 20.dp)
                     }
                 }
-                SettingsGroupDivider()
                 MuseCapsuleButton(
                     text = stringResource(R.string.settings_crash_report_now_button),
                     onClick = { showConfirm = true },

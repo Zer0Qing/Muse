@@ -144,7 +144,6 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
             onDelete = null,
         )
         customSkins.forEach { skin ->
-            SettingsGroupDivider()
             BubbleSkinRow(
                 name = skin.name,
                 subtitle = skin.author.ifBlank {
@@ -156,7 +155,6 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
                 onDelete = { deletingSkin = skin },
             )
         }
-        SettingsGroupDivider()
         // 导入操作行(与自定义主题区的导入入口同款)
         Row(
             modifier = Modifier
@@ -375,7 +373,6 @@ private fun BubbleSkinPreviewPanel(skin: BubbleSkin?, dark: Boolean, fontSizeSca
             onSelect = { onDarkChange(it == 1) },
             modifier = Modifier.padding(MusePaddings.cardInner),
         )
-        SettingsGroupDivider()
         BubbleSkinPreviewBubble(
             role = BubbleRole.USER,
             roleLabel = stringResource(R.string.settings_bubble_skin_role_user),
@@ -385,7 +382,6 @@ private fun BubbleSkinPreviewPanel(skin: BubbleSkin?, dark: Boolean, fontSizeSca
             fontSizeScale = fontSizeScale,
             alignEnd = true,
         )
-        SettingsGroupDivider()
         BubbleSkinPreviewBubble(
             role = BubbleRole.ASSISTANT,
             roleLabel = stringResource(R.string.settings_bubble_skin_role_assistant),
@@ -395,7 +391,6 @@ private fun BubbleSkinPreviewPanel(skin: BubbleSkin?, dark: Boolean, fontSizeSca
             fontSizeScale = fontSizeScale,
             alignEnd = false,
         )
-        SettingsGroupDivider()
         BubbleSkinPreviewBubble(
             role = BubbleRole.GROUP_ASSISTANT,
             roleLabel = stringResource(R.string.settings_bubble_skin_role_group_assistant),

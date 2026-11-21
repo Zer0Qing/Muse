@@ -81,7 +81,6 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                     checked = enabled,
                     onCheckedChange = { enabled = it },
                 )
-                SettingsGroupDivider()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -102,7 +101,6 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                         )
                     }
                 }
-                SettingsGroupDivider()
                 MuseTextField(
                     value = host,
                     onValueChange = { host = it },
@@ -112,7 +110,6 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                SettingsGroupDivider()
                 MuseTextField(
                     value = portText,
                     onValueChange = { v ->
@@ -125,7 +122,6 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                SettingsGroupDivider()
                 MuseTextField(
                     value = username,
                     onValueChange = { username = it },
@@ -135,7 +131,6 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                SettingsGroupDivider()
                 MuseTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -161,7 +156,6 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                SettingsGroupDivider()
                 // v2.6.9: 不走代理的域名（bypass）。
                 // 实际痛点：国内用户经常全局代理，但本地模型（localhost:11434 等）
                 // 与内网服务如果也走代理会直接失败。这一栏就是给它们开的口子。

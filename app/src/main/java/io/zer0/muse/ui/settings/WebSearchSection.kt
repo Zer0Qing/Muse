@@ -195,7 +195,6 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
                 }
             }
         }
-        SettingsGroupDivider()
         Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(stringResource(R.string.settings_web_search_max_results), style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.heightIn(min = 8.dp))
@@ -213,7 +212,6 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
                 }
             }
         }
-        SettingsGroupDivider()
         SettingsSwitchRow(
             icon = MuseIcons.refresh,
             title = stringResource(R.string.settings_web_search_fallback),

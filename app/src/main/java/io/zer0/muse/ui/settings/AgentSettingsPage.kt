@@ -268,7 +268,6 @@ fun AgentSettingsPage(
                     // v2.6.7 fix (AUDIT F9): 用户偏好（助手记住的长期要求）。
                     // 此前 PreferenceStore 的读取/删除/停用全仓零调用，
                     // 用户看不到也删不掉一条记错的偏好。
-                    SettingsGroupDivider()
                     SettingsItemRow(
                         icon = MuseIcons.check,
                         title = stringResource(R.string.settings_preference_title),
@@ -298,7 +297,6 @@ fun AgentSettingsPage(
                     ) {
                         ChevronRight()
                     }
-                    SettingsGroupDivider()
                     // v1.126: Agent 私信收件箱入口
                     SettingsItemRow(
                         icon = MuseIcons.mail,
@@ -331,7 +329,6 @@ fun AgentSettingsPage(
                         // v2.6.9: 账本入口 —— 点开能看到它最近在惦记什么、今天还能说几次、
                         // 以及一键让它安静 7 天。这块 UI 是新机制的兑现方式：
                         // 用户能看见「它凭什么找我」，也能看见「它什么时候闭嘴」。
-                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.note,
                             title = stringResource(R.string.settings_proactive_v2_ledger),
@@ -351,7 +348,6 @@ fun AgentSettingsPage(
                         // P0 收敛: 「间隔 / 偏移 / 概率 / 每日上限」四个实现参数合并为一个
                         // 用户能表达的「主动程度」档位(少/标准/多);随机偏移与温度降到「高级」。
                         ProactiveGroupLabel(stringResource(R.string.settings_agent_group_pace))
-                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.calendarTime,
                             title = stringResource(R.string.settings_proactive_v2_intensity),
@@ -376,7 +372,6 @@ fun AgentSettingsPage(
                         ) {
                             ChevronRight()
                         }
-                        SettingsGroupDivider()
                         // v2.6.23(P1): 智能时机 —— 掷骰前先按最近反馈折算有效概率。默认关:
                         // 开着等于改变用户已调好的「发送概率」语义,必须他自己同意。
                         SettingsSwitchRow(
@@ -392,7 +387,6 @@ fun AgentSettingsPage(
                                 }
                             },
                         )
-                        SettingsGroupDivider()
                         // P0 收敛: 「允许时段开始 / 结束」两个滑块合并为一个「免打扰时段」范围
                         // 允许窗口为空（起止相同）时红色提示:这种配置一条都不会发，
                         // 不能让用户只能等到自己发现“怎么没动静”。
@@ -409,7 +403,6 @@ fun AgentSettingsPage(
                         ) {
                             ChevronRight()
                         }
-                        SettingsGroupDivider()
                         // v2.x: 原「发送 Agent」行已删除 — 与「Agent 默认助手」同值同弹窗,合并为单一入口
                         val senderAgent = assistants?.find { it.id == proactiveConfig.agentId }
                         SettingsItemRow(
@@ -421,7 +414,6 @@ fun AgentSettingsPage(
                             ChevronRight()
                         }
                         // P0 收敛: 温度 / 概率 / 测试发送 / 仅 Agent 会话 收进「高级」
-                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.robot,
                             title = stringResource(R.string.settings_agent_group_advanced),
@@ -432,7 +424,6 @@ fun AgentSettingsPage(
                         }
                         // P0 收敛: 每日总结 / 深夜日记 / 朋友圈 收进「主动内容」入口
                         ProactiveGroupLabel(stringResource(R.string.settings_agent_group_daily))
-                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.calendarStats,
                             title = stringResource(R.string.settings_agent_content_title),
@@ -459,7 +450,6 @@ fun AgentSettingsPage(
                             scope.launch { settings.saveScheduleWorkEnabled(v) }
                         },
                     )
-                    SettingsGroupDivider()
                     // v2.x: 保活开关自记忆页归位(系统级后台行为)
                     SettingsSwitchRow(
                         icon = MuseIcons.bolt,
@@ -470,7 +460,6 @@ fun AgentSettingsPage(
                             scope.launch { settings.saveKeepAwake(v) }
                         },
                     )
-                    SettingsGroupDivider()
                     SettingsSwitchRow(
                         icon = MuseIcons.power,
                         title = stringResource(R.string.settings_memory_auto_launch),
@@ -480,7 +469,6 @@ fun AgentSettingsPage(
                             scope.launch { settings.saveAutoLaunch(v) }
                         },
                     )
-                    SettingsGroupDivider()
                     SettingsItemRow(
                         icon = MuseIcons.lifebuoy,
                         title = stringResource(R.string.settings_agent_keep_alive_title),
@@ -895,7 +883,6 @@ fun AgentSettingsPage(
                             },
                         )
                         if (dailySummaryEnabled) {
-                            SettingsGroupDivider()
                             SettingsItemRow(
                                 icon = MuseIcons.clock,
                                 title = stringResource(R.string.settings_agent_daily_summary_slots_title),
@@ -908,7 +895,6 @@ fun AgentSettingsPage(
                                 ChevronRight()
                             }
                         }
-                        SettingsGroupDivider()
                         SettingsSwitchRow(
                             icon = MuseIcons.moon,
                             title = stringResource(R.string.settings_agent_content_night_diary),
@@ -918,7 +904,6 @@ fun AgentSettingsPage(
                                 scope.launch { settings.saveNightPatrolEnabled(v) }
                             },
                         )
-                        SettingsGroupDivider()
                         SettingsSwitchRow(
                             icon = MuseIcons.calendarStats,
                             title = stringResource(R.string.settings_agent_content_moment),
@@ -933,7 +918,6 @@ fun AgentSettingsPage(
                             },
                         )
                         if (dailyMomentCount > 0) {
-                            SettingsGroupDivider()
                             SettingsItemRow(
                                 icon = MuseIcons.clock,
                                 title = stringResource(R.string.settings_agent_moment_count_title),
@@ -946,7 +930,6 @@ fun AgentSettingsPage(
                                 ChevronRight()
                             }
                             // v2.6.7（P0-1）: 朋友圈内容模式 — 真实系 / 角色系双档
-                            SettingsGroupDivider()
                             SettingsItemRow(
                                 icon = MuseIcons.typography,
                                 title = stringResource(R.string.settings_moment_content_mode_title),
@@ -999,7 +982,6 @@ fun AgentSettingsPage(
                                 }
                             },
                         )
-                        SettingsGroupDivider()
                         SettingsSwitchRow(
                             icon = MuseIcons.chat,
                             title = stringResource(R.string.settings_agent_plain_chat_enabled),
@@ -1013,7 +995,6 @@ fun AgentSettingsPage(
                                 }
                             },
                         )
-                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.clock,
                             title = stringResource(R.string.settings_agent_daily_guarantee),
@@ -1025,7 +1006,6 @@ fun AgentSettingsPage(
                         ) {
                             ChevronRight()
                         }
-                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.switch,
                             title = stringResource(R.string.settings_agent_temperature),
@@ -1037,7 +1017,6 @@ fun AgentSettingsPage(
                         ) {
                             ChevronRight()
                         }
-                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.switch,
                             title = stringResource(R.string.settings_agent_random_offset),
@@ -1049,7 +1028,6 @@ fun AgentSettingsPage(
                         ) {
                             ChevronRight()
                         }
-                        SettingsGroupDivider()
                         SettingsItemRow(
                             icon = MuseIcons.bell,
                             title = stringResource(R.string.settings_agent_test_message),

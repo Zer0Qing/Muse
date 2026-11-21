@@ -141,7 +141,6 @@ fun VisionSettingsPage(onBack: () -> Unit) {
                         enabled = hiddenModelCount > 0,
                         onCheckedChange = { v -> showAllModels = v },
                     )
-                    SettingsGroupDivider()
                     if (visionModels.isEmpty()) {
                         // 无可用的视觉模型提示
                         Row(
@@ -176,7 +175,6 @@ fun VisionSettingsPage(onBack: () -> Unit) {
                                 },
                             )
                             if (index < visionModels.size - 1) {
-                                SettingsGroupDivider()
                             }
                         }
                     }

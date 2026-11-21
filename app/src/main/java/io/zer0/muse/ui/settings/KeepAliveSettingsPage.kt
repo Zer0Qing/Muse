@@ -92,7 +92,6 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
                 ) {
                     ChevronRight()
                 }
-                SettingsGroupDivider()
                 SettingsItemRow(
                     icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_keep_alive_rom_title),
@@ -146,7 +145,6 @@ private fun KeepAliveSwitchesGroup(
             onCheckedChange = onToggleEnabled,
         )
         if (enabled) {
-            SettingsGroupDivider()
             SettingsSwitchRow(
                 icon = MuseIcons.clock,
                 title = stringResource(R.string.settings_keep_alive_wakelock_title),
@@ -154,7 +152,6 @@ private fun KeepAliveSwitchesGroup(
                 checked = wakeLock,
                 onCheckedChange = onToggleWakeLock,
             )
-            SettingsGroupDivider()
             SettingsItemRow(
                 icon = MuseIcons.edit,
                 title = stringResource(R.string.settings_keep_alive_notification_custom_title),

@@ -180,7 +180,6 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
             },
             modifier = Modifier.padding(MusePaddings.cardInner),
         )
-        SettingsGroupDivider()
         val modeLabel = when (themeMode) {
             "system" -> followSystem
             "light" -> lightLabel
@@ -198,13 +197,11 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
             title = stringResource(R.string.settings_theme_current_mode),
             subtitle = modeLabel,
         )
-        SettingsGroupDivider()
         // H5: 高对比主题开关 — 前景/背景对比拉满,面向弱视用户
         HighContrastRow(
             enabled = highContrast,
             onToggle = { v -> scope.launch { settings.saveHighContrast(v) } },
         )
-        SettingsGroupDivider()
         // v2.5.2: 液态玻璃 — 重设计版(模糊底+高光边+描边),恢复设置项
         LiquidGlassSection(
             mode = liquidGlassMode,
@@ -376,7 +373,6 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
             },
         )
         if (schedule.enabled) {
-            SettingsGroupDivider()
             SettingsItemRow(
                 icon = MuseIcons.sun,
                 title = stringResource(R.string.settings_theme_wake_time_title),
@@ -385,7 +381,6 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
                     wakeTimeDialog = true
                 },
             )
-            SettingsGroupDivider()
             SettingsItemRow(
                 icon = MuseIcons.moon,
                 title = stringResource(R.string.settings_theme_sleep_time_title),
@@ -483,7 +478,6 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
             },
             modifier = Modifier.padding(MusePaddings.cardInner),
         )
-        SettingsGroupDivider()
         val scaleLabel = when (fontSizeScale) {
             "small" -> smallScale
             "large" -> largeScale
@@ -496,7 +490,6 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
             subtitle = scaleLabel,
         )
         // 阶段 K: 字号预览(实时展示当前字号下的文本效果,高级感)
-        SettingsGroupDivider()
         FontSizePreview(fontSizeScale)
     }
 
@@ -920,7 +913,6 @@ internal fun LanguageSection(language: String, settings: SettingsRepository) {
                 ThemeModeOption(label, language == code) { switchLanguage(code) }
             }
         }
-        SettingsGroupDivider()
         val langLabel = languageOptions.firstOrNull { it.first == language }?.second ?: followSystem
         SettingsItemRow(
             icon = MuseIcons.languages,
@@ -962,7 +954,6 @@ internal fun DefaultHomePageSection(settings: SettingsRepository) {
                 scope.launch { settings.saveDefaultHomePage(2) }
             }
         }
-        SettingsGroupDivider()
         val pageLabel = when (defaultPage) {
             1 -> agentLabel
             2 -> groupChatLabel
@@ -1670,7 +1661,6 @@ private fun FontSection(customFontPath: String?, onImport: () -> Unit, onClear: 
                 stringResource(R.string.settings_font_body_default)
             },
         )
-        SettingsGroupDivider()
         Row(
             modifier = Modifier.fillMaxWidth().padding(MusePaddings.cardInner),
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),

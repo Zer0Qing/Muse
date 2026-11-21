@@ -191,7 +191,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 EmbeddingSourceOption(
                     icon = MuseIcons.cloudOff,
                     title = stringResource(R.string.settings_rag_local_keyword),
@@ -330,7 +329,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                             )
                         }
                         if (config.cloudProviderId.isNotBlank()) {
-                            SettingsGroupDivider()
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -499,7 +497,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.gauge,
                     title = stringResource(R.string.settings_rag_similarity_threshold),
@@ -536,7 +533,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 EmbeddingSourceOption(
                     icon = MuseIcons.cloud,
                     title = stringResource(R.string.settings_rag_parser_cloud),
@@ -548,7 +544,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 EmbeddingSourceOption(
                     icon = MuseIcons.fileText,
                     title = stringResource(R.string.settings_rag_parser_mineru),
@@ -586,7 +581,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                             scope.launch { settings.saveRagConfig(config.copy(mineruEndpoint = v)) }
                         },
                     )
-                    SettingsGroupDivider()
                     EndpointInputRow(
                         title = stringResource(R.string.settings_rag_mineru_token),
                         value = config.mineruToken,
@@ -621,7 +615,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_overlap),
@@ -640,7 +633,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 // v1.133: Markdown 感知分块
                 SettingsSwitchRow(
                     icon = MuseIcons.layoutColumns,
@@ -651,7 +643,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         scope.launch { settings.saveRagConfig(config.copy(markdownAware = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 // v1.133: 按 token 分块
                 SettingsSwitchRow(
                     icon = MuseIcons.layoutColumns,
@@ -687,7 +678,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 // 混合检索
                 SettingsSwitchRow(
                     icon = MuseIcons.swapHorizontal,
@@ -698,7 +688,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         scope.launch { settings.saveRagConfig(config.copy(hybridEnabled = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.typography,
                     title = stringResource(R.string.settings_rag_hybrid_bm25_weight),
@@ -714,7 +703,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsSliderRow(
                     icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_rag_hybrid_vector_weight),
@@ -730,7 +718,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 // Rerank
                 SettingsSwitchRow(
                     icon = MuseIcons.sort,
@@ -741,7 +728,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         scope.launch { settings.saveRagConfig(config.copy(rerankEnabled = v)) }
                     },
                 )
-                SettingsGroupDivider()
                 // Token 预算
                 SettingsSliderRow(
                     icon = MuseIcons.wallet,

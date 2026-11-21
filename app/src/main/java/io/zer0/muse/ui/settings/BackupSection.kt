@@ -235,7 +235,6 @@ internal fun BackupSection(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.chat,
             title = stringResource(R.string.settings_backup_message_count),
@@ -266,7 +265,6 @@ internal fun BackupSection(
             checked = includeSecrets,
             onCheckedChange = { includeSecrets = it },
         )
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.upload,
             title = stringResource(R.string.settings_backup_export),
@@ -289,14 +287,12 @@ internal fun BackupSection(
                 }
             },
         )
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.file,
             title = stringResource(R.string.settings_backup_export_session),
             subtitle = stringResource(R.string.settings_backup_export_session_subtitle),
             onClick = { showSessionExportDialog = true },
         )
-        SettingsGroupDivider()
         SettingsItemRow(
             icon = MuseIcons.download,
             title = stringResource(R.string.settings_backup_import),
@@ -382,7 +378,6 @@ internal fun BackupSection(
                                     },
                                 )
                                 if (session != filteredExportSessions.lastOrNull()) {
-                                    SettingsGroupDivider()
                                 }
                             }
                         }

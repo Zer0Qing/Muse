@@ -181,7 +181,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                         )
                     },
                 )
-                SettingsGroupDivider()
                 // 类型选择(只在启用时显示)
                 if (draft.type != "none") {
                     Box(
@@ -200,7 +199,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    SettingsGroupDivider()
                     // 按类型显示字段表单
                     if (draft.type == "webdav") {
                         WebDavFields(
@@ -217,7 +215,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             onToggleSecret = { secretVisible = !secretVisible },
                         )
                     }
-                    SettingsGroupDivider()
                     // 加密密码(通用)
                     EncryptionPasswordField(
                         password = draft.backupPassword,
@@ -310,7 +307,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                     checked = cloudIncludeSecrets,
                     onCheckedChange = { cloudIncludeSecrets = it },
                 )
-                SettingsGroupDivider()
                 SettingsItemRow(
                     icon = MuseIcons.cloudUpload,
                     title = stringResource(R.string.cloud_backup_backup_now),
@@ -349,7 +345,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 SettingsItemRow(
                     icon = MuseIcons.cloudDownload,
                     title = stringResource(R.string.cloud_backup_restore_latest),
@@ -396,7 +391,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                         }
                     },
                 )
-                SettingsGroupDivider()
                 when {
                     !cloudConfig.isConfigured -> {
                         Text(
@@ -488,7 +482,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                     },
                 )
                 if (cloudConfig.autoSync) {
-                    SettingsGroupDivider()
                     // 间隔天数 slider(1-30 天)
                     val intervalDays = cloudConfig.autoSyncIntervalHours / 24f
                     val sliderValue = intervalDays.coerceIn(1f, 30f)

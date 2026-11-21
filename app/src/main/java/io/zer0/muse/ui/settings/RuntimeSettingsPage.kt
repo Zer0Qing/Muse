@@ -100,7 +100,6 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                         )
                     }
                 }
-                SettingsGroupDivider()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -129,7 +128,6 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                 }
                 val currentProgress = progress
                 if (currentProgress != null) {
-                    SettingsGroupDivider()
                     Text(
                         text = when (currentProgress) {
                             is RuntimeInstaller.Progress.Downloading -> {

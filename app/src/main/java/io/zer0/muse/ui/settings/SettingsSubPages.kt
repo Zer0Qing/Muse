@@ -778,7 +778,6 @@ private fun BubbleStyleSection() {
             checked = prefs.bubbleFullWidth,
             onCheckedChange = { v -> update { it.copy(bubbleFullWidth = v) } },
         )
-        SettingsGroupDivider()
         SettingsSwitchRow(
             icon = MuseIcons.user,
             title = stringResource(R.string.settings_chat_show_user_avatar),
@@ -786,7 +785,6 @@ private fun BubbleStyleSection() {
             checked = prefs.showUserAvatar,
             onCheckedChange = { v -> update { it.copy(showUserAvatar = v) } },
         )
-        SettingsGroupDivider()
         // 四档气泡圆角：方形 / 圆角 / 大圆角 / 胶囊
         val radiusOptions =
             listOf(
@@ -836,7 +834,6 @@ private fun GenerativeUiSection() {
         )
         // 比「允许」更主动一级，默认开。
         if (prefs.generativeUiEnabled) {
-            SettingsGroupDivider()
             SettingsSwitchRow(
                 icon = MuseIcons.sparkle,
                 title = stringResource(R.string.settings_chat_prefer_card_output),
@@ -982,7 +979,6 @@ fun SettingsAboutPage(
                 ) {
                     ChevronRight()
                 }
-                SettingsGroupDivider()
                 SettingsItemRow(
                     title = stringResource(R.string.settings_about_join_qq_group),
                     subtitle = stringResource(R.string.settings_about_join_qq_group_subtitle),
@@ -990,7 +986,6 @@ fun SettingsAboutPage(
                 ) {
                     ChevronRight()
                 }
-                SettingsGroupDivider()
                 SettingsItemRow(
                     title = stringResource(R.string.settings_crash_page_title),
                     subtitle = stringResource(R.string.settings_crash_enable_subtitle),
@@ -1038,7 +1033,6 @@ fun SettingsAboutPage(
                         ChevronRight()
                     }
                 }
-                SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = MuseIcons.refresh,
                     title = stringResource(R.string.settings_about_auto_update),
@@ -1077,14 +1071,12 @@ fun SettingsAboutPage(
                 ) {
                     ChevronRight()
                 }
-                SettingsGroupDivider()
                 SettingsItemRow(
                     title = stringResource(R.string.settings_about_star),
                     onClick = { openUrl(context, "https://github.com/Zer0Qing/Muse") },
                 ) {
                     ChevronRight()
                 }
-                SettingsGroupDivider()
                 SettingsItemRow(
                     title = stringResource(R.string.settings_about_issues),
                     onClick = { openUrl(context, "https://github.com/Zer0Qing/Muse/issues") },
