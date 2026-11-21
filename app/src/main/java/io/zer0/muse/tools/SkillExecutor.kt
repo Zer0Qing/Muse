@@ -686,7 +686,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "web_fetch",
                     name = "网页抓取",
-                    description = "抓取指定 URL 的网页正文(自动去除 HTML 标签,返回纯文本)。用于读取 web_search 返回的 URL 全文内容。使用时机: 读取 web_search 返回的 URL 全文,或用户给出明确 URL 时。不要使用: 无 URL 时;页面需要登录/交互时说明无法获取,不要猜测内容。",
+                    description = "抓取指定 URL 的网页正文并返回纯文本。使用时机: 读取 web_search 返回的 URL 全文,或用户给出明确 URL 时。不要使用: 无 URL 时;页面需要登录/交互时说明无法获取,不要猜测内容。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -835,7 +835,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "install_skill",
                     name = "安装 Skill",
-                    description = "让助手自己生成新的 skill 定义并安装到用户设备。skill_json 参数为 .skill.json 格式的 JSON 字符串。必填字段: id, name, description, category, implementationKotlin, parametersJson。category 取值: file/http/search/knowledge/system/agent/sticker/custom。implementationKotlin 必须是内置实现之一(read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search),不支持任意代码执行。安装后用户可在设置→Skill 中查看/启停。提示词技能:implementationKotlin 传 \"prompt\",指令文本放 prompt 字段(也接受 \"prompt:<文本>\" 形式;文本受注入黑名单与 8KB 上限约束)。提示词技能可被调用时传可选 input 参数:指令文本中的 {{input}} 占位符会被代入,无占位符时输入追加到指令末尾。",
+                    description = "生成并安装新的 skill。skill_json 必填 id/name/description/category/implementationKotlin/parametersJson；implementationKotlin 只接受内置实现（read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search）或 \"prompt\"（指令放 prompt 字段，8KB 上限）。字段取值见参数示例。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1180,7 +1180,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "agent_phone",
                     name = "Agent 私聊",
-                    description = "在群聊中向指定 agent 发起私聊(whisper)。传入 chatId(群聊 id)、targetAssistantId(目标 agent id)和 message(私聊内容)。私聊消息仅目标 agent 可见,不参与群聊轮转上下文,且会持久化到独立会话账本(App 重启后可续接)。调用后立即返回,目标 agent 的回复异步到达群聊消息流。",
+                    description = "在群聊中向指定 agent 发起私聊。传入 chatId、targetAssistantId 和 message。私聊仅目标 agent 可见，不参与群聊轮转上下文；调用后立即返回，回复异步到达群聊消息流。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1359,7 +1359,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "read_public_file",
                     name = "读取公共文件",
-                    description = "通过 content:// URI 读取公共文件。可读取 list_public_files 返回的 URI(含 MediaStore URI),也可读用户分享/打开方式传入的 URI。返回文本内容(上限 1MB)。注:仅支持文本类文件,二进制文件可能乱码。",
+                    description = "通过 content:// URI 读取公共文件，返回文本内容（上限 1MB）。可读 list_public_files 返回的 URI 或用户分享传入的 URI。仅支持文本类文件。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1394,7 +1394,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "save_to_downloads",
                     name = "保存到下载目录",
-                    description = "保存文本内容或本地沙盒文件到系统 Download 目录。Android 10+ 通过 MediaStore 写入,Android 9 及以下直接写公共 Download 目录。传 file_path 时支持二进制文件转存(无需先 read_file 再写文本)。",
+                    description = "保存文本内容或本地沙盒文件到系统 Download 目录。传 file_path 时支持二进制文件转存，无需先读再写。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1628,7 +1628,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "update_skill",
                     name = "更新 Skill",
-                    description = "更新用户自建 skill 的 name / description / parametersJson(JSON Schema 字符串)。提示词技能额外支持用 prompt 参数替换指令文本。只能改用户自己创建的 skill:内置保留 skill 与插件技能一律拒绝;更新内容仍走导入校验(保留 id/category 白名单/注入黑名单),更新后 id 不变且保持启用。",
+                    description = "更新用户自建 skill 的 name / description / parametersJson。提示词技能可用 prompt 参数替换指令文本。只能改用户自己创建的 skill，内置与插件技能一律拒绝。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
