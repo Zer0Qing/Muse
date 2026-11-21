@@ -10,7 +10,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import io.zer0.muse.ui.theme.MoodSkinColors
 import io.zer0.muse.ui.MessageBubble
-import io.zer0.muse.ui.chat.buildHighlightedText
 
 /**
  * 消息文本样式辅助函数。

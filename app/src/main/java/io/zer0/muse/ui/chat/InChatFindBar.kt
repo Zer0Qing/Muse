@@ -27,7 +27,6 @@ import io.zer0.muse.ui.common.MuseTooltip
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.ChatSelectionBar
 
 // A1: 会话内查找条 — 聊天页顶层悬浮条:查询框 + 命中计数 + 上一条/下一条 + 关闭。
 // 滚动定位与文本高亮由调用方复用 setTargetMessage 管线完成(highlightedMessageId +

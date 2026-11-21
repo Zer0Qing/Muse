@@ -1,4 +1,5 @@
 package io.zer0.muse.ui.common
+import io.zer0.muse.ui.chat.formatToolDuration
 
 /**
  * Shared duration formatter for task-card and tool-trace surfaces.

@@ -80,6 +80,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import io.zer0.muse.ui.chat.formatToolDuration
 
 /**
  * v1.0.80: 工具调用卡片（现代化重写）。

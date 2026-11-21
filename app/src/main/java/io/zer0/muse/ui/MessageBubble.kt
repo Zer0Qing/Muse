@@ -144,7 +144,9 @@ import io.zer0.muse.ui.chat.formatMessageTime
 import io.zer0.muse.ui.chat.MessageBubbleFormatters
 import io.zer0.muse.ui.chat.rememberLinkPreviews
 import io.zer0.muse.ui.chat.LinkPreviewCard
+import io.zer0.muse.ui.chat.ToolRunCard
 import io.zer0.muse.ui.chat.buildHighlightedText
+import io.zer0.muse.ui.chat.ThinkingBubble
 
 internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。

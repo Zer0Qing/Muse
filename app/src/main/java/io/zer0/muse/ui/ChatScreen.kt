@@ -183,6 +183,20 @@ import io.zer0.muse.ui.chat.SmartImage
 import io.zer0.muse.ui.chat.MessageBubbleHeader
 import io.zer0.muse.ui.chat.InChatFindBar
 import io.zer0.muse.ui.chat.RichInputBar
+import io.zer0.muse.ui.chat.ToolRunCard
+import io.zer0.muse.ui.chat.ToolRunLiveState
+import io.zer0.muse.ui.chat.ImageGenerationPlaceholder
+import io.zer0.muse.ui.chat.VideoGenerationPlaceholder
+import io.zer0.muse.ui.chat.HistoryLoadMorePlaceholder
+import io.zer0.muse.ui.chat.DateSeparator
+import io.zer0.muse.ui.chat.isSameDay
+import io.zer0.muse.ui.chat.HistoryLoadMoreEntry
+import io.zer0.muse.ui.chat.DelegateSheetMode
+import io.zer0.muse.ui.chat.ChatSheetState
+import io.zer0.muse.ui.chat.ChatSheetHost
+import io.zer0.muse.ui.chat.ChatSelectionBar
+import io.zer0.muse.ui.chat.EmptyChatGuide
+import io.zer0.muse.ui.chat.ThinkingBubble
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =

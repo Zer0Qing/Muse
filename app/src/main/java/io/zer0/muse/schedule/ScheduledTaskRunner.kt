@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import java.util.concurrent.atomic.AtomicInteger
+import io.zer0.muse.ui.PendingMessage
 
 /**
  * Phase 17: 定时任务执行器。

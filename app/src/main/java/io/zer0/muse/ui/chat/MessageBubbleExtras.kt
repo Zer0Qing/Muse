@@ -61,8 +61,6 @@ import io.zer0.ai.core.AttachmentRef
 import io.zer0.ai.core.RagCitation
 import io.zer0.common.FileSizeFormatter
 import io.zer0.muse.R
-import io.zer0.muse.ui.chat.ToolCallVisuals
-import io.zer0.muse.ui.chat.ToolResultRenderer
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -80,7 +78,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import io.zer0.muse.ui.formatToolDuration
+import io.zer0.muse.ui.chat.formatToolDuration
 
 /**
  * v1.0.80: 工具调用卡片（现代化重写）。

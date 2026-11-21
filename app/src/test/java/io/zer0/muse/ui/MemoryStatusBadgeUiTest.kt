@@ -13,8 +13,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import io.zer0.muse.ui.memory.FactEditDialog
-import io.zer0.muse.ui.memory.MemoryFactRow
 import io.zer0.muse.ui.memory.MemoryItem
+import io.zer0.muse.ui.memory.MemoryFactRow
 
 /**
  * 徽章与详情说明真的渲染出来了才算完成 —— 只测判定函数测不到「列表里看不看得见」。

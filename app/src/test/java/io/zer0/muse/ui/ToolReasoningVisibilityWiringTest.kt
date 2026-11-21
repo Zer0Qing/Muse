@@ -5,6 +5,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.ToolRunCard
+import io.zer0.muse.ui.chat.ProcessTally
+import io.zer0.muse.ui.chat.ProcessStepState
 
 class ToolReasoningVisibilityWiringTest {
 
@@ -31,8 +34,8 @@ class ToolReasoningVisibilityWiringTest {
     fun `expanded grouped reasoning is not silently capped at six lines`() {
         val source =
             read(
-                "src/main/java/io/zer0/muse/ui/ToolRunCard.kt",
-                "app/src/main/java/io/zer0/muse/ui/ToolRunCard.kt",
+                "src/main/java/io/zer0/muse/ui/chat/ToolRunCard.kt",
+                "app/src/main/java/io/zer0/muse/ui/chat/ToolRunCard.kt",
             )
         // v2.6.7: 展开区已从 ToolRunCard 抽到 ToolRunExpandedRows（LongMethod 整改），
         // 旧写法「注释之后的全文」会跨到下一个函数里导致误判。

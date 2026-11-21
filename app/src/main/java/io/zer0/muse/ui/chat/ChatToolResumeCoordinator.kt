@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import io.zer0.muse.ui.ThinkingBubble
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.InputBar
 

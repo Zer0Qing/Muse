@@ -20,6 +20,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.ui.MessageBubble
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.chat.ThinkingBubble
 
 /**
  * 开发期预览页：用真实 [MessageBubble] 渲染一份带 MOOD / 思考 / 工具调用的消息。
@@ -94,7 +95,7 @@ fun DevPreviewScreen() {
             onToggleReasoningExpanded = {},
         )
         // 过程动画：与聊天页消息流末尾同一组件
-        io.zer0.muse.ui.ThinkingBubble(progressText = null)
+        ThinkingBubble(progressText = null)
     }
 }
 

@@ -7,9 +7,6 @@ import io.zer0.ai.image.ImageGenParams
 import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
-import io.zer0.muse.ui.chat.VideoAttachment
-import io.zer0.muse.ui.chat.MuseInputState
-import io.zer0.muse.ui.chat.InputBarCallbacks
 import io.zer0.muse.ui.InputBar
 
 /**

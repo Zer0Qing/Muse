@@ -44,7 +44,6 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
-import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -69,10 +68,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.zer0.muse.ui.assistant.ModelSwitchSheet
-import io.zer0.muse.ui.chat.ToolTraceSummary
-import io.zer0.muse.ui.chat.summarizeToolTrace
-import io.zer0.muse.ui.chat.mergeToolCallRecords
-import io.zer0.muse.ui.chat.toolTraceRecordSummary
 import io.zer0.muse.ui.ToolCallRecord
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel

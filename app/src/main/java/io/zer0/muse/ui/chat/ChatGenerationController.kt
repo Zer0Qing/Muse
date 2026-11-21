@@ -59,7 +59,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ThinkingBubble
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.InputBar
 
