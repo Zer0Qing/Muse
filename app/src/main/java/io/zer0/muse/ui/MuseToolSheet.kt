@@ -727,7 +727,9 @@ private fun ToolListRow(
                     Modifier.clickable(onClick = onClick)
                 },
             )
-            .padding(vertical = MusePaddings.listRowVertical),
+            // 原为 listRowVertical(14dp)，与 cardInner 的垂直 12dp 差 2dp，肉眼无差别，
+                // 统一到 cardInner 的垂直值，少一个只此一处使用的令牌。
+                .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.screen),
     ) {

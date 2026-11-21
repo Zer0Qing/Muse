@@ -319,7 +319,6 @@ class DesignTokenParityTest {
             "dividerWidth" to MusePaddings.dividerWidth,
             "dividerThickness" to MusePaddings.dividerThickness,
             "maxToolSheetListHeight" to MusePaddings.maxToolSheetListHeight,
-            "listRowVertical" to MusePaddings.listRowVertical,
             "iconPadding" to MusePaddings.iconPadding,
             "messageGap" to MusePaddings.messageGap,
             "listBottomClearance" to MusePaddings.listBottomClearance,

@@ -44,8 +44,7 @@ object MusePaddings {
     /** 卡片内边距(统一所有 Card 的 padding)。 */
     val cardInner = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
 
-    /** 略松的卡片内边距(列表项大留白场景)。 */
-    val cardInnerLoose = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
+
 
     /** section 之间间距。 */
     val sectionGap = 16.dp
@@ -133,7 +132,6 @@ object MusePaddings {
     val maxToolSheetListHeight = 360.dp
 
     /** B7-07: 工具列表行垂直内边距。 */
-    val listRowVertical = 14.dp
 
     /** 图标内边距(图标与相邻文字间距)。 */
     val iconPadding = 8.dp

@@ -2047,7 +2047,7 @@ private fun DocCard(doc: KnowledgeDocEntity, highlight: String?, onClick: () -> 
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
     ) {
         Row(
-            modifier = Modifier.padding(MusePaddings.cardInnerLoose),
+            modifier = Modifier.padding(MusePaddings.cardInner),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
