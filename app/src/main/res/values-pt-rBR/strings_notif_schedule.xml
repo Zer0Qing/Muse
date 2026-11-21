@@ -168,7 +168,6 @@
     <string name="memory_dream_done">Concluído</string>
     <string name="memory_dream_skipped">Ignorado: %1$s</string>
     <string name="offline_resources_title">Recursos offline</string>
-    <string name="offline_resources_desc">Ambiente de execução e modelo de voz local</string>
     <string name="offline_resources_runtime">Ambiente (Node / Python)</string>
     <string name="offline_resources_asr">Modelo de voz local (SenseVoice)</string>
     <string name="offline_resources_asr_open">Abrir ajustes de voz</string>

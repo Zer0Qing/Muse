@@ -53,137 +53,129 @@ internal object HostSettingsCatalog {
     val groups: List<HostSettingsGroup> = listOf(
         group(
             "settings_group_assistants",
-            link("user_profile", "settings_user_profile_title", "settings_screen_desc_user_profile", "user"),
-            link("assistants", "settings_screen_assistant", "settings_screen_assistant_desc", "atom"),
-            link("assistant_resources", "settings_screen_assistant_resources", "settings_screen_assistant_resources_desc", "stars"),
-            link("agent", "chat_agent_tab_title", "settings_screen_agent_desc", "users"),
+            link("user_profile", "settings_user_profile_title", "user"),
+            link("assistants", "settings_screen_assistant", "atom"),
+            link("assistant_resources", "settings_screen_assistant_resources", "stars"),
+            link("agent", "chat_agent_tab_title", "users"),
         ),
         group(
             "settings_group_chat",
-            link("chat", "settings_screen_chat", "settings_screen_chat_desc", "chat"),
+            link("chat", "settings_screen_chat", "chat"),
         ),
         group(
             "settings_group_appearance",
-            link("appearance", "settings_screen_appearance_label", "settings_screen_appearance_desc", "palette"),
+            link("appearance", "settings_screen_appearance_label", "palette"),
         ),
         group(
             "settings_group_models",
-            link("provider", "settings_screen_provider", "settings_screen_provider_desc", "provider"),
-            link("task_routing", "settings_task_routing_title", "settings_screen_task_routing_desc", "taskRouting"),
-            link("provider_plugins", "provider_plugins_title", "settings_screen_desc_provider_plugins", "affiliate"),
+            link("provider", "settings_screen_provider", "provider"),
+            link("task_routing", "settings_task_routing_title", "taskRouting"),
+            link("provider_plugins", "provider_plugins_title", "affiliate"),
         ),
         group(
             "settings_group_tools",
-            link("tools", "settings_screen_tools", "settings_screen_tools_desc", "wrench"),
-            link("permission_wizard", "permission_wizard_title", "permission_wizard_desc_short", "shieldCheck"),
-            link("web_search", "settings_screen_web_search", "settings_screen_web_search_desc", "globe"),
+            link("tools", "settings_screen_tools", "wrench"),
+            link("permission_wizard", "permission_wizard_title", "shieldCheck"),
+            link("web_search", "settings_screen_web_search", "globe"),
         ),
         group(
             "settings_group_voice",
-            link("tts", "settings_screen_media", "settings_screen_media_desc", "microphone"),
-            link("asr", "settings_screen_asr", "settings_screen_asr_desc", "microphone"),
-            link("voice_cloning", "voice_cloning_title", "settings_screen_desc_voice_cloning", "play"),
+            link("tts", "settings_screen_media", "microphone"),
+            link("asr", "settings_screen_asr", "microphone"),
+            link("voice_cloning", "voice_cloning_title", "play"),
         ),
         group(
             "settings_group_image",
-            link("image_video_gen", "video_gen_title", "settings_screen_desc_video_gen", "video"),
-            link("vision", "settings_vision_title", "settings_screen_desc_vision", "image"),
+            link("image_video_gen", "video_gen_title", "video"),
+            link("vision", "settings_vision_title", "image"),
         ),
         group(
             "settings_group_memory",
-            link("memory", "settings_screen_memory_notification", "settings_screen_memory_notification_desc", "atom"),
-            link("rag", "settings_screen_rag", "settings_screen_rag_desc", "book"),
+            link("memory", "settings_screen_memory_notification", "atom"),
+            link("rag", "settings_screen_rag", "book"),
             // v2.7.x(E2): 术语页目前只有 App 侧子页(要读写本机 Room)。
             // 1:1 镜像要求这里同步有条目，但 Web 端补出对应页之前保持 enabled = false，
             // 不造一个点了没反应的假入口(S4 的 diagnostics 走的正是同一套做法)。
-            link("session_terms", "settings_screen_session_terms", "settings_screen_session_terms_desc", "book", enabled = false),
+            link("session_terms", "settings_screen_session_terms", "book", enabled = false),
         ),
         group(
             "settings_group_connection",
-            link("channel", "channel_page_title", "settings_screen_desc_channel", "wifi"),
+            link("channel", "channel_page_title", "wifi"),
             // 内置浏览器设置只有 App 侧有页面（WebView 的引擎与 Cookies 行为没法从网页驱动），
             // 所以这里 enabled = false：Web 端列出但不进子页，不造一个点了没反应的假入口。
-            link("browser", "settings_screen_browser", "settings_screen_browser_desc", "globe", enabled = false),
-            link("web_access", "settings_screen_web_access", "settings_screen_web_access_desc", "router"),
-            link("mcp", "settings_screen_mcp", "settings_screen_mcp_desc", "plug"),
+            link("browser", "settings_screen_browser", "globe", enabled = false),
+            link("web_access", "settings_screen_web_access", "router"),
+            link("mcp", "settings_screen_mcp", "plug"),
             // 代理条目的说明由运行时拼(未启用 / type host:port),没有固定资源。
-            link("proxy", "proxy_title", null, "proxy"),
+            link("proxy", "proxy_title", "proxy"),
         ),
         group(
             "settings_group_automation",
-            link("proactive", "settings_agent_proactive_title", "settings_agent_proactive_subtitle", "bell"),
+            link("proactive", "settings_agent_proactive_title", "bell"),
             // 用户约定只有 App 侧有页面（编辑与注入都在 App 内），Web 端列出但不进子页，
             // 不留一个点了没反应的死行；理由同步登记在 HostSettingsEntryAvailabilityTest。
             link(
                 "agent_directives",
                 "settings_screen_agent_directives",
-                "settings_screen_agent_directives_desc",
                 "bell",
-                enabled = false,
-            ),
+                enabled = false),
             link(
                 "notification_listener",
                 "settings_screen_notification_listener",
-                "settings_screen_notification_listener_desc",
-                "bell",
-            ),
-            link("ui_automation", "automation_settings_title", "automation_settings_subtitle", "computer"),
+                "bell"),
+            link("ui_automation", "automation_settings_title", "computer"),
         ),
         group(
             "settings_group_keep_alive",
-            link("keep_alive", "settings_keep_alive_title", "settings_keep_alive_subtitle", "battery"),
+            link("keep_alive", "settings_keep_alive_title", "battery"),
         ),
         group(
             "settings_group_miniphone",
             link(
                 "miniphone",
                 "settings_miniphone_title",
-                "settings_screen_miniphone_desc",
                 "deviceMobile",
-                enabled = FeatureFlags.MINI_PHONE,
-            ),
+                enabled = FeatureFlags.MINI_PHONE),
         ),
         group(
             "settings_group_data_storage",
-            link("data_management", "data_management_entry", "data_management_entry_desc", "database"),
-            link("workspace", "workspace_title", "workspace_desc", "folder"),
-            link("backup", "settings_screen_data_backup", "settings_screen_data_backup_desc", "cloud"),
-            link("data_import", "settings_screen_data_import", "settings_screen_data_import_desc", "cloudUpload"),
-            link("archived_chats", "settings_screen_entry_archived", "settings_screen_archived_desc", "archive"),
+            link("data_management", "data_management_entry", "database"),
+            link("workspace", "workspace_title", "folder"),
+            link("backup", "settings_screen_data_backup", "cloud"),
+            link("data_import", "settings_screen_data_import", "cloudUpload"),
+            link("archived_chats", "settings_screen_entry_archived", "archive"),
         ),
         // 与 App 侧同步：运行环境独立成「离线资源」一级分组。
         group(
             "offline_resources_title",
-            link("runtime", "offline_resources_title", "offline_resources_desc", "download"),
+            link("runtime", "offline_resources_title", "download"),
         ),
         group(
             "settings_group_privacy_security",
             toggle(
                 "pii_guard",
                 "settings_screen_pii_guard",
-                "settings_screen_pii_guard_desc",
                 "shield",
-                HostSettingKeys.PII_GUARD,
-            ),
-            link("share", "settings_screen_share", "settings_screen_security_desc", "lock"),
+                HostSettingKeys.PII_GUARD),
+            link("share", "settings_screen_share", "lock"),
         ),
         group(
             "settings_group_about",
-            link("tutorial", "settings_screen_tutorial", "settings_screen_tutorial_desc", "school"),
-            link("about", "settings_screen_about", "settings_screen_about_desc", "info"),
-            action("check_update", "settings_screen_check_update", "settings_screen_check_update_desc", "refresh"),
+            link("tutorial", "settings_screen_tutorial", "school"),
+            link("about", "settings_screen_about", "info"),
+            action("check_update", "settings_screen_check_update", "refresh"),
         ),
         group(
             "settings_group_developer",
             // 「运行诊断」在 App 侧已移入开发者组，协议侧必须同步，
             // 否则 Web 设置页的分类归属与 App 不一致。
             // S5 已在 Web 端补出「运行」三 Tab 页(runtime.logs / runtime.diagnostics / runtime.stats)。
-            link("diagnostics", "settings_screen_diagnostics", "settings_screen_diagnostics_desc", "bug"),
-            link("stats", "settings_screen_stats", "settings_screen_stats_desc", "chartBar"),
-            link("experiments", "settings_screen_experiments", "settings_screen_experiments_desc", "flask"),
-            link("debug_log", "settings_screen_debug_log", "settings_screen_debug_log_desc", "bug"),
-            link("crash_report", "settings_crash_page_title", "settings_screen_desc_crash_report", "shieldCheck"),
-            link("audit_log", "settings_audit_log", "settings_screen_desc_audit_log", "history"),
+            link("diagnostics", "settings_screen_diagnostics", "bug"),
+            link("stats", "settings_screen_stats", "chartBar"),
+            link("experiments", "settings_screen_experiments", "flask"),
+            link("debug_log", "settings_screen_debug_log", "bug"),
+            link("crash_report", "settings_crash_page_title", "shieldCheck"),
+            link("audit_log", "settings_audit_log", "history"),
         ),
     ).let(::visibleGroups)
 
@@ -204,31 +196,28 @@ internal object HostSettingsCatalog {
     private fun visibleGroups(all: List<HostSettingsGroup>): List<HostSettingsGroup> =
         all.filter { group -> group.key != "settings_group_miniphone" || FeatureFlags.MINI_PHONE }
 
-    private fun link(id: String, titleKey: String, descKey: String?, iconKey: String, enabled: Boolean = true): HostSettingsEntry =
+    private fun link(id: String, titleKey: String, iconKey: String, enabled: Boolean = true): HostSettingsEntry =
         HostSettingsEntry(
             id = id,
             titleKey = titleKey,
-            descKey = descKey,
             groupKey = "",
             iconKey = iconKey,
             kind = KIND_LINK,
             enabled = enabled,
         )
 
-    private fun action(id: String, titleKey: String, descKey: String?, iconKey: String): HostSettingsEntry = HostSettingsEntry(
+    private fun action(id: String, titleKey: String, iconKey: String): HostSettingsEntry = HostSettingsEntry(
         id = id,
         titleKey = titleKey,
-        descKey = descKey,
         groupKey = "",
         iconKey = iconKey,
         kind = KIND_ACTION,
     )
 
-    private fun toggle(id: String, titleKey: String, descKey: String?, iconKey: String, settingKey: String): HostSettingsEntry =
+    private fun toggle(id: String, titleKey: String, iconKey: String, settingKey: String): HostSettingsEntry =
         HostSettingsEntry(
             id = id,
             titleKey = titleKey,
-            descKey = descKey,
             groupKey = "",
             iconKey = iconKey,
             kind = KIND_SWITCH,

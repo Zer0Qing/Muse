@@ -232,20 +232,13 @@
     <string name="settings_group_section_about">About</string>
     <string name="settings_group_section_developer">Developer</string>
     <string name="settings_screen_appearance_label">Appearance</string>
-    <string name="settings_screen_appearance_desc">Theme / Font Size</string>
     <string name="settings_screen_chat">Chat</string>
-    <string name="settings_screen_chat_desc">Message Display / Interaction / Advanced</string>
     <string name="settings_screen_media">Voice Playback</string>
-    <string name="settings_screen_media_desc">Voice / TTS / Audio Output</string>
     <string name="settings_screen_memory_notification">Memory Center</string>
-    <string name="settings_screen_memory_notification_desc">Today / Short-term / Long-term · Facts · Params</string>
     <string name="settings_screen_data_backup">Full backup</string>
-    <string name="settings_screen_data_backup_desc">Cloud Backup / Web Server</string>
     <string name="settings_screen_data_import">Data Import</string>
-    <string name="settings_screen_data_import_desc">Migrate from RikkaHub / Kelivo</string>
     <!-- Web access (Settings -> Connection): address / PIN / QR code -->
     <string name="settings_screen_web_access">Web access</string>
-    <string name="settings_screen_web_access_desc">Address / PIN / QR code — scan to connect</string>
     <string name="settings_web_access_intro">Open the address below in a browser on your iPhone or PC and enter the PIN to use the web version.</string>
     <string name="settings_web_access_enable">Enable web access</string>
     <string name="settings_web_access_enable_subtitle">Turning it off disconnects other devices right away and frees the port</string>
@@ -262,21 +255,12 @@
     <string name="settings_web_access_tip_same_wifi">Your phone and this device must be on the same Wi-Fi</string>
     <string name="settings_web_access_tip_disable">Turning the switch off disconnects other devices immediately</string>
     <string name="settings_screen_rag">Knowledge Retrieval</string>
-    <string name="settings_screen_rag_desc">RAG Config / Embedding / Chunk Params</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
     <string name="settings_screen_pii_guard">PII Privacy Protection</string>
-    <string name="settings_screen_pii_guard_desc">Auto-mask phone/email/ID card etc. before sending</string>
     <string name="settings_screen_provider">Providers</string>
-    <string name="settings_screen_task_routing_desc">Tiered models for background tasks (small/large/vision)</string>
-    <string name="settings_screen_provider_desc">Manage model providers, API keys and web search</string>
     <string name="settings_screen_assistant">Assistants</string>
-    <string name="settings_screen_assistant_desc">Manage assistants, models, personas and world books</string>
-    <string name="settings_screen_agent_desc">Assistant Selection / Collaboration / Proactive Messages</string>
-    <string name="settings_screen_security_desc">Share Template / Export Settings</string>
     <string name="settings_screen_experiments">Experimental</string>
-    <string name="settings_screen_experiments_desc">Unstable feature toggles</string>
     <string name="settings_screen_stats">Statistics</string>
-    <string name="settings_screen_stats_desc">View usage stats and heatmap</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Notification Listener</string>
     <string name="channel_page_title">Message channels</string>
@@ -434,20 +418,14 @@
     <string name="channel_dingtalk_hint">Corp ID and app credentials use the current token API; Client ID and Client Secret also open the Stream connection. Robot Code sends replies. API Base URL defaults to https://api.dingtalk.com/v1.0</string>
     <string name="channel_feishu_hint">Get from Feishu Open Platform; events use long connection, no local callback URL needed</string>
     <string name="channel_qq_hint">Get from QQ Bot Open Platform (q.qq.com/qqbot)</string>
-    <string name="settings_screen_notification_listener_desc">Authorize AI to read other apps\' notifications</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">AI Tools</string>
-    <string name="settings_screen_tools_desc">View tools and permissions AI can invoke</string>
     <string name="settings_screen_about">About</string>
     <string name="settings_screen_tutorial">Tutorial</string>
-    <string name="settings_screen_tutorial_desc">Onboarding / Feature Guide</string>
-    <string name="settings_screen_about_desc">Version / Open-source Licenses</string>
     <string name="settings_screen_debug_log">Debug Log</string>
-    <string name="settings_screen_debug_log_desc">View app logs and errors</string>
 
     <!-- v1.133: Check for updates entry in About group -->
     <string name="settings_screen_check_update">Check for updates</string>
-    <string name="settings_screen_check_update_desc">Check GitHub for new releases</string>
 
     <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_hint">Search settings…</string>
@@ -658,13 +636,9 @@
 
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Web Search</string>
-    <string name="settings_screen_web_search_desc">Search engine / API Key / endpoint</string>
     <string name="settings_screen_asr">Speech Recognition</string>
-    <string name="settings_screen_asr_desc">Speech-to-text (System / DashScope / Step)</string>
     <string name="settings_screen_mcp">Connected servers</string>
-    <string name="settings_screen_mcp_desc">Model Context Protocol tool servers</string>
     <string name="settings_screen_assistant_resources">Assistant Resources</string>
-    <string name="settings_screen_assistant_resources_desc">Favorites / lorebooks / quick messages / prompt injection / skills</string>
     <string name="settings_assistant_resources_title">Assistant Resources</string>
     <string name="video_gen_title">Video Generation</string>
     <string name="video_gen_prompt">Describe the video you want to generate</string>
@@ -713,7 +687,6 @@
     <string name="workspace_attachments">Attachments</string>
     <string name="workspace_download">Downloads</string>
     <string name="workspace_resume">Resumes</string>
-    <string name="workspace_desc">Local file management and temporary storage</string>
     <string name="workspace_empty">Workspace is empty</string>
     <string name="workspace_new_file">New File</string>
     <string name="workspace_new_folder">New Folder</string>
@@ -804,10 +777,8 @@
     <string name="settings_screen_entry_rag_model">Retrieval model</string>
     <string name="settings_screen_entry_chunking">Chunking strategy</string>
     <string name="settings_screen_entry_tool_approval">Tool approval mode</string>
-    <string name="settings_screen_tool_approval_desc">Per-tool confirmation policy: always allow / ask every time / always deny</string>
     <string name="settings_screen_entry_collab">Collaborative assistants</string>
 
-    <string name="settings_screen_archived_desc">View and restore archived sessions</string>
     <!-- v1.x: share settings page (formerly "Security & Sharing"; app lock / search engine removed) -->
     <string name="settings_screen_share">Share</string>
     <string name="settings_share_page_title">Share</string>
@@ -815,7 +786,6 @@
         <item quantity="one">%1$d result found</item>
         <item quantity="other">%1$d results found</item>
     </plurals>
-    <string name="settings_screen_miniphone_desc">Early version of an experimental feature</string>
     <string name="model_diff_clear_add">Clear new models</string>
     <string name="model_diff_clear_remove">Clear removed models</string>
     <string name="chat_fork_success">A new session was created from the current conversation</string>

@@ -157,7 +157,6 @@
     <string name="data_management_reset_memory_confirm">Reset all memory? AI will forget what it knows about you.</string>
     <string name="data_management_reset_memory_done">Memory reset</string>
     <string name="data_management_entry">Data Management</string>
-    <string name="data_management_entry_desc">View usage, clear cache and manage data</string>
 
     <!-- v2.0: Memory filters -->
 

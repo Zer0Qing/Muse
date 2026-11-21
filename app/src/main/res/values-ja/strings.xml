@@ -127,7 +127,6 @@
     <string name="data_management_reset_memory_confirm">すべてのメモリをリセットしますか?</string>
     <string name="data_management_reset_memory_done">メモリリセット</string>
     <string name="data_management_entry">データ管理</string>
-    <string name="data_management_entry_desc">使用状況の表示、キャッシュのクリア、データの管理</string>
 
     <!-- v2.0: Memory filters -->
 

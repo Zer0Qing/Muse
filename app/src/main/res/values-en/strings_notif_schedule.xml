@@ -171,7 +171,6 @@
     <string name="memory_dream_done">Done</string>
     <string name="memory_dream_skipped">Skipped: %1$s</string>
     <string name="offline_resources_title">Offline resources</string>
-    <string name="offline_resources_desc">Runtime and local speech model</string>
     <string name="offline_resources_runtime">Runtime (Node / Python)</string>
     <string name="offline_resources_asr">Local speech model (SenseVoice)</string>
     <string name="offline_resources_asr_open">Open speech settings</string>

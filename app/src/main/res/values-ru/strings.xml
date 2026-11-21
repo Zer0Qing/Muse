@@ -127,7 +127,6 @@
     <string name="data_management_reset_memory_confirm">Сбросить всю память?</string>
     <string name="data_management_reset_memory_done">Сброс памяти</string>
     <string name="data_management_entry">Управление данными</string>
-    <string name="data_management_entry_desc">Просмотр использования, очистка кэша и управление данными</string>
 
     <!-- v2.0: Memory filters -->
 

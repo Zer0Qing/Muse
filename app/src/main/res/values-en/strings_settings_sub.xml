@@ -787,7 +787,6 @@
     <string name="settings_agent_timing_scoring_title">Smart timing</string>
     <string name="settings_agent_timing_scoring_subtitle">Before speaking it weighs recent feedback: an unanswered last message, unread backlog or late-night hours lower the odds; a due thought restores them. Intervals, budget and quiet hours are unaffected.</string>
     <string name="settings_screen_diagnostics">Diagnostics</string>
-    <string name="settings_screen_diagnostics_desc">Storage, main-thread jank, Web Host latency and background jobs, with sanitized JSON export</string>
     <string name="settings_diagnostics_loading">Collecting…</string>
     <string name="settings_diagnostics_actions">Export</string>
     <string name="settings_diagnostics_export_hint">The export contains only sizes, counts and states — no messages, paths or credentials</string>
@@ -820,7 +819,6 @@
     <string name="settings_diagnostics_bg_error">Collect failed</string>
     <string name="settings_diagnostics_bg_none">No registered jobs (background scheduling may never have been enabled)</string>
     <string name="settings_screen_session_terms">Assistant terms</string>
-    <string name="settings_screen_session_terms_desc">New words and jargon from your chats; only confirmed ones become established usage</string>
     <string name="settings_session_terms_loading">Loading terms…</string>
     <string name="settings_session_terms_empty">No terms yet. Words you explain in conversation appear here automatically.</string>
     <string name="settings_session_terms_awaiting">%1$d awaiting confirmation</string>

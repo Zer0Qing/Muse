@@ -762,7 +762,6 @@
     <string name="settings_agent_timing_scoring_title">Momento oportuno inteligente</string>
     <string name="settings_agent_timing_scoring_subtitle">Antes de hablar valora las reacciones recientes: sin respuesta previa, mensajes sin leer o madrugada bajan la probabilidad; un asunto pendiente la recupera. Intervalos, cupo y silencio no cambian.</string>
     <string name="settings_screen_diagnostics">Diagnóstico</string>
-    <string name="settings_screen_diagnostics_desc">Almacenamiento, bloqueos del hilo principal, latencia de Web Host y tareas en segundo plano, con exportación JSON sin datos sensibles</string>
     <string name="settings_diagnostics_loading">Recogiendo…</string>
     <string name="settings_diagnostics_actions">Exportar</string>
     <string name="settings_diagnostics_export_hint">La exportación solo incluye tamaños, conteos y estados: sin mensajes, rutas ni credenciales</string>
@@ -794,7 +793,6 @@
     <string name="settings_diagnostics_bg_error">Fallo al recoger</string>
     <string name="settings_diagnostics_bg_none">Sin tareas registradas (puede que la programación en segundo plano nunca se haya activado)</string>
     <string name="settings_screen_session_terms">Términos del asistente</string>
-    <string name="settings_screen_session_terms_desc">Palabras nuevas y jerga de tus chats; solo las confirmadas pasan a usarse como dadas</string>
     <string name="settings_session_terms_loading">Cargando términos…</string>
     <string name="settings_session_terms_empty">Aún no hay términos. Las palabras que expliques en la conversación aparecerán aquí.</string>
     <string name="settings_session_terms_awaiting">%1$d esperando confirmación</string>

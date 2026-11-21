@@ -223,20 +223,13 @@
     <string name="settings_group_section_about">Acerca de</string>
     <string name="settings_group_section_developer">Desarrollador</string>
     <string name="settings_screen_appearance_label">Apariencia</string>
-    <string name="settings_screen_appearance_desc">Tema/Tamaño de fuente</string>
     <string name="settings_screen_chat">Chat</string>
-    <string name="settings_screen_chat_desc">Visualización de mensajes / Interacción / Avanzado</string>
     <string name="settings_screen_media">Reproducción de voz</string>
-    <string name="settings_screen_media_desc">Voz / TTS / Salida de audio</string>
     <string name="settings_screen_memory_notification">Centro de memoria</string>
-    <string name="settings_screen_memory_notification_desc">Hoy / Corto plazo / Largo plazo · Hechos · Parámetros</string>
     <string name="settings_screen_data_backup">Copia completa</string>
-    <string name="settings_screen_data_backup_desc">Copia de seguridad en la nube/servidor web</string>
     <string name="settings_screen_data_import">Importación de datos</string>
-    <string name="settings_screen_data_import_desc">Migrar desde RikkaHub / Kelivo</string>
     <!-- Acceso web (Ajustes -> Conexión): dirección / PIN / código QR -->
     <string name="settings_screen_web_access">Acceso web</string>
-    <string name="settings_screen_web_access_desc">Dirección / PIN / código QR: escanea y conecta</string>
     <string name="settings_web_access_intro">Abre la dirección de abajo en el navegador de tu iPhone u ordenador e introduce el PIN para usar la versión web.</string>
     <string name="settings_web_access_enable">Activar acceso web</string>
     <string name="settings_web_access_enable_subtitle">Al desactivarlo, los demás dispositivos se desconectan al instante y se libera el puerto</string>
@@ -253,21 +246,12 @@
     <string name="settings_web_access_tip_same_wifi">El móvil y este dispositivo deben estar en la misma Wi-Fi</string>
     <string name="settings_web_access_tip_disable">Si desactivas el interruptor, los demás dispositivos se desconectan de inmediato</string>
     <string name="settings_screen_rag">Recuperación de conocimientos</string>
-    <string name="settings_screen_rag_desc">Configuración RAG / Embeddings / Parámetros de fragmentos</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
     <string name="settings_screen_pii_guard">Protección de privacidad (PII)</string>
-    <string name="settings_screen_pii_guard_desc">Enmascarar automáticamente el teléfono/correo electrónico/tarjeta de identificación, etc. antes de enviar</string>
     <string name="settings_screen_provider">Proveedores</string>
-    <string name="settings_screen_task_routing_desc">Modelos por niveles para tareas en segundo plano (pequeño/grande/visión)</string>
-    <string name="settings_screen_provider_desc">Administrar proveedores de modelos, claves API y búsqueda web</string>
     <string name="settings_screen_assistant">Asistentes</string>
-    <string name="settings_screen_assistant_desc">Gestionar asistentes, modelos, personajes y libros de trasfondo</string>
-    <string name="settings_screen_agent_desc">Selección de asistente / Colaboración / Mensajes proactivos</string>
-    <string name="settings_screen_security_desc">Plantilla de compartir / Ajustes de exportación</string>
     <string name="settings_screen_experiments">Experimental</string>
-    <string name="settings_screen_experiments_desc">Interruptores de funciones inestables</string>
     <string name="settings_screen_stats">Estadísticas</string>
-    <string name="settings_screen_stats_desc">Ver estadísticas de uso y mapa de calor</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Escucha de notificaciones</string>
     <string name="connection_center_title">Extensiones y conexiones</string>
@@ -338,20 +322,14 @@
     <string name="channel_weclaw_status_expired">El código QR caducó, inténtalo de nuevo</string>
     <string name="channel_telegram_hint">Obtén el Bot Token de @BotFather; como destino, pon el chat_id (puedes dejarlo vacío y la respuesta automática irá al remitente).</string>
     <string name="channel_dingtalk_hint">Corp ID y las credenciales de la aplicación se usan con la nueva API de tokens; Client ID y Client Secret también sirven para establecer la conexión persistente Stream, y Robot Code se usa para enviar las respuestas. URL base de la API predeterminada: https://api.dingtalk.com/v1.0</string>
-    <string name="settings_screen_notification_listener_desc">Tras autorizarlo, la IA puede leer las notificaciones de otras aplicaciones</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Herramientas de IA</string>
-    <string name="settings_screen_tools_desc">Ver herramientas y permisos que la IA puede invocar</string>
     <string name="settings_screen_about">Acerca de</string>
     <string name="settings_screen_tutorial">Tutorial</string>
-    <string name="settings_screen_tutorial_desc">Primeros pasos / Guía de funciones</string>
-    <string name="settings_screen_about_desc">Versión / Licencias de código abierto</string>
     <string name="settings_screen_debug_log">Registro de depuración</string>
-    <string name="settings_screen_debug_log_desc">Ver registros y errores de la aplicación</string>
 
     <!-- v1.133: Check for updates entry in About group -->
     <string name="settings_screen_check_update">Buscar actualizaciones</string>
-    <string name="settings_screen_check_update_desc">Comprobar si hay versiones nuevas en GitHub</string>
 
     <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_hint">Buscar en ajustes…</string>
@@ -560,13 +538,9 @@
 
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Búsqueda web</string>
-    <string name="settings_screen_web_search_desc">Motor de búsqueda/clave API/endpoint</string>
     <string name="settings_screen_asr">Reconocimiento de voz</string>
-    <string name="settings_screen_asr_desc">Voz a texto (Sistema / DashScope / Step)</string>
     <string name="settings_screen_mcp">Servidores conectados</string>
-    <string name="settings_screen_mcp_desc">Servidores de herramientas del Protocolo de Contexto de Modelo (MCP)</string>
     <string name="settings_screen_assistant_resources">Recursos del asistente</string>
-    <string name="settings_screen_assistant_resources_desc">Favoritos / Libros de trasfondo / Mensajes rápidos / Inyección de prompt / Habilidades</string>
     <string name="settings_assistant_resources_title">Recursos del asistente</string>
     <string name="video_gen_title">Generación de vídeo</string>
     <string name="video_gen_prompt">Describe el vídeo que deseas generar.</string>
@@ -615,7 +589,6 @@
     <string name="workspace_attachments">Adjuntos</string>
     <string name="workspace_download">Descargas</string>
     <string name="workspace_resume">Currículos</string>
-    <string name="workspace_desc">Gestión de archivos locales y almacenamiento temporal.</string>
     <string name="workspace_empty">El espacio de trabajo está vacío</string>
     <string name="workspace_new_file">Nuevo archivo</string>
     <string name="workspace_new_folder">Nueva carpeta</string>
@@ -698,16 +671,13 @@
     <string name="settings_screen_entry_rag_model">Modelo de recuperación</string>
     <string name="settings_screen_entry_chunking">Estrategia de fragmentación</string>
     <string name="settings_screen_entry_tool_approval">Modo de aprobación de herramientas</string>
-    <string name="settings_screen_tool_approval_desc">Política por herramienta: permitir siempre / preguntar siempre / denegar siempre</string>
     <string name="settings_screen_entry_collab">Asistente colaborativo</string>
-    <string name="settings_screen_archived_desc">Ver y restaurar conversaciones archivadas</string>
     <string name="settings_screen_share">Compartir</string>
     <string name="settings_share_page_title">Compartir</string>
     <plurals name="settings_search_result_count">
         <item quantity="one">%1$d resultado encontrado</item>
         <item quantity="other">%1$d resultados encontrados</item>
     </plurals>
-    <string name="settings_screen_miniphone_desc">Versión inicial de una función experimental</string>
     <string name="model_diff_clear_add">Limpiar modelos nuevos</string>
     <string name="model_diff_clear_remove">Limpiar modelos eliminados</string>
     <!-- v1.0.85: release localization -->

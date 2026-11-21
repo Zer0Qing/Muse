@@ -174,8 +174,6 @@ sealed interface SettingsEntryAction {
 data class SettingsEntrySpec(
     val id: SettingsEntryId,
     @StringRes val titleRes: Int,
-    /** 说明文案；由运行时拼出的说明（如代理状态）为 null。 */
-    @StringRes val descRes: Int? = null,
     val icon: ImageVector,
     val action: SettingsEntryAction,
     /** 搜索关键词（中文近义词 + 拼音首字母）；空表示只靠标题命中。 */
@@ -239,7 +237,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.USER_PROFILE,
                     R.string.settings_user_profile_title,
-                    R.string.settings_screen_desc_user_profile,
                     MuseIcons.user,
                     SettingsEntryAction.Navigate(UserProfileEditRoute),
                     keywords = listOf(
@@ -250,7 +247,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.ASSISTANTS,
                     R.string.settings_screen_assistant,
-                    R.string.settings_screen_assistant_desc,
                     MuseIcons.atom,
                     SettingsEntryAction.Navigate(AssistantsRoute),
                     keywords = listOf("助手", "assistant", "角色", "人设", "zhushou", "juese", "renshe", "zs", "js", "rs"),
@@ -258,7 +254,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.ASSISTANT_RESOURCES,
                     R.string.settings_screen_assistant_resources,
-                    R.string.settings_screen_assistant_resources_desc,
                     MuseIcons.stars,
                     SettingsEntryAction.Navigate(SettingsAssistantResourcesRoute),
                     keywords = listOf(
@@ -270,7 +265,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.AGENT,
                     R.string.chat_agent_tab_title,
-                    R.string.settings_screen_agent_desc,
                     MuseIcons.users,
                     SettingsEntryAction.Navigate(SettingsAgentRoute),
                     keywords = listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"),
@@ -285,7 +279,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.CHAT,
                     R.string.settings_screen_chat,
-                    R.string.settings_screen_chat_desc,
                     MuseIcons.chat,
                     SettingsEntryAction.Navigate(SettingsChatRoute),
                     keywords = listOf(
@@ -304,7 +297,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.APPEARANCE,
                     R.string.settings_screen_appearance_label,
-                    R.string.settings_screen_appearance_desc,
                     MuseIcons.palette,
                     SettingsEntryAction.Navigate(SettingsAppearanceRoute),
                     keywords = listOf(
@@ -322,7 +314,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.PROVIDER,
                     R.string.settings_screen_provider,
-                    R.string.settings_screen_provider_desc,
                     MuseIcons.provider,
                     SettingsEntryAction.Navigate(SettingsModelRoute),
                     keywords = listOf(
@@ -336,7 +327,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.TASK_ROUTING,
                     R.string.settings_task_routing_title,
-                    R.string.settings_screen_task_routing_desc,
                     MuseIcons.taskRouting,
                     SettingsEntryAction.Navigate(SettingsTaskRoutingRoute),
                     keywords = listOf(
@@ -349,7 +339,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.PROVIDER_PLUGINS,
                     R.string.provider_plugins_title,
-                    R.string.settings_screen_desc_provider_plugins,
                     MuseIcons.affiliate,
                     SettingsEntryAction.Navigate(PluginManageRoute),
                     keywords = listOf(
@@ -367,7 +356,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.TOOLS,
                     R.string.settings_screen_tools,
-                    R.string.settings_screen_tools_desc,
                     MuseIcons.wrench,
                     SettingsEntryAction.Navigate(ToolsScreenRoute),
                     keywords = listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"),
@@ -376,7 +364,6 @@ object SettingsCatalog {
                     SettingsEntryId.PERMISSION_WIZARD,
                     R.string.permission_wizard_title,
                     // 20②: 外层只给一行；三通道权限模型的细节留在向导内页。
-                    R.string.permission_wizard_desc_short,
                     MuseIcons.shieldCheck,
                     SettingsEntryAction.Navigate(SettingsPermissionWizardRoute),
                     keywords = listOf("权限", "向导", "无障碍", "Shizuku", "Root", "quanxian", "xiangdao", "wuzhangai", "qx", "xd", "wza"),
@@ -384,7 +371,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.WEB_SEARCH,
                     R.string.settings_screen_web_search,
-                    R.string.settings_screen_web_search_desc,
                     MuseIcons.globe,
                     SettingsEntryAction.Navigate(SettingsWebSearchRoute),
                     keywords = listOf(
@@ -399,7 +385,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.TOOL_APPROVAL,
                     R.string.settings_screen_entry_tool_approval,
-                    R.string.settings_screen_tool_approval_desc,
                     MuseIcons.shieldCheck,
                     SettingsEntryAction.Navigate(ToolsSettingsRoute),
                     keywords = listOf(
@@ -418,7 +403,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.TTS,
                     R.string.settings_screen_media,
-                    R.string.settings_screen_media_desc,
                     MuseIcons.microphone,
                     SettingsEntryAction.Navigate(SettingsMediaRoute),
                     keywords = listOf(
@@ -429,7 +413,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.ASR,
                     R.string.settings_screen_asr,
-                    R.string.settings_screen_asr_desc,
                     MuseIcons.microphone,
                     SettingsEntryAction.Navigate(SettingsAsrRoute),
                     keywords = listOf(
@@ -440,7 +423,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.VOICE_CLONING,
                     R.string.voice_cloning_title,
-                    R.string.settings_screen_desc_voice_cloning,
                     MuseIcons.play,
                     SettingsEntryAction.Navigate(VoiceCloningRoute),
                     keywords = listOf(
@@ -458,7 +440,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.IMAGE_VIDEO_GEN,
                     R.string.video_gen_title,
-                    R.string.settings_screen_desc_video_gen,
                     MuseIcons.video,
                     SettingsEntryAction.Navigate(VideoGenerationRoute),
                     keywords = listOf(
@@ -470,7 +451,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.VISION,
                     R.string.settings_vision_title,
-                    R.string.settings_screen_desc_vision,
                     MuseIcons.image,
                     SettingsEntryAction.Navigate(SettingsVisionRoute),
                     keywords = listOf(
@@ -490,7 +470,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.MEMORY,
                     R.string.settings_screen_memory_notification,
-                    R.string.settings_screen_memory_notification_desc,
                     MuseIcons.atom,
                     SettingsEntryAction.Navigate(SettingsMemoryRoute),
                     keywords = listOf(
@@ -501,7 +480,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.RAG,
                     R.string.settings_screen_rag,
-                    R.string.settings_screen_rag_desc,
                     MuseIcons.book,
                     SettingsEntryAction.Navigate(SettingsRagRoute),
                     keywords = listOf(
@@ -513,7 +491,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.SESSION_TERMS,
                     R.string.settings_screen_session_terms,
-                    R.string.settings_screen_session_terms_desc,
                     MuseIcons.book,
                     SettingsEntryAction.Navigate(SettingsSessionTermsRoute),
                     keywords = listOf(
@@ -533,7 +510,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.CHANNEL,
                     R.string.channel_page_title,
-                    R.string.settings_screen_desc_channel,
                     MuseIcons.wifi,
                     SettingsEntryAction.Navigate(ChannelSettingsRoute),
                     keywords = listOf(
@@ -545,7 +521,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.BROWSER,
                     R.string.settings_screen_browser,
-                    R.string.settings_screen_browser_desc,
                     MuseIcons.globe,
                     SettingsEntryAction.Navigate(SettingsBrowserRoute),
                     keywords = listOf(
@@ -556,7 +531,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.WEB_ACCESS,
                     R.string.settings_screen_web_access,
-                    R.string.settings_screen_web_access_desc,
                     MuseIcons.router,
                     SettingsEntryAction.Navigate(SettingsWebAccessRoute),
                     keywords = listOf(
@@ -571,7 +545,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.MCP,
                     R.string.settings_screen_mcp,
-                    R.string.settings_screen_mcp_desc,
                     MuseIcons.plug,
                     SettingsEntryAction.Navigate(SettingsMcpRoute),
                     keywords = listOf("MCP", "mcp", "服务器", "Model Context Protocol", "工具协议", "fuwuqi", "gongjixieyi", "fwq", "gjxy"),
@@ -580,7 +553,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.PROXY,
                     R.string.proxy_title,
-                    null,
                     MuseIcons.proxy,
                     SettingsEntryAction.Navigate(SettingsProxyRoute),
                     keywords = listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"),
@@ -595,7 +567,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.PROACTIVE,
                     R.string.settings_agent_proactive_title,
-                    R.string.settings_agent_proactive_subtitle,
                     MuseIcons.bell,
                     SettingsEntryAction.Navigate(SettingsProactiveRoute),
                     keywords = listOf(
@@ -606,7 +577,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.AGENT_DIRECTIVES,
                     R.string.settings_screen_agent_directives,
-                    R.string.settings_screen_agent_directives_desc,
                     MuseIcons.bell,
                     SettingsEntryAction.Navigate(SettingsAgentDirectivesRoute),
                     keywords = listOf(
@@ -617,7 +587,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.NOTIFICATION_LISTENER,
                     R.string.settings_screen_notification_listener,
-                    R.string.settings_screen_notification_listener_desc,
                     MuseIcons.bell,
                     SettingsEntryAction.Navigate(NotificationListenerRoute),
                     keywords = listOf(
@@ -628,7 +597,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.UI_AUTOMATION,
                     R.string.automation_settings_title,
-                    R.string.automation_settings_subtitle,
                     MuseIcons.computer,
                     SettingsEntryAction.Navigate(SettingsAutomationRoute),
                     keywords = listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"),
@@ -643,7 +611,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.KEEP_ALIVE,
                     R.string.settings_keep_alive_title,
-                    R.string.settings_keep_alive_subtitle,
                     MuseIcons.battery,
                     SettingsEntryAction.Navigate(KeepAliveSettingsRoute),
                     keywords = listOf(
@@ -662,7 +629,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.MINIPHONE,
                     R.string.settings_miniphone_title,
-                    R.string.settings_screen_miniphone_desc,
                     MuseIcons.deviceMobile,
                     SettingsEntryAction.Navigate(MiniPhoneRoute),
                     keywords = listOf(
@@ -683,7 +649,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.DATA_MANAGEMENT,
                     R.string.data_management_entry,
-                    R.string.data_management_entry_desc,
                     MuseIcons.database,
                     SettingsEntryAction.Navigate(DataManagementRoute),
                     keywords = listOf(
@@ -694,7 +659,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.WORKSPACE,
                     R.string.workspace_title,
-                    R.string.workspace_desc,
                     MuseIcons.folder,
                     SettingsEntryAction.Navigate(WorkspaceRoute()),
                     keywords = listOf(
@@ -705,7 +669,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.BACKUP,
                     R.string.settings_screen_data_backup,
-                    R.string.settings_screen_data_backup_desc,
                     MuseIcons.cloud,
                     SettingsEntryAction.Navigate(SettingsDataRoute),
                     keywords = listOf(
@@ -716,7 +679,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.DATA_IMPORT,
                     R.string.settings_screen_data_import,
-                    R.string.settings_screen_data_import_desc,
                     MuseIcons.cloudUpload,
                     SettingsEntryAction.Navigate(SettingsDataImportRoute),
                     keywords = listOf("数据导入", "导入", "import", "恢复数据", "shujudaoru", "daoru", "huifushuju", "sjdr", "dr", "hfsj"),
@@ -724,7 +686,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.ARCHIVED_CHATS,
                     R.string.settings_screen_entry_archived,
-                    R.string.settings_screen_archived_desc,
                     MuseIcons.archive,
                     SettingsEntryAction.Navigate(ArchivedChatsRoute),
                     keywords = listOf("归档", "archive", "已归档", "guidang", "gd"),
@@ -744,7 +705,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.RUNTIME,
                     R.string.offline_resources_entry_title,
-                    R.string.offline_resources_desc,
                     MuseIcons.download,
                     SettingsEntryAction.Navigate(SettingsRuntimeRoute),
                     keywords = listOf(
@@ -764,7 +724,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.PII_GUARD,
                     R.string.settings_screen_pii_guard,
-                    R.string.settings_screen_pii_guard_desc,
                     MuseIcons.shield,
                     SettingsEntryAction.Toggle(
                         key = SettingsToggleKey.PII_GUARD,
@@ -777,7 +736,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.SHARE,
                     R.string.settings_screen_share,
-                    R.string.settings_screen_security_desc,
                     MuseIcons.lock,
                     SettingsEntryAction.Navigate(SettingsSecurityRoute),
                     keywords = listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"),
@@ -792,7 +750,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.TUTORIAL,
                     R.string.settings_screen_tutorial,
-                    R.string.settings_screen_tutorial_desc,
                     MuseIcons.school,
                     SettingsEntryAction.Navigate(SettingsTutorialRoute),
                     keywords = listOf(
@@ -802,7 +759,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.ABOUT,
                     R.string.settings_screen_about,
-                    R.string.settings_screen_about_desc,
                     MuseIcons.info,
                     SettingsEntryAction.Navigate(SettingsAboutRoute),
                     keywords = listOf("关于", "版本", "about", "信息", "guanyu", "banben", "xinxi", "gy", "bb", "xx"),
@@ -810,7 +766,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.CHECK_UPDATE,
                     R.string.settings_screen_check_update,
-                    R.string.settings_screen_check_update_desc,
                     MuseIcons.refresh,
                     SettingsEntryAction.Action(SettingsActionId.CHECK_UPDATE),
                     keywords = listOf("检查更新", "更新", "update", "版本", "升级", "jianchagengxin", "gengxin", "shengji", "jcgc", "gx", "sj"),
@@ -827,7 +782,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.DIAGNOSTICS,
                     R.string.settings_screen_diagnostics,
-                    R.string.settings_screen_diagnostics_desc,
                     MuseIcons.bug,
                     SettingsEntryAction.Navigate(SettingsDiagnosticsRoute),
                     keywords = listOf(
@@ -837,7 +791,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.STATS,
                     R.string.settings_screen_stats,
-                    R.string.settings_screen_stats_desc,
                     MuseIcons.chartBar,
                     SettingsEntryAction.Navigate(StatsRoute),
                     keywords = listOf(
@@ -848,7 +801,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.EXPERIMENTS,
                     R.string.settings_screen_experiments,
-                    R.string.settings_screen_experiments_desc,
                     MuseIcons.flask,
                     SettingsEntryAction.Navigate(SettingsExperimentsRoute),
                     keywords = listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "syx", "sy"),
@@ -856,7 +808,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.DEBUG_LOG,
                     R.string.settings_screen_debug_log,
-                    R.string.settings_screen_debug_log_desc,
                     MuseIcons.bug,
                     SettingsEntryAction.Navigate(DebugRoute),
                     keywords = listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"),
@@ -864,7 +815,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.CRASH_REPORT,
                     R.string.settings_crash_page_title,
-                    R.string.settings_screen_desc_crash_report,
                     MuseIcons.shieldCheck,
                     SettingsEntryAction.Navigate(SettingsCrashReportRoute),
                     keywords = listOf("崩溃", "崩溃上报", "crash", "报告", "诊断", "bengkui", "baogao", "zhenduan", "bk", "bg", "zd"),
@@ -872,7 +822,6 @@ object SettingsCatalog {
                 entry(
                     SettingsEntryId.AUDIT_LOG,
                     R.string.settings_audit_log,
-                    R.string.settings_screen_desc_audit_log,
                     MuseIcons.history,
                     SettingsEntryAction.Navigate(AuditLogRoute),
                     keywords = listOf(
@@ -907,7 +856,6 @@ object SettingsCatalog {
     private fun entry(
         id: SettingsEntryId,
         @StringRes titleRes: Int,
-        @StringRes descRes: Int?,
         icon: ImageVector,
         action: SettingsEntryAction,
         keywords: List<String> = emptyList(),
@@ -915,7 +863,6 @@ object SettingsCatalog {
     ): SettingsEntrySpec = SettingsEntrySpec(
         id = id,
         titleRes = titleRes,
-        descRes = descRes,
         icon = icon,
         action = action,
         keywords = keywords,

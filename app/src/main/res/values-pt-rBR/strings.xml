@@ -127,7 +127,6 @@
     <string name="data_management_reset_memory_confirm">Redefinir toda a memória?</string>
     <string name="data_management_reset_memory_done">Redefinição de memória</string>
     <string name="data_management_entry">Gerenciamento de dados</string>
-    <string name="data_management_entry_desc">Visualize o uso, limpe o cache e gerencie dados</string>
 
     <!-- v2.0: Memory filters -->
 

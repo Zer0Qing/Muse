@@ -762,7 +762,6 @@
     <string name="settings_agent_timing_scoring_title">Momento inteligente</string>
     <string name="settings_agent_timing_scoring_subtitle">Antes de falar, pondera reações recentes: última mensagem sem resposta, backlog não lido ou madrugada reduzem a probabilidade; um assunto pendente a recupera. Intervalos, limite e silêncio não mudam.</string>
     <string name="settings_screen_diagnostics">Diagnóstico</string>
-    <string name="settings_screen_diagnostics_desc">Armazenamento, thread principal, latência do Host Web e tarefas em segundo plano, com exportação JSON sem dados sensíveis</string>
     <string name="settings_diagnostics_loading">Coletando…</string>
     <string name="settings_diagnostics_actions">Exportar</string>
     <string name="settings_diagnostics_export_hint">A exportação contém apenas tamanhos, contagens e estados — sem mensagens, caminhos ou credenciais</string>
@@ -794,7 +793,6 @@
     <string name="settings_diagnostics_bg_error">Falha na coleta</string>
     <string name="settings_diagnostics_bg_none">Sem tarefas registradas (o agendamento em segundo plano talvez nunca tenha sido ativado)</string>
     <string name="settings_screen_session_terms">Termos do assistente</string>
-    <string name="settings_screen_session_terms_desc">Palavras novas e jargão das suas conversas; só os confirmados viram uso estabelecido</string>
     <string name="settings_session_terms_loading">Carregando termos…</string>
     <string name="settings_session_terms_empty">Nenhum termo ainda. Palavras que você explicar na conversa aparecem aqui sozinhas.</string>
     <string name="settings_session_terms_awaiting">%1$d aguardando confirmação</string>

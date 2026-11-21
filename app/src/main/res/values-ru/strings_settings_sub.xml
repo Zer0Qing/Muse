@@ -762,7 +762,6 @@
     <string name="settings_agent_timing_scoring_title">Умный момент</string>
     <string name="settings_agent_timing_scoring_subtitle">Перед сообщением учитывает свежие реакции: нет ответа на прошлое, непрочитанное или ночное время снижают вероятность; назревшая тема повышает. Интервалы, лимит и тихие часы не меняются.</string>
     <string name="settings_screen_diagnostics">Диагностика</string>
-    <string name="settings_screen_diagnostics_desc">Хранилище, основной поток, задержки Web Host и фоновые задачи; экспорт JSON без секретов</string>
     <string name="settings_diagnostics_loading">Сбор…</string>
     <string name="settings_diagnostics_actions">Экспорт</string>
     <string name="settings_diagnostics_export_hint">В экспорте только размеры, счётчики и состояния — без сообщений, путей и учётных данных</string>
@@ -794,7 +793,6 @@
     <string name="settings_diagnostics_bg_error">Сбор не удался</string>
     <string name="settings_diagnostics_bg_none">Нет зарегистрированных задач (фоновая отправка, вероятно, не включалась)</string>
     <string name="settings_screen_session_terms">Термины ассистента</string>
-    <string name="settings_screen_session_terms_desc">Новые слова и жаргон из переписки: подтверждённые становятся принятым употреблением</string>
     <string name="settings_session_terms_loading">Загрузка терминов…</string>
     <string name="settings_session_terms_empty">Терминов пока нет. Слова, которые вы объясняете в переписке, появятся здесь сами.</string>
     <string name="settings_session_terms_awaiting">Ждут подтверждения: %1$d</string>

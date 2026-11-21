@@ -127,7 +127,6 @@
     <string name="data_management_reset_memory_confirm">모든 메모리를 재설정하시겠습니까?</string>
     <string name="data_management_reset_memory_done">메모리 리셋</string>
     <string name="data_management_entry">데이터 관리</string>
-    <string name="data_management_entry_desc">사용량 보기, 캐시 지우기, 데이터 관리</string>
 
     <!-- v2.0: Memory filters -->
 

@@ -161,7 +161,8 @@ private fun SettingsEntryCard(
         ResolvedEntryRow(
             entry = entry,
             title = stringResource(entry.titleRes),
-            subtitle = subtitles[entry.id] ?: entry.descRes?.let { stringResource(it) },
+            // 说明只来自运行时（如代理当前状态）；静态说明已全部删除。
+            subtitle = subtitles[entry.id],
         )
     }
     // 高亮只在"这次带着搜索命中进来"的那段时间里存在,之后回到常态:

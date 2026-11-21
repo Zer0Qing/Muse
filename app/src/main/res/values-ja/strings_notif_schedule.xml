@@ -168,7 +168,6 @@
     <string name="memory_dream_done">完了</string>
     <string name="memory_dream_skipped">スキップ: %1$s</string>
     <string name="offline_resources_title">オフラインリソース</string>
-    <string name="offline_resources_desc">実行環境とローカル音声モデル</string>
     <string name="offline_resources_runtime">実行環境（Node / Python）</string>
     <string name="offline_resources_asr">ローカル音声モデル（SenseVoice）</string>
     <string name="offline_resources_asr_open">音声設定を開く</string>

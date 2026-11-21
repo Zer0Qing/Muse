@@ -223,20 +223,13 @@
     <string name="settings_group_section_about">О приложении</string>
     <string name="settings_group_section_developer">Для разработчиков</string>
     <string name="settings_screen_appearance_label">Внешний вид</string>
-    <string name="settings_screen_appearance_desc">Тема / Размер шрифта</string>
     <string name="settings_screen_chat">Чат</string>
-    <string name="settings_screen_chat_desc">Отображение сообщений / Взаимодействие / Дополнительно</string>
     <string name="settings_screen_media">Озвучивание</string>
-    <string name="settings_screen_media_desc">Голос / TTS / Аудиовыход</string>
     <string name="settings_screen_memory_notification">Память и уведомления</string>
-    <string name="settings_screen_memory_notification_desc">Параметры памяти / Библиотека опыта / Политика уведомлений</string>
     <string name="settings_screen_data_backup">Полная копия</string>
-    <string name="settings_screen_data_backup_desc">Облачное резервное копирование / Web-сервер</string>
     <string name="settings_screen_data_import">Импорт данных</string>
-    <string name="settings_screen_data_import_desc">Миграция из RikkaHub / Kelivo</string>
     <!-- Веб-доступ (Настройки -> Подключения): адрес / PIN / QR-код -->
     <string name="settings_screen_web_access">Веб-доступ</string>
-    <string name="settings_screen_web_access_desc">Адрес / PIN / QR-код — отсканируйте и подключайтесь</string>
     <string name="settings_web_access_intro">Откройте адрес ниже в браузере на iPhone или компьютере и введите PIN, чтобы пользоваться веб-версией.</string>
     <string name="settings_web_access_enable">Включить веб-доступ</string>
     <string name="settings_web_access_enable_subtitle">При выключении другие устройства сразу отключаются, порт освобождается</string>
@@ -253,21 +246,12 @@
     <string name="settings_web_access_tip_same_wifi">Телефон и это устройство должны быть в одной Wi-Fi сети</string>
     <string name="settings_web_access_tip_disable">После выключения переключателя другие устройства сразу отключаются</string>
     <string name="settings_screen_rag">Поиск знаний</string>
-    <string name="settings_screen_rag_desc">Конфигурация RAG / Embedding / Параметры блоков</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
     <string name="settings_screen_pii_guard">Защита конфиденциальности персональных данных</string>
-    <string name="settings_screen_pii_guard_desc">Автоматическая маска телефона/электронной почты/удостоверения личности и т. д. перед отправкой</string>
     <string name="settings_screen_provider">Провайдеры</string>
-    <string name="settings_screen_task_routing_desc">Уровневые модели для фоновых задач</string>
-    <string name="settings_screen_provider_desc">Управление AI-провайдерами</string>
     <string name="settings_screen_assistant">Ассистенты</string>
-    <string name="settings_screen_assistant_desc">Управление ассистентами и мировыми книгами</string>
-    <string name="settings_screen_agent_desc">Выбор ассистента / Совместная работа / Проактивные сообщения</string>
-    <string name="settings_screen_security_desc">Шаблон обмена / Настройки экспорта</string>
     <string name="settings_screen_experiments">Экспериментальное</string>
-    <string name="settings_screen_experiments_desc">Переключатели нестабильных функций</string>
     <string name="settings_screen_stats">Статистика</string>
-    <string name="settings_screen_stats_desc">Просмотр статистики использования и теплокарты</string>
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Прослушиватель уведомлений</string>
     <string name="connection_center_title">Центр подключений</string>
@@ -338,20 +322,14 @@
     <string name="channel_weclaw_status_expired">QR-код истёк, попробуйте снова</string>
     <string name="channel_telegram_hint">В App Secret укажите Bot Token от @BotFather; цель — chat_id (можно оставить пустым, автоответ вернётся отправителю).</string>
     <string name="channel_dingtalk_hint">В App ID укажите ClientID (AppKey) приложения, в App Secret — ClientSecret; режим приёма бота установите Stream (без публичного URL).</string>
-    <string name="settings_screen_notification_listener_desc">Разрешите AI читать уведомления других приложений</string>
     <!-- v1.0.4: AI tools -->
     <string name="settings_screen_tools">Инструменты</string>
-    <string name="settings_screen_tools_desc">Просмотр инструментов и разрешений, которые может вызывать ИИ</string>
     <string name="settings_screen_about">О приложении</string>
     <string name="settings_screen_tutorial">Руководство</string>
-    <string name="settings_screen_tutorial_desc">Вводный гайд / Описание функций</string>
-    <string name="settings_screen_about_desc">Версия / Лицензии с открытым исходным кодом</string>
     <string name="settings_screen_debug_log">Отладочный журнал</string>
-    <string name="settings_screen_debug_log_desc">Просмотр журналов приложения и ошибок</string>
 
     <!-- v1.133: Check for updates entry in About group -->
     <string name="settings_screen_check_update">Проверьте наличие обновлений</string>
-    <string name="settings_screen_check_update_desc">Проверьте GitHub на наличие новых выпусков</string>
 
     <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_hint">Поиск по настройкам…</string>
@@ -560,13 +538,9 @@
 
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Веб-поиск</string>
-    <string name="settings_screen_web_search_desc">Поисковая система/ключ API/конечная точка</string>
     <string name="settings_screen_asr">Распознавание речи</string>
-    <string name="settings_screen_asr_desc">Преобразование речи в текст (Система/DashScope/Шаг)</string>
     <string name="settings_screen_mcp">Подключённые серверы</string>
-    <string name="settings_screen_mcp_desc">Серверы инструментов протокола контекста модели</string>
     <string name="settings_screen_assistant_resources">Помощники Ресурсы</string>
-    <string name="settings_screen_assistant_resources_desc">Избранное / История / Быстрые сообщения / Быстрое введение / Навыки</string>
     <string name="settings_assistant_resources_title">Помощники Ресурсы</string>
     <string name="video_gen_title">Генерация видео</string>
     <string name="video_gen_prompt">Опишите видео, которое хотите сгенерировать</string>
@@ -612,7 +586,6 @@
     <string name="workspace_attachments">Вложения</string>
     <string name="workspace_download">Загрузки</string>
     <string name="workspace_resume">Резюме</string>
-    <string name="workspace_desc">Локальное управление файлами и временное хранилище</string>
     <string name="workspace_empty">Рабочее пространство пусто</string>
     <string name="workspace_new_file">Новый файл</string>
     <string name="workspace_new_folder">Новая папка</string>
@@ -695,9 +668,7 @@
     <string name="settings_screen_entry_rag_model">Модель поиска</string>
     <string name="settings_screen_entry_chunking">Стратегия разбиения</string>
     <string name="settings_screen_entry_tool_approval">Режим одобрения инструментов</string>
-    <string name="settings_screen_tool_approval_desc">Политика подтверждения: всегда разрешать / спрашивать / всегда отклонять</string>
     <string name="settings_screen_entry_collab">Совместный ассистент</string>
-    <string name="settings_screen_archived_desc">Просмотр и восстановление архивных диалогов</string>
     <string name="settings_screen_share">Поделиться</string>
     <string name="settings_share_page_title">Поделиться</string>
     <plurals name="settings_search_result_count">
@@ -705,7 +676,6 @@
         <item quantity="few">Найдено %1$d результата</item>
         <item quantity="other">Найдено %1$d результатов</item>
     </plurals>
-    <string name="settings_screen_miniphone_desc">Ранняя версия экспериментальной функции</string>
     <string name="model_diff_clear_add">Очистить новые модели</string>
     <string name="model_diff_clear_remove">Очистить удалённые модели</string>
     <!-- v1.0.85: release localization -->

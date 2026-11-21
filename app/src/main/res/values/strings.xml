@@ -182,7 +182,6 @@
     <string name="data_management_reset_memory_confirm">确定重置所有记忆？AI 将忘记对你的了解。</string>
     <string name="data_management_reset_memory_done">记忆已重置</string>
     <string name="data_management_entry">数据管理</string>
-    <string name="data_management_entry_desc">查看用量、清理缓存和管理数据</string>
 
     <!-- v2.0: 记忆筛选 -->
 

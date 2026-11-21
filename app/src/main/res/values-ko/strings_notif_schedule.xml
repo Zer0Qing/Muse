@@ -168,7 +168,6 @@
     <string name="memory_dream_done">완료</string>
     <string name="memory_dream_skipped">건너뜀: %1$s</string>
     <string name="offline_resources_title">오프라인 리소스</string>
-    <string name="offline_resources_desc">실행 환경 및 로컬 음성 모델</string>
     <string name="offline_resources_runtime">실행 환경(Node / Python)</string>
     <string name="offline_resources_asr">로컬 음성 모델(SenseVoice)</string>
     <string name="offline_resources_asr_open">음성 설정 열기</string>

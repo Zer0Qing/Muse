@@ -762,7 +762,6 @@
     <string name="settings_agent_timing_scoring_title">スマートタイミング</string>
     <string name="settings_agent_timing_scoring_subtitle">发言前に最近の反応を踏まえます：前回の無反応・未読の积压・深夜は確率を下げ、期限迎えの話題は戻します。間隔・上限・おやすみ時間帯は影響しません。</string>
     <string name="settings_screen_diagnostics">診断</string>
-    <string name="settings_screen_diagnostics_desc">容量・メインスレッド・Web Host 遅延・バックグラウンドジョブをまとめ、機密情報を除いたJSONを出力できます</string>
     <string name="settings_diagnostics_loading">取得中…</string>
     <string name="settings_diagnostics_actions">出力</string>
     <string name="settings_diagnostics_export_hint">出力に含めるのはサイズ・件数・状態のみ。メッセージ・パス・認証情報は含みません</string>
@@ -794,7 +793,6 @@
     <string name="settings_diagnostics_bg_error">取得失敗</string>
     <string name="settings_diagnostics_bg_none">登録ジョブはありません(バックグラウンド実行が未設定の可能性)</string>
     <string name="settings_screen_session_terms">アシスタント用語</string>
-    <string name="settings_screen_session_terms_desc">会話で使った新しい言葉や隠語。確定したものだけが既定の言い方として扱われます</string>
     <string name="settings_session_terms_loading">用語を読み込み中…</string>
     <string name="settings_session_terms_empty">まだ用語がありません。会話で説明した言葉はここに自動で現れます。</string>
     <string name="settings_session_terms_awaiting">確認待ち %1$d 件</string>

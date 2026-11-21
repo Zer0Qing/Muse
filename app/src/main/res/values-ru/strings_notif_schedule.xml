@@ -168,7 +168,6 @@
     <string name="memory_dream_done">Готово</string>
     <string name="memory_dream_skipped">Пропущено: %1$s</string>
     <string name="offline_resources_title">Офлайн-ресурсы</string>
-    <string name="offline_resources_desc">Среда выполнения и локальная модель речи</string>
     <string name="offline_resources_runtime">Среда выполнения (Node / Python)</string>
     <string name="offline_resources_asr">Локальная модель речи (SenseVoice)</string>
     <string name="offline_resources_asr_open">Открыть настройки речи</string>

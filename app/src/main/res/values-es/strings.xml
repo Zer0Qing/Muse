@@ -156,7 +156,6 @@
     <string name="data_management_reset_memory_confirm">¿Restablecer toda la memoria? La IA olvidará lo que sabe de ti.</string>
     <string name="data_management_reset_memory_done">Memoria restablecida</string>
     <string name="data_management_entry">Gestión de datos</string>
-    <string name="data_management_entry_desc">Ver el uso, borrar el caché y administrar datos</string>
 
     <!-- v2.0: Memory filters -->
 

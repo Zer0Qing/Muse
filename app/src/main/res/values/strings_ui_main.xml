@@ -272,20 +272,13 @@
     <string name="settings_group_section_about">关于</string>
     <string name="settings_group_section_developer">开发者</string>
     <string name="settings_screen_appearance_label">外观</string>
-    <string name="settings_screen_appearance_desc">主题 / 字号</string>
     <string name="settings_screen_chat">聊天</string>
-    <string name="settings_screen_chat_desc">消息显示 / 交互行为 / 高级</string>
     <string name="settings_screen_media">语音播报</string>
-    <string name="settings_screen_media_desc">语音 / TTS / 音频输出</string>
     <string name="settings_screen_memory_notification">记忆中心</string>
-    <string name="settings_screen_memory_notification_desc">当下/短期/长期记忆 · 事实 · 参数</string>
     <string name="settings_screen_data_backup">完整备份</string>
-    <string name="settings_screen_data_backup_desc">云备份 / Web 服务器</string>
     <string name="settings_screen_data_import">数据导入</string>
-    <string name="settings_screen_data_import_desc">从 RikkaHub / Kelivo 迁移</string>
     <!-- 网页版访问（设置 → 连接）：地址 / PIN / 二维码 -->
     <string name="settings_screen_web_access">网页版访问</string>
-    <string name="settings_screen_web_access_desc">地址 / PIN / 二维码，扫一下就能连</string>
     <string name="settings_web_access_intro">在 iPhone 或电脑的浏览器里打开下面的地址，输入 PIN 就能用网页版。</string>
     <string name="settings_web_access_enable">启用网页版</string>
     <string name="settings_web_access_enable_subtitle">关闭后其他设备立即断开，端口随即释放</string>
@@ -301,26 +294,16 @@
     <string name="settings_web_access_tip_iphone">iPhone 用 Safari 打开后点「分享 → 添加到主屏幕」，即可全屏使用</string>
     <string name="settings_web_access_tip_same_wifi">手机和这台机器必须在同一个 Wi-Fi 下</string>
     <string name="settings_web_access_tip_disable">关掉开关后，其他设备会立即断开</string>
-    <string name="settings_screen_archived_desc">查看与恢复已归档的会话</string>
     <string name="settings_screen_rag">知识库检索</string>
-    <string name="settings_screen_rag_desc">RAG 配置 / Embedding / 分块参数</string>
     <!-- 数据与隐私分组(PII Guard) -->
     <string name="settings_screen_pii_guard">PII 隐私保护</string>
-    <string name="settings_screen_pii_guard_desc">发送前自动遮蔽手机号/邮箱/身份证等</string>
     <string name="settings_screen_provider">供应商</string>
-    <string name="settings_screen_task_routing_desc">为后台任务分档配置模型（小工具/大工具/视觉）</string>
-    <string name="settings_screen_provider_desc">管理模型供应商、API Key 与联网搜索等</string>
     <string name="settings_screen_assistant">助手</string>
-    <string name="settings_screen_assistant_desc">管理助手、模型、角色设定与世界书</string>
-    <string name="settings_screen_agent_desc">助手选择 / 协作 / 主动消息</string>
     <!-- v1.x: 分享设置页(原"安全与分享",应用锁/搜索引擎已移除) -->
     <string name="settings_screen_share">分享</string>
     <string name="settings_share_page_title">分享</string>
-    <string name="settings_screen_security_desc">分享模板 / 导出设置</string>
     <string name="settings_screen_experiments">实验性</string>
-    <string name="settings_screen_experiments_desc">未稳定功能开关</string>
     <string name="settings_screen_stats">统计</string>
-    <string name="settings_screen_stats_desc">查看使用统计和热力图</string>
     <!-- v1.0.4: 配额仪表盘 -->
     <!-- v1.0.4: 通知监听 -->
     <string name="settings_screen_notification_listener">通知监听</string>
@@ -479,20 +462,14 @@
         <item>在机器人设置页复制 App ID 和 App Secret。</item>
         <item>粘贴到上方输入框，测试连接后保存。</item>
     </string-array>
-    <string name="settings_screen_notification_listener_desc">授权后 AI 可读取其他 App 通知</string>
     <!-- v1.0.4: AI 工具管理 -->
     <string name="settings_screen_tools">AI 工具</string>
-    <string name="settings_screen_tools_desc">查看 AI 可调用的工具与权限</string>
     <string name="settings_screen_about">关于</string>
     <string name="settings_screen_tutorial">使用教程</string>
-    <string name="settings_screen_tutorial_desc">新手引导 / 功能说明</string>
-    <string name="settings_screen_about_desc">版本 / 开源许可</string>
     <string name="settings_screen_debug_log">调试日志</string>
-    <string name="settings_screen_debug_log_desc">查看应用日志与错误</string>
 
     <!-- v1.133: 关于分组"检查更新"按钮 -->
     <string name="settings_screen_check_update">检查更新</string>
-    <string name="settings_screen_check_update_desc">检查 GitHub 是否发布新版本</string>
 
     <!-- v1.132: 设置搜索 + 分组重排 -->
     <string name="settings_search_hint">搜索设置项…</string>
@@ -508,7 +485,6 @@
     <!-- v1.0.18: 快速记录入口(通用分组) -->
     <string name="settings_screen_quick_notes">快速记录</string>
     <string name="settings_screen_quick_notes_desc">随手记下灵感，支持分类/提醒/加密</string>
-    <string name="settings_screen_miniphone_desc">实验功能早期版本</string>
 
     <!-- v1.25: 视觉辅助(让纯文本模型通过视觉模型"看到"图片) -->
     <string name="settings_vision_title">视觉辅助</string>
@@ -719,13 +695,9 @@
 
     <!-- ===== v1.133: 从 SettingsModelPage 拆出的 5 个独立二级页入口 ===== -->
     <string name="settings_screen_web_search">联网搜索</string>
-    <string name="settings_screen_web_search_desc">搜索引擎 / API 密钥 / 接口地址</string>
     <string name="settings_screen_asr">语音识别</string>
-    <string name="settings_screen_asr_desc">语音转文字（系统 / DashScope / Step）</string>
     <string name="settings_screen_mcp">已连接的服务器</string>
-    <string name="settings_screen_mcp_desc">模型上下文协议（MCP）工具服务器</string>
     <string name="settings_screen_assistant_resources">助手资源</string>
-    <string name="settings_screen_assistant_resources_desc">收藏夹 / 世界书 / 快捷消息 / 模式注入 / 技能</string>
     <string name="settings_assistant_resources_title">助手资源</string>
     <string name="video_gen_title">视频生成</string>
     <string name="video_gen_prompt">描述你想生成的视频</string>
@@ -864,7 +836,6 @@
     <string name="workspace_attachments">附件</string>
     <string name="workspace_download">下载</string>
     <string name="workspace_resume">简历</string>
-    <string name="workspace_desc">本地文件管理与临时存储</string>
     <string name="workspace_empty">工作区为空</string>
     <string name="workspace_new_file">新建文件</string>
     <string name="workspace_new_folder">新建文件夹</string>
@@ -926,7 +897,6 @@
     <string name="settings_screen_entry_rag_model">检索模型</string>
     <string name="settings_screen_entry_chunking">分段策略</string>
     <string name="settings_screen_entry_tool_approval">工具批准模式</string>
-    <string name="settings_screen_tool_approval_desc">每个工具的确认策略：始终允许 / 每次询问 / 始终拒绝</string>
     <string name="settings_screen_entry_collab">协作助手</string>
 
     <!-- Phase 4: 已安装插件的声明式气泡皮肤 -->
