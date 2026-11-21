@@ -46,11 +46,34 @@ enum class WindowWidthClass {
 @Composable
 fun rememberWindowWidthClass(): WindowWidthClass {
     val configuration = LocalConfiguration.current
-    return remember(configuration.screenWidthDp) {
-        when {
-            configuration.screenWidthDp >= MuseBreakpoints.EXPANDED_DP -> WindowWidthClass.Expanded
-            configuration.screenWidthDp >= MuseBreakpoints.MEDIUM_DP -> WindowWidthClass.Medium
-            else -> WindowWidthClass.Compact
+    val view = androidx.compose.ui.platform.LocalView.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+
+    // 自由窗口 / 分屏被系统 resize 时，Configuration.screenWidthDp 在部分 OEM 上
+    // 不会同步更新（仍报整屏宽度），窄窗口会被误判成 Expanded：首页任务页走双栏、
+    // 右栏聊天区被挤出可视范围，点会话列表只换来一次按下高亮；同时快捷胶囊因
+    // isWideTasks=true 被隐藏。改用承载 Compose 的窗口 View 实测宽度，它跟随真实布局。
+    val measuredWidthPx = remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    androidx.compose.runtime.DisposableEffect(view, density) {
+        fun sync() {
+            if (view.width > 0) measuredWidthPx.intValue = view.width
         }
+        sync()
+        val listener = android.view.View.OnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+            if (v.width > 0) measuredWidthPx.intValue = v.width
+        }
+        view.addOnLayoutChangeListener(listener)
+        onDispose { view.removeOnLayoutChangeListener(listener) }
+    }
+
+    val widthDp = measuredWidthPx.intValue
+        .takeIf { it > 0 }
+        ?.let { it / density.density }
+        ?: configuration.screenWidthDp.toFloat()
+
+    return when {
+        widthDp >= MuseBreakpoints.EXPANDED_DP -> WindowWidthClass.Expanded
+        widthDp >= MuseBreakpoints.MEDIUM_DP -> WindowWidthClass.Medium
+        else -> WindowWidthClass.Compact
     }
 }
