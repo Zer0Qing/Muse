@@ -45,7 +45,6 @@
     <string name="err_image_gen_video_failed">Ошибка обработки видео: %1$s</string>
     <string name="err_image_gen_read_failed_msg">Не удалось прочитать изображение: %1$s</string>
     <string name="err_image_gen_no_provider">Не настроен поставщик создания изображений</string>
-    <string name="err_image_gen_no_model">Модель создания изображения не выбрана</string>
     <string name="err_image_gen_model_no_output">Выбранная модель не поддерживает вывод изображения.</string>
     <string name="err_image_gen_failed">Не удалось создать изображение: %1$s</string>
     <string name="err_image_gen_no_result">Генерация изображения не дала результата</string>
@@ -53,11 +52,6 @@
     <string name="err_image_gen_no_image">Ни одно изображение не было возвращено;</string>
 
     <!-- ── GroupChatViewModel ── -->
-    <string name="err_group_chat_delete_failed">Не удалось удалить групповой чат.</string>
-    <string name="err_group_chat_delete_msg_failed">Не удалось удалить сообщение</string>
-    <string name="err_group_chat_operation_failed">Операция не удалась</string>
-    <string name="err_group_chat_update_failed">Не удалось обновить групповой чат.</string>
-    <string name="err_group_chat_create_failed">Не удалось создать групповой чат.</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">Не удалось создать папку: %1$s</string>
@@ -71,6 +65,7 @@
 
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">Очередь отправки заполнена, повторите попытку позже</string>
+    <string name="err_chat_input_restored">Текст возвращён в поле ввода</string>
     <string name="err_chat_msg_save_failed">Не удалось сохранить сообщение: %1$s</string>
     <string name="err_chat_db_closed">Соединение с базой данных потеряно. Перезапустите приложение и попробуйте снова.</string>
     <string name="err_chat_network_unresolvable">Невозможно подключиться к серверу. Проверьте свою сеть или адрес API.</string>
@@ -138,7 +133,5 @@
     <string name="err_group_chat_attachment_read_failed">Не удалось прочитать вложение. Попробуйте снова.</string>
     <string name="err_group_chat_attachment_too_large">Вложение превышает лимит в 10 МБ и не может быть отправлено.</string>
     <string name="err_group_chat_rotation_failed">Не удалось выполнить ротацию группового чата. Генерация этого раунда остановлена.</string>
-    <string name="err_moment_comment_failed">Не удалось оставить комментарий. Попробуйте позже.</string>
-    <string name="err_moment_publish_failed">Не удалось опубликовать. Попробуйте позже.</string>
     <string name="moment_image_prepare_failed">Не удалось обработать изображение, повторите попытку</string>
 </resources>

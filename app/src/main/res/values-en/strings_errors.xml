@@ -45,7 +45,6 @@
     <string name="err_image_gen_video_failed">Video processing failed: %1$s</string>
     <string name="err_image_gen_read_failed_msg">Failed to read image: %1$s</string>
     <string name="err_image_gen_no_provider">No image generation provider configured</string>
-    <string name="err_image_gen_no_model">No image generation model selected</string>
     <string name="err_image_gen_model_no_output">The selected model does not support image output</string>
     <string name="err_image_gen_failed">Image generation failed: %1$s</string>
     <string name="err_image_gen_no_result">Image generation returned no result</string>
@@ -53,11 +52,6 @@
     <string name="err_image_gen_no_image">No image was returned; the model may not support image generation. Please verify the model supports image output.</string>
 
     <!-- ── GroupChatViewModel ── -->
-    <string name="err_group_chat_delete_failed">Failed to delete group chat</string>
-    <string name="err_group_chat_delete_msg_failed">Failed to delete message</string>
-    <string name="err_group_chat_operation_failed">Operation failed</string>
-    <string name="err_group_chat_update_failed">Failed to update group chat</string>
-    <string name="err_group_chat_create_failed">Failed to create group chat</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">Failed to create folder: %1$s</string>
@@ -71,6 +65,7 @@
 
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">Send queue is full, please retry later</string>
+    <string name="err_chat_input_restored">Your text was put back in the input box</string>
     <string name="err_chat_msg_save_failed">Failed to save message: %1$s</string>
     <string name="err_chat_db_closed">Database connection lost. Please restart the app and try again.</string>
     <string name="err_chat_network_unresolvable">Unable to connect to the server, please check your network or API address</string>
@@ -137,8 +132,6 @@
     <string name="err_group_chat_rotation_failed">Group chat rotation failed; this round was stopped</string>
     <string name="err_group_chat_attachment_too_large">Attachment exceeds the 10MB limit and cannot be sent</string>
     <string name="err_group_chat_attachment_read_failed">Failed to read attachment, please retry</string>
-    <string name="err_moment_publish_failed">Failed to publish, please try again later</string>
-    <string name="err_moment_comment_failed">Failed to comment, please try again later</string>
     <string name="moment_image_prepare_failed">Image processing failed, please try again</string>
     <string name="asr_system_unavailable">No speech recognition service is available; configure an online recognizer in Settings</string>
 </resources>

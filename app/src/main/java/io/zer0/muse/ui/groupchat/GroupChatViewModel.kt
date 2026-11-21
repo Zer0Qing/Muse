@@ -757,7 +757,7 @@ class GroupChatViewModel(
                 groupChatRepository.addSharedDoc(chatId, title.trim(), content)
             } catch (e: Exception) {
                 Logger.e(TAG, "添加群共享文档失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_action_failed, appContext.getString(R.string.group_chat_action_update), e.localizedMessage ?: e::class.simpleName ?: "")) }
             }
         }
     }
@@ -774,7 +774,7 @@ class GroupChatViewModel(
                 groupChatRepository.removeSharedDoc(chatId, docId)
             } catch (e: Exception) {
                 Logger.e(TAG, "删除群共享文档失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_action_failed, appContext.getString(R.string.group_chat_action_update), e.localizedMessage ?: e::class.simpleName ?: "")) }
             }
         }
     }
@@ -792,7 +792,7 @@ class GroupChatViewModel(
                 groupChatRepository.setMemberPrivateContext(chatId, assistantId, contextText)
             } catch (e: Exception) {
                 Logger.e(TAG, "设置成员专属上下文失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_action_failed, appContext.getString(R.string.group_chat_action_update), e.localizedMessage ?: e::class.simpleName ?: "")) }
             }
         }
     }
@@ -842,7 +842,7 @@ class GroupChatViewModel(
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "删除群聊失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_delete_failed)) }
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_action_failed, appContext.getString(R.string.group_chat_action_delete), e.localizedMessage ?: e::class.simpleName ?: "")) }
             }
         }
     }
@@ -925,7 +925,7 @@ class GroupChatViewModel(
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "删除消息失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_delete_msg_failed)) }
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_action_failed, appContext.getString(R.string.group_chat_action_delete_msg), e.localizedMessage ?: e::class.simpleName ?: "")) }
             }
         }
     }
@@ -1013,7 +1013,17 @@ class GroupChatViewModel(
                 groupChatRepository.togglePin(chatId)
             } catch (e: Exception) {
                 Logger.e(TAG, "切换置顶失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_operation_failed)) }
+                // 「操作失败」不说明是哪个操作 —— 这里补上动作名与原因，
+                // 与记忆模块的「动作失败：原因」格式一致。
+                _state.update {
+                    it.copy(
+                        errorMessage = appContext.getString(
+                            R.string.err_group_chat_action_failed,
+                            appContext.getString(R.string.group_chat_pin_toggle),
+                            e.localizedMessage ?: e::class.simpleName ?: "",
+                        ),
+                    )
+                }
             }
         }
     }
@@ -1027,7 +1037,7 @@ class GroupChatViewModel(
                 groupChatRepository.toggleArchive(chatId, archived)
             } catch (e: Exception) {
                 Logger.e(TAG, "归档操作失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_action_failed, appContext.getString(R.string.group_chat_action_update), e.localizedMessage ?: e::class.simpleName ?: "")) }
             }
         }
     }
@@ -1052,7 +1062,7 @@ class GroupChatViewModel(
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "创建写作群聊失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_create_failed)) }
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_action_failed, appContext.getString(R.string.group_chat_action_create), e.localizedMessage ?: e::class.simpleName ?: "")) }
             }
         }
     }
@@ -1081,7 +1091,7 @@ class GroupChatViewModel(
                 groupChatRepository.updateChat(chatId, name, description, memberIds, discussionMode, autoMaxRounds, hostId, replyLengthMode, observerIds)
             } catch (e: Exception) {
                 Logger.e(TAG, "更新群聊失败", e)
-                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_action_failed, appContext.getString(R.string.group_chat_action_update), e.localizedMessage ?: e::class.simpleName ?: "")) }
             }
         }
     }

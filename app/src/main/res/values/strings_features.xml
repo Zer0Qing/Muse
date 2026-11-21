@@ -832,4 +832,10 @@
     <string name="daily_summary_light_fallback">今天还没聊什么，想到什么随时找我。</string>
     <string name="daily_summary_rest_fallback">今天辛苦了，早点休息。</string>
     <string name="daily_summary_none_fallback">今天还没有新的对话。</string>
+    <string name="err_group_chat_action_failed">群聊操作失败：%1$s（%2$s）</string>
+    <string name="group_chat_pin_toggle">置顶</string>
+    <string name="group_chat_action_update">更新群聊</string>
+    <string name="group_chat_action_delete">删除群聊</string>
+    <string name="group_chat_action_delete_msg">删除消息</string>
+    <string name="group_chat_action_create">创建群聊</string>
 </resources>

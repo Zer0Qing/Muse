@@ -45,7 +45,6 @@
     <string name="err_image_gen_video_failed">비디오 처리 실패: %1$s</string>
     <string name="err_image_gen_read_failed_msg">이미지를 읽지 못했습니다: %1$s</string>
     <string name="err_image_gen_no_provider">구성된 이미지 생성 공급자가 없습니다.</string>
-    <string name="err_image_gen_no_model">선택한 이미지 생성 모델이 없습니다.</string>
     <string name="err_image_gen_model_no_output">선택한 모델은 이미지 출력을 지원하지 않습니다.</string>
     <string name="err_image_gen_failed">이미지 생성 실패: %1$s</string>
     <string name="err_image_gen_no_result">이미지 생성에서 결과가 반환되지 않았습니다.</string>
@@ -53,11 +52,6 @@
     <string name="err_image_gen_no_image">이미지가 반환되지 않았습니다.</string>
 
     <!-- ── GroupChatViewModel ── -->
-    <string name="err_group_chat_delete_failed">그룹 채팅을 삭제하지 못했습니다.</string>
-    <string name="err_group_chat_delete_msg_failed">메시지를 삭제하지 못했습니다.</string>
-    <string name="err_group_chat_operation_failed">작업 실패</string>
-    <string name="err_group_chat_update_failed">그룹 채팅을 업데이트하지 못했습니다.</string>
-    <string name="err_group_chat_create_failed">그룹 채팅을 생성하지 못했습니다.</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">폴더를 생성하지 못했습니다: %1$s</string>
@@ -71,6 +65,7 @@
 
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">전송 대기열이 꽉 찼습니다. 나중에 다시 시도해 주세요.</string>
+    <string name="err_chat_input_restored">입력한 내용을 입력창으로 되돌렸습니다</string>
     <string name="err_chat_msg_save_failed">메시지를 저장하지 못했습니다: %1$s</string>
     <string name="err_chat_db_closed">데이터베이스 연결이 끊어졌습니다. 앱을 다시 시작한 후 시도하세요.</string>
     <string name="err_chat_network_unresolvable">서버에 연결할 수 없습니다. 네트워크 또는 API 주소를 확인하세요.</string>
@@ -138,7 +133,5 @@
     <string name="err_group_chat_attachment_read_failed">첨부 파일 읽기에 실패했습니다. 다시 시도하세요.</string>
     <string name="err_group_chat_attachment_too_large">첨부 파일이 10MB 제한을 초과하여 보낼 수 없습니다.</string>
     <string name="err_group_chat_rotation_failed">그룹 채팅 회전에 실패하여 이번 생성이 중단되었습니다.</string>
-    <string name="err_moment_comment_failed">댓글에 실패했습니다. 잠시 후 다시 시도하세요.</string>
-    <string name="err_moment_publish_failed">게시에 실패했습니다. 잠시 후 다시 시도하세요.</string>
     <string name="moment_image_prepare_failed">이미지 처리에 실패했습니다. 다시 시도하세요</string>
 </resources>

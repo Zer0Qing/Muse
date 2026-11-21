@@ -916,4 +916,10 @@
     <string name="daily_summary_light_fallback">Сегодня пока нечего вспоминать — я рядом, когда захочется поговорить.</string>
     <string name="daily_summary_rest_fallback">День выдался долгим — отдохни.</string>
     <string name="daily_summary_none_fallback">Сегодня новых разговоров пока не было.</string>
+    <string name="err_group_chat_action_failed">Не удалось выполнить действие в групповом чате: %1$s (%2$s)</string>
+    <string name="group_chat_pin_toggle">Закрепить</string>
+    <string name="group_chat_action_update">Обновление группового чата</string>
+    <string name="group_chat_action_delete">Удаление группового чата</string>
+    <string name="group_chat_action_delete_msg">Удаление сообщения</string>
+    <string name="group_chat_action_create">Создание группового чата</string>
 </resources>

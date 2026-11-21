@@ -863,4 +863,10 @@
     <string name="daily_summary_light_fallback">今日はまだ話すことが少なめです。思いついたときにいつでも。</string>
     <string name="daily_summary_rest_fallback">今日はお疲れさまでした。ゆっくり休んでください。</string>
     <string name="daily_summary_none_fallback">今日は新しい会話はまだありません。</string>
+    <string name="err_group_chat_action_failed">グループチャットの操作に失敗しました：%1$s（%2$s）</string>
+    <string name="group_chat_pin_toggle">ピン留め</string>
+    <string name="group_chat_action_update">グループチャットの更新</string>
+    <string name="group_chat_action_delete">グループチャットの削除</string>
+    <string name="group_chat_action_delete_msg">メッセージの削除</string>
+    <string name="group_chat_action_create">グループチャットの作成</string>
 </resources>

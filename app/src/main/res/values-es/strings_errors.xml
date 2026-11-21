@@ -45,7 +45,6 @@
     <string name="err_image_gen_video_failed">Error al procesar el vídeo: %1$s</string>
     <string name="err_image_gen_read_failed_msg">No se pudo leer la imagen: %1$s</string>
     <string name="err_image_gen_no_provider">No hay ningún proveedor de generación de imágenes configurado</string>
-    <string name="err_image_gen_no_model">No se seleccionó ningún modelo de generación de imágenes.</string>
     <string name="err_image_gen_model_no_output">El modelo seleccionado no admite la salida de imágenes.</string>
     <string name="err_image_gen_failed">Error al generar la imagen: %1$s</string>
     <string name="err_image_gen_no_result">La generación de imágenes no arrojó ningún resultado.</string>
@@ -53,11 +52,6 @@
     <string name="err_image_gen_no_image">La generación no devolvió ninguna imagen; puede que el modelo no admita generar imágenes. Comprueba que el modelo admite salida de imágenes.</string>
 
     <!-- ── GroupChatViewModel ── -->
-    <string name="err_group_chat_delete_failed">No se pudo eliminar el chat grupal</string>
-    <string name="err_group_chat_delete_msg_failed">No se pudo eliminar el mensaje</string>
-    <string name="err_group_chat_operation_failed">Operación fallida</string>
-    <string name="err_group_chat_update_failed">No se pudo actualizar el chat grupal</string>
-    <string name="err_group_chat_create_failed">No se pudo crear el chat grupal</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">No se pudo crear la carpeta: %1$s</string>
@@ -71,6 +65,7 @@
 
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">La cola de envío está llena. Vuelve a intentarlo más tarde.</string>
+    <string name="err_chat_input_restored">Tu texto volvió al cuadro de entrada</string>
     <string name="err_chat_msg_save_failed">No se pudo guardar el mensaje: %1$s</string>
     <string name="err_chat_db_closed">Se perdió la conexión con la base de datos. Reinicia la aplicación e inténtalo de nuevo.</string>
     <string name="err_chat_network_unresolvable">No se puede conectar al servidor; comprueba tu red o la dirección de la API</string>
@@ -138,7 +133,5 @@
     <string name="err_group_chat_attachment_read_failed">Error al leer el adjunto. Inténtalo de nuevo.</string>
     <string name="err_group_chat_attachment_too_large">El adjunto supera el límite de 10MB y no se puede enviar.</string>
     <string name="err_group_chat_rotation_failed">Error de rotación del chat grupal. Se detuvo esta generación.</string>
-    <string name="err_moment_comment_failed">Error al comentar. Inténtalo más tarde.</string>
-    <string name="err_moment_publish_failed">Error al publicar. Inténtalo más tarde.</string>
     <string name="moment_image_prepare_failed">Error al procesar la imagen, inténtalo de nuevo</string>
 </resources>

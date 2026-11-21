@@ -810,4 +810,10 @@
     <string name="daily_summary_light_fallback">Nothing to catch up on today — I\'m here whenever something comes up.</string>
     <string name="daily_summary_rest_fallback">Long day - get some rest.</string>
     <string name="daily_summary_none_fallback">No new conversation today.</string>
+    <string name="err_group_chat_action_failed">Group chat action failed: %1$s (%2$s)</string>
+    <string name="group_chat_pin_toggle">Pin</string>
+    <string name="group_chat_action_update">Update group chat</string>
+    <string name="group_chat_action_delete">Delete group chat</string>
+    <string name="group_chat_action_delete_msg">Delete message</string>
+    <string name="group_chat_action_create">Create group chat</string>
 </resources>

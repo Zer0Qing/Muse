@@ -45,7 +45,6 @@
     <string name="err_image_gen_video_failed">ビデオ処理に失敗しました: %1$s</string>
     <string name="err_image_gen_read_failed_msg">画像の読み取りに失敗しました: %1$s</string>
     <string name="err_image_gen_no_provider">画像生成プロバイダーが構成されていません</string>
-    <string name="err_image_gen_no_model">画像生成モデルが選択されていません</string>
     <string name="err_image_gen_model_no_output">選択したモデルは画像出力をサポートしていません</string>
     <string name="err_image_gen_failed">イメージの生成に失敗しました: %1$s</string>
     <string name="err_image_gen_no_result">画像生成では結果が返されませんでした</string>
@@ -53,11 +52,6 @@
     <string name="err_image_gen_no_image">画像は返されませんでした。</string>
 
     <!-- ── GroupChatViewModel ── -->
-    <string name="err_group_chat_delete_failed">グループチャットの削除に失敗しました</string>
-    <string name="err_group_chat_delete_msg_failed">メッセージの削除に失敗しました</string>
-    <string name="err_group_chat_operation_failed">操作が失敗しました</string>
-    <string name="err_group_chat_update_failed">グループチャットを更新できませんでした</string>
-    <string name="err_group_chat_create_failed">グループチャットを作成できませんでした</string>
 
     <!-- ── ChatMiscCoordinator ── -->
     <string name="err_chat_misc_create_folder_failed">フォルダーの作成に失敗しました: %1$s</string>
@@ -71,6 +65,7 @@
 
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">送信キューがいっぱいです。後で再試行してください</string>
+    <string name="err_chat_input_restored">入力内容を入力欄に戻しました</string>
     <string name="err_chat_msg_save_failed">メッセージを保存できませんでした: %1$s</string>
     <string name="err_chat_db_closed">データベース接続が切断されました。アプリを再起動してもう一度お試しください。</string>
     <string name="err_chat_network_unresolvable">サーバーに接続できません。ネットワークまたは API アドレスを確認してください。</string>
@@ -138,7 +133,5 @@
     <string name="err_group_chat_attachment_read_failed">添付ファイルの読み込みに失敗しました。もう一度お試しください。</string>
     <string name="err_group_chat_attachment_too_large">添付ファイルが 10MB の上限を超えているため送信できません。</string>
     <string name="err_group_chat_rotation_failed">グループチャットのローテーションに失敗し、今回の生成を停止しました。</string>
-    <string name="err_moment_comment_failed">コメントに失敗しました。しばらくしてからもう一度お試しください。</string>
-    <string name="err_moment_publish_failed">投稿に失敗しました。しばらくしてからもう一度お試しください。</string>
     <string name="moment_image_prepare_failed">画像処理に失敗しました。もう一度お試しください</string>
 </resources>

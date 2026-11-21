@@ -865,4 +865,10 @@
     <string name="daily_summary_light_fallback">Hoje ainda não há muito para revisar; estou aqui quando quiser conversar.</string>
     <string name="daily_summary_rest_fallback">Foi um dia longo; descanse.</string>
     <string name="daily_summary_none_fallback">Ainda não há conversas novas hoje.</string>
+    <string name="err_group_chat_action_failed">Falha na ação do chat em grupo: %1$s (%2$s)</string>
+    <string name="group_chat_pin_toggle">Fixar</string>
+    <string name="group_chat_action_update">Atualizar chat em grupo</string>
+    <string name="group_chat_action_delete">Excluir chat em grupo</string>
+    <string name="group_chat_action_delete_msg">Excluir mensagem</string>
+    <string name="group_chat_action_create">Criar chat em grupo</string>
 </resources>

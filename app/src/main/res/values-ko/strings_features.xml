@@ -864,4 +864,10 @@
     <string name="daily_summary_light_fallback">오늘은 아직 나눌 이야기가 적어요. 생각나면 언제든 말 걸어 주세요.</string>
     <string name="daily_summary_rest_fallback">오늘도 수고했어요. 푹 쉬세요.</string>
     <string name="daily_summary_none_fallback">오늘은 새 대화가 아직 없어요.</string>
+    <string name="err_group_chat_action_failed">그룹 채팅 작업 실패: %1$s (%2$s)</string>
+    <string name="group_chat_pin_toggle">고정</string>
+    <string name="group_chat_action_update">그룹 채팅 업데이트</string>
+    <string name="group_chat_action_delete">그룹 채팅 삭제</string>
+    <string name="group_chat_action_delete_msg">메시지 삭제</string>
+    <string name="group_chat_action_create">그룹 채팅 생성</string>
 </resources>

@@ -899,4 +899,10 @@
     <string name="task_card_resume">Reanudar herramientas pendientes</string>
     <string name="task_card_pause_step">Pausar esta herramienta</string>
     <string name="task_card_resume_step">Reanudar esta herramienta</string>
+    <string name="err_group_chat_action_failed">Error en la acción del chat grupal: %1$s (%2$s)</string>
+    <string name="group_chat_pin_toggle">Fijar</string>
+    <string name="group_chat_action_update">Actualizar chat grupal</string>
+    <string name="group_chat_action_delete">Eliminar chat grupal</string>
+    <string name="group_chat_action_delete_msg">Eliminar mensaje</string>
+    <string name="group_chat_action_create">Crear chat grupal</string>
 </resources>
