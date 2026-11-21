@@ -1504,105 +1504,7 @@ private fun TutorialCard(item: FeatureItem, onClick: () -> Unit) {
     }
 }
 
-// ── 胶囊按钮 ──────────────────────────────────────────
-
-@Composable
-private fun PrimaryPillButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-) {
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        shape = MuseShapes.pill,
-        color = if (enabled) {
-            MaterialTheme.colorScheme.onSurface
-        } else {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-        },
-        modifier = modifier.heightIn(min = 52.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            icon?.let {
-                Icon(
-                    imageVector = it,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = if (enabled) {
-                        MaterialTheme.colorScheme.surface
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    },
-                )
-                Spacer(modifier = Modifier.width(MusePaddings.tightGap))
-            }
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                ),
-                color = if (enabled) {
-                    MaterialTheme.colorScheme.surface
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun SecondaryPillButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-) {
-    Surface(
-        onClick = onClick,
-        shape = MuseShapes.pill,
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(
-            // 原先 0.2 alpha 的描边几乎看不见，按钮轮廓虚化；
-            // 主按钮是实心黑底，两者对比过于极端。加深到 0.45 让次要操作同样可辨。
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-        ),
-        modifier = modifier.heightIn(min = 52.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            icon?.let {
-                Icon(
-                    imageVector = it,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(modifier = Modifier.width(MusePaddings.tightGap))
-            }
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-}
-
-// ── 底部按钮 ──────────────────────────────────────────────────
+/// ── 底部按钮 ──────────────────────────────────────────────────
 
 @Composable
 private fun BottomButtons(currentPage: Int, canGoNext: Boolean, onPrevious: () -> Unit, onNext: () -> Unit, onComplete: () -> Unit) {
@@ -1613,9 +1515,10 @@ private fun BottomButtons(currentPage: Int, canGoNext: Boolean, onPrevious: () -
         when (currentPage) {
             // 步骤 0：只有"开始设置"按钮（居中）
             0 -> {
-                PrimaryPillButton(
+                MuseCapsuleButton(
                     text = stringResource(R.string.onboarding_button_start),
                     onClick = onNext,
+                    variant = IosCapsuleButtonVariant.Primary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(MusePaddings.screen),
@@ -1629,9 +1532,10 @@ private fun BottomButtons(currentPage: Int, canGoNext: Boolean, onPrevious: () -
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    PrimaryPillButton(
+                    MuseCapsuleButton(
                         text = stringResource(R.string.onboarding_button_finish),
                         onClick = onComplete,
+                        variant = IosCapsuleButtonVariant.Primary,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = MusePaddings.screen)
@@ -1647,17 +1551,19 @@ private fun BottomButtons(currentPage: Int, canGoNext: Boolean, onPrevious: () -
                         .padding(MusePaddings.screen),
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
-                    SecondaryPillButton(
+                    MuseCapsuleButton(
                         text = stringResource(R.string.onboarding_button_previous),
-                        icon = MuseIcons.arrowLeft,
+                        leadingIcon = MuseIcons.arrowLeft,
                         onClick = onPrevious,
+                        variant = IosCapsuleButtonVariant.Secondary,
                         modifier = Modifier.weight(1f),
                     )
-                    PrimaryPillButton(
+                    MuseCapsuleButton(
                         text = stringResource(R.string.onboarding_button_next),
-                        icon = MuseIcons.arrowRight,
+                        trailingIcon = MuseIcons.arrowRight,
                         onClick = onNext,
                         enabled = canGoNext,
+                        variant = IosCapsuleButtonVariant.Primary,
                         modifier = Modifier.weight(1f),
                     )
                 }
