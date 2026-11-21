@@ -1,0 +1,66 @@
+name: Build Debug APK
+
+# 轻量调试包流水线：不跑 pwsh 质量门禁，只出 debug APK。
+# 跳过 Node 运行时打包（依赖的 Termux 仓库当前 404），保留 Python 运行时。
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-debug.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
+
+      - name: Build web assets
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install pack tools
+        run: sudo apt-get update && sudo apt-get install -y patchelf curl ca-certificates
+
+      - name: Pack Python runtime
+        run: bash tools/python-pack/build-python-pack.sh both
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: muse-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
