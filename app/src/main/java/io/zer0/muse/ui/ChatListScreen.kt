@@ -383,10 +383,6 @@ fun ChatListScreen(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                     )
                 } else {
-                    // v2.x: 回顾条数据 — 最近有消息的会话(点击直进)
-                    val latestRecallSession = remember(sessions) {
-                        sessions.maxByOrNull { it.updatedAt }?.takeIf { it.lastMessagePreview.isNotBlank() }
-                    }
                     LazyColumn(
                         modifier = Modifier.weight(1f),
                         // 前端修复 (性能-1): 移除全局 spacedBy,section 间距改为各区域
@@ -419,19 +415,9 @@ fun ChatListScreen(
                             }
                         }
 
-                        // v2.x: 回顾条(候选A) — "上次和 X 聊到「…」",整条可点直进最近会话
-                        // 回顾条指的是"最近一条有预览的会话",而它几乎总等于最近列表的第一行 ——
-                        // 同一条信息在首屏占两行。只有它不在列表首位时才值得单独一条。
-                        if (latestRecallSession != null && recent.firstOrNull()?.id != latestRecallSession.id) {
-                            item(key = "recall_bar") {
-                                RecallBar(
-                                    session = latestRecallSession,
-                                    assistantName = assistants.firstOrNull { it.id == latestRecallSession.assistantId }?.name,
-                                    onSelect = onSelect,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                        }
+                        // 回顾条已移除。它指的是「最近一条有预览的会话」，与下面「最近」列表的
+                        // 第一行是同一条信息；即使不在首位，用户往下滑一行也能看到，
+                        // 单独占一条只是把首屏又往上顶了一格。
 
                         // 列表工具行 — 归档恢复 / 新建文件夹 / 多选编辑三个入口。
                         // 这三簇功能的视图与回调早已接好,只缺入口;缺入口时归档 toast
@@ -728,55 +714,6 @@ internal fun sessionPreviewText(stored: String, interruptedText: String, truncat
         interruptedText,
         truncatedText,
     )
-
-/**
- * v2.x: 回顾条(候选A) — "💬 上次和 X 聊到「…」",整条可点直进最近会话。
- */
-@Composable
-private fun RecallBar(session: SessionEntity, assistantName: String?, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
-    val name = assistantName ?: stringResource(R.string.assistant_repo_default_name)
-    val interruptedText = stringResource(R.string.msg_interrupted_note)
-    val truncatedText = stringResource(R.string.err_reply_truncated)
-    val preview = remember(session.lastMessagePreview, interruptedText, truncatedText) {
-        sessionPreviewText(session.lastMessagePreview, interruptedText, truncatedText)
-    }
-    if (preview.isBlank()) return
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            // v2.x: 与"最近"列表卡平齐(全宽,去左右边距)
-            .clip(MuseShapes.medium)
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable { onSelect(session.id) }
-            .padding(horizontal = MusePaddings.screen, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // v2.3.2: 撤回预览的图标标记走 muse-icons + 尺寸令牌(原为 emoji + 硬编码 14.sp)
-        Icon(
-            imageVector = MuseIcons.chat,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(MuseIconSizes.iconTiny),
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            // 不再 take(18)：硬切会断在半句话且无省略号（Ellipsis 也没机会触发），
-            // 交给单行 Ellipsis 按实际宽度决定截断位置。
-            text = stringResource(R.string.chat_list_recall_format, name, preview),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(
-            imageVector = MuseIcons.arrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(16.dp),
-        )
-    }
-}
 
 /**
  * 前端修复 (性能-1): section 标题 — 原 TaskSectionCard 的标题部分拆为独立
