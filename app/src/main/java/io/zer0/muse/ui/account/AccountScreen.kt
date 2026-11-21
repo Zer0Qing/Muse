@@ -280,11 +280,6 @@ private fun UserProfileEntryCard(onClick: () -> Unit, modifier: Modifier = Modif
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = stringResource(R.string.account_user_profile_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
             // 全站导航箭头统一用 chevron 图标:ASCII "›" 既不成字形、读屏也读不出语义。
             Icon(

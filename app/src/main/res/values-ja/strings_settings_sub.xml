@@ -28,7 +28,6 @@
     <string name="settings_agent_proactive_title">プロアクティブなメッセージ</string>
     <!-- v2.x: Agent page title -->
     <string name="settings_agent_page_title">エージェント</string>
-    <string name="settings_agent_proactive_subtitle">エージェントはあなたが実際の人を好きだと積極的にメッセージを送ります</string>
     <string name="settings_agent_group_pace">送信リズム</string>
     <string name="settings_agent_group_daily">毎日の配信</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,

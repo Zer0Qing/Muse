@@ -321,7 +321,6 @@ fun AgentSettingsPage(
                     SettingsSwitchRow(
                         icon = MuseIcons.bell,
                         title = stringResource(R.string.settings_agent_proactive_title),
-                        subtitle = stringResource(R.string.settings_agent_proactive_subtitle),
                         checked = proactiveConfig.enabled,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveProactiveMessageConfig(proactiveConfig.copy(enabled = v)) }

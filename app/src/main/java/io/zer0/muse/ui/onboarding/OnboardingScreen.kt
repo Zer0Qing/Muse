@@ -569,14 +569,6 @@ private fun StepWelcome() {
                 )
             }
         }
-        // 轮播的是各语言的问候,不是"当前界面语言"的提示 —— 不加这句,
-        // 刚切过语言的用户会以为界面没换成功。
-        Text(
-            text = stringResource(R.string.onboarding_welcome_greetings_caption),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
     }
 }
 

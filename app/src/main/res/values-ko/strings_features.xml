@@ -59,7 +59,6 @@
     <string name="account_name_placeholder">이름을 입력하세요</string>
     <string name="account_save">구하다</string>
     <string name="account_user_profile_title">윤곽</string>
-    <string name="account_user_profile_subtitle">AI에게 당신을 더 잘 알려주세요</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->

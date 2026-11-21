@@ -34,7 +34,6 @@
     <string name="settings_agent_proactive_title">Proactive Messages</string>
     <!-- v2.x: Agent page title -->
     <string name="settings_agent_page_title">Agent</string>
-    <string name="settings_agent_proactive_subtitle">Agent proactively messages you like a real person</string>
     <string name="settings_agent_group_pace">Sending rhythm</string>
     <string name="settings_agent_group_daily">Daily pushes</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,

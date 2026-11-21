@@ -59,7 +59,6 @@
     <string name="account_name_placeholder">Digite seu nome</string>
     <string name="account_save">Salvar</string>
     <string name="account_user_profile_title">Perfil</string>
-    <string name="account_user_profile_subtitle">Deixe a IA conhecê-lo melhor</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->

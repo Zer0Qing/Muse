@@ -28,7 +28,6 @@
     <string name="settings_agent_proactive_title">Проактивные сообщения</string>
     <!-- v2.x: Agent page title -->
     <string name="settings_agent_page_title">Агент</string>
-    <string name="settings_agent_proactive_subtitle">Агент заранее сообщает, что вам нравится реальный человек</string>
     <string name="settings_agent_group_pace">Ритм отправки</string>
     <string name="settings_agent_group_daily">Ежедневные отправки</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,

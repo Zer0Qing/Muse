@@ -45,7 +45,6 @@
     <string name="settings_agent_proactive_title">主动消息</string>
     <!-- v2.x: Agent 页标题(替代硬编码 "Agent") -->
     <string name="settings_agent_page_title">Agent</string>
-    <string name="settings_agent_proactive_subtitle">Agent 像真人一样主动给你发消息</string>
     <string name="settings_agent_group_pace">发送节奏</string>
     <string name="settings_agent_group_daily">每日推送</string>
     <!-- v1.0.4 (P3-5): 开机自启开关 — 启用后系统开机完成时自动拉起 Muse,

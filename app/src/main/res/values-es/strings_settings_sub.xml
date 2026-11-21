@@ -28,7 +28,6 @@
     <string name="settings_agent_proactive_title">Mensajes proactivos</string>
     <!-- v2.x: Agent page title -->
     <string name="settings_agent_page_title">Agente</string>
-    <string name="settings_agent_proactive_subtitle">El agente te envía mensajes por iniciativa propia, como una persona real</string>
     <string name="settings_agent_group_pace">Ritmo de envío</string>
     <string name="settings_agent_group_daily">Envíos diarios</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,

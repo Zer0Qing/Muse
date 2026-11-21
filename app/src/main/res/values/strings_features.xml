@@ -182,7 +182,6 @@
     <string name="account_name_placeholder">输入你的名字</string>
     <string name="account_save">保存</string>
     <string name="account_user_profile_title">个人资料</string>
-    <string name="account_user_profile_subtitle">让 AI 更了解你</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start 已在主 strings.xml 定义,此处不重复 -->

@@ -86,7 +86,6 @@
     <string name="account_name_placeholder">Enter your name</string>
     <string name="account_save">Save</string>
     <string name="account_user_profile_title">Profile</string>
-    <string name="account_user_profile_subtitle">Let AI know you better</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->

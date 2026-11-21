@@ -53,7 +53,6 @@
     <!-- Step 5: Complete -->
     <string name="onboarding_complete_title">Todo listo.</string>
     <string name="onboarding_provider_next_hint">Elige un proveedor, añade su clave y supera la prueba para continuar; también puedes tocar abajo para configurarlo más tarde.</string>
-    <string name="onboarding_welcome_greetings_caption">Un saludo, siete idiomas</string>
     <string name="onboarding_complete_subtitle">Algunas cosas para probar</string>
     <string name="onboarding_restore_from_backup">Restaurar datos desde una copia de seguridad</string>
     <string name="onboarding_tutorial_chat_title">Chat diario</string>

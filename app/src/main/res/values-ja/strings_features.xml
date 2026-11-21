@@ -59,7 +59,6 @@
     <string name="account_name_placeholder">あなたの名前を入力してください</string>
     <string name="account_save">保存</string>
     <string name="account_user_profile_title">プロフィール</string>
-    <string name="account_user_profile_subtitle">AI があなたをよりよく認識できるようにする</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->

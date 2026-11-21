@@ -28,7 +28,6 @@
     <string name="settings_agent_proactive_title">사전 메시지</string>
     <!-- v2.x: Agent page title -->
     <string name="settings_agent_page_title">에이전트</string>
-    <string name="settings_agent_proactive_subtitle">상담원이 실제 사람을 좋아한다는 메시지를 적극적으로 보냅니다.</string>
     <string name="settings_agent_group_pace">전송 리듬</string>
     <string name="settings_agent_group_daily">일일 전송</string>
     <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
