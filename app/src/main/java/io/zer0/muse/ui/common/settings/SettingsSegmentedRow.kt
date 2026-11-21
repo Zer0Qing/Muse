@@ -35,7 +35,8 @@ import io.zer0.muse.ui.theme.MusePaddings
 fun SettingsSegmentedRow(
     icon: ImageVector,
     title: String,
-    subtitle: String,
+    /** 说明文案；null 表示不显示（标题已足够自解释时不要加）。 */
+    subtitle: String? = null,
     options: List<String>,
     selectedIndex: Int,
     onSelectedChange: (Int) -> Unit,
@@ -62,13 +63,15 @@ fun SettingsSegmentedRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             MuseCapsuleTab(
                 tabs = options,
                 selectedIndex = selectedIndex,

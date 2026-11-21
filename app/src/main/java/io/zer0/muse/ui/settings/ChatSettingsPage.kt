@@ -502,7 +502,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.moodSmile,
                     title = stringResource(R.string.settings_chat_show_mood),
-                    subtitle = stringResource(R.string.settings_chat_show_mood_subtitle),
                     checked = prefs.showMoodBlock,
                     onCheckedChange = { v -> update { it.copy(showMoodBlock = v) } },
                 )
@@ -511,7 +510,6 @@ fun ChatSettingsPage(
                     // 思考过程的图形早已定为 brain(进程列表 think/reasoning 同一口径),atom 留给"反思"。
                     icon = MuseIcons.brain,
                     title = stringResource(R.string.settings_chat_show_reasoning),
-                    subtitle = stringResource(R.string.settings_chat_show_reasoning_subtitle),
                     checked = prefs.showReasoning,
                     onCheckedChange = { v -> update { it.copy(showReasoning = v) } },
                 )
@@ -539,7 +537,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.switch,
                     title = stringResource(R.string.settings_chat_show_model),
-                    subtitle = stringResource(R.string.settings_chat_show_model_subtitle),
                     checked = prefs.showModelName,
                     onCheckedChange = { v -> update { it.copy(showModelName = v) } },
                 )
@@ -564,7 +561,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_chat_show_timestamp),
-                    subtitle = stringResource(R.string.settings_chat_show_timestamp_subtitle),
                     checked = prefs.showTimestamp,
                     onCheckedChange = { v -> update { it.copy(showTimestamp = v) } },
                 )
@@ -853,7 +849,6 @@ fun ChatSettingsPage(
                     // 回复风格是"怎么说"的文字类设置,与字号/字体同族;atom 是思考/原子的语义,借错了。
                     icon = MuseIcons.typography,
                     title = stringResource(R.string.settings_chat_style),
-                    subtitle = stringResource(R.string.settings_chat_style_subtitle),
                     options = styleOptions,
                     selectedIndex = selectedStyleIndex,
                     onSelectedChange = { idx ->
@@ -886,7 +881,6 @@ fun ChatSettingsPage(
                 SettingsSegmentedRow(
                     icon = MuseIcons.switch,
                     title = stringResource(R.string.settings_chat_tone),
-                    subtitle = stringResource(R.string.settings_chat_tone_subtitle),
                     options = toneOptions,
                     selectedIndex = selectedToneIndex,
                     onSelectedChange = { idx ->
@@ -911,7 +905,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_mood_expand),
-                    subtitle = stringResource(R.string.settings_chat_mood_expand_subtitle),
                     checked = prefs.moodExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(moodExpandedByDefault = v) } },
                 )
@@ -919,7 +912,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_expand_button),
-                    subtitle = stringResource(R.string.settings_chat_expand_button_subtitle),
                     checked = prefs.showExpandButton,
                     onCheckedChange = { v -> update { it.copy(showExpandButton = v) } },
                 )
@@ -927,7 +919,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_reasoning_expand),
-                    subtitle = stringResource(R.string.settings_chat_reasoning_expand_subtitle),
                     checked = prefs.reasoningExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(reasoningExpandedByDefault = v) } },
                 )
@@ -935,7 +926,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.expand,
                     title = stringResource(R.string.settings_chat_reflection_expand),
-                    subtitle = stringResource(R.string.settings_chat_reflection_expand_subtitle),
                     checked = prefs.reflectionExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(reflectionExpandedByDefault = v) } },
                 )
@@ -949,7 +939,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.chat,
                     title = stringResource(R.string.settings_chat_streaming),
-                    subtitle = stringResource(R.string.settings_chat_streaming_subtitle),
                     checked = prefs.streamResponse,
                     onCheckedChange = { v -> update { it.copy(streamResponse = v) } },
                 )
@@ -966,7 +955,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.arrowRight,
                     title = stringResource(R.string.settings_chat_auto_scroll),
-                    subtitle = stringResource(R.string.settings_chat_auto_scroll_subtitle),
                     checked = prefs.autoScrollToBottom,
                     onCheckedChange = { v -> update { it.copy(autoScrollToBottom = v) } },
                 )
@@ -974,7 +962,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.volume,
                     title = stringResource(R.string.settings_chat_volume_scroll),
-                    subtitle = stringResource(R.string.settings_chat_volume_scroll_subtitle),
                     checked = prefs.volumeKeyScroll,
                     onCheckedChange = { v -> update { it.copy(volumeKeyScroll = v) } },
                 )
@@ -990,7 +977,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.bolt,
                     title = stringResource(R.string.settings_chat_haptic),
-                    subtitle = stringResource(R.string.settings_chat_haptic_subtitle),
                     checked = prefs.hapticFeedback,
                     onCheckedChange = { v -> update { it.copy(hapticFeedback = v) } },
                 )
@@ -1014,7 +1000,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.eye,
                     title = stringResource(R.string.settings_chat_show_tool_calls),
-                    subtitle = stringResource(R.string.settings_chat_show_tool_calls_subtitle),
                     checked = prefs.showToolCallDetails,
                     onCheckedChange = { v -> update { it.copy(showToolCallDetails = v) } },
                 )
@@ -1030,7 +1015,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.settings_chat_24h),
-                    subtitle = stringResource(R.string.settings_chat_24h_subtitle),
                     checked = prefs.use24Hour,
                     onCheckedChange = { v -> update { it.copy(use24Hour = v) } },
                 )
