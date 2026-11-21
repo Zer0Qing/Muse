@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.data.AutomationSettingsStore
@@ -130,7 +131,7 @@ fun AutomationSettingsPage(
             // 顶部说明卡
             item(key = "intro") {
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -167,7 +168,7 @@ fun AutomationSettingsPage(
                 AutomationBannerKind.MASTER_OFF -> {
                     item(key = "master-off-banner") {
                         Surface(
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
                             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -196,7 +197,7 @@ fun AutomationSettingsPage(
                 AutomationBannerKind.A11Y_OFF -> {
                     item(key = "a11y-off-banner") {
                         Surface(
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -222,7 +223,7 @@ fun AutomationSettingsPage(
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier
                                             .padding(top = 6.dp)
-                                            .clip(RoundedCornerShape(8.dp))
+                                            .clip(RoundedCornerShape(MuseCornerRadius.SMALL.dp))
                                             .clickable {
                                                 manager.openSystemSettings(
                                                     AutomationManager.SystemSettingsTarget.ACCESSIBILITY,
@@ -380,7 +381,7 @@ private fun LazyListScope.orchestrationSubPage(
 ) {
     item(key = "orchestration") {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -439,7 +440,7 @@ private fun LazyListScope.orchestrationSubPage(
 @Composable
 private fun ScreenTestResultCard(result: ScreenTestResult) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
         color = if (result.success) {
             MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
         } else {
@@ -456,7 +457,7 @@ private fun ScreenTestResultCard(result: ScreenTestResult) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(MuseCornerRadius.SMALL.dp))
                         .clickable { showDevInfo = !showDevInfo }
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,

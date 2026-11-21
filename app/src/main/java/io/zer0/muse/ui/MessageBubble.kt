@@ -77,6 +77,7 @@ import coil.compose.SubcomposeAsyncImage
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.resultOf
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.session.MessageMarkers
@@ -2856,7 +2857,7 @@ private fun TelegramActionCard(
     )
     Surface(
         color = bg,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(MuseCornerRadius.BUBBLE.dp),
         shadowElevation = 10.dp,
         tonalElevation = 0.dp,
     ) {
@@ -2906,7 +2907,7 @@ private fun FixedColorActionRow(icon: ImageVector, text: String, textColor: Colo
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(MuseCornerRadius.BUTTON.dp))
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -2922,7 +2923,7 @@ private fun FixedColorActionRow(icon: ImageVector, text: String, textColor: Colo
     ) {
         // 小图标底块
         Surface(
-            shape = RoundedCornerShape(9.dp),
+            shape = RoundedCornerShape(MuseCornerRadius.SMALL.dp),
             color = iconBlockColor,
             modifier = Modifier.size(30.dp),
         ) {

@@ -60,6 +60,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.MessageRole
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -583,7 +584,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(MuseCornerRadius.BUTTON.dp))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
@@ -1558,7 +1559,7 @@ private fun QuickBarAction(
                 scaleY = pressScale
             }
             .size(40.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(MuseCornerRadius.BUTTON.dp))
             .background(bgColor)
             .clickable(
                 interactionSource = interactionSource,

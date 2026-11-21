@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.ChatGradient
 import io.zer0.muse.data.ChatPreferences
@@ -292,7 +293,7 @@ fun ChatSettingsPage(
                             ),
                             modifier =
                             Modifier
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
                                 .clickable {
                                     bgScope.launch {
                                         settings.saveChatBackground(null)
@@ -382,7 +383,7 @@ fun ChatSettingsPage(
                             ),
                             modifier =
                             Modifier
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
                                 .clickable {
                                     darkBgScope.launch {
                                         settings.saveChatBackgroundDark(null)
@@ -449,7 +450,7 @@ fun ChatSettingsPage(
                             ),
                             modifier =
                             Modifier
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
                                 .clickable {
                                     gradScope.launch { settings.saveChatGradient(null) }
                                 }
@@ -470,7 +471,7 @@ fun ChatSettingsPage(
                             modifier =
                             Modifier
                                 .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(MuseCornerRadius.SMALL.dp))
                                 .background(
                                     Brush.linearGradient(
                                         listOf(Color(start.toInt()), Color(end.toInt())),
@@ -484,7 +485,7 @@ fun ChatSettingsPage(
                                     } else {
                                         MaterialTheme.colorScheme.outlineVariant
                                     },
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(MuseCornerRadius.SMALL.dp),
                                 )
                                 .clickable {
                                     gradScope.launch { settings.saveChatGradient(ChatGradient(start, end)) }

@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.plugin.PluginCapabilityAudit
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
@@ -144,7 +145,7 @@ fun PluginPermissionPanel(
 @Composable
 private fun PythonTrustRow(allowed: Boolean, onToggle: (Boolean) -> Unit) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -380,7 +381,7 @@ private data class CapabilityRow(val capability: String, val allowed: Boolean)
 @Composable
 private fun WarningBlock(title: String, detail: String, actionLabel: String, onAction: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
         color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
         modifier = Modifier.fillMaxWidth(),
     ) {

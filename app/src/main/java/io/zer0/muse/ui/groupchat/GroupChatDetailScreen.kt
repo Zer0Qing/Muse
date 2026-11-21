@@ -74,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kyant.backdrop.backdrops.layerBackdrop
 import io.github.fletchmckee.liquid.liquefiable
 import io.zer0.common.Logger
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
 import io.zer0.muse.ui.ChatSelectionBar
@@ -764,7 +765,7 @@ fun GroupChatDetailScreen(
                         contentAlignment = Alignment.TopCenter,
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
                             color = MaterialTheme.colorScheme.errorContainer,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -1810,14 +1811,14 @@ private fun GroupChatActionRow(icon: ImageVector, text: String, textColor: Color
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(MuseCornerRadius.BUTTON.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Surface(
-            shape = RoundedCornerShape(9.dp),
+            shape = RoundedCornerShape(MuseCornerRadius.SMALL.dp),
             color = iconBlockColor,
             modifier = Modifier.size(30.dp),
         ) {

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.MuseTooltip
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -48,7 +49,7 @@ internal fun InChatFindBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 3.dp,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
         modifier = modifier,
     ) {
         Row(

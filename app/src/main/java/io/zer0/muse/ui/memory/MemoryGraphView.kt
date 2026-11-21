@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -159,7 +160,7 @@ fun MemoryGraphView(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(MuseCornerRadius.CARD.dp))
             .background(colors.surface)
             // v2.x: 动效补齐 — 整体入场:淡入 + 轻微放大到位(0.96→1.0)
             .graphicsLayer {
@@ -405,7 +406,7 @@ fun MemoryGraphView(
         // 复位按钮
         Surface(
             onClick = resetView,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
             color = colors.surface.copy(alpha = 0.92f),
             border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.outlineVariant),
             modifier = Modifier
@@ -425,7 +426,7 @@ fun MemoryGraphView(
             val related = state.edges.filter { it.sourceFactId == node.factId || it.targetFactId == node.factId }
             Surface(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(MusePaddings.cardInner),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
                 color = colors.surface,
                 tonalElevation = 3.dp,
             ) {

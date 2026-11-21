@@ -55,6 +55,7 @@ import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
@@ -1057,7 +1058,7 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier =
                                     Modifier
-                                        .clip(RoundedCornerShape(14.dp))
+                                        .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
                                         .clickable {
                                             bgScope.launch {
                                                 settings.saveAssistantChatBackground(assistantId, null)
@@ -1076,7 +1077,7 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier =
                                     Modifier
-                                        .clip(RoundedCornerShape(14.dp))
+                                        .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
                                         .clickable {
                                             bgLauncher.launch(
                                                 "image/*",

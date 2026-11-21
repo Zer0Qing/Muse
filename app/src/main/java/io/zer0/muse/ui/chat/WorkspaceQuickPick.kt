@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SettingsItemRow
@@ -76,7 +77,7 @@ internal fun WorkspaceQuickPickDialog(onOpen: (String) -> Unit, onDismiss: () ->
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
             color = MaterialTheme.colorScheme.surface,
         ) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {

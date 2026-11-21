@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.proactive.PendingThoughtEntity
 import io.zer0.muse.data.proactive.ProactiveIntensity
@@ -134,7 +135,7 @@ fun ProactiveLedgerSheet(
                     .fillMaxWidth()
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant,
-                        RoundedCornerShape(12.dp),
+                        RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
                     ).clickable(onClick = if (coolingDown) onClearCooldown else onCooldown)
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
@@ -254,7 +255,7 @@ internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveInten
                             modifier = Modifier
                                 .background(
                                     MaterialTheme.colorScheme.primaryContainer,
-                                    RoundedCornerShape(14.dp),
+                                    RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
                                 ).padding(horizontal = 10.dp, vertical = 4.dp),
                         ) {
                             Text(
@@ -294,7 +295,7 @@ private fun ThoughtRow(thought: PendingThoughtEntity, now: Long) {
     ) {
         Box(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(6.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(MuseCornerRadius.BUBBLE_TAIL.dp))
                 .padding(horizontal = 6.dp, vertical = 2.dp),
         ) {
             Text(

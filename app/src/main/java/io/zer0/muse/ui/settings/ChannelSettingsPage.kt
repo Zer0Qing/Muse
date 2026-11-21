@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.channel.ChannelConfig
 import io.zer0.muse.channel.ChannelInbox
@@ -354,7 +355,7 @@ private fun ChannelActionText(text: String, color: Color, onClick: () -> Unit) {
         color = color,
         modifier =
         Modifier
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(MuseCornerRadius.BUBBLE_TAIL.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 6.dp, vertical = 4.dp),
     )

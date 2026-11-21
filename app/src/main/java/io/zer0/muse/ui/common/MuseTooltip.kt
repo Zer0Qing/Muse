@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import io.zer0.muse.ui.theme.MuseCornerRadius
 
 // E4 (前端专项 H8): 通用 Tooltip — 桌面 hover 显示气泡提示。
 // 移动端触摸不产生 PointerEventType.Enter/Exit 事件,天然不触发,无需平台判断。
@@ -50,7 +51,7 @@ internal fun MuseTooltip(text: String, modifier: Modifier = Modifier, content: @
                 offset = IntOffset(0, -gapPx),
             ) {
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(MuseCornerRadius.BUBBLE_TAIL.dp),
                     color = MaterialTheme.colorScheme.inverseSurface,
                     tonalElevation = 2.dp,
                 ) {

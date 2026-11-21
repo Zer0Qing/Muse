@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.tools.BrowserManager
 import io.zer0.muse.ui.common.MuseFloatingActionItem
@@ -122,7 +123,7 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
     val capsuleBorder = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
     Surface(
         onClick = { showViewer = true },
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(MuseCornerRadius.PILL.dp),
         color = capsuleContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         border = androidx.compose.foundation.BorderStroke(1.dp, capsuleBorder),
@@ -243,7 +244,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                         // 地址栏:可输入网址或搜索词。提交后走 manager.navigate,
                         // 与 AI 共用同一个 WebView —— 用户改完页面,AI 接着就能读到并继续操作。
                         Surface(
-                            shape = RoundedCornerShape(50),
+                            shape = RoundedCornerShape(MuseCornerRadius.PILL.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier.weight(1f),
                         ) {
@@ -407,7 +408,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                         displayState == BrowserDisplayState.BLANK_PAGE
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(MuseCornerRadius.BUBBLE.dp),
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
                             tonalElevation = 2.dp,
                             modifier = Modifier

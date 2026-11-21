@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.state.MuseProgressBar
@@ -105,7 +106,7 @@ fun TokenCountMenu(snapshot: TokenCountSnapshot, onDismissRequest: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
+                        .clip(RoundedCornerShape(MuseCornerRadius.TINY.dp)),
                     color = when {
                         ratio >= 0.9f -> MaterialTheme.colorScheme.error
                         ratio >= 0.7f -> MaterialTheme.colorScheme.tertiary
