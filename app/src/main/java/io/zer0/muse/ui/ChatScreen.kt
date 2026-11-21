@@ -164,6 +164,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.chat.render.ChatRenderContinuationRow
+import io.zer0.muse.ui.chat.render.ChatRenderRowIndex
+import io.zer0.muse.ui.chat.render.ChatRenderLogGate
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =

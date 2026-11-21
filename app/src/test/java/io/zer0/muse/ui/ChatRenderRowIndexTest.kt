@@ -2,6 +2,8 @@ package io.zer0.muse.ui
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import io.zer0.muse.ui.chat.render.ChatRenderChunk
+import io.zer0.muse.ui.chat.render.ChatRenderRowIndex
 
 class ChatRenderRowIndexTest {
     @Test

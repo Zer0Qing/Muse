@@ -3,6 +3,9 @@ package io.zer0.muse.ui
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.ui.chat.QuickAction
+import io.zer0.muse.ui.chat.render.ChatRenderChunk
+import io.zer0.muse.ui.chat.render.ChatRenderChunks
+import io.zer0.muse.ui.chat.render.ChatRenderRole
 
 enum class ChatMessageRenderRowKind {
     Complete,

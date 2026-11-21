@@ -5,6 +5,7 @@ import io.zer0.ai.core.UIMessage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import io.zer0.muse.ui.chat.render.mergeFinalAssistantMedia
 
 /**
  * 审计修复 (A-16): 收尾消息媒体合并回归护栏。

@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat.render
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +15,8 @@ import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.ui.chat.StickerAwareMarkdownBody
 import io.zer0.muse.ui.chat.buildHighlightedText
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.ChatMessageRenderRow
+import io.zer0.muse.ui.ChatMessageRenderRowKind
 
 /**
  * 已由首条交互外壳接管操作能力的后续长文块。这里只承担正文组合，

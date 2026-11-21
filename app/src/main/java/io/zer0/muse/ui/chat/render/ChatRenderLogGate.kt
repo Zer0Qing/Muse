@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat.render
 
 /**
  * 「非渲染消息」诊断日志的去重门。

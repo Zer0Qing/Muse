@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat.render
 
 import io.zer0.ai.core.UIMessage
 

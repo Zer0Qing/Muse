@@ -39,7 +39,6 @@ import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.ChatStreamPhase
 import io.zer0.muse.ui.artifact.RichCardArtifacts
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.mergeFinalAssistantMedia
 import io.zer0.muse.ui.selectSteeringMessages
 import io.zer0.muse.util.ErrorMessages
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +56,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import io.zer0.muse.ui.chat.render.mergeFinalAssistantMedia
 
 /**
  * v2.6.15: 本轮 assistant 消息的产出模型戳。
