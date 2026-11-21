@@ -1529,24 +1529,20 @@ private fun MemoryConstellationTab(scope: String?, spaceId: String, factCount: I
         }
     }
     Column(modifier = modifier.padding(horizontal = MusePaddings.screen, vertical = 4.dp)) {
-        // v2.6.2（用户反馈）: 说明行右侧一个不显眼的小按钮，点开星座设置（AI 深化 + 补边频率）。
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.memory_center_constellation_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                // v2.6.7: 补 maxLines 兜底 —— 该行有右侧定宽按钮，放大字号时
-                // 文本会拿到极小宽度并被无限换行（row-text-width 门禁拦下）。
-                maxLines = 3,
-                modifier = Modifier.weight(1f).padding(bottom = 8.dp),
-            )
-            io.zer0.muse.ui.common.form.MuseTactileButton(
-                icon = MuseIcons.sliders,
+        // 原来是一行解释文字 + 右侧一个不显眼的小按钮。
+        // 解释文字讲的是「重要事实靠近中心、关系没整理时节点单独显示」——
+        // 这些看图就懂，写出来只是把图形又描述一遍。
+        // 改成按钮自带文字标签，用户直接知道这里能设置。
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
+        ) {
+            io.zer0.muse.ui.common.form.MuseCapsuleButton(
+                text = stringResource(R.string.memory_graph_settings_title),
                 onClick = { showGraphSettings = true },
-                contentDescription = stringResource(R.string.memory_graph_settings_title),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                modifier = Modifier.size(32.dp),
-                iconSize = 18.dp,
+                variant = io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Text,
+                fillWidth = false,
             )
         }
         if (showGraphSettings) {
