@@ -1,7 +1,6 @@
 package io.zer0.muse
 
 import android.app.Application
-import io.zer0.muse.ui.MemoryViewModel
 import io.zer0.muse.ui.groupchat.GroupChatViewModel
 import io.zer0.muse.ui.memory.MemorySpaceViewModel
 import io.zer0.muse.ui.stats.StatsViewModel
@@ -9,6 +8,7 @@ import io.zer0.muse.ui.translate.TranslateViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import io.zer0.muse.ui.memory.MemoryViewModel
 
 /**
  * P2-3 拆域：ViewModel 注册独立模块，减少 AppKoinModule 单体体积。

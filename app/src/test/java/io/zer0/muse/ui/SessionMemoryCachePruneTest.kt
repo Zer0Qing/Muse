@@ -2,6 +2,7 @@ package io.zer0.muse.ui
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import io.zer0.muse.ui.memory.SessionMemoryCache
 
 /**
  * `pruneAbsent` —— 会话缓存的**自我纠正**。

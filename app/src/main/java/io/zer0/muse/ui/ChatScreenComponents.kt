@@ -63,6 +63,7 @@ import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.memory.isToday
 
 /**
  * v0.29 P0-1: 空聊天引导 — 轻量居中提示 + 建议 prompt 胶囊。

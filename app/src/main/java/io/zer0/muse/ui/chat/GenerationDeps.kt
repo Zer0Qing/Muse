@@ -16,9 +16,9 @@ import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.transformer.SystemPromptAssembler
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.ui.ChatErrorType
-import io.zer0.muse.ui.SessionMemoryCache
 import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.memory.SessionMemoryCache
 
 /**
  * v1.x: 生成/发送管线的依赖 bundle。

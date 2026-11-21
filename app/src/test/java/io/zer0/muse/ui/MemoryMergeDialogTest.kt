@@ -23,6 +23,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicBoolean
+import io.zer0.muse.ui.memory.MemoryMergeDialog
+import io.zer0.muse.ui.memory.mergeDialogProperties
+import io.zer0.muse.ui.memory.MemoryMergeDraft
 
 /**
  * 多选合并预览弹窗的交互约束。

@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.memory
 
 internal inline fun <T> routeMemoryItemAction(
     item: MemoryItem,

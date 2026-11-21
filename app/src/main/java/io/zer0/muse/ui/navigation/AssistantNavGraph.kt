@@ -24,7 +24,6 @@ import io.zer0.muse.ui.AssistantScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.FavoritesScreen
 import io.zer0.muse.ui.LorebookScreen
-import io.zer0.muse.ui.MemoryScreen
 import io.zer0.muse.ui.PromptInjectionScreen
 import io.zer0.muse.ui.QuickMessageScreen
 import io.zer0.muse.ui.SkillScreen
@@ -33,6 +32,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.memory.MemoryScreen
 
 /**
  * 助手域 NavGraph — 包含助手管理、助手详情及 5 个子页、收藏夹、世界书、

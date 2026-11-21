@@ -7,6 +7,7 @@ import io.zer0.muse.data.session.SessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import io.zer0.muse.ui.memory.MemoryScreen
 
 /**
  * v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary。

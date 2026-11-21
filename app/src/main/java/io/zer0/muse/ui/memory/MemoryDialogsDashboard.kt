@@ -1,7 +1,7 @@
 @file:Suppress("FunctionNaming", "LongMethod", "LongParameterList", "CyclomaticComplexMethod", "TooManyFunctions", "ReturnCount", "TooGenericExceptionCaught", "SwallowedException", "MaxLineLength")
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 
-package io.zer0.muse.ui
+package io.zer0.muse.ui.memory
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas

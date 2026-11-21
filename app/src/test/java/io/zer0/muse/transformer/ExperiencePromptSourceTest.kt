@@ -4,6 +4,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import io.zer0.muse.ui.memory.MemoryViewModel
 
 /**
  * 经验库数据源统一（Task 2）的守卫。

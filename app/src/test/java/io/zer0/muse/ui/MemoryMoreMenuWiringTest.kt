@@ -5,6 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.memory.MemoryScreen
 
 class MemoryMoreMenuWiringTest {
 
@@ -19,8 +20,9 @@ class MemoryMoreMenuWiringTest {
     private fun locateMemoryScreenSource(): String {
         val candidates =
             listOf(
-                Path.of("src/main/java/io/zer0/muse/ui/MemoryScreen.kt"),
-                Path.of("app/src/main/java/io/zer0/muse/ui/MemoryScreen.kt"),
+                // 2026-11-22: MemoryScreen 已归档到 ui/memory 子包（W6-1）。
+                Path.of("src/main/java/io/zer0/muse/ui/memory/MemoryScreen.kt"),
+                Path.of("app/src/main/java/io/zer0/muse/ui/memory/MemoryScreen.kt"),
             )
         val path = candidates.firstOrNull(Files::exists)
             ?: error("Unable to locate MemoryScreen.kt from ${System.getProperty("user.dir")}")

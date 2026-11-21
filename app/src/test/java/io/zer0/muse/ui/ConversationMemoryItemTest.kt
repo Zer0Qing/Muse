@@ -6,6 +6,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.ui.memory.projectConversationMemoryItems
+import io.zer0.muse.ui.memory.buildMemoryStreamItems
+import io.zer0.muse.ui.memory.MemoryItem
+import io.zer0.muse.ui.memory.matchesConversationMemoryFilter
 
 class ConversationMemoryItemTest {
 

@@ -6,6 +6,10 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.ui.memory.MemoryItem
+import io.zer0.muse.ui.memory.MemoryFactStatus
+import io.zer0.muse.ui.memory.memoryFactKey
+import io.zer0.muse.ui.memory.memoryFactStatusOf
 
 /**
  * 记忆状态徽章的判定规则。

@@ -1,7 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @file:Suppress("LongMethod")
 
-package io.zer0.muse.ui
+package io.zer0.muse.ui.memory
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade

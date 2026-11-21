@@ -52,6 +52,8 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import java.util.concurrent.atomic.AtomicBoolean
+import io.zer0.muse.ui.memory.MemoryViewModel
+import io.zer0.muse.ui.memory.SessionMemoryCache
 
 /** 最近一次成功生成的每日助手总结,供首页问候语复用。 */
 data class DailySummarySnapshot(

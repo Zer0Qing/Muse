@@ -18,6 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicBoolean
+import io.zer0.muse.ui.memory.MemorySelectionActions
 
 /**
  * 多选态动作栏的可用性约束。

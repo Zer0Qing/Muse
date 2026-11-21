@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.memory
 
 import io.zer0.memory.summary.SessionSummaryManager
 import io.zer0.muse.data.session.SessionEntity

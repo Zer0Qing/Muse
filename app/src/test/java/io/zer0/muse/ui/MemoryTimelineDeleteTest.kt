@@ -27,6 +27,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicReference
+import io.zer0.muse.ui.memory.MemoryScreen
+import io.zer0.muse.ui.memory.MemorySelectionActions
+import io.zer0.muse.ui.memory.MemoryBulkDeleteDialog
+import io.zer0.muse.ui.memory.MemoryItem
+import io.zer0.muse.ui.memory.routeMemoryItemAction
 
 /**
  * 时间轴卡片删除链路：长按 → 动作面板 → 二次确认 → 按底层条目删除。

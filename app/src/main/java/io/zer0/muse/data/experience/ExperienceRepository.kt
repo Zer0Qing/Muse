@@ -1,6 +1,7 @@
 package io.zer0.muse.data.experience
 
 import kotlinx.coroutines.flow.Flow
+import io.zer0.muse.ui.memory.MemoryViewModel
 
 /**
  * v1.98: 经验库仓库 — 提供 CRUD + observeAll。
