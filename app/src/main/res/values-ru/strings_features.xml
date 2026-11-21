@@ -754,7 +754,6 @@
     <string name="task_card_total_duration">Общая длительность: %1$s</string>
     <string name="task_plan_status_cancelled">Отменено</string>
     <string name="task_plan_status_timed_out">Время истекло</string>
-    <string name="schedule_last_run_short">Прошлый запуск %1$s</string>
     <string name="plan_next_step_label">Далее: %1$s</string>
     <string name="home_date_pattern">MMM d, EEEE</string>
     <string name="groupchat_summary_doc_title">Итоги обсуждения · %1$s</string>

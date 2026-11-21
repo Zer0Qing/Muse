@@ -693,7 +693,6 @@
     <string name="mini_album_unfavorite_action">取消收藏</string>
     <string name="mini_album_favorite_action">收藏</string>
     <string name="mini_album_cancel">取消</string>
-    <string name="schedule_last_run_short">上次 %1$s</string>
     <string name="plan_next_step_label">下一步：%1$s</string>
     <string name="home_date_pattern">M月d日 EEEE</string>
     <string name="groupchat_summary_doc_title">讨论总结 · %1$s</string>

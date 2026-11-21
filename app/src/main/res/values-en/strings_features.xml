@@ -654,7 +654,6 @@
     <string name="knowledge_rename_doc">Rename</string>
     <string name="knowledge_rename_new_title">New title</string>
     <string name="knowledge_renamed">Renamed to: %1$s</string>
-    <string name="schedule_last_run_short">Last run %1$s</string>
     <string name="plan_next_step_label">Next: %1$s</string>
     <string name="home_date_pattern">MMM d, EEEE</string>
     <string name="groupchat_summary_doc_title">Discussion summary · %1$s</string>

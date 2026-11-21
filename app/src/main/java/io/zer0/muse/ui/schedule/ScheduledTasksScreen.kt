@@ -435,19 +435,16 @@ private fun TaskCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.size(2.dp))
-                    Text(
-                        text = task.prompt.take(80),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    // 不再预览 prompt 前 80 字：定时任务的识别靠名字，
+                    // 而 80 字截断的 prompt 既读不成句子，也占掉一整行。
+                    // 要确认任务内容就点开编辑。
                 }
                 MuseSwitch(checked = task.enabled, onCheckedChange = onToggle)
             }
 
-            // 元信息徽标行:周期 / 下次执行 / 上次执行
+            // 元信息只留两个：周期 + 下次执行。
+            // 「上次执行」在卡片展开后的执行历史里有完整记录，这里再挂一个时间戳
+            // 只是让每张卡多一个 chip —— 用户判断「这个任务还活着吗」看的是下次执行。
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -457,12 +454,6 @@ private fun TaskCard(
             ) {
                 TaskMetaChip(text = intervalToLabel(task.interval))
                 NextRunChip(task)
-                if (task.lastRunAt > 0) {
-                    val lastFmt = remember { MuseDateFormats.dateTimeShort() }
-                    TaskMetaChip(
-                        text = stringResource(R.string.schedule_last_run_short, lastFmt.format(Date(task.lastRunAt))),
-                    )
-                }
             }
 
             Spacer(Modifier.size(10.dp))

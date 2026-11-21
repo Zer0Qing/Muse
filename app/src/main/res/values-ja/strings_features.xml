@@ -704,7 +704,6 @@
     <string name="task_card_total_duration">合計時間：%1$s</string>
     <string name="task_plan_status_cancelled">キャンセル済み</string>
     <string name="task_plan_status_timed_out">タイムアウト</string>
-    <string name="schedule_last_run_short">前回 %1$s</string>
     <string name="plan_next_step_label">次のステップ: %1$s</string>
     <string name="home_date_pattern">M月d日 EEEE</string>
     <string name="groupchat_summary_doc_title">ディスカッション要約 · %1$s</string>
