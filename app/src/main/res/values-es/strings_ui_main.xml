@@ -185,7 +185,7 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Ajustes</string>
     <!-- Categorías de ajustes (primer nivel) -->
-    <string name="settings_group_assistants">Asistentes y roles</string>
+    <string name="settings_group_assistants">Asistentes</string>
     <string name="settings_group_chat">Chat</string>
     <string name="settings_group_models">Modelos y proveedores</string>
     <string name="settings_group_tools">Herramientas y permisos</string>

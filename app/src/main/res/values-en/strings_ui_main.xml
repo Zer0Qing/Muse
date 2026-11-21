@@ -194,7 +194,7 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Settings</string>
     <!-- Settings categories (first level of the settings screen) -->
-    <string name="settings_group_assistants">Assistants and Roles</string>
+    <string name="settings_group_assistants">Assistants</string>
     <string name="settings_group_chat">Chat</string>
     <string name="settings_group_models">Models and Providers</string>
     <string name="settings_group_tools">Tools and Permissions</string>

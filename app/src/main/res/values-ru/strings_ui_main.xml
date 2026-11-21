@@ -185,7 +185,7 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Настройки</string>
     <!-- Категории настроек (первый уровень) -->
-    <string name="settings_group_assistants">Ассистенты и роли</string>
+    <string name="settings_group_assistants">Ассистенты</string>
     <string name="settings_group_chat">Чат</string>
     <string name="settings_group_models">Модели и провайдеры</string>
     <string name="settings_group_tools">Инструменты и права</string>

@@ -617,7 +617,7 @@
     <!-- ===== ui/model ===== -->
     <string name="model_profile_title">模型头像</string>
     <string name="model_profile_empty_title">暂无模型</string>
-    <string name="model_profile_empty_subtitle">请先在设置中添加 AI 提供商</string>
+    <string name="model_profile_empty_subtitle">请先在设置中添加 AI 供应商</string>
 
     <!-- ===== v1.201: 人机协作 / 委派暂停 ===== -->
     <string name="delegation_pause_section_title">人机协作</string>

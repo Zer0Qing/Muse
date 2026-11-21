@@ -564,7 +564,7 @@
     <string name="settings_agent_moment_count_off">オフ</string>
     <string name="settings_agent_moment_count_per_day">1日あたり %1$d 件</string>
     <string name="settings_agent_moment_count_title">モーメントの1日あたり件数</string>
-    <string name="settings_relationship_title">キャラクターとの関係</string>
+    <string name="settings_relationship_title">アシスタントとの関係</string>
     <string name="settings_relationship_hint">各キャラクターとの関係をここで定義します。親密度は実際のやり取りで自動的に上がり、相手から連絡してくる頻度にも影響します。</string>
     <string name="settings_relationship_unset">未設定</string>
     <string name="settings_relationship_edit_title">関係を編集</string>

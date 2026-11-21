@@ -234,7 +234,7 @@
     <!-- 设置页主列表按 14 组组织，每组不超过 5 项。以下键沿用旧键名，文案已改为新组名；
          chat_display / data_privacy / proactive / storage / migrate 已不再使用，仅保留键。 -->
     <!-- ===== 设置一级分类（首页 12 行；顺序与 SettingsCatalog 一致） ===== -->
-    <string name="settings_group_assistants">助手与角色</string>
+    <string name="settings_group_assistants">助手</string>
     <string name="settings_group_chat">聊天</string>
     <string name="settings_group_models">模型与供应商</string>
     <string name="settings_group_tools">工具与权限</string>
@@ -818,7 +818,7 @@
 
     <!-- ===== P2-9: 语音克隆(VoiceCloningPage + MediaSettingsPage 入口) ===== -->
     <string name="voice_cloning_title">语音克隆</string>
-    <string name="voice_cloning_provider">服务商</string>
+    <string name="voice_cloning_provider">供应商</string>
     <string name="voice_cloning_api_key">API Key</string>
     <string name="voice_cloning_new_voice">克隆新语音</string>
     <string name="voice_cloning_voice_name">语音名称</string>

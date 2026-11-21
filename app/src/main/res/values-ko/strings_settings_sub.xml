@@ -564,7 +564,7 @@
     <string name="settings_agent_moment_count_off">끄기</string>
     <string name="settings_agent_moment_count_per_day">하루 %1$d개</string>
     <string name="settings_agent_moment_count_title">모먼트 하루 개수</string>
-    <string name="settings_relationship_title">캐릭터 관계</string>
+    <string name="settings_relationship_title">어시스턴트 관계</string>
     <string name="settings_relationship_hint">각 캐릭터와의 관계를 여기서 정의합니다. 친밀도는 실제 대화로 자동 상승하며, 상대가 먼저 연락하는 빈도에도 영향을 줍니다.</string>
     <string name="settings_relationship_unset">설정 안 됨</string>
     <string name="settings_relationship_edit_title">관계 편집</string>

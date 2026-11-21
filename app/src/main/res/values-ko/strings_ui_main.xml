@@ -185,7 +185,7 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">설정</string>
     <!-- 설정 첫 단계 분류 -->
-    <string name="settings_group_assistants">어시스턴트 및 역할</string>
+    <string name="settings_group_assistants">어시스턴트</string>
     <string name="settings_group_chat">채팅</string>
     <string name="settings_group_models">모델 및 공급자</string>
     <string name="settings_group_tools">도구 및 권한</string>

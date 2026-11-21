@@ -185,7 +185,7 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">設定</string>
     <!-- 設定の第一レベル分類 -->
-    <string name="settings_group_assistants">アシスタントと役割</string>
+    <string name="settings_group_assistants">アシスタント</string>
     <string name="settings_group_chat">チャット</string>
     <string name="settings_group_models">モデルとプロバイダー</string>
     <string name="settings_group_tools">ツールと権限</string>
