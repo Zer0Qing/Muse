@@ -1,0 +1,271 @@
+package io.zer0.muse.ui.screen
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import io.zer0.common.FileSizeFormatter
+import io.zer0.common.Logger
+import io.zer0.memory.compile.MemoryCompiler
+import io.zer0.memory.compile.MemoryFileWriter
+import io.zer0.memory.fact.FactDbProvider
+import io.zer0.memory.fact.FactStore
+import io.zer0.memory.summary.SessionSummaryManager
+import io.zer0.muse.R
+import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
+import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.ui.chat.SessionArtifactCleanup
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.surface.MuseSurface
+import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
+import java.io.File
+
+@Composable
+fun DataManagementScreen(
+    onBack: () -> Unit,
+    sessionRepository: SessionRepository = koinInject(),
+    factStore: FactStore = koinInject(),
+    summaryManager: SessionSummaryManager = koinInject(),
+    memoryCompiler: MemoryCompiler = koinInject(),
+    // P0-10: 注入分库提供者与 daily 文件写入器,重置记忆需级联清理子助手分库与 daily/*.md
+    factDbProvider: FactDbProvider = koinInject(),
+    memoryFileWriter: MemoryFileWriter = koinInject(),
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var dbSizeText by remember { mutableStateOf("") }
+    var cacheSizeText by remember { mutableStateOf("") }
+    var sessionCount by remember { mutableIntStateOf(0) }
+    var messageCount by remember { mutableIntStateOf(0) }
+    var memoryCount by remember { mutableIntStateOf(0) }
+
+    var showClearChatsDialog by remember { mutableStateOf(false) }
+    var showClearCacheDialog by remember { mutableStateOf(false) }
+    var showResetMemoryDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val dbFile = context.getDatabasePath("muse.db")
+            val cacheDir = context.cacheDir
+            dbSizeText = formatFileSize(dbFile?.length() ?: 0L)
+            cacheSizeText = formatFileSize(getDirSize(cacheDir))
+            sessionCount = sessionRepository.getSessionCount()
+            messageCount = sessionRepository.getTotalMessageCount()
+            memoryCount = factStore.getAll().size
+        }
+    }
+
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
+        topBar = {
+            MuseTopBar(
+                title = stringResource(R.string.data_management_title),
+                onBack = onBack,
+                // CMP-10: 子页统一大标题规则(与 SettingsSubPageScaffold 系一致)
+                largeTitle = true,
+            )
+        },
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                MuseSurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MuseShapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            stringResource(R.string.data_management_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        StatRow(stringResource(R.string.data_management_sessions), "$sessionCount")
+                        StatRow(stringResource(R.string.data_management_messages), "$messageCount")
+                        StatRow(stringResource(R.string.data_management_memories), "$memoryCount")
+                        StatRow(stringResource(R.string.data_management_db_size), dbSizeText)
+                        StatRow(stringResource(R.string.data_management_cache_size), cacheSizeText)
+                    }
+                }
+            }
+            item {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.data_management_clear_chats),
+                    onClick = { showClearChatsDialog = true },
+                    leadingIcon = MuseIcons.messages,
+                    destructive = true,
+                )
+            }
+            item {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.data_management_clear_cache),
+                    onClick = { showClearCacheDialog = true },
+                    leadingIcon = MuseIcons.wand,
+                )
+            }
+            item {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.data_management_reset_memory),
+                    onClick = { showResetMemoryDialog = true },
+                    leadingIcon = MuseIcons.brain,
+                    destructive = true,
+                )
+            }
+        }
+    }
+
+    if (showClearChatsDialog) {
+        MuseDialog(
+            onDismissRequest = { showClearChatsDialog = false },
+            title = stringResource(R.string.data_management_clear_chats),
+            content = { Text(stringResource(R.string.data_management_clear_chats_confirm)) },
+            confirmText = stringResource(R.string.action_delete),
+            onConfirm = {
+                showClearChatsDialog = false
+                scope.launch {
+                    val deletedIds = withContext(Dispatchers.IO) { sessionRepository.hardDeleteAllSessions() }
+                    // 会话级残留要跟着清：对话树快照、附件索引、待办（内存与库）、工具装载。
+                    // 以前批量路径只做到 DB 层，单条删除做了七八件、这里一件都没做。
+                    val snapshotStore = runCatching {
+                        org.koin.core.context.GlobalContext.get().get<ConversationTreeSnapshotStore>()
+                    }.getOrNull()
+                    SessionArtifactCleanup.purge(
+                        sessionIds = deletedIds,
+                        snapshotStore = snapshotStore,
+                        reason = "清除全部聊天",
+                    )
+                    MuseToast.show(context.getString(R.string.data_management_clear_chats_done))
+                    sessionCount = 0
+                    messageCount = 0
+                }
+            },
+            destructive = true,
+        )
+    }
+    if (showClearCacheDialog) {
+        MuseDialog(
+            onDismissRequest = { showClearCacheDialog = false },
+            title = stringResource(R.string.data_management_clear_cache),
+            content = { Text(stringResource(R.string.data_management_clear_cache_confirm)) },
+            confirmText = stringResource(R.string.action_delete),
+            onConfirm = {
+                showClearCacheDialog = false
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        context.cacheDir.listFiles()?.forEach { it.delete() }
+                    }
+                    MuseToast.show(context.getString(R.string.data_management_clear_cache_done))
+                    cacheSizeText = "0 B"
+                }
+            },
+            destructive = true,
+        )
+    }
+    if (showResetMemoryDialog) {
+        MuseDialog(
+            onDismissRequest = { showResetMemoryDialog = false },
+            title = stringResource(R.string.data_management_reset_memory),
+            content = { Text(stringResource(R.string.data_management_reset_memory_confirm)) },
+            confirmText = stringResource(R.string.action_delete),
+            onConfirm = {
+                showResetMemoryDialog = false
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        // P0-10: 重置级联清理 — 默认库 + 所有子助手分库(事实/FTS/墓碑/图谱边)
+                        // + daily/*.md + 会话摘要 + 编译段。此前只清默认库与部分文件,
+                        // 旧日记经 assembleWeekFromDaily 从 daily/*.md 复活,子助手分库完全未清理。
+                        factStore.clearAllWithLinks()
+                        context.filesDir.listFiles { f ->
+                            f.name.startsWith("facts_") && f.name.endsWith(".db") && f.name != "facts.db"
+                        }?.forEach { file ->
+                            val assistantId = file.name.removePrefix("facts_").removeSuffix(".db")
+                                .takeIf { it.isNotBlank() } ?: return@forEach
+                            runCatching { factDbProvider.getFactStore(assistantId).clearAllWithLinks() }
+                                .onFailure { error ->
+                                    Logger.w("DataManagementScreen", "清理子助手记忆分库失败: $assistantId", error)
+                                }
+                        }
+                        memoryFileWriter.clearAllDailyFiles()
+                        summaryManager.clearAll()
+                        memoryCompiler.clearAll()
+                    }
+                    MuseToast.show(context.getString(R.string.data_management_reset_memory_done))
+                    memoryCount = 0
+                }
+            },
+            destructive = true,
+        )
+    }
+}
+
+@Composable
+private fun StatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // LAYOUT-01: 标签取剩余宽度（数值仍固定靠右），放大字号下不再逐字换行
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        // LAYOUT-01: 数值靠右固定（SpaceBetween），只限行、不取宽
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun formatFileSize(bytes: Long): String = FileSizeFormatter.format(bytes)
+
+private fun getDirSize(dir: File): Long {
+    var size = 0L
+    dir.listFiles()?.forEach { file ->
+        size += if (file.isDirectory) getDirSize(file) else file.length()
+    }
+    return size
+}

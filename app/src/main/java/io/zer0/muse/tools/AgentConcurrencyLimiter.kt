@@ -42,6 +42,74 @@ class AgentConcurrencyLimiter(
     val activeCount: Int get() = active.get()
 
     /**
+     * 后台任务正在占用的槽位数。
+     *
+     * V20 要求"前台优先，后台排队"。用**预留槽位**实现，而不是改排队顺序：
+     * 排队顺序对用户是不可见的，而槽位预留是硬保证 —— 无论后台排队多久，
+     * 前台永远至少有一个槽可用。
+     */
+    private val backgroundActive = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /**
+     * 给前台预留的槽位数。
+     *
+     * 取 1：手机端并发上限 8，留 1 个给前台就足以让"用户发一句话"不必等
+     * 后台任务跑完。留多了会让后台几乎排不上队。
+     */
+    private val reservedForForeground: Int = 1
+
+    /**
+     * 以"后台"身份执行：只能占用非预留槽位。
+     *
+     * 中枢的后台任务走这里。前台（用户正在等的回复）走 [run]，
+     * 因此前台永远有槽可用 —— 这正是"用户发 B 时 B 不被 A 挡住"的落点。
+     */
+    suspend fun <T> runAsBackground(block: suspend () -> T): T {
+        mutex.withLock {
+            totalSpawned++
+            if (totalSpawned > maxTotal) {
+                throw IllegalStateException(
+                    "子 agent 累计派发超过上限 $maxTotal(防失控 backstop)",
+                )
+            }
+        }
+        acquireBackground()
+        try {
+            return block()
+        } finally {
+            backgroundActive.decrementAndGet()
+            release()
+        }
+    }
+
+    /**
+     * 后台获取槽位：可用数必须严格小于 (上限 - 预留)。
+     *
+     * 前台活跃时不阻塞后台（那是前台自己的额度），但后台自己最多占到
+     * 上限减去预留位，剩下的永远留给前台。
+     */
+    private suspend fun acquireBackground() {
+        val backgroundCap = (maxConcurrent - reservedForForeground).coerceAtLeast(1)
+        mutex.withLock {
+            if (backgroundActive.get() < backgroundCap && active.get() < maxConcurrent) {
+                backgroundActive.incrementAndGet()
+                active.incrementAndGet()
+                return
+            }
+        }
+        while (true) {
+            delay(POLL_INTERVAL_MS)
+            mutex.withLock {
+                if (backgroundActive.get() < backgroundCap && active.get() < maxConcurrent) {
+                    backgroundActive.incrementAndGet()
+                    active.incrementAndGet()
+                    return
+                }
+            }
+        }
+    }
+
+    /**
      * 执行 [block],若并发已满则挂起等待。
      *
      * @throws IllegalStateException 超出 maxTotal backstop 时

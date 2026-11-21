@@ -18,6 +18,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 
 /**
  * 运行环境安装的前台服务。
@@ -29,7 +30,8 @@ import kotlinx.coroutines.launch
  */
 class RuntimeInstallService : Service() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // 接全局异常处理器：安装失败若只冒泡到线程默认处理器，用户只会看到进度条卡住。
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
     private var installJob: Job? = null
     private var lastPercent = -1
     private var lastUpdateAt = 0L

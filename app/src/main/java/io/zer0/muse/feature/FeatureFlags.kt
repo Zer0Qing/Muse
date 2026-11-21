@@ -51,4 +51,24 @@ object FeatureFlags {
 
     /** 小手机内嵌的"AI 朋友圈"（Moments）。依赖 [MINI_PHONE]。 */
     const val MOMENTS: Boolean = MINI_PHONE
+
+    /**
+     * Agent 中枢（任务分发式主对话）。
+     *
+     * 与 [MINI_PHONE] 同一套口径：**入口**过本开关，路由照旧注册，
+     * 所以搜索与 deep link 仍能进入 —— 这是刻意的，不是漏藏。
+     *
+     * 默认关闭的理由不是"没做完"，而是它改的是主对话的心智模型：
+     * 从"一问一答"变成"接单 + 后台执行 + 审核后汇报"。这种改变必须由用户
+     * 在设备上显式打开，不能随升级悄悄生效。
+     */
+    const val AGENT_BOT: Boolean = false  // 真机验收已完成，按计划关闭；改 true 需用户显式确认
+
+    /**
+     * 中枢是否在首页 Agent Tab 露出入口。
+     *
+     * 与 [AGENT_BOT] 分开：功能在包里、路由可达，但入口可以先不露。
+     * 当前两者同值，将来灰度时只改这一个。
+     */
+    const val AGENT_BOT_ENTRY: Boolean = AGENT_BOT
 }

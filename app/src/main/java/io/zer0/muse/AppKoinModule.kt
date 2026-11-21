@@ -4,7 +4,6 @@ import io.zer0.ai.ProviderConfigStore
 import io.zer0.ai.aiModule
 import io.zer0.memory.llm.MemoryLlmClient
 import io.zer0.memory.memoryModule
-import io.zer0.muse.ui.debug.DebugScreen
 import io.zer0.muse.data.MemoryLlmClientImpl
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
@@ -25,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
+import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 import java.util.concurrent.TimeUnit
 
@@ -518,6 +518,163 @@ val appModule = module {
     // v1.0.52 P2-1: Passive Subagent 运行器(同步阻塞式独立子 agent,完整工具循环)
     // B2-04: 子代理审批路由(主会话注册 delegate,子代理复用同一审批链路)
     single { io.zer0.muse.tools.ToolApprovalRouter() }
+
+    // ── Agent 中枢（Task 1 账本 + Task 2 执行器）────────────────────────
+    // 仓储是唯一写入口：状态转移、事件生成、审批 CAS 全在这里。
+    single {
+        io.zer0.muse.data.agentbot.AgentBotRepository(
+            taskDao = get<io.zer0.muse.data.session.MuseDb>().botTaskDao(),
+            runDao = get<io.zer0.muse.data.session.MuseDb>().taskRunDao(),
+            stepDao = get<io.zer0.muse.data.session.MuseDb>().taskStepDao(),
+            eventDao = get<io.zer0.muse.data.session.MuseDb>().botEventDao(),
+            approvalDao = get<io.zer0.muse.data.session.MuseDb>().approvalRequestDao(),
+            publicationDao = get<io.zer0.muse.data.session.MuseDb>().publicationOutboxDao(),
+            bindingDao = get<io.zer0.muse.data.session.MuseDb>().botBindingDao(),
+        )
+    }
+
+    // 中枢页面 ViewModel。分片状态 + 输入接纳 + 任务看板，不持有生成状态。
+    viewModel {
+        io.zer0.muse.ui.agentbot.AgentBotViewModel(
+            repository = get(),
+            facade = get(),
+            inbox = get(),
+            scheduler = get(),
+            publication = get(),
+            approvals = get(),
+            allowances = get(),
+            coordinator = get(),
+            sessions = get(),
+            resultApplier = get(),
+            restorer = get(),
+        )
+    }
+    // 候选产物暂存区。任务产出先落这里，审核通过且版本最新才应用到目标 ——
+    // "先写再校验"有个致命问题：写坏了就已经坏了。
+    single {
+        io.zer0.muse.data.agentbot.StagedArtifactStore(
+            stagingDir = java.io.File(androidContext().cacheDir, "agentbot-staging"),
+        )
+    }
+
+    // 工作区文件读写。所有路径都被限制在工作区内 —— 这是"可改动范围"的最后一道闸。
+    single {
+        io.zer0.muse.data.agentbot.WorkspaceArtifactIO(
+            root = io.zer0.muse.workspace.WorkspaceLocation.resolve(androidContext()),
+        )
+    }
+
+    // 审核 → 应用。候选先暂存，审核通过且版本最新才写目标。
+    single {
+        io.zer0.muse.data.agentbot.BotResultApplier(
+            repository = get(),
+            staging = get(),
+            reviewer = get(),
+            readTarget = { ref -> get<io.zer0.muse.data.agentbot.WorkspaceArtifactIO>().read(ref) },
+            writeTarget = { ref, content ->
+                get<io.zer0.muse.data.agentbot.WorkspaceArtifactIO>().write(ref, content)
+            },
+        )
+    }
+    // 关闭再启用中枢时的对账（V22）。不是重启对账 —— 语义不同：
+    // 关掉期间没人跑，所以 RUNNING 的 run 一定是死租约。
+    single { io.zer0.muse.data.agentbot.AgentBotModeReconciler(repository = get()) }
+
+    // 对话流重建器。规则多（两段读 / 会话切换 / 内存合并 / 稳定排序），
+    // 抽成独立组件才能逐条断言。
+    single { io.zer0.muse.data.agentbot.TranscriptRestorer(sessions = get()) }
+
+    // 主 Bot 前台回合决策器。一次 completeText，不挂工具不循环 ——
+    // 回合必须有界，否则"做事时还能聊天"就成了空话。
+    single {
+        io.zer0.muse.data.agentbot.ForegroundCoordinator(
+            // 生产环境把 ChatService 包成 ModelCaller：一次 completeText，
+            // 带 bot_say / task_dispatch 两个控制工具，toolChoice 强制 required。
+            modelCaller = io.zer0.muse.data.agentbot.ForegroundCoordinator.ModelCaller { messages ->
+                get<io.zer0.ai.ChatService>().completeText(
+                    messages = messages,
+                    temperature = 0.4f,
+                    maxTokens = 600,
+                    tools = io.zer0.muse.data.agentbot.ForegroundCoordinator.CONTROL_TOOLS,
+                    // 必须 required：模型没有"直接说话"的退路，
+                    // 否则它会回到纯文本，宿主拿不到结构化动作。
+                    toolChoice = "required",
+                )
+            },
+            publication = get(),
+            governor = get(),
+        )
+    }
+    // 后台任务配额。并发满 → 排队；触小时上限 → 拒绝（两句话不一样）。
+    single { io.zer0.muse.data.agentbot.BotResourceGovernor() }
+    // 审批服务。CAS 只结算一次；过期不等于用户拒绝；参数漂移使旧批准失效。
+    single {
+        io.zer0.muse.data.agentbot.ApprovalService(
+            repository = get(),
+            onSettled = { taskId, approvalId, approved ->
+                val repo = get<io.zer0.muse.data.agentbot.AgentBotRepository>()
+                // 批准 → 回队列重跑；拒绝 → 交回给用户决定（NEEDS_USER）。
+                val event = if (approved) {
+                    io.zer0.muse.data.agentbot.BotTaskStatusMachine.Event.RESUME_FROM_APPROVAL
+                } else {
+                    io.zer0.muse.data.agentbot.BotTaskStatusMachine.Event.REVIEW_NEEDS_USER
+                }
+                repo.transition(taskId, event)
+                repo.appendEvent(
+                    botId = repo.getTask(taskId)?.botId.orEmpty(),
+                    originSessionId = repo.getTask(taskId)?.originSessionId.orEmpty(),
+                    taskId = taskId,
+                    runId = "",
+                    kind = if (approved) {
+                        io.zer0.muse.data.agentbot.BotEventKind.APPROVAL_RESOLVED
+                    } else {
+                        io.zer0.muse.data.agentbot.BotEventKind.APPROVAL_RESOLVED
+                    },
+                    dedupeKey = "approval-settled:" + approvalId,
+                    payloadRef = if (approved) "approved" else "denied",
+                )
+            },
+        )
+    }
+
+    // 「本对话内允许」的持久化存储。旧实现是内存态，切会话即失效 ——
+    // 用户会以为按钮坏了，转而点更危险的"始终允许"。
+    single { io.zer0.muse.data.agentbot.ConversationToolAllowanceStore(androidContext()) }
+    // 对外发布出口。outbox 与 messages 同事务提交 —— 只写一边会导致
+    // "用户看不到"或"发两次"二选一。
+    single {
+        io.zer0.muse.data.agentbot.PublicationService(
+            db = get(),
+            repository = get(),
+            sessionRepository = get(),
+        )
+    }
+
+    // 内部审核器。判断是纯函数，无依赖。
+    single { io.zer0.muse.data.agentbot.BotReviewWorker() }
+    // 中枢输入接纳与短回合。facade 只负责"先落盘再 ACK"，
+    // inbox 保证同一 Bot 单写者 —— 两个回合同时说话会让主 Bot 自相矛盾。
+    single { io.zer0.muse.data.agentbot.AgentConversationFacade(repository = get()) }
+    single { io.zer0.muse.data.agentbot.BotInboxProcessor(repository = get()) }
+    // 隐藏任务执行器。独立 scope 与独立 Job 登记：中枢的 Job 与
+    // "用户正在看哪个会话"无关，不能挂到旧 SessionRuntime 上。
+    single {
+        io.zer0.muse.data.agentbot.BotTaskScheduler(
+            repository = get(),
+            runner = get(),
+            scope = kotlinx.coroutines.CoroutineScope(
+                kotlinx.coroutines.SupervisorJob() +
+                    kotlinx.coroutines.Dispatchers.IO +
+                    io.zer0.muse.util.GlobalCoroutineExceptionHandler,
+            ),
+            keepAlive = { ctx -> io.zer0.muse.data.agentbot.AgentBotKeepAliveService.start(ctx) },
+            staging = get(),
+            applier = get(),
+            toolRegistryRef = get(),
+            workspaceIO = get(),
+            context = androidContext(),
+        )
+    }
 
     // v1.0.53 Phase 1: 加 threadStore(持久化续接)+ concurrencyLimiter(全局并发限流)
     // v1.0.53 Phase 4: 加 toolConfigStore(deny_on_prompt 审批策略)

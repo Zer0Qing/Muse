@@ -29,7 +29,7 @@ class MiniPhoneVisibilityContractTest {
 
     @Test
     fun homeEntryIsGovernedByTheEntryFlag() {
-        val source = readSource("ui/HomeScreen.kt")
+        val source = readSource("ui/screen/HomeScreen.kt")
 
         assertTrue("首页入口要过 MINI_PHONE_ENTRY", source.contains("FeatureFlags.MINI_PHONE_ENTRY"))
     }

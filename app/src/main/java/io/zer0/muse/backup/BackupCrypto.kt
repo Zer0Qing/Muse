@@ -54,6 +54,39 @@ object BackupCrypto {
         }
     }
 
+
+    /**
+     * 流式加密：把明文流包成密文流，头格式与 [encrypt] 完全一致。
+     *
+     * ## 为什么不能直接复用 [encrypt]
+     *
+     * [encrypt] 一次性吃 `ByteArray`。大备份（10000+ 消息）走它等于把
+     * "全量对象 + 巨串 + 字节数组"三份内存同时驻留 —— 那正是 [writeNdJson]
+     * 逐行流式写出要避免的 OOM。
+     *
+     * 这里用 `CipherOutputStream` 边写边加密：内存峰值只有一行 NDJSON，
+     * 而输出格式与 [decrypt] 完全兼容（magic + version + salt + iv + ciphertext）。
+     *
+     * 调用方负责 `close()` —— 那一步才会写出 GCM tag。
+     */
+    fun encryptingStream(
+        out: java.io.OutputStream,
+        password: String,
+    ): java.io.OutputStream {
+        require(password.isNotEmpty()) { "backupPassword must not be empty" }
+        val salt = ByteArray(SALT_LENGTH).also { SecureRandom().nextBytes(it) }
+        val iv = ByteArray(IV_LENGTH).also { SecureRandom().nextBytes(it) }
+        val key = deriveKey(password, salt)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        // 头必须先写：它不参与加密，读取侧靠它判断格式并还原密钥。
+        out.write(MAGIC.toByteArray(Charsets.US_ASCII))
+        out.write(byteArrayOf(VERSION))
+        out.write(salt)
+        out.write(iv)
+        out.flush()
+        return javax.crypto.CipherOutputStream(out, cipher)
+    }
     /** 解密。data 须为 [encrypt] 输出格式。password 错误或数据损坏抛异常。 */
     fun decrypt(data: ByteArray, password: String): ByteArray {
         require(password.isNotEmpty()) { "backupPassword must not be empty" }

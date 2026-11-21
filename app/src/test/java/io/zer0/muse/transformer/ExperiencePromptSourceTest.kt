@@ -31,7 +31,7 @@ class ExperiencePromptSourceTest {
 
     @Test
     fun `memory page reads and writes the unified repository`() {
-        val source = readSource("app/src/main/java/io/zer0/muse/ui/MemoryViewModel.kt")
+        val source = readSource("app/src/main/java/io/zer0/muse/ui/memory/MemoryViewModel.kt")
         assertTrue(source.contains("io.zer0.memory.experience.ExperienceRepository"))
         assertFalse(
             "记忆页不许再读旧 Room 经验表",

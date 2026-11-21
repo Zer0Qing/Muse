@@ -1,0 +1,526 @@
+@file:Suppress("FunctionNaming", "LongMethod")
+
+package io.zer0.muse.ui.assistant
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
+import io.zer0.muse.tools.AgentCapability
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.museAnimateItem
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.settings.SettingsSubPageScaffold
+import kotlinx.coroutines.flow.map
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 子页 5: 高级
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 高级子页 — 自定义请求 / 标签。
+ *
+ * 注:助手背景图/透明度/渐变设置已移除(无渲染消费端,半成品原则)。
+ */
+@Composable
+fun AssistantAdvancedPage(assistantId: String, onBack: () -> Unit) {
+    val assistant = rememberAssistant(assistantId)
+    val update = rememberAssistantUpdater(assistantId)
+
+    SettingsSubPageScaffold(title = stringResource(R.string.assistant_detail_advanced), onBack = onBack) {
+        val a = assistant
+        if (a == null) {
+            // v2.x: 动效补齐 — 加载态入场(令牌 animateItem)
+            item {
+                Box(
+                    museAnimateItem(),
+                ) { Text(stringResource(R.string.assistant_detail_loading), color = MaterialTheme.colorScheme.outline) }
+            }
+            return@SettingsSubPageScaffold
+        }
+        // 卡片组 1: 自定义请求
+        // v2.x: 动效补齐 — 卡片组入场(令牌 animateItem)
+        item {
+            Box(museAnimateItem()) {
+                CardGroup {
+                    item(
+                        headlineContent = {
+                            DebouncedTextField(
+                                value = a.customHeadersJson,
+                                onPersist = { v -> update { it.copy(customHeadersJson = v) } },
+                                label = { Text(stringResource(R.string.assistant_detail_custom_headers_label)) },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
+                            )
+                        },
+                    )
+                    item(
+                        headlineContent = {
+                            DebouncedTextField(
+                                value = a.customBodiesJson,
+                                onPersist = { v -> update { it.copy(customBodiesJson = v) } },
+                                label = { Text(stringResource(R.string.assistant_detail_custom_bodies_label)) },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
+                            )
+                        },
+                    )
+                }
+            }
+        }
+        // 卡片组 3: 标签
+        // v2.x: 动效补齐 — 卡片组入场(令牌 animateItem)
+        item {
+            Box(museAnimateItem()) {
+                CardGroup {
+                    item(
+                        headlineContent = {
+                            DebouncedTextField(
+                                value = parseTagsForEdit(a.tagsJson),
+                                onPersist = { v -> update { it.copy(tagsJson = v) } },
+                                label = { Text(stringResource(R.string.assistant_detail_tags_label)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                transform = { serializeTagsForEdit(it) },
+                            )
+                        },
+                    )
+                }
+            }
+        }
+        // 卡片组 2: 多 Agent 能力标签
+        // v2.x: 动效补齐 — 能力标签卡片入场(令牌 animateItem)
+        item {
+            Box(museAnimateItem()) {
+                CapabilityChipsSection(
+                    capabilitiesJson = a.capabilitiesJson,
+                    onCapabilitiesChange = { newJson -> update { it.copy(capabilitiesJson = newJson) } },
+                )
+            }
+        }
+        // 卡片组 3: v1.97 正则替换规则
+        // v2.x: 动效补齐 — 正则规则卡片入场(令牌 animateItem)
+        item {
+            Box(museAnimateItem()) {
+                RegexRulesSection(
+                    rulesJson = a.regexRulesJson,
+                    onRulesChange = { newJson -> update { it.copy(regexRulesJson = newJson) } },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * v1.97: 正则替换规则编辑区。
+ *
+ * 显示规则列表(名称 + 范围 + 启用开关 + 编辑/删除按钮),
+ * 点击「添加规则」或编辑现有规则时弹出 [RegexRuleEditDialog]。
+ */
+@Composable
+private fun RegexRulesSection(rulesJson: String, onRulesChange: (String) -> Unit) {
+    val rules = remember(rulesJson) {
+        io.zer0.muse.transformer.RegexTransformer.parseRulesFromJson(rulesJson)
+    }
+    var editingRule by remember { mutableStateOf<io.zer0.muse.data.assistant.AssistantRegex?>(null) }
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    CardGroup {
+        item(
+            headlineContent = { Text(stringResource(R.string.assistant_detail_regex_title)) },
+            supportingContent = { Text(stringResource(R.string.assistant_detail_regex_desc)) },
+        )
+        if (rules.isEmpty()) {
+            item(
+                headlineContent = {
+                    Text(
+                        text = stringResource(R.string.assistant_detail_regex_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                },
+            )
+        } else {
+            rules.forEach { rule ->
+                item(
+                    key = rule.id,
+                    headlineContent = {
+                        Column {
+                            Text(
+                                text = rule.name.ifBlank { rule.findRegex },
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = "${rule.findRegex} → ${rule.replaceString}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    },
+                    supportingContent = {
+                        Text(
+                            text = when (rule.affectingScope) {
+                                "user" -> stringResource(R.string.assistant_detail_regex_scope_user)
+                                "assistant" -> stringResource(R.string.assistant_detail_regex_scope_assistant)
+                                else -> stringResource(R.string.assistant_detail_regex_scope_both)
+                            } + if (rule.visualOnly) " · ${stringResource(R.string.audit_regex_visual_only)}" else "",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    },
+                    trailingContent = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            MuseSwitch(
+                                checked = rule.enabled,
+                                onCheckedChange = { v ->
+                                    val updated = rules.map { if (it.id == rule.id) it.copy(enabled = v) else it }
+                                    onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(updated))
+                                },
+                            )
+                            var actionsOpen by remember { mutableStateOf(false) }
+                            androidx.compose.foundation.layout.Box {
+                                MuseTactileButton(
+                                    icon = MuseIcons.moreVertical,
+                                    onClick = { actionsOpen = true },
+                                    contentDescription = stringResource(R.string.action_more),
+                                )
+                                io.zer0.muse.ui.common.form.MuseAnchoredMenu(
+                                    expanded = actionsOpen,
+                                    onDismissRequest = { actionsOpen = false },
+                                    alignEnd = true,
+                                ) {
+                                    io.zer0.muse.ui.common.form.MuseActionSheetRow(
+                                        text = stringResource(R.string.action_edit),
+                                        icon = MuseIcons.robot,
+                                    ) {
+                                        actionsOpen = false
+                                        editingRule = rule
+                                    }
+                                    io.zer0.muse.ui.common.form.MuseActionSheetRow(
+                                        text = stringResource(R.string.action_delete),
+                                        icon = MuseIcons.trash,
+                                        contentColor = MaterialTheme.colorScheme.error,
+                                    ) {
+                                        actionsOpen = false
+                                        val updated = rules.filterNot { it.id == rule.id }
+                                        onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(updated))
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+        }
+        // 添加规则按钮
+        item(
+            onClick = { showAddDialog = true },
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.plus,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.assistant_detail_regex_add),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            },
+        )
+    }
+
+    // 编辑现有规则
+    editingRule?.let { rule ->
+        RegexRuleEditDialog(
+            rule = rule,
+            isNew = false,
+            onDismiss = { editingRule = null },
+            onSave = { updated ->
+                val newRules = rules.map { if (it.id == updated.id) updated else it }
+                onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(newRules))
+                editingRule = null
+            },
+        )
+    }
+    // 新增规则
+    if (showAddDialog) {
+        RegexRuleEditDialog(
+            rule = io.zer0.muse.data.assistant.AssistantRegex(),
+            isNew = true,
+            onDismiss = { showAddDialog = false },
+            onSave = { newRule ->
+                val newRules = rules + newRule
+                onRulesChange(io.zer0.muse.transformer.RegexTransformer.serializeRules(newRules))
+                showAddDialog = false
+            },
+        )
+    }
+}
+
+/**
+ * v1.97: 正则规则编辑弹窗。
+ *
+ * 字段:名称 / 查找正则 / 替换字符串 / 影响范围 / 仅显示替换 / 启用。
+ * 保存时校验正则语法,无效则提示。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RegexRuleEditDialog(
+    rule: io.zer0.muse.data.assistant.AssistantRegex,
+    isNew: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (io.zer0.muse.data.assistant.AssistantRegex) -> Unit,
+) {
+    var name by remember(rule.id) { mutableStateOf(rule.name) }
+    var findRegex by remember(rule.id) { mutableStateOf(rule.findRegex) }
+    var replaceString by remember(rule.id) { mutableStateOf(rule.replaceString) }
+    var scope by remember(rule.id) { mutableStateOf(rule.affectingScope) }
+    var visualOnly by remember(rule.id) { mutableStateOf(rule.visualOnly) }
+    var enabled by remember(rule.id) { mutableStateOf(rule.enabled) }
+    var regexError by remember(rule.id) { mutableStateOf(false) }
+
+    val scopeOptions = listOf(
+        "both" to stringResource(R.string.assistant_detail_regex_scope_both),
+        "user" to stringResource(R.string.assistant_detail_regex_scope_user),
+        "assistant" to stringResource(R.string.assistant_detail_regex_scope_assistant),
+    )
+
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = if (isNew) {
+            stringResource(R.string.assistant_detail_regex_add)
+        } else {
+            stringResource(R.string.assistant_detail_regex_edit_title)
+        },
+        content = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                MuseTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.assistant_detail_regex_name_label)) },
+                    placeholder = { Text(stringResource(R.string.assistant_detail_regex_name_hint)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseTextField(
+                    value = findRegex,
+                    onValueChange = {
+                        findRegex = it
+                        // 实时校验正则语法
+                        regexError = if (it.isBlank()) {
+                            false
+                        } else {
+                            runCatching { Regex(it) }.isFailure
+                        }
+                    },
+                    label = { Text(stringResource(R.string.assistant_detail_regex_find_label)) },
+                    placeholder = { Text(stringResource(R.string.assistant_detail_regex_find_hint)) },
+                    singleLine = true,
+                    isError = regexError,
+                    supportingText = if (regexError) {
+                        { Text(stringResource(R.string.assistant_detail_regex_invalid)) }
+                    } else {
+                        null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseTextField(
+                    value = replaceString,
+                    onValueChange = { replaceString = it },
+                    label = { Text(stringResource(R.string.assistant_detail_regex_replace_label)) },
+                    placeholder = { Text(stringResource(R.string.assistant_detail_regex_replace_hint)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.assistant_detail_regex_scope_label),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    scopeOptions.forEach { (value, label) ->
+                        MuseChip(
+                            selected = scope == value,
+                            onClick = { scope = value },
+                            label = label,
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(R.string.assistant_detail_regex_visual_only),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                        // LAYOUT-01: Row 内文本取宽 + 限行，防放大字号下逐字换行
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    MuseSwitch(checked = visualOnly, onCheckedChange = { visualOnly = it })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(R.string.assistant_detail_regex_enabled),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                        // LAYOUT-01: 同上，开关行标签限 1 行
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    MuseSwitch(checked = enabled, onCheckedChange = { enabled = it })
+                }
+            }
+        },
+        confirmText = stringResource(R.string.assistant_detail_done),
+        onConfirm = {
+            // 不允许保存语法错误的正则(空正则允许,但不会生效)
+            if (regexError) return@MuseDialog
+            onSave(
+                rule.copy(
+                    name = name.trim(),
+                    findRegex = findRegex.trim(),
+                    replaceString = replaceString,
+                    affectingScope = scope,
+                    visualOnly = visualOnly,
+                    enabled = enabled,
+                ),
+            )
+        },
+        dismissText = stringResource(R.string.action_cancel),
+        onDismiss = onDismiss,
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CapabilityChipsSection(capabilitiesJson: String, onCapabilitiesChange: (String) -> Unit) {
+    val selected = remember(capabilitiesJson) {
+        AgentCapability.parseCapabilitiesJson(capabilitiesJson).toSet()
+    }
+    var customInput by remember { mutableStateOf("") }
+
+    CardGroup(
+        title = { Text(stringResource(R.string.assistant_detail_capabilities_title)) },
+    ) {
+        item(
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.assistant_detail_capabilities_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            },
+        )
+        item(
+            headlineContent = {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AgentCapability.ALL_CAPABILITIES.forEach { capability ->
+                        val isSelected = capability in selected
+                        MuseChip(
+                            selected = isSelected,
+                            onClick = {
+                                val current = AgentCapability.parseCapabilitiesJson(capabilitiesJson)
+                                val updated = if (isSelected) current - capability else current + capability
+                                onCapabilitiesChange(AgentCapability.toJson(updated))
+                            },
+                            label = AgentCapability.displayName(capability),
+                        )
+                    }
+                }
+            },
+        )
+        item(
+            headlineContent = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    MuseTextField(
+                        value = customInput,
+                        onValueChange = { customInput = it },
+                        label = { Text(stringResource(R.string.assistant_detail_custom_capability)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.assistant_detail_add),
+                        onClick = {
+                            val id = customInput.trim().lowercase().replace(Regex("[^a-z0-9_]"), "_")
+                            if (id.isNotBlank() && id !in selected) {
+                                val current = AgentCapability.parseCapabilitiesJson(capabilitiesJson)
+                                onCapabilitiesChange(AgentCapability.toJson(current + id))
+                            }
+                            customInput = ""
+                        },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                    )
+                }
+            },
+        )
+    }
+}
+
+/** 把 tagsJson (["a","b"]) 转为逗号分隔字符串便于编辑。 */
+private fun parseTagsForEdit(json: String): String {
+    val raw = json.trim()
+    if (raw.isBlank() || raw == "[]") return ""
+    return raw.removeSurrounding("[", "]")
+        .split(",")
+        .map { it.trim().removeSurrounding("\"") }
+        .filter { it.isNotEmpty() }
+        .joinToString(", ")
+}
+
+/** 把逗号分隔字符串转回 tagsJson (["a","b"])。 */
+private fun serializeTagsForEdit(text: String): String {
+    val ids = text.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    if (ids.isEmpty()) return "[]"
+    return ids.joinToString(",", "[", "]") { "\"${it.replace("\"", "\\\"")}\"" }
+}

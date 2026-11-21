@@ -210,6 +210,17 @@ import java.io.File
         io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity::class,
         // M4a: 会话内运行环境安装卡（「以后再说」与安装状态必须跨重启保留）
         io.zer0.muse.data.runtime.RuntimeInstallCardEntity::class,
+        // Agent 中枢：任务 / 运行 / 步骤 / 事件 / 审批 / 发布 / 绑定七表。
+        // 全部是新增表，不动任何既有行 —— 中枢关掉时它们只是空表。
+        io.zer0.muse.data.agentbot.BotTaskEntity::class,
+        io.zer0.muse.data.agentbot.TaskRunEntity::class,
+        io.zer0.muse.data.agentbot.TaskStepEntity::class,
+        io.zer0.muse.data.agentbot.BotEventEntity::class,
+        io.zer0.muse.data.agentbot.ApprovalRequestEntity::class,
+        io.zer0.muse.data.agentbot.PublicationOutboxEntity::class,
+        io.zer0.muse.data.agentbot.BotBindingEntity::class,
+        // Bot 标注：表情 / 贴纸 / 引用定位。与 messages.reaction（用户反应）分开。
+        io.zer0.muse.data.agentbot.BotAnnotationEntity::class,
     ],
     version = MuseDb.LATEST_SCHEMA_VERSION,
     exportSchema = true,
@@ -325,9 +336,34 @@ abstract class MuseDb : RoomDatabase() {
     /** v2.7.x(E2): 会话术语表。 */
     abstract fun sessionTermDao(): io.zer0.muse.data.terms.SessionTermDao
 
+    // ── Agent 中枢（7 张表）──
+    /** 任务账本：用户交代的一件事。 */
+    abstract fun botTaskDao(): io.zer0.muse.data.agentbot.BotTaskDao
+
+    /** 执行轮次：一次 Task 可以有多轮 attempt。 */
+    abstract fun taskRunDao(): io.zer0.muse.data.agentbot.TaskRunDao
+
+    /** 步骤账本：记录可重放性与审批绑定。 */
+    abstract fun taskStepDao(): io.zer0.muse.data.agentbot.TaskStepDao
+
+    /** 事件账本：先落盘再唤醒，至少一次投递。 */
+    abstract fun botEventDao(): io.zer0.muse.data.agentbot.BotEventDao
+
+    /** 审批请求：用户没看见 ≠ 用户拒绝。 */
+    abstract fun approvalRequestDao(): io.zer0.muse.data.agentbot.ApprovalRequestDao
+
+    /** 发布发件箱：多 item 批次恢复时只重投未发出的。 */
+    abstract fun publicationOutboxDao(): io.zer0.muse.data.agentbot.PublicationOutboxDao
+
+    /** Bot 与助手 / canonical 会话的绑定。 */
+    abstract fun botBindingDao(): io.zer0.muse.data.agentbot.BotBindingDao
+
+    /** Bot 标注（表情 / 贴纸 / 引用定位）。 */
+    abstract fun botAnnotationDao(): io.zer0.muse.data.agentbot.BotAnnotationDao
+
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 132
+        const val LATEST_SCHEMA_VERSION = 134
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -1571,6 +1607,148 @@ abstract class MuseDb : RoomDatabase() {
                         "`errorKind` TEXT, `dismissed` INTEGER NOT NULL DEFAULT 0, " +
                         "`updatedAt` INTEGER NOT NULL, PRIMARY KEY(`messageId`))",
                 )
+            }
+        }
+
+        /**
+         * Bot 标注表（表情 / 贴纸 / 引用定位）。
+         *
+         * 与 `messages.reaction` 分开：那一列是**用户**的反应，单值；
+         * 主 Bot 的标注可能多条、可能带资源、可能指向句子。共用一列会互相覆盖。
+         * 纯新增表，旧 reaction 列无损。
+         */
+        val MIGRATION_133_134 = object : Migration(133, 134) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bot_annotations` (" +
+                        "`id` TEXT NOT NULL, `botId` TEXT NOT NULL DEFAULT '', " +
+                        "`actorType` TEXT NOT NULL DEFAULT 'bot', " +
+                        "`originSessionId` TEXT NOT NULL DEFAULT '', " +
+                        "`targetMessageId` TEXT NOT NULL DEFAULT '', " +
+                        "`targetSentenceId` TEXT NOT NULL DEFAULT '', " +
+                        "`targetContentHash` TEXT NOT NULL DEFAULT '', " +
+                        "`kind` TEXT NOT NULL DEFAULT 'REACTION', " +
+                        "`assetRef` TEXT NOT NULL DEFAULT '', " +
+                        "`status` TEXT NOT NULL DEFAULT 'ACTIVE', " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_annotations_targetMessageId` ON `bot_annotations`(`targetMessageId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_annotations_botId_originSessionId` ON `bot_annotations`(`botId`,`originSessionId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_annotations_status` ON `bot_annotations`(`status`)")
+            }
+        }
+
+        /**
+         * Agent 中枢七表。
+         *
+         * 纯新增,不动任何既有行:中枢功能关着时这七张表就是空的,普通对话
+         * 完全不受影响。列名与默认值必须逐项对齐各 Entity —— 名字不一致时
+         * Room 会在升级后的 schema 校验阶段直接报 unexpected,而不是静默通过。
+         */
+        val MIGRATION_132_133 = object : Migration(132, 133) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bot_tasks` (" +
+                        "`taskId` TEXT NOT NULL, `botId` TEXT NOT NULL DEFAULT '', " +
+                        "`originSessionId` TEXT NOT NULL DEFAULT '', " +
+                        "`requestMessageId` TEXT NOT NULL DEFAULT '', " +
+                        "`goal` TEXT NOT NULL DEFAULT '', `acceptanceCriteria` TEXT NOT NULL DEFAULT '', " +
+                        "`resourceScope` TEXT NOT NULL DEFAULT '', `permissionScopeId` TEXT NOT NULL DEFAULT '', " +
+                        "`revision` INTEGER NOT NULL DEFAULT 1, " +
+                        "`status` TEXT NOT NULL DEFAULT 'QUEUED', `priority` INTEGER NOT NULL DEFAULT 0, " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, `updatedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`taskId`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_tasks_botId_status` ON `bot_tasks`(`botId`,`status`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_tasks_originSessionId` ON `bot_tasks`(`originSessionId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_tasks_updatedAt` ON `bot_tasks`(`updatedAt`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bot_task_runs` (" +
+                        "`runId` TEXT NOT NULL, `taskId` TEXT NOT NULL DEFAULT '', " +
+                        "`attempt` INTEGER NOT NULL DEFAULT 1, `threadId` TEXT NOT NULL DEFAULT '', " +
+                        "`taskRevision` INTEGER NOT NULL DEFAULT 1, " +
+                        "`status` TEXT NOT NULL DEFAULT 'QUEUED', `leaseOwner` TEXT NOT NULL DEFAULT '', " +
+                        "`leaseUntil` INTEGER NOT NULL DEFAULT 0, `fenceToken` INTEGER NOT NULL DEFAULT 0, " +
+                        "`cancelRequestedAt` INTEGER NOT NULL DEFAULT 0, `startedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`finishedAt` INTEGER NOT NULL DEFAULT 0, `checkpointRef` TEXT NOT NULL DEFAULT '', " +
+                        "`errorCode` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`runId`))",
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bot_task_runs_taskId_attempt` ON `bot_task_runs`(`taskId`,`attempt`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_task_runs_status` ON `bot_task_runs`(`status`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_task_runs_leaseUntil` ON `bot_task_runs`(`leaseUntil`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bot_task_steps` (" +
+                        "`stepId` TEXT NOT NULL, `runId` TEXT NOT NULL DEFAULT '', " +
+                        "`stepIndex` INTEGER NOT NULL DEFAULT 0, `toolName` TEXT NOT NULL DEFAULT '', " +
+                        "`argumentsHash` TEXT NOT NULL DEFAULT '', `baseHash` TEXT NOT NULL DEFAULT '', " +
+                        "`approvalId` TEXT NOT NULL DEFAULT '', " +
+                        "`sideEffect` TEXT NOT NULL DEFAULT 'READ_ONLY', " +
+                        "`startedAt` INTEGER NOT NULL DEFAULT 0, `finishedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`stepId`))",
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bot_task_steps_runId_stepIndex` ON `bot_task_steps`(`runId`,`stepIndex`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_task_steps_approvalId` ON `bot_task_steps`(`approvalId`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bot_events` (" +
+                        "`eventId` TEXT NOT NULL, `botId` TEXT NOT NULL DEFAULT '', " +
+                        "`originSessionId` TEXT NOT NULL DEFAULT '', `taskId` TEXT NOT NULL DEFAULT '', " +
+                        "`runId` TEXT NOT NULL DEFAULT '', `kind` TEXT NOT NULL DEFAULT '', " +
+                        "`sequence` INTEGER NOT NULL DEFAULT 0, `payloadRef` TEXT NOT NULL DEFAULT '', " +
+                        "`dedupeKey` TEXT NOT NULL DEFAULT '', `createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`consumedAt` INTEGER NOT NULL DEFAULT 0, `leaseOwner` TEXT NOT NULL DEFAULT '', " +
+                        "`leaseUntil` INTEGER NOT NULL DEFAULT 0, `fenceToken` INTEGER NOT NULL DEFAULT 0, " +
+                        "`schemaVersion` INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(`eventId`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_events_botId_sequence` ON `bot_events`(`botId`,`sequence`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_events_taskId` ON `bot_events`(`taskId`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bot_events_dedupeKey` ON `bot_events`(`dedupeKey`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_events_consumedAt` ON `bot_events`(`consumedAt`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bot_approvals` (" +
+                        "`approvalId` TEXT NOT NULL, `botId` TEXT NOT NULL DEFAULT '', " +
+                        "`originSessionId` TEXT NOT NULL DEFAULT '', `taskId` TEXT NOT NULL DEFAULT '', " +
+                        "`runId` TEXT NOT NULL DEFAULT '', `stepId` TEXT NOT NULL DEFAULT '', " +
+                        "`taskRevision` INTEGER NOT NULL DEFAULT 1, `toolCallId` TEXT NOT NULL DEFAULT '', " +
+                        "`toolName` TEXT NOT NULL DEFAULT '', `argumentsRef` TEXT NOT NULL DEFAULT '', " +
+                        "`argumentsHash` TEXT NOT NULL DEFAULT '', `resourceVersion` TEXT NOT NULL DEFAULT '', " +
+                        "`risk` TEXT NOT NULL DEFAULT '', `status` TEXT NOT NULL DEFAULT 'PENDING', " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, `readyAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`expiresAt` INTEGER NOT NULL DEFAULT 0, `resolvedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "`decisionActor` TEXT NOT NULL DEFAULT '', `decisionReason` TEXT NOT NULL DEFAULT '', " +
+                        "PRIMARY KEY(`approvalId`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_approvals_botId_status` ON `bot_approvals`(`botId`,`status`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_approvals_taskId` ON `bot_approvals`(`taskId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_approvals_expiresAt` ON `bot_approvals`(`expiresAt`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bot_publications` (" +
+                        "`id` TEXT NOT NULL, `publicationId` TEXT NOT NULL DEFAULT '', " +
+                        "`botId` TEXT NOT NULL DEFAULT '', `originSessionId` TEXT NOT NULL DEFAULT '', " +
+                        "`causeEventIds` TEXT NOT NULL DEFAULT '', `requestRevision` INTEGER NOT NULL DEFAULT 0, " +
+                        "`taskRevision` INTEGER NOT NULL DEFAULT 1, `itemIndex` INTEGER NOT NULL DEFAULT 0, " +
+                        "`kind` TEXT NOT NULL DEFAULT 'TEXT', `payloadRef` TEXT NOT NULL DEFAULT '', " +
+                        "`status` TEXT NOT NULL DEFAULT 'PENDING', `messageId` TEXT NOT NULL DEFAULT '', " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bot_publications_publicationId_itemIndex` ON `bot_publications`(`publicationId`,`itemIndex`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_publications_botId_status` ON `bot_publications`(`botId`,`status`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_publications_messageId` ON `bot_publications`(`messageId`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bot_bindings` (" +
+                        "`botId` TEXT NOT NULL, `assistantId` TEXT NOT NULL DEFAULT '', " +
+                        "`canonicalAgentSessionId` TEXT NOT NULL DEFAULT '', " +
+                        "`enabled` INTEGER NOT NULL DEFAULT 1, " +
+                        "`schemaVersion` INTEGER NOT NULL DEFAULT 1, " +
+                        "`createdAt` INTEGER NOT NULL DEFAULT 0, `updatedAt` INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(`botId`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_bindings_canonicalAgentSessionId` ON `bot_bindings`(`canonicalAgentSessionId`)")
             }
         }
 
@@ -3654,6 +3832,8 @@ abstract class MuseDb : RoomDatabase() {
             io.zer0.muse.data.knowledge.KnowledgeEvidenceSchemaMigrations.MIGRATION_129_130,
             MIGRATION_130_131,
             MIGRATION_131_132,
+            MIGRATION_132_133,
+            MIGRATION_133_134,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

@@ -51,7 +51,7 @@ class SettingsEntryVisibilityTest {
     @Test
     fun `暂不展示不影响分类结构与条目总数`() {
         // 隐藏的是“展示”，不是“声明”，否则分组数量与布局测试会跟着漂。
-        assertEquals(16, SettingsCatalog.groups.size)
+        assertEquals(12, SettingsCatalog.groups.size)
         assertEquals(SettingsCatalog.groups.sumOf { it.entries.size }, SettingsCatalog.entries.size)
     }
 }

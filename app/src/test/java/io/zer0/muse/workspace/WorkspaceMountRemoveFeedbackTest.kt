@@ -23,8 +23,8 @@ class WorkspaceMountRemoveFeedbackTest {
 
     private fun readUiSource(): String {
         val candidates = listOf(
-            File("src/main/java/io/zer0/muse/ui/WorkspaceScreen.kt"),
-            File("app/src/main/java/io/zer0/muse/ui/WorkspaceScreen.kt"),
+            File("src/main/java/io/zer0/muse/ui/screen/WorkspaceScreen.kt"),
+            File("app/src/main/java/io/zer0/muse/ui/screen/WorkspaceScreen.kt"),
         )
         return requireNotNull(candidates.firstOrNull { it.exists() }) {
             "找不到 WorkspaceScreen.kt，工作目录=${File(".").absolutePath}"

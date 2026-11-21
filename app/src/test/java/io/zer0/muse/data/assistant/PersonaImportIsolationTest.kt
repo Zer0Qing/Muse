@@ -120,7 +120,7 @@ class PersonaImportIsolationTest {
     fun `导入路径不碰默认助手与会话归属`() {
         // 源码级断言(与本项目其它 wiring 测试同一手法):预览确认后只允许 commitParsed,
         // 不许出现切换当前助手 / 改默认指针 / 改会话归属的调用。
-        val source = File("src/main/java/io/zer0/muse/ui/AssistantScreen.kt").readText()
+        val source = File("src/main/java/io/zer0/muse/ui/assistant/AssistantScreen.kt").readText()
 
         val start = source.indexOf("// v2.x: 导入预览确认对话框")
         assertTrue("找不到导入预览对话框", start > 0)

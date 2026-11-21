@@ -23,6 +23,7 @@ import java.io.IOException
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 
 /**
  * 本地语音模型下载器：断点续传（.part + HTTP Range）+ SHA-256 校验 + 串行下载。
@@ -69,8 +70,13 @@ internal object LocalModelDownloader {
     private val running = AtomicBoolean(false)
     private val jobRef = java.util.concurrent.atomic.AtomicReference<Job?>(null)
 
-    /** 下载用的独立 scope：cancel 时只杀下载协程，不依赖调用方生命周期。 */
-    private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    /**
+     * 下载用的独立 scope：cancel 时只杀下载协程，不依赖调用方生命周期。
+     *
+     * 接 [GlobalCoroutineExceptionHandler]：下载在后台跑，异常冒泡到线程默认处理器
+     * 只会打一条 stderr，用户看不到「为什么模型没下下来」。
+     */
+    private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
 
     /** 当前下载状态（UI 卡片订阅）。 */
     private val _state = MutableStateFlow<DownloadState>(DownloadState.Idle)

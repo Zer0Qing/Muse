@@ -23,7 +23,6 @@ import coil.memory.MemoryCache
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.ticker.MemoryTicker
-import io.zer0.muse.ui.debug.DebugScreen
 import io.zer0.muse.boot.BootReceiver
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.data.SettingsRepository
@@ -55,6 +54,7 @@ import org.koin.core.context.startKoin
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.coroutineContext
+import io.zer0.muse.ui.debug.DebugScreen
 
 /**
  * 应用入口。初始化 Koin,装载全部模块,启动 memory ticker。
@@ -161,6 +161,12 @@ class MuseApp : Application(), ImageLoaderFactory {
     // MCP 注册表必须在应用启动时实例化,否则只打开过 MCP 设置页的进程才会连接 server,
     // 主聊天页首次进入时看不到动态注册的 mcp_* 工具。
     private val mcpRegistry: io.zer0.muse.mcp.McpRegistry by inject()
+
+    /** Agent 中枢：重启后对账租约过期的在途 run，并把它们标成 UNKNOWN。 */
+    private val botTaskScheduler: io.zer0.muse.data.agentbot.BotTaskScheduler by inject()
+
+    /** Agent 中枢：关闭再启用时的对账（与重启对账语义不同，见类 KDoc）。 */
+    private val botModeReconciler: io.zer0.muse.data.agentbot.AgentBotModeReconciler by inject()
 
     /** 应用级 scope:启动一次性任务用,独立于 Koin 注册的 IO scope。 */
     // v0.53: 加 GlobalCoroutineExceptionHandler,防止协程内未捕获异常导致应用崩溃(企业级容错)
@@ -419,6 +425,25 @@ class MuseApp : Application(), ImageLoaderFactory {
             appScope.launch {
                 resultOf { groupChatScheduler.recoverInterruptedGenerations() }
                     .onError { msg, t -> Logger.w("MuseApp", "恢复群聊账本失败: $msg", t) }
+            }
+            // Agent 中枢：重启后对账。租约过期的在途 run 一律标 UNKNOWN ——
+            // 副作用可能已经发生，自动重放比"停下来问用户"危险得多。
+            appScope.launch {
+                resultOf { botTaskScheduler.reconcileAfterRestart() }
+                    .onError { msg, t -> Logger.w("MuseApp", "中枢任务对账失败: ${t?.message ?: msg}", t) }
+            }
+            // 中枢驱动循环：领任务、巡检超时、扫过期审批。
+            // 之前 tick()/sweepOverdue() 都实现完整但没有调用方，队列里的任务永远不会被领走。
+            botTaskScheduler.start()
+            // 关开模式对账：把上次关闭前留下的死租约、过期审批、未消费事件归位。
+            // 只在开关打开时跑 —— 关着的时候中枢不该有任何后台动作。
+            if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
+                appScope.launch {
+                    resultOf { botModeReconciler.reconcileOnEnable("default") }
+                        .onError { msg, t ->
+                            Logger.w("MuseApp", "中枢关开对账失败: ${t?.message ?: msg}", t)
+                        }
+                }
             } // v1.92: ChatViewModel 为 single 单例,onCleared 永不调用。
             // 注册 ProcessLifecycleOwner 观察者,在 ON_STOP 时释放 TTS/ASR 资源并停止 memory ticker,
             // 在 ON_START 时重启 memory ticker。
@@ -969,7 +994,16 @@ class MuseApp : Application(), ImageLoaderFactory {
         } // initializeRuntime
 
         if (incompleteRestore == null) {
-            initializeRuntime()
+            // 正常路径同样必须兜底。initializeRuntime() 里有工具注册器、MCP startAll、
+            // AutomationInitializer 等同步调用,任一抛错都会让异常逃出 Application.onCreate
+            // —— 用户看到的是"打开就闪退",而且不会进 SafeMode(标记只在 uncaughtException 写)。
+            // 与下方恢复分支保持同一等级:任何错误都不阻塞启动,失败降级成 SafeMode。
+            val initError = runCatching { initializeRuntime() }.exceptionOrNull()
+            if (initError != null) {
+                Logger.e("MuseApp", "启动初始化失败，标记 Safe Mode 并继续启动", initError)
+                resultOf { MuseCrashHandler.markSafeMode(applicationContext) }
+                    .onError { msg, t -> Logger.w("MuseApp", "标记 Safe Mode 失败: ${t?.message ?: msg}", t) }
+            }
             _startupReady.value = true
         } else {
             Logger.w(

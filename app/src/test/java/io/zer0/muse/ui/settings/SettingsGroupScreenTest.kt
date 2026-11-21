@@ -18,8 +18,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.R
-import io.zer0.muse.ui.SETTINGS_GROUP_ROW_TAG
-import io.zer0.muse.ui.SettingsGroupCards
+import io.zer0.muse.ui.settings.SETTINGS_GROUP_ROW_TAG
+import io.zer0.muse.ui.settings.SettingsGroupCards
 import io.zer0.muse.ui.navigation.AssistantsRoute
 import io.zer0.muse.ui.navigation.SettingsProxyRoute
 import io.zer0.muse.ui.navigation.UserProfileEditRoute
@@ -129,7 +129,7 @@ class SettingsGroupScreenTest {
         }
 
         // 运行环境已独立成「离线资源」一级分组，不再属于数据与备份，故为 5 条。
-        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(5)
+        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(6)
     }
 
     @Test

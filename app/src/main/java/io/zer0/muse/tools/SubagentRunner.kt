@@ -99,6 +99,17 @@ class SubagentRunner(
     companion object {
         private const val TAG = "SubagentRunner"
 
+        /**
+         * 记账失败哨兵。
+         *
+         * `onToolStarted` 回调返回它表示"这一步没能记进账本"，本轮必须中止。
+         *
+         * 为什么用哨兵值而不是抛异常：抛异常会走通用的 `catch (e: Exception)`，
+         * 那里把任务标 FAILED —— 但这次执行可能已经产生了副作用，
+         * 标 FAILED 会让用户以为"什么都没做成"。
+         */
+        const val STEP_LEDGER_FAILED = "__step_ledger_failed__"
+
         /** 默认最大工具调用次数。 */
         const val DEFAULT_MAX_TOOL_CALLS = 8
 
@@ -230,6 +241,40 @@ class SubagentRunner(
         val closeAfterRun: Boolean = false,
         /** v1.0.53 Phase 3: token 预算上限(prompt + completion 合计);null=不限制。 */
         val tokenBudget: Int? = null,
+        /**
+         * 每次工具执行前的回调 —— 供上层记账（中枢用它写步骤账本）。
+         *
+         * 参数是（工具名, 参数 JSON）。返回的 id 会原样传给 [onToolFinished]。
+         * 默认实现返回空串，旧调用方行为不变。
+         */
+        val onToolStarted: (suspend (toolName: String, argsJson: String) -> String)? = null,
+
+        /**
+         * 工具执行后的回调。
+         *
+         * @param stepId [onToolStarted] 返回的 id；空串表示没有记账
+         * @param success 是否成功
+         */
+        val onToolFinished: (suspend (stepId: String, success: Boolean) -> Unit)? = null,
+        /**
+         * 需要用户审批时调用。返回非空字符串表示"已建审批卡"，
+         * 子 Agent 应停止本轮（不执行该工具），由上层在用户批准后重跑。
+         *
+         * 与 [io.zer0.muse.tools.ToolApprovalRouter] 的区别：那是同步阻塞等 UI，
+         * 超时即拒绝。中枢的审批是持久化的 —— 用户可能几小时后才看到，
+         * 那时任务不该已经被"超时拒绝"了。
+         *
+         * 默认 null：旧调用方行为不变（走原有 ToolCallGate 路径）。
+         */
+        val onApprovalRequired: (suspend (toolName: String, toolCallId: String, argsJson: String) -> String)? = null,
+        /**
+         * 是否按"后台任务"取并发槽位。
+         *
+         * 默认 false，旧调用方（同步 subagent_run、异步 subagent_task）行为不变。
+         * 置 true 时只能占用非预留槽位 —— 前台永远至少有一个槽可用，
+         * 用户发新消息不必等后台任务跑完。
+         */
+        val background: Boolean = false,
     )
 
     /** 子 agent 运行结果。 */
@@ -305,10 +350,16 @@ class SubagentRunner(
 
         // v1.0.53: 串行化 + 全局并发限流(同 threadId 排队,且整体走 limiter)
         return try {
-            val result = concurrencyLimiter.run {
+            val work: suspend () -> Result = {
                 threadStore.runSerialized(threadId) {
                     runInternal(params, threadId, isNew, cancellation)
                 }
+            }
+            // 后台任务走预留槽位路径：前台永远留一个槽，用户发新消息不必排队。
+            val result = if (params.background) {
+                concurrencyLimiter.runAsBackground(work)
+            } else {
+                concurrencyLimiter.run(work)
             }
             // 统一补 threadId/sessionPath(runInternal 内部不关心这两个字段)
             result.copy(threadId = threadId, sessionPath = sessionPath)
@@ -388,6 +439,9 @@ class SubagentRunner(
         var tokenBudgetExhausted = false
         // F-20: 用户请求中止标记
         var cancelled = false
+        // 记账失败导致的中止。与 cancelled 分开：取消是用户意图，
+        // 这个是系统故障，后续处理不同（不标 CANCELLED，标 NEEDS_USER）。
+        var abortedForLedger = false
         // v2.0: 子代理模型(设置为空时跟随主对话模型)
         // v2.x: 改走辅助模型路由「大工具」档,同时携带 ProviderConfig 精确命中绑定渠道
         val (subagentProvider, subagentModel) = resolveSubagentModel()
@@ -538,7 +592,36 @@ class SubagentRunner(
                             break
                         }
                         totalToolCalls++
-                        val toolResult = executeAllowedTool(tc, access)
+                        val stepId = params.onToolStarted
+                            ?.let { cb ->
+                                runCatching { cb(tc.name, tc.arguments) }
+                                    .onFailure { Logger.w(TAG, "工具开始回调失败: ${it.message}") }
+                                    .getOrDefault("")
+                            }
+                            .orEmpty()
+                        // 记账失败 → 本轮必须中止。
+                        //
+                        // 审查 P0-3：`onToolStarted` 失败时原本只记一条日志就继续跑。
+                        // 于是账本里没有这一步，审核看不到副作用，判 REWORK，
+                        // 任务自动回队列从头重跑 —— 已发的消息、已改的文件都会再来一遍。
+                        //
+                        // 用哨兵值而不是抛异常：抛异常会走 `catch (e: Exception)` 分支，
+                        // 那里会把任务标 FAILED，而这次执行本身可能已经产生了副作用，
+                        // 标 FAILED 会让用户以为"什么都没做成"。
+                        // 中止 + 由调度器决定后续状态，才是准确的。
+                        if (stepId == STEP_LEDGER_FAILED) {
+                            Logger.e(
+                                TAG,
+                                "步骤记账失败，中止本轮以免账本不全导致误判返工: ${tc.name}",
+                            )
+                            abortedForLedger = true
+                            break
+                        }
+                        val toolResult = executeAllowedTool(tc, access, params.onApprovalRequired)
+                        if (stepId.isNotBlank()) {
+                            runCatching { params.onToolFinished?.invoke(stepId, toolResult.success) }
+                                .onFailure { Logger.w(TAG, "工具结束回调失败: ${it.message}") }
+                        }
                         progressEntries.add(
                             ProgressEntry(
                                 round = rounds,
@@ -577,6 +660,24 @@ class SubagentRunner(
                 }
             }
 
+            // 记账失败导致的中止：账本不完整，不能当成功。
+            //
+            // 与 cancelled 分开：那是用户意图（用户说停下），这是系统故障。
+            // 返回 success=false 让调度器把它转成 NEEDS_USER，而不是让审核
+            // 对着不完整的账本判 REWORK —— 那会自动重跑，重复执行不可逆操作。
+            if (abortedForLedger) {
+                recordRunAndMaybeClose(params, threadId, status = "aborted", summary = lastText)
+                return Result(
+                    success = false,
+                    summary = lastText,
+                    error = "步骤记账失败，账本不完整，已中止本轮以免重复执行不可逆操作",
+                    rounds = rounds,
+                    toolCalls = totalToolCalls,
+                    budgetExhausted = budgetExhausted,
+                    progressEntries = progressEntries,
+                    tokenBudgetExhausted = tokenBudgetExhausted,
+                )
+            }
             // F-20: 用户请求中止 → 记录 aborted 并返回中止结果（不产总结只给错误说明）
             if (cancelled) {
                 recordRunAndMaybeClose(params, threadId, status = "aborted", summary = lastText)
@@ -694,7 +795,11 @@ class SubagentRunner(
      *
      * 若工具名不在白名单(被 LLM 幻觉调用),返回错误字符串而非执行。
      */
-    private suspend fun executeAllowedTool(tc: ToolCall, access: SubagentAccess): ToolExecOutcome {
+    private suspend fun executeAllowedTool(
+        tc: ToolCall,
+        access: SubagentAccess,
+        onApprovalRequired: (suspend (String, String, String) -> String)? = null,
+    ): ToolExecOutcome {
         val allowedNames = buildAllowedToolNames(access)
         if (tc.name !in allowedNames) {
             return ToolExecOutcome(
@@ -704,7 +809,7 @@ class SubagentRunner(
         }
         // 审批闸门:结论不是「放行」就把拒绝原因交回主 agent,让它改用其他合法工具
         // 或向用户说明需手动处理。判定入口是 [ToolPermissionResolver],与会话审批链同一条。
-        gateToolCall(tc)?.let { return it }
+        gateToolCall(tc, onApprovalRequired)?.let { return it }
         return try {
             val result = routeGuard.executeFromJson(tc.name, tc.arguments)
             // P2-22: 成败判定复用生产共享判定器 ToolResultJudge(与任务卡同一实现),
@@ -729,7 +834,29 @@ class SubagentRunner(
      * 插件也要从别处发起工具调用，两处各留一份的必然结局是其中一份先松动 ——
      * 而松动的那份就是绕过审批的入口，所以判定实现只留一个。
      */
-    private suspend fun gateToolCall(tc: ToolCall): ToolExecOutcome? {
+    private suspend fun gateToolCall(
+        tc: ToolCall,
+        /** 中枢的持久审批回调；null 表示走原有同步桥接路径。 */
+        onApprovalRequired: (suspend (String, String, String) -> String)? = null,
+    ): ToolExecOutcome? {
+        // 中枢路径：不阻塞等 UI，而是建持久审批卡并让本轮停下。
+        //
+        // 为什么必须先问这个而不是直接走 gate：gate 在无桥接时会保守拒绝，
+        // 而中枢场景下"拒绝"是错的 —— 用户只是还没看到卡片。
+        if (onApprovalRequired != null) {
+            val risk = runCatching { toolRegistry.getToolRiskLevel(tc.name) }.getOrNull();
+            val needsApproval = risk != null && risk != io.zer0.muse.tools.ToolRiskLevel.SAFE;
+            if (needsApproval) {
+                val approvalId = onApprovalRequired(tc.name, tc.id, tc.arguments);
+                if (approvalId.isNotBlank()) {
+                    // 返回非 null 让调用方认为"这一步没执行"，同时本轮应当终止。
+                    return ToolExecOutcome(
+                        result = "Error: 已创建审批卡（$approvalId），本轮暂停等待用户批准",
+                        success = false,
+                    );
+                }
+            }
+        }
         val outcome = toolCallGate.gate(tc.name, tc.id, tc.arguments, subject = "子 agent")
         return if (outcome.allowed) {
             null
