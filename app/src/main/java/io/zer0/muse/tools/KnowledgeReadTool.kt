@@ -32,6 +32,7 @@ object KnowledgeReadTool {
             "offset" to "起始字符偏移；省略时从 0 开始",
         ),
         required = setOf("doc_id"),
+                parameterTypes = mapOf("offset" to "integer"),
         category = "built-in",
         riskLevel = ToolRiskLevel.SAFE,
     )

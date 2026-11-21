@@ -33,6 +33,7 @@ class CalendarToolsRegistrar(
                     "days" to "查询未来几天,默认 0=只今天",
                 ),
                 required = emptySet(),
+                parameterTypes = mapOf("days" to "integer"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
             ),

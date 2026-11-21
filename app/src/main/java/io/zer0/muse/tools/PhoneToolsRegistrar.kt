@@ -47,6 +47,7 @@ class PhoneToolsRegistrar(
                     "label" to "倒计时标签,默认 'muse 倒计时'",
                 ),
                 required = setOf("seconds"),
+                parameterTypes = mapOf("seconds" to "integer"),
                 category = "built-in",
                 // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 系统倒计时变更不可逆
                 riskLevel = ToolRiskLevel.HIGH,
@@ -138,6 +139,7 @@ class PhoneToolsRegistrar(
                     "filter" to "按名称过滤",
                 ),
                 required = emptySet(),
+                parameterTypes = mapOf("limit" to "integer"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
             ),
