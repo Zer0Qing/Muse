@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background

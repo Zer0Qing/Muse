@@ -12,7 +12,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import io.zer0.muse.ui.ChatListScreen
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.screen.HomeScreen
@@ -31,6 +30,7 @@ import io.zer0.muse.ui.screen.FolderDetailScreen
 import io.zer0.muse.ui.screen.ArchivedChatsScreen
 import io.zer0.muse.ui.screen.RecentlyDeletedScreen
 import io.zer0.muse.ui.screen.SearchScreen
+import io.zer0.muse.ui.chat.ChatListScreen
 
 /**
  * 聊天域 NavGraph — 包含首页、搜索、聊天详情、群聊详情、最近删除、快速记录、
