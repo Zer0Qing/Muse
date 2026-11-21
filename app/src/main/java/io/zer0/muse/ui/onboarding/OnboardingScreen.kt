@@ -599,13 +599,9 @@ private fun StepLanguage(selectedLanguage: String, onLanguageSelected: (String) 
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-        Text(
-            text = stringResource(R.string.onboarding_language_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         Spacer(modifier = Modifier.height(MusePaddings.itemGap))
+        // 「界面文字会用它，随时可改」已删：标题「先选个语言」+ 下面 8 个语言卡，
+        // 说明的是同一件事。四个步骤原本都挂一句「随时可改」，那是同一句承诺说四遍。
         languages.forEach { (code, label) ->
             LanguageCard(
                 label = label,
@@ -630,12 +626,6 @@ private fun StepTheme(selectedThemeId: String, onThemeSelected: (String) -> Unit
             text = stringResource(R.string.onboarding_theme_title),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-        Text(
-            text = stringResource(R.string.onboarding_theme_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(MusePaddings.itemGap))
         // 12 套主题网格（3 列 x 4 行）
@@ -769,12 +759,6 @@ private fun StepNames(userName: String, onUserNameChange: (String) -> Unit, agen
             text = stringResource(R.string.onboarding_names_title),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-        Text(
-            text = stringResource(R.string.onboarding_names_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
         // v1.0.28: label 放到输入框上方,避免 OutlinedTextField 内部 label 的白色背景块

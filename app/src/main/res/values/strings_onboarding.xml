@@ -5,13 +5,10 @@
 
     <!-- 步骤 1:语言与外观 -->
     <string name="onboarding_language_title">先选个语言。</string>
-    <string name="onboarding_language_subtitle">界面文字会用它，随时可改。</string>
     <string name="onboarding_theme_title">换个喜欢的模样。</string>
-    <string name="onboarding_theme_subtitle">主题可随时在设置里更换。</string>
 
     <!-- 步骤 2:你的名字 -->
     <string name="onboarding_names_title">先认识一下。</string>
-    <string name="onboarding_names_subtitle">称呼和名字，之后都能改。</string>
     <string name="onboarding_names_user_label">我该怎么称呼你？</string>
     <string name="onboarding_names_agent_label">给它起个名字</string>
     <string name="onboarding_names_user_placeholder">例：小明</string>

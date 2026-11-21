@@ -5,13 +5,10 @@
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">言語を選びましょう。</string>
-    <string name="onboarding_language_subtitle">画面の表示に使われます。いつでも変更できます。</string>
     <string name="onboarding_theme_title">好きな見た目に。</string>
-    <string name="onboarding_theme_subtitle">テーマは設定からいつでも変更できます。</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">はじめまして。</string>
-    <string name="onboarding_names_subtitle">呼び名と名前は、あとからでも変えられます。</string>
     <string name="onboarding_names_user_label">なんて呼べばいい？</string>
     <string name="onboarding_names_agent_label">名前をつけてあげて</string>
     <string name="onboarding_names_user_placeholder">例：太郎</string>

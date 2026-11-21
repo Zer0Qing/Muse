@@ -5,13 +5,10 @@
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">Elige un idioma.</string>
-    <string name="onboarding_language_subtitle">La interfaz lo usará. Cámbialo cuando quieras.</string>
     <string name="onboarding_theme_title">Elige un aspecto que te guste.</string>
-    <string name="onboarding_theme_subtitle">Puedes cambiarlo cuando quieras en Ajustes.</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">Vamos a conocernos.</string>
-    <string name="onboarding_names_subtitle">Tu nombre y el suyo — ambos se pueden cambiar después.</string>
     <string name="onboarding_names_user_label">¿Cómo te llamo?</string>
     <string name="onboarding_names_agent_label">Ponle un nombre</string>
     <string name="onboarding_names_user_placeholder">Por ejemplo, Alex</string>

@@ -5,13 +5,10 @@
 
     <!-- Step 1: Language & Appearance -->
     <string name="onboarding_language_title">언어를 골라 주세요.</string>
-    <string name="onboarding_language_subtitle">인터페이스에 사용됩니다. 언제든 바꿀 수 있어요.</string>
     <string name="onboarding_theme_title">마음에 드는 모습으로.</string>
-    <string name="onboarding_theme_subtitle">테마는 설정에서 언제든 바꿀 수 있어요.</string>
 
     <!-- Step 2: Your Name -->
     <string name="onboarding_names_title">먼저 인사부터.</string>
-    <string name="onboarding_names_subtitle">호칭과 이름은 나중에 바꿀 수 있어요.</string>
     <string name="onboarding_names_user_label">뭐라고 부를까요?</string>
     <string name="onboarding_names_agent_label">이름을 지어 주세요</string>
     <string name="onboarding_names_user_placeholder">예: 철수</string>
