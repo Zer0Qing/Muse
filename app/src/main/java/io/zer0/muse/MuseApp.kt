@@ -23,6 +23,7 @@ import coil.memory.MemoryCache
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.ticker.MemoryTicker
+import io.zer0.muse.ui.debug.DebugScreen
 import io.zer0.muse.boot.BootReceiver
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.data.SettingsRepository

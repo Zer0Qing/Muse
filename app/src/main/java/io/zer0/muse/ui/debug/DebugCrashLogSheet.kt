@@ -1,6 +1,6 @@
 @file:Suppress("FunctionNaming", "LongMethod")
 
-package io.zer0.muse.ui
+package io.zer0.muse.ui.debug
 
 import android.content.Context
 import android.content.Intent

@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.debug
 
 // ST-01 → ST-09: 错误态覆盖说明(上一轮"本页无需错误态"结论过窄,已补齐)。
 //  - 日志列表:数据源 DebugLogStore.getAll() 为纯内存读取(buffer.toList()),轮询无 DB/网络可失败步骤,

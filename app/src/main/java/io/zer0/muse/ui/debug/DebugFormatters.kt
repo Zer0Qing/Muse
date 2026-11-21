@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.debug
 
 import io.zer0.common.FileSizeFormatter
 

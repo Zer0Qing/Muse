@@ -4,6 +4,7 @@ import io.zer0.ai.ProviderConfigStore
 import io.zer0.ai.aiModule
 import io.zer0.memory.llm.MemoryLlmClient
 import io.zer0.memory.memoryModule
+import io.zer0.muse.ui.debug.DebugScreen
 import io.zer0.muse.data.MemoryLlmClientImpl
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
