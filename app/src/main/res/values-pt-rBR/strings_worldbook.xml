@@ -3,7 +3,6 @@
 <resources>
     <!-- Screen -->
     <string name="worldbook_screen_title">Livro Mundial Dinâmico</string>
-    <string name="worldbook_intro">O Dynamic Worldbook injeta conhecimento relevante com base no contexto da conversa.</string>
     <string name="worldbook_new_cd">Nova entrada no livro mundial</string>
     <string name="worldbook_new_default_name">Nova entrada</string>
     <string name="worldbook_new_title">Livro do Novo Mundo</string>

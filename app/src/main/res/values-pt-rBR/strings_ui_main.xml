@@ -269,7 +269,6 @@
     <string name="message_annotate_title">Notas da mensagem</string>
     <string name="message_annotate_hint">Escreva uma nota…</string>
     <string name="connector_page_title">Conectores</string>
-    <string name="connector_intro">Conecte serviços externos (calendário/notas/código). Preencha endpoints e credenciais do app registrado; a autorização usa o navegador do sistema e as credenciais são criptografadas.</string>
     <string name="connector_add">Adicionar conector</string>
     <string name="connector_connect">Conectar</string>
     <string name="connector_connect_success">Conectado %1$s</string>
@@ -282,8 +281,7 @@
     <string name="connector_field_client_id">Client ID</string>
     <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">Recebidos recentemente</string>
-    <string name="channel_intro_title">Envie mensagens para o seu IM</string>
-    <string name="channel_intro">Após configurar, o assistente pode enviar mensagens para canais Feishu/QQ via ferramentas. As credenciais ficam criptografadas apenas neste dispositivo.</string>
+    <string name="channel_intro">As credenciais ficam criptografadas apenas neste dispositivo.</string>
     <string name="channel_add">Adicionar canal</string>
     <string name="channel_edit_title">Editar canal</string>
     <string name="channel_edit">Editar</string>
@@ -374,7 +372,6 @@
     <!-- ===== Skill screen SkillScreen ===== -->
     <string name="skill_management">Gestão de Habilidades</string>
     <string name="skill_import_cd">Importar .skill.json</string>
-    <string name="skill_intro">Habilidades são ferramentas que o LLM pode chamar.</string>
     <string name="skill_no_skill_title">Nenhuma habilidade ainda</string>
     <string name="skill_no_skill_subtitle">Diga à IA "crie uma habilidade XX para mim" ou toque em + no canto inferior direito para importar um arquivo</string>
     <string name="skill_importing">Importando</string>

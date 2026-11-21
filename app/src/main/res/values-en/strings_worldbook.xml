@@ -3,7 +3,6 @@
 <resources>
     <!-- Screen -->
     <string name="worldbook_screen_title">Dynamic Worldbook</string>
-    <string name="worldbook_intro">Dynamic Worldbook injects relevant lore based on conversation context. Supports constant activation, keyword triggers, regex matching and depth injection. Compatible with SillyTavern World Info import/export.</string>
     <string name="worldbook_new_cd">New worldbook entry</string>
     <string name="worldbook_new_default_name">New entry</string>
     <string name="worldbook_new_title">New Worldbook</string>

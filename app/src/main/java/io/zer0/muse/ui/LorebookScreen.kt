@@ -142,14 +142,6 @@ fun LorebookScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Text(
-                    text = stringResource(R.string.lorebook_intro),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
             items(state.lorebooks, key = { it.id }) { entry ->
                 LorebookCard(
                     entry = entry,

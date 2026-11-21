@@ -60,7 +60,6 @@
     <string name="settings_user_profile_profession_field_hint">e.g. Software Development / Finance / Healthcare</string>
     <string name="settings_user_profile_interests_label">Interests (comma-separated, e.g. reading, coding, travel)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
-    <string name="settings_user_profile_intro">Everything you fill in here is injected into the AI\'s system prompt so it truly knows you. All fields are optional.</string>
     <string name="settings_user_profile_assistant_name_desc">The AI will call itself by this name</string>
     <string name="settings_user_profile_your_name_desc">The AI will address you by this name</string>
     <string name="settings_user_profile_bio">Bio</string>

@@ -322,7 +322,6 @@
     <string name="message_annotate_title">消息批注</string>
     <string name="message_annotate_hint">写下批注…</string>
     <string name="connector_page_title">连接器</string>
-    <string name="connector_intro">连接外部服务（日历/笔记/代码托管等）：填写服务商注册应用后的端点与凭据，授权走系统浏览器，凭证加密保存。</string>
     <string name="connector_add">添加连接器</string>
     <string name="connector_connect">连接</string>
     <string name="connector_connect_success">已连接 %1$s</string>
@@ -335,8 +334,7 @@
     <string name="connector_field_client_id">Client ID</string>
     <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">最近收到</string>
-    <string name="channel_intro_title">把消息推送到你的 IM</string>
-    <string name="channel_intro">配置后助手可通过工具把消息发送到飞书/QQ 等渠道。凭据仅在本机加密保存，不会上传。</string>
+    <string name="channel_intro">凭据仅在本机加密保存，不会上传。</string>
     <string name="channel_add">添加渠道</string>
     <string name="channel_edit_title">编辑渠道</string>
     <string name="channel_edit">编辑</string>
@@ -576,7 +574,6 @@
     <!-- ===== Skill 页 SkillScreen ===== -->
     <string name="skill_management">Skill 管理</string>
     <string name="skill_import_cd">导入 .skill.json</string>
-    <string name="skill_intro">Skill 是 LLM 可调用的工具。开启后,Assistant 在对话中可按需调用；关闭则不暴露给模型。点击页面中的「导入」按钮可导入 .skill.json。</string>
     <string name="skill_share_no_target">没有可用于分享的应用</string>
     <string name="skill_no_skill_title">还没有 Skill</string>
     <string name="skill_no_skill_subtitle">直接对 AI 说"帮我创建一个 XX 技能"，或点右下角 + 导入 Skill 文件</string>

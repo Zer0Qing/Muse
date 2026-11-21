@@ -44,7 +44,6 @@
     <!-- Top bar -->
     <string name="lorebook_screen_title">Lorebook</string>
     <string name="lorebook_new_cd">New Lorebook</string>
-    <string name="lorebook_intro">Keyword-triggered context injection. When a user message matches a keyword, the corresponding setting is injected as SYSTEM context.</string>
     <string name="lorebook_empty_title">No Lorebook yet</string>
     <string name="lorebook_empty_subtitle">Tap + at bottom right to create</string>
     <string name="lorebook_delete_title">Delete Lorebook</string>
@@ -88,7 +87,6 @@
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">Prompt Injection</string>
     <string name="prompt_injection_new_cd">New PromptInjection</string>
-    <string name="prompt_injection_intro">Mode-triggered context injection. When the user switches modes (creative/coding/roleplay, etc.) in a session, the corresponding injection takes effect immediately.</string>
     <string name="prompt_injection_empty_title">No PromptInjection yet</string>
     <string name="prompt_injection_empty_subtitle">Tap + at bottom right to create</string>
     <string name="prompt_injection_delete_title">Delete PromptInjection</string>

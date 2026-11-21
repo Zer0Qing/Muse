@@ -44,7 +44,6 @@
     <!-- Top bar -->
     <string name="lorebook_screen_title">ロアブック</string>
     <string name="lorebook_new_cd">新しい伝承書</string>
-    <string name="lorebook_intro">キーワードによってトリガーされるコンテキスト インジェクション。</string>
     <string name="lorebook_empty_title">ロアブックはまだありません</string>
     <string name="lorebook_empty_subtitle">右下の＋をタップして作成します</string>
     <string name="lorebook_delete_title">伝承書の削除</string>
@@ -88,7 +87,6 @@
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">即時注入</string>
     <string name="prompt_injection_new_cd">新しいプロンプトインジェクション</string>
-    <string name="prompt_injection_intro">モードによってトリガーされるコンテキスト インジェクション。</string>
     <string name="prompt_injection_empty_title">PromptInjection はまだありません</string>
     <string name="prompt_injection_empty_subtitle">右下の＋をタップして作成します</string>
     <string name="prompt_injection_delete_title">プロンプトインジェクションの削除</string>

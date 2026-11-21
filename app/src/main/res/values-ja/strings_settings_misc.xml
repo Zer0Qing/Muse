@@ -60,7 +60,6 @@
     <string name="settings_user_profile_profession_field_hint">例えば</string>
     <string name="settings_user_profile_interests_label">興味 (カンマ区切り、例: 読書、コーディング、旅行)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
-    <string name="settings_user_profile_intro">ここに入力した内容はすべて AI のシステム プロンプトに挿入されるため、AI はあなたを本当に認識します。</string>
     <string name="settings_user_profile_assistant_name_desc">AIは自分自身をこの名前で呼びます</string>
     <string name="settings_user_profile_your_name_desc">AI はこの名前であなたに呼びかけます</string>
     <string name="settings_user_profile_bio">バイオ</string>

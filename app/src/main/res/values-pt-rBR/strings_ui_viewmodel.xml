@@ -44,7 +44,6 @@
     <!-- Top bar -->
     <string name="lorebook_screen_title">Livro de história</string>
     <string name="lorebook_new_cd">Novo livro de história</string>
-    <string name="lorebook_intro">Injeção de contexto acionada por palavras-chave.</string>
     <string name="lorebook_empty_title">Nenhum Lorebook ainda</string>
     <string name="lorebook_empty_subtitle">Toque em + no canto inferior direito para criar</string>
     <string name="lorebook_delete_title">Excluir livro de história</string>
@@ -88,7 +87,6 @@
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">Injeção imediata</string>
     <string name="prompt_injection_new_cd">Nova PromptInjection</string>
-    <string name="prompt_injection_intro">Injeção de contexto acionada por modo.</string>
     <string name="prompt_injection_empty_title">Ainda não há PromptInjection</string>
     <string name="prompt_injection_empty_subtitle">Toque em + no canto inferior direito para criar</string>
     <string name="prompt_injection_delete_title">Excluir PromptInjection</string>

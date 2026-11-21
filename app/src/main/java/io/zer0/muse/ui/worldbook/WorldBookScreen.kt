@@ -164,14 +164,6 @@ fun WorldBookScreen(onBack: () -> Unit, viewModel: WorldBookViewModel = koinView
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Text(
-                    text = stringResource(R.string.worldbook_intro),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
             items(state.entries, key = { it.id }) { entry ->
                 WorldBookCard(
                     entry = entry,

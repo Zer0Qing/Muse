@@ -269,7 +269,6 @@
     <string name="message_annotate_title">メッセージ注釈</string>
     <string name="message_annotate_hint">注釈を書く…</string>
     <string name="connector_page_title">コネクタ</string>
-    <string name="connector_intro">外部サービス(カレンダー/ノート/コードホスト等)を接続します。プロバイダで登録したエンドポイントと認証情報を入力してください。認証はシステムブラウザ経由で、認証情報は暗号化保存されます。</string>
     <string name="connector_add">コネクタを追加</string>
     <string name="connector_connect">接続</string>
     <string name="connector_connect_success">%1$s に接続しました</string>
@@ -282,8 +281,7 @@
     <string name="connector_field_client_id">Client ID</string>
     <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">最近の受信</string>
-    <string name="channel_intro_title">メッセージを IM に送信</string>
-    <string name="channel_intro">設定後、アシスタントはツールから飛書/QQ などへメッセージを送信できます。認証情報は端末内で暗号化保存され、送信されません。</string>
+    <string name="channel_intro">認証情報は端末内で暗号化保存され、送信されません。</string>
     <string name="channel_add">チャネルを追加</string>
     <string name="channel_edit_title">チャネルを編集</string>
     <string name="channel_edit">編集</string>
@@ -374,7 +372,6 @@
     <!-- ===== Skill screen SkillScreen ===== -->
     <string name="skill_management">スキル管理</string>
     <string name="skill_import_cd">.skill.json をインポート</string>
-    <string name="skill_intro">スキルは、LLM が呼び出すことができるツールです。</string>
     <string name="skill_no_skill_title">スキルがまだありません</string>
     <string name="skill_no_skill_subtitle">AIに「〇〇スキルを作って」と伝えるか、右下の+からスキルファイルをインポートします</string>
     <string name="skill_importing">インポート中</string>

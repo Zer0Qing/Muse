@@ -60,7 +60,6 @@
     <string name="settings_user_profile_profession_field_hint">예를 들어</string>
     <string name="settings_user_profile_interests_label">관심사(쉼표로 구분, 예: 독서, 코딩, 여행)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
-    <string name="settings_user_profile_intro">Everything you fill in here is injected into the AI\'s system prompt so it truly knows you.</string>
     <string name="settings_user_profile_assistant_name_desc">AI는 자신을 이 이름으로 부를 것입니다.</string>
     <string name="settings_user_profile_your_name_desc">AI가 이 이름으로 당신을 부를 것입니다.</string>
     <string name="settings_user_profile_bio">바이오</string>

@@ -267,14 +267,6 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    item {
-                        Text(
-                            text = stringResource(R.string.skill_intro),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
                     // v2.6.13: 自定义技能的一键启停。
                     // 只作用于非内置、非插件技能：内置工具是这个应用的手脚，插件技能随插件启停。
                     bulkToggleTargets(skillList, builtInIds).takeIf { it.isNotEmpty() }?.let { targets ->

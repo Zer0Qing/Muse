@@ -136,14 +136,6 @@ fun PromptInjectionScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinVie
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Text(
-                    text = stringResource(R.string.prompt_injection_intro),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
             items(state.promptInjections, key = { it.id }) { entry ->
                 PromptInjectionCard(
                     entry = entry,

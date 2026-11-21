@@ -6,7 +6,6 @@
 <resources>
     <!-- Screen -->
     <string name="worldbook_screen_title">动态世界书</string>
-    <string name="worldbook_intro">动态世界书可根据对话内容自动注入相关知识设定。支持常驻激活、关键词触发、正则匹配和深度注入，兼容 SillyTavern World Info 格式导入导出。</string>
     <string name="worldbook_new_cd">新建世界书条目</string>
     <string name="worldbook_new_default_name">新世界书条目</string>
     <string name="worldbook_new_title">新建世界书</string>

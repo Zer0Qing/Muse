@@ -60,7 +60,6 @@
     <string name="settings_user_profile_profession_field_hint">например</string>
     <string name="settings_user_profile_interests_label">Интересы (через запятую, например, чтение, программирование, путешествия)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
-    <string name="settings_user_profile_intro">Все, что вы здесь вводите, вводится в системную подсказку ИИ, поэтому он действительно вас знает.</string>
     <string name="settings_user_profile_assistant_name_desc">ИИ будет называть себя этим именем</string>
     <string name="settings_user_profile_your_name_desc">ИИ будет обращаться к вам по этому имени</string>
     <string name="settings_user_profile_bio">Био</string>

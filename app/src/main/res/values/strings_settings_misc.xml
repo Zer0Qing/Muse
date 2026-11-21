@@ -62,7 +62,6 @@
     <string name="settings_user_profile_profession_field_hint">如：软件开发 / 金融 / 医疗</string>
     <string name="settings_user_profile_interests_label">兴趣爱好（逗号分隔，如：阅读，编程，旅行）</string>
     <!-- v1.133: 重写用户画像 — 新增字段全部注入 system prompt -->
-    <string name="settings_user_profile_intro">填写的信息会注入到 AI 的 system prompt，让 AI 真正了解你。所有字段均为可选。</string>
     <string name="settings_user_profile_assistant_name_desc">AI 会用此名字自称</string>
     <string name="settings_user_profile_your_name_desc">AI 会用此称呼叫你</string>
     <string name="settings_user_profile_bio">个人简介</string>

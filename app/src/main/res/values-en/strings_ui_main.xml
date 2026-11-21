@@ -278,7 +278,6 @@
     <string name="message_annotate_title">Message notes</string>
     <string name="message_annotate_hint">Write a note…</string>
     <string name="connector_page_title">Connectors</string>
-    <string name="connector_intro">Connect external services (calendar/notes/code hosting). Fill in the endpoints and credentials from the provider\'s app registration; authorization uses the system browser and credentials are encrypted.</string>
     <string name="connector_add">Add connector</string>
     <string name="connector_connect">Connect</string>
     <string name="connector_connect_success">Connected %1$s</string>
@@ -291,8 +290,7 @@
     <string name="connector_field_client_id">Client ID</string>
     <string name="connector_field_client_secret">Client Secret</string>
     <string name="channel_inbox_title">Recently received</string>
-    <string name="channel_intro_title">Push messages to your IM</string>
-    <string name="channel_intro">Once configured, the assistant can send messages to Feishu/QQ channels via tools. Credentials are encrypted and kept on this device only.</string>
+    <string name="channel_intro">Credentials are encrypted and kept on this device only.</string>
     <string name="channel_add">Add channel</string>
     <string name="channel_edit_title">Edit channel</string>
     <string name="channel_edit">Edit</string>
@@ -470,7 +468,6 @@
     <!-- ===== Skill screen SkillScreen ===== -->
     <string name="skill_management">Skill Management</string>
     <string name="skill_import_cd">Import .skill.json</string>
-    <string name="skill_intro">Skills are tools that the LLM can call. When enabled, the assistant can invoke them during conversations as needed; when disabled, they are not exposed to the model. Tap the Import button on the page to import a .skill.json file.</string>
     <string name="skill_share_no_target">No app available to handle the share</string>
     <string name="skill_no_skill_title">No skills yet</string>
     <string name="skill_no_skill_subtitle">Just tell the AI "create a XX skill for me", or tap + in the bottom right to import a skill file</string>

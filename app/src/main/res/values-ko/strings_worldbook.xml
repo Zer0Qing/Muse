@@ -3,7 +3,6 @@
 <resources>
     <!-- Screen -->
     <string name="worldbook_screen_title">다이내믹 월드북</string>
-    <string name="worldbook_intro">Dynamic Worldbook은 대화 맥락을 기반으로 관련 지식을 주입합니다.</string>
     <string name="worldbook_new_cd">새로운 월드북 항목</string>
     <string name="worldbook_new_default_name">신규 항목</string>
     <string name="worldbook_new_title">새로운 월드북</string>

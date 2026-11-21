@@ -60,7 +60,6 @@
     <string name="settings_user_profile_profession_field_hint">por exemplo</string>
     <string name="settings_user_profile_interests_label">Interesses (separados por vírgula, por exemplo, leitura, codificação, viagens)</string>
     <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
-    <string name="settings_user_profile_intro">Tudo o que você preenche aqui é injetado no prompt do sistema da IA ​​para que ela realmente conheça você.</string>
     <string name="settings_user_profile_assistant_name_desc">A IA se autodenominará por este nome</string>
     <string name="settings_user_profile_your_name_desc">A IA irá se dirigir a você por este nome</string>
     <string name="settings_user_profile_bio">Biografia</string>

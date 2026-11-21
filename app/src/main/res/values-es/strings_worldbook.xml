@@ -3,7 +3,6 @@
 <resources>
     <!-- Screen -->
     <string name="worldbook_screen_title">Libro de trasfondo dinámico</string>
-    <string name="worldbook_intro">El libro de trasfondo dinámico inyecta automáticamente información relevante según el contenido de la conversación. Admite activación permanente, activación por palabras clave, coincidencia por expresiones regulares e inyección por profundidad, y es compatible con la importación y exportación en formato World Info de SillyTavern.</string>
     <string name="worldbook_new_cd">Nueva entrada del libro de trasfondo</string>
     <string name="worldbook_new_default_name">Nueva entrada</string>
     <string name="worldbook_new_title">Nuevo libro de trasfondo</string>

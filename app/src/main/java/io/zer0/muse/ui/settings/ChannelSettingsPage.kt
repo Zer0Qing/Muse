@@ -115,25 +115,16 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
         title = stringResource(R.string.channel_page_title),
         onBack = onBack,
     ) {
-        // ── 说明卡 ──
+        // ── 凭据边界说明 ──
+        // 只留一句隐私承诺（凭据本机加密），删掉「配置后可以做什么」这类功能定义 ——
+        // 渠道列表本身已经说明了能力。标题也一并删：它与页面标题「消息渠道」重复。
         item(key = "intro") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
-                item {
-                    Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
-                        Text(
-                            text = stringResource(R.string.channel_intro_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = stringResource(R.string.channel_intro),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                }
-            }
+            Text(
+                text = stringResource(R.string.channel_intro),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+            )
         }
 
         // ── 渠道列表 ──

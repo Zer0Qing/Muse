@@ -75,19 +75,6 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
         title = stringResource(R.string.connector_page_title),
         onBack = onBack,
     ) {
-        item(key = "intro") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
-                item {
-                    Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
-                        Text(
-                            text = stringResource(R.string.connector_intro),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
 
         if (connectors.isEmpty() && configError != null) {
             item(key = "error") {

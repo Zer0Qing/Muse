@@ -123,28 +123,6 @@ fun UserProfileEditPage(onBack: () -> Unit) {
     }
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_user_profile_title), onBack = onBack) {
-        // 顶部 InfoCard:说明这些信息会注入到 AI 的 system prompt
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp),
-                )
-                Text(
-                    text = stringResource(R.string.settings_user_profile_intro),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
 
         // ── 分组 1: 称呼设置(最高优先级,影响 AI 自称与对用户的称呼)──
         item {

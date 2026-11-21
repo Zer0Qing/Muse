@@ -44,7 +44,6 @@
     <!-- Top bar -->
     <string name="lorebook_screen_title">книга знаний</string>
     <string name="lorebook_new_cd">Новая книга знаний</string>
-    <string name="lorebook_intro">Внедрение контекста по ключевым словам.</string>
     <string name="lorebook_empty_title">Лоребука пока нет</string>
     <string name="lorebook_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать</string>
     <string name="lorebook_delete_title">Удалить книгу истории</string>
@@ -88,7 +87,6 @@
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">Быстрая инъекция</string>
     <string name="prompt_injection_new_cd">Новая PromptInjection</string>
-    <string name="prompt_injection_intro">Внедрение контекста, инициируемое режимом.</string>
     <string name="prompt_injection_empty_title">PromptInjection пока нет</string>
     <string name="prompt_injection_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать</string>
     <string name="prompt_injection_delete_title">Удалить PromptInjection</string>

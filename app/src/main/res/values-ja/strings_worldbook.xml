@@ -3,7 +3,6 @@
 <resources>
     <!-- Screen -->
     <string name="worldbook_screen_title">ダイナミックなワールドブック</string>
-    <string name="worldbook_intro">Dynamic Worldbook は、会話のコンテキストに基づいて関連する伝承を挿入します。</string>
     <string name="worldbook_new_cd">新しいワールドブックへのエントリー</string>
     <string name="worldbook_new_default_name">新規エントリー</string>
     <string name="worldbook_new_title">新しい世界書</string>

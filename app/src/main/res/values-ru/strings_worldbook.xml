@@ -3,7 +3,6 @@
 <resources>
     <!-- Screen -->
     <string name="worldbook_screen_title">Динамическая книга мира</string>
-    <string name="worldbook_intro">Dynamic Worldbook добавляет соответствующую информацию на основе контекста разговора.</string>
     <string name="worldbook_new_cd">Новая запись в книге мира</string>
     <string name="worldbook_new_default_name">Новая запись</string>
     <string name="worldbook_new_title">Новая книга мира</string>

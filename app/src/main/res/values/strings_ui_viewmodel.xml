@@ -44,7 +44,6 @@
     <!-- 顶部栏 -->
     <string name="lorebook_screen_title">世界书 Lorebook</string>
     <string name="lorebook_new_cd">新建 Lorebook</string>
-    <string name="lorebook_intro">关键词触发的上下文注入。当用户消息命中关键词时，把对应设定作为 SYSTEM 上下文注入。</string>
     <string name="lorebook_empty_title">还没有 Lorebook</string>
     <string name="lorebook_empty_subtitle">点右下角 + 新建</string>
     <string name="lorebook_delete_title">删除 Lorebook</string>
@@ -88,7 +87,6 @@
     <!-- 顶部栏 -->
     <string name="prompt_injection_screen_title">模式注入 PromptInjection</string>
     <string name="prompt_injection_new_cd">新建 PromptInjection</string>
-    <string name="prompt_injection_intro">模式触发的上下文注入。用户在会话中切换模式（创意/编程/角色扮演等）时，对应注入立即生效。</string>
     <string name="prompt_injection_empty_title">还没有 PromptInjection</string>
     <string name="prompt_injection_empty_subtitle">点右下角 + 新建</string>
     <string name="prompt_injection_delete_title">删除 PromptInjection</string>

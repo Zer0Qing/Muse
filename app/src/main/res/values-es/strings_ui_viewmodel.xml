@@ -44,7 +44,6 @@
     <!-- Top bar -->
     <string name="lorebook_screen_title">Libro de trasfondo</string>
     <string name="lorebook_new_cd">Nuevo libro de trasfondo</string>
-    <string name="lorebook_intro">Inyección de contexto activada por palabras clave. Cuando un mensaje del usuario coincide con una palabra clave, el contenido correspondiente se inyecta como contexto SYSTEM.</string>
     <string name="lorebook_empty_title">Aún no hay libros de trasfondo</string>
     <string name="lorebook_empty_subtitle">Toca + en la parte inferior derecha para crear</string>
     <string name="lorebook_delete_title">Eliminar libro de trasfondo</string>
@@ -88,7 +87,6 @@
     <!-- Top bar -->
     <string name="prompt_injection_screen_title">Inyección de prompt</string>
     <string name="prompt_injection_new_cd">Nueva inyección de prompt</string>
-    <string name="prompt_injection_intro">Inyección de contexto activada por modo. Cuando el usuario cambia de modo en una conversación (creativo, programación, juego de roles, etc.), la inyección correspondiente se aplica de inmediato.</string>
     <string name="prompt_injection_empty_title">Aún no hay inyecciones de prompt</string>
     <string name="prompt_injection_empty_subtitle">Toca + en la parte inferior derecha para crear</string>
     <string name="prompt_injection_delete_title">Eliminar inyección de prompt</string>
