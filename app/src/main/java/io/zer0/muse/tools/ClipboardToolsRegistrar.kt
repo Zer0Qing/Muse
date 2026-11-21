@@ -18,19 +18,9 @@ class ClipboardToolsRegistrar(
     }
 
     fun registerAll() {
-        toolRegistry.register(
-            ToolRegistry.ToolDef(
-                name = "clipboard_read",
-                description = "读取系统剪贴板文本内容。",
-                parameters = emptyMap(),
-                required = emptySet(),
-                category = "built-in",
-                riskLevel = ToolRiskLevel.NORMAL,
-            ),
-        ) {
-            readClipboard().content
-        }
-        // 结构化结果版优先（registerOutcome 通道优先于 String 通道）
+        // 只注册 Outcome 版：registerOutcome 会 remove 掉同名 String 通道实现
+        // （见 ToolRegistry.registerOutcome 的 tools.remove(def.name)），
+        // 先注册 String 版再注册 Outcome 版等于前一次注册是死代码。
         toolRegistry.registerOutcome(
             ToolRegistry.ToolDef(
                 name = "clipboard_read",

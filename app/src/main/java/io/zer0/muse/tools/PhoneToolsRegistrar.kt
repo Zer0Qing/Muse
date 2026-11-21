@@ -97,17 +97,8 @@ class PhoneToolsRegistrar(
             ),
         ) { args -> impl.execGetLocation(args) }
 
-        toolRegistry.register(
-            ToolRegistry.ToolDef(
-                name = "get_device_info",
-                description = "获取设备信息:品牌/型号/Android 版本/屏幕分辨率/电量。",
-                parameters = emptyMap(),
-                required = emptySet(),
-                category = "built-in",
-                riskLevel = ToolRiskLevel.SAFE,
-            ),
-        ) { impl.execGetDeviceInfo(emptyMap()) }
-
+        // 只注册 Outcome 版：registerOutcome 会 remove 掉同名 String 通道实现，
+        // 先 register 再 registerOutcome 等于前一次是死代码。
         toolRegistry.registerOutcome(
             ToolRegistry.ToolDef(
                 name = "get_device_info",
