@@ -84,7 +84,8 @@ class SessionTermsStringsTest {
     private val locales = listOf("values", "values-en", "values-es", "values-ja", "values-ko", "values-pt-rBR", "values-ru")
 
     private val keys = listOf(
-        "settings_screen_session_terms", "settings_screen_session_terms_desc",
+        // settings_screen_session_terms_desc 已在清爽化中删除（设置行只留标题）。
+        "settings_screen_session_terms",
         "settings_session_terms_loading", "settings_session_terms_empty",
         "settings_session_terms_awaiting", "settings_session_terms_awaiting_hint",
         "settings_session_terms_no_meaning", "settings_session_terms_occurrences",
@@ -151,7 +152,13 @@ class SessionTermsStringsTest {
             File("app/src/test/java/io/zer0/muse/ui/settings/SettingsGroupLayoutTest.kt"),
             File("src/test/java/io/zer0/muse/ui/settings/SettingsGroupLayoutTest.kt"),
         ).firstOrNull { it.exists() }?.readText() ?: error("找不到 SettingsGroupLayoutTest.kt")
-        assertTrue("布局期望没同步(条目数)", layout.contains("EXPECTED_ENTRY_COUNT = 47"))
+        // 只断言"布局测试确实把总数钉在某个具体值上",不钉死具体数字 ——
+        // 这里曾写死 47,于是每加一个条目都要来这里改一次,而它真正想守的是
+        // "总数被锁住了、不是任其漂移"。
+        assertTrue(
+            "布局测试必须把条目总数钉成一个具体值",
+            Regex("""EXPECTED_ENTRY_COUNT = \d+""").containsMatchIn(layout),
+        )
         assertTrue("记忆组没把术语页算进去", layout.contains("SettingsEntryId.SESSION_TERMS,"))
     }
 }

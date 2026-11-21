@@ -451,4 +451,5 @@
     <string name="app_control_via_app">permiso de la app</string>
     <string name="app_control_via_shell">Shizuku/adb</string>
     <string name="app_control_via_root">Root</string>
+    <string name="assist_service_label">Asistente Muse</string>
 </resources>

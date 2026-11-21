@@ -31,8 +31,8 @@ object RenderDataTool {
             "{\"labels\":[...],\"values\":[...]}；type=table 时 data 需为 " +
             "{\"columns\":[...],\"rows\":[[...]]}。数据仅在本地渲染，不访问网络。",
         parameters = mapOf(
-            "type" to "必填:bar | line | donut | table",
-            "title" to "必填,图表或表格标题",
+            "type" to "bar | line | donut | table",
+            "title" to "图表或表格标题",
             "data" to "必填 JSON 数据:图表使用 labels/values,表格使用 columns/rows",
         ),
         required = setOf("type", "title", "data"),

@@ -30,7 +30,7 @@ class PluginMarketToolsRegistrar(
                 description = "搜索 Muse 插件市场中的插件（外部工具/声明式皮肤包）。返回插件 id、名称、版本、说明、" +
                     "发行者与安装/信任状态。找到合适的插件后把关键信息展示给用户，再用 plugin_market_install 安装" +
                     "（安装会弹审批卡）。",
-                parameters = mapOf("query" to "可选,关键词（匹配 id/名称/说明）；留空列出全部"),
+                parameters = mapOf("query" to "关键词（匹配 id/名称/说明）；留空列出全部"),
                 required = emptySet(),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
@@ -47,8 +47,8 @@ class PluginMarketToolsRegistrar(
                     "发行者尚未受信任时，本工具会返回待确认信息：请先把信息展示给用户，用户确认后带 " +
                     "trust_publisher=true 再次调用。",
                 parameters = mapOf(
-                    "plugin_id" to "必填,插件 id（见 plugin_market_search）",
-                    "trust_publisher" to "可选,true/false：用户已确认信任该插件发行者时传 true（首次安装未受信任发行者的插件需要）",
+                    "plugin_id" to "插件 id（见 plugin_market_search）",
+                    "trust_publisher" to "true/false：用户已确认信任该插件发行者时传 true（首次安装未受信任发行者的插件需要）",
                 ),
                 required = setOf("plugin_id"),
                 category = "built-in",
@@ -67,7 +67,7 @@ class PluginMarketToolsRegistrar(
                 name = TOOL_MARKET_UNINSTALL,
                 description = "卸载一个已安装的插件（注册表、插件目录、归属技能与保留版本一并清理，不可恢复）。" +
                     "plugin_id 可用 plugin_market_search 获取，或让用户从插件管理页确认。执行会弹审批卡。",
-                parameters = mapOf("plugin_id" to "必填,已安装插件的 id"),
+                parameters = mapOf("plugin_id" to "已安装插件的 id"),
                 required = setOf("plugin_id"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.HIGH,
@@ -82,8 +82,8 @@ class PluginMarketToolsRegistrar(
                 description = "启用或停用已安装的插件。停用（enabled=false）只冻结插件及其技能，安装保留、可随时恢复；" +
                     "彻底不想要了再用 plugin_market_uninstall。执行会弹审批卡。",
                 parameters = mapOf(
-                    "plugin_id" to "必填,已安装插件的 id",
-                    "enabled" to "必填,true=启用,false=停用",
+                    "plugin_id" to "已安装插件的 id",
+                    "enabled" to "true=启用,false=停用",
                 ),
                 required = setOf("plugin_id", "enabled"),
                 category = "built-in",

@@ -44,7 +44,9 @@ class HostSettingsStringsTest {
 
     @Test
     fun `resolved text follows the requested language`() {
-        val name = "settings_screen_group_assistants"
+        // 用一个仍然存在的分组标题做探针（原探针 settings_screen_group_assistants
+        // 是分组副标题，已在清爽化中删除）。
+        val name = "settings_group_assistants"
 
         // 显式语言：values/ 是中文默认目录，values-en 是英文目录。
         val zh = strings.resolve(name, "zh")

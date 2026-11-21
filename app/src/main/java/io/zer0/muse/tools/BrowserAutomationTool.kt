@@ -63,7 +63,7 @@ object BrowserAutomationTool {
             description = "浏览器自动化:导航到指定 URL。必须先调用本工具完成导航,再使用 browser_click/browser_type/browser_extract 操作页面。所有浏览器工具返回 JSON,含 success 与 data/error。" +
                 "URL 可省略 scheme(如 example.com 自动补 https://)。超时 10 秒。",
             parameters = mapOf(
-                "url" to "必填,目标 URL,如 https://example.com 或 example.com",
+                "url" to "目标 URL,如 https://example.com 或 example.com",
             ),
             required = setOf("url"),
             category = "built-in",
@@ -75,8 +75,8 @@ object BrowserAutomationTool {
                 "① selector(CSS 选择器,语法同 document.querySelector);" +
                 "② numberId(browser_snapshot 返回的元素编号,推荐——无需了解页面结构)。",
             parameters = mapOf(
-                "selector" to "可选,CSS 选择器,如 '#login-btn' 或 'button.submit'",
-                "numberId" to "可选,快照元素编号(与 selector 二选一,提供时优先)",
+                "selector" to "CSS 选择器,如 '#login-btn' 或 'button.submit'",
+                "numberId" to "快照元素编号(与 selector 二选一,提供时优先)",
             ),
             required = emptySet(),
             category = "built-in",
@@ -88,9 +88,9 @@ object BrowserAutomationTool {
                 "定位方式二选一:selector(CSS 选择器)或 numberId(快照编号,推荐)。" +
                 "自动触发 input + change 事件以兼容 React/Vue 等框架。",
             parameters = mapOf(
-                "selector" to "可选,CSS 选择器,如 '#search-input'",
-                "numberId" to "可选,快照元素编号(与 selector 二选一,提供时优先)",
-                "text" to "必填,要输入的文本内容",
+                "selector" to "CSS 选择器,如 '#search-input'",
+                "numberId" to "快照元素编号(与 selector 二选一,提供时优先)",
+                "text" to "要输入的文本内容",
             ),
             required = setOf("text"),
             category = "built-in",
@@ -103,7 +103,7 @@ object BrowserAutomationTool {
                 "未命中返回空串。可用于抓取商品价格、文章正文、列表项等。" +
                 "区别于 parse_link: 本工具读浏览器当前已加载页面,parse_link 从 URL 抓取独立页面。",
             parameters = mapOf(
-                "selector" to "必填,CSS 选择器,如 '.price' 或 'article h1'",
+                "selector" to "CSS 选择器,如 '.price' 或 'article h1'",
             ),
             required = setOf("selector"),
             category = "built-in",

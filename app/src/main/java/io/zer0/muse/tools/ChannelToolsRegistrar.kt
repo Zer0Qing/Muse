@@ -28,8 +28,8 @@ class ChannelToolsRegistrar(
                 description = "向已配置的外部消息渠道(飞书/QQ 等)发送一条文本消息。" +
                     "先用 channel_list 查询可用渠道及其 id;适合把结果或通知推送到用户的 IM。",
                 parameters = mapOf(
-                    "channel_id" to "必填,渠道 id(见 channel_list)",
-                    "text" to "必填,要发送的文本内容",
+                    "channel_id" to "渠道 id(见 channel_list)",
+                    "text" to "要发送的文本内容",
                 ),
                 required = setOf("channel_id", "text"),
                 category = "built-in",
@@ -54,8 +54,8 @@ class ChannelToolsRegistrar(
                     "不能指定任意人。用于「A 渠道收到指令、让 B 渠道那边也收到」这类跨渠道转达。" +
                     "先 channel_list 查渠道 id。单轮与每小时都有条数上限。",
                 parameters = mapOf(
-                    "channel_id" to "必填,目标渠道 id(见 channel_list)",
-                    "text" to "必填,要转发的内容",
+                    "channel_id" to "目标渠道 id(见 channel_list)",
+                    "text" to "要转发的内容",
                 ),
                 required = setOf("channel_id", "text"),
                 category = "built-in",

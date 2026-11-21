@@ -52,7 +52,7 @@ class RootToolsRegistrar(
                     "需要 Shizuku 或 Root 授权。",
                 parameters = mapOf(
                     "name" to
-                        "必填。设置名,可带命名空间前缀(global / secure / system)," +
+                        "设置名,可带命名空间前缀(global / secure / system)," +
                         "例如 secure:location_mode",
                 ),
                 required = setOf("name"),

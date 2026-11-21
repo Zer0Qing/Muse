@@ -37,7 +37,7 @@ class SystemToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "open_system_setting",
                 description = "打开系统设置页,支持分类跳转。",
-                parameters = mapOf("category" to "可选,设置分类: wifi/bluetooth/display/sound/app_settings 等,默认 settings"),
+                parameters = mapOf("category" to "设置分类: wifi/bluetooth/display/sound/app_settings 等,默认 settings"),
                 required = emptySet(),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
@@ -50,7 +50,7 @@ class SystemToolsRegistrar(
                 // A-02: 与实现对齐 — enabled 直接指定目标状态;不传则只读查询当前状态
                 // (Android 10+ 无法程序化翻转 WiFi,删除"翻转"承诺)
                 description = "开关 WiFi。enabled 传 true 开启 / false 关闭;不传则查询当前状态。开启/关闭需跳系统设置页由用户确认。",
-                parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询当前状态(兼容参数 action: on/off/status)"),
+                parameters = mapOf("enabled" to "true=开启 / false=关闭;不传则查询当前状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
                 // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 不可逆系统状态变更
@@ -63,7 +63,7 @@ class SystemToolsRegistrar(
                 name = "toggle_bluetooth",
                 // A-02: 与实现对齐,删除"翻转"承诺
                 description = "开关蓝牙。enabled 传 true 开启 / false 关闭;不传则查询当前状态。Android 10+ 需跳系统设置页由用户确认。",
-                parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询当前状态(兼容参数 action: on/off/status)"),
+                parameters = mapOf("enabled" to "true=开启 / false=关闭;不传则查询当前状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
                 // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 不可逆系统状态变更
@@ -76,9 +76,9 @@ class SystemToolsRegistrar(
                 name = "send_email",
                 description = "通过系统邮件应用发送邮件。",
                 parameters = mapOf(
-                    "to" to "必填,收件人邮箱,多个用逗号分隔",
-                    "subject" to "可选,主题",
-                    "body" to "可选,正文",
+                    "to" to "收件人邮箱,多个用逗号分隔",
+                    "subject" to "主题",
+                    "body" to "正文",
                 ),
                 required = setOf("to"),
                 category = "built-in",
@@ -103,11 +103,11 @@ class SystemToolsRegistrar(
                 name = "get_recent_notifications",
                 description = "获取最近收到的应用通知。需要通知使用权。",
                 parameters = mapOf(
-                    "limit" to "可选,返回数量,默认 20",
-                    "package_name" to "可选,按包名过滤",
-                    "query" to "可选,按应用包名、应用名称、标题、渠道或正文搜索",
-                    "unread_only" to "可选,true/false,只返回 Muse 中尚未查看的通知",
-                    "active_only" to "可选,true/false,只返回当前仍在系统通知栏中的通知",
+                    "limit" to "返回数量,默认 20",
+                    "package_name" to "按包名过滤",
+                    "query" to "按应用包名、应用名称、标题、渠道或正文搜索",
+                    "unread_only" to "true/false,只返回 Muse 中尚未查看的通知",
+                    "active_only" to "true/false,只返回当前仍在系统通知栏中的通知",
                 ),
                 required = emptySet(),
                 category = "built-in",
@@ -119,7 +119,7 @@ class SystemToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "open_url",
                 description = "在系统浏览器中打开 URL。",
-                parameters = mapOf("url" to "必填,http/https 链接"),
+                parameters = mapOf("url" to "http/https 链接"),
                 required = setOf("url"),
                 category = "built-in",
                 // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 外链隐私风险
@@ -132,9 +132,9 @@ class SystemToolsRegistrar(
                 name = "list_installed_apps",
                 description = "列出已安装应用,支持过滤与数量限制。",
                 parameters = mapOf(
-                    "filter" to "可选,名称过滤关键字",
-                    "limit" to "可选,返回数量,默认 20",
-                    "include_system" to "可选,是否包含系统应用",
+                    "filter" to "名称过滤关键字",
+                    "limit" to "返回数量,默认 20",
+                    "include_system" to "是否包含系统应用",
                 ),
                 required = emptySet(),
                 category = "built-in",
@@ -226,7 +226,7 @@ class SystemToolsRegistrar(
                 description = "设置屏幕亮度。需要系统设置写入权限。auto=true 启用自动亮度(此时忽略 value);否则传 value(0-255)设置手动亮度。",
                 parameters = mapOf(
                     "value" to "可选(自动模式忽略),手动亮度 0-255",
-                    "auto" to "可选,传 true 启用自动亮度(此时 value 忽略)",
+                    "auto" to "传 true 启用自动亮度(此时 value 忽略)",
                 ),
                 required = emptySet(),
                 category = "built-in",
@@ -239,7 +239,7 @@ class SystemToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "get_volume",
                 description = "获取指定音频流音量。",
-                parameters = mapOf("stream" to "可选,music/ring/alarm/notification/call/system"),
+                parameters = mapOf("stream" to "music/ring/alarm/notification/call/system"),
                 required = emptySet(),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
@@ -251,8 +251,8 @@ class SystemToolsRegistrar(
                 name = "set_volume",
                 description = "设置指定音频流音量。",
                 parameters = mapOf(
-                    "value" to "必填,音量 0-100",
-                    "stream" to "可选,music/ring/alarm/notification/call/system",
+                    "value" to "音量 0-100",
+                    "stream" to "music/ring/alarm/notification/call/system",
                 ),
                 required = setOf("value"),
                 category = "built-in",
@@ -266,7 +266,7 @@ class SystemToolsRegistrar(
                 name = "toggle_flashlight",
                 // A-02: 与实现对齐 — enabled 直接指定目标状态;不传则查询本会话最后已知状态
                 description = "开关手电筒(需相机权限)。enabled 传 true 开启 / false 关闭;不传则查询当前状态。",
-                parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询状态(兼容参数 action: on/off/status)"),
+                parameters = mapOf("enabled" to "true=开启 / false=关闭;不传则查询状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
                 // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 不可逆系统状态变更
@@ -279,8 +279,8 @@ class SystemToolsRegistrar(
                 name = "vibrate",
                 description = "触发设备振动。",
                 parameters = mapOf(
-                    "duration_ms" to "可选,振动时长,默认 500",
-                    "repeat" to "可选,是否重复",
+                    "duration_ms" to "振动时长,默认 500",
+                    "repeat" to "是否重复",
                 ),
                 required = emptySet(),
                 category = "built-in",

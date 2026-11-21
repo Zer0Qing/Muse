@@ -64,10 +64,10 @@ class ConnectorToolsRegistrar(
                 description = "用已授权的连接器凭据调用外部服务 HTTP API(自动附带 Bearer token,过期自动刷新)。" +
                     "先用 connector_list 查询可用连接器 id;url 必须与连接器服务同域。",
                 parameters = mapOf(
-                    "connector_id" to "必填,连接器 id(见 connector_list)",
-                    "url" to "必填,完整请求 URL(如 https://api.github.com/user)",
-                    "method" to "可选,HTTP 方法:GET(默认)/POST/PUT/PATCH/DELETE",
-                    "body" to "可选,请求体(JSON 文本,POST/PUT/PATCH 时使用)",
+                    "connector_id" to "连接器 id(见 connector_list)",
+                    "url" to "完整请求 URL(如 https://api.github.com/user)",
+                    "method" to "HTTP 方法:GET(默认)/POST/PUT/PATCH/DELETE",
+                    "body" to "请求体(JSON 文本,POST/PUT/PATCH 时使用)",
                 ),
                 required = setOf("connector_id", "url"),
                 category = "built-in",

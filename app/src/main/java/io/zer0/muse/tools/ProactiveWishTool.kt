@@ -11,7 +11,7 @@ object ProactiveWishTool {
             "宿主会自动把这条意愿绑定到当前助手,不要传 assistant id。",
         parameters = mapOf(
             "schedule_hint" to
-                "可选。自然语言的时间偏好,例如「每天晚上」「明天早上」。" +
+                "自然语言的时间偏好,例如「每天晚上」「明天早上」。" +
                 "只记录意愿,不要承诺具体时刻。",
         ),
         category = "built-in",

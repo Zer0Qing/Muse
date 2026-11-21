@@ -79,9 +79,10 @@ class HostSettingsCatalogTest {
                     resourceName(entry.titleRes),
                     hostEntry.titleKey,
                 )
-                assertEquals(
-                    "条目 ${hostEntry.id} 的说明资源不一致",
-                    entry.descRes?.let { resourceName(it) },
+                // 静态说明已从 App 与 Web 两侧一并删除（设置行只留标题）。
+                // 这条断言改成守护「两侧都不再声明静态说明」——若将来有人只加回一侧，这里会红。
+                assertNull(
+                    "条目 ${hostEntry.id} 仍带静态说明（App 侧或 Web 侧）",
                     hostEntry.descKey,
                 )
                 assertEquals(

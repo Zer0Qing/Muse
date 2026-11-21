@@ -34,11 +34,11 @@ class ReminderToolsRegistrar(
                     "区别于: set_alarm=系统闹钟(响铃), scheduled_task_create=周期 AI 任务(自动执行 prompt)。" +
                     "time 支持 '2026-08-16 15:30' 或 ISO 8601,必须是未来时间。返回提醒 id,后续可用 cancel_reminder 取消。",
                 parameters = mapOf(
-                    "title" to "必填,提醒标题",
-                    "message" to "必填,提醒正文",
+                    "title" to "提醒标题",
+                    "message" to "提醒正文",
                     // B-08: 示例必须是实现可解析的格式 — "2026-07-21T15:30:00"(无时区偏移)
                     // 过不了 Instant.parse;本地时间格式或带 Z/偏移的 ISO 才可解析。
-                    "time" to "必填,触发时间,如 2026-07-21 15:30 或 2026-07-21T15:30:00Z,必须是未来时间",
+                    "time" to "触发时间,如 2026-07-21 15:30 或 2026-07-21T15:30:00Z,必须是未来时间",
                 ),
                 required = setOf("title", "message", "time"),
                 category = "built-in",
@@ -92,7 +92,7 @@ class ReminderToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "cancel_reminder",
                 description = "取消一个已创建的定时提醒。",
-                parameters = mapOf("id" to "必填,提醒 id(由 schedule_reminder 返回)"),
+                parameters = mapOf("id" to "提醒 id(由 schedule_reminder 返回)"),
                 required = setOf("id"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
@@ -112,7 +112,7 @@ class ReminderToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "list_reminders",
                 description = "列出当前所有未触发的定时提醒。",
-                parameters = mapOf("limit" to "可选,最多返回数量,默认 20"),
+                parameters = mapOf("limit" to "最多返回数量,默认 20"),
                 required = emptySet(),
                 category = "built-in",
                 parameterTypes = mapOf("limit" to "integer"),

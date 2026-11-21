@@ -32,8 +32,8 @@ class CoreToolsRegistrar(
                     "系统提示已包含本轮时间及最近两条用户消息的时间锚点；普通当前时间或消息间隔问题请直接引用，" +
                     "只有用户要求其他时区或明确要求重新取时才调用。",
                 parameters = mapOf(
-                    "timezone" to "可选,IANA 时区(如 Asia/Shanghai、UTC),默认 Asia/Shanghai",
-                    "format" to "可选,自定义格式(SimpleDateFormat 语法),默认 yyyy-MM-dd HH:mm:ss z",
+                    "timezone" to "IANA 时区(如 Asia/Shanghai、UTC),默认 Asia/Shanghai",
+                    "format" to "自定义格式(SimpleDateFormat 语法),默认 yyyy-MM-dd HH:mm:ss z",
                 ),
                 required = emptySet(),
                 category = "built-in",
@@ -63,7 +63,7 @@ class CoreToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "calculator",
                 description = "简易计算器,支持加减乘除和括号。返回 '表达式 = 结果' 文本。仅支持四则运算与括号,不支持幂/取模/单位换算。",
-                parameters = mapOf("expression" to "必填,数学表达式,如 1+2*3"),
+                parameters = mapOf("expression" to "数学表达式,如 1+2*3"),
                 required = setOf("expression"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
@@ -88,7 +88,7 @@ class CoreToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "echo",
                 description = "回显输入内容(测试用)。",
-                parameters = mapOf("text" to "必填,要回显的文本"),
+                parameters = mapOf("text" to "要回显的文本"),
                 required = setOf("text"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,

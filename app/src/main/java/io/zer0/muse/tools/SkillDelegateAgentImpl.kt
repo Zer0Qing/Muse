@@ -554,14 +554,14 @@ class SkillDelegateAgentImpl(
                             "timeout",
                             buildJsonObject {
                                 put("type", "integer")
-                                put("description", "可选,超时秒数,默认 60")
+                                put("description", "超时秒数,默认 60")
                             },
                         )
                         put(
                             "response_format",
                             buildJsonObject {
                                 put("type", "string")
-                                put("description", "可选,返回格式,text(默认)或 json")
+                                put("description", "返回格式,text(默认)或 json")
                             },
                         )
                     },

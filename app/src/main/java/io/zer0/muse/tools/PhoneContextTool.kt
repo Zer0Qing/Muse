@@ -33,8 +33,8 @@ object PhoneContextTool {
         description = "读取手机上下文（日历 / 应用使用 / 联系人 / 通知）。" +
             "每项都会标明来源、覆盖范围与权限状态；「未授权」和「确实没有」是两回事，请按提示处理。",
         parameters = mapOf(
-            "sources" to "可选，逗号分隔：calendar / app_usage / contacts / notifications；默认 calendar",
-            "days" to "可选，覆盖最近几天，默认 1",
+            "sources" to "逗号分隔：calendar / app_usage / contacts / notifications；默认 calendar",
+            "days" to "覆盖最近几天，默认 1",
         ),
         required = emptySet(),
         category = "built-in",

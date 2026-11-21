@@ -24,7 +24,7 @@ class EncodingToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "url_encode",
                 description = "对文本进行 URL 编码。",
-                parameters = mapOf("text" to "必填,要编码的文本"),
+                parameters = mapOf("text" to "要编码的文本"),
                 required = setOf("text"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
@@ -41,7 +41,7 @@ class EncodingToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "url_decode",
                 description = "对 URL 编码文本进行解码。",
-                parameters = mapOf("text" to "必填,要解码的文本"),
+                parameters = mapOf("text" to "要解码的文本"),
                 required = setOf("text"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
@@ -58,7 +58,7 @@ class EncodingToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "base64_encode",
                 description = "对文本进行 Base64 编码。",
-                parameters = mapOf("text" to "必填,要编码的文本"),
+                parameters = mapOf("text" to "要编码的文本"),
                 required = setOf("text"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
@@ -78,7 +78,7 @@ class EncodingToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "base64_decode",
                 description = "对 Base64 文本进行解码。",
-                parameters = mapOf("text" to "必填,要解码的 Base64 文本"),
+                parameters = mapOf("text" to "要解码的 Base64 文本"),
                 required = setOf("text"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
@@ -97,8 +97,8 @@ class EncodingToolsRegistrar(
                 name = "hash_text",
                 description = "计算文本哈希值。支持 MD5、SHA-1、SHA-256,默认 SHA-256。",
                 parameters = mapOf(
-                    "text" to "必填,要哈希的文本",
-                    "algorithm" to "可选,MD5/SHA-1/SHA-256,默认 SHA-256",
+                    "text" to "要哈希的文本",
+                    "algorithm" to "MD5/SHA-1/SHA-256,默认 SHA-256",
                 ),
                 required = setOf("text"),
                 category = "built-in",
@@ -137,8 +137,8 @@ class EncodingToolsRegistrar(
                 name = "random_number",
                 description = "生成指定范围内的随机整数(包含边界)。",
                 parameters = mapOf(
-                    "min" to "可选,最小值,默认 0",
-                    "max" to "可选,最大值,默认 100",
+                    "min" to "最小值,默认 0",
+                    "max" to "最大值,默认 100",
                 ),
                 required = emptySet(),
                 category = "built-in",

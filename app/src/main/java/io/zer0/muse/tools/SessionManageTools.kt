@@ -63,7 +63,7 @@ class SessionManageTools(
                 description = "列出用户的会话（id、标题、最后更新时间）。" +
                     "用于删除/改名前确认会话 id；最多返回 50 条最近的。",
                 parameters = mapOf(
-                    "query" to "可选，按标题关键词过滤",
+                    "query" to "按标题关键词过滤",
                 ),
                 required = emptySet(),
                 riskLevel = ToolRiskLevel.SAFE,
@@ -108,8 +108,8 @@ class SessionManageTools(
                     "用于翻看用户在其他会话里聊过什么；会话 id 可用 session_list 获取。" +
                     "只读，不会修改对方会话。",
                 parameters = mapOf(
-                    "session_id" to "必填，会话 id（可用 session_list 获取）",
-                    "limit" to "可选，返回最近多少条消息，默认 20，最大 50",
+                    "session_id" to "会话 id（可用 session_list 获取）",
+                    "limit" to "返回最近多少条消息，默认 20，最大 50",
                 ),
                 required = setOf("session_id"),
                 parameterTypes = mapOf("limit" to "integer"),
@@ -173,8 +173,8 @@ class SessionManageTools(
                 name = "session_rename",
                 description = "修改一个会话的标题。",
                 parameters = mapOf(
-                    "session_id" to "必填，会话 id（可用 session_list 获取）",
-                    "title" to "必填，新标题",
+                    "session_id" to "会话 id（可用 session_list 获取）",
+                    "title" to "新标题",
                 ),
                 required = setOf("session_id", "title"),
                 riskLevel = ToolRiskLevel.NORMAL,
@@ -204,7 +204,7 @@ class SessionManageTools(
                 name = "session_move_folder",
                 description = "把一个会话移动到指定文件夹（folder_id 为空表示移出文件夹）。",
                 parameters = mapOf(
-                    "session_id" to "必填，会话 id",
+                    "session_id" to "会话 id",
                     "folder_id" to "目标文件夹 id；传空或省略表示移出到根层",
                 ),
                 required = setOf("session_id"),
@@ -235,7 +235,7 @@ class SessionManageTools(
                 name = "session_archive",
                 description = "归档或取消归档一个会话（归档后从主列表隐藏但不删除）。",
                 parameters = mapOf(
-                    "session_id" to "必填，会话 id",
+                    "session_id" to "会话 id",
                     "archive" to "true=归档，false=取消归档；默认 true",
                 ),
                 required = setOf("session_id"),
@@ -267,7 +267,7 @@ class SessionManageTools(
                 description = "删除一个会话及其全部消息。不可撤销。" +
                     "执行前应先用 session_list 确认会话 id。",
                 parameters = mapOf(
-                    "session_id" to "必填，会话 id（可用 session_list 获取）",
+                    "session_id" to "会话 id（可用 session_list 获取）",
                 ),
                 required = setOf("session_id"),
                 riskLevel = ToolRiskLevel.HIGH,

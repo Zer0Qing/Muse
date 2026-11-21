@@ -106,7 +106,7 @@ object WorkspaceTool {
         description = "列出工作区某个目录下的文件与子目录（目录在前，文件在后）。" +
             "返回每行一条：name | type(dir/file) | size | lastModified。" + PATH_HINT,
         parameters = mapOf(
-            "path" to "可选,目录路径,空串或 \"/\" 表示默认工作区根目录",
+            "path" to "目录路径,空串或 \"/\" 表示默认工作区根目录",
         ),
         required = emptySet(),
         category = "built-in",
@@ -283,9 +283,9 @@ object WorkspaceTool {
             "图片会把原图作为图片消息随附并附本机 OCR 文字，音频会尝试整段转写；" +
             "PDF/压缩包/可执行文件只回类型与大小。类型按内容判定，不信扩展名。" + PATH_HINT,
         parameters = mapOf(
-            "path" to "必填,文件路径",
-            "offset_chars" to "可选,字符起始游标;继续读取时使用上次返回的 offset_chars。",
-            "length_chars" to "可选,单页字符数,最大 ${io.zer0.muse.tools.TOOL_OUTPUT_READ_PAGE_CHARS}。",
+            "path" to "文件路径",
+            "offset_chars" to "字符起始游标;继续读取时使用上次返回的 offset_chars。",
+            "length_chars" to "单页字符数,最大 ${io.zer0.muse.tools.TOOL_OUTPUT_READ_PAGE_CHARS}。",
         ),
         required = setOf("path"),
         category = "built-in",
@@ -298,9 +298,9 @@ object WorkspaceTool {
             "父目录不存在会自动创建。写长文件请分批:先写首段,后续用 append=true 逐段追加。" +
             "只读挂载会被拒绝。" + PATH_HINT,
         parameters = mapOf(
-            "path" to "必填,文件路径",
-            "content" to "必填,要写入的文本内容",
-            "append" to "可选,是否追加写入(默认 false 覆盖)。写长文件建议分批追加",
+            "path" to "文件路径",
+            "content" to "要写入的文本内容",
+            "append" to "是否追加写入(默认 false 覆盖)。写长文件建议分批追加",
         ),
         required = setOf("path", "content"),
         category = "built-in",
@@ -320,9 +320,9 @@ object WorkspaceTool {
             "改文件先用 workspace_read 或 workspace_grep 定位原文,不要整份重写。只读挂载会被拒绝。" + PATH_HINT,
         parameters =
         mapOf(
-            "path" to "必填,文件路径",
-            "old_string" to "必填,要被替换的原文片段;必须逐字匹配且在整个文件中唯一",
-            "new_string" to "必填,替换后的新片段;空串表示删除该片段",
+            "path" to "文件路径",
+            "old_string" to "要被替换的原文片段;必须逐字匹配且在整个文件中唯一",
+            "new_string" to "替换后的新片段;空串表示删除该片段",
         ),
         required = setOf("path", "old_string", "new_string"),
         category = "built-in",
@@ -333,7 +333,7 @@ object WorkspaceTool {
         name = NAME_DELETE,
         description = "删除工作区内的文件或目录。目录会递归删除(包含所有子项),不可恢复。只读挂载会被拒绝。" + PATH_HINT,
         parameters = mapOf(
-            "path" to "必填,要删除的路径",
+            "path" to "要删除的路径",
         ),
         required = setOf("path"),
         category = "built-in",
@@ -344,7 +344,7 @@ object WorkspaceTool {
         name = NAME_MKDIR,
         description = "在工作区内创建目录(支持多级)。已存在视为成功。只读挂载会被拒绝。" + PATH_HINT,
         parameters = mapOf(
-            "path" to "必填,目录路径",
+            "path" to "目录路径",
         ),
         required = setOf("path"),
         category = "built-in",
@@ -356,8 +356,8 @@ object WorkspaceTool {
         description = "移动或重命名工作区内的文件/目录。目标已存在会失败;不能跨挂载移动,跨挂载请用 workspace_copy。" +
             PATH_HINT,
         parameters = mapOf(
-            "from" to "必填,源路径",
-            "to" to "必填,目标路径",
+            "from" to "源路径",
+            "to" to "目标路径",
         ),
         required = setOf("from", "to"),
         category = "built-in",
@@ -369,8 +369,8 @@ object WorkspaceTool {
         description = "复制工作区内的文件或目录。目标已存在会失败。" +
             "同一挂载内可直接复制目录;跨挂载只能复制单个文件。目标挂载需要写权限。" + PATH_HINT,
         parameters = mapOf(
-            "from" to "必填,源路径(需要读权限)",
-            "to" to "必填,目标路径(需要写权限)",
+            "from" to "源路径(需要读权限)",
+            "to" to "目标路径(需要写权限)",
         ),
         required = setOf("from", "to"),
         category = "built-in",
@@ -385,10 +385,10 @@ object WorkspaceTool {
             "命中 100 条即停并标注 truncated。path 为空时搜全部可用挂载。",
         parameters =
         mapOf(
-            "pattern" to "必填,要查找的文本;is_regex=true 时为正则表达式",
-            "path" to "可选,搜索起点的路径,默认全部可用挂载",
-            "is_regex" to "可选,是否按正则解释 pattern(默认 false)",
-            "max_results" to "可选,命中数上限,默认 100",
+            "pattern" to "要查找的文本;is_regex=true 时为正则表达式",
+            "path" to "搜索起点的路径,默认全部可用挂载",
+            "is_regex" to "是否按正则解释 pattern(默认 false)",
+            "max_results" to "命中数上限,默认 100",
         ),
         required = setOf("pattern"),
         category = "built-in",

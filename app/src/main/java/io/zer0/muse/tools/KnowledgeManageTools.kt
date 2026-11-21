@@ -51,7 +51,7 @@ class KnowledgeManageTools(
                 description = "列出指定知识库的全部用户文档（id、标题、分块数、更新时间）。" +
                     "不传 kb_id 时列出默认知识库。用于删除前确认文档 id。",
                 parameters = mapOf(
-                    "kb_id" to "可选，知识库 id；省略时查默认知识库",
+                    "kb_id" to "知识库 id；省略时查默认知识库",
                 ),
                 required = emptySet(),
                 riskLevel = ToolRiskLevel.SAFE,
@@ -77,7 +77,7 @@ class KnowledgeManageTools(
                 description = "从知识库中删除一篇文档（连带其分块与向量索引）。" +
                     "执行前应先用 knowledge_list_docs 确认文档 id；不可撤销。",
                 parameters = mapOf(
-                    "doc_id" to "必填，文档 id（可用 knowledge_list_docs 获取）",
+                    "doc_id" to "文档 id（可用 knowledge_list_docs 获取）",
                 ),
                 required = setOf("doc_id"),
                 riskLevel = ToolRiskLevel.HIGH,
@@ -111,9 +111,9 @@ class KnowledgeManageTools(
                 description = "创建一个新的知识库。id 可省略（自动生成）；名称必填。" +
                     "默认知识库（id=default）不可重复创建。",
                 parameters = mapOf(
-                    "name" to "必填，知识库名称",
-                    "kb_id" to "可选，知识库 id（省略时自动生成）",
-                    "description" to "可选，知识库描述",
+                    "name" to "知识库名称",
+                    "kb_id" to "知识库 id（省略时自动生成）",
+                    "description" to "知识库描述",
                 ),
                 required = setOf("name"),
                 riskLevel = ToolRiskLevel.HIGH,
@@ -153,7 +153,7 @@ class KnowledgeManageTools(
                 description = "删除一个知识库及其全部文档、文件夹与向量索引。不可撤销。" +
                     "默认知识库（id=default）不可删除。",
                 parameters = mapOf(
-                    "kb_id" to "必填，知识库 id（可用 knowledge_list_docs 前先确认）",
+                    "kb_id" to "知识库 id（可用 knowledge_list_docs 前先确认）",
                 ),
                 required = setOf("kb_id"),
                 riskLevel = ToolRiskLevel.HIGH,

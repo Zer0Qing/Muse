@@ -38,14 +38,14 @@ object MemoryConfigTool {
             "只想记住重要的事→调大 compile_threshold。",
         parameters =
         mapOf(
-            "token_budget" to "可选,memory.md 注入 system prompt 的 token 预算,正整数,默认 2500。",
-            "decay_per_day" to "可选,衰减系数 λ(每天),越大忘得越快。0.01≈19天归零 / 0.02=默认 / 0.04≈10天。",
-            "hit_bonus" to "可选,每次被命中的加分,默认 5。调大让常被提起的记忆更难消失。",
-            "base_importance" to "可选,新记忆的初始分,须 > 0,默认 10。",
-            "compile_threshold" to "可选,低于此分不进 memory.md,默认 4.5。调大只保留重要记忆。",
-            "forget_speed" to "可选,遗忘倍率,1.0 正常,2.0 忘得快一倍,默认 1.0。",
+            "token_budget" to "memory.md 注入 system prompt 的 token 预算,正整数,默认 2500。",
+            "decay_per_day" to "衰减系数 λ(每天),越大忘得越快。0.01≈19天归零 / 0.02=默认 / 0.04≈10天。",
+            "hit_bonus" to "每次被命中的加分,默认 5。调大让常被提起的记忆更难消失。",
+            "base_importance" to "新记忆的初始分,须 > 0,默认 10。",
+            "compile_threshold" to "低于此分不进 memory.md,默认 4.5。调大只保留重要记忆。",
+            "forget_speed" to "遗忘倍率,1.0 正常,2.0 忘得快一倍,默认 1.0。",
             "conversation_recall" to
-                "可选,true/false。是否允许记忆管线回读会话完整原文(而非只看当前窗口)。",
+                "true/false。是否允许记忆管线回读会话完整原文(而非只看当前窗口)。",
         ),
         required = emptySet(),
         category = "built-in",

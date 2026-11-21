@@ -28,8 +28,8 @@ object TerminalJobTools {
                     "立刻返回 job_id，用 terminal_job_status 查看进度与输出。" +
                     "适合构建、下载、长脚本；需要立刻要结果的短命令仍用 terminal_exec。",
                 parameters = mapOf(
-                    "command" to "必填。要执行的 shell 命令（管道与重定向可用）",
-                    "label" to "可选。便于识别的名字，默认取命令前 40 个字符",
+                    "command" to "要执行的 shell 命令（管道与重定向可用）",
+                    "label" to "便于识别的名字，默认取命令前 40 个字符",
                 ),
                 required = setOf("command"),
                 category = "built-in",
@@ -60,7 +60,7 @@ object TerminalJobTools {
             ToolRegistry.ToolDef(
                 name = "terminal_job_status",
                 description = "查看后台任务的运行状态、退出码与输出尾部。",
-                parameters = mapOf("job_id" to "必填。terminal_job_start 返回的 job_id"),
+                parameters = mapOf("job_id" to "terminal_job_start 返回的 job_id"),
                 required = setOf("job_id"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
@@ -87,7 +87,7 @@ object TerminalJobTools {
             ToolRegistry.ToolDef(
                 name = "terminal_job_kill",
                 description = "终止一个仍在运行的后台任务。终止后退出码不可信，状态显示为已终止。",
-                parameters = mapOf("job_id" to "必填。要终止的 job_id"),
+                parameters = mapOf("job_id" to "要终止的 job_id"),
                 required = setOf("job_id"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.HIGH,

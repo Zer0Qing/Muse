@@ -51,8 +51,8 @@ object PdfVisionSkill {
             "需要配置支持 vision 的模型(GPT-4o / Gemini / Claude 等)。" +
             "返回每页 OCR 文本,用 '--- Page N ---' 分隔。",
         parameters = mapOf(
-            "path" to "必填,PDF 文件绝对路径(如 '/sdcard/Download/report.pdf' 或工作区相对路径)",
-            "max_pages" to "可选,最大解析页数(默认 50,硬上限 200),防止超大 PDF 耗时过长",
+            "path" to "PDF 文件绝对路径(如 '/sdcard/Download/report.pdf' 或工作区相对路径)",
+            "max_pages" to "最大解析页数(默认 50,硬上限 200),防止超大 PDF 耗时过长",
         ),
         required = setOf("path"),
         category = "built-in",

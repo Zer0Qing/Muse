@@ -48,8 +48,8 @@ class ClipboardToolsRegistrar(
                 name = "clipboard_write",
                 description = "写入文本到系统剪贴板。",
                 parameters = mapOf(
-                    "text" to "必填,要写入剪贴板的文本",
-                    "label" to "可选,剪贴板标签,如 muse_copy",
+                    "text" to "要写入剪贴板的文本",
+                    "label" to "剪贴板标签,如 muse_copy",
                 ),
                 required = setOf("text"),
                 category = "built-in",

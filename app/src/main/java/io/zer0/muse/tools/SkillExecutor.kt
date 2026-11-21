@@ -443,35 +443,35 @@ class SkillExecutor(
                                     "offset",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,起始行号(从 0 开始),默认 0")
+                                        put("description", "起始行号(从 0 开始),默认 0")
                                     },
                                 )
                                 put(
                                     "length",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,读取行数,默认 0=全部")
+                                        put("description", "读取行数,默认 0=全部")
                                     },
                                 )
                                 put(
                                     "offset_chars",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,字符分页起点；读取超大文件的下一段时使用上次返回的游标")
+                                        put("description", "字符分页起点；读取超大文件的下一段时使用上次返回的游标")
                                     },
                                 )
                                 put(
                                     "length_chars",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,字符分页长度；每次最多返回 65536 字符")
+                                        put("description", "字符分页长度；每次最多返回 65536 字符")
                                     },
                                 )
                                 put(
                                     "encoding",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,文件编码,默认 utf-8(支持 utf-16)")
+                                        put("description", "文件编码,默认 utf-8(支持 utf-16)")
                                     },
                                 )
                             },
@@ -517,7 +517,7 @@ class SkillExecutor(
                                     "create_dirs",
                                     buildJsonObject {
                                         put("type", "boolean")
-                                        put("description", "可选,是否自动创建父目录,默认 true")
+                                        put("description", "是否自动创建父目录,默认 true")
                                     },
                                 )
                             },
@@ -557,14 +557,14 @@ class SkillExecutor(
                                     "headers",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,请求头 JSON,如 {\"Authorization\":\"Bearer xxx\"}")
+                                        put("description", "请求头 JSON,如 {\"Authorization\":\"Bearer xxx\"}")
                                     },
                                 )
                                 put(
                                     "timeout",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,超时秒数,默认 30")
+                                        put("description", "超时秒数,默认 30")
                                     },
                                 )
                             },
@@ -613,14 +613,14 @@ class SkillExecutor(
                                     "headers",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,请求头 JSON")
+                                        put("description", "请求头 JSON")
                                     },
                                 )
                                 put(
                                     "timeout",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,超时秒数,默认 30")
+                                        put("description", "超时秒数,默认 30")
                                     },
                                 )
                             },
@@ -655,14 +655,14 @@ class SkillExecutor(
                                     "query",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "必填,搜索关键词。中文用户问题直接用中文关键词,可加关键限定词提高精度")
+                                        put("description", "搜索关键词。中文用户问题直接用中文关键词,可加关键限定词提高精度")
                                     },
                                 )
                                 put(
                                     "max_results",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,最大返回条数(1-10),默认 5")
+                                        put("description", "最大返回条数(1-10),默认 5")
                                     },
                                 )
                                 put(
@@ -671,7 +671,7 @@ class SkillExecutor(
                                         put("type", "string")
                                         put(
                                             "description",
-                                            "可选,限定结果时间范围,取值: past_day / past_week / past_month / past_year。用户提到'最近/最新/本周/本月'时填写,无时间要求时不填",
+                                            "限定结果时间范围,取值: past_day / past_week / past_month / past_year。用户提到'最近/最新/本周/本月'时填写,无时间要求时不填",
                                         )
                                     },
                                 )
@@ -704,7 +704,7 @@ class SkillExecutor(
                                     "headers",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,请求头 JSON")
+                                        put("description", "请求头 JSON")
                                     },
                                 )
                             },
@@ -738,14 +738,14 @@ class SkillExecutor(
                                     "top_k",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,返回条数上限,默认 5")
+                                        put("description", "返回条数上限,默认 5")
                                     },
                                 )
                                 put(
                                     "threshold",
                                     buildJsonObject {
                                         put("type", "number")
-                                        put("description", "可选,相似度阈值(0-1 小数制,非满分 100),默认 0.3。低于阈值的过滤掉")
+                                        put("description", "相似度阈值(0-1 小数制,非满分 100),默认 0.3。低于阈值的过滤掉")
                                     },
                                 )
                                 put(
@@ -754,7 +754,7 @@ class SkillExecutor(
                                         put("type", "boolean")
                                         put(
                                             "description",
-                                            "可选,是否包含 muse app 内置功能文档,默认 false。仅在用户问 muse app 自身功能(如'怎么用深度思考''主动消息怎么设置')时传 true",
+                                            "是否包含 muse app 内置功能文档,默认 false。仅在用户问 muse app 自身功能(如'怎么用深度思考''主动消息怎么设置')时传 true",
                                         )
                                     },
                                 )
@@ -764,7 +764,7 @@ class SkillExecutor(
                                         put("type", "string")
                                         put(
                                             "description",
-                                            "可选,限定检索的文件夹(知识库内路径,如'合同'或'合同/2026')。" +
+                                            "限定检索的文件夹(知识库内路径,如'合同'或'合同/2026')。" +
                                                 "每个文件夹是独立检索域,传入后只在该文件夹及其子文件夹内检索,不会串到其它文件夹。" +
                                                 "用户只想查某个文件夹时传入。",
                                         )
@@ -799,28 +799,28 @@ class SkillExecutor(
                                     "max_results",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,最大返回条数(1-10),默认 5")
+                                        put("description", "最大返回条数(1-10),默认 5")
                                     },
                                 )
                                 put(
                                     "category",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,学科分类,如 cs.AI/cs.CL")
+                                        put("description", "学科分类,如 cs.AI/cs.CL")
                                     },
                                 )
                                 put(
                                     "date_from",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,起始日期(YYYY-MM-DD)")
+                                        put("description", "起始日期(YYYY-MM-DD)")
                                     },
                                 )
                                 put(
                                     "date_to",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,结束日期(YYYY-MM-DD)")
+                                        put("description", "结束日期(YYYY-MM-DD)")
                                     },
                                 )
                             },
@@ -1029,14 +1029,14 @@ class SkillExecutor(
                                     "timeout",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,超时秒数,默认 60")
+                                        put("description", "超时秒数,默认 60")
                                     },
                                 )
                                 put(
                                     "response_format",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,返回格式,text(默认)或 json")
+                                        put("description", "返回格式,text(默认)或 json")
                                     },
                                 )
                             },
@@ -1165,7 +1165,7 @@ class SkillExecutor(
                                     "limit",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,读取条数上限(1-100),默认 20")
+                                        put("description", "读取条数上限(1-100),默认 20")
                                     },
                                 )
                             },
@@ -1272,7 +1272,7 @@ class SkillExecutor(
                                     "paths",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,批量删除的路径列表,逗号或换行分隔,如 'a.txt,b.txt'。与 path 二选一,优先于 path")
+                                        put("description", "批量删除的路径列表,逗号或换行分隔,如 'a.txt,b.txt'。与 path 二选一,优先于 path")
                                     },
                                 )
                             },
@@ -1337,7 +1337,7 @@ class SkillExecutor(
                                     "timeout",
                                     buildJsonObject {
                                         put("type", "integer")
-                                        put("description", "可选,超时秒数,默认 60")
+                                        put("description", "超时秒数,默认 60")
                                     },
                                 )
                             },
@@ -1380,7 +1380,7 @@ class SkillExecutor(
                                     "encoding",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,文件编码,默认 utf-8")
+                                        put("description", "文件编码,默认 utf-8")
                                     },
                                 )
                             },
@@ -1412,7 +1412,7 @@ class SkillExecutor(
                                     "file_path",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,沙盒内源文件路径(相对 filesDir),直接转存到 Download,支持二进制。与 content 二选一")
+                                        put("description", "沙盒内源文件路径(相对 filesDir),直接转存到 Download,支持二进制。与 content 二选一")
                                     },
                                 )
                                 put(
@@ -1426,7 +1426,7 @@ class SkillExecutor(
                                     "mime_type",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,MIME 类型,默认 text/plain。转存二进制时建议显式指定(如 image/png)")
+                                        put("description", "MIME 类型,默认 text/plain。转存二进制时建议显式指定(如 image/png)")
                                     },
                                 )
                             },
@@ -1458,7 +1458,7 @@ class SkillExecutor(
                                     "directory",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,目录名,如 Downloads/Documents/Pictures/Music,默认 Downloads")
+                                        put("description", "目录名,如 Downloads/Documents/Pictures/Music,默认 Downloads")
                                     },
                                 )
                                 put(
@@ -1466,7 +1466,7 @@ class SkillExecutor(
                                     buildJsonObject {
                                         // v1.52: 修正类型为 integer(原 string 与实际 parseIntOrNull 不匹配)
                                         put("type", "integer")
-                                        put("description", "可选,最大返回条数,默认 50")
+                                        put("description", "最大返回条数,默认 50")
                                     },
                                 )
                             },
@@ -1492,7 +1492,7 @@ class SkillExecutor(
                                     "category",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,按分类筛选,如 file/http/search/knowledge/system/agent/skill")
+                                        put("description", "按分类筛选,如 file/http/search/knowledge/system/agent/skill")
                                     },
                                 )
                             },
@@ -1564,7 +1564,7 @@ class SkillExecutor(
                                     "name",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,按名称查找并卸载(id 未传时使用)")
+                                        put("description", "按名称查找并卸载(id 未传时使用)")
                                     },
                                 )
                             },
@@ -1646,28 +1646,28 @@ class SkillExecutor(
                                     "name",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,新的显示名")
+                                        put("description", "新的显示名")
                                     },
                                 )
                                 put(
                                     "description",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,新的工具描述(模型据此决定是否调用)")
+                                        put("description", "新的工具描述(模型据此决定是否调用)")
                                     },
                                 )
                                 put(
                                     "parametersJson",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,新的参数 JSON Schema 字符串(提示词技能忽略此参数)")
+                                        put("description", "新的参数 JSON Schema 字符串(提示词技能忽略此参数)")
                                     },
                                 )
                                 put(
                                     "prompt",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,仅提示词技能:新的指令文本(上限 8KB)")
+                                        put("description", "仅提示词技能:新的指令文本(上限 8KB)")
                                     },
                                 )
                             },
@@ -1774,7 +1774,7 @@ class SkillExecutor(
                                         put("type", "string")
                                         put(
                                             "description",
-                                            "可选,步骤执行结果摘要",
+                                            "步骤执行结果摘要",
                                         )
                                     },
                                 )
@@ -1806,7 +1806,7 @@ class SkillExecutor(
                                     "category",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,按分类筛选表情包(如 猫猫/狗子)。不传则列出全部;建议结合对话情绪传入合适分类")
+                                        put("description", "按分类筛选表情包(如 猫猫/狗子)。不传则列出全部;建议结合对话情绪传入合适分类")
                                     },
                                 )
                             },
@@ -1864,7 +1864,7 @@ class SkillExecutor(
                                     "size",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,图片尺寸,如 1024x1024/1792x1024/1024x1792,默认 1024x1024")
+                                        put("description", "图片尺寸,如 1024x1024/1792x1024/1024x1792,默认 1024x1024")
                                     },
                                 )
                                 put(
@@ -1873,7 +1873,7 @@ class SkillExecutor(
                                         put("type", "string")
                                         put(
                                             "description",
-                                            "可选,参考图 URL 或 base64(用于图生图/图片编辑);非空时调用图生图端点。注意:LLM 无法访问用户本地相册,本地参考图由用户在工具审批卡片中从相册选择后注入,LLM 调用时无需也无法填入本参数",
+                                            "参考图 URL 或 base64(用于图生图/图片编辑);非空时调用图生图端点。注意:LLM 无法访问用户本地相册,本地参考图由用户在工具审批卡片中从相册选择后注入,LLM 调用时无需也无法填入本参数",
                                         )
                                     },
                                 )
@@ -1913,7 +1913,7 @@ class SkillExecutor(
                                     "source_language",
                                     buildJsonObject {
                                         put("type", "string")
-                                        put("description", "可选,源语言,如 中文/English/自動検出")
+                                        put("description", "源语言,如 中文/English/自動検出")
                                     },
                                 )
                             },

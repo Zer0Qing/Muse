@@ -56,11 +56,11 @@ object FileTools {
                 "工具输出引用(如 'tool_outputs/xxx.json')、应用私有目录相对路径。" +
                 "绝对路径会被拒绝,请勿传 '/storage/emulated/0/...' 形式。",
             parameters = mapOf(
-                "path" to "必填,文件相对路径。支持:工作区相对路径(如 'notes.txt')、" +
+                "path" to "文件相对路径。支持:工作区相对路径(如 'notes.txt')、" +
                     "工具输出引用(如 'tool_outputs/xxx.json')、应用私有目录相对路径。" +
                     "绝对路径会被拒绝。",
-                "offset_chars" to "可选,字符起始游标;大文件继续读取时使用上次返回的 offset_chars。",
-                "length_chars" to "可选,单页字符数,最大 ${TOOL_OUTPUT_READ_PAGE_CHARS}。",
+                "offset_chars" to "字符起始游标;大文件继续读取时使用上次返回的 offset_chars。",
+                "length_chars" to "单页字符数,最大 ${TOOL_OUTPUT_READ_PAGE_CHARS}。",
             ),
             required = setOf("path"),
             category = "built-in",
@@ -73,9 +73,9 @@ object FileTools {
                 "与 save_to_downloads 等价(二选一);本工具支持 subdir 子目录。" +
                 "文件名自动 sanitize(移除特殊字符),同名文件自动追加序号。",
             parameters = mapOf(
-                "filename" to "必填,文件名(如 'report.md'、'data.json')",
-                "content" to "必填,要写入的文本内容(UTF-8)",
-                "subdir" to "可选,Download 下的子目录(如 'AI生成'),默认根目录",
+                "filename" to "文件名(如 'report.md'、'data.json')",
+                "content" to "要写入的文本内容(UTF-8)",
+                "subdir" to "Download 下的子目录(如 'AI生成'),默认根目录",
             ),
             required = setOf("filename", "content"),
             category = "built-in",
@@ -89,7 +89,7 @@ object FileTools {
                 "超时 15 秒,大页面会保存完整源码并提供分段读取入口。" +
                 "想要纯文本用 web_fetch;想要原始响应用 http_get。",
             parameters = mapOf(
-                "url" to "必填,HTTP/HTTPS URL",
+                "url" to "HTTP/HTTPS URL",
             ),
             required = setOf("url"),
             category = "built-in",

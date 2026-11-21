@@ -34,7 +34,7 @@ class ChannelReplyTool(
             "这是唯一能让你的消息出现在群聊中的方式。" +
             "如果你不想发言,请使用 channel_pass。",
         parameters = mapOf(
-            "content" to "必填。你要在群聊中发送的回复内容",
+            "content" to "你要在群聊中发送的回复内容",
         ),
         required = setOf("content"),
         category = "built-in",

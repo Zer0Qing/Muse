@@ -27,7 +27,7 @@ class WeatherToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "get_weather",
                 description = "获取天气信息。通过城市名查询当前天气、温度、湿度、风速等。",
-                parameters = mapOf("location" to "必填,城市名,支持中英文,如 Beijing/上海/London"),
+                parameters = mapOf("location" to "城市名,支持中英文,如 Beijing/上海/London"),
                 required = setOf("location"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,

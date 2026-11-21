@@ -28,8 +28,8 @@ object KnowledgeReadTool {
             "先不传 offset 读第一段，返回末尾会给出剩余字符数和下一次 offset。" +
             "文档 id 可用 knowledge_list_docs 获取。",
         parameters = mapOf(
-            "doc_id" to "必填，文档 id（可用 knowledge_list_docs 获取）",
-            "offset" to "可选，起始字符偏移；省略时从 0 开始",
+            "doc_id" to "文档 id（可用 knowledge_list_docs 获取）",
+            "offset" to "起始字符偏移；省略时从 0 开始",
         ),
         required = setOf("doc_id"),
         category = "built-in",

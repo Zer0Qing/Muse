@@ -32,9 +32,9 @@ object TermuxExecTool {
             "设备级操控(点击/启停应用)用 device_shell。返回完整 exit 码与 stdout/stderr;" +
             "通道未就绪时返回配置引导。",
         parameters = mapOf(
-            "command" to "必填。bash 命令,如 pkg list-installed / python myscript.py / ls ~",
-            "timeout_ms" to "可选。超时毫秒,默认 60000,范围 1000-600000",
-            "workdir" to "可选。工作目录(默认 Termux home)",
+            "command" to "bash 命令,如 pkg list-installed / python myscript.py / ls ~",
+            "timeout_ms" to "超时毫秒,默认 60000,范围 1000-600000",
+            "workdir" to "工作目录(默认 Termux home)",
         ),
         required = setOf("command"),
         category = "built-in",

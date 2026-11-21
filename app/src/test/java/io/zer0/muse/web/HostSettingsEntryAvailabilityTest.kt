@@ -43,6 +43,8 @@ class HostSettingsEntryAvailabilityTest {
         // v2.7.x(E2): 术语页要读写本机 Room，Web 端还没有对应子页。
         // 目录必须有这一条(1:1 镜像)，但在网页侧补出页面前只展示、不进子页。
         "session_terms" to "助手术语目前只有 App 侧子页；Web 端补出对应页前只展示不进子页",
+        // 单工具审批策略要读写本机 ToolConfigStore，网页端改不了本机工具策略。
+        "tool_approval" to "工具批准策略读写在 App 侧 ToolConfigStore，Web 端补出对应页前只展示",
     )
 
     @Test
@@ -73,12 +75,13 @@ class HostSettingsEntryAvailabilityTest {
     }
 
     @Test
-    fun `禁用的条目也要有标题与说明，不能只有一行空白`() {
-        // 只展示 = 文案要能自己说话；没有 descKey 的禁用行用户完全不知道它是什么。
+    fun `禁用的条目也要有标题，不能只有一行空白`() {
+        // 只展示 = 文案要能自己说话。静态说明已全部删除，因此禁用行的信息
+        // 只能由标题承载 —— 标题必须非空，否则网页上就是一行空白。
+        // 「为什么用不了」的理由记在 allowedDisabled 的说明里，供维护者查阅。
         allowedDisabled.forEach { (id, why) ->
             val entry = links.first { it.id == id }
             assertTrue("$id 缺标题资源：$why", entry.titleKey.isNotBlank())
-            assertTrue("$id 缺说明资源（禁用行更需要解释为什么在网页里用不了）：$why", entry.descKey != null)
         }
     }
 }

@@ -52,8 +52,8 @@ object CodeExecutionTool {
             "http/https 都可以访问;每次外发都会记审计日志。" +
             "不能跳转页面或读取本地文件。超时 10 秒。",
         parameters = mapOf(
-            "code" to "必填,要执行的 JavaScript 代码(如 '1+2*3' / 'Math.max(1,2,3)' / 'JSON.stringify([1,2,3])')",
-            "timeout_ms" to "可选,超时毫秒数,默认 10000(10 秒)",
+            "code" to "要执行的 JavaScript 代码(如 '1+2*3' / 'Math.max(1,2,3)' / 'JSON.stringify([1,2,3])')",
+            "timeout_ms" to "超时毫秒数,默认 10000(10 秒)",
         ),
         required = setOf("code"),
         category = "built-in",

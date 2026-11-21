@@ -329,9 +329,12 @@ class HostSettingsCommandsTest {
                 assertEquals(entry.descKey?.let { "text(ja):$it" }, entry.desc)
             }
         }
+        // 静态说明已从目录里全部删除（设置行只留标题），因此 desc 现在恒为 null。
+        // 这条断言改为守护「不残留半套说明」——若将来有人只给个别条目加回 descKey，
+        // 说明这条规则被绕过了，需要重新审视而不是默默生效。
         assertTrue(
-            "至少要有一条带说明的条目,否则这条断言等于没测",
-            snapshot.groups.flatMap { it.entries }.any { it.desc != null },
+            "目录里不应再有静态说明（descKey 已全部移除）",
+            snapshot.groups.flatMap { it.entries }.all { it.desc == null },
         )
     }
 

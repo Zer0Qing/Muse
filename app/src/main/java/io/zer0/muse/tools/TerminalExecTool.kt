@@ -33,9 +33,9 @@ object TerminalExecTool {
             "适合文件处理/脚本/诊断;需要点击、启停应用等设备级操控时改用 device_shell(需 Shizuku/Root 授权)。" +
             "返回退出码与完整输出;长输出会保存到可分段读取的应用文件;超时命令会被终止。",
         parameters = mapOf(
-            "command" to "必填。单条 shell 命令,如 ls -la / cat notes.txt / mkdir -p out(管道与重定向可用;" +
+            "command" to "单条 shell 命令,如 ls -la / cat notes.txt / mkdir -p out(管道与重定向可用;" +
                 "递归删掉整个工作区、写系统分区、下载即执行这类命令会被安全边界拒绝)",
-            "timeout_ms" to "可选。超时毫秒,默认 15000,范围 1000-60000",
+            "timeout_ms" to "超时毫秒,默认 15000,范围 1000-60000",
         ),
         required = setOf("command"),
         category = "built-in",

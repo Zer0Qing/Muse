@@ -62,7 +62,7 @@ object ShellSandboxTool {
             "长输出会保存到可分段读取的应用文件。" +
             "返回: 成功=命令输出,失败=[错误]原因。",
         parameters = mapOf(
-            "command" to "必填,要执行的命令(如 'ls -la' 或 'cat notes.txt')",
+            "command" to "要执行的命令(如 'ls -la' 或 'cat notes.txt')",
         ),
         required = setOf("command"),
         category = "built-in",

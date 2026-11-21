@@ -24,9 +24,9 @@ class TtsToolsRegistrar(
                 // v1.0.75 fix (工具审查 02): 补触发场景与返回说明
                 description = "用系统 TTS 把文本朗读出来(用户要求'读出来/念一下/播报'时调用)。返回朗读是否成功的文字确认,不返回音频文件。",
                 parameters = mapOf(
-                    "text" to "必填,要朗读的文本",
-                    "language" to "可选,语言代码,如 zh-CN/en-US,默认跟随系统",
-                    "rate" to "可选,语速倍率,如 0.8/1.0/1.5,默认 1.0",
+                    "text" to "要朗读的文本",
+                    "language" to "语言代码,如 zh-CN/en-US,默认跟随系统",
+                    "rate" to "语速倍率,如 0.8/1.0/1.5,默认 1.0",
                 ),
                 required = setOf("text"),
                 category = "built-in",

@@ -49,7 +49,7 @@ class SkillManageTools(
                 description = "列出全部技能及启停状态（id、名称、分类、是否启用、是否内置）。" +
                     "用于启停/删除前确认技能 id。",
                 parameters = mapOf(
-                    "query" to "可选，按名称或分类过滤",
+                    "query" to "按名称或分类过滤",
                 ),
                 required = emptySet(),
                 riskLevel = ToolRiskLevel.SAFE,
@@ -85,7 +85,7 @@ class SkillManageTools(
                 name = "skill_manage_toggle",
                 description = "启用或停用一个技能。停用后助手无法再调用该技能，用户可在设置→Skill 重新开启。",
                 parameters = mapOf(
-                    "skill_id" to "必填，技能 id（可用 skill_manage_list 获取）",
+                    "skill_id" to "技能 id（可用 skill_manage_list 获取）",
                     "enabled" to "true=启用，false=停用；默认 true",
                 ),
                 required = setOf("skill_id"),
@@ -118,7 +118,7 @@ class SkillManageTools(
                 description = "删除一个自定义技能（不可撤销）。内置技能不可删除，只可启停。" +
                     "执行前应先用 skill_manage_list 确认技能 id。",
                 parameters = mapOf(
-                    "skill_id" to "必填，技能 id",
+                    "skill_id" to "技能 id",
                 ),
                 required = setOf("skill_id"),
                 riskLevel = ToolRiskLevel.HIGH,

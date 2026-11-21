@@ -26,15 +26,15 @@ object NoteThoughtTool {
             "他说了将来要做的事、正困扰他的事、或者明确表达过的期待。" +
             "不要记日常寒暄和无关紧要的细节 —— 只有隔几天再问起会显得自然的事才值得记。",
         parameters = mapOf(
-            "seed" to "必填。那件事是什么，一句话，用你自己的话写，不要照抄原话。",
-            "kind" to "必填。类型：reminder（他有具体要做的事）/ follow_up（没聊完的话题）/" +
+            "seed" to "那件事是什么，一句话，用你自己的话写，不要照抄原话。",
+            "kind" to "类型：reminder（他有具体要做的事）/ follow_up（没聊完的话题）/" +
                 "care（他的状态，比如身体或情绪）/ share（你自己想分享的事）/" +
                 "milestone（你们之间的节点）。",
-            "urgency" to "可选。immediate（过了时间点就没意义）/ window（这几天说都行，默认）/" +
+            "urgency" to "immediate（过了时间点就没意义）/ window（这几天说都行，默认）/" +
                 "evergreen（什么时候说都行）。",
-            "weight" to "可选。你有多在意这件事，0 到 1 之间的小数，默认 0.6。" +
+            "weight" to "你有多在意这件事，0 到 1 之间的小数，默认 0.6。" +
                 "真正要紧的事才给 0.8 以上。",
-            "within_hours" to "可选。如果是 immediate 或 window，多少小时内说都算合适。默认 168（一周）。",
+            "within_hours" to "如果是 immediate 或 window，多少小时内说都算合适。默认 168（一周）。",
         ),
         category = "built-in",
         riskLevel = ToolRiskLevel.NORMAL,

@@ -32,7 +32,7 @@ class ChannelReadContextTool(
         description = "读取更多群聊历史消息,帮助你理解当前对话的完整上下文。" +
             "默认你只能看到最近几条消息,如果需要更多上下文请调用此工具。",
         parameters = mapOf(
-            "limit" to "可选。要读取的历史消息数量,范围 1-50,默认 20",
+            "limit" to "要读取的历史消息数量,范围 1-50,默认 20",
         ),
         required = emptySet(),
         category = "built-in",

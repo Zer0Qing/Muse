@@ -26,9 +26,9 @@ class ResourceToolsRegistrar(
                 name = "resource_add",
                 description = "向资源库添加一条资源(笔记/提示词/参考内容等)。",
                 parameters = mapOf(
-                    "title" to "必填,资源标题",
-                    "content" to "必填,资源正文",
-                    "tags" to "可选,标签,多个用逗号分隔",
+                    "title" to "资源标题",
+                    "content" to "资源正文",
+                    "tags" to "标签,多个用逗号分隔",
                 ),
                 required = setOf("title", "content"),
                 category = "built-in",
@@ -41,8 +41,8 @@ class ResourceToolsRegistrar(
                 name = "resource_list",
                 description = "列出资源库中的资源,可按关键字过滤。",
                 parameters = mapOf(
-                    "keyword" to "可选,标题/正文/标签过滤关键字",
-                    "limit" to "可选,最多返回数量,默认 20",
+                    "keyword" to "标题/正文/标签过滤关键字",
+                    "limit" to "最多返回数量,默认 20",
                 ),
                 required = emptySet(),
                 category = "built-in",
@@ -56,8 +56,8 @@ class ResourceToolsRegistrar(
                 name = "resource_search",
                 description = "搜索资源库(与 resource_list 关键字过滤行为一致)。",
                 parameters = mapOf(
-                    "keyword" to "可选,搜索关键字",
-                    "limit" to "可选,最多返回数量,默认 20",
+                    "keyword" to "搜索关键字",
+                    "limit" to "最多返回数量,默认 20",
                 ),
                 required = emptySet(),
                 category = "built-in",
@@ -70,7 +70,7 @@ class ResourceToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "resource_get",
                 description = "根据 id 获取资源库中的单条资源。",
-                parameters = mapOf("id" to "必填,资源 id"),
+                parameters = mapOf("id" to "资源 id"),
                 required = setOf("id"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
@@ -81,7 +81,7 @@ class ResourceToolsRegistrar(
             ToolRegistry.ToolDef(
                 name = "resource_delete",
                 description = "根据 id 删除资源库中的资源。",
-                parameters = mapOf("id" to "必填,资源 id"),
+                parameters = mapOf("id" to "资源 id"),
                 required = setOf("id"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.HIGH,

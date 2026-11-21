@@ -72,9 +72,9 @@ class AssistantManageTools(
                 description = "创建一个新助手（只设置名称和人设文案；工具/模型/绑定由用户在设置页配置）。" +
                     "id 可省略（自动生成）。",
                 parameters = mapOf(
-                    "name" to "必填，助手名称",
-                    "system_prompt" to "可选，人设文案（系统提示词）",
-                    "assistant_id" to "可选，助手 id（省略时自动生成）",
+                    "name" to "助手名称",
+                    "system_prompt" to "人设文案（系统提示词）",
+                    "assistant_id" to "助手 id（省略时自动生成）",
                 ),
                 required = setOf("name"),
                 riskLevel = ToolRiskLevel.HIGH,
@@ -112,8 +112,8 @@ class AssistantManageTools(
                 description = "修改一个助手的人设文案（系统提示词）。只允许改人设，" +
                     "不允许改工具绑定/模型/供应商——那些由用户在设置页管理。",
                 parameters = mapOf(
-                    "assistant_id" to "必填，助手 id",
-                    "system_prompt" to "必填，新人设文案",
+                    "assistant_id" to "助手 id",
+                    "system_prompt" to "新人设文案",
                 ),
                 required = setOf("assistant_id", "system_prompt"),
                 riskLevel = ToolRiskLevel.HIGH,
@@ -145,7 +145,7 @@ class AssistantManageTools(
                 description = "删除一个助手。不可撤销。默认助手不可删除。" +
                     "删除前应先用 assistant_manage_list 确认助手 id。",
                 parameters = mapOf(
-                    "assistant_id" to "必填，助手 id",
+                    "assistant_id" to "助手 id",
                 ),
                 required = setOf("assistant_id"),
                 riskLevel = ToolRiskLevel.HIGH,

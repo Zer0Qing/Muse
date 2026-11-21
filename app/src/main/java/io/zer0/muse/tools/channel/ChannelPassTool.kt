@@ -31,7 +31,7 @@ class ChannelPassTool(
         description = "本轮选择不发言。如果你觉得没有必要回复,或想等其他成员先说,请调用此工具。" +
             "你可以提供 reason 说明为什么不发言(可选)。",
         parameters = mapOf(
-            "reason" to "可选。不发言的原因,便于调试与审计",
+            "reason" to "不发言的原因,便于调试与审计",
         ),
         required = emptySet(),
         category = "built-in",

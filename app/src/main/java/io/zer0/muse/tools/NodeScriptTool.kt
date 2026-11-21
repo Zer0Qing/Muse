@@ -38,8 +38,8 @@ object NodeScriptTool {
         description = "在内置 Node.js 运行时中执行 JavaScript 脚本(完整能力:文件读写、网络、子进程;" +
             "可 require 第三方 npm 模块)。返回 JSON(result/logs/error)。超时默认 30 秒。",
         parameters = mapOf(
-            "code" to "必填,Node 脚本代码(表达式或语句块;可用 require/fs/fetch 等)",
-            "timeout_ms" to "可选,超时毫秒数,默认 30000,最大 300000",
+            "code" to "Node 脚本代码(表达式或语句块;可用 require/fs/fetch 等)",
+            "timeout_ms" to "超时毫秒数,默认 30000,最大 300000",
         ),
         required = setOf("code"),
         category = "built-in",

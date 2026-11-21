@@ -44,8 +44,8 @@ object PythonScriptTool {
             "terminal_exec/execute_shell 去找解释器或翻 bin 目录(那里是空的);" +
             "脚本内需要起子进程时用 sys.executable 或 os.environ['MUSE_PYTHON_BIN']。",
         parameters = mapOf(
-            "code" to "必填,Python 脚本代码(可 import 标准库;结果赋给变量 result)",
-            "timeout_ms" to "可选,超时毫秒数,默认 30000,最大 300000",
+            "code" to "Python 脚本代码(可 import 标准库;结果赋给变量 result)",
+            "timeout_ms" to "超时毫秒数,默认 30000,最大 300000",
         ),
         required = setOf("code"),
         category = "built-in",

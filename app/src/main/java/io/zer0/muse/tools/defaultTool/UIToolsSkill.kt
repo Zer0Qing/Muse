@@ -64,8 +64,8 @@ object UIToolsSkill {
             description = "在屏幕指定坐标执行点击。坐标为屏幕绝对像素。" +
                 "建议先用 ui_get_page_info 获取目标元素的 bounds 再点击中心点。",
             parameters = mapOf(
-                "x" to "必填,点击的 x 坐标(屏幕像素)",
-                "y" to "必填,点击的 y 坐标(屏幕像素)",
+                "x" to "点击的 x 坐标(屏幕像素)",
+                "y" to "点击的 y 坐标(屏幕像素)",
             ),
             required = setOf("x", "y"),
             category = "built-in",
@@ -76,8 +76,8 @@ object UIToolsSkill {
             name = LONG_PRESS,
             description = "在屏幕指定坐标执行长按(按住 500ms)。常用于弹出上下文菜单。",
             parameters = mapOf(
-                "x" to "必填,长按的 x 坐标",
-                "y" to "必填,长按的 y 坐标",
+                "x" to "长按的 x 坐标",
+                "y" to "长按的 y 坐标",
             ),
             required = setOf("x", "y"),
             category = "built-in",
@@ -89,11 +89,11 @@ object UIToolsSkill {
             description = "在屏幕执行滑动手势。从起点滑到终点,duration 控制速度(越长越慢)。" +
                 "上滑翻页:startY 大 endY 小;下滑反之。",
             parameters = mapOf(
-                "start_x" to "必填,起点 x 坐标",
-                "start_y" to "必填,起点 y 坐标",
-                "end_x" to "必填,终点 x 坐标",
-                "end_y" to "必填,终点 y 坐标",
-                "duration" to "可选,滑动时长(毫秒),默认 300,越大越慢",
+                "start_x" to "起点 x 坐标",
+                "start_y" to "起点 y 坐标",
+                "end_x" to "终点 x 坐标",
+                "end_y" to "终点 y 坐标",
+                "duration" to "滑动时长(毫秒),默认 300,越大越慢",
             ),
             required = setOf("start_x", "start_y", "end_x", "end_y"),
             category = "built-in",
@@ -112,8 +112,8 @@ object UIToolsSkill {
                 "node_id 来自 ui_get_page_info 返回的路径标识(如 0.1.2)或 ui_get_page_info 中的 focused 节点。" +
                 "用于在输入框填写内容。",
             parameters = mapOf(
-                "node_id" to "必填,目标节点路径(来自 ui_get_page_info 的 [path])",
-                "text" to "必填,要输入的文本",
+                "node_id" to "目标节点路径(来自 ui_get_page_info 的 [path])",
+                "text" to "要输入的文本",
             ),
             required = setOf("node_id", "text"),
             category = "built-in",
@@ -124,8 +124,8 @@ object UIToolsSkill {
             description = "截取当前屏幕并保存为图片。需 Android 14+(API 34)。" +
                 "返回保存路径。不传 path 时保存到应用缓存目录。",
             parameters = mapOf(
-                "path" to "可选,保存路径(绝对路径),默认保存到缓存目录",
-                "format" to "可选,图片格式 PNG(默认) 或 JPEG",
+                "path" to "保存路径(绝对路径),默认保存到缓存目录",
+                "format" to "图片格式 PNG(默认) 或 JPEG",
             ),
             required = emptySet(),
             category = "built-in",
@@ -152,7 +152,7 @@ object UIToolsSkill {
             description = "执行全局无障碍动作。常用 action_id: 1=BACK, 2=HOME, 3=RECENTS(最近任务)," +
                 " 4=NOTIFICATIONS, 5=QUICK_SETTINGS, 6=POWER_DIALOG, 7=TOGGLE_NOTIFICATION, 10=DISMISS_NOTIFICATION_SHADE。",
             parameters = mapOf(
-                "action_id" to "必填,全局动作 ID(如 1=返回, 2=HOME)",
+                "action_id" to "全局动作 ID(如 1=返回, 2=HOME)",
             ),
             required = setOf("action_id"),
             category = "built-in",

@@ -77,6 +77,14 @@ internal object HostSettingsCatalog {
             link("tools", "settings_screen_tools", "wrench"),
             link("permission_wizard", "permission_wizard_title", "shieldCheck"),
             link("web_search", "settings_screen_web_search", "globe"),
+            // 与 App 侧 1:1 镜像：单工具审批策略页。Web 端还没有对应子页，
+            // 因此列出但不进子页（enabled = false），不留一个点了没反应的假入口。
+            link(
+                "tool_approval",
+                "settings_screen_entry_tool_approval",
+                "shieldCheck",
+                enabled = false,
+            ),
         ),
         group(
             "settings_group_voice",
@@ -148,7 +156,7 @@ internal object HostSettingsCatalog {
         // 与 App 侧同步：运行环境独立成「离线资源」一级分组。
         group(
             "offline_resources_title",
-            link("runtime", "offline_resources_title", "download"),
+            link("runtime", "offline_resources_entry_title", "download"),
         ),
         group(
             "settings_group_privacy_security",
