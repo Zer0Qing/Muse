@@ -3,6 +3,7 @@ package io.zer0.muse.ui.chat
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import io.zer0.muse.ui.screen.DataManagementScreen
 
 /**
  * 会话删除级联的**完整性**守卫（AUD-UI-F13 / AUDIT F14 / 第 94-96 轮的累积成果）。
@@ -44,7 +45,7 @@ class SessionTodoCleanupTest {
 
     @Test
     fun `清除全部聊天也必须走同一份清理器`() {
-        val src = source("ui/DataManagementScreen.kt")
+        val src = source("ui/screen/DataManagementScreen.kt")
         assertTrue(
             "「清除全部聊天」以前只清到 DB 层，快照/附件/待办/工具态全留盘上 —— 不许退回去了",
             src.contains("SessionArtifactCleanup.purge("),

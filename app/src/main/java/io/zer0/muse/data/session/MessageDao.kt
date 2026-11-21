@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import io.zer0.muse.ui.screen.FavoritesScreen
 
 /** 角色消息计数(统计面板用)。 */
 data class RoleCount(

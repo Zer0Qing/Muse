@@ -5,13 +5,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.DataManagementScreen
 import io.zer0.muse.ui.NotificationListenerScreen
 import io.zer0.muse.ui.ToolsScreen
 import io.zer0.muse.ui.knowledge.KnowledgeScreen
 import io.zer0.muse.ui.speech.VoiceCloningPage
 import io.zer0.muse.ui.stats.StatsScreen
 import io.zer0.muse.ui.assistant.VideoGenerationPage
+import io.zer0.muse.ui.screen.CoverManagerScreen
+import io.zer0.muse.ui.screen.DataManagementScreen
 
 /**
  * 工具域 NavGraph — 包含 AI 工具管理、浏览器自动化、视频生成、语音克隆、
@@ -145,7 +146,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        io.zer0.muse.ui.CoverManagerScreen(
+        CoverManagerScreen(
             onBack = { navController.popBackStack() },
         )
     }

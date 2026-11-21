@@ -42,7 +42,6 @@ import coil.compose.AsyncImage
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
-import io.zer0.muse.ui.HtmlPreviewScreen
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -56,6 +55,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import io.zer0.muse.ui.screen.HtmlPreviewScreen
 
 /**
  * v2.0.1: 富内容预览语言判定(svg / html / chart / mermaid) — type 与 language 双查。

@@ -6,6 +6,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.screen.FavoritesScreen
+import io.zer0.muse.ui.screen.favoriteStarTint
 
 /**
  * 收藏夹的源码级回归（审计 §11-1 / §11-8 / §11-9）。
@@ -17,7 +19,7 @@ class FavoritesScreenWiringTest {
 
     @Test
     fun `preset group token never reaches the screen as a literal`() {
-        val source = locate("app/src/main/java/io/zer0/muse/ui/FavoritesScreen.kt")
+        val source = locate("app/src/main/java/io/zer0/muse/ui/screen/FavoritesScreen.kt")
 
         // §11-1: 预设分组对话框是内部 token 外泄的源头，已移除。
         assertFalse(
@@ -43,7 +45,7 @@ class FavoritesScreenWiringTest {
         val targets = listOf(
             "app/src/main/java/io/zer0/muse/ui/MessageBubble.kt",
             "app/src/main/java/io/zer0/muse/ui/translate/TranslateHistorySection.kt",
-            "app/src/main/java/io/zer0/muse/ui/FavoritesScreen.kt",
+            "app/src/main/java/io/zer0/muse/ui/screen/FavoritesScreen.kt",
         )
 
         targets.forEach { relative ->
@@ -69,7 +71,7 @@ class FavoritesScreenWiringTest {
 
     @Test
     fun `preview truncation is structural not a raw take`() {
-        val source = locate("app/src/main/java/io/zer0/muse/ui/FavoritesScreen.kt")
+        val source = locate("app/src/main/java/io/zer0/muse/ui/screen/FavoritesScreen.kt")
 
         // §11-9: 字符级 take 会切断代码围栏 / 强调符 / [N] 引用。
         assertFalse("收藏卡片预览不得再用 take(", Regex("\\.take\\(\\s*280\\s*\\)").containsMatchIn(source))
@@ -81,7 +83,7 @@ class FavoritesScreenWiringTest {
 
     @Test
     fun `favorites screen no longer reads the dead group filter`() {
-        val source = locate("app/src/main/java/io/zer0/muse/ui/FavoritesScreen.kt")
+        val source = locate("app/src/main/java/io/zer0/muse/ui/screen/FavoritesScreen.kt")
 
         // §11-13: favoriteGroup / setFavoriteGroup 全仓无调用点，过滤逻辑是死分支。
         assertFalse("favoriteGroup 已移除", source.contains("state.favoriteGroup"))

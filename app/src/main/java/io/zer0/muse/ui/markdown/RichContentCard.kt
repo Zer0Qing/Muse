@@ -58,6 +58,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import java.io.ByteArrayInputStream
+import io.zer0.muse.ui.screen.HtmlPreviewScreen
 
 /**
  * v0.48: 富媒体内容卡片 — 渲染 SVG / HTML / 图表。

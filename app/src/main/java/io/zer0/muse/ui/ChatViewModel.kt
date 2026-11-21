@@ -149,6 +149,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import io.zer0.muse.ui.memory.SessionMemoryCache
+import io.zer0.muse.ui.screen.FavoritesScreen
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。

@@ -14,6 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import io.zer0.muse.ui.screen.FolderDetailScreen
 
 /**
  * 38/文件夹详情页：空文件夹给出可读空态 + 两个动作入口，不再"建了没用"。

@@ -9,8 +9,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
-import io.zer0.muse.ui.HtmlPreviewScreen
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.screen.HtmlPreviewScreen
 
 /**
  * v2.0.1: 产物打开宿主 — 富内容（HTML/SVG/Chart/Mermaid）走全屏浏览器形态，

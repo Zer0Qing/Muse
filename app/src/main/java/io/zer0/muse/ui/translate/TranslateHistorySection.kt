@@ -31,7 +31,6 @@ import io.zer0.muse.ui.common.form.MuseIconContainer
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseEmptyState
-import io.zer0.muse.ui.favoriteStarTint
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -39,6 +38,7 @@ import io.zer0.muse.ui.theme.pill
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.screen.favoriteStarTint
 
 /**
  * 翻译历史区。

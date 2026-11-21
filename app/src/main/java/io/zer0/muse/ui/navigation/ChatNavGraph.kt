@@ -12,14 +12,10 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import io.zer0.muse.ui.ArchivedChatsScreen
 import io.zer0.muse.ui.ChatListScreen
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.FolderDetailScreen
 import io.zer0.muse.ui.HomeScreen
-import io.zer0.muse.ui.HtmlPreviewScreen
-import io.zer0.muse.ui.RecentlyDeletedScreen
 import io.zer0.muse.ui.SearchScreen
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.common.media.WindowWidthClass
@@ -30,6 +26,11 @@ import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import io.zer0.muse.ui.settings.PromptTemplateManagerPage
 import org.koin.androidx.compose.koinViewModel
+import io.zer0.muse.ui.screen.HtmlPreviewScreen
+import io.zer0.muse.ui.screen.MilestoneScreen
+import io.zer0.muse.ui.screen.FolderDetailScreen
+import io.zer0.muse.ui.screen.ArchivedChatsScreen
+import io.zer0.muse.ui.screen.RecentlyDeletedScreen
 
 /**
  * 聊天域 NavGraph — 包含首页、搜索、聊天详情、群聊详情、最近删除、快速记录、
@@ -400,7 +401,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        io.zer0.muse.ui.MilestoneScreen(
+        MilestoneScreen(
             onBack = { navController.popBackStack() },
         )
     }
