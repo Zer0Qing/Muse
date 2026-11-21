@@ -68,7 +68,6 @@
     <string name="schedule_title">예약된 작업</string>
     <string name="schedule_new_task">새로운 예약된 작업</string>
     <string name="schedule_empty_title">아직 예약된 작업이 없습니다.</string>
-    <string name="schedule_empty_subtitle">아래 버튼을 눌러 첫 작업을 만드세요</string>
     <string name="schedule_deleted">삭제됨</string>
     <string name="schedule_executed">실행됨</string>
     <string name="schedule_collapse_history">실행 기록 숨기기</string>
@@ -233,7 +232,6 @@
     <string name="knowledge_no_match_title">일치하는 문서가 없습니다.</string>
     <string name="knowledge_empty_title">기술 자료가 비어 있습니다.</string>
     <string name="knowledge_no_match_subtitle">다른 키워드를 사용해 보세요</string>
-    <string name="knowledge_empty_subtitle">문서 또는 압축 파일(ZIP/7Z/RAR)을 가져오려면 오른쪽 아래의 +를 탭하세요.</string>
     <string name="knowledge_deleted">삭제됨</string>
     <string name="knowledge_delete_doc">문서 삭제</string>
     <string name="knowledge_delete">삭제</string>
@@ -563,7 +561,6 @@
     <string name="cover_library_title">표지 라이브러리</string>
     <string name="cover_count">%1$d개 표지</string>
     <string name="cover_empty_title">아직 표지가 없습니다</string>
-    <string name="cover_empty_hint">오른쪽 하단 버튼을 눌러 이미지를 가져오거나 AI가 표지를 생성하도록 하세요</string>
     <string name="quick_notes_settings_title">빠른 캡처 설정</string>
     <string name="quick_capture_swipe_title">스와이프 빠른 캡처 표시</string>
     <string name="quick_capture_swipe_desc">Muse 내부 오른쪽 가장자리에 빠른 캡처 핸들 표시</string>

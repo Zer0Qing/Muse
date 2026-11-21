@@ -6,7 +6,6 @@
     <string name="quick_msg_new_cd">New Quick Message</string>
     <string name="quick_msg_intro">Preset message templates. Supports variables: {{input}} (current input) / {{clipboard}} (clipboard) / {{date}} (date).</string>
     <string name="quick_msg_empty_title">No Quick Messages yet</string>
-    <string name="quick_msg_empty_subtitle">Tap + at bottom right to create</string>
     <string name="quick_msg_delete_title">Delete Quick Message</string>
     <!-- Card -->
     <string name="quick_msg_new_default_name">New Quick Message</string>
@@ -45,7 +44,6 @@
     <string name="lorebook_screen_title">Lorebook</string>
     <string name="lorebook_new_cd">New Lorebook</string>
     <string name="lorebook_empty_title">No Lorebook yet</string>
-    <string name="lorebook_empty_subtitle">Tap + at bottom right to create</string>
     <string name="lorebook_delete_title">Delete Lorebook</string>
     <!-- Card -->
     <string name="lorebook_new_default_name">New Entry</string>
@@ -88,7 +86,6 @@
     <string name="prompt_injection_screen_title">Prompt Injection</string>
     <string name="prompt_injection_new_cd">New PromptInjection</string>
     <string name="prompt_injection_empty_title">No PromptInjection yet</string>
-    <string name="prompt_injection_empty_subtitle">Tap + at bottom right to create</string>
     <string name="prompt_injection_delete_title">Delete PromptInjection</string>
     <!-- Card -->
     <string name="prompt_injection_new_default_name">New Injection</string>

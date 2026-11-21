@@ -19,7 +19,6 @@
     <string name="worldbook_delete_cd">Eliminar</string>
     <string name="worldbook_delete_title">Eliminar libro de trasfondo</string>
     <string name="worldbook_empty_title">No hay entradas en el libro de trasfondo</string>
-    <string name="worldbook_empty_subtitle">Toca el botón de la esquina inferior derecha para crear la primera entrada</string>
     <string name="worldbook_keywords_label">Palabras clave: %1$s</string>
     <string name="worldbook_badge_always_active">Constante</string>
     <string name="worldbook_export">Exportar</string>

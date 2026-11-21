@@ -77,8 +77,20 @@ fun QuickMessageScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewMo
     var editing by remember { mutableStateOf<QuickMessageEntity?>(null) }
     var isNew by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<QuickMessageEntity?>(null) }
-    // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
+
     val newDefaultName = stringResource(R.string.quick_msg_new_default_name)
+    // 新建动作只在一处定义：FAB 与空态按钮共用，避免两处各写一份实体构造。
+    val onCreate: () -> Unit = {
+        val now = System.currentTimeMillis()
+        editing = QuickMessageEntity(
+                        id = "qmsg-$now",
+                        name = newDefaultName,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+        isNew = true
+    }
+    // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
 
     editing?.let { entity ->
         QuickMessageEditPage(
@@ -109,14 +121,7 @@ fun QuickMessageScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewMo
             MuseFloatingButton(
                 icon = MuseIcons.plus,
                 onClick = {
-                    val now = System.currentTimeMillis()
-                    editing = QuickMessageEntity(
-                        id = "qmsg-$now",
-                        name = newDefaultName,
-                        createdAt = now,
-                        updatedAt = now,
-                    )
-                    isNew = true
+                    onCreate()
                 },
                 contentDescription = stringResource(R.string.quick_msg_new_cd),
             )
@@ -156,7 +161,8 @@ fun QuickMessageScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewMo
                     MuseEmptyState(
                         icon = MuseIcons.bolt,
                         title = stringResource(R.string.quick_msg_empty_title),
-                        subtitle = stringResource(R.string.quick_msg_empty_subtitle),
+                        actionText = stringResource(R.string.quick_msg_new_cd),
+                        onAction = onCreate,
                     )
                 }
             }

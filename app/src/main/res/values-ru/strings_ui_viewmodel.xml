@@ -6,7 +6,6 @@
     <string name="quick_msg_new_cd">Новое быстрое сообщение</string>
     <string name="quick_msg_intro">Предустановленные шаблоны сообщений.</string>
     <string name="quick_msg_empty_title">Быстрых сообщений пока нет</string>
-    <string name="quick_msg_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать</string>
     <string name="quick_msg_delete_title">Удалить быстрое сообщение</string>
     <!-- Card -->
     <string name="quick_msg_new_default_name">Новое быстрое сообщение</string>
@@ -45,7 +44,6 @@
     <string name="lorebook_screen_title">книга знаний</string>
     <string name="lorebook_new_cd">Новая книга знаний</string>
     <string name="lorebook_empty_title">Лоребука пока нет</string>
-    <string name="lorebook_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать</string>
     <string name="lorebook_delete_title">Удалить книгу истории</string>
     <!-- Card -->
     <string name="lorebook_new_default_name">Новая запись</string>
@@ -88,7 +86,6 @@
     <string name="prompt_injection_screen_title">Быстрая инъекция</string>
     <string name="prompt_injection_new_cd">Новая PromptInjection</string>
     <string name="prompt_injection_empty_title">PromptInjection пока нет</string>
-    <string name="prompt_injection_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать</string>
     <string name="prompt_injection_delete_title">Удалить PromptInjection</string>
     <!-- Card -->
     <string name="prompt_injection_new_default_name">Новая инъекция</string>

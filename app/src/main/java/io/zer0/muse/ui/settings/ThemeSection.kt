@@ -1062,22 +1062,9 @@ private fun CustomThemeSection(
                 )
             }
         }
-        // 空列表提示 / 主题列表
-        if (customThemes.isEmpty()) {
-            SettingsGroupDivider()
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 20.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_theme_custom_empty),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
+        // 主题列表。空列表不额外占位：上方「添加主题」入口本身已经是空态的引导，
+        // 再写一句「还没有自定义主题，点击添加主题创建一个」等于把同一件事说两遍。
+        if (customThemes.isNotEmpty()) {
             customThemes.forEachIndexed { index, theme ->
                 if (index > 0) SettingsGroupDivider()
                 CustomThemeItemRow(

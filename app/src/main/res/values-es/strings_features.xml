@@ -68,7 +68,6 @@
     <string name="schedule_title">Tareas programadas</string>
     <string name="schedule_new_task">Nueva tarea programada</string>
     <string name="schedule_empty_title">Aún no hay tareas programadas</string>
-    <string name="schedule_empty_subtitle">Toca el botón de abajo para crear tu primera tarea</string>
     <string name="schedule_deleted">Eliminado</string>
     <string name="schedule_executed">Ejecutado</string>
     <string name="schedule_collapse_history">Ocultar historial de ejecución</string>
@@ -233,7 +232,6 @@
     <string name="knowledge_no_match_title">No se encontraron documentos coincidentes</string>
     <string name="knowledge_empty_title">La base de conocimientos está vacía.</string>
     <string name="knowledge_no_match_subtitle">Prueba con otra palabra clave</string>
-    <string name="knowledge_empty_subtitle">Toca + abajo a la derecha para importar un documento o archivo comprimido (ZIP/7Z/RAR)</string>
     <string name="knowledge_deleted">Eliminado</string>
     <string name="knowledge_delete_doc">Eliminar documento</string>
     <string name="knowledge_delete">Eliminar</string>
@@ -563,7 +561,6 @@
     <string name="cover_library_title">Biblioteca de portadas</string>
     <string name="cover_count">%1$d portadas</string>
     <string name="cover_empty_title">Aún no hay portadas</string>
-    <string name="cover_empty_hint">Toca el botón inferior derecho para importar una imagen, o deja que la IA genere una portada</string>
     <string name="quick_notes_settings_title">Ajustes de captura rápida</string>
     <string name="quick_capture_swipe_title">Mostrar captura rápida deslizando</string>
     <string name="quick_capture_swipe_desc">Mostrar el tirador de captura rápida en el borde derecho dentro de Muse</string>

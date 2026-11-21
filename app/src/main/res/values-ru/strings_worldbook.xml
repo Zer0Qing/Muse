@@ -19,7 +19,6 @@
     <string name="worldbook_delete_cd">Удалить</string>
     <string name="worldbook_delete_title">Удалить Всемирную книгу</string>
     <string name="worldbook_empty_title">Нет записей в мировой книге</string>
-    <string name="worldbook_empty_subtitle">Нажмите кнопку ниже, чтобы создать свою первую запись</string>
     <string name="worldbook_keywords_label">Ключевые слова: %1$s</string>
     <string name="worldbook_badge_always_active">Постоянный</string>
     <string name="worldbook_export">Экспорт</string>

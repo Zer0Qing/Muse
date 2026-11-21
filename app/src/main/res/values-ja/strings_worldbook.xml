@@ -19,7 +19,6 @@
     <string name="worldbook_delete_cd">消去</string>
     <string name="worldbook_delete_title">ワールドブックの削除</string>
     <string name="worldbook_empty_title">ワールドブックのエントリはありません</string>
-    <string name="worldbook_empty_subtitle">最初のエントリを作成するには、下のボタンをタップしてください</string>
     <string name="worldbook_keywords_label">キーワード: %1$s</string>
     <string name="worldbook_badge_always_active">絶え間ない</string>
     <string name="worldbook_export">輸出</string>

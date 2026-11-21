@@ -68,7 +68,6 @@
     <string name="schedule_title">スケジュールされたタスク</string>
     <string name="schedule_new_task">新しいスケジュールされたタスク</string>
     <string name="schedule_empty_title">スケジュールされたタスクはまだありません</string>
-    <string name="schedule_empty_subtitle">下のボタンから最初のタスクを作成できます</string>
     <string name="schedule_deleted">削除されました</string>
     <string name="schedule_executed">実行されました</string>
     <string name="schedule_collapse_history">実行履歴を非表示にする</string>
@@ -233,7 +232,6 @@
     <string name="knowledge_no_match_title">一致するドキュメントが見つかりませんでした</string>
     <string name="knowledge_empty_title">ナレッジベースが空です</string>
     <string name="knowledge_no_match_subtitle">別のキーワードを試してください</string>
-    <string name="knowledge_empty_subtitle">右下の＋をタップして、ドキュメントまたは圧縮ファイル（ZIP/7Z/RAR）をインポートします</string>
     <string name="knowledge_deleted">削除されました</string>
     <string name="knowledge_delete_doc">文書の削除</string>
     <string name="knowledge_delete">消去</string>
@@ -562,7 +560,6 @@
     <string name="cover_library_title">カバーライブラリ</string>
     <string name="cover_count">%1$d 枚のカバー</string>
     <string name="cover_empty_title">まだカバーがありません</string>
-    <string name="cover_empty_hint">右下のボタンをタップして画像をインポートするか、AIにカバーを生成させます</string>
     <string name="quick_notes_settings_title">クイックキャプチャ設定</string>
     <string name="quick_capture_swipe_title">スワイプでクイックキャプチャを表示</string>
     <string name="quick_capture_swipe_desc">Muse 内の右端にクイックキャプチャのハンドルを表示</string>

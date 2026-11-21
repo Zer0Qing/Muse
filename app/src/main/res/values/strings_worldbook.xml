@@ -22,7 +22,6 @@
     <string name="worldbook_delete_cd">删除</string>
     <string name="worldbook_delete_title">删除世界书</string>
     <string name="worldbook_empty_title">暂无世界书条目</string>
-    <string name="worldbook_empty_subtitle">点击右下角按钮创建第一个条目</string>
     <string name="worldbook_keywords_label">关键词： %1$s</string>
     <string name="worldbook_badge_always_active">常驻</string>
     <string name="worldbook_export">导出</string>

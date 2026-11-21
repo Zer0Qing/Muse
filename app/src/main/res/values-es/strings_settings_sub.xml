@@ -495,7 +495,6 @@
     <string name="settings_theme_custom_delete">Eliminar</string>
     <string name="settings_theme_custom_delete_confirm">¿Eliminar este tema?</string>
     <string name="settings_theme_custom_delete_confirm_msg">Esto no se puede deshacer. Las pantallas que usen este tema volverán al tema predeterminado.</string>
-    <string name="settings_theme_custom_empty">Aún no hay temas personalizados. Toca «Agregar tema» para crear uno.</string>
     <string name="settings_theme_custom_export">Exportar tema</string>
     <string name="settings_theme_custom_import">Importar tema</string>
     <string name="settings_theme_custom_import_success">Tema importado</string>

@@ -193,7 +193,6 @@
     <string name="schedule_title">定时任务</string>
     <string name="schedule_new_task">新建定时任务</string>
     <string name="schedule_empty_title">尚无定时任务</string>
-    <string name="schedule_empty_subtitle">点击下方按钮创建第一个任务</string>
     <string name="schedule_deleted">已删除</string>
     <string name="schedule_executed">已执行</string>
     <string name="schedule_collapse_history">收起执行历史</string>
@@ -404,7 +403,6 @@
     <string name="knowledge_no_match_title">未找到匹配的文档</string>
     <string name="knowledge_empty_title">知识库为空</string>
     <string name="knowledge_no_match_subtitle">试试其他关键词</string>
-    <string name="knowledge_empty_subtitle">点击右下角 + 导入文档或压缩包（ZIP/7Z/RAR）</string>
     <string name="knowledge_deleted">已删除</string>
     <string name="knowledge_delete_doc">删除文档</string>
     <string name="knowledge_delete">删除</string>

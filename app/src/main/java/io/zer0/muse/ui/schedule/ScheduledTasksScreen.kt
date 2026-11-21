@@ -297,7 +297,6 @@ fun ScheduledTasksScreen(
                 MuseEmptyState(
                     icon = MuseIcons.clock,
                     title = stringResource(R.string.schedule_empty_title),
-                    subtitle = stringResource(R.string.schedule_empty_subtitle),
                     actionText = stringResource(R.string.schedule_new_task),
                     onAction = { showCreate = true },
                 )

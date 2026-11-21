@@ -19,7 +19,6 @@
     <string name="worldbook_delete_cd">삭제</string>
     <string name="worldbook_delete_title">월드북 삭제</string>
     <string name="worldbook_empty_title">월드북 항목이 없습니다.</string>
-    <string name="worldbook_empty_subtitle">첫 번째 항목을 만들려면 아래 버튼을 누르세요.</string>
     <string name="worldbook_keywords_label">키워드: %1$s</string>
     <string name="worldbook_badge_always_active">끊임없는</string>
     <string name="worldbook_export">내보내다</string>

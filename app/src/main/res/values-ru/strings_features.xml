@@ -68,7 +68,6 @@
     <string name="schedule_title">Запланированные задачи</string>
     <string name="schedule_new_task">Новая запланированная задача</string>
     <string name="schedule_empty_title">Запланированных задач пока нет</string>
-    <string name="schedule_empty_subtitle">Нажмите кнопку ниже, чтобы создать первую задачу</string>
     <string name="schedule_deleted">Удалено</string>
     <string name="schedule_executed">Выполнено</string>
     <string name="schedule_collapse_history">Скрыть историю запусков</string>
@@ -233,7 +232,6 @@
     <string name="knowledge_no_match_title">Соответствующие документы не найдены</string>
     <string name="knowledge_empty_title">База знаний пуста</string>
     <string name="knowledge_no_match_subtitle">Попробуйте другое ключевое слово</string>
-    <string name="knowledge_empty_subtitle">Нажмите + в правом нижнем углу, чтобы импортировать документ или архив (ZIP/7Z/RAR).</string>
     <string name="knowledge_deleted">Удалено</string>
     <string name="knowledge_delete_doc">Удалить документ</string>
     <string name="knowledge_delete">Удалить</string>
@@ -563,7 +561,6 @@
     <string name="cover_library_title">Библиотека обложек</string>
     <string name="cover_count">%1$d обложек</string>
     <string name="cover_empty_title">Обложек пока нет</string>
-    <string name="cover_empty_hint">Нажмите кнопку внизу справа, чтобы импортировать изображение, или позвольте ИИ создать обложку</string>
     <string name="quick_notes_settings_title">Настройки быстрой заметки</string>
     <string name="quick_capture_swipe_title">Показывать быструю заметку свайпом</string>
     <string name="quick_capture_swipe_desc">Показывать ручку быстрой заметки у правого края внутри Muse</string>

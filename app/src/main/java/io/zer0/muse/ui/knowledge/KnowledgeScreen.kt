@@ -1071,7 +1071,6 @@ fun KnowledgeScreen(
                                         MuseEmptyState(
                                             icon = MuseIcons.bookOpen,
                                             title = stringResource(R.string.knowledge_empty_title),
-                                            subtitle = stringResource(R.string.knowledge_empty_subtitle),
                                         )
                                     } else {
                                         LazyColumn(
@@ -1106,7 +1105,6 @@ fun KnowledgeScreen(
                                 !searching && childFolders.isEmpty() && folderFiles.isEmpty() -> MuseEmptyState(
                                     icon = MuseIcons.folder,
                                     title = stringResource(R.string.knowledge_empty_title),
-                                    subtitle = stringResource(R.string.knowledge_empty_subtitle),
                                 )
                                 else -> {
                                     LazyColumn(

@@ -68,7 +68,6 @@
     <string name="schedule_title">Tarefas agendadas</string>
     <string name="schedule_new_task">Nova tarefa agendada</string>
     <string name="schedule_empty_title">Ainda não há tarefas agendadas</string>
-    <string name="schedule_empty_subtitle">Toque no botão abaixo para criar sua primeira tarefa</string>
     <string name="schedule_deleted">Excluído</string>
     <string name="schedule_executed">Executado</string>
     <string name="schedule_collapse_history">Ocultar histórico de execução</string>
@@ -233,7 +232,6 @@
     <string name="knowledge_no_match_title">Nenhum documento correspondente encontrado</string>
     <string name="knowledge_empty_title">A base de conhecimento está vazia</string>
     <string name="knowledge_no_match_subtitle">Experimente uma palavra-chave diferente</string>
-    <string name="knowledge_empty_subtitle">Toque em + no canto inferior direito para importar um documento ou arquivo compactado (ZIP/7Z/RAR)</string>
     <string name="knowledge_deleted">Excluído</string>
     <string name="knowledge_delete_doc">Excluir documento</string>
     <string name="knowledge_delete">Excluir</string>
@@ -563,7 +561,6 @@
     <string name="cover_library_title">Biblioteca de capas</string>
     <string name="cover_count">%1$d capas</string>
     <string name="cover_empty_title">Ainda não há capas</string>
-    <string name="cover_empty_hint">Toque no botão inferior direito para importar uma imagem, ou deixe a IA gerar uma capa</string>
     <string name="quick_notes_settings_title">Configurações de captura rápida</string>
     <string name="quick_capture_swipe_title">Mostrar captura rápida por deslize</string>
     <string name="quick_capture_swipe_desc">Mostrar a alça de captura rápida na borda direita dentro do Muse</string>

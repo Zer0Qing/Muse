@@ -75,8 +75,21 @@ fun PromptInjectionScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinVie
     var editing by remember { mutableStateOf<PromptInjectionEntity?>(null) }
     var isNew by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<PromptInjectionEntity?>(null) }
-    // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
+
     val newDefaultName = stringResource(R.string.prompt_injection_new_default_name)
+    // 新建动作只在一处定义：FAB 与空态按钮共用，避免两处各写一份实体构造。
+    val onCreate: () -> Unit = {
+        val now = System.currentTimeMillis()
+        editing = PromptInjectionEntity(
+                        id = "pinj-$now",
+                        name = newDefaultName,
+                        mode = "default",
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+        isNew = true
+    }
+    // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
     val promptInjectionModeMap = mapOf(
         "default" to stringResource(R.string.prompt_injection_mode_default),
         "creative" to stringResource(R.string.prompt_injection_mode_creative),
@@ -115,15 +128,7 @@ fun PromptInjectionScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinVie
             MuseFloatingButton(
                 icon = MuseIcons.plus,
                 onClick = {
-                    val now = System.currentTimeMillis()
-                    editing = PromptInjectionEntity(
-                        id = "pinj-$now",
-                        name = newDefaultName,
-                        mode = "default",
-                        createdAt = now,
-                        updatedAt = now,
-                    )
-                    isNew = true
+                    onCreate()
                 },
                 contentDescription = stringResource(R.string.prompt_injection_new_cd),
             )
@@ -155,7 +160,8 @@ fun PromptInjectionScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinVie
                     MuseEmptyState(
                         icon = MuseIcons.robot,
                         title = stringResource(R.string.prompt_injection_empty_title),
-                        subtitle = stringResource(R.string.prompt_injection_empty_subtitle),
+                        actionText = stringResource(R.string.prompt_injection_new_cd),
+                        onAction = onCreate,
                     )
                 }
             }

@@ -15,5 +15,4 @@
     <string name="cover_library_title">封面库</string>
     <string name="cover_count">%1$d 张封面</string>
     <string name="cover_empty_title">还没有封面</string>
-    <string name="cover_empty_hint">点击右下角按钮导入图片，或让 AI 生成封面</string>
 </resources>

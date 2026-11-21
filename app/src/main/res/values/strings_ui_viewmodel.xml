@@ -6,7 +6,6 @@
     <string name="quick_msg_new_cd">新建 QuickMessage</string>
     <string name="quick_msg_intro">预设消息模板。支持变量： {{input}}（当前输入） / {{clipboard}}（剪贴板） / {{date}}(日期）。</string>
     <string name="quick_msg_empty_title">还没有 QuickMessage</string>
-    <string name="quick_msg_empty_subtitle">点右下角 + 新建</string>
     <string name="quick_msg_delete_title">删除 QuickMessage</string>
     <!-- 卡片 -->
     <string name="quick_msg_new_default_name">新快捷消息</string>
@@ -45,7 +44,6 @@
     <string name="lorebook_screen_title">世界书 Lorebook</string>
     <string name="lorebook_new_cd">新建 Lorebook</string>
     <string name="lorebook_empty_title">还没有 Lorebook</string>
-    <string name="lorebook_empty_subtitle">点右下角 + 新建</string>
     <string name="lorebook_delete_title">删除 Lorebook</string>
     <!-- 卡片 -->
     <string name="lorebook_new_default_name">新条目</string>
@@ -88,7 +86,6 @@
     <string name="prompt_injection_screen_title">模式注入 PromptInjection</string>
     <string name="prompt_injection_new_cd">新建 PromptInjection</string>
     <string name="prompt_injection_empty_title">还没有 PromptInjection</string>
-    <string name="prompt_injection_empty_subtitle">点右下角 + 新建</string>
     <string name="prompt_injection_delete_title">删除 PromptInjection</string>
     <!-- 卡片 -->
     <string name="prompt_injection_new_default_name">新注入</string>

@@ -15,5 +15,4 @@
     <string name="cover_library_title">Cover Library</string>
     <string name="cover_count">%1$d covers</string>
     <string name="cover_empty_title">No covers yet</string>
-    <string name="cover_empty_hint">Tap the bottom-right button to import an image, or let AI generate a cover</string>
 </resources>

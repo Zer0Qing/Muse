@@ -47,6 +47,8 @@ import io.zer0.muse.data.cover.CoverItem
 import io.zer0.muse.data.cover.CoverLibraryRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -163,11 +165,14 @@ fun CoverManagerScreen(onBack: () -> Unit, onPick: ((String) -> Unit)? = null) {
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.cover_empty_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                Spacer(Modifier.height(16.dp))
+                // 空态内嵌主操作：此前这里写的是「点击右下角按钮导入图片」这类方位指路，
+                // 把按钮本身放到空态里比告诉用户去哪找更直接。
+                MuseCapsuleButton(
+                    text = stringResource(R.string.cover_import),
+                    onClick = { importLauncher.launch(arrayOf("image/*")) },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
                 )
             }
         } else {

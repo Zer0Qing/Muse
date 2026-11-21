@@ -6,7 +6,6 @@
     <string name="quick_msg_new_cd">Nova mensagem rápida</string>
     <string name="quick_msg_intro">Modelos de mensagens predefinidos.</string>
     <string name="quick_msg_empty_title">Ainda não há mensagens rápidas</string>
-    <string name="quick_msg_empty_subtitle">Toque em + no canto inferior direito para criar</string>
     <string name="quick_msg_delete_title">Excluir mensagem rápida</string>
     <!-- Card -->
     <string name="quick_msg_new_default_name">Nova mensagem rápida</string>
@@ -45,7 +44,6 @@
     <string name="lorebook_screen_title">Livro de história</string>
     <string name="lorebook_new_cd">Novo livro de história</string>
     <string name="lorebook_empty_title">Nenhum Lorebook ainda</string>
-    <string name="lorebook_empty_subtitle">Toque em + no canto inferior direito para criar</string>
     <string name="lorebook_delete_title">Excluir livro de história</string>
     <!-- Card -->
     <string name="lorebook_new_default_name">Nova entrada</string>
@@ -88,7 +86,6 @@
     <string name="prompt_injection_screen_title">Injeção imediata</string>
     <string name="prompt_injection_new_cd">Nova PromptInjection</string>
     <string name="prompt_injection_empty_title">Ainda não há PromptInjection</string>
-    <string name="prompt_injection_empty_subtitle">Toque em + no canto inferior direito para criar</string>
     <string name="prompt_injection_delete_title">Excluir PromptInjection</string>
     <!-- Card -->
     <string name="prompt_injection_new_default_name">Nova injeção</string>

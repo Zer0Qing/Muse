@@ -78,8 +78,20 @@ fun LorebookScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel(
     var editing by remember { mutableStateOf<LorebookEntity?>(null) }
     var isNew by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<LorebookEntity?>(null) }
-    // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
+
     val newDefaultName = stringResource(R.string.lorebook_new_default_name)
+    // 新建动作只在一处定义：FAB 与空态按钮共用，避免两处各写一份实体构造。
+    val onCreate: () -> Unit = {
+        val now = System.currentTimeMillis()
+        editing = LorebookEntity(
+                        id = "lorebook-$now",
+                        name = newDefaultName,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+        isNew = true
+    }
+    // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
 
     editing?.let { entity ->
         LorebookEditPage(
@@ -109,14 +121,7 @@ fun LorebookScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel(
             MuseFloatingButton(
                 icon = MuseIcons.plus,
                 onClick = {
-                    val now = System.currentTimeMillis()
-                    editing = LorebookEntity(
-                        id = "lorebook-$now",
-                        name = newDefaultName,
-                        createdAt = now,
-                        updatedAt = now,
-                    )
-                    isNew = true
+                    onCreate()
                 },
                 contentDescription = stringResource(R.string.lorebook_new_cd),
             )
@@ -160,7 +165,8 @@ fun LorebookScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel(
                     MuseEmptyState(
                         icon = MuseIcons.bookOpen,
                         title = stringResource(R.string.lorebook_empty_title),
-                        subtitle = stringResource(R.string.lorebook_empty_subtitle),
+                        actionText = stringResource(R.string.lorebook_new_cd),
+                        onAction = onCreate,
                     )
                 }
             }

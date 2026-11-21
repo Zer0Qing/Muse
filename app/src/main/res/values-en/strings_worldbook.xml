@@ -19,7 +19,6 @@
     <string name="worldbook_delete_cd">Delete</string>
     <string name="worldbook_delete_title">Delete Worldbook</string>
     <string name="worldbook_empty_title">No worldbook entries</string>
-    <string name="worldbook_empty_subtitle">Tap the button below to create your first entry</string>
     <string name="worldbook_keywords_label">Keywords: %1$s</string>
     <string name="worldbook_badge_always_active">Constant</string>
     <string name="worldbook_export">Export</string>

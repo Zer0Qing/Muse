@@ -95,7 +95,6 @@
     <string name="schedule_title">Scheduled tasks</string>
     <string name="schedule_new_task">New scheduled task</string>
     <string name="schedule_empty_title">No scheduled tasks yet</string>
-    <string name="schedule_empty_subtitle">Tap the button below to create your first task</string>
     <string name="schedule_deleted">Deleted</string>
     <string name="schedule_executed">Executed</string>
     <string name="schedule_collapse_history">Hide run history</string>
@@ -260,7 +259,6 @@
     <string name="knowledge_no_match_title">No matching documents found</string>
     <string name="knowledge_empty_title">Knowledge base is empty</string>
     <string name="knowledge_no_match_subtitle">Try a different keyword</string>
-    <string name="knowledge_empty_subtitle">Tap + at the bottom right to import a document or archive (ZIP/7Z/RAR)</string>
     <string name="knowledge_deleted">Deleted</string>
     <string name="knowledge_delete_doc">Delete document</string>
     <string name="knowledge_delete">Delete</string>

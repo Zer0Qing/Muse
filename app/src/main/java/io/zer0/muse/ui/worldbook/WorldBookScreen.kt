@@ -85,7 +85,19 @@ fun WorldBookScreen(onBack: () -> Unit, viewModel: WorldBookViewModel = koinView
     var editing by remember { mutableStateOf<WorldBookEntryEntity?>(null) }
     var isNew by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<WorldBookEntryEntity?>(null) }
+
     val newDefaultName = stringResource(R.string.worldbook_new_default_name)
+    // 新建动作只在一处定义：FAB 与空态按钮共用，避免两处各写一份实体构造。
+    val onCreate: () -> Unit = {
+        val now = System.currentTimeMillis()
+        editing = WorldBookEntryEntity(
+                        id = "wb-${UUID.randomUUID()}",
+                        name = newDefaultName,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+        isNew = true
+    }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -144,14 +156,7 @@ fun WorldBookScreen(onBack: () -> Unit, viewModel: WorldBookViewModel = koinView
             MuseFloatingButton(
                 icon = MuseIcons.plus,
                 onClick = {
-                    val now = System.currentTimeMillis()
-                    editing = WorldBookEntryEntity(
-                        id = "wb-${UUID.randomUUID()}",
-                        name = newDefaultName,
-                        createdAt = now,
-                        updatedAt = now,
-                    )
-                    isNew = true
+                    onCreate()
                 },
                 contentDescription = stringResource(R.string.worldbook_new_cd),
             )
@@ -182,7 +187,8 @@ fun WorldBookScreen(onBack: () -> Unit, viewModel: WorldBookViewModel = koinView
                     MuseEmptyState(
                         icon = MuseIcons.bookOpen,
                         title = stringResource(R.string.worldbook_empty_title),
-                        subtitle = stringResource(R.string.worldbook_empty_subtitle),
+                        actionText = stringResource(R.string.worldbook_new_cd),
+                        onAction = onCreate,
                     )
                 }
             }
