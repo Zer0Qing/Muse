@@ -236,7 +236,6 @@ internal fun favoriteStarTint(selected: Boolean): Color = if (selected) {
 }
 
 /** 收藏星标透明度：只给直接画 Icon 的场景用（MuseTactileButton 不透传图标 alpha）。 */
-internal fun favoriteStarAlpha(selected: Boolean): Float = if (selected) 1f else FAVORITE_STAR_IDLE_ALPHA
 
 /**
  * 收藏分组的展示文案。

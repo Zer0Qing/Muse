@@ -962,69 +962,6 @@ internal fun ExperienceEditDialog(
 
 // ── Phase 2 2D: Export helpers ──────────────────────────────────────────
 
-internal fun buildMemoryMarkdown(facts: List<MemoryItem>, summaries: List<MemoryItem>): String {
-    val sb = StringBuilder()
-    sb.appendLine("# Muse Memory Export")
-    sb.appendLine()
-    sb.appendLine("Exported at: ${java.time.Instant.now()}")
-    sb.appendLine()
-    sb.appendLine("## Facts (${facts.size})")
-    sb.appendLine()
-    facts.forEach { f ->
-        val stars = "⭐".repeat(f.importance)
-        sb.appendLine("- $stars ${f.content}")
-        if (f.tags.isNotEmpty()) sb.appendLine("  Tags: ${f.tags.joinToString(", ")}")
-        f.createdAt?.let { sb.appendLine("  Created: $it") }
-        sb.appendLine()
-    }
-    sb.appendLine("## Summaries (${summaries.size})")
-    sb.appendLine()
-    summaries.forEach { s ->
-        sb.appendLine("### ${s.title}")
-        sb.appendLine(s.content)
-        sb.appendLine()
-    }
-    return sb.toString()
-}
-
-internal fun buildMemoryJson(facts: List<MemoryItem>, summaries: List<MemoryItem>): String {
-    // 审计修复 (8.9): 完整 JSON 转义 — 原实现只处理 " 和 \n,
-    // 反斜杠/\r/\t/控制字符不转义,内容含 C:\Users 之类即产出非法 JSON,
-    // tags 也不转义直接拼接。改用 kotlinx.serialization 编码保证合法。
-    val factsJson = facts.map { f ->
-        buildJsonObject {
-            put("id", JsonPrimitive(f.id))
-            put("content", JsonPrimitive(f.content))
-            put("importance", JsonPrimitive(f.importance))
-            put("tags", JsonArray(f.tags.map { JsonPrimitive(it) }))
-            put("createdAt", JsonPrimitive(f.createdAt ?: ""))
-        }
-    }
-    val summariesJson = summaries.map { s ->
-        buildJsonObject {
-            put("id", JsonPrimitive(s.id))
-            put("title", JsonPrimitive(s.title))
-            put("content", JsonPrimitive(s.content))
-        }
-    }
-    return buildJsonObject {
-        put("exportedAt", JsonPrimitive(java.time.Instant.now().toString()))
-        put("facts", JsonArray(factsJson))
-        put("summaries", JsonArray(summariesJson))
-    }.toString() + "\n"
-}
-
-internal object MemoryExportHelpers {
-    fun shareText(context: android.content.Context, text: String, fileName: String) {
-        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = if (fileName.endsWith(".json")) "application/json" else "text/markdown"
-            putExtra(android.content.Intent.EXTRA_TEXT, text)
-            putExtra(android.content.Intent.EXTRA_SUBJECT, fileName)
-        }
-        ShareIntentHelper.startChooserSafely(context, intent, "Share Memory Export")
-    }
-}
-
 /**
  * 记忆「来龙去脉」面板 —— 列出该条事实的修订历史。
  *
