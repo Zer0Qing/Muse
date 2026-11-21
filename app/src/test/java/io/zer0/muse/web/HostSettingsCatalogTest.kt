@@ -45,20 +45,18 @@ class HostSettingsCatalogTest {
         )
     }
 
-    /** App 侧用户可见的分组（与 [HostSettingsCatalog] 的收起口径一致）。 */
+    /**
+     * App 侧用户可见的分组。
+     *
+     * 2026-11-22: 原来这里要按 `FeatureFlags.MINI_PHONE` 过滤掉收起的小手机分类；
+     * 该分类已并入 CONNECTION，不再有需要按开关隐藏的独立分组，过滤条件随之去掉。
+     */
     private fun visibleAppGroups(): List<String> =
-        SettingsCatalog.groups
-            .filter { group ->
-                group.kind != SettingsGroupKind.MINI_PHONE || FeatureFlags.MINI_PHONE
-            }
-            .map { resourceName(it.titleRes) }
+        SettingsCatalog.groups.map { resourceName(it.titleRes) }
 
     @Test
     fun `catalog entries match each group's declared entries`() {
-        // 只比对用户可见的分组：已收起的分类不参与镜像契约。
-        val visibleGroups = SettingsCatalog.groups.filter { group ->
-            group.kind != SettingsGroupKind.MINI_PHONE || FeatureFlags.MINI_PHONE
-        }
+        val visibleGroups = SettingsCatalog.groups
         visibleGroups.forEachIndexed { index, group ->
             val hostGroup = HostSettingsCatalog.groups[index]
             val appEntries = group.entries
@@ -146,14 +144,12 @@ class HostSettingsCatalogTest {
 
     @Test
     fun `compile time gated entries keep their flag state`() {
-        // 闸门关掉时整组都不出现：既不该有 enabled=false 的死条目，也不该出现在扁平视图里。
+        // 2026-11-22: 小手机原来独占一个分组，闸门关掉时整组不出现，所以这里断言「条目不存在」。
+        // 并入连接组后组本身必须存在（里面还有别的条目），闸门只控制这一条是否可点：
+        // 关闭时条目仍在目录里但 enabled=false，开启时才可进子页。
         val hostMiniPhone = HostSettingsCatalog.entries.firstOrNull { it.id == "miniphone" }
-        if (FeatureFlags.MINI_PHONE) {
-            assertNotNull("闸门开启时协议侧必须有该入口", hostMiniPhone)
-            assertEquals(true, hostMiniPhone?.enabled)
-        } else {
-            assertNull("闸门关闭时协议侧不该出现该入口", hostMiniPhone)
-        }
+        assertNotNull("合并分组后该条目始终在目录里（组还在）", hostMiniPhone)
+        assertEquals("闸门状态必须如实反映在 enabled 上", FeatureFlags.MINI_PHONE, hostMiniPhone?.enabled)
     }
 
     private fun expectedKind(action: SettingsEntryAction): String = when (action) {

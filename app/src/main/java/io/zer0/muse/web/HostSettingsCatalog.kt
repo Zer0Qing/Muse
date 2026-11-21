@@ -57,13 +57,8 @@ internal object HostSettingsCatalog {
             link("assistants", "settings_screen_assistant", "atom"),
             link("assistant_resources", "settings_screen_assistant_resources", "stars"),
             link("agent", "chat_agent_tab_title", "users"),
-        ),
-        group(
-            "settings_group_chat",
+            // 2026-11-22: CHAT / APPEARANCE 原本各自成组（各 1 条），并入助手组。
             link("chat", "settings_screen_chat", "chat"),
-        ),
-        group(
-            "settings_group_appearance",
             link("appearance", "settings_screen_appearance_label", "palette"),
         ),
         group(
@@ -116,6 +111,13 @@ internal object HostSettingsCatalog {
             link("mcp", "settings_screen_mcp", "plug"),
             // 代理条目的说明由运行时拼(未启用 / type host:port),没有固定资源。
             link("proxy", "proxy_title", "proxy"),
+            // 2026-11-22: KEEP_ALIVE / MINI_PHONE 原本各自成组（各 1 条），并入连接组。
+            link("keep_alive", "settings_keep_alive_title", "battery"),
+            link(
+                "miniphone",
+                "settings_miniphone_title",
+                "deviceMobile",
+                enabled = FeatureFlags.MINI_PHONE),
         ),
         group(
             "settings_group_automation",
@@ -134,28 +136,13 @@ internal object HostSettingsCatalog {
             link("ui_automation", "automation_settings_title", "computer"),
         ),
         group(
-            "settings_group_keep_alive",
-            link("keep_alive", "settings_keep_alive_title", "battery"),
-        ),
-        group(
-            "settings_group_miniphone",
-            link(
-                "miniphone",
-                "settings_miniphone_title",
-                "deviceMobile",
-                enabled = FeatureFlags.MINI_PHONE),
-        ),
-        group(
             "settings_group_data_storage",
             link("data_management", "data_management_entry", "database"),
             link("workspace", "workspace_title", "folder"),
             link("backup", "settings_screen_data_backup", "cloud"),
             link("data_import", "settings_screen_data_import", "cloudUpload"),
             link("archived_chats", "settings_screen_entry_archived", "archive"),
-        ),
-        // 与 App 侧同步：运行环境独立成「离线资源」一级分组。
-        group(
-            "offline_resources_title",
+            // 2026-11-22: OFFLINE 原本独立成组（1 条），并入数据组。
             link("runtime", "offline_resources_entry_title", "download"),
         ),
         group(

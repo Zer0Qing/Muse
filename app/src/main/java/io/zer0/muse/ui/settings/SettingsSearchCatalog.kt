@@ -99,7 +99,7 @@ internal object SettingsSearchExtras {
     val records: List<SettingsSearchRecord> = listOf(
         record(
             R.string.section_theme,
-            SettingsGroupKind.APPEARANCE,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsAppearanceRoute),
             listOf(
                 "主题", "配色", "深色", "浅色", "暗黑", "AMOLED", "颜色", "zhuti", "peise", "shense",
@@ -108,25 +108,25 @@ internal object SettingsSearchExtras {
         ),
         record(
             R.string.settings_screen_entry_font_size,
-            SettingsGroupKind.APPEARANCE,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsAppearanceRoute),
             listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"),
         ),
         record(
             R.string.settings_screen_entry_theme_mode,
-            SettingsGroupKind.APPEARANCE,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsAppearanceRoute),
             listOf("主题模式", "浅色", "深色", "跟随系统", "zhutimoshi", "qianse", "shense", "genshixitong", "ztms", "qs", "ss", "gsxt"),
         ),
         record(
             R.string.settings_theme_dynamic_color,
-            SettingsGroupKind.APPEARANCE,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsAppearanceRoute),
             listOf("动态取色", "取色", "壁纸", "dongtaiquse", "quse", "dtqs", "qs", "bz"),
         ),
         record(
             R.string.settings_screen_entry_scheduled_theme,
-            SettingsGroupKind.APPEARANCE,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsAppearanceRoute),
             listOf("定时切换", "自动切换", "深色模式", "dingshiqiehuan", "zidongqiehuan", "shensemoshi", "dsqh", "zdqh", "ssms"),
         ),
@@ -243,31 +243,31 @@ internal object SettingsSearchExtras {
         ),
         record(
             R.string.settings_chat_streaming,
-            SettingsGroupKind.CHAT,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsChatRoute),
             listOf("流式", "流式响应", "实时输出", "liushi", "liushixiangying", "shishishuchu", "ls", "lsxy", "sssc"),
         ),
         record(
             R.string.settings_screen_entry_enter_send,
-            SettingsGroupKind.CHAT,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsChatRoute),
             listOf("回车发送", "回车", "发送", "huichefasong", "huiche", "fasong", "hcfs", "hc", "fs"),
         ),
         record(
             R.string.settings_screen_entry_auto_scroll,
-            SettingsGroupKind.CHAT,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsChatRoute),
             listOf("自动滚动", "滚动", "zidonggundong", "gundong", "zdgd", "gd"),
         ),
         record(
             R.string.chat_deep_thinking_cd,
-            SettingsGroupKind.CHAT,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsChatRoute),
             listOf("深度思考", "默认深度思考", "shendusikao", "morethorough", "sds", "sdsz"),
         ),
         record(
             R.string.settings_screen_entry_timestamps,
-            SettingsGroupKind.CHAT,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsChatRoute),
             listOf("时间戳", "24小时", "timestamp", "shijianchuo", "24xiaoshi", "sjc"),
         ),
@@ -301,7 +301,7 @@ internal object SettingsSearchExtras {
         // 表情包库并入聊天设置页后不再单独成条目；搜索仍直达它所在的聊天设置。
         record(
             R.string.settings_chat_sticker_section,
-            SettingsGroupKind.CHAT,
+            SettingsGroupKind.ASSISTANTS,
             SettingsEntryAction.Navigate(SettingsChatRoute),
             listOf(
                 "表情包", "表情", "贴纸", "表情包库", "sticker", "emoji", "biaoqingbao",

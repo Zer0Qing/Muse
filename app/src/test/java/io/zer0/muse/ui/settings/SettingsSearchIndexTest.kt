@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 /**
  * 设置搜索索引的结构与命中锁定。
  *
- * 索引由分类清单里的 47 项加上「只做搜索直达」的页内设置组成，全部记录都必须挂在
+ * 索引由分类清单里的 49 项加上「只做搜索直达」的页内设置组成，全部记录都必须挂在
  * 16 个一级分类之一上：搜索结果靠这个分类名拼面包屑，缺了它用户就不知道自己会被带到哪。
  * 这里用真实资源跑一遍过滤与面包屑，键名改了、分组搬了都会断出来。
  */
@@ -146,6 +146,24 @@ class SettingsSearchIndexTest {
         )
     }
 
+    /**
+     * 「工具批准」必须直达可写页。
+     *
+     * 此前这条索引指向 ToolsScreenRoute —— 那一页自述"只做展示与说明"，
+     * 用户搜到"工具批准"点进去改不了任何东西；真正可写的 ToolsSettingsPage
+     * 只挂在一条全仓 0 处 navigate 的死路由上。这条断言钉住"搜到就能改"。
+     */
+    @Test
+    fun `tool approval record opens the writable policy page`() {
+        val record = records.single { it.titleRes == R.string.settings_screen_entry_tool_approval }
+        assertEquals(
+            "工具批准必须直达可写页，不能指向只读的工具清单",
+            SettingsEntryAction.Navigate(io.zer0.muse.ui.navigation.ToolsSettingsRoute),
+            record.action,
+        )
+        assertEquals(SettingsGroupKind.TOOLS, record.group)
+    }
+
     @Test
     fun `web access entry is indexed in the connection group`() {
         val record = records.single { it.titleRes == R.string.settings_screen_web_access }
@@ -160,7 +178,8 @@ class SettingsSearchIndexTest {
 
     @Test
     fun `searching a category name lists that category's entries`() {
-        val chatGroup = SettingsGroupKind.CHAT
+        // CHAT 分类已并入 ASSISTANTS（2026-11-22），用并入后的分组做断言。
+        val chatGroup = SettingsGroupKind.ASSISTANTS
         val hits = search(groupTitles.getValue(chatGroup))
         val chatRecords = records.filter { it.group == chatGroup }
 

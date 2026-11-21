@@ -61,7 +61,6 @@ import kotlinx.coroutines.flow.Flow
  */
 enum class SettingsGroupKind {
     ASSISTANTS,
-    CHAT,
     MODELS,
     TOOLS,
     VOICE,
@@ -69,11 +68,7 @@ enum class SettingsGroupKind {
     MEMORY,
     CONNECTION,
     AUTOMATION,
-    KEEP_ALIVE,
-    APPEARANCE,
-    MINI_PHONE,
     DATA_STORAGE,
-    OFFLINE,
     PRIVACY_SECURITY,
     ABOUT,
     DEVELOPER,
@@ -88,9 +83,9 @@ enum class SettingsGroupKind {
 enum class SettingsEntryId {
     USER_PROFILE,
     ASSISTANTS,
+    CHAT,
     ASSISTANT_RESOURCES,
     AGENT,
-    CHAT,
     SHARE,
     PROVIDER,
     TASK_ROUTING,
@@ -100,6 +95,7 @@ enum class SettingsEntryId {
     WEB_SEARCH,
     /** 单工具审批策略页（可写）。此前只有搜索索引指向只读的 [ToolsScreenRoute]。 */
     TOOL_APPROVAL,
+    APPEARANCE,
     TTS,
     ASR,
     VOICE_CLONING,
@@ -115,7 +111,6 @@ enum class SettingsEntryId {
     NOTIFICATION_LISTENER,
     UI_AUTOMATION,
     KEEP_ALIVE,
-    APPEARANCE,
     MINIPHONE,
     DATA_MANAGEMENT,
     WORKSPACE,
@@ -269,13 +264,6 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(SettingsAgentRoute),
                     keywords = listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"),
                 ),
-            ),
-        ),
-        group(
-            SettingsGroupKind.CHAT,
-            R.string.settings_group_chat,
-            MuseIcons.chat,
-            entries(
                 entry(
                     SettingsEntryId.CHAT,
                     R.string.settings_screen_chat,
@@ -287,13 +275,6 @@ object SettingsCatalog {
                         "快捷键", "引用回复",
                     ),
                 ),
-            ),
-        ),
-        group(
-            SettingsGroupKind.APPEARANCE,
-            R.string.settings_group_appearance,
-            MuseIcons.palette,
-            entries(
                 entry(
                     SettingsEntryId.APPEARANCE,
                     R.string.settings_screen_appearance_label,
@@ -557,6 +538,30 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(SettingsProxyRoute),
                     keywords = listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"),
                 ),
+                entry(
+                    SettingsEntryId.KEEP_ALIVE,
+                    R.string.settings_keep_alive_title,
+                    MuseIcons.battery,
+                    SettingsEntryAction.Navigate(KeepAliveSettingsRoute),
+                    keywords = listOf(
+                        "常驻后台", "保活", "后台", "电池优化", "自启动", "通知文案",
+                        "changzhu", "baohuo", "houtai", "dianchi", "zhiqidong",
+                        "czy", "bh", "ht", "dc", "zqd",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.MINIPHONE,
+                    R.string.settings_miniphone_title,
+                    MuseIcons.deviceMobile,
+                    SettingsEntryAction.Navigate(MiniPhoneRoute),
+                    keywords = listOf(
+                        "小手机", "内置手机", "手机", "miniphone", "mini phone", "xiaoshouji",
+                        "neizhishouji", "shouji", "xsj", "sj",
+                    ),
+                    // 31: 可见性只认编译期总闸这一个真源。原先这里再写一份 false，
+                    // 开入口时就得记得改两处，漏一处就是首页能进、设置搜不到。
+                    browseVisible = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY,
+                ),
             ),
         ),
         group(
@@ -600,44 +605,6 @@ object SettingsCatalog {
                     MuseIcons.computer,
                     SettingsEntryAction.Navigate(SettingsAutomationRoute),
                     keywords = listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"),
-                ),
-            ),
-        ),
-        group(
-            SettingsGroupKind.KEEP_ALIVE,
-            R.string.settings_group_keep_alive,
-            MuseIcons.battery,
-            entries(
-                entry(
-                    SettingsEntryId.KEEP_ALIVE,
-                    R.string.settings_keep_alive_title,
-                    MuseIcons.battery,
-                    SettingsEntryAction.Navigate(KeepAliveSettingsRoute),
-                    keywords = listOf(
-                        "常驻后台", "保活", "后台", "电池优化", "自启动", "通知文案",
-                        "changzhu", "baohuo", "houtai", "dianchi", "zhiqidong",
-                        "czy", "bh", "ht", "dc", "zqd",
-                    ),
-                ),
-            ),
-        ),
-        group(
-            SettingsGroupKind.MINI_PHONE,
-            R.string.settings_group_miniphone,
-            MuseIcons.deviceMobile,
-            entries(
-                entry(
-                    SettingsEntryId.MINIPHONE,
-                    R.string.settings_miniphone_title,
-                    MuseIcons.deviceMobile,
-                    SettingsEntryAction.Navigate(MiniPhoneRoute),
-                    keywords = listOf(
-                        "小手机", "内置手机", "手机", "miniphone", "mini phone", "xiaoshouji",
-                        "neizhishouji", "shouji", "xsj", "sj",
-                    ),
-                    // 31: 可见性只认编译期总闸这一个真源。原先这里再写一份 false，
-                    // 开入口时就得记得改两处，漏一处就是首页能进、设置搜不到。
-                    browseVisible = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY,
                 ),
             ),
         ),
@@ -690,16 +657,6 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(ArchivedChatsRoute),
                     keywords = listOf("归档", "archive", "已归档", "guidang", "gd"),
                 ),
-            ),
-        ),
-        // 下载类资源单独成组放在一级：运行环境和语音模型都是几百 MB 的按需下载，
-        // 以前一个在「数据与备份」里、一个在「语音识别」里再点一层，用户得记住两处。
-        // 合成一组后，设置首页一眼就能看到「还有个东西要下」。
-        group(
-            SettingsGroupKind.OFFLINE,
-            R.string.offline_resources_title,
-            MuseIcons.download,
-            entries(
                 // 条目名与组名分开:此前两者共用 offline_resources_title,
                 // 首页那一行、页面标题、条目名三处同字,用户点进去会以为没跳转。
                 entry(
@@ -716,6 +673,9 @@ object SettingsCatalog {
                 ),
             ),
         ),
+        // 下载类资源单独成组放在一级：运行环境和语音模型都是几百 MB 的按需下载，
+        // 以前一个在「数据与备份」里、一个在「语音识别」里再点一层，用户得记住两处。
+        // 合成一组后，设置首页一眼就能看到「还有个东西要下」。
         group(
             SettingsGroupKind.PRIVACY_SECURITY,
             R.string.settings_group_privacy_security,
