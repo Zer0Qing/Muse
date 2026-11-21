@@ -1,5 +1,6 @@
 package io.zer0.muse.data.lorebook
 
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.builtins.ListSerializer
@@ -103,7 +104,7 @@ class LorebookRepository(
         // L-DAO1: DAO 分批查询每批最大 id 数
         const val DAO_BATCH_SIZE = 500
 
-        private val json = Json { ignoreUnknownKeys = true }
+        private val json = AppJson
         private val stringListSerializer = ListSerializer(String.serializer())
 
         // L-LB5: keywordsJson 解析缓存,避免每次 matchAgainst 重复解析

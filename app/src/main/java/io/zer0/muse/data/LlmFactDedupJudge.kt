@@ -1,5 +1,6 @@
 package io.zer0.muse.data
 
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.memory.fact.DedupVerdict
 import io.zer0.memory.fact.FactDedupJudge
@@ -20,7 +21,7 @@ class LlmFactDedupJudge(
     private val llmClient: MemoryLlmClient,
 ) : FactDedupJudge {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
 
     override suspend fun judge(a: String, b: String, entityKeyA: String?, entityKeyB: String?): DedupVerdict {
         return try {

@@ -1,6 +1,7 @@
 package io.zer0.muse.schedule
 
 import android.content.Context
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -32,7 +33,7 @@ class UserActivityProfile(
     context: Context,
 ) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
 
     @Volatile
     private var state: ProfileState = load()

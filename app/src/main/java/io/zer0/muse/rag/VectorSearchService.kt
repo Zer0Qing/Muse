@@ -1,5 +1,6 @@
 package io.zer0.muse.rag
 
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.sync.Mutex
@@ -142,7 +143,7 @@ class VectorSearchService(
     }
 
     private val mutex = Mutex()
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
 
     fun invalidateCache() {
         synchronized(cacheEntries) { cacheEntries.clear() }

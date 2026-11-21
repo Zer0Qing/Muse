@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import io.zer0.common.AppJson
 import kotlinx.serialization.json.Json
 import java.io.IOException
 
@@ -54,7 +55,7 @@ private val Context.userPersonaDataStore: DataStore<Preferences> by preferencesD
 
 class DataStoreUserPersonaStore(context: Context) : UserPersonaStore {
     private val dataStore = context.applicationContext.userPersonaDataStore
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
 
     private val preferences: Flow<Preferences> = dataStore.data.catch { t ->
         if (t is IOException) emit(emptyPreferences()) else throw t

@@ -98,7 +98,7 @@ class RagService(
      */
     val activeEmbeddingBackend: StateFlow<EmbeddingService.BackendState?> = embeddingService.activeBackend
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
     private val embedBatchSize = 50
     private val vectorIndexRebuildMarkerFile: File? = indexFile?.let { File(it.absolutePath + ".rebuild_required") }
 

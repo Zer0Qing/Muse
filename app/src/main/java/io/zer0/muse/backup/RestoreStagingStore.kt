@@ -1,6 +1,7 @@
 package io.zer0.muse.backup
 
 import android.content.Context
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.data.AtomicFileStore
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,7 @@ import java.nio.file.StandardCopyOption
 class RestoreStagingStore(context: Context) {
 
     private val directory = File(context.filesDir, DIRECTORY_NAME)
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
 
     fun writeTarget(entry: RestoreJournal.Entry, backup: BackupService.Backup) {
         write(fileFor(entry.stagingFileName), backup)

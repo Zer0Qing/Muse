@@ -2,6 +2,7 @@ package io.zer0.muse.data.session
 
 import android.content.Context
 import androidx.room.withTransaction
+import io.zer0.common.AppJson
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.RagCitation
 import io.zer0.ai.core.UIMessage
@@ -86,7 +87,7 @@ class SessionRepository(
     private val folderDao: FolderDao? = null,
 ) {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
     private val messageFtsDao: MessageFtsDao get() = database.messageFtsDao()
     private val urlListSerializer = ListSerializer(String.serializer())
 

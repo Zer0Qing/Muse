@@ -1,5 +1,6 @@
 package io.zer0.muse.rag
 
+import io.zer0.common.AppJson
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -12,7 +13,7 @@ import kotlinx.serialization.json.jsonPrimitive
 object KnowledgeFolderBrowser {
     private const val FOLDER_PATH_KEY = "folderPath"
     private val ARCHIVE_SOURCE_SCHEMES = setOf("zip", "7z", "rar")
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
 
     data class Folder(
         val name: String,

@@ -3,6 +3,7 @@ package io.zer0.muse.ui.groupchat
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
@@ -169,7 +170,7 @@ class GroupChatViewModel(
     }
 
     private val _state = MutableStateFlow(GroupChatUiState())
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = AppJson
     val state: StateFlow<GroupChatUiState> = _state.asStateFlow()
 
     /** v1.126: 上次发送时间戳,用于 debounce */

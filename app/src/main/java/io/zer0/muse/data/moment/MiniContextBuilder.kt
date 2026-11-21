@@ -1,5 +1,6 @@
 package io.zer0.muse.data.moment
 
+import io.zer0.common.AppJson
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
@@ -59,7 +60,7 @@ class MiniContextBuilder(
     private val worldBookHook: WorldBookHook? = null,
 ) {
 
-    private val idListJson = Json { ignoreUnknownKeys = true }
+    private val idListJson = AppJson
 
     /**
      * 构建一次旁路生成所需的完整消息列表。

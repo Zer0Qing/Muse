@@ -5,6 +5,7 @@ package io.zer0.muse.backup
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
+import io.zer0.common.AppJson
 import io.zer0.memory.fact.FactDb
 import io.zer0.memory.fact.FactEntity
 import io.zer0.memory.summary.CompiledSectionEntity
@@ -3471,7 +3472,7 @@ private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
 )
 
 /** Phase 3 (P1): 读回校验用的宽松 JSON 解析器(忽略未知字段,与导出侧一致)。 */
-private val readBackJson = Json { ignoreUnknownKeys = true }
+private val readBackJson = AppJson
 
 /**
  * Phase 3 (可靠性 P1): 云备份读回校验 — 解密后的 NDJSON 结构/meta 校验。
