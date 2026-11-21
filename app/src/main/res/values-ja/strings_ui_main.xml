@@ -822,4 +822,6 @@
     <string name="channel_weclaw_summary">WeChat の iLink プロトコルで個人アカウントを接続します。1 つの WeChat ID は 1 チャネルのみ紐付けでき、新しく紐付けると前は無効になります。能動通知は直近の受信メッセージで開く返信ウィンドウに依存します。届かない場合はこのチャネルへ WeChat を送って窓を開けてください。</string>    <string name="assistant_detail_pinned_injection">固定メモリを注入</string>
     <string name="assistant_detail_pinned_injection_desc">オフにすると固定項目はメモリに残りますが、各ターンには注入されません</string>
     <string name="assistant_detail_pinned_remove_cd">固定を解除</string>
+    <string name="runtime_ready_continue_prompt">ランタイムの準備ができました。先ほどのタスクを続けてください。</string>
+    <string name="offline_resources_entry_title">ランタイム</string>
 </resources>

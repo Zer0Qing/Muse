@@ -825,4 +825,6 @@
     <string name="channel_weclaw_summary">Conecta uma conta pessoal pelo protocolo iLink do WeChat. A mesma conta do WeChat só pode ter um canal: ao vincular outro, o anterior é desativado. Avisos proativos dependem da janela de resposta aberta por uma mensagem recente; se não chegarem, envie um WeChat a este canal para reabri-la.</string>    <string name="assistant_detail_pinned_injection">Injetar memórias fixadas</string>
     <string name="assistant_detail_pinned_injection_desc">Quando desativado, os itens fixados continuam na memória mas não são mais injetados a cada turno</string>
     <string name="assistant_detail_pinned_remove_cd">Desafixar</string>
+    <string name="runtime_ready_continue_prompt">O ambiente de execução está pronto. Continue a tarefa.</string>
+    <string name="offline_resources_entry_title">Ambiente de execução</string>
 </resources>

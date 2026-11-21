@@ -36,8 +36,6 @@
     <string name="markdown_chart_label">Chart</string>
     <string name="markdown_mermaid_label">Mermaid Diagram</string>
     <string name="markdown_plantuml_label">PlantUML Diagram</string>
-    <string name="markdown_svg_cd">SVG graphic</string>
-    <string name="markdown_html_cd">HTML content</string>
     <string name="markdown_chart_cd">Chart: %1$s</string>
     <string name="markdown_mermaid_cd">Mermaid diagram: %1$s</string>
     <string name="markdown_plantuml_cd">PlantUML diagram: %1$s</string>
@@ -53,7 +51,6 @@
     <string name="card_favorite_done">Card added to favorites</string>
     <string name="card_favorite_failed">Failed to favorite card: %1$s</string>
     <string name="card_favorite_session_title">Card favorites</string>
-    <string name="card_favorite_wrapper">Favorited card: %1$s</string>
     <string name="markdown_plantuml_remote_notice">PlantUML diagrams require network access, and the diagram source will be sent to the third-party service plantuml.com for online rendering.</string>
     <string name="markdown_plantuml_render_online">Render online anyway</string>
     <!-- HTML preview feature -->
@@ -215,4 +212,46 @@ Tap refresh to fetch the list upstream</string>
     <string name="favorites_select_all">Select all</string>
     <string name="favorites_batch_unfavorite">Unfavorite</string>
     <string name="favorites_batch_group">Set group</string>
+    <string name="agent_bot_input_hint">Say something, or hand me a task</string>
+    <string name="agent_bot_tasks_title">In progress</string>
+    <string name="agent_bot_approvals_title">Needs your approval</string>
+    <string name="agent_bot_approve">Allow</string>
+    <string name="agent_bot_deny">Don\'t allow</string>
+    <string name="agent_bot_status_queued">Queued</string>
+    <string name="agent_bot_status_running">Working on it</string>
+    <string name="agent_bot_status_reviewing">Checking the result</string>
+    <string name="agent_bot_status_waiting_approval">Waiting for your approval</string>
+    <string name="agent_bot_status_waiting_resource">Waiting for a resource</string>
+    <string name="agent_bot_status_cancelling">Stopping</string>
+    <string name="agent_bot_status_succeeded">Done</string>
+    <string name="agent_bot_status_partial">Partly done</string>
+    <string name="agent_bot_status_failed">Didn\'t work</string>
+    <string name="agent_bot_status_cancelled">Cancelled</string>
+    <string name="agent_bot_status_needs_user">Needs your decision</string>
+    <string name="agent_bot_status_unknown">Result unknown</string>
+    <string name="agent_bot_error_no_session">No conversation is available yet</string>
+    <string name="agent_bot_error_save_failed">The message didn\'t save. Try again</string>
+    <string name="agent_bot_error_already_decided">You already decided this step</string>
+    <string name="agent_bot_error_approval_expired">This step timed out and needs to be started again</string>
+    <string name="agent_bot_error_approval_stale">The details changed, so the earlier approval no longer applies</string>
+    <string name="agent_bot_allowed_title">Allowed in this conversation</string>
+    <string name="agent_bot_revoke">Revoke</string>
+    <string name="agent_bot_keepalive_default">Working in the background</string>
+    <string name="agent_bot_error_missing_say">This one didn\'t go out. Tap retry</string>
+    <string name="agent_bot_candidates_title">Results that didn\'t land</string>
+    <string name="agent_bot_candidate_hint">The target changed, so it wasn\'t applied</string>
+    <string name="agent_bot_discard">Discard</string>
+    <string name="attachment_kind_video">[Video]</string>
+    <string name="attachment_kind_audio">[Audio]</string>
+    <string name="attachment_frame_note">(%1$d key frames attached)</string>
+    <string name="terminal_receipt_template">[Terminal receipt]
+Command: %1$s
+Output (tail):
+%2$s</string>
+    <string name="agent_bot_continue">Continue</string>
+    <string name="agent_bot_continue_confirm">Rerun the whole thing</string>
+    <string name="agent_bot_continue_cancel">Not now</string>
+    <string name="agent_bot_prompt_approved_retry">Approved — rerun now?</string>
+    <string name="agent_bot_stop_reply">Stop</string>
+    <string name="agent_bot_error_tool_blind">This turn could not dispatch: the model did not use tools, which may mean the provider does not support them. Try another provider, or tell me how to proceed.</string>
 </resources>

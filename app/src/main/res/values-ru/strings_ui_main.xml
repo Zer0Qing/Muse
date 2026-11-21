@@ -783,4 +783,6 @@
     <string name="channel_weclaw_summary">Подключает личный аккаунт через протокол iLink в WeChat. Один аккаунт WeChat может быть привязан только к одному каналу: новая привязка отменяет прежнюю. Инициативные уведомления зависят от окна ответа, открытого недавним входящим сообщением; если они не приходят, отправьте этому каналу сообщение в WeChat.</string>    <string name="assistant_detail_pinned_injection">Вставлять закреплённые воспоминания</string>
     <string name="assistant_detail_pinned_injection_desc">Если выключено, закреплённые записи остаются в памяти, но больше не добавляются в каждый запрос</string>
     <string name="assistant_detail_pinned_remove_cd">Открепить</string>
+    <string name="runtime_ready_continue_prompt">Среда выполнения готова. Продолжите задачу.</string>
+    <string name="offline_resources_entry_title">Среда выполнения</string>
 </resources>

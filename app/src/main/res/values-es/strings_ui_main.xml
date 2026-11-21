@@ -922,4 +922,6 @@
     <string name="assistant_detail_pinned_injection">Inyectar recuerdos fijados</string>
     <string name="assistant_detail_pinned_injection_desc">Al desactivarlo, los elementos fijados siguen en la memoria pero ya no se inyectan en cada turno</string>
     <string name="assistant_detail_pinned_remove_cd">Dejar de fijar</string>
+    <string name="runtime_ready_continue_prompt">El entorno de ejecución está listo. Continúa con la tarea.</string>
+    <string name="offline_resources_entry_title">Tiempo de ejecución</string>
 </resources>

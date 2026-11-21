@@ -217,4 +217,46 @@
     <string name="favorites_select_all">全选</string>
     <string name="favorites_batch_unfavorite">取消收藏</string>
     <string name="favorites_batch_group">设置分组</string>
+    <string name="agent_bot_input_hint">说点什么，或者交代一件事</string>
+    <string name="agent_bot_tasks_title">正在处理</string>
+    <string name="agent_bot_approvals_title">需要你批准</string>
+    <string name="agent_bot_approve">允许</string>
+    <string name="agent_bot_deny">不允许</string>
+    <string name="agent_bot_status_queued">排队中</string>
+    <string name="agent_bot_status_running">正在做</string>
+    <string name="agent_bot_status_reviewing">在核对结果</string>
+    <string name="agent_bot_status_waiting_approval">等你批准</string>
+    <string name="agent_bot_status_waiting_resource">在等资源空出来</string>
+    <string name="agent_bot_status_cancelling">正在停下</string>
+    <string name="agent_bot_status_succeeded">已完成</string>
+    <string name="agent_bot_status_partial">只完成了一部分</string>
+    <string name="agent_bot_status_failed">没做成</string>
+    <string name="agent_bot_status_cancelled">已取消</string>
+    <string name="agent_bot_status_needs_user">需要你决定</string>
+    <string name="agent_bot_status_unknown">结果无法确认</string>
+    <string name="agent_bot_error_no_session">还没有可用的会话</string>
+    <string name="agent_bot_error_save_failed">消息没能保存，请重试</string>
+    <string name="agent_bot_error_already_decided">这一步已经决定过了</string>
+    <string name="agent_bot_error_approval_expired">这一步已超时，需要重新发起</string>
+    <string name="agent_bot_error_approval_stale">这一步的细节变了，旧的批准已失效</string>
+    <string name="agent_bot_allowed_title">本对话已放行</string>
+    <string name="agent_bot_revoke">收回</string>
+    <string name="agent_bot_keepalive_default">正在后台处理</string>
+    <string name="agent_bot_error_missing_say">这一条没能发出去，点重试再试一次</string>
+    <string name="agent_bot_candidates_title">没落地的结果</string>
+    <string name="agent_bot_candidate_hint">目标已被改动，未覆盖</string>
+    <string name="agent_bot_discard">丢弃</string>
+    <string name="attachment_kind_video">[视频]</string>
+    <string name="attachment_kind_audio">[音频]</string>
+    <string name="attachment_frame_note">（已附 %1$d 张关键帧）</string>
+    <string name="terminal_receipt_template">【终端回执】
+命令：%1$s
+输出（末尾）：
+%2$s</string>
+    <string name="agent_bot_continue">继续</string>
+    <string name="agent_bot_continue_confirm">重跑整件事</string>
+    <string name="agent_bot_continue_cancel">先算了</string>
+    <string name="agent_bot_prompt_approved_retry">已批准，要重跑吗</string>
+    <string name="agent_bot_stop_reply">停止</string>
+    <string name="agent_bot_error_tool_blind">这一轮没能派工：模型没有使用工具，可能是不支持工具调用。换个供应商试试，或直接告诉我怎么做。</string>
 </resources>

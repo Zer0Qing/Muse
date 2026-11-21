@@ -949,4 +949,6 @@
     <string name="channel_weclaw_summary">通过微信 iLink 协议接入个人号；一个微信号只能绑一个渠道，绑新的会让旧的失效。主动提醒依赖最近收到消息后打开的回复窗口，没送达就先给这个渠道发一条微信激活它。</string>    <string name="assistant_detail_pinned_injection">注入置顶记忆</string>
     <string name="assistant_detail_pinned_injection_desc">关闭后置顶内容仍保留在记忆库，但不再随每轮对话注入</string>
     <string name="assistant_detail_pinned_remove_cd">取消置顶</string>
+    <string name="runtime_ready_continue_prompt">运行时环境已就绪，继续刚才的任务。</string>
+    <string name="offline_resources_entry_title">运行时</string>
 </resources>

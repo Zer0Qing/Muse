@@ -210,4 +210,46 @@
     <string name="favorites_select_all">Выбрать всё</string>
     <string name="favorites_batch_unfavorite">Убрать из избранного</string>
     <string name="favorites_batch_group">Задать группу</string>
+    <string name="agent_bot_input_hint">Скажите что-нибудь или дайте задачу</string>
+    <string name="agent_bot_tasks_title">В работе</string>
+    <string name="agent_bot_approvals_title">Требуется ваше одобрение</string>
+    <string name="agent_bot_approve">Разрешить</string>
+    <string name="agent_bot_deny">Не разрешать</string>
+    <string name="agent_bot_status_queued">В очереди</string>
+    <string name="agent_bot_status_running">Выполняется</string>
+    <string name="agent_bot_status_reviewing">Проверяю результат</string>
+    <string name="agent_bot_status_waiting_approval">Ждёт вашего одобрения</string>
+    <string name="agent_bot_status_waiting_resource">Ждёт ресурс</string>
+    <string name="agent_bot_status_cancelling">Останавливается</string>
+    <string name="agent_bot_status_succeeded">Готово</string>
+    <string name="agent_bot_status_partial">Выполнено частично</string>
+    <string name="agent_bot_status_failed">Не получилось</string>
+    <string name="agent_bot_status_cancelled">Отменено</string>
+    <string name="agent_bot_status_needs_user">Нужно ваше решение</string>
+    <string name="agent_bot_status_unknown">Результат неизвестен</string>
+    <string name="agent_bot_error_no_session">Пока нет доступного разговора</string>
+    <string name="agent_bot_error_save_failed">Сообщение не сохранилось. Попробуйте ещё раз</string>
+    <string name="agent_bot_error_already_decided">Этот шаг уже решён</string>
+    <string name="agent_bot_error_approval_expired">Время этого шага истекло, нужно начать заново</string>
+    <string name="agent_bot_error_approval_stale">Детали изменились, прежнее одобрение больше не действует</string>
+    <string name="agent_bot_allowed_title">Разрешено в этом разговоре</string>
+    <string name="agent_bot_revoke">Отозвать</string>
+    <string name="agent_bot_keepalive_default">Работаю в фоне</string>
+    <string name="agent_bot_error_missing_say">Это сообщение не отправилось. Нажмите «повторить»</string>
+    <string name="agent_bot_candidates_title">Результаты, которые не применились</string>
+    <string name="agent_bot_candidate_hint">Цель изменилась, поэтому не применено</string>
+    <string name="agent_bot_discard">Отбросить</string>
+    <string name="attachment_kind_video">[Видео]</string>
+    <string name="attachment_kind_audio">[Аудио]</string>
+    <string name="attachment_frame_note">(приложено ключевых кадров: %1$d)</string>
+    <string name="terminal_receipt_template">[Ответ терминала]
+Команда: %1$s
+Вывод (хвост):
+%2$s</string>
+    <string name="agent_bot_continue">Продолжить</string>
+    <string name="agent_bot_continue_confirm">Выполнить всё заново</string>
+    <string name="agent_bot_continue_cancel">Не сейчас</string>
+    <string name="agent_bot_prompt_approved_retry">Одобрено — выполнить заново?</string>
+    <string name="agent_bot_stop_reply">Остановить</string>
+    <string name="agent_bot_error_tool_blind">В этот раз не удалось поручить работу: модель не использовала инструменты, возможно, провайдер их не поддерживает. Попробуйте другого провайдера.</string>
 </resources>

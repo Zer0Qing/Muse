@@ -210,4 +210,46 @@ Toque em atualizar para buscar a lista</string>
     <string name="favorites_select_all">Selecionar tudo</string>
     <string name="favorites_batch_unfavorite">Remover dos favoritos</string>
     <string name="favorites_batch_group">Definir grupo</string>
+    <string name="agent_bot_input_hint">Diga algo ou me passe uma tarefa</string>
+    <string name="agent_bot_tasks_title">Em andamento</string>
+    <string name="agent_bot_approvals_title">Precisa da sua aprovação</string>
+    <string name="agent_bot_approve">Permitir</string>
+    <string name="agent_bot_deny">Não permitir</string>
+    <string name="agent_bot_status_queued">Na fila</string>
+    <string name="agent_bot_status_running">Trabalhando nisso</string>
+    <string name="agent_bot_status_reviewing">Conferindo o resultado</string>
+    <string name="agent_bot_status_waiting_approval">Aguardando sua aprovação</string>
+    <string name="agent_bot_status_waiting_resource">Aguardando um recurso</string>
+    <string name="agent_bot_status_cancelling">Parando</string>
+    <string name="agent_bot_status_succeeded">Concluído</string>
+    <string name="agent_bot_status_partial">Parcialmente concluído</string>
+    <string name="agent_bot_status_failed">Não deu certo</string>
+    <string name="agent_bot_status_cancelled">Cancelado</string>
+    <string name="agent_bot_status_needs_user">Precisa da sua decisão</string>
+    <string name="agent_bot_status_unknown">Resultado desconhecido</string>
+    <string name="agent_bot_error_no_session">Ainda não há uma conversa disponível</string>
+    <string name="agent_bot_error_save_failed">A mensagem não foi salva. Tente de novo</string>
+    <string name="agent_bot_error_already_decided">Você já decidiu esta etapa</string>
+    <string name="agent_bot_error_approval_expired">Esta etapa expirou e precisa ser iniciada de novo</string>
+    <string name="agent_bot_error_approval_stale">Os detalhes mudaram, a aprovação anterior não vale mais</string>
+    <string name="agent_bot_allowed_title">Permitido nesta conversa</string>
+    <string name="agent_bot_revoke">Revogar</string>
+    <string name="agent_bot_keepalive_default">Trabalhando em segundo plano</string>
+    <string name="agent_bot_error_missing_say">Esta não foi enviada. Toque em tentar de novo</string>
+    <string name="agent_bot_candidates_title">Resultados que não foram aplicados</string>
+    <string name="agent_bot_candidate_hint">O destino mudou, não foi aplicado</string>
+    <string name="agent_bot_discard">Descartar</string>
+    <string name="attachment_kind_video">[Vídeo]</string>
+    <string name="attachment_kind_audio">[Áudio]</string>
+    <string name="attachment_frame_note">(%1$d quadros-chave anexados)</string>
+    <string name="terminal_receipt_template">[Recibo do terminal]
+Comando: %1$s
+Saída (final):
+%2$s</string>
+    <string name="agent_bot_continue">Continuar</string>
+    <string name="agent_bot_continue_confirm">Executar tudo de novo</string>
+    <string name="agent_bot_continue_cancel">Agora não</string>
+    <string name="agent_bot_prompt_approved_retry">Aprovado — executar de novo?</string>
+    <string name="agent_bot_stop_reply">Parar</string>
+    <string name="agent_bot_error_tool_blind">Este turno não pôde delegar: o modelo não usou ferramentas, o que pode indicar que o provedor não as suporta. Tente outro provedor.</string>
 </resources>

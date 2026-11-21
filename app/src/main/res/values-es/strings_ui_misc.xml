@@ -210,4 +210,46 @@ Toca actualizar para obtener la lista</string>
     <string name="favorites_select_all">Seleccionar todo</string>
     <string name="favorites_batch_unfavorite">Quitar de favoritos</string>
     <string name="favorites_batch_group">Definir grupo</string>
+    <string name="agent_bot_input_hint">Di algo, o encárgame una tarea</string>
+    <string name="agent_bot_tasks_title">En curso</string>
+    <string name="agent_bot_approvals_title">Necesita tu aprobación</string>
+    <string name="agent_bot_approve">Permitir</string>
+    <string name="agent_bot_deny">No permitir</string>
+    <string name="agent_bot_status_queued">En cola</string>
+    <string name="agent_bot_status_running">Trabajando en ello</string>
+    <string name="agent_bot_status_reviewing">Revisando el resultado</string>
+    <string name="agent_bot_status_waiting_approval">Esperando tu aprobación</string>
+    <string name="agent_bot_status_waiting_resource">Esperando un recurso</string>
+    <string name="agent_bot_status_cancelling">Deteniendo</string>
+    <string name="agent_bot_status_succeeded">Hecho</string>
+    <string name="agent_bot_status_partial">Hecho en parte</string>
+    <string name="agent_bot_status_failed">No salió</string>
+    <string name="agent_bot_status_cancelled">Cancelado</string>
+    <string name="agent_bot_status_needs_user">Necesita tu decisión</string>
+    <string name="agent_bot_status_unknown">Resultado desconocido</string>
+    <string name="agent_bot_error_no_session">Aún no hay una conversación disponible</string>
+    <string name="agent_bot_error_save_failed">El mensaje no se guardó. Inténtalo de nuevo</string>
+    <string name="agent_bot_error_already_decided">Ya decidiste este paso</string>
+    <string name="agent_bot_error_approval_expired">Este paso expiró y hay que iniciarlo de nuevo</string>
+    <string name="agent_bot_error_approval_stale">Los detalles cambiaron, la aprobación anterior ya no vale</string>
+    <string name="agent_bot_allowed_title">Permitido en esta conversación</string>
+    <string name="agent_bot_revoke">Revocar</string>
+    <string name="agent_bot_keepalive_default">Trabajando en segundo plano</string>
+    <string name="agent_bot_error_missing_say">Este no se envió. Toca reintentar</string>
+    <string name="agent_bot_candidates_title">Resultados que no se aplicaron</string>
+    <string name="agent_bot_candidate_hint">El destino cambió, no se aplicó</string>
+    <string name="agent_bot_discard">Descartar</string>
+    <string name="attachment_kind_video">[Vídeo]</string>
+    <string name="attachment_kind_audio">[Audio]</string>
+    <string name="attachment_frame_note">(%1$d fotogramas adjuntos)</string>
+    <string name="terminal_receipt_template">[Recibo de terminal]
+Comando: %1$s
+Salida (final):
+%2$s</string>
+    <string name="agent_bot_continue">Continuar</string>
+    <string name="agent_bot_continue_confirm">Volver a ejecutarlo todo</string>
+    <string name="agent_bot_continue_cancel">Ahora no</string>
+    <string name="agent_bot_prompt_approved_retry">Aprobado, ¿volver a ejecutar?</string>
+    <string name="agent_bot_stop_reply">Detener</string>
+    <string name="agent_bot_error_tool_blind">Este turno no pudo delegar: el modelo no usó herramientas, lo que puede significar que el proveedor no las admite. Prueba otro proveedor o dime cómo proceder.</string>
 </resources>

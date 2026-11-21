@@ -210,4 +210,46 @@
     <string name="favorites_select_all">모두 선택</string>
     <string name="favorites_batch_unfavorite">즐겨찾기 해제</string>
     <string name="favorites_batch_group">그룹 설정</string>
+    <string name="agent_bot_input_hint">말을 걸거나 일을 맡겨 주세요</string>
+    <string name="agent_bot_tasks_title">진행 중</string>
+    <string name="agent_bot_approvals_title">승인이 필요합니다</string>
+    <string name="agent_bot_approve">허용</string>
+    <string name="agent_bot_deny">허용 안 함</string>
+    <string name="agent_bot_status_queued">대기 중</string>
+    <string name="agent_bot_status_running">작업 중</string>
+    <string name="agent_bot_status_reviewing">결과 확인 중</string>
+    <string name="agent_bot_status_waiting_approval">승인 대기 중</string>
+    <string name="agent_bot_status_waiting_resource">자원 대기 중</string>
+    <string name="agent_bot_status_cancelling">중지 중</string>
+    <string name="agent_bot_status_succeeded">완료</string>
+    <string name="agent_bot_status_partial">일부만 완료</string>
+    <string name="agent_bot_status_failed">실패</string>
+    <string name="agent_bot_status_cancelled">취소됨</string>
+    <string name="agent_bot_status_needs_user">결정이 필요합니다</string>
+    <string name="agent_bot_status_unknown">결과 확인 불가</string>
+    <string name="agent_bot_error_no_session">아직 사용할 수 있는 대화가 없습니다</string>
+    <string name="agent_bot_error_save_failed">메시지를 저장하지 못했습니다. 다시 시도해 주세요</string>
+    <string name="agent_bot_error_already_decided">이 단계는 이미 결정되었습니다</string>
+    <string name="agent_bot_error_approval_expired">이 단계는 시간이 지났습니다. 다시 시작해야 합니다</string>
+    <string name="agent_bot_error_approval_stale">내용이 바뀌어 이전 승인이 무효가 되었습니다</string>
+    <string name="agent_bot_allowed_title">이 대화에서 허용됨</string>
+    <string name="agent_bot_revoke">취소</string>
+    <string name="agent_bot_keepalive_default">백그라운드에서 처리 중</string>
+    <string name="agent_bot_error_missing_say">이 답장은 전송되지 않았습니다. 다시 시도해 주세요</string>
+    <string name="agent_bot_candidates_title">반영되지 못한 결과</string>
+    <string name="agent_bot_candidate_hint">대상이 바뀌어 적용하지 않았습니다</string>
+    <string name="agent_bot_discard">버리기</string>
+    <string name="attachment_kind_video">[동영상]</string>
+    <string name="attachment_kind_audio">[오디오]</string>
+    <string name="attachment_frame_note">(키프레임 %1$d장 첨부)</string>
+    <string name="terminal_receipt_template">[터미널 회신]
+명령: %1$s
+출력(끝부분):
+%2$s</string>
+    <string name="agent_bot_continue">계속</string>
+    <string name="agent_bot_continue_confirm">전체 다시 실행</string>
+    <string name="agent_bot_continue_cancel">지금은 안 함</string>
+    <string name="agent_bot_prompt_approved_retry">승인됨, 다시 실행할까요?</string>
+    <string name="agent_bot_stop_reply">중지</string>
+    <string name="agent_bot_error_tool_blind">이번에는 작업을 맡길 수 없었습니다. 모델이 도구를 사용하지 않았으며, 지원하지 않을 수 있습니다. 다른 공급자를 사용해 보세요.</string>
 </resources>

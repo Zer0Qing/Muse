@@ -821,4 +821,6 @@
     <string name="channel_weclaw_summary">WeChat iLink 프로토콜로 개인 계정을 연결합니다. 한 WeChat 계정은 하나의 채널에만 연결되며, 새로 연결하면 기존은 해제됩니다. 능동 알림은 최근 수신 메시지로 열리는 답장 창에 의존하니, 알림이 오지 않으면 이 채널로 WeChat을 보내 창을 열어 주세요.</string>    <string name="assistant_detail_pinned_injection">고정 메모리 주입</string>
     <string name="assistant_detail_pinned_injection_desc">끄면 고정 항목은 메모리에 남지만 매 턴 주입되지 않습니다</string>
     <string name="assistant_detail_pinned_remove_cd">고정 해제</string>
+    <string name="runtime_ready_continue_prompt">런타임이 준비되었습니다. 아까 하던 작업을 계속하세요.</string>
+    <string name="offline_resources_entry_title">런타임</string>
 </resources>

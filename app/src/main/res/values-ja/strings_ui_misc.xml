@@ -210,4 +210,46 @@
     <string name="favorites_select_all">すべて選択</string>
     <string name="favorites_batch_unfavorite">お気に入り解除</string>
     <string name="favorites_batch_group">グループ設定</string>
+    <string name="agent_bot_input_hint">話しかけるか、仕事を頼んでください</string>
+    <string name="agent_bot_tasks_title">進行中</string>
+    <string name="agent_bot_approvals_title">承認が必要です</string>
+    <string name="agent_bot_approve">許可</string>
+    <string name="agent_bot_deny">許可しない</string>
+    <string name="agent_bot_status_queued">待機中</string>
+    <string name="agent_bot_status_running">作業中</string>
+    <string name="agent_bot_status_reviewing">結果を確認中</string>
+    <string name="agent_bot_status_waiting_approval">承認待ち</string>
+    <string name="agent_bot_status_waiting_resource">リソース待ち</string>
+    <string name="agent_bot_status_cancelling">停止中</string>
+    <string name="agent_bot_status_succeeded">完了</string>
+    <string name="agent_bot_status_partial">一部のみ完了</string>
+    <string name="agent_bot_status_failed">できませんでした</string>
+    <string name="agent_bot_status_cancelled">キャンセル済み</string>
+    <string name="agent_bot_status_needs_user">判断が必要です</string>
+    <string name="agent_bot_status_unknown">結果不明</string>
+    <string name="agent_bot_error_no_session">まだ使える会話がありません</string>
+    <string name="agent_bot_error_save_failed">メッセージを保存できませんでした。もう一度お試しください</string>
+    <string name="agent_bot_error_already_decided">この手順はすでに決定済みです</string>
+    <string name="agent_bot_error_approval_expired">この手順は期限切れです。やり直しが必要です</string>
+    <string name="agent_bot_error_approval_stale">内容が変わったため、以前の承認は無効になりました</string>
+    <string name="agent_bot_allowed_title">この会話で許可済み</string>
+    <string name="agent_bot_revoke">取り消す</string>
+    <string name="agent_bot_keepalive_default">バックグラウンドで処理中</string>
+    <string name="agent_bot_error_missing_say">この返信は送信できませんでした。再試行してください</string>
+    <string name="agent_bot_candidates_title">反映できなかった結果</string>
+    <string name="agent_bot_candidate_hint">対象が変わったため適用していません</string>
+    <string name="agent_bot_discard">破棄</string>
+    <string name="attachment_kind_video">[動画]</string>
+    <string name="attachment_kind_audio">[音声]</string>
+    <string name="attachment_frame_note">（キーフレーム %1$d 枚を添付）</string>
+    <string name="terminal_receipt_template">【ターミナル受信】
+コマンド：%1$s
+出力（末尾）：
+%2$s</string>
+    <string name="agent_bot_continue">続ける</string>
+    <string name="agent_bot_continue_confirm">最初からやり直す</string>
+    <string name="agent_bot_continue_cancel">やめておく</string>
+    <string name="agent_bot_prompt_approved_retry">承認済み。やり直しますか</string>
+    <string name="agent_bot_stop_reply">停止</string>
+    <string name="agent_bot_error_tool_blind">今回は作業を任せられませんでした。モデルがツールを使わなかったためで、未対応の可能性があります。別のプロバイダーをお試しください。</string>
 </resources>
