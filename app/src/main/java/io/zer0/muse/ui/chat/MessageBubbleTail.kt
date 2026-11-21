@@ -81,7 +81,6 @@ import io.zer0.muse.ui.theme.tiny
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import io.zer0.muse.ui.InputBar
 import io.zer0.muse.ui.MessageBubble
 
 /** data-URI 图片前缀:只有这种图必须先解码才知道比例。 */

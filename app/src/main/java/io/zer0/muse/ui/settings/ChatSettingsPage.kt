@@ -67,6 +67,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.chat.InputBar
 
 /**
  * v0.31: 聊天二级设置页 — 给用户更多控制权。

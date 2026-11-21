@@ -33,8 +33,6 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.INPUT_TEXT_MAX_LENGTH
-import io.zer0.muse.ui.InputBar
 
 /** B7-07: 输入栏全屏编辑页,从 [InputBar] 拆出以降低主文件行数。 */
 @Composable

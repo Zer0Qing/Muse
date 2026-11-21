@@ -17,7 +17,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.InputBar
 
 /**
  * v1.105 阶段 1: 从 ChatViewModel 抽离的音频(TTS / ASR)Coordinator。

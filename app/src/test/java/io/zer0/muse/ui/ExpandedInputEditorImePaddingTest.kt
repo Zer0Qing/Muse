@@ -3,6 +3,7 @@ package io.zer0.muse.ui
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import io.zer0.muse.ui.chat.MuseExpandedInputEditor
+import io.zer0.muse.ui.chat.InputBar
 
 /**
  * AUD-UI-F14: 全屏输入编辑页必须有 imePadding,否则键盘遮住输入框/发送按钮。

@@ -114,6 +114,7 @@ import io.zer0.muse.ui.chat.SmartImage
 import io.zer0.muse.ui.chat.ThinkingIndicator
 import io.zer0.muse.ui.chat.HistoryLoadMorePlaceholder
 import io.zer0.muse.ui.chat.ChatSelectionBar
+import io.zer0.muse.ui.chat.InputBar
 
 /**
  * 群聊详情页 — 消息流 + 输入栏 + Agent 轮转回复。

@@ -4,6 +4,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.InputBar
 
 class CompactChatControlsWiringTest {
 
@@ -16,7 +17,7 @@ class CompactChatControlsWiringTest {
 
     @Test
     fun `single and group chat input islands share compact spacing tokens`() {
-        val inputBar = locate("src/main/java/io/zer0/muse/ui/InputBar.kt")
+        val inputBar = locate("src/main/java/io/zer0/muse/ui/chat/InputBar.kt")
         val groupInputBar = locate("src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt")
         assertTrue(inputBar.contains("MusePaddings.inputIslandHorizontal"))
         assertTrue(inputBar.contains("MusePaddings.inputIslandRowVertical"))
@@ -26,7 +27,7 @@ class CompactChatControlsWiringTest {
 
     @Test
     fun `compact input controls preserve 48dp touch target token`() {
-        val inputBar = locate("src/main/java/io/zer0/muse/ui/InputBar.kt")
+        val inputBar = locate("src/main/java/io/zer0/muse/ui/chat/InputBar.kt")
         val groupInputBar = locate("src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt")
         assertTrue(inputBar.contains("size(MuseIconSizes.touchTarget)"))
         assertTrue(groupInputBar.contains("size = MuseIconSizes.touchTarget"))

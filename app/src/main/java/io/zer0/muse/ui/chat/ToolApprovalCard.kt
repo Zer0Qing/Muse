@@ -59,7 +59,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.InputBar
 
 /**
  * Tool approval card.

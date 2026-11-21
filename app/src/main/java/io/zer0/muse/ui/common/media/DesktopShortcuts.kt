@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalConfiguration
+import io.zer0.muse.ui.chat.InputBar
 
 /**
  * P2-13: 桌面端键盘快捷键定义。

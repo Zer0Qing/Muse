@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.InputBar
 
 /**
  * v2.x 重构 S5: 从 ChatViewModel 提取的待恢复工具调用编排。
