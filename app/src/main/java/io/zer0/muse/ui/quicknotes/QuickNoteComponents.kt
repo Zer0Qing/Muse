@@ -130,6 +130,8 @@ internal fun QuickNoteActionMenu(
     onEdit: () -> Unit,
     onCopy: () -> Unit,
     onDelete: () -> Unit,
+    /** 2026-11-22: 卡片上原有的「发送到对话」图标并入此菜单，避免功能丢失。 */
+    onSendToChat: () -> Unit = {},
     onSetFolder: () -> Unit = {},
     onSetReminder: () -> Unit = {},
     onToggleEncrypt: () -> Unit = {},
@@ -167,6 +169,11 @@ internal fun QuickNoteActionMenu(
                     icon = MuseIcons.copy,
                     label = stringResource(R.string.quick_notes_copy),
                     onClick = onCopy,
+                )
+                QuickNoteActionRow(
+                    icon = MuseIcons.chat,
+                    label = stringResource(R.string.quick_notes_send_to_chat),
+                    onClick = onSendToChat,
                 )
                 // v2.6.7: 附件入口（排在编辑/复制之后，破坏性操作之前）
                 if (onAttachImage != null) {

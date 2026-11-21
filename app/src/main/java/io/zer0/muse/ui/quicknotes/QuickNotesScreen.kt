@@ -398,8 +398,7 @@ fun QuickNotesScreen(
                             note = note,
                             now = timeTicker,
                             initiallyExpanded = note.id == initialNoteId,
-                            onCopy = { copyNote(note) },
-                            onSendToChat = { sendNoteToChat(note) },
+
                             onEdit = { editingNote = note },
                             onDelete = { noteToDelete = note },
                             onMore = { noteForMenu = note },
@@ -473,6 +472,10 @@ fun QuickNotesScreen(
             onCopy = {
                 noteForMenu = null
                 copyNote(note)
+            },
+            onSendToChat = {
+                noteForMenu = null
+                sendNoteToChat(note)
             },
             onSetFolder = {
                 noteForMenu = null
@@ -870,10 +873,9 @@ private fun QuickNoteCard(
     /** 前端修复 (性能-3): 页面级共享 ticker 时间戳,用于相对时间刷新。 */
     now: Long,
     initiallyExpanded: Boolean = false,
-    onCopy: () -> Unit,
-    onSendToChat: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    /** 卡上只留一个「更多」入口，复制/发送/文件夹/提醒/加密/附件都在菜单里。 */
     onMore: () -> Unit,
 ) {
     val isPinned = note.pinned
@@ -1072,13 +1074,9 @@ private fun QuickNoteCard(
             }
 
             Spacer(Modifier.height(MusePaddings.auxGap))
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            )
-            Spacer(Modifier.height(MusePaddings.auxGap))
 
-            // 底部:时间 + 操作
+            // 底部:时间 + 操作。卡内不再画分割线 —— 卡片本身已有边界，
+            // 时间与操作紧贴内容底部，多一条线只是把一张便签切成两半。
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1090,42 +1088,17 @@ private fun QuickNoteCard(
                 )
                 Spacer(Modifier.weight(1f))
 
-                if (isPinned) {
-                    // 置顶记录只保留"更多"入口(编辑/删除等)
-                    MuseTactileButton(
-                        icon = MuseIcons.moreVertical,
-                        onClick = onMore,
-                        contentDescription = stringResource(R.string.quick_notes_more),
-                        tint = MaterialTheme.colorScheme.outline,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = MuseIconSizes.iconSmall,
-                    )
-                } else {
-                    MuseTactileButton(
-                        icon = MuseIcons.copy,
-                        onClick = onCopy,
-                        contentDescription = stringResource(R.string.quick_notes_copy),
-                        tint = MaterialTheme.colorScheme.outline,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = MuseIconSizes.iconSmall,
-                    )
-                    MuseTactileButton(
-                        icon = MuseIcons.chat,
-                        onClick = onSendToChat,
-                        contentDescription = stringResource(R.string.quick_notes_send_to_chat),
-                        tint = MaterialTheme.colorScheme.outline,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = MuseIconSizes.iconSmall,
-                    )
-                    MuseTactileButton(
-                        icon = MuseIcons.moreVertical,
-                        onClick = onMore,
-                        contentDescription = stringResource(R.string.quick_notes_more),
-                        tint = MaterialTheme.colorScheme.outline,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = MuseIconSizes.iconSmall,
-                    )
-                }
+                // 每张卡只留一个「更多」入口：复制 / 发送到对话 / 编辑 / 删除
+                // 都在那个菜单里。三个并列图标让每张便签底部都是一排按钮，
+                // 而便签的主要动作是「读」，不是「操作」。
+                MuseTactileButton(
+                    icon = MuseIcons.moreVertical,
+                    onClick = onMore,
+                    contentDescription = stringResource(R.string.quick_notes_more),
+                    tint = MaterialTheme.colorScheme.outline,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.iconSmall,
+                )
             }
         }
     }
