@@ -612,7 +612,6 @@ fun ChatSettingsPage(
                 SettingsItemRow(
                     icon = MuseIcons.copy,
                     title = stringResource(R.string.settings_chat_quick_customize),
-                    subtitle = stringResource(R.string.settings_chat_quick_actions_desc),
                     onClick = onOpenQuickActions,
                 ) { ChevronRight() }
             }
