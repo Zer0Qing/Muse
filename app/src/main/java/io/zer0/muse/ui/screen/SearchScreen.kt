@@ -68,7 +68,7 @@ import java.util.concurrent.TimeUnit
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.chat.isSameDay
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.MessageBubble
+import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * v0.45: 独立全局搜索页。

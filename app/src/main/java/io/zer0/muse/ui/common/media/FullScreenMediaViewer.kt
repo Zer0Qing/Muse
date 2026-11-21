@@ -46,6 +46,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
+import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * v1.0.15: 可缩放图片 — 支持双指缩放、双击缩放、缩放后拖拽平移。

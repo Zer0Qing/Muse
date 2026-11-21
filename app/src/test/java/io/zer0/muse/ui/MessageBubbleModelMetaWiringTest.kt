@@ -4,6 +4,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.MessageBubble
 
 class MessageBubbleModelMetaWiringTest {
 
@@ -32,8 +33,8 @@ class MessageBubbleModelMetaWiringTest {
     private fun locateMessageBubbleSource(): String {
         val candidates =
             listOf(
-                Path.of("src/main/java/io/zer0/muse/ui/MessageBubble.kt"),
-                Path.of("app/src/main/java/io/zer0/muse/ui/MessageBubble.kt"),
+                Path.of("src/main/java/io/zer0/muse/ui/chat/MessageBubble.kt"),
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/MessageBubble.kt"),
             )
         val path = candidates.firstOrNull(Files::exists)
             ?: error("Unable to locate MessageBubble.kt from ${System.getProperty("user.dir")}")

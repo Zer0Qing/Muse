@@ -61,6 +61,7 @@ import io.zer0.muse.ui.ToolCallRecord
 import io.zer0.muse.ui.chat.ToolCallCard
 import io.zer0.muse.ui.chat.STICKER_PATH_PATTERN
 import io.zer0.muse.ui.chat.extractStickerPaths
+import io.zer0.muse.ui.chat.MessageBubble
 
 /** 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
 internal const val TOOL_TIMEOUT_MS = 120_000L

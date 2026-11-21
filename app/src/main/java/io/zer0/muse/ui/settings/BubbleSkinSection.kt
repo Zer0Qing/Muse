@@ -56,6 +56,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.PluginSkinSource
 import kotlinx.coroutines.launch
+import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * Phase 4: 气泡皮肤选择与预览区。

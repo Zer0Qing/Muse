@@ -1,6 +1,6 @@
 @file:Suppress("FunctionNaming")
 
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -84,16 +84,6 @@ import io.zer0.muse.data.session.MessageMarkers
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.artifact.ArtifactCardList
-import io.zer0.muse.ui.chat.TextSelectionPanel
-import io.zer0.muse.ui.chat.BranchSelector
-import io.zer0.muse.ui.chat.MessageInfoSheet
-import io.zer0.muse.ui.chat.QuickAction
-import io.zer0.muse.ui.chat.QuickActionButton
-import io.zer0.muse.ui.chat.StickerAwareMarkdownBody
-import io.zer0.muse.ui.chat.VideoAttachment
-import io.zer0.muse.ui.chat.VoiceMessageBubble
-import io.zer0.muse.ui.chat.buildMoodSkinAnnotated
-import io.zer0.muse.ui.chat.parseQuotedContent
 import io.zer0.muse.ui.common.MusePopover
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -133,29 +123,7 @@ import kotlinx.coroutines.launch
 import io.zer0.muse.ui.screen.favoriteStarTint
 import io.zer0.muse.ui.screen.MessageActionSurface
 import io.zer0.muse.ui.common.saveImageToGallery
-import io.zer0.muse.ui.chat.GeneratedImageCard
-import io.zer0.muse.ui.chat.ActionMenuItem
-import io.zer0.muse.ui.chat.SmartImage
-import io.zer0.muse.ui.chat.AssistantVideoCard
-import io.zer0.muse.ui.chat.StreamingCursor
-import io.zer0.muse.ui.chat.ThinkingIndicator
-import io.zer0.muse.ui.chat.TtsAudioPlayer
-import io.zer0.muse.ui.chat.formatMessageTime
-import io.zer0.muse.ui.chat.MessageBubbleFormatters
-import io.zer0.muse.ui.chat.rememberLinkPreviews
-import io.zer0.muse.ui.chat.LinkPreviewCard
-import io.zer0.muse.ui.chat.ToolRunCard
-import io.zer0.muse.ui.chat.buildHighlightedText
-import io.zer0.muse.ui.chat.ThinkingBubble
-import io.zer0.muse.ui.chat.ToolCallCard
-import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
-import io.zer0.muse.ui.chat.STICKER_PATH_PATTERN
-import io.zer0.muse.ui.chat.extractStickerPaths
-import io.zer0.muse.ui.chat.extractMarkdownImageUrls
-import io.zer0.muse.ui.chat.isLongFormContent
-import io.zer0.muse.ui.chat.RagCitationChips
-import io.zer0.muse.ui.chat.MessageAttachmentChips
-import io.zer0.muse.ui.chat.AttachmentPreviewDialog
+import io.zer0.muse.ui.TranslationLanguages
 
 internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。

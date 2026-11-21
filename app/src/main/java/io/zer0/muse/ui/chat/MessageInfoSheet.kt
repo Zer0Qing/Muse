@@ -23,7 +23,6 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import java.util.Date
 import java.util.Locale
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.MessageBubble
 
 /**
  * A5: 消息信息弹层 — 即点即看 模型/时间/耗时/Token 用量。

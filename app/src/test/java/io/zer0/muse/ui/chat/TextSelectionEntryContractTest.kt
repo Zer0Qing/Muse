@@ -24,7 +24,7 @@ class TextSelectionEntryContractTest {
             ?: error("无法定位 $relative")
     }
 
-    private val messageBubble: String by lazy { source("src/main/java/io/zer0/muse/ui/MessageBubble.kt") }
+    private val messageBubble: String by lazy { source("src/main/java/io/zer0/muse/ui/chat/MessageBubble.kt") }
     private val panel: String by lazy { source("src/main/java/io/zer0/muse/ui/chat/TextSelectionPanel.kt") }
 
     @Test

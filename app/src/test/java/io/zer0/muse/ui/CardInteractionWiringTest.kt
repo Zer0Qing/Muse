@@ -13,6 +13,7 @@ import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
 import io.zer0.muse.ui.chat.isInlineDeliverableTool
 import io.zer0.muse.ui.chat.inlineDeliverableMessageIds
 import io.zer0.muse.ui.chat.DirectToolOutputInline
+import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * v2.6.8 卡片交互链路回归（源码级 wiring 断言）。
@@ -60,7 +61,7 @@ class CardInteractionWiringTest {
 
     @Test
     fun `message bubble forwards its task card bridge down to the task card`() {
-        val bubble = readUi("MessageBubble.kt")
+        val bubble = readUi("chat/MessageBubble.kt")
         val taskCardCall = bubble.substringAfter("io.zer0.muse.ui.taskcard.TaskCard(")
             .substringBefore(") else if (")
         assertTrue("任务卡必须收到 messageId 维度的回传处理器", taskCardCall.contains("onCardAction = taskCardCardAction"))

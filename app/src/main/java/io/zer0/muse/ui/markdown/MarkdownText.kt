@@ -82,6 +82,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import io.zer0.muse.ui.screen.HtmlPreviewScreen
+import io.zer0.muse.ui.chat.MessageBubble
 
 // L-MD15 修复: 行号 gutter 宽度计算常量(原先 10dp/16dp 硬编码在 CodeBlockView 内)
 // 每位数字宽度 10dp,最小宽度 16dp(1 位数也保留对齐空间)

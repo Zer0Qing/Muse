@@ -25,6 +25,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.messageCopyText
+import io.zer0.muse.ui.chat.MessageBubble
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
@@ -158,8 +160,8 @@ class MessageBubbleBodylessWorkTest {
     private fun readMessageBubbleSource(): String {
         val candidates =
             listOf(
-                Path.of("src/main/java/io/zer0/muse/ui/MessageBubble.kt"),
-                Path.of("app/src/main/java/io/zer0/muse/ui/MessageBubble.kt"),
+                Path.of("src/main/java/io/zer0/muse/ui/chat/MessageBubble.kt"),
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/MessageBubble.kt"),
             )
         val path =
             candidates.firstOrNull(Files::exists)

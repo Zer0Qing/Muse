@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.ChatPreferences
-import io.zer0.muse.ui.MessageBubble
+import io.zer0.muse.ui.chat.MessageBubble
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.chat.ThinkingBubble
 

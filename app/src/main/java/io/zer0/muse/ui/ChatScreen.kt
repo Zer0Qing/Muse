@@ -201,6 +201,7 @@ import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
 import io.zer0.muse.ui.chat.isInlineDeliverableTool
 import io.zer0.muse.ui.chat.inlineDeliverableMessageIds
 import io.zer0.muse.ui.chat.InputBar
+import io.zer0.muse.ui.chat.MessageBubble
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =

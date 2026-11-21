@@ -5,11 +5,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.MessageBubble
 
 class MessageBubbleContentAnimationWiringTest {
     @Test
     fun `only the streaming tail bubble animates content size`() {
-        val source = readUi("MessageBubble.kt")
+        val source = readUi("chat/MessageBubble.kt")
 
         assertTrue(
             "content-size animation must be gated by the streaming tail state",

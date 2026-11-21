@@ -8,6 +8,7 @@ import java.nio.file.Path
 import io.zer0.muse.ui.chat.ToolRunCard
 import io.zer0.muse.ui.chat.ProcessTally
 import io.zer0.muse.ui.chat.ProcessStepState
+import io.zer0.muse.ui.chat.MessageBubble
 
 class ToolReasoningVisibilityWiringTest {
 
@@ -21,8 +22,8 @@ class ToolReasoningVisibilityWiringTest {
     fun `tool messages keep reasoning visible when reasoning display is enabled`() {
         val source =
             read(
-                "src/main/java/io/zer0/muse/ui/MessageBubble.kt",
-                "app/src/main/java/io/zer0/muse/ui/MessageBubble.kt",
+                "src/main/java/io/zer0/muse/ui/chat/MessageBubble.kt",
+                "app/src/main/java/io/zer0/muse/ui/chat/MessageBubble.kt",
             )
         val reasoningBlock = source.substringAfter("// Phase 8.3: 推理过程折叠卡片")
             .substringBefore("// 与 mood/reasoning 块同构")

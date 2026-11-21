@@ -8,11 +8,12 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * 消息气泡共享样式(决策 D1:单聊向群聊靠齐)。
  *
- * 单聊 [io.zer0.muse.ui.MessageBubble] 与群聊 GroupChatMessageBubble 共用本组默认值,
+ * 单聊 [MessageBubble] 与群聊 GroupChatMessageBubble 共用本组默认值,
  * 消除两处外观漂移(CHAT-01/CHAT-02):
  *  - 用户气泡: surfaceVariant 底 + 右下 6dp 小尾巴,文字 onSurface/bodyMedium
  *  - 助手气泡: surfaceVariant@60% 浅色卡片 + 左下 6dp 小尾巴,文字 onSurface/bodyMedium

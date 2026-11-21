@@ -17,6 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * 卡片回调的实例稳定性。

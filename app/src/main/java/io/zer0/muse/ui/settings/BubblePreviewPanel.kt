@@ -28,6 +28,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.ui.theme.MuseBubbleStyles
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.chat.MessageBubble
 
 /** v2.5.0: 预览正文样式 — 与 MessageBubble 正文排版同源(字号缩放 + 字间距)。 */
 @Composable
