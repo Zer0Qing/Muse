@@ -11,10 +11,8 @@
     <string name="settings_web_search_key_verify">확인</string>
     <string name="settings_web_search_key_verify_ok">사용 가능: 결과 %1$d개를 반환했습니다</string>
     <string name="settings_web_search_key_verify_failed">확인 실패: %1$s</string>
-    <string name="settings_web_search_key_verify_no_key">이 엔진에 사용 가능한 키가 없습니다</string>
     <string name="settings_web_search_key_verify_empty">연결은 되었으나 결과를 반환하지 않았습니다</string>
     <string name="settings_web_search_provider_current">사용 중</string>
-    <string name="settings_web_search_provider_configure">구성</string>
     <string name="settings_web_search_provider_selection">현재 검색 엔진</string>
     <string name="settings_web_search_provider_set_current">현재 검색 엔진으로 사용</string>
     <string name="settings_web_search_provider_set_current_subtitle">검색 요청에 %1$s을(를) 사용합니다</string>

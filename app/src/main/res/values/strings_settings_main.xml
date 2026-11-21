@@ -76,7 +76,6 @@
     <string name="settings_provider_test_error_timeout">连接超时</string>
     <string name="settings_provider_test_error_unknown_host">无法连接服务器</string>
     <string name="settings_provider_test_error_failed">连接失败： %1$s</string>
-    <string name="settings_provider_test_success_chat_only">连接正常（该接口不支持模型列表，已用聊天探测验证）</string>
     <string name="settings_provider_test_error_html">服务器返回了网页而不是 API JSON。NewAPI 等兼容接口通常需要在基址后添加 /v1；请检查 API 路径和反向代理。</string>
     <!-- v1.133: 供应商批量健康检测(列表头部"全部检测"按钮 + 行内状态显示) -->
     <string name="settings_provider_test_all">全部检测</string>
@@ -454,8 +453,6 @@
     <string name="settings_chat_tool_approval_trusted_desc">完全放权：AI 可直接调用所有工具，无需确认（适合信任的工具集）</string>
     <string name="settings_chat_tool_approval_ask_desc">按需批准：高风险工具调用前会询问你，安全工具自动放行</string>
     <string name="settings_chat_tool_approval_strict_desc">严格模式：除只读查询类工具外，所有工具调用都需要你确认</string>
-    <string name="settings_chat_tool_approval_per_tool">单工具策略</string>
-    <string name="settings_chat_tool_approval_per_tool_subtitle">为每个工具单独设置允许 / 拒绝 / 询问</string>
 
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n -->
     <string name="settings_chat_floor_limiter">楼层式上下文限制</string>
@@ -489,10 +486,6 @@
     <string name="settings_backup_import_password_hint">备份密码（如备份已加密，可留空）</string>
     <string name="settings_backup_password_unavailable">备份密码已失效，请重新设置备份密码后再上传</string>
     <string name="audit_log_category_agent">Agent 运行</string>
-    <string name="settings_screen_desc_appearance_customize">气泡 / 背景 / 主题细节</string>
-    <string name="settings_screen_desc_memory">召回 / 衰减 / token 预算</string>
-    <string name="settings_screen_desc_schedule">定时提醒 / 周期执行</string>
-    <string name="settings_screen_desc_cloud_backup">云端存档 / 跨设备恢复</string>
     <string name="settings_provider_clear_models">清空全部</string>
     <string name="settings_mcp_add_action">添加服务器</string>
     <string name="settings_model_catalog_counts">%1$d 个供应商 · %2$d 个模型</string>

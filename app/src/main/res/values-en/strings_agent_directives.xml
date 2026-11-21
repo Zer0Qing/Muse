@@ -2,7 +2,6 @@
 <!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
 <resources>
     <string name="settings_screen_agent_directives">Do’s and don’ts</string>
-    <string name="settings_screen_agent_directives_desc">Long-term rules it follows in proactive and normal chats</string>
     <string name="agent_directives_hint">Your specific requirements here take priority over general tone settings; if they conflict, "Never do" wins.</string>
     <string name="agent_directives_forbidden_section">Never do</string>
     <string name="agent_directives_desired_section">Prefer to do</string>

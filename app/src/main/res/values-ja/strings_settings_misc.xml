@@ -17,18 +17,9 @@
     <string name="settings_web_search_enable">Web検索を有効にする</string>
     <string name="settings_web_search_enable_subtitle">グローバルなデフォルト状態。</string>
     <string name="settings_web_search_engine">検索エンジン</string>
-    <string name="settings_web_search_api_key_label">API キー (オプション)</string>
     <string name="settings_saved">保存されました</string>
     <string name="settings_web_search_save_api_key">APIキーの保存</string>
-    <string name="settings_web_search_save_endpoint">エンドポイントの保存</string>
-    <string name="settings_web_search_test_query_label">テスト検索語</string>
-    <string name="settings_web_search_test_query_placeholder">検索テストのキーワードを入力…</string>
-    <string name="settings_web_search_test_success">検索成功:%1$d件の結果:\n%2$s</string>
-    <string name="settings_web_search_test_empty">検索は完了しましたが、結果がありません</string>
-    <string name="settings_web_search_test_failed">テスト失敗: %1$s</string>
-    <string name="settings_web_search_test_failed_unknown">不明なエラー</string>
     <string name="settings_web_search_testing">検索中…</string>
-    <string name="settings_web_search_test">テスト検索</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
 
     <!-- ExperimentsSettingsPage.kt -->
@@ -297,7 +288,6 @@
     <string name="settings_crash_confirm_dialog_title">クラッシュレポートを確認する</string>
     <string name="settings_crash_confirm_dialog_content">%1$d 件のクラッシュ記録を送信します。\n\n送信内容：クラッシュのスタックトレース＋端末モデル＋Android バージョン＋アプリのバージョン＋タイムスタンプ。\nスタックトレースはマスク済みです。続行しますか？</string>
     <string name="settings_crash_confirm_button">レポートの確認</string>
-    <string name="settings_crash_no_pending">報告する保留中のクラッシュはありません</string>
     <string name="settings_web_search_mode">検索モード</string>
     <string name="settings_web_search_mode_desc">モデル内蔵検索、設定済み検索 API、Bing と Baidu HTTP の順に使用します。</string>
     <string name="settings_web_search_mode_auto">自動: モデル検索を優先</string>
@@ -317,7 +307,6 @@
     <string name="settings_web_search_api_services_desc">上級者は Tavily、Brave、Serper、Bocha などを設定できます。</string>
     <string name="settings_web_search_diagnosis">最新の検索診断</string>
     <string name="settings_web_search_no_diagnosis">検索記録はまだありません</string>
-    <string name="settings_web_search_endpoint_optional">エンドポイント（任意）</string>
     <string name="settings_experiments_parallel_tools">読み取り専用ツールの並列実行</string>
     <string name="settings_experiments_parallel_tools_subtitle">1ラウンドのツールがすべて読み取り専用の場合は並列で実行し、高速で効率的です（デフォルトでオン。オフにすると直列に戻ります）</string>
     <string name="settings_model_action_test_chat">テスト会話（完全な連携）</string>

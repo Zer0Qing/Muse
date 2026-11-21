@@ -160,7 +160,6 @@
     <string name="tool_missing_param_start_time">Отсутствует параметр: start_time.</string>
     <string name="tool_start_time_format_error">Неверный формат времени начала;</string>
     <string name="tool_no_calendar_account">Доступная учетная запись календаря не найдена</string>
-    <string name="tool_calendar_added">Добавлено событие календаря: %1$s</string>
     <string name="tool_calendar_choose_required">Доступно несколько календарей для записи; укажите один через calendar_id: %1$s</string>
     <string name="tool_calendar_unknown_id">Указанный календарь не существует: id=%1$s</string>
     <string name="tool_calendar_added_with_id">Событие «%1$s» добавлено (event_id=%2$s); по этому id его можно изменить или удалить</string>
@@ -279,7 +278,6 @@
     <string name="tool_write_verified"> (подтверждено)</string>
     <string name="tool_write_permission_denied">Система отклонила запись (вероятно, нет разрешения «Изменение системных настроек»)</string>
     <string name="automation_handoff_title">Передача виртуального экрана</string>
-    <string name="assist_service_label">Ассистент Muse</string>
     <string name="automation_handoff_desc">Ассистент оставил экранов: %1$d; можно посмотреть и управлять</string>
     <string name="automation_handoff_bring_main">Вернуть на главный экран</string>
     <string name="automation_handoff_bring_main_hint">Приложение просто появится на главном экране; прежняя страница и состояние ввода зависят от приложения и могут быть потеряны.</string>

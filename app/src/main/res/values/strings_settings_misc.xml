@@ -17,18 +17,9 @@
     <string name="settings_web_search_enable">启用联网搜索</string>
     <string name="settings_web_search_enable_subtitle">全局默认状态；关闭后输入栏 chip 仍可临时开启</string>
     <string name="settings_web_search_engine">搜索引擎</string>
-    <string name="settings_web_search_api_key_label">API Key(可选)</string>
     <string name="settings_saved">已保存</string>
     <string name="settings_web_search_save_api_key">保存 API Key</string>
-    <string name="settings_web_search_save_endpoint">保存接口地址</string>
-    <string name="settings_web_search_test_query_label">测试搜索词</string>
-    <string name="settings_web_search_test_query_placeholder">输入关键词进行搜索测试…</string>
-    <string name="settings_web_search_test_success">搜索成功，返回 %1$d 条结果：\n%2$s</string>
-    <string name="settings_web_search_test_empty">搜索完成，但未返回结果</string>
-    <string name="settings_web_search_test_failed">测试失败： %1$s</string>
-    <string name="settings_web_search_test_failed_unknown">未知错误</string>
     <string name="settings_web_search_testing">搜索中…</string>
-    <string name="settings_web_search_test">测试搜索</string>
     <!-- v1.98: 新增搜索 Provider 名称(中英双语,供 UI 显示 / 日志 / 错误提示引用) -->
 
     <!-- ExperimentsSettingsPage.kt -->
@@ -304,7 +295,6 @@
     <string name="settings_crash_confirm_dialog_title">确认上报崩溃</string>
     <string name="settings_crash_confirm_dialog_content">即将上报 %1$d 条崩溃记录。\n\n上报内容包含：崩溃堆栈 + 设备型号 + Android 版本 + App 版本 + 时间戳。\n崩溃堆栈已脱敏处理。是否继续？</string>
     <string name="settings_crash_confirm_button">确认上报</string>
-    <string name="settings_crash_no_pending">没有待上报的崩溃</string>
 
     <string name="settings_web_search_mode">搜索模式</string>
     <string name="settings_web_search_mode_desc">优先使用模型自带搜索，其次使用你配置的搜索 API，最后使用 Bing 和百度 HTTP。</string>
@@ -325,7 +315,6 @@
     <string name="settings_web_search_api_services_desc">高级用户可配置 Tavily、Brave、Serper、博查等服务；普通用户无需配置</string>
     <string name="settings_web_search_diagnosis">最近一次搜索诊断</string>
     <string name="settings_web_search_no_diagnosis">还没有搜索记录</string>
-    <string name="settings_web_search_endpoint_optional">接口地址（可选）</string>
     <string name="settings_web_search_path_baidu">百度 HTTP</string>
     <string name="settings_web_search_path_user_api">用户 API</string>
     <string name="settings_web_search_provider_type_title">搜索服务类型</string>

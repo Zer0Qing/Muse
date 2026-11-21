@@ -364,8 +364,6 @@
     <string name="settings_chat_tool_approval_trusted_desc">完全に信頼: AI は確認なしですべてのツールを直接呼び出すことができます (信頼できるツールセットの場合)</string>
     <string name="settings_chat_tool_approval_ask_desc">Ask on Demand: 高リスクのツールは、起動前にプロンプ​​トを表示します。</string>
     <string name="settings_chat_tool_approval_strict_desc">厳密モード: 読み取り専用のクエリ ツールを除き、すべてのツール呼び出しで確認が必要です。</string>
-    <string name="settings_chat_tool_approval_per_tool">ツールごとのポリシー</string>
-    <string name="settings_chat_tool_approval_per_tool_subtitle">ツールごとに許可/拒否/確認を個別に設定</string>
     <string name="cloud_backup_auto_enable">自動バックアップ</string>
     <string name="cloud_backup_auto_subtitle">設定した間隔で自動的にクラウドへアップロード</string>
     <string name="cloud_backup_backup_failed">アップロード失敗。設定を確認してください</string>
@@ -454,10 +452,6 @@
     <string name="settings_provider_test_connection_endpoint_sub">各プロトコルを試し、通ったものを保存します</string>
     <string name="settings_provider_test_success_chat_ok">接続正常 · %1$s が応答しました</string>
     <string name="settings_rag_config_read_failed">設定の読み込みに失敗しました</string>
-    <string name="settings_screen_desc_appearance_customize">バブル / 背景 / テーマ詳細</string>
-    <string name="settings_screen_desc_memory">想起 / 減衰 / トークン予算</string>
-    <string name="settings_screen_desc_schedule">定時リマインダー / 定期実行</string>
-    <string name="settings_screen_desc_cloud_backup">クラウド保存 / 端末間の復元</string>
     <string name="settings_provider_clear_models">すべて消去</string>
     <string name="settings_mcp_add_action">サーバーを追加</string>
     <string name="settings_model_catalog_counts">%1$d プロバイダー · %2$d モデル</string>

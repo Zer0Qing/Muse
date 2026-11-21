@@ -133,15 +133,10 @@
     <string name="assistant_new_default_name">New Assistant</string>
     <string name="assistant_clone_name">%1$s (Copy)</string>
     <!-- Action menu -->
-    <string name="assistant_move_up_cd">Move up</string>
     <string name="assistant_move_up">Move Up</string>
-    <string name="assistant_move_down_cd">Move down</string>
     <string name="assistant_move_down">Move Down</string>
-    <string name="assistant_clone_cd">Clone</string>
     <string name="assistant_clone">Clone</string>
-    <string name="assistant_export_card_cd">Export character card</string>
     <string name="assistant_export_card">Export Character Card</string>
-    <string name="assistant_delete_cd">Delete</string>
     <string name="assistant_delete">Delete</string>
     <string name="assistant_close">Close</string>
     <string name="assistant_delete_title">Delete Assistant</string>
@@ -179,9 +174,7 @@
     <string name="assistant_toast_sillytavern_exported">SillyTavern character card exported</string>
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern export failed: %1$s</string>
     <string name="assistant_disable">Disable</string>
-    <string name="assistant_disable_cd">Disable assistant</string>
     <string name="assistant_enable">Enable</string>
-    <string name="assistant_enable_cd">Enable assistant</string>
     <string name="assistant_diff_name">Name</string>
     <string name="assistant_diff_summary">Summary</string>
     <string name="assistant_diff_system_prompt">System prompt</string>

@@ -745,7 +745,6 @@
     <string name="wake_state_not_registered">NOT_REGISTERED</string>
     <string name="wake_state_unknown">UNKNOWN</string>
     <string name="wake_kind_scheduled_task">定时任务</string>
-    <string name="wake_kind_moment">朋友圈</string>
     <string name="wake_kind_proactive">主动消息</string>
     <string name="wake_kind_daily_summary">每日总结</string>
     <string name="wake_kind_cloud_backup">云备份</string>

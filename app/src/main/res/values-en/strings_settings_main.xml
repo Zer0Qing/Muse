@@ -57,7 +57,6 @@
     <string name="settings_provider_test_error_timeout">Connection timed out</string>
     <string name="settings_provider_test_error_unknown_host">Cannot reach server</string>
     <string name="settings_provider_test_error_failed">Connection failed: %1$s</string>
-    <string name="settings_provider_test_success_chat_only">Connected (model list unsupported; verified via chat probe)</string>
     <string name="settings_provider_test_error_html">The server returned a web page instead of API JSON. OpenAI-compatible NewAPI endpoints usually need /v1 in the base URL; check the API route and reverse proxy.</string>
     <!-- v1.133: batch provider health check ("Test All" button in list header + per-row status) -->
     <string name="settings_provider_test_all">Test All</string>
@@ -365,8 +364,6 @@
     <string name="settings_chat_tool_approval_trusted_desc">Fully Trust: the AI can call all tools directly without confirmation (for trusted toolsets)</string>
     <string name="settings_chat_tool_approval_ask_desc">Ask on Demand: high-risk tools prompt you before invocation; safe tools are auto-approved</string>
     <string name="settings_chat_tool_approval_strict_desc">Strict Mode: all tool calls require your confirmation except read-only query tools</string>
-    <string name="settings_chat_tool_approval_per_tool">Per-Tool Policy</string>
-    <string name="settings_chat_tool_approval_per_tool_subtitle">Set allow / deny / ask individually for each tool</string>
     <string name="cloud_backup_auto_enable">Scheduled auto backup</string>
     <string name="cloud_backup_auto_subtitle">Auto-upload to cloud at set intervals</string>
     <string name="cloud_backup_backup_failed">Upload failed, check configuration</string>
@@ -490,10 +487,6 @@
     <string name="permission_termux_copy_cmd_done">Command copied</string>
     <string name="knowledge_doc_index_broken">Index lost (rebuild failed midway), search will not match it. Long-press to reindex.</string>
     <string name="knowledge_fts_repaired_partial_with_reason">Index repaired, but %1$d document(s) failed to reindex: %2$s</string>
-    <string name="settings_screen_desc_appearance_customize">Bubbles / background / theme details</string>
-    <string name="settings_screen_desc_memory">Recall / decay / token budget</string>
-    <string name="settings_screen_desc_schedule">Scheduled reminders / recurring runs</string>
-    <string name="settings_screen_desc_cloud_backup">Cloud archive / cross-device restore</string>
     <string name="settings_provider_clear_models">Clear all</string>
     <string name="settings_mcp_add_action">Add server</string>
     <string name="settings_model_catalog_counts">%1$d providers · %2$d models</string>

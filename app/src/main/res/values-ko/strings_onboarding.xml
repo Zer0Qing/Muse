@@ -25,9 +25,6 @@
     <!-- Step 3: Configure Provider -->
     <string name="onboarding_provider_title">두뇌를 연결하세요.</string>
     <string name="onboarding_provider_subtitle">모델 서비스를 고르고 키를 입력한 뒤 연결을 테스트하세요. 성공하면 모델 목록을 가져와 능력을 자동으로 맞춰 줍니다.</string>
-    <string name="onboarding_provider_err_auth">인증 실패: API Key를 확인해 주세요.</string>
-    <string name="onboarding_provider_err_empty">연결은 성공했지만 모델이 없습니다 — 엔드포인트를 확인해 주세요.</string>
-    <string name="onboarding_provider_err_other">연결 실패: %1$s</string>
     <string name="onboarding_provider_caps">능력 매칭 완료: 비전 %1$d · 추론 %2$d · 도구 %3$d</string>
     <string name="onboarding_provider_select_label">제공업체 선택</string>
     <string name="onboarding_provider_apikey_label">API 키</string>

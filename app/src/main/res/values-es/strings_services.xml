@@ -160,7 +160,6 @@
     <string name="tool_missing_param_start_time">Parámetro faltante: start_time</string>
     <string name="tool_start_time_format_error">Formato de hora de inicio no válido; usa yyyy-MM-dd HH:mm o ISO 8601</string>
     <string name="tool_no_calendar_account">No se encontró ninguna cuenta de calendario disponible</string>
-    <string name="tool_calendar_added">Evento de calendario agregado: %1$s</string>
     <string name="tool_calendar_choose_required">Hay varios calendarios editables; indica uno con calendar_id: %1$s</string>
     <string name="tool_calendar_unknown_id">El calendario indicado no existe: id=%1$s</string>
     <string name="tool_calendar_added_with_id">Evento agregado &quot;%1$s&quot; (event_id=%2$s); usa este id para actualizarlo o borrarlo</string>
@@ -279,7 +278,6 @@
     <string name="tool_write_verified"> (verificado)</string>
     <string name="tool_write_permission_denied">El sistema rechazó la escritura (probablemente falta un permiso como «Modificar ajustes del sistema»)</string>
     <string name="automation_handoff_title">Entrega de pantalla virtual</string>
-    <string name="assist_service_label">Asistente Muse</string>
     <string name="automation_handoff_desc">El asistente dejó %1$d pantalla(s) virtual(es); puedes previsualizarlas y manejarlas tú</string>
     <string name="automation_handoff_bring_main">Llevar a la pantalla principal</string>
     <string name="automation_handoff_bring_main_hint">Solo se lleva la app a la pantalla principal; la página y el estado previos dependen de la app y pueden perderse.</string>

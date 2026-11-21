@@ -2,7 +2,6 @@
 <!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
 <resources>
     <string name="settings_screen_agent_directives">它该做与不该做的事</string>
-    <string name="settings_screen_agent_directives_desc">给它立的长期规矩，主动消息和聊天都会遵守</string>
     <string name="agent_directives_hint">这里写你的具体要求，优先于一般语气设定；两者冲突时以「禁止事项」为准。</string>
     <string name="agent_directives_forbidden_section">禁止事项</string>
     <string name="agent_directives_desired_section">期望事项</string>

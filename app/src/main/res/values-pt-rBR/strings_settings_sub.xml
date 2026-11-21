@@ -5,8 +5,6 @@
     <string name="settings_chat_show_user_avatar">Mostrar meu avatar</string>
     <string name="settings_chat_show_user_avatar_subtitle">Mostrar um avatar local com a inicial ao lado das mensagens do usuário</string>
     <!-- Agent Settings -->
-    <string name="settings_agent_model_not_configured">Não configurado</string>
-    <string name="settings_agent_tool_model_not_set">Não definido</string>
     <string name="settings_agent_tool_model_not_set_inherit">Usa o modelo principal</string>
     <!-- v2.x: auxiliary model tiers -->
     <string name="settings_agent_utility_large_not_set_inherit">Reutiliza o modelo pequeno</string>
@@ -14,12 +12,9 @@
     <string name="settings_agent_default_assistant_title">Assistente de agente padrão</string>
     <string name="settings_agent_loading">Carregando...</string>
     <string name="settings_agent_use_first_assistant">Usar o primeiro assistente</string>
-    <string name="settings_agent_section_model">Modelo</string>
     <string name="settings_agent_current_model">Modelo Atual</string>
     <string name="settings_agent_tool_model_title">Modelo utilitário pequeno</string>
     <string name="settings_agent_subagent_model_title">Modelo utilitário grande</string>
-    <string name="settings_agent_select_subagent_model">Selecionar modelo utilitário grande</string>
-    <string name="settings_agent_clear_subagent_model">Limpar (reutilizar o pequeno)</string>
     <string name="settings_agent_multi_agent_section">Colaboração multiagente</string>
     <string name="settings_agent_collab_team">Equipes de colaboração</string>
     <string name="settings_agent_multi_agent_enabled">Habilitado · %1$d equipes</string>
@@ -41,8 +36,6 @@
     <string name="settings_agent_offset_off_label">Desligado</string>
     <string name="settings_agent_select_model">Selecione o modelo do agente</string>
     <string name="settings_agent_no_models_hint">Nenhum modelo disponível.</string>
-    <string name="settings_agent_select_tool_model">Selecione o modelo utilitário pequeno</string>
-    <string name="settings_agent_clear_tool_model">Limpar (usar modelo principal)</string>
     <string name="settings_agent_unnamed_assistant">Assistente Sem Nome</string>
     <string name="settings_agent_interval_minutes">A cada %1$d min</string>
     <string name="settings_agent_interval_hourly">De hora em hora</string>
@@ -254,10 +247,8 @@
     <string name="settings_asr_follow_provider">Seguir configuração do provedor</string>
     <string name="settings_asr_follow_provider_subtitle">O endpoint e a chave de API vêm do provedor; o modelo é escolhido manualmente</string>
     <string name="settings_asr_follow_provider_picker">Provedor</string>
-    <string name="settings_asr_follow_model_picker">Modelo</string>
     <!-- Placeholders e aviso de retorno compartilhados do modo seguir -->
     <string name="settings_speech_follow_unset">Não selecionado</string>
-    <string name="settings_speech_follow_no_models">Este provedor não tem modelos</string>
     <string name="settings_speech_follow_fallback_notice">Usando a configuração manual: %1$s</string>
     <string name="settings_speech_follow_reason_provider_missing">O provedor selecionado não foi encontrado</string>
     <string name="settings_speech_follow_reason_provider_disabled">O provedor selecionado está desativado</string>
@@ -452,10 +443,7 @@
     <string name="settings_media_tts_model_placeholder">Deixe em branco para padrão</string>
     <string name="settings_media_tts_endpoint">Ponto final personalizado</string>
     <string name="settings_media_tts_endpoint_placeholder">Deixe em branco para o ponto final oficial</string>
-    <string name="settings_media_tts_save_api_key">Salvar chave de API</string>
     <string name="settings_media_tts_save_voice">Salvar voz</string>
-    <string name="settings_media_tts_save_model">Salvar modelo</string>
-    <string name="settings_media_tts_save_endpoint">Salvar ponto final</string>
     <string name="settings_media_tts_save_connection">Salvar conexão</string>
     <string name="settings_media_tts_show">Mostrar</string>
     <string name="settings_media_tts_hide">Esconder</string>
@@ -476,7 +464,6 @@
     <string name="settings_media_tts_follow_provider">Seguir configuração do provedor</string>
     <string name="settings_media_tts_follow_provider_subtitle">O endpoint e a chave de API vêm do provedor; o modelo é escolhido manualmente</string>
     <string name="settings_media_tts_follow_provider_picker">Provedor</string>
-    <string name="settings_media_tts_follow_model_picker">Modelo</string>
     <string name="settings_media_tts_follow_voice_hint">Seguir assume apenas o endpoint e a chave de API; confirme se a voz funciona com o provedor escolhido</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Tema personalizado</string>
@@ -504,8 +491,6 @@
     <string name="settings_theme_custom_color_l">Leveza</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
     <string name="settings_agent_dm_subtitle">Ver mensagens diretas entre Agents</string>
-    <string name="settings_agent_agent_only">Apenas chats do Agent</string>
-    <string name="settings_agent_agent_only_subtitle">Quando ativado, apenas os assistentes Agent enviam mensagens proativas; sessões de tarefa não</string>
     <string name="settings_agent_temperature">Temperatura de geração</string>
     <string name="settings_agent_temperature_hint">A fase de decisão usa temperature×0.5 (mais determinístico); a geração usa este valor. Maior é mais criativo, menor é mais estável</string>
     <string name="settings_agent_temperature_stable">0.0 Estável</string>
@@ -533,10 +518,6 @@
     <string name="settings_asr_entry_title">Mecanismo de reconhecimento de fala</string>
     <string name="settings_asr_entry_subtitle">Selecione um mecanismo de fala para texto (ex.: Paraformer / Whisper)</string>
     <string name="settings_miniphone_title">Mini Phone</string>
-    <string name="settings_miniphone_enable_title">Ativar Mini Phone</string>
-    <string name="settings_miniphone_enable_subtitle">Quando ativado, uma entrada do Mini Phone aparece no canto superior direito da tela inicial</string>
-    <string name="settings_miniphone_desc_title">O que é o Mini Phone</string>
-    <string name="settings_miniphone_desc_body">Uma área de trabalho em miniatura imersiva: Momentos, álbum de IA, notas, clima e diário do modelo. Quando desativado, a tela inicial volta ao layout original.</string>
     <string name="settings_font_section_title">Fontes</string>
     <string name="settings_font_body_label">Fonte do texto</string>
     <string name="settings_font_body_default">Padrão do sistema</string>
@@ -613,7 +594,6 @@
     <string name="settings_agent_pace_standard_desc">Cerca de a cada 4 horas, até 3 mensagens por dia</string>
     <string name="settings_agent_pace_heavy">Frequente</string>
     <string name="settings_agent_pace_heavy_desc">Cerca de a cada 2 horas, até 8 mensagens por dia</string>
-    <string name="settings_agent_pace_custom">Personalizado</string>
     <string name="settings_agent_quiet_hours_title">Horário de silêncio</string>
     <string name="settings_agent_quiet_hours_hint">Nenhuma mensagem proativa é enviada neste período, para não incomodar à noite.</string>
     <string name="settings_agent_quiet_hours_start">Início</string>
@@ -705,14 +685,6 @@
     <string name="settings_keep_alive_battery_subtitle">O sistema limita a atividade em segundo plano; permita este app</string>
     <string name="settings_keep_alive_rom_title">Lista de inicialização automática</string>
     <string name="settings_keep_alive_rom_subtitle">Algumas ROMs de fabricante exigem habilitar separadamente</string>
-    <string name="launcher_alias_notes">Notas</string>
-    <string name="launcher_alias_memo">Lembretes</string>
-    <string name="launcher_alias_study">Registro de estudos</string>
-    <string name="settings_appearance_customize_title">Aparência</string>
-    <string name="settings_appearance_customize_hint">Para quando você prefere que não percebam que usa um assistente de IA. Altera apenas o nome no launcher e o texto da notificação; o nome do pacote não muda e nenhum outro app é imitado.</string>
-    <string name="settings_appearance_customize_keep_alive_hint">O texto da notificação passa a valer após ativar «Manter em segundo plano».</string>
-    <string name="settings_launcher_style_title">Nome no launcher</string>
-    <string name="settings_launcher_style_hint">O ícone desaparece e reaparece brevemente após a troca. Ícones antigos na tela inicial podem precisar ser removidos manualmente.</string>
     <string name="settings_keep_alive_notification_custom_title">Texto da notificação</string>
     <string name="settings_keep_alive_notification_custom_subtitle">Personalize o título e o corpo da notificação permanente</string>
     <string name="settings_keep_alive_notification_custom_hint">Deixe em branco para usar o texto padrão.</string>
@@ -807,24 +779,16 @@
     <string name="settings_session_terms_scope_assistant">Nível assistente</string>
     <string name="settings_session_terms_scope_confirmed">Confirmado</string>
     <string name="settings_session_terms_scope_candidate">A confirmar</string>
-    <string name="kb_jobs_summary_running">Processando %1$d/%2$d</string>
-    <string name="kb_jobs_summary_failed">Todos falharam: %1$d</string>
-    <string name="kb_doc_saved">Salvo</string>
-    <string name="kb_jobs_summary_done">Concluído: %1$d</string>
     <string name="kb_doc_version">Versão %1$d</string>
     <string name="kb_doc_edit">Editar conteúdo</string>
     <string name="kb_doc_source">Origem</string>
     <string name="kb_search_title">Verificação de busca</string>
     <string name="kb_jobs_title">Central de processamento</string>
     <string name="kb_doc_title">Detalhes do documento</string>
-    <string name="kb_jobs_cancelled">Cancelado</string>
     <string name="kb_search_run">Buscar</string>
-    <string name="kb_doc_availability">Disponibilidade</string>
     <string name="kb_jobs_empty">Nada para processar</string>
     <string name="kb_search_hint">Digite uma pergunta</string>
     <string name="kb_search_empty">Sem resultados</string>
-    <string name="kb_doc_conflict">O conteúdo foi atualizado em outro lugar. Atualize e tente novamente.</string>
-    <string name="kb_jobs_summary_partial">Sucesso parcial: %1$d concluídos, %2$d falharam</string>
     <string name="kb_jobs_cancel">Cancelar processamento</string>
     <string name="kb_search_results">%1$d resultados</string>
     <string name="kb_settings_ingest">Ingestão</string>

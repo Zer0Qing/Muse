@@ -133,20 +133,13 @@
     <string name="assistant_new_default_name">新助手</string>
     <string name="assistant_clone_name">%1$s 副本</string>
     <!-- 操作菜单 -->
-    <string name="assistant_move_up_cd">上移</string>
     <string name="assistant_move_up">上移</string>
-    <string name="assistant_move_down_cd">下移</string>
     <string name="assistant_move_down">下移</string>
-    <string name="assistant_clone_cd">克隆</string>
     <string name="assistant_clone">克隆</string>
     <!-- U-26: 助手启用/停用 -->
     <string name="assistant_enable">启用</string>
     <string name="assistant_disable">停用</string>
-    <string name="assistant_enable_cd">启用助手</string>
-    <string name="assistant_disable_cd">停用助手</string>
-    <string name="assistant_export_card_cd">导出角色卡</string>
     <string name="assistant_export_card">导出角色卡</string>
-    <string name="assistant_delete_cd">删除</string>
     <string name="assistant_delete">删除</string>
     <string name="assistant_close">关闭</string>
     <string name="assistant_delete_title">删除助手</string>

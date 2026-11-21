@@ -10,17 +10,6 @@
     <string name="moment_images_selected">%1$d selecionadas (toque para continuar)</string>
     <string name="moment_add_images_hint">Adicionar imagens (máx. %1$d)</string>
     <!-- ===== Diário (MiniDiaryScreen) ===== -->
-    <string name="diary_generate_failed">Falha ao gerar o diário, tente novamente mais tarde</string>
-    <string name="diary_title">Diário do Muse</string>
-    <string name="diary_date_title">%3$s/%2$d/%1$d</string>
-    <string name="diary_empty_today">Ainda não há diário de hoje</string>
-    <string name="diary_empty_other_day">Não há diário para este dia</string>
-    <string name="diary_empty_today_hint">Ao abrir a página do diário, o diário de hoje será gerado automaticamente</string>
-    <string name="diary_backfill_action">Escrever este dia</string>
-    <string name="diary_generating">Gerando…</string>
-    <string name="diary_prev_month">Mês anterior</string>
-    <string name="diary_month_title">%2$d/%1$d</string>
-    <string name="diary_next_month">Próximo mês</string>
     <string-array name="diary_weekdays_short">
         <item>D</item>
         <item>S</item>
@@ -31,32 +20,6 @@
         <item>S</item>
     </string-array>
     <!-- ===== Clima (MiniWeatherScreen) ===== -->
-    <string name="weather_title">Clima</string>
-    <string name="weather_search_hint">Digite o nome da cidade (ex.: Chengdu)</string>
-    <string name="weather_search_action">Buscar</string>
-    <string name="weather_service_unavailable">Serviço meteorológico temporariamente indisponível</string>
-    <string name="weather_city_not_found">Cidade "%1$s" não encontrada, tente outro nome</string>
-    <string name="weather_location_failed">Não foi possível obter a localização, digite um nome de cidade para buscar</string>
-    <string name="weather_permission_denied">Permissão de localização não concedida, digite um nome de cidade para buscar</string>
-    <string name="weather_permission_guide">Configure a permissão de localização ou digite um nome de cidade para buscar</string>
-    <string name="weather_feels_like_wind">Sensação %1$d° · Vento %2$s km/h</string>
-    <string name="weather_current_location">Localização atual</string>
-    <string name="weather_condition_clear">Céu limpo</string>
-    <string name="weather_condition_partly_cloudy">Parcialmente nublado</string>
-    <string name="weather_condition_overcast">Nublado</string>
-    <string name="weather_condition_fog">Névoa</string>
-    <string name="weather_condition_drizzle">Garoa</string>
-    <string name="weather_condition_freezing_drizzle">Garoa congelante</string>
-    <string name="weather_condition_rain">Chuva</string>
-    <string name="weather_condition_snow">Neve</string>
-    <string name="weather_condition_sleet">Chuva congelante</string>
-    <string name="weather_condition_showers">Pancadas de chuva</string>
-    <string name="weather_condition_snow_showers">Pancadas de neve</string>
-    <string name="weather_condition_thunderstorm">Tempestade</string>
-    <string name="weather_condition_thunderstorm_hail">Tempestade com granizo</string>
-    <string name="weather_condition_unknown">Desconhecido</string>
-    <string name="weather_day_today">Hoje</string>
-    <string name="weather_day_tomorrow">Amanhã</string>
     <string-array name="weather_weekdays">
         <item>Dom</item>
         <item>Seg</item>
@@ -101,10 +64,8 @@
     <string name="chat_export_format_markdown">Markdown (.md): texto simples, fácil de colar em notas ou editar novamente</string>
     <string name="chat_export_format_html">HTML (.html): arquivo único com estilos e imagens embutidos, pronto para compartilhar</string>
     <string name="chat_export_format_pdf">PDF (.pdf): documento A4 paginado, ideal para impressão ou arquivamento</string>
-    <string name="chat_doc_empty_or_unsupported">O documento está vazio ou o formato não é suportado</string>
     <string name="chat_doc_truncated">\n\n…(documento muito longo, truncado em %1$d caracteres)</string>
     <string name="chat_doc_default_name">Documento</string>
-    <string name="chat_doc_parse_failed">Falha ao analisar o documento: %1$s</string>
     <string name="chat_attachment_workspace_ref">Anexo salvo na área de trabalho: %1$s (%2$s)</string>
     <string name="chat_attachment_preview_unavailable">Este arquivo não pode ser aberto no app. O original está na área de trabalho: %1$s</string>
     <string name="chat_attachment_import_failed">Falha ao salvar o anexo: %1$s</string>
@@ -383,8 +344,6 @@
     <string name="chat_list_new_folder">Nova pasta</string>
 
     <!-- Task home -->
-    <string name="chat_list_input_hint">Insira qualquer ideia…</string>
-    <string name="chat_list_send">Enviar</string>
     <string name="chat_list_no_recent_title">Ainda não há bate-papos</string>
     <string name="chat_list_no_recent_subtitle">Toque no botão + abaixo para iniciar um novo bate-papo</string>
     <string name="chat_list_knowledge_title">Base de Conhecimento</string>
@@ -451,7 +410,6 @@
     <string name="settings_sticker_move_target_label">Mover para outro pacote (nome novo cria um)</string>
     <string name="settings_sticker_move_up">Mover para cima</string>
     <string name="settings_sticker_move_down">Mover para baixo</string>
-    <string name="settings_sticker_upload_zip_subtitle">Escolha um arquivo ZIP;</string>
     <string name="settings_sticker_imported">Adesivos %1$d importados</string>
     <string name="settings_sticker_import_failed">Falha na importação: %1$s</string>
     <string name="settings_sticker_export_location_failed">Não é possível gravar no local selecionado</string>
@@ -495,7 +453,6 @@
     <string name="chat_tool_run_summary">Executou %1$d operações</string>
     <string name="chat_tool_card_open">Ver cartão</string>
     <string name="chat_update_compress">Comprimir contexto</string>
-    <string name="chat_ignore_memory_option">Esta conversa não usará a memória</string>
     <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
     <string name="msg_info_title">Informações da mensagem</string>
     <string name="msg_info_model">Modelo</string>
@@ -583,7 +540,6 @@
     <string name="chat_pending_send_busy">Uma resposta está sendo gerada. Pare a geração atual antes de enviar mensagens na fila.</string>
     <string name="chat_quickbar_hint_off">A barra de ferramentas rápida foi recolhida</string>
     <string name="chat_quickbar_hint_on">A barra de ferramentas rápida foi expandida</string>
-    <string name="chat_tool_calls_chip">Ferramentas %1$d/%2$d</string>
     <string name="chat_tool_copy">Copiar</string>
     <string name="chat_tool_hidden_records">%1$d registros anteriores ocultos</string>
     <string name="chat_tool_latest">Mais recente: %1$s</string>
@@ -609,10 +565,8 @@
     <string name="chat_context_divider_hint_expanded">Toque para ocultar as mensagens originais</string>
     <string name="chat_translation_block_title">Tradução</string>
     <string name="moment_comment_reply">Responder</string>
-    <string name="diary_export_action">Exportar</string>
     <string name="moment_visibility_title">Visível para</string>
     <string name="moment_visibility_public">Todos</string>
-    <string name="diary_perspective_character">Visão do personagem: este diário é escrito por ele/ela</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">A execução de ferramentas está pausada, então não serão executadas.</string>
     <string name="chat_tool_paused_banner_action">Configurações</string>
@@ -633,7 +587,6 @@
     <string name="channel_last_failure">O último envio falhou: %1$s</string>
     <string name="chat_process_sheet_title">Passos desta execução</string>
     <string name="chat_process_sheet_empty">Ainda não há passos</string>
-    <string name="settings_screen_sticker_desc">Importe e gerencie os adesivos</string>
     <string name="chat_process_delegating">Delegando para %1$s…</string>
     <string name="chat_process_running_command">Executando um comando</string>
     <string name="chat_process_subagent_running">%1$d tarefas de subagente em execução</string>

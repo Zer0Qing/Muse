@@ -76,9 +76,7 @@
     <!-- v1.0.30 gap4.7: OCR translation -->
     <string name="translate_page_ocr">Фото перевести</string>
     <string name="translate_page_ocr_recognizing">Признавая…</string>
-    <string name="translate_page_ocr_empty">Текст не распознан</string>
     <string name="translate_page_ocr_failed">Ошибка распознавания текста</string>
-    <string name="translate_page_ocr_applied">Распознанный текст, введенный в поле ввода</string>
     <string name="translate_history_copied">Перевод скопирован</string>
     <string name="translate_history_copy_format">%1$s\n\n%2$s</string>
     <string name="translate_source_auto">Автоопределение</string>

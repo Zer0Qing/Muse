@@ -364,8 +364,6 @@
     <string name="settings_chat_tool_approval_trusted_desc">Confianza total: la IA puede llamar a todas las herramientas directamente sin confirmación (para conjuntos de herramientas confiables)</string>
     <string name="settings_chat_tool_approval_ask_desc">Preguntar bajo demanda: las herramientas de alto riesgo te piden confirmación antes de invocarse; las seguras se aprueban automáticamente</string>
     <string name="settings_chat_tool_approval_strict_desc">Modo estricto: todas las llamadas a herramientas requieren tu confirmación, excepto las herramientas de consulta de solo lectura</string>
-    <string name="settings_chat_tool_approval_per_tool">Política por herramienta</string>
-    <string name="settings_chat_tool_approval_per_tool_subtitle">Establecer permitir/denegar/preguntar individualmente para cada herramienta</string>
     <string name="cloud_backup_auto_enable">Copia de seguridad automática programada</string>
     <string name="cloud_backup_auto_subtitle">Subida automática a la nube a intervalos configurados</string>
     <string name="cloud_backup_backup_failed">Error al subir, comprueba la configuración</string>
@@ -455,10 +453,6 @@
     <string name="settings_provider_test_connection_endpoint_sub">Prueba cada protocolo y guarda el que funcione</string>
     <string name="settings_provider_test_success_chat_ok">Conexión correcta · %1$s respondió</string>
     <string name="settings_rag_config_read_failed">No se pudo leer la configuración</string>
-    <string name="settings_screen_desc_appearance_customize">Burbujas / fondo / detalles del tema</string>
-    <string name="settings_screen_desc_memory">Recuperación / decaimiento / presupuesto de tokens</string>
-    <string name="settings_screen_desc_schedule">Recordatorios programados / ejecuciones periódicas</string>
-    <string name="settings_screen_desc_cloud_backup">Archivo en la nube / restauración entre dispositivos</string>
     <string name="settings_provider_clear_models">Borrar todo</string>
     <string name="settings_mcp_add_action">Añadir servidor</string>
     <string name="settings_model_catalog_counts">%1$d proveedores · %2$d modelos</string>
@@ -479,7 +473,6 @@
     <string name="settings_rag_embedding_testing">Probando…</string>
     <string name="settings_rag_embedding_test_ok">Embeddings correctos: %1$d dimensiones, %2$d ms</string>
     <string name="settings_rag_embedding_test_failed">La prueba de embeddings ha fallado: %1$s</string>
-    <string name="settings_provider_test_success_chat_only">Conexión correcta (lista de modelos no admitida; verificada con un mensaje de prueba)</string>
     <string name="settings_backup_export_session">Exportar una conversación</string>
     <string name="settings_backup_export_session_subtitle">Elige una conversación y exporta todo su historial como archivo JSON</string>
     <string name="settings_backup_export_session_title">Elige una conversación para exportar</string>

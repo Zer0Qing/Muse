@@ -76,9 +76,7 @@
     <!-- v1.0.30 gap4.7: OCR translation -->
     <string name="translate_page_ocr">Traducir fotos</string>
     <string name="translate_page_ocr_recognizing">Reconociendo…</string>
-    <string name="translate_page_ocr_empty">No se reconoce ningún texto</string>
     <string name="translate_page_ocr_failed">OCR falló</string>
-    <string name="translate_page_ocr_applied">Texto reconocido insertado en el campo de entrada</string>
     <string name="translate_history_copied">Traducción copiada</string>
     <string name="translate_history_copy_format">%1$s\n\n%2$s</string>
     <string name="translate_source_auto">Detección automática</string>

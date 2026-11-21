@@ -76,9 +76,7 @@
     <!-- v1.0.30 gap4.7: OCR translation -->
     <string name="translate_page_ocr">Photo translate</string>
     <string name="translate_page_ocr_recognizing">Recognizing…</string>
-    <string name="translate_page_ocr_empty">No text recognized</string>
     <string name="translate_page_ocr_failed">OCR failed</string>
-    <string name="translate_page_ocr_applied">Recognized text filled into input</string>
     <string name="translate_page_image_attached">Image added — ready to translate</string>
     <string name="translate_page_swap_needs_source">Cannot swap while source is Auto-detect — pick a source language first</string>
     <string name="translate_page_image_remove">Remove image</string>

@@ -133,15 +133,10 @@
     <string name="assistant_new_default_name">Новый помощник</string>
     <string name="assistant_clone_name">%1$s (Копировать)</string>
     <!-- Action menu -->
-    <string name="assistant_move_up_cd">Вверх</string>
     <string name="assistant_move_up">Двигаться вверх</string>
-    <string name="assistant_move_down_cd">Двигаться вниз</string>
     <string name="assistant_move_down">Вниз</string>
-    <string name="assistant_clone_cd">Клонировать</string>
     <string name="assistant_clone">Клонировать</string>
-    <string name="assistant_export_card_cd">Экспортировать карточку персонажа</string>
     <string name="assistant_export_card">Экспортировать карту персонажа</string>
-    <string name="assistant_delete_cd">Удалить</string>
     <string name="assistant_delete">Удалить</string>
     <string name="assistant_close">Закрывать</string>
     <string name="assistant_delete_title">Удалить помощника</string>
@@ -179,9 +174,7 @@
     <string name="assistant_toast_sillytavern_exported">Карточка персонажа SillyTavern экспортирована.</string>
     <string name="assistant_toast_sillytavern_export_failed">Ошибка экспорта SillyTavern: %1$s</string>
     <string name="assistant_disable">Отключить</string>
-    <string name="assistant_disable_cd">Отключить ассистента</string>
     <string name="assistant_enable">Включить</string>
-    <string name="assistant_enable_cd">Включить ассистента</string>
     <string name="assistant_diff_name">Имя</string>
     <string name="assistant_diff_summary">Описание</string>
     <string name="assistant_diff_system_prompt">Системный промпт</string>

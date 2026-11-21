@@ -76,9 +76,7 @@
     <!-- v1.0.30 gap4.7: OCR translation -->
     <string name="translate_page_ocr">사진 번역</string>
     <string name="translate_page_ocr_recognizing">인식 중…</string>
-    <string name="translate_page_ocr_empty">인식된 텍스트가 없습니다.</string>
     <string name="translate_page_ocr_failed">OCR 실패</string>
-    <string name="translate_page_ocr_applied">입력에 입력된 인식된 텍스트</string>
     <string name="translate_history_copied">번역을 복사했습니다</string>
     <string name="translate_history_copy_format">%1$s\n\n%2$s</string>
     <string name="translate_source_auto">자동 감지</string>

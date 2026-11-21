@@ -160,7 +160,6 @@
     <string name="tool_missing_param_start_time">Parâmetro ausente: start_time</string>
     <string name="tool_start_time_format_error">Formato de hora de início inválido;</string>
     <string name="tool_no_calendar_account">Nenhuma conta de calendário disponível encontrada</string>
-    <string name="tool_calendar_added">Evento de calendário adicionado: %1$s</string>
     <string name="tool_calendar_choose_required">Ha varios calendarios gravaveis; indique um com calendar_id: %1$s</string>
     <string name="tool_calendar_unknown_id">O calendario indicado nao existe: id=%1$s</string>
     <string name="tool_calendar_added_with_id">Evento &quot;%1$s&quot; adicionado (event_id=%2$s); use este id para atualizar ou excluir</string>
@@ -279,7 +278,6 @@
     <string name="tool_write_verified"> (confirmado)</string>
     <string name="tool_write_permission_denied">O sistema recusou a gravacao (provavelmente falta uma permissao como Modificar configuracoes do sistema)</string>
     <string name="automation_handoff_title">Entrega de tela virtual</string>
-    <string name="assist_service_label">Assistente Muse</string>
     <string name="automation_handoff_desc">O assistente deixou %1$d tela(s); pre-visualize e opere</string>
     <string name="automation_handoff_bring_main">Trazer para a tela principal</string>
     <string name="automation_handoff_bring_main_hint">Apenas o app vai para a tela principal; a pagina e o estado anteriores dependem do app e podem ser perdidos.</string>

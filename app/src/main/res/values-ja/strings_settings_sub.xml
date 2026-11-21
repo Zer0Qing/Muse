@@ -5,8 +5,6 @@
     <string name="settings_chat_show_user_avatar">自分のアバターを表示</string>
     <string name="settings_chat_show_user_avatar_subtitle">ユーザーメッセージの横にローカルの頭文字アバターを表示します</string>
     <!-- Agent Settings -->
-    <string name="settings_agent_model_not_configured">未設定</string>
-    <string name="settings_agent_tool_model_not_set">未設定</string>
     <string name="settings_agent_tool_model_not_set_inherit">メインモデルを使用</string>
     <!-- v2.x: auxiliary model tiers -->
     <string name="settings_agent_utility_large_not_set_inherit">小型モデルを再利用</string>
@@ -14,12 +12,9 @@
     <string name="settings_agent_default_assistant_title">デフォルトのエージェントアシスタント</string>
     <string name="settings_agent_loading">読み込み中...</string>
     <string name="settings_agent_use_first_assistant">最初のアシスタントを使用する</string>
-    <string name="settings_agent_section_model">モデル</string>
     <string name="settings_agent_current_model">現行モデル</string>
     <string name="settings_agent_tool_model_title">小型ユーティリティモデル</string>
     <string name="settings_agent_subagent_model_title">大型ユーティリティモデル</string>
-    <string name="settings_agent_select_subagent_model">大型ユーティリティモデルを選択</string>
-    <string name="settings_agent_clear_subagent_model">クリア(小型モデルを再利用)</string>
     <string name="settings_agent_multi_agent_section">マルチエージェントのコラボレーション</string>
     <string name="settings_agent_collab_team">コラボレーションチーム</string>
     <string name="settings_agent_multi_agent_enabled">有効 · %1$d チーム</string>
@@ -41,8 +36,6 @@
     <string name="settings_agent_offset_off_label">オフ</string>
     <string name="settings_agent_select_model">エージェントモデルの選択</string>
     <string name="settings_agent_no_models_hint">利用可能なモデルはありません。</string>
-    <string name="settings_agent_select_tool_model">小型ユーティリティモデルを選択</string>
-    <string name="settings_agent_clear_tool_model">クリア（メインモデルを使用）</string>
     <string name="settings_agent_unnamed_assistant">名前のないアシスタント</string>
     <string name="settings_agent_interval_minutes">%1$d 分ごと</string>
     <string name="settings_agent_interval_hourly">毎時</string>
@@ -254,10 +247,8 @@
     <string name="settings_asr_follow_provider">プロバイダー設定に従う</string>
     <string name="settings_asr_follow_provider_subtitle">エンドポイントと API キーはプロバイダーの設定を使用し、モデルは手動で選択します</string>
     <string name="settings_asr_follow_provider_picker">プロバイダー</string>
-    <string name="settings_asr_follow_model_picker">モデル</string>
     <!-- 追従モード共通のプレースホルダーとフォールバック通知 -->
     <string name="settings_speech_follow_unset">未選択</string>
-    <string name="settings_speech_follow_no_models">このプロバイダーにはモデルがありません</string>
     <string name="settings_speech_follow_fallback_notice">手動設定にフォールバックしました: %1$s</string>
     <string name="settings_speech_follow_reason_provider_missing">選択したプロバイダーが見つかりません</string>
     <string name="settings_speech_follow_reason_provider_disabled">選択したプロバイダーは無効です</string>
@@ -452,10 +443,7 @@
     <string name="settings_media_tts_model_placeholder">デフォルトでは空白のままにしておきます</string>
     <string name="settings_media_tts_endpoint">カスタムエンドポイント</string>
     <string name="settings_media_tts_endpoint_placeholder">公式エンドポイントの場合は空白のままにします</string>
-    <string name="settings_media_tts_save_api_key">APIキーの保存</string>
     <string name="settings_media_tts_save_voice">音声を保存する</string>
-    <string name="settings_media_tts_save_model">モデルの保存</string>
-    <string name="settings_media_tts_save_endpoint">エンドポイントの保存</string>
     <string name="settings_media_tts_save_connection">接続設定を保存</string>
     <string name="settings_media_tts_show">見せる</string>
     <string name="settings_media_tts_hide">隠れる</string>
@@ -476,7 +464,6 @@
     <string name="settings_media_tts_follow_provider">プロバイダー設定に従う</string>
     <string name="settings_media_tts_follow_provider_subtitle">エンドポイントと API キーはプロバイダーの設定を使用し、モデルは手動で選択します</string>
     <string name="settings_media_tts_follow_provider_picker">プロバイダー</string>
-    <string name="settings_media_tts_follow_model_picker">モデル</string>
     <string name="settings_media_tts_follow_voice_hint">追従するのはエンドポイントと API キーのみです。音色が選択したプロバイダーで使えるかはご自身でご確認ください</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">カスタムテーマ</string>
@@ -504,8 +491,6 @@
     <string name="settings_theme_custom_color_l">軽さ</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
     <string name="settings_agent_dm_subtitle">Agent間のダイレクトメッセージを表示</string>
-    <string name="settings_agent_agent_only">Agentセッションのみ</string>
-    <string name="settings_agent_agent_only_subtitle">有効にするとAgentアシスタントのみがプロアクティブメッセージを送信し、タスクセッションは送信しません</string>
     <string name="settings_agent_temperature">生成温度</string>
     <string name="settings_agent_temperature_hint">決定段階では temperature×0.5(より決定的)を使用し、生成段階ではこの値を使用します。値が大きいほど創造的で、小さいほど安定</string>
     <string name="settings_agent_temperature_stable">0.0 安定</string>
@@ -533,10 +518,6 @@
     <string name="settings_asr_entry_title">音声認識エンジン</string>
     <string name="settings_asr_entry_subtitle">音声認識エンジンを選択(Paraformer / Whisper など)</string>
     <string name="settings_miniphone_title">ミニフォン</string>
-    <string name="settings_miniphone_enable_title">ミニフォンを有効にする</string>
-    <string name="settings_miniphone_enable_subtitle">オンにするとホーム右上にミニフォンの入口が表示されます</string>
-    <string name="settings_miniphone_desc_title">ミニフォンとは</string>
-    <string name="settings_miniphone_desc_body">没入感のあるミニデスクトップ:モーメント、AI アルバム、メモ、天気、モデル日記。オフにするとホームは元のレイアウトに戻ります。</string>
     <string name="settings_font_section_title">フォント</string>
     <string name="settings_font_body_label">本文フォント</string>
     <string name="settings_font_body_default">システム既定</string>
@@ -613,7 +594,6 @@
     <string name="settings_agent_pace_standard_desc">約 4 時間に 1 回、1 日最大 3 通</string>
     <string name="settings_agent_pace_heavy">多め</string>
     <string name="settings_agent_pace_heavy_desc">約 2 時間に 1 回、1 日最大 8 通</string>
-    <string name="settings_agent_pace_custom">カスタム</string>
     <string name="settings_agent_quiet_hours_title">通知しない時間帯</string>
     <string name="settings_agent_quiet_hours_hint">この時間帯は自発メッセージを送信しません(夜間の迷惑を防ぎます)。</string>
     <string name="settings_agent_quiet_hours_start">開始</string>
@@ -705,14 +685,6 @@
     <string name="settings_keep_alive_battery_subtitle">システムがバックグラウンド動作を制限します。このアプリを許可してください</string>
     <string name="settings_keep_alive_rom_title">自動起動の許可リスト</string>
     <string name="settings_keep_alive_rom_subtitle">一部のメーカー ROM では別途許可が必要です</string>
-    <string name="launcher_alias_notes">ノート</string>
-    <string name="launcher_alias_memo">メモ</string>
-    <string name="launcher_alias_study">学習記録</string>
-    <string name="settings_appearance_customize_title">外観のカスタマイズ</string>
-    <string name="settings_appearance_customize_hint">AI アシスタントを使っていると気づかれたくない場合に。ランチャー名と通知文言だけを変更し、パッケージ名は変更せず、他のアプリを装いません。</string>
-    <string name="settings_appearance_customize_keep_alive_hint">通知文言は「バックグラウンドで常駐」を有効にすると反映されます。</string>
-    <string name="settings_launcher_style_title">ランチャー表示名</string>
-    <string name="settings_launcher_style_hint">切り替え後、アイコンが一瞬消えて再表示されます。ホーム画面にある古いアイコンは手動で削除が必要な場合があります。</string>
     <string name="settings_keep_alive_notification_custom_title">通知文言</string>
     <string name="settings_keep_alive_notification_custom_subtitle">常駐通知のタイトルと本文をカスタマイズ</string>
     <string name="settings_keep_alive_notification_custom_hint">空欄の場合は既定の文言を使用します。</string>
@@ -807,24 +779,16 @@
     <string name="settings_session_terms_scope_assistant">アシスタント級</string>
     <string name="settings_session_terms_scope_confirmed">確定済み</string>
     <string name="settings_session_terms_scope_candidate">確認待ち</string>
-    <string name="kb_jobs_summary_running">処理中 %1$d/%2$d</string>
-    <string name="kb_jobs_summary_failed">すべて失敗：%1$d</string>
-    <string name="kb_doc_saved">保存しました</string>
-    <string name="kb_jobs_summary_done">完了：%1$d</string>
     <string name="kb_doc_version">バージョン %1$d</string>
     <string name="kb_doc_edit">本文を編集</string>
     <string name="kb_doc_source">ソース</string>
     <string name="kb_search_title">検索検証</string>
     <string name="kb_jobs_title">処理センター</string>
     <string name="kb_doc_title">ドキュメント詳細</string>
-    <string name="kb_jobs_cancelled">キャンセル済み</string>
     <string name="kb_search_run">検索</string>
-    <string name="kb_doc_availability">可用性</string>
     <string name="kb_jobs_empty">処理する項目はありません</string>
     <string name="kb_search_hint">質問を入力</string>
     <string name="kb_search_empty">一致なし</string>
-    <string name="kb_doc_conflict">内容が更新されています。再読み込みして再試行してください。</string>
-    <string name="kb_jobs_summary_partial">一部成功：成功 %1$d、失敗 %2$d</string>
     <string name="kb_jobs_cancel">処理をキャンセル</string>
     <string name="kb_search_results">%1$d 件一致</string>
     <string name="kb_settings_ingest">取り込み</string>

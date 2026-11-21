@@ -620,7 +620,6 @@
     <string name="permission_shizuku_activation_hint">El servicio no está en ejecución. En Android 11+, activa las Opciones de desarrollador y empareja/inicia mediante «Depuración inalámbrica» dentro de Shizuku; los dispositivos con root pueden iniciarlo directamente. Tras reiniciar el teléfono hay que activarlo de nuevo.</string>
     <string name="permission_shizuku_manual_grant_hint">El diálogo de permiso fue denegado permanentemente («No volver a preguntar»). Shizuku está abierto: permite Muse manualmente dentro de la app</string>
     <string name="permission_shizuku_denied_toast">Permiso de Shizuku denegado</string>
-    <string name="permission_shizuku_timeout_toast">Se agotó el tiempo de espera de la autorización de Shizuku; reintenta</string>
     <string name="permission_shizuku_unavailable_toast">El servicio de Shizuku no está en ejecución; inícialo primero en la app Shizuku</string>
     <string name="permission_root_manager_missing">Se detectó una solución root, pero no hay ningún gestor (Magisk / KernelSU / APatch) instalado. Las solicitudes de su se denegarán silenciosamente: instala y abre el gestor correspondiente y luego pulsa «Solicitar autorización» arriba.</string>
     <string name="permission_termux_outdated">Esta versión de Termux es demasiado antigua para devolver resultados. Actualiza a 0.118+ desde F-Droid o GitHub (la versión de Play Store ya no se actualiza).</string>
@@ -774,7 +773,6 @@
     <string name="wake_state_not_registered">NOT_REGISTERED</string>
     <string name="wake_state_unknown">UNKNOWN</string>
     <string name="wake_kind_scheduled_task">Tareas programadas</string>
-    <string name="wake_kind_moment">Momentos</string>
     <string name="wake_kind_proactive">Mensajes proactivos</string>
     <string name="wake_kind_daily_summary">Resumen diario</string>
     <string name="wake_kind_cloud_backup">Copia en la nube</string>

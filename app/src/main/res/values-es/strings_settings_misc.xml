@@ -17,18 +17,9 @@
     <string name="settings_web_search_enable">Habilitar búsqueda web</string>
     <string name="settings_web_search_enable_subtitle">Estado predeterminado global; si está desactivada, el chip de la barra de entrada aún permite activarla temporalmente</string>
     <string name="settings_web_search_engine">Motor de búsqueda</string>
-    <string name="settings_web_search_api_key_label">Clave API (opcional)</string>
     <string name="settings_saved">Guardado</string>
     <string name="settings_web_search_save_api_key">Guardar clave API</string>
-    <string name="settings_web_search_save_endpoint">Guardar endpoint</string>
-    <string name="settings_web_search_test_query_label">Consulta de prueba</string>
-    <string name="settings_web_search_test_query_placeholder">Introduce una palabra clave para probar la búsqueda…</string>
-    <string name="settings_web_search_test_success">Búsqueda exitosa, %1$d resultados:\n%2$s</string>
-    <string name="settings_web_search_test_empty">Búsqueda completada sin resultados</string>
-    <string name="settings_web_search_test_failed">Prueba fallida: %1$s</string>
-    <string name="settings_web_search_test_failed_unknown">Error desconocido</string>
     <string name="settings_web_search_testing">Buscando…</string>
-    <string name="settings_web_search_test">Probar búsqueda</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
 
     <!-- ExperimentsSettingsPage.kt -->
@@ -297,7 +288,6 @@
     <string name="settings_crash_confirm_dialog_title">Confirmar informe de fallo</string>
     <string name="settings_crash_confirm_dialog_content">Se enviarán %1$d registro(s) de fallo.\n\nIncluye: traza del fallo + modelo del dispositivo + versión de Android + versión de la app + marca de tiempo.\nLa traza ya está anonimizada. ¿Continuar?</string>
     <string name="settings_crash_confirm_button">Confirmar informe</string>
-    <string name="settings_crash_no_pending">No hay fallos pendientes de informar</string>
     <string name="settings_web_search_mode">Modo de búsqueda</string>
     <string name="settings_web_search_mode_desc">Prioriza la búsqueda del modelo, luego las API configuradas y después Bing y Baidu HTTP.</string>
     <string name="settings_web_search_mode_auto">Automático: priorizar búsqueda del modelo</string>
@@ -317,7 +307,6 @@
     <string name="settings_web_search_api_services_desc">Los usuarios avanzados pueden configurar Tavily, Brave, Serper, Bocha y otros servicios; los usuarios normales no necesitan configurar nada.</string>
     <string name="settings_web_search_diagnosis">Último diagnóstico de búsqueda</string>
     <string name="settings_web_search_no_diagnosis">Aún no hay registros de búsqueda</string>
-    <string name="settings_web_search_endpoint_optional">Endpoint (opcional)</string>
     <string name="settings_experiments_parallel_tools">Herramientas de solo lectura en paralelo</string>
     <string name="settings_experiments_parallel_tools_subtitle">Cuando todas las herramientas de una ronda son de solo lectura, se ejecutan en paralelo para ser más rápido y eficiente (activado por defecto; se puede desactivar para volver a la ejecución en serie)</string>
     <string name="settings_model_action_test_chat">Probar conversación (flujo completo)</string>

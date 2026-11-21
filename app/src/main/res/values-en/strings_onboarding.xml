@@ -25,9 +25,6 @@
     <!-- Step 3: Configure Provider -->
     <string name="onboarding_provider_title">Connect a brain.</string>
     <string name="onboarding_provider_subtitle">Pick a model service, enter your key and test the connection. On success, we fetch the model list and match capabilities.</string>
-    <string name="onboarding_provider_err_auth">Authentication failed: please check your API Key.</string>
-    <string name="onboarding_provider_err_empty">Connected, but the upstream returned no models — please check the endpoint.</string>
-    <string name="onboarding_provider_err_other">Connection failed: %1$s</string>
     <string name="onboarding_provider_caps">Capabilities matched: Vision %1$d · Reasoning %2$d · Tools %3$d</string>
     <string name="onboarding_provider_select_label">Select Provider</string>
     <string name="onboarding_provider_apikey_label">API Key</string>

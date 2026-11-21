@@ -11,10 +11,8 @@
     <string name="settings_web_search_key_verify">验证</string>
     <string name="settings_web_search_key_verify_ok">可用：返回 %1$d 条结果</string>
     <string name="settings_web_search_key_verify_failed">验证失败：%1$s</string>
-    <string name="settings_web_search_key_verify_no_key">该引擎还没有可用的 Key</string>
     <string name="settings_web_search_key_verify_empty">连接正常，但没有返回结果</string>
     <string name="settings_web_search_provider_current">当前使用</string>
-    <string name="settings_web_search_provider_configure">点击配置</string>
     <string name="settings_web_search_provider_selection">当前搜索引擎</string>
     <string name="settings_web_search_provider_set_current">设为当前搜索引擎</string>
     <string name="settings_web_search_provider_set_current_subtitle">搜索请求将使用 %1$s</string>

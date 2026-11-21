@@ -25,9 +25,6 @@
     <!-- Step 3: Configure Provider -->
     <string name="onboarding_provider_title">Conecte um cérebro.</string>
     <string name="onboarding_provider_subtitle">Escolha um serviço, insira a chave e teste a conexão. Ao conectar, buscamos a lista de modelos e combinamos as capacidades.</string>
-    <string name="onboarding_provider_err_auth">Falha de autenticação: verifique sua API Key.</string>
-    <string name="onboarding_provider_err_empty">Conectado, mas nenhum modelo retornou — verifique o endereço.</string>
-    <string name="onboarding_provider_err_other">Falha na conexão: %1$s</string>
     <string name="onboarding_provider_caps">Capacidades mapeadas: Visão %1$d · Raciocínio %2$d · Ferramentas %3$d</string>
     <string name="onboarding_provider_select_label">Selecione o provedor</string>
     <string name="onboarding_provider_apikey_label">Chave de API</string>

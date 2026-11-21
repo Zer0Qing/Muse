@@ -25,9 +25,6 @@
     <!-- 步骤 3:配置供应商 -->
     <string name="onboarding_provider_title">接上大脑。</string>
     <string name="onboarding_provider_subtitle">选一个模型服务，填好 Key 并测试连接。成功后自动拉取模型清单并匹配能力。</string>
-    <string name="onboarding_provider_err_auth">认证失败：请检查 API Key 是否正确。</string>
-    <string name="onboarding_provider_err_empty">连接成功，但上游没有返回任何模型——请检查接口地址。</string>
-    <string name="onboarding_provider_err_other">连接失败：%1$s</string>
     <string name="onboarding_provider_caps">能力已匹配：视觉 %1$d · 推理 %2$d · 工具 %3$d</string>
     <string name="onboarding_provider_select_label">选择供应商</string>
     <string name="onboarding_provider_apikey_label">API Key</string>

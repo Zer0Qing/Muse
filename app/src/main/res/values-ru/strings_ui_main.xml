@@ -27,7 +27,6 @@
     <string name="assistant_detail_global_default">Глобальный по умолчанию</string>
     <string name="assistant_detail_exclusive_model">Эксклюзивная модель</string>
     <string name="assistant_detail_temperature">Температура: %1$s</string>
-    <string name="assistant_detail_default">По умолчанию</string>
     <string name="assistant_detail_default_value">По умолчанию (%1$s)</string>
     <string name="assistant_detail_use_default">Использовать по умолчанию</string>
     <string name="assistant_detail_top_p_label">Top P (пусто для значения по умолчанию, 0-1)</string>
@@ -50,7 +49,6 @@
     <!-- Phase 6: Model picker UX improvements -->
     <string name="assistant_detail_use_global_default_card">Использовать глобальную модель по умолчанию</string>
     <string name="assistant_detail_using_global_model">Текущая глобальная модель по умолчанию: %1$s</string>
-    <string name="assistant_detail_model_hint">Подсказка: в настройках ассистента можно выбрать эксклюзивную модель. Разные ассистенты могут использовать разные AI-модели.</string>
     <string name="assistant_detail_system_prompt_label">System Prompt (роль / правила)</string>
     <string name="assistant_detail_message_template_label">Шаблон сообщений (поддерживает переменные {{date}} {{time}} {{session_id}} и др.)</string>
     <string name="assistant_detail_preset_messages_label">Предустановленные сообщения JSON (продвинутое, напр. [{\"role\":\"system\",\"content\":\"...\"}])</string>
@@ -186,23 +184,6 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Настройки</string>
-    <string name="settings_screen_group_assistants">Диалоги и роли</string>
-    <string name="settings_screen_group_chat_input">Чат и ввод</string>
-    <string name="settings_screen_group_models">Модели и провайдеры</string>
-    <string name="settings_screen_group_chat_display">Диалог и выражение</string>
-    <string name="settings_screen_group_tools">Инструменты и поиск</string>
-    <string name="settings_screen_group_voice">Голос</string>
-    <string name="settings_screen_group_media">Изображения и перевод</string>
-    <string name="settings_screen_group_memory">Память и знания</string>
-    <string name="settings_screen_group_data_privacy">Данные и резервные копии</string>
-    <string name="settings_screen_group_connection">Подключения</string>
-    <string name="settings_screen_group_automation">Автоматизация</string>
-    <string name="settings_screen_group_proactive">Проактивность и автоматизация</string>
-    <string name="settings_screen_group_look">Внешний вид</string>
-    <string name="settings_screen_group_data">Данные</string>
-    <string name="settings_screen_group_privacy">Приватность и очистка</string>
-    <string name="settings_screen_group_about">О приложении и справка</string>
-    <string name="settings_screen_group_developer">Для разработчиков</string>
     <!-- Категории настроек (первый уровень) -->
     <string name="settings_group_assistants">Ассистенты и роли</string>
     <string name="settings_group_chat">Чат</string>
@@ -214,14 +195,10 @@
     <string name="settings_group_connection">Подключения</string>
     <string name="settings_group_automation">Автоматизация</string>
     <string name="settings_group_appearance">Внешний вид</string>
-    <string name="settings_group_data_privacy">Данные и приватность</string>
-    <string name="settings_group_about_developer">О приложении и разработчику</string>
     <string name="settings_group_data_storage">Данные и резервные копии</string>
     <string name="settings_group_privacy_security">Приватность и безопасность</string>
     <string name="settings_group_about">О приложении</string>
     <string name="settings_group_developer">Разработчику</string>
-    <string name="settings_group_section_about">О приложении</string>
-    <string name="settings_group_section_developer">Для разработчиков</string>
     <string name="settings_screen_appearance_label">Внешний вид</string>
     <string name="settings_screen_chat">Чат</string>
     <string name="settings_screen_media">Озвучивание</string>
@@ -263,7 +240,6 @@
     <string name="connection_mcp_title">Серверы MCP</string>
     <string name="connection_channels_subtitle">Настроено каналов: %1$d</string>
     <string name="connection_channels_title">Каналы сообщений</string>
-    <string name="connection_center_desc">Каналы, MCP, плагины и одобрения инструментов</string>
     <string name="channel_page_title">Каналы сообщений</string>
     <string name="message_action_annotate">Заметка</string>
     <string name="message_annotate_title">Заметки к сообщению</string>
@@ -334,8 +310,6 @@
     <string name="settings_search_no_results">Нет подходящих настроек</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
-    <string name="settings_screen_translate">AI-перевод</string>
-    <string name="settings_screen_translate_desc">Многоязычный перевод, поддержка вставки/копирования</string>
 
     <!-- v1.25: Vision Assist (let text-only models "see" images via vision model) -->
     <string name="settings_vision_title">Визуальная помощь</string>
@@ -351,7 +325,6 @@
     <string name="vision_assist_done">Vision Assist · Готово</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_back_cd">Назад</string>
     <string name="search_cancel">Отмена</string>
     <string name="search_placeholder">Поиск сессий/сообщений/настроек...</string>
     <string name="search_empty_hint">Введите ключевые слова для поиска сессий, сообщений или настроек</string>
@@ -623,13 +596,11 @@
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">Сжатие истории разговора…</string>
     <string name="chat_updating_memory_banner">Обновление памяти…</string>
-    <string name="chat_draft_restored">Черновик восстановлен</string>
     <string name="chat_loading_more_history">Загрузка истории…</string>
     <string name="chat_video_generating">Генерация видео, может занять десятки секунд…</string>
     <string name="ocr_processing_hint">Распознавание текста на изображении…</string>
     <string name="search_searching">Поиск…</string>
     <string name="settings_screen_quick_notes">Быстрые заметки</string>
-    <string name="settings_screen_quick_notes_desc">Записывайте идеи: категории/напоминания/шифрование</string>
     <string name="settings_vision_manual_selected">Выбрать вручную</string>
     <string name="settings_vision_probe_button">Проверить выбранную модель зрения</string>
     <string name="settings_vision_probe_desc">Отправляет встроенное тестовое изображение выбранной модели зрения, чтобы проверить поддержку визуального ввода.</string>
@@ -680,9 +651,7 @@
     <string name="workspace_import_success">Импортировано: %1$d</string>
     <string name="workspace_import_failed">Не удалось импортировать файл: %1$s</string>
     <string name="chat_fork_success">Создан новый диалог из текущей беседы</string>
-    <string name="chat_list_archived_empty">Архивированных диалогов нет</string>
     <string name="chat_list_archived_entry">В архиве (%1$d)</string>
-    <string name="chat_list_archived_restore">Восстановить</string>
     <string name="chat_list_archived_toast">Архивировано. Восстановить можно в разделе \"Архив\".</string>
     <string name="chat_list_edit">Изменить</string>
     <string name="chat_list_edit_archive">В архив</string>
@@ -699,7 +668,6 @@
     </plurals>
     <string name="chat_list_edit_exit">Выйти</string>
     <string name="chat_list_edit_select_all">Выбрать всё</string>
-    <string name="chat_list_restored_toast">Восстановлено</string>
     <string name="greeting_afternoon">Добрый день</string>
     <string name="greeting_days_birthday">День рождения через %1$d дн.</string>
     <string name="greeting_days_event">%1$d дн. — %2$s: %3$s</string>
@@ -792,8 +760,6 @@
     <string name="settings_preference_disabled_tag">Отключено</string>
     <string name="settings_preference_source">Исходные слова: %1$s</string>
     <string name="workspace_empty_subtitle">Файлы, созданные или сохранённые ассистентом в чате, появятся здесь</string>
-    <string name="settings_screen_group_storage">Хранилище</string>
-    <string name="settings_screen_group_migrate">Резервные копии</string>
 
     <string name="workspace_mounts_title">Точки монтирования</string>
     <string name="workspace_mount_add">Добавить папку</string>
@@ -804,7 +770,6 @@
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">Не удалось удалить «%1$s» — запись всё ещё в списке</string>
     <string name="workspace_mount_failed">Не удалось смонтировать: %1$s</string>
-    <string name="workspace_read_only_hint">Монтирование только для чтения, изменения невозможны</string>
     <string name="muse_plugins_market_advice_downgrade">Версия из каталога старше установленной — это будет понижение</string>
     <string name="muse_plugins_market_advice_unknown_version">Версию не удалось распознать; пока не устанавливайте</string>
     <string name="muse_plugins_market_advice_needs_newer_app">Этот плагин требует более новой версии приложения</string>

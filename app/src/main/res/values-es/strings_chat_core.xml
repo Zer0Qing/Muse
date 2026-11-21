@@ -10,17 +10,6 @@
     <string name="moment_images_selected">%1$d seleccionadas (toca para añadir más)</string>
     <string name="moment_add_images_hint">Agregar imágenes (máx. %1$d)</string>
     <!-- ===== Diario (MiniDiaryScreen) ===== -->
-    <string name="diary_generate_failed">Fallo al generar el diario, inténtalo de nuevo más tarde</string>
-    <string name="diary_title">Diario de Muse</string>
-    <string name="diary_date_title">%3$s/%2$d/%1$d</string>
-    <string name="diary_empty_today">Aún no hay diario de hoy</string>
-    <string name="diary_empty_other_day">No hay diario para este día</string>
-    <string name="diary_empty_today_hint">Al abrir la página del diario se generará automáticamente el de hoy</string>
-    <string name="diary_backfill_action">Escribir este día</string>
-    <string name="diary_generating">Generando…</string>
-    <string name="diary_prev_month">Mes anterior</string>
-    <string name="diary_month_title">%2$d/%1$d</string>
-    <string name="diary_next_month">Mes siguiente</string>
     <string-array name="diary_weekdays_short">
         <item>D</item>
         <item>L</item>
@@ -31,32 +20,6 @@
         <item>S</item>
     </string-array>
     <!-- ===== Clima (MiniWeatherScreen) ===== -->
-    <string name="weather_title">Tiempo</string>
-    <string name="weather_search_hint">Introduce el nombre de una ciudad (p. ej. Chengdu)</string>
-    <string name="weather_search_action">Buscar</string>
-    <string name="weather_service_unavailable">El servicio meteorológico no está disponible temporalmente</string>
-    <string name="weather_city_not_found">No se ha encontrado la ciudad «%1$s», prueba con otro nombre</string>
-    <string name="weather_location_failed">No se pudo obtener la ubicación, introduce un nombre de ciudad para buscar</string>
-    <string name="weather_permission_denied">Permiso de ubicación no concedido, introduce un nombre de ciudad para buscar</string>
-    <string name="weather_permission_guide">Configura el permiso de ubicación o introduce un nombre de ciudad para buscar</string>
-    <string name="weather_feels_like_wind">Sensación %1$d° · Viento %2$s km/h</string>
-    <string name="weather_current_location">Ubicación actual</string>
-    <string name="weather_condition_clear">Despejado</string>
-    <string name="weather_condition_partly_cloudy">Parcialmente nublado</string>
-    <string name="weather_condition_overcast">Nublado</string>
-    <string name="weather_condition_fog">Niebla</string>
-    <string name="weather_condition_drizzle">Llovizna</string>
-    <string name="weather_condition_freezing_drizzle">Llovizna helada</string>
-    <string name="weather_condition_rain">Lluvia</string>
-    <string name="weather_condition_snow">Nieve</string>
-    <string name="weather_condition_sleet">Aguanieve</string>
-    <string name="weather_condition_showers">Chubascos</string>
-    <string name="weather_condition_snow_showers">Chubascos de nieve</string>
-    <string name="weather_condition_thunderstorm">Tormenta</string>
-    <string name="weather_condition_thunderstorm_hail">Tormenta con granizo</string>
-    <string name="weather_condition_unknown">Desconocido</string>
-    <string name="weather_day_today">Hoy</string>
-    <string name="weather_day_tomorrow">Mañana</string>
     <string-array name="weather_weekdays">
         <item>Dom</item>
         <item>Lun</item>
@@ -101,10 +64,8 @@
     <string name="chat_export_format_markdown">Markdown (.md): texto sin formato, fácil de pegar en notas o volver a editar</string>
     <string name="chat_export_format_html">HTML (.html): archivo único con estilos e imágenes incrustados, se puede abrir en cualquier navegador y compartir</string>
     <string name="chat_export_format_pdf">PDF (.pdf): documento A4 paginado, ideal para imprimir o archivar</string>
-    <string name="chat_doc_empty_or_unsupported">El documento está vacío o el formato no es compatible</string>
     <string name="chat_doc_truncated">\n\n…(documento demasiado largo, truncado en %1$d caracteres)</string>
     <string name="chat_doc_default_name">Documento</string>
-    <string name="chat_doc_parse_failed">Error al analizar el documento: %1$s</string>
     <string name="chat_attachment_workspace_ref">Adjunto guardado en el espacio de trabajo: %1$s (%2$s)</string>
     <string name="chat_attachment_preview_unavailable">Este archivo no se puede abrir en la app. El original está en el espacio de trabajo: %1$s</string>
     <string name="chat_attachment_import_failed">No se pudo guardar el adjunto: %1$s</string>
@@ -383,8 +344,6 @@
     <string name="chat_list_new_folder">Nueva carpeta</string>
 
     <!-- Task home -->
-    <string name="chat_list_input_hint">Escribe cualquier idea…</string>
-    <string name="chat_list_send">Enviar</string>
     <string name="chat_list_no_recent_title">Aún no hay chats</string>
     <string name="chat_list_no_recent_subtitle">Toca el botón + de abajo para iniciar un nuevo chat</string>
     <string name="chat_list_knowledge_title">Base de conocimientos</string>
@@ -451,7 +410,6 @@
     <string name="settings_sticker_move_target_label">Mover a otro paquete (un nombre nuevo crea uno)</string>
     <string name="settings_sticker_move_up">Subir</string>
     <string name="settings_sticker_move_down">Bajar</string>
-    <string name="settings_sticker_upload_zip_subtitle">Elige un archivo ZIP; las categorías se crean según la estructura de carpetas</string>
     <string name="settings_sticker_imported">%1$d pegatinas importadas</string>
     <string name="settings_sticker_import_failed">Error de importación: %1$s</string>
     <string name="settings_sticker_export_location_failed">No se puede escribir en la ubicación seleccionada</string>
@@ -495,7 +453,6 @@
     <string name="chat_tool_run_summary">Ejecutó %1$d operaciones</string>
     <string name="chat_tool_card_open">Ver tarjeta</string>
     <string name="chat_update_compress">Comprimir contexto</string>
-    <string name="chat_ignore_memory_option">Esta conversación no usará la memoria</string>
     <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
     <string name="msg_info_title">Información del mensaje</string>
     <string name="msg_info_model">Modelo</string>
@@ -583,7 +540,6 @@
     <string name="chat_pending_send_busy">Se está generando una respuesta. Detén la generación actual antes de enviar mensajes en cola.</string>
     <string name="chat_quickbar_hint_off">La barra de herramientas rápida está contraída</string>
     <string name="chat_quickbar_hint_on">La barra de herramientas rápida está expandida</string>
-    <string name="chat_tool_calls_chip">Herramientas %1$d/%2$d</string>
     <string name="chat_tool_copy">Copiar</string>
     <string name="chat_tool_hidden_records">%1$d registros anteriores ocultos</string>
     <string name="chat_tool_latest">Última: %1$s</string>
@@ -609,10 +565,8 @@
     <string name="chat_context_divider_hint_expanded">Toca para ocultar los mensajes originales</string>
     <string name="chat_translation_block_title">Traducción</string>
     <string name="moment_comment_reply">Responder</string>
-    <string name="diary_export_action">Exportar</string>
     <string name="moment_visibility_title">Visible para</string>
     <string name="moment_visibility_public">Todos</string>
-    <string name="diary_perspective_character">Vista del personaje: este diario lo escribe él/ella</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">La ejecución de herramientas está en pausa, así que no se ejecutarán.</string>
     <string name="chat_tool_paused_banner_action">Ajustes</string>
@@ -633,7 +587,6 @@
     <string name="channel_last_failure">El último envío falló: %1$s</string>
     <string name="chat_process_sheet_title">Pasos de esta ejecución</string>
     <string name="chat_process_sheet_empty">Aún no hay pasos</string>
-    <string name="settings_screen_sticker_desc">Importa y gestiona sus pegatinas</string>
     <string name="chat_process_delegating">Delegando a %1$s…</string>
     <string name="chat_process_running_command">Ejecutando un comando</string>
     <string name="chat_process_subagent_running">%1$d tareas de subagente en curso</string>

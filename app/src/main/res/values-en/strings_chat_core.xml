@@ -10,17 +10,6 @@
     <string name="moment_images_selected">%1$d selected (tap to add more)</string>
     <string name="moment_add_images_hint">Add images (up to %1$d)</string>
     <!-- ===== Diary (MiniDiaryScreen) ===== -->
-    <string name="diary_generate_failed">Diary generation failed, try again later</string>
-    <string name="diary_title">Muse Diary</string>
-    <string name="diary_date_title">%1$d/%2$d/%3$s</string>
-    <string name="diary_empty_today">No diary for today yet</string>
-    <string name="diary_empty_other_day">No diary for this day</string>
-    <string name="diary_empty_today_hint">Opening the diary page will auto-generate today\'s diary</string>
-    <string name="diary_backfill_action">Write this day</string>
-    <string name="diary_generating">Generating…</string>
-    <string name="diary_prev_month">Previous month</string>
-    <string name="diary_month_title">%1$d/%2$d</string>
-    <string name="diary_next_month">Next month</string>
     <string-array name="diary_weekdays_short">
         <item>Su</item>
         <item>Mo</item>
@@ -31,32 +20,6 @@
         <item>Sa</item>
     </string-array>
     <!-- ===== Weather (MiniWeatherScreen) ===== -->
-    <string name="weather_title">Weather</string>
-    <string name="weather_search_hint">Enter city name (e.g. Chengdu)</string>
-    <string name="weather_search_action">Search</string>
-    <string name="weather_service_unavailable">Weather service temporarily unavailable</string>
-    <string name="weather_city_not_found">City "%1$s" not found, try another name</string>
-    <string name="weather_location_failed">Unable to get location, enter a city name to search</string>
-    <string name="weather_permission_denied">Location permission not granted, enter a city name to search</string>
-    <string name="weather_permission_guide">Enable location permission or enter a city name to search</string>
-    <string name="weather_feels_like_wind">Feels like %1$d° · Wind %2$s km/h</string>
-    <string name="weather_current_location">Current location</string>
-    <string name="weather_condition_clear">Clear</string>
-    <string name="weather_condition_partly_cloudy">Partly cloudy</string>
-    <string name="weather_condition_overcast">Overcast</string>
-    <string name="weather_condition_fog">Fog</string>
-    <string name="weather_condition_drizzle">Drizzle</string>
-    <string name="weather_condition_freezing_drizzle">Freezing drizzle</string>
-    <string name="weather_condition_rain">Rain</string>
-    <string name="weather_condition_snow">Snow</string>
-    <string name="weather_condition_sleet">Sleet</string>
-    <string name="weather_condition_showers">Showers</string>
-    <string name="weather_condition_snow_showers">Snow showers</string>
-    <string name="weather_condition_thunderstorm">Thunderstorm</string>
-    <string name="weather_condition_thunderstorm_hail">Thunderstorm with hail</string>
-    <string name="weather_condition_unknown">Unknown</string>
-    <string name="weather_day_today">Today</string>
-    <string name="weather_day_tomorrow">Tomorrow</string>
     <string-array name="weather_weekdays">
         <item>Sun</item>
         <item>Mon</item>
@@ -101,10 +64,8 @@
     <string name="chat_export_format_markdown">Markdown (.md): plain text, easy to paste into notes or edit again</string>
     <string name="chat_export_format_html">HTML (.html): single file with inline styles and images, shareable in any browser</string>
     <string name="chat_export_format_pdf">PDF (.pdf): A4 paginated document for printing or archival</string>
-    <string name="chat_doc_empty_or_unsupported">Document is empty or format is not supported</string>
     <string name="chat_doc_truncated">\n\n…(document too long, truncated by %1$d characters)</string>
     <string name="chat_doc_default_name">Document</string>
-    <string name="chat_doc_parse_failed">Document parsing failed: %1$s</string>
     <string name="chat_attachment_workspace_ref">Attachment saved to workspace: %1$s (%2$s)</string>
     <string name="chat_attachment_preview_unavailable">This file cannot be opened in the app. The original is in the workspace: %1$s</string>
     <string name="chat_attachment_import_failed">Failed to save attachment: %1$s</string>
@@ -403,8 +364,6 @@
     <string name="chat_list_folder_name_required">Enter a folder name</string>
 
     <!-- Task home -->
-    <string name="chat_list_input_hint">Enter any idea…</string>
-    <string name="chat_list_send">Send</string>
     <string name="chat_list_no_recent_title">No chats yet</string>
     <string name="chat_list_no_recent_subtitle">Tap the + button below to start a new chat</string>
     <string name="chat_list_knowledge_title">Knowledge Base</string>
@@ -471,7 +430,6 @@
     <string name="settings_sticker_move_target_label">Move to another pack (a new name creates one)</string>
     <string name="settings_sticker_move_up">Move up</string>
     <string name="settings_sticker_move_down">Move down</string>
-    <string name="settings_sticker_upload_zip_subtitle">Pick a ZIP file; categories are derived from folder structure</string>
     <string name="settings_sticker_imported">Imported %1$d stickers</string>
     <string name="settings_sticker_import_failed">Import failed: %1$s</string>
     <string name="settings_sticker_export_location_failed">Cannot write to the selected location</string>
@@ -520,7 +478,6 @@
     <string name="chat_tool_card_open">View card</string>
     <string name="chat_update_compress">Compress context</string>
     <!-- Empty-state guide / conversation memory -->
-    <string name="chat_ignore_memory_option">This conversation will not reference memory</string>
     <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
     <string name="msg_info_title">Message info</string>
     <string name="msg_info_model">Model</string>
@@ -601,7 +558,6 @@
     <string name="chat_forward_no_session">No sessions available to forward to</string>
     <string name="chat_model_not_configured_hint">The model service is not configured yet. Set an API Key first.</string>
     <string name="chat_pending_send_busy">A reply is being generated. Stop the current generation before sending queued messages.</string>
-    <string name="chat_tool_calls_chip">Tools %1$d/%2$d</string>
     <string name="chat_tool_runs_title">Task lineage</string>
     <string name="chat_tool_run_item_title">Task %1$d</string>
     <string name="chat_tool_run_steps">%1$d steps</string>
@@ -625,10 +581,8 @@
     <string name="chat_context_divider_hint_expanded">Tap to hide original messages</string>
     <string name="chat_translation_block_title">Translation</string>
     <string name="moment_comment_reply">Reply</string>
-    <string name="diary_export_action">Export</string>
     <string name="moment_visibility_title">Visible to</string>
     <string name="moment_visibility_public">Everyone</string>
-    <string name="diary_perspective_character">In-character view: this diary is written by them</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">Tool execution is paused, so tools will not really run.</string>
     <string name="chat_tool_paused_banner_action">Settings</string>
@@ -649,7 +603,6 @@
     <string name="channel_last_failure">Last send failed: %1$s</string>
     <string name="chat_process_sheet_title">Steps in this run</string>
     <string name="chat_process_sheet_empty">No steps yet in this run</string>
-    <string name="settings_screen_sticker_desc">Import and manage its stickers</string>
     <string name="chat_process_delegating">Delegating to %1$s…</string>
     <string name="chat_process_running_command">Running a command</string>
     <string name="chat_process_subagent_running">%1$d subagent tasks running</string>

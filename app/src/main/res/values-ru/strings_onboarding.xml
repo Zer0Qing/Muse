@@ -25,9 +25,6 @@
     <!-- Step 3: Configure Provider -->
     <string name="onboarding_provider_title">Подключите разум.</string>
     <string name="onboarding_provider_subtitle">Выберите сервис, введите ключ и проверьте соединение. При успехе мы загрузим список моделей и сопоставим их возможности.</string>
-    <string name="onboarding_provider_err_auth">Ошибка авторизации: проверьте API Key.</string>
-    <string name="onboarding_provider_err_empty">Соединение есть, но модели не вернулись — проверьте адрес.</string>
-    <string name="onboarding_provider_err_other">Ошибка подключения: %1$s</string>
     <string name="onboarding_provider_caps">Возможности сопоставлены: зрение %1$d · рассуждение %2$d · инструменты %3$d</string>
     <string name="onboarding_provider_select_label">Выберите поставщика</string>
     <string name="onboarding_provider_apikey_label">API-ключ</string>

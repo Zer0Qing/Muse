@@ -2,7 +2,6 @@
 <!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
 <resources>
     <string name="settings_screen_agent_directives">해도 되는 일과 안 되는 일</string>
-    <string name="settings_screen_agent_directives_desc">능동 메시지와 일반 대화 모두에서 지키는 장기 규칙</string>
     <string name="agent_directives_hint">여기에 적은 구체적 요구는 일반 말투 설정보다 우선합니다. 충돌하면 「하지 말 것」이 우선합니다.</string>
     <string name="agent_directives_forbidden_section">하지 말 것</string>
     <string name="agent_directives_desired_section">하면 좋은 것</string>

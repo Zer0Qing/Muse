@@ -364,8 +364,6 @@
     <string name="settings_chat_tool_approval_trusted_desc">Totalmente confiável: a IA pode chamar todas as ferramentas diretamente, sem confirmação (para conjuntos de ferramentas confiáveis)</string>
     <string name="settings_chat_tool_approval_ask_desc">Pergunte sob demanda: ferramentas de alto risco avisam você antes da invocação;</string>
     <string name="settings_chat_tool_approval_strict_desc">Modo Estrito: todas as chamadas de ferramenta exigem sua confirmação, exceto ferramentas de consulta somente leitura</string>
-    <string name="settings_chat_tool_approval_per_tool">Política por ferramenta</string>
-    <string name="settings_chat_tool_approval_per_tool_subtitle">Defina permitir/negar/pedir individualmente para cada ferramenta</string>
     <string name="cloud_backup_auto_enable">Backup automático agendado</string>
     <string name="cloud_backup_auto_subtitle">Envio automático para a nuvem em intervalos definidos</string>
     <string name="cloud_backup_backup_failed">Falha no upload, verifique a configuração</string>
@@ -455,10 +453,6 @@
     <string name="settings_provider_test_connection_endpoint_sub">Testa cada protocolo e salva o que funcionar</string>
     <string name="settings_provider_test_success_chat_ok">Conectado · %1$s respondeu</string>
     <string name="settings_rag_config_read_failed">Falha ao ler a configuração</string>
-    <string name="settings_screen_desc_appearance_customize">Balões / fundo / detalhes do tema</string>
-    <string name="settings_screen_desc_memory">Recuperação / decaimento / orçamento de tokens</string>
-    <string name="settings_screen_desc_schedule">Lembretes agendados / execuções periódicas</string>
-    <string name="settings_screen_desc_cloud_backup">Arquivo na nuvem / restauração entre dispositivos</string>
     <string name="settings_provider_clear_models">Limpar tudo</string>
     <string name="settings_mcp_add_action">Adicionar servidor</string>
     <string name="settings_model_catalog_counts">%1$d provedores · %2$d modelos</string>

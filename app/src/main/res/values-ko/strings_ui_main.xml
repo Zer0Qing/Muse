@@ -27,7 +27,6 @@
     <string name="assistant_detail_global_default">전역 기본</string>
     <string name="assistant_detail_exclusive_model">전용 모델</string>
     <string name="assistant_detail_temperature">온도: %1$s</string>
-    <string name="assistant_detail_default">기본</string>
     <string name="assistant_detail_default_value">기본값(%1$s)</string>
     <string name="assistant_detail_use_default">기본 사용</string>
     <string name="assistant_detail_top_p_label">Top P(비워두면 기본값, 0-1)</string>
@@ -50,7 +49,6 @@
     <!-- Phase 6: Model picker UX improvements -->
     <string name="assistant_detail_use_global_default_card">전역 기본 모델 사용</string>
     <string name="assistant_detail_using_global_model">현재 전역 기본 모델 사용 중: %1$s</string>
-    <string name="assistant_detail_model_hint">팁: 어시스턴트 설정에서 전용 모델을 선택할 수 있습니다. 어시스턴트마다 다른 AI 모델을 사용할 수 있습니다.</string>
     <string name="assistant_detail_system_prompt_label">System Prompt(역할 설정 / 규칙)</string>
     <string name="assistant_detail_message_template_label">메시지 템플릿({{date}} {{time}} {{session_id}} 등 변수 지원)</string>
     <string name="assistant_detail_preset_messages_label">사전 설정 메시지 JSON(고급, 예: [{\"role\":\"system\",\"content\":\"...\"}])</string>
@@ -186,23 +184,6 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">설정</string>
-    <string name="settings_screen_group_assistants">대화와 역할</string>
-    <string name="settings_screen_group_chat_input">채팅과 입력</string>
-    <string name="settings_screen_group_models">모델과 공급자</string>
-    <string name="settings_screen_group_chat_display">대화와 표현</string>
-    <string name="settings_screen_group_tools">도구와 검색</string>
-    <string name="settings_screen_group_voice">음성</string>
-    <string name="settings_screen_group_media">이미지와 번역</string>
-    <string name="settings_screen_group_memory">기억과 지식</string>
-    <string name="settings_screen_group_data_privacy">데이터와 백업</string>
-    <string name="settings_screen_group_connection">연결</string>
-    <string name="settings_screen_group_automation">자동화</string>
-    <string name="settings_screen_group_proactive">능동과 자동화</string>
-    <string name="settings_screen_group_look">외형</string>
-    <string name="settings_screen_group_data">데이터</string>
-    <string name="settings_screen_group_privacy">개인정보와 정리</string>
-    <string name="settings_screen_group_about">정보 및 도움말</string>
-    <string name="settings_screen_group_developer">개발자</string>
     <!-- 설정 첫 단계 분류 -->
     <string name="settings_group_assistants">어시스턴트 및 역할</string>
     <string name="settings_group_chat">채팅</string>
@@ -214,14 +195,10 @@
     <string name="settings_group_connection">연결</string>
     <string name="settings_group_automation">자동화</string>
     <string name="settings_group_appearance">외형</string>
-    <string name="settings_group_data_privacy">데이터 및 개인정보</string>
-    <string name="settings_group_about_developer">정보 및 개발자</string>
     <string name="settings_group_data_storage">데이터 및 백업</string>
     <string name="settings_group_privacy_security">개인정보 및 보안</string>
     <string name="settings_group_about">앱 정보</string>
     <string name="settings_group_developer">개발자</string>
-    <string name="settings_group_section_about">정보</string>
-    <string name="settings_group_section_developer">개발자</string>
     <string name="settings_screen_appearance_label">외형</string>
     <string name="settings_screen_chat">채팅</string>
     <string name="settings_screen_media">음성 재생</string>
@@ -263,7 +240,6 @@
     <string name="connection_mcp_title">MCP 서버</string>
     <string name="connection_channels_subtitle">채널 %1$d개 설정됨</string>
     <string name="connection_channels_title">메시지 채널</string>
-    <string name="connection_center_desc">채널, MCP, 플러그인 및 도구 승인</string>
     <string name="channel_page_title">메시지 채널</string>
     <string name="message_action_annotate">주석</string>
     <string name="message_annotate_title">메시지 주석</string>
@@ -334,8 +310,6 @@
     <string name="settings_search_no_results">일치하는 설정이 없습니다</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
-    <string name="settings_screen_translate">AI 번역</string>
-    <string name="settings_screen_translate_desc">다국어 번역, 붙여넣기/복사 지원</string>
 
     <!-- v1.25: Vision Assist (let text-only models "see" images via vision model) -->
     <string name="settings_vision_title">비전 보조</string>
@@ -351,7 +325,6 @@
     <string name="vision_assist_done">비전 어시스트 · 완료</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_back_cd">뒤로</string>
     <string name="search_cancel">취소</string>
     <string name="search_placeholder">세션/메시지/설정 검색...</string>
     <string name="search_empty_hint">키워드를 입력하여 세션, 메시지, 설정을 검색하세요</string>
@@ -626,13 +599,11 @@
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">대화 기록 압축 중…</string>
     <string name="chat_updating_memory_banner">메모리 업데이트 중…</string>
-    <string name="chat_draft_restored">초안 복원됨</string>
     <string name="chat_loading_more_history">더 많은 정보를…</string>
     <string name="chat_video_generating">동영상 생성 중, 수십 초 걸릴 수 있습니다…</string>
     <string name="ocr_processing_hint">이미지 텍스트 인식 중…</string>
     <string name="search_searching">검색 중…</string>
     <string name="settings_screen_quick_notes">빠른 메모</string>
-    <string name="settings_screen_quick_notes_desc">아이디어 기록, 분류/알림/암호화 지원</string>
     <string name="settings_vision_manual_selected">수동 선택</string>
     <string name="settings_vision_probe_button">선택한 비전 모델 테스트</string>
     <string name="settings_vision_probe_desc">내장 테스트 이미지를 선택한 비전 모델에 보내 시각 입력을 실제로 지원하는지 확인합니다.</string>
@@ -681,9 +652,7 @@
     <string name="workspace_import_success">%1$d개를 가져왔습니다</string>
     <string name="workspace_import_failed">파일 가져오기 실패: %1$s</string>
     <string name="chat_fork_success">현재 대화에서 새 대화를 만들었습니다</string>
-    <string name="chat_list_archived_empty">보관된 대화가 없습니다</string>
     <string name="chat_list_archived_entry">보관됨 (%1$d)</string>
-    <string name="chat_list_archived_restore">복원</string>
     <string name="chat_list_archived_toast">보관했습니다. \"보관함\"에서 복원할 수 있습니다</string>
     <string name="chat_list_edit">편집</string>
     <string name="chat_list_edit_archive">보관</string>
@@ -696,7 +665,6 @@
     </plurals>
     <string name="chat_list_edit_exit">종료</string>
     <string name="chat_list_edit_select_all">전체 선택</string>
-    <string name="chat_list_restored_toast">복원했습니다</string>
     <string name="greeting_afternoon">안녕하세요</string>
     <string name="greeting_days_birthday">%1$d일 후 생일</string>
     <string name="greeting_days_event">%1$d일 안에 %2$s: %3$s</string>
@@ -830,8 +798,6 @@
     <string name="settings_preference_disabled_tag">사용 안 함</string>
     <string name="settings_preference_source">원래 말: %1$s</string>
     <string name="workspace_empty_subtitle">어시스턴트가 대화에서 생성하거나 저장한 파일이 여기에 표시됩니다</string>
-    <string name="settings_screen_group_storage">저장 공간</string>
-    <string name="settings_screen_group_migrate">백업 및 이전</string>
 
     <string name="workspace_mounts_title">마운트</string>
     <string name="workspace_mount_add">폴더 추가</string>
@@ -842,7 +808,6 @@
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">“%1$s”을(를) 제거하지 못했습니다. 목록에 남아 있습니다</string>
     <string name="workspace_mount_failed">마운트 실패: %1$s</string>
-    <string name="workspace_read_only_hint">읽기 전용 마운트라 수정할 수 없습니다</string>
     <string name="muse_plugins_market_advice_downgrade">카탈로그 버전이 기기가 사용하는 버전보다 오래되었습니다. 설치하면 내려갑니다</string>
     <string name="muse_plugins_market_advice_unknown_version">버전 문자열을 알아볼 수 없습니다. 설치하지 마세요</string>
     <string name="muse_plugins_market_advice_needs_newer_app">이 플러그인은 더 새로운 앱 버전을 요구합니다</string>

@@ -3,7 +3,6 @@
     <!-- P3-3: Permission wizard -->
     <string name="permission_wizard_title">Permission Wizard</string>
     <string name="permission_wizard_desc">Muse UI automation relies on a three-channel permission model. Enable each below; higher levels unlock more operations. UI actions need only Accessibility; shell commands need Shizuku or Root.</string>
-    <string name="permission_wizard_desc_short">Enable the permissions UI automation needs, step by step</string>
     <string name="permission_current_level">Current Permission Level</string>
     <string name="permission_level_none">None (UI automation unavailable)</string>
     <string name="permission_level_accessibility">Accessibility enabled (UI actions available)</string>
@@ -25,7 +24,6 @@
     <string name="permission_shizuku_activation_hint">Service not running. On Android 11+, enable Developer options, then pair and start via \"Wireless debugging\" inside Shizuku; rooted devices can start directly. After a reboot you must activate it again.</string>
     <string name="permission_shizuku_manual_grant_hint">The permission dialog was permanently denied (\"Don\'t ask again\"). Shizuku is open — allow Muse manually inside it</string>
     <string name="permission_shizuku_denied_toast">Shizuku permission denied</string>
-    <string name="permission_shizuku_timeout_toast">Timed out waiting for Shizuku authorization, please retry</string>
     <string name="permission_shizuku_unavailable_toast">Shizuku service is not running; start it in the Shizuku app first</string>
 
     <!-- Root -->

@@ -27,7 +27,6 @@
     <string name="assistant_detail_global_default">グローバルデフォルト</string>
     <string name="assistant_detail_exclusive_model">エクスクルーシブモデル</string>
     <string name="assistant_detail_temperature">温度: %1$s</string>
-    <string name="assistant_detail_default">デフォルト</string>
     <string name="assistant_detail_default_value">既定（%1$s）</string>
     <string name="assistant_detail_use_default">デフォルトを使用</string>
     <string name="assistant_detail_top_p_label">トップ P (デフォルトでは空のままにしておきます、0 ～ 1)</string>
@@ -50,7 +49,6 @@
     <!-- Phase 6: Model picker UX improvements -->
     <string name="assistant_detail_use_global_default_card">グローバルデフォルトモデルを使用する</string>
     <string name="assistant_detail_using_global_model">現在使用しているグローバル デフォルト モデル: %1$s</string>
-    <string name="assistant_detail_model_hint">ヒント: アシスタントの設定で、各アシスタントの専用モデルを選択できます。</string>
     <string name="assistant_detail_system_prompt_label">システムプロンプト (役割/ルール)</string>
     <string name="assistant_detail_message_template_label">メッセージ テンプレート ({{date}} {{time}} {{session_id}} などをサポート)</string>
     <string name="assistant_detail_preset_messages_label">プリセット メッセージ JSON (詳細、例: [{\"role\":\"system\",\"content\":\"...\"}])</string>
@@ -186,23 +184,6 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">設定</string>
-    <string name="settings_screen_group_assistants">会話と役割</string>
-    <string name="settings_screen_group_chat_input">チャットと入力</string>
-    <string name="settings_screen_group_models">モデルとプロバイダー</string>
-    <string name="settings_screen_group_chat_display">会話と表現</string>
-    <string name="settings_screen_group_tools">ツールと検索</string>
-    <string name="settings_screen_group_voice">音声</string>
-    <string name="settings_screen_group_media">画像と翻訳</string>
-    <string name="settings_screen_group_memory">記憶と知識</string>
-    <string name="settings_screen_group_data_privacy">データとバックアップ</string>
-    <string name="settings_screen_group_connection">接続</string>
-    <string name="settings_screen_group_automation">自動化</string>
-    <string name="settings_screen_group_proactive">自発と自動化</string>
-    <string name="settings_screen_group_look">外観</string>
-    <string name="settings_screen_group_data">データ</string>
-    <string name="settings_screen_group_privacy">プライバシーと整理</string>
-    <string name="settings_screen_group_about">情報とヘルプ</string>
-    <string name="settings_screen_group_developer">開発者</string>
     <!-- 設定の第一レベル分類 -->
     <string name="settings_group_assistants">アシスタントと役割</string>
     <string name="settings_group_chat">チャット</string>
@@ -214,14 +195,10 @@
     <string name="settings_group_connection">接続</string>
     <string name="settings_group_automation">自動化</string>
     <string name="settings_group_appearance">外観</string>
-    <string name="settings_group_data_privacy">データとプライバシー</string>
-    <string name="settings_group_about_developer">情報と開発者</string>
     <string name="settings_group_data_storage">データとバックアップ</string>
     <string name="settings_group_privacy_security">プライバシーとセキュリティ</string>
     <string name="settings_group_about">アプリについて</string>
     <string name="settings_group_developer">開発者</string>
-    <string name="settings_group_section_about">情報</string>
-    <string name="settings_group_section_developer">開発者</string>
     <string name="settings_screen_appearance_label">外観</string>
     <string name="settings_screen_chat">チャット</string>
     <string name="settings_screen_media">音声読み上げ</string>
@@ -263,7 +240,6 @@
     <string name="connection_mcp_title">MCP サーバー</string>
     <string name="connection_channels_subtitle">%1$d 個のチャンネルを設定済み</string>
     <string name="connection_channels_title">メッセージチャンネル</string>
-    <string name="connection_center_desc">チャンネル、MCP、プラグイン、ツールの承認</string>
     <string name="channel_page_title">メッセージチャネル</string>
     <string name="message_action_annotate">注釈</string>
     <string name="message_annotate_title">メッセージ注釈</string>
@@ -334,8 +310,6 @@
     <string name="settings_search_no_results">一致する設定がありません</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
-    <string name="settings_screen_translate">AI翻訳</string>
-    <string name="settings_screen_translate_desc">ソースの選択/交換/再生による多言語翻訳</string>
 
     <!-- v1.25: Vision Assist (let text-only models "see" images via vision model) -->
     <string name="settings_vision_title">ビジョンアシスト</string>
@@ -351,7 +325,6 @@
     <string name="vision_assist_done">ビジョンアシスト · 完了</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_back_cd">戻る</string>
     <string name="search_cancel">キャンセル</string>
     <string name="search_placeholder">セッション/メッセージ/設定を検索...</string>
     <string name="search_empty_hint">キーワードを入力してセッション、メッセージ、または設定を検索します</string>
@@ -626,13 +599,11 @@
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">会話履歴を圧縮中…</string>
     <string name="chat_updating_memory_banner">記憶を更新中…</string>
-    <string name="chat_draft_restored">下書きが復元されました</string>
     <string name="chat_loading_more_history">さらに履歴を読み込む…</string>
     <string name="chat_video_generating">動画を生成中、数十秒かかる場合があります…</string>
     <string name="ocr_processing_hint">画像の文字を認識中…</string>
     <string name="search_searching">検索中…</string>
     <string name="settings_screen_quick_notes">クイックノート</string>
-    <string name="settings_screen_quick_notes_desc">アイデアをメモ。カテゴリ/リマインダー/暗号化に対応</string>
     <string name="settings_vision_manual_selected">手動選択</string>
     <string name="settings_vision_probe_button">選択した視覚モデルをテスト</string>
     <string name="settings_vision_probe_desc">内部に配置されたテスト画像を選択した視聴モデルに送信し、それが真であるかどうかをテストし、サポート動画を入力して使用できるようにします。</string>
@@ -681,9 +652,7 @@
     <string name="workspace_import_success">%1$d 件をインポートしました</string>
     <string name="workspace_import_failed">ファイルのインポートに失敗しました: %1$s</string>
     <string name="chat_fork_success">現在の会話から新しい会話を作成しました</string>
-    <string name="chat_list_archived_empty">アーカイブされた会話はありません</string>
     <string name="chat_list_archived_entry">アーカイブ済み (%1$d)</string>
-    <string name="chat_list_archived_restore">復元</string>
     <string name="chat_list_archived_toast">アーカイブしました。「アーカイブ」から復元できます</string>
     <string name="chat_list_edit">編集</string>
     <string name="chat_list_edit_archive">アーカイブ</string>
@@ -696,7 +665,6 @@
     </plurals>
     <string name="chat_list_edit_exit">終了</string>
     <string name="chat_list_edit_select_all">すべて選択</string>
-    <string name="chat_list_restored_toast">復元しました</string>
     <string name="greeting_afternoon">こんにちは</string>
     <string name="greeting_days_birthday">%1$d 日後に誕生日</string>
     <string name="greeting_days_event">%1$d 日以内に%2$s：%3$s</string>
@@ -831,8 +799,6 @@
     <string name="settings_preference_disabled_tag">無効</string>
     <string name="settings_preference_source">元の言葉：%1$s</string>
     <string name="workspace_empty_subtitle">アシスタントが会話で作成・保存したファイルがここに表示されます</string>
-    <string name="settings_screen_group_storage">ストレージ</string>
-    <string name="settings_screen_group_migrate">バックアップと移行</string>
 
     <string name="workspace_mounts_title">マウント</string>
     <string name="workspace_mount_add">フォルダを追加</string>
@@ -843,7 +809,6 @@
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">「%1$s」を削除できませんでした。一覧に残っています</string>
     <string name="workspace_mount_failed">マウント失敗：%1$s</string>
-    <string name="workspace_read_only_hint">読み取り専用のため変更できません</string>
     <string name="muse_plugins_market_advice_downgrade">カタログ版が本機より古いので、入れるとダウングレードになります</string>
     <string name="muse_plugins_market_advice_unknown_version">バージョン番号を判別できません。インストールしないでください</string>
     <string name="muse_plugins_market_advice_needs_newer_app">このプラグインはより新しいアプリ版を要求します</string>

@@ -17,18 +17,9 @@
     <string name="settings_web_search_enable">Enable Web Search</string>
     <string name="settings_web_search_enable_subtitle">Global default state; when off, the input bar chip can still toggle it temporarily</string>
     <string name="settings_web_search_engine">Search Engine</string>
-    <string name="settings_web_search_api_key_label">API Key (optional)</string>
     <string name="settings_saved">Saved</string>
     <string name="settings_web_search_save_api_key">Save API Key</string>
-    <string name="settings_web_search_save_endpoint">Save Endpoint</string>
-    <string name="settings_web_search_test_query_label">Test query</string>
-    <string name="settings_web_search_test_query_placeholder">Enter a keyword to test search…</string>
-    <string name="settings_web_search_test_success">Search succeeded, returned %1$d results:\n%2$s</string>
-    <string name="settings_web_search_test_empty">Search completed with no results</string>
-    <string name="settings_web_search_test_failed">Test failed: %1$s</string>
-    <string name="settings_web_search_test_failed_unknown">Unknown error</string>
     <string name="settings_web_search_testing">Searching…</string>
-    <string name="settings_web_search_test">Test search</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
 
     <!-- ExperimentsSettingsPage.kt -->
@@ -299,7 +290,6 @@
     <string name="settings_crash_confirm_dialog_title">Confirm crash report</string>
     <string name="settings_crash_confirm_dialog_content">About to send %1$d crash record(s).\n\nIncluded: crash stack trace + device model + Android version + app version + timestamp.\nThe stack trace has been redacted. Continue?</string>
     <string name="settings_crash_confirm_button">Confirm report</string>
-    <string name="settings_crash_no_pending">No pending crashes to report</string>
     <string name="settings_web_search_mode">Search Mode</string>
     <string name="settings_web_search_mode_desc">Prefer model-native search, then configured search APIs, then Bing and Baidu HTTP.</string>
     <string name="settings_web_search_mode_auto">Automatic: prefer model search</string>
@@ -319,7 +309,6 @@
     <string name="settings_web_search_api_services_desc">Advanced users can configure Tavily, Brave, Serper, Bocha, and other services.</string>
     <string name="settings_web_search_diagnosis">Latest Search Diagnosis</string>
     <string name="settings_web_search_no_diagnosis">No search records yet</string>
-    <string name="settings_web_search_endpoint_optional">Endpoint (optional)</string>
     <string name="settings_experiments_parallel_tools">Parallel read-only tools</string>
     <string name="settings_experiments_parallel_tools_subtitle">When all tools in one round are read-only, run them in parallel for speed and efficiency (enabled by default; can be turned off to return to serial)</string>
     <string name="settings_model_action_test_chat">Test conversation (full pipeline)</string>

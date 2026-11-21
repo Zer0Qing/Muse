@@ -5,8 +5,6 @@
     <string name="settings_chat_show_user_avatar">Показывать мой аватар</string>
     <string name="settings_chat_show_user_avatar_subtitle">Показывать локальный аватар с инициалом рядом с сообщениями пользователя</string>
     <!-- Agent Settings -->
-    <string name="settings_agent_model_not_configured">Не настроено</string>
-    <string name="settings_agent_tool_model_not_set">Не установлено</string>
     <string name="settings_agent_tool_model_not_set_inherit">Использует основную модель</string>
     <!-- v2.x: auxiliary model tiers -->
     <string name="settings_agent_utility_large_not_set_inherit">Использует малую модель</string>
@@ -14,12 +12,9 @@
     <string name="settings_agent_default_assistant_title">Помощник агента по умолчанию</string>
     <string name="settings_agent_loading">Загрузка...</string>
     <string name="settings_agent_use_first_assistant">Используйте первого помощника</string>
-    <string name="settings_agent_section_model">Модель</string>
     <string name="settings_agent_current_model">Текущая модель</string>
     <string name="settings_agent_tool_model_title">Малая вспомогательная модель</string>
     <string name="settings_agent_subagent_model_title">Большая вспомогательная модель</string>
-    <string name="settings_agent_select_subagent_model">Выберите большую вспомогательную модель</string>
-    <string name="settings_agent_clear_subagent_model">Очистить (использовать малую)</string>
     <string name="settings_agent_multi_agent_section">Мультиагентное сотрудничество</string>
     <string name="settings_agent_collab_team">Команды сотрудничества</string>
     <string name="settings_agent_multi_agent_enabled">Включено · Команды %1$d</string>
@@ -41,8 +36,6 @@
     <string name="settings_agent_offset_off_label">Выключенный</string>
     <string name="settings_agent_select_model">Выберите модель агента</string>
     <string name="settings_agent_no_models_hint">Нет доступных моделей.</string>
-    <string name="settings_agent_select_tool_model">Выберите малую вспомогательную модель</string>
-    <string name="settings_agent_clear_tool_model">Очистить (использовать основную модель)</string>
     <string name="settings_agent_unnamed_assistant">Безымянный помощник</string>
     <string name="settings_agent_interval_minutes">Каждые %1$d мин.</string>
     <string name="settings_agent_interval_hourly">Ежечасно</string>
@@ -254,10 +247,8 @@
     <string name="settings_asr_follow_provider">Использовать настройки провайдера</string>
     <string name="settings_asr_follow_provider_subtitle">Адрес и API-ключ берутся из провайдера, модель выбирается вручную</string>
     <string name="settings_asr_follow_provider_picker">Провайдер</string>
-    <string name="settings_asr_follow_model_picker">Модель</string>
     <!-- Общие подсказки и уведомление об откате для режима следования -->
     <string name="settings_speech_follow_unset">Не выбрано</string>
-    <string name="settings_speech_follow_no_models">У этого провайдера нет моделей</string>
     <string name="settings_speech_follow_fallback_notice">Использованы ручные настройки: %1$s</string>
     <string name="settings_speech_follow_reason_provider_missing">Выбранный провайдер не найден</string>
     <string name="settings_speech_follow_reason_provider_disabled">Выбранный провайдер отключён</string>
@@ -452,10 +443,7 @@
     <string name="settings_media_tts_model_placeholder">Оставьте пустым по умолчанию</string>
     <string name="settings_media_tts_endpoint">Пользовательская конечная точка</string>
     <string name="settings_media_tts_endpoint_placeholder">Оставьте пустым для официальной конечной точки</string>
-    <string name="settings_media_tts_save_api_key">Сохранить ключ API</string>
     <string name="settings_media_tts_save_voice">Сохранить голос</string>
-    <string name="settings_media_tts_save_model">Сохранить модель</string>
-    <string name="settings_media_tts_save_endpoint">Сохранить конечную точку</string>
     <string name="settings_media_tts_save_connection">Сохранить подключение</string>
     <string name="settings_media_tts_show">Показывать</string>
     <string name="settings_media_tts_hide">Скрывать</string>
@@ -476,7 +464,6 @@
     <string name="settings_media_tts_follow_provider">Использовать настройки провайдера</string>
     <string name="settings_media_tts_follow_provider_subtitle">Адрес и API-ключ берутся из провайдера, модель выбирается вручную</string>
     <string name="settings_media_tts_follow_provider_picker">Провайдер</string>
-    <string name="settings_media_tts_follow_model_picker">Модель</string>
     <string name="settings_media_tts_follow_voice_hint">Следование берёт только адрес и API-ключ; совместимость голоса с выбранным провайдером проверьте сами</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Пользовательская тема</string>
@@ -504,8 +491,6 @@
     <string name="settings_theme_custom_color_l">Легкость</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
     <string name="settings_agent_dm_subtitle">Просмотр личных сообщений между Agent</string>
-    <string name="settings_agent_agent_only">Только сессии Agent</string>
-    <string name="settings_agent_agent_only_subtitle">При включении только ассистенты Agent отправляют проактивные сообщения, а сессии задач — нет</string>
     <string name="settings_agent_temperature">Температура генерации</string>
     <string name="settings_agent_temperature_hint">На этапе решений используется temperature×0.5 (более детерминировано); на этапе генерации — это значение. Чем больше, тем креативнее; чем меньше, тем стабильнее</string>
     <string name="settings_agent_temperature_stable">0.0 Стабильность</string>
@@ -533,10 +518,6 @@
     <string name="settings_asr_entry_title">Движок распознавания речи</string>
     <string name="settings_asr_entry_subtitle">Выберите движок распознавания речи (напр., Paraformer / Whisper)</string>
     <string name="settings_miniphone_title">Мини-телефон</string>
-    <string name="settings_miniphone_enable_title">Включить мини-телефон</string>
-    <string name="settings_miniphone_enable_subtitle">При включении в правом верхнем углу главного экрана появляется значок мини-телефона</string>
-    <string name="settings_miniphone_desc_title">Что такое мини-телефон</string>
-    <string name="settings_miniphone_desc_body">Иммерсивный мини-рабочий стол: моменты, ИИ-альбом, заметки, погода и дневник модели. При отключении главный экран возвращается к прежнему виду.</string>
     <string name="settings_font_section_title">Шрифты</string>
     <string name="settings_font_body_label">Шрифт текста</string>
     <string name="settings_font_body_default">Системный шрифт</string>
@@ -613,7 +594,6 @@
     <string name="settings_agent_pace_standard_desc">Примерно раз в 4 часа, до 3 сообщений в день</string>
     <string name="settings_agent_pace_heavy">Чаще</string>
     <string name="settings_agent_pace_heavy_desc">Примерно раз в 2 часа, до 8 сообщений в день</string>
-    <string name="settings_agent_pace_custom">Свой</string>
     <string name="settings_agent_quiet_hours_title">Тихие часы</string>
     <string name="settings_agent_quiet_hours_hint">В этот период инициативные сообщения не отправляются, чтобы не мешать ночью.</string>
     <string name="settings_agent_quiet_hours_start">Начало</string>
@@ -705,14 +685,6 @@
     <string name="settings_keep_alive_battery_subtitle">Система ограничивает фоновую активность; разрешите это приложение</string>
     <string name="settings_keep_alive_rom_title">Список автозапуска</string>
     <string name="settings_keep_alive_rom_subtitle">Некоторые прошивки требуют отдельного разрешения</string>
-    <string name="launcher_alias_notes">Заметки</string>
-    <string name="launcher_alias_memo">Памятки</string>
-    <string name="launcher_alias_study">Учебные записи</string>
-    <string name="settings_appearance_customize_title">Внешний вид</string>
-    <string name="settings_appearance_customize_hint">Для случаев, когда не хочется показывать, что вы пользуетесь ИИ-помощником. Меняются только название в лаунчере и текст уведомления; имя пакета остаётся прежним, другие приложения не имитируются.</string>
-    <string name="settings_appearance_customize_keep_alive_hint">Текст уведомления вступит в силу после включения «Работать в фоне постоянно».</string>
-    <string name="settings_launcher_style_title">Название в лаунчере</string>
-    <string name="settings_launcher_style_hint">После переключения значок ненадолго исчезнет и появится снова. Старые значки на рабочем столе, возможно, придётся удалить вручную.</string>
     <string name="settings_keep_alive_notification_custom_title">Текст уведомления</string>
     <string name="settings_keep_alive_notification_custom_subtitle">Настройте заголовок и текст постоянного уведомления</string>
     <string name="settings_keep_alive_notification_custom_hint">Оставьте пустым, чтобы использовать текст по умолчанию.</string>
@@ -807,24 +779,16 @@
     <string name="settings_session_terms_scope_assistant">Уровень ассистента</string>
     <string name="settings_session_terms_scope_confirmed">Подтверждено</string>
     <string name="settings_session_terms_scope_candidate">Ждет подтверждения</string>
-    <string name="kb_jobs_summary_running">Обработка %1$d/%2$d</string>
-    <string name="kb_jobs_summary_failed">Все с ошибкой: %1$d</string>
-    <string name="kb_doc_saved">Сохранено</string>
-    <string name="kb_jobs_summary_done">Завершено: %1$d</string>
     <string name="kb_doc_version">Версия %1$d</string>
     <string name="kb_doc_edit">Редактировать текст</string>
     <string name="kb_doc_source">Источник</string>
     <string name="kb_search_title">Проверка поиска</string>
     <string name="kb_jobs_title">Центр обработки</string>
     <string name="kb_doc_title">Детали документа</string>
-    <string name="kb_jobs_cancelled">Отменено</string>
     <string name="kb_search_run">Поиск</string>
-    <string name="kb_doc_availability">Доступность</string>
     <string name="kb_jobs_empty">Нет элементов для обработки</string>
     <string name="kb_search_hint">Введите вопрос</string>
     <string name="kb_search_empty">Совпадений нет</string>
-    <string name="kb_doc_conflict">Содержимое обновлено в другом месте. Обновите и повторите.</string>
-    <string name="kb_jobs_summary_partial">Частичный успех: %1$d успешно, %2$d с ошибкой</string>
     <string name="kb_jobs_cancel">Отменить обработку</string>
     <string name="kb_search_results">Совпадений: %1$d</string>
     <string name="kb_settings_ingest">Импорт</string>

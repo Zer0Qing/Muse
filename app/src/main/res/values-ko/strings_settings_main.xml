@@ -364,8 +364,6 @@
     <string name="settings_chat_tool_approval_trusted_desc">완전 신뢰: AI는 확인 없이 모든 도구를 직접 호출할 수 있습니다(신뢰할 수 있는 도구 세트의 경우).</string>
     <string name="settings_chat_tool_approval_ask_desc">요청 시 요청: 위험도가 높은 도구는 호출 전에 메시지를 표시합니다.</string>
     <string name="settings_chat_tool_approval_strict_desc">엄격 모드: 읽기 전용 쿼리 도구를 제외한 모든 도구 호출에는 확인이 필요합니다.</string>
-    <string name="settings_chat_tool_approval_per_tool">도구별 정책</string>
-    <string name="settings_chat_tool_approval_per_tool_subtitle">각 도구에 대해 개별적으로 허용/거부/요청 설정</string>
     <string name="cloud_backup_auto_enable">자동 결정 장치</string>
     <string name="cloud_backup_auto_subtitle">설정된 간격으로 클라우드에 자동 업로드</string>
     <string name="cloud_backup_backup_failed">업로드 실패, 구성을 확인하세요</string>
@@ -454,10 +452,6 @@
     <string name="settings_provider_test_connection_endpoint_sub">각 프로토콜을 시도하고 되는 것을 저장합니다</string>
     <string name="settings_provider_test_success_chat_ok">연결 정상 · %1$s 응답 확인</string>
     <string name="settings_rag_config_read_failed">설정을 읽지 못했습니다</string>
-    <string name="settings_screen_desc_appearance_customize">말풍선 / 배경 / 테마 세부 설정</string>
-    <string name="settings_screen_desc_memory">회상 / 감쇠 / 토큰 예산</string>
-    <string name="settings_screen_desc_schedule">예약 알림 / 주기 실행</string>
-    <string name="settings_screen_desc_cloud_backup">클라우드 보관 / 기기 간 복원</string>
     <string name="settings_provider_clear_models">모두 지우기</string>
     <string name="settings_mcp_add_action">서버 추가</string>
     <string name="settings_model_catalog_counts">공급자 %1$d개 · 모델 %2$d개</string>

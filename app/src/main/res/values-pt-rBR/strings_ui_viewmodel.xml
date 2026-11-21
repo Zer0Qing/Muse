@@ -133,15 +133,10 @@
     <string name="assistant_new_default_name">Novo assistente</string>
     <string name="assistant_clone_name">%1$s (Copiar)</string>
     <!-- Action menu -->
-    <string name="assistant_move_up_cd">Subir</string>
     <string name="assistant_move_up">Subir</string>
-    <string name="assistant_move_down_cd">Mover para baixo</string>
     <string name="assistant_move_down">Mover para baixo</string>
-    <string name="assistant_clone_cd">Clone</string>
     <string name="assistant_clone">Clone</string>
-    <string name="assistant_export_card_cd">Exportar cartão de personagem</string>
     <string name="assistant_export_card">Cartão de personagem de exportação</string>
-    <string name="assistant_delete_cd">Excluir</string>
     <string name="assistant_delete">Excluir</string>
     <string name="assistant_close">Fechar</string>
     <string name="assistant_delete_title">Excluir assistente</string>
@@ -179,9 +174,7 @@
     <string name="assistant_toast_sillytavern_exported">Cartão de personagem SillyTavern exportado</string>
     <string name="assistant_toast_sillytavern_export_failed">Falha na exportação do SillyTavern: %1$s</string>
     <string name="assistant_disable">Desativar</string>
-    <string name="assistant_disable_cd">Desativar assistente</string>
     <string name="assistant_enable">Ativar</string>
-    <string name="assistant_enable_cd">Ativar assistente</string>
     <string name="assistant_diff_name">Nome</string>
     <string name="assistant_diff_summary">Resumo</string>
     <string name="assistant_diff_system_prompt">Prompt do sistema</string>

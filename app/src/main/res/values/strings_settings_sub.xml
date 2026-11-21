@@ -13,8 +13,6 @@
     <string name="settings_chat_show_user_avatar">显示我的头像</string>
     <string name="settings_chat_show_user_avatar_subtitle">在用户消息旁显示本地昵称首字母头像</string>
     <!-- Agent 设置 -->
-    <string name="settings_agent_model_not_configured">未配置</string>
-    <string name="settings_agent_tool_model_not_set">未设置</string>
     <string name="settings_agent_tool_model_not_set_inherit">沿用主模型</string>
     <!-- v2.x: 辅助模型三档 — 大工具未绑定时复用小工具 -->
     <string name="settings_agent_utility_large_not_set_inherit">复用小工具模型</string>
@@ -22,13 +20,10 @@
     <string name="settings_agent_default_assistant_title">默认 Agent 助手</string>
     <string name="settings_agent_loading">加载中...</string>
     <string name="settings_agent_use_first_assistant">使用第一个助手</string>
-    <string name="settings_agent_section_model">模型</string>
     <string name="settings_agent_current_model">当前模型</string>
     <string name="settings_agent_current_model_hint">全局默认（主对话/Agent 共用）</string>
     <string name="settings_agent_tool_model_title">小工具模型</string>
     <string name="settings_agent_subagent_model_title">大工具模型</string>
-    <string name="settings_agent_select_subagent_model">选择大工具模型</string>
-    <string name="settings_agent_clear_subagent_model">清除（复用小工具模型）</string>
     <string name="settings_agent_multi_agent_section">多 Agent 协作</string>
     <string name="settings_agent_collab_team">协作团队</string>
     <string name="settings_agent_multi_agent_enabled">已启用 · %1$d 个团队</string>
@@ -58,8 +53,6 @@
     <string name="settings_agent_offset_off_label">关闭</string>
     <string name="settings_agent_select_model">选择 Agent 模型</string>
     <string name="settings_agent_no_models_hint">暂无可用模型，请先在「模型与服务」中配置供应商。</string>
-    <string name="settings_agent_select_tool_model">选择小工具模型</string>
-    <string name="settings_agent_clear_tool_model">清除（沿用主模型）</string>
     <string name="settings_agent_unnamed_assistant">未命名助手</string>
     <string name="settings_agent_interval_minutes">每 %1$d 分钟</string>
     <string name="settings_agent_interval_hourly">每小时</string>
@@ -305,10 +298,8 @@
     <string name="settings_asr_follow_provider">跟随供应商配置</string>
     <string name="settings_asr_follow_provider_subtitle">接口地址与 API Key 取自供应商，模型手动选择</string>
     <string name="settings_asr_follow_provider_picker">供应商</string>
-    <string name="settings_asr_follow_model_picker">模型</string>
     <!-- 跟随模式共用的占位与回退提示 -->
     <string name="settings_speech_follow_unset">未选择</string>
-    <string name="settings_speech_follow_no_models">该供应商没有可选模型</string>
     <!-- 语音模型选择（TTS / ASR 共用）：模型只在供应商里维护 -->
     <string name="settings_speech_model_hint">模型由供应商统一管理，这里只是选择</string>
     <string name="settings_speech_model_empty">还没有可用模型，请先在供应商里添加</string>
@@ -531,10 +522,7 @@
     <string name="settings_media_tts_model_placeholder">留空使用默认模型</string>
     <string name="settings_media_tts_endpoint">自定义接口地址</string>
     <string name="settings_media_tts_endpoint_placeholder">留空使用官方接口地址</string>
-    <string name="settings_media_tts_save_api_key">保存 API Key</string>
     <string name="settings_media_tts_save_voice">保存音色</string>
-    <string name="settings_media_tts_save_model">保存模型</string>
-    <string name="settings_media_tts_save_endpoint">保存接口地址</string>
     <string name="settings_media_tts_save_connection">保存连接设置</string>
     <string name="settings_media_tts_show">显示</string>
     <string name="settings_media_tts_hide">隐藏</string>
@@ -555,21 +543,14 @@
     <string name="settings_media_tts_follow_provider">跟随供应商配置</string>
     <string name="settings_media_tts_follow_provider_subtitle">接口地址与 API Key 取自供应商，模型手动选择</string>
     <string name="settings_media_tts_follow_provider_picker">供应商</string>
-    <string name="settings_media_tts_follow_model_picker">模型</string>
     <string name="settings_media_tts_follow_voice_hint">跟随只接管接口地址与密钥，音色需自行确认与所选供应商兼容</string>
     <string name="settings_provider_media_gen_section">媒体生成模型</string>
     <string name="settings_asr_entry_title">语音识别引擎</string>
     <string name="settings_asr_entry_subtitle">选择语音转文字引擎（如 Paraformer / Whisper）</string>
     <string name="settings_miniphone_title">小手机</string>
-    <string name="settings_miniphone_enable_title">启用小手机</string>
-    <string name="settings_miniphone_enable_subtitle">开启后首页右上角显示小手机入口</string>
-    <string name="settings_miniphone_desc_title">小手机是什么</string>
-    <string name="settings_miniphone_desc_body">一个沉浸式的迷你桌面：朋友圈、AI 相册、备忘录、天气、模型日记本。关闭后首页恢复为原来的样式。</string>
 
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n -->
     <string name="settings_agent_dm_subtitle">查看 Agent 间私信往来</string>
-    <string name="settings_agent_agent_only">仅Agent会话</string>
-    <string name="settings_agent_agent_only_subtitle">开启后只有Agent助手会发送主动消息，任务会话不会</string>
     <string name="settings_agent_plain_chat_enabled">允许普通对话接收主动消息</string>
     <string name="settings_agent_plain_chat_enabled_subtitle">默认关闭，避免主动消息污染任务对话；也可在单个对话右上角单独静音</string>
     <string name="settings_agent_temperature">生成温度</string>
@@ -628,7 +609,6 @@
     <string name="settings_agent_pace_heavy_desc">约 2 小时一次，每天最多 8 条</string>
     <string name="settings_agent_pace_extreme">极多</string>
     <string name="settings_agent_pace_extreme_desc">约 30 分钟一次，每天的节奏会随机前后浮动</string>
-    <string name="settings_agent_pace_custom">自定义</string>
     <string name="settings_agent_quiet_hours_title">免打扰时段</string>
     <string name="settings_agent_quiet_hours_hint">这段时间内不会发送主动消息，避免夜间打扰</string>
     <string name="settings_agent_quiet_hours_start">开始</string>
@@ -733,14 +713,6 @@
     <string name="settings_keep_alive_battery_subtitle">系统会限制后台活动，建议对本应用放行</string>
     <string name="settings_keep_alive_rom_title">系统自启动白名单</string>
     <string name="settings_keep_alive_rom_subtitle">部分厂商系统需要单独允许自启动</string>
-    <string name="launcher_alias_notes">笔记</string>
-    <string name="launcher_alias_memo">备忘录</string>
-    <string name="launcher_alias_study">学习记录</string>
-    <string name="settings_appearance_customize_title">外观自定义</string>
-    <string name="settings_appearance_customize_hint">用于不想让别人一眼看出在用 AI 助手时。只改桌面显示名与通知文案，不改包名、不仿冒其他应用。</string>
-    <string name="settings_appearance_customize_keep_alive_hint">通知文案需要先开启「常驻后台」才会生效。</string>
-    <string name="settings_launcher_style_title">桌面显示名</string>
-    <string name="settings_launcher_style_hint">切换后桌面图标会短暂消失再出现。已放到桌面的旧图标可能需要手动删除。</string>
     <string name="settings_keep_alive_notification_custom_title">通知文案</string>
     <string name="settings_keep_alive_notification_custom_subtitle">自定义常驻通知的标题与内容</string>
     <string name="settings_keep_alive_notification_custom_hint">留空则使用默认文案。</string>
@@ -838,24 +810,16 @@
     <string name="settings_session_terms_scope_assistant">助手级</string>
     <string name="settings_session_terms_scope_confirmed">已确认</string>
     <string name="settings_session_terms_scope_candidate">待确认</string>
-    <string name="kb_jobs_summary_running">处理中 %1$d/%2$d</string>
-    <string name="kb_jobs_summary_failed">全部失败：共 %1$d</string>
-    <string name="kb_doc_saved">已保存</string>
-    <string name="kb_jobs_summary_done">处理完成：共 %1$d</string>
     <string name="kb_doc_version">版本 %1$d</string>
     <string name="kb_doc_edit">编辑正文</string>
     <string name="kb_doc_source">来源</string>
     <string name="kb_search_title">检索验证</string>
     <string name="kb_jobs_title">处理中心</string>
     <string name="kb_doc_title">文档详情</string>
-    <string name="kb_jobs_cancelled">已取消</string>
     <string name="kb_search_run">检索</string>
-    <string name="kb_doc_availability">可用性</string>
     <string name="kb_jobs_empty">没有可处理的文件</string>
     <string name="kb_search_hint">输入问题</string>
     <string name="kb_search_empty">没有命中</string>
-    <string name="kb_doc_conflict">内容已被更新，请刷新后重试</string>
-    <string name="kb_jobs_summary_partial">部分成功：成功 %1$d，失败 %2$d</string>
     <string name="kb_jobs_cancel">取消处理</string>
     <string name="kb_search_results">命中 %1$d 条</string>
     <string name="kb_settings_ingest">摄取</string>

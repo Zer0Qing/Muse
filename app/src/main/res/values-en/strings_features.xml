@@ -722,7 +722,6 @@
     <string name="wake_state_not_registered">NOT_REGISTERED</string>
     <string name="wake_state_unknown">UNKNOWN</string>
     <string name="wake_kind_scheduled_task">Scheduled tasks</string>
-    <string name="wake_kind_moment">Moments</string>
     <string name="wake_kind_proactive">Proactive messages</string>
     <string name="wake_kind_daily_summary">Daily summary</string>
     <string name="wake_kind_cloud_backup">Cloud backup</string>

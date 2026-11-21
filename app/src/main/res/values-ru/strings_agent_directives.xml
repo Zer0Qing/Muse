@@ -2,7 +2,6 @@
 <!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
 <resources>
     <string name="settings_screen_agent_directives">Что делать и чего не делать</string>
-    <string name="settings_screen_agent_directives_desc">Долгосрочные правила, которые он соблюдает в том числе в инициативе</string>
     <string name="agent_directives_hint">Ваши конкретные требования здесь важнее общих настроек тона; при конфликте побеждает «Никогда не делать».</string>
     <string name="agent_directives_forbidden_section">Никогда не делать</string>
     <string name="agent_directives_desired_section">Желательно делать</string>

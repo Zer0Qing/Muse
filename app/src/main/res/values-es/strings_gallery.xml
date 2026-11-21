@@ -14,6 +14,4 @@
     <string name="gallery_state_loading">En curso</string>
     <string name="gallery_state_disabled">Desactivado</string>
     <string name="settings_component_gallery">Galería de componentes</string>
-    <string name="settings_component_gallery_desc">Revisa todos los componentes de la biblioteca</string>
-    <string name="settings_component_gallery_keywords">componente,componentes,galería,galeria,interfaz,ui</string>
 </resources>

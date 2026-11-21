@@ -364,8 +364,6 @@
     <string name="settings_chat_tool_approval_trusted_desc">Полное доверие: ИИ может вызывать все инструменты напрямую без подтверждения (для доверенных наборов инструментов).</string>
     <string name="settings_chat_tool_approval_ask_desc">«Спрашивать по требованию»: инструменты высокого риска подсказывают вам перед вызовом;</string>
     <string name="settings_chat_tool_approval_strict_desc">Строгий режим: все вызовы инструментов требуют вашего подтверждения, за исключением инструментов запросов только для чтения.</string>
-    <string name="settings_chat_tool_approval_per_tool">Политика для каждого инструмента</string>
-    <string name="settings_chat_tool_approval_per_tool_subtitle">Установить разрешение/запретить/спрашивать индивидуально для каждого инструмента.</string>
     <string name="cloud_backup_auto_enable">Автоматическое резервное копирование по расписанию</string>
     <string name="cloud_backup_auto_subtitle">Автоматическая загрузка в облако через заданные интервалы</string>
     <string name="cloud_backup_backup_failed">Ошибка загрузки, проверьте конфигурацию</string>
@@ -454,10 +452,6 @@
     <string name="settings_provider_test_connection_endpoint_sub">Пробует каждый протокол и сохраняет рабочий</string>
     <string name="settings_provider_test_success_chat_ok">Подключение в порядке · %1$s ответил</string>
     <string name="settings_rag_config_read_failed">Не удалось прочитать настройки</string>
-    <string name="settings_screen_desc_appearance_customize">Пузыри / фон / детали темы</string>
-    <string name="settings_screen_desc_memory">Извлечение / затухание / бюджет токенов</string>
-    <string name="settings_screen_desc_schedule">Напоминания по расписанию / периодический запуск</string>
-    <string name="settings_screen_desc_cloud_backup">Облачный архив / восстановление на другом устройстве</string>
     <string name="settings_provider_clear_models">Очистить всё</string>
     <string name="settings_mcp_add_action">Добавить сервер</string>
     <string name="settings_model_catalog_counts">Поставщиков: %1$d · Моделей: %2$d</string>

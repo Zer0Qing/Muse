@@ -25,9 +25,6 @@
     <!-- Step 3: Configure Provider -->
     <string name="onboarding_provider_title">頭脳をつなぐ。</string>
     <string name="onboarding_provider_subtitle">モデルサービスを選び、キーを入力して接続テスト。成功するとモデル一覧を取得し、能力を自動で照合します。</string>
-    <string name="onboarding_provider_err_auth">認証に失敗しました。API Key を確認してください。</string>
-    <string name="onboarding_provider_err_empty">接続は成功しましたが、モデルが返されませんでした。エンドポイントを確認してください。</string>
-    <string name="onboarding_provider_err_other">接続に失敗しました：%1$s</string>
     <string name="onboarding_provider_caps">能力を照合済み：視覚 %1$d · 推論 %2$d · ツール %3$d</string>
     <string name="onboarding_provider_select_label">プロバイダーの選択</string>
     <string name="onboarding_provider_apikey_label">APIキー</string>

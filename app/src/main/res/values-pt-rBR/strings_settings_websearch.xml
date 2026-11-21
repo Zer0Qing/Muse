@@ -11,10 +11,8 @@
     <string name="settings_web_search_key_verify">Verificar</string>
     <string name="settings_web_search_key_verify_ok">Funcionando: retornou %1$d resultados</string>
     <string name="settings_web_search_key_verify_failed">Falha na verificação: %1$s</string>
-    <string name="settings_web_search_key_verify_no_key">Este mecanismo ainda não tem uma chave utilizável</string>
     <string name="settings_web_search_key_verify_empty">Conectou, mas não devolveu resultados</string>
     <string name="settings_web_search_provider_current">Em uso</string>
-    <string name="settings_web_search_provider_configure">Configurar</string>
     <string name="settings_web_search_provider_selection">Mecanismo de busca atual</string>
     <string name="settings_web_search_provider_set_current">Usar como mecanismo atual</string>
     <string name="settings_web_search_provider_set_current_subtitle">As buscas usarão %1$s</string>

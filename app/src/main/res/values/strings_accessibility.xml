@@ -3,7 +3,6 @@
     <!-- P3-3: 权限引导页 -->
     <string name="permission_wizard_title">权限配置向导</string>
     <string name="permission_wizard_desc">Muse 的 UI 自动化能力依赖三通道权限模型。按下方步骤逐个启用，等级越高可执行的操作越多。UI 操作仅需「无障碍服务」；Shell 命令需 Shizuku 或 Root。</string>
-    <string name="permission_wizard_desc_short">按步骤启用 UI 自动化所需的权限</string>
     <string name="permission_current_level">当前权限等级</string>
     <string name="permission_level_none">未授权（无法执行 UI 自动化）</string>
     <string name="permission_level_accessibility">无障碍已启用（UI 操作可用）</string>
@@ -25,7 +24,6 @@
     <string name="permission_shizuku_activation_hint">服务未运行。Android 11+：先开启开发者选项，在 Shizuku 内通过「无线调试」配对并启动；已 root 设备可直接在 Shizuku 内启动。手机重启后需重新激活。</string>
     <string name="permission_shizuku_manual_grant_hint">授权弹窗已被「不再询问」永久拒绝。已打开 Shizuku，请在其中手动允许 Muse</string>
     <string name="permission_shizuku_denied_toast">Shizuku 授权被拒绝</string>
-    <string name="permission_shizuku_timeout_toast">等待 Shizuku 授权超时，请重试</string>
     <string name="permission_shizuku_unavailable_toast">Shizuku 服务未运行，请先在 Shizuku 中启动</string>
 
     <!-- Root -->

@@ -2,7 +2,6 @@
 <!-- 「希望/不希望它做的事」页面文案（独立文件，避免与并行修改的 strings 冲突）。 -->
 <resources>
     <string name="settings_screen_agent_directives">O que fazer e o que não fazer</string>
-    <string name="settings_screen_agent_directives_desc">Regras de longo prazo que ele segue em conversas normais e proativas</string>
     <string name="agent_directives_hint">Seus requisitos específicos aqui têm prioridade sobre as configurações gerais de tom; em conflito, "Nunca fazer" prevalece.</string>
     <string name="agent_directives_forbidden_section">Nunca fazer</string>
     <string name="agent_directives_desired_section">Preferir fazer</string>

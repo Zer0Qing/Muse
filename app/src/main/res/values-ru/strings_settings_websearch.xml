@@ -11,10 +11,8 @@
     <string name="settings_web_search_key_verify">Проверить</string>
     <string name="settings_web_search_key_verify_ok">Работает: получено %1$d результатов</string>
     <string name="settings_web_search_key_verify_failed">Проверка не удалась: %1$s</string>
-    <string name="settings_web_search_key_verify_no_key">У этого движка нет пригодного ключа</string>
     <string name="settings_web_search_key_verify_empty">Соединение есть, но результатов нет</string>
     <string name="settings_web_search_provider_current">Используется</string>
-    <string name="settings_web_search_provider_configure">Настроить</string>
     <string name="settings_web_search_provider_selection">Текущая поисковая система</string>
     <string name="settings_web_search_provider_set_current">Использовать как текущую поисковую систему</string>
     <string name="settings_web_search_provider_set_current_subtitle">Поисковые запросы будут использовать %1$s</string>

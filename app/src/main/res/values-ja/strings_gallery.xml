@@ -14,6 +14,4 @@
     <string name="gallery_state_loading">処理中</string>
     <string name="gallery_state_disabled">無効</string>
     <string name="settings_component_gallery">コンポーネントギャラリー</string>
-    <string name="settings_component_gallery_desc">ライブラリ全コンポーネントの確認</string>
-    <string name="settings_component_gallery_keywords">コンポーネント,ギャラリー,部品,ui</string>
 </resources>

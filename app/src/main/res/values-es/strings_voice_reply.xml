@@ -2,15 +2,12 @@
 <!-- 「多常用语音回你」档位文案（独立文件，避开并行修改中的 strings）。 -->
 <resources>
     <string name="agent_directives_voice_section">Frecuencia de respuestas de voz</string>
-    <string name="agent_directives_voice_hint">Solo ajusta su costumbre; no bloquea una petición explícita de voz.</string>
     <string name="voice_reply_never">Nunca por iniciativa propia</string>
     <string name="voice_reply_rarely">A veces (predeterminado)</string>
     <string name="voice_reply_often">A menudo</string>
     <string name="voice_reply_always">Siempre</string>
     <string name="voice_timbre_entry">Timbre y velocidad de voz</string>
     <string name="voice_timbre_entry_desc">Se configura una vez en Ajustes → Multimedia; no hay una segunda copia</string>
-    <string name="voice_reply_follow_global">Predeterminado</string>
-    <string name="voice_reply_global_default_fmt">Predeterminado global: %1$s</string>
     <string name="voice_reply_global_section">Frecuencia de respuesta de voz</string>
     <string name="voice_reply_global_hint">Todos los asistentes siguen este único nivel; solo influye en el prompt, sin bloqueo estricto.</string>
     <string name="speech_guide_section">Guía de habla</string>

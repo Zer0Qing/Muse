@@ -76,9 +76,7 @@
     <!-- v1.0.30 gap4.7: OCR translation -->
     <string name="translate_page_ocr">写真翻訳</string>
     <string name="translate_page_ocr_recognizing">認識中…</string>
-    <string name="translate_page_ocr_empty">テキストが認識されませんでした</string>
     <string name="translate_page_ocr_failed">OCRが失敗しました</string>
-    <string name="translate_page_ocr_applied">認識されたテキストが入力に入力されました</string>
     <string name="translate_history_copied">翻訳をコピーしました</string>
     <string name="translate_history_copy_format">%1$s\n\n%2$s</string>
     <string name="translate_source_auto">自動検出</string>

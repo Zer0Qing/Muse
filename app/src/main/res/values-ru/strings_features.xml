@@ -663,7 +663,6 @@
     <string name="permission_shizuku_activation_hint">Служба не запущена. На Android 11+: включите параметры разработчика, затем выполните сопряжение и запуск через «Беспроводную отладку» в Shizuku; устройства с root могут запустить напрямую. После перезагрузки телефона требуется повторная активация.</string>
     <string name="permission_shizuku_manual_grant_hint">Диалог разрешения навсегда отклонён («Больше не спрашивать»). Shizuku открыт — разрешите Muse вручную в приложении</string>
     <string name="permission_shizuku_denied_toast">Разрешение Shizuku отклонено</string>
-    <string name="permission_shizuku_timeout_toast">Истекло время ожидания авторизации Shizuku; повторите попытку</string>
     <string name="permission_shizuku_unavailable_toast">Служба Shizuku не запущена; сначала запустите её в приложении Shizuku</string>
     <string name="permission_root_manager_missing">Обнаружено root-решение, но менеджер (Magisk / KernelSU / APatch) не установлен. Запросы su будут молча отклонены — установите и откройте соответствующий менеджер, затем нажмите «Запросить авторизацию» выше.</string>
     <string name="permission_termux_outdated">Эта версия Termux слишком стара для возврата результатов. Обновите до 0.118+ из F-Droid или GitHub (версия из Play Store больше не обновляется).</string>
@@ -823,7 +822,6 @@
     <string name="wake_state_not_registered">NOT_REGISTERED</string>
     <string name="wake_state_unknown">UNKNOWN</string>
     <string name="wake_kind_scheduled_task">Задачи по расписанию</string>
-    <string name="wake_kind_moment">Моменты</string>
     <string name="wake_kind_proactive">Инициативные сообщения</string>
     <string name="wake_kind_daily_summary">Дневная сводка</string>
     <string name="wake_kind_cloud_backup">Облачная копия</string>

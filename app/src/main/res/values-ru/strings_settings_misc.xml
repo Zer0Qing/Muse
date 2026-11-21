@@ -17,18 +17,9 @@
     <string name="settings_web_search_enable">Включить веб-поиск</string>
     <string name="settings_web_search_enable_subtitle">Глобальное состояние по умолчанию;</string>
     <string name="settings_web_search_engine">Поисковая система</string>
-    <string name="settings_web_search_api_key_label">Ключ API (необязательно)</string>
     <string name="settings_saved">Сохранено</string>
     <string name="settings_web_search_save_api_key">Сохранить ключ API</string>
-    <string name="settings_web_search_save_endpoint">Сохранить конечную точку</string>
-    <string name="settings_web_search_test_query_label">Тестовый запрос</string>
-    <string name="settings_web_search_test_query_placeholder">Введите ключевое слово для теста поиска…</string>
-    <string name="settings_web_search_test_success">Поиск успешен, %1$d результатов:\n%2$s</string>
-    <string name="settings_web_search_test_empty">Поиск завершен, результатов нет</string>
-    <string name="settings_web_search_test_failed">Тест не удался: %1$s</string>
-    <string name="settings_web_search_test_failed_unknown">Неизвестная ошибка</string>
     <string name="settings_web_search_testing">Поиск…</string>
-    <string name="settings_web_search_test">Тестовый поиск</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
 
     <!-- ExperimentsSettingsPage.kt -->
@@ -297,7 +288,6 @@
     <string name="settings_crash_confirm_dialog_title">Подтвердить отчет о сбое</string>
     <string name="settings_crash_confirm_dialog_content">Будет отправлено записей об сбоях: %1$d.\n\nСодержимое: стек сбоя + модель устройства + версия Android + версия приложения + метка времени.\nСтек уже очищен от чувствительных данных. Продолжить?</string>
     <string name="settings_crash_confirm_button">Подтвердить отчет</string>
-    <string name="settings_crash_no_pending">Нет ожидающих сбоев, о которых можно сообщить</string>
     <string name="settings_web_search_mode">Режим поиска</string>
     <string name="settings_web_search_mode_desc">Сначала поиск модели, затем настроенные API поиска, затем Bing и Baidu HTTP.</string>
     <string name="settings_web_search_mode_auto">Автоматически: поиск модели в приоритете</string>
@@ -317,7 +307,6 @@
     <string name="settings_web_search_api_services_desc">Опытные пользователи могут настроить Tavily, Brave, Serper, Bocha и другие сервисы.</string>
     <string name="settings_web_search_diagnosis">Последняя диагностика поиска</string>
     <string name="settings_web_search_no_diagnosis">Записей поиска пока нет</string>
-    <string name="settings_web_search_endpoint_optional">Конечная точка (необязательно)</string>
     <string name="settings_experiments_parallel_tools">Параллельность инструментов только для чтения</string>
     <string name="settings_experiments_parallel_tools_subtitle">Когда все инструменты раунда доступны только для чтения, они выполняются параллельно — быстрее и эффективнее (включено по умолчанию; можно отключить, чтобы вернуться к последовательному выполнению)</string>
     <string name="settings_model_action_test_chat">Тестовый диалог (полный цикл)</string>

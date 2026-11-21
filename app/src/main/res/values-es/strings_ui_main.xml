@@ -27,7 +27,6 @@
     <string name="assistant_detail_global_default">Valor predeterminado global</string>
     <string name="assistant_detail_exclusive_model">Modelo exclusivo</string>
     <string name="assistant_detail_temperature">Temperatura: %1$s</string>
-    <string name="assistant_detail_default">Por defecto</string>
     <string name="assistant_detail_default_value">Predeterminado (%1$s)</string>
     <string name="assistant_detail_use_default">Usar predeterminado</string>
     <string name="assistant_detail_top_p_label">Top P (déjalo vacío para usar el predeterminado, 0-1)</string>
@@ -50,7 +49,6 @@
     <!-- Phase 6: Model picker UX improvements -->
     <string name="assistant_detail_use_global_default_card">Usar el modelo predeterminado global</string>
     <string name="assistant_detail_using_global_model">Actualmente se utiliza el modelo predeterminado global: %1$s</string>
-    <string name="assistant_detail_model_hint">Consejo: puedes elegir un modelo dedicado para cada asistente en los ajustes del asistente.</string>
     <string name="assistant_detail_system_prompt_label">Prompt del sistema (rol/reglas)</string>
     <string name="assistant_detail_message_template_label">Plantilla de mensaje (admite {{date}} {{time}} {{session_id}}, etc.)</string>
     <string name="assistant_detail_preset_messages_label">Mensajes preestablecidos JSON (avanzado, por ejemplo, [{\"role\":\"system\",\"content\":\"...\"}])</string>
@@ -186,23 +184,6 @@
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Ajustes</string>
-    <string name="settings_screen_group_assistants">Conversación y roles</string>
-    <string name="settings_screen_group_chat_input">Chat y entrada</string>
-    <string name="settings_screen_group_models">Modelos y proveedores</string>
-    <string name="settings_screen_group_chat_display">Conversación y expresión</string>
-    <string name="settings_screen_group_tools">Herramientas y búsqueda</string>
-    <string name="settings_screen_group_voice">Voz</string>
-    <string name="settings_screen_group_media">Imágenes y traducción</string>
-    <string name="settings_screen_group_memory">Memoria y conocimiento</string>
-    <string name="settings_screen_group_data_privacy">Datos y copias de seguridad</string>
-    <string name="settings_screen_group_connection">Conexión</string>
-    <string name="settings_screen_group_automation">Automatización</string>
-    <string name="settings_screen_group_proactive">Proactividad y automatización</string>
-    <string name="settings_screen_group_look">Apariencia</string>
-    <string name="settings_screen_group_data">Datos</string>
-    <string name="settings_screen_group_privacy">Privacidad y limpieza</string>
-    <string name="settings_screen_group_about">Acerca de y ayuda</string>
-    <string name="settings_screen_group_developer">Desarrollador</string>
     <!-- Categorías de ajustes (primer nivel) -->
     <string name="settings_group_assistants">Asistentes y roles</string>
     <string name="settings_group_chat">Chat</string>
@@ -214,14 +195,10 @@
     <string name="settings_group_connection">Conexiones</string>
     <string name="settings_group_automation">Automatización</string>
     <string name="settings_group_appearance">Apariencia</string>
-    <string name="settings_group_data_privacy">Datos y privacidad</string>
-    <string name="settings_group_about_developer">Acerca de y desarrollador</string>
     <string name="settings_group_data_storage">Datos y copias de seguridad</string>
     <string name="settings_group_privacy_security">Privacidad y seguridad</string>
     <string name="settings_group_about">Acerca de</string>
     <string name="settings_group_developer">Desarrollador</string>
-    <string name="settings_group_section_about">Acerca de</string>
-    <string name="settings_group_section_developer">Desarrollador</string>
     <string name="settings_screen_appearance_label">Apariencia</string>
     <string name="settings_screen_chat">Chat</string>
     <string name="settings_screen_media">Reproducción de voz</string>
@@ -263,7 +240,6 @@
     <string name="connection_mcp_title">Servidores MCP</string>
     <string name="connection_channels_subtitle">%1$d canales configurados</string>
     <string name="connection_channels_title">Canales de mensajes</string>
-    <string name="connection_center_desc">Canales, MCP, plugins y aprobaciones de herramientas</string>
     <string name="channel_page_title">Canales de mensajes</string>
     <string name="message_action_annotate">Anotar</string>
     <string name="message_annotate_title">Notas del mensaje</string>
@@ -334,8 +310,6 @@
     <string name="settings_search_no_results">Sin coincidencias</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
-    <string name="settings_screen_translate">Traducción con IA</string>
-    <string name="settings_screen_translate_desc">Traducción multilingüe con selección e intercambio del idioma de origen y lectura en voz alta</string>
 
     <!-- v1.25: Vision Assist (let text-only models "see" images via vision model) -->
     <string name="settings_vision_title">Asistencia de visión</string>
@@ -351,7 +325,6 @@
     <string name="vision_assist_done">Asistencia de visión · Listo</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_back_cd">Atrás</string>
     <string name="search_cancel">Cancelar</string>
     <string name="search_placeholder">Buscar sesiones/mensajes/ajustes...</string>
     <string name="search_empty_hint">Introduce palabras clave para buscar sesiones, mensajes o ajustes</string>
@@ -626,13 +599,11 @@
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">Comprimiendo el historial de la conversación…</string>
     <string name="chat_updating_memory_banner">Actualizando memoria…</string>
-    <string name="chat_draft_restored">Borrador restaurado</string>
     <string name="chat_loading_more_history">Cargando más historial…</string>
     <string name="chat_video_generating">Generando vídeo, puede tardar decenas de segundos…</string>
     <string name="ocr_processing_hint">Reconociendo texto de la imagen…</string>
     <string name="search_searching">Buscando…</string>
     <string name="settings_screen_quick_notes">Notas rápidas</string>
-    <string name="settings_screen_quick_notes_desc">Anota ideas, con categorías/recordatorios/cifrado</string>
     <string name="settings_vision_manual_selected">Seleccionar manualmente</string>
     <string name="settings_vision_probe_button">Probar el modelo de visión seleccionado</string>
     <string name="settings_vision_probe_desc">Envía una imagen de prueba integrada al modelo de visión seleccionado para verificar que admite entrada visual.</string>
@@ -682,9 +653,7 @@
     <string name="workspace_import_success">Importados %1$d</string>
     <string name="workspace_import_failed">Error al importar el archivo: %1$s</string>
     <string name="chat_fork_success">Se ha creado una nueva sesión a partir de la conversación actual</string>
-    <string name="chat_list_archived_empty">No hay sesiones archivadas</string>
     <string name="chat_list_archived_entry">Archivado (%1$d)</string>
-    <string name="chat_list_archived_restore">Restaurar</string>
     <string name="chat_list_archived_toast">Se ha archivado. Puedes restaurarlo en \"Archivado\".</string>
     <string name="chat_list_edit">Editar</string>
     <string name="chat_list_edit_archive">Archivar</string>
@@ -699,7 +668,6 @@
     </plurals>
     <string name="chat_list_edit_exit">Salir</string>
     <string name="chat_list_edit_select_all">Seleccionar todo</string>
-    <string name="chat_list_restored_toast">Restaurado</string>
     <string name="greeting_afternoon">Buenas tardes</string>
     <string name="greeting_days_birthday">El cumpleaños es en %1$d días</string>
     <string name="greeting_days_event">En %1$d días: %2$s — %3$s</string>
@@ -834,8 +802,6 @@
     <string name="settings_preference_disabled_tag">Desactivada</string>
     <string name="settings_preference_source">Palabras originales: %1$s</string>
     <string name="workspace_empty_subtitle">Los archivos que el asistente crea o guarda en el chat aparecen aquí</string>
-    <string name="settings_screen_group_storage">Almacenamiento</string>
-    <string name="settings_screen_group_migrate">Copia y migración</string>
 
     <string name="workspace_mounts_title">Montajes</string>
     <string name="workspace_mount_add">Añadir carpeta</string>
@@ -846,7 +812,6 @@
     <!-- 按下「移除」却什么都没变时必须有话说：以前 removeMount 的返回值被直接丢掉 -->
     <string name="workspace_mount_remove_failed">No se pudo quitar «%1$s»: sigue en la lista</string>
     <string name="workspace_mount_failed">Error al montar: %1$s</string>
-    <string name="workspace_read_only_hint">Montaje de solo lectura, no se puede modificar</string>
     <string name="muse_plugins_market_advice_downgrade">La versión del catálogo es más antigua que la instalada; sería una bajada de versión</string>
     <string name="muse_plugins_market_advice_unknown_version">No se reconoce la versión; no instales todavía</string>
     <string name="muse_plugins_market_advice_needs_newer_app">Este plugin necesita una versión más nueva de la app</string>
@@ -909,8 +874,6 @@
     <string name="channel_conversation_reset">Reiniciar contexto</string>
     <string name="channel_conversation_reset_confirm_title">¿Reiniciar el contexto?</string>
     <string name="channel_conversation_reset_confirm_text">Se borrarán el historial y el resumen de esta conversación. Las respuestas futuras ya no recordarán los mensajes anteriores.</string>
-    <string name="channel_conversation_expand">Expandir conversación</string>
-    <string name="channel_conversation_collapse">Contraer</string>
     <string name="channel_weclaw_logged_in">Sesión iniciada</string>
     <string name="channel_weclaw_need_scan">Sesión no iniciada — escanea el código para continuar</string>
     <string name="channel_weclaw_scan">Escanear para iniciar sesión</string>

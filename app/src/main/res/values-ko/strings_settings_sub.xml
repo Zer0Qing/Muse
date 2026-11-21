@@ -5,8 +5,6 @@
     <string name="settings_chat_show_user_avatar">내 아바타 표시</string>
     <string name="settings_chat_show_user_avatar_subtitle">사용자 메시지 옆에 로컬 이니셜 아바타를 표시합니다</string>
     <!-- Agent Settings -->
-    <string name="settings_agent_model_not_configured">구성되지 않음</string>
-    <string name="settings_agent_tool_model_not_set">설정되지 않음</string>
     <string name="settings_agent_tool_model_not_set_inherit">메인 모델 사용</string>
     <!-- v2.x: auxiliary model tiers -->
     <string name="settings_agent_utility_large_not_set_inherit">소형 모델 재사용</string>
@@ -14,12 +12,9 @@
     <string name="settings_agent_default_assistant_title">기본 상담원 보조</string>
     <string name="settings_agent_loading">로드 중...</string>
     <string name="settings_agent_use_first_assistant">첫 번째 어시스턴트 사용</string>
-    <string name="settings_agent_section_model">모델</string>
     <string name="settings_agent_current_model">현재 모델</string>
     <string name="settings_agent_tool_model_title">소형 유틸리티 모델</string>
     <string name="settings_agent_subagent_model_title">대형 유틸리티 모델</string>
-    <string name="settings_agent_select_subagent_model">대형 유틸리티 모델 선택</string>
-    <string name="settings_agent_clear_subagent_model">지우기(소형 모델 재사용)</string>
     <string name="settings_agent_multi_agent_section">다중 에이전트 협업</string>
     <string name="settings_agent_collab_team">협업 팀</string>
     <string name="settings_agent_multi_agent_enabled">활성화됨 · %1$d 팀</string>
@@ -41,8 +36,6 @@
     <string name="settings_agent_offset_off_label">끄다</string>
     <string name="settings_agent_select_model">에이전트 모델 선택</string>
     <string name="settings_agent_no_models_hint">사용 가능한 모델이 없습니다.</string>
-    <string name="settings_agent_select_tool_model">소형 유틸리티 모델 선택</string>
-    <string name="settings_agent_clear_tool_model">클리어(메인 모델 사용)</string>
     <string name="settings_agent_unnamed_assistant">이름 없는 어시스턴트</string>
     <string name="settings_agent_interval_minutes">%1$d분마다</string>
     <string name="settings_agent_interval_hourly">시간별</string>
@@ -254,10 +247,8 @@
     <string name="settings_asr_follow_provider">공급자 설정 따르기</string>
     <string name="settings_asr_follow_provider_subtitle">엔드포인트와 API 키는 공급자 설정을 사용하고 모델은 직접 선택합니다</string>
     <string name="settings_asr_follow_provider_picker">공급자</string>
-    <string name="settings_asr_follow_model_picker">모델</string>
     <!-- 따르기 모드 공통 자리표시자 및 대체 안내 -->
     <string name="settings_speech_follow_unset">선택 안 함</string>
-    <string name="settings_speech_follow_no_models">이 공급자에는 모델이 없습니다</string>
     <string name="settings_speech_follow_fallback_notice">수동 설정으로 대체했습니다: %1$s</string>
     <string name="settings_speech_follow_reason_provider_missing">선택한 공급자를 찾을 수 없습니다</string>
     <string name="settings_speech_follow_reason_provider_disabled">선택한 공급자가 비활성화되었습니다</string>
@@ -452,10 +443,7 @@
     <string name="settings_media_tts_model_placeholder">기본값을 사용하려면 비워 두세요.</string>
     <string name="settings_media_tts_endpoint">커스텀 엔드포인트</string>
     <string name="settings_media_tts_endpoint_placeholder">공식 엔드포인트의 경우 비워 두세요.</string>
-    <string name="settings_media_tts_save_api_key">API 키 저장</string>
     <string name="settings_media_tts_save_voice">음성 저장</string>
-    <string name="settings_media_tts_save_model">모델 저장</string>
-    <string name="settings_media_tts_save_endpoint">엔드포인트 저장</string>
     <string name="settings_media_tts_save_connection">연결 설정 저장</string>
     <string name="settings_media_tts_show">보여주다</string>
     <string name="settings_media_tts_hide">숨다</string>
@@ -476,7 +464,6 @@
     <string name="settings_media_tts_follow_provider">공급자 설정 따르기</string>
     <string name="settings_media_tts_follow_provider_subtitle">엔드포인트와 API 키는 공급자 설정을 사용하고 모델은 직접 선택합니다</string>
     <string name="settings_media_tts_follow_provider_picker">공급자</string>
-    <string name="settings_media_tts_follow_model_picker">모델</string>
     <string name="settings_media_tts_follow_voice_hint">따르기는 엔드포인트와 API 키만 가져옵니다. 음성이 선택한 공급자에서 동작하는지는 직접 확인하세요</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">커스텀 테마</string>
@@ -504,8 +491,6 @@
     <string name="settings_theme_custom_color_l">가벼움</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
     <string name="settings_agent_dm_subtitle">Agent 간 쪽지 보기</string>
-    <string name="settings_agent_agent_only">Agent 세션만</string>
-    <string name="settings_agent_agent_only_subtitle">활성화하면 Agent 어시스턴트만 능동 메시지를 보내며 작업 세션은 보내지 않습니다</string>
     <string name="settings_agent_temperature">생성 온도</string>
     <string name="settings_agent_temperature_hint">결정 단계는 temperature×0.5(더 결정적)를 사용하고 생성 단계는 이 값을 사용합니다. 값이 클수록 창의적이고 작을수록 안정적입니다</string>
     <string name="settings_agent_temperature_stable">0.0 안정</string>
@@ -533,10 +518,6 @@
     <string name="settings_asr_entry_title">음성 인식 엔진</string>
     <string name="settings_asr_entry_subtitle">음성-텍스트 엔진 선택(예: Paraformer / Whisper)</string>
     <string name="settings_miniphone_title">미니폰</string>
-    <string name="settings_miniphone_enable_title">미니폰 사용</string>
-    <string name="settings_miniphone_enable_subtitle">켜면 홈 화면 오른쪽 위에 미니폰 진입점이 표시됩니다</string>
-    <string name="settings_miniphone_desc_title">미니폰이란?</string>
-    <string name="settings_miniphone_desc_body">몰입형 미니 데스크톱: 모먼트, AI 앨범, 메모, 날씨, 모델 일기. 끄면 홈 화면이 원래 레이아웃으로 돌아갑니다.</string>
     <string name="settings_font_section_title">글꼴</string>
     <string name="settings_font_body_label">본문 글꼴</string>
     <string name="settings_font_body_default">시스템 기본</string>
@@ -613,7 +594,6 @@
     <string name="settings_agent_pace_standard_desc">약 4시간에 한 번, 하루 최대 3건</string>
     <string name="settings_agent_pace_heavy">자주</string>
     <string name="settings_agent_pace_heavy_desc">약 2시간에 한 번, 하루 최대 8건</string>
-    <string name="settings_agent_pace_custom">사용자 지정</string>
     <string name="settings_agent_quiet_hours_title">방해 금지 시간</string>
     <string name="settings_agent_quiet_hours_hint">이 시간에는 먼저 보내는 메시지를 보내지 않아 밤에 방해되지 않습니다.</string>
     <string name="settings_agent_quiet_hours_start">시작</string>
@@ -705,14 +685,6 @@
     <string name="settings_keep_alive_battery_subtitle">시스템이 백그라운드 활동을 제한합니다. 이 앱을 허용하세요</string>
     <string name="settings_keep_alive_rom_title">자동 시작 허용 목록</string>
     <string name="settings_keep_alive_rom_subtitle">일부 제조사 ROM은 별도로 허용해야 합니다</string>
-    <string name="launcher_alias_notes">노트</string>
-    <string name="launcher_alias_memo">메모</string>
-    <string name="launcher_alias_study">학습 기록</string>
-    <string name="settings_appearance_customize_title">외형 사용자 지정</string>
-    <string name="settings_appearance_customize_hint">AI 도우미를 쓰는 걸 들키고 싶지 않을 때 사용하세요. 런처 이름과 알림 문구만 바꾸며, 패키지 이름은 그대로이고 다른 앱을 사칭하지 않습니다.</string>
-    <string name="settings_appearance_customize_keep_alive_hint">알림 문구는 \'백그라운드 상주\'를 켠 뒤에 적용됩니다.</string>
-    <string name="settings_launcher_style_title">런처 표시 이름</string>
-    <string name="settings_launcher_style_hint">전환하면 아이콘이 잠시 사라졌다가 다시 나타납니다. 홈 화면의 이전 아이콘은 직접 삭제해야 할 수 있습니다.</string>
     <string name="settings_keep_alive_notification_custom_title">알림 문구</string>
     <string name="settings_keep_alive_notification_custom_subtitle">상주 알림의 제목과 본문을 사용자 지정</string>
     <string name="settings_keep_alive_notification_custom_hint">비워 두면 기본 문구를 사용합니다.</string>
@@ -807,24 +779,16 @@
     <string name="settings_session_terms_scope_assistant">어시스턴트 수준</string>
     <string name="settings_session_terms_scope_confirmed">확인됨</string>
     <string name="settings_session_terms_scope_candidate">확인 대기</string>
-    <string name="kb_jobs_summary_running">처리 중 %1$d/%2$d</string>
-    <string name="kb_jobs_summary_failed">모두 실패: %1$d</string>
-    <string name="kb_doc_saved">저장됨</string>
-    <string name="kb_jobs_summary_done">완료: %1$d</string>
     <string name="kb_doc_version">버전 %1$d</string>
     <string name="kb_doc_edit">본문 편집</string>
     <string name="kb_doc_source">출처</string>
     <string name="kb_search_title">검색 검증</string>
     <string name="kb_jobs_title">처리 센터</string>
     <string name="kb_doc_title">문서 상세</string>
-    <string name="kb_jobs_cancelled">취소됨</string>
     <string name="kb_search_run">검색</string>
-    <string name="kb_doc_availability">사용 가능 여부</string>
     <string name="kb_jobs_empty">처리할 항목이 없습니다</string>
     <string name="kb_search_hint">질문 입력</string>
     <string name="kb_search_empty">일치 항목 없음</string>
-    <string name="kb_doc_conflict">다른 곳에서 내용이 업데이트되었습니다. 새로고침 후 다시 시도하세요.</string>
-    <string name="kb_jobs_summary_partial">부분 성공: 성공 %1$d, 실패 %2$d</string>
     <string name="kb_jobs_cancel">처리 취소</string>
     <string name="kb_search_results">%1$d건 일치</string>
     <string name="kb_settings_ingest">수집</string>
