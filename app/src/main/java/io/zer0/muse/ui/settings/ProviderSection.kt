@@ -45,6 +45,7 @@ import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -146,51 +147,35 @@ internal fun LazyListScope.providerListSection(
     item { ProviderCollisionWarning(providers) }
 
     // "添加 Provider" 入口 —— 置顶（用户反馈：自定义分组多时每次都要滚到底）
+    // 两个入口同构（图标 + 主色文字 + 点击），抽成数据 + 一次渲染，
+    // 不再各写一份 Row。
+    val addEntries = listOf(
+        ProviderAddEntry(MuseIcons.plus, R.string.settings_provider_add, onAddProvider),
+        // v1.97: 扫描二维码导入 Provider
+        ProviderAddEntry(MuseIcons.qrcode, R.string.qr_scan_btn, onScanQr),
+    )
     item {
-        SettingsGroup(
-            modifier = Modifier.padding(top = MusePaddings.itemGap),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onAddProvider() }
-                    .padding(horizontal = MusePaddings.screen, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.plus,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-                Text(
-                    text = stringResource(R.string.settings_provider_add),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-            // v1.97: 扫描二维码导入 Provider
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onScanQr() }
-                    .padding(horizontal = MusePaddings.screen, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.qrcode,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-                Text(
-                    text = stringResource(R.string.qr_scan_btn),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
+        CardGroup(modifier = Modifier.padding(top = MusePaddings.itemGap)) {
+            addEntries.forEach { entry ->
+                item(
+                    key = entry.labelRes,
+                    onClick = entry.onClick,
+                    leadingContent = {
+                        Icon(
+                            imageVector = entry.icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(entry.labelRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    },
                 )
             }
         }
@@ -200,17 +185,18 @@ internal fun LazyListScope.providerListSection(
     if (officialProviders.isNotEmpty()) {
         item { ProviderCategoryHeader(stringResource(R.string.settings_provider_category_official), officialProviders.size) }
         item {
-            SettingsGroup {
-                officialProviders.forEachIndexed { index, config ->
-                    if (index > 0) SettingsGroupDivider()
-                    ProviderRow(
-                        config = config,
-                        isActive = config.id == activeProviderId,
-                        onEdit = { onEdit(config) },
-                        onActivate = { onActivate(config.id) },
-                        onDelete = { onDelete(config.id) },
-                        testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
-                    )
+            CardGroup {
+                officialProviders.forEach { config ->
+                    item(key = config.id) {
+                        ProviderRow(
+                            config = config,
+                            isActive = config.id == activeProviderId,
+                            onEdit = { onEdit(config) },
+                            onActivate = { onActivate(config.id) },
+                            onDelete = { onDelete(config.id) },
+                            testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
+                        )
+                    }
                 }
             }
         }
@@ -220,17 +206,18 @@ internal fun LazyListScope.providerListSection(
     if (relayProviders.isNotEmpty()) {
         item { ProviderCategoryHeader(stringResource(R.string.settings_provider_category_relay), relayProviders.size) }
         item {
-            SettingsGroup {
-                relayProviders.forEachIndexed { index, config ->
-                    if (index > 0) SettingsGroupDivider()
-                    ProviderRow(
-                        config = config,
-                        isActive = config.id == activeProviderId,
-                        onEdit = { onEdit(config) },
-                        onActivate = { onActivate(config.id) },
-                        onDelete = { onDelete(config.id) },
-                        testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
-                    )
+            CardGroup {
+                relayProviders.forEach { config ->
+                    item(key = config.id) {
+                        ProviderRow(
+                            config = config,
+                            isActive = config.id == activeProviderId,
+                            onEdit = { onEdit(config) },
+                            onActivate = { onActivate(config.id) },
+                            onDelete = { onDelete(config.id) },
+                            testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
+                        )
+                    }
                 }
             }
         }
@@ -240,17 +227,18 @@ internal fun LazyListScope.providerListSection(
     if (customProviders.isNotEmpty()) {
         item { ProviderCategoryHeader(stringResource(R.string.settings_provider_category_custom), customProviders.size) }
         item {
-            SettingsGroup {
-                customProviders.forEachIndexed { index, config ->
-                    if (index > 0) SettingsGroupDivider()
-                    ProviderRow(
-                        config = config,
-                        isActive = config.id == activeProviderId,
-                        onEdit = { onEdit(config) },
-                        onActivate = { onActivate(config.id) },
-                        onDelete = { onDelete(config.id) },
-                        testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
-                    )
+            CardGroup {
+                customProviders.forEach { config ->
+                    item(key = config.id) {
+                        ProviderRow(
+                            config = config,
+                            isActive = config.id == activeProviderId,
+                            onEdit = { onEdit(config) },
+                            onActivate = { onActivate(config.id) },
+                            onDelete = { onDelete(config.id) },
+                            testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
+                        )
+                    }
                 }
             }
         }
@@ -663,3 +651,10 @@ private fun formatCatalogTimestamp(raw: String): String {
             .format(local)
     }.getOrDefault(raw)
 }
+
+/** 「添加 Provider / 扫码导入」两个入口的元信息（图标 + 文案 + 点击）。 */
+private data class ProviderAddEntry(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val labelRes: Int,
+    val onClick: () -> Unit,
+)
