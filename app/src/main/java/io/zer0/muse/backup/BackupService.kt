@@ -49,6 +49,7 @@ import io.zer0.muse.data.session.SessionBranchHeadEntity
 import io.zer0.muse.data.groupchat.GroupChatMemoryEntity
 import io.zer0.muse.data.subagent.SubagentThreadEntity
 import io.zer0.muse.ui.translate.TranslateHistoryEntity
+import io.zer0.common.Hashing
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
@@ -3122,9 +3123,7 @@ class BackupService(
     }
 
     /** 计算字节摘要；云端校验针对上传密文，避免泄露或混淆明文内容。 */
-    private fun sha256Hex(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
-        .digest(bytes)
-        .joinToString("") { byte -> "%02x".format(byte) }
+    private fun sha256Hex(bytes: ByteArray): String = Hashing.sha256Hex(bytes)
 
     /** 仅保存备份内容摘要，避免恢复账本持有用户数据或敏感设置。 */
     private fun backupHash(backup: Backup): String {

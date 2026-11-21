@@ -1,5 +1,6 @@
 package io.zer0.muse.data.plugin
 
+import io.zer0.common.Hashing
 import io.zer0.common.AppJson
 import io.zer0.muse.util.SafePaths
 import kotlinx.serialization.Serializable
@@ -564,9 +565,7 @@ object PluginSecurityGate {
     /** 路径校验已收敛到 [SafePaths]（全仓一份实现）。这里只留转发，避免同名校验出现宽严不一。 */
     private fun isSafeRelativePath(path: String): Boolean = SafePaths.isSafeRelative(path)
 
-    private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
-        .digest(bytes)
-        .joinToString("") { byte -> "%02x".format(byte) }
+    private fun sha256(bytes: ByteArray): String = Hashing.sha256Hex(bytes)
 
     private fun appendHashPart(digest: MessageDigest, path: String, bytes: ByteArray) {
         digest.update(path.toByteArray())

@@ -1,5 +1,6 @@
 package io.zer0.muse.backup.s3
 
+import io.zer0.common.Hashing
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.backup.RemoteFile
@@ -338,10 +339,7 @@ class S3Client(
 
     // ── 加密工具 ──────────────────────────────────────────────────────────
 
-    private fun sha256Hex(data: ByteArray): String {
-        val md = java.security.MessageDigest.getInstance("SHA-256")
-        return md.digest(data).joinToString("") { "%02x".format(it) }
-    }
+    private fun sha256Hex(data: ByteArray): String = Hashing.sha256Hex(data)
 
     private fun hmacSha256(key: ByteArray, data: ByteArray): ByteArray {
         val mac = Mac.getInstance("HmacSHA256")

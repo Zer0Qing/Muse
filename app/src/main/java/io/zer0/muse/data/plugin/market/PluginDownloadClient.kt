@@ -1,5 +1,6 @@
 package io.zer0.muse.data.plugin.market
 
+import io.zer0.common.Hashing
 import io.zer0.common.Logger
 import io.zer0.muse.tools.script.SkillBridgeHttpClient
 import java.io.File
@@ -61,8 +62,7 @@ internal class PluginDownloadClient(
         }
     }
 
-    private fun sha256Hex(bytes: ByteArray): String =
-        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+    private fun sha256Hex(bytes: ByteArray): String = Hashing.sha256Hex(bytes)
 
     companion object {
         /** Matches the plugin package size limit enforced by PluginManager. */
