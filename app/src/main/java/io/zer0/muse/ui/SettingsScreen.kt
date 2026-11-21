@@ -282,7 +282,6 @@ internal fun SettingsGroupCards(
                 onClick = { onOpenGroup(group.kind, null) },
                 leadingContent = { MuseSettingsIcon(group.icon) },
                 headlineContent = { Text(stringResource(group.titleRes)) },
-                supportingContent = { Text(stringResource(group.subtitleRes)) },
                 trailingContent = { ChevronRight() },
             )
         }

@@ -203,7 +203,6 @@ data class SettingsSectionSpec(
 data class SettingsGroupSpec(
     val kind: SettingsGroupKind,
     @StringRes val titleRes: Int,
-    @StringRes val subtitleRes: Int,
     val icon: ImageVector,
     val sections: List<SettingsSectionSpec>,
 ) {
@@ -235,7 +234,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.ASSISTANTS,
             R.string.settings_group_assistants,
-            R.string.settings_group_assistants_desc,
             MuseIcons.users,
             entries(
                 entry(
@@ -282,7 +280,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.CHAT,
             R.string.settings_group_chat,
-            R.string.settings_group_chat_desc,
             MuseIcons.chat,
             entries(
                 entry(
@@ -302,7 +299,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.APPEARANCE,
             R.string.settings_group_appearance,
-            R.string.settings_group_appearance_desc,
             MuseIcons.palette,
             entries(
                 entry(
@@ -321,7 +317,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.MODELS,
             R.string.settings_group_models,
-            R.string.settings_group_models_desc,
             MuseIcons.provider,
             entries(
                 entry(
@@ -367,7 +362,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.TOOLS,
             R.string.settings_group_tools,
-            R.string.settings_group_tools_desc,
             MuseIcons.wrench,
             entries(
                 entry(
@@ -419,7 +413,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.VOICE,
             R.string.settings_group_voice,
-            R.string.settings_group_voice_desc,
             MuseIcons.microphone,
             entries(
                 entry(
@@ -460,7 +453,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.IMAGE,
             R.string.settings_group_image,
-            R.string.settings_group_image_desc,
             MuseIcons.image,
             entries(
                 entry(
@@ -493,7 +485,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.MEMORY,
             R.string.settings_group_memory,
-            R.string.settings_group_memory_desc,
             MuseIcons.brain,
             entries(
                 entry(
@@ -534,7 +525,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.CONNECTION,
             R.string.settings_group_connection,
-            R.string.settings_group_connection_desc,
             MuseIcons.link,
             entries(
                 // 21: 原「扩展与连接」三级包装已拍平——它的五个目的地在二级都直达：
@@ -600,7 +590,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.AUTOMATION,
             R.string.settings_group_automation,
-            R.string.settings_group_automation_desc,
             MuseIcons.bell,
             entries(
                 entry(
@@ -649,7 +638,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.KEEP_ALIVE,
             R.string.settings_group_keep_alive,
-            R.string.settings_group_keep_alive_desc,
             MuseIcons.battery,
             entries(
                 entry(
@@ -669,7 +657,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.MINI_PHONE,
             R.string.settings_group_miniphone,
-            R.string.settings_group_miniphone_desc,
             MuseIcons.deviceMobile,
             entries(
                 entry(
@@ -691,7 +678,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.DATA_STORAGE,
             R.string.settings_group_data_storage,
-            R.string.settings_group_data_storage_desc,
             MuseIcons.database,
             entries(
                 entry(
@@ -751,7 +737,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.OFFLINE,
             R.string.offline_resources_title,
-            R.string.offline_resources_desc,
             MuseIcons.download,
             entries(
                 // 条目名与组名分开:此前两者共用 offline_resources_title,
@@ -774,7 +759,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.PRIVACY_SECURITY,
             R.string.settings_group_privacy_security,
-            R.string.settings_group_privacy_security_desc,
             MuseIcons.lock,
             entries(
                 entry(
@@ -803,7 +787,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.ABOUT,
             R.string.settings_group_about,
-            R.string.settings_group_about_desc,
             MuseIcons.info,
             entries(
                 entry(
@@ -837,7 +820,6 @@ object SettingsCatalog {
         group(
             SettingsGroupKind.DEVELOPER,
             R.string.settings_group_developer,
-            R.string.settings_group_developer_desc,
             MuseIcons.terminal,
             entries(
                 // 运行诊断 —— 「记忆页慢/后台没跑」不再靠猜;导出不含内容只含体积与计数。
@@ -911,13 +893,11 @@ object SettingsCatalog {
     private fun group(
         kind: SettingsGroupKind,
         @StringRes titleRes: Int,
-        @StringRes subtitleRes: Int,
         icon: ImageVector,
         entries: List<SettingsEntrySpec>,
     ): SettingsGroupSpec = SettingsGroupSpec(
         kind = kind,
         titleRes = titleRes,
-        subtitleRes = subtitleRes,
         icon = icon,
         sections = listOf(SettingsSectionSpec(entries = entries)),
     )
