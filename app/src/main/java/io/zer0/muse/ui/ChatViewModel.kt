@@ -153,6 +153,7 @@ import io.zer0.muse.ui.screen.FavoritesScreen
 import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.LorebookScreen
 import io.zer0.muse.ui.screen.PromptInjectionScreen
+import io.zer0.muse.ui.common.ManualCompressionPhase
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。

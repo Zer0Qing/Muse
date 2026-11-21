@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutVertically
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseSpringTier
+import io.zer0.muse.ui.screen.MuseRoutes
 
 /**
  * 导航过渡动画 helper — 消除 NavGraph 中重复的 enterTransition/popExitTransition 块。

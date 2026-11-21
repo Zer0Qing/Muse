@@ -42,7 +42,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.groupchat.GroupChatEntity
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
-import io.zer0.muse.ui.RegionErrorBoundary
+import io.zer0.muse.ui.common.RegionErrorBoundary
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton

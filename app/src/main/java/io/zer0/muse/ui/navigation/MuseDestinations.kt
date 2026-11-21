@@ -2,6 +2,7 @@ package io.zer0.muse.ui.navigation
 
 import io.zer0.muse.ui.settings.SettingsGroupKind
 import kotlinx.serialization.Serializable
+import io.zer0.muse.ui.screen.MuseRoutes
 
 /**
  * 类型安全路由目的地。

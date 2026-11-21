@@ -11,10 +11,11 @@ import io.zer0.muse.transformer.CompressionDiagnostics
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.runManualCompressionStages
 import io.zer0.muse.util.TokenEstimator
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import io.zer0.muse.ui.common.ManualCompressionPhase
+import io.zer0.muse.ui.common.runManualCompressionStages
 
 /**
  * v2.x 重构 S2: 从 ChatViewModel 提取的上下文压缩编排。
@@ -334,9 +335,9 @@ internal class ChatCompressionCoordinator(
                 toolsState = it.toolsState.copy(
                     isCompressing = true,
                     compressionPhase = if (updateMemoryFirst) {
-                        io.zer0.muse.ui.ManualCompressionPhase.UPDATING_MEMORY
+                        ManualCompressionPhase.UPDATING_MEMORY
                     } else {
-                        io.zer0.muse.ui.ManualCompressionPhase.COMPRESSING_CONTEXT
+                        ManualCompressionPhase.COMPRESSING_CONTEXT
                     },
                 ),
             )
@@ -475,7 +476,7 @@ internal class ChatCompressionCoordinator(
                 it.copy(
                     toolsState = it.toolsState.copy(
                         isCompressing = false,
-                        compressionPhase = io.zer0.muse.ui.ManualCompressionPhase.IDLE,
+                        compressionPhase = ManualCompressionPhase.IDLE,
                     ),
                 )
             }
