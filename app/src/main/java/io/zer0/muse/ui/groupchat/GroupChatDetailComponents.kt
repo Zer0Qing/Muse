@@ -104,8 +104,8 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
-import io.zer0.muse.ui.AssistantVideoCard
-import io.zer0.muse.ui.SmartImage
+import io.zer0.muse.ui.chat.AssistantVideoCard
+import io.zer0.muse.ui.chat.SmartImage
 import io.zer0.muse.ui.chat.StickerAwareMarkdownBody
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -120,7 +120,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseListItem
-import io.zer0.muse.ui.formatMessageTime
+import io.zer0.muse.ui.chat.formatMessageTime
 import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MuseBubbleStyles
 import io.zer0.muse.ui.theme.MuseHaptics
@@ -136,6 +136,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import java.io.ByteArrayOutputStream
+import io.zer0.muse.ui.chat.ThinkingIndicator
 
 /**
  * 群聊消息气泡 — 区分 user(右侧)/ assistant(左侧 + 头像)。
@@ -1538,7 +1539,7 @@ fun PendingImagesRow(images: List<String>, onRemove: (String) -> Unit, modifier:
     ) {
         items(images, key = { it }) { image ->
             Box(modifier = Modifier.size(64.dp)) {
-                io.zer0.muse.ui.SmartImage(
+                SmartImage(
                     model = image,
                     contentDescription = stringResource(R.string.groupchat_pending_image),
                     modifier = Modifier

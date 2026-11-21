@@ -7,6 +7,7 @@ import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
 import io.zer0.muse.schedule.ChatGenerationManager
 import io.zer0.muse.session.ConversationSessionManager
 import io.zer0.muse.tools.SessionPermissionStore
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: 会话编排(createNewSession/switchSession/restartContext 等)的依赖 bundle。

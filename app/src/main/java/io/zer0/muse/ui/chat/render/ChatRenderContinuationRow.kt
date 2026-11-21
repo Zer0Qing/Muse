@@ -13,10 +13,10 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.isUnspecified
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.ui.chat.StickerAwareMarkdownBody
-import io.zer0.muse.ui.chat.buildHighlightedText
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.ChatMessageRenderRow
-import io.zer0.muse.ui.ChatMessageRenderRowKind
+import io.zer0.muse.ui.chat.ChatMessageRenderRow
+import io.zer0.muse.ui.chat.ChatMessageRenderRowKind
+import io.zer0.muse.ui.chat.buildHighlightedText
 
 /**
  * 已由首条交互外壳接管操作能力的后续长文块。这里只承担正文组合，

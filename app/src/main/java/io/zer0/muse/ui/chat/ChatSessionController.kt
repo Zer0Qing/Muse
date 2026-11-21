@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.memory.SessionMemoryCache
+import io.zer0.muse.ui.EmptyChatGuide
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: 从 ChatViewModel 抽离的会话 CRUD Controller。

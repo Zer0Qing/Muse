@@ -173,6 +173,15 @@ import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.HomeScreen
 import io.zer0.muse.ui.common.ManualCompressionPhase
 import io.zer0.muse.ui.common.RegionErrorBoundary
+import io.zer0.muse.ui.chat.AgentModeHintCard
+import io.zer0.muse.ui.chat.ChatTopBanner
+import io.zer0.muse.ui.chat.resolveChatTopBanner
+import io.zer0.muse.ui.chat.ChatMessageRenderRowKind
+import io.zer0.muse.ui.chat.ChatMessageRenderRows
+import io.zer0.muse.ui.chat.LoadingDots
+import io.zer0.muse.ui.chat.SmartImage
+import io.zer0.muse.ui.chat.MessageBubbleHeader
+import io.zer0.muse.ui.chat.InChatFindBar
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =
@@ -1440,7 +1449,7 @@ fun ChatScreen(
                 ),
         ) {
             if (!chatBackground.isNullOrBlank()) {
-                io.zer0.muse.ui.SmartImage(
+                SmartImage(
                     model = chatBackground,
                     contentDescription = stringResource(R.string.chat_background_cd),
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,

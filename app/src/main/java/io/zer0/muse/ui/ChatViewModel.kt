@@ -154,6 +154,12 @@ import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.LorebookScreen
 import io.zer0.muse.ui.screen.PromptInjectionScreen
 import io.zer0.muse.ui.common.ManualCompressionPhase
+import io.zer0.muse.ui.chat.shouldAutoDismissError
+import io.zer0.muse.ui.chat.ErrorVisibility
+import io.zer0.muse.ui.chat.resolveErrorVisibility
+import io.zer0.muse.ui.chat.StreamingCursor
+import io.zer0.muse.ui.chat.ERROR_VISIBLE_WAIT_MS
+import io.zer0.muse.ui.chat.ERROR_AUTO_DISMISS_MS
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。

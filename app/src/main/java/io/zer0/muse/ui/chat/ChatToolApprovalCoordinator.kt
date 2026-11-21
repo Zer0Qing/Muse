@@ -11,6 +11,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withTimeoutOrNull
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S4: 从 ChatViewModel 提取的工具审批编排。

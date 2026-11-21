@@ -35,6 +35,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.util.concurrent.atomic.AtomicBoolean
+import io.zer0.muse.ui.chat.GeneratedImageCard
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import io.zer0.muse.ui.ChatViewModel
 
 /** P2-33: SPEAKING 看门狗基础超时(毫秒)— 起播/合成缓冲。 */
 internal const val SPEAKING_WATCHDOG_BASE_MS = 8_000L

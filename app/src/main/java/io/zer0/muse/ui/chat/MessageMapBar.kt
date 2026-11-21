@@ -29,6 +29,7 @@ import io.zer0.muse.ui.common.form.LinearScrollGesture
 import io.zer0.muse.ui.common.form.RAIL_TOUCH_WIDTH
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * A6: 长会话快速定位 — 聊天区右侧热区。

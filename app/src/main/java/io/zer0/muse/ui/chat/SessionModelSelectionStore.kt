@@ -1,4 +1,5 @@
 package io.zer0.muse.ui.chat
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: 会话级 Provider/模型 override 的写接口。

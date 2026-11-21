@@ -83,6 +83,7 @@ import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import io.zer0.muse.ui.chat.SmartImage
 
 /** B7-07: 加号工具面板的数据驱动条目。 */
 internal data class ToolEntry(

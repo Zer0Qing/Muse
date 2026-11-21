@@ -1,4 +1,5 @@
 package io.zer0.muse.ui.chat
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: [ChatSessionController] 的跨职责回调 bundle。

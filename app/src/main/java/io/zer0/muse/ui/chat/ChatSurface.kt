@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.chat
 import io.zer0.muse.ui.screen.HomeScreen
+import io.zer0.muse.ui.ChatScreen
 
 /**
  * 聊天页所处的界面形态。

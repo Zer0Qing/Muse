@@ -14,6 +14,12 @@ import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.ui.ChatErrorType
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.ChatStreamPhase
+import io.zer0.muse.ui.resumeOverlapToDrop
+import io.zer0.muse.ui.shouldReplaceOnResumeRewrite
+import io.zer0.muse.ui.shouldReplaceOnResumeSupersede
+import io.zer0.muse.ui.canUseToolModelForRound
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S1: [ChatToolLoopRunner] 访问 ChatViewModel 的窄桥接口。

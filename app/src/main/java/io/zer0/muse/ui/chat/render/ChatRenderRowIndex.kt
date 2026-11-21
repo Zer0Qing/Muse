@@ -1,5 +1,5 @@
 package io.zer0.muse.ui.chat.render
-import io.zer0.muse.ui.ChatMessageRenderRow
+import io.zer0.muse.ui.chat.ChatMessageRenderRow
 
 internal object ChatRenderRowIndex {
     fun firstRowForMessage(rows: List<ChatMessageRenderRow>, messageIndex: Int, fallback: Int = messageIndex): Int =

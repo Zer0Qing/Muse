@@ -8,6 +8,8 @@ import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
 import io.zer0.muse.ui.chat.VideoAttachment
+import io.zer0.muse.ui.chat.MuseInputState
+import io.zer0.muse.ui.chat.InputBarCallbacks
 
 /**
  * v1.0.75 fix (用户反馈): 输入栏上方 Markdown 格式工具条整条移除。

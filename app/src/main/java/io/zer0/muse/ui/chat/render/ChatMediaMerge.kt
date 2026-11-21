@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.chat.render
 
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * 审计修复 (A-16): 收尾消息媒体合并纯函数。

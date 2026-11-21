@@ -16,6 +16,8 @@ import io.zer0.muse.ui.taskcard.restoreAgentPlansFromHistory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import io.zer0.muse.ui.ChatUiState
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: 从 ChatViewModel 抽离的消息加载 Controller。

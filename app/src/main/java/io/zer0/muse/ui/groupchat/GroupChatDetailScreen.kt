@@ -111,6 +111,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import io.zer0.muse.ui.assistant.ModelSwitchSheet
+import io.zer0.muse.ui.chat.SmartImage
+import io.zer0.muse.ui.chat.ThinkingIndicator
 
 /**
  * 群聊详情页 — 消息流 + 输入栏 + Agent 轮转回复。
@@ -474,7 +476,7 @@ fun GroupChatDetailScreen(
                 ),
         ) {
             if (!chatBackground.isNullOrBlank()) {
-                io.zer0.muse.ui.SmartImage(
+                SmartImage(
                     model = chatBackground,
                     contentDescription = stringResource(R.string.groupchat_bg_cd), // 前端修复 (i18n-1)
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,

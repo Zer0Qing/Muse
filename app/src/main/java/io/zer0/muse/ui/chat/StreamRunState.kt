@@ -12,6 +12,7 @@ import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.privacy.PiiGuard
 import io.zer0.muse.transformer.TransformContext
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * 流式生成过程中的可变状态容器。

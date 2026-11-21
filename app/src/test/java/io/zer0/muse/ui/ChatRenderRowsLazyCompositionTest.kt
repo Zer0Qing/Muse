@@ -25,6 +25,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import io.zer0.muse.ui.chat.render.ChatRenderContinuationRow
+import io.zer0.muse.ui.chat.ChatMessageRenderRowKind
+import io.zer0.muse.ui.chat.ChatMessageRenderRow
+import io.zer0.muse.ui.chat.ChatMessageRenderRows
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

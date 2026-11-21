@@ -37,6 +37,9 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.jsonObject
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.ChatUiState
+import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.MessageBubble
 
 /**
  * v1.131: <think>...</think> 标签正则已迁移到 io.zer0.muse.util.MusePatterns.THINK_TAG_REGEX。

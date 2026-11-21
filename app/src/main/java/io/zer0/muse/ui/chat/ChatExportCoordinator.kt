@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import io.zer0.muse.ui.ChatUiState
+import io.zer0.muse.ui.ChatViewModel
 
 internal fun auditStateString(
     localizeString: ((Int, Array<out Any>) -> String)?,

@@ -8,6 +8,8 @@ import io.zer0.muse.tools.SessionPermissionStore
 import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.ui.PendingToolApproval
 import kotlinx.serialization.json.Json
+import io.zer0.muse.ui.ChatErrorType
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S4/S5: [ChatToolApprovalCoordinator] 与 [ChatToolResumeCoordinator]

@@ -9,6 +9,8 @@ import io.zer0.muse.tools.MediaGenKind
 import io.zer0.muse.tools.MediaGenResult
 import io.zer0.muse.tools.MediaGenSlot
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.ChatScreen
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * P2-23: 媒体生成工具(图片 / 视频 / 二维码)在聊天页的投递宿主。

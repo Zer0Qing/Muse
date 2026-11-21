@@ -4,6 +4,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.chat.ConversationTree
 import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.flow.MutableStateFlow
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: ChatViewModel 的共享状态容器。

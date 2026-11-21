@@ -26,6 +26,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.135: 视频附件处理回调类型。

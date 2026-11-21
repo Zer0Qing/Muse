@@ -4,6 +4,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.ui.chat.summarizeToolTrace
+import io.zer0.muse.ui.chat.mergeToolCallRecords
+import io.zer0.muse.ui.ToolCallRecord
 
 class ToolTraceSummaryTest {
 

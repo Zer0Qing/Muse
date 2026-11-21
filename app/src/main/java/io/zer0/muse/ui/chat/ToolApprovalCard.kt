@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.ui.PendingToolApproval
-import io.zer0.muse.ui.SmartImage
+import io.zer0.muse.ui.chat.SmartImage
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -59,6 +59,9 @@ import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.InputBar
+import io.zer0.muse.ui.ImageGenParamsPanel
 
 /**
  * Tool approval card.

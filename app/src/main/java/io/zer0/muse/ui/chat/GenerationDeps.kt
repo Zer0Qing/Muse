@@ -19,6 +19,7 @@ import io.zer0.muse.ui.ChatErrorType
 import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.memory.SessionMemoryCache
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: 生成/发送管线的依赖 bundle。

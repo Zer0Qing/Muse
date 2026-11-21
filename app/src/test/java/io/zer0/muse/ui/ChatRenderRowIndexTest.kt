@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import io.zer0.muse.ui.chat.render.ChatRenderChunk
 import io.zer0.muse.ui.chat.render.ChatRenderRowIndex
+import io.zer0.muse.ui.chat.ChatMessageRenderRow
 
 class ChatRenderRowIndexTest {
     @Test

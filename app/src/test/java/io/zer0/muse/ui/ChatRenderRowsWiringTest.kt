@@ -6,6 +6,7 @@ import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
 import io.zer0.muse.ui.chat.render.ChatRenderContinuationRow
+import io.zer0.muse.ui.chat.ChatMessageRenderRowKind
 
 class ChatRenderRowsWiringTest {
     @Test

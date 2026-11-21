@@ -58,6 +58,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import io.zer0.muse.ui.chat.SmartImage
 
 /**
  * 录音波形条:把最近振幅历史渲染成竖条。

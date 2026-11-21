@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.chat
 
 import io.zer0.muse.R
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.97: 斜杠命令注册表。

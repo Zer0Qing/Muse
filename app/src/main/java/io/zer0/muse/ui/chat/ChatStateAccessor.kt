@@ -4,6 +4,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.105 ChatViewModel 拆分: 让 Coordinator 能读写 state 的窄接口。

@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.chat
 
 import java.util.concurrent.atomic.AtomicInteger
+import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x: 会话/模式切换的序号守卫。

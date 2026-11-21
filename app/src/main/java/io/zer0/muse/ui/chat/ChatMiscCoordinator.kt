@@ -23,6 +23,10 @@ import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.LorebookScreen
+import io.zer0.muse.ui.ChatScreen
+import io.zer0.muse.ui.ChatUiState
+import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.MessageBubble
 
 /**
  * v1.105 阶段 2: 从 ChatViewModel 抽离的杂项 Coordinator。

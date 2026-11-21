@@ -3,6 +3,7 @@ package io.zer0.muse.tools.channel
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.muse.tools.ToolPermissionResolver
 import io.zer0.muse.tools.ToolRiskLevel
+import io.zer0.muse.ui.chat.AssistantVideoCard
 
 /** B8-03 方案 B / v2.x (B3): 群聊媒体工具进出策略。 */
 object GroupChatToolPolicy {

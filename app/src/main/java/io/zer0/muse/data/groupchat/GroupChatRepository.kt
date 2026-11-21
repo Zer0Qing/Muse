@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import java.util.UUID
+import io.zer0.muse.ui.chat.SmartImage
 
 /**
  * 群聊仓库 — 封装 DAO,暴露 Flow + suspend 方法。

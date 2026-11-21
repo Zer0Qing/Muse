@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
+import io.zer0.muse.ui.chat.AssistantVideoCard
 
 /**
  * 群聊消息实体。

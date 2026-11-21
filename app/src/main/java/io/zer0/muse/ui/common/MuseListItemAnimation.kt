@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.ChatScreen
 
 // E5 (前端专项 H4): 列表项动画原语 — 主列表统一入场/位移过渡。
 // 与 ChatScreen 消息行动画规格一致(SLOW_MS 淡入 + NORMAL_MS 位移);
