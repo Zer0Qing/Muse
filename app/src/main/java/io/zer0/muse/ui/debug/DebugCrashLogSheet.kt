@@ -58,6 +58,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.settings.SafeModeScreen
 
 // P1-4:崩溃日志面板 — 把 MuseCrashHandler 已有但仅 SafeMode 使用的崩溃日志
 //       列表 / ZIP 打包 / 单条分享能力,在正常模式下也透出给用户。

@@ -15,6 +15,7 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import io.zer0.muse.ui.settings.SettingsScreen
 
 /**
  * Phase 8.4: Web 搜索结果条目。

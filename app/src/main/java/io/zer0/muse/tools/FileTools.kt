@@ -3,13 +3,13 @@ package io.zer0.muse.tools
 import android.content.Context
 import android.webkit.URLUtil
 import io.zer0.common.Logger
-import io.zer0.muse.ui.SsrfGuard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import io.zer0.muse.ui.common.SsrfGuard
 
 /**
  * v1.0.47 P2-2/P2-3/P2-4: 文件与链接工具集(AI 可调用)。

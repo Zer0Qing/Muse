@@ -27,6 +27,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
+import io.zer0.muse.ui.common.SsrfGuard
 
 /**
  * P2-6 BrowserManager:浏览器自动化管理器。

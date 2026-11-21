@@ -15,7 +15,6 @@ import io.zer0.muse.schedule.ChatGenerationManager
 import io.zer0.muse.ui.ChatStreamPhase
 import io.zer0.muse.ui.ChatUiState
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.SsrfGuard
 import io.zer0.muse.ui.chat.parseQuotedContent
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
@@ -31,6 +30,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import java.util.UUID
+import io.zer0.muse.ui.common.SsrfGuard
 
 /**
  * Host Mode WebSocket adapter.

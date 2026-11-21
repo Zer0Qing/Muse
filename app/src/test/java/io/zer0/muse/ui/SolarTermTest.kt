@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.LocalDate
+import io.zer0.muse.ui.common.GreetingHelper
 
 /**
  * v1.0.72: 节气计算测试(寿星公式按年份计算)。

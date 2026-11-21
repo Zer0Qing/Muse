@@ -8,8 +8,8 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactEntity
 import io.zer0.muse.R
-import io.zer0.muse.ui.GreetingHelper
 import kotlinx.coroutines.withTimeoutOrNull
+import io.zer0.muse.ui.common.GreetingHelper
 
 /**
  * 问候语个性化提醒生成器 — 让 LLM 根据记忆里的近期事项自行组织提醒文案。

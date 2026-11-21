@@ -1,6 +1,5 @@
 package io.zer0.muse.tools
 
-import io.zer0.muse.ui.SsrfGuard
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -8,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.zer0.muse.ui.common.SsrfGuard
 
 /**
  * P2-33: WebView 用的 SSRF 判定闸门 — 把「同步 DNS」从回调线程彻底移走。

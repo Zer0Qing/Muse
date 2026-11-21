@@ -46,6 +46,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
+import io.zer0.muse.ui.common.SsrfGuard
 
 private const val TAG = "LinkPreviewCard"
 

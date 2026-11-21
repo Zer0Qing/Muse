@@ -7,6 +7,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import io.zer0.muse.ui.common.GreetingHelper
 class GreetingHelperTest {
 
     private fun fact(text: String, time: String? = null) = FactEntity(

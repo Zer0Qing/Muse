@@ -29,6 +29,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import io.zer0.muse.ui.settings.SettingsScreen
 
 /**
  * Phase 9.5 (M3): MCP server 注册表 + 持久化 + ToolRegistry 桥接。

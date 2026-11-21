@@ -56,7 +56,6 @@ import io.zer0.muse.data.session.MigrationProgressBus
 import io.zer0.muse.intent.ShareIntentHandler
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.MuseRoutes
-import io.zer0.muse.ui.SafeModeScreen
 import io.zer0.muse.ui.common.animation.MuseFluidSharedHost
 import io.zer0.muse.ui.common.feedback.MuseToastHost
 import io.zer0.muse.ui.common.media.DesktopShortcuts
@@ -97,6 +96,7 @@ import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
 import org.koin.core.context.GlobalContext
+import io.zer0.muse.ui.settings.SafeModeScreen
 
 /**
  * 应用唯一 Activity。

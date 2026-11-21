@@ -1,8 +1,8 @@
 package io.zer0.muse.mcp
 
 import io.zer0.muse.data.SecureKeyStore
-import io.zer0.muse.ui.SsrfGuard
 import kotlinx.serialization.Serializable
+import io.zer0.muse.ui.common.SsrfGuard
 
 /**
  * Phase 9.5 (M3): MCP 传输类型。

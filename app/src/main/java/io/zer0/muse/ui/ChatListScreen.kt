@@ -108,6 +108,7 @@ import org.koin.compose.koinInject
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
+import io.zer0.muse.ui.common.GreetingHelper
 
 /** v1.x: 问候语个性化提醒通知 ID(与其它通知 ID 错开)。 */
 private const val GREETING_NOTIFY_ID = 1010

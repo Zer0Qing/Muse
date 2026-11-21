@@ -1,9 +1,9 @@
 package io.zer0.muse
 
 import io.zer0.ai.RefImageUrlValidator
-import io.zer0.muse.ui.SsrfGuard
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import io.zer0.muse.ui.common.SsrfGuard
 
 /**
  * G4: 参考图 SSRF 校验桥接 — 把 app 层 [SsrfGuard.refImageUrlValidator] 注册为
