@@ -120,19 +120,6 @@ internal fun MemorySearchBar(query: String, onQueryChange: (String) -> Unit, ena
     }
 }
 
-/**
- * v9: 根据分类筛选记忆条目(null=全部)。
- */
-internal fun filterMemoryItemsByCategory(items: List<MemoryItem>, category: String?): List<MemoryItem> {
-    return if (category == null) {
-        items
-    } else {
-        items.filter {
-            it.category.equals(category, ignoreCase = true)
-        }
-    }
-}
-
 internal fun isToday(createdAt: String?): Boolean {
     if (createdAt == null) return false
     return try {
@@ -167,43 +154,6 @@ internal fun isThisMonth(createdAt: String?): Boolean {
         itemDate.year == today.year && itemDate.month == today.month
     } catch (e: Exception) {
         false
-    }
-}
-
-/**
- * v9: 分类筛选胶囊 — 全部 / 核心事实 / 偏好 / 经历 / 关系 / 目标 / 医疗。
- *
- * 参考图风格:横向滚动,选中项用 inverseSurface 深色药丸,未选中用浅灰。
- */
-@Composable
-internal fun CategoryFilterChipRow(selectedCategory: String?, onSelect: (String?) -> Unit) {
-    val scrollState = rememberScrollState()
-    val categories = listOf(
-        null to stringResource(R.string.memory_category_all),
-        "identity" to stringResource(R.string.memory_category_identity),
-        "preference" to stringResource(R.string.memory_category_preference),
-        "event" to stringResource(R.string.memory_category_event),
-        "relationship" to stringResource(R.string.memory_category_relationship),
-        "goal" to stringResource(R.string.memory_category_goal),
-        "medical" to stringResource(R.string.memory_category_medical),
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState)
-            .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        categories.forEach { (category, label) ->
-            val selected = selectedCategory == category
-            CategoryChip(
-                label = label,
-                selected = selected,
-                onClick = { onSelect(category) },
-            )
-        }
     }
 }
 
@@ -283,92 +233,6 @@ internal fun ScopeBadge(scope: String?) {
             color = MaterialTheme.colorScheme.onTertiaryContainer,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
         )
-    }
-}
-
-/**
- * 搜索结果列表 — CardGroup 容器。
- */
-@Composable
-internal fun SearchResultsList(
-    results: List<MemoryItem>,
-    isSearching: Boolean,
-    onDelete: (String) -> Unit,
-    headerContent: @Composable () -> Unit = {},
-) {
-    if (isSearching) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(MusePaddings.emptyStateGap),
-            contentAlignment = Alignment.Center,
-        ) {
-            MuseSpinner(
-                size = 24.dp,
-            )
-        }
-        return
-    }
-    if (results.isEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(MusePaddings.emptyStateGap),
-            contentAlignment = Alignment.Center,
-        ) {
-            // ST-03: 空态统一 MuseEmptyState
-            MuseEmptyState(title = stringResource(R.string.memory_screen_no_match))
-        }
-        return
-    }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            horizontal = MusePaddings.screen,
-            vertical = MusePaddings.contentGap,
-        ),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-    ) {
-        item { headerContent() }
-        item {
-            Text(
-                text = stringResource(R.string.memory_screen_search_results, results.size),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        // 前端修复 (性能-2): 搜索结果由 CardGroup 全量 Column 渲染改为
-        // LazyColumn 顶层 items(key=id) 平铺,懒加载渲染;每行独立圆角卡片
-        // (布局对齐原 CardGroup 项的 headline/supporting/trailing 结构)。
-        itemsIndexed(results, key = { _, item -> item.id }) { _, item ->
-            MuseSurface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                elevation = MuseElevation.card,
-                tonalElevation = MuseElevation.none,
-                border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        MemoryRowHeadline(item)
-                        MemoryRowSupporting(item)
-                    }
-                    Spacer(Modifier.width(MusePaddings.contentGap))
-                    MemoryRowTrailing(
-                        item = item,
-                        onDelete = { onDelete(item.id) },
-                        onEdit = null,
-                        onSetImportance = null,
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -607,35 +471,6 @@ private fun MemoryFactRow(
     }
 }
 
-/**
- * 记忆卡片主体内容 — 与参考图一致:正文 + 日期/作用域 meta + 重要性标签。
- */
-@Composable
-internal fun MemoryCardContent(item: MemoryItem) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = item.content,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = buildMetaText(item),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            if (item.importance > 0) {
-                ImportanceTag(importance = item.importance)
-            }
-        }
-    }
-}
-
 @Composable
 internal fun buildMetaText(item: MemoryItem): String {
     val dateText = item.time?.take(10)
@@ -698,63 +533,6 @@ internal fun ImportanceTag(importance: Int) {
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
         )
-    }
-}
-
-/**
- * 记忆卡片操作区 — 编辑 / 删除 / 设置重要程度。
- */
-@Composable
-internal fun MemoryCardTrailing(
-    item: MemoryItem,
-    onDelete: (() -> Unit)?,
-    onEdit: ((MemoryItem) -> Unit)?,
-    onSetImportance: ((MemoryItem) -> Unit)?,
-    onTogglePin: ((MemoryItem) -> Unit)?,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (onSetImportance != null) {
-            MuseTactileButton(
-                icon = MuseIcons.star,
-                onClick = { onSetImportance(item) },
-                contentDescription = stringResource(R.string.memory_sync_set_importance_cd),
-                tint = when (item.importance) {
-                    2 -> MaterialTheme.colorScheme.error
-                    1 -> MaterialTheme.colorScheme.onSurfaceVariant
-                    else -> MaterialTheme.colorScheme.outline
-                },
-                iconSize = 20.dp,
-            )
-        }
-        if (onEdit != null) {
-            if (onTogglePin != null) {
-                MuseTactileButton(
-                    icon = MuseIcons.pin,
-                    onClick = { onTogglePin(item) },
-                    contentDescription = stringResource(
-                        if (item.pinnedAt == null) R.string.memory_pin_cd else R.string.memory_unpin_cd,
-                    ),
-                    tint = if (item.pinnedAt != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                    iconSize = 20.dp,
-                )
-            }
-            MuseTactileButton(
-                icon = MuseIcons.edit,
-                onClick = { onEdit(item) },
-                contentDescription = stringResource(R.string.memory_screen_edit_cd),
-                tint = MaterialTheme.colorScheme.outline,
-                iconSize = 20.dp,
-            )
-        }
-        if (onDelete != null) {
-            MuseTactileButton(
-                icon = MuseIcons.trash,
-                onClick = { onDelete() },
-                contentDescription = stringResource(R.string.memory_screen_delete_cd),
-                tint = MaterialTheme.colorScheme.outline,
-                iconSize = 20.dp,
-            )
-        }
     }
 }
 

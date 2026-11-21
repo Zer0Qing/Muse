@@ -316,55 +316,6 @@ internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thi
 }
 
 /**
- * v0.48: shimmer 骨架屏占位 — 空流式 assistant 消息气泡渲染占位条,
- * 替代旧 LoadingDots 的"思考中"文字,营造"AI 正在写"的呼吸感。
- *
- * 实现:一个 fillMaxWidth(0.6f) / height 14dp 圆角矩形,
- * 用 [Brush.linearGradient] 配合 [animateFloat] + [infiniteRepeatable]
- * 做从左到右的扫光动画(1800ms 一个周期,LinearEasing)。
- * 颜色:surfaceVariant(0.4) → primary(0.2) → surfaceVariant(0.4)。
- */
-@Composable
-internal fun ShimmerPlaceholder(modifier: Modifier = Modifier) {
-    val reducedMotion = MuseMotion.isReducedMotion()
-    val brush = if (reducedMotion) {
-        Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            ),
-        )
-    } else {
-        val transition = rememberInfiniteTransition(label = "shimmer")
-        val translateAnim by transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = MuseMotion.tween(durationMillis = MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-            label = "shimmerTranslate",
-        )
-        Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            ),
-            start = Offset(translateAnim * -300f, 0f),
-            end = Offset(translateAnim * 300f, 0f),
-        )
-    }
-    Box(
-        modifier = modifier
-            .fillMaxWidth(0.6f)
-            .height(14.dp)
-            .clip(MuseShapes.tiny)
-            .background(brush),
-    )
-}
-
-/**
  * v1.33: 智能图片渲染器
  * 绕过 Coil 的 data URI 解析(部分设备上 DataUriFetcher 静默失败)
  * data URI → 直接用 BitmapFactory 解码;普通 URL/Uri → 仍走 Coil AsyncImage
