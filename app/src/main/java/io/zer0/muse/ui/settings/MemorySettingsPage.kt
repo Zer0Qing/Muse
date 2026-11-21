@@ -205,7 +205,7 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     },
                 )
                 // v1.78 (#21): 恢复默认按钮
-                SettingsActionRow(
+                SettingsItemRow(
                     title = stringResource(R.string.settings_memory_restore_default),
                     subtitle = stringResource(R.string.settings_memory_restore_default_subtitle),
                     onClick = { localConfig = MemoryConfig() },
@@ -258,29 +258,4 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
     }
 }
 
-/**
- * v1.78 (#21): 可点击的操作行(如"恢复默认")。
- */
-@Composable
-private fun SettingsActionRow(title: String, subtitle: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
+
