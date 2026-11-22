@@ -18,6 +18,7 @@ import java.util.Locale
 import java.util.TimeZone
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * Phase 8.9: S3 兼容存储客户端(自实现 AWS Signature V4)。
@@ -318,10 +319,10 @@ class S3Client(
         val keyRegex = Regex("(?is)<Key>(.*?)</Key>")
         val sizeRegex = Regex("(?is)<Size>(.*?)</Size>")
         val dateRegex = Regex("(?is)<LastModified>(.*?)</LastModified>")
-        val isoFmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+        val isoFmt = SimpleDateFormat(MuseDateFormats.ISO_8601_MILLIS, Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
-        val isoFmtNoMs = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        val isoFmtNoMs = SimpleDateFormat(MuseDateFormats.ISO_8601, Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
         for (match in contentsRegex.findAll(xml)) {
@@ -366,7 +367,7 @@ class S3Client(
 
     /** 格式化为 AWS 日期格式(yyyyMMdd'T'HHmmss'Z')。 */
     private fun formatAmzDate(date: Date): String {
-        val fmt = SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.US)
+        val fmt = SimpleDateFormat(MuseDateFormats.ISO_8601_COMPACT, Locale.US)
         fmt.timeZone = TimeZone.getTimeZone("UTC")
         return fmt.format(date)
     }

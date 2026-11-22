@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * P1-3b 拆域：核心基础工具注册器。
@@ -49,7 +50,7 @@ class CoreToolsRegistrar(
             val pattern = args["format"]?.takeIf { it.isNotBlank() } ?: "yyyy-MM-dd HH:mm:ss z"
             val fmt = resultOf { SimpleDateFormat(pattern, Locale.getDefault()) }
                 .onError { msg, _ -> Logger.w("CoreTools", "时间格式无效: $msg(pattern=$pattern)") }
-                .getOrNull() ?: SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.getDefault())
+                .getOrNull() ?: SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_TZ, Locale.getDefault())
             fmt.timeZone = tz
             val dstLabel = if (tz.inDaylightTime(Date())) {
                 context.getString(R.string.tool_dst)

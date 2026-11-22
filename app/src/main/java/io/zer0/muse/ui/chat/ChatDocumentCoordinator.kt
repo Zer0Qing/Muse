@@ -13,6 +13,7 @@ import io.zer0.muse.workspace.WorkspaceManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * v1.105 阶段 1: 从 ChatViewModel 抽离的文档解析 Coordinator。
@@ -229,7 +230,7 @@ class ChatDocumentCoordinator(
      */
     fun addPastedText(text: String, context: Context, reportError: (String) -> Unit) {
         if (text.isBlank()) return
-        val stamp = java.text.SimpleDateFormat("MMdd_HHmm", java.util.Locale.getDefault())
+        val stamp = java.text.SimpleDateFormat(MuseDateFormats.FILE_TIMESTAMP_COMPACT, java.util.Locale.getDefault())
             .format(java.util.Date())
         val fileName = context.getString(R.string.chat_pasted_doc_name, stamp)
         accessor.coroutineScope.launch(AppDispatchers.io) {

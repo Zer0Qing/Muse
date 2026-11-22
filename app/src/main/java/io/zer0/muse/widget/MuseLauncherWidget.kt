@@ -30,7 +30,7 @@ class MuseLauncherWidget : AppWidgetProvider() {
     }
 
     private fun buildViews(context: Context, appWidgetId: Int): RemoteViews {
-        val time = SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()).format(Date())
+        val time = MuseDateFormats.formatNow(MuseDateFormats.TIME_SHORT)
         return RemoteViews(context.packageName, R.layout.widget_muse_launcher).apply {
             setTextViewText(R.id.widget_muse_time, time)
             val openIntent = Intent(Intent.ACTION_VIEW, Uri.parse("muse://chat"))

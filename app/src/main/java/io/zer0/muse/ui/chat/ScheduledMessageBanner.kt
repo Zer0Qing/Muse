@@ -83,7 +83,7 @@ fun ScheduledMessageBanner(pendingMessages: List<PendingMessage>, onCancel: (Str
 }
 
 private fun formatScheduledLabel(msg: PendingMessage): String {
-    val time = SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()).format(Date(msg.sendAtMillis))
+    val time = MuseDateFormats.format(MuseDateFormats.TIME_SHORT, msg.sendAtMillis)
     val preview = msg.content.take(30).let { if (msg.content.length > 30) "$it..." else it }
     return "Scheduled for $time: $preview"
 }

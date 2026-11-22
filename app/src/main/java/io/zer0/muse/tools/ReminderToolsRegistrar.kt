@@ -73,7 +73,7 @@ class ReminderToolsRegistrar(
                 targetType = ReminderAlarmReceiver.TARGET_HOME,
                 targetId = "",
             )
-            val whenText = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date(triggerAt))
+            val whenText = MuseDateFormats.format(MuseDateFormats.DATE_TIME_FULL, triggerAt)
             if (!result.scheduled) {
                 // 排期彻底失败：保留条目（而非悄悄删除），并记录原因，让 list_reminders 能如实标注。
                 reminderStore.markScheduleFailed(id, result.error ?: "alarm_schedule_failed")

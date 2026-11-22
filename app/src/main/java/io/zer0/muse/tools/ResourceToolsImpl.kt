@@ -66,7 +66,7 @@ class ResourceToolsImpl(
             item.id,
             item.title,
             item.tags.joinToString(","),
-            SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date(item.createdAtMillis)),
+            MuseDateFormats.format(MuseDateFormats.DATE_TIME_FULL, item.createdAtMillis),
             item.content,
         )
     }

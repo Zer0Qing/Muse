@@ -205,7 +205,7 @@ private fun CrashLogItem(file: File, expanded: Boolean, expandedContent: String?
     // 文件名形如 crash-20260721-153012.txt;直接展示原文件名,保持与磁盘一致便于排查
     val sizeStr = remember(file.length()) { DebugFormatters.formatFileSize(file.length()) }
     val timeStr = remember(file.lastModified()) {
-        SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, Locale.US).format(Date(file.lastModified()))
+        MuseDateFormats.format(MuseDateFormats.DATE_TIME_FULL_SEC, file.lastModified(), Locale.US)
     }
 
     Surface(

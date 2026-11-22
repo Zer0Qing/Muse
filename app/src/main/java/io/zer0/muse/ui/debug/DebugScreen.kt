@@ -544,7 +544,7 @@ private fun LogEntryItem(
     highlight: String = "",
 ) {
     val timeStr = remember(entry.timestamp) {
-        SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date(entry.timestamp))
+        MuseDateFormats.format(MuseDateFormats.TIME_WITH_MILLIS, entry.timestamp, Locale.US)
     }
     // v1.0.52: 语义状态色替代硬编码,深色模式自动切亮档
     val statusColors = MaterialTheme.statusColors

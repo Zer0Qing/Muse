@@ -17,6 +17,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * v1.107 自动备份助手。
@@ -136,7 +137,7 @@ class AutoBackupHelper(
         ) {
             return@withContext false
         }
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(now))
+        val timestamp = MuseDateFormats.format(MuseDateFormats.FILE_TIMESTAMP_UNDERSCORE, now, Locale.US)
         val target = File(backupDir, "$BACKUP_FILE_PREFIX$timestamp$BACKUP_FILE_SUFFIX")
         val zipped = zipSnapshots(snapshotFiles, target)
 

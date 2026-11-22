@@ -43,6 +43,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import java.util.concurrent.atomic.AtomicInteger
 import io.zer0.muse.ui.chat.PendingMessage
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * Phase 17: 定时任务执行器。
@@ -684,7 +685,7 @@ class ScheduledTaskRunner(
      */
     private fun buildMissedExecution(taskId: String, missedCount: Int, scheduledAt: Long, now: Long): ScheduledTaskExecutionEntity {
         val gapHours = ((now - scheduledAt) / 3_600_000L).coerceAtLeast(0L)
-        val plannedAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+        val plannedAt = java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, java.util.Locale.getDefault())
             .format(java.util.Date(scheduledAt))
         return missedExecutionEntity(
             taskId = taskId,

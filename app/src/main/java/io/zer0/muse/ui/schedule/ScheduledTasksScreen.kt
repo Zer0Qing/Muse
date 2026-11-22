@@ -1822,7 +1822,7 @@ private fun wakeStateColor(state: WakeState, colors: MuseStatusColors): Color = 
 
 /** 面板里给用户看的本地时间;快照里的时间由 [BackgroundWakeDiagnostics.formatSnapshot] 固定格式输出。 */
 private fun formatWakeTime(millis: Long?): String? = millis?.let { at ->
-    SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date(at))
+    MuseDateFormats.format(MuseDateFormats.DATE_TIME_FULL, at)
 }
 
 private fun copyWakeSnapshot(context: Context, report: WakeDiagnostics) {

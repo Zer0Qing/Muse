@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * Phase 5 5C: 情绪追踪 — 基于消息 `<mood>` 标签和用户手动标注的情绪数据。
@@ -31,7 +32,7 @@ data class EmotionEntry(
     val createdAt: Long = System.currentTimeMillis(),
 ) {
     val dateStr: String
-        get() = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(createdAt))
+        get() = MuseDateFormats.format(MuseDateFormats.DATE_ONLY, createdAt)
 }
 
 /**

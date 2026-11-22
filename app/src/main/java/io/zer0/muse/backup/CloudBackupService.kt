@@ -11,6 +11,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * Phase 8.9: 云备份服务(统一 S3 / WebDAV 接口)。
@@ -43,7 +44,7 @@ class CloudBackupService(private val client: OkHttpClient) {
 
     /** 生成带时间戳的备份文件名。 */
     private fun backupFileName(): String {
-        val fmt = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US)
+        val fmt = SimpleDateFormat(MuseDateFormats.FILE_TIMESTAMP, Locale.US)
         return "muse-backup-${fmt.format(Date())}.json"
     }
 

@@ -10,6 +10,7 @@ import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * v2.x（诊断导出项目 A）：生成链路事件轨迹记录仪。
@@ -43,7 +44,7 @@ object GenerationTrace {
     @Volatile
     private var traceFile: File? = null
 
-    private val tsFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+    private val tsFormat = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_MILLIS, Locale.US)
 
     /** 一轮生成的结构化轨迹（全部字段都是统计量/标识，无正文无密钥）。 */
     @Serializable

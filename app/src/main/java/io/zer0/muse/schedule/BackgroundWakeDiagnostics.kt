@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ExecutionException
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * 后台唤醒的可观测面。
@@ -351,7 +352,7 @@ object BackgroundWakeDiagnostics {
     /** 时间戳 → 本地时间文本(快照是给人读的,固定格式便于对齐)。 */
     internal fun formatTime(millis: Long?): String {
         if (millis == null) return NONE_TEXT
-        return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(millis))
+        return MuseDateFormats.format(MuseDateFormats.DATE_TIME_FULL_SEC, millis, Locale.US)
     }
 
     /** 「没有这个值」在快照里的写法。缺值绝不能打印成 0 或 Long.MAX_VALUE:那两个都会被当成真时间戳。 */

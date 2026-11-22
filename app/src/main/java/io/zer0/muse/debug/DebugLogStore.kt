@@ -10,6 +10,7 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
 import io.zer0.muse.ui.debug.DebugScreen
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * 调试日志内存存储 — 环形缓冲 + 可导出文件。
@@ -81,7 +82,7 @@ object DebugLogStore {
     private var exportDir: File? = null
 
     /** 导出文件名时间戳格式(避免文件名冲突 + 便于按时间排序)。 */
-    private val exportDateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
+    private val exportDateFormat = SimpleDateFormat(MuseDateFormats.FILE_TIMESTAMP_UNDERSCORE, Locale.US)
 
     /**
      * 初始化导出目录。在 Application.onCreate 调用一次。
@@ -195,7 +196,7 @@ data class DebugLogEntry(
 ) {
     /** 导出文件时的单行格式:时间戳 等级/标签: 消息 [throwable]。 */
     fun formatLine(): String {
-        val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date(timestamp))
+        val ts = MuseDateFormats.format(MuseDateFormats.DATE_TIME_FULL_MILLIS, timestamp, Locale.US)
         val levelShort = when (level) {
             DebugLogStore.LEVEL_DEBUG -> "D"
             DebugLogStore.LEVEL_INFO -> "I"

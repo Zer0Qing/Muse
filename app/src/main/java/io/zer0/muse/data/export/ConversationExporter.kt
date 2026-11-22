@@ -403,7 +403,7 @@ object ConversationExporter {
         // 输出到 cacheDir/export/
         val exportDir = File(context.cacheDir, "export").apply { mkdirs() }
         val safeName = sanitizeFileName(chatTitle) + "-" +
-            SimpleDateFormat(MuseDateFormats.FILE_TIMESTAMP, Locale.US).format(Date()) + ".pdf"
+            MuseDateFormats.formatNow(MuseDateFormats.FILE_TIMESTAMP) + ".pdf"
         val outFile = File(exportDir, safeName)
         FileOutputStream(outFile).use { fos -> pdf.writeTo(fos) }
         pdf.close()

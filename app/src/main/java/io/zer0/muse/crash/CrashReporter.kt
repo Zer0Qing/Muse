@@ -16,6 +16,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * 崩溃上报的固定出口。
@@ -285,7 +286,7 @@ class ServerCrashReporter(
  * App 版本通过 PackageManager 读取（无 BuildConfig 依赖，避免 release 构建混淆时丢失）。
  */
 fun buildStandardMetadata(context: Context): Map<String, String> {
-    val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+    val timestamp = MuseDateFormats.formatNow(MuseDateFormats.DATE_TIME_FULL_SEC)
     val appVersion = resultOf {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.packageManager.getPackageInfo(

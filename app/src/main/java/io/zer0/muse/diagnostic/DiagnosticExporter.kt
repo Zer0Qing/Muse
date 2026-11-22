@@ -20,6 +20,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * v2.x（诊断导出项目 A）：把诊断信息打包成 zip 并调起系统分享。
@@ -35,7 +36,7 @@ import java.util.zip.ZipOutputStream
  */
 object DiagnosticExporter {
 
-    private val exportDateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
+    private val exportDateFormat = SimpleDateFormat(MuseDateFormats.FILE_TIMESTAMP_UNDERSCORE, Locale.US)
 
     /**
      * 打包诊断 zip 到 cacheDir，返回 FileProvider URI（供分享 Intent 使用）。
@@ -138,6 +139,6 @@ object DiagnosticExporter {
         appendLine("device: ${Build.MANUFACTURER} ${Build.MODEL}")
         appendLine("abi: ${Build.SUPPORTED_ABIS.joinToString()}")
         appendLine("locale: ${Locale.getDefault()}")
-        appendLine("exported_at: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
+        appendLine("exported_at: ${MuseDateFormats.formatNow(MuseDateFormats.DATE_TIME_FULL_SEC)}")
     }
 }

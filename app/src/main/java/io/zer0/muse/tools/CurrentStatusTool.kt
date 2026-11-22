@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * current_status 工具。
@@ -21,8 +22,8 @@ object CurrentStatusTool {
      * v1.131: SimpleDateFormat 改为 ThreadLocal 缓存,避免每次 current_status 工具调用都新建。
      * time provider 内的 fmt 需要修改 timeZone,故单独一个 ThreadLocal(隔离可变状态)。
      */
-    private val FMT_FULL_TZ = ThreadLocal.withInitial { SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.getDefault()) }
-    private val FMT_DATE = ThreadLocal.withInitial { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    private val FMT_FULL_TZ = ThreadLocal.withInitial { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_TZ, Locale.getDefault()) }
+    private val FMT_DATE = ThreadLocal.withInitial { SimpleDateFormat(MuseDateFormats.DATE_ONLY, Locale.getDefault()) }
 
     data class StatusProvider(
         val key: String,
@@ -35,7 +36,7 @@ object CurrentStatusTool {
             val tz = TimeZone.getDefault()
             // v1.131: 复用 ThreadLocal 缓存的 formatter(此 fmt 仅在本线程的 time provider 内被设置 timeZone,
             // 不会与其他 provider 交叉,可安全复用)。
-            val fmt = FMT_FULL_TZ.get() ?: SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.getDefault())
+            val fmt = FMT_FULL_TZ.get() ?: SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_TZ, Locale.getDefault())
             fmt.timeZone = tz
             "time: ${fmt.format(Date())} | timezone: ${tz.id} | utcOffset: ${tz.getOffset(System.currentTimeMillis()) / 3600000}"
         },
@@ -44,7 +45,7 @@ object CurrentStatusTool {
             if (cal.get(java.util.Calendar.HOUR_OF_DAY) < DAY_BOUNDARY_HOUR) {
                 cal.add(java.util.Calendar.DAY_OF_MONTH, -1)
             }
-            val fmt = FMT_DATE.get() ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val fmt = FMT_DATE.get() ?: SimpleDateFormat(MuseDateFormats.DATE_ONLY, Locale.getDefault())
             "logical_date: ${fmt.format(cal.time)} | dayBoundaryHour: $DAY_BOUNDARY_HOUR"
         },
         StatusProvider("device", "Device brand, model, Android version.") { _ ->

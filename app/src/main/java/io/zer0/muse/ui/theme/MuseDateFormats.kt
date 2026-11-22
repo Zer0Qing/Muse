@@ -2,6 +2,7 @@ package io.zer0.muse.ui.theme
 
 import android.text.format.DateFormat
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -44,6 +45,54 @@ object MuseDateFormats {
 
     /** 文件名时间戳,如 "20260711-143045"(Locale.US,用于备份/崩溃日志文件名)。 */
     const val FILE_TIMESTAMP = "yyyyMMdd-HHmmss"
+
+
+    /** 文件名时间戳（下划线分隔），如 "20260711_143045"。备份/诊断导出用。 */
+    const val FILE_TIMESTAMP_UNDERSCORE = "yyyyMMdd_HHmmss"
+
+    /** 日志时间戳（毫秒），如 "2026-07-11 14:30:45.123"。 */
+    const val DATE_TIME_FULL_MILLIS = "yyyy-MM-dd HH:mm:ss.SSS"
+
+    /** 只到月的归档键，如 "2026-07"。按天/月聚合统计用。 */
+    const val MONTH_ONLY = "yyyy-MM"
+
+    /** 带时区缩写的完整时间，如 "2026-07-11 14:30:45 CST"。工具返回值用。 */
+    const val DATE_TIME_FULL_TZ = "yyyy-MM-dd HH:mm:ss z"
+
+    /** ISO-8601 带毫秒，如 "2026-07-11T06:30:45.123Z"。S3 签名用。 */
+    const val ISO_8601_MILLIS = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+
+    /** ISO-8601 秒级，如 "2026-07-11T06:30:45Z"。 */
+    const val ISO_8601 = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+
+    /** ISO-8601 紧凑（无分隔），如 "20260711T063045Z"。S3 对象键用。 */
+    const val ISO_8601_COMPACT = "yyyyMMdd'T'HHmmss'Z'"
+
+    /** ISO-8601 带时区偏移，如 "2026-07-11T14:30:45+08:00"。审计日志用。 */
+    const val ISO_8601_OFFSET = "yyyy-MM-dd'T'HH:mm:ssXXX"
+
+    /** 毫秒级时间（时:分:秒.毫秒），如 "14:30:45.123"。调试页用。 */
+    const val TIME_WITH_MILLIS = "HH:mm:ss.SSS"
+
+    /** 紧凑文件名（短），如 "0711_1430"。截图/临时文件用。 */
+    const val FILE_TIMESTAMP_COMPACT = "MMdd_HHmm"
+
+
+    // ── 便捷格式化：调用方直接给毫秒或 Date，不必自己 new SimpleDateFormat ──
+    //
+    // 这些方法存在的意义不只是省一行代码：SimpleDateFormat 不是线程安全的，
+    // 每次调用新建实例是唯一安全的用法，散落在各处时很容易被误改成共享字段。
+
+    /** 用 [pattern] 格式化 [millis]，按当前语言。 */
+    fun format(pattern: String, millis: Long): String =
+        SimpleDateFormat(pattern, Locale.getDefault()).format(Date(millis))
+
+    /** 用 [pattern] 格式化当前时刻。 */
+    fun formatNow(pattern: String): String = format(pattern, System.currentTimeMillis())
+
+    /** 用 [pattern] 按 [locale] 格式化 [millis]（需要固定语言时用，如文件名里的英文月份）。 */
+    fun format(pattern: String, millis: Long, locale: Locale): String =
+        SimpleDateFormat(pattern, locale).format(Date(millis))
 
     /** 「月-日 时:分」这一档的语义 skeleton,顺序与分隔交给系统按语言决定。 */
     private const val SKELETON_DATE_TIME_SHORT = "MMMdHHmm"

@@ -1,4 +1,5 @@
 package io.zer0.muse.data.proactive
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * 牵挂账本的记账与维护。
@@ -102,7 +103,7 @@ class ProactiveRelationRepository(
     companion object {
         private const val DAY_MS = 86_400_000L
 
-        private fun dateKey(now: Long): String = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        private fun dateKey(now: Long): String = java.text.SimpleDateFormat(MuseDateFormats.DATE_ONLY, java.util.Locale.US)
             .format(java.util.Date(now))
     }
 

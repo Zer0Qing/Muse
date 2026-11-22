@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * P1-3b 拆域：日历工具注册器。
@@ -418,7 +419,7 @@ class CalendarToolsRegistrar(
         const val HOUR_MS = 60 * 60 * 1000L
         const val DAY_MS = 24 * HOUR_MS
 
-        val FMT_DATE = ThreadLocal.withInitial { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+        val FMT_DATE = ThreadLocal.withInitial { SimpleDateFormat(MuseDateFormats.DATE_ONLY, Locale.getDefault()) }
         val FMT_DATETIME_MIN = ThreadLocal.withInitial { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
         val PARSE_FORMATS_PATTERNS = listOf(
             "yyyy-MM-dd HH:mm:ss",
