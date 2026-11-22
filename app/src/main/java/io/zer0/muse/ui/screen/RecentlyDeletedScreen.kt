@@ -112,7 +112,7 @@ fun RecentlyDeletedScreen(onBack: () -> Unit, sessionRepository: SessionReposito
             onDismissRequest = { pendingPermanentDeleteId = null },
             title = stringResource(R.string.recently_deleted_permanent_delete),
             content = { Text(stringResource(R.string.recently_deleted_permanent_delete_confirm)) },
-            confirmText = stringResource(R.string.action_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 scope.launch {
                     withContext(Dispatchers.IO) { sessionRepository.deleteSession(id) }

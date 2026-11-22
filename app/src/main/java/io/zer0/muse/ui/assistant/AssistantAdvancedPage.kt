@@ -219,14 +219,14 @@ private fun RegexRulesSection(rulesJson: String, onRulesChange: (String) -> Unit
                                     alignEnd = true,
                                 ) {
                                     io.zer0.muse.ui.common.form.MuseActionSheetRow(
-                                        text = stringResource(R.string.action_edit),
+                                        text = stringResource(R.string.common_edit),
                                         icon = MuseIcons.robot,
                                     ) {
                                         actionsOpen = false
                                         editingRule = rule
                                     }
                                     io.zer0.muse.ui.common.form.MuseActionSheetRow(
-                                        text = stringResource(R.string.action_delete),
+                                        text = stringResource(R.string.common_delete),
                                         icon = MuseIcons.trash,
                                         contentColor = MaterialTheme.colorScheme.error,
                                     ) {
@@ -427,7 +427,7 @@ private fun RegexRuleEditDialog(
                 ),
             )
         },
-        dismissText = stringResource(R.string.action_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

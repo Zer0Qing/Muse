@@ -203,9 +203,9 @@ private fun NotificationTextDialog(currentTitle: String, currentText: String, on
                 )
             }
         },
-        confirmText = stringResource(R.string.action_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = { onSave(title, text) },
-        dismissText = stringResource(R.string.action_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

@@ -616,7 +616,7 @@ fun MemoryScreen(
                     archiveRecoveryRunning = false
                 }
             },
-            dismissText = stringResource(R.string.memory_screen_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { if (!archiveRecoveryRunning) showArchiveRecoveryConfirm = false },
         )
     }
@@ -1293,7 +1293,7 @@ private fun LazyListScope.groupChatMemoryItems(
                         MuseTactileButton(
                             icon = MuseIcons.trash,
                             onClick = { onDelete(mem) },
-                            contentDescription = stringResource(R.string.action_delete),
+                            contentDescription = stringResource(R.string.common_delete),
                             tint = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -1953,7 +1953,7 @@ private fun MemoryFactRowFooter(
                             showMore = false
                             it()
                         },
-                        text = stringResource(R.string.memory_menu_edit),
+                        text = stringResource(R.string.common_edit),
                     )
                 }
                 onHistory?.let {
@@ -1974,7 +1974,7 @@ private fun MemoryFactRowFooter(
                             showMore = false
                             it()
                         },
-                        text = stringResource(R.string.memory_menu_delete),
+                        text = stringResource(R.string.common_delete),
                     )
                 }
             }
@@ -2139,7 +2139,7 @@ internal fun MemorySelectionActions(
     MuseTactileButton(
         icon = MuseIcons.x,
         onClick = onCancel,
-        contentDescription = stringResource(R.string.action_cancel),
+        contentDescription = stringResource(R.string.common_cancel),
     )
     // 生成草稿要等模型几秒：把入口换成固定 48dp 的 spinner。
     // 只置灰的话几秒内看不到任何反应，用户会以为没点上而连点。
@@ -2166,7 +2166,7 @@ internal fun MemorySelectionActions(
     MuseTactileButton(
         icon = MuseIcons.trash,
         onClick = onDelete,
-        contentDescription = stringResource(R.string.action_delete),
+        contentDescription = stringResource(R.string.common_delete),
         enabled = !mergeRunning,
         tint = MaterialTheme.colorScheme.error,
     )
@@ -2261,7 +2261,7 @@ internal fun MemoryMergeDialog(draft: MemoryMergeDraft, running: Boolean, onCanc
         confirmEnabled = edited.isNotBlank() && !running,
         onConfirm = { onConfirm(edited) },
         // 落库期间不给退出口，避免草稿已被清空、协程还在写
-        dismissText = if (running) null else stringResource(R.string.memory_screen_cancel),
+        dismissText = if (running) null else stringResource(R.string.common_cancel),
         onDismiss = onCancel,
         properties = mergeDialogProperties(running),
     )

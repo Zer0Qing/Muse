@@ -102,16 +102,16 @@ private fun UserPersonaSheet(
                         )
                     }
                     MuseCapsuleButton(text = stringResource(R.string.user_persona_select), onClick = { onSelect(p.id) })
-                    MuseCapsuleButton(text = stringResource(R.string.action_edit), onClick = {
+                    MuseCapsuleButton(text = stringResource(R.string.common_edit), onClick = {
                         editing = p
                         name = p.name
                         text = p.text
                     })
-                    MuseCapsuleButton(text = stringResource(R.string.action_delete), onClick = { onDelete(p.id) })
+                    MuseCapsuleButton(text = stringResource(R.string.common_delete), onClick = { onDelete(p.id) })
                 }
             }
             Text(
-                stringResource(if (editing == null) R.string.user_persona_new else R.string.action_edit),
+                stringResource(if (editing == null) R.string.user_persona_new else R.string.common_edit),
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.padding(top = 16.dp),
             )
@@ -128,7 +128,7 @@ private fun UserPersonaSheet(
             )
             Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 MuseCapsuleButton(
-                    text = stringResource(R.string.action_save),
+                    text = stringResource(R.string.common_save),
                     onClick = {
                         if (name.isNotBlank() && text.isNotBlank()) {
                             onSave(UserPersona(id = editing?.id ?: UUID.randomUUID().toString(), name = name.trim(), text = text.trim()))

@@ -275,7 +275,7 @@ fun HomeScreen(
                 // 群聊归档数量来自 GroupChatViewModel；首页只做入口展示,不在此处收集。
                 val archivedGroupChatsLabel = stringResource(R.string.groupchat_archived_title)
                 val newFolderLabel = stringResource(R.string.chat_list_new_folder)
-                val editListLabel = stringResource(R.string.chat_list_edit)
+                val editListLabel = stringResource(R.string.common_edit)
                 val providerLabel = stringResource(R.string.chat_select_provider)
                 val topMenuItems = buildList {
                     add(

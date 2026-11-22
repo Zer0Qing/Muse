@@ -14,7 +14,6 @@
     <string name="agent_directives_text_limit">单条最多 200 字</string>
     <string name="agent_directives_move_up">上移</string>
     <string name="agent_directives_move_down">下移</string>
-    <string name="agent_directives_delete">删除</string>
     <string name="agent_directives_omitted">写得太多了，这几条这次没生效：%1$s</string>
     <string name="agent_directives_switch">启用这条约定</string>
 </resources>

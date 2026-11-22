@@ -68,7 +68,7 @@ fun MessageInfoSheet(msg: UIMessage, onDismiss: () -> Unit) {
     MuseDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.msg_info_title),
-        confirmText = stringResource(R.string.action_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
         dismissText = null,
         content = {

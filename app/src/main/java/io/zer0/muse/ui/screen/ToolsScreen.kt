@@ -326,7 +326,7 @@ private fun ToolDetailDialog(tool: ToolRegistry.ToolDef, onDismiss: () -> Unit) 
                 }
             }
         },
-        confirmText = stringResource(R.string.action_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
     )
 }

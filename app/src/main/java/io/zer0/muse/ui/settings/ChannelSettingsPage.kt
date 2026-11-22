@@ -266,7 +266,7 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
                 val label = stringResource(channelPlatformNameRes(cfg.platform))
                 Text(cfg.name.ifBlank { label })
             },
-            confirmText = stringResource(R.string.skill_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 scope.launch {
                     manager.remove(cfg.id)
@@ -274,7 +274,7 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
                 }
                 deleteTarget = null
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { deleteTarget = null },
         )
     }
@@ -333,12 +333,12 @@ private fun ChannelRow(
                 onClick = onOpenChat,
             )
             ChannelActionText(
-                text = stringResource(R.string.channel_edit),
+                text = stringResource(R.string.common_edit),
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onEdit,
             )
             ChannelActionText(
-                text = stringResource(R.string.skill_delete),
+                text = stringResource(R.string.common_delete),
                 color = MaterialTheme.colorScheme.error,
                 onClick = onDelete,
             )
@@ -411,7 +411,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                 weclawTokenOverride = ""
                 targetId = ""
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { confirmWeclawUnbind = false },
             destructive = true,
         )
@@ -900,13 +900,13 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
         ) {
             MuseCapsuleButton(
-                text = stringResource(R.string.settings_common_cancel),
+                text = stringResource(R.string.common_cancel),
                 onClick = requestDismiss,
                 variant = IosCapsuleButtonVariant.Text,
                 fillWidth = false,
             )
             MuseCapsuleButton(
-                text = stringResource(R.string.channel_save),
+                text = stringResource(R.string.common_save),
                 onClick = { onSave(buildDraft()) },
                 enabled = canSave,
                 variant = IosCapsuleButtonVariant.Primary,
@@ -925,7 +925,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
                 showDiscardDraft = false
                 onDismiss()
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showDiscardDraft = false },
             destructive = true,
         )
@@ -1064,7 +1064,7 @@ private fun WeClawBindDialog(onDismiss: () -> Unit, onBound: (WeClawClient.QrSta
             }
         },
         onConfirm = null,
-        dismissText = stringResource(R.string.settings_common_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

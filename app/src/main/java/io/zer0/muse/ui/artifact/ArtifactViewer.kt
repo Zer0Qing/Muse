@@ -277,7 +277,7 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                     MuseTactileButton(
                         icon = MuseIcons.x,
                         onClick = onDismiss,
-                        contentDescription = stringResource(R.string.artifact_close),
+                        contentDescription = stringResource(R.string.common_close),
                         size = MuseIconSizes.touchTarget,
                         iconSize = 20.dp,
                     )

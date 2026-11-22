@@ -69,7 +69,7 @@ class MemorySelectionActionsTest {
         composeTestRule.onNodeWithContentDescription(context.getString(R.string.memory_center_merge_running))
             .assertExists()
 
-        val delete = composeTestRule.onNodeWithContentDescription(context.getString(R.string.action_delete))
+        val delete = composeTestRule.onNodeWithContentDescription(context.getString(R.string.common_delete))
         delete.assertExists()
         delete.assertIsNotEnabled()
         delete.performClick()
@@ -92,7 +92,7 @@ class MemorySelectionActionsTest {
         val merge = composeTestRule.onNodeWithContentDescription(context.getString(R.string.memory_center_merge_action))
         merge.assertIsEnabled()
         merge.performClick()
-        val delete = composeTestRule.onNodeWithContentDescription(context.getString(R.string.action_delete))
+        val delete = composeTestRule.onNodeWithContentDescription(context.getString(R.string.common_delete))
         delete.assertIsEnabled()
         delete.performClick()
 
@@ -106,7 +106,7 @@ class MemorySelectionActionsTest {
 
         composeTestRule.onNodeWithContentDescription(context.getString(R.string.memory_center_merge_action))
             .assertIsNotEnabled()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.action_delete))
+        composeTestRule.onNodeWithContentDescription(context.getString(R.string.common_delete))
             .assertIsEnabled()
     }
 }

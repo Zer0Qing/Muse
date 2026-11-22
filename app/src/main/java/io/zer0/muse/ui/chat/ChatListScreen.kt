@@ -527,7 +527,7 @@ fun ChatListScreen(
                         showCreateFolderDialog = false
                     }
                 },
-                dismissText = stringResource(R.string.action_cancel),
+                dismissText = stringResource(R.string.common_cancel),
                 onDismiss = { showCreateFolderDialog = false },
             )
         }
@@ -1073,13 +1073,13 @@ private fun TaskItem(
                     ),
                 )
             },
-            confirmText = stringResource(R.string.action_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 onDelete(session.id)
                 MuseToast.show(deletedToast)
                 showDeleteConfirm = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showDeleteConfirm = false },
             destructive = true,
         )
@@ -1104,7 +1104,7 @@ private fun TaskItem(
                 }
                 showRenameDialog = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showRenameDialog = false },
         )
     }
@@ -1306,7 +1306,7 @@ private fun TaskActionSheet(
             // 删除
             MuseActionSheetRow(
                 icon = MuseIcons.trash,
-                text = stringResource(R.string.action_delete),
+                text = stringResource(R.string.common_delete),
                 contentColor = MaterialTheme.colorScheme.error,
                 onClick = {
                     onDelete()
@@ -1441,7 +1441,7 @@ private fun FolderItem(
                 showRenameDialog = false
                 showFolderSheet = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showRenameDialog = false },
         )
     }
@@ -1458,13 +1458,13 @@ private fun FolderItem(
                     ),
                 )
             },
-            confirmText = stringResource(R.string.action_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 onDeleteFolder(folder.id)
                 showDeleteDialog = false
                 showFolderSheet = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showDeleteDialog = false },
             destructive = true,
         )
@@ -1560,7 +1560,7 @@ private fun FolderActionSheet(folder: FolderEntity, onDismiss: () -> Unit, onRen
             )
             MuseActionSheetRow(
                 icon = MuseIcons.trash,
-                text = stringResource(R.string.action_delete),
+                text = stringResource(R.string.common_delete),
                 contentColor = MaterialTheme.colorScheme.error,
                 onClick = {
                     onDelete()
@@ -1744,7 +1744,7 @@ private fun ListToolbarRow(
         )
         ChatListToolbarAction(
             icon = MuseIcons.edit,
-            label = stringResource(R.string.chat_list_edit),
+            label = stringResource(R.string.common_edit),
             onClick = onEdit,
         )
     }
@@ -1816,14 +1816,14 @@ private fun ChatListEditMode(
                     ),
                 )
             },
-            confirmText = stringResource(R.string.action_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 showDeleteConfirm = false
                 onDeleteSelected(selectedIds)
                 MuseToast.show(doneToast)
                 onExit()
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showDeleteConfirm = false },
         )
     }
@@ -1845,7 +1845,7 @@ private fun ChatListEditMode(
                 },
             )
             ChatListEditAction(
-                label = stringResource(R.string.chat_list_edit_delete),
+                label = stringResource(R.string.common_delete),
                 enabled = selectedIds.isNotEmpty(),
                 onClick = { showDeleteConfirm = true },
             )

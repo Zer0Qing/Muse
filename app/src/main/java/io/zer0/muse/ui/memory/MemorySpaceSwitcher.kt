@@ -283,7 +283,7 @@ private fun SpaceRow(
                     if (space.id != MemorySpaceEntity.DEFAULT_SPACE_ID) {
                         MuseActionSheetRow(
                             icon = MuseIcons.trash,
-                            text = stringResource(R.string.memory_space_delete),
+                            text = stringResource(R.string.common_delete),
                             contentColor = MaterialTheme.colorScheme.error,
                             onClick = {
                                 menuExpanded = false

@@ -468,7 +468,7 @@ fun MemoryGraphView(
                         onNodeAction?.let { action ->
                             val actionModifier = Modifier.heightIn(min = 44.dp)
                             MuseCapsuleButton(
-                                text = stringResource(R.string.memory_menu_edit),
+                                text = stringResource(R.string.common_edit),
                                 onClick = { action(node, NodeAction.EDIT) },
                                 variant = IosCapsuleButtonVariant.Text,
                                 fillWidth = false,
@@ -482,7 +482,7 @@ fun MemoryGraphView(
                                 modifier = actionModifier,
                             )
                             MuseCapsuleButton(
-                                text = stringResource(R.string.memory_menu_delete),
+                                text = stringResource(R.string.common_delete),
                                 onClick = {
                                     action(node, NodeAction.DELETE)
                                     selectedNode = null
@@ -493,7 +493,7 @@ fun MemoryGraphView(
                             )
                         }
                         MuseCapsuleButton(
-                            text = stringResource(R.string.action_close),
+                            text = stringResource(R.string.common_close),
                             onClick = { selectedNode = null },
                             variant = IosCapsuleButtonVariant.Text,
                             fillWidth = false,
@@ -511,7 +511,7 @@ fun MemoryGraphView(
             io.zer0.muse.ui.common.feedback.MuseDialog(
                 onDismissRequest = { linkTargetNode = null },
                 title = stringResource(R.string.memory_graph_link_type_title),
-                dismissText = stringResource(R.string.action_cancel),
+                dismissText = stringResource(R.string.common_cancel),
                 onDismiss = { linkTargetNode = null },
                 content = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

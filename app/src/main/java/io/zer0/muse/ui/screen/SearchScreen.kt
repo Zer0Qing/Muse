@@ -189,7 +189,7 @@ fun SearchScreen(
                         }
                     }
                     Text(
-                        text = stringResource(R.string.search_cancel),
+                        text = stringResource(R.string.common_cancel),
                         style = MaterialTheme.typography.bodyMediumStrong,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.clickable { onBack() },

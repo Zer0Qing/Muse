@@ -196,7 +196,7 @@ private fun AutonomousTaskSection(
         if (grant != null) {
             Spacer(Modifier.height(6.dp))
             MuseCapsuleButton(
-                text = stringResource(R.string.action_cancel),
+                text = stringResource(R.string.common_cancel),
                 onClick = onClearTask,
                 variant = io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Secondary,
                 leadingIcon = MuseIcons.x,

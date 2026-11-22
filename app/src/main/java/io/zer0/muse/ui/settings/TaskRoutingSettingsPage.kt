@@ -269,12 +269,12 @@ fun TaskRoutingSettingsPage(
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 scope.launch { settings.saveCustomCompressPrompt(compressPromptDraft.trim().takeIf { it.isNotBlank() }) }
                 showCompressPromptDialog = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showCompressPromptDialog = false },
         )
     }
@@ -403,7 +403,7 @@ private fun MainModelPickerDialog(
                 }
             }
         },
-        dismissText = stringResource(R.string.action_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

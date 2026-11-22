@@ -334,7 +334,7 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = stringResource(R.string.settings_theme_custom_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 scope.launch {
                     settings.deleteCustomTheme(theme.id)
@@ -1202,7 +1202,7 @@ private fun CustomThemeItemRow(
                     )
                     MuseActionSheetRow(
                         icon = MuseIcons.trash,
-                        text = stringResource(R.string.settings_theme_custom_delete),
+                        text = stringResource(R.string.common_delete),
                         contentColor = MaterialTheme.colorScheme.error,
                         onClick = {
                             menuExpanded = false
@@ -1345,7 +1345,7 @@ private fun CustomThemeEditDialog(theme: CustomTheme?, isDark: Boolean, onDismis
                 ThemeColorPreview(theme = currentTheme, isDark = isDark)
             }
         },
-        confirmText = stringResource(R.string.settings_theme_custom_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = { onSave(currentTheme) },
         dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,

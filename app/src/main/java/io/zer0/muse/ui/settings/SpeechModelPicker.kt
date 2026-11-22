@@ -331,7 +331,7 @@ internal fun SpeechModelCustomField(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
         ) {
             MuseCapsuleButton(
-                text = stringResource(R.string.action_save),
+                text = stringResource(R.string.common_save),
                 onClick = onSave,
                 variant = IosCapsuleButtonVariant.Text,
                 fillWidth = false,

@@ -246,7 +246,7 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
                 )
             }
         },
-        confirmText = stringResource(R.string.settings_common_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             val newAbilities = buildSet {
                 if (supportsTools) add(ModelAbility.TOOL)
@@ -276,7 +276,7 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
                 ),
             )
         },
-        dismissText = stringResource(R.string.settings_common_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -604,7 +604,7 @@ internal fun FetchedModelsPickerSheet(
                 },
             )
         },
-        dismissText = stringResource(R.string.settings_common_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

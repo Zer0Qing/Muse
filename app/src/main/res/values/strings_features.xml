@@ -7,8 +7,6 @@
     <string name="groupchat_my_message">我的消息</string>
     <string name="groupchat_copied">已复制</string>
     <string name="groupchat_copy">复制</string>
-    <string name="groupchat_delete">删除</string>
-    <string name="groupchat_cancel">取消</string>
     <string name="groupchat_delete_message_title">删除消息</string>
     <string name="groupchat_delete_message_confirm">确定要删除这条消息吗？此操作不可恢复。</string>
     <string name="groupchat_reasoning">思考过程</string>
@@ -54,7 +52,6 @@
     <string name="groupchat_pending_image">待发送图片</string>
     <string name="groupchat_members_title">群聊成员（%1$d）</string>
     <string name="groupchat_no_members">暂无成员</string>
-    <string name="groupchat_close">关闭</string>
     <string name="groupchat_list_title">群聊</string>
     <string name="groupchat_create_cd">新建群聊</string>
     <string name="groupchat_no_messages">暂无消息</string>
@@ -86,9 +83,7 @@
     <string name="groupchat_search_hint">搜索群聊消息</string>
     <string name="groupchat_search_empty">没有找到相关消息</string>
     <string name="groupchat_edit_provider_title">选择成员供应商</string>
-    <string name="groupchat_edit">编辑</string>
     <string name="groupchat_edit_title">编辑群聊</string>
-    <string name="groupchat_edit_btn">保存</string>
     <string name="groupchat_edit_member_required">请至少保留一名成员</string>
     <string name="groupchat_edit_name_hint">群聊名称</string>
     <!-- v2.x: 群聊讨论模式 -->
@@ -141,7 +136,6 @@
     <string name="groupchat_context_private_context_hint">输入该 AI 的专属上下文（角色设定、私有约束等）</string>
     <string name="groupchat_context_private_context_set">已设置</string>
     <string name="groupchat_context_private_context_empty">未设置</string>
-    <string name="groupchat_context_save">保存</string>
     <string name="groupchat_context_clear">清除</string>
     <!-- ActivityHub: agent 活动状态 chip 文案（空闲/思考/工作/等待/完成） -->
     <string name="groupchat_activity_viewing">正在看消息</string>
@@ -180,7 +174,6 @@
     <string name="account_change_avatar_hint">点击头像从相册选择图片</string>
     <string name="account_name_label">名字</string>
     <string name="account_name_placeholder">输入你的名字</string>
-    <string name="account_save">保存</string>
     <string name="account_user_profile_title">个人资料</string>
 
     <!-- ===== ui/onboarding ===== -->
@@ -198,8 +191,6 @@
     <string name="schedule_expand_history">展开执行历史</string>
     <string name="schedule_next_run">下次执行： %1$s</string>
     <string name="schedule_run_now">立即执行</string>
-    <string name="schedule_edit">编辑</string>
-    <string name="schedule_delete">删除</string>
     <string name="schedule_delete_task">删除任务</string>
     <string name="schedule_execution_history">执行历史</string>
     <string name="schedule_no_executions">暂无执行记录</string>
@@ -222,9 +213,7 @@
     <string name="schedule_preset_daily_8">每天8点</string>
     <string name="schedule_preset_midnight">每天午夜</string>
     <string name="schedule_next_run_preview">下次将在 %1$s 执行</string>
-    <string name="schedule_save">保存</string>
     <string name="schedule_create_btn">创建</string>
-    <string name="schedule_cancel">取消</string>
     <string name="schedule_msg_cancel">取消定时消息</string>
     <string name="schedule_err_name_required">请填写任务名称</string>
     <string name="schedule_time_daily">每天执行时间</string>
@@ -299,8 +288,6 @@
     <string name="quick_notes_title">快速记录</string>
     <string name="quick_notes_new">新建记录</string>
     <string name="quick_notes_search">搜索记录…</string>
-    <string name="quick_notes_edit">编辑</string>
-    <string name="quick_notes_delete">删除</string>
     <string name="quick_notes_delete_title">删除记录</string>
     <string name="quick_notes_edit_title">编辑记录</string>
     <string name="quick_notes_attach_image">添加图片</string>
@@ -308,8 +295,6 @@
     <string name="quick_notes_title_label">标题</string>
     <string name="quick_notes_content_label">正文</string>
     <string name="quick_notes_tags_label">标签（用逗号分隔）</string>
-    <string name="quick_notes_save">保存</string>
-    <string name="quick_notes_cancel">取消</string>
     <string name="quick_notes_error_required">请填写标题</string>
     <string name="quick_notes_input_hint">记录此刻的想法…</string>
     <string name="quick_notes_tag_hint">输入 #标签 为记录分类</string>
@@ -358,7 +343,6 @@
     <string name="quick_notes_share_title">导出快速记录</string>
     <!-- 富文本 -->
     <string name="quick_notes_markdown_preview">预览</string>
-    <string name="quick_notes_markdown_edit">编辑</string>
     <string name="quick_notes_toggle_markdown">Markdown 模式</string>
     <!-- 附件 -->
     <string name="quick_notes_attachment_count">%1$d 个附件</string>
@@ -404,8 +388,6 @@
     <string name="knowledge_no_match_subtitle">试试其他关键词</string>
     <string name="knowledge_deleted">已删除</string>
     <string name="knowledge_delete_doc">删除文档</string>
-    <string name="knowledge_delete">删除</string>
-    <string name="knowledge_close">关闭</string>
     <string name="knowledge_reindex">重新索引</string>
     <string name="knowledge_repair_index">修复/重建索引</string>
     <string name="knowledge_repairing">正在修复 FTS 索引并重索引…</string>
@@ -415,7 +397,6 @@
     <string name="knowledge_fts_repair_failed">索引修复失败： %1$s</string>
     <string name="knowledge_importing">正在导入</string>
     <string name="knowledge_reindexing">正在重新索引</string>
-    <string name="knowledge_cancel">取消</string>
     <string name="knowledge_reading_file">正在读取文件…</string>
     <string name="knowledge_import_indexed_chunks">已索引 %1$d 块</string>
     <string name="knowledge_parsing_doc">正在解析文档…</string>
@@ -580,12 +561,10 @@
     <string name="subagent_task_list_count">%1$d 个任务</string>
     <string name="subagent_task_completed">已完成</string>
     <string name="subagent_task_failed">失败</string>
-    <string name="subagent_task_cancel">取消</string>
     <string name="subagent_task_close_cd">关闭子任务</string>
 
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">未命名</string>
-    <string name="artifact_close">关闭</string>
     <string name="artifact_copy">复制</string>
     <string name="artifact_type_code">代码</string>
     <string name="artifact_type_image">图片</string>
@@ -692,7 +671,6 @@
     <string name="mini_album_hide_action">从相册隐藏</string>
     <string name="mini_album_unfavorite_action">取消收藏</string>
     <string name="mini_album_favorite_action">收藏</string>
-    <string name="mini_album_cancel">取消</string>
     <string name="plan_next_step_label">下一步：%1$s</string>
     <string name="home_date_pattern">M月d日 EEEE</string>
     <string name="groupchat_summary_doc_title">讨论总结 · %1$s</string>

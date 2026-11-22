@@ -360,7 +360,7 @@ private fun GalleryFontScaleRow(fontScale: Float, onSelect: (Float) -> Unit) {
 private fun ButtonsSection() {
     GallerySection(stringResource(R.string.gallery_group_buttons)) {
         MuseCapsuleButton(
-            text = stringResource(R.string.settings_common_save),
+            text = stringResource(R.string.common_save),
             onClick = {},
         )
         MuseCapsuleButton(

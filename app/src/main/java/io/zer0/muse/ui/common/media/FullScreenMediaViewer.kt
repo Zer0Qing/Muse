@@ -199,7 +199,7 @@ internal fun FullScreenMediaViewer(
                 ) {
                     Icon(
                         imageVector = MuseIcons.x,
-                        contentDescription = stringResource(R.string.action_close),
+                        contentDescription = stringResource(R.string.common_close),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }

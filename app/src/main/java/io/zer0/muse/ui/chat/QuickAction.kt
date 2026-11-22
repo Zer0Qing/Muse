@@ -41,7 +41,7 @@ enum class QuickAction(
     INFO("info", io.zer0.muse.R.string.msg_info_title, MuseIcons.info),
     FAVORITE("favorite", io.zer0.muse.R.string.chat_favorite_add, MuseIcons.star),
     TTS("tts", io.zer0.muse.R.string.chat_tts_play, MuseIcons.play),
-    EDIT("edit", io.zer0.muse.R.string.action_edit, MuseIcons.edit),
+    EDIT("edit", io.zer0.muse.R.string.common_edit, MuseIcons.edit),
     FORWARD("forward", io.zer0.muse.R.string.chat_forward_action, MuseIcons.swapHorizontal),
     ;
 

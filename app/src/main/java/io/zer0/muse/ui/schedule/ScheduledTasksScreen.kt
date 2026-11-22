@@ -511,13 +511,13 @@ private fun TaskCard(
                     )
                 }
                 MuseCapsuleButton(
-                    text = stringResource(R.string.schedule_edit),
+                    text = stringResource(R.string.common_edit),
                     onClick = { onEdit(task) },
                     variant = IosCapsuleButtonVariant.Text,
                     fillWidth = false,
                 )
                 MuseCapsuleButton(
-                    text = stringResource(R.string.schedule_delete),
+                    text = stringResource(R.string.common_delete),
                     onClick = { showDeleteConfirm = true },
                     variant = IosCapsuleButtonVariant.Text,
                     fillWidth = false,
@@ -583,7 +583,7 @@ private fun TaskCard(
                 }
             },
             onConfirm = null,
-            dismissText = stringResource(R.string.action_close),
+            dismissText = stringResource(R.string.common_close),
             onDismiss = { showAllHistory = false },
         )
     }
@@ -1043,7 +1043,7 @@ private fun TaskDialog(
                 }
             }
         },
-        confirmText = if (isEdit) stringResource(R.string.schedule_save) else stringResource(R.string.schedule_create_btn),
+        confirmText = if (isEdit) stringResource(R.string.common_save) else stringResource(R.string.schedule_create_btn),
         onConfirm = {
             if (name.isBlank()) {
                 errorMessage = errNameRequired
@@ -1163,7 +1163,7 @@ private fun TaskDialog(
                 ),
             )
         },
-        dismissText = stringResource(R.string.schedule_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = { dismissWithCheck() },
     )
     if (showDiscardConfirm) {
@@ -1176,7 +1176,7 @@ private fun TaskDialog(
                 showDiscardConfirm = false
                 onDismiss()
             },
-            dismissText = stringResource(R.string.schedule_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showDiscardConfirm = false },
             destructive = true,
         )

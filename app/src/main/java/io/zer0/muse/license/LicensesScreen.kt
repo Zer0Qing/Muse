@@ -424,7 +424,7 @@ private fun LicenseTextDialog(title: String, text: String?, isLoading: Boolean, 
                 }
             }
         },
-        confirmText = stringResource(R.string.action_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
         dismissText = null,
     )

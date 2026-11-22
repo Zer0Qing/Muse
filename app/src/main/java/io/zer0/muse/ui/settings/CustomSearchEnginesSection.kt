@@ -161,7 +161,7 @@ private fun CustomEngineEditor(initial: CustomSearchEngine, onDismiss: () -> Uni
                 onResultsPathChange = { resultsPath = it },
             )
         },
-        confirmText = stringResource(R.string.action_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             if (endpoint.isBlank()) {
                 MuseToast.show(
@@ -180,7 +180,7 @@ private fun CustomEngineEditor(initial: CustomSearchEngine, onDismiss: () -> Uni
                 )
             }
         },
-        dismissText = stringResource(R.string.action_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

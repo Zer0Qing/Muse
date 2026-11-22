@@ -197,8 +197,8 @@ private fun QuickMessageCard(
     val scopeAssistantText = stringResource(R.string.quick_msg_scope_assistant, assistantName ?: entry.assistantId)
     val enabledStateText = stringResource(R.string.quick_msg_enabled_cd)
     val disabledStateText = stringResource(R.string.quick_msg_disabled_cd)
-    val editCd = stringResource(R.string.quick_msg_edit_cd)
-    val deleteCd = stringResource(R.string.quick_msg_delete_cd)
+    val editCd = stringResource(R.string.common_edit)
+    val deleteCd = stringResource(R.string.common_delete)
 
     val scopeLabel = when (entry.scope) {
         "global" -> scopeGlobalText
@@ -341,7 +341,7 @@ private fun QuickMessageEditPage(
 
     // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
     val unnamedText = stringResource(R.string.quick_msg_unnamed)
-    val saveText = stringResource(R.string.quick_msg_save)
+    val saveText = stringResource(R.string.common_save)
     val newTitleText = stringResource(R.string.quick_msg_new_title)
     val editTitleText = stringResource(R.string.quick_msg_edit_title)
     val unsavedTitle = stringResource(R.string.quick_msg_unsaved_title)

@@ -284,7 +284,7 @@ private fun SubagentRow(label: String, onCancel: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = stringResource(R.string.subagent_task_cancel),
+            text = stringResource(R.string.common_cancel),
             style = MaterialTheme.typography.labelSmall,
             color = scheme.error,
             modifier = Modifier.clickable(onClick = onCancel),

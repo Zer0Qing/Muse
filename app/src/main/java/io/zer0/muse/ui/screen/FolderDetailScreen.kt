@@ -195,7 +195,7 @@ private fun AddExistingDialog(candidates: List<SessionEntity>, onPick: (String) 
                 }
             }
         },
-        confirmText = stringResource(R.string.artifact_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
         dismissText = null,
     )

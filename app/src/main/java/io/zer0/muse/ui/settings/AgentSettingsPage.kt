@@ -535,7 +535,7 @@ fun AgentSettingsPage(
                     )
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 // 保存排序后的逗号分隔小时,兼容 SettingsRepository.saveDailySummarySlots
                 scope.launch {
@@ -546,7 +546,7 @@ fun AgentSettingsPage(
                 }
                 showSlotsDialog = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showSlotsDialog = false },
         )
     }
@@ -587,12 +587,12 @@ fun AgentSettingsPage(
                     )
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 scope.launch { settings.saveDailyMomentCount(alignedValue) }
                 showMomentCountPicker = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showMomentCountPicker = false },
         )
     }
@@ -658,7 +658,7 @@ fun AgentSettingsPage(
                     }
                 }
             },
-            confirmText = stringResource(R.string.action_close),
+            confirmText = stringResource(R.string.common_close),
             onConfirm = { showMomentContentModePicker = false },
         )
     }
@@ -726,7 +726,7 @@ fun AgentSettingsPage(
                     }
                 }
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showPacePicker = false },
         )
     }
@@ -831,7 +831,7 @@ fun AgentSettingsPage(
                     }
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 // 直接写回免打扰语义;换算交给 QuietHoursWindow,不再在这里手写取反。
                 val allowed = QuietHoursWindow.QuietHours(s, e).toAllowed()
@@ -846,7 +846,7 @@ fun AgentSettingsPage(
                 }
                 showQuietHoursPicker = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showQuietHoursPicker = false },
         )
     }
@@ -940,7 +940,7 @@ fun AgentSettingsPage(
                     }
                 }
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showContentPicker = false },
         )
     }
@@ -1059,7 +1059,7 @@ fun AgentSettingsPage(
                     }
                 }
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showAdvancedDialog = false },
         )
     }
@@ -1114,7 +1114,7 @@ fun AgentSettingsPage(
                     }
                 }
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showAssistantPicker = false },
         )
     }
@@ -1172,7 +1172,7 @@ fun AgentSettingsPage(
                     }
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 scope.launch {
                     settings.saveProactiveMessageConfig(
@@ -1181,7 +1181,7 @@ fun AgentSettingsPage(
                 }
                 showOffsetPicker = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showOffsetPicker = false },
         )
     }
@@ -1216,7 +1216,7 @@ fun AgentSettingsPage(
                     )
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 scope.launch {
                     settings.saveProactiveMessageConfig(
@@ -1225,7 +1225,7 @@ fun AgentSettingsPage(
                 }
                 showGuaranteePicker = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showGuaranteePicker = false },
         )
     }
@@ -1279,14 +1279,14 @@ fun AgentSettingsPage(
                     }
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 scope.launch {
                     settings.saveProactiveMessageConfig(proactiveConfig.copy(temperature = alignedValue))
                 }
                 showTemperaturePicker = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showTemperaturePicker = false },
         )
     }

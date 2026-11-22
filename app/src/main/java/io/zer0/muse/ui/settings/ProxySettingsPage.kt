@@ -204,7 +204,7 @@ fun ProxySettingsPage(onBack: () -> Unit) {
         }
         item {
             MuseCapsuleButton(
-                text = stringResource(R.string.action_save),
+                text = stringResource(R.string.common_save),
                 onClick = {
                     val port = portText.toIntOrNull()?.coerceIn(1, 65535) ?: 7890
                     scope.launch {

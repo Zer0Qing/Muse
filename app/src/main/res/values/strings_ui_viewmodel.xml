@@ -16,15 +16,12 @@
     <string name="quick_msg_scope_label">作用域： %1$s</string>
     <string name="quick_msg_enabled_cd">已启用</string>
     <string name="quick_msg_disabled_cd">已禁用</string>
-    <string name="quick_msg_edit_cd">编辑</string>
-    <string name="quick_msg_delete_cd">删除</string>
     <!-- 编辑页 -->
     <string name="quick_msg_unsaved_title">有未保存的修改</string>
     <string name="quick_msg_unsaved_content">退出将丢失当前编辑，确认放弃？</string>
     <string name="quick_msg_discard">放弃</string>
     <string name="quick_msg_new_title">新建 QuickMessage</string>
     <string name="quick_msg_edit_title">编辑 QuickMessage</string>
-    <string name="quick_msg_save">保存</string>
     <string name="quick_msg_section_basic">基础</string>
     <string name="quick_msg_field_name">名称</string>
     <string name="quick_msg_section_content">模板内容</string>
@@ -52,15 +49,12 @@
     <string name="lorebook_keywords_label">关键词： %1$s</string>
     <string name="lorebook_enabled_cd">已启用</string>
     <string name="lorebook_disabled_cd">已禁用</string>
-    <string name="lorebook_edit_cd">编辑</string>
-    <string name="lorebook_delete_cd">删除</string>
     <!-- 编辑页 -->
     <string name="lorebook_unsaved_title">有未保存的修改</string>
     <string name="lorebook_unsaved_content">退出将丢失当前编辑，确认放弃？</string>
     <string name="lorebook_discard">放弃</string>
     <string name="lorebook_new_title">新建 Lorebook</string>
     <string name="lorebook_edit_title">编辑 Lorebook</string>
-    <string name="lorebook_save">保存</string>
     <string name="lorebook_section_basic">基础</string>
     <string name="lorebook_field_name">名称</string>
     <string name="lorebook_field_keywords">触发关键词（逗号分隔）</string>
@@ -94,15 +88,12 @@
     <string name="prompt_injection_mode_label">模式： %1$s</string>
     <string name="prompt_injection_enabled_cd">已启用</string>
     <string name="prompt_injection_disabled_cd">已禁用</string>
-    <string name="prompt_injection_edit_cd">编辑</string>
-    <string name="prompt_injection_delete_cd">删除</string>
     <!-- 编辑页 -->
     <string name="prompt_injection_unsaved_title">有未保存的修改</string>
     <string name="prompt_injection_unsaved_content">退出将丢失当前编辑，确认放弃？</string>
     <string name="prompt_injection_discard">放弃</string>
     <string name="prompt_injection_new_title">新建 PromptInjection</string>
     <string name="prompt_injection_edit_title">编辑 PromptInjection</string>
-    <string name="prompt_injection_save">保存</string>
     <string name="prompt_injection_section_basic">基础</string>
     <string name="prompt_injection_field_name">名称</string>
     <string name="prompt_injection_field_mode">模式</string>
@@ -140,8 +131,6 @@
     <string name="assistant_enable">启用</string>
     <string name="assistant_disable">停用</string>
     <string name="assistant_export_card">导出角色卡</string>
-    <string name="assistant_delete">删除</string>
-    <string name="assistant_close">关闭</string>
     <string name="assistant_delete_title">删除助手</string>
     <!-- Toast -->
     <string name="assistant_toast_exported">已导出角色卡： %1$s</string>

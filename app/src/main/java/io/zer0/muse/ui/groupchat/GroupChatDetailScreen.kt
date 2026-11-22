@@ -1221,12 +1221,12 @@ fun GroupChatDetailScreen(
                             }
                         }
                     },
-                    confirmText = stringResource(R.string.action_close),
+                    confirmText = stringResource(R.string.common_close),
                     onConfirm = {
                         showSearchDialog = false
                         viewModel.searchMessages("")
                     },
-                    dismissText = stringResource(R.string.groupchat_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = {
                         showSearchDialog = false
                         viewModel.searchMessages("")
@@ -1275,9 +1275,9 @@ fun GroupChatDetailScreen(
                             }
                         }
                     },
-                    confirmText = stringResource(R.string.action_close),
+                    confirmText = stringResource(R.string.common_close),
                     onConfirm = { showProviderDialog = false },
-                    dismissText = stringResource(R.string.groupchat_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = { showProviderDialog = false },
                 )
             }
@@ -1375,7 +1375,7 @@ fun GroupChatDetailScreen(
                             )
                             GroupChatActionRow(
                                 MuseIcons.trash,
-                                stringResource(R.string.groupchat_delete),
+                                stringResource(R.string.common_delete),
                                 MaterialTheme.colorScheme.error,
                                 iconBlock,
                             ) {
@@ -1399,12 +1399,12 @@ fun GroupChatDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
-                    confirmText = stringResource(R.string.groupchat_delete),
+                    confirmText = stringResource(R.string.common_delete),
                     onConfirm = {
                         deleteMessageTarget = null
                         viewModel.deleteMessage(msg.id)
                     },
-                    dismissText = stringResource(R.string.groupchat_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = { deleteMessageTarget = null },
                 )
             }
@@ -1421,12 +1421,12 @@ fun GroupChatDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
-                    confirmText = stringResource(R.string.groupchat_delete),
+                    confirmText = stringResource(R.string.common_delete),
                     onConfirm = {
                         deleteSelectedTarget = false
                         viewModel.deleteSelectedMessages()
                     },
-                    dismissText = stringResource(R.string.groupchat_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = { deleteSelectedTarget = false },
                 )
             }
@@ -1461,7 +1461,7 @@ fun GroupChatDetailScreen(
                             replyToMessage = null
                         }
                     },
-                    dismissText = stringResource(R.string.groupchat_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = { replyToMessage = null },
                 )
             }
@@ -1495,7 +1495,7 @@ fun GroupChatDetailScreen(
                             whisperTarget = null
                         }
                     },
-                    dismissText = stringResource(R.string.groupchat_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = { whisperTarget = null },
                 )
             }
@@ -1521,7 +1521,7 @@ fun GroupChatDetailScreen(
                             showVoteDialog = false
                         }
                     },
-                    dismissText = stringResource(R.string.groupchat_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = { showVoteDialog = false },
                 )
             }
@@ -1566,7 +1566,7 @@ fun GroupChatDetailScreen(
                         }
                     },
                     onConfirm = null,
-                    dismissText = stringResource(R.string.groupchat_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = { showSummaryDialog = false },
                 )
             }
@@ -1648,7 +1648,7 @@ fun GroupChatDetailScreen(
                                             MuseTactileButton(
                                                 icon = MuseIcons.x,
                                                 onClick = { viewModel.removeSharedDoc(doc.id) },
-                                                contentDescription = stringResource(R.string.groupchat_delete),
+                                                contentDescription = stringResource(R.string.common_delete),
                                             )
                                         }
                                     }
@@ -1750,7 +1750,7 @@ fun GroupChatDetailScreen(
                                                     color = MaterialTheme.colorScheme.outline,
                                                 )
                                                 MuseCapsuleButton(
-                                                    text = stringResource(R.string.groupchat_edit),
+                                                    text = stringResource(R.string.common_edit),
                                                     onClick = {
                                                         editingContexts.value = editingContexts.value + (assistant.id to savedText)
                                                     },
@@ -1787,7 +1787,7 @@ fun GroupChatDetailScreen(
                                                     fillWidth = false,
                                                 )
                                                 MuseCapsuleButton(
-                                                    text = stringResource(R.string.groupchat_context_save),
+                                                    text = stringResource(R.string.common_save),
                                                     onClick = {
                                                         viewModel.setMemberPrivateContext(assistant.id, editingText)
                                                         editingContexts.value = editingContexts.value - assistant.id

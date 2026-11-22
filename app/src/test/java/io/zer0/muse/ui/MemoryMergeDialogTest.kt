@@ -85,7 +85,7 @@ class MemoryMergeDialogTest {
             }
         }
 
-        composeTestRule.onNodeWithText(context.getString(R.string.memory_screen_cancel)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(context.getString(R.string.common_cancel)).assertDoesNotExist()
         composeTestRule.onNodeWithText(context.getString(R.string.memory_center_merge_running)).assertExists()
         val confirm = composeTestRule.onNodeWithText(context.getString(R.string.memory_center_merge_confirm))
         confirm.assertExists()

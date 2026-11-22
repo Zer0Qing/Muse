@@ -87,7 +87,7 @@ internal fun TimelineItemActions(
             }
             MuseActionSheetRow(
                 icon = MuseIcons.trash,
-                text = stringResource(R.string.memory_menu_delete),
+                text = stringResource(R.string.common_delete),
                 contentColor = MaterialTheme.colorScheme.error,
                 onClick = { confirming = true },
             )

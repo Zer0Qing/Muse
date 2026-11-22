@@ -47,9 +47,9 @@ fun MemoryGraphSettingsDialog(
     MuseDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.memory_graph_settings_title),
-        confirmText = stringResource(R.string.settings_common_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = { onSave(config.copy(aiEnhanceEnabled = aiEnhance, edgeBuildFrequency = frequency)) },
-        dismissText = stringResource(R.string.action_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
         content = {
             Column(modifier = Modifier.fillMaxWidth()) {

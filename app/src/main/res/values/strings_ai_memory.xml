@@ -115,7 +115,6 @@
     <string name="memory_space_create_title">新建记忆空间</string>
     <string name="memory_space_rename">重命名</string>
     <string name="memory_space_rename_title">重命名记忆空间</string>
-    <string name="memory_space_delete">删除</string>
     <string name="memory_space_name_label">空间名称</string>
     <string name="memory_space_fact_count">%1$d 条事实</string>
     <string name="memory_space_entry">记忆空间</string>
@@ -167,8 +166,6 @@
     <string name="memory_pin_failed">置顶操作失败，请重试</string>
     <string name="memory_unpin_failed">取消置顶失败，请重试</string>
     <string name="memory_menu_importance">设置重要程度</string>
-    <string name="memory_menu_edit">编辑</string>
-    <string name="memory_menu_delete">删除</string>
     <string name="memory_delete_confirm_title">删除记忆</string>
     <!-- 时间轴卡片长按:动作面板 + 批量删除的二次确认 -->
     <string name="memory_menu_multi_select">多选</string>

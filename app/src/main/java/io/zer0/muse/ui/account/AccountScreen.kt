@@ -398,7 +398,7 @@ private fun SaveButton(enabled: Boolean, saving: Boolean, onClick: () -> Unit) {
                 }
             } else {
                 Text(
-                    text = stringResource(R.string.account_save),
+                    text = stringResource(R.string.common_save),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.inverseOnSurface,

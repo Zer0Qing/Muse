@@ -122,8 +122,6 @@
     <string name="settings_theme_custom_secondary_color">辅色（可选）</string>
     <string name="settings_theme_custom_tertiary_color">强调色（可选）</string>
     <string name="settings_theme_custom_preview">配色预览</string>
-    <string name="settings_theme_custom_save">保存</string>
-    <string name="settings_theme_custom_delete">删除</string>
     <string name="settings_theme_custom_delete_confirm">确定删除此主题？</string>
     <string name="settings_theme_custom_delete_confirm_msg">删除后无法恢复，使用此主题的界面将回退到默认主题。</string>
     <string name="settings_theme_custom_export">导出主题</string>
@@ -174,9 +172,7 @@
     <string name="prompt_template_manager_built_in">内置</string>
     <string name="prompt_template_manager_move_up">上移</string>
     <string name="prompt_template_manager_move_down">下移</string>
-    <string name="prompt_template_manager_edit">编辑</string>
     <string name="prompt_template_manager_copy">复制</string>
-    <string name="prompt_template_manager_delete">删除</string>
     <string name="prompt_template_manager_delete_confirm">确定删除模板“%1$s”?</string>
     <string name="prompt_template_manager_add">新建模板</string>
     <string name="prompt_template_manager_name">名称</string>
@@ -410,8 +406,6 @@
     <string name="kb_manage_create">新建知识库</string>
     <string name="kb_manage_name_label">名称</string>
     <string name="kb_manage_desc_label">描述（可选）</string>
-    <string name="kb_manage_edit">编辑</string>
-    <string name="kb_manage_delete">删除</string>
     <!-- F-31: 向本知识库添加文档 -->
     <string name="kb_manage_add_doc">向本知识库添加文档</string>
     <string name="kb_manage_delete_confirm">确认删除知识库 "%1$s"?</string>

@@ -116,7 +116,7 @@ fun UserPreferencePage(onBack: () -> Unit, store: PreferenceStore = koinInject()
 
     deleting?.let { target ->
         ConfirmDeleteDialog(
-            title = stringResource(R.string.settings_preference_delete),
+            title = stringResource(R.string.common_delete),
             itemName = target.rule,
             consequence = stringResource(R.string.settings_preference_delete_confirm),
             onConfirm = {
@@ -163,11 +163,11 @@ private fun PreferenceRow(pref: UserPreference, onToggle: (Boolean) -> Unit, onD
         }
         SettingsItemRow(
             icon = MuseIcons.trash,
-            title = stringResource(R.string.settings_preference_delete),
+            title = stringResource(R.string.common_delete),
             onClick = onDelete,
         ) {
             MuseCapsuleButton(
-                text = stringResource(R.string.settings_preference_delete),
+                text = stringResource(R.string.common_delete),
                 onClick = onDelete,
                 fillWidth = false,
             )

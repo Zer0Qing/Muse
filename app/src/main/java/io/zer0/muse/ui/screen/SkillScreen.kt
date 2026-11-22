@@ -413,7 +413,7 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = stringResource(R.string.skill_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 deleteConfirmTarget = null
                 scope.launch {
@@ -422,7 +422,7 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                         .onError { msg, _ -> MuseToast.show(context.getString(R.string.skill_delete_failed_ui, msg)) }
                 }
             },
-            dismissText = stringResource(R.string.skill_close),
+            dismissText = stringResource(R.string.common_close),
             onDismiss = { deleteConfirmTarget = null },
             destructive = true,
         )
@@ -708,9 +708,9 @@ private fun SkillDetailDialog(
                 }
             }
         },
-        confirmText = stringResource(R.string.skill_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
-        dismissText = if (onDelete != null) stringResource(R.string.skill_delete) else null,
+        dismissText = if (onDelete != null) stringResource(R.string.common_delete) else null,
         onDismiss = onDelete,
     )
 }

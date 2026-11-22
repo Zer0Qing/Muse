@@ -195,8 +195,8 @@ private fun PromptInjectionCard(
     val disabledText = stringResource(R.string.prompt_injection_disabled)
     val enabledStateText = stringResource(R.string.prompt_injection_enabled_cd)
     val disabledStateText = stringResource(R.string.prompt_injection_disabled_cd)
-    val editCd = stringResource(R.string.prompt_injection_edit_cd)
-    val deleteCd = stringResource(R.string.prompt_injection_delete_cd)
+    val editCd = stringResource(R.string.common_edit)
+    val deleteCd = stringResource(R.string.common_delete)
     val stateDesc = if (entry.enabled) enabledStateText else disabledStateText
     // v2.x 统一化: 行内动作收敛为「更多」菜单(防止窄屏文本列被多个按钮挤压)
     val moreCd = stringResource(R.string.settings_mcp_more)
@@ -335,7 +335,7 @@ private fun PromptInjectionEditPage(
 
     // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
     val unnamedText = stringResource(R.string.prompt_injection_unnamed)
-    val saveText = stringResource(R.string.prompt_injection_save)
+    val saveText = stringResource(R.string.common_save)
     val newTitleText = stringResource(R.string.prompt_injection_new_title)
     val editTitleText = stringResource(R.string.prompt_injection_edit_title)
     val unsavedTitle = stringResource(R.string.prompt_injection_unsaved_title)

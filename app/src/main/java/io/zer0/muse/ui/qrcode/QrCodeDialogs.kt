@@ -207,7 +207,7 @@ fun QrCodeScanDialog(onDismiss: () -> Unit, onResult: (String) -> Unit) {
         },
         confirmText = stringResource(R.string.qr_scan_pick_button),
         onConfirm = { pickImage.launch("image/*") },
-        dismissText = stringResource(R.string.action_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

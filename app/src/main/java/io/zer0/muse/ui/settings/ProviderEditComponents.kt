@@ -177,7 +177,7 @@ internal fun ProviderEditBottomBar(
                 ) {
                     Icon(
                         imageVector = MuseIcons.trash,
-                        contentDescription = stringResource(R.string.settings_common_delete),
+                        contentDescription = stringResource(R.string.common_delete),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
                     )
@@ -208,7 +208,7 @@ internal fun AddModelDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) 
             if (id.isNotBlank()) onConfirm(id)
             onDismiss()
         },
-        dismissText = stringResource(R.string.settings_common_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -582,7 +582,7 @@ internal fun ConfigTab(
                                     MuseTactileButton(
                                         icon = MuseIcons.x,
                                         onClick = onTestResultDismiss,
-                                        contentDescription = stringResource(R.string.settings_common_close),
+                                        contentDescription = stringResource(R.string.common_close),
                                         size = 20.dp,
                                         iconSize = MuseIconSizes.iconTiny,
                                         tint = capsuleColor,

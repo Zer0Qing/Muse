@@ -285,7 +285,7 @@ internal fun ChatSheetHost(
                 }
             },
             onConfirm = null,
-            dismissText = stringResource(R.string.action_close),
+            dismissText = stringResource(R.string.common_close),
             onDismiss = { sheetState.showKnowledgeSheet = false },
         )
     }
@@ -345,7 +345,7 @@ internal fun ChatSheetHost(
                 }
             },
             onConfirm = null,
-            dismissText = stringResource(R.string.action_close),
+            dismissText = stringResource(R.string.common_close),
             onDismiss = { sheetState.showSessionSheet = false },
         )
     }
@@ -439,7 +439,7 @@ internal fun ChatSheetHost(
                 }
             },
             onConfirm = null,
-            dismissText = stringResource(R.string.action_close),
+            dismissText = stringResource(R.string.common_close),
             onDismiss = { sheetState.showAssistantSwitchSheet = false },
         )
     }
@@ -607,7 +607,7 @@ internal fun ChatSheetHost(
                 }
             },
             onConfirm = null,
-            dismissText = stringResource(R.string.action_close),
+            dismissText = stringResource(R.string.common_close),
             onDismiss = { sheetState.showDelegateSheet = null },
         )
     }
@@ -670,12 +670,12 @@ internal fun ChatSheetHost(
                     )
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 viewModel.applyUserEdit(msg.id.toString(), draft.trim())
                 sheetState.editingUserMessage = null
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { sheetState.editingUserMessage = null },
         )
     }
@@ -702,12 +702,12 @@ internal fun ChatSheetHost(
                     )
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 viewModel.editAssistantMessage(msg.id, draft.trim())
                 sheetState.editingMessage = null
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { sheetState.editingMessage = null },
         )
     }

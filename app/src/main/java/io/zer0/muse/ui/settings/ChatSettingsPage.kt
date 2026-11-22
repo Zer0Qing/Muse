@@ -1115,12 +1115,12 @@ fun ChatSettingsPage(
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 scope.launch { settings.saveCustomTitlePrompt(titlePromptDraft.trim().takeIf { it.isNotBlank() }) }
                 showTitlePromptDialog = false
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showTitlePromptDialog = false },
         )
     }

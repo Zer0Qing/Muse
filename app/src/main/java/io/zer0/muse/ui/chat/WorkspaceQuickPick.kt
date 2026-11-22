@@ -120,7 +120,7 @@ internal fun WorkspaceQuickPickDialog(onOpen: (String) -> Unit, onDismiss: () ->
                     onClick = { onOpen(path) },
                 )
                 SettingsItemRow(
-                    title = stringResource(R.string.action_cancel),
+                    title = stringResource(R.string.common_cancel),
                     onClick = onDismiss,
                 )
             }

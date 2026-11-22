@@ -667,7 +667,7 @@ fun WorkspaceScreen(
                     }
                 }
             },
-            confirmText = stringResource(R.string.action_close),
+            confirmText = stringResource(R.string.common_close),
             onConfirm = {
                 mediaEntry = null
                 mediaInfo = null
@@ -1193,7 +1193,7 @@ private fun WorkspaceEntryRow(
                 MuseTactileButton(
                     icon = MuseIcons.edit,
                     onClick = onClick,
-                    contentDescription = stringResource(R.string.action_edit),
+                    contentDescription = stringResource(R.string.common_edit),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

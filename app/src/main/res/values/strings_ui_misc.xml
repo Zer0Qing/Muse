@@ -160,7 +160,6 @@
     <string name="favorites_tag_edit_hint">分组名（留空 = 未分组）</string>
     <string name="favorites_tag_edit_clear">清除分组</string>
     <string name="favorites_tag_edit_confirm">确定</string>
-    <string name="favorites_tag_edit_cancel">取消</string>
     <string name="favorites_tag_label">分组：%1$s</string>
     <string name="favorites_empty_in_filter">该分组下暂无收藏</string>
     <string name="favorites_stale_variant_badge">后来重新生成过，这一条是旧版本</string>
@@ -259,4 +258,6 @@
     <string name="agent_bot_prompt_approved_retry">已批准，要重跑吗</string>
     <string name="agent_bot_stop_reply">停止</string>
     <string name="agent_bot_error_tool_blind">这一轮没能派工：模型没有使用工具，可能是不支持工具调用。换个供应商试试，或直接告诉我怎么做。</string>
+    <string name="common_save">保存</string>
+    <string name="common_edit">编辑</string>
 </resources>

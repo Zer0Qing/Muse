@@ -50,7 +50,6 @@
     <string name="translate_page_batch_title">批量翻译</string>
     <string name="translate_page_batch_input_hint">每行一段文本，将批量翻译</string>
     <string name="translate_page_batch_run">开始批量翻译</string>
-    <string name="translate_page_batch_cancel">取消</string>
     <string name="translate_page_batch_translating">批量翻译中…</string>
     <string name="translate_page_batch_results_title">批量翻译结果（%1$d 条）</string>
 
@@ -58,8 +57,6 @@
     <string name="translate_page_custom_style_add">添加风格</string>
     <string name="translate_page_custom_style_name">风格名称</string>
     <string name="translate_page_custom_style_prompt">风格指令（如\"使用古风文言文翻译\"）</string>
-    <string name="translate_page_custom_style_save">保存</string>
-    <string name="translate_page_custom_style_remove">删除</string>
     <string name="translate_page_custom_style_added">已添加自定义风格</string>
     <string name="translate_page_custom_style_removed">已删除自定义风格</string>
     <string name="translate_page_custom_style_empty_name">名称不能为空</string>
@@ -70,7 +67,6 @@
     <string name="translate_page_glossary_original">原文术语</string>
     <string name="translate_page_glossary_translated">译文术语</string>
     <string name="translate_page_glossary_add">添加</string>
-    <string name="translate_page_glossary_remove">删除</string>
     <string name="translate_page_glossary_empty">暂无术语</string>
     <string name="translate_page_glossary_count">术语表（%1$d 条）</string>
     <string name="translate_page_glossary_added">已添加术语</string>

@@ -599,7 +599,7 @@ fun CloudBackupPage(onBack: () -> Unit) {
     val pendingDeleteFile = confirmDeleteFile
     if (pendingDeleteFile != null) {
         ConfirmDeleteDialog(
-            title = stringResource(R.string.cloud_backup_delete_this),
+            title = stringResource(R.string.common_delete),
             itemName = pendingDeleteFile,
             consequence = stringResource(R.string.cloud_backup_delete_consequence),
             onConfirm = {
@@ -657,7 +657,7 @@ fun CloudBackupPage(onBack: () -> Unit) {
                     }
                 }
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { confirmRestoreFile = null },
         )
     } else if (confirmRestoreLatest) {
@@ -683,7 +683,7 @@ fun CloudBackupPage(onBack: () -> Unit) {
                     }
                 }
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { confirmRestoreLatest = false },
         )
     }
@@ -728,7 +728,7 @@ fun CloudBackupPage(onBack: () -> Unit) {
                     }
                 }
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { restoreFailKind = null },
         )
     }
@@ -961,7 +961,7 @@ private fun RemoteBackupRow(backup: RemoteBackup, onRestore: () -> Unit, onDelet
             )
             Spacer(Modifier.width(MusePaddings.contentGap))
             MuseCapsuleButton(
-                text = stringResource(R.string.cloud_backup_delete_this),
+                text = stringResource(R.string.common_delete),
                 onClick = onDelete,
                 enabled = !isDeleting,
                 loading = isDeleting,

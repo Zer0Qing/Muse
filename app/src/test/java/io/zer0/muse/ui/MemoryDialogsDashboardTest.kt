@@ -66,7 +66,7 @@ class MemoryDialogsDashboardTest {
             }
         }
 
-        composeTestRule.onNodeWithText(context.getString(R.string.memory_screen_save)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.common_save)).performClick()
 
         assertFalse("a failed save must keep the editor open", dismissed.get())
         composeTestRule.onNodeWithText("Edit memory").assertExists()

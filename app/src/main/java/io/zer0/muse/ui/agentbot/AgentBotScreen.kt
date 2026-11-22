@@ -237,7 +237,7 @@ private fun TaskBoardSection(
                     }
                 } else if (AgentBotUiState.TaskAction.CANCEL in row.actions) {
                     MuseCapsuleButton(
-                        text = stringResource(R.string.action_cancel),
+                        text = stringResource(R.string.common_cancel),
                         onClick = { onCancel(row.taskId) },
                         fillWidth = false,
                     )

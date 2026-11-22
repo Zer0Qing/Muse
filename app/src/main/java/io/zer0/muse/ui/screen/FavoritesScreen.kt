@@ -408,7 +408,7 @@ private fun FavoriteTagEditDialog(currentTag: String?, onConfirm: (String?) -> U
         confirmText = stringResource(R.string.favorites_tag_edit_confirm),
         confirmEnabled = text.isNotBlank(),
         onConfirm = { onConfirm(text) },
-        dismissText = stringResource(R.string.favorites_tag_edit_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
         content = {
             MuseTextField(
@@ -596,7 +596,7 @@ private fun FavoriteFullTextDialog(message: UIMessage, dateFormat: SimpleDateFor
     MuseDialog(
         onDismissRequest = onDismiss,
         title = roleLabel,
-        dismissText = stringResource(R.string.action_close),
+        dismissText = stringResource(R.string.common_close),
         onDismiss = onDismiss,
         content = {
             Column(modifier = Modifier.fillMaxWidth()) {

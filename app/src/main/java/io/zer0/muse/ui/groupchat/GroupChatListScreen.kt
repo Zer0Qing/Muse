@@ -389,7 +389,7 @@ private fun GroupChatCard(
                 }
             },
             onConfirm = null,
-            dismissText = stringResource(R.string.groupchat_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showMenu = false },
         )
     }
@@ -411,7 +411,7 @@ private fun GroupChatCard(
                 showClearMemoryConfirm = false
                 onClearMemory()
             },
-            dismissText = stringResource(R.string.groupchat_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showClearMemoryConfirm = false },
         )
     }
@@ -428,12 +428,12 @@ private fun GroupChatCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = stringResource(R.string.groupchat_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 showDeleteConfirm = false
                 onDelete()
             },
-            dismissText = stringResource(R.string.groupchat_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showDeleteConfirm = false },
         )
     }

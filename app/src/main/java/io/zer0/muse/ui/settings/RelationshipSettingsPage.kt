@@ -243,7 +243,7 @@ private fun RelationshipEditDialog(
                 )
             }
         },
-        confirmText = stringResource(R.string.action_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             onSave(
                 initial.copy(
@@ -254,7 +254,7 @@ private fun RelationshipEditDialog(
                 ),
             )
         },
-        dismissText = stringResource(R.string.action_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

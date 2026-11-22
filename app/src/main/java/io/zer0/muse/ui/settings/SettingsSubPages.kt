@@ -1097,7 +1097,7 @@ fun SettingsAboutPage(
                 runCatching { context.startActivity(browserIntent) }
                 newVersion = null
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { newVersion = null },
         )
     }

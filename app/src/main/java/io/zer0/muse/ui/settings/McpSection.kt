@@ -429,7 +429,7 @@ private fun McpServerRow(
                             onReconnect()
                         }
                         MuseActionSheetRow(
-                            text = stringResource(R.string.settings_common_delete),
+                            text = stringResource(R.string.common_delete),
                             contentColor = MaterialTheme.colorScheme.error,
                             onClick = {
                                 menuExpanded = false
@@ -781,7 +781,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                 }
             }
         },
-        dismissText = stringResource(R.string.settings_common_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -900,7 +900,7 @@ private fun ResourcesBrowserDialog(serverId: String, mcpRegistry: McpRegistry, o
                 }
             }
         },
-        confirmText = stringResource(R.string.settings_common_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
     )
 
@@ -923,7 +923,7 @@ private fun ResourcesBrowserDialog(serverId: String, mcpRegistry: McpRegistry, o
                     }
                 }
             },
-            confirmText = stringResource(R.string.settings_common_close),
+            confirmText = stringResource(R.string.common_close),
             onConfirm = { viewingContent = null },
         )
     }
@@ -1042,7 +1042,7 @@ private fun PromptsBrowserDialog(serverId: String, mcpRegistry: McpRegistry, onD
                 }
             }
         },
-        confirmText = stringResource(R.string.settings_common_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
     )
 
@@ -1112,7 +1112,7 @@ private fun PromptsBrowserDialog(serverId: String, mcpRegistry: McpRegistry, onD
                     }
                 }
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { selectedPrompt = null },
         )
     }
@@ -1148,7 +1148,7 @@ private fun PromptsBrowserDialog(serverId: String, mcpRegistry: McpRegistry, onD
                     }
                 }
             },
-            confirmText = stringResource(R.string.settings_common_close),
+            confirmText = stringResource(R.string.common_close),
             onConfirm = { promptResult = null },
         )
     }
@@ -1183,7 +1183,7 @@ private fun InlineError(message: String, onDismiss: () -> Unit) {
             )
             Icon(
                 imageVector = MuseIcons.x,
-                contentDescription = stringResource(R.string.settings_common_close),
+                contentDescription = stringResource(R.string.common_close),
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier
                     .size(16.dp)

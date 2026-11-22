@@ -158,7 +158,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                                     editorCategory = template.category
                                     editorContent = template.content
                                 },
-                                contentDescription = stringResource(R.string.prompt_template_manager_edit),
+                                contentDescription = stringResource(R.string.common_edit),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 size = MuseIconSizes.touchTarget,
                                 iconSize = MuseIconSizes.iconSmall,
@@ -183,7 +183,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                                 MuseTactileButton(
                                     icon = MuseIcons.trash,
                                     onClick = { deleting = template },
-                                    contentDescription = stringResource(R.string.prompt_template_manager_delete),
+                                    contentDescription = stringResource(R.string.common_delete),
                                     tint = MaterialTheme.colorScheme.error,
                                     size = MuseIconSizes.touchTarget,
                                     iconSize = MuseIconSizes.iconSmall,
@@ -225,7 +225,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                 if (isNew) {
                     R.string.prompt_template_manager_add
                 } else {
-                    R.string.prompt_template_manager_edit
+                    R.string.common_edit
                 },
             ),
             content = {
@@ -257,7 +257,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                     )
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 val name = editorName.trim()
                 val content = editorContent.trim()
@@ -286,7 +286,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                 }
                 editing = null
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { editing = null },
         )
     }
@@ -294,7 +294,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
     deleting?.let { template ->
         MuseDialog(
             onDismissRequest = { deleting = null },
-            title = stringResource(R.string.prompt_template_manager_delete),
+            title = stringResource(R.string.common_delete),
             content = {
                 Text(
                     text = stringResource(R.string.prompt_template_manager_delete_confirm, template.name),
@@ -302,12 +302,12 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = stringResource(R.string.action_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 persist(templates.filterNot { it.id == template.id })
                 deleting = null
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { deleting = null },
         )
     }

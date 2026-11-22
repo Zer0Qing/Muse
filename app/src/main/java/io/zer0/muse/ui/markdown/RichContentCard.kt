@@ -350,7 +350,7 @@ private fun RichContentFullscreenPreview(title: String, html: String, onDismiss:
                     MuseTactileButton(
                         icon = MuseIcons.x,
                         onClick = onDismiss,
-                        contentDescription = stringResource(R.string.action_close),
+                        contentDescription = stringResource(R.string.common_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,

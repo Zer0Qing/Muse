@@ -423,7 +423,7 @@ private fun TeamCard(team: AgentTeam, assistants: List<AssistantEntity>, onClick
             MuseTactileButton(
                 icon = MuseIcons.trash,
                 onClick = onDelete,
-                contentDescription = stringResource(R.string.settings_multi_agent_delete),
+                contentDescription = stringResource(R.string.common_delete),
                 tint = MaterialTheme.colorScheme.outline,
             )
         }
@@ -669,7 +669,7 @@ private fun TeamEditDialog(team: AgentTeam, assistants: List<AssistantEntity>, o
                 )
             }
         },
-        confirmText = stringResource(R.string.settings_multi_agent_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             if (name.isBlank()) {
                 nameError = true
@@ -684,7 +684,7 @@ private fun TeamEditDialog(team: AgentTeam, assistants: List<AssistantEntity>, o
                 ),
             )
         },
-        dismissText = stringResource(R.string.settings_multi_agent_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 
@@ -774,7 +774,7 @@ private fun WorkflowNodeRow(
         MuseTactileButton(
             icon = MuseIcons.trash,
             onClick = onDelete,
-            contentDescription = stringResource(R.string.settings_multi_agent_delete),
+            contentDescription = stringResource(R.string.common_delete),
             tint = MaterialTheme.colorScheme.outline,
             size = 48.dp,
             iconSize = 18.dp,
@@ -898,7 +898,7 @@ private fun WorkflowNodeEditDialog(
                 }
             }
         },
-        confirmText = stringResource(R.string.action_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             onSave(
                 node.copy(
@@ -910,7 +910,7 @@ private fun WorkflowNodeEditDialog(
                 ),
             )
         },
-        dismissText = stringResource(R.string.action_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

@@ -254,7 +254,7 @@ internal fun LocalModelDownloadCard(modifier: Modifier = Modifier) {
                         horizontalArrangement = Arrangement.End,
                     ) {
                         MuseCapsuleButton(
-                            text = stringResource(R.string.asr_local_download_cancel),
+                            text = stringResource(R.string.common_cancel),
                             onClick = { LocalModelDownloader.cancel() },
                             variant = IosCapsuleButtonVariant.Text,
                             fillWidth = false,
@@ -391,7 +391,7 @@ internal fun LocalModelDownloadCard(modifier: Modifier = Modifier) {
             },
             dismissButton = {
                 MuseCapsuleButton(
-                    text = stringResource(R.string.asr_local_download_cancel),
+                    text = stringResource(R.string.common_cancel),
                     onClick = { showMeteredConfirm = false },
                     variant = IosCapsuleButtonVariant.Text,
                     fillWidth = false,
@@ -419,7 +419,7 @@ internal fun LocalModelDownloadCard(modifier: Modifier = Modifier) {
             },
             dismissButton = {
                 MuseCapsuleButton(
-                    text = stringResource(R.string.asr_local_download_cancel),
+                    text = stringResource(R.string.common_cancel),
                     onClick = { showDeleteConfirm = false },
                     variant = IosCapsuleButtonVariant.Text,
                     fillWidth = false,

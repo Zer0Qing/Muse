@@ -136,7 +136,7 @@ private fun ResetContextDialog(target: String?, onConfirm: (String) -> Unit, onD
         confirmText = stringResource(R.string.channel_conversation_reset),
         onConfirm = { onConfirm(from) },
         destructive = true,
-        dismissText = stringResource(R.string.settings_common_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

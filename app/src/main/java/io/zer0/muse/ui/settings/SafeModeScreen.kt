@@ -189,7 +189,7 @@ fun SafeModeScreen() {
                 showClearDataConfirm = false
                 clearApplicationData(context)
             },
-            dismissText = stringResource(R.string.action_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showClearDataConfirm = false },
             destructive = true,
         )

@@ -241,7 +241,7 @@ fun CreateGroupChatDialog(
                 showErrors = true
             }
         },
-        dismissText = stringResource(R.string.groupchat_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

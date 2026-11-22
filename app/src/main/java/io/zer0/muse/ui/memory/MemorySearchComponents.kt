@@ -452,7 +452,7 @@ private fun MemoryFactRow(
                         menuOpen = false
                         onEdit(item)
                     },
-                    headlineContent = { Text(stringResource(R.string.memory_menu_edit)) },
+                    headlineContent = { Text(stringResource(R.string.common_edit)) },
                 )
                 MuseListItem(
                     onClick = {
@@ -461,7 +461,7 @@ private fun MemoryFactRow(
                     },
                     headlineContent = {
                         Text(
-                            stringResource(R.string.memory_menu_delete),
+                            stringResource(R.string.common_delete),
                             color = MaterialTheme.colorScheme.error,
                         )
                     },
@@ -658,7 +658,7 @@ internal fun MemoryRowTrailing(
             MuseTactileButton(
                 icon = MuseIcons.edit,
                 onClick = { onEdit(item) },
-                contentDescription = stringResource(R.string.memory_screen_edit_cd),
+                contentDescription = stringResource(R.string.common_edit),
                 tint = MaterialTheme.colorScheme.outline,
                 iconSize = 20.dp,
             )
@@ -667,7 +667,7 @@ internal fun MemoryRowTrailing(
             MuseTactileButton(
                 icon = MuseIcons.trash,
                 onClick = { onDelete(item) },
-                contentDescription = stringResource(R.string.memory_screen_delete_cd),
+                contentDescription = stringResource(R.string.common_delete),
                 tint = MaterialTheme.colorScheme.outline,
                 iconSize = 20.dp,
             )
@@ -709,7 +709,7 @@ internal fun MemoryRowTrailing(
                     if (onEdit != null) {
                         MuseActionSheetRow(
                             icon = MuseIcons.edit,
-                            text = stringResource(R.string.memory_screen_edit_cd),
+                            text = stringResource(R.string.common_edit),
                             onClick = {
                                 menuExpanded = false
                                 onEdit(item)
@@ -719,7 +719,7 @@ internal fun MemoryRowTrailing(
                     if (onDelete != null) {
                         MuseActionSheetRow(
                             icon = MuseIcons.trash,
-                            text = stringResource(R.string.memory_screen_delete_cd),
+                            text = stringResource(R.string.common_delete),
                             contentColor = MaterialTheme.colorScheme.error,
                             onClick = {
                                 menuExpanded = false

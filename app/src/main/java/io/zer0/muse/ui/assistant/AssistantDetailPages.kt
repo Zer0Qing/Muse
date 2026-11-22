@@ -600,7 +600,7 @@ private fun AssistantModelPickerDialog(
     MuseDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.assistant_detail_select_model),
-        confirmText = stringResource(R.string.assistant_detail_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
         content = {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -1817,7 +1817,7 @@ fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
                                 MuseTactileButton(
                                     icon = MuseIcons.trash,
                                     onClick = { showDeleteConfirm = true },
-                                    contentDescription = stringResource(R.string.assistant_detail_delete_cd),
+                                    contentDescription = stringResource(R.string.common_delete),
                                 )
                                 if (showDeleteConfirm) {
                                     ConfirmDeleteDialog(
@@ -1883,7 +1883,7 @@ fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
                     minLines = 3,
                 )
             },
-            confirmText = stringResource(R.string.assistant_detail_save),
+            confirmText = stringResource(R.string.common_save),
             // MEM-07: 空内容禁用保存按钮
             confirmEnabled = factInput.isNotBlank(),
             onConfirm = {
@@ -1917,7 +1917,7 @@ fun AssistantMemoryPage(assistantId: String, onBack: () -> Unit) {
                     }
                 }
             },
-            dismissText = stringResource(R.string.assistant_detail_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = ::dismissFactEditor,
         )
     }

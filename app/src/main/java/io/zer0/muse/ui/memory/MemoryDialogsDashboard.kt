@@ -112,7 +112,7 @@ internal fun FactEditDialog(
                 )
             }
         },
-        confirmText = stringResource(R.string.memory_screen_save),
+        confirmText = stringResource(R.string.common_save),
         // MEM-07: 空内容禁用保存按钮,而非点了无反应
         confirmEnabled = text.isNotBlank() && !isSaving,
         onConfirm = {
@@ -124,7 +124,7 @@ internal fun FactEditDialog(
                 }
             }
         },
-        dismissText = if (isSaving) null else stringResource(R.string.memory_screen_cancel),
+        dismissText = if (isSaving) null else stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
         properties = DialogProperties(
             dismissOnClickOutside = false,
@@ -179,7 +179,7 @@ internal fun ImportanceSelectDialog(currentImportance: Int, onDismiss: () -> Uni
             }
         },
         onConfirm = null,
-        dismissText = stringResource(R.string.memory_screen_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -708,7 +708,7 @@ internal fun ExperienceEditDialog(
                 )
             }
         },
-        confirmText = stringResource(R.string.memory_screen_save),
+        confirmText = stringResource(R.string.common_save),
         // MEM-07: 标题或内容为空时禁用保存按钮
         confirmEnabled = titleText.isNotBlank() && contentText.isNotBlank(),
         onConfirm = {
@@ -717,7 +717,7 @@ internal fun ExperienceEditDialog(
                 .filter { it.isNotBlank() }
             onConfirm(titleText, contentText, categoryText, tags)
         },
-        dismissText = stringResource(R.string.memory_screen_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

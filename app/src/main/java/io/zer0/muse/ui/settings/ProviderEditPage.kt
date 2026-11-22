@@ -1062,7 +1062,7 @@ internal fun ProviderEditPage(
                         modifier = Modifier,
                     ) {
                         Text(
-                            text = stringResource(R.string.settings_common_save),
+                            text = stringResource(R.string.common_save),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
@@ -1243,13 +1243,13 @@ internal fun ProviderEditPage(
             onDismissRequest = { showDeleteConfirm = false },
             title = stringResource(R.string.settings_provider_delete_title),
             content = { Text(stringResource(R.string.settings_provider_delete_content, config.displayName.ifBlank { config.id })) },
-            confirmText = stringResource(R.string.settings_common_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 showDeleteConfirm = false
                 onDelete()
                 onDismiss()
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showDeleteConfirm = false },
             destructive = true,
         )
@@ -1393,7 +1393,7 @@ internal fun ProviderEditPage(
                     )
                 }
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = {
                 OAuthManager.cancel()
                 showDeviceCodeDialog = false
@@ -1419,7 +1419,7 @@ internal fun ProviderEditPage(
                     MuseToast.show(context.getString(R.string.oauth_revoke_success))
                 }
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showRevokeConfirm = false },
             destructive = true,
         )

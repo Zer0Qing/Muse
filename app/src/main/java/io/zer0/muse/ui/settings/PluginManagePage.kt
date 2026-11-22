@@ -1519,7 +1519,7 @@ private fun InstalledPluginRow(
                             showPreviewButton = false,
                         )
                     },
-                    confirmText = stringResource(R.string.action_close),
+                    confirmText = stringResource(R.string.common_close),
                     onConfirm = { showPanel = false },
                 )
             }

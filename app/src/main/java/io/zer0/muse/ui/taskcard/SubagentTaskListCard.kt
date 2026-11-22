@@ -353,7 +353,7 @@ private fun SubagentTaskRow(
             MuseTactileButton(
                 icon = MuseIcons.x,
                 onClick = { onCancel(taskId) },
-                contentDescription = stringResource(R.string.subagent_task_cancel),
+                contentDescription = stringResource(R.string.common_cancel),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 size = 48.dp,
                 iconSize = 16.dp,
@@ -572,7 +572,7 @@ private fun StatusIcon(status: DeferredResultStore.TaskStatus) {
         DeferredResultStore.TaskStatus.ABORTED -> {
             Icon(
                 imageVector = MuseIcons.x,
-                contentDescription = stringResource(R.string.subagent_task_cancel),
+                contentDescription = stringResource(R.string.common_cancel),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(14.dp),
             )

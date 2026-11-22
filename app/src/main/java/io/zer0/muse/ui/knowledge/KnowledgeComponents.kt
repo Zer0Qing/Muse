@@ -112,14 +112,14 @@ fun KbRow(kb: KnowledgeBaseEntity, actions: KbRowActions) {
             )
             KbActionIcon(
                 icon = MuseIcons.edit,
-                contentDescription = stringResource(R.string.kb_manage_edit),
+                contentDescription = stringResource(R.string.common_edit),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = actions.onEdit,
             )
             if (kb.id != "default") {
                 KbActionIcon(
                     icon = MuseIcons.trash,
-                    contentDescription = stringResource(R.string.kb_manage_delete),
+                    contentDescription = stringResource(R.string.common_delete),
                     tint = MaterialTheme.colorScheme.error,
                     onClick = actions.onDelete,
                 )
@@ -182,7 +182,7 @@ fun KbEditDialog(
                 }
             }
         },
-        confirmText = stringResource(R.string.action_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = { onConfirm(name.trim(), desc.trim()) },
         dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,

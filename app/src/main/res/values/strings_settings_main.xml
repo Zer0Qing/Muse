@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- ==================== 通用 ==================== -->
-    <string name="settings_common_cancel">取消</string>
     <string name="settings_slider_input_hint">输入数值</string>
     <string name="settings_slider_input_confirm">确定</string>
     <string name="settings_rag_embedding_provider_hint">注意：并非所有供应商都提供 embedding 模型（只有对话模型的供应商会失败）。配置后请先点下方「测试 Embedding」再重建索引。</string>
@@ -17,9 +16,6 @@
     <string name="settings_rag_embedding_test_ok">连接正常：维度 %1$d，耗时 %2$d ms</string>
     <string name="settings_rag_embedding_test_failed">测试失败：%1$s</string>
     <string name="settings_rag_config_read_failed">配置读取失败</string>
-    <string name="settings_common_save">保存</string>
-    <string name="settings_common_delete">删除</string>
-    <string name="settings_common_close">关闭</string>
     <string name="settings_common_add">添加</string>
     <string name="settings_common_show">显示</string>
     <string name="settings_common_hide">隐藏</string>
@@ -252,7 +248,6 @@
     <string name="cloud_backup_restore_latest">从最新备份恢复</string>
     <string name="cloud_backup_refresh_list">刷新列表</string>
     <string name="cloud_backup_restore_this">恢复此版本</string>
-    <string name="cloud_backup_delete_this">删除</string>
     <string name="cloud_backup_restore_success">已恢复 %1$d 个会话 / %2$d 条消息</string>
     <string name="cloud_backup_backup_success">已上传到云端</string>
     <string name="cloud_backup_backup_failed">上传失败，请检查配置</string>

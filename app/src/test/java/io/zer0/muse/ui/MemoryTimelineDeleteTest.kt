@@ -77,7 +77,7 @@ class MemoryTimelineDeleteTest {
         setTimeline(factCard, factDeletes, summaryDeletes)
 
         composeTestRule.onNodeWithText(FACT_CONTENT).performTouchInput { longClick() }
-        composeTestRule.onNodeWithText(context.getString(R.string.memory_menu_delete)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.common_delete)).performClick()
 
         // 二次确认出现，此时还没有删除
         composeTestRule.onNodeWithText(context.getString(R.string.memory_delete_confirm_title)).assertExists()
@@ -96,7 +96,7 @@ class MemoryTimelineDeleteTest {
         setTimeline(summaryCard, factDeletes, summaryDeletes)
 
         composeTestRule.onNodeWithText(SUMMARY_CONTENT).performTouchInput { longClick() }
-        composeTestRule.onNodeWithText(context.getString(R.string.memory_menu_delete)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.common_delete)).performClick()
         composeTestRule.onNodeWithText(context.getString(R.string.memory_delete_confirm_title)).assertExists()
 
         composeTestRule.onNodeWithText(context.getString(R.string.common_delete)).performClick()
@@ -112,7 +112,7 @@ class MemoryTimelineDeleteTest {
         setTimeline(factCard, factDeletes, summaryDeletes)
 
         composeTestRule.onNodeWithText(FACT_CONTENT).performTouchInput { longClick() }
-        composeTestRule.onNodeWithText(context.getString(R.string.memory_menu_delete)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.common_delete)).performClick()
         composeTestRule.onNodeWithText(context.getString(R.string.common_cancel)).performClick()
 
         assertEquals("cancelling the confirmation must delete nothing", 0, factDeletes.get().size)
@@ -154,7 +154,7 @@ class MemoryTimelineDeleteTest {
         }
 
         // 点批量删除先弹确认，不直接落库
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.action_delete)).performClick()
+        composeTestRule.onNodeWithContentDescription(context.getString(R.string.common_delete)).performClick()
         assertNull("bulk delete must not run before confirmation", deleted.get())
         composeTestRule.onNodeWithText(context.getString(R.string.memory_bulk_delete_confirm_title)).assertExists()
         composeTestRule
@@ -166,7 +166,7 @@ class MemoryTimelineDeleteTest {
         assertNull("cancelling must delete nothing", deleted.get())
 
         // 再来一次，确认后才删，且两条 id 都在
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.action_delete)).performClick()
+        composeTestRule.onNodeWithContentDescription(context.getString(R.string.common_delete)).performClick()
         composeTestRule.onNodeWithText(context.getString(R.string.common_delete)).performClick()
 
         assertEquals(listOf("1", "2"), deleted.get())

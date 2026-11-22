@@ -102,7 +102,7 @@ fun MediaSettingsPage(
                 showDiscardConfirm = false
                 onBack()
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showDiscardConfirm = false },
             destructive = true,
         )

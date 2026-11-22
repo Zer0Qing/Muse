@@ -154,7 +154,7 @@ fun DataManagementScreen(
             onDismissRequest = { showClearChatsDialog = false },
             title = stringResource(R.string.data_management_clear_chats),
             content = { Text(stringResource(R.string.data_management_clear_chats_confirm)) },
-            confirmText = stringResource(R.string.action_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 showClearChatsDialog = false
                 scope.launch {
@@ -182,7 +182,7 @@ fun DataManagementScreen(
             onDismissRequest = { showClearCacheDialog = false },
             title = stringResource(R.string.data_management_clear_cache),
             content = { Text(stringResource(R.string.data_management_clear_cache_confirm)) },
-            confirmText = stringResource(R.string.action_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 showClearCacheDialog = false
                 scope.launch {
@@ -201,7 +201,7 @@ fun DataManagementScreen(
             onDismissRequest = { showResetMemoryDialog = false },
             title = stringResource(R.string.data_management_reset_memory),
             content = { Text(stringResource(R.string.data_management_reset_memory_confirm)) },
-            confirmText = stringResource(R.string.action_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 showResetMemoryDialog = false
                 scope.launch {

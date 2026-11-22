@@ -683,7 +683,7 @@ internal fun ChatSelectionBar(
                     )
                     MuseActionSheetRow(
                         icon = MuseIcons.trash,
-                        text = stringResource(R.string.action_delete),
+                        text = stringResource(R.string.common_delete),
                         contentColor = MaterialTheme.colorScheme.error,
                         onClick = {
                             menuExpanded = false
@@ -692,7 +692,7 @@ internal fun ChatSelectionBar(
                     )
                     MuseActionSheetRow(
                         icon = MuseIcons.x,
-                        text = stringResource(R.string.action_close),
+                        text = stringResource(R.string.common_close),
                         onClick = {
                             menuExpanded = false
                             onExit()

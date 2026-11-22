@@ -66,7 +66,7 @@ internal fun MuseExpandedInputEditor(
                 MuseTactileButton(
                     icon = MuseIcons.arrowLeft,
                     onClick = onClose,
-                    contentDescription = stringResource(R.string.action_cancel),
+                    contentDescription = stringResource(R.string.common_cancel),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(

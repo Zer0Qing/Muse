@@ -162,7 +162,7 @@ internal fun QuickNoteActionMenu(
             ) {
                 QuickNoteActionRow(
                     icon = MuseIcons.edit,
-                    label = stringResource(R.string.quick_notes_edit),
+                    label = stringResource(R.string.common_edit),
                     onClick = onEdit,
                 )
                 QuickNoteActionRow(
@@ -222,13 +222,13 @@ internal fun QuickNoteActionMenu(
                 )
                 QuickNoteActionRow(
                     icon = MuseIcons.trash,
-                    label = stringResource(R.string.quick_notes_delete),
+                    label = stringResource(R.string.common_delete),
                     tint = MaterialTheme.colorScheme.error,
                     onClick = onDelete,
                 )
             }
         },
-        dismissText = stringResource(R.string.quick_notes_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -337,7 +337,7 @@ internal fun QuickNoteDialog(existing: QuickNoteEntity?, onDismiss: () -> Unit, 
                             Text(
                                 text = stringResource(
                                     if (previewMode) {
-                                        R.string.quick_notes_markdown_edit
+                                        R.string.common_edit
                                     } else {
                                         R.string.quick_notes_markdown_preview
                                     },
@@ -396,7 +396,7 @@ internal fun QuickNoteDialog(existing: QuickNoteEntity?, onDismiss: () -> Unit, 
                 }
             }
         },
-        confirmText = stringResource(R.string.quick_notes_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             if (title.isBlank()) {
                 errorMessage = errorRequired
@@ -409,7 +409,7 @@ internal fun QuickNoteDialog(existing: QuickNoteEntity?, onDismiss: () -> Unit, 
                 if (isMarkdown) "markdown" else "plain",
             )
         },
-        dismissText = stringResource(R.string.quick_notes_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -580,7 +580,7 @@ internal fun QuickNoteTrashDialog(
                 }
             }
         },
-        dismissText = stringResource(R.string.quick_notes_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -702,7 +702,7 @@ internal fun QuickNoteExportMenu(onDismiss: () -> Unit, onExportMarkdown: () -> 
                 )
             }
         },
-        dismissText = stringResource(R.string.quick_notes_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -761,7 +761,7 @@ internal fun QuickNoteFolderDialog(folders: List<String>, onDismiss: () -> Unit,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ) {
                         Text(
-                            text = stringResource(R.string.quick_notes_save),
+                            text = stringResource(R.string.common_save),
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.padding(
                                 horizontal = MusePaddings.iconPadding,
@@ -772,7 +772,7 @@ internal fun QuickNoteFolderDialog(folders: List<String>, onDismiss: () -> Unit,
                 }
             }
         },
-        dismissText = stringResource(R.string.quick_notes_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -866,7 +866,7 @@ internal fun QuickNoteReminderDialog(currentReminderAt: Long, onDismiss: () -> U
                 }
             }
         },
-        dismissText = stringResource(R.string.quick_notes_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

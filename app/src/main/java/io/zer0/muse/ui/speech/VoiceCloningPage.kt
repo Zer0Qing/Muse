@@ -670,7 +670,7 @@ private fun ClonedVoiceRow(
                 ) {
                     Icon(
                         imageVector = MuseIcons.trash,
-                        contentDescription = stringResource(R.string.action_delete),
+                        contentDescription = stringResource(R.string.common_delete),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(MusePaddings.iconPadding * 2),
                     )

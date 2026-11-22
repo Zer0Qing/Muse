@@ -215,8 +215,8 @@ private fun WorldBookCard(entry: WorldBookEntryEntity, onEdit: () -> Unit, onDel
     val disabledText = stringResource(R.string.worldbook_disabled)
     val enabledStateText = stringResource(R.string.worldbook_enabled_cd)
     val disabledStateText = stringResource(R.string.worldbook_disabled_cd)
-    val editCd = stringResource(R.string.worldbook_edit_cd)
-    val deleteCd = stringResource(R.string.worldbook_delete_cd)
+    val editCd = stringResource(R.string.common_edit)
+    val deleteCd = stringResource(R.string.common_delete)
     val alwaysActiveText = stringResource(R.string.worldbook_badge_always_active)
     val stateDesc = if (entry.enabled) enabledStateText else disabledStateText
     // v2.x 统一化: 行内动作收敛为「更多」菜单(防止窄屏文本列被多个按钮挤压)
@@ -361,7 +361,7 @@ private fun WorldBookEditPage(initial: WorldBookEntryEntity, isNew: Boolean, onB
     var enabled by rememberSaveable { mutableStateOf(initial.enabled) }
 
     val unnamedText = stringResource(R.string.worldbook_unnamed)
-    val saveText = stringResource(R.string.worldbook_save)
+    val saveText = stringResource(R.string.common_save)
     val newTitleText = stringResource(R.string.worldbook_new_title)
     val editTitleText = stringResource(R.string.worldbook_edit_title)
     val unsavedTitle = stringResource(R.string.worldbook_unsaved_title)

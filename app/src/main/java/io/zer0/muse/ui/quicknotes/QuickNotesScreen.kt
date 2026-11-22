@@ -584,7 +584,7 @@ fun QuickNotesScreen(
                 viewModel.deletePermanent(note.id)
                 noteToPermanentDelete = null
             },
-            dismissText = stringResource(R.string.quick_notes_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { noteToPermanentDelete = null },
         )
     }
@@ -608,7 +608,7 @@ fun QuickNotesScreen(
                 viewModel.clearTrash()
                 showClearTrashConfirm = false
             },
-            dismissText = stringResource(R.string.quick_notes_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showClearTrashConfirm = false },
         )
     }
@@ -834,7 +834,7 @@ private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
                 modifier = Modifier.size(MuseIconSizes.iconSmall),
             )
             Text(
-                text = stringResource(R.string.quick_notes_save),
+                text = stringResource(R.string.common_save),
                 style = MaterialTheme.typography.labelLarge.copy(
                     fontWeight = FontWeight.SemiBold,
                 ),

@@ -2367,7 +2367,7 @@ fun ChatScreen(
                                 content = {
                                     Text(stringResource(R.string.chat_delete_selected_message, state.selectedMessageIds.size))
                                 },
-                                confirmText = stringResource(R.string.action_delete),
+                                confirmText = stringResource(R.string.common_delete),
                                 destructive = true,
                                 onConfirm = {
                                     showDeleteConfirm = false
@@ -3498,7 +3498,7 @@ fun ChatScreen(
                                                     )
                                                 }
                                                 MuseCapsuleButton(
-                                                    text = stringResource(R.string.action_close),
+                                                    text = stringResource(R.string.common_close),
                                                     onClick = { viewModel.dismissError(err.id) },
                                                     variant = IosCapsuleButtonVariant.Text,
                                                     fillWidth = false,
@@ -3608,7 +3608,7 @@ fun ChatScreen(
                             }
                         },
                         onConfirm = null,
-                        dismissText = stringResource(R.string.action_close),
+                        dismissText = stringResource(R.string.common_close),
                         onDismiss = { forwardText = null },
                     )
                 }
@@ -3758,7 +3758,7 @@ private fun PinnedMessageBanner(content: String, onDismiss: () -> Unit) {
                     .padding(start = MusePaddings.tightGap),
             )
             MuseCapsuleButton(
-                text = stringResource(R.string.action_close),
+                text = stringResource(R.string.common_close),
                 onClick = onDismiss,
                 variant = IosCapsuleButtonVariant.Text,
                 fillWidth = false,
@@ -3822,7 +3822,7 @@ fun CommitteeDialog(
         },
         confirmText = stringResource(R.string.chat_committee_start),
         onConfirm = { if (canConfirm) onConfirm(selectedIds.toList(), topic.trim()) },
-        dismissText = stringResource(R.string.groupchat_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

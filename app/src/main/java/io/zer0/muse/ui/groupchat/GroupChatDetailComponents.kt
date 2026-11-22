@@ -1518,7 +1518,7 @@ fun PendingAttachmentsRow(attachments: List<FileAttachment>, onRemove: (Int) -> 
                     modifier = Modifier.widthIn(max = 140.dp),
                 )
                 io.zer0.muse.ui.common.media.AttachmentRemoveButton(
-                    contentDescription = stringResource(R.string.groupchat_delete),
+                    contentDescription = stringResource(R.string.common_delete),
                     onClick = { onRemove(index) },
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
@@ -1547,7 +1547,7 @@ fun PendingImagesRow(images: List<String>, onRemove: (String) -> Unit, modifier:
                         .clip(MuseShapes.semiLarge),
                 )
                 io.zer0.muse.ui.common.media.AttachmentRemoveButton(
-                    contentDescription = stringResource(R.string.groupchat_delete),
+                    contentDescription = stringResource(R.string.common_delete),
                     onClick = { onRemove(image) },
                     modifier = Modifier.align(Alignment.TopEnd),
                 )
@@ -1587,7 +1587,7 @@ internal fun MembersDialog(memberNames: List<String>, memberCount: Int, onDismis
                 }
             }
         },
-        confirmText = stringResource(R.string.groupchat_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
         dismissText = null,
     )
@@ -1901,7 +1901,7 @@ internal fun EditGroupChatDialog(
                 }
             }
         },
-        confirmText = stringResource(R.string.groupchat_edit_btn),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             val trimmedName = name.trim()
             if (trimmedName.isNotBlank() && selectedMemberIds.isNotEmpty()) {
@@ -1918,7 +1918,7 @@ internal fun EditGroupChatDialog(
                 showErrors = true
             }
         },
-        dismissText = stringResource(R.string.groupchat_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

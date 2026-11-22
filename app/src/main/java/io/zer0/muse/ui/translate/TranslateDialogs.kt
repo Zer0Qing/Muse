@@ -243,7 +243,7 @@ internal fun BatchTranslateDialog(
             if (texts.isEmpty()) return@MuseDialog
             onTranslate(texts)
         },
-        dismissText = stringResource(R.string.translate_page_batch_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
@@ -312,7 +312,7 @@ internal fun CustomStyleDialog(
                                         icon = MuseIcons.trash,
                                         onClick = { onRemove(cs.name) },
                                         contentDescription = stringResource(
-                                            R.string.translate_page_custom_style_remove,
+                                            R.string.common_delete,
                                         ),
                                         tint = MaterialTheme.colorScheme.outline,
                                         size = MuseIconSizes.touchTarget,
@@ -344,7 +344,7 @@ internal fun CustomStyleDialog(
                 )
             }
         },
-        confirmText = stringResource(R.string.translate_page_custom_style_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             if (name.isBlank()) return@MuseDialog
             onAdd(name.trim(), prompt.trim())
@@ -442,7 +442,7 @@ internal fun GlossaryDialog(
                                         icon = MuseIcons.trash,
                                         onClick = { onRemove(src) },
                                         contentDescription = stringResource(
-                                            R.string.translate_page_glossary_remove,
+                                            R.string.common_delete,
                                         ),
                                         tint = MaterialTheme.colorScheme.outline,
                                         size = MuseIconSizes.touchTarget,

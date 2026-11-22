@@ -74,7 +74,7 @@ fun TextSelectionPanel(
                 ) {
                     MuseTopBarIconButton(
                         icon = MuseIcons.x,
-                        contentDescription = stringResource(R.string.action_close),
+                        contentDescription = stringResource(R.string.common_close),
                         onClick = onDismiss,
                         solid = false,
                         modifier = Modifier.align(Alignment.CenterStart),

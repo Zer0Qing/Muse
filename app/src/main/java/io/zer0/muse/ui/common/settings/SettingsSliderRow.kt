@@ -120,7 +120,7 @@ fun SettingsSliderRow(
                 }
                 showInput = false
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showInput = false },
         )
     }

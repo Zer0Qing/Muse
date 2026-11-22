@@ -1213,7 +1213,7 @@ fun KnowledgeScreen(
                 }
             },
             confirmText = stringResource(
-                if (moveInProgress) R.string.knowledge_move_saving else R.string.action_save,
+                if (moveInProgress) R.string.knowledge_move_saving else R.string.common_save,
             ),
             confirmEnabled = !moveInProgress,
             onConfirm = {
@@ -1265,7 +1265,7 @@ fun KnowledgeScreen(
                     )
                 }
             },
-            confirmText = stringResource(R.string.action_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 val trimmed = newTitle.trim()
                 if (trimmed.isNotBlank() && trimmed != doc.title) {
@@ -1381,7 +1381,7 @@ fun KnowledgeScreen(
                     )
                 }
             },
-            confirmText = stringResource(R.string.knowledge_cancel),
+            confirmText = stringResource(R.string.common_cancel),
             onConfirm = { confirmCancelImport = true },
             dismissText = null,
         )
@@ -1662,7 +1662,7 @@ fun KnowledgeScreen(
     // 重命名 / 编辑知识库
     editingKb?.let { kb ->
         KbEditDialog(
-            title = stringResource(R.string.kb_manage_edit),
+            title = stringResource(R.string.common_edit),
             initialName = kb.name,
             options = KbEditOptions(initialDesc = kb.description),
             onConfirm = { name, desc ->
@@ -1687,7 +1687,7 @@ fun KnowledgeScreen(
             deletingKb = null
         } else {
             ConfirmDeleteDialog(
-                title = stringResource(R.string.kb_manage_delete),
+                title = stringResource(R.string.common_delete),
                 itemName = stringResource(R.string.kb_manage_delete_confirm, kb.name),
                 onConfirm = {
                     scope.launch {
@@ -2100,7 +2100,7 @@ private fun DocCard(doc: KnowledgeDocEntity, highlight: String?, onClick: () -> 
             MuseTactileButton(
                 icon = MuseIcons.trash,
                 onClick = { showDeleteConfirm = true },
-                contentDescription = stringResource(R.string.knowledge_delete),
+                contentDescription = stringResource(R.string.common_delete),
                 tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                 size = 48.dp,
                 iconSize = 18.dp,
@@ -2267,7 +2267,7 @@ private fun DocDetailDialog(
                 )
             }
         },
-        confirmText = stringResource(R.string.knowledge_close),
+        confirmText = stringResource(R.string.common_close),
         onConfirm = onDismiss,
         // v1.67-A: 重新索引入口(更换 embedding 模型后或首次索引失败时可用)
         dismissText = stringResource(R.string.knowledge_reindex),

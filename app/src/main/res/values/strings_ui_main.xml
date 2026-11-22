@@ -50,7 +50,6 @@
     <string name="assistant_detail_allow_group_chat">允许加入群聊</string>
     <string name="assistant_detail_allow_group_chat_desc">关闭后该助手不出现在群聊成员选择列表</string>
     <string name="assistant_detail_select_model">选择专属模型</string>
-    <string name="assistant_detail_close">关闭</string>
     <string name="assistant_detail_global_default_selected">全局默认 （已选）</string>
     <string name="assistant_detail_model_selected">%1$s （已选）</string>
     <!-- Phase 6: 模型选择 UX 改进 -->
@@ -87,14 +86,11 @@
     <string name="assistant_detail_global_pinned_disabled">仅供查看；当前助手关闭了全局记忆，因此不会注入</string>
     <string name="assistant_detail_saved_memory_interaction_hint">点按展开全文 · 长按编辑</string>
     <string name="assistant_detail_no_memory">暂无记忆</string>
-    <string name="assistant_detail_delete_cd">删除</string>
     <string name="assistant_detail_delete_memory">删除记忆</string>
     <string name="assistant_detail_add_memory_dialog_title">添加记忆</string>
     <string name="assistant_detail_memory_edit_missing">这条记忆已不存在或内容无效</string>
     <string name="assistant_detail_edit_memory_dialog_title">编辑记忆</string>
     <string name="assistant_detail_input_fact">输入事实/知识</string>
-    <string name="assistant_detail_save">保存</string>
-    <string name="assistant_detail_cancel">取消</string>
     <string name="assistant_detail_custom_headers_label">自定义请求头 JSON(如 {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">自定义请求体 JSON(如 {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">标签（逗号分隔，如： 写作， 翻译， 代码）</string>
@@ -142,7 +138,6 @@
     <string name="memory_screen_add_fact_cd">新增元事实</string>
     <string name="memory_tab_facts">元事实</string>
     <!-- v1.0.51: 存量记忆迁移进度条 -->
-    <string name="memory_screen_cancel">取消</string>
     <string name="memory_screen_edit_fact">编辑元事实</string>
     <string name="memory_screen_edit_summary">编辑会话摘要</string>
     <string name="memory_open_conversation">打开原对话</string>
@@ -152,16 +147,13 @@
     <string name="memory_screen_no_fact">暂无元事实</string>
     <string name="memory_screen_collapse">收起</string>
     <string name="memory_screen_expand">展开</string>
-    <string name="memory_screen_edit_cd">编辑</string>
     <string name="memory_pin_cd">置顶</string>
     <string name="memory_unpin_cd">取消置顶</string>
-    <string name="memory_screen_delete_cd">删除</string>
     <string name="memory_screen_load_failed">加载失败 — 完整错误信息</string>
     <string name="memory_screen_copied_trace">已复制完整堆栈到剪贴板</string>
     <string name="memory_screen_copy_trace_cd">复制完整堆栈</string>
     <string name="memory_screen_retry">重试</string>
     <string name="memory_screen_input_content">输入内容…</string>
-    <string name="memory_screen_save">保存</string>
     <string name="memory_screen_not_running">未运行</string>
     <string name="memory_screen_has_error">有异常</string>
     <string name="memory_screen_normal">正常</string>
@@ -311,10 +303,8 @@
     <string name="channel_intro">凭据仅在本机加密保存，不会上传。</string>
     <string name="channel_add">添加渠道</string>
     <string name="channel_edit_title">编辑渠道</string>
-    <string name="channel_edit">编辑</string>
     <string name="channel_delete_confirm">删除该渠道？</string>
     <string name="channel_empty">尚未配置渠道，点上方按钮添加。</string>
-    <string name="channel_save">保存</string>
     <string name="channel_field_platform">平台</string>
     <!-- v2.0.1: 平台本地化显示名 -->
     <string name="channel_platform_feishu">飞书</string>
@@ -492,9 +482,7 @@
     <!-- v1.x U系: 会话管理体验修复 — 归档入口/多选编辑/fork 反馈 -->
     <string name="chat_list_archived_entry">已归档 (%1$d)</string>
     <string name="chat_list_archived_toast">已归档，可到「已归档」中恢复</string>
-    <string name="chat_list_edit">编辑</string>
     <string name="chat_list_edit_select_all">全选</string>
-    <string name="chat_list_edit_delete">删除</string>
     <string name="chat_list_edit_archive">归档</string>
     <string name="chat_list_edit_exit">退出</string>
     <plurals name="chat_list_edit_done">
@@ -518,7 +506,6 @@
     <string name="tts_not_ready">TTS 正在初始化，请稍后重试</string>
 
     <!-- ===== 搜索页 SearchScreen ===== -->
-    <string name="search_cancel">取消</string>
     <string name="search_placeholder">搜索会话/消息/设置...</string>
     <string name="search_empty_hint">输入关键词搜索会话、消息或设置选项</string>
     <string name="search_tab_sessions">会话</string>
@@ -568,8 +555,6 @@
     <string name="skill_label_category">分类</string>
     <string name="skill_label_implementation">实现</string>
     <string name="skill_label_source">来源</string>
-    <string name="skill_close">关闭</string>
-    <string name="skill_delete">删除</string>
     <string name="skill_delete_confirm_title">确认删除</string>
     <string name="skill_delete_confirm_message">确定要删除「%1$s」吗？此操作不可撤销。</string>
     <string name="skill_delete_failed_ui">删除失败：%1$s</string>
@@ -837,7 +822,6 @@
     <!-- 右键上下文菜单项 -->
     <string name="desktop_context_copy">复制</string>
     <string name="desktop_context_regenerate">重新生成</string>
-    <string name="desktop_context_delete">删除</string>
     <string name="desktop_context_share">分享</string>
 
     <!-- P2-12 富文本输入 -->
@@ -905,7 +889,6 @@
     <string name="settings_preference_empty_hint">试着对助手说「以后回答不要用空泛的鼓励」</string>
     <string name="settings_preference_disable">停用</string>
     <string name="settings_preference_enable">启用</string>
-    <string name="settings_preference_delete">删除</string>
     <string name="settings_preference_delete_confirm">删除这条偏好后助手将不再遵守它。</string>
     <string name="settings_preference_disabled_tag">已停用</string>
     <string name="settings_preference_source">原话：%1$s</string>

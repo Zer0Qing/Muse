@@ -148,7 +148,6 @@
     <string name="settings_multi_agent_delete_team">删除团队</string>
     <string name="settings_multi_agent_unnamed_team">未命名团队</string>
     <string name="settings_multi_agent_no_members">暂无成员</string>
-    <string name="settings_multi_agent_delete">删除</string>
     <string name="settings_multi_agent_edit_team">编辑团队</string>
     <string name="settings_multi_agent_team_name">团队名称</string>
     <string name="settings_multi_agent_team_name_hint">例如：写作小组</string>
@@ -157,8 +156,6 @@
     <string name="settings_multi_agent_description_hint">团队用途或协作场景</string>
     <string name="settings_multi_agent_select_members">选择成员</string>
     <string name="settings_multi_agent_no_assistants">暂无可选助手，请先在「助手」页面创建。</string>
-    <string name="settings_multi_agent_save">保存</string>
-    <string name="settings_multi_agent_cancel">取消</string>
 
     <!-- SettingsTutorialPage.kt -->
     <string name="settings_tutorial_title">使用教程</string>

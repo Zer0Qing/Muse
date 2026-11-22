@@ -186,7 +186,7 @@ class QuickCaptureOverlayService : Service() {
             setImageResource(R.drawable.ic_quick_capture_close)
             imageTintList = ColorStateList.valueOf(colors.onSurface)
             setBackgroundColor(Color.TRANSPARENT)
-            contentDescription = getString(R.string.action_close)
+            contentDescription = getString(R.string.common_close)
             setOnClickListener { showCollapsed() }
         }
         header.addView(
@@ -220,11 +220,11 @@ class QuickCaptureOverlayService : Service() {
         )
 
         val save = TextView(this).apply {
-            text = getString(R.string.quick_notes_save)
+            text = getString(R.string.common_save)
             textSize = 14f
             setTextColor(colors.onPrimary)
             gravity = Gravity.CENTER
-            contentDescription = getString(R.string.quick_notes_save)
+            contentDescription = getString(R.string.common_save)
             background = roundedBackground(colors.primary, dp(18))
             setPadding(dp(12), 0, dp(12), 0)
             setOnClickListener { saveText(input.text?.toString().orEmpty()) }

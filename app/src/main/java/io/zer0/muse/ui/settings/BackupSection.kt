@@ -382,7 +382,7 @@ internal fun BackupSection(
                 }
             },
             onConfirm = null,
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showSessionExportDialog = false },
         )
     }
@@ -506,7 +506,7 @@ internal fun BackupSection(
                     }
                 }
             },
-            dismissText = stringResource(R.string.memory_screen_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { if (!autoRestoring) autoRestoreTarget = null },
         )
     }
@@ -522,7 +522,7 @@ internal fun BackupSection(
                 pendingPlainExportUri = null
                 startExport(uri)
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { pendingPlainExportUri = null },
         )
     }
@@ -573,7 +573,7 @@ internal fun BackupSection(
                     localBackupDialogVisible = false
                 }
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { pendingImportUri = null },
         )
     }

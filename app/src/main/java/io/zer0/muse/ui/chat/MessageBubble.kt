@@ -1934,7 +1934,7 @@ internal fun MessageBubble(
                             MuseHaptics.light(hapticFeedback)
                             onEdit()
                         },
-                        contentDescription = stringResource(R.string.action_edit),
+                        contentDescription = stringResource(R.string.common_edit),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
@@ -1949,7 +1949,7 @@ internal fun MessageBubble(
                             MuseHaptics.light(hapticFeedback)
                             showDeleteConfirm = true
                         },
-                        contentDescription = stringResource(R.string.action_delete),
+                        contentDescription = stringResource(R.string.common_delete),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
@@ -2181,7 +2181,7 @@ internal fun MessageBubble(
                                     )
                                     // LAYOUT-01: 行尾动作标签只限行、不取宽（批注正文已是 weight(1f)）
                                     Text(
-                                        text = stringResource(R.string.skill_delete),
+                                        text = stringResource(R.string.common_delete),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.error,
                                         maxLines = 1,
@@ -2200,12 +2200,12 @@ internal fun MessageBubble(
                             )
                         }
                     },
-                    confirmText = stringResource(R.string.channel_save),
+                    confirmText = stringResource(R.string.common_save),
                     onConfirm = {
                         io.zer0.muse.annotation.AnnotationStore.add(msg.id.toString(), "", annotateInput)
                         showAnnotateDialog = false
                     },
-                    dismissText = stringResource(R.string.settings_common_cancel),
+                    dismissText = stringResource(R.string.common_cancel),
                     onDismiss = { showAnnotateDialog = false },
                 )
             }
@@ -2431,8 +2431,8 @@ internal fun MessageBubble(
                                         // 选择消息/收藏/复制已在公共菜单(上方)渲染。
                                         ActionMenuItem(
                                             icon = MuseIcons.edit,
-                                            text = stringResource(R.string.action_edit),
-                                            contentDescription = stringResource(R.string.action_edit),
+                                            text = stringResource(R.string.common_edit),
+                                            contentDescription = stringResource(R.string.common_edit),
                                             onClick = {
                                                 actionSurface = MessageActionSurface.Hidden
                                                 onEdit()
@@ -2470,8 +2470,8 @@ internal fun MessageBubble(
                                         // editAssistantMessage，避免生成内容只能删掉重来。
                                         ActionMenuItem(
                                             icon = MuseIcons.edit,
-                                            text = stringResource(R.string.action_edit),
-                                            contentDescription = stringResource(R.string.action_edit),
+                                            text = stringResource(R.string.common_edit),
+                                            contentDescription = stringResource(R.string.common_edit),
                                             onClick = {
                                                 actionSurface = MessageActionSurface.Hidden
                                                 onEdit()
@@ -2697,7 +2697,7 @@ internal fun MessageBubble(
                             )
                         }
                     },
-                    confirmText = stringResource(R.string.action_delete),
+                    confirmText = stringResource(R.string.common_delete),
                     onConfirm = {
                         showDeleteConfirm = false
                         if (deleteWithFollowing) onDeleteWithFollowing() else onDeleteMessage()
@@ -2720,7 +2720,7 @@ internal fun MessageBubble(
                 val copyLabel = stringResource(R.string.desktop_context_copy)
                 val regenerateLabel = stringResource(R.string.desktop_context_regenerate)
                 val shareLabel = stringResource(R.string.desktop_context_share)
-                val deleteLabel = stringResource(R.string.desktop_context_delete)
+                val deleteLabel = stringResource(R.string.common_delete)
                 // A5: 消息信息弹层入口(桌面右键菜单)
                 val infoLabel = stringResource(R.string.msg_info_title)
                 val contextMenuItems = remember(
@@ -2870,7 +2870,7 @@ private fun TelegramActionCard(
             // F-2: 跨会话转发(与分享并列)
             FixedColorActionRow(MuseIcons.swapHorizontal, stringResource(R.string.chat_forward_action), textColor, iconBlock, onForward)
             if (isUser) {
-                FixedColorActionRow(MuseIcons.edit, stringResource(R.string.action_edit), textColor, iconBlock, onEdit)
+                FixedColorActionRow(MuseIcons.edit, stringResource(R.string.common_edit), textColor, iconBlock, onEdit)
             }
             // 固定色细分割线
             Box(

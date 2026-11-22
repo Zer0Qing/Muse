@@ -173,7 +173,7 @@ internal fun QuickCaptureEdgeOverlay(enabled: Boolean, viewModel: QuickNotesView
                         MuseTactileButton(
                             icon = MuseIcons.x,
                             onClick = ::closePanel,
-                            contentDescription = stringResource(R.string.action_close),
+                            contentDescription = stringResource(R.string.common_close),
                         )
                     }
                     MuseTextField(
@@ -230,7 +230,7 @@ internal fun QuickCaptureEdgeOverlay(enabled: Boolean, viewModel: QuickNotesView
                             )
                             Spacer(Modifier.size(MusePaddings.tightGap))
                             Text(
-                                text = stringResource(R.string.quick_notes_save),
+                                text = stringResource(R.string.common_save),
                                 style = MaterialTheme.typography.labelLarge,
                             )
                         }

@@ -245,7 +245,7 @@ private fun LazyListScope.directiveSection(
                                 )
                                 MuseTopBarIconButton(
                                     icon = MuseIcons.trash,
-                                    contentDescription = stringResource(R.string.agent_directives_delete),
+                                    contentDescription = stringResource(R.string.common_delete),
                                     onClick = { onDelete(directive.id) },
                                 )
                                 MuseSwitch(

@@ -386,7 +386,7 @@ internal fun ToolCallCard(
                     showPreviewButton = false,
                 )
             },
-            confirmText = stringResource(R.string.action_close),
+            confirmText = stringResource(R.string.common_close),
             onConfirm = { showPluginCard = false },
         )
     }

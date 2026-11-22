@@ -203,7 +203,7 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
             onDismissRequest = { deleteTarget = null },
             title = stringResource(R.string.channel_delete_confirm),
             content = { Text(cfg.name.ifBlank { cfg.id }) },
-            confirmText = stringResource(R.string.skill_delete),
+            confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 scope.launch {
                     val updated = connectors.filterNot { it.id == cfg.id }
@@ -212,7 +212,7 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
                 }
                 deleteTarget = null
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { deleteTarget = null },
         )
     }
@@ -250,7 +250,7 @@ private fun ConnectorRow(config: ConnectorConfig, onConnect: () -> Unit, onEdit:
                 .padding(horizontal = 4.dp, vertical = 2.dp),
         )
         Text(
-            text = stringResource(R.string.channel_edit),
+            text = stringResource(R.string.common_edit),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
@@ -258,7 +258,7 @@ private fun ConnectorRow(config: ConnectorConfig, onConnect: () -> Unit, onEdit:
                 .padding(horizontal = 4.dp, vertical = 2.dp),
         )
         Text(
-            text = stringResource(R.string.skill_delete),
+            text = stringResource(R.string.common_delete),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier
@@ -319,7 +319,7 @@ private fun ConnectorEditDialog(initial: ConnectorConfig?, onDismiss: () -> Unit
                 )
             }
         },
-        confirmText = stringResource(R.string.channel_save),
+        confirmText = stringResource(R.string.common_save),
         onConfirm = {
             onSave(
                 ConnectorConfig(
@@ -334,7 +334,7 @@ private fun ConnectorEditDialog(initial: ConnectorConfig?, onDismiss: () -> Unit
                 ),
             )
         },
-        dismissText = stringResource(R.string.settings_common_cancel),
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }

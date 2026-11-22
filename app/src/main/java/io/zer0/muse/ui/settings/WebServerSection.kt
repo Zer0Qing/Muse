@@ -299,7 +299,7 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
                     )
                 }
             },
-            confirmText = stringResource(R.string.settings_common_save),
+            confirmText = stringResource(R.string.common_save),
             onConfirm = {
                 val port = portInput.toIntOrNull()
                 if (port == null || port < 1024 || port > 65535) {
@@ -317,7 +317,7 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
                         }
                 }
             },
-            dismissText = stringResource(R.string.settings_common_cancel),
+            dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showPortDialog = false },
         )
     }

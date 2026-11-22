@@ -167,7 +167,7 @@ fun QuickActionsSettingsPage(onBack: () -> Unit) {
                             )
                             // 移除
                             Text(
-                                text = stringResource(R.string.action_delete),
+                                text = stringResource(R.string.common_delete),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.error,
                                 maxLines = 1,
