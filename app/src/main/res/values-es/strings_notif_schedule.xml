@@ -85,7 +85,6 @@
     <string name="plugin_kill_switch_title">Todos los plugins están desactivados</string>
     <string name="plugin_kill_switch_desc">Es el interruptor del modo seguro: herramientas, comandos, eventos, hooks y tareas no se ejecutan. Restaura para volver a activarlos.</string>
     <string name="plugin_kill_switch_restore">Restaurar plugins</string>
-    <string name="plugin_kill_switch_disable">Desactivar todos los plugins</string>
     <string name="workspace_location_title">Ubicación del espacio de trabajo</string>
     <string name="workspace_location_downloads">Descargas (Download/Muse): visible en cualquier gestor de archivos</string>
     <string name="workspace_location_internal">Carpeta privada de la app: invisible para otras apps</string>
@@ -170,16 +169,9 @@
     <string name="memory_dream_desc">Reorganiza las secciones; cada publicación se puede revertir</string>
     <string name="memory_dream_start">Empezar</string>
     <string name="memory_dream_rollback">Revertir</string>
-    <string name="memory_dream_done">Hecho</string>
     <string name="memory_dream_skipped">Omitido: %1$s</string>
     <string name="offline_resources_title">Recursos sin conexión</string>
     <string name="offline_resources_runtime">Entorno (Node / Python)</string>
     <string name="offline_resources_asr">Modelo de voz local (SenseVoice)</string>
-    <string name="offline_resources_asr_open">Abrir ajustes de voz</string>
-    <string name="offline_resources_ready">Listo</string>
-    <string name="offline_resources_not_installed">No instalado</string>
-    <string name="offline_resources_downloading">Descargando</string>
-    <string name="offline_resources_download">Descargar</string>
     <string name="offline_resources_delete">Eliminar</string>
-    <string name="offline_resources_manage">Gestionar</string>
 </resources>

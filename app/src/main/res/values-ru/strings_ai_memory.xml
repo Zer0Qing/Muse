@@ -87,12 +87,6 @@
     <string name="memory_space_entry">Пространства памяти</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_section_title">Статистика памяти</string>
-    <string name="memory_stats_total">Общий</string>
-    <string name="memory_stats_importance_distribution">Распределение важности</string>
-    <string name="memory_stats_top_sessions">Самые активные сессии</string>
-    <string name="memory_stats_session_count">%1$d записи</string>
-    <string name="memory_stats_trend_30_days">Тенденция за последние 30 дней</string>
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
     <string name="memory_timeline_filter_all">Все</string>
     <string name="memory_timeline_filter_fact">Факты</string>
@@ -160,7 +154,6 @@
     <string name="memory_bulk_delete_item_name">Воспоминаний: %1$d</string>
     <string name="memory_bulk_delete_consequence">Будет удалено воспоминаний: %1$d. Отменить это нельзя.</string>
     <string name="memory_pin_failed">Не удалось закрепить. Попробуйте снова.</string>
-    <string name="memory_stats_session_live">Диалог %1$d</string>
     <string name="memory_stream_mode_list">Список</string>
     <string name="memory_stream_mode_timeline">Хронология</string>
     <string name="memory_unpin_failed">Не удалось открепить. Попробуйте снова.</string>

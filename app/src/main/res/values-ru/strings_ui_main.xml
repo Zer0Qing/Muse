@@ -104,14 +104,10 @@
     <string name="memory_screen_edit_summary">Изменить сводку сессии</string>
     <string name="memory_open_conversation">Открыть исходный диалог</string>
     <string name="memory_conversation_meta">Ассистент %1$s · Пространство %2$s</string>
-    <string name="memory_screen_no_match">Совпадающая память не найдена</string>
-    <string name="memory_screen_search_results">Результаты поиска (%1$d)</string>
     <string name="memory_screen_no_fact">Пока нет метафактов</string>
     <string name="memory_screen_collapse">Свернуть</string>
     <string name="memory_screen_expand">Развернуть</string>
     <string name="memory_screen_edit_cd">Изменить</string>
-    <string name="memory_pin_cd">Закрепить</string>
-    <string name="memory_unpin_cd">Открепить</string>
     <string name="memory_screen_delete_cd">Удалить</string>
     <string name="memory_screen_load_failed">Сбой загрузки — полные детали ошибки</string>
     <string name="memory_screen_copied_trace">Полный стек-трейс скопирован в буфер обмена</string>
@@ -119,16 +115,7 @@
     <string name="memory_screen_retry">Повторить</string>
     <string name="memory_screen_input_content">Введите содержание…</string>
     <string name="memory_screen_save">Сохранить</string>
-    <string name="memory_screen_not_running">Не запущено</string>
-    <string name="memory_screen_has_error">Обнаружены проблемы</string>
     <string name="memory_screen_normal">Нормально</string>
-    <string name="memory_screen_overview">Обзор памяти</string>
-    <string name="memory_screen_fact_total_label">Всего метафактов</string>
-    <string name="memory_screen_last_compile">Последняя компиляция</string>
-    <string name="memory_screen_no_compile_time">Пока нет</string>
-    <string name="memory_screen_health">Состояние здоровья</string>
-    <string name="memory_screen_collapse_steps">Свернуть детали шагов</string>
-    <string name="memory_screen_view_steps">Просмотреть детали шагов</string>
     <string name="memory_screen_failed_times">Сбой %1$d раз</string>
     <string name="memory_screen_last_success">Последний успех: %1$s</string>
     <string name="memory_screen_error">Ошибка: %1$s</string>
@@ -178,9 +165,6 @@
     <string name="memory_screen_experience_tags_label">Теги (через запятую, необязательно)</string>
 
     <!-- v2.0: overview stat card -->
-    <string name="memory_overview_total">Всего фактов</string>
-    <string name="memory_overview_important">Важный/Критический</string>
-    <string name="memory_overview_layers">Слои памяти</string>
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Настройки</string>

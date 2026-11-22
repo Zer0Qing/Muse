@@ -36,8 +36,6 @@
     <string name="markdown_chart_label">Диаграмма</string>
     <string name="markdown_mermaid_label">Схема Русалки</string>
     <string name="markdown_plantuml_label">Схема PlantUML</string>
-    <string name="markdown_svg_cd">SVG-графика</string>
-    <string name="markdown_html_cd">HTML-контент</string>
     <string name="markdown_chart_cd">Диаграмма: %1$s</string>
     <string name="markdown_mermaid_cd">Диаграмма русалки: %1$s</string>
     <string name="markdown_plantuml_cd">Диаграмма PlantUML: %1$s</string>
@@ -194,7 +192,6 @@
     <string name="card_favorite_done">Карточка добавлена в избранное</string>
     <string name="card_favorite_failed">Не удалось добавить карточку в избранное: %1$s</string>
     <string name="card_favorite_session_title">Избранные карточки</string>
-    <string name="card_favorite_wrapper">Карточка в избранном: %1$s</string>
     <string name="user_persona_section">Персона пользователя</string>
     <string name="user_persona_current">Текущая персона</string>
     <string name="user_persona_none">Нет (глобальный профиль)</string>
@@ -238,12 +235,6 @@
     <string name="agent_bot_candidates_title">Результаты, которые не применились</string>
     <string name="agent_bot_candidate_hint">Цель изменилась, поэтому не применено</string>
     <string name="agent_bot_discard">Отбросить</string>
-    <string name="attachment_kind_video">[Видео]</string>
-    <string name="attachment_kind_audio">[Аудио]</string>
-    <string name="terminal_receipt_template">[Ответ терминала]
-Команда: %1$s
-Вывод (хвост):
-%2$s</string>
     <string name="agent_bot_continue">Продолжить</string>
     <string name="agent_bot_continue_confirm">Выполнить всё заново</string>
     <string name="agent_bot_continue_cancel">Не сейчас</string>

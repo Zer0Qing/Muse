@@ -32,8 +32,6 @@
     <string name="assistant_delete_consequence">이 어시스턴트 전용 메모리도 함께 삭제됩니다. 대화는 남지만 어시스턴트 연결은 사라집니다. 되돌릴 수 없습니다.</string>
     <string name="assistant_memory_delete_consequence">이 어시스턴트는 더 이상 이 메모리를 참조하지 않습니다. 되돌릴 수 없습니다.</string>
     <string name="memory_delete_consequence">AI가 더 이상 이 메모리를 참조하지 않습니다. 되돌릴 수 없습니다.</string>
-    <string name="moment_delete_item_name">%1$s님의 게시물</string>
-    <string name="moment_delete_consequence">이 게시물의 좋아요와 댓글도 함께 삭제됩니다. 되돌릴 수 없습니다.</string>
     <string name="groupchat_sender_user">나</string>
     <string name="groupchat_just_now">방금</string>
     <string name="groupchat_minutes_ago">%1$d분 전</string>
@@ -658,20 +656,6 @@
     <string name="voice_conversation_state_speaking">말하는 중</string>
     <string name="voice_conversation_state_thinking">생각 중</string>
     <string name="voice_conversation_thinking">생각 중...</string>
-    <string name="mini_album_back_cd">뒤로</string>
-    <string name="mini_album_title">AI 앨범</string>
-    <string name="mini_album_count">%1$d장</string>
-    <string name="mini_album_refresh_cd">앨범 새로고침</string>
-    <string name="mini_album_visibility_cd_hidden">숨긴 이미지 숨기기</string>
-    <string name="mini_album_visibility_cd_shown">숨긴 이미지 표시</string>
-    <string name="mini_album_empty_no_images">AI 생성 이미지가 아직 없습니다</string>
-    <string name="mini_album_empty_all_hidden">앨범에 표시할 이미지가 없습니다</string>
-    <string name="mini_album_image_cd">AI 생성 이미지</string>
-    <string name="mini_album_actions_title">이미지 작업</string>
-    <string name="mini_album_restore_action">표시</string>
-    <string name="mini_album_hide_action">앨범에서 숨기기</string>
-    <string name="mini_album_unfavorite_action">즐겨찾기 해제</string>
-    <string name="mini_album_favorite_action">즐겨찾기</string>
     <string name="mini_album_cancel">취소</string>
     <string name="knowledge_content_edited">본문이 업데이트되어 다시 색인되었습니다</string>
     <string name="knowledge_edit_content">본문 편집</string>
@@ -729,8 +713,6 @@
     <string name="assistant_detail_thinking_chain_hint">사고 과정의 구성을 강제합니다. 예: 질문을 다시 말하기 -&gt; 가설 2~3개 나열 -&gt; 하나씩 배제 -&gt; 결론 도출. 비워두면 기본 방식으로 사고합니다.</string>
     <string name="chat_clear_background">이 대화 배경 지우기</string>
     <string name="chat_background_cleared">이 대화의 배경을 지웠습니다</string>
-    <string name="mini_album_import_cd">이미지 가져오기</string>
-    <string name="mini_album_delete_imported_action">이미지 삭제</string>
     <string name="quick_notes_remove_image">이미지 %1$d 제거</string>
     <!-- 백그라운드 깨우기 진단: 시스템이 실제로 Muse의 깨우기를 예약했는지(읽기 전용) -->
     <string name="wake_diagnostics_open">백그라운드 깨우기 상태</string>

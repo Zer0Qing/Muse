@@ -32,8 +32,6 @@
     <string name="assistant_delete_consequence">Собственная память этого ассистента также будет удалена. Диалоги сохранятся, но потеряют привязку к ассистенту. Действие необратимо.</string>
     <string name="assistant_memory_delete_consequence">Ассистент больше не будет ссылаться на это воспоминание. Действие необратимо.</string>
     <string name="memory_delete_consequence">ИИ больше не будет ссылаться на это воспоминание. Действие необратимо.</string>
-    <string name="moment_delete_item_name">Публикация %1$s</string>
-    <string name="moment_delete_consequence">Лайки и комментарии к этой публикации также будут удалены. Действие необратимо.</string>
     <string name="groupchat_sender_user">Мне</string>
     <string name="groupchat_just_now">Прямо сейчас</string>
     <string name="groupchat_minutes_ago">%1$d мин. назад</string>
@@ -705,20 +703,6 @@
     <string name="settings_bubble_skin_plugin_source">От плагина %1$s · v%2$s</string>
     <string name="settings_bubble_skin_plugin_disabled">Плагин отключен; этот скин нельзя выбрать</string>
     <string name="settings_bubble_skin_plugin_unavailable_fallback">Выбранный скин плагина недоступен (плагин отключен или удален); используется встроенный по умолчанию</string>
-    <string name="mini_album_back_cd">Назад</string>
-    <string name="mini_album_title">ИИ-альбом</string>
-    <string name="mini_album_count">%1$d фото</string>
-    <string name="mini_album_refresh_cd">Обновить альбом</string>
-    <string name="mini_album_visibility_cd_hidden">Скрыть скрытые изображения</string>
-    <string name="mini_album_visibility_cd_shown">Показать скрытые изображения</string>
-    <string name="mini_album_empty_no_images">ИИ-изображений пока нет</string>
-    <string name="mini_album_empty_all_hidden">В альбоме нет видимых изображений</string>
-    <string name="mini_album_image_cd">ИИ-изображение</string>
-    <string name="mini_album_actions_title">Действия с изображением</string>
-    <string name="mini_album_restore_action">Показать</string>
-    <string name="mini_album_hide_action">Скрыть из альбома</string>
-    <string name="mini_album_unfavorite_action">Убрать из избранного</string>
-    <string name="mini_album_favorite_action">В избранное</string>
     <string name="mini_album_cancel">Отмена</string>
     <string name="knowledge_content_edited">Содержимое обновлено и переиндексировано</string>
     <string name="knowledge_edit_content">Изменить содержимое</string>
@@ -776,8 +760,6 @@
     <string name="assistant_detail_thinking_chain_hint">Задаёт структуру рассуждения, например: переформулировать вопрос -&gt; выдвинуть 2-3 гипотезы -&gt; отсеять их -&gt; сделать вывод. Если пусто — обычный режим.</string>
     <string name="chat_clear_background">Убрать фон этого диалога</string>
     <string name="chat_background_cleared">Фон этого диалога удалён</string>
-    <string name="mini_album_import_cd">Импорт изображений</string>
-    <string name="mini_album_delete_imported_action">Удалить изображение</string>
     <string name="quick_notes_remove_image">Удалить изображение %1$d</string>
     <!-- Диагностика фоновых пробуждений: действительно ли система запланировала их для Muse (только чтение) -->
     <string name="wake_diagnostics_open">Состояние фоновых пробуждений</string>

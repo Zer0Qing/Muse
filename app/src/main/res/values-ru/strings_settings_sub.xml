@@ -109,7 +109,6 @@
     <string name="settings_agent_daily_guarantee_off">Выкл.</string>
     <string name="settings_crash_anr_title">Обнаружение ANR</string>
     <string name="settings_chat_compress_model">Модель сжатия</string>
-    <string name="settings_chat_compress_model_default">Модель по умолчанию</string>
     <string name="settings_chat_paste_as_file">Длинная вставка в файл</string>
     <string name="settings_chat_paste_as_file_threshold">Порог вставки в файл</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">Предлагать преобразование при превышении %1$d символов</string>
@@ -479,27 +478,6 @@
     <string name="automation_orchestration_title">Как организуется автоматизация</string>
     <string name="automation_orchestration_hint">После включения разрешений спец. возможностей / Shell / Root настройте условия по расписанию, чтобы автоматически выполнять действия ИИ.</string>
     <string name="automation_orchestration_action">Настроить задачи по расписанию</string>
-    <string name="miniphone_moments_count">Записано моментов: %1$d</string>
-    <string name="miniphone_tab_chats">Мини-телефон</string>
-    <string name="miniphone_typing">печатает…</string>
-    <string name="miniphone_time_just_now">Только что</string>
-    <string name="miniphone_time_minutes_ago">%1$d мин назад</string>
-    <string name="miniphone_time_yesterday">Вчера</string>
-    <string name="miniphone_time_days_ago">%1$d дн. назад</string>
-    <string name="miniphone_tab_contacts">Контакты</string>
-    <string name="miniphone_tab_discover">Обзор</string>
-    <string name="miniphone_tab_me">Я</string>
-    <string name="miniphone_contacts_empty">Контактов пока нет</string>
-    <string name="miniphone_me_wallpaper">Сменить обои</string>
-    <string name="moment_publish_take_photo">Снять фото</string>
-    <string name="moment_publish_from_album">Выбрать из альбома</string>
-    <string name="miniphone_app_moments">Моменты</string>
-    <string name="miniphone_app_album">Альбом</string>
-    <string name="miniphone_app_group_chat">Группы</string>
-    <string name="miniphone_app_notes">Быстрая заметка</string>
-    <string name="miniphone_app_weather">Погода</string>
-    <string name="miniphone_app_diary">Дневник</string>
-    <string name="miniphone_app_settings">Настройки</string>
     <string name="chat_switch_assistant_applied_hint">Переключено на %1$s — будут использоваться модель и память TA</string>
     <string name="kb_manage_add_doc">Добавить документ в эту базу знаний</string>
     <string name="settings_agent_daily_summary_slots_empty_hint">Выберите хотя бы один период</string>
@@ -556,16 +534,8 @@
     <string name="settings_agent_advanced_hint">Редко используемые настройки; обычно менять не нужно.</string>
     <string name="settings_agent_group_background">Фон и надёжность</string>
     <string name="settings_agent_schedule_work_title">Общее управление фоновыми задачами</string>
-    <string name="miniphone_restore_reset">Восстановить макет по умолчанию</string>
-    <string name="miniphone_undo_restore">Отменить восстановление</string>
-    <string name="miniphone_reset_default_title">Сбросить макет главного экрана по умолчанию?</string>
-    <string name="miniphone_reset_default_content">Это очистит вашу настройку и восстановит порядок по умолчанию. Позже можно отменить.</string>
-    <string name="miniphone_restore_confirm">Восстановить</string>
     <!-- v1.x: Экран чата в стиле WeChat мини-телефона -->
-    <string name="miniphone_chat_empty_title">Сообщений пока нет</string>
     <!-- v1.138: Пространство приватных сообщений мини-телефона -->
-    <string name="miniphone_pm_new_session">Новый чат</string>
-    <string name="miniphone_pm_empty_title">Пока нет приватных сообщений</string>
     <string name="settings_asr_engine_title">Движок распознавания</string>
     <string name="settings_asr_engine_change">Изменить</string>
     <string name="settings_asr_pick_title">Выберите движок распознавания</string>
@@ -631,12 +601,6 @@
     <string name="settings_relationship_proactive_enabled_subtitle">Если выключено, персонаж не напишет первым; вы можете начать разговор сами</string>
     <string name="settings_relationship_daily_limit">Дневной лимит инициативы (0 = без лимита)</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
-    <string name="miniphone_contact_detail_title">Профиль</string>
-    <string name="miniphone_contact_affinity">Близость</string>
-    <string name="miniphone_contact_last_interaction">Последнее общение</string>
-    <string name="miniphone_contact_never">Общения пока не было</string>
-    <string name="miniphone_contact_start_chat">Написать</string>
-    <string name="miniphone_contact_edit_relationship">Изменить отношения</string>
     <string name="search_custom_engines_section">Свои поисковые движки</string>
     <string name="search_custom_engines_hint">Подключите свой сервис: укажите endpoint, шаблон запроса и путь к результатам.</string>
     <string name="search_custom_engine_add">Добавить движок</string>

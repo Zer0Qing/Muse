@@ -13,5 +13,4 @@
     <string name="code_gap_note_encrypted">Cifrada</string>
     <string name="code_gap_note_decrypt_failed">Error al descifrar; la nota sigue cifrada</string>
     <string name="code_gap_note_decrypted">Descifrada</string>
-    <string name="code_gap_memory_multiple_layers">Varias</string>
 </resources>

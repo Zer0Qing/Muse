@@ -87,12 +87,6 @@
     <string name="memory_space_entry">메모리 공간</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_section_title">메모리 통계</string>
-    <string name="memory_stats_total">총</string>
-    <string name="memory_stats_importance_distribution">중요도 분포</string>
-    <string name="memory_stats_top_sessions">가장 활동적인 세션</string>
-    <string name="memory_stats_session_count">%1$d 항목</string>
-    <string name="memory_stats_trend_30_days">지난 30일 추세</string>
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
     <string name="memory_timeline_filter_all">전체</string>
     <string name="memory_timeline_filter_fact">사실</string>
@@ -160,7 +154,6 @@
     <string name="memory_bulk_delete_item_name">%1$d개의 메모리</string>
     <string name="memory_bulk_delete_consequence">메모리 %1$d개를 삭제합니다. 되돌릴 수 없습니다.</string>
     <string name="memory_pin_failed">고정에 실패했습니다. 다시 시도하세요.</string>
-    <string name="memory_stats_session_live">대화 %1$d</string>
     <string name="memory_stream_mode_list">목록</string>
     <string name="memory_stream_mode_timeline">타임라인</string>
     <string name="memory_unpin_failed">고정 해제에 실패했습니다. 다시 시도하세요.</string>

@@ -65,7 +65,6 @@
 
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">A fila de envio está cheia. Tente novamente mais tarde</string>
-    <string name="err_chat_input_restored">Seu texto voltou para a caixa de entrada</string>
     <string name="err_chat_msg_save_failed">Falha ao salvar mensagem: %1$s</string>
     <string name="err_chat_db_closed">A conexão com o banco de dados foi perdida. Reinicie o app e tente novamente.</string>
     <string name="err_chat_network_unresolvable">Não foi possível conectar-se ao servidor. Verifique sua rede ou endereço API</string>
@@ -133,5 +132,4 @@
     <string name="err_group_chat_attachment_read_failed">Falha ao ler o anexo. Tente novamente.</string>
     <string name="err_group_chat_attachment_too_large">O anexo excede o limite de 10MB e não pode ser enviado.</string>
     <string name="err_group_chat_rotation_failed">Falha na rotação do chat em grupo; a geração desta rodada foi interrompida.</string>
-    <string name="moment_image_prepare_failed">Falha no processamento da imagem, tente novamente</string>
 </resources>

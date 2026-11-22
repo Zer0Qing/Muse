@@ -32,8 +32,6 @@
     <string name="assistant_delete_consequence">También se eliminará la memoria propia del asistente. Sus conversaciones se conservan, pero pierden el vínculo con el asistente. No se puede deshacer.</string>
     <string name="assistant_memory_delete_consequence">El asistente ya no hará referencia a este recuerdo. No se puede deshacer.</string>
     <string name="memory_delete_consequence">La IA ya no hará referencia a este recuerdo. No se puede deshacer.</string>
-    <string name="moment_delete_item_name">Publicación de %1$s</string>
-    <string name="moment_delete_consequence">También se eliminarán los \"me gusta\" y comentarios de esta publicación. No se puede deshacer.</string>
     <string name="groupchat_sender_user">Yo</string>
     <string name="groupchat_just_now">Ahora mismo</string>
     <string name="groupchat_minutes_ago">Hace %1$d min</string>
@@ -658,20 +656,6 @@
     <string name="voice_conversation_state_speaking">Hablando</string>
     <string name="voice_conversation_state_thinking">Pensando</string>
     <string name="voice_conversation_thinking">Pensando...</string>
-    <string name="mini_album_back_cd">Atrás</string>
-    <string name="mini_album_title">Álbum IA</string>
-    <string name="mini_album_count">%1$d fotos</string>
-    <string name="mini_album_refresh_cd">Actualizar álbum</string>
-    <string name="mini_album_visibility_cd_hidden">Ocultar imágenes ocultas</string>
-    <string name="mini_album_visibility_cd_shown">Mostrar imágenes ocultas</string>
-    <string name="mini_album_empty_no_images">Aún no hay imágenes de IA</string>
-    <string name="mini_album_empty_all_hidden">No hay imágenes visibles en el álbum</string>
-    <string name="mini_album_image_cd">Imagen de IA</string>
-    <string name="mini_album_actions_title">Acciones de imagen</string>
-    <string name="mini_album_restore_action">Mostrar</string>
-    <string name="mini_album_hide_action">Ocultar del álbum</string>
-    <string name="mini_album_unfavorite_action">Quitar de favoritos</string>
-    <string name="mini_album_favorite_action">Añadir a favoritos</string>
     <string name="mini_album_cancel">Cancelar</string>
     <string name="knowledge_content_edited">Contenido actualizado y reindexado</string>
     <string name="knowledge_edit_content">Editar contenido</string>
@@ -729,8 +713,6 @@
     <string name="assistant_detail_thinking_chain_hint">Restringe cómo el asistente estructura su razonamiento, p. ej. reformular la pregunta -&gt; plantear 2-3 hipótesis -&gt; descartarlas -&gt; concluir. Si está vacío, usa el razonamiento por defecto.</string>
     <string name="chat_clear_background">Quitar fondo de la conversación</string>
     <string name="chat_background_cleared">Fondo de la conversación eliminado</string>
-    <string name="mini_album_import_cd">Importar imágenes</string>
-    <string name="mini_album_delete_imported_action">Eliminar imagen</string>
     <string name="quick_notes_remove_image">Quitar imagen %1$d</string>
     <!-- Diagnóstico de activación en segundo plano: si el sistema realmente tiene activaciones en cola para Muse (solo lectura) -->
     <string name="wake_diagnostics_open">Estado de activación en segundo plano</string>

@@ -15,5 +15,4 @@
     <string name="code_gap_note_encrypted">已加密</string>
     <string name="code_gap_note_decrypt_failed">解密失败,笔记保持加密</string>
     <string name="code_gap_note_decrypted">已解密</string>
-    <string name="code_gap_memory_multiple_layers">多</string>
 </resources>

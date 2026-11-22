@@ -7,7 +7,6 @@
     <string name="chat_generated_video_cd">生成的视频</string>
     <string name="chat_msg_selected">已选中</string>
     <string name="chat_msg_not_selected">未选中</string>
-    <string name="moment_images_selected">已选 %1$d 张（点击可继续选）</string>
     <!-- ===== 日记 (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>日</item>
@@ -29,32 +28,6 @@
         <item>周六</item>
     </string-array>
     <!-- ===== 朋友圈动态 (MomentCard/MomentComponents) ===== -->
-    <string name="moment_expand_full">全文</string>
-    <string name="moment_like_cd">赞</string>
-    <string name="moment_like_cancel">取消赞</string>
-    <string name="moment_comment_cd">评论</string>
-    <string name="moment_favorite">收藏</string>
-    <string name="moment_more_actions">朋友圈动态更多操作</string>
-    <string name="moment_sender_muse">Muse</string>
-    <string name="moment_sender_me">我</string>
-    <string name="moment_delete_title">删除动态</string>
-    <string name="moment_image_cd">动态配图</string>
-    <string name="moment_image_cd_indexed">动态配图 %1$d</string>
-    <string name="moment_avatar_cd">头像</string>
-    <string name="moment_cover_cd">朋友圈封面</string>
-    <string name="moment_messages_cd">消息</string>
-    <string name="moment_publish_cd">发布动态（短按图文，长按纯文字）</string>
-    <string name="moment_empty_feed">还没有动态</string>
-    <string name="moment_messages_empty">还没有人赞你或评论你</string>
-    <string name="moment_notification_liked">%1$s 赞了你的动态</string>
-    <string name="moment_notification_commented">%1$s 评论了你的动态</string>
-    <string name="moment_profile_title">%1$s 的主页</string>
-    <string name="moment_moment_count">%1$d 条动态</string>
-    <string name="moment_publish_text_only">发纯文字</string>
-    <string name="moment_publish_feed">发朋友圈</string>
-    <string name="moment_publish_placeholder">这一刻的想法...</string>
-    <string name="moment_pending_image_cd">待发布图片</string>
-    <string name="moment_publish_confirm">发布</string>
     <!-- v1.0.72: Telegram 风格顶栏三点菜单 -->
     <string name="chat_top_menu_cd">更多操作</string>
     <string name="chat_select_provider">选择供应商</string>
@@ -558,12 +531,6 @@
     <!-- U-6: 手势操作一次性提示 -->
     <!-- U-17: 语音服务尚未就绪(区别于权限缺失) -->
     <string name="chat_voice_not_ready">语音尚未就绪，请稍后再试</string>
-    <string name="moment_mood_prefix">心情：%1$s</string>
-    <string name="moment_published">动态已发布</string>
-    <string name="moment_search_clear_cd">清空搜索</string>
-    <string name="moment_favorites_only_cd">只看收藏</string>
-    <string name="moment_generating">生成中…</string>
-    <string name="moment_generate_now">立即生成一条动态</string>
     <string name="chat_token_output">输出</string>
     <string name="chat_token_prompt">输入上下文</string>
 
@@ -572,9 +539,6 @@
     <string name="chat_context_divider_title_count">上下文已压缩 · %1$d 条并入摘要</string>
     <string name="chat_context_divider_hint_collapsed">点击展开原文</string>
     <string name="chat_context_divider_hint_expanded">点击收起原文</string>
-    <string name="moment_comment_reply">回复</string>
-    <string name="moment_visibility_title">谁可以看</string>
-    <string name="moment_visibility_public">公开</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">工具执行已暂停，本轮不会真的调用工具。</string>
     <string name="chat_tool_paused_banner_action">去设置</string>

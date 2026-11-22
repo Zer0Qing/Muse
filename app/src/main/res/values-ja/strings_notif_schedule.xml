@@ -85,7 +85,6 @@
     <string name="plugin_kill_switch_title">すべてのプラグインが無効です</string>
     <string name="plugin_kill_switch_desc">セーフモードの一括停止です。ツール・コマンド・イベント・フック・定期実行は動作しません。復元すると再び有効になります。</string>
     <string name="plugin_kill_switch_restore">プラグインを復元</string>
-    <string name="plugin_kill_switch_disable">すべてのプラグインを無効化</string>
     <string name="workspace_location_title">ワークスペースの場所</string>
     <string name="workspace_location_downloads">ダウンロード（Download/Muse）— どのファイルマネージャーでも見えます</string>
     <string name="workspace_location_internal">アプリ専用フォルダ — 他のアプリからは見えません</string>
@@ -165,16 +164,9 @@
     <string name="memory_dream_desc">記憶セクションを再構成。公開前に巻き戻し可能</string>
     <string name="memory_dream_start">開始</string>
     <string name="memory_dream_rollback">巻き戻す</string>
-    <string name="memory_dream_done">完了</string>
     <string name="memory_dream_skipped">スキップ: %1$s</string>
     <string name="offline_resources_title">オフラインリソース</string>
     <string name="offline_resources_runtime">実行環境（Node / Python）</string>
     <string name="offline_resources_asr">ローカル音声モデル（SenseVoice）</string>
-    <string name="offline_resources_asr_open">音声設定を開く</string>
-    <string name="offline_resources_ready">準備完了</string>
-    <string name="offline_resources_not_installed">未インストール</string>
-    <string name="offline_resources_downloading">ダウンロード中</string>
-    <string name="offline_resources_download">ダウンロード</string>
     <string name="offline_resources_delete">削除</string>
-    <string name="offline_resources_manage">管理</string>
 </resources>

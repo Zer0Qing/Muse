@@ -108,7 +108,6 @@
     <string name="plugin_kill_switch_title">All plugins are disabled</string>
     <string name="plugin_kill_switch_desc">This is the safe-mode kill switch: tools, commands, events, hooks and schedules do not run. Restore to turn them back on.</string>
     <string name="plugin_kill_switch_restore">Restore plugins</string>
-    <string name="plugin_kill_switch_disable">Disable all plugins</string>
     <string name="workspace_location_title">Workspace location</string>
     <string name="workspace_location_downloads">Downloads (Download/Muse) - visible in any file manager</string>
     <string name="workspace_location_internal">App-private folder - invisible to other apps</string>
@@ -168,16 +167,9 @@
     <string name="memory_dream_desc">Re-summarize memory sections; every publish can be rolled back</string>
     <string name="memory_dream_start">Start</string>
     <string name="memory_dream_rollback">Roll back</string>
-    <string name="memory_dream_done">Done</string>
     <string name="memory_dream_skipped">Skipped: %1$s</string>
     <string name="offline_resources_title">Offline resources</string>
     <string name="offline_resources_runtime">Runtime (Node / Python)</string>
     <string name="offline_resources_asr">Local speech model (SenseVoice)</string>
-    <string name="offline_resources_asr_open">Open speech settings</string>
-    <string name="offline_resources_ready">Ready</string>
-    <string name="offline_resources_not_installed">Not installed</string>
-    <string name="offline_resources_downloading">Downloading</string>
-    <string name="offline_resources_download">Download</string>
     <string name="offline_resources_delete">Delete</string>
-    <string name="offline_resources_manage">Manage</string>
 </resources>

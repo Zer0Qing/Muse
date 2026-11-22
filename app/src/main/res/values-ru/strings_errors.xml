@@ -65,7 +65,6 @@
 
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">Очередь отправки заполнена, повторите попытку позже</string>
-    <string name="err_chat_input_restored">Текст возвращён в поле ввода</string>
     <string name="err_chat_msg_save_failed">Не удалось сохранить сообщение: %1$s</string>
     <string name="err_chat_db_closed">Соединение с базой данных потеряно. Перезапустите приложение и попробуйте снова.</string>
     <string name="err_chat_network_unresolvable">Невозможно подключиться к серверу. Проверьте свою сеть или адрес API.</string>
@@ -133,5 +132,4 @@
     <string name="err_group_chat_attachment_read_failed">Не удалось прочитать вложение. Попробуйте снова.</string>
     <string name="err_group_chat_attachment_too_large">Вложение превышает лимит в 10 МБ и не может быть отправлено.</string>
     <string name="err_group_chat_rotation_failed">Не удалось выполнить ротацию группового чата. Генерация этого раунда остановлена.</string>
-    <string name="moment_image_prepare_failed">Не удалось обработать изображение, повторите попытку</string>
 </resources>

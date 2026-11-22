@@ -87,12 +87,6 @@
     <string name="memory_space_entry">メモリ空間</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_section_title">メモリ統計</string>
-    <string name="memory_stats_total">合計</string>
-    <string name="memory_stats_importance_distribution">重要度の分布</string>
-    <string name="memory_stats_top_sessions">最もアクティブなセッション</string>
-    <string name="memory_stats_session_count">%1$d エントリ</string>
-    <string name="memory_stats_trend_30_days">過去 30 日間の傾向</string>
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
     <string name="memory_timeline_filter_all">すべて</string>
     <string name="memory_timeline_filter_fact">事実</string>
@@ -160,7 +154,6 @@
     <string name="memory_bulk_delete_item_name">%1$d 件の記憶</string>
     <string name="memory_bulk_delete_consequence">%1$d 件の記憶を削除します。元に戻せません。</string>
     <string name="memory_pin_failed">ピン留めに失敗しました。もう一度お試しください。</string>
-    <string name="memory_stats_session_live">会話 %1$d</string>
     <string name="memory_stream_mode_list">リスト</string>
     <string name="memory_stream_mode_timeline">タイムライン</string>
     <string name="memory_unpin_failed">ピン留めの解除に失敗しました。もう一度お試しください。</string>

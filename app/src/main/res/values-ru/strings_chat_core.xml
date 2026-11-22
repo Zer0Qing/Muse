@@ -7,7 +7,6 @@
     <string name="chat_generated_video_cd">Сгенерированное видео</string>
     <string name="chat_msg_selected">Выбрано</string>
     <string name="chat_msg_not_selected">Не выбрано</string>
-    <string name="moment_images_selected">Выбрано %1$d (нажмите, чтобы продолжить)</string>
     <!-- ===== Дневник (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>Вс</item>
@@ -29,32 +28,6 @@
         <item>Сб</item>
     </string-array>
     <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
-    <string name="moment_expand_full">Показать полностью</string>
-    <string name="moment_like_cd">Нравится</string>
-    <string name="moment_like_cancel">Отменить отзыв</string>
-    <string name="moment_comment_cd">Комментарий</string>
-    <string name="moment_favorite">В избранное</string>
-    <string name="moment_more_actions">Дополнительные действия для этой публикации</string>
-    <string name="moment_sender_muse">Muse</string>
-    <string name="moment_sender_me">Я</string>
-    <string name="moment_delete_title">Удалить запись</string>
-    <string name="moment_image_cd">Изображение записи</string>
-    <string name="moment_image_cd_indexed">Изображение записи %1$d</string>
-    <string name="moment_avatar_cd">Аватар</string>
-    <string name="moment_cover_cd">Обложка моментов</string>
-    <string name="moment_messages_cd">Сообщения</string>
-    <string name="moment_publish_cd">Опубликовать (нажмите для фото, удерживайте для текста)</string>
-    <string name="moment_empty_feed">Записей пока нет</string>
-    <string name="moment_messages_empty">Пока нет отметок «Нравится» и комментариев</string>
-    <string name="moment_notification_liked">%1$s понравилась ваша запись</string>
-    <string name="moment_notification_commented">%1$s прокомментировал(а) вашу запись</string>
-    <string name="moment_profile_title">Профиль %1$s</string>
-    <string name="moment_moment_count">%1$d записей</string>
-    <string name="moment_publish_text_only">Только текст</string>
-    <string name="moment_publish_feed">Опубликовать</string>
-    <string name="moment_publish_placeholder">О чём вы думаете...</string>
-    <string name="moment_pending_image_cd">Ожидающее изображение</string>
-    <string name="moment_publish_confirm">Опубликовать</string>
     <string name="chat_scroll_to_bottom_cd">Прокрутить вниз</string>
     <string name="chat_export_format_title">Выберите формат экспорта</string>
     <string name="chat_export_format_confirm">Экспорт</string>
@@ -509,16 +482,7 @@
     <string name="tool_approval_pending_n">%1$d ожидает одобрения</string>
     <string name="chat_pending_tools_discard_confirm_title">Отменить незавершённые вызовы инструментов?</string>
     <string name="chat_pending_tools_discard_confirm_msg">Они не будут выполнены и не могут быть восстановлены.</string>
-    <string name="moment_mood_prefix">Настроение: %1$s</string>
-    <string name="moment_published">Момент опубликован</string>
-    <string name="moment_search_clear_cd">Очистить поиск</string>
-    <string name="moment_favorites_only_cd">Только избранное</string>
-    <string name="moment_generating">Генерация…</string>
-    <string name="moment_generate_now">Сгенерировать момент сейчас</string>
     <!-- U-24: Отчёт о результате кнопки "Сгенерировать сейчас" -->
-    <string name="moment_generate_success">Момент создан</string>
-    <string name="moment_generate_no_material">Сегодня нет материала для создания</string>
-    <string name="moment_generate_failed">Не удалось создать: попробуйте позже</string>
     <string name="settings_bubble_radius_large">Большое скругление</string>
     <string name="settings_bubble_radius_none">Квадрат</string>
     <string name="settings_bubble_radius_pill">Капсула</string>
@@ -558,9 +522,6 @@
     <string name="chat_context_divider_hint_collapsed">Нажмите, чтобы показать исходные сообщения</string>
     <string name="chat_context_divider_hint_expanded">Нажмите, чтобы скрыть исходные сообщения</string>
     <string name="chat_translation_block_title">Перевод</string>
-    <string name="moment_comment_reply">Ответить</string>
-    <string name="moment_visibility_title">Кому видно</string>
-    <string name="moment_visibility_public">Всем</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">Выполнение инструментов приостановлено, поэтому они не запускаются.</string>
     <string name="chat_tool_paused_banner_action">Настройки</string>

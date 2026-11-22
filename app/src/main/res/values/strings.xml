@@ -180,7 +180,6 @@
     <!-- v2.0: 记忆筛选 -->
 
     <!-- v9: 记忆分类(按参考图: 全部 / 核心事实 / 偏好 / 经历 / 关系 / 目标 / 医疗 / 其他) -->
-    <string name="memory_category_all">全部</string>
     <string name="memory_category_identity">核心事实</string>
     <string name="memory_category_preference">偏好</string>
     <string name="memory_category_event">经历</string>
@@ -189,8 +188,6 @@
     <string name="memory_category_medical">医疗</string>
     <string name="memory_category_other">其他</string>
     <string name="memory_filter_today">今天</string>
-    <string name="memory_filter_week">本周</string>
-    <string name="memory_filter_month">本月</string>
 
     <!-- v2.0: 回收站 -->
     <string name="recently_deleted_title">最近删除</string>
@@ -235,7 +232,6 @@
     <string name="memory_llm_empty_response">模型 %1$s 返回空响应（正文与思考内容均为空），记忆编译失败</string>
     <!-- 功能1: 消息表情回应 -->
     <!-- 功能2: 消息草稿 -->
-    <string name="chat_draft_label">草稿</string>
     <!-- 功能3: 归档确认 -->
     <string name="chat_list_status_in_progress">进行中</string>
     <string name="chat_list_status_pending">还没开始</string>
@@ -274,11 +270,6 @@
     <string name="schedule_discard">放弃</string>
 
     <!-- v1.0.75: AI 朋友圈互动 -->
-    <string name="moment_sender_user">我</string>
-    <string name="moment_banner_liked_by">%1$s 赞了你</string>
-    <string name="moment_banner_commented_by">%1$s 评论了你</string>
-    <string name="moment_separator_and">、</string>
-    <string name="moment_separator_dot">·</string>
 
     <!-- Agent 私信 -->
     <string name="agent_dm_title">Agent 私信</string>
@@ -314,7 +305,6 @@
     <string name="proxy_bypass_hint">逗号分隔。支持 .后缀、*.通配、IP 前缀。本地模型与内网服务建议放进来。</string>
     <string name="proxy_test_action">测试连接</string>
     <string name="proxy_test_running">测试中…</string>
-    <string name="launcher_alias_muse">Muse</string>
     <string name="proxy_test_invalid_config">请先填写有效的代理地址与端口</string>
     <string name="proxy_test_connected">代理连通，</string>
     <string name="proxy_test_need_auth">代理要求认证，请检查用户名与密码</string>
@@ -344,7 +334,6 @@
     <string name="settings_proactive_v2_cooldown">最近别烦我</string>
     <string name="settings_proactive_v2_cooldown_sub">安静 7 天，这期间它只记着不说</string>
     <string name="settings_proactive_v2_empty">暂时没什么惦记的事</string>
-    <string name="settings_proactive_v2_close">好</string>
     <string name="proactive_intensity_quiet">安静 · 每天最多 3 条</string>
     <string name="proactive_intensity_reserved">克制 · 每天最多 8 条</string>
     <string name="proactive_intensity_standard">标准 · 每天最多 15 条</string>

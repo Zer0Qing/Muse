@@ -36,8 +36,6 @@
     <string name="markdown_chart_label">Gráfico</string>
     <string name="markdown_mermaid_label">Diagrama Mermaid</string>
     <string name="markdown_plantuml_label">Diagrama PlantUML</string>
-    <string name="markdown_svg_cd">Gráfico SVG</string>
-    <string name="markdown_html_cd">Contenido HTML</string>
     <string name="markdown_chart_cd">Gráfico: %1$s</string>
     <string name="markdown_mermaid_cd">Diagrama Mermaid: %1$s</string>
     <string name="markdown_plantuml_cd">Diagrama PlantUML: %1$s</string>
@@ -194,7 +192,6 @@ Toca actualizar para obtener la lista</string>
     <string name="card_favorite_done">Tarjeta añadida a favoritos</string>
     <string name="card_favorite_failed">No se pudo guardar la tarjeta: %1$s</string>
     <string name="card_favorite_session_title">Tarjetas favoritas</string>
-    <string name="card_favorite_wrapper">Tarjeta favorita: %1$s</string>
     <string name="user_persona_section">Máscara de usuario</string>
     <string name="user_persona_current">Máscara actual</string>
     <string name="user_persona_none">Ninguna (perfil global)</string>
@@ -238,12 +235,6 @@ Toca actualizar para obtener la lista</string>
     <string name="agent_bot_candidates_title">Resultados que no se aplicaron</string>
     <string name="agent_bot_candidate_hint">El destino cambió, no se aplicó</string>
     <string name="agent_bot_discard">Descartar</string>
-    <string name="attachment_kind_video">[Vídeo]</string>
-    <string name="attachment_kind_audio">[Audio]</string>
-    <string name="terminal_receipt_template">[Recibo de terminal]
-Comando: %1$s
-Salida (final):
-%2$s</string>
     <string name="agent_bot_continue">Continuar</string>
     <string name="agent_bot_continue_confirm">Volver a ejecutarlo todo</string>
     <string name="agent_bot_continue_cancel">Ahora no</string>

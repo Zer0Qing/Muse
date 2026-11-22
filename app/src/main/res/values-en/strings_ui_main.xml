@@ -111,14 +111,10 @@
     <string name="memory_screen_edit_summary">Edit Session Summary</string>
     <string name="memory_open_conversation">Open conversation</string>
     <string name="memory_conversation_meta">Assistant %1$s · Space %2$s</string>
-    <string name="memory_screen_no_match">No matching memories found</string>
-    <string name="memory_screen_search_results">Search Results (%1$d)</string>
     <string name="memory_screen_no_fact">No meta-facts yet</string>
     <string name="memory_screen_collapse">Collapse</string>
     <string name="memory_screen_expand">Expand</string>
     <string name="memory_screen_edit_cd">Edit</string>
-    <string name="memory_pin_cd">Pin</string>
-    <string name="memory_unpin_cd">Unpin</string>
     <string name="memory_screen_delete_cd">Delete</string>
     <string name="memory_screen_load_failed">Load failed — Full error details</string>
     <string name="memory_screen_copied_trace">Full stack trace copied to clipboard</string>
@@ -126,16 +122,7 @@
     <string name="memory_screen_retry">Retry</string>
     <string name="memory_screen_input_content">Enter content…</string>
     <string name="memory_screen_save">Save</string>
-    <string name="memory_screen_not_running">Not running</string>
-    <string name="memory_screen_has_error">Issues found</string>
     <string name="memory_screen_normal">Normal</string>
-    <string name="memory_screen_overview">Memory Overview</string>
-    <string name="memory_screen_fact_total_label">Total meta-facts</string>
-    <string name="memory_screen_last_compile">Last compilation</string>
-    <string name="memory_screen_no_compile_time">None yet</string>
-    <string name="memory_screen_health">Health status</string>
-    <string name="memory_screen_collapse_steps">Collapse step details</string>
-    <string name="memory_screen_view_steps">View step details</string>
     <string name="memory_screen_failed_times">Failed %1$d time(s)</string>
     <string name="memory_screen_last_success">Last success: %1$s</string>
     <string name="memory_screen_error">Error: %1$s</string>
@@ -187,9 +174,6 @@
     <string name="memory_screen_experience_tags_label">Tags (comma-separated, optional)</string>
 
     <!-- v2.0: overview stat card -->
-    <string name="memory_overview_total">Total Facts</string>
-    <string name="memory_overview_important">Important/Critical</string>
-    <string name="memory_overview_layers">Memory Layers</string>
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Settings</string>

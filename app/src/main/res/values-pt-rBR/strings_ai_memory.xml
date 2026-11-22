@@ -87,12 +87,6 @@
     <string name="memory_space_entry">Espaços de memória</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_section_title">Estatísticas de memória</string>
-    <string name="memory_stats_total">Total</string>
-    <string name="memory_stats_importance_distribution">Distribuição de Importância</string>
-    <string name="memory_stats_top_sessions">Sessões mais ativas</string>
-    <string name="memory_stats_session_count">%1$d entradas</string>
-    <string name="memory_stats_trend_30_days">Tendência dos últimos 30 dias</string>
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
     <string name="memory_timeline_filter_all">Todos</string>
     <string name="memory_timeline_filter_fact">Fatos</string>
@@ -160,7 +154,6 @@
     <string name="memory_bulk_delete_item_name">%1$d memórias</string>
     <string name="memory_bulk_delete_consequence">%1$d memórias serão excluídas e não será possível desfazer.</string>
     <string name="memory_pin_failed">Falha ao fixar. Tente novamente.</string>
-    <string name="memory_stats_session_live">Conversa %1$d</string>
     <string name="memory_stream_mode_list">Lista</string>
     <string name="memory_stream_mode_timeline">Linha do tempo</string>
     <string name="memory_unpin_failed">Falha ao desafixar. Tente novamente.</string>

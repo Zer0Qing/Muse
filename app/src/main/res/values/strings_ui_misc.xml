@@ -36,8 +36,6 @@
     <string name="markdown_chart_label">图表</string>
     <string name="markdown_mermaid_label">Mermaid 图表</string>
     <string name="markdown_plantuml_label">PlantUML 图</string>
-    <string name="markdown_svg_cd">SVG 图形</string>
-    <string name="markdown_html_cd">HTML 内容</string>
     <string name="markdown_chart_cd">图表： %1$s</string>
     <string name="markdown_mermaid_cd">Mermaid 图： %1$s</string>
     <string name="markdown_plantuml_cd">PlantUML 图： %1$s</string>
@@ -53,7 +51,6 @@
     <string name="card_favorite_done">卡片已放进收藏夹</string>
     <string name="card_favorite_failed">收藏卡片失败：%1$s</string>
     <string name="card_favorite_session_title">卡片收藏</string>
-    <string name="card_favorite_wrapper">卡片收藏：%1$s</string>
     <string name="markdown_plantuml_remote_notice">PlantUML 图表需要联网，且图表源码会发送到第三方服务 plantuml.com 进行在线渲染。</string>
     <string name="markdown_plantuml_render_online">仍要联网渲染</string>
     <!-- HTML 预览功能 -->
@@ -244,12 +241,6 @@
     <string name="agent_bot_candidates_title">没落地的结果</string>
     <string name="agent_bot_candidate_hint">目标已被改动，未覆盖</string>
     <string name="agent_bot_discard">丢弃</string>
-    <string name="attachment_kind_video">[视频]</string>
-    <string name="attachment_kind_audio">[音频]</string>
-    <string name="terminal_receipt_template">【终端回执】
-命令：%1$s
-输出（末尾）：
-%2$s</string>
     <string name="agent_bot_continue">继续</string>
     <string name="agent_bot_continue_confirm">重跑整件事</string>
     <string name="agent_bot_continue_cancel">先算了</string>

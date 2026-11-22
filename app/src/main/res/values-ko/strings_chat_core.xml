@@ -7,7 +7,6 @@
     <string name="chat_generated_video_cd">생성된 비디오</string>
     <string name="chat_msg_selected">선택됨</string>
     <string name="chat_msg_not_selected">선택 안 됨</string>
-    <string name="moment_images_selected">%1$d장 선택됨(탭하여 계속 선택)</string>
     <!-- ===== 일기 (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>일</item>
@@ -29,32 +28,6 @@
         <item>토요일</item>
     </string-array>
     <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
-    <string name="moment_expand_full">전문 보기</string>
-    <string name="moment_like_cd">좋아요</string>
-    <string name="moment_like_cancel">좋아요 취소</string>
-    <string name="moment_comment_cd">댓글</string>
-    <string name="moment_favorite">즐겨찾기</string>
-    <string name="moment_more_actions">이 게시물의 추가 작업</string>
-    <string name="moment_sender_muse">Muse</string>
-    <string name="moment_sender_me">나</string>
-    <string name="moment_delete_title">게시물 삭제</string>
-    <string name="moment_image_cd">게시물 이미지</string>
-    <string name="moment_image_cd_indexed">게시물 이미지 %1$d</string>
-    <string name="moment_avatar_cd">아바타</string>
-    <string name="moment_cover_cd">모먼트 커버</string>
-    <string name="moment_messages_cd">메시지</string>
-    <string name="moment_publish_cd">게시물 올리기(짧게 눌러 사진, 길게 눌러 텍스트)</string>
-    <string name="moment_empty_feed">아직 게시물이 없습니다</string>
-    <string name="moment_messages_empty">아직 좋아요나 댓글이 없습니다</string>
-    <string name="moment_notification_liked">%1$s 님이 내 게시물에 좋아요를 눌렀습니다</string>
-    <string name="moment_notification_commented">%1$s 님이 내 게시물에 댓글을 달았습니다</string>
-    <string name="moment_profile_title">%1$s 님의 홈</string>
-    <string name="moment_moment_count">게시물 %1$d개</string>
-    <string name="moment_publish_text_only">텍스트만 올리기</string>
-    <string name="moment_publish_feed">게시물 올리기</string>
-    <string name="moment_publish_placeholder">지금 생각나는 것...</string>
-    <string name="moment_pending_image_cd">추가 예정 이미지</string>
-    <string name="moment_publish_confirm">올리기</string>
     <string name="chat_scroll_to_bottom_cd">맨 아래로 스크롤</string>
     <string name="chat_export_format_title">내보내기 형식 선택</string>
     <string name="chat_export_format_confirm">내보내기</string>
@@ -504,16 +477,7 @@
     <string name="tool_approval_pending_n">승인 대기 %1$d건</string>
     <string name="chat_pending_tools_discard_confirm_title">완료되지 않은 도구 호출을 폐기할까요?</string>
     <string name="chat_pending_tools_discard_confirm_msg">폐기하면 실행되지 않으며 복구할 수 없습니다.</string>
-    <string name="moment_mood_prefix">기분: %1$s</string>
-    <string name="moment_published">게시됨</string>
-    <string name="moment_search_clear_cd">검색 지우기</string>
-    <string name="moment_favorites_only_cd">즐겨찾기만</string>
-    <string name="moment_generating">생성 중…</string>
-    <string name="moment_generate_now">지금 게시물 생성</string>
     <!-- U-24: "지금 생성" 결과 피드백 -->
-    <string name="moment_generate_success">게시물이 생성되었습니다</string>
-    <string name="moment_generate_no_material">오늘 생성할 자료가 없습니다</string>
-    <string name="moment_generate_failed">생성에 실패했습니다: 나중에 다시 시도하세요</string>
     <string name="settings_bubble_radius_large">큰 둥근 모서리</string>
     <string name="settings_bubble_radius_none">사각형</string>
     <string name="settings_bubble_radius_pill">알약</string>
@@ -553,9 +517,6 @@
     <string name="chat_context_divider_hint_collapsed">탭하여 원본 메시지 보기</string>
     <string name="chat_context_divider_hint_expanded">탭하여 원본 메시지 숨기기</string>
     <string name="chat_translation_block_title">번역</string>
-    <string name="moment_comment_reply">답글</string>
-    <string name="moment_visibility_title">공개 범위</string>
-    <string name="moment_visibility_public">전체</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">도구 실행이 일시중지되어 실제로 실행되지 않습니다.</string>
     <string name="chat_tool_paused_banner_action">설정</string>

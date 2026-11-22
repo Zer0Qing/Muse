@@ -36,8 +36,6 @@
     <string name="markdown_chart_label">Gráfico</string>
     <string name="markdown_mermaid_label">Diagrama da Sereia</string>
     <string name="markdown_plantuml_label">Diagrama PlantUML</string>
-    <string name="markdown_svg_cd">Gráfico SVG</string>
-    <string name="markdown_html_cd">Conteúdo HTML</string>
     <string name="markdown_chart_cd">Gráfico: %1$s</string>
     <string name="markdown_mermaid_cd">Diagrama da sereia: %1$s</string>
     <string name="markdown_plantuml_cd">Diagrama PlantUML: %1$s</string>
@@ -194,7 +192,6 @@ Toque em atualizar para buscar a lista</string>
     <string name="card_favorite_done">Cartão adicionado aos favoritos</string>
     <string name="card_favorite_failed">Falha ao favoritar o cartão: %1$s</string>
     <string name="card_favorite_session_title">Cartões favoritos</string>
-    <string name="card_favorite_wrapper">Cartão favoritado: %1$s</string>
     <string name="user_persona_section">Persona do usuário</string>
     <string name="user_persona_current">Persona atual</string>
     <string name="user_persona_none">Nenhuma (perfil global)</string>
@@ -238,12 +235,6 @@ Toque em atualizar para buscar a lista</string>
     <string name="agent_bot_candidates_title">Resultados que não foram aplicados</string>
     <string name="agent_bot_candidate_hint">O destino mudou, não foi aplicado</string>
     <string name="agent_bot_discard">Descartar</string>
-    <string name="attachment_kind_video">[Vídeo]</string>
-    <string name="attachment_kind_audio">[Áudio]</string>
-    <string name="terminal_receipt_template">[Recibo do terminal]
-Comando: %1$s
-Saída (final):
-%2$s</string>
     <string name="agent_bot_continue">Continuar</string>
     <string name="agent_bot_continue_confirm">Executar tudo de novo</string>
     <string name="agent_bot_continue_cancel">Agora não</string>

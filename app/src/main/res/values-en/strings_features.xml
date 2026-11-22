@@ -59,8 +59,6 @@
     <string name="assistant_delete_consequence">The dedicated memory store of this assistant will be deleted as well. Its conversations are kept but lose the assistant binding. This cannot be undone.</string>
     <string name="assistant_memory_delete_consequence">The assistant will no longer reference this memory. This cannot be undone.</string>
     <string name="memory_delete_consequence">The AI will no longer reference this memory. This cannot be undone.</string>
-    <string name="moment_delete_item_name">Moment by %1$s</string>
-    <string name="moment_delete_consequence">All likes and comments on this moment will be deleted as well. This cannot be undone.</string>
     <string name="groupchat_sender_user">Me</string>
     <string name="groupchat_just_now">Just now</string>
     <string name="groupchat_minutes_ago">%1$d min ago</string>
@@ -623,20 +621,6 @@
     <string name="task_card_card_generated">Card generated</string>
     <string name="task_plan_status_cancelled">Cancelled</string>
     <string name="task_plan_status_timed_out">Timed out</string>
-    <string name="mini_album_back_cd">Back</string>
-    <string name="mini_album_title">AI Album</string>
-    <string name="mini_album_count">%1$d photos</string>
-    <string name="mini_album_refresh_cd">Refresh album</string>
-    <string name="mini_album_visibility_cd_hidden">Hide hidden images</string>
-    <string name="mini_album_visibility_cd_shown">Show hidden images</string>
-    <string name="mini_album_empty_no_images">No AI images yet</string>
-    <string name="mini_album_empty_all_hidden">No viewable images in album</string>
-    <string name="mini_album_image_cd">AI image</string>
-    <string name="mini_album_actions_title">Image actions</string>
-    <string name="mini_album_restore_action">Show</string>
-    <string name="mini_album_hide_action">Hide from album</string>
-    <string name="mini_album_unfavorite_action">Unfavorite</string>
-    <string name="mini_album_favorite_action">Favorite</string>
     <string name="mini_album_cancel">Cancel</string>
     <string name="knowledge_content_edited">Content updated and re-indexed</string>
     <string name="knowledge_edit_content">Edit content</string>
@@ -679,8 +663,6 @@
     <string name="assistant_detail_thinking_chain_hint">Constrains how the assistant structures its reasoning, e.g. restate the question -&gt; list 2-3 hypotheses -&gt; rule them out -&gt; conclude. Leave empty for default reasoning.</string>
     <string name="chat_clear_background">Clear conversation background</string>
     <string name="chat_background_cleared">Conversation background cleared</string>
-    <string name="mini_album_import_cd">Import images</string>
-    <string name="mini_album_delete_imported_action">Delete image</string>
     <string name="quick_notes_remove_image">Remove image %1$d</string>
     <!-- Background wake diagnostics: whether the system actually has wakeups queued for Muse (read-only). -->
     <string name="wake_diagnostics_open">Background wake status</string>

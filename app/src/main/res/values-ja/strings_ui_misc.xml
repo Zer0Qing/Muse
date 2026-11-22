@@ -36,8 +36,6 @@
     <string name="markdown_chart_label">チャート</string>
     <string name="markdown_mermaid_label">マーメイドダイアグラム</string>
     <string name="markdown_plantuml_label">PlantUML ダイアグラム</string>
-    <string name="markdown_svg_cd">SVGグラフィック</string>
-    <string name="markdown_html_cd">HTMLコンテンツ</string>
     <string name="markdown_chart_cd">チャート: %1$s</string>
     <string name="markdown_mermaid_cd">人魚の図: %1$s</string>
     <string name="markdown_plantuml_cd">PlantUML 図: %1$s</string>
@@ -194,7 +192,6 @@
     <string name="card_favorite_done">カードをお気に入りに追加しました</string>
     <string name="card_favorite_failed">カードのお気に入り登録に失敗しました：%1$s</string>
     <string name="card_favorite_session_title">カードのお気に入り</string>
-    <string name="card_favorite_wrapper">お気に入りのカード：%1$s</string>
     <string name="user_persona_section">ユーザーペルソナ</string>
     <string name="user_persona_current">現在のペルソナ</string>
     <string name="user_persona_none">未選択（全局画像を使用）</string>
@@ -238,12 +235,6 @@
     <string name="agent_bot_candidates_title">反映できなかった結果</string>
     <string name="agent_bot_candidate_hint">対象が変わったため適用していません</string>
     <string name="agent_bot_discard">破棄</string>
-    <string name="attachment_kind_video">[動画]</string>
-    <string name="attachment_kind_audio">[音声]</string>
-    <string name="terminal_receipt_template">【ターミナル受信】
-コマンド：%1$s
-出力（末尾）：
-%2$s</string>
     <string name="agent_bot_continue">続ける</string>
     <string name="agent_bot_continue_confirm">最初からやり直す</string>
     <string name="agent_bot_continue_cancel">やめておく</string>

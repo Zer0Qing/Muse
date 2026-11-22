@@ -120,13 +120,6 @@
     <string name="memory_space_entry">记忆空间</string>
 
     <!-- MemoryScreen.kt: 视图模式切换 / 导出 / 统计卡片 -->
-    <string name="memory_stats_section_title">记忆统计</string>
-    <string name="memory_stats_total">总计</string>
-    <string name="memory_stats_importance_distribution">重要度分布</string>
-    <string name="memory_stats_top_sessions">最活跃会话</string>
-    <string name="memory_stats_session_count">%1$d 条</string>
-    <string name="memory_stats_session_live">会话 %1$d</string>
-    <string name="memory_stats_trend_30_days">近 30 天趋势</string>
     <!-- v1.x: 记忆去重 -->
     <string name="memory_organize_action">整理记忆</string>
     <string name="memory_organize_stage_prepare">准备整理</string>

@@ -104,14 +104,10 @@
     <string name="memory_screen_edit_summary">세션 요약 편집</string>
     <string name="memory_open_conversation">원래 대화 열기</string>
     <string name="memory_conversation_meta">어시스턴트 %1$s · 공간 %2$s</string>
-    <string name="memory_screen_no_match">일치하는 기억을 찾지 못했습니다</string>
-    <string name="memory_screen_search_results">검색 결과 (%1$d)</string>
     <string name="memory_screen_no_fact">아직 메타 사실이 없습니다</string>
     <string name="memory_screen_collapse">접기</string>
     <string name="memory_screen_expand">펼치기</string>
     <string name="memory_screen_edit_cd">편집</string>
-    <string name="memory_pin_cd">고정</string>
-    <string name="memory_unpin_cd">고정 해제</string>
     <string name="memory_screen_delete_cd">삭제</string>
     <string name="memory_screen_load_failed">불러오기 실패 — 전체 오류 정보</string>
     <string name="memory_screen_copied_trace">전체 스택 트레이스를 클립보드에 복사했습니다</string>
@@ -119,16 +115,7 @@
     <string name="memory_screen_retry">다시 시도</string>
     <string name="memory_screen_input_content">내용 입력…</string>
     <string name="memory_screen_save">저장</string>
-    <string name="memory_screen_not_running">실행 중 아님</string>
-    <string name="memory_screen_has_error">문제가 있습니다</string>
     <string name="memory_screen_normal">정상</string>
-    <string name="memory_screen_overview">기억 개요</string>
-    <string name="memory_screen_fact_total_label">메타 사실 총수</string>
-    <string name="memory_screen_last_compile">최근 컴파일</string>
-    <string name="memory_screen_no_compile_time">아직 없음</string>
-    <string name="memory_screen_health">건강 상태</string>
-    <string name="memory_screen_collapse_steps">단계 정보 접기</string>
-    <string name="memory_screen_view_steps">단계 정보 보기</string>
     <string name="memory_screen_failed_times">%1$d회 실패</string>
     <string name="memory_screen_last_success">이전 성공: %1$s</string>
     <string name="memory_screen_error">오류: %1$s</string>
@@ -178,9 +165,6 @@
     <string name="memory_screen_experience_tags_label">태그(쉼표 구분, 선택)</string>
 
     <!-- v2.0: overview stat card -->
-    <string name="memory_overview_total">총 사실</string>
-    <string name="memory_overview_important">중요/중요</string>
-    <string name="memory_overview_layers">메모리 레이어</string>
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">설정</string>

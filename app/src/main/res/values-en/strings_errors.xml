@@ -65,7 +65,6 @@
 
     <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
     <string name="err_chat_queue_full">Send queue is full, please retry later</string>
-    <string name="err_chat_input_restored">Your text was put back in the input box</string>
     <string name="err_chat_msg_save_failed">Failed to save message: %1$s</string>
     <string name="err_chat_db_closed">Database connection lost. Please restart the app and try again.</string>
     <string name="err_chat_network_unresolvable">Unable to connect to the server, please check your network or API address</string>
@@ -132,6 +131,5 @@
     <string name="err_group_chat_rotation_failed">Group chat rotation failed; this round was stopped</string>
     <string name="err_group_chat_attachment_too_large">Attachment exceeds the 10MB limit and cannot be sent</string>
     <string name="err_group_chat_attachment_read_failed">Failed to read attachment, please retry</string>
-    <string name="moment_image_prepare_failed">Image processing failed, please try again</string>
     <string name="asr_system_unavailable">No speech recognition service is available; configure an online recognizer in Settings</string>
 </resources>

@@ -104,14 +104,10 @@
     <string name="memory_screen_edit_summary">セッションの概要を編集する</string>
     <string name="memory_open_conversation">元の会話を開く</string>
     <string name="memory_conversation_meta">アシスタント %1$s · スペース %2$s</string>
-    <string name="memory_screen_no_match">一致する思い出は見つかりませんでした</string>
-    <string name="memory_screen_search_results">検索結果 (%1$d)</string>
     <string name="memory_screen_no_fact">まだメタファクトはありません</string>
     <string name="memory_screen_collapse">崩壊</string>
     <string name="memory_screen_expand">拡大する</string>
     <string name="memory_screen_edit_cd">編集</string>
-    <string name="memory_pin_cd">ピン留め</string>
-    <string name="memory_unpin_cd">ピン留め解除</string>
     <string name="memory_screen_delete_cd">消去</string>
     <string name="memory_screen_load_failed">ロードに失敗しました - エラーの詳細</string>
     <string name="memory_screen_copied_trace">フルスタックトレースがクリップボードにコピーされました</string>
@@ -119,16 +115,7 @@
     <string name="memory_screen_retry">リトライ</string>
     <string name="memory_screen_input_content">内容を入力してください…</string>
     <string name="memory_screen_save">保存</string>
-    <string name="memory_screen_not_running">稼働していない</string>
-    <string name="memory_screen_has_error">見つかった問題</string>
     <string name="memory_screen_normal">普通</string>
-    <string name="memory_screen_overview">メモリの概要</string>
-    <string name="memory_screen_fact_total_label">合計のメタファクト</string>
-    <string name="memory_screen_last_compile">最後のコンピレーション</string>
-    <string name="memory_screen_no_compile_time">まだありません</string>
-    <string name="memory_screen_health">健康状態</string>
-    <string name="memory_screen_collapse_steps">ステップの詳細を折りたたむ</string>
-    <string name="memory_screen_view_steps">ステップの詳細を表示する</string>
     <string name="memory_screen_failed_times">%1$d 回失敗しました</string>
     <string name="memory_screen_last_success">最後の成功: %1$s</string>
     <string name="memory_screen_error">エラー: %1$s</string>
@@ -178,9 +165,6 @@
     <string name="memory_screen_experience_tags_label">タグ (カンマ区切り、オプション)</string>
 
     <!-- v2.0: overview stat card -->
-    <string name="memory_overview_total">総事実</string>
-    <string name="memory_overview_important">重要/重大</string>
-    <string name="memory_overview_layers">メモリ層</string>
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">設定</string>

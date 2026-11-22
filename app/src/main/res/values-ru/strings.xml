@@ -131,7 +131,6 @@
     <!-- v2.0: Memory filters -->
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
-    <string name="memory_category_all">Все</string>
     <string name="memory_category_identity">Основные факты</string>
     <string name="memory_category_preference">Предпочтения</string>
     <string name="memory_category_event">Опыт</string>
@@ -140,8 +139,6 @@
     <string name="memory_category_medical">Медицинский</string>
     <string name="memory_category_other">Другой</string>
     <string name="memory_filter_today">Сегодня</string>
-    <string name="memory_filter_week">На этой неделе</string>
-    <string name="memory_filter_month">В этом месяце</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">Недавно удалено</string>
@@ -153,7 +150,6 @@
     <string name="recently_deleted_permanent_delete_done">Удалено навсегда</string>
     <string name="recently_deleted_auto_clear">Автоматически удаляется через 7 дней.</string>
 
-    <string name="chat_draft_label">Черновик</string>
     <string name="chat_list_status_in_progress">В ходе выполнения</string>
     <string name="chat_list_status_pending">Не начато</string>
     <string name="chat_list_status_completed">Завершенный</string>
@@ -212,11 +208,6 @@
     <string name="chat_delete_selected_title">Удалить выбранные сообщения</string>
     <string name="chat_delete_selected_message">Вы уверены, что хотите удалить %1$d выбранных сообщений? Это действие нельзя отменить.</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
-    <string name="moment_sender_user">Я</string>
-    <string name="moment_banner_liked_by">%1$s лайкнул(а) вашу публикацию</string>
-    <string name="moment_banner_commented_by">%1$s прокомментировал(а) вашу публикацию</string>
-    <string name="moment_separator_and">, </string>
-    <string name="moment_separator_dot"> · </string>
 
     <string name="action_clear">Очистить</string>
     <string name="action_select_text">Выбрать текст</string>
@@ -227,7 +218,6 @@
     <string name="proxy_bypass_hint">Через запятую. Поддерживаются .суффикс, шаблоны *. и префиксы IP. Локальные модели и службы LAN добавьте сюда.</string>
     <string name="proxy_test_action">Проверить соединение</string>
     <string name="proxy_test_running">Проверка…</string>
-    <string name="launcher_alias_muse">Muse</string>
     <string name="proxy_test_invalid_config">Сначала укажите корректный адрес и порт прокси</string>
     <string name="proxy_test_connected">Прокси доступен, </string>
     <string name="proxy_test_need_auth">Прокси требует авторизации; проверьте логин и пароль</string>
@@ -258,7 +248,6 @@
     <string name="settings_proactive_v2_cooldown">Не беспокой меня пока</string>
     <string name="settings_proactive_v2_cooldown_sub">Тишина 7 дней: помнит, но молчит</string>
     <string name="settings_proactive_v2_empty">Пока ничего на уме</string>
-    <string name="settings_proactive_v2_close">Хорошо</string>
     <string name="proactive_intensity_quiet">Тихий · до 3 в день</string>
     <string name="proactive_intensity_reserved">Сдержанный · до 8 в день</string>
     <string name="proactive_intensity_standard">Обычный · до 15 в день</string>

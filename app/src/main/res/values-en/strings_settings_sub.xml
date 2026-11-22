@@ -114,7 +114,6 @@
     <string name="settings_agent_daily_guarantee_off">Off</string>
     <string name="settings_crash_anr_title">ANR Detection</string>
     <string name="settings_chat_compress_model">Compression Model</string>
-    <string name="settings_chat_compress_model_default">Default model</string>
     <string name="settings_chat_paste_as_file">Long Paste to File</string>
     <string name="settings_chat_paste_as_file_threshold">Paste to File Threshold</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">Prompt to convert when longer than %1$d characters</string>
@@ -549,27 +548,6 @@
     <string name="settings_font_import">Import font</string>
     <string name="settings_font_clear">Restore default</string>
     <string name="settings_font_import_failed">Font import failed: unsupported file format</string>
-    <string name="miniphone_moments_count">Moments recorded: %1$d</string>
-    <string name="miniphone_tab_chats">Mini phone</string>
-    <string name="miniphone_typing">typing…</string>
-    <string name="miniphone_time_just_now">Just now</string>
-    <string name="miniphone_time_minutes_ago">%1$d min ago</string>
-    <string name="miniphone_time_yesterday">Yesterday</string>
-    <string name="miniphone_time_days_ago">%1$d days ago</string>
-    <string name="miniphone_tab_contacts">Contacts</string>
-    <string name="miniphone_tab_discover">Discover</string>
-    <string name="miniphone_tab_me">Me</string>
-    <string name="miniphone_contacts_empty">No contacts yet</string>
-    <string name="miniphone_me_wallpaper">Change wallpaper</string>
-    <string name="moment_publish_take_photo">Take photo</string>
-    <string name="moment_publish_from_album">Choose from album</string>
-    <string name="miniphone_app_moments">Moments</string>
-    <string name="miniphone_app_album">Album</string>
-    <string name="miniphone_app_group_chat">Group chats</string>
-    <string name="miniphone_app_notes">Quick note</string>
-    <string name="miniphone_app_weather">Weather</string>
-    <string name="miniphone_app_diary">Diary</string>
-    <string name="miniphone_app_settings">Settings</string>
     <string name="chat_switch_assistant_applied_hint">Switched to %1$s — TA\'s model and memory will be used</string>
     <string name="kb_manage_add_doc">Add a document to this knowledge base</string>
     <string name="settings_agent_daily_summary_slots_empty_hint">Select at least one time slot</string>
@@ -579,16 +557,8 @@
     <string name="settings_agent_daily_summary_slots_group_noon">Afternoon (12-17 h)</string>
     <string name="settings_agent_daily_summary_slots_selected">Currently selected: %1$s</string>
     <!-- P4: mini phone restore-confirm (from MEM-10) -->
-    <string name="miniphone_restore_reset">Restore default layout</string>
-    <string name="miniphone_undo_restore">Undo reset</string>
-    <string name="miniphone_reset_default_title">Reset to the default home layout?</string>
-    <string name="miniphone_reset_default_content">This clears your custom arrangement and restores the default order. You can undo the reset afterwards.</string>
-    <string name="miniphone_restore_confirm">Reset</string>
     <!-- v1.x: Mini Phone WeChat chat screen -->
-    <string name="miniphone_chat_empty_title">No messages yet</string>
     <!-- v1.138: Mini Phone private messaging space -->
-    <string name="miniphone_pm_new_session">New chat</string>
-    <string name="miniphone_pm_empty_title">No private messages yet</string>
     <string name="settings_asr_engine_title">Recognition engine</string>
     <string name="settings_asr_engine_change">Change</string>
     <string name="settings_asr_pick_title">Choose recognition engine</string>
@@ -650,12 +620,6 @@
     <string name="settings_relationship_proactive_enabled_subtitle">When off, this character will not reach out first; you can still start a chat</string>
     <string name="settings_relationship_daily_limit">Daily proactive limit (0 = unlimited)</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
-    <string name="miniphone_contact_detail_title">Profile</string>
-    <string name="miniphone_contact_affinity">Closeness</string>
-    <string name="miniphone_contact_last_interaction">Last interaction</string>
-    <string name="miniphone_contact_never">No interaction yet</string>
-    <string name="miniphone_contact_start_chat">Send message</string>
-    <string name="miniphone_contact_edit_relationship">Edit relationship</string>
     <string name="search_custom_engines_section">Custom search engines</string>
     <string name="search_custom_engines_hint">Connect your own retrieval service: fill in the endpoint, request template and result path. Enabled engines are tried first in Auto mode.</string>
     <string name="search_custom_engine_add">Add engine</string>

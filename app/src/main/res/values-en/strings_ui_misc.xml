@@ -240,12 +240,6 @@ Tap refresh to fetch the list upstream</string>
     <string name="agent_bot_candidates_title">Results that didn\'t land</string>
     <string name="agent_bot_candidate_hint">The target changed, so it wasn\'t applied</string>
     <string name="agent_bot_discard">Discard</string>
-    <string name="attachment_kind_video">[Video]</string>
-    <string name="attachment_kind_audio">[Audio]</string>
-    <string name="terminal_receipt_template">[Terminal receipt]
-Command: %1$s
-Output (tail):
-%2$s</string>
     <string name="agent_bot_continue">Continue</string>
     <string name="agent_bot_continue_confirm">Rerun the whole thing</string>
     <string name="agent_bot_continue_cancel">Not now</string>

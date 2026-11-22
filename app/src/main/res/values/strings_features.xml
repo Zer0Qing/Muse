@@ -62,8 +62,6 @@
     <string name="assistant_delete_consequence">该助手的独立记忆库会被一并删除；已属于它的对话会保留，但会失去助手绑定。此操作不可恢复。</string>
     <string name="assistant_memory_delete_consequence">删除后该助手不再引用这条记忆，且无法恢复。</string>
     <string name="memory_delete_consequence">删除后 AI 将不再引用这条记忆，且无法恢复。</string>
-    <string name="moment_delete_item_name">%1$s 的动态</string>
-    <string name="moment_delete_consequence">该动态的点赞与评论会一并删除，且无法恢复。</string>
     <string name="groupchat_sender_user">我</string>
     <string name="groupchat_just_now">刚刚</string>
     <string name="groupchat_minutes_ago">%1$d分钟前</string>
@@ -652,20 +650,6 @@
     <string name="task_card_card_generated">已生成卡片</string>
     <string name="task_plan_status_cancelled">已取消</string>
     <string name="task_plan_status_timed_out">已超时</string>
-    <string name="mini_album_back_cd">返回</string>
-    <string name="mini_album_title">AI 相册</string>
-    <string name="mini_album_count">%1$d 张</string>
-    <string name="mini_album_refresh_cd">刷新相册</string>
-    <string name="mini_album_visibility_cd_hidden">隐藏已隐藏图片</string>
-    <string name="mini_album_visibility_cd_shown">显示已隐藏图片</string>
-    <string name="mini_album_empty_no_images">还没有 AI 生成的图片</string>
-    <string name="mini_album_empty_all_hidden">相册中没有可显示的图片</string>
-    <string name="mini_album_image_cd">AI 生成图片</string>
-    <string name="mini_album_actions_title">图片操作</string>
-    <string name="mini_album_restore_action">恢复显示</string>
-    <string name="mini_album_hide_action">从相册隐藏</string>
-    <string name="mini_album_unfavorite_action">取消收藏</string>
-    <string name="mini_album_favorite_action">收藏</string>
     <string name="plan_next_step_label">下一步：%1$s</string>
     <string name="home_date_pattern">M月d日 EEEE</string>
     <string name="groupchat_summary_doc_title">讨论总结 · %1$s</string>
@@ -678,8 +662,6 @@
     <string name="assistant_detail_thinking_chain_hint">强约束思考链的构成，例如：先复述问题 → 列 2-3 个假设 → 逐个排除 → 再给结论。留空则按默认方式思考。</string>
     <string name="chat_clear_background">清除本对话背景</string>
     <string name="chat_background_cleared">本对话背景已清除</string>
-    <string name="mini_album_import_cd">导入图片</string>
-    <string name="mini_album_delete_imported_action">删除图片</string>
     <string name="quick_notes_remove_image">移除图片 %1$d</string>
 
     <!-- 后台唤醒诊断:系统到底有没有为 Muse 排后台唤醒(只读,不改动任何调度) -->

@@ -7,7 +7,6 @@
     <string name="chat_generated_video_cd">Vídeo generado</string>
     <string name="chat_msg_selected">Seleccionado</string>
     <string name="chat_msg_not_selected">No seleccionado</string>
-    <string name="moment_images_selected">%1$d seleccionadas (toca para añadir más)</string>
     <!-- ===== Diario (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>D</item>
@@ -29,32 +28,6 @@
         <item>Sáb</item>
     </string-array>
     <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
-    <string name="moment_expand_full">Ver texto completo</string>
-    <string name="moment_like_cd">Me gusta</string>
-    <string name="moment_like_cancel">Quitar me gusta</string>
-    <string name="moment_comment_cd">Comentar</string>
-    <string name="moment_favorite">Favorito</string>
-    <string name="moment_more_actions">Más acciones para esta publicación</string>
-    <string name="moment_sender_muse">Muse</string>
-    <string name="moment_sender_me">Yo</string>
-    <string name="moment_delete_title">Eliminar publicación</string>
-    <string name="moment_image_cd">Imagen de la publicación</string>
-    <string name="moment_image_cd_indexed">Imagen de la publicación %1$d</string>
-    <string name="moment_avatar_cd">Avatar</string>
-    <string name="moment_cover_cd">Portada de Momentos</string>
-    <string name="moment_messages_cd">Mensajes</string>
-    <string name="moment_publish_cd">Publicar (toca para imagen, mantén pulsado para solo texto)</string>
-    <string name="moment_empty_feed">Aún no hay publicaciones</string>
-    <string name="moment_messages_empty">Aún no hay me gusta ni comentarios</string>
-    <string name="moment_notification_liked">A %1$s le ha gustado tu publicación</string>
-    <string name="moment_notification_commented">%1$s comentó tu publicación</string>
-    <string name="moment_profile_title">Perfil de %1$s</string>
-    <string name="moment_moment_count">%1$d publicaciones</string>
-    <string name="moment_publish_text_only">Publicar solo texto</string>
-    <string name="moment_publish_feed">Publicar</string>
-    <string name="moment_publish_placeholder">¿En qué estás pensando...?</string>
-    <string name="moment_pending_image_cd">Imagen pendiente</string>
-    <string name="moment_publish_confirm">Publicar</string>
     <string name="chat_scroll_to_bottom_cd">Desplazarse hacia abajo</string>
     <string name="chat_export_format_title">Elige el formato de exportación</string>
     <string name="chat_export_format_confirm">Exportar</string>
@@ -506,16 +479,7 @@
     <string name="tool_approval_pending_n">%1$d aprobaciones pendientes</string>
     <string name="chat_pending_tools_discard_confirm_title">¿Descartar llamadas de herramientas sin terminar?</string>
     <string name="chat_pending_tools_discard_confirm_msg">Estas llamadas no se ejecutarán y no se pueden recuperar.</string>
-    <string name="moment_mood_prefix">Estado de ánimo: %1$s</string>
-    <string name="moment_published">Publicado</string>
-    <string name="moment_search_clear_cd">Borrar búsqueda</string>
-    <string name="moment_favorites_only_cd">Solo favoritos</string>
-    <string name="moment_generating">Generando…</string>
-    <string name="moment_generate_now">Generar una publicación ahora</string>
     <!-- U-24: Feedback del botón "Generar ahora" -->
-    <string name="moment_generate_success">Publicación generada</string>
-    <string name="moment_generate_no_material">No hay material para generar hoy</string>
-    <string name="moment_generate_failed">Error de generación: inténtalo más tarde</string>
     <string name="settings_bubble_radius_large">Radio grande</string>
     <string name="settings_bubble_radius_none">Cuadrado</string>
     <string name="settings_bubble_radius_pill">Píldora</string>
@@ -555,9 +519,6 @@
     <string name="chat_context_divider_hint_collapsed">Toca para ver los mensajes originales</string>
     <string name="chat_context_divider_hint_expanded">Toca para ocultar los mensajes originales</string>
     <string name="chat_translation_block_title">Traducción</string>
-    <string name="moment_comment_reply">Responder</string>
-    <string name="moment_visibility_title">Visible para</string>
-    <string name="moment_visibility_public">Todos</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">La ejecución de herramientas está en pausa, así que no se ejecutarán.</string>
     <string name="chat_tool_paused_banner_action">Ajustes</string>

@@ -161,7 +161,6 @@
     <!-- v2.0: Memory filters -->
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
-    <string name="memory_category_all">All</string>
     <string name="memory_category_identity">Core Facts</string>
     <string name="memory_category_preference">Preferences</string>
     <string name="memory_category_event">Experiences</string>
@@ -170,8 +169,6 @@
     <string name="memory_category_medical">Medical</string>
     <string name="memory_category_other">Other</string>
     <string name="memory_filter_today">Today</string>
-    <string name="memory_filter_week">This week</string>
-    <string name="memory_filter_month">This month</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">Recently Deleted</string>
@@ -183,7 +180,6 @@
     <string name="recently_deleted_permanent_delete_done">Permanently deleted</string>
     <string name="recently_deleted_auto_clear">Auto-deleted after 7 days</string>
 
-    <string name="chat_draft_label">Draft</string>
     <string name="chat_list_status_in_progress">In Progress</string>
     <string name="chat_list_status_pending">Not started</string>
     <string name="chat_list_status_completed">Completed</string>
@@ -245,11 +241,6 @@
     <string name="common_load_failed">Failed to load</string>
     <string name="action_undo">Undo</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
-    <string name="moment_sender_user">Me</string>
-    <string name="moment_banner_liked_by">%1$s liked your post</string>
-    <string name="moment_banner_commented_by">%1$s commented on your post</string>
-    <string name="moment_separator_and">, </string>
-    <string name="moment_separator_dot"> · </string>
 
     <string name="chat_unarchived">Unarchived</string>
     <string name="agent_dm_empty">No private messages yet</string>
@@ -304,7 +295,6 @@
     <string name="proxy_bypass_hint">Comma separated. Supports .suffix, *. wildcards and IP prefixes. Add local models and LAN services here.</string>
     <string name="proxy_test_action">Test connection</string>
     <string name="proxy_test_running">Testing…</string>
-    <string name="launcher_alias_muse">Muse</string>
     <string name="proxy_test_invalid_config">Fill in a valid proxy address and port first</string>
     <string name="proxy_test_connected">Proxy reachable, </string>
     <string name="proxy_test_need_auth">Proxy requires authentication; check username and password</string>
@@ -335,7 +325,6 @@
     <string name="settings_proactive_v2_cooldown">Do not disturb me for a while</string>
     <string name="settings_proactive_v2_cooldown_sub">Quiet for 7 days; it will still remember but stay silent</string>
     <string name="settings_proactive_v2_empty">Nothing on its mind right now</string>
-    <string name="settings_proactive_v2_close">OK</string>
     <string name="proactive_intensity_quiet">Quiet · up to 3 a day</string>
     <string name="proactive_intensity_reserved">Reserved · up to 8 a day</string>
     <string name="proactive_intensity_standard">Standard · up to 15 a day</string>

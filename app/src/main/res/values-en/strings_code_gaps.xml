@@ -14,5 +14,4 @@
     <string name="code_gap_note_encrypted">Encrypted</string>
     <string name="code_gap_note_decrypt_failed">Decryption failed; the note remains encrypted</string>
     <string name="code_gap_note_decrypted">Decrypted</string>
-    <string name="code_gap_memory_multiple_layers">Multiple</string>
 </resources>

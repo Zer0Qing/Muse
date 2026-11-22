@@ -109,7 +109,6 @@
     <string name="settings_agent_daily_guarantee_off">Desactivado</string>
     <string name="settings_crash_anr_title">Detección de ANR</string>
     <string name="settings_chat_compress_model">Modelo de compresión</string>
-    <string name="settings_chat_compress_model_default">Modelo predeterminado</string>
     <string name="settings_chat_paste_as_file">Pegado largo a archivo</string>
     <string name="settings_chat_paste_as_file_threshold">Umbral de pegado a archivo</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">Sugerir convertir cuando supere %1$d caracteres</string>
@@ -479,27 +478,6 @@
     <string name="automation_orchestration_title">Cómo se orquesta la automatización</string>
     <string name="automation_orchestration_hint">Tras activar los permisos de Accesibilidad / Shell / Root, configura condiciones programadas para ejecutar acciones de IA automáticamente.</string>
     <string name="automation_orchestration_action">Orquestar tareas programadas</string>
-    <string name="miniphone_moments_count">%1$d momentos registrados</string>
-    <string name="miniphone_tab_chats">Mini Phone</string>
-    <string name="miniphone_typing">escribiendo…</string>
-    <string name="miniphone_time_just_now">Ahora</string>
-    <string name="miniphone_time_minutes_ago">Hace %1$d min</string>
-    <string name="miniphone_time_yesterday">Ayer</string>
-    <string name="miniphone_time_days_ago">Hace %1$d días</string>
-    <string name="miniphone_tab_contacts">Contactos</string>
-    <string name="miniphone_tab_discover">Descubrir</string>
-    <string name="miniphone_tab_me">Yo</string>
-    <string name="miniphone_contacts_empty">Aún no hay contactos</string>
-    <string name="miniphone_me_wallpaper">Cambiar fondo</string>
-    <string name="moment_publish_take_photo">Tomar foto</string>
-    <string name="moment_publish_from_album">Elegir del álbum</string>
-    <string name="miniphone_app_moments">Momentos</string>
-    <string name="miniphone_app_album">Álbum</string>
-    <string name="miniphone_app_group_chat">Chats grupales</string>
-    <string name="miniphone_app_notes">Notas rápidas</string>
-    <string name="miniphone_app_weather">Tiempo</string>
-    <string name="miniphone_app_diary">Diario</string>
-    <string name="miniphone_app_settings">Ajustes</string>
     <string name="chat_switch_assistant_applied_hint">Cambiado a %1$s — se usarán su modelo y su memoria</string>
     <string name="kb_manage_add_doc">Añadir un documento a esta base de conocimientos</string>
     <string name="settings_agent_daily_summary_slots_empty_hint">Selecciona al menos un periodo</string>
@@ -556,16 +534,8 @@
     <string name="settings_agent_advanced_hint">Ajustes de uso poco frecuente; normalmente no hace falta cambiarlos.</string>
     <string name="settings_agent_group_background">Segundo plano y fiabilidad</string>
     <string name="settings_agent_schedule_work_title">Control general de tareas en segundo plano</string>
-    <string name="miniphone_restore_reset">Restaurar diseño predeterminado</string>
-    <string name="miniphone_undo_restore">Deshacer restauración</string>
-    <string name="miniphone_reset_default_title">¿Restablecer el diseño de inicio predeterminado?</string>
-    <string name="miniphone_reset_default_content">Esto borra tu disposición personalizada y restaura el orden predeterminado. Podrás deshacerlo después.</string>
-    <string name="miniphone_restore_confirm">Restaurar</string>
     <!-- v1.x: Pantalla de chat estilo WeChat del Mini Phone -->
-    <string name="miniphone_chat_empty_title">Aún no hay mensajes</string>
     <!-- v1.138: Espacio de mensajes privados del Mini Phone -->
-    <string name="miniphone_pm_new_session">Nuevo chat</string>
-    <string name="miniphone_pm_empty_title">Aún no hay mensajes privados</string>
     <string name="settings_asr_engine_title">Motor de reconocimiento</string>
     <string name="settings_asr_engine_change">Cambiar</string>
     <string name="settings_asr_pick_title">Elige el motor de reconocimiento</string>
@@ -631,12 +601,6 @@
     <string name="settings_relationship_proactive_enabled_subtitle">Desactivado, este personaje no te escribirá primero; aún puedes iniciar la conversación</string>
     <string name="settings_relationship_daily_limit">Límite diario proactivo (0 = ilimitado)</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
-    <string name="miniphone_contact_detail_title">Perfil</string>
-    <string name="miniphone_contact_affinity">Cercanía</string>
-    <string name="miniphone_contact_last_interaction">Última interacción</string>
-    <string name="miniphone_contact_never">Aún sin interacción</string>
-    <string name="miniphone_contact_start_chat">Enviar mensaje</string>
-    <string name="miniphone_contact_edit_relationship">Editar relación</string>
     <string name="search_custom_engines_section">Motores de búsqueda propios</string>
     <string name="search_custom_engines_hint">Conecta tu propio servicio de búsqueda: indica el endpoint, la plantilla de petición y la ruta de resultados, sin tocar código. Los motores activados se prueban primero en el modo automático.</string>
     <string name="search_custom_engine_add">Añadir motor</string>

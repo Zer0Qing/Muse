@@ -36,8 +36,6 @@
     <string name="markdown_chart_label">차트</string>
     <string name="markdown_mermaid_label">인어 다이어그램</string>
     <string name="markdown_plantuml_label">PlantUML 다이어그램</string>
-    <string name="markdown_svg_cd">SVG 그래픽</string>
-    <string name="markdown_html_cd">HTML 콘텐츠</string>
     <string name="markdown_chart_cd">차트: %1$s</string>
     <string name="markdown_mermaid_cd">인어 다이어그램: %1$s</string>
     <string name="markdown_plantuml_cd">PlantUML 다이어그램: %1$s</string>
@@ -194,7 +192,6 @@
     <string name="card_favorite_done">카드를 즐겨찾기에 추가했습니다</string>
     <string name="card_favorite_failed">카드 즐겨찾기 실패: %1$s</string>
     <string name="card_favorite_session_title">카드 즐겨찾기</string>
-    <string name="card_favorite_wrapper">즐겨찾기한 카드: %1$s</string>
     <string name="user_persona_section">사용자 페르소나</string>
     <string name="user_persona_current">현재 페르소나</string>
     <string name="user_persona_none">미선택(전역 프로필 사용)</string>
@@ -238,12 +235,6 @@
     <string name="agent_bot_candidates_title">반영되지 못한 결과</string>
     <string name="agent_bot_candidate_hint">대상이 바뀌어 적용하지 않았습니다</string>
     <string name="agent_bot_discard">버리기</string>
-    <string name="attachment_kind_video">[동영상]</string>
-    <string name="attachment_kind_audio">[오디오]</string>
-    <string name="terminal_receipt_template">[터미널 회신]
-명령: %1$s
-출력(끝부분):
-%2$s</string>
     <string name="agent_bot_continue">계속</string>
     <string name="agent_bot_continue_confirm">전체 다시 실행</string>
     <string name="agent_bot_continue_cancel">지금은 안 함</string>

@@ -131,7 +131,6 @@
     <!-- v2.0: Memory filters -->
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
-    <string name="memory_category_all">모두</string>
     <string name="memory_category_identity">핵심 사실</string>
     <string name="memory_category_preference">환경설정</string>
     <string name="memory_category_event">경험담</string>
@@ -140,8 +139,6 @@
     <string name="memory_category_medical">의료</string>
     <string name="memory_category_other">다른</string>
     <string name="memory_filter_today">오늘</string>
-    <string name="memory_filter_week">이번 주</string>
-    <string name="memory_filter_month">이번 달</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">최근 삭제된 항목</string>
@@ -153,7 +150,6 @@
     <string name="recently_deleted_permanent_delete_done">영구적으로 삭제됨</string>
     <string name="recently_deleted_auto_clear">7일 후 자동 삭제됨</string>
 
-    <string name="chat_draft_label">초안</string>
     <string name="chat_list_status_in_progress">진행 중</string>
     <string name="chat_list_status_pending">시작 전</string>
     <string name="chat_list_status_completed">완전한</string>
@@ -212,11 +208,6 @@
     <string name="chat_delete_selected_title">선택한 메시지 삭제</string>
     <string name="chat_delete_selected_message">선택한 메시지 %1$d개를 삭제하시겠습니까? 복구할 수 없습니다.</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
-    <string name="moment_sender_user">나</string>
-    <string name="moment_banner_liked_by">%1$s(이)가 좋아요를 눌렀어요</string>
-    <string name="moment_banner_commented_by">%1$s(이)가 댓글을 남겼어요</string>
-    <string name="moment_separator_and">, </string>
-    <string name="moment_separator_dot"> · </string>
 
     <string name="action_clear">지우기</string>
     <string name="action_select_text">텍스트 선택</string>
@@ -227,7 +218,6 @@
     <string name="proxy_bypass_hint">쉼표로 구분합니다. .접미사, *. 와일드카드, IP 접두사를 지원합니다. 로컬 모델과 LAN 서비스를 여기에 추가하세요.</string>
     <string name="proxy_test_action">연결 테스트</string>
     <string name="proxy_test_running">테스트 중…</string>
-    <string name="launcher_alias_muse">Muse</string>
     <string name="proxy_test_invalid_config">먼저 올바른 프록시 주소와 포트를 입력하세요</string>
     <string name="proxy_test_connected">프록시 연결됨, </string>
     <string name="proxy_test_need_auth">프록시가 인증을 요구합니다. 사용자 이름과 비밀번호를 확인하세요</string>
@@ -258,7 +248,6 @@
     <string name="settings_proactive_v2_cooldown">당분간 말 걸지 마</string>
     <string name="settings_proactive_v2_cooldown_sub">7일 동안 조용히. 기억은 하되 말은 걸지 않아요</string>
     <string name="settings_proactive_v2_empty">지금은 마음에 걸리는 게 없어요</string>
-    <string name="settings_proactive_v2_close">알겠어</string>
     <string name="proactive_intensity_quiet">조용함 · 하루 3통까지</string>
     <string name="proactive_intensity_reserved">절제함 · 하루 8통까지</string>
     <string name="proactive_intensity_standard">표준 · 하루 15통까지</string>

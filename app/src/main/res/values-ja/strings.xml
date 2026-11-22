@@ -131,7 +131,6 @@
     <!-- v2.0: Memory filters -->
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
-    <string name="memory_category_all">全て</string>
     <string name="memory_category_identity">核心的な事実</string>
     <string name="memory_category_preference">設定</string>
     <string name="memory_category_event">体験談</string>
@@ -140,8 +139,6 @@
     <string name="memory_category_medical">医学</string>
     <string name="memory_category_other">他の</string>
     <string name="memory_filter_today">今日</string>
-    <string name="memory_filter_week">今週</string>
-    <string name="memory_filter_month">今月</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">最近削除されたもの</string>
@@ -153,7 +150,6 @@
     <string name="recently_deleted_permanent_delete_done">完全に削除されました</string>
     <string name="recently_deleted_auto_clear">7日後に自動削除される</string>
 
-    <string name="chat_draft_label">下書き</string>
     <string name="chat_list_status_in_progress">進行中</string>
     <string name="chat_list_status_pending">未開始</string>
     <string name="chat_list_status_completed">完了</string>
@@ -212,11 +208,6 @@
     <string name="chat_delete_selected_title">選択したメッセージを削除</string>
     <string name="chat_delete_selected_message">選択した %1$d 件のメッセージを削除しますか？この操作は元に戻せません。</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
-    <string name="moment_sender_user">わたし</string>
-    <string name="moment_banner_liked_by">%1$s がいいねしました</string>
-    <string name="moment_banner_commented_by">%1$s がコメントしました</string>
-    <string name="moment_separator_and">、</string>
-    <string name="moment_separator_dot">・</string>
 
     <string name="action_clear">クリア</string>
     <string name="action_select_text">テキストを選択</string>
@@ -227,7 +218,6 @@
     <string name="proxy_bypass_hint">カンマ区切り。.サフィックス、*. ワイルドカード、IP プレフィックスに対応。ローカルモデルや LAN のサービスはここに追加してください。</string>
     <string name="proxy_test_action">接続テスト</string>
     <string name="proxy_test_running">テスト中…</string>
-    <string name="launcher_alias_muse">Muse</string>
     <string name="proxy_test_invalid_config">有効なプロキシアドレスとポートを入力してください</string>
     <string name="proxy_test_connected">プロキシ接続 OK、</string>
     <string name="proxy_test_need_auth">プロキシが認証を要求しています。ユーザー名とパスワードを確認してください</string>
@@ -258,7 +248,6 @@
     <string name="settings_proactive_v2_cooldown">しばらく話しかけないで</string>
     <string name="settings_proactive_v2_cooldown_sub">7 日間は静かに。覚えてはいても話しかけません</string>
     <string name="settings_proactive_v2_empty">今のところ気がかりはありません</string>
-    <string name="settings_proactive_v2_close">わかった</string>
     <string name="proactive_intensity_quiet">静か · 1日3通まで</string>
     <string name="proactive_intensity_reserved">控えめ · 1日8通まで</string>
     <string name="proactive_intensity_standard">標準 · 1日15通まで</string>

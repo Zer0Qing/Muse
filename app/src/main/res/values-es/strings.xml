@@ -160,7 +160,6 @@
     <!-- v2.0: Memory filters -->
 
     <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
-    <string name="memory_category_all">Todo</string>
     <string name="memory_category_identity">Hechos centrales</string>
     <string name="memory_category_preference">Preferencias</string>
     <string name="memory_category_event">Experiencias</string>
@@ -169,8 +168,6 @@
     <string name="memory_category_medical">Médico</string>
     <string name="memory_category_other">Otro</string>
     <string name="memory_filter_today">Hoy</string>
-    <string name="memory_filter_week">Esta semana</string>
-    <string name="memory_filter_month">Este mes</string>
 
     <!-- v2.0: Recently Deleted -->
     <string name="recently_deleted_title">Eliminado recientemente</string>
@@ -182,7 +179,6 @@
     <string name="recently_deleted_permanent_delete_done">Eliminado permanentemente</string>
     <string name="recently_deleted_auto_clear">Eliminado automáticamente después de 7 días</string>
 
-    <string name="chat_draft_label">Borrador</string>
     <string name="chat_list_status_in_progress">En curso</string>
     <string name="chat_list_status_pending">Sin empezar</string>
     <string name="chat_list_status_completed">Terminado</string>
@@ -241,11 +237,6 @@
     <string name="chat_delete_selected_title">Eliminar mensajes seleccionados</string>
     <string name="chat_delete_selected_message">¿Seguro que quieres eliminar %1$d mensajes seleccionados? Esta acción no se puede deshacer.</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
-    <string name="moment_sender_user">Yo</string>
-    <string name="moment_banner_liked_by">A %1$s le gustó tu publicación</string>
-    <string name="moment_banner_commented_by">%1$s comentó en tu publicación</string>
-    <string name="moment_separator_and">, </string>
-    <string name="moment_separator_dot"> · </string>
 
     <string name="action_clear">Borrar</string>
     <string name="action_select_text">Seleccionar texto</string>
@@ -256,7 +247,6 @@
     <string name="proxy_bypass_hint">Separados por comas. Admite .sufijo, comodines *. y prefijos de IP. Añade aquí modelos locales y servicios de red local.</string>
     <string name="proxy_test_action">Probar conexión</string>
     <string name="proxy_test_running">Probando…</string>
-    <string name="launcher_alias_muse">Muse</string>
     <string name="proxy_test_invalid_config">Introduce primero una dirección y un puerto válidos</string>
     <string name="proxy_test_connected">Proxy accesible, </string>
     <string name="proxy_test_need_auth">El proxy requiere autenticación; revisa usuario y contraseña</string>
@@ -287,7 +277,6 @@
     <string name="settings_proactive_v2_cooldown">No me molestes por un tiempo</string>
     <string name="settings_proactive_v2_cooldown_sub">Silencio por 7 días; seguirá recordando pero sin hablar</string>
     <string name="settings_proactive_v2_empty">Nada en mente por ahora</string>
-    <string name="settings_proactive_v2_close">Vale</string>
     <string name="proactive_intensity_quiet">Silencioso · hasta 3 al día</string>
     <string name="proactive_intensity_reserved">Reservado · hasta 8 al día</string>
     <string name="proactive_intensity_standard">Estándar · hasta 15 al día</string>

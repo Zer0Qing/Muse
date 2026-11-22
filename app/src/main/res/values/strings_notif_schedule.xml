@@ -55,9 +55,6 @@
     <string name="schedule_view_all_history">查看全部历史</string>
 
     <!-- U-24: 朋友圈"立即生成"反馈 -->
-    <string name="moment_generate_success">动态已生成</string>
-    <string name="moment_generate_no_material">今天还没有可生成的素材</string>
-    <string name="moment_generate_failed">生成失败： 稍后再试</string>
 
     <!-- ===== main activity ===== -->
     <!-- 安全模式 -->
@@ -72,7 +69,6 @@
     <string name="plugin_kill_switch_title">所有插件已停用</string>
     <string name="plugin_kill_switch_desc">这是安全模式里的总闸：工具、命令、事件、钩子、定时任务全部不执行。恢复后才会重新运行。</string>
     <string name="plugin_kill_switch_restore">恢复插件</string>
-    <string name="plugin_kill_switch_disable">停用所有插件</string>
     <string name="workspace_location_title">工作区位置</string>
     <string name="workspace_location_downloads">下载目录（Download/Muse）— 任何文件管理器都能看到</string>
     <string name="workspace_location_internal">应用私有目录 — 其它应用看不到</string>
@@ -179,15 +175,8 @@
     <string name="memory_dream_desc">重新归纳记忆分段，发布前可回滚</string>
     <string name="memory_dream_start">开始整理</string>
     <string name="memory_dream_rollback">回滚</string>
-    <string name="memory_dream_done">整理完成</string>
     <string name="memory_dream_skipped">整理被跳过：%1$s</string>
     <string name="offline_resources_title">离线资源</string>
     <string name="offline_resources_runtime">运行环境（Node / Python）</string>
     <string name="offline_resources_asr">本地语音模型（SenseVoice）</string>
-    <string name="offline_resources_asr_open">去语音设置查看</string>
-    <string name="offline_resources_ready">已就绪</string>
-    <string name="offline_resources_not_installed">未安装</string>
-    <string name="offline_resources_downloading">下载中</string>
-    <string name="offline_resources_download">下载</string>
-    <string name="offline_resources_manage">管理</string>
 </resources>

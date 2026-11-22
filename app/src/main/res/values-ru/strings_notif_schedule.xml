@@ -85,7 +85,6 @@
     <string name="plugin_kill_switch_title">Все плагины отключены</string>
     <string name="plugin_kill_switch_desc">Это общий выключатель безопасного режима: инструменты, команды, события, хуки и расписания не выполняются. Восстановите, чтобы включить.</string>
     <string name="plugin_kill_switch_restore">Восстановить плагины</string>
-    <string name="plugin_kill_switch_disable">Отключить все плагины</string>
     <string name="workspace_location_title">Расположение рабочей области</string>
     <string name="workspace_location_downloads">Загрузки (Download/Muse) — видно в любом файловом менеджере</string>
     <string name="workspace_location_internal">Папка приложения — другим приложениям не видна</string>
@@ -165,16 +164,9 @@
     <string name="memory_dream_desc">Пересобирает разделы памяти; публикацию можно откатить</string>
     <string name="memory_dream_start">Начать</string>
     <string name="memory_dream_rollback">Откатить</string>
-    <string name="memory_dream_done">Готово</string>
     <string name="memory_dream_skipped">Пропущено: %1$s</string>
     <string name="offline_resources_title">Офлайн-ресурсы</string>
     <string name="offline_resources_runtime">Среда выполнения (Node / Python)</string>
     <string name="offline_resources_asr">Локальная модель речи (SenseVoice)</string>
-    <string name="offline_resources_asr_open">Открыть настройки речи</string>
-    <string name="offline_resources_ready">Готово</string>
-    <string name="offline_resources_not_installed">Не установлено</string>
-    <string name="offline_resources_downloading">Загрузка</string>
-    <string name="offline_resources_download">Скачать</string>
     <string name="offline_resources_delete">Удалить</string>
-    <string name="offline_resources_manage">Управление</string>
 </resources>

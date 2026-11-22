@@ -91,12 +91,6 @@
     <string name="memory_space_entry">Memory Spaces</string>
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
-    <string name="memory_stats_section_title">Memory Statistics</string>
-    <string name="memory_stats_total">Total</string>
-    <string name="memory_stats_importance_distribution">Importance Distribution</string>
-    <string name="memory_stats_top_sessions">Most Active Sessions</string>
-    <string name="memory_stats_session_count">%1$d entries</string>
-    <string name="memory_stats_trend_30_days">Last 30 Days Trend</string>
 
     <!-- 前端修复 (i18n-3.x): Group chat memory tab + timeline filters -->
     <string name="memory_contradictions_title">Contradictory memories to review</string>
@@ -186,7 +180,6 @@
     <string name="memory_bulk_delete_item_name">%1$d memories</string>
     <string name="memory_bulk_delete_consequence">This deletes %1$d memories and cannot be undone.</string>
     <string name="memory_pin_failed">Failed to pin; please retry</string>
-    <string name="memory_stats_session_live">Session %1$d</string>
     <string name="memory_stream_mode_list">List</string>
     <string name="memory_stream_mode_timeline">Timeline</string>
     <string name="memory_unpin_failed">Failed to unpin; please retry</string>

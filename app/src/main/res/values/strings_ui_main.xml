@@ -142,28 +142,15 @@
     <string name="memory_screen_edit_summary">编辑会话摘要</string>
     <string name="memory_open_conversation">打开原对话</string>
     <string name="memory_conversation_meta">助手 %1$s · 记忆空间 %2$s</string>
-    <string name="memory_screen_no_match">未找到匹配的记忆</string>
-    <string name="memory_screen_search_results">搜索结果（%1$d）</string>
     <string name="memory_screen_no_fact">暂无元事实</string>
     <string name="memory_screen_collapse">收起</string>
     <string name="memory_screen_expand">展开</string>
-    <string name="memory_pin_cd">置顶</string>
-    <string name="memory_unpin_cd">取消置顶</string>
     <string name="memory_screen_load_failed">加载失败 — 完整错误信息</string>
     <string name="memory_screen_copied_trace">已复制完整堆栈到剪贴板</string>
     <string name="memory_screen_copy_trace_cd">复制完整堆栈</string>
     <string name="memory_screen_retry">重试</string>
     <string name="memory_screen_input_content">输入内容…</string>
-    <string name="memory_screen_not_running">未运行</string>
-    <string name="memory_screen_has_error">有异常</string>
     <string name="memory_screen_normal">正常</string>
-    <string name="memory_screen_overview">记忆概览</string>
-    <string name="memory_screen_fact_total_label">元事实总数</string>
-    <string name="memory_screen_last_compile">最近编译</string>
-    <string name="memory_screen_no_compile_time">暂无</string>
-    <string name="memory_screen_health">健康状态</string>
-    <string name="memory_screen_collapse_steps">收起步骤详情</string>
-    <string name="memory_screen_view_steps">查看步骤详情</string>
     <string name="memory_screen_failed_times">失败 %1$d 次</string>
     <string name="memory_screen_last_success">上次成功： %1$s</string>
     <string name="memory_screen_error">错误： %1$s</string>
@@ -217,9 +204,6 @@
     <string name="memory_screen_experience_tags_label">标签（逗号分隔，可选）</string>
 
     <!-- v2.0: 概览统计卡片 -->
-    <string name="memory_overview_total">元事实总数</string>
-    <string name="memory_overview_important">重要/关键</string>
-    <string name="memory_overview_layers">记忆层数</string>
 
     <!-- ===== 设置页 SettingsScreen ===== -->
     <string name="settings_screen_title">设置</string>

@@ -146,7 +146,6 @@
     <string name="settings_agent_daily_guarantee_off">关闭</string>
     <string name="settings_crash_anr_title">ANR 检测</string>
     <string name="settings_chat_compress_model">压缩模型</string>
-    <string name="settings_chat_compress_model_default">默认模型</string>
     <string name="settings_chat_paste_as_file">长文本粘贴转文件</string>
     <string name="settings_chat_paste_as_file_threshold">粘贴转文件阈值</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">超过 %1$d 字时提示转文件</string>
@@ -573,38 +572,9 @@
     <string name="settings_font_import">导入字体</string>
     <string name="settings_font_clear">恢复默认</string>
     <string name="settings_font_import_failed">字体导入失败：文件格式不支持</string>
-    <string name="miniphone_moments_count">已记录 %1$d 条生活动态</string>
-    <string name="miniphone_tab_chats">小手机</string>
-    <string name="miniphone_typing">正在输入…</string>
-    <string name="miniphone_time_just_now">刚刚</string>
-    <string name="miniphone_time_minutes_ago">%1$d 分钟前</string>
-    <string name="miniphone_time_yesterday">昨天</string>
-    <string name="miniphone_time_days_ago">%1$d 天前</string>
-    <string name="miniphone_tab_contacts">通讯录</string>
-    <string name="miniphone_tab_discover">发现</string>
-    <string name="miniphone_tab_me">我</string>
-    <string name="miniphone_contacts_empty">还没有联系人</string>
-    <string name="miniphone_me_wallpaper">换壁纸</string>
-    <string name="moment_publish_take_photo">拍摄</string>
-    <string name="moment_publish_from_album">从手机相册选择</string>
-    <string name="miniphone_app_moments">朋友圈</string>
-    <string name="miniphone_app_album">相册</string>
-    <string name="miniphone_app_group_chat">群聊</string>
-    <string name="miniphone_app_notes">速记</string>
-    <string name="miniphone_app_weather">天气</string>
-    <string name="miniphone_app_diary">日记本</string>
-    <string name="miniphone_app_settings">设置</string>
     <!-- P4: 小手机重置确认(MEM-10 新增) -->
-    <string name="miniphone_restore_reset">恢复默认桌面顺序</string>
-    <string name="miniphone_undo_restore">撤销恢复</string>
-    <string name="miniphone_reset_default_title">恢复默认桌面顺序？</string>
-    <string name="miniphone_reset_default_content">将清空自定义排列并恢复默认顺序，可通过「撤销恢复」还原。</string>
-    <string name="miniphone_restore_confirm">恢复</string>
     <!-- v1.x: 小手机微信聊天页 -->
-    <string name="miniphone_chat_empty_title">暂无消息</string>
     <!-- v1.138: 小手机私信空间 -->
-    <string name="miniphone_pm_new_session">新建对话</string>
-    <string name="miniphone_pm_empty_title">还没有私信</string>
     <string name="settings_asr_engine_title">识别引擎</string>
     <string name="settings_asr_engine_change">更换</string>
     <string name="settings_asr_pick_title">选择识别引擎</string>
@@ -649,12 +619,6 @@
     <string name="settings_relationship_proactive_enabled_subtitle">关闭后这个角色不会主动找你，但不影响你主动聊天</string>
     <string name="settings_relationship_daily_limit">每日主动上限（0 = 不限）</string>
     <string name="settings_relationship_daily_limit_placeholder">0</string>
-    <string name="miniphone_contact_detail_title">角色资料</string>
-    <string name="miniphone_contact_affinity">亲密度</string>
-    <string name="miniphone_contact_last_interaction">最近互动</string>
-    <string name="miniphone_contact_never">还没有互动</string>
-    <string name="miniphone_contact_start_chat">发消息</string>
-    <string name="miniphone_contact_edit_relationship">编辑关系</string>
     <string name="search_custom_engines_section">自定义搜索引擎</string>
     <string name="search_custom_engines_hint">接入自己的检索服务：填端点、请求模板与结果路径即可，不用改代码。启用的引擎会排在自动模式的最前面。</string>
     <string name="search_custom_engine_add">添加引擎</string>

@@ -378,7 +378,6 @@
     <string name="chat_generated_video_cd">生成されたビデオ</string>
     <string name="chat_msg_selected">選択済み</string>
     <string name="chat_msg_not_selected">未選択</string>
-    <string name="moment_images_selected">%1$d 枚選択済み(タップで追加)</string>
     <!-- ===== 日記 (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>日</item>
@@ -400,32 +399,6 @@
         <item>土曜</item>
     </string-array>
     <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
-    <string name="moment_expand_full">全文を表示</string>
-    <string name="moment_like_cd">いいね</string>
-    <string name="moment_like_cancel">いいねを取り消す</string>
-    <string name="moment_comment_cd">コメント</string>
-    <string name="moment_favorite">お気に入り</string>
-    <string name="moment_more_actions">この投稿のその他の操作</string>
-    <string name="moment_sender_muse">Muse</string>
-    <string name="moment_sender_me">私</string>
-    <string name="moment_delete_title">投稿を削除</string>
-    <string name="moment_image_cd">投稿画像</string>
-    <string name="moment_image_cd_indexed">投稿画像 %1$d</string>
-    <string name="moment_avatar_cd">アバター</string>
-    <string name="moment_cover_cd">モーメントカバー</string>
-    <string name="moment_messages_cd">メッセージ</string>
-    <string name="moment_publish_cd">投稿する(短押しで画像、長押しでテキスト)</string>
-    <string name="moment_empty_feed">まだ投稿がありません</string>
-    <string name="moment_messages_empty">いいねやコメントはまだありません</string>
-    <string name="moment_notification_liked">%1$s があなたの投稿にいいねしました</string>
-    <string name="moment_notification_commented">%1$s があなたの投稿にコメントしました</string>
-    <string name="moment_profile_title">%1$s のホーム</string>
-    <string name="moment_moment_count">%1$d 件の投稿</string>
-    <string name="moment_publish_text_only">テキストのみ投稿</string>
-    <string name="moment_publish_feed">投稿する</string>
-    <string name="moment_publish_placeholder">いま考えていること...</string>
-    <string name="moment_pending_image_cd">追加予定の画像</string>
-    <string name="moment_publish_confirm">投稿</string>
     <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n(临时复制中文,后续补译) -->
     <string name="settings_sticker_batch_done">完了</string>
     <string name="settings_sticker_batch_delete">一括削除</string>
@@ -504,16 +477,7 @@
     <string name="tool_approval_pending_n">承認待ち %1$d 件</string>
     <string name="chat_pending_tools_discard_confirm_title">未完了のツール呼び出しを破棄しますか？</string>
     <string name="chat_pending_tools_discard_confirm_msg">破棄すると実行されず、復元できません。</string>
-    <string name="moment_mood_prefix">気分：%1$s</string>
-    <string name="moment_published">投稿しました</string>
-    <string name="moment_search_clear_cd">検索をクリア</string>
-    <string name="moment_favorites_only_cd">お気に入りのみ</string>
-    <string name="moment_generating">生成中…</string>
-    <string name="moment_generate_now">今すぐ投稿を生成</string>
     <!-- U-24: 「今すぐ生成」結果フィードバック -->
-    <string name="moment_generate_success">投稿を生成しました</string>
-    <string name="moment_generate_no_material">今日生成できる素材がありません</string>
-    <string name="moment_generate_failed">生成に失敗しました: 後でもう一度お試しください</string>
     <string name="settings_bubble_radius_large">大きい角丸</string>
     <string name="settings_bubble_radius_none">角形</string>
     <string name="settings_bubble_radius_pill">カプセル</string>
@@ -553,9 +517,6 @@
     <string name="chat_context_divider_hint_collapsed">タップで元のメッセージを表示</string>
     <string name="chat_context_divider_hint_expanded">タップで元のメッセージを隠す</string>
     <string name="chat_translation_block_title">翻訳</string>
-    <string name="moment_comment_reply">返信</string>
-    <string name="moment_visibility_title">公開範囲</string>
-    <string name="moment_visibility_public">全員</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">ツール実行は一時停止中です。実際には実行されません。</string>
     <string name="chat_tool_paused_banner_action">設定</string>

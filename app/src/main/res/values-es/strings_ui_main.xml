@@ -104,14 +104,10 @@
     <string name="memory_screen_edit_summary">Editar resumen de sesión</string>
     <string name="memory_open_conversation">Abrir conversación</string>
     <string name="memory_conversation_meta">Asistente %1$s · Espacio %2$s</string>
-    <string name="memory_screen_no_match">No se encontraron recuerdos coincidentes</string>
-    <string name="memory_screen_search_results">Resultados de la búsqueda (%1$d)</string>
     <string name="memory_screen_no_fact">Aún no hay metahechos</string>
     <string name="memory_screen_collapse">Colapsar</string>
     <string name="memory_screen_expand">Expandir</string>
     <string name="memory_screen_edit_cd">Editar</string>
-    <string name="memory_pin_cd">Fijar</string>
-    <string name="memory_unpin_cd">Desfijar</string>
     <string name="memory_screen_delete_cd">Eliminar</string>
     <string name="memory_screen_load_failed">Error de carga: detalles completos del error</string>
     <string name="memory_screen_copied_trace">Seguimiento de pila completo copiado al portapapeles</string>
@@ -119,16 +115,7 @@
     <string name="memory_screen_retry">Reintentar</string>
     <string name="memory_screen_input_content">Introduce el contenido...</string>
     <string name="memory_screen_save">Guardar</string>
-    <string name="memory_screen_not_running">No está en ejecución</string>
-    <string name="memory_screen_has_error">Problemas encontrados</string>
     <string name="memory_screen_normal">Normal</string>
-    <string name="memory_screen_overview">Descripción general de la memoria</string>
-    <string name="memory_screen_fact_total_label">Metahechos totales</string>
-    <string name="memory_screen_last_compile">Última recopilación</string>
-    <string name="memory_screen_no_compile_time">Ninguno todavía</string>
-    <string name="memory_screen_health">Estado de salud</string>
-    <string name="memory_screen_collapse_steps">Contraer detalles del paso</string>
-    <string name="memory_screen_view_steps">Ver detalles del paso</string>
     <string name="memory_screen_failed_times">Falló %1$d veces</string>
     <string name="memory_screen_last_success">Último éxito: %1$s</string>
     <string name="memory_screen_error">Error: %1$s</string>
@@ -178,9 +165,6 @@
     <string name="memory_screen_experience_tags_label">Etiquetas (separadas por comas, opcionales)</string>
 
     <!-- v2.0: overview stat card -->
-    <string name="memory_overview_total">Hechos totales</string>
-    <string name="memory_overview_important">Importante/Crítico</string>
-    <string name="memory_overview_layers">Capas de memoria</string>
 
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Ajustes</string>

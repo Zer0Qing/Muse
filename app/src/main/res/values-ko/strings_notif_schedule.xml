@@ -85,7 +85,6 @@
     <string name="plugin_kill_switch_title">모든 플러그인이 꺼져 있습니다</string>
     <string name="plugin_kill_switch_desc">안전 모드 일괄 중지입니다. 도구, 명령, 이벤트, 훅, 예약 작업이 실행되지 않습니다. 복원하면 다시 동작합니다.</string>
     <string name="plugin_kill_switch_restore">플러그인 복원</string>
-    <string name="plugin_kill_switch_disable">모든 플러그인 끄기</string>
     <string name="workspace_location_title">워크스페이스 위치</string>
     <string name="workspace_location_downloads">다운로드(Download/Muse) — 모든 파일 관리자에서 보입니다</string>
     <string name="workspace_location_internal">앱 전용 폴더 — 다른 앱에서는 보이지 않습니다</string>
@@ -165,16 +164,9 @@
     <string name="memory_dream_desc">기억 섹션을 다시 정리합니다. 게시 전 되돌리기 가능</string>
     <string name="memory_dream_start">시작</string>
     <string name="memory_dream_rollback">되돌리기</string>
-    <string name="memory_dream_done">완료</string>
     <string name="memory_dream_skipped">건너뜀: %1$s</string>
     <string name="offline_resources_title">오프라인 리소스</string>
     <string name="offline_resources_runtime">실행 환경(Node / Python)</string>
     <string name="offline_resources_asr">로컬 음성 모델(SenseVoice)</string>
-    <string name="offline_resources_asr_open">음성 설정 열기</string>
-    <string name="offline_resources_ready">준비됨</string>
-    <string name="offline_resources_not_installed">설치 안 됨</string>
-    <string name="offline_resources_downloading">다운로드 중</string>
-    <string name="offline_resources_download">다운로드</string>
     <string name="offline_resources_delete">삭제</string>
-    <string name="offline_resources_manage">관리</string>
 </resources>
