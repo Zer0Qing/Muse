@@ -3,6 +3,7 @@ package io.zer0.muse
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P2-3 拆域：OCR / TTS / 语音克隆等媒体服务注册独立模块。

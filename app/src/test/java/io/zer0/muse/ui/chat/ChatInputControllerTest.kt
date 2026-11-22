@@ -3,9 +3,6 @@ package io.zer0.muse.ui.chat
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.ai.core.UIMessage
-import io.zer0.muse.ui.ChatInputState
-import io.zer0.muse.ui.ChatSessionState
-import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +14,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.ui.PendingMessage
 
 /** 内存实现的 [ChatStateAccessor],供 Controller 纯逻辑测试。 */
 private class FakeAccessor(initial: ChatUiState) : ChatStateAccessor {
@@ -149,7 +145,7 @@ class ChatInputControllerTest {
             ChatUiState(
                 inputState = ChatInputState(sendQueue = listOf(PendingMessage("agent msg"))),
                 sessionState = ChatSessionState(currentSessionId = "task-session"),
-                agentState = io.zer0.muse.ui.ChatAgentState(isAgentMode = true, agentSessionId = "agent-session"),
+                agentState = ChatAgentState(isAgentMode = true, agentSessionId = "agent-session"),
             ),
             onSend = { t, imgs, sid -> sent = Triple(t, imgs, sid) },
         )
@@ -166,7 +162,7 @@ class ChatInputControllerTest {
             ChatUiState(
                 inputState = ChatInputState(sendQueue = listOf(PendingMessage("queued"))),
                 sessionState = ChatSessionState(currentSessionId = "s1"),
-                streamState = io.zer0.muse.ui.ChatStreamState(isStreaming = true),
+                streamState = ChatStreamState(isStreaming = true),
             ),
             onSend = { _, _, _ -> sent = true },
         )

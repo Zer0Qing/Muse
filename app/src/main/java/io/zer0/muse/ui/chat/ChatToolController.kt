@@ -9,7 +9,6 @@ import io.zer0.muse.tools.ToolConfigStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: 从 ChatViewModel 抽离的工具审批/权限 Controller。

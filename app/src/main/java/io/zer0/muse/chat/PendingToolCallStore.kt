@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import java.io.File
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 断点续传(工具中断恢复)— 持久化未完成的工具调用。

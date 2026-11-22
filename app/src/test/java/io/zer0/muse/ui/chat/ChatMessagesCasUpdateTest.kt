@@ -2,7 +2,6 @@ package io.zer0.muse.ui.chat
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
-import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -232,7 +231,7 @@ class ChatMessagesCasUpdateTest {
         return Files.newBufferedReader(path).use { it.readText() }
     }
 
-    private fun viewModel(): String = source("src/main/java/io/zer0/muse/ui/ChatViewModel.kt")
+    private fun viewModel(): String = source("src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt")
 
     private fun generationController(): String = source("src/main/java/io/zer0/muse/ui/chat/ChatGenerationController.kt")
 

@@ -45,7 +45,7 @@ import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.data.AutomationSettingsStore
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSwitch

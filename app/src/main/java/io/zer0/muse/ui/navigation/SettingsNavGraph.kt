@@ -7,7 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.license.LicensesScreen
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.account.AccountScreen
 import io.zer0.muse.ui.dev.ComponentGalleryScreen
 import io.zer0.muse.ui.knowledge.KnowledgeScreen

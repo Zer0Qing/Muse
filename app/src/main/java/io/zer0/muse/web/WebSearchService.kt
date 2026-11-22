@@ -17,6 +17,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import io.zer0.muse.ui.settings.SettingsScreen
 import io.zer0.muse.ui.chat.InputBar
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.4: Web 搜索结果条目。

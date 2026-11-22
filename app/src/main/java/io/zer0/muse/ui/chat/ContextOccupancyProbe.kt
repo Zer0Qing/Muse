@@ -1,6 +1,4 @@
 package io.zer0.muse.ui.chat
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * 当前对话上下占用量的对外只读入口。

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.concurrent.ConcurrentHashMap
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 异步委派任务结果回灌 — 非阻塞委派的核心基础设施。

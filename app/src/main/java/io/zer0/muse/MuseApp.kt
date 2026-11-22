@@ -33,7 +33,7 @@ import io.zer0.muse.miniphone.work.MiniPhoneMomentScheduler
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.tools.SkillExecutor
 import io.zer0.muse.tools.quicknote.QuickNoteStore
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.muse.web.WebSearchService

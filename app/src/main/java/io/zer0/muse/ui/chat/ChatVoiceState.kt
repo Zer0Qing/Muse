@@ -3,7 +3,6 @@ package io.zer0.muse.ui.chat
 import io.zer0.muse.ui.speech.VoiceConversationState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: 语音对话模式(录音 → 识别 → 思考 → 播报循环)的共享状态容器。

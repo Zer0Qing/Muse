@@ -31,12 +31,13 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 视觉分析异常。
  *
  * v1.135: 视觉辅助失败时不再静默返回 null,而是抛出此异常,
- * 由调用方(如 [io.zer0.muse.ui.ChatViewModel])捕获并注入失败提示、清空图片,
+ * 由调用方(如 [ChatViewModel])捕获并注入失败提示、清空图片,
  * 避免把原图发给纯文本模型导致 HTTP 400。
  */
 class VisionAnalysisException(message: String, cause: Throwable? = null) : Exception(message, cause)

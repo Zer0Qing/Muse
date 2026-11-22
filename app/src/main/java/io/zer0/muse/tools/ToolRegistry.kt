@@ -20,6 +20,7 @@ import kotlinx.serialization.json.put
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 5-H: 工具注册表(简化版 MCP 框架)。

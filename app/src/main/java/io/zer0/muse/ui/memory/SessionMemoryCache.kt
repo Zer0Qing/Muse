@@ -3,6 +3,7 @@ package io.zer0.muse.ui.memory
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import java.util.LinkedHashMap
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 会话消息内存 LRU 缓存。

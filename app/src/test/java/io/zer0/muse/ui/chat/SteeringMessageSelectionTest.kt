@@ -1,10 +1,8 @@
 package io.zer0.muse.ui.chat
 
-import io.zer0.muse.ui.selectSteeringMessages
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.PendingMessage
 
 /**
  * 插话取件判定（selectSteeringMessages）。

@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.chat
 
 import io.zer0.ai.core.UIMessage
-import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 

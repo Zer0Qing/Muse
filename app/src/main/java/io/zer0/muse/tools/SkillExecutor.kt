@@ -18,6 +18,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.8: Skill 执行器(Kotlin 直实现,不用 QuickJS)。

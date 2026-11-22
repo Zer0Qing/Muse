@@ -10,6 +10,7 @@ import io.zer0.muse.data.assistant.AssistantCardExporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import io.zer0.muse.ui.chat.ChatScreen
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.10: Deep Link + 系统分享接收处理器。

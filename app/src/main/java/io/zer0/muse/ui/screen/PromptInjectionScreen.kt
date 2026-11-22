@@ -58,7 +58,7 @@ import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.androidx.compose.koinViewModel
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.5: PromptInjection(模式注入)管理页。

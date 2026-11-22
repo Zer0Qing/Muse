@@ -2,6 +2,7 @@ package io.zer0.muse.tools
 
 import io.zer0.common.Logger
 import io.zer0.muse.tools.defaultTool.UIToolsRegistrar
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 工具注册器启动引导。

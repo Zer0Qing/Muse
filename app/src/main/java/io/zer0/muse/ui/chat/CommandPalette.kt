@@ -73,7 +73,6 @@ import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.screen.SearchScreen
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * C1 全局命令面板 — 桌面 Ctrl+K / 首页搜索按钮唤起的统一入口。

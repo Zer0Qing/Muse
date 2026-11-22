@@ -26,7 +26,7 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.session.ToolRoundEntity
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.skill.SkillRepository
-import io.zer0.muse.ui.ChatErrorType
+import io.zer0.muse.ui.chat.ChatErrorType
 import io.zer0.muse.ui.chat.ChatStateAccessor
 import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
 import io.zer0.muse.ui.taskcard.TaskCardData
@@ -57,11 +57,12 @@ import kotlinx.serialization.json.put
 import java.io.File
 import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ToolCallRecord
+import io.zer0.muse.ui.chat.ToolCallRecord
 import io.zer0.muse.ui.chat.ToolCallCard
 import io.zer0.muse.ui.chat.STICKER_PATH_PATTERN
 import io.zer0.muse.ui.chat.extractStickerPaths
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /** 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
 internal const val TOOL_TIMEOUT_MS = 120_000L

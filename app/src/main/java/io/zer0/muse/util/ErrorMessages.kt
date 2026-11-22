@@ -2,6 +2,7 @@ package io.zer0.muse.util
 
 import android.content.Context
 import io.zer0.muse.R
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 解析 [io.zer0.common.ErrorCode.toMessage] 生成的 ERR_ 前缀消息并映射为本地化字符串。

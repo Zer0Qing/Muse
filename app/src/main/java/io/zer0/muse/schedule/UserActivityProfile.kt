@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.Calendar
 import kotlin.math.pow
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 用户活跃度画像 — 记录用户最近 7 天每小时的活动频次,驱动自适应主动消息调度。
@@ -26,7 +27,7 @@ import kotlin.math.pow
  * 调用方:
  *  - [ProactiveMessageRunner] 读取 [isHighActiveHour] / [getNextActiveWindow] /
  *    [getLastConversationEndType] / [getLastKnownMood] 决定下次触发时间
- *  - [io.zer0.muse.ui.ChatViewModel] 在用户发消息时调用 [recordActivity] 更新画像,
+ *  - [ChatViewModel] 在用户发消息时调用 [recordActivity] 更新画像,
  *    并根据消息内容更新 [lastConversationEndType]
  */
 class UserActivityProfile(

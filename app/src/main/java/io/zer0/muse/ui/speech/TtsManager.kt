@@ -34,6 +34,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.7: 文本转语音管理器(Android 系统 TextToSpeech)。

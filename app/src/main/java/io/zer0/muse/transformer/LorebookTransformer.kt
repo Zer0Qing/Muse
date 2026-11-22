@@ -5,6 +5,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.lorebook.LorebookEntity
 import io.zer0.muse.data.lorebook.LorebookRepository
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Lorebook 注入 Transformer — Phase 8.5。

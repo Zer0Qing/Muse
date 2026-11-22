@@ -10,7 +10,6 @@ import io.zer0.muse.asr.ASRState
 import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactRepository
-import io.zer0.muse.ui.ChatUiState
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.VoiceConversationState
 import kotlinx.coroutines.CoroutineScope

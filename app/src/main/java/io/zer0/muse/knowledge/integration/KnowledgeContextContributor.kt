@@ -9,6 +9,7 @@ import io.zer0.muse.knowledge.retrieval.KnowledgeEntryType
 import io.zer0.muse.knowledge.retrieval.KnowledgeRetriever
 import io.zer0.muse.knowledge.retrieval.KnowledgeSearchRequest
 import io.zer0.muse.knowledge.retrieval.RetrievalOutcome
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * R7 消费入口接线 — 设计 §12「所有消费入口的合同」与计划 R7。

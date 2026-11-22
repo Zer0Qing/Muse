@@ -11,8 +11,6 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.tools.MediaGenKind
 import io.zer0.muse.tools.MediaGenResult
 import io.zer0.muse.tools.MediaGenSlot
-import io.zer0.muse.ui.ChatSessionState
-import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

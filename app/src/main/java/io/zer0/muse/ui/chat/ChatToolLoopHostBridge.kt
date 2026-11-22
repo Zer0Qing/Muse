@@ -12,14 +12,7 @@ import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.session.ConversationSessionManager
 import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.transformer.ContextCompressTransformer
-import io.zer0.muse.ui.ChatErrorType
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ChatStreamPhase
-import io.zer0.muse.ui.resumeOverlapToDrop
-import io.zer0.muse.ui.shouldReplaceOnResumeRewrite
-import io.zer0.muse.ui.shouldReplaceOnResumeSupersede
-import io.zer0.muse.ui.canUseToolModelForRound
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S1: [ChatToolLoopRunner] 访问 ChatViewModel 的窄桥接口。
@@ -70,7 +63,7 @@ internal interface ChatToolLoopHostBridge {
 
     fun addError(type: ChatErrorType, message: String, isRecoverable: Boolean = true)
     fun classifyErrorType(message: String, throwable: Throwable? = null): ChatErrorType
-    fun clearStreamingStateIfLatest(state: StreamRunState, finalPhase: io.zer0.muse.ui.ChatStreamPhase? = null): Boolean
+    fun clearStreamingStateIfLatest(state: StreamRunState, finalPhase: ChatStreamPhase? = null): Boolean
     fun collectStickyToolNames(history: List<UIMessage>): Set<String>
     fun currentSessionIdForApproval(): String?
     fun nextToolGenerationToken(): Long

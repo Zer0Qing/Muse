@@ -4,6 +4,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.ChatViewModel
 
 class ChatCheckpointHydrationWiringTest {
 
@@ -11,8 +12,8 @@ class ChatCheckpointHydrationWiringTest {
     fun `persisted context checkpoint hydrates in process compression watermark`() {
         val source =
             listOf(
-                Path.of("src/main/java/io/zer0/muse/ui/ChatViewModel.kt"),
-                Path.of("app/src/main/java/io/zer0/muse/ui/ChatViewModel.kt"),
+                Path.of("src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt"),
+                Path.of("app/src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt"),
             )
                 .firstOrNull(Files::exists)
                 ?.let { Files.newBufferedReader(it).use { reader -> reader.readText() } }

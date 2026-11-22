@@ -12,9 +12,9 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.schedule.ChatGenerationManager
-import io.zer0.muse.ui.ChatStreamPhase
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatStreamPhase
+import io.zer0.muse.ui.chat.ChatUiState
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.chat.parseQuotedContent
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope

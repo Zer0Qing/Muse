@@ -20,6 +20,7 @@ import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.notification.MuseNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Agent 工具注册器（实现自既有工具系统）。

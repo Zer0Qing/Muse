@@ -6,6 +6,7 @@ import android.content.Intent
 import io.zer0.common.Logger
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 通知栏"停止"按钮 → 生成链路 的单向信号（对比清单 P2-03）。

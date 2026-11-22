@@ -36,6 +36,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicInteger
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.54: RAG 编排服务(分块 + embedding + 索引 + 检索 + 注入)。

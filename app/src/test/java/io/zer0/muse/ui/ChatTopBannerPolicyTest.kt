@@ -11,6 +11,7 @@ import io.zer0.muse.ui.chat.ErrorVisibility
 import io.zer0.muse.ui.chat.resolveErrorVisibility
 import io.zer0.muse.ui.chat.ERROR_VISIBLE_WAIT_MS
 import io.zer0.muse.ui.chat.ERROR_AUTO_DISMISS_MS
+import io.zer0.muse.ui.chat.ChatErrorType
 
 /**
  * 顶部横幅优先级 + 错误可见性/自动消失策略。

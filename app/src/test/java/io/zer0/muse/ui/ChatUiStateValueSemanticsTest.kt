@@ -4,6 +4,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import io.zer0.muse.ui.chat.ChatStreamState
+import io.zer0.muse.ui.chat.ChatToolsState
+import io.zer0.muse.ui.chat.ChatInputState
+import io.zer0.muse.ui.chat.ChatSessionState
+import io.zer0.muse.ui.chat.ChatAgentState
+import io.zer0.muse.ui.chat.ChatUiState
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * BLK-8 结论的代码锚点。
@@ -24,7 +31,7 @@ import java.io.File
 class ChatUiStateValueSemanticsTest {
 
     private val source: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/ChatViewModel.kt").readText()
+        File("src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt").readText()
     }
 
     @Test

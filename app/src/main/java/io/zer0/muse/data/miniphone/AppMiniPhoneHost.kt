@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.UUID
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 角色的旁路文本生成端口。

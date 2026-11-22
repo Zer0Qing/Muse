@@ -5,6 +5,7 @@ import android.os.Looper
 import android.webkit.JavascriptInterface
 import org.json.JSONObject
 import io.zer0.common.Logger
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.0.92: 卡片回传动作 — 富内容卡片(HTML/SVG)与宿主之间的最小契约。

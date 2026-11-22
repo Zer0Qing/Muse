@@ -26,12 +26,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.97 gap8: 独立翻译页 ViewModel。
  *
  * 复用 [ChatService] 的通用文本补全能力,不依赖会话/消息持久化。
- * 翻译策略与 [io.zer0.muse.ui.ChatViewModel.translateMessage] 一致:
+ * 翻译策略与 [ChatViewModel.translateMessage] 一致:
  *  1. 优先 [ChatService.completeText](一次性,速度快)
  *  2. 若 Provider 未实现 completeText 或出错,降级 [ChatService.streamChat](流式,实时更新译文)
  *

@@ -68,6 +68,7 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import io.zer0.muse.ui.chat.SmartImage
 import io.zer0.muse.ui.chat.AssistantVideoCard
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 群聊调度器 — 用户发消息后串行触发群聊中的 Agent 轮转发言。

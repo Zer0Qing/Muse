@@ -9,6 +9,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 网络错误分类纯函数测试(职责已从 ChatViewModel 收口到 [ErrorMessages])。

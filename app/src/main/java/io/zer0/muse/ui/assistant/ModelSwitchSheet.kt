@@ -48,7 +48,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.chat.ChatScreen
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 阶段 5: 模型切换底部面板。

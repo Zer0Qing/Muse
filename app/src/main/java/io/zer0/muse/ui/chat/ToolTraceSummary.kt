@@ -3,7 +3,6 @@ package io.zer0.muse.ui.chat
 import android.content.res.Resources
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
-import io.zer0.muse.ui.ToolCallRecord
 
 /**
  * 按工具名聚合的任务级工具轨迹摘要。

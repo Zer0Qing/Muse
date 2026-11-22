@@ -3,8 +3,6 @@ package io.zer0.muse.ui.chat
 import android.content.Context
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.PendingMessage
 
 /** v1.205 B2: 待发送队列上限。 */
 internal const val MAX_PENDING_SEND_QUEUE = 8

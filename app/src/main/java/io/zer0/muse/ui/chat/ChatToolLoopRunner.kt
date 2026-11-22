@@ -35,11 +35,8 @@ import io.zer0.muse.tools.ToolRoundPresentationPolicy
 import io.zer0.muse.transformer.CompressionPolicy
 import io.zer0.muse.transformer.ContextBudget
 import io.zer0.muse.transformer.TransformContext
-import io.zer0.muse.ui.ChatErrorType
-import io.zer0.muse.ui.ChatStreamPhase
 import io.zer0.muse.ui.artifact.RichCardArtifacts
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.selectSteeringMessages
 import io.zer0.muse.util.ErrorMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
@@ -57,12 +54,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import io.zer0.muse.ui.chat.render.mergeFinalAssistantMedia
-import io.zer0.muse.ui.resumeOverlapToDrop
-import io.zer0.muse.ui.shouldReplaceOnResumeRewrite
-import io.zer0.muse.ui.shouldReplaceOnResumeSupersede
-import io.zer0.muse.ui.canUseToolModelForRound
-import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.PendingMessage
 
 /**
  * v2.6.15: 本轮 assistant 消息的产出模型戳。
@@ -366,7 +357,7 @@ internal class ChatToolLoopRunner(
                  * 把已经做完的工作一起丢掉。
                  *
                  * 取件规则（宁可漏取，不可错取）：
-                 *  - 只取 [io.zer0.muse.ui.PendingMessage.sessionId] 与本轮会话一致的条目。
+                 *  - 只取 [PendingMessage.sessionId] 与本轮会话一致的条目。
                  *    属于别的会话的排队消息被取走，等于在那段对话里塞进用户没说过的话，
                  *    而且它会成为模型后续推理的依据 —— 这是数据污染，不是延迟问题。
                  *    sessionId 为 null 的（旧数据/入队时无会话）同样不取。

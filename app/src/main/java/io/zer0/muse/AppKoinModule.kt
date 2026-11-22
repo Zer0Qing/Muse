@@ -15,7 +15,7 @@ import io.zer0.muse.data.quickmsg.QuickMessageRepository
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.doc.DocumentParser
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.web.WebSearchService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

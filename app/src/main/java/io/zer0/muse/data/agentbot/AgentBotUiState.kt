@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import android.content.Context
-import io.zer0.muse.ui.ChatUiState
+import io.zer0.muse.ui.chat.ChatUiState
 
 /**
  * 中枢页面向用户显示的错误。

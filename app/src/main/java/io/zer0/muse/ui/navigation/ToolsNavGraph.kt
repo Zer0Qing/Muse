@@ -4,7 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.knowledge.KnowledgeScreen
 import io.zer0.muse.ui.speech.VoiceCloningPage
 import io.zer0.muse.ui.stats.StatsScreen

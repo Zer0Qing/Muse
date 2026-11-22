@@ -106,11 +106,11 @@ class ChatStreamMoodTest {
     ) : ChatStateAccessor {
         var messages: List<UIMessage> = initial
 
-        override val snapshot: io.zer0.muse.ui.ChatUiState = io.zer0.muse.ui.ChatUiState()
+        override val snapshot: ChatUiState = ChatUiState()
         override val messagesSnapshot: List<UIMessage> get() = messages
         override val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Unconfined)
 
-        override fun update(transform: (io.zer0.muse.ui.ChatUiState) -> io.zer0.muse.ui.ChatUiState) = Unit
+        override fun update(transform: (ChatUiState) -> ChatUiState) = Unit
 
         override fun updateMessages(transform: (List<UIMessage>) -> List<UIMessage>) {
             messages = transform(messages)

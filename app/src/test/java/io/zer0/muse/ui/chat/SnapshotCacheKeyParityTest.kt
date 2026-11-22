@@ -2,7 +2,6 @@ package io.zer0.muse.ui.chat
 
 import io.mockk.every
 import io.mockk.mockk
-import io.zer0.muse.ui.ChatUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -72,7 +71,7 @@ class SnapshotCacheKeyParityTest {
 
     @Test
     fun `write path puts the same session dimension into the key`() {
-        val text = sourceOf("io/zer0/muse/ui/ChatViewModel.kt")
+        val text = sourceOf("io/zer0/muse/ui/chat/ChatViewModel.kt")
         val writeArgs = between(
             text,
             "cachedStaticSnapshotKey = generationController.computeFullSnapshotKey(",

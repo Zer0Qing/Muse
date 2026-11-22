@@ -36,6 +36,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /** Stable labels used to constrain visible reasoning language to the app interface locale. */
 internal fun thinkingLanguageName(locale: String): String = when (locale.lowercase()) {

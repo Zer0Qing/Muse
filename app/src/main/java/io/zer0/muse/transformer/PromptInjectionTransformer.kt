@@ -4,6 +4,7 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * PromptInjection(模式注入)Transformer — Phase 8.5。

@@ -12,6 +12,7 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import java.io.File
 import java.security.MessageDigest
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v2.0: 卡片数据存储 — 卡片数据绑定(cardId → JSON 数据)。

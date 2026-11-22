@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * AUD-20261011-A2A-PROTOCOL: JSON-RPC 信封解析与 task id 取值的纯逻辑(可单测)。

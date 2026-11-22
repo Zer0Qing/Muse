@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P2-23 回归:媒体生成工具(图片/视频/二维码)改为启动期注册后的注册台账护栏。

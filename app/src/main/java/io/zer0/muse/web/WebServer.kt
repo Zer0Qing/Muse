@@ -51,6 +51,7 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.11: 嵌入式 Web 服务器(Ktor Netty + JWT + mDNS,可选 HTTPS)。
@@ -102,7 +103,7 @@ class WebServer(
     private val notificationManager: MuseNotificationManager,
     private val mdnsService: MdnsService,
     private val context: Context,
-    private val chatViewModel: io.zer0.muse.ui.ChatViewModel,
+    private val chatViewModel: ChatViewModel,
     generationManager: io.zer0.muse.schedule.ChatGenerationManager,
     private val chatService: io.zer0.ai.ChatService,
     private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository,

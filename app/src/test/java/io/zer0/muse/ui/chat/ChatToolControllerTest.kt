@@ -4,8 +4,6 @@ import io.mockk.mockk
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.tools.SessionPermissionStore
 import io.zer0.muse.tools.ToolApprovalState
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.PendingToolApproval
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi

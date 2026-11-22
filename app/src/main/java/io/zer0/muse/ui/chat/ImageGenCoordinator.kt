@@ -17,8 +17,6 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.doc.OcrManager
-import io.zer0.muse.ui.ChatError
-import io.zer0.muse.ui.ChatErrorType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -26,7 +24,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.135: 视频附件处理回调类型。

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P2-2 拆分：聊天行为设置子仓库。

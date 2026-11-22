@@ -23,12 +23,11 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.state.MuseProgressBar
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.0.47 P5-3: Token 计数快照。
  *
- * 打开 Token 菜单时由 [io.zer0.muse.ui.ChatViewModel] 计算一次,
+ * 打开 Token 菜单时由 [ChatViewModel] 计算一次,
  * 避免每次按键都做 BPE 编码(性能开销大)。
  *
  * @param inputTokens 当前输入框文本 token 数

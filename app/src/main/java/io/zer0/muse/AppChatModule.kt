@@ -10,7 +10,7 @@ import io.zer0.muse.data.conversation.RoomConversationStore
 import io.zer0.muse.data.conversation.RoomConversationWindowSource
 import io.zer0.muse.data.conversation.RoomSubmitCommandPort
 import io.zer0.muse.data.conversation.SelectionSnapshotResolver
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module

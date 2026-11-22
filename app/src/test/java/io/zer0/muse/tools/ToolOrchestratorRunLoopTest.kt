@@ -12,8 +12,8 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.skill.SkillRepository
-import io.zer0.muse.ui.ChatErrorType
-import io.zer0.muse.ui.ChatUiState
+import io.zer0.muse.ui.chat.ChatErrorType
+import io.zer0.muse.ui.chat.ChatUiState
 import io.zer0.muse.ui.chat.ChatStateAccessor
 import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
 import io.zer0.muse.ui.chat.InMemoryChatStateAccessor
@@ -29,6 +29,7 @@ import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * R-TEST-10: ToolOrchestrator 工具执行真实路径测试。

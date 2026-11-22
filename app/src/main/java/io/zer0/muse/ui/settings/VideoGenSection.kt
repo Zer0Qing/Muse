@@ -55,6 +55,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.foundation.lazy.items as lazyItems
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 视频生成默认参数设置。

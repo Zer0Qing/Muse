@@ -20,6 +20,7 @@ import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.worldbook.WorldBookHook
 import kotlinx.serialization.json.Json
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 小手机（私信对话 / 主动消息 / 动态）这类"旁路生成"的上下文构建器。
@@ -30,7 +31,7 @@ import kotlinx.serialization.json.Json
  * 表情包指南**全部不生效。同一个角色在主对话和小手机里会表现出两个人格。
  *
  * 与主链路的区别：
- * - 不碰 [io.zer0.muse.ui.ChatViewModel]（3000+ 行可变状态集合，且持有协程作用域与 UI 状态，
+ * - 不碰 [ChatViewModel]（3000+ 行可变状态集合，且持有协程作用域与 UI 状态，
  *   绝不能拉进后台 Worker / 定时任务）
  * - 不跑 MemoryInjection / TimeReminder / ContextCompress 等"对话历史相关"环节，
  *   旁路生成没有历史，跑这些只会产生空转或错误预算

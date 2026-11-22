@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.ui.chat.buildSendText
 
 /**
  * M4.3: 统一上下文预算测试 — 分区上限、头部保留截断、截断注记可诊断。

@@ -6,10 +6,7 @@ import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.session.ConversationSessionManager
 import io.zer0.muse.tools.SessionPermissionStore
 import io.zer0.muse.tools.ToolApprovalState
-import io.zer0.muse.ui.PendingToolApproval
 import kotlinx.serialization.json.Json
-import io.zer0.muse.ui.ChatErrorType
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S4/S5: [ChatToolApprovalCoordinator] 与 [ChatToolResumeCoordinator]
@@ -53,7 +50,7 @@ internal interface ChatToolApprovalHostBridge {
 
     // ── 方法转发 ───────────────────────────────────────────────────────
 
-    fun addError(type: io.zer0.muse.ui.ChatErrorType, message: String, isRecoverable: Boolean = true)
+    fun addError(type: ChatErrorType, message: String, isRecoverable: Boolean = true)
     val skillExecutor: io.zer0.muse.tools.SkillExecutor
     val routeGuard: io.zer0.muse.tools.ToolRouteExecutionGuard
     suspend fun recheckApprovalForResume(chatId: String, pending: PendingToolCallStore.PendingToolCall): ToolApprovalState?

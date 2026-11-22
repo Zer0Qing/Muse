@@ -102,7 +102,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.io.File
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 即时保存 helper: 不用 ViewModel,直接读 AssistantRepository

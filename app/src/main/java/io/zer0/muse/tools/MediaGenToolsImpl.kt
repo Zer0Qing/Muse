@@ -28,6 +28,7 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /** P2-23: 媒体生成类型（语音消息沿用同一条投递链路）。 */
 enum class MediaGenKind { IMAGE, VIDEO, QR_CODE, VOICE }

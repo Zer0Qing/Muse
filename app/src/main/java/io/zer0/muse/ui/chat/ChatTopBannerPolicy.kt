@@ -1,5 +1,4 @@
 package io.zer0.muse.ui.chat
-import io.zer0.muse.ui.ChatErrorType
 
 /**
  * 聊天页顶部横幅（互斥显示，同一时刻只有一个）。

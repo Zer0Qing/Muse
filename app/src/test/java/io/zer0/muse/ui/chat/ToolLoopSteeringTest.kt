@@ -21,7 +21,6 @@ import io.zer0.muse.tools.ToolLoopResult
 import io.zer0.muse.tools.ToolOrchestrator
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolResultJudge
-import io.zer0.muse.ui.ChatErrorType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

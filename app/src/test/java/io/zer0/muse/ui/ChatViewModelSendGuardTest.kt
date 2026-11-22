@@ -3,6 +3,8 @@ package io.zer0.muse.ui
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.ui.chat.canStartGeneration
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * R-TEST-06: ChatViewModel 发送守卫状态机纯逻辑。

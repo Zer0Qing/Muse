@@ -13,6 +13,7 @@ import io.zer0.muse.ui.taskcard.AgentPlanStep
 import io.zer0.muse.ui.taskcard.AgentPlanStepStatus
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P1-3e 拆域：SkillExecutor 的 Agent 工作流/群聊工具实现。

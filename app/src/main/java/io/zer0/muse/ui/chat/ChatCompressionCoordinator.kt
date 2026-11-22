@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import io.zer0.muse.ui.common.ManualCompressionPhase
 import io.zer0.muse.ui.common.runManualCompressionStages
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S2: 从 ChatViewModel 提取的上下文压缩编排。

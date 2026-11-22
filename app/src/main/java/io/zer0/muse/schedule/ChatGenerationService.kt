@@ -21,6 +21,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.43: 聊天生成前台服务。

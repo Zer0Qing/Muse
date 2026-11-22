@@ -12,7 +12,6 @@ import io.zer0.muse.asr.AsrClientFactory
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.asr.AsrProviderType
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.ChatUiState
 import io.zer0.muse.ui.speech.TtsManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals

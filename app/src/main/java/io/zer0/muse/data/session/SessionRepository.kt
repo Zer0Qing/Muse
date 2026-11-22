@@ -38,6 +38,7 @@ import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.screen.RecentlyDeletedScreen
 import io.zer0.muse.ui.chat.ToolCallCard
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 会话仓库:封装 SessionDao + MessageDao,提供领域模型 API。
@@ -2001,7 +2002,7 @@ class SessionRepository(
      * 更新会话预览 + updatedAt。
      *
      * 不再用首条消息前缀自动命名标题,标题保持默认值"新会话",
-     * 改由 UI 退出对话时调用 [io.zer0.muse.ui.ChatViewModel.autoTitleOnExit] 触发 AI 摘要命名。
+     * 改由 UI 退出对话时调用 [ChatViewModel.autoTitleOnExit] 触发 AI 摘要命名。
      */
     private suspend fun updateSessionPreview(sessionId: String, message: UIMessage) {
         val preview = previewText(message.content)

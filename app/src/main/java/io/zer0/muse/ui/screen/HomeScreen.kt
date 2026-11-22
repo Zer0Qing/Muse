@@ -66,7 +66,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.assistant.ModelSwitchSheet
 import io.zer0.muse.ui.chat.ChatScreen
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.chat.CommandPalette
 import io.zer0.muse.ui.chat.ChatListScreen
 

@@ -6,6 +6,7 @@ import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
 import io.zer0.muse.ui.chat.ChatScreen
+import io.zer0.muse.ui.chat.effectiveChatSessionId
 
 /**
  * Guard the UI-only pending-tool recovery callbacks from regressing to task-session scope.

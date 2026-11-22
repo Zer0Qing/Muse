@@ -6,9 +6,6 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.data.session.SessionRepository
-import io.zer0.muse.ui.ChatAgentState
-import io.zer0.muse.ui.ChatSessionState
-import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json

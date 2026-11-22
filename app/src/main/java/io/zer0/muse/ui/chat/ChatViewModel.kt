@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+package io.zer0.muse.ui.chat
 
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.data.session.MessageMarkers
@@ -82,36 +82,7 @@ import io.zer0.muse.transformer.ThinkTagTransformer
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.transformer.splitThinkTagsForStreaming
-import io.zer0.muse.ui.chat.ChatStateAccessor
-import io.zer0.muse.ui.chat.ContextTokenUsage
-import io.zer0.muse.ui.chat.ChatAudioCoordinator
-import io.zer0.muse.ui.chat.ChatGenerationController
-import io.zer0.muse.ui.chat.GenerationDeps
-import io.zer0.muse.ui.chat.ChatInputController
-import io.zer0.muse.ui.chat.ChatMediaController
 // P2-23: 媒体生成工具的会话投递宿主(工具本体已迁至 io.zer0.muse.tools.MediaGenToolsImpl)
-import io.zer0.muse.ui.chat.ChatMediaGenHost
-import io.zer0.muse.ui.chat.ChatMessageController
-import io.zer0.muse.ui.chat.ChatSessionController
-import io.zer0.muse.ui.chat.SessionDeps
-import io.zer0.muse.ui.chat.ChatSettingsController
-import io.zer0.muse.ui.chat.SessionModelSelectionStore
-import io.zer0.muse.ui.chat.ChatStateStore
-import io.zer0.muse.ui.chat.SystemPromptCache
-import io.zer0.muse.ui.chat.ChatVoiceState
-import io.zer0.muse.ui.chat.ChatGenerationState
-import io.zer0.muse.ui.chat.SendRequest
-import io.zer0.muse.ui.chat.ChatToolController
-import io.zer0.muse.ui.chat.SessionFlowBridge
-import io.zer0.muse.ui.chat.ChatDocumentCoordinator
-import io.zer0.muse.ui.chat.ChatExportCoordinator
-import io.zer0.muse.ui.chat.ChatMiscCoordinator
-import io.zer0.muse.ui.chat.ChatStreamCoordinator
-import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
-import io.zer0.muse.ui.chat.ImageGenCoordinator
-import io.zer0.muse.ui.chat.SlashCommand
-import io.zer0.muse.ui.chat.StreamRunState
-import io.zer0.muse.ui.chat.TokenCountSnapshot
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.PlaybackState
@@ -154,19 +125,6 @@ import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.LorebookScreen
 import io.zer0.muse.ui.screen.PromptInjectionScreen
 import io.zer0.muse.ui.common.ManualCompressionPhase
-import io.zer0.muse.ui.chat.shouldAutoDismissError
-import io.zer0.muse.ui.chat.ErrorVisibility
-import io.zer0.muse.ui.chat.resolveErrorVisibility
-import io.zer0.muse.ui.chat.StreamingCursor
-import io.zer0.muse.ui.chat.ERROR_VISIBLE_WAIT_MS
-import io.zer0.muse.ui.chat.ERROR_AUTO_DISMISS_MS
-import io.zer0.muse.ui.chat.QuickMessageScreen
-import io.zer0.muse.ui.chat.ImageGenerationPlaceholder
-import io.zer0.muse.ui.chat.VideoGenerationPlaceholder
-import io.zer0.muse.ui.chat.ThinkingBubble
-import io.zer0.muse.ui.chat.InputBar
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。
@@ -2172,13 +2130,13 @@ class ChatViewModel(
         override fun nextToolGenerationToken() = this@ChatViewModel.nextToolGenerationToken()
         override fun streamFlushIntervalMs(builderLength: Int) = ChatViewModel.streamFlushIntervalMs(builderLength)
         override fun canUseToolModelForRound(history: List<UIMessage>, toolModel: Model) =
-            io.zer0.muse.ui.canUseToolModelForRound(history, toolModel)
+            io.zer0.muse.ui.chat.canUseToolModelForRound(history, toolModel)
         override fun resumeOverlapToDrop(duplicateRemaining: String, delta: String) =
-            io.zer0.muse.ui.resumeOverlapToDrop(duplicateRemaining, delta)
+            io.zer0.muse.ui.chat.resumeOverlapToDrop(duplicateRemaining, delta)
         override fun shouldReplaceOnResumeRewrite(duplicateTotal: Int, consumedChars: Int, minOverlap: Int) =
-            io.zer0.muse.ui.shouldReplaceOnResumeRewrite(duplicateTotal, consumedChars, minOverlap)
+            io.zer0.muse.ui.chat.shouldReplaceOnResumeRewrite(duplicateTotal, consumedChars, minOverlap)
         override fun shouldReplaceOnResumeSupersede(original: String?, attemptText: String?, currentContent: String) =
-            io.zer0.muse.ui.shouldReplaceOnResumeSupersede(original, attemptText, currentContent)
+            io.zer0.muse.ui.chat.shouldReplaceOnResumeSupersede(original, attemptText, currentContent)
         override suspend fun persistCheckpointAndReleaseOutbox(
             state: StreamRunState,
             sessionId: String,
@@ -2300,7 +2258,7 @@ class ChatViewModel(
         override val pendingToolApprovalRecords get() = this@ChatViewModel.pendingToolApprovalRecords
         override val approvalTimeoutPaused get() = this@ChatViewModel.approvalTimeoutPaused
         override val appInForeground get() = this@ChatViewModel.appForegroundFlow.value
-        override fun addError(type: io.zer0.muse.ui.ChatErrorType, message: String, isRecoverable: Boolean) =
+        override fun addError(type: ChatErrorType, message: String, isRecoverable: Boolean) =
             this@ChatViewModel.addError(type, message, isRecoverable)
         override fun isToolResultSuccess(result: String) = this@ChatViewModel.isToolResultSuccess(result)
         override fun launchStream(assistantId: kotlin.uuid.Uuid, sessionId: String, isNewBranch: Boolean) =

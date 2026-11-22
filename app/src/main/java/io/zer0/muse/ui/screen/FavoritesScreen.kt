@@ -64,8 +64,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import io.zer0.muse.ui.settings.SettingsScreen
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatUiState
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.3: 跨会话收藏夹页。

@@ -7,6 +7,7 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.transformer.stripThinkTags
 import kotlinx.coroutines.flow.first
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * A2A 独立文本生成路径：不引用 ChatViewModel/UI 状态，也不暴露工具。

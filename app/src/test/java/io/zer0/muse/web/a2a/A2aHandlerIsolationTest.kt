@@ -21,6 +21,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /** A2A task/session isolation integration tests. */
 class A2aHandlerIsolationTest {

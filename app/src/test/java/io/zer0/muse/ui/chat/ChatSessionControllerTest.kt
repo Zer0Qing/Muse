@@ -6,9 +6,6 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.session.SessionRepository
-import io.zer0.muse.ui.ChatAgentState
-import io.zer0.muse.ui.ChatSessionState
-import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow

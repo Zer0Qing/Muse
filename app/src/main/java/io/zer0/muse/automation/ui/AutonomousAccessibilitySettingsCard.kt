@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationAction
 import io.zer0.muse.automation.core.AutonomousAccessibilityGrant
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField

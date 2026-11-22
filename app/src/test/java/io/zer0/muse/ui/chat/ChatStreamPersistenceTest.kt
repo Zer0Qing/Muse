@@ -14,7 +14,6 @@ import io.zer0.muse.hook.HookRegistry
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.transformer.TransformerPipeline
-import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.vision.VisionBridge
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch

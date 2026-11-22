@@ -1,8 +1,5 @@
 package io.zer0.muse.ui.chat
 
-import io.zer0.muse.ui.ChatAgentState
-import io.zer0.muse.ui.ChatSessionState
-import io.zer0.muse.ui.ChatUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

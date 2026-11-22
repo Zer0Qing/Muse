@@ -11,8 +11,8 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.diagnostics.MainThreadJankTracker
 import io.zer0.muse.schedule.ChatGenerationManager
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatUiState
+import io.zer0.muse.ui.chat.ChatViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch

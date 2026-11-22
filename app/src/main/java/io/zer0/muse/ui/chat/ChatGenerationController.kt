@@ -37,15 +37,7 @@ import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.ConversationCompressor
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.UserMessageTimeContext
-import io.zer0.muse.ui.ChatErrorType
-import io.zer0.muse.ui.ChatStreamPhase
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.buildSendText
-import io.zer0.muse.ui.canContinueGeneration
-import io.zer0.muse.ui.canRegenerate
-import io.zer0.muse.ui.canStartGeneration
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.resumeFromInterrupted
 import io.zer0.muse.util.ErrorMessages
 import io.zer0.muse.util.MessageTokenCache
 import io.zer0.muse.util.TokenEstimator
@@ -59,7 +51,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: 从 ChatViewModel 抽离的生成控制 Controller。

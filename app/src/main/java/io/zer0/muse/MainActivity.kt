@@ -54,7 +54,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantCardImportBridge
 import io.zer0.muse.data.session.MigrationProgressBus
 import io.zer0.muse.intent.ShareIntentHandler
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.screen.MuseRoutes
 import io.zer0.muse.ui.common.animation.MuseFluidSharedHost
 import io.zer0.muse.ui.common.feedback.MuseToastHost

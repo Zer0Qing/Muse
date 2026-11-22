@@ -157,11 +157,6 @@ import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.HomeScreen
 import io.zer0.muse.ui.common.ManualCompressionPhase
 import io.zer0.muse.ui.common.RegionErrorBoundary
-import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.ChatErrorType
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.buildTranslationSourceText
-import io.zer0.muse.ui.effectiveChatSessionId
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =

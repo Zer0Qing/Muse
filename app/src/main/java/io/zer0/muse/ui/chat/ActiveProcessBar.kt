@@ -23,7 +23,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.ToolCallRecord
 import io.zer0.muse.ui.common.animation.MuseInkGlyph
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.icons.MuseIcons

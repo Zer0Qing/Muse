@@ -5,7 +5,6 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.transformer.ContextCompressTransformer
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S2: [ChatCompressionCoordinator] 访问 ChatViewModel 的窄桥接口。

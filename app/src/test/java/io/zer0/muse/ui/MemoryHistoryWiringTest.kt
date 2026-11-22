@@ -4,6 +4,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Memory extraction must use a complete session snapshot, not the paged chat UI window.
@@ -12,7 +13,7 @@ class MemoryHistoryWiringTest {
 
     @Test
     fun `session end memory paths load complete history from repository`() {
-        val viewModel = locate("src/main/java/io/zer0/muse/ui/ChatViewModel.kt")
+        val viewModel = locate("src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt")
         val stream = locate("src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt")
         val generation = locate("src/main/java/io/zer0/muse/ui/chat/ChatGenerationController.kt")
         val settings = locate("src/main/java/io/zer0/muse/ui/settings/MemorySettingsPage.kt")

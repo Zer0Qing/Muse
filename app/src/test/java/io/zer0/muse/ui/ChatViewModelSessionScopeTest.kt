@@ -2,6 +2,10 @@ package io.zer0.muse.ui
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import io.zer0.muse.ui.chat.ChatSessionState
+import io.zer0.muse.ui.chat.ChatAgentState
+import io.zer0.muse.ui.chat.ChatUiState
+import io.zer0.muse.ui.chat.effectiveChatSessionId
 
 class ChatViewModelSessionScopeTest {
 

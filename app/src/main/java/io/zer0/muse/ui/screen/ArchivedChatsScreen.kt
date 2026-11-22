@@ -37,7 +37,7 @@ import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
-import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 归档聊天列表页。

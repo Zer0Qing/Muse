@@ -20,6 +20,7 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.ui.chat.ChatViewModel
 
 @Serializable
 data class ConversationExportMessage(

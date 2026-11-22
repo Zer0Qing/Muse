@@ -6,12 +6,10 @@ import io.zer0.muse.automation.core.AutonomousAccessibilityRuntimeSnapshot
 import io.zer0.muse.tools.DenySource
 import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.tools.ToolPermissionResolver
-import io.zer0.muse.ui.PendingToolApproval
 import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withTimeoutOrNull
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S4: 从 ChatViewModel 提取的工具审批编排。

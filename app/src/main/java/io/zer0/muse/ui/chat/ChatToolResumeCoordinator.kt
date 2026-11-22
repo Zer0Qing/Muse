@@ -7,8 +7,6 @@ import io.zer0.muse.R
 import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.tools.captureLargeToolOutput
-import io.zer0.muse.ui.ChatErrorType
-import io.zer0.muse.ui.ToolCallRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
@@ -17,7 +15,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v2.x 重构 S5: 从 ChatViewModel 提取的待恢复工具调用编排。

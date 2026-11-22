@@ -2,6 +2,7 @@ package io.zer0.muse.ui
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * AUD-UI-F3: 前台从数据库刷新会话(refreshDisplayedSessionFromDatabase)
@@ -13,7 +14,7 @@ import org.junit.Test
  */
 class ChatSessionRefreshGuardWiringTest {
 
-    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/ChatViewModel.kt").readText()
+    private fun source(): String = java.io.File("src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt").readText()
 
     @Test
     fun `refresh path begins a switch token before async load`() {

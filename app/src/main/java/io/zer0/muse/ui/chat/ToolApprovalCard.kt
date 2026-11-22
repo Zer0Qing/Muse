@@ -43,7 +43,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.tools.ToolApprovalPolicy
-import io.zer0.muse.ui.PendingToolApproval
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -58,7 +57,6 @@ import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * Tool approval card.
@@ -77,7 +75,7 @@ import io.zer0.muse.ui.ChatViewModel
  *
  * v1.x: 对 generate_image 等支持参考图的工具,在卡片中渲染"选择参考图"按钮 —
  * 用户从相册选择本地图片后转 data URI,通过 [onReferenceImageChange] 写入
- * [io.zer0.muse.ui.PendingToolApproval.referenceImageOverride];批准时由
+ * [PendingToolApproval.referenceImageOverride];批准时由
  * ChatViewModel 注入 [io.zer0.muse.tools.ToolApprovalState.Approved.argOverrides],
  * ToolOrchestrator 合并进工具执行参数。LLM 自身无法访问用户本地相册,
  * 故图生图的参考图主要从此入口提供。

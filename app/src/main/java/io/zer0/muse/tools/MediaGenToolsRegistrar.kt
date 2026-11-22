@@ -1,4 +1,5 @@
 package io.zer0.muse.tools
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P2-23: 媒体生成工具注册器(图片 / 视频 / 二维码)。

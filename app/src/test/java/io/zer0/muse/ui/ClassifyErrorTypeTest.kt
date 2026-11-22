@@ -4,6 +4,8 @@ import io.zer0.ai.core.ProviderError
 import io.zer0.ai.core.ProviderException
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import io.zer0.muse.ui.chat.ChatErrorType
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * B4 错误恢复补测：classifyErrorType 全分支。

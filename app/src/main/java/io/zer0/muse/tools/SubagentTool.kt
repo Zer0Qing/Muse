@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * subagent_task 工具。

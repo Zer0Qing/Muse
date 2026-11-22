@@ -3,7 +3,6 @@ package io.zer0.muse.ui.chat
 import io.zer0.ai.core.UIMessage
 import kotlinx.coroutines.channels.Channel
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v5: 消息发送队列请求 — 串行化处理,防止快速连续发送导致竞态。

@@ -1,4 +1,5 @@
 package io.zer0.muse.web
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /** 会话写命令的落地动作,由 [HostWebSocketGateway] 用 ChatViewModel 实现。 */
 internal interface HostSessionMutations {

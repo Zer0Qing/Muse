@@ -5,6 +5,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.x: 会话级资源管理器 — 引用计数 + 自动 idle 清理。
@@ -77,7 +78,7 @@ class ConversationSessionManager(
      * M1.1:会话未 acquire 过时自动创建 [SessionRuntime](群聊 "group:$chatId" 等
      * 生成 id 可能从未走 acquire 路径,旧实现直接 return 会让生成任务脱离引用管理)。
      *
-     * 应在 [io.zer0.muse.ui.ChatViewModel.launchStream] 启动生成时调用,
+     * 应在 [ChatViewModel.launchStream] 启动生成时调用,
      * 把 chatGenerationManager 返回的 Job 传进来,本类负责:
      *  - 取消前一个生成任务(防重入)
      *  - 任务完成时清理引用 + 调度 idle 清理

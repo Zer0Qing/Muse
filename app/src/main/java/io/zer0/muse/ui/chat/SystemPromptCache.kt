@@ -1,5 +1,4 @@
 package io.zer0.muse.ui.chat
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.x: system prompt / 上下文 token 缓存的共享状态容器。

@@ -28,7 +28,6 @@ import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
-import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.util.MusePatterns
 import kotlinx.coroutines.Dispatchers
@@ -37,8 +36,6 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.jsonObject
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.131: <think>...</think> 标签正则已迁移到 io.zer0.muse.util.MusePatterns.THINK_TAG_REGEX。
@@ -47,7 +44,7 @@ import io.zer0.muse.ui.ChatViewModel
 /**
  * v2.6.x: 本轮上下文窗口口径的**单一出口**。
  *
- * 背景:UI 侧 [io.zer0.muse.ui.ChatUiState.contextMaxTokens] 由
+ * 背景:UI 侧 [ChatUiState.contextMaxTokens] 由
  * `ChatViewModel.refreshContextInfo` 按**全局选中模型**算出。实际请求可能因会话覆盖 /
  * 助手绑定走另一个模型 —— 此时 90% 激进截断、1.35 倍硬拦截、预热与压缩预算都会按
  * **另一个模型**的窗口计算(小窗口模型被当成大窗口 → 超限 400;大窗口模型被当成小窗口

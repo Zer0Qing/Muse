@@ -16,15 +16,11 @@ import io.zer0.muse.data.quickmsg.QuickMessageRepository
 import io.zer0.muse.data.session.FolderRepository
 import io.zer0.muse.data.session.SearchResult
 import io.zer0.muse.data.session.SessionRepository
-import io.zer0.muse.ui.ChatError
-import io.zer0.muse.ui.ChatErrorType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.LorebookScreen
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.ChatViewModel
 
 /**
  * v1.105 阶段 2: 从 ChatViewModel 抽离的杂项 Coordinator。
@@ -200,7 +196,7 @@ class ChatMiscCoordinator(
      * v2.x: 执行消息内容搜索(FTS4 + snippet,失败回退 LIKE)。
      *
      * 与 [search] 区别:走 [SessionRepository.searchMessageContentFlow](直接返回 snippet 片段),
-     * 结果存入 [io.zer0.muse.ui.ChatUiState.messageResults],供 SearchScreen Tab=1 展示。
+     * 结果存入 [ChatUiState.messageResults],供 SearchScreen Tab=1 展示。
      * 空查询清空结果。
      */
     fun searchMessageContent() {
@@ -245,8 +241,8 @@ class ChatMiscCoordinator(
     /**
      * v2.x: 设置目标消息(从搜索结果点击跳转用)。
      *
-     * ChatScreen 进入会话后会读取 [io.zer0.muse.ui.ChatUiState.targetMessageId]
-     * 滚动到该消息,并依据 [io.zer0.muse.ui.ChatUiState.highlightedMessageId]
+     * ChatScreen 进入会话后会读取 [ChatUiState.targetMessageId]
+     * 滚动到该消息,并依据 [ChatUiState.highlightedMessageId]
      * 短暂高亮。滚动定位完成后由 [consumeTargetMessage] 清空 targetMessageId;
      * 高亮持续约 2.5s 后由 [clearHighlightedMessage] 清空。
      *

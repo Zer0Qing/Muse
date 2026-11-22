@@ -17,6 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P0-3 回归:工具风险等级三处台账一致性护栏。

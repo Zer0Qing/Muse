@@ -11,8 +11,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import io.zer0.muse.ui.ChatUiState
-import io.zer0.muse.ui.ChatViewModel
 
 internal fun auditStateString(
     localizeString: ((Int, Array<out Any>) -> String)?,
@@ -266,12 +264,12 @@ class ChatExportCoordinator(
     }
 
     /** 解析当前会话标题(空标题回退为 "muse 对话")。 */
-    private fun resolveTitle(state: io.zer0.muse.ui.ChatUiState): String {
+    private fun resolveTitle(state: ChatUiState): String {
         val sessionId = resolveSessionId(state)
         return state.sessions.find { it.id == sessionId }?.title?.takeIf { it.isNotBlank() } ?: auditStateString(localizeString, R.string.audit_export_default_title, "muse 对话")
     }
 
-    private suspend fun loadAllMessages(state: io.zer0.muse.ui.ChatUiState): List<io.zer0.ai.core.UIMessage> {
+    private suspend fun loadAllMessages(state: ChatUiState): List<io.zer0.ai.core.UIMessage> {
         val sessionId = resolveSessionId(state)
         return if (sessionId != null) {
             sessionRepository.observeMessages(sessionId).first()
@@ -280,7 +278,7 @@ class ChatExportCoordinator(
         }
     }
 
-    private fun resolveSessionId(state: io.zer0.muse.ui.ChatUiState): String? =
+    private fun resolveSessionId(state: ChatUiState): String? =
         if (state.isAgentMode) state.agentSessionId else state.currentSessionId
 
     /**

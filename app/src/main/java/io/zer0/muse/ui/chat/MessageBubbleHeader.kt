@@ -20,7 +20,6 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.chat.DateSeparator
 
 @Composable
 internal fun MessageBubbleHeader(

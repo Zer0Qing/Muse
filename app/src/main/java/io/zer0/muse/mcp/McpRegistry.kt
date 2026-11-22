@@ -30,6 +30,7 @@ import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import io.zer0.muse.ui.settings.SettingsScreen
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 9.5 (M3): MCP server 注册表 + 持久化 + ToolRegistry 桥接。
@@ -43,7 +44,7 @@ import io.zer0.muse.ui.settings.SettingsScreen
  *  5. 断开连接时,从 ToolRegistry 注销对应工具
  *
  * 调用方:
- *  - [io.zer0.muse.ui.ChatViewModel] 启动时调用 [startAll] 连接所有启用的 server
+ *  - [ChatViewModel] 启动时调用 [startAll] 连接所有启用的 server
  *  - [io.zer0.muse.ui.SettingsScreen] 通过 [addServer] / [removeServer] / [updateServer] 管理
  *  - [io.zer0.muse.tools.ToolRegistry] 收到 LLM tool call 时,通过 `mcp_` 前缀路由到 [McpClient.callTool]
  *

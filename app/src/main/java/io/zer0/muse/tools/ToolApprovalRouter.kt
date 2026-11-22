@@ -1,6 +1,7 @@
 package io.zer0.muse.tools
 
 import io.zer0.common.Logger
+import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * B2-04: 子代理/主会话共享的工具审批桥接。
