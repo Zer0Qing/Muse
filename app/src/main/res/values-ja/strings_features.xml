@@ -341,11 +341,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">崩壊</string>
-    <string name="milestone_title">マイルストーン</string>
-    <string name="milestone_empty_title">まだマイルストーンはありません</string>
-    <string name="milestone_empty_subtitle">AIパートナーともっと交流すると、マイルストーンが自動的に解放されます</string>
-    <string name="milestone_active_section">アクティブなマイルストーン (%1$d)</string>
-    <string name="milestone_dismissed_section">クローズ済み (%1$d)</string>
     <string name="task_plan_status_pending">待機中</string>
     <string name="task_plan_status_in_progress">実行中</string>
     <string name="task_plan_status_failed">失敗</string>
@@ -398,7 +393,6 @@
     <string name="artifact_fullscreen">全画面</string>
     <string name="artifact_view_source">ソースを表示</string>
     <string name="artifact_view_rendered">レンダリングを表示</string>
-    <string name="artifact_open_failed">開けませんでした</string>
     <string name="artifact_saved">保存しました</string>
     <string name="artifact_save_failed">保存に失敗しました</string>
 

@@ -341,11 +341,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">Крах</string>
-    <string name="milestone_title">Вехи</string>
-    <string name="milestone_empty_title">Пока нет вех</string>
-    <string name="milestone_empty_subtitle">Взаимодействуйте с ИИ-компаньоном чаще, и вехи разблокируются автоматически</string>
-    <string name="milestone_active_section">Активные вехи (%1$d)</string>
-    <string name="milestone_dismissed_section">Закрытые (%1$d)</string>
     <string name="task_plan_status_pending">Ожидает</string>
     <string name="task_plan_status_in_progress">Выполняется</string>
     <string name="task_plan_status_failed">Ошибка</string>
@@ -398,7 +393,6 @@
     <string name="artifact_fullscreen">Полный экран</string>
     <string name="artifact_view_source">Исходник</string>
     <string name="artifact_view_rendered">Просмотр</string>
-    <string name="artifact_open_failed">Не удалось открыть</string>
     <string name="artifact_saved">Сохранено</string>
     <string name="artifact_save_failed">Не удалось сохранить</string>
 

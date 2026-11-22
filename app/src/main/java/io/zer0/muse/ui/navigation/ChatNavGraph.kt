@@ -25,7 +25,6 @@ import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import io.zer0.muse.ui.settings.PromptTemplateManagerPage
 import org.koin.androidx.compose.koinViewModel
 import io.zer0.muse.ui.screen.HtmlPreviewScreen
-import io.zer0.muse.ui.screen.MilestoneScreen
 import io.zer0.muse.ui.screen.FolderDetailScreen
 import io.zer0.muse.ui.screen.ArchivedChatsScreen
 import io.zer0.muse.ui.screen.RecentlyDeletedScreen
@@ -134,15 +133,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 onHtmlPreview = { html ->
                     navController.navigate(HtmlPreviewRoute(html))
                 },
-            )
-        }
-        // v2.6.7（P1-1）: 角色关系设置页
-        composable<RelationshipSettingsRoute>(
-            enterTransition = { MuseTransitions.horizontalPushEnter() },
-            popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-        ) {
-            io.zer0.muse.ui.settings.RelationshipSettingsPage(
-                onBack = { navController.popBackStack() },
             )
         }
     }
@@ -393,15 +383,6 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.agentdm.AgentDmScreen(
-            onBack = { navController.popBackStack() },
-        )
-    }
-    // v1.127: 里程碑管理页
-    composable<MilestonesRoute>(
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
-        MilestoneScreen(
             onBack = { navController.popBackStack() },
         )
     }

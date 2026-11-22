@@ -341,11 +341,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">Colapso</string>
-    <string name="milestone_title">Marcos</string>
-    <string name="milestone_empty_title">Ainda não há marcos</string>
-    <string name="milestone_empty_subtitle">Interaja mais com seu companheiro de IA e os marcos serão desbloqueados automaticamente</string>
-    <string name="milestone_active_section">Marcos ativos (%1$d)</string>
-    <string name="milestone_dismissed_section">Dispensados (%1$d)</string>
     <string name="task_plan_status_pending">Pendente</string>
     <string name="task_plan_status_in_progress">Em andamento</string>
     <string name="task_plan_status_failed">Falhou</string>
@@ -398,7 +393,6 @@
     <string name="artifact_fullscreen">Tela cheia</string>
     <string name="artifact_view_source">Ver código</string>
     <string name="artifact_view_rendered">Ver renderização</string>
-    <string name="artifact_open_failed">Não foi possível abrir</string>
     <string name="artifact_saved">Salvo</string>
     <string name="artifact_save_failed">Falha ao salvar</string>
 

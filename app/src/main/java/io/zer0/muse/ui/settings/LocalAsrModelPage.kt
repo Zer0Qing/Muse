@@ -45,31 +45,6 @@ import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
-/**
- * 语音识别设置 →「模型下载」三级页。
- *
- * 下载是应用级后台任务（[LocalModelDownloader] 自带协程作用域），本页只是它的观察窗：
- * 进页面看到进度、离开页面下载继续，回到页面状态原样呈现。进度与失败原因订阅下载器的
- * StateFlow，就绪与否读文件系统 —— 两处都不落 DataStore，避免状态漂移。
- */
-@Composable
-fun SettingsLocalAsrModelPage(onBack: () -> Unit) {
-    SettingsSubPageScaffold(
-        title = stringResource(R.string.asr_local_download_title),
-        onBack = onBack,
-    ) {
-        // 页面容器已带 pageMargin 水平内边距，卡片不再叠加
-        item { LocalModelDownloadCard() }
-        item {
-            Text(
-                text = stringResource(R.string.asr_local_model_page_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
 
 /**
  * 语音识别设置页里的「模型下载」入口行。

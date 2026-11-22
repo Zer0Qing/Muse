@@ -504,20 +504,6 @@
     <!-- v1.xxx U-12: 切换助手成功提示 — 补充"换人=换模型/记忆/TTS"的预期说明 -->
     <string name="chat_switch_assistant_applied_hint">已切换到 %1$s —— 将使用 TA 的模型与记忆</string>
     <string name="settings_agent_moment_count_title">朋友圈每日条数</string>
-    <string name="settings_relationship_title">助手关系</string>
-    <string name="settings_relationship_hint">在这里定义你和每个角色的关系。亲密度会随真实互动自动累加，也决定他主动找你的频率。</string>
-    <string name="settings_relationship_unset">未设置</string>
-    <string name="settings_relationship_edit_title">编辑关系</string>
-    <string name="settings_relationship_label_hint">关系标签（自由填写）</string>
-    <string name="settings_relationship_label_placeholder">例如：女朋友 / 同事 / 老朋友</string>
-    <string name="settings_relationship_level_title">主动频率</string>
-    <string name="settings_relationship_level_low">很少主动</string>
-    <string name="settings_relationship_level_normal">正常</string>
-    <string name="settings_relationship_level_high">很黏人</string>
-    <string name="settings_relationship_affinity_new">刚认识</string>
-    <string name="settings_relationship_affinity_known">认识</string>
-    <string name="settings_relationship_affinity_familiar">熟悉</string>
-    <string name="settings_relationship_affinity_close">很亲近</string>
     <string name="settings_moment_content_mode_title">朋友圈内容模式</string>
     <string name="settings_moment_content_mode_hint">决定 AI 发朋友圈、评论和写日记时的视角。两种模式都基于真实记忆，区别在于能否展开角色自己的经历。</string>
     <string name="settings_moment_content_mode_real">真实系</string>
@@ -606,10 +592,6 @@
     <string name="settings_keep_alive_notification_custom_hint">留空则使用默认文案。</string>
     <string name="settings_keep_alive_notification_title_placeholder">默认：Muse 正在后台运行</string>
     <string name="settings_keep_alive_notification_text_placeholder">默认：保持定时任务与主动消息在线</string>
-    <string name="settings_relationship_proactive_enabled">允许主动私信</string>
-    <string name="settings_relationship_proactive_enabled_subtitle">关闭后这个角色不会主动找你，但不影响你主动聊天</string>
-    <string name="settings_relationship_daily_limit">每日主动上限（0 = 不限）</string>
-    <string name="settings_relationship_daily_limit_placeholder">0</string>
     <string name="search_custom_engines_section">自定义搜索引擎</string>
     <string name="search_custom_engines_hint">接入自己的检索服务：填端点、请求模板与结果路径即可，不用改代码。启用的引擎会排在自动模式的最前面。</string>
     <string name="search_custom_engine_add">添加引擎</string>

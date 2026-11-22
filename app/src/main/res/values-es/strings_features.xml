@@ -341,11 +341,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">Colapsar</string>
-    <string name="milestone_title">Hitos</string>
-    <string name="milestone_empty_title">Aún no hay hitos</string>
-    <string name="milestone_empty_subtitle">Interactúa más con tu compañero de IA y los hitos se desbloquearán automáticamente</string>
-    <string name="milestone_active_section">Hitos activos (%1$d)</string>
-    <string name="milestone_dismissed_section">Cerrados (%1$d)</string>
     <string name="task_plan_status_pending">Pendiente</string>
     <string name="task_plan_status_in_progress">En curso</string>
     <string name="task_plan_status_failed">Fallido</string>
@@ -398,7 +393,6 @@
     <string name="artifact_fullscreen">Pantalla completa</string>
     <string name="artifact_view_source">Ver código</string>
     <string name="artifact_view_rendered">Ver renderizado</string>
-    <string name="artifact_open_failed">No se pudo abrir</string>
     <string name="artifact_saved">Guardado</string>
     <string name="artifact_save_failed">Error al guardar</string>
 

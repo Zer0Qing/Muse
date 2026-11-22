@@ -511,11 +511,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">折叠</string>
-    <string name="milestone_title">里程碑</string>
-    <string name="milestone_empty_title">还没有里程碑</string>
-    <string name="milestone_empty_subtitle">与 AI 伙伴互动更多，里程碑会自动解锁</string>
-    <string name="milestone_active_section">活跃里程碑 (%1$d)</string>
-    <string name="milestone_dismissed_section">已关闭 (%1$d)</string>
     <string name="task_plan_status_pending">待执行</string>
     <string name="task_plan_status_in_progress">执行中</string>
     <string name="task_plan_status_failed">失败</string>
@@ -566,7 +561,6 @@
     <string name="artifact_fullscreen">全屏</string>
     <string name="artifact_view_source">查看源码</string>
     <string name="artifact_view_rendered">查看渲染</string>
-    <string name="artifact_open_failed">无法打开</string>
     <string name="artifact_saved">已保存</string>
     <string name="artifact_save_failed">保存失败</string>
 

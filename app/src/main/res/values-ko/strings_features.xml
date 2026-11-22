@@ -341,11 +341,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">무너지다</string>
-    <string name="milestone_title">마일스톤</string>
-    <string name="milestone_empty_title">아직 마일스톤이 없습니다</string>
-    <string name="milestone_empty_subtitle">AI 동반자와 더 많이 상호작용하면 마일스톤이 자동으로 잠금 해제됩니다</string>
-    <string name="milestone_active_section">활성 마일스톤 (%1$d)</string>
-    <string name="milestone_dismissed_section">닫힘 (%1$d)</string>
     <string name="task_plan_status_pending">대기 중</string>
     <string name="task_plan_status_in_progress">실행 중</string>
     <string name="task_plan_status_failed">실패</string>
@@ -398,7 +393,6 @@
     <string name="artifact_fullscreen">전체 화면</string>
     <string name="artifact_view_source">소스 보기</string>
     <string name="artifact_view_rendered">렌더링 보기</string>
-    <string name="artifact_open_failed">열 수 없습니다</string>
     <string name="artifact_saved">저장됨</string>
     <string name="artifact_save_failed">저장 실패</string>
 

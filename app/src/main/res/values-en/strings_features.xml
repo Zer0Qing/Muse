@@ -366,11 +366,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">Collapse</string>
-    <string name="milestone_title">Milestones</string>
-    <string name="milestone_empty_title">No milestones yet</string>
-    <string name="milestone_empty_subtitle">Interact more with your AI companion and milestones will unlock automatically</string>
-    <string name="milestone_active_section">Active milestones (%1$d)</string>
-    <string name="milestone_dismissed_section">Dismissed (%1$d)</string>
     <string name="task_plan_status_pending">Pending</string>
     <string name="task_plan_status_in_progress">In progress</string>
     <string name="task_plan_status_failed">Failed</string>
@@ -423,7 +418,6 @@
     <string name="artifact_fullscreen">Fullscreen</string>
     <string name="artifact_view_source">View source</string>
     <string name="artifact_view_rendered">View rendered</string>
-    <string name="artifact_open_failed">Could not open</string>
     <string name="artifact_saved">Saved</string>
     <string name="artifact_save_failed">Save failed</string>
 

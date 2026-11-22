@@ -98,9 +98,6 @@ data object SettingsAsrRoute
 
 /** 语音识别 →「模型下载」三级页（本地离线模型的后台下载与状态管理）。 */
 @Serializable
-data object SettingsLocalAsrModelRoute
-
-@Serializable
 data object SettingsMcpRoute
 
 @Serializable
@@ -303,10 +300,6 @@ data object HomeRoute
 @Serializable
 data object SearchRoute
 
-/** v2.6.7（P1-1）: 角色关系设置页。 */
-@Serializable
-data object RelationshipSettingsRoute
-
 /** v2.6.9: 常驻后台设置页。 */
 @Serializable
 data object KeepAliveSettingsRoute
@@ -356,9 +349,6 @@ data class QuickNoteRoute(val noteId: String)
 
 @Serializable
 data object AgentDmRoute
-
-@Serializable
-data object MilestonesRoute
 
 @Serializable
 data object TranslateRoute
