@@ -350,7 +350,8 @@ private fun statusLabel(status: String): String = when (status) {
     BotTaskStatus.CANCELLED -> stringResource(R.string.agent_bot_status_cancelled)
     BotTaskStatus.NEEDS_USER -> stringResource(R.string.agent_bot_status_needs_user)
     BotTaskStatus.UNKNOWN -> stringResource(R.string.agent_bot_status_unknown)
-    else -> status
+    // 未知状态不要回落到原始字符串：那会把 QUEUED_V2 之类的内部名直接摆到用户面前。
+    else -> stringResource(R.string.agent_bot_status_unknown)
 }
 
 /** 错误枚举 → 用户能看懂的话。 */
@@ -371,11 +372,6 @@ private fun errorLabel(error: AgentBotError): String = when (error) {
 private fun promptLabel(prompt: AgentBotPrompt): String = when (prompt) {
     AgentBotPrompt.APPROVED_AWAITING_RETRY -> stringResource(R.string.agent_bot_prompt_approved_retry)
     AgentBotPrompt.NEEDS_DECISION -> stringResource(R.string.agent_bot_status_needs_user)
-    AgentBotPrompt.VERIFY_RESULT -> stringResource(R.string.agent_bot_status_unknown)
-}
-
-private fun isCancellable(status: String): Boolean = when (status) {
-    BotTaskStatus.QUEUED, BotTaskStatus.RUNNING, BotTaskStatus.WAITING_APPROVAL,
-    BotTaskStatus.WAITING_RESOURCE, BotTaskStatus.REVIEWING, BotTaskStatus.NEEDS_USER -> true
-    else -> false
+    // 这里要回答的是「我该做什么」，不是「现在什么状态」——所以不复用状态文案。
+    AgentBotPrompt.VERIFY_RESULT -> stringResource(R.string.agent_bot_prompt_verify_result)
 }

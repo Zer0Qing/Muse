@@ -236,4 +236,7 @@
     <string name="agent_bot_prompt_approved_retry">Одобрено — выполнить заново?</string>
     <string name="agent_bot_stop_reply">Остановить</string>
     <string name="agent_bot_error_tool_blind">В этот раз не удалось поручить работу: модель не использовала инструменты, возможно, провайдер их не поддерживает. Попробуйте другого провайдера.</string>
+    <string name="agent_bot_result_failed">Это дело не удалось</string>
+    <string name="agent_bot_result_empty">Готово</string>
+    <string name="agent_bot_prompt_verify_result">Проверьте, верный ли результат</string>
 </resources>

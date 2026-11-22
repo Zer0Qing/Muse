@@ -3,6 +3,7 @@ package io.zer0.muse.ui.agentbot
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.common.Logger
+import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentBotRepository
 import io.zer0.muse.data.agentbot.AgentBotError
 import io.zer0.muse.data.agentbot.ApprovalStatus
@@ -52,6 +53,8 @@ class AgentBotViewModel(
     private val sessions: io.zer0.muse.data.session.SessionRepository,
     private val resultApplier: BotResultApplier,
     private val restorer: TranscriptRestorer,
+    // 结果事件要在 ViewModel 层就翻成当前语言的正文（发布通道只收成品文本）。
+    private val appContext: android.content.Context,
 ) : ViewModel() {
 
     private val ui = AgentBotUiState()
@@ -263,24 +266,56 @@ class AgentBotViewModel(
                 BotEventKind.USER_INPUT_RECEIVED -> true
                 BotEventKind.TASK_ACCEPTED -> true
                 BotEventKind.TASK_PROGRESSED -> true
-                // 结果类事件保留待处理。
+                // 结果类事件：必须发布成对话里的一行才算处理过。
                 //
-                // 返回 false 会让收件箱留下它、下轮再试。这比"吞掉"好：
-                // 吞掉是永久丢失，留下只是延迟 —— 等发布通道接上就能处理。
+                // 之前这里一律返回 false（发布通道未接），事件会永远留在收件箱 ——
+                // 用户交代完一件事，任务确实跑完了，但他永远等不到「做完了」。
+                // 现在发布接上了：发布成功才消费，失败留着下轮重试。
                 BotEventKind.TASK_RESULT_READY,
                 BotEventKind.TASK_FAILED,
-                -> {
-                    Logger.d(
-                        "AgentBotVM",
-                        "结果事件暂不消费（发布通道未接）: ${event.kind} ${event.eventId}",
-                    )
-                    false
-                }
+                -> publishResult(event)
                 // 未识别的类型同样保留：宁可堆积也不静默丢弃。
                 else -> false
             }
         }
         if (result.consumed > 0 || result.hasBacklog) refreshBoard()
+    }
+
+    /**
+     * 把一条结果事件发布成对话正文。
+     *
+     * 返回 true 表示已落库、可以消费；返回 false 表示这轮没发成，事件留在收件箱下轮再试。
+     * 宁可重试也不丢：结果是用户唯一能看到的「交代的事有着落了」。
+     */
+    private suspend fun publishResult(event: io.zer0.muse.data.agentbot.BotEventEntity): Boolean {
+        // payloadRef 末尾可能挂着暂存标记（"[staged=xxx]"），那是给 BotResultApplier 用的，
+        // 不能出现在用户看到的正文里。
+        val raw = event.payloadRef.substringBefore(io.zer0.muse.data.agentbot.BotResultApplier.STAGED_MARKER).trim()
+        val text = when {
+            raw.isNotBlank() -> raw
+            event.kind == BotEventKind.TASK_FAILED -> appContext.getString(R.string.agent_bot_result_failed)
+            else -> appContext.getString(R.string.agent_bot_result_empty)
+        }
+        val result = runCatching {
+            publication.publish(
+                botId = event.botId.ifBlank { currentBotId },
+                originSessionId = event.originSessionId.ifBlank { currentSessionId },
+                causeEventIds = event.eventId,
+                // 后台结果不属于任何一次用户输入，所以两个 revision 传同一个值：
+                // 不参与「新输入到达就放弃旧批次」的判定。
+                requestRevision = 0L,
+                taskRevision = 1,
+                items = listOf(
+                    io.zer0.muse.data.agentbot.PublicationService.Item(
+                        io.zer0.muse.data.agentbot.PublicationKind.TEXT,
+                        text,
+                    ),
+                ),
+            )
+        }.onFailure {
+            Logger.w("AgentBotVM", "结果发布失败，保留事件待重试: ${event.eventId} | ${it.message}")
+        }.getOrNull()
+        return result != null && result.committed > 0
     }
 
     /** 领一轮后台任务。由界面在可见时周期性调用。 */

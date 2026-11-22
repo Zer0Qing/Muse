@@ -547,6 +547,7 @@ val appModule = module {
             sessions = get(),
             resultApplier = get(),
             restorer = get(),
+            appContext = androidContext(),
         )
     }
     // 候选产物暂存区。任务产出先落这里，审核通过且版本最新才应用到目标 ——

@@ -253,4 +253,7 @@
     <string name="common_provider">供应商</string>
     <string name="common_share">分享</string>
     <string name="common_done">已完成</string>
+    <string name="agent_bot_result_failed">这件事没做成</string>
+    <string name="agent_bot_result_empty">做完了</string>
+    <string name="agent_bot_prompt_verify_result">核对一下结果对不对</string>
 </resources>

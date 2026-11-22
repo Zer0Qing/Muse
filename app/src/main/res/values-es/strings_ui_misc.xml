@@ -236,4 +236,7 @@ Toca actualizar para obtener la lista</string>
     <string name="agent_bot_prompt_approved_retry">Aprobado, ¿volver a ejecutar?</string>
     <string name="agent_bot_stop_reply">Detener</string>
     <string name="agent_bot_error_tool_blind">Este turno no pudo delegar: el modelo no usó herramientas, lo que puede significar que el proveedor no las admite. Prueba otro proveedor o dime cómo proceder.</string>
+    <string name="agent_bot_result_failed">Esa tarea no se completó</string>
+    <string name="agent_bot_result_empty">Hecho</string>
+    <string name="agent_bot_prompt_verify_result">Comprueba si el resultado es correcto</string>
 </resources>
