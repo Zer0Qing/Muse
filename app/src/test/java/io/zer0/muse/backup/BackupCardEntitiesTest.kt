@@ -45,7 +45,13 @@ class BackupCardEntitiesTest {
         updatedAt = createdAt,
     )
 
-    private fun source(): String = File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
+    private fun source(): String {
+        // ndjsonTypeToMetaKey 已移到 BackupReadBackValidation.kt，两处拼接后再断言。
+        val base = File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
+        val extra = File("src/main/java/io/zer0/muse/backup/BackupReadBackValidation.kt")
+            .takeIf { it.exists() }?.readText().orEmpty()
+        return base + "\n" + extra
+    }
 
     // ── 1. 线格式与实体字段对齐 ──
 
