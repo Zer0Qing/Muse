@@ -344,6 +344,19 @@
                 android:value="Keeps scheduled tasks and proactive messages alive while the user has opted in" />
         </service>
 
+        <!--
+            中枢任务的保活容器。
+            与 KeepAliveService 不同：它不维持调度，只在「有在途任务」时把进程钉住，
+            任务清空后 15 秒自行停止 —— 所以用 dataSync（服务里 startForeground 传的就是
+            FOREGROUND_SERVICE_TYPE_DATA_SYNC），类型必须与代码一致，否则 Android 14+ 会抛
+            MissingForegroundServiceTypeException。
+        -->
+        <service
+            android:name=".data.agentbot.AgentBotKeepAliveService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- 快速记录悬浮窗:折叠胶囊 + 紧凑输入卡 -->
         <service
             android:name=".ui.quicknotes.QuickCaptureOverlayService"
