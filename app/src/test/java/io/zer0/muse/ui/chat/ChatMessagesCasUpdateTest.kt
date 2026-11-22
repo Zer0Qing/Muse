@@ -233,6 +233,9 @@ class ChatMessagesCasUpdateTest {
 
     private fun viewModel(): String = source("src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt")
 
+    private fun translationCoordinator(): String =
+        source("src/main/java/io/zer0/muse/ui/chat/ChatTranslationCoordinator.kt")
+
     private fun generationController(): String = source("src/main/java/io/zer0/muse/ui/chat/ChatGenerationController.kt")
 
     @Test
@@ -246,7 +249,7 @@ class ChatMessagesCasUpdateTest {
 
     @Test
     fun `translation writes update the source message by id through CAS`() {
-        val src = viewModel()
+        val src = translationCoordinator()
         val applyBody = src.substringAfter("fun applyTranslation(text: String) {").substringBefore("applyTranslation(\"\")")
         assertTrue(applyBody.contains("updateMessages { list ->"))
         assertTrue(applyBody.contains("m.translations + (targetLanguage to text)"))

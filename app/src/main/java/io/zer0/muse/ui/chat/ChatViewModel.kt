@@ -1651,6 +1651,27 @@ class ChatViewModel(
         return context.getString(resourceId, *args)
     }
 
+    private val translationCoordinator: ChatTranslationCoordinator by lazy {
+        ChatTranslationCoordinator(
+            object : ChatTranslationCoordinator.Host {
+                override val state get() = this@ChatViewModel._state
+                override val messages get() = this@ChatViewModel._messages
+                override val scope get() = viewModelScope
+                override val appContext get() = this@ChatViewModel.appContext
+                override val chatService get() = this@ChatViewModel.chatService
+                override val sessionRepository get() = this@ChatViewModel.sessionRepository
+                override fun displayedSessionId() = this@ChatViewModel.displayedSessionId()
+                override fun updateMessages(transform: (List<UIMessage>) -> List<UIMessage>) =
+                    this@ChatViewModel.updateMessages(transform)
+                override fun classifyErrorType(message: String, throwable: Throwable?) =
+                    this@ChatViewModel.classifyErrorType(message, throwable)
+                override fun invalidateSessionCache(sessionId: String) {
+                    this@ChatViewModel.sessionMemoryCache.remove(sessionId)
+                }
+            },
+        )
+    }
+
     private val exportCoordinator =
         ChatExportCoordinator(
             accessor = this,
@@ -4134,175 +4155,10 @@ class ChatViewModel(
      *
      * @param targetLanguage 目标语言中文名(如"中文"/"English"/"日本語"),默认"中文"兼容旧调用
      * @param style 翻译风格(默认"通用",与 TranslateViewModel.TRANSLATION_STYLES 对齐)
-     * 翻译结果作为新的 ASSISTANT 消息追加("翻译(目标语言):\n\n...")。
+     * 翻译结果挂到源消息的 translations 上(UI 以可展开块展示)。
      */
     fun translateMessage(messageId: Uuid, targetLanguage: String = "中文", style: String = "通用") {
-        if (_state.value.isStreaming || _state.value.isTranslating) return
-        val target =
-            _messages.value.firstOrNull { it.id == messageId }
-                ?: return
-        val sourceText = buildTranslationSourceText(target)
-        if (sourceText.isBlank()) return
-
-        _state.update {
-            it.copy(
-                isTranslating = true,
-                translatingMessageId = messageId,
-                errors = emptyList(),
-            )
-        }
-        translateJob =
-            viewModelScope.launch(AppDispatchers.io) {
-                try {
-                    // v1.0.30 gap4.9: 统一使用 TranslateViewModel.buildTranslationPrompt,与独立翻译页保持一致
-                    val prompt =
-                        io.zer0.muse.ui.translate.TranslateViewModel.buildTranslationPrompt(
-                            text = sourceText,
-                            targetLanguage = targetLanguage,
-                            sourceLanguage = io.zer0.muse.ui.translate.TranslateViewModel.SOURCE_AUTO,
-                            style = style,
-                        )
-                    val messages = listOf(UIMessage(role = MessageRole.USER, content = prompt))
-                    val sessionId = displayedSessionId() ?: return@launch
-
-                    // v2.4.6: 译文不再另开一条助手消息,而是挂到源消息的 translations 上。
-                    // 用空串占位表示"翻译中",流式增量直接更新源消息(UI 以可展开块展示)。
-                    fun applyTranslation(text: String) {
-                        updateMessages { list ->
-                            list.map { m ->
-                                if (m.id == target.id) {
-                                    m.copy(translations = m.translations + (targetLanguage to text))
-                                } else {
-                                    m
-                                }
-                            }
-                        }
-                    }
-                    applyTranslation("")
-
-                    val sb = StringBuilder()
-                    var streamFailure: Pair<String, ChatErrorType>? = null
-                    var streamCompleted = false
-                    try {
-                        chatService.streamChat(messages = messages).collect { ev ->
-                            if (ev is ChatStreamEvent.ContentDelta) {
-                                if (streamFailure != null) return@collect
-                                sb.append(ev.delta)
-                                applyTranslation(sb.toString())
-                            } else if (ev is ChatStreamEvent.Error) {
-                                streamFailure = ev.message to classifyErrorType(ev.message, ev.throwable)
-                            } else if (ev is ChatStreamEvent.StreamInterrupted) {
-                                streamFailure = ev.message to ChatErrorType.NETWORK
-                            } else if (ev is ChatStreamEvent.Done) {
-                                streamCompleted = true
-                            }
-                        }
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        // 取消时保留已收集的部分结果
-                        throw e
-                    }
-
-                    val failure = streamFailure
-                        ?: if (!streamCompleted) {
-                            appContext.getString(R.string.err_chat_stream_broken) to ChatErrorType.NETWORK
-                        } else {
-                            null
-                        }
-                    if (failure != null) {
-                        // v2.4.6: 中断/失败时保留已显示的非空部分译文(用户已看到的内容不丢),
-                        // 仅清掉"翻译中"的空占位。
-                        val partial = sb.toString().trim()
-                        updateMessages { list ->
-                            list.map { m ->
-                                if (m.id != target.id) {
-                                    m
-                                } else if (partial.isEmpty()) {
-                                    m.copy(translations = m.translations - targetLanguage)
-                                } else {
-                                    m.copy(translations = m.translations + (targetLanguage to partial))
-                                }
-                            }
-                        }
-                        _state.update {
-                            it.copy(
-                                errors = listOf(
-                                    ChatError(
-                                        type = failure.second,
-                                        message = ErrorMessages.resolve(appContext, failure.first),
-                                    ),
-                                ),
-                                isTranslating = false,
-                                translatingMessageId = null,
-                            )
-                        }
-                        return@launch
-                    }
-
-                    val translated = io.zer0.muse.transformer.stripThinkTags(sb.toString()).trim()
-                    if (translated.isEmpty()) {
-                        // 清掉空占位,改为错误提示
-                        updateMessages { list ->
-                            list.map { m ->
-                                if (m.id == target.id) m.copy(translations = m.translations - targetLanguage) else m
-                            }
-                        }
-                        _state.update {
-                            it.copy(
-                                errors =
-                                listOf(
-                                    ChatError(
-                                        type = ChatErrorType.UNKNOWN,
-                                        message =
-                                        appContext.getString(
-                                            R.string.err_chat_translate_empty,
-                                        ),
-                                    ),
-                                ),
-                                isTranslating = false,
-                                translatingMessageId = null,
-                            )
-                        }
-                        return@launch
-                    }
-                    // v2.4.6: 落到源消息的 translations(清洗后的最终文本)并持久化源消息
-                    applyTranslation(translated)
-                    _state.update {
-                        it.copy(
-                            isTranslating = false,
-                            translatingMessageId = null,
-                        )
-                    }
-                    val persistedSource = _messages.value.firstOrNull { it.id == target.id }
-                    if (persistedSource != null) {
-                        sessionRepository.upsertMessage(sessionId, persistedSource)
-                    }
-                    // v1.0.88 (S-4): 译文落盘后失效缓存 — 否则切走再切回命中旧快照
-                    sessionMemoryCache.remove(sessionId)
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    // v1.80 (H-CVM1): 协程取消必须重抛,避免破坏 stop()/switchSession() 语义
-                    throw e
-                } catch (t: Exception) {
-                    // v1.80 (L-CVM3): catch Throwable 改为 catch Exception,避免捕获 OOM/StackOverflow 等 Error
-                    Logger.e("ChatVM", "translate failed", t)
-                    _state.update {
-                        it.copy(
-                            errors =
-                            listOf(
-                                ChatError(
-                                    type = ChatErrorType.UNKNOWN,
-                                    message =
-                                    appContext.getString(
-                                        R.string.err_chat_translate_failed,
-                                        t.message ?: "",
-                                    ),
-                                ),
-                            ),
-                            isTranslating = false,
-                            translatingMessageId = null,
-                        )
-                    }
-                }
-            }
+        translationCoordinator.translate(messageId, targetLanguage, style)
     }
 
     /**
