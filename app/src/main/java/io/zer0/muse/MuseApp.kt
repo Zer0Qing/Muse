@@ -432,12 +432,17 @@ class MuseApp : Application(), ImageLoaderFactory {
                 resultOf { botTaskScheduler.reconcileAfterRestart() }
                     .onError { msg, t -> Logger.w("MuseApp", "中枢任务对账失败: ${t?.message ?: msg}", t) }
             }
-            // 中枢驱动循环：领任务、巡检超时、扫过期审批。
-            // 之前 tick()/sweepOverdue() 都实现完整但没有调用方，队列里的任务永远不会被领走。
-            botTaskScheduler.start()
-            // 关开模式对账：把上次关闭前留下的死租约、过期审批、未消费事件归位。
-            // 只在开关打开时跑 —— 关着的时候中枢不该有任何后台动作。
+            // 中枢的驱动循环与关开对账都只在开关打开时跑。
+            //
+            // 之前 start() 写在这个 if 外面：开关关着时它也照样每 5 秒醒一次
+            // （tick / sweepOverdue / expireApprovals / sweepOrphanTemps / pruneEvents），
+            // 一个整功能都没启用的用户平白承担一份常驻轮询开销。
+            // 与下面这句注释说的"关着的时候中枢不该有任何后台动作"直接冲突。
             if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
+                // 领任务、巡检超时、扫过期审批。
+                // 之前 tick()/sweepOverdue() 都实现完整但没有调用方，队列里的任务永远不会被领走。
+                botTaskScheduler.start()
+                // 把上次关闭前留下的死租约、过期审批、未消费事件归位。
                 appScope.launch {
                     resultOf { botModeReconciler.reconcileOnEnable("default") }
                         .onError { msg, t ->
