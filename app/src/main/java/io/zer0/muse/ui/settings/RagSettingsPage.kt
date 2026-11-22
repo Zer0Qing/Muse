@@ -151,7 +151,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.sparkle,
                     title = stringResource(R.string.settings_rag_auto_inject),
-                    subtitle = stringResource(R.string.settings_rag_auto_inject_subtitle),
                     checked = config.enabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveRagConfig(config.copy(enabled = v)) }
@@ -167,7 +166,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.file,
                     title = stringResource(R.string.settings_experiments_session_attachment_rag),
-                    subtitle = stringResource(R.string.settings_experiments_session_attachment_rag_subtitle),
                     checked = config.sessionAttachmentEnabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveRagConfig(config.copy(sessionAttachmentEnabled = v)) }
@@ -183,7 +181,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 EmbeddingSourceOption(
                     icon = MuseIcons.cloud,
                     title = stringResource(R.string.settings_rag_cloud_api),
-                    subtitle = stringResource(R.string.settings_rag_cloud_api_subtitle),
                     selected = config.embeddingSource == RagConfig.EmbeddingSource.CLOUD,
                     onClick = {
                         scope.launch {
@@ -194,7 +191,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 EmbeddingSourceOption(
                     icon = MuseIcons.cloudOff,
                     title = stringResource(R.string.settings_rag_local_keyword),
-                    subtitle = stringResource(R.string.settings_rag_local_keyword_subtitle),
                     // v1.x: LOCAL 与 LOCAL_KEYWORD(默认离线关键词)均视为"本地"选中态,
                     // 未选择时(默认 LOCAL_KEYWORD)也应显示为已选,不再出现"两个都不选中"
                     selected = config.embeddingSource != RagConfig.EmbeddingSource.CLOUD,
@@ -500,7 +496,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSliderRow(
                     icon = MuseIcons.gauge,
                     title = stringResource(R.string.settings_rag_similarity_threshold),
-                    subtitle = stringResource(R.string.settings_rag_similarity_threshold_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
                     value = thresholdTemp,
                     valueRange = 0f..1f,
@@ -525,7 +520,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 EmbeddingSourceOption(
                     icon = MuseIcons.deviceMobile,
                     title = stringResource(R.string.settings_rag_parser_local),
-                    subtitle = stringResource(R.string.settings_rag_parser_local_subtitle),
                     selected = config.documentParserType == RagConfig.ParserType.LOCAL,
                     onClick = {
                         scope.launch {
@@ -536,7 +530,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 EmbeddingSourceOption(
                     icon = MuseIcons.cloud,
                     title = stringResource(R.string.settings_rag_parser_cloud),
-                    subtitle = stringResource(R.string.settings_rag_parser_cloud_subtitle),
                     selected = config.documentParserType == RagConfig.ParserType.CLOUD,
                     onClick = {
                         scope.launch {
@@ -547,7 +540,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 EmbeddingSourceOption(
                     icon = MuseIcons.fileText,
                     title = stringResource(R.string.settings_rag_parser_mineru),
-                    subtitle = stringResource(R.string.settings_rag_parser_mineru_subtitle),
                     selected = config.documentParserType == RagConfig.ParserType.MINERU,
                     onClick = {
                         scope.launch {
@@ -600,7 +592,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSliderRow(
                     icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_size),
-                    subtitle = stringResource(R.string.settings_rag_chunk_size_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
                     value = chunkSizeTemp.toFloat(),
                     valueRange = 100f..2000f,
@@ -618,7 +609,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSliderRow(
                     icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_overlap),
-                    subtitle = stringResource(R.string.settings_rag_chunk_overlap_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
                     value = chunkOverlapTemp.toFloat(),
                     valueRange = 0f..200f,
@@ -637,7 +627,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_markdown_aware),
-                    subtitle = stringResource(R.string.settings_rag_markdown_aware_subtitle),
                     checked = config.markdownAware,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveRagConfig(config.copy(markdownAware = v)) }
@@ -647,7 +636,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.layoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_by_token),
-                    subtitle = stringResource(R.string.settings_rag_chunk_by_token_subtitle),
                     checked = config.chunkByToken,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveRagConfig(config.copy(chunkByToken = v)) }
@@ -664,7 +652,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSliderRow(
                     icon = MuseIcons.affiliate,
                     title = stringResource(R.string.settings_rag_mmr_lambda),
-                    subtitle = stringResource(R.string.settings_rag_mmr_lambda_subtitle),
                     value = mmrLambdaTemp,
                     valueRange = 0f..1f,
                     steps = 19,
@@ -682,7 +669,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.swapHorizontal,
                     title = stringResource(R.string.settings_rag_hybrid),
-                    subtitle = stringResource(R.string.settings_rag_hybrid_subtitle),
                     checked = config.hybridEnabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveRagConfig(config.copy(hybridEnabled = v)) }
@@ -691,7 +677,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSliderRow(
                     icon = MuseIcons.typography,
                     title = stringResource(R.string.settings_rag_hybrid_bm25_weight),
-                    subtitle = stringResource(R.string.settings_rag_hybrid_bm25_weight_subtitle),
                     value = hybridBm25WeightTemp,
                     valueRange = 0f..2f,
                     steps = 19,
@@ -706,7 +691,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSliderRow(
                     icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_rag_hybrid_vector_weight),
-                    subtitle = stringResource(R.string.settings_rag_hybrid_vector_weight_subtitle),
                     value = hybridVectorWeightTemp,
                     valueRange = 0f..2f,
                     steps = 19,
@@ -722,7 +706,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.sort,
                     title = stringResource(R.string.settings_rag_rerank),
-                    subtitle = stringResource(R.string.settings_rag_rerank_subtitle),
                     checked = config.rerankEnabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveRagConfig(config.copy(rerankEnabled = v)) }
@@ -732,7 +715,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsSliderRow(
                     icon = MuseIcons.wallet,
                     title = stringResource(R.string.settings_rag_token_budget),
-                    subtitle = stringResource(R.string.settings_rag_token_budget_subtitle),
                     value = tokenBudgetTemp.toFloat(),
                     valueRange = 0f..8000f,
                     steps = 79,
@@ -757,7 +739,6 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                 SettingsItemRow(
                     icon = MuseIcons.folder,
                     title = stringResource(R.string.settings_rag_manage_kbs),
-                    subtitle = stringResource(R.string.settings_rag_manage_kbs_subtitle),
                     onClick = onManageKbs,
                 ) {
                     ChevronRight()
@@ -865,14 +846,14 @@ private fun ActiveBackendCard(state: io.zer0.muse.rag.EmbeddingService.BackendSt
 private fun EmbeddingSourceOption(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
-    subtitle: String,
+    subtitle: String? = null,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
     SettingsItemRow(
         icon = icon,
         title = title,
-        subtitle = subtitle.takeIf { it.isNotBlank() },
+        subtitle = subtitle?.takeIf { it.isNotBlank() },
         onClick = onClick,
         trailing = {
             if (selected) {

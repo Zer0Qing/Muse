@@ -271,7 +271,6 @@ fun AgentSettingsPage(
                     SettingsItemRow(
                         icon = MuseIcons.check,
                         title = stringResource(R.string.settings_preference_title),
-                        subtitle = stringResource(R.string.settings_preference_subtitle),
                         onClick = onOpenPreferences,
                     ) {
                         ChevronRight()
@@ -301,7 +300,6 @@ fun AgentSettingsPage(
                     SettingsItemRow(
                         icon = MuseIcons.mail,
                         title = stringResource(R.string.agent_dm_title),
-                        subtitle = stringResource(R.string.settings_agent_dm_subtitle),
                         onClick = onOpenAgentDm,
                     ) {
                         ChevronRight()
@@ -377,7 +375,6 @@ fun AgentSettingsPage(
                         SettingsSwitchRow(
                             icon = MuseIcons.clock,
                             title = stringResource(R.string.settings_agent_timing_scoring_title),
-                            subtitle = stringResource(R.string.settings_agent_timing_scoring_subtitle),
                             checked = proactiveConfig.sendTimingScoringEnabled,
                             onCheckedChange = { v ->
                                 scope.launch {
@@ -417,7 +414,6 @@ fun AgentSettingsPage(
                         SettingsItemRow(
                             icon = MuseIcons.robot,
                             title = stringResource(R.string.settings_agent_group_advanced),
-                            subtitle = stringResource(R.string.settings_agent_advanced_subtitle),
                             onClick = { showAdvancedDialog = true },
                         ) {
                             ChevronRight()
@@ -444,7 +440,6 @@ fun AgentSettingsPage(
                     SettingsSwitchRow(
                         icon = MuseIcons.switch,
                         title = stringResource(R.string.settings_agent_schedule_work_title),
-                        subtitle = stringResource(R.string.settings_agent_schedule_work_subtitle),
                         checked = scheduleWorkEnabled,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveScheduleWorkEnabled(v) }
@@ -454,7 +449,6 @@ fun AgentSettingsPage(
                     SettingsSwitchRow(
                         icon = MuseIcons.bolt,
                         title = stringResource(R.string.settings_memory_keep_awake),
-                        subtitle = stringResource(R.string.settings_memory_keep_awake_subtitle),
                         checked = keepAwake,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveKeepAwake(v) }
@@ -463,7 +457,6 @@ fun AgentSettingsPage(
                     SettingsSwitchRow(
                         icon = MuseIcons.power,
                         title = stringResource(R.string.settings_memory_auto_launch),
-                        subtitle = stringResource(R.string.settings_memory_auto_launch_subtitle),
                         checked = autoLaunch,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveAutoLaunch(v) }
@@ -472,7 +465,6 @@ fun AgentSettingsPage(
                     SettingsItemRow(
                         icon = MuseIcons.lifebuoy,
                         title = stringResource(R.string.settings_agent_keep_alive_title),
-                        subtitle = stringResource(R.string.settings_agent_keep_alive_subtitle),
                         onClick = { showKeepAliveGuide = true },
                     ) {
                         ChevronRight()
@@ -876,7 +868,6 @@ fun AgentSettingsPage(
                         SettingsSwitchRow(
                             icon = MuseIcons.calendarStats,
                             title = stringResource(R.string.settings_agent_content_daily_summary),
-                            subtitle = stringResource(R.string.settings_agent_daily_summary_subtitle),
                             checked = dailySummaryEnabled,
                             onCheckedChange = { v ->
                                 scope.launch { settings.saveDailySummaryEnabled(v) }
@@ -898,7 +889,6 @@ fun AgentSettingsPage(
                         SettingsSwitchRow(
                             icon = MuseIcons.moon,
                             title = stringResource(R.string.settings_agent_content_night_diary),
-                            subtitle = stringResource(R.string.settings_agent_night_patrol_subtitle),
                             checked = nightPatrolEnabled,
                             onCheckedChange = { v ->
                                 scope.launch { settings.saveNightPatrolEnabled(v) }
@@ -972,7 +962,6 @@ fun AgentSettingsPage(
                         SettingsSwitchRow(
                             icon = MuseIcons.user,
                             title = stringResource(R.string.settings_agent_agent_session_enabled),
-                            subtitle = stringResource(R.string.settings_agent_agent_session_enabled_subtitle),
                             checked = proactiveConfig.agentSessionEnabled,
                             onCheckedChange = { v ->
                                 scope.launch {
@@ -985,7 +974,6 @@ fun AgentSettingsPage(
                         SettingsSwitchRow(
                             icon = MuseIcons.chat,
                             title = stringResource(R.string.settings_agent_plain_chat_enabled),
-                            subtitle = stringResource(R.string.settings_agent_plain_chat_enabled_subtitle),
                             checked = proactiveConfig.allowPlainChatSession,
                             onCheckedChange = { v ->
                                 scope.launch {

@@ -141,7 +141,6 @@ fun ChatSettingsPage(
                 SettingsSegmentedRow(
                     icon = MuseIcons.shieldCheck,
                     title = stringResource(R.string.settings_chat_tool_approval_title),
-                    subtitle = stringResource(R.string.settings_chat_tool_approval_subtitle),
                     options = modeOptions,
                     selectedIndex = modeIndex,
                     onSelectedChange = { idx ->
@@ -518,7 +517,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.brain,
                     title = stringResource(R.string.settings_chat_force_reasoning),
-                    subtitle = stringResource(R.string.settings_chat_force_reasoning_subtitle),
                     checked = prefs.forceReasoning,
                     onCheckedChange = { v -> update { it.copy(forceReasoning = v) } },
                 )
@@ -526,7 +524,6 @@ fun ChatSettingsPage(
                     // 反思 = 助手回看自己的输出,用 reflect 的"绕回自身"图形;atom 留给真正的原子/模型类语义。
                     icon = MuseIcons.reflect,
                     title = stringResource(R.string.settings_chat_show_reflection),
-                    subtitle = stringResource(R.string.settings_chat_show_reflection_subtitle),
                     checked = prefs.showReflectionBlock,
                     onCheckedChange = { v -> update { it.copy(showReflectionBlock = v) } },
                 )
@@ -541,7 +538,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.user,
                     title = stringResource(R.string.settings_chat_show_assistant_name),
-                    subtitle = stringResource(R.string.settings_chat_show_assistant_name_subtitle),
                     checked = prefs.showAssistantName,
                     onCheckedChange = { v -> update { it.copy(showAssistantName = v) } },
                 )
@@ -549,7 +545,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.user,
                     title = stringResource(R.string.settings_chat_show_user_name),
-                    subtitle = stringResource(R.string.settings_chat_show_user_name_subtitle),
                     checked = prefs.showUserName,
                     onCheckedChange = { v -> update { it.copy(showUserName = v) } },
                 )
@@ -571,7 +566,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.chat,
                     title = stringResource(R.string.settings_chat_carry_over),
-                    subtitle = stringResource(R.string.settings_chat_carry_over_subtitle),
                     checked = prefs.carryOverEnabled,
                     onCheckedChange = { v -> update { it.copy(carryOverEnabled = v) } },
                 )
@@ -749,7 +743,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.languages,
                     title = stringResource(R.string.settings_chat_reply_language),
-                    subtitle = stringResource(R.string.settings_chat_reply_language_subtitle),
                     checked = prefs.replyInUserLanguageEnabled,
                     onCheckedChange = { v -> update { it.copy(replyInUserLanguageEnabled = v) } },
                 )
@@ -933,7 +926,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.arrowRight,
                     title = stringResource(R.string.settings_chat_fast_reply),
-                    subtitle = stringResource(R.string.settings_chat_fast_reply_subtitle),
                     checked = prefs.fastReplyMode,
                     onCheckedChange = { v -> update { it.copy(fastReplyMode = v) } },
                 )
@@ -952,7 +944,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.handFinger,
                     title = stringResource(R.string.settings_chat_enter_send),
-                    subtitle = stringResource(R.string.settings_chat_enter_send_subtitle),
                     checked = prefs.enterToSend,
                     onCheckedChange = { v -> update { it.copy(enterToSend = v) } },
                 )
@@ -965,7 +956,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.handFinger,
                     title = stringResource(R.string.settings_chat_predictive_back),
-                    subtitle = stringResource(R.string.settings_chat_predictive_back_subtitle),
                     checked = prefs.predictiveBackEnabled,
                     onCheckedChange = { v -> update { it.copy(predictiveBackEnabled = v) } },
                 )
@@ -987,7 +977,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.pause,
                     title = stringResource(R.string.settings_chat_pause_tool_execution),
-                    subtitle = stringResource(R.string.settings_chat_pause_tool_execution_subtitle),
                     checked = prefs.pauseToolExecution,
                     onCheckedChange = { v -> update { it.copy(pauseToolExecution = v) } },
                 )
@@ -1001,7 +990,6 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.gauge,
                     title = stringResource(R.string.settings_chat_performance_mode),
-                    subtitle = stringResource(R.string.settings_chat_performance_mode_subtitle),
                     checked = prefs.performanceMode,
                     onCheckedChange = { v -> update { it.copy(performanceMode = v) } },
                 )
@@ -1012,14 +1000,12 @@ fun ChatSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.chartBar,
                     title = stringResource(R.string.settings_chat_token_estimate),
-                    subtitle = stringResource(R.string.settings_chat_token_estimate_subtitle),
                     checked = tokenEstimateEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveTokenEstimateEnabled(v) } },
                 )
                 SettingsSwitchRow(
                     icon = MuseIcons.clipboard,
                     title = stringResource(R.string.settings_chat_paste_as_file),
-                    subtitle = stringResource(R.string.settings_chat_paste_as_file_subtitle),
                     checked = pasteAsFileEnabled,
                     onCheckedChange = { v -> scope.launch { settings.savePasteAsFileEnabled(v) } },
                 )
@@ -1084,7 +1070,6 @@ fun ChatSettingsPage(
                 SettingsSegmentedRow(
                     icon = MuseIcons.refresh,
                     title = stringResource(R.string.settings_chat_tool_rounds),
-                    subtitle = stringResource(R.string.settings_chat_tool_rounds_subtitle),
                     options = roundOptions,
                     selectedIndex = roundIndex,
                     onSelectedChange = { idx ->

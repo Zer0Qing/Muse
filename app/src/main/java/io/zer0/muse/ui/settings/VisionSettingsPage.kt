@@ -109,7 +109,6 @@ fun VisionSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.eye,
                     title = stringResource(R.string.settings_vision_enabled),
-                    subtitle = stringResource(R.string.settings_vision_enabled_subtitle),
                     checked = enabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveVisionEnabled(v) }

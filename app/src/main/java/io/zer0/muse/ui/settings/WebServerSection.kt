@@ -151,7 +151,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
         SettingsSwitchRow(
             icon = MuseIcons.router,
             title = stringResource(R.string.settings_web_enable),
-            subtitle = stringResource(R.string.settings_web_enable_subtitle),
             checked = config.enabled,
             onCheckedChange = { enabled ->
                 scope.launch {
@@ -191,7 +190,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
         SettingsItemRow(
             icon = MuseIcons.lock,
             title = stringResource(R.string.settings_web_regenerate_password),
-            subtitle = stringResource(R.string.settings_web_regenerate_password_subtitle),
             onClick = {
                 val newPassword = WebServerConfig.generateRandomPassword()
                 scope.launch {
@@ -229,7 +227,6 @@ internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer
         SettingsItemRow(
             icon = MuseIcons.key,
             title = stringResource(R.string.settings_web_regenerate_pin),
-            subtitle = stringResource(R.string.settings_web_regenerate_pin_subtitle),
             onClick = {
                 val newPin = WebServerConfig.generateRandomPin()
                 scope.launch {
@@ -341,7 +338,6 @@ private fun lanAccessSwitch(config: WebServerConfig, webServer: WebServer) {
     SettingsSwitchRow(
         icon = MuseIcons.wifi,
         title = stringResource(R.string.settings_web_allow_lan),
-        subtitle = stringResource(R.string.settings_web_allow_lan_subtitle),
         checked = config.allowLan,
         onCheckedChange = { allowLan ->
             scope.launch {
@@ -362,7 +358,6 @@ private fun httpsSwitch(config: WebServerConfig, webServer: WebServer) {
     SettingsSwitchRow(
         icon = MuseIcons.lock,
         title = stringResource(R.string.settings_web_https),
-        subtitle = stringResource(R.string.settings_web_https_subtitle),
         checked = config.httpsEnabled,
         onCheckedChange = { enabled ->
             scope.launch {

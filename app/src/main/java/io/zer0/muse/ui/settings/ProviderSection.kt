@@ -124,7 +124,6 @@ internal fun LazyListScope.providerListSection(
                     MuseEmptyState(
                         icon = MuseIcons.atom,
                         title = stringResource(R.string.settings_provider_free_ready_title),
-                        subtitle = stringResource(R.string.settings_provider_free_ready_subtitle),
                         actionText = stringResource(R.string.settings_provider_empty_action),
                         onAction = onAddProvider,
                     )
@@ -132,7 +131,6 @@ internal fun LazyListScope.providerListSection(
                     MuseEmptyState(
                         icon = MuseIcons.atom,
                         title = stringResource(R.string.settings_provider_empty_title),
-                        subtitle = stringResource(R.string.settings_provider_empty_subtitle),
                         actionText = stringResource(R.string.settings_provider_empty_action),
                         onAction = onAddProvider,
                     )

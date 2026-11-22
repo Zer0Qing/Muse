@@ -366,7 +366,6 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
         SettingsSwitchRow(
             icon = MuseIcons.sun,
             title = stringResource(R.string.settings_theme_schedule_auto),
-            subtitle = stringResource(R.string.settings_theme_schedule_auto_subtitle),
             checked = schedule.enabled,
             onCheckedChange = { v ->
                 scope.launch { settings.saveThemeSchedule(schedule.copy(enabled = v)) }

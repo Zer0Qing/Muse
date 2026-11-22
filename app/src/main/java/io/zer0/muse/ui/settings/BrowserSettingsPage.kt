@@ -96,13 +96,11 @@ private fun LazyListScope.browserCookiesSection(store: BrowserSettingsStore, acc
         SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
             SettingsSwitchRow(
                 title = stringResource(R.string.settings_browser_accept_cookies),
-                subtitle = stringResource(R.string.settings_browser_accept_cookies_hint),
                 checked = acceptCookies,
                 onCheckedChange = { accept -> scope.launch { store.setAcceptCookies(accept) } },
             )
             SettingsItemRow(
                 title = stringResource(R.string.settings_browser_clear),
-                subtitle = stringResource(R.string.settings_browser_clear_hint),
                 onClick = { clearBrowserSiteData() },
             )
         }

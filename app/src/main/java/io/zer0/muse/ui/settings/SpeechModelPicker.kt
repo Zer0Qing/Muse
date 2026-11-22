@@ -234,7 +234,6 @@ internal fun SpeechModelSheet(
 ) {
     MuseSelectionSheet(
         title = title,
-        subtitle = stringResource(R.string.settings_speech_model_hint),
         onDismissRequest = onDismiss,
     ) {
         if (options.isEmpty()) {

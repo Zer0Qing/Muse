@@ -126,7 +126,6 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
                 SettingsSegmentedRow(
                     icon = MuseIcons.shieldCheck,
                     title = stringResource(R.string.settings_chat_tool_approval_title),
-                    subtitle = stringResource(R.string.settings_chat_tool_approval_subtitle),
                     options = modeOptions,
                     selectedIndex = modeIndex,
                     onSelectedChange = { idx ->

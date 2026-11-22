@@ -262,14 +262,12 @@ internal fun BackupSection(
         SettingsSwitchRow(
             icon = MuseIcons.key,
             title = stringResource(R.string.settings_backup_include_secrets),
-            subtitle = stringResource(R.string.settings_backup_include_secrets_subtitle),
             checked = includeSecrets,
             onCheckedChange = { includeSecrets = it },
         )
         SettingsItemRow(
             icon = MuseIcons.upload,
             title = stringResource(R.string.settings_backup_export),
-            subtitle = stringResource(R.string.settings_backup_export_subtitle),
             onClick = {
                 runCatching {
                     pendingExportSecrets = includeSecrets
@@ -291,13 +289,11 @@ internal fun BackupSection(
         SettingsItemRow(
             icon = MuseIcons.file,
             title = stringResource(R.string.settings_backup_export_session),
-            subtitle = stringResource(R.string.settings_backup_export_session_subtitle),
             onClick = { showSessionExportDialog = true },
         )
         SettingsItemRow(
             icon = MuseIcons.download,
             title = stringResource(R.string.settings_backup_import),
-            subtitle = stringResource(R.string.settings_backup_import_subtitle),
             onClick = {
                 runCatching {
                     // 部分文件管理器会把 .json/.ndjson/.zip 标成 octet-stream 或未知类型;

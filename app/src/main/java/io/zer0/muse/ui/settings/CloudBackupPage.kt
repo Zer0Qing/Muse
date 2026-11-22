@@ -303,7 +303,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.key,
                     title = stringResource(R.string.settings_backup_include_secrets),
-                    subtitle = stringResource(R.string.settings_backup_include_secrets_subtitle),
                     checked = cloudIncludeSecrets,
                     onCheckedChange = { cloudIncludeSecrets = it },
                 )
@@ -473,7 +472,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.calendarTime,
                     title = stringResource(R.string.cloud_backup_auto_enable),
-                    subtitle = stringResource(R.string.cloud_backup_auto_subtitle),
                     checked = cloudConfig.autoSync,
                     onCheckedChange = { enabled ->
                         scope.launch {

@@ -99,7 +99,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                 SettingsItemRow(
                     icon = null,
                     title = stringResource(R.string.memory_space_manage_title),
-                    subtitle = stringResource(R.string.code_gap_memory_spaces_subtitle),
                     onClick = onOpenMemorySpace,
                 )
             }
@@ -112,14 +111,12 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_assistant_memory_enable),
-                    subtitle = stringResource(R.string.settings_assistant_memory_enable_subtitle),
                     checked = memoryEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveMemoryEnabled(v) } },
                 )
                 SettingsSwitchRow(
                     icon = MuseIcons.history,
                     title = stringResource(R.string.settings_memory_conversation_recall),
-                    subtitle = stringResource(R.string.settings_memory_conversation_recall_subtitle),
                     checked = localConfig.conversationRecallEnabled,
                     onCheckedChange = { enabled ->
                         localConfigDirty = true
@@ -129,7 +126,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.server,
                     title = stringResource(R.string.settings_memory_experience_lib),
-                    subtitle = stringResource(R.string.settings_memory_experience_lib_subtitle),
                     checked = experienceEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveExperienceEnabled(v) } },
                 )
@@ -137,7 +133,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     icon = MuseIcons.server,
                     iconContentDescription = stringResource(R.string.settings_memory_token_budget),
                     title = stringResource(R.string.settings_memory_token_budget),
-                    subtitle = stringResource(R.string.settings_memory_token_budget_subtitle),
                     value = localConfig.tokenBudget.toFloat(),
                     valueRange = 500f..6000f,
                     steps = 10,
@@ -151,7 +146,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     icon = MuseIcons.trendingDown,
                     iconContentDescription = stringResource(R.string.settings_memory_decay_rate),
                     title = stringResource(R.string.settings_memory_decay_rate_title),
-                    subtitle = stringResource(R.string.settings_memory_decay_rate_subtitle),
                     value = localConfig.decayPerDay,
                     valueRange = 0.005f..0.06f,
                     steps = 10,
@@ -166,7 +160,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     iconContentDescription = stringResource(R.string.settings_memory_hit_bonus),
                     title = stringResource(R.string.settings_memory_hit_bonus),
                     // v7: hitBonus 已接入 factScore / cutoffDays / applyDecay
-                    subtitle = stringResource(R.string.settings_memory_hit_bonus_subtitle),
                     value = localConfig.hitBonus,
                     valueRange = 0f..15f,
                     steps = 14,
@@ -194,7 +187,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     icon = MuseIcons.gauge,
                     iconContentDescription = stringResource(R.string.settings_memory_forget_speed),
                     title = stringResource(R.string.settings_memory_forget_speed),
-                    subtitle = stringResource(R.string.settings_memory_forget_speed_subtitle),
                     value = localConfig.forgetSpeed,
                     valueRange = 0.5f..3f,
                     steps = 24,
@@ -207,7 +199,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                 // v1.78 (#21): 恢复默认按钮
                 SettingsItemRow(
                     title = stringResource(R.string.settings_memory_restore_default),
-                    subtitle = stringResource(R.string.settings_memory_restore_default_subtitle),
                     onClick = { localConfig = MemoryConfig() },
                 )
             }
@@ -219,7 +210,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                 SettingsSwitchRow(
                     icon = MuseIcons.arrowsVertical,
                     title = stringResource(R.string.settings_chat_floor_limiter),
-                    subtitle = stringResource(R.string.settings_chat_floor_limiter_subtitle),
                     checked = floorLimiterEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveFloorLimiterEnabled(v) } },
                 )
@@ -239,7 +229,6 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     SettingsSegmentedRow(
                         icon = MuseIcons.arrowsVertical,
                         title = stringResource(R.string.settings_chat_floor_keep),
-                        subtitle = stringResource(R.string.settings_chat_floor_keep_subtitle),
                         options = floorOptions,
                         selectedIndex = floorIndex,
                         onSelectedChange = { idx ->

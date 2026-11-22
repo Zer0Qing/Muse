@@ -267,7 +267,6 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                 // 表情包有自己的图形:此前与"图片/绘图"共用 image,同一页里分不清说的是贴纸还是图片。
                 icon = MuseIcons.sticker,
                 title = stringResource(R.string.settings_sticker_enabled),
-                subtitle = stringResource(R.string.settings_sticker_enabled_subtitle),
                 checked = stickerEnabled,
                 onCheckedChange = { v -> scope.launch { settings.saveStickerEnabled(v) } },
             )
@@ -325,7 +324,6 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             SettingsItemRow(
                 icon = MuseIcons.upload,
                 title = stringResource(R.string.settings_sticker_upload),
-                subtitle = stringResource(R.string.settings_sticker_upload_subtitle),
                 onClick = {
                     importLauncher.launch(arrayOf("*/*"))
                 },
@@ -334,7 +332,6 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             SettingsItemRow(
                 icon = MuseIcons.image,
                 title = stringResource(R.string.settings_sticker_add_from_gallery),
-                subtitle = stringResource(R.string.settings_sticker_add_from_gallery_subtitle),
                 onClick = { galleryLauncher.launch(arrayOf("image/*")) },
             ) { ChevronRight() }
 

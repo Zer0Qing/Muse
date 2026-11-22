@@ -219,7 +219,6 @@ private fun LazyListScope.directiveSection(
                 // 「尽量做到」那段举的是「绝对不要」的例子，而且界面会同时出现两句一模一样的空态提示。
                 SettingsItemRow(
                     title = stringResource(copy.emptyRes),
-                    subtitle = stringResource(R.string.agent_directives_text_limit),
                 )
             } else {
                 rows.forEachIndexed { index, directive ->
@@ -229,7 +228,6 @@ private fun LazyListScope.directiveSection(
                     // 按钮用 MuseTopBarIconButton，它自带 48dp 触摸区，不用我手调尺寸。
                     SettingsItemRow(
                         title = directive.text,
-                        subtitle = stringResource(R.string.agent_directives_text_limit),
                         titleMaxLines = 2,
                         trailing = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -338,7 +336,6 @@ private fun VoiceTimbreEntry(onOpenTimbre: () -> Unit) {
         SettingsItemRow(
             icon = MuseIcons.microphone,
             title = stringResource(R.string.voice_timbre_entry),
-            subtitle = stringResource(R.string.voice_timbre_entry_desc),
             onClick = onOpenTimbre,
         )
     }

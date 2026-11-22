@@ -138,7 +138,6 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
         // 内置默认皮肤:选中即清空自定义选择,渲染保持既有外观
         BubbleSkinRow(
             name = stringResource(R.string.settings_bubble_skin_builtin),
-            subtitle = stringResource(R.string.settings_bubble_skin_builtin_desc),
             isSelected = selectedId == BubbleSkinCatalog.DEFAULT_SKIN_ID,
             onClick = { scope.launch { store.saveSelectedSkinId(BubbleSkinCatalog.DEFAULT_SKIN_ID) } },
             onExport = null,
@@ -273,7 +272,7 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
 @Composable
 private fun BubbleSkinRow(
     name: String,
-    subtitle: String,
+    subtitle: String? = null,
     isSelected: Boolean,
     onClick: () -> Unit,
     onExport: (() -> Unit)?,
@@ -302,13 +301,15 @@ private fun BubbleSkinRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            subtitle?.let { sub ->
+                Text(
+                    text = sub,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             if (note != null) {
                 Text(
                     text = note,

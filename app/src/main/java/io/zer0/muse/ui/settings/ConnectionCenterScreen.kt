@@ -132,7 +132,6 @@ fun ConnectionCenterScreen(
                     ConnectionEntryCard(
                         icon = MuseIcons.shield,
                         title = stringResource(R.string.connection_tools_title),
-                        subtitle = stringResource(R.string.connection_tools_subtitle),
                         onClick = onOpenToolPermissions,
                     )
                 }
@@ -168,7 +167,7 @@ internal fun pluginInstalledCount(skills: List<io.zer0.muse.data.skill.SkillEnti
 
 /** 连接中心导航卡 — 图标 + 标题 + 状态摘要 + 箭头。 */
 @Composable
-private fun ConnectionEntryCard(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+private fun ConnectionEntryCard(icon: ImageVector, title: String, subtitle: String? = null, onClick: () -> Unit) {
     MuseSurface(
         onClick = onClick,
         shape = MuseShapes.largeCard,
@@ -203,11 +202,13 @@ private fun ConnectionEntryCard(icon: ImageVector, title: String, subtitle: Stri
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                subtitle?.let { sub ->
+                    Text(
+                        text = sub,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             Icon(
                 imageVector = MuseIcons.chevronRight,

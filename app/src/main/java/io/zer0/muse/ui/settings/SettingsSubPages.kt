@@ -591,7 +591,6 @@ fun SettingsModelPage(
             SettingsItemRow(
                 icon = MuseIcons.microphone,
                 title = stringResource(R.string.settings_asr_entry_title),
-                subtitle = stringResource(R.string.settings_asr_entry_subtitle),
                 onClick = onOpenAsr,
             )
         }
@@ -774,14 +773,12 @@ private fun BubbleStyleSection() {
         SettingsSwitchRow(
             icon = MuseIcons.layoutColumns,
             title = stringResource(R.string.settings_chat_bubble_full_width),
-            subtitle = stringResource(R.string.settings_chat_bubble_full_width_subtitle),
             checked = prefs.bubbleFullWidth,
             onCheckedChange = { v -> update { it.copy(bubbleFullWidth = v) } },
         )
         SettingsSwitchRow(
             icon = MuseIcons.user,
             title = stringResource(R.string.settings_chat_show_user_avatar),
-            subtitle = stringResource(R.string.settings_chat_show_user_avatar_subtitle),
             checked = prefs.showUserAvatar,
             onCheckedChange = { v -> update { it.copy(showUserAvatar = v) } },
         )
@@ -800,7 +797,6 @@ private fun BubbleStyleSection() {
         SettingsSegmentedRow(
             icon = MuseIcons.square,
             title = stringResource(R.string.settings_bubble_radius_title),
-            subtitle = stringResource(R.string.settings_bubble_radius_subtitle),
             options = radiusOptions,
             selectedIndex = selectedRadiusIndex,
             onSelectedChange = { idx ->
@@ -828,7 +824,6 @@ private fun GenerativeUiSection() {
         SettingsSwitchRow(
             icon = MuseIcons.sparkle,
             title = stringResource(R.string.settings_chat_generative_ui),
-            subtitle = stringResource(R.string.settings_chat_generative_ui_subtitle),
             checked = prefs.generativeUiEnabled,
             onCheckedChange = { v -> update { it.copy(generativeUiEnabled = v) } },
         )
@@ -837,7 +832,6 @@ private fun GenerativeUiSection() {
             SettingsSwitchRow(
                 icon = MuseIcons.sparkle,
                 title = stringResource(R.string.settings_chat_prefer_card_output),
-                subtitle = stringResource(R.string.settings_chat_prefer_card_output_subtitle),
                 checked = prefs.preferCardOutput,
                 onCheckedChange = { v -> update { it.copy(preferCardOutput = v) } },
             )
@@ -981,14 +975,12 @@ fun SettingsAboutPage(
                 }
                 SettingsItemRow(
                     title = stringResource(R.string.settings_about_join_qq_group),
-                    subtitle = stringResource(R.string.settings_about_join_qq_group_subtitle),
                     onClick = { openQQGroup(context) },
                 ) {
                     ChevronRight()
                 }
                 SettingsItemRow(
                     title = stringResource(R.string.settings_crash_page_title),
-                    subtitle = stringResource(R.string.settings_crash_enable_subtitle),
                     onClick = onOpenCrashReport,
                 ) {
                     ChevronRight()
@@ -1036,7 +1028,6 @@ fun SettingsAboutPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.refresh,
                     title = stringResource(R.string.settings_about_auto_update),
-                    subtitle = stringResource(R.string.settings_about_auto_update_subtitle),
                     checked = updateCheckEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveUpdateCheckEnabled(v) } },
                 )

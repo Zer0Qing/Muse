@@ -49,7 +49,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_timestamp),
-                    subtitle = stringResource(R.string.settings_security_include_timestamp_subtitle),
                     checked = shareTemplate.includeTimestamp,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeTimestamp = v)) }
@@ -58,7 +57,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_model),
-                    subtitle = stringResource(R.string.settings_security_include_model_subtitle),
                     checked = shareTemplate.includeModelName,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeModelName = v)) }
@@ -67,7 +65,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_tokens),
-                    subtitle = stringResource(R.string.settings_security_include_tokens_subtitle),
                     checked = shareTemplate.includeTokenCount,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeTokenCount = v)) }
@@ -76,7 +73,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_mood),
-                    subtitle = stringResource(R.string.settings_security_include_mood_subtitle),
                     checked = shareTemplate.includeMoodBlock,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeMoodBlock = v)) }
@@ -85,7 +81,6 @@ fun SecuritySettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.share,
                     title = stringResource(R.string.settings_security_include_reasoning),
-                    subtitle = stringResource(R.string.settings_security_include_reasoning_subtitle),
                     checked = shareTemplate.includeReasoning,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveShareTemplate(shareTemplate.copy(includeReasoning = v)) }

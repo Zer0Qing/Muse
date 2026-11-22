@@ -183,7 +183,6 @@ internal fun McpSection() {
                 MuseEmptyState(
                     icon = MuseIcons.puzzle,
                     title = stringResource(R.string.settings_mcp_empty_title),
-                    subtitle = stringResource(R.string.settings_mcp_empty_subtitle),
                     actionText = stringResource(R.string.settings_mcp_add_action),
                     onAction = { showAddDialog = true },
                 )

@@ -178,7 +178,6 @@ internal fun AsrSection(
                 SettingsSwitchRow(
                     icon = MuseIcons.cloud,
                     title = stringResource(R.string.settings_asr_follow_provider),
-                    subtitle = stringResource(R.string.settings_asr_follow_provider_subtitle),
                     checked = asrConfig.followProvider,
                     onCheckedChange = { follow ->
                         scope.launch { settings.saveAsrConfig(asrConfig.copy(followProvider = follow)) }
@@ -381,7 +380,6 @@ internal fun AsrSection(
             if (asrConfig.provider != AsrProviderType.OPENAI_REALTIME) {
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings_asr_vad),
-                    subtitle = stringResource(R.string.settings_asr_vad_desc),
                     checked = asrConfig.vadEnabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveAsrConfig(asrConfig.copy(vadEnabled = v)) }
@@ -442,7 +440,6 @@ internal fun AsrSection(
             ) {
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings_asr_punctuation),
-                    subtitle = stringResource(R.string.settings_asr_punctuation_desc),
                     checked = asrConfig.enablePunctuation,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveAsrConfig(asrConfig.copy(enablePunctuation = v)) }
@@ -450,7 +447,6 @@ internal fun AsrSection(
                 )
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings_asr_itn),
-                    subtitle = stringResource(R.string.settings_asr_itn_desc),
                     checked = asrConfig.enableInverseTextNormalization,
                     onCheckedChange = { v ->
                         scope.launch {

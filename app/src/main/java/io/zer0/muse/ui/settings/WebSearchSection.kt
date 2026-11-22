@@ -55,7 +55,6 @@ internal fun WebSearchSection(webSearchConfig: WebSearchConfig, settings: Settin
             // v2.x: 联网搜索图标修正为 globe(原 languages 是翻译语义)
             icon = MuseIcons.globe,
             title = stringResource(R.string.settings_web_search_enable),
-            subtitle = stringResource(R.string.settings_web_search_enable_subtitle),
             checked = webSearchConfig.enabled,
             onCheckedChange = { enabled ->
                 scope.launch {

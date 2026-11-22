@@ -110,7 +110,6 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.users,
                     title = stringResource(R.string.settings_multi_agent_enable),
-                    subtitle = stringResource(R.string.settings_multi_agent_enable_subtitle),
                     checked = config.enabled,
                     onCheckedChange = { v ->
                         updateConfig { it.copy(enabled = v) }
@@ -126,7 +125,6 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.user,
                     title = stringResource(R.string.multi_agent_llm_review_enabled),
-                    subtitle = stringResource(R.string.multi_agent_llm_review_desc),
                     checked = config.llmReviewEnabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveLlmReviewEnabled(v) }
@@ -153,7 +151,6 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
                 MuseEmptyState(
                     icon = MuseIcons.users,
                     title = stringResource(R.string.settings_multi_agent_no_team),
-                    subtitle = stringResource(R.string.settings_multi_agent_no_team_hint),
                     actionText = stringResource(R.string.settings_multi_agent_new_team),
                     onAction = { editingTeam = AgentTeam(id = "") },
                 )
@@ -180,7 +177,6 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
                 SettingsItemRow(
                     icon = MuseIcons.edit,
                     title = stringResource(R.string.settings_multi_agent_writing_team_template),
-                    subtitle = stringResource(R.string.settings_multi_agent_writing_team_template_desc),
                     onClick = {
                         editingTeam = AgentTeam(id = "", name = writingTeamName, description = writingTeamDesc)
                     },

@@ -345,7 +345,6 @@ private fun WebAccessSwitchGroup(
         SettingsSwitchRow(
             icon = MuseIcons.router,
             title = stringResource(R.string.settings_web_access_enable),
-            subtitle = stringResource(R.string.settings_web_access_enable_subtitle),
             checked = config.enabled,
             onCheckedChange = onToggleEnabled,
         )
@@ -363,7 +362,6 @@ private fun WebAccessSwitchGroup(
         SettingsItemRow(
             icon = MuseIcons.refresh,
             title = stringResource(R.string.settings_web_regenerate_pin),
-            subtitle = stringResource(R.string.settings_web_regenerate_pin_subtitle),
             onClick = onRegeneratePin,
         )
     }

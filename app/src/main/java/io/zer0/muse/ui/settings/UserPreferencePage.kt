@@ -69,7 +69,6 @@ fun UserPreferencePage(onBack: () -> Unit, store: PreferenceStore = koinInject()
                 MuseEmptyState(
                     icon = MuseIcons.check,
                     title = stringResource(R.string.settings_preference_empty),
-                    subtitle = stringResource(R.string.settings_preference_empty_hint),
                     modifier = Modifier.fillMaxSize(),
                 )
             }

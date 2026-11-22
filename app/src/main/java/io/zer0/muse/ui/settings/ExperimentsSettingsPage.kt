@@ -71,7 +71,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_experiments_force_mood),
-                    subtitle = stringResource(R.string.settings_experiments_force_mood_subtitle),
                     checked = config.forceMoodBlock,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveExperiments(config.copy(forceMoodBlock = v)) }
@@ -80,7 +79,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.bug,
                     title = stringResource(R.string.settings_experiments_debug_mode),
-                    subtitle = stringResource(R.string.settings_experiments_debug_mode_subtitle),
                     checked = config.debugMode,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveExperiments(config.copy(debugMode = v)) }
@@ -89,7 +87,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_experiments_self_reflection),
-                    subtitle = stringResource(R.string.settings_experiments_self_reflection_subtitle),
                     checked = config.selfReflection,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveExperiments(config.copy(selfReflection = v)) }
@@ -98,7 +95,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.server,
                     title = stringResource(R.string.settings_experiments_long_memory_compression),
-                    subtitle = stringResource(R.string.settings_experiments_long_memory_compression_subtitle),
                     checked = config.longMemoryCompression,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveExperiments(config.copy(longMemoryCompression = v)) }
@@ -107,7 +103,6 @@ fun ExperimentsSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.arrowRight,
                     title = stringResource(R.string.settings_experiments_parallel_tools),
-                    subtitle = stringResource(R.string.settings_experiments_parallel_tools_subtitle),
                     checked = config.parallelReadOnlyTools,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveExperiments(config.copy(parallelReadOnlyTools = v)) }

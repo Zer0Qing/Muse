@@ -87,7 +87,6 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
                 SettingsItemRow(
                     icon = MuseIcons.battery,
                     title = stringResource(R.string.settings_keep_alive_battery_title),
-                    subtitle = stringResource(R.string.settings_keep_alive_battery_subtitle),
                     onClick = { showGuide = true },
                 ) {
                     ChevronRight()
@@ -95,7 +94,6 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
                 SettingsItemRow(
                     icon = MuseIcons.sliders,
                     title = stringResource(R.string.settings_keep_alive_rom_title),
-                    subtitle = stringResource(R.string.settings_keep_alive_rom_subtitle),
                     onClick = { showGuide = true },
                 ) {
                     ChevronRight()
@@ -140,7 +138,6 @@ private fun KeepAliveSwitchesGroup(
         SettingsSwitchRow(
             icon = MuseIcons.deviceMobile,
             title = stringResource(R.string.settings_keep_alive_title),
-            subtitle = stringResource(R.string.settings_keep_alive_subtitle),
             checked = enabled,
             onCheckedChange = onToggleEnabled,
         )
@@ -148,14 +145,12 @@ private fun KeepAliveSwitchesGroup(
             SettingsSwitchRow(
                 icon = MuseIcons.clock,
                 title = stringResource(R.string.settings_keep_alive_wakelock_title),
-                subtitle = stringResource(R.string.settings_keep_alive_wakelock_subtitle),
                 checked = wakeLock,
                 onCheckedChange = onToggleWakeLock,
             )
             SettingsItemRow(
                 icon = MuseIcons.edit,
                 title = stringResource(R.string.settings_keep_alive_notification_custom_title),
-                subtitle = stringResource(R.string.settings_keep_alive_notification_custom_subtitle),
                 onClick = onOpenNotificationEditor,
             ) {
                 ChevronRight()

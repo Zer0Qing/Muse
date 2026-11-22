@@ -136,7 +136,6 @@ fun MediaSettingsPage(
                 SettingsSliderRow(
                     icon = MuseIcons.microphone,
                     title = stringResource(R.string.settings_media_speech_rate),
-                    subtitle = stringResource(R.string.settings_media_speech_rate_subtitle),
                     value = speechRateDraft,
                     valueRange = 0.5f..2.0f,
                     steps = 14,
@@ -146,7 +145,6 @@ fun MediaSettingsPage(
                 SettingsSliderRow(
                     icon = MuseIcons.microphone,
                     title = stringResource(R.string.settings_media_pitch),
-                    subtitle = stringResource(R.string.settings_media_pitch_subtitle),
                     value = pitchDraft,
                     valueRange = 0.5f..2.0f,
                     steps = 14,
@@ -202,7 +200,6 @@ fun MediaSettingsPage(
                 SettingsItemRow(
                     icon = MuseIcons.microphone,
                     title = stringResource(R.string.voice_cloning_title),
-                    subtitle = stringResource(R.string.voice_cloning_new_voice),
                     onClick = onOpenVoiceCloning,
                 ) { ChevronRight() }
             }
@@ -620,7 +617,6 @@ private fun TtsFollowProviderSection(config: MediaConfig, settings: SettingsRepo
     SettingsSwitchRow(
         icon = MuseIcons.cloud,
         title = stringResource(R.string.settings_media_tts_follow_provider),
-        subtitle = stringResource(R.string.settings_media_tts_follow_provider_subtitle),
         checked = config.ttsFollowProvider,
         onCheckedChange = { follow ->
             scope.launch { settings.saveMediaConfig(config.copy(ttsFollowProvider = follow)) }

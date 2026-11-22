@@ -613,7 +613,6 @@ fun PluginManagePage(onBack: () -> Unit) {
                         MuseEmptyState(
                             icon = MuseIcons.puzzle,
                             title = stringResource(R.string.muse_plugins_market_not_configured),
-                            subtitle = stringResource(R.string.muse_plugins_market_not_configured_hint),
                             actionText = stringResource(R.string.muse_plugins_market_configure),
                             onAction = { showMarketSettings = true },
                         )
@@ -1067,7 +1066,6 @@ fun PluginManagePage(onBack: () -> Unit) {
         MuseFormDialog(
             onDismissRequest = { showMarketSettings = false },
             title = stringResource(R.string.muse_plugins_market_settings_title),
-            subtitle = stringResource(R.string.muse_plugins_market_settings_hint),
             onConfirm = {
                 scope.launch {
                     val trimmedUrl = urlInput.trim()

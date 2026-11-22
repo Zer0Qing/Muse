@@ -144,7 +144,6 @@ fun TaskRoutingSettingsPage(
                 SettingsSwitchRow(
                     icon = MuseIcons.atom,
                     title = stringResource(R.string.settings_chat_default_deep_thinking),
-                    subtitle = stringResource(R.string.settings_chat_default_deep_thinking_subtitle),
                     checked = chatPrefs.defaultDeepThinking,
                     onCheckedChange = { v ->
                         scope.launch { settings.updateChatPreferences { it.copy(defaultDeepThinking = v) } }
@@ -185,7 +184,6 @@ fun TaskRoutingSettingsPage(
                 SettingsItemRow(
                     icon = MuseIcons.wrench,
                     title = stringResource(R.string.settings_agent_tool_model_title),
-                    subtitle = stringResource(R.string.settings_task_routing_utility_small_desc),
                     onClick = {
                         editingProviderId = utilityBinding?.providerId ?: activeProviderId
                         editingUtilityTier = UtilityTier.SMALL
@@ -200,7 +198,6 @@ fun TaskRoutingSettingsPage(
                 SettingsItemRow(
                     icon = MuseIcons.bolt,
                     title = stringResource(R.string.settings_agent_subagent_model_title),
-                    subtitle = stringResource(R.string.settings_task_routing_utility_large_desc),
                     onClick = {
                         editingProviderId = utilityLargeBinding?.providerId ?: activeProviderId
                         editingUtilityTier = UtilityTier.LARGE
@@ -215,7 +212,6 @@ fun TaskRoutingSettingsPage(
                 SettingsItemRow(
                     icon = MuseIcons.gauge,
                     title = stringResource(R.string.settings_chat_compress_model),
-                    subtitle = stringResource(R.string.settings_chat_compress_model_default),
                     onClick = null,
                 )
                 // v2.x: 自定义压缩提示词(自记忆页归位;上下文压缩归大工具职责)

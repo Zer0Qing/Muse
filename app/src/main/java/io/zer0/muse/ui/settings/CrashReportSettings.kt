@@ -151,7 +151,6 @@ fun CrashReportSettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.bell,
                     title = stringResource(R.string.settings_crash_anr_title),
-                    subtitle = stringResource(R.string.settings_crash_anr_subtitle),
                     checked = anrDetection,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveAnrDetection(v) }
