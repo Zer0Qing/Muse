@@ -1857,8 +1857,7 @@ class MemoryViewModel(
                     summary = m.summary,
                     createdAt = m.createdAt,
                     timeText = runCatching {
-                        java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, java.util.Locale.CHINA)
-                            .format(java.util.Date(m.createdAt))
+                        MuseDateFormats.format(MuseDateFormats.DATE_TIME_FULL_SEC, m.createdAt, java.util.Locale.CHINA)
                     }.getOrNull() ?: "",
                 )
             }

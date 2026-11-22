@@ -103,8 +103,7 @@ class ProactiveRelationRepository(
     companion object {
         private const val DAY_MS = 86_400_000L
 
-        private fun dateKey(now: Long): String = java.text.SimpleDateFormat(MuseDateFormats.DATE_ONLY, java.util.Locale.US)
-            .format(java.util.Date(now))
+        private fun dateKey(now: Long): String = MuseDateFormats.format(MuseDateFormats.DATE_ONLY, now, java.util.Locale.US)
     }
 
     /**
