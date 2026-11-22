@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_experiments_session_attachment_rag">Busca em anexos do chat</string>
-    <string name="settings_experiments_session_attachment_rag_subtitle">Documentos enviados no chat são indexados para que o assistente possa citá-los. Recurso experimental; o índice é limpo com a sessão.</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">, Selecionado</string>
 
@@ -15,7 +14,6 @@
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">Pesquisa na Web</string>
     <string name="settings_web_search_enable">Ativar pesquisa na Web</string>
-    <string name="settings_web_search_enable_subtitle">Estado padrão global;</string>
     <string name="settings_web_search_engine">Mecanismo de pesquisa</string>
     <string name="settings_saved">Salvo</string>
     <string name="settings_web_search_save_api_key">Salvar chave de API</string>
@@ -28,13 +26,9 @@
     <string name="settings_experiments_warning">Os seguintes recursos são experimentais e podem ser instáveis ​​ou afetar sua experiência</string>
     <string name="settings_experiments_features">Recursos experimentais</string>
     <string name="settings_experiments_force_mood">Forçar saída MOOD</string>
-    <string name="settings_experiments_force_mood_subtitle">Tentar exigir a saída do bloco MOOD mesmo que o modelo não suporte isso</string>
     <string name="settings_experiments_debug_mode">Modo de depuração</string>
-    <string name="settings_experiments_debug_mode_subtitle">Mostrar mais estado interno (MOOD/chamadas de ferramentas/tokens)</string>
     <string name="settings_experiments_self_reflection">Auto-reflexão</string>
-    <string name="settings_experiments_self_reflection_subtitle">Verifique automaticamente a qualidade após responder</string>
     <string name="settings_experiments_long_memory_compression">Compressão de memória longa</string>
-    <string name="settings_experiments_long_memory_compression_subtitle">Resumir automaticamente conversas muito longas (ativado por padrão desde a versão 1.55)</string>
 
     <!-- UserProfileEditPage.kt -->
     <string name="settings_user_profile_title">Perfil de usuário</string>
@@ -126,18 +120,14 @@
     <string name="settings_assistant_skills">Gerente de Habilidades</string>
     <string name="settings_assistant_skills_subtitle">Visualizar/ativar/desativar ferramentas que o LLM pode chamar (E/S de arquivo, HTTP, etc.)</string>
     <string name="settings_assistant_memory_enable">Habilitar sistema de memória</string>
-    <string name="settings_assistant_memory_enable_subtitle">Quando desativado, as conversas não injetam mais memória de longo prazo e o resumo em segundo plano é interrompido</string>
 
     <!-- MultiAgentSettingsPage.kt -->
     <string name="settings_multi_agent_title">Colaboração multiagente</string>
     <string name="settings_multi_agent_enable">Habilite a colaboração multiagente</string>
-    <string name="settings_multi_agent_enable_subtitle">Quando ativado, o assistente principal pode delegar tarefas aos membros da equipe</string>
     <string name="settings_multi_agent_team_list">Lista de equipes</string>
     <string name="settings_multi_agent_no_team">Ainda não há equipes</string>
-    <string name="settings_multi_agent_no_team_hint">Toque abaixo para criar uma equipe</string>
     <string name="settings_multi_agent_new_team">Nova equipe</string>
     <string name="settings_multi_agent_writing_team_template">Modelo de equipe de escrita</string>
-    <string name="settings_multi_agent_writing_team_template_desc">Esboço → rascunho → polimento: fluxo predefinido com um toque</string>
     <string name="settings_multi_agent_writing_team_name">Equipe de escrita</string>
     <string name="settings_multi_agent_writing_team_desc">Escrita colaborativa: esboço → rascunho → polimento. Adicione assistentes como membros nesta ordem.</string>
     <string name="settings_multi_agent_delete_team">Excluir equipe</string>
@@ -281,7 +271,6 @@
     <string name="settings_crash_pending_hint_idle">As falhas serão adicionadas à fila pendente automaticamente</string>
     <string name="settings_crash_report_now_button">Relate falhas pendentes agora</string>
     <string name="settings_crash_settings_section">Configurações de relatório</string>
-    <string name="settings_crash_enable_subtitle">Os registros so sao enviados quando voce toca em Enviar agora</string>
     <string name="settings_crash_privacy_section">Privacidade</string>
     <string name="settings_crash_privacy_title">Promessa de privacidade para relatórios de falhas</string>
     <string name="settings_crash_privacy_content">• Desligado por padrão;</string>
@@ -308,7 +297,6 @@
     <string name="settings_web_search_diagnosis">Diagnóstico da pesquisa mais recente</string>
     <string name="settings_web_search_no_diagnosis">Ainda não há registros de pesquisa</string>
     <string name="settings_experiments_parallel_tools">Ferramentas somente leitura em paralelo</string>
-    <string name="settings_experiments_parallel_tools_subtitle">Quando todas as ferramentas de uma rodada forem somente leitura, execute-as em paralelo para ser mais rápido e eficiente (ativado por padrão; pode ser desativado para voltar ao serial)</string>
     <string name="settings_model_action_test_chat">Conversa de teste (canal completo)</string>
     <string name="settings_model_action_test_chat_short">Testar</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>

@@ -73,7 +73,6 @@
     <string name="theme_dusk_rose">ダスクローズ</string>
     <string name="settings_theme_schedule">定時切り替え</string>
     <string name="settings_theme_schedule_auto">自動切り替え</string>
-    <string name="settings_theme_schedule_auto_subtitle">起床・就寝時間にライト/ダークを自動切り替え</string>
     <string name="settings_theme_wake_time_title">起床時間(ライト)</string>
     <string name="settings_theme_sleep_time_title">就寝時間(ダーク)</string>
 
@@ -241,7 +240,6 @@
     <string name="agent_bot_discard">破棄</string>
     <string name="attachment_kind_video">[動画]</string>
     <string name="attachment_kind_audio">[音声]</string>
-    <string name="attachment_frame_note">（キーフレーム %1$d 枚を添付）</string>
     <string name="terminal_receipt_template">【ターミナル受信】
 コマンド：%1$s
 出力（末尾）：

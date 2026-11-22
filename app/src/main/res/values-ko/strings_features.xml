@@ -517,7 +517,6 @@
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">LLM 검토 활성화</string>
     <string name="multi_agent_llm_review_model">모델 검토</string>
-    <string name="multi_agent_llm_review_desc">다중 에이전트 결과를 검토하려면 별도의 LLM 호출을 사용하십시오. 품질은 높지만 지연 시간과 토큰 사용량이 늘어납니다</string>
     <string name="quick_notes_attachment_count">첨부 파일 %1$d개</string>
     <string name="quick_notes_encrypt_off">복호화</string>
     <string name="quick_notes_encrypt_on">암호화</string>
@@ -613,7 +612,6 @@
     <string name="schedule_unsaved_message">저장되지 않은 변경 사항이 있습니다. 버릴까요?</string>
     <string name="schedule_unsaved_title">변경 사항을 버릴까요?</string>
     <string name="settings_about_join_qq_group">QQ 그룹 참여</string>
-    <string name="settings_about_join_qq_group_subtitle">QQ 그룹: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ를 찾을 수 없습니다. 그룹 번호 905451314가 클립보드에 복사되었습니다</string>
     <string name="shizuku_authorize_btn">Muse 승인</string>
     <string name="permission_shizuku_opened_toast">Shizuku를 열었습니다. 앱에서 서비스를 시작한 후 돌아와 새로고침하세요</string>
@@ -668,12 +666,8 @@
     <string name="mini_album_visibility_cd_shown">숨긴 이미지 표시</string>
     <string name="mini_album_empty_no_images">AI 생성 이미지가 아직 없습니다</string>
     <string name="mini_album_empty_all_hidden">앨범에 표시할 이미지가 없습니다</string>
-    <string name="mini_album_empty_no_images_hint">이미지 생성 모델을 구성하면 생성된 이미지가 여기에 표시됩니다</string>
-    <string name="mini_album_empty_all_hidden_hint">이미지 작업에서 숨김 해제할 수 있습니다</string>
     <string name="mini_album_image_cd">AI 생성 이미지</string>
     <string name="mini_album_actions_title">이미지 작업</string>
-    <string name="mini_album_restore_hint">복원하면 이 이미지가 앨범에 다시 표시됩니다</string>
-    <string name="mini_album_hide_hint">이 이미지는 앨범에서만 숨겨지며 채팅 기록은 삭제되지 않습니다</string>
     <string name="mini_album_restore_action">표시</string>
     <string name="mini_album_hide_action">앨범에서 숨기기</string>
     <string name="mini_album_unfavorite_action">즐겨찾기 해제</string>
@@ -736,7 +730,6 @@
     <string name="chat_clear_background">이 대화 배경 지우기</string>
     <string name="chat_background_cleared">이 대화의 배경을 지웠습니다</string>
     <string name="mini_album_import_cd">이미지 가져오기</string>
-    <string name="mini_album_delete_imported_hint">직접 가져온 이미지입니다. 삭제하면 파일도 제거됩니다.</string>
     <string name="mini_album_delete_imported_action">이미지 삭제</string>
     <string name="quick_notes_remove_image">이미지 %1$d 제거</string>
     <!-- 백그라운드 깨우기 진단: 시스템이 실제로 Muse의 깨우기를 예약했는지(읽기 전용) -->

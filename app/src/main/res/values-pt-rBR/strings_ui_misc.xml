@@ -73,7 +73,6 @@
     <string name="theme_dusk_rose">Rosa do Crepúsculo</string>
     <string name="settings_theme_schedule">Troca programada</string>
     <string name="settings_theme_schedule_auto">Troca automática</string>
-    <string name="settings_theme_schedule_auto_subtitle">Alternar claro/escuro automaticamente no horário de acordar e dormir</string>
     <string name="settings_theme_wake_time_title">Horário de acordar (claro)</string>
     <string name="settings_theme_sleep_time_title">Horário de dormir (escuro)</string>
 
@@ -241,7 +240,6 @@ Toque em atualizar para buscar a lista</string>
     <string name="agent_bot_discard">Descartar</string>
     <string name="attachment_kind_video">[Vídeo]</string>
     <string name="attachment_kind_audio">[Áudio]</string>
-    <string name="attachment_frame_note">(%1$d quadros-chave anexados)</string>
     <string name="terminal_receipt_template">[Recibo do terminal]
 Comando: %1$s
 Saída (final):

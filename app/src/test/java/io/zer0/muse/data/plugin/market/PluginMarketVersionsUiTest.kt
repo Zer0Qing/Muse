@@ -17,7 +17,11 @@ import java.io.File
  */
 class PluginMarketVersionsUiTest {
 
-    private val page: String by lazy { readSource("ui/settings/PluginManagePage.kt") }
+    private val page: String by lazy {
+        // 实现已拆到 PluginManageParts.kt，两处拼接后再断言。
+        readSource("ui/settings/PluginManagePage.kt") +
+            runCatching { readSource("ui/settings/PluginManageParts.kt") }.getOrDefault("")
+    }
 
     private val catalog: String by lazy { readSource("data/plugin/market/PluginCatalog.kt") }
 
@@ -60,7 +64,7 @@ class PluginMarketVersionsUiTest {
             "没拿到 manifest 前只能说「下载后确认」",
             page.contains("muse_plugins_market_advice_compat_unconfirmed"),
         )
-        val sheet = page.substringAfter("private fun MarketEntryDetailSheet(").substringBefore("@Composable")
+        val sheet = page.substringAfter("fun MarketEntryDetailSheet(").substringBefore("@Composable")
         assertTrue("兼容说明不该出现在已安装分支里被当成结论", sheet.contains("else -> stringResource(R.string.muse_plugins_market_advice_compat_unconfirmed)"))
     }
 

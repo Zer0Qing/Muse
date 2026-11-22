@@ -6,9 +6,7 @@
     <string name="settings_browser_search_hint">Keywords typed in the address bar are searched here; a full URL still opens directly.</string>
     <string name="settings_browser_cookies_title">Cookies</string>
     <string name="settings_browser_accept_cookies">Accept cookies</string>
-    <string name="settings_browser_accept_cookies_hint">When on, the built-in browser stores and sends site cookies like a normal browser. Turning it off only stops future storage; it does not sign you out.</string>
     <string name="settings_browser_clear">Clear cookies and site data</string>
-    <string name="settings_browser_clear_hint">Removes cookies, DOM storage and cache saved by the built-in browser; logged-in sites will need signing in again.</string>
     <string name="settings_browser_engine_bing">Bing</string>
     <string name="settings_browser_engine_baidu">Baidu</string>
     <string name="settings_browser_engine_sogou">Sogou</string>

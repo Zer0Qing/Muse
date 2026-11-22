@@ -73,7 +73,6 @@
     <string name="theme_dusk_rose">Rosa del anochecer</string>
     <string name="settings_theme_schedule">Cambio programado</string>
     <string name="settings_theme_schedule_auto">Cambio automático</string>
-    <string name="settings_theme_schedule_auto_subtitle">Cambiar automáticamente entre claro y oscuro a la hora de despertarse y dormir</string>
     <string name="settings_theme_wake_time_title">Hora de despertar (claro)</string>
     <string name="settings_theme_sleep_time_title">Hora de dormir (oscuro)</string>
 
@@ -241,7 +240,6 @@ Toca actualizar para obtener la lista</string>
     <string name="agent_bot_discard">Descartar</string>
     <string name="attachment_kind_video">[Vídeo]</string>
     <string name="attachment_kind_audio">[Audio]</string>
-    <string name="attachment_frame_note">(%1$d fotogramas adjuntos)</string>
     <string name="terminal_receipt_template">[Recibo de terminal]
 Comando: %1$s
 Salida (final):

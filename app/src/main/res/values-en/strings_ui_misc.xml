@@ -80,7 +80,6 @@
     <string name="theme_dusk_rose">Dusk Rose</string>
     <string name="settings_theme_schedule">Scheduled switching</string>
     <string name="settings_theme_schedule_auto">Auto switch</string>
-    <string name="settings_theme_schedule_auto_subtitle">Automatically switch light/dark at wake-up and sleep time</string>
     <string name="settings_theme_wake_time_title">Wake-up time (light)</string>
     <string name="settings_theme_sleep_time_title">Sleep time (dark)</string>
 
@@ -243,7 +242,6 @@ Tap refresh to fetch the list upstream</string>
     <string name="agent_bot_discard">Discard</string>
     <string name="attachment_kind_video">[Video]</string>
     <string name="attachment_kind_audio">[Audio]</string>
-    <string name="attachment_frame_note">(%1$d key frames attached)</string>
     <string name="terminal_receipt_template">[Terminal receipt]
 Command: %1$s
 Output (tail):

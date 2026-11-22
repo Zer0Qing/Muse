@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_experiments_session_attachment_rag">Búsqueda en adjuntos del chat</string>
-    <string name="settings_experiments_session_attachment_rag_subtitle">Los documentos subidos en un chat se indexan para que el asistente pueda citarlos. Función experimental; el índice se borra con la conversación.</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">, Seleccionado</string>
 
@@ -15,7 +14,6 @@
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">Búsqueda web</string>
     <string name="settings_web_search_enable">Habilitar búsqueda web</string>
-    <string name="settings_web_search_enable_subtitle">Estado predeterminado global; si está desactivada, el chip de la barra de entrada aún permite activarla temporalmente</string>
     <string name="settings_web_search_engine">Motor de búsqueda</string>
     <string name="settings_saved">Guardado</string>
     <string name="settings_web_search_save_api_key">Guardar clave API</string>
@@ -28,13 +26,9 @@
     <string name="settings_experiments_warning">Las siguientes funciones son experimentales y pueden ser inestables o afectar a tu experiencia</string>
     <string name="settings_experiments_features">Funciones experimentales</string>
     <string name="settings_experiments_force_mood">Forzar salida de MOOD</string>
-    <string name="settings_experiments_force_mood_subtitle">Intentar exigir la salida del bloque MOOD aunque el modelo no lo admita</string>
     <string name="settings_experiments_debug_mode">Modo de depuración</string>
-    <string name="settings_experiments_debug_mode_subtitle">Mostrar más estados internos (MOOD/llamadas a herramientas/tokens)</string>
     <string name="settings_experiments_self_reflection">Autorreflexión</string>
-    <string name="settings_experiments_self_reflection_subtitle">Verificar automáticamente la calidad después de responder</string>
     <string name="settings_experiments_long_memory_compression">Compresión de memoria larga</string>
-    <string name="settings_experiments_long_memory_compression_subtitle">Resumir automáticamente conversaciones muy largas (habilitado de forma predeterminada desde v1.55)</string>
 
     <!-- UserProfileEditPage.kt -->
     <string name="settings_user_profile_title">Perfil de usuario</string>
@@ -126,18 +120,14 @@
     <string name="settings_assistant_skills">Gestión de habilidades</string>
     <string name="settings_assistant_skills_subtitle">Ver/habilitar/deshabilitar herramientas que el LLM puede llamar (E/S de archivos, HTTP, etc.)</string>
     <string name="settings_assistant_memory_enable">Habilitar sistema de memoria</string>
-    <string name="settings_assistant_memory_enable_subtitle">Si se desactiva, las conversaciones dejan de inyectar memoria a largo plazo y se detiene la generación de resúmenes en segundo plano</string>
 
     <!-- MultiAgentSettingsPage.kt -->
     <string name="settings_multi_agent_title">Colaboración entre múltiples agentes</string>
     <string name="settings_multi_agent_enable">Habilitar la colaboración entre múltiples agentes</string>
-    <string name="settings_multi_agent_enable_subtitle">Cuando está habilitado, el asistente principal puede delegar tareas a los miembros del equipo.</string>
     <string name="settings_multi_agent_team_list">Lista de equipos</string>
     <string name="settings_multi_agent_no_team">Aún no hay equipos</string>
-    <string name="settings_multi_agent_no_team_hint">Toca abajo para crear un equipo</string>
     <string name="settings_multi_agent_new_team">Nuevo equipo</string>
     <string name="settings_multi_agent_writing_team_template">Plantilla de equipo de escritura</string>
-    <string name="settings_multi_agent_writing_team_template_desc">Esquema → borrador → pulido: flujo predefinido con un toque</string>
     <string name="settings_multi_agent_writing_team_name">Equipo de escritura</string>
     <string name="settings_multi_agent_writing_team_desc">Escritura colaborativa: esquema → borrador → pulido. Añade asistentes como miembros en este orden.</string>
     <string name="settings_multi_agent_delete_team">Eliminar equipo</string>
@@ -281,7 +271,6 @@
     <string name="settings_crash_pending_hint_idle">Los fallos se agregarán automáticamente a la cola pendiente</string>
     <string name="settings_crash_report_now_button">Informar fallos pendientes ahora</string>
     <string name="settings_crash_settings_section">Configuración de informes</string>
-    <string name="settings_crash_enable_subtitle">Los registros solo se envían al pulsar Informar ahora</string>
     <string name="settings_crash_privacy_section">Privacidad</string>
     <string name="settings_crash_privacy_title">Compromiso de privacidad de los informes de fallos</string>
     <string name="settings_crash_privacy_content">• Desactivado por defecto; tienes que activarlo tú para que funcione\n• Antes de enviar se muestra un diálogo de confirmación; nunca se envía nada en silencio\n• Las trazas de los fallos se anonimizan (las claves API y los Bearer token se sustituyen automáticamente por ***)\n• Solo se recopila: modelo del dispositivo / versión de Android / versión de la app / marca de tiempo\n• No se recopilan el IMEI, el Android ID, la dirección MAC ni otros identificadores únicos del dispositivo\n• Por correo: se abre la aplicación de correo para que confirmes tú el envío\n• Por webhook: HTTP POST a la URL que configures</string>
@@ -308,7 +297,6 @@
     <string name="settings_web_search_diagnosis">Último diagnóstico de búsqueda</string>
     <string name="settings_web_search_no_diagnosis">Aún no hay registros de búsqueda</string>
     <string name="settings_experiments_parallel_tools">Herramientas de solo lectura en paralelo</string>
-    <string name="settings_experiments_parallel_tools_subtitle">Cuando todas las herramientas de una ronda son de solo lectura, se ejecutan en paralelo para ser más rápido y eficiente (activado por defecto; se puede desactivar para volver a la ejecución en serie)</string>
     <string name="settings_model_action_test_chat">Probar conversación (flujo completo)</string>
     <string name="settings_model_action_test_chat_short">Probar</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>

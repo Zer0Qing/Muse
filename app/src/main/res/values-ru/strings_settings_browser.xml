@@ -6,9 +6,7 @@
     <string name="settings_browser_search_hint">Ключевые слова из адресной строки ищутся здесь, а полный адрес открывается напрямую.</string>
     <string name="settings_browser_cookies_title">Cookies</string>
     <string name="settings_browser_accept_cookies">Принимать cookies</string>
-    <string name="settings_browser_accept_cookies_hint">Если включено, встроенный браузер сохраняет и отправляет cookies, как обычный. Выключение останавливает только будущее сохранение и не разлогинивает.</string>
     <string name="settings_browser_clear">Очистить cookies и данные сайтов</string>
-    <string name="settings_browser_clear_hint">Удаляет cookies, хранилище DOM и кэш встроенного браузера; на сайтах придётся войти заново.</string>
     <string name="settings_browser_engine_bing">Bing</string>
     <string name="settings_browser_engine_baidu">Baidu</string>
     <string name="settings_browser_engine_sogou">Sogou</string>

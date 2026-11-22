@@ -618,7 +618,6 @@
     <!-- ===== v1.201: LLM 综合评审(LLM_REVIEW 聚合策略) ===== -->
     <string name="multi_agent_llm_review_enabled">启用 LLM 综合评审</string>
     <string name="multi_agent_llm_review_model">评审模型</string>
-    <string name="multi_agent_llm_review_desc">使用独立 LLM 调用综合评审多 Agent 结果，质量更高但耗时与 token 消耗增加</string>
     <string name="quick_notes_settings_title">快速记录设置</string>
     <string name="quick_capture_swipe_title">显示侧滑快速记录</string>
     <string name="quick_capture_swipe_desc">在 Muse 内右侧边缘显示快速记录把手</string>
@@ -661,12 +660,8 @@
     <string name="mini_album_visibility_cd_shown">显示已隐藏图片</string>
     <string name="mini_album_empty_no_images">还没有 AI 生成的图片</string>
     <string name="mini_album_empty_all_hidden">相册中没有可显示的图片</string>
-    <string name="mini_album_empty_no_images_hint">配置生图模型后,AI 生成的图片会出现在这里</string>
-    <string name="mini_album_empty_all_hidden_hint">可以在图片操作中取消隐藏</string>
     <string name="mini_album_image_cd">AI 生成图片</string>
     <string name="mini_album_actions_title">图片操作</string>
-    <string name="mini_album_restore_hint">恢复后这张图片会重新出现在小手机相册。</string>
-    <string name="mini_album_hide_hint">这张图片只会从小手机相册隐藏，不会删除聊天记录。</string>
     <string name="mini_album_restore_action">恢复显示</string>
     <string name="mini_album_hide_action">从相册隐藏</string>
     <string name="mini_album_unfavorite_action">取消收藏</string>
@@ -684,7 +679,6 @@
     <string name="chat_clear_background">清除本对话背景</string>
     <string name="chat_background_cleared">本对话背景已清除</string>
     <string name="mini_album_import_cd">导入图片</string>
-    <string name="mini_album_delete_imported_hint">这是你导入的图片，删除后文件会被移除。</string>
     <string name="mini_album_delete_imported_action">删除图片</string>
     <string name="quick_notes_remove_image">移除图片 %1$d</string>
 

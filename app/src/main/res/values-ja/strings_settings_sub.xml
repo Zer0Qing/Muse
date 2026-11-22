@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_chat_bubble_full_width">バブルを横幅いっぱいに表示</string>
-    <string name="settings_chat_bubble_full_width_subtitle">AI の返信は行いっぱいに広がり、自分のメッセージは右側の控えめな吹き出しのまま。</string>
     <string name="settings_chat_show_user_avatar">自分のアバターを表示</string>
-    <string name="settings_chat_show_user_avatar_subtitle">ユーザーメッセージの横にローカルの頭文字アバターを表示します</string>
     <!-- Agent Settings -->
     <string name="settings_agent_tool_model_not_set_inherit">メインモデルを使用</string>
     <!-- v2.x: auxiliary model tiers -->
@@ -74,7 +72,6 @@
     <!-- Phase 4: 吹き出しスキンの選択/プレビュー -->
     <string name="settings_bubble_skin_section">吹き出しスキン</string>
     <string name="settings_bubble_skin_builtin">Muse デフォルト吹き出し</string>
-    <string name="settings_bubble_skin_builtin_desc">内蔵スキン(デフォルトと同じ外観)</string>
     <string name="settings_bubble_skin_custom_desc">カスタム吹き出しスキン</string>
     <string name="settings_bubble_skin_import">スキンをインポート</string>
     <string name="settings_bubble_skin_import_success">スキンをインポートして適用しました</string>
@@ -104,20 +101,16 @@
     <string name="settings_task_routing_vision_unset">未設定(タップして設定)</string>
     <string name="settings_task_routing_aux_models_label">ユーティリティモデル</string>
     <string name="settings_task_routing_main_models_label">メインチャットモデル</string>
-    <string name="settings_task_routing_utility_small_desc">タイトル生成・軽量分類などの簡単なタスク</string>
     <string name="settings_task_routing_utility_failed_title">補助モデルの呼び出しに失敗しました</string>
     <string name="settings_task_routing_utility_failed_desc">直近の %1$s の呼び出し結果：%2$s。記憶の抽出や要約などのバックグラウンド処理に影響します（チャットは影響を受けません）。使えるモデルに変更するか、空欄にしてメインモデルを使えます。</string>
     <string name="settings_agent_daily_guarantee">毎日の保証</string>
     <string name="settings_agent_daily_guarantee_hint">この時間を超えて主動メッセージが送られていない場合、強制的に1件送ります。静かな時間帯、クールダウン、直近の発言、1日の上限は引き続き有効です。</string>
     <string name="settings_agent_daily_guarantee_hours">%1$d 時間</string>
     <string name="settings_agent_daily_guarantee_off">オフ</string>
-    <string name="settings_task_routing_utility_large_desc">圧縮・記憶抽出・タスク分解など理解力が必要な場面</string>
     <string name="settings_crash_anr_title">ANR 検出</string>
-    <string name="settings_crash_anr_subtitle">アプリの無応答を検出してクラッシュ/監査ログに記録します</string>
     <string name="settings_chat_compress_model">圧縮モデル</string>
     <string name="settings_chat_compress_model_default">デフォルトモデル</string>
     <string name="settings_chat_paste_as_file">長文貼り付けをファイル化</string>
-    <string name="settings_chat_paste_as_file_subtitle">しきい値を超える貼り付けテキストをファイルとして添付するよう促します</string>
     <string name="settings_chat_paste_as_file_threshold">ファイル化のしきい値</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">%1$d 文字を超えるとファイル化を促します</string>
     <string name="settings_chat_custom_title_prompt">カスタムタイトルプロンプト</string>
@@ -127,7 +120,6 @@
     <string name="settings_memory_custom_compress_prompt_default">組み込みのデフォルト圧縮指示を使用</string>
     <string name="settings_memory_custom_compress_prompt_hint">コンテキスト圧縮のカスタム指示(空欄でデフォルト)</string>
     <string name="settings_about_auto_update">自動更新チェック</string>
-    <string name="settings_about_auto_update_subtitle">起動後にGitHubの新バージョンを自動確認します</string>
     <string name="prompt_template_manager_title">プロンプトテンプレート</string>
     <string name="prompt_template_manager_list">テンプレート一覧</string>
     <string name="prompt_template_manager_empty">カスタムテンプレートはまだありません</string>
@@ -179,24 +171,16 @@
     <string name="settings_memory_page_title">メモリ</string>
     <string name="settings_memory_system_section">メモリーシステム</string>
     <string name="settings_memory_token_budget">トークンの予算</string>
-    <string name="settings_memory_token_budget_subtitle">ターゲットのmemory.mdの長さは、注入されるコンテキストの量に影響します</string>
     <string name="settings_memory_decay_rate">減衰率</string>
     <string name="settings_memory_decay_rate_title">減衰率 λ</string>
-    <string name="settings_memory_decay_rate_subtitle">高いほど忘れる速度が速くなります (0.01 遅い / 0.02 デフォルト / 0.04 速い)</string>
     <string name="settings_memory_hit_bonus">ヒットボーナス</string>
-    <string name="settings_memory_hit_bonus_subtitle">頻繁に言及される記憶は、よりゆっくりと減衰します。</string>
     <string name="settings_memory_compile_threshold">コンパイルしきい値</string>
     <string name="settings_memory_compile_threshold_subtitle">このスコア未満のメモリは、memory.md に追加されません (%1$s 未満でなければなりません)</string>
     <string name="settings_memory_forget_speed">スピードを忘れてください</string>
-    <string name="settings_memory_forget_speed_subtitle">1.0 通常 / 2.0 は 2 倍早く忘れます</string>
     <string name="settings_memory_restore_default">デフォルトに戻す</string>
-    <string name="settings_memory_restore_default_subtitle">メモリパラメータを工場出荷時の値にリセット</string>
     <string name="settings_memory_experience_lib">体験ライブラリ</string>
-    <string name="settings_memory_experience_lib_subtitle">アシスタントは職務経験を要約し、後のタスクで参照します (文脈を汚す可能性があります)</string>
     <string name="settings_memory_keep_awake">起きていてください</string>
-    <string name="settings_memory_keep_awake_subtitle">生成中のみ保持し、低バッテリーで未充電の場合は保持しない</string>
     <string name="settings_memory_auto_launch">起動時に自動起動</string>
-    <string name="settings_memory_auto_launch_subtitle">デバイスの起動時に Muse を自動的に開始する</string>
     <string name="settings_memory_notification_section">通知</string>
     <string name="settings_memory_reply_notification_cd">返信完了通知</string>
     <string name="settings_memory_reply_notification">返信完了通知</string>
@@ -245,7 +229,6 @@
     <string name="settings_asr_api_key">APIキー</string>
     <!-- ASR：プロバイダー設定に従う -->
     <string name="settings_asr_follow_provider">プロバイダー設定に従う</string>
-    <string name="settings_asr_follow_provider_subtitle">エンドポイントと API キーはプロバイダーの設定を使用し、モデルは手動で選択します</string>
     <string name="settings_asr_follow_provider_picker">プロバイダー</string>
     <!-- 追従モード共通のプレースホルダーとフォールバック通知 -->
     <string name="settings_speech_follow_unset">未選択</string>
@@ -260,9 +243,7 @@
     <string name="settings_asr_sample_rate_subtitle">%1$d Hz (16000 を推奨、変更するには再録音が必要)</string>
     <string name="settings_asr_language_code">言語コード (例: zh / en / ja)</string>
     <string name="settings_asr_punctuation">句読点の予測</string>
-    <string name="settings_asr_punctuation_desc">DashScope v2 は句読点 (中国語のカンマ/ピリオド) を自動的に追加します</string>
     <string name="settings_asr_itn">逆テキスト正規化</string>
-    <string name="settings_asr_itn_desc">漢数字 → アラビア数字 (例: 「三百」 → 「300」)</string>
     <string name="settings_asr_audio_url">音声ファイルの URL (一般にアクセス可能、OSS など)</string>
     <string name="settings_asr_poll_interval">ポーリング間隔 (ミリ秒、デフォルトは 3000)</string>
     <string name="settings_asr_poll_timeout">合計ポーリング タイムアウト (ミリ秒、デフォルトは 300000 = 5 分)</string>
@@ -275,7 +256,6 @@
     <string name="settings_asr_hotwords">ホットワード (カンマ区切り、固有名詞の認識を向上)</string>
     <!-- New: VAD silence detection -->
     <string name="settings_asr_vad">ローカル VAD 無音検出</string>
-    <string name="settings_asr_vad_desc">無音がしきい値を超えると録音を自動停止します (OPENAI_REALTIME はサーバー側の VAD を使用します)</string>
     <string name="settings_asr_vad_threshold">VAD しきい値 (0 ～ 1、デフォルト 0.05 ≈ -46dB)</string>
     <string name="settings_asr_vad_silence">無音自動停止時間 (ms、デフォルト 1500)</string>
     <string name="settings_asr_vad_realtime_note">Realtime エンジンは音声区間検出（VAD）をサーバー側で処理するため、ローカル設定は不要です。</string>
@@ -289,12 +269,9 @@
     <string name="settings_rag_injection_section">回収注入</string>
     <string name="settings_rag_attachment_section">添付ファイル検索</string>
     <string name="settings_rag_auto_inject">自動インジェクトのナレッジベース</string>
-    <string name="settings_rag_auto_inject_subtitle">関連する知識を自動的に取得し、チャット中にそれをコンテキストに挿入します</string>
     <string name="settings_rag_embedding_source_section">埋め込みソース</string>
     <string name="settings_rag_cloud_api">クラウドAPI</string>
-    <string name="settings_rag_cloud_api_subtitle">品質第一、ネットワークと API キーが必要</string>
     <string name="settings_rag_local_keyword">ローカルキーワード (オフライン)</string>
-    <string name="settings_rag_local_keyword_subtitle">ネットワークは必要ありません。</string>
     <string name="settings_rag_active_backend_section">現在のバックエンド</string>
     <string name="settings_rag_active_backend_label">現在実際に使用中</string>
     <string name="settings_rag_active_backend_degraded_unknown">別のバックエンドにフォールバックしました（理由は記録されていません）</string>
@@ -308,38 +285,24 @@
     <string name="settings_rag_search_params_section">取得パラメータ</string>
     <string name="settings_rag_top_k">取得数 (上位 K)</string>
     <string name="settings_rag_similarity_threshold">類似性のしきい値</string>
-    <string name="settings_rag_similarity_threshold_subtitle">この値を下回る結果は挿入されません (値が大きいほど厳密です)</string>
     <string name="settings_rag_chunk_params_section">チャンクパラメータ</string>
     <string name="settings_rag_chunk_size">チャンクサイズ</string>
-    <string name="settings_rag_chunk_size_subtitle">ターゲット文字数 (大きいほど、より完全なコンテキスト、より多くのトークンを意味します)</string>
     <string name="settings_rag_chunk_overlap">チャンクのオーバーラップ</string>
-    <string name="settings_rag_chunk_overlap_subtitle">隣接するチャンク間で重複する文字 (コンテキストの一貫性を維持)</string>
     <!-- v1.133: RAG advanced retrieval -->
     <string name="settings_rag_advanced_section">高度な検索</string>
     <string name="settings_rag_mmr_lambda">MMR ダイバーシティ</string>
-    <string name="settings_rag_mmr_lambda_subtitle">0=純粋な多様性、1=純粋な類似性、デフォルトは0.5</string>
     <string name="settings_rag_hybrid">ハイブリッド検索</string>
-    <string name="settings_rag_hybrid_subtitle">BM25 キーワード + ベクトル類似性 RRF 融合</string>
     <string name="settings_rag_hybrid_bm25_weight">BM25 重み</string>
-    <string name="settings_rag_hybrid_bm25_weight_subtitle">RRF 融合における BM25 の寄与重み</string>
     <string name="settings_rag_hybrid_vector_weight">ベクトル重み</string>
-    <string name="settings_rag_hybrid_vector_weight_subtitle">RRF 融合におけるベクトル類似度の寄与重み</string>
     <string name="settings_rag_rerank">リランク</string>
-    <string name="settings_rag_rerank_subtitle">上位 K×5 候補に対するクロスエンコーダーの再ランキング</string>
     <string name="settings_rag_token_budget">トークンの予算</string>
-    <string name="settings_rag_token_budget_subtitle">0=無制限。</string>
     <string name="settings_rag_markdown_aware">マークダウン対応のチャンク化</string>
-    <string name="settings_rag_markdown_aware_subtitle">コードブロック/ヘッダー/テーブルを保持し、分割を回避します</string>
     <string name="settings_rag_chunk_by_token">トークンベースのチャンキング</string>
-    <string name="settings_rag_chunk_by_token_subtitle">有効にすると、トークン数によってチャンク化されます (CJK+ラテン語混合の場合により正確です)。</string>
     <!-- v1.0.47 P7-1: Document parser config -->
     <string name="settings_rag_parser_section">ドキュメントパーサー</string>
     <string name="settings_rag_parser_local">ローカルパーサー</string>
-    <string name="settings_rag_parser_local_subtitle">ローカル解析、txt/pdf/docx/pptx/xlsx/epub をサポート</string>
     <string name="settings_rag_parser_cloud">クラウドパーサー</string>
-    <string name="settings_rag_parser_cloud_subtitle">クラウド API、複雑なレイアウト/スキャンされたドキュメント用 (エンドポイントが必要)</string>
     <string name="settings_rag_parser_mineru">マイナーU</string>
-    <string name="settings_rag_parser_mineru_subtitle">MinerU API、学術的な PDF/数式/表に優れています (エンドポイントが必要)</string>
     <string name="settings_rag_cloud_parser_endpoint">クラウドパーサーエンドポイント</string>
     <string name="settings_rag_mineru_endpoint">MinerU エンドポイント</string>
     <string name="settings_rag_mineru_token">MinerU トークン（任意）</string>
@@ -350,7 +313,6 @@
 
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">ナレッジベースの管理</string>
-    <string name="settings_rag_manage_kbs_subtitle">ナレッジベースの作成、名前変更、削除</string>
     <string name="kb_manage_create">新しい知識ベース</string>
     <string name="kb_manage_name_label">名前</string>
     <string name="kb_manage_desc_label">説明 (オプション)</string>
@@ -376,15 +338,10 @@
     <!-- Security & Sharing -->
     <string name="settings_security_share_template_section">テンプレートを共有する</string>
     <string name="settings_security_include_timestamp">タイムスタンプを含める</string>
-    <string name="settings_security_include_timestamp_subtitle">会話を共有するときにメッセージ時間を追加する</string>
     <string name="settings_security_include_model">モデル名を含める</string>
-    <string name="settings_security_include_model_subtitle">共有時に生成モデル名を付ける</string>
     <string name="settings_security_include_tokens">トークン数を含める</string>
-    <string name="settings_security_include_tokens_subtitle">共有時にメッセージごとのトークンを添付する</string>
     <string name="settings_security_include_mood">MOODブロックを含める</string>
-    <string name="settings_security_include_mood_subtitle">共有するときに AI の内部ドラフトを添付します</string>
     <string name="settings_security_include_reasoning">推論を含める</string>
-    <string name="settings_security_include_reasoning_subtitle">共有するときに AI の推論プロセスを添付する</string>
     <string name="settings_security_share_format">共有フォーマット</string>
     <string name="settings_security_format_plain_text">プレーンテキスト</string>
 
@@ -414,9 +371,7 @@
     <string name="settings_media_page_title">音声読み上げ</string>
     <string name="settings_media_tts_section">音声の再生</string>
     <string name="settings_media_speech_rate">発話速度</string>
-    <string name="settings_media_speech_rate_subtitle">0.5x 低速 / 1.0x 通常 / 2.0x 高速</string>
     <string name="settings_media_pitch">ピッチ</string>
-    <string name="settings_media_pitch_subtitle">0.5 低 / 1.0 標準 / 2.0 高</string>
 
     <!-- Cloud TTS engine configuration -->
     <string name="settings_media_cloud_tts_section">クラウドTTSエンジン</string>
@@ -462,7 +417,6 @@
     <string name="settings_media_tts_save_advanced">パラメータの保存</string>
     <!-- クラウド TTS：プロバイダー設定に従う -->
     <string name="settings_media_tts_follow_provider">プロバイダー設定に従う</string>
-    <string name="settings_media_tts_follow_provider_subtitle">エンドポイントと API キーはプロバイダーの設定を使用し、モデルは手動で選択します</string>
     <string name="settings_media_tts_follow_provider_picker">プロバイダー</string>
     <string name="settings_media_tts_follow_voice_hint">追従するのはエンドポイントと API キーのみです。音色が選択したプロバイダーで使えるかはご自身でご確認ください</string>
     <!-- ===== Custom theme ===== -->
@@ -490,7 +444,6 @@
     <string name="settings_theme_custom_color_s">飽和</string>
     <string name="settings_theme_custom_color_l">軽さ</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
-    <string name="settings_agent_dm_subtitle">Agent間のダイレクトメッセージを表示</string>
     <string name="settings_agent_temperature">生成温度</string>
     <string name="settings_agent_temperature_hint">決定段階では temperature×0.5(より決定的)を使用し、生成段階ではこの値を使用します。値が大きいほど創造的で、小さいほど安定</string>
     <string name="settings_agent_temperature_stable">0.0 安定</string>
@@ -500,10 +453,8 @@
     <string name="settings_agent_test_generating">生成中…</string>
     <string name="settings_agent_test_failed">テスト失敗: %1$s</string>
     <string name="settings_agent_test_already_running">前回のプロアクティブメッセージをまだ生成中です。しばらくしてからお試しください</string>
-    <string name="settings_agent_daily_summary_subtitle">毎日 09:00、12:00、21:00、00:00 に会話要約を生成。スイッチは通知のみ制御</string>
     <string name="settings_agent_current_model_hint">グローバルデフォルト(メインチャット / Agent 共通)</string>
     <string name="settings_agent_keep_alive_title">バックグラウンドで実行</string>
-    <string name="settings_agent_keep_alive_subtitle">システムにプロセスを終了されてもプロアクティブメッセージを逃さないようにします</string>
     <string name="keep_alive_dialog_title">%1$s · バックグラウンドで実行</string>
     <string name="keep_alive_manual_hint">自動で設定を開けませんでした。上記の手順で手動で有効にしてください。</string>
     <string name="keep_alive_dialog_desc">プロアクティブメッセージはバックグラウンドプロセスに依存します。中国製 OS は既定でバックグラウンドアプリを終了するため、以下の手順で許可すれば、最近のタスクから消してもメッセージを受け取り続けられます：</string>
@@ -516,7 +467,6 @@
     <string name="settings_import_chatgpt_step4">4. Muse でそのファイルを選択すると、会話が自動的にインポートされます</string>
     <string name="settings_provider_media_gen_section">メディア生成モデル</string>
     <string name="settings_asr_entry_title">音声認識エンジン</string>
-    <string name="settings_asr_entry_subtitle">音声認識エンジンを選択(Paraformer / Whisper など)</string>
     <string name="settings_miniphone_title">ミニフォン</string>
     <string name="settings_font_section_title">フォント</string>
     <string name="settings_font_body_label">本文フォント</string>
@@ -530,7 +480,6 @@
     <string name="automation_orchestration_hint">アクセシビリティ / Shell / Root の権限を有効にしたら、定時条件を設定して AI アクションを自動実行できます。</string>
     <string name="automation_orchestration_action">定時タスクを編成</string>
     <string name="miniphone_moments_count">%1$d件の日常を記録しました</string>
-    <string name="miniphone_moments_subtitle">生活のすべての瞬間を記録する</string>
     <string name="miniphone_tab_chats">ミニスマホ</string>
     <string name="miniphone_typing">入力中…</string>
     <string name="miniphone_time_just_now">たった今</string>
@@ -540,7 +489,6 @@
     <string name="miniphone_tab_contacts">連絡先</string>
     <string name="miniphone_tab_discover">発見</string>
     <string name="miniphone_tab_me">マイページ</string>
-    <string name="miniphone_search_hint">検索</string>
     <string name="miniphone_contacts_empty">連絡先はまだありません</string>
     <string name="miniphone_me_wallpaper">壁紙を変更</string>
     <string name="moment_publish_take_photo">撮影</string>
@@ -584,7 +532,6 @@
     <string name="settings_moment_content_mode_real_desc">あなたに関係することだけを、控えめに、本当の生活記録のように投稿します</string>
     <string name="settings_moment_content_mode_character">キャラクター系</string>
     <string name="settings_moment_content_mode_character_desc">キャラクターには自分の生活と出来事があり、あなたは傍観者です</string>
-    <string name="settings_agent_schedule_work_subtitle">全体スイッチ。オフにするとすべての定期バックグラウンドタスクを一時停止します</string>
     <!-- P0 自発メッセージ設定の整理 -->
     <string name="settings_agent_pace_title">積極度</string>
     <string name="settings_agent_pace_hint">高いほどアシスタントから頻繁に連絡します。「標準」が既定のペースです。</string>
@@ -606,7 +553,6 @@
     <string name="settings_agent_content_moment">モーメント</string>
     <string name="settings_agent_content_none">すべてオフ</string>
     <string name="settings_agent_group_advanced">詳細設定</string>
-    <string name="settings_agent_advanced_subtitle">温度・ランダム偏移・Agent 限定・テスト送信</string>
     <string name="settings_agent_advanced_hint">使用頻度の低い設定です。通常は変更不要です。</string>
     <string name="settings_agent_group_background">バックグラウンドと信頼性</string>
     <string name="settings_agent_schedule_work_title">バックグラウンドタスクの総合制御</string>
@@ -620,7 +566,6 @@
     <!-- v1.138: ミニフォンのプライベートメッセージ空間 -->
     <string name="miniphone_pm_new_session">新しいチャット</string>
     <string name="miniphone_pm_empty_title">まだメッセージはありません</string>
-    <string name="miniphone_pm_empty_hint">AIがあなたの投稿に基づいて連絡してきます</string>
     <string name="settings_asr_engine_title">認識エンジン</string>
     <string name="settings_asr_engine_change">変更</string>
     <string name="settings_asr_pick_title">認識エンジンを選択</string>
@@ -669,22 +614,16 @@
     <string name="oauth_quick_login_started">ブラウザで認証を開いています…</string>
     <string name="oauth_quick_login_success">認証成功、%1$s を有効化しました</string>
     <string name="settings_backup_include_secrets">プロバイダーの秘密情報を含める</string>
-    <string name="settings_backup_include_secrets_subtitle">APIキーとログイン認証情報がバックアップに平文で保存されます。慎重に保管してください。</string>
     <string name="oauth_device_open_page">認証ページを開く</string>
     <string name="oauth_device_open_failed">ブラウザを開けません</string>
     <string name="keep_alive_notification_title">Muse はバックグラウンドで実行中</string>
     <string name="keep_alive_notification_text">定期タスクと自発メッセージを維持しています</string>
     <string name="settings_keep_alive_title">バックグラウンドで常駐</string>
-    <string name="settings_keep_alive_subtitle">常駐通知でプロセスをフォアグラウンドに保ちます</string>
     <string name="settings_keep_alive_hint">Muse は常駐通知を表示します。Android がフォアグラウンドサービスに要求するもので、非表示にはできません。一部の中国製 ROM では自動起動も許可が必要です。</string>
     <string name="settings_keep_alive_wakelock_title">画面オフでも接続を維持</string>
-    <string name="settings_keep_alive_wakelock_subtitle">自発メッセージを早く受け取れますが、電池を多く消費します</string>
     <string name="settings_keep_alive_battery_title">バッテリー最適化を解除</string>
-    <string name="settings_keep_alive_battery_subtitle">システムがバックグラウンド動作を制限します。このアプリを許可してください</string>
     <string name="settings_keep_alive_rom_title">自動起動の許可リスト</string>
-    <string name="settings_keep_alive_rom_subtitle">一部のメーカー ROM では別途許可が必要です</string>
     <string name="settings_keep_alive_notification_custom_title">通知文言</string>
-    <string name="settings_keep_alive_notification_custom_subtitle">常駐通知のタイトルと本文をカスタマイズ</string>
     <string name="settings_keep_alive_notification_custom_hint">空欄の場合は既定の文言を使用します。</string>
     <string name="settings_keep_alive_notification_title_placeholder">既定：Muse はバックグラウンドで実行中</string>
     <string name="settings_keep_alive_notification_text_placeholder">既定：定期タスクと自発メッセージを維持しています</string>
@@ -710,7 +649,6 @@
     <string name="search_custom_engine_results_path">結果パス（例 data.results、空ならルートが配列）</string>
     <string name="settings_chat_carry_over_section">会話の引き継ぎ</string>
     <string name="settings_chat_carry_over">新しい会話に前の文脈を含める</string>
-    <string name="settings_chat_carry_over_subtitle">前の会話の最後の数ターンを読み込みます。つながりが良くなりますが、入力トークンを使います。</string>
     <string name="settings_chat_carry_over_count">%1$d 件のメッセージを引き継ぐ</string>
     <string name="settings_chat_carry_over_count_hint">およそ %1$d ターン分</string>
     <string name="connection_skills_title">スキルとスキルパック</string>
@@ -728,7 +666,6 @@
     <string name="profile_section_recent">最近のやり取り</string>
     <string name="profile_section_uncertain">不確実なメモ</string>
     <string name="settings_agent_timing_scoring_title">スマートタイミング</string>
-    <string name="settings_agent_timing_scoring_subtitle">发言前に最近の反応を踏まえます：前回の無反応・未読の积压・深夜は確率を下げ、期限迎えの話題は戻します。間隔・上限・おやすみ時間帯は影響しません。</string>
     <string name="settings_screen_diagnostics">診断</string>
     <string name="settings_diagnostics_loading">取得中…</string>
     <string name="settings_diagnostics_actions">出力</string>

@@ -207,7 +207,6 @@
     <string name="settings_screen_web_access">웹 접속</string>
     <string name="settings_web_access_intro">iPhone이나 PC 브라우저에서 아래 주소를 열고 PIN을 입력하면 웹 버전을 쓸 수 있습니다.</string>
     <string name="settings_web_access_enable">웹 접속 사용</string>
-    <string name="settings_web_access_enable_subtitle">끄면 다른 기기는 즉시 연결이 끊기고 포트도 해제됩니다</string>
     <string name="settings_web_access_lan">같은 네트워크 접속 허용</string>
     <string name="settings_web_access_lan_on">같은 Wi-Fi의 휴대폰과 PC에서 열 수 있습니다</string>
     <string name="settings_web_access_lan_off">이 기기에서만 접속 가능</string>
@@ -230,7 +229,6 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">알림 수신기</string>
     <string name="connection_center_title">연결 센터</string>
-    <string name="connection_tools_subtitle">승인, 허용 및 보안 정책</string>
     <string name="connection_tools_title">도구 권한</string>
     <string name="connection_plugins_subtitle">설치된 플러그인 %1$d개. 열어 각 능력 승인 상태를 확인하세요</string>
     <string name="connection_plugins_title">플러그인</string>
@@ -313,7 +311,6 @@
     <string name="settings_vision_title">비전 보조</string>
     <string name="settings_vision_description">이미지 입력을 지원하지 않는 텍스트 모델 사용 시, 자동으로 비전 모델을 호출해 이미지를 분석하고 설명을 대화에 주입합니다.</string>
     <string name="settings_vision_enabled">비전 보조 활성화</string>
-    <string name="settings_vision_enabled_subtitle">이미지를 비전 모델에 자동 전송하여 분석</string>
     <string name="settings_vision_model_section">비전 모델</string>
     <string name="settings_vision_no_models">비전 입력 지원 모델을 찾지 못했습니다. 프로바이더 설정에서 비전 모델을 추가하세요.</string>
     <string name="vision_analysis_starting">비전 모델을 이용한 이미지 분석</string>
@@ -712,11 +709,9 @@
     <string name="muse_plugins_market_invalid_url">카탈로그 주소는 https://로 시작해야 합니다</string>
     <string name="muse_plugins_market_key_id_label">사용자 지정 신뢰 루트 keyId</string>
     <string name="muse_plugins_market_not_configured">카탈로그 미구성</string>
-    <string name="muse_plugins_market_not_configured_hint">서명 카탈로그 주소와 신뢰 루트 공개 키를 구성하면 여기서 플러그인을 탐색하고 원클릭 설치할 수 있습니다.</string>
     <string name="muse_plugins_market_preparing">검증 후 설치 준비 중…</string>
     <string name="muse_plugins_market_public_key_label">사용자 지정 신뢰 루트 공개 키(Base64)</string>
     <string name="muse_plugins_market_refresh">카탈로그 새로고침</string>
-    <string name="muse_plugins_market_settings_hint">플러그인 마켓은 기본적으로 설치 패키지에 내장된 공식 카탈로그를 사용합니다. 사용자 지정 카탈로그와 신뢰 루트를 입력할 필요는 테스트나 긴급 상황에서만 있습니다.</string>
     <string name="muse_plugins_market_settings_saved">플러그인 카탈로그 설정이 저장되었습니다</string>
     <string name="muse_plugins_market_settings_title">플러그인 카탈로그 설정</string>
     <string name="muse_plugins_market_title">플러그인 마켓</string>
@@ -788,7 +783,6 @@
     <string name="settings_preference_subtitle">어시스턴트가 기록한 장기 규칙</string>
     <string name="settings_preference_desc">「앞으로는 …하지 마」라고 말하면 여기에 하드 제약으로 저장되어 모든 대화에서 지켜집니다.</string>
     <string name="settings_preference_empty">아직 기록된 선호가 없습니다</string>
-    <string name="settings_preference_empty_hint">「앞으로 막연한 격려는 쓰지 마」라고 말해 보세요</string>
     <string name="settings_preference_disable">사용 안 함</string>
     <string name="settings_preference_enable">사용</string>
     <string name="settings_preference_delete">삭제</string>

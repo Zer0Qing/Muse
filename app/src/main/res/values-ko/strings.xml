@@ -211,7 +211,6 @@
     <string name="settings_multi_agent_node_dependencies">종속성</string>
     <string name="chat_delete_selected_title">선택한 메시지 삭제</string>
     <string name="chat_delete_selected_message">선택한 메시지 %1$d개를 삭제하시겠습니까? 복구할 수 없습니다.</string>
-    <string name="settings_agent_night_patrol_subtitle">허용 시간 외: 조용히 일기/야간 메모 작성, 알림 없음</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
     <string name="moment_sender_user">나</string>
     <string name="moment_banner_liked_by">%1$s(이)가 좋아요를 눌렀어요</string>
@@ -242,7 +241,6 @@
     <string name="chat_favorite_selected_partial">%1$d개 추가, %2$d개는 이미 즐겨찾기에 있음</string>
     <string name="chat_favorite_selected_all_exist">%1$d개 모두 이미 즐겨찾기에 있습니다</string>
     <string name="settings_chat_prefer_card_output">카드 출력 우선</string>
-    <string name="settings_chat_prefer_card_output_subtitle">표, 비교, 매개변수 선택을 긴 텍스트 대신 상호작용 카드로 표현하도록 모델을 유도합니다.</string>
     <string name="chat_card_state_only">(카드 내용을 업데이트했습니다)</string>
     <string name="moment_action_edit">편집</string>
     <string name="groupchat_stop_generating">생성 중지</string>

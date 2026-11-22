@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="settings_chat_bubble_full_width">Full-width bubbles</string>
-    <string name="settings_chat_bubble_full_width_subtitle">AI replies span the full row width; your messages stay compact on the right.</string>
         <string name="settings_chat_quick_actions">Message quick actions</string>
     <string name="settings_chat_quick_reset">Reset to default order</string>
     <string name="settings_chat_quick_enabled">Enabled (in display order)</string>
     <string name="settings_chat_quick_empty_hint">No actions enabled. Tap items in the pool below to add.</string>
     <string name="settings_chat_quick_pool">Action pool (tap to add)</string>
     <string name="settings_chat_quick_pool_empty">All actions are enabled.</string><string name="settings_chat_show_user_avatar">Show my avatar</string>
-    <string name="settings_chat_show_user_avatar_subtitle">Show a local initial avatar beside user messages</string>
     <!-- Agent Settings -->
     <string name="settings_agent_tool_model_not_set_inherit">Inherits main model</string>
     <!-- v2.x: auxiliary model tiers — Large falls back to Small when unbound -->
@@ -79,7 +77,6 @@
     <!-- Phase 4: bubble skin selection/preview -->
     <string name="settings_bubble_skin_section">Bubble skin</string>
     <string name="settings_bubble_skin_builtin">Muse default bubble</string>
-    <string name="settings_bubble_skin_builtin_desc">Built-in skin, same as the default look</string>
     <string name="settings_bubble_skin_custom_desc">Custom bubble skin</string>
     <string name="settings_bubble_skin_import">Import skin</string>
     <string name="settings_bubble_skin_import_success">Skin imported and applied</string>
@@ -109,20 +106,16 @@
     <string name="settings_task_routing_vision_unset">Not set (tap to configure)</string>
     <string name="settings_task_routing_aux_models_label">Utility Models</string>
     <string name="settings_task_routing_main_models_label">Main Chat Model</string>
-    <string name="settings_task_routing_utility_small_desc">Simple tasks like titles and light classification</string>
     <string name="settings_task_routing_utility_failed_title">Helper model call failed</string>
     <string name="settings_task_routing_utility_failed_desc">The last call to %1$s returned: %2$s. Background tasks such as memory extraction and summaries are affected; chat is not. Pick a working model, or leave it empty to use the main model.</string>
     <string name="settings_agent_daily_guarantee">Daily guarantee</string>
     <string name="settings_agent_daily_guarantee_hint">If no proactive message has gone out for this long, one is forced. Quiet hours, cooldown, recent activity and the daily budget still apply.</string>
     <string name="settings_agent_daily_guarantee_hours">%1$d h</string>
     <string name="settings_agent_daily_guarantee_off">Off</string>
-    <string name="settings_task_routing_utility_large_desc">Context compression, memory extraction, task breakdown</string>
     <string name="settings_crash_anr_title">ANR Detection</string>
-    <string name="settings_crash_anr_subtitle">Detect app not responding and record it in local crash/audit logs (on by default, local only, never uploaded)</string>
     <string name="settings_chat_compress_model">Compression Model</string>
     <string name="settings_chat_compress_model_default">Default model</string>
     <string name="settings_chat_paste_as_file">Long Paste to File</string>
-    <string name="settings_chat_paste_as_file_subtitle">Prompt to attach pasted text as a file when it exceeds the threshold</string>
     <string name="settings_chat_paste_as_file_threshold">Paste to File Threshold</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">Prompt to convert when longer than %1$d characters</string>
     <string name="settings_chat_custom_title_prompt">Custom Title Prompt</string>
@@ -132,7 +125,6 @@
     <string name="settings_memory_custom_compress_prompt_default">Use built-in default compression instruction</string>
     <string name="settings_memory_custom_compress_prompt_hint">Custom context compression instruction (leave blank for default)</string>
     <string name="settings_about_auto_update">Auto Check Updates</string>
-    <string name="settings_about_auto_update_subtitle">Automatically check GitHub releases after launch</string>
     <string name="prompt_template_manager_title">Prompt Templates</string>
     <string name="prompt_template_manager_list">Template List</string>
     <string name="prompt_template_manager_empty">No custom templates yet</string>
@@ -157,7 +149,6 @@
     <string name="settings_about_repo_section">Open Source</string>
     <string name="settings_about_feedback">Submit an issue</string>
     <string name="settings_about_join_qq_group">Join QQ Group</string>
-    <string name="settings_about_join_qq_group_subtitle">QQ Group: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ not found, group number 905451314 copied to clipboard</string>
     <string name="settings_about_update_check_failed">Update check failed: %1$s</string>
     <string name="settings_about_check_update">Check for Updates</string>
@@ -187,24 +178,16 @@
     <string name="settings_memory_page_title">Memory</string>
     <string name="settings_memory_system_section">Memory System</string>
     <string name="settings_memory_token_budget">Token Budget</string>
-    <string name="settings_memory_token_budget_subtitle">Target length of memory.md, affects the amount of injected context</string>
     <string name="settings_memory_decay_rate">Decay Rate</string>
     <string name="settings_memory_decay_rate_title">Decay Rate λ</string>
-    <string name="settings_memory_decay_rate_subtitle">Higher means faster forgetting (0.01 slow / 0.02 default / 0.04 fast)</string>
     <string name="settings_memory_hit_bonus">Hit Bonus</string>
-    <string name="settings_memory_hit_bonus_subtitle">Frequently mentioned memories decay slower; hits recorded on merge/add</string>
     <string name="settings_memory_compile_threshold">Compile Threshold</string>
     <string name="settings_memory_compile_threshold_subtitle">Memories below this score are not added to memory.md (must be below %1$s)</string>
     <string name="settings_memory_forget_speed">Forget Speed</string>
-    <string name="settings_memory_forget_speed_subtitle">1.0 normal / 2.0 forgets twice as fast</string>
     <string name="settings_memory_restore_default">Restore Defaults</string>
-    <string name="settings_memory_restore_default_subtitle">Reset memory parameters to factory values</string>
     <string name="settings_memory_experience_lib">Experience Library</string>
-    <string name="settings_memory_experience_lib_subtitle">The assistant summarizes work experience and references it in later tasks (may pollute context)</string>
     <string name="settings_memory_keep_awake">Keep Awake</string>
-    <string name="settings_memory_keep_awake_subtitle">Hold only during active generation; skip when low battery and not charging</string>
     <string name="settings_memory_auto_launch">Auto Launch on Boot</string>
-    <string name="settings_memory_auto_launch_subtitle">Automatically start Muse when the device boots</string>
     <string name="settings_memory_notification_section">Notifications</string>
     <string name="settings_memory_reply_notification_cd">Reply completion notification</string>
     <string name="settings_memory_reply_notification">Reply Completion Notification</string>
@@ -253,7 +236,6 @@
     <string name="settings_asr_api_key">API Key</string>
     <!-- ASR: follow provider configuration -->
     <string name="settings_asr_follow_provider">Follow provider config</string>
-    <string name="settings_asr_follow_provider_subtitle">Endpoint and API key come from the provider; pick the model manually</string>
     <string name="settings_asr_follow_provider_picker">Provider</string>
     <!-- Shared placeholders and fallback notice for follow mode -->
     <string name="settings_speech_follow_unset">Not selected</string>
@@ -273,9 +255,7 @@
     <string name="settings_asr_sample_rate_subtitle">%1$d Hz (16000 recommended; changing requires re-recording)</string>
     <string name="settings_asr_language_code">Language code (e.g. zh / en / ja)</string>
     <string name="settings_asr_punctuation">Punctuation Prediction</string>
-    <string name="settings_asr_punctuation_desc">DashScope v2 automatically adds punctuation (Chinese commas/periods)</string>
     <string name="settings_asr_itn">Inverse Text Normalization</string>
-    <string name="settings_asr_itn_desc">Chinese numerals → Arabic numerals (e.g. \"three hundred\" → \"300\")</string>
     <string name="settings_asr_audio_url">Audio file URL (publicly accessible, e.g. OSS)</string>
     <string name="settings_asr_poll_interval">Poll interval (ms, default 3000)</string>
     <string name="settings_asr_poll_timeout">Total poll timeout (ms, default 300000 = 5 min)</string>
@@ -288,7 +268,6 @@
     <string name="settings_asr_hotwords">Hot words (comma-separated, boosts proper noun recognition)</string>
     <!-- New: VAD silence detection -->
     <string name="settings_asr_vad">Local VAD silence detection</string>
-    <string name="settings_asr_vad_desc">Auto-stop recording after silence exceeds threshold (OPENAI_REALTIME uses server-side VAD)</string>
     <string name="settings_asr_vad_threshold">VAD threshold (0-1, default 0.05 ≈ -46dB)</string>
     <string name="settings_asr_vad_silence">Silence auto-stop duration (ms, default 1500)</string>
     <string name="settings_asr_vad_realtime_note">The Realtime engine performs voice activity detection (VAD) on the server; no local configuration is needed.</string>
@@ -302,12 +281,9 @@
     <string name="settings_rag_injection_section">Retrieval Injection</string>
     <string name="settings_rag_attachment_section">Attachment Search</string>
     <string name="settings_rag_auto_inject">Auto-inject Knowledge Base</string>
-    <string name="settings_rag_auto_inject_subtitle">Automatically retrieve relevant knowledge and inject it into the context during chat</string>
     <string name="settings_rag_embedding_source_section">Embedding Source</string>
     <string name="settings_rag_cloud_api">Cloud API</string>
-    <string name="settings_rag_cloud_api_subtitle">Quality-first, requires network and API Key</string>
     <string name="settings_rag_local_keyword">Local Keywords (Offline)</string>
-    <string name="settings_rag_local_keyword_subtitle">No network needed; Chinese bigram + English tokenization hash retrieval</string>
     <string name="settings_rag_active_backend_section">Active Backend</string>
     <string name="settings_rag_active_backend_label">Currently in use</string>
     <string name="settings_rag_active_backend_degraded_unknown">Fallen back to another backend; the reason was not recorded</string>
@@ -321,38 +297,24 @@
     <string name="settings_rag_search_params_section">Retrieval Parameters</string>
     <string name="settings_rag_top_k">Retrieval Count (top-K)</string>
     <string name="settings_rag_similarity_threshold">Similarity Threshold</string>
-    <string name="settings_rag_similarity_threshold_subtitle">Results below this value are not injected (higher is stricter)</string>
     <string name="settings_rag_chunk_params_section">Chunk Parameters</string>
     <string name="settings_rag_chunk_size">Chunk Size</string>
-    <string name="settings_rag_chunk_size_subtitle">Target character count (larger means fuller context, more tokens)</string>
     <string name="settings_rag_chunk_overlap">Chunk Overlap</string>
-    <string name="settings_rag_chunk_overlap_subtitle">Overlapping characters between adjacent chunks (keeps context coherent)</string>
     <!-- v1.133: RAG advanced retrieval -->
     <string name="settings_rag_advanced_section">Advanced Retrieval</string>
     <string name="settings_rag_mmr_lambda">MMR Diversity</string>
-    <string name="settings_rag_mmr_lambda_subtitle">0=pure diversity, 1=pure similarity, default 0.5</string>
     <string name="settings_rag_hybrid">Hybrid Search</string>
-    <string name="settings_rag_hybrid_subtitle">BM25 keyword + vector similarity RRF fusion</string>
     <string name="settings_rag_hybrid_bm25_weight">BM25 Weight</string>
-    <string name="settings_rag_hybrid_bm25_weight_subtitle">BM25 contribution weight in RRF fusion</string>
     <string name="settings_rag_hybrid_vector_weight">Vector Weight</string>
-    <string name="settings_rag_hybrid_vector_weight_subtitle">Vector similarity contribution weight in RRF fusion</string>
     <string name="settings_rag_rerank">Rerank</string>
-    <string name="settings_rag_rerank_subtitle">Cross-encoder re-ranking on top-K×5 candidates</string>
     <string name="settings_rag_token_budget">Token Budget</string>
-    <string name="settings_rag_token_budget_subtitle">0=unlimited; >0=accumulate by similarity desc, stop when exceeded</string>
     <string name="settings_rag_markdown_aware">Markdown-aware Chunking</string>
-    <string name="settings_rag_markdown_aware_subtitle">Preserve code blocks/headers/tables, avoid splitting</string>
     <string name="settings_rag_chunk_by_token">Token-based Chunking</string>
-    <string name="settings_rag_chunk_by_token_subtitle">When enabled, chunk by token count (more accurate for mixed CJK+Latin)</string>
     <!-- v1.0.47 P7-1: Document parser config -->
     <string name="settings_rag_parser_section">Document Parser</string>
     <string name="settings_rag_parser_local">Local Parser</string>
-    <string name="settings_rag_parser_local_subtitle">Local parsing, supports txt/pdf/docx/pptx/xlsx/epub</string>
     <string name="settings_rag_parser_cloud">Cloud Parser</string>
-    <string name="settings_rag_parser_cloud_subtitle">Cloud API, for complex layouts/scanned docs (requires endpoint)</string>
     <string name="settings_rag_parser_mineru">MinerU</string>
-    <string name="settings_rag_parser_mineru_subtitle">MinerU API, excels at academic PDF/formulas/tables (requires endpoint)</string>
     <string name="settings_rag_cloud_parser_endpoint">Cloud parser endpoint</string>
     <string name="settings_rag_mineru_endpoint">MinerU endpoint</string>
     <string name="settings_rag_mineru_token">MinerU Token (optional)</string>
@@ -363,7 +325,6 @@
 
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">Manage Knowledge Bases</string>
-    <string name="settings_rag_manage_kbs_subtitle">Create, rename, delete knowledge bases</string>
     <string name="kb_manage_create">New Knowledge Base</string>
     <string name="kb_manage_name_label">Name</string>
     <string name="kb_manage_desc_label">Description (optional)</string>
@@ -389,15 +350,10 @@
     <!-- Security & Sharing -->
     <string name="settings_security_share_template_section">Share Template</string>
     <string name="settings_security_include_timestamp">Include Timestamp</string>
-    <string name="settings_security_include_timestamp_subtitle">Attach message time when sharing a conversation</string>
     <string name="settings_security_include_model">Include Model Name</string>
-    <string name="settings_security_include_model_subtitle">Attach the generating model name when sharing</string>
     <string name="settings_security_include_tokens">Include Token Count</string>
-    <string name="settings_security_include_tokens_subtitle">Attach per-message tokens when sharing</string>
     <string name="settings_security_include_mood">Include MOOD Block</string>
-    <string name="settings_security_include_mood_subtitle">Attach the AI\'s internal draft when sharing</string>
     <string name="settings_security_include_reasoning">Include Reasoning</string>
-    <string name="settings_security_include_reasoning_subtitle">Attach the AI\'s reasoning process when sharing</string>
     <string name="settings_security_share_format">Share Format</string>
     <string name="settings_security_format_plain_text">Plain Text</string>
 
@@ -427,9 +383,7 @@
     <string name="settings_media_page_title">Voice Playback</string>
     <string name="settings_media_tts_section">Speech Playback</string>
     <string name="settings_media_speech_rate">Speech Rate</string>
-    <string name="settings_media_speech_rate_subtitle">0.5x slow / 1.0x normal / 2.0x fast</string>
     <string name="settings_media_pitch">Pitch</string>
-    <string name="settings_media_pitch_subtitle">0.5 low / 1.0 normal / 2.0 high</string>
 
     <!-- Cloud TTS engine configuration -->
     <string name="settings_media_cloud_tts_section">Cloud TTS Engine</string>
@@ -476,7 +430,6 @@
     <string name="settings_media_tts_save_advanced">Save parameters</string>
     <!-- Cloud TTS: follow provider configuration -->
     <string name="settings_media_tts_follow_provider">Follow provider config</string>
-    <string name="settings_media_tts_follow_provider_subtitle">Endpoint and API key come from the provider; pick the model manually</string>
     <string name="settings_media_tts_follow_provider_picker">Provider</string>
     <string name="settings_media_tts_follow_voice_hint">Following only takes over the endpoint and API key; check that your voice works with the selected provider</string>
     <!-- ===== Custom theme ===== -->
@@ -505,9 +458,7 @@
     <string name="settings_theme_custom_color_l">Lightness</string>
 
     <!-- 前端修复 (i18n-3.x): Proactive message section i18n -->
-    <string name="settings_agent_dm_subtitle">View private messages between Agents</string>
     <string name="settings_agent_plain_chat_enabled">Allow proactive messages in normal chats</string>
-    <string name="settings_agent_plain_chat_enabled_subtitle">Off by default so task chats stay clean. You can also mute any individual conversation from its top-right menu</string>
     <string name="settings_agent_temperature">Generation temperature</string>
     <string name="settings_agent_temperature_hint">Decision stage uses temperature×0.5 (more deterministic); generation stage uses this value. Higher values are more creative, lower values are more stable</string>
     <string name="settings_agent_temperature_stable">0.0 Stable</string>
@@ -517,7 +468,6 @@
     <string name="settings_agent_test_generating">Generating…</string>
     <string name="settings_agent_test_failed">Test failed:%1$s</string>
     <string name="settings_agent_test_already_running">A proactive message is still being generated, please try again later</string>
-    <string name="settings_agent_daily_summary_subtitle">Generates summaries at 9:00 AM, 12:00 PM, 9:00 PM and midnight; the switch only controls notifications</string>
     <string name="settings_agent_daily_summary_slots_title">Daily summary times</string>
     <string name="settings_agent_moment_count_title">Moments per day</string>
     <string name="settings_relationship_title">Relationships</string>
@@ -543,7 +493,6 @@
     <string name="settings_agent_moment_count_off">Off</string>
     <string name="settings_agent_moment_count_per_day">%1$d per day</string>
     <string name="settings_agent_schedule_work_title">Background tasks</string>
-    <string name="settings_agent_schedule_work_subtitle">Master switch; pausing it suspends all periodic background tasks</string>
     <!-- P0 proactive settings consolidation -->
     <string name="settings_agent_pace_title">Proactivity</string>
     <string name="settings_agent_pace_hint">The higher it is, the more often the assistant reaches out. Standard is the default.</string>
@@ -569,7 +518,6 @@
     <string name="settings_agent_content_moment">Moments feed</string>
     <string name="settings_agent_content_none">All off</string>
     <string name="settings_agent_group_advanced">Advanced</string>
-    <string name="settings_agent_advanced_subtitle">Temperature, random offset, Agent-only, test send</string>
     <string name="settings_agent_advanced_hint">Low-frequency settings; usually no need to change.</string>
     <string name="settings_agent_group_background">Background &amp; reliability</string>
     <string name="automation_orchestration_title">How automation is orchestrated</string>
@@ -579,7 +527,6 @@
     <string name="settings_agent_current_model_hint">Global default (shared by main chat / Agent)</string>
     <!-- v1.x: keep-alive background guidance -->
     <string name="settings_agent_keep_alive_title">Keep running in background</string>
-    <string name="settings_agent_keep_alive_subtitle">Prevents proactive messages from being missed if the system cleans the process</string>
     <string name="keep_alive_dialog_title">%1$s · Keep running in background</string>
     <string name="keep_alive_manual_hint">Could not open settings automatically. Follow the steps above to enable it manually.</string>
     <string name="keep_alive_dialog_desc">Proactive messages rely on a background process. Chinese ROMs clear background apps by default; after whitelisting per the steps below, you\'ll keep receiving messages even after swiping the app away:</string>
@@ -595,7 +542,6 @@
     <!-- Media generation models / ASR / Mini Phone -->
     <string name="settings_provider_media_gen_section">Media generation models</string>
     <string name="settings_asr_entry_title">Speech recognition engine</string>
-    <string name="settings_asr_entry_subtitle">Select a speech-to-text engine (e.g. Paraformer / Whisper)</string>
     <string name="settings_miniphone_title">Mini Phone</string>
     <string name="settings_font_section_title">Fonts</string>
     <string name="settings_font_body_label">Body font</string>
@@ -604,7 +550,6 @@
     <string name="settings_font_clear">Restore default</string>
     <string name="settings_font_import_failed">Font import failed: unsupported file format</string>
     <string name="miniphone_moments_count">Moments recorded: %1$d</string>
-    <string name="miniphone_moments_subtitle">Record every moment</string>
     <string name="miniphone_tab_chats">Mini phone</string>
     <string name="miniphone_typing">typing…</string>
     <string name="miniphone_time_just_now">Just now</string>
@@ -614,7 +559,6 @@
     <string name="miniphone_tab_contacts">Contacts</string>
     <string name="miniphone_tab_discover">Discover</string>
     <string name="miniphone_tab_me">Me</string>
-    <string name="miniphone_search_hint">Search</string>
     <string name="miniphone_contacts_empty">No contacts yet</string>
     <string name="miniphone_me_wallpaper">Change wallpaper</string>
     <string name="moment_publish_take_photo">Take photo</string>
@@ -645,7 +589,6 @@
     <!-- v1.138: Mini Phone private messaging space -->
     <string name="miniphone_pm_new_session">New chat</string>
     <string name="miniphone_pm_empty_title">No private messages yet</string>
-    <string name="miniphone_pm_empty_hint">AI will reach out to you based on your moments</string>
     <string name="settings_asr_engine_title">Recognition engine</string>
     <string name="settings_asr_engine_change">Change</string>
     <string name="settings_asr_pick_title">Choose recognition engine</string>
@@ -671,7 +614,6 @@
 
     <!-- 补齐 strict=en 门禁缺口 -->
     <string name="settings_memory_conversation_recall">Allow recalling original conversation text</string>
-    <string name="settings_memory_conversation_recall_subtitle">When enabled, summaries and fact extraction read the full conversation on demand instead of only the currently loaded messages</string>
     <string name="assistant_kb_scope_whole"> (all)</string>
     <string name="settings_preview_user_bubble">Preview of your message</string>
     <string name="settings_preview_assistant_bubble">Preview of an AI reply; font size, spacing and radius update live.</string>
@@ -691,22 +633,16 @@
     <string name="oauth_quick_login_started">Opening browser for authorization…</string>
     <string name="oauth_quick_login_success">Authorized and enabled %1$s</string>
     <string name="settings_backup_include_secrets">Include provider secrets</string>
-    <string name="settings_backup_include_secrets_subtitle">API keys and login credentials will be stored in plaintext in the backup file. Keep it safe.</string>
     <string name="oauth_device_open_page">Open authorization page</string>
     <string name="oauth_device_open_failed">Cannot open browser</string>
     <string name="keep_alive_notification_title">Muse is running in the background</string>
     <string name="keep_alive_notification_text">Keeping scheduled tasks and proactive messages online</string>
     <string name="settings_keep_alive_title">Keep running in background</string>
-    <string name="settings_keep_alive_subtitle">Hold the process in the foreground with a persistent notification</string>
     <string name="settings_keep_alive_hint">Muse will show a persistent notification. Android requires this for foreground services and it cannot be hidden. On some Chinese ROMs you also need to allow autostart in system settings.</string>
     <string name="settings_keep_alive_wakelock_title">Stay connected with screen off</string>
-    <string name="settings_keep_alive_wakelock_subtitle">Receive proactive messages sooner, at the cost of battery</string>
     <string name="settings_keep_alive_battery_title">Disable battery optimization</string>
-    <string name="settings_keep_alive_battery_subtitle">The system limits background activity; allow this app</string>
     <string name="settings_keep_alive_rom_title">Autostart allowlist</string>
-    <string name="settings_keep_alive_rom_subtitle">Some vendor ROMs require enabling autostart separately</string>
     <string name="settings_keep_alive_notification_custom_title">Notification text</string>
-    <string name="settings_keep_alive_notification_custom_subtitle">Customize the title and body of the persistent notification</string>
     <string name="settings_keep_alive_notification_custom_hint">Leave blank to use the default text.</string>
     <string name="settings_keep_alive_notification_title_placeholder">Default: Muse is running in the background</string>
     <string name="settings_keep_alive_notification_text_placeholder">Default: Keeping scheduled tasks and proactive messages online</string>
@@ -732,11 +668,9 @@
     <string name="search_custom_engine_results_path">Results path (e.g. data.results; blank means the root is an array)</string>
     <string name="settings_chat_carry_over_section">Carry over context</string>
     <string name="settings_chat_carry_over">Bring previous chat into a new one</string>
-    <string name="settings_chat_carry_over_subtitle">Reads the last few turns of your previous conversation into this one. More continuous, but uses more input tokens.</string>
     <string name="settings_chat_carry_over_count">Carry %1$d messages</string>
     <string name="settings_chat_carry_over_count_hint">Roughly %1$d turns (user and assistant each count as one)</string>
     <string name="settings_agent_agent_session_enabled">Agent sessions</string>
-    <string name="settings_agent_agent_session_enabled_subtitle">When off, proactive messages are not sent to Agent sessions, and no Agent session is created for them</string>
     <string name="connection_skills_title">Skills &amp; skill packages</string>
     <string name="connection_skills_subtitle">%1$d custom skills, %2$d from SKILL.md packages</string>
     <string name="settings_user_profile_auto_section">Profile learned from chats</string>
@@ -752,7 +686,6 @@
     <string name="profile_section_recent">Recent interactions</string>
     <string name="profile_section_uncertain">Uncertain notes</string>
     <string name="settings_agent_timing_scoring_title">Smart timing</string>
-    <string name="settings_agent_timing_scoring_subtitle">Before speaking it weighs recent feedback: an unanswered last message, unread backlog or late-night hours lower the odds; a due thought restores them. Intervals, budget and quiet hours are unaffected.</string>
     <string name="settings_screen_diagnostics">Diagnostics</string>
     <string name="settings_diagnostics_loading">Collecting…</string>
     <string name="settings_diagnostics_actions">Export</string>

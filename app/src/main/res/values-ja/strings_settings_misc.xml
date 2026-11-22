@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_experiments_session_attachment_rag">チャット添付の検索</string>
-    <string name="settings_experiments_session_attachment_rag_subtitle">チャットで送った文書を検索用にインデックスし、AI が引用できるようにします。実験的機能で、索引はセッションと共に削除されます。</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">、選択済み</string>
 
@@ -15,7 +14,6 @@
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">ウェブ検索</string>
     <string name="settings_web_search_enable">Web検索を有効にする</string>
-    <string name="settings_web_search_enable_subtitle">グローバルなデフォルト状態。</string>
     <string name="settings_web_search_engine">検索エンジン</string>
     <string name="settings_saved">保存されました</string>
     <string name="settings_web_search_save_api_key">APIキーの保存</string>
@@ -28,13 +26,9 @@
     <string name="settings_experiments_warning">次の機能は実験的なものであり、不安定になったり、エクスペリエンスに影響を与える可能性があります。</string>
     <string name="settings_experiments_features">実験的な機能</string>
     <string name="settings_experiments_force_mood">MOOD 出力を強制する</string>
-    <string name="settings_experiments_force_mood_subtitle">モデルがサポートしていない場合でも、MOOD ブロック出力を要求しようとします</string>
     <string name="settings_experiments_debug_mode">デバッグモード</string>
-    <string name="settings_experiments_debug_mode_subtitle">内部状態をさらに表示 (MOOD/ツール呼び出し/トークン)</string>
     <string name="settings_experiments_self_reflection">内省</string>
-    <string name="settings_experiments_self_reflection_subtitle">返信後に自動的に品質をチェックする</string>
     <string name="settings_experiments_long_memory_compression">ロングメモリ圧縮</string>
-    <string name="settings_experiments_long_memory_compression_subtitle">非常に長い会話の自動要約 (v1.55 以降、デフォルトで有効になっています)</string>
 
     <!-- UserProfileEditPage.kt -->
     <string name="settings_user_profile_title">ユーザープロフィール</string>
@@ -126,18 +120,14 @@
     <string name="settings_assistant_skills">スキルマネージャー</string>
     <string name="settings_assistant_skills_subtitle">LLM が呼び出すことができるツール (ファイル I/O、HTTP など) を表示/有効化/無効化します。</string>
     <string name="settings_assistant_memory_enable">メモリシステムを有効にする</string>
-    <string name="settings_assistant_memory_enable_subtitle">オフにすると、会話によって長期記憶が注入されなくなり、バックグラウンドでの要約が停止します。</string>
 
     <!-- MultiAgentSettingsPage.kt -->
     <string name="settings_multi_agent_title">マルチエージェントのコラボレーション</string>
     <string name="settings_multi_agent_enable">マルチエージェントのコラボレーションを有効にする</string>
-    <string name="settings_multi_agent_enable_subtitle">有効にすると、メイン アシスタントはチーム メンバーにタスクを委任できます。</string>
     <string name="settings_multi_agent_team_list">チーム一覧</string>
     <string name="settings_multi_agent_no_team">まだチームがありません</string>
-    <string name="settings_multi_agent_no_team_hint">以下をタップしてチームを作成します</string>
     <string name="settings_multi_agent_new_team">新しいチーム</string>
     <string name="settings_multi_agent_writing_team_template">執筆チームテンプレート</string>
-    <string name="settings_multi_agent_writing_team_template_desc">構成 → 初稿 → 推敲：ワンタップで雛形を適用</string>
     <string name="settings_multi_agent_writing_team_name">執筆チーム</string>
     <string name="settings_multi_agent_writing_team_desc">協働執筆フロー：構成 → 初稿 → 推敲。この順でメンバーにアシスタントを追加してください。</string>
     <string name="settings_multi_agent_delete_team">チームの削除</string>
@@ -281,7 +271,6 @@
     <string name="settings_crash_pending_hint_idle">クラッシュは保留キューに自動的に追加されます</string>
     <string name="settings_crash_report_now_button">保留中のクラッシュを今すぐ報告する</string>
     <string name="settings_crash_settings_section">レポート設定</string>
-    <string name="settings_crash_enable_subtitle">クラッシュログは「今すぐ送信」を押したときだけ送られます</string>
     <string name="settings_crash_privacy_section">プライバシー</string>
     <string name="settings_crash_privacy_title">クラッシュレポートのプライバシーに関する約束</string>
     <string name="settings_crash_privacy_content">• デフォルトではオフ。</string>
@@ -308,7 +297,6 @@
     <string name="settings_web_search_diagnosis">最新の検索診断</string>
     <string name="settings_web_search_no_diagnosis">検索記録はまだありません</string>
     <string name="settings_experiments_parallel_tools">読み取り専用ツールの並列実行</string>
-    <string name="settings_experiments_parallel_tools_subtitle">1ラウンドのツールがすべて読み取り専用の場合は並列で実行し、高速で効率的です（デフォルトでオン。オフにすると直列に戻ります）</string>
     <string name="settings_model_action_test_chat">テスト会話（完全な連携）</string>
     <string name="settings_model_action_test_chat_short">テスト</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>

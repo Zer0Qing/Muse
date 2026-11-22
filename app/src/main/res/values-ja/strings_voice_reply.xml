@@ -7,7 +7,6 @@
     <string name="voice_reply_often">よく</string>
     <string name="voice_reply_always">毎回</string>
     <string name="voice_timbre_entry">声の音色と速度</string>
-    <string name="voice_timbre_entry_desc">「設定 → マルチメディア」で一元設定。ここでは重複して持ちません</string>
     <string name="voice_reply_global_section">音声返信の頻度</string>
     <string name="voice_reply_global_hint">すべてのアシスタントがこの 1 段階に従います。プロンプトにのみ影響し、強制ブロックはしません。</string>
     <string name="speech_guide_section">話し方ガイド</string>

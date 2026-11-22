@@ -17,10 +17,8 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">제공자 목록</string>
     <string name="settings_provider_empty_title">아직 제공업체가 없습니다.</string>
-    <string name="settings_provider_empty_subtitle">공급자를 추가하면 어시스턴트가 작동하기 시작합니다</string>
     <string name="settings_provider_empty_action">공급자 추가</string>
     <string name="settings_provider_free_ready_title">내장 무료 모델이 준비됨</string>
-    <string name="settings_provider_free_ready_subtitle">지금 바로 대화할 수 있습니다. 자체 제공자 추가는 선택이며 용량과 기능이 늘어납니다.</string>
     <string name="settings_provider_category_official">공식적인</string>
     <string name="settings_provider_category_relay">계전기</string>
     <string name="settings_provider_category_custom">관습</string>
@@ -155,12 +153,10 @@
     <string name="settings_backup_message_count">총 메시지</string>
     <string name="settings_backup_local_title">로컬 백업 &amp; 복원</string>
     <string name="settings_backup_export">백업 내보내기</string>
-    <string name="settings_backup_export_subtitle">모든 세션과 메시지를 JSON 파일로 내보내기</string>
     <string name="settings_backup_plaintext_export_title">암호화되지 않은 백업을 내보낼까요?</string>
     <string name="settings_backup_plaintext_export_message">백업 비밀번호가 설정되지 않았습니다. 계속하면 파일을 가진 누구나 내용을 읽을 수 있는 암호화되지 않은 백업 파일이 생성됩니다. 가능하면 먼저 클라우드 백업에서 비밀번호를 설정하세요.</string>
     <string name="settings_backup_plaintext_export_action">암호화 없이 내보내기</string>
     <string name="settings_backup_import">백업 가져오기</string>
-    <string name="settings_backup_import_subtitle">JSON 파일에서 복원(현재 데이터를 덮어씁니다)</string>
     <string name="settings_backup_export_success">내보내기 성공: %1$d 세션/%2$d 메시지</string>
     <string name="settings_backup_export_failed">내보내기 실패: %1$s</string>
     <string name="settings_backup_import_success">가져온 %1$d 세션/%2$d 메시지</string>
@@ -202,7 +198,6 @@
     <string name="settings_mcp_title">MCP 서버</string>
     <string name="settings_mcp_desc">외부 MCP 서버에 연결하고 해당 도구를 로컬로 자동 등록합니다(SSE/StreamableHTTP).</string>
     <string name="settings_mcp_empty_title">MCP 서버가 구성되지 않았습니다.</string>
-    <string name="settings_mcp_empty_subtitle">외부 도구 서버에 연결하면 어시스턴트가 해당 도구를 사용할 수 있습니다</string>
     <string name="settings_mcp_failed">실패: %1$s</string>
     <string name="settings_mcp_more">더</string>
     <string name="settings_mcp_oauth_authorize">OAuth 승인</string>
@@ -260,25 +255,20 @@
     <string name="settings_web_address_pin">주소: %1$s PIN: %2$s</string>
     <string name="settings_web_pin_hint">PIN은 최초 웹 액세스 확인에만 사용됩니다.</string>
     <string name="settings_web_enable">웹 서버 활성화</string>
-    <string name="settings_web_enable_subtitle">다음 앱 실행 시 적용됩니다.</string>
     <string name="settings_web_allow_lan">LAN 액세스 허용</string>
-    <string name="settings_web_allow_lan_subtitle">기본은 로컬 전용이며, 같은 Wi-Fi의 기기에서 IP로 접속하려면 사용</string>
     <string name="settings_web_https">HTTPS 사용</string>
-    <string name="settings_web_https_subtitle">자체 서명 인증서로 암호화; 첫 방문 시 브라우저가 인증서 경고를 표시합니다</string>
     <string name="settings_web_https_fingerprint">인증서 지문 (SHA-256)</string>
     <string name="settings_web_port">포트</string>
     <string name="settings_web_port_subtitle">%1$d (적용하려면 앱을 다시 시작하세요)</string>
     <string name="settings_web_password">로그인 비밀번호</string>
     <string name="settings_web_password_not_set">설정되지 않음</string>
     <string name="settings_web_regenerate_password">비밀번호 재생성</string>
-    <string name="settings_web_regenerate_password_subtitle">8자리 무작위 비밀번호 생성(이전 비밀번호는 무효화됨)</string>
     <string name="settings_web_new_password">새 비밀번호: %1$s</string>
     <string name="settings_web_pin">웹 액세스 PIN</string>
     <string name="settings_web_pin_not_set">설정되지 않음(활성화되면 자동 생성됨)</string>
     <string name="settings_web_copy_pin">PIN 복사</string>
     <string name="settings_web_pin_copied">PIN 복사됨: %1$s</string>
     <string name="settings_web_regenerate_pin">PIN 재생성</string>
-    <string name="settings_web_regenerate_pin_subtitle">6자리 PIN 생성(기존 PIN은 무효화, 적용하려면 앱을 다시 시작하세요)</string>
     <string name="settings_web_new_pin">새 PIN: %1$s (적용하려면 앱을 다시 시작하세요)</string>
     <string name="settings_web_access_address">접속 주소</string>
     <string name="settings_web_not_running">서비스가 실행 중이 아니므로 주소를 사용할 수 없습니다</string>
@@ -300,14 +290,11 @@
     <string name="settings_chat_show_mood">기분 블록 표시</string>
     <string name="settings_chat_show_reasoning">추론 보여주기</string>
     <string name="settings_chat_force_reasoning">추론 강제</string>
-    <string name="settings_chat_force_reasoning_subtitle">어시스턴트 기본값을 무시하고 추론 지원 모델은 항상 생각하도록 합니다</string>
     <string name="settings_chat_show_reflection">반사 블록 표시</string>
-    <string name="settings_chat_show_reflection_subtitle">답변의 정확성/완전성/어조에 대한 AI 자체 평가</string>
     <string name="settings_chat_show_model">모델 이름 표시</string>
     <string name="settings_chat_show_timestamp">타임스탬프 표시</string>
     <string name="settings_chat_generation_style">세대 스타일</string>
     <string name="settings_chat_reply_language">사용자 언어로 답변</string>
-    <string name="settings_chat_reply_language_subtitle">답변은 사용자 메시지의 언어를 따르고, 판단이 어려우면 인터페이스 언어를 사용합니다. 끄면 프롬프트가 정합니다</string>
     <string name="settings_chat_randomness">응답 무작위성</string>
     <string name="settings_chat_temp_hint_certain">결정적이고 안정적이며 예측 가능합니다.</string>
     <string name="settings_chat_temp_hint_balanced_low">균형이 잡혀 있고 안정적이면서도 다양함</string>
@@ -333,31 +320,23 @@
     <string name="settings_chat_auto_scroll">하단으로 자동 스크롤</string>
     <string name="settings_chat_volume_scroll">볼륨 키 스크롤</string>
     <string name="settings_chat_enter_send">보내려면 입력하세요.</string>
-    <string name="settings_chat_enter_send_subtitle">Enter는 꺼져 있을 때 개행을 삽입합니다.</string>
     <string name="settings_chat_haptic">햅틱 피드백</string>
     <string name="settings_chat_predictive_back">예측 뒤로가기</string>
-    <string name="settings_chat_predictive_back_subtitle">시스템 뒤로가기 애니메이션 사용. 끄면 즉시 이동</string>
     <string name="settings_chat_show_tool_calls">도구 호출 프로세스 표시</string>
     <string name="settings_chat_generative_ui">생성형 UI</string>
-    <string name="settings_chat_generative_ui_subtitle">AI가 대화에서 차트, 비교표, 작은 도구를 생성하도록 허용</string>
     <string name="settings_chat_pause_tool_execution">도구 실행 일시중지</string>
-    <string name="settings_chat_pause_tool_execution_subtitle">추론과 답변은 유지하고 실제 도구는 실행하지 않습니다</string>
     <string name="settings_chat_24h">24시간 형식</string>
     <string name="settings_chat_default_deep_thinking">기본 깊은 사고</string>
-    <string name="settings_chat_default_deep_thinking_subtitle">세션을 생성하거나 전환할 때 기본적으로 심층적 사고 활성화</string>
     <!-- v1.0.4 P3-4: Performance mode (MessagePaginator integration) -->
     <string name="settings_chat_performance_mode">성능 모드</string>
-    <string name="settings_chat_performance_mode_subtitle">긴 채팅의 경우 최신 50개 메시지만 렌더링하고 스크롤 업 시 더 많은 메시지를 로드하여 지연을 줄입니다.</string>
     <string name="settings_chat_session_cache">세션 캐시 상한</string>
     <string name="settings_chat_session_cache_subtitle">메모리에 유지하는 세션 메시지 사본 수; 클수록 전환이 빠르고 메모리 사용량이 높습니다</string>
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">토큰 추정치(실험적)</string>
-    <string name="settings_chat_token_estimate_subtitle">입력 표시줄에 토큰 카운트 버튼을 표시합니다.</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">도구 승인</string>
     <string name="settings_chat_tool_approval_title">도구 승인</string>
-    <string name="settings_chat_tool_approval_subtitle">도구를 호출하기 전에 AI가 사용자의 확인을 필요로 하는지 여부를 제어하세요.</string>
     <string name="settings_chat_tool_approval_trusted">완전히 신뢰하다</string>
     <string name="settings_chat_tool_approval_ask">주문형 요청</string>
     <string name="settings_chat_tool_approval_strict">엄격 모드</string>
@@ -365,7 +344,6 @@
     <string name="settings_chat_tool_approval_ask_desc">요청 시 요청: 위험도가 높은 도구는 호출 전에 메시지를 표시합니다.</string>
     <string name="settings_chat_tool_approval_strict_desc">엄격 모드: 읽기 전용 쿼리 도구를 제외한 모든 도구 호출에는 확인이 필요합니다.</string>
     <string name="cloud_backup_auto_enable">자동 결정 장치</string>
-    <string name="cloud_backup_auto_subtitle">설정된 간격으로 클라우드에 자동 업로드</string>
     <string name="cloud_backup_backup_failed">업로드 실패, 구성을 확인하세요</string>
     <string name="cloud_backup_backup_now">지금 백업</string>
     <string name="cloud_backup_backup_success">클라우드에 업로드됨</string>
@@ -407,13 +385,10 @@
     <string name="settings_chat_expand_button">전체 화면 편집 버튼 표시</string>
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
     <string name="settings_chat_floor_limiter">층 기반 컨텍스트 제한</string>
-    <string name="settings_chat_floor_limiter_subtitle">사용자 메시지를 층으로 간주하고 최근 N층 전체를 유지하여 대화 중간에 잘리는 것을 방지</string>
     <string name="settings_chat_tool_rounds">도구 라운드 상한</string>
-    <string name="settings_chat_tool_rounds_subtitle">턴당 도구 호출 라운드 상한. 무제한이면 긴 작업이 중단되지 않습니다(루프 보호는 계속 적용)</string>
     <string name="settings_chat_tool_rounds_unlimited">무제한</string>
     <string name="settings_chat_floor_count">%1$d층</string>
     <string name="settings_chat_floor_keep">유지할 층 수</string>
-    <string name="settings_chat_floor_keep_subtitle">이 층수를 초과하는 이전 메시지는 잘립니다</string>
 
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">모두 비우기</string>

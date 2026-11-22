@@ -248,7 +248,6 @@
     <string name="settings_screen_web_access">网页版访问</string>
     <string name="settings_web_access_intro">在 iPhone 或电脑的浏览器里打开下面的地址，输入 PIN 就能用网页版。</string>
     <string name="settings_web_access_enable">启用网页版</string>
-    <string name="settings_web_access_enable_subtitle">关闭后其他设备立即断开，端口随即释放</string>
     <string name="settings_web_access_lan">允许局域网访问</string>
     <string name="settings_web_access_lan_on">同一 Wi-Fi 下的手机、电脑都能打开</string>
     <string name="settings_web_access_lan_off">仅本机可访问</string>
@@ -283,7 +282,6 @@
     <string name="connection_plugins_title">插件</string>
     <string name="connection_plugins_subtitle">已安装插件 %1$d 个，进入可查看各自的能力授权</string>
     <string name="connection_tools_title">工具权限</string>
-    <string name="connection_tools_subtitle">审批、放权与安全策略</string>
     <string name="message_action_annotate">批注</string>
     <string name="message_annotate_title">消息批注</string>
     <string name="message_annotate_hint">写下批注…</string>
@@ -447,7 +445,6 @@
     <string name="settings_vision_title">视觉辅助</string>
     <string name="settings_vision_description">当使用不支持图片输入的文本模型时，自动调用视觉模型分析图片内容，将描述注入对话。</string>
     <string name="settings_vision_enabled">启用视觉辅助</string>
-    <string name="settings_vision_enabled_subtitle">自动将图片发送给视觉模型进行分析</string>
     <string name="settings_vision_model_section">视觉模型</string>
     <string name="settings_vision_no_models">未找到支持视觉输入的模型，请在供应商设置中添加视觉模型。</string>
     <!-- v1.0.1: 中转站支持 — 手动选择未识别视觉模型 -->
@@ -726,10 +723,8 @@
     <string name="muse_plugins_market_title">插件市场</string>
     <string name="muse_plugins_tab_installed">已安装</string>
     <string name="muse_plugins_market_not_configured">目录未配置</string>
-    <string name="muse_plugins_market_not_configured_hint">配置签名目录地址与信任根公钥后，可在此浏览并一键安装插件。</string>
     <string name="muse_plugins_market_configure">目录设置</string>
     <string name="muse_plugins_market_settings_title">插件目录设置</string>
-    <string name="muse_plugins_market_settings_hint">插件市场默认使用安装包内置的官方目录；仅在测试或应急时才需要填写自定义目录与信任根。</string>
     <string name="muse_plugins_market_url_label">自定义目录地址（留空使用官方目录）</string>
     <string name="muse_plugins_market_key_id_label">自定义信任根 keyId</string>
     <string name="muse_plugins_market_public_key_label">自定义信任根公钥（Base64）</string>
@@ -886,7 +881,6 @@
     <string name="settings_preference_subtitle">助手记下的长期要求</string>
     <string name="settings_preference_desc">你对助手说「以后别…」「别再…」时，它会记成这里的一条硬约束，并在每次对话里遵守。</string>
     <string name="settings_preference_empty">还没有记下任何偏好</string>
-    <string name="settings_preference_empty_hint">试着对助手说「以后回答不要用空泛的鼓励」</string>
     <string name="settings_preference_disable">停用</string>
     <string name="settings_preference_enable">启用</string>
     <string name="settings_preference_delete_confirm">删除这条偏好后助手将不再遵守它。</string>

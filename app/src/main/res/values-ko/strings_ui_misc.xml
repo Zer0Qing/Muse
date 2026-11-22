@@ -73,7 +73,6 @@
     <string name="theme_dusk_rose">황혼의 장미</string>
     <string name="settings_theme_schedule">정기 전환</string>
     <string name="settings_theme_schedule_auto">자동 전환</string>
-    <string name="settings_theme_schedule_auto_subtitle">기상/취침 시간에 라이트/다크 자동 전환</string>
     <string name="settings_theme_wake_time_title">기상 시간(라이트)</string>
     <string name="settings_theme_sleep_time_title">취침 시간(다크)</string>
 
@@ -241,7 +240,6 @@
     <string name="agent_bot_discard">버리기</string>
     <string name="attachment_kind_video">[동영상]</string>
     <string name="attachment_kind_audio">[오디오]</string>
-    <string name="attachment_frame_note">(키프레임 %1$d장 첨부)</string>
     <string name="terminal_receipt_template">[터미널 회신]
 명령: %1$s
 출력(끝부분):

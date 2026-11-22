@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_experiments_session_attachment_rag">Поиск по вложениям чата</string>
-    <string name="settings_experiments_session_attachment_rag_subtitle">Загруженные в чат документы индексируются для поиска, чтобы ассистент мог ссылаться на них. Экспериментально; индекс очищается вместе с сеансом.</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">, Выбрано</string>
 
@@ -15,7 +14,6 @@
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">Веб-поиск</string>
     <string name="settings_web_search_enable">Включить веб-поиск</string>
-    <string name="settings_web_search_enable_subtitle">Глобальное состояние по умолчанию;</string>
     <string name="settings_web_search_engine">Поисковая система</string>
     <string name="settings_saved">Сохранено</string>
     <string name="settings_web_search_save_api_key">Сохранить ключ API</string>
@@ -28,13 +26,9 @@
     <string name="settings_experiments_warning">Следующие функции являются экспериментальными и могут работать нестабильно или влиять на вашу работу.</string>
     <string name="settings_experiments_features">Экспериментальные возможности</string>
     <string name="settings_experiments_force_mood">Форсировать вывод НАСТРОЕНИЯ</string>
-    <string name="settings_experiments_force_mood_subtitle">Попытайтесь потребовать вывод блока MOOD, даже если модель его не поддерживает.</string>
     <string name="settings_experiments_debug_mode">Режим отладки</string>
-    <string name="settings_experiments_debug_mode_subtitle">Показать больше внутреннего состояния (MOOD/вызовы инструментов/токены)</string>
     <string name="settings_experiments_self_reflection">Саморефлексия</string>
-    <string name="settings_experiments_self_reflection_subtitle">Автоматически проверять качество после ответа</string>
     <string name="settings_experiments_long_memory_compression">Сжатие длинной памяти</string>
-    <string name="settings_experiments_long_memory_compression_subtitle">Автоматическое суммирование очень длинных разговоров (включено по умолчанию, начиная с версии 1.55)</string>
 
     <!-- UserProfileEditPage.kt -->
     <string name="settings_user_profile_title">Профиль пользователя</string>
@@ -126,18 +120,14 @@
     <string name="settings_assistant_skills">Менеджер по навыкам</string>
     <string name="settings_assistant_skills_subtitle">Просмотр/включение/отключение инструментов, которые LLM может вызывать (файловый ввод-вывод, HTTP и т. д.)</string>
     <string name="settings_assistant_memory_enable">Включить систему памяти</string>
-    <string name="settings_assistant_memory_enable_subtitle">Если этот параметр отключен, разговоры больше не задействуют долговременную память, и фоновое обобщение прекращается.</string>
 
     <!-- MultiAgentSettingsPage.kt -->
     <string name="settings_multi_agent_title">Мультиагентное сотрудничество</string>
     <string name="settings_multi_agent_enable">Включить многоагентное сотрудничество</string>
-    <string name="settings_multi_agent_enable_subtitle">Если эта функция включена, главный помощник может делегировать задачи членам команды.</string>
     <string name="settings_multi_agent_team_list">Список команд</string>
     <string name="settings_multi_agent_no_team">Пока нет команд</string>
-    <string name="settings_multi_agent_no_team_hint">Нажмите ниже, чтобы создать команду</string>
     <string name="settings_multi_agent_new_team">Новая команда</string>
     <string name="settings_multi_agent_writing_team_template">Шаблон команды письма</string>
-    <string name="settings_multi_agent_writing_team_template_desc">План → черновик → вычитка: готовый поток в один тап</string>
     <string name="settings_multi_agent_writing_team_name">Команда письма</string>
     <string name="settings_multi_agent_writing_team_desc">Совместное письмо: план → черновик → вычитка. Добавляйте ассистентов в этом порядке.</string>
     <string name="settings_multi_agent_delete_team">Удалить команду</string>
@@ -281,7 +271,6 @@
     <string name="settings_crash_pending_hint_idle">Сбои будут автоматически добавлены в очередь ожидания.</string>
     <string name="settings_crash_report_now_button">Сообщите об ожидающих сбоях прямо сейчас</string>
     <string name="settings_crash_settings_section">Настройки отчета</string>
-    <string name="settings_crash_enable_subtitle">Логи сбоев отправляются только по нажатию «Отправить сейчас»</string>
     <string name="settings_crash_privacy_section">Конфиденциальность</string>
     <string name="settings_crash_privacy_title">Обещание конфиденциальности при сообщении о сбоях</string>
     <string name="settings_crash_privacy_content">• Выкл. по умолчанию;</string>
@@ -308,7 +297,6 @@
     <string name="settings_web_search_diagnosis">Последняя диагностика поиска</string>
     <string name="settings_web_search_no_diagnosis">Записей поиска пока нет</string>
     <string name="settings_experiments_parallel_tools">Параллельность инструментов только для чтения</string>
-    <string name="settings_experiments_parallel_tools_subtitle">Когда все инструменты раунда доступны только для чтения, они выполняются параллельно — быстрее и эффективнее (включено по умолчанию; можно отключить, чтобы вернуться к последовательному выполнению)</string>
     <string name="settings_model_action_test_chat">Тестовый диалог (полный цикл)</string>
     <string name="settings_model_action_test_chat_short">Тест</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>

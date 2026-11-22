@@ -83,7 +83,6 @@
     <string name="theme_dusk_rose">暮霭玫</string>
     <string name="settings_theme_schedule">定时切换</string>
     <string name="settings_theme_schedule_auto">自动切换</string>
-    <string name="settings_theme_schedule_auto_subtitle">在起床/睡觉时间自动切换亮暗模式</string>
     <string name="settings_theme_wake_time_title">起床时间（浅色）</string>
     <string name="settings_theme_sleep_time_title">睡觉时间（深色）</string>
 
@@ -247,7 +246,6 @@
     <string name="agent_bot_discard">丢弃</string>
     <string name="attachment_kind_video">[视频]</string>
     <string name="attachment_kind_audio">[音频]</string>
-    <string name="attachment_frame_note">（已附 %1$d 张关键帧）</string>
     <string name="terminal_receipt_template">【终端回执】
 命令：%1$s
 输出（末尾）：

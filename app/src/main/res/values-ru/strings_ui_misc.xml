@@ -73,7 +73,6 @@
     <string name="theme_dusk_rose">Сумеречная роза</string>
     <string name="settings_theme_schedule">Автопереключение по времени</string>
     <string name="settings_theme_schedule_auto">Автопереключение</string>
-    <string name="settings_theme_schedule_auto_subtitle">Автоматически переключать светлую/тёмную тему в время подъёма и сна</string>
     <string name="settings_theme_wake_time_title">Время подъёма (светлая)</string>
     <string name="settings_theme_sleep_time_title">Время сна (тёмная)</string>
 
@@ -241,7 +240,6 @@
     <string name="agent_bot_discard">Отбросить</string>
     <string name="attachment_kind_video">[Видео]</string>
     <string name="attachment_kind_audio">[Аудио]</string>
-    <string name="attachment_frame_note">(приложено ключевых кадров: %1$d)</string>
     <string name="terminal_receipt_template">[Ответ терминала]
 Команда: %1$s
 Вывод (хвост):

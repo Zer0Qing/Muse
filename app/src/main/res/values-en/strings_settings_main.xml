@@ -17,10 +17,8 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Provider List</string>
     <string name="settings_provider_empty_title">No providers yet</string>
-    <string name="settings_provider_empty_subtitle">Add a provider first so the assistant can start working</string>
     <string name="settings_provider_empty_action">Add Provider</string>
     <string name="settings_provider_free_ready_title">Built-in free models are ready</string>
-    <string name="settings_provider_free_ready_subtitle">Chat works right now. Adding your own provider is optional and unlocks more quota and capabilities.</string>
     <string name="settings_provider_category_official">Official</string>
     <string name="settings_provider_category_relay">Relay</string>
     <string name="settings_provider_category_custom">Custom</string>
@@ -155,12 +153,10 @@
     <string name="settings_backup_message_count">Total Messages</string>
     <string name="settings_backup_local_title">Local Backup &amp; Restore</string>
     <string name="settings_backup_export">Export Backup</string>
-    <string name="settings_backup_export_subtitle">Export all sessions and messages as a JSON file</string>
     <string name="settings_backup_plaintext_export_title">Export an unencrypted backup?</string>
     <string name="settings_backup_plaintext_export_message">No backup password is set. Continuing will create an unencrypted backup file that anyone with the file can read. Set a password in Cloud Backup first if possible.</string>
     <string name="settings_backup_plaintext_export_action">Export unencrypted</string>
     <string name="settings_backup_import">Import Backup</string>
-    <string name="settings_backup_import_subtitle">Restore from a JSON file (current data will be overwritten)</string>
     <string name="settings_backup_export_success">Export succeeded: %1$d sessions / %2$d messages</string>
     <string name="settings_backup_export_failed">Export failed: %1$s</string>
     <string name="settings_backup_import_success">Imported %1$d sessions / %2$d messages</string>
@@ -202,7 +198,6 @@
     <string name="settings_mcp_title">MCP Servers</string>
     <string name="settings_mcp_desc">Connect to external MCP servers and auto-register their tools locally (SSE / StreamableHTTP)</string>
     <string name="settings_mcp_empty_title">No MCP server configured</string>
-    <string name="settings_mcp_empty_subtitle">Connect an external tool server so the assistant can use its tools</string>
     <string name="settings_mcp_failed">Failed: %1$s</string>
     <string name="settings_mcp_more">More</string>
     <string name="settings_mcp_oauth_authorize">OAuth Authorize</string>
@@ -260,25 +255,20 @@
     <string name="settings_web_address_pin">Address: %1$s    PIN: %2$s</string>
     <string name="settings_web_pin_hint">The PIN is only for first-time web access verification; the browser saves the token after login</string>
     <string name="settings_web_enable">Enable Web Server</string>
-    <string name="settings_web_enable_subtitle">Starts or stops the service immediately</string>
     <string name="settings_web_allow_lan">Allow LAN access</string>
-    <string name="settings_web_allow_lan_subtitle">Localhost only by default; enable to allow devices on the same Wi-Fi to connect via IP</string>
     <string name="settings_web_https">Enable HTTPS</string>
-    <string name="settings_web_https_subtitle">Encrypted with a self-signed certificate; the browser will warn about the untrusted certificate on first visit</string>
     <string name="settings_web_https_fingerprint">Certificate fingerprint (SHA-256)</string>
     <string name="settings_web_port">Port</string>
     <string name="settings_web_port_subtitle">%1$d (applied immediately)</string>
     <string name="settings_web_password">Login Password</string>
     <string name="settings_web_password_not_set">Not set</string>
     <string name="settings_web_regenerate_password">Regenerate Password</string>
-    <string name="settings_web_regenerate_password_subtitle">Generate an 8-character random password (old password invalidated)</string>
     <string name="settings_web_new_password">New password: %1$s</string>
     <string name="settings_web_pin">Web Access PIN</string>
     <string name="settings_web_pin_not_set">Not set (auto-generated when enabled)</string>
     <string name="settings_web_copy_pin">Copy PIN</string>
     <string name="settings_web_pin_copied">PIN copied: %1$s</string>
     <string name="settings_web_regenerate_pin">Regenerate PIN</string>
-    <string name="settings_web_regenerate_pin_subtitle">Generate a 6-digit PIN (old PIN invalidated immediately)</string>
     <string name="settings_web_new_pin">New PIN: %1$s (effective immediately)</string>
     <string name="settings_web_access_address">Access Address</string>
     <string name="settings_web_not_running">Service is not running; the address is unavailable</string>
@@ -300,14 +290,11 @@
     <string name="settings_chat_show_mood">Show MOOD Block</string>
     <string name="settings_chat_show_reasoning">Show Reasoning</string>
     <string name="settings_chat_force_reasoning">Force Reasoning</string>
-    <string name="settings_chat_force_reasoning_subtitle">Ignore the assistant default and always let reasoning-capable models think</string>
     <string name="settings_chat_show_reflection">Show Reflection Block</string>
-    <string name="settings_chat_show_reflection_subtitle">AI self-evaluation of answer accuracy/completeness/tone</string>
     <string name="settings_chat_show_model">Show Model Name</string>
     <string name="settings_chat_show_timestamp">Show Timestamp</string>
     <string name="settings_chat_generation_style">Generation Style</string>
     <string name="settings_chat_reply_language">Reply in the user\'s language</string>
-    <string name="settings_chat_reply_language_subtitle">Answers follow the language of your message, falling back to the interface language. Turn off to let prompts decide</string>
     <string name="settings_chat_randomness">Response Randomness</string>
     <string name="settings_chat_temp_hint_certain">Deterministic, stable and predictable</string>
     <string name="settings_chat_temp_hint_balanced_low">Leaning balanced, stable yet diverse</string>
@@ -333,31 +320,23 @@
     <string name="settings_chat_auto_scroll">Auto-scroll to Bottom</string>
     <string name="settings_chat_volume_scroll">Volume Key Scroll</string>
     <string name="settings_chat_enter_send">Enter to Send</string>
-    <string name="settings_chat_enter_send_subtitle">Enter inserts a newline when off</string>
     <string name="settings_chat_haptic">Haptic Feedback</string>
     <string name="settings_chat_predictive_back">Predictive Back</string>
-    <string name="settings_chat_predictive_back_subtitle">Use the system back animation; turn off for immediate navigation</string>
     <string name="settings_chat_show_tool_calls">Show Tool Call Process</string>
     <string name="settings_chat_generative_ui">Generative UI</string>
-    <string name="settings_chat_generative_ui_subtitle">Let the AI generate charts, comparison tables, and small tools in chat</string>
     <string name="settings_chat_pause_tool_execution">Pause Tool Execution</string>
-    <string name="settings_chat_pause_tool_execution_subtitle">Keep reasoning and replies, but do not execute real tools</string>
     <string name="settings_chat_24h">24-Hour Format</string>
     <string name="settings_chat_default_deep_thinking">Default Deep Thinking</string>
-    <string name="settings_chat_default_deep_thinking_subtitle">Enable deep thinking by default when creating or switching sessions</string>
     <!-- v1.0.4 P3-4: Performance mode (MessagePaginator integration) -->
     <string name="settings_chat_performance_mode">Performance Mode</string>
-    <string name="settings_chat_performance_mode_subtitle">For long chats, render only the latest 50 messages and load more on scroll-up to reduce lag</string>
     <string name="settings_chat_session_cache">Session Cache Size</string>
     <string name="settings_chat_session_cache_subtitle">Session message snapshots kept in memory; larger means faster switching and higher memory use</string>
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">Token Estimate (Experimental)</string>
-    <string name="settings_chat_token_estimate_subtitle">Show a token count button in the input bar; off by default to avoid encoding overhead</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">Tool Approval</string>
     <string name="settings_chat_tool_approval_title">Tool Approval</string>
-    <string name="settings_chat_tool_approval_subtitle">Control whether the AI needs your confirmation before calling tools</string>
     <string name="settings_chat_tool_approval_trusted">Fully Trust</string>
     <string name="settings_chat_tool_approval_ask">Ask on Demand</string>
     <string name="settings_chat_tool_approval_strict">Strict Mode</string>
@@ -365,7 +344,6 @@
     <string name="settings_chat_tool_approval_ask_desc">Ask on Demand: high-risk tools prompt you before invocation; safe tools are auto-approved</string>
     <string name="settings_chat_tool_approval_strict_desc">Strict Mode: all tool calls require your confirmation except read-only query tools</string>
     <string name="cloud_backup_auto_enable">Scheduled auto backup</string>
-    <string name="cloud_backup_auto_subtitle">Auto-upload to cloud at set intervals</string>
     <string name="cloud_backup_backup_failed">Upload failed, check configuration</string>
     <string name="cloud_backup_backup_now">Back up now</string>
     <string name="cloud_backup_backup_success">Uploaded to cloud</string>
@@ -409,13 +387,10 @@
 
     <!-- 前端修复 (i18n-3.x): Floor-based context limit i18n -->
     <string name="settings_chat_floor_limiter">Floor-based context limit</string>
-    <string name="settings_chat_floor_limiter_subtitle">Treats user messages as floors and keeps the most recent N complete floors, avoiding truncation mid-conversation</string>
     <string name="settings_chat_tool_rounds">Tool round limit</string>
-    <string name="settings_chat_tool_rounds_subtitle">Max tool-call rounds per turn; Unlimited lets long tasks run to completion (stuck-loop and repeat-call guards still apply)</string>
     <string name="settings_chat_tool_rounds_unlimited">Unlimited</string>
     <string name="settings_chat_floor_count" tools:ignore="PluralsCandidate">%1$d floors</string>
     <string name="settings_chat_floor_keep">Floors to keep</string>
-    <string name="settings_chat_floor_keep_subtitle">Older messages beyond this floor count are truncated</string>
 
     <!-- 前端修复 (i18n-3.x): Shared clear-all texts (stickers / group chat memory) -->
     <string name="settings_common_clear_all">Clear all</string>
@@ -462,12 +437,10 @@
     <string name="settings_backup_export_session_empty">No conversation to export yet</string>
     <string name="settings_backup_export_session_failed">Failed to export conversation: %1$s</string>
     <string name="settings_backup_export_session_search">Search conversation titles</string>
-    <string name="settings_backup_export_session_subtitle">Pick one conversation and export its full history as a JSON file</string>
     <string name="settings_backup_export_session_success">Conversation exported: %1$d messages</string>
     <string name="settings_backup_export_session_title">Choose a conversation to export</string>
     <string name="settings_rag_config_read_failed">Failed to read config</string>
     <string name="settings_chat_fast_reply">Fast replies</string>
-    <string name="settings_chat_fast_reply_subtitle">Send short preset replies with one tap</string>
     <string name="settings_rag_embedding_provider_hint">Relay services may or may not offer embedding models. Use the test button to verify.</string>
     <string name="settings_rag_embedding_test">Test embedding</string>
     <string name="settings_rag_embedding_test_failed">Embedding test failed: %1$s</string>

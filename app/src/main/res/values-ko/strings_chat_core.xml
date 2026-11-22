@@ -8,7 +8,6 @@
     <string name="chat_msg_selected">선택됨</string>
     <string name="chat_msg_not_selected">선택 안 됨</string>
     <string name="moment_images_selected">%1$d장 선택됨(탭하여 계속 선택)</string>
-    <string name="moment_add_images_hint">이미지 추가(최대 %1$d장)</string>
     <!-- ===== 일기 (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>일</item>
@@ -38,7 +37,6 @@
     <string name="moment_more_actions">이 게시물의 추가 작업</string>
     <string name="moment_sender_muse">Muse</string>
     <string name="moment_sender_me">나</string>
-    <string name="moment_comment_hint">댓글 작성:</string>
     <string name="moment_delete_title">게시물 삭제</string>
     <string name="moment_image_cd">게시물 이미지</string>
     <string name="moment_image_cd_indexed">게시물 이미지 %1$d</string>
@@ -47,7 +45,6 @@
     <string name="moment_messages_cd">메시지</string>
     <string name="moment_publish_cd">게시물 올리기(짧게 눌러 사진, 길게 눌러 텍스트)</string>
     <string name="moment_empty_feed">아직 게시물이 없습니다</string>
-    <string name="moment_empty_hint">오른쪽 위 +를 눌러 첫 게시물을 작성\nMuse와 어시스턴트들도 일상을 공유합니다</string>
     <string name="moment_messages_empty">아직 좋아요나 댓글이 없습니다</string>
     <string name="moment_notification_liked">%1$s 님이 내 게시물에 좋아요를 눌렀습니다</string>
     <string name="moment_notification_commented">%1$s 님이 내 게시물에 댓글을 달았습니다</string>
@@ -380,16 +377,13 @@
     <!-- ChatSettingsPage sticker library section -->
     <string name="settings_chat_sticker_section">스티커 라이브러리</string>
     <string name="settings_sticker_enabled">스티커 활성화</string>
-    <string name="settings_sticker_enabled_subtitle">어시스턴트가 답장으로 스티커를 보낼 수 있도록 허용</string>
     <string name="settings_sticker_frequency">전송 빈도</string>
     <string name="settings_sticker_frequency_subtitle">어시스턴트가 문맥에 어울릴 때 자연스럽게 스티커를 첨부합니다</string>
     <string name="settings_sticker_freq_occasional">가끔</string>
     <string name="settings_sticker_freq_normal">보통</string>
     <string name="settings_sticker_freq_frequent">자주</string>
     <string name="settings_sticker_upload">스티커 가져오기</string>
-    <string name="settings_sticker_upload_subtitle">zip, docx/pptx 문서, 이미지 지원. 한 번에 파일 하나</string>
     <string name="settings_sticker_add_from_gallery">갤러리에서 추가</string>
-    <string name="settings_sticker_add_from_gallery_subtitle">여러 장 동시 선택. 현재 보는 스티커 팩에 추가됩니다</string>
     <string name="settings_sticker_review_title">%1$d 개 미리보기</string>
     <string name="settings_sticker_review_hint">자동 선택과 자동 자르기는 결과가 틀릴 수 있어요. 탭으로 선택을 해제할 수 있습니다. 팩: %2$s</string>
     <string name="settings_sticker_review_import">%1$d 개 가져오기</string>
@@ -512,7 +506,6 @@
     <string name="chat_pending_tools_discard_confirm_msg">폐기하면 실행되지 않으며 복구할 수 없습니다.</string>
     <string name="moment_mood_prefix">기분: %1$s</string>
     <string name="moment_published">게시됨</string>
-    <string name="moment_search_hint">게시물, 작성자 또는 유형 검색</string>
     <string name="moment_search_clear_cd">검색 지우기</string>
     <string name="moment_favorites_only_cd">즐겨찾기만</string>
     <string name="moment_generating">생성 중…</string>
@@ -525,7 +518,6 @@
     <string name="settings_bubble_radius_none">사각형</string>
     <string name="settings_bubble_radius_pill">알약</string>
     <string name="settings_bubble_radius_small">둥근 모서리</string>
-    <string name="settings_bubble_radius_subtitle">메시지 버블의 둥근 모서리 단계 설정</string>
     <string name="settings_bubble_radius_title">메시지 둥근 모서리</string>
     <string name="chat_delete_scope_only">이 메시지만 삭제(답글 포함)</string>
     <string name="chat_delete_scope_with_following">이 메시지와 이후 모든 메시지 삭제</string>
@@ -568,9 +560,7 @@
     <string name="chat_tool_paused_banner">도구 실행이 일시중지되어 실제로 실행되지 않습니다.</string>
     <string name="chat_tool_paused_banner_action">설정</string>
     <string name="settings_chat_show_assistant_name">어시스턴트 이름 표시</string>
-    <string name="settings_chat_show_assistant_name_subtitle">메시지 위에 말하는 사람을 표시합니다</string>
     <string name="settings_chat_show_user_name">내 이름 표시</string>
-    <string name="settings_chat_show_user_name_subtitle">내 메시지 위에 닉네임을 표시합니다. 그룹 채팅과 여러 어시스턴트 환경에서 유용합니다</string>
     <string name="chat_placeholder_simple">메시지…</string>
     <string name="chat_ignore_memory_option_on">메모리 참조 안 함: 켜짐</string>
     <string name="chat_ignore_memory_option_off">메모리 참조 안 함: 꺼짐</string>

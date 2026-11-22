@@ -2,7 +2,6 @@
 <resources>
     <string name="code_gap_gallery_selected">Selected images: %1$d</string>
     <string name="code_gap_skill_file_too_large">File too large; exceeds the %1$d MB limit</string>
-    <string name="code_gap_memory_spaces_subtitle">Manage separate memory spaces for work, life, study, and more; switching between them keeps them independent</string>
     <string name="code_gap_mcp_config_template">Configuration template</string>
     <string name="code_gap_feishu_app_id">Feishu App ID</string>
     <string name="code_gap_feishu_app_secret">Feishu App Secret</string>

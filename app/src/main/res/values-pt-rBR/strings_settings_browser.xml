@@ -6,9 +6,7 @@
     <string name="settings_browser_search_hint">Palavras-chave na barra de endereços são pesquisadas aqui; uma URL completa abre direto.</string>
     <string name="settings_browser_cookies_title">Cookies</string>
     <string name="settings_browser_accept_cookies">Aceitar cookies</string>
-    <string name="settings_browser_accept_cookies_hint">Com isso ativo, o navegador integrado guarda e envia cookies como um normal. Desativar só impede novos registros; não desconecta você.</string>
     <string name="settings_browser_clear">Limpar cookies e dados do site</string>
-    <string name="settings_browser_clear_hint">Remove cookies, armazenamento DOM e cache do navegador integrado; será preciso entrar de novo nos sites.</string>
     <string name="settings_browser_engine_bing">Bing</string>
     <string name="settings_browser_engine_baidu">Baidu</string>
     <string name="settings_browser_engine_sogou">Sogou</string>

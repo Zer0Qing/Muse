@@ -71,9 +71,15 @@ class PluginCircuitStringsTest {
         val candidates = listOf(
             Path.of("app/src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt"),
             Path.of("src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt"),
+
+            Path.of("app/src/main/java/io/zer0/muse/ui/settings/PluginManageParts.kt"),
+
+            Path.of("src/main/java/io/zer0/muse/ui/settings/PluginManageParts.kt"),
         )
-        val file = candidates.firstOrNull(Files::exists) ?: error("找不到 PluginManagePage.kt")
-        val source = Files.newBufferedReader(file).use { it.readText() }
+        // 实现已拆成 PluginManagePage + PluginManageParts 两个文件，要合并后再断言。
+        val existing = candidates.filter(Files::exists)
+        require(existing.isNotEmpty()) { "找不到 PluginManagePage.kt / PluginManageParts.kt" }
+        val source = existing.joinToString("\n") { Files.newBufferedReader(it).use { r -> r.readText() } }
         circuitKeys.forEach { key ->
             assertTrue("插件页没引用 R.string.$key —— 文案存在但没人显示,等于没有", source.contains("R.string.$key"))
         }

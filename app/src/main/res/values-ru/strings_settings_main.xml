@@ -17,10 +17,8 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Список поставщиков</string>
     <string name="settings_provider_empty_title">Пока нет поставщиков</string>
-    <string name="settings_provider_empty_subtitle">Добавьте поставщика, чтобы ассистент мог начать работу</string>
     <string name="settings_provider_empty_action">Добавить поставщика</string>
     <string name="settings_provider_free_ready_title">Встроенные бесплатные модели готовы</string>
-    <string name="settings_provider_free_ready_subtitle">Уже можно общаться. Свой провайдер необязателен, но даёт больше лимитов и возможностей.</string>
     <string name="settings_provider_category_official">Официальный</string>
     <string name="settings_provider_category_relay">Реле</string>
     <string name="settings_provider_category_custom">Обычай</string>
@@ -155,12 +153,10 @@
     <string name="settings_backup_message_count">Всего сообщений</string>
     <string name="settings_backup_local_title">Локальная резервная копия &amp; Восстановление</string>
     <string name="settings_backup_export">Экспортировать резервную копию</string>
-    <string name="settings_backup_export_subtitle">Экспортируйте все сеансы и сообщения в файл JSON.</string>
     <string name="settings_backup_plaintext_export_title">Экспортировать незашифрованную резервную копию?</string>
     <string name="settings_backup_plaintext_export_message">Пароль резервной копии не задан. Продолжение создаст незашифрованный файл, который сможет прочитать любой получивший его. По возможности сначала задайте пароль в облачном резервном копировании.</string>
     <string name="settings_backup_plaintext_export_action">Экспортировать без шифрования</string>
     <string name="settings_backup_import">Импортировать резервную копию</string>
-    <string name="settings_backup_import_subtitle">Восстановление из файла JSON (текущие данные будут перезаписаны)</string>
     <string name="settings_backup_export_success">Экспорт выполнен успешно: %1$d сеансов / %2$d сообщений</string>
     <string name="settings_backup_export_failed">Не удалось экспортировать: %1$s</string>
     <string name="settings_backup_import_success">Импортированные сеансы %1$d/сообщения %2$d</string>
@@ -202,7 +198,6 @@
     <string name="settings_mcp_title">MCP-серверы</string>
     <string name="settings_mcp_desc">Подключайтесь к внешним серверам MCP и автоматически регистрируйте их инструменты локально (SSE/StreamableHTTP).</string>
     <string name="settings_mcp_empty_title">Сервер MCP не настроен</string>
-    <string name="settings_mcp_empty_subtitle">Подключите внешний сервер инструментов, чтобы ассистент мог ими пользоваться</string>
     <string name="settings_mcp_failed">Не удалось: %1$s</string>
     <string name="settings_mcp_more">Более</string>
     <string name="settings_mcp_oauth_authorize">Авторизация OAuth</string>
@@ -260,25 +255,20 @@
     <string name="settings_web_address_pin">Адрес: %1$s PIN: %2$s</string>
     <string name="settings_web_pin_hint">PIN-код предназначен только для проверки первого доступа к Интернету;</string>
     <string name="settings_web_enable">Включить веб-сервер</string>
-    <string name="settings_web_enable_subtitle">Вступает в силу при следующем запуске приложения</string>
     <string name="settings_web_allow_lan">Разрешить доступ по LAN</string>
-    <string name="settings_web_allow_lan_subtitle">По умолчанию только локально; включите, чтобы разрешить устройствам в одной Wi-Fi сети</string>
     <string name="settings_web_https">Включить HTTPS</string>
-    <string name="settings_web_https_subtitle">Шифрование самоподписанным сертификатом; при первом визите браузер предупредит о недоверенном сертификате</string>
     <string name="settings_web_https_fingerprint">Отпечаток сертификата (SHA-256)</string>
     <string name="settings_web_port">Порт</string>
     <string name="settings_web_port_subtitle">%1$d (перезапустите приложение, чтобы применить)</string>
     <string name="settings_web_password">Логин Пароль</string>
     <string name="settings_web_password_not_set">Не установлено</string>
     <string name="settings_web_regenerate_password">Восстановить пароль</string>
-    <string name="settings_web_regenerate_password_subtitle">Создайте 8-значный случайный пароль (старый пароль признан недействительным)</string>
     <string name="settings_web_new_password">Новый пароль: %1$s</string>
     <string name="settings_web_pin">PIN-код веб-доступа</string>
     <string name="settings_web_pin_not_set">Не установлено (генерируется автоматически при включении)</string>
     <string name="settings_web_copy_pin">Скопировать PIN-код</string>
     <string name="settings_web_pin_copied">PIN-код скопирован: %1$s</string>
     <string name="settings_web_regenerate_pin">Восстановить PIN-код</string>
-    <string name="settings_web_regenerate_pin_subtitle">Создайте 6-значный PIN-код (старый PIN-код признан недействительным; для применения перезапустите приложение).</string>
     <string name="settings_web_new_pin">Новый PIN-код: %1$s (перезапустите приложение, чтобы применить)</string>
     <string name="settings_web_access_address">Адрес доступа</string>
     <string name="settings_web_not_running">Сервис не запущен; адрес недоступен</string>
@@ -300,14 +290,11 @@
     <string name="settings_chat_show_mood">Показать блок НАСТРОЕНИЯ</string>
     <string name="settings_chat_show_reasoning">Показать рассуждения</string>
     <string name="settings_chat_force_reasoning">Принудительное рассуждение</string>
-    <string name="settings_chat_force_reasoning_subtitle">Игнорировать настройки ассистента и всегда заставлять модели с рассуждением думать</string>
     <string name="settings_chat_show_reflection">Показать блок отражения</string>
-    <string name="settings_chat_show_reflection_subtitle">AI-самооценка точности/полноты/тона ответа</string>
     <string name="settings_chat_show_model">Показать название модели</string>
     <string name="settings_chat_show_timestamp">Показать временную метку</string>
     <string name="settings_chat_generation_style">Стиль генерации</string>
     <string name="settings_chat_reply_language">Отвечать на языке пользователя</string>
-    <string name="settings_chat_reply_language_subtitle">Ответы следуют языку вашего сообщения, а при неопределённости — языку интерфейса. Отключите, чтобы решали промпты</string>
     <string name="settings_chat_randomness">Случайность ответа</string>
     <string name="settings_chat_temp_hint_certain">Детерминированный, стабильный и предсказуемый</string>
     <string name="settings_chat_temp_hint_balanced_low">Сбалансированный, стабильный, но разнообразный</string>
@@ -333,31 +320,23 @@
     <string name="settings_chat_auto_scroll">Автоматическая прокрутка вниз</string>
     <string name="settings_chat_volume_scroll">Прокрутка клавиши громкости</string>
     <string name="settings_chat_enter_send">Войдите, чтобы отправить</string>
-    <string name="settings_chat_enter_send_subtitle">Enter вставляет новую строку, когда выключено</string>
     <string name="settings_chat_haptic">Тактильная обратная связь</string>
     <string name="settings_chat_predictive_back">Предиктивный возврат</string>
-    <string name="settings_chat_predictive_back_subtitle">Использовать системную анимацию; отключите для мгновенного возврата</string>
     <string name="settings_chat_show_tool_calls">Показать процесс вызова инструмента</string>
     <string name="settings_chat_generative_ui">Генеративный интерфейс</string>
-    <string name="settings_chat_generative_ui_subtitle">Разрешить ИИ создавать графики, таблицы сравнения и небольшие инструменты в чате</string>
     <string name="settings_chat_pause_tool_execution">Приостановить выполнение инструментов</string>
-    <string name="settings_chat_pause_tool_execution_subtitle">Сохранять рассуждения и ответы, но не запускать реальные инструменты</string>
     <string name="settings_chat_24h">24-часовой формат</string>
     <string name="settings_chat_default_deep_thinking">Глубокое мышление по умолчанию</string>
-    <string name="settings_chat_default_deep_thinking_subtitle">Включите глубокое мышление по умолчанию при создании или переключении сеансов.</string>
     <!-- v1.0.4 P3-4: Performance mode (MessagePaginator integration) -->
     <string name="settings_chat_performance_mode">Режим производительности</string>
-    <string name="settings_chat_performance_mode_subtitle">Для длинных чатов отображайте только последние 50 сообщений и загружайте больше при прокрутке вверх, чтобы уменьшить задержку.</string>
     <string name="settings_chat_session_cache">Лимит кеша сессий</string>
     <string name="settings_chat_session_cache_subtitle">Количество копий сообщений сессий в памяти; больше — быстрее переключение, больше памяти</string>
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">Оценка токена (экспериментальная)</string>
-    <string name="settings_chat_token_estimate_subtitle">Показывать кнопку подсчета токенов на панели ввода;</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">Одобрение инструментов</string>
     <string name="settings_chat_tool_approval_title">Одобрение инструмента</string>
-    <string name="settings_chat_tool_approval_subtitle">Контролируйте, нужно ли ИИ ваше подтверждение перед вызовом инструментов</string>
     <string name="settings_chat_tool_approval_trusted">Полностью доверять</string>
     <string name="settings_chat_tool_approval_ask">Спросите по требованию</string>
     <string name="settings_chat_tool_approval_strict">Строгий режим</string>
@@ -365,7 +344,6 @@
     <string name="settings_chat_tool_approval_ask_desc">«Спрашивать по требованию»: инструменты высокого риска подсказывают вам перед вызовом;</string>
     <string name="settings_chat_tool_approval_strict_desc">Строгий режим: все вызовы инструментов требуют вашего подтверждения, за исключением инструментов запросов только для чтения.</string>
     <string name="cloud_backup_auto_enable">Автоматическое резервное копирование по расписанию</string>
-    <string name="cloud_backup_auto_subtitle">Автоматическая загрузка в облако через заданные интервалы</string>
     <string name="cloud_backup_backup_failed">Ошибка загрузки, проверьте конфигурацию</string>
     <string name="cloud_backup_backup_now">Создать копию сейчас</string>
     <string name="cloud_backup_backup_success">Загружено в облако</string>
@@ -407,13 +385,10 @@
     <string name="settings_chat_expand_button">Показывать кнопку полноэкранного редактирования</string>
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
     <string name="settings_chat_floor_limiter">Ограничение контекста по этажам</string>
-    <string name="settings_chat_floor_limiter_subtitle">Считает сообщения пользователя этажами, сохраняет последние N полных этажей, чтобы не обрезать диалог посередине</string>
     <string name="settings_chat_tool_rounds">Лимит раундов инструментов</string>
-    <string name="settings_chat_tool_rounds_subtitle">Максимум раундов вызовов инструментов за ход; Без ограничений позволяет завершать длинные задачи (защита от циклов сохраняется)</string>
     <string name="settings_chat_tool_rounds_unlimited">Без ограничений</string>
     <string name="settings_chat_floor_count">%1$d этажей</string>
     <string name="settings_chat_floor_keep">Сколько этажей сохранять</string>
-    <string name="settings_chat_floor_keep_subtitle">Старые сообщения сверх этого числа этажей обрезаются</string>
 
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">Очистить все</string>

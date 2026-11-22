@@ -211,7 +211,6 @@
     <string name="settings_multi_agent_node_dependencies">Зависимости</string>
     <string name="chat_delete_selected_title">Удалить выбранные сообщения</string>
     <string name="chat_delete_selected_message">Вы уверены, что хотите удалить %1$d выбранных сообщений? Это действие нельзя отменить.</string>
-    <string name="settings_agent_night_patrol_subtitle">Вне разрешённого времени: тихо писать дневник/ночные заметки, без уведомлений</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
     <string name="moment_sender_user">Я</string>
     <string name="moment_banner_liked_by">%1$s лайкнул(а) вашу публикацию</string>
@@ -242,7 +241,6 @@
     <string name="chat_favorite_selected_partial">Добавлено %1$d; %2$d уже в избранном</string>
     <string name="chat_favorite_selected_all_exist">Все %1$d уже в избранном</string>
     <string name="settings_chat_prefer_card_output">Предпочитать вывод карточками</string>
-    <string name="settings_chat_prefer_card_output_subtitle">Побуждает модель оформлять таблицы, сравнения и выбор параметров в интерактивные карточки вместо длинного текста.</string>
     <string name="chat_card_state_only">(содержимое карточки обновлено)</string>
     <string name="moment_action_edit">Изменить</string>
     <string name="groupchat_stop_generating">Остановить генерацию</string>

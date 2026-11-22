@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="settings_chat_bubble_full_width">气泡通栏显示</string>
-    <string name="settings_chat_bubble_full_width_subtitle">AI 回复气泡撑满整行宽度；用户消息保持右侧紧凑气泡。</string>
     <string name="settings_chat_quick_actions">消息快捷按钮</string>
     <!-- v2.6.0: 快捷按钮自定义页（Via 式） -->
     <string name="settings_chat_quick_reset">恢复默认排布</string>
@@ -10,7 +9,6 @@
     <string name="settings_chat_quick_pool">动作池（点击添加）</string>
     <string name="settings_chat_quick_pool_empty">全部动作已启用。</string>
     <string name="settings_chat_show_user_avatar">显示我的头像</string>
-    <string name="settings_chat_show_user_avatar_subtitle">在用户消息旁显示本地昵称首字母头像</string>
     <!-- Agent 设置 -->
     <string name="settings_agent_tool_model_not_set_inherit">沿用主模型</string>
     <!-- v2.x: 辅助模型三档 — 大工具未绑定时复用小工具 -->
@@ -30,7 +28,6 @@
     <string name="settings_agent_proactive_section">主动消息</string>
     <!-- v1.x: 保持后台运行引导 -->
     <string name="settings_agent_keep_alive_title">保持后台运行</string>
-    <string name="settings_agent_keep_alive_subtitle">防止被系统清理后收不到主动消息</string>
     <string name="keep_alive_dialog_title">%1$s · 保持后台运行</string>
     <string name="keep_alive_manual_hint">未能自动跳转，请按上方步骤在系统设置中手动开启</string>
     <string name="keep_alive_dialog_desc">主动消息依赖后台进程。国产系统默认会清理后台应用，按下面步骤放行后，即使划掉最近任务也能继续收到消息：</string>
@@ -90,7 +87,6 @@
     <!-- Phase 4: 气泡皮肤选择/预览 -->
     <string name="settings_bubble_skin_section">气泡皮肤</string>
     <string name="settings_bubble_skin_builtin">Muse 默认气泡</string>
-    <string name="settings_bubble_skin_builtin_desc">内置皮肤，外观与默认一致</string>
     <string name="settings_bubble_skin_custom_desc">自定义气泡皮肤</string>
     <string name="settings_bubble_skin_import">导入皮肤</string>
     <string name="settings_bubble_skin_import_success">皮肤已导入并启用</string>
@@ -142,20 +138,16 @@
     <string name="settings_task_routing_vision_unset">未设置（点击配置）</string>
     <string name="settings_task_routing_aux_models_label">辅助模型</string>
     <string name="settings_task_routing_main_models_label">主对话模型</string>
-    <string name="settings_task_routing_utility_small_desc">生成标题、轻量分类等简单任务</string>
     <string name="settings_task_routing_utility_failed_title">辅助模型调用失败</string>
     <string name="settings_task_routing_utility_failed_desc">最近一次 %1$s 的调用返回：%2$s。受影响的是记忆抽取、摘要这类后台任务，聊天不受影响。可以换一个能用的模型，或留空沿用主对话模型。</string>
     <string name="settings_agent_daily_guarantee">每日保底</string>
     <string name="settings_agent_daily_guarantee_hint">距上一条主动消息超过这么久就强制发一条。免打扰时段、冷却期、你刚说过话、当天额度用完时仍然不发。</string>
     <string name="settings_agent_daily_guarantee_hours">%1$d 小时</string>
     <string name="settings_agent_daily_guarantee_off">关闭</string>
-    <string name="settings_task_routing_utility_large_desc">压缩、记忆提取、任务拆解等需要理解力的场景</string>
     <string name="settings_crash_anr_title">ANR 检测</string>
-    <string name="settings_crash_anr_subtitle">检测应用无响应并记录到本地崩溃/审计日志（默认开启，仅本地记录，不上传）</string>
     <string name="settings_chat_compress_model">压缩模型</string>
     <string name="settings_chat_compress_model_default">默认模型</string>
     <string name="settings_chat_paste_as_file">长文本粘贴转文件</string>
-    <string name="settings_chat_paste_as_file_subtitle">粘贴超过阈值的文本时提示转为附件</string>
     <string name="settings_chat_paste_as_file_threshold">粘贴转文件阈值</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">超过 %1$d 字时提示转文件</string>
     <string name="settings_chat_custom_title_prompt">自定义标题提示词</string>
@@ -165,7 +157,6 @@
     <string name="settings_memory_custom_compress_prompt_default">使用内置默认压缩指令</string>
     <string name="settings_memory_custom_compress_prompt_hint">自定义上下文压缩指令（留空恢复默认）</string>
     <string name="settings_about_auto_update">自动检查更新</string>
-    <string name="settings_about_auto_update_subtitle">启动后自动检查 GitHub 新版本</string>
     <string name="prompt_template_manager_title">提示词模板</string>
     <string name="prompt_template_manager_list">模板列表</string>
     <string name="prompt_template_manager_empty">暂无自定义模板</string>
@@ -188,7 +179,6 @@
     <string name="settings_about_repo_section">开源仓库</string>
     <string name="settings_about_feedback">提交问题</string>
     <string name="settings_about_join_qq_group">加入QQ群</string>
-    <string name="settings_about_join_qq_group_subtitle">QQ群号： 905451314</string>
     <string name="settings_about_qq_not_installed">未找到 QQ，群号 905451314 已复制到剪贴板</string>
     <string name="settings_about_update_check_failed">检查更新失败： %1$s</string>
     <string name="settings_about_check_update">检查更新</string>
@@ -218,26 +208,17 @@
     <string name="settings_memory_page_title">记忆</string>
     <string name="settings_memory_system_section">记忆系统</string>
     <string name="settings_memory_conversation_recall">允许回溯会话原文</string>
-    <string name="settings_memory_conversation_recall_subtitle">开启后，摘要和事实提取会按需读取完整会话，而不是只看当前加载的消息</string>
     <string name="settings_memory_token_budget">Token 预算</string>
-    <string name="settings_memory_token_budget_subtitle">memory.md 目标长度，影响注入上下文量</string>
     <string name="settings_memory_decay_rate">衰减系数</string>
     <string name="settings_memory_decay_rate_title">衰减系数 λ</string>
-    <string name="settings_memory_decay_rate_subtitle">越大忘得越快（0.01 慢/0.02 默认/0.04 快）</string>
     <string name="settings_memory_hit_bonus">命中加成</string>
-    <string name="settings_memory_hit_bonus_subtitle">常提起的记忆不易消失，合并/新增时记录命中</string>
     <string name="settings_memory_compile_threshold">编译阈值</string>
     <string name="settings_memory_compile_threshold_subtitle">低于此分的记忆不进入 memory.md(须低于 %1$s)</string>
     <string name="settings_memory_forget_speed">遗忘倍率</string>
-    <string name="settings_memory_forget_speed_subtitle">1.0 正常 / 2.0 忘得快一倍</string>
     <string name="settings_memory_restore_default">恢复默认</string>
-    <string name="settings_memory_restore_default_subtitle">将记忆参数重置为出厂值</string>
     <string name="settings_memory_experience_lib">经验库</string>
-    <string name="settings_memory_experience_lib_subtitle">助手会总结工作经验并在后续任务中参考（可能污染上下文）</string>
     <string name="settings_memory_keep_awake">保持唤醒</string>
-    <string name="settings_memory_keep_awake_subtitle">仅生成任务期间持锁，低电量且未充电时不保活</string>
     <string name="settings_memory_auto_launch">开机自启动</string>
-    <string name="settings_memory_auto_launch_subtitle">设备开机时自动启动 Muse</string>
     <string name="settings_memory_notification_section">通知</string>
     <string name="settings_memory_reply_notification_cd">回复完成通知</string>
     <string name="settings_memory_reply_notification">回复完成通知</string>
@@ -291,7 +272,6 @@
     <string name="settings_asr_api_key">API 密钥</string>
     <!-- ASR：跟随供应商配置 -->
     <string name="settings_asr_follow_provider">跟随供应商配置</string>
-    <string name="settings_asr_follow_provider_subtitle">接口地址与 API Key 取自供应商，模型手动选择</string>
     <string name="settings_asr_follow_provider_picker">供应商</string>
     <!-- 跟随模式共用的占位与回退提示 -->
     <string name="settings_speech_follow_unset">未选择</string>
@@ -312,9 +292,7 @@
     <string name="settings_asr_sample_rate_subtitle">%1$d Hz(推荐 16000，修改需重新录音)</string>
     <string name="settings_asr_language_code">语言代码（如 zh / en / ja）</string>
     <string name="settings_asr_punctuation">标点预测</string>
-    <string name="settings_asr_punctuation_desc">DashScope v2 自动添加标点（中文逗号/句号）</string>
     <string name="settings_asr_itn">逆文本正则化</string>
-    <string name="settings_asr_itn_desc">中文数字 → 阿拉伯数字（如 \"三百\" → \"300\"）</string>
     <string name="settings_asr_audio_url">音频文件 URL(公网可访问，如 OSS)</string>
     <string name="settings_asr_poll_interval">轮询间隔（毫秒，默认 3000）</string>
     <string name="settings_asr_poll_timeout">轮询总超时（毫秒，默认 300000 = 5 分钟）</string>
@@ -327,7 +305,6 @@
     <string name="settings_asr_hotwords">热词（逗号分隔，提升专有名词识别率）</string>
     <!-- 新增:VAD 静音检测 -->
     <string name="settings_asr_vad">本地 VAD 静音检测</string>
-    <string name="settings_asr_vad_desc">静音超过阈值自动停止录音（OPENAI_REALTIME 走服务端 VAD，不需要本地）</string>
     <string name="settings_asr_vad_threshold">VAD 阈值（0-1，默认 0.05 ≈ -46dB）</string>
     <string name="settings_asr_vad_silence">静音自动停止时长（毫秒，默认 1500）</string>
     <string name="settings_asr_vad_realtime_note">Realtime 引擎的语音活动检测（VAD）由服务端自动完成，无需本地配置。</string>
@@ -341,12 +318,9 @@
     <string name="settings_rag_injection_section">检索注入</string>
     <string name="settings_rag_attachment_section">附件检索</string>
     <string name="settings_rag_auto_inject">自动注入知识库</string>
-    <string name="settings_rag_auto_inject_subtitle">对话时自动检索相关知识并注入上下文</string>
     <string name="settings_rag_embedding_source_section">Embedding 来源</string>
     <string name="settings_rag_cloud_api">云端 API</string>
-    <string name="settings_rag_cloud_api_subtitle">质量优先，需联网和 API Key</string>
     <string name="settings_rag_local_keyword">本地关键词（离线）</string>
-    <string name="settings_rag_local_keyword_subtitle">无需联网，中文 bigram + 英文分词哈希检索</string>
     <string name="settings_rag_active_backend_section">当前后端</string>
     <string name="settings_rag_active_backend_label">当前实际在用</string>
     <string name="settings_rag_active_backend_degraded_unknown">已降级到其它后端，具体原因未记录</string>
@@ -360,38 +334,24 @@
     <string name="settings_rag_search_params_section">检索参数</string>
     <string name="settings_rag_top_k">检索数量 (top-K)</string>
     <string name="settings_rag_similarity_threshold">相似度阈值</string>
-    <string name="settings_rag_similarity_threshold_subtitle">低于此值的结果不注入（越高越严格）</string>
     <string name="settings_rag_chunk_params_section">分块参数</string>
     <string name="settings_rag_chunk_size">分块大小</string>
-    <string name="settings_rag_chunk_size_subtitle">目标字符数（越大上下文越全，消耗 token 越多）</string>
     <string name="settings_rag_chunk_overlap">分块重叠</string>
-    <string name="settings_rag_chunk_overlap_subtitle">相邻块重叠字符数（保持上下文连贯）</string>
     <!-- v1.133: RAG 高级检索 -->
     <string name="settings_rag_advanced_section">高级检索</string>
     <string name="settings_rag_mmr_lambda">MMR 多样性</string>
-    <string name="settings_rag_mmr_lambda_subtitle">0=纯多样性,1=纯相似度，默认 0.5</string>
     <string name="settings_rag_hybrid">混合检索</string>
-    <string name="settings_rag_hybrid_subtitle">BM25 关键词 + 向量相似度 RRF 融合</string>
     <string name="settings_rag_hybrid_bm25_weight">BM25 权重</string>
-    <string name="settings_rag_hybrid_bm25_weight_subtitle">RRF 融合中 BM25 路的权重</string>
     <string name="settings_rag_hybrid_vector_weight">向量权重</string>
-    <string name="settings_rag_hybrid_vector_weight_subtitle">RRF 融合中向量相似度的权重</string>
     <string name="settings_rag_rerank">Rerank 重排序</string>
-    <string name="settings_rag_rerank_subtitle">对 top-K×5 候选用 cross-encoder 精排</string>
     <string name="settings_rag_token_budget">Token 预算</string>
-    <string name="settings_rag_token_budget_subtitle">0=不限制；>0=按相似度降序累加，超预算即停</string>
     <string name="settings_rag_markdown_aware">Markdown 感知分块</string>
-    <string name="settings_rag_markdown_aware_subtitle">保留代码块/标题/表格完整性，避免切断</string>
     <string name="settings_rag_chunk_by_token">按 Token 分块</string>
-    <string name="settings_rag_chunk_by_token_subtitle">开启后按 token 数分块（中英文混合更精确）</string>
     <!-- v1.0.47 P7-1: 文档解析器配置 -->
     <string name="settings_rag_parser_section">文档解析器</string>
     <string name="settings_rag_parser_local">本地解析</string>
-    <string name="settings_rag_parser_local_subtitle">本地解析，支持 txt/pdf/docx/pptx/xlsx/epub</string>
     <string name="settings_rag_parser_cloud">云端解析</string>
-    <string name="settings_rag_parser_cloud_subtitle">云端 API，适合复杂版式/扫描件（需配置接口地址）</string>
     <string name="settings_rag_parser_mineru">MinerU</string>
-    <string name="settings_rag_parser_mineru_subtitle">MinerU API，擅长学术 PDF/公式/表格（需配置接口地址）</string>
     <string name="settings_rag_cloud_parser_endpoint">云端解析接口地址</string>
     <string name="settings_rag_mineru_endpoint">MinerU endpoint</string>
     <string name="settings_rag_mineru_token">MinerU Token（可选）</string>
@@ -402,7 +362,6 @@
 
     <!-- v1.133: 多知识库管理 -->
     <string name="settings_rag_manage_kbs">管理知识库</string>
-    <string name="settings_rag_manage_kbs_subtitle">创建、重命名、删除知识库</string>
     <string name="kb_manage_create">新建知识库</string>
     <string name="kb_manage_name_label">名称</string>
     <string name="kb_manage_desc_label">描述（可选）</string>
@@ -448,15 +407,10 @@
 
         <string name="settings_security_share_template_section">分享模板</string>
     <string name="settings_security_include_timestamp">包含时间戳</string>
-    <string name="settings_security_include_timestamp_subtitle">分享对话时附带消息时间</string>
     <string name="settings_security_include_model">包含模型名</string>
-    <string name="settings_security_include_model_subtitle">分享时附带生成模型名</string>
     <string name="settings_security_include_tokens">包含 token 数</string>
-    <string name="settings_security_include_tokens_subtitle">分享时附带每条消息 token</string>
     <string name="settings_security_include_mood">包含 MOOD 块</string>
-    <string name="settings_security_include_mood_subtitle">分享时附带 AI 内部腹稿</string>
     <string name="settings_security_include_reasoning">包含思考过程</string>
-    <string name="settings_security_include_reasoning_subtitle">分享时附带 AI 推理过程</string>
     <string name="settings_security_share_format">分享格式</string>
     <string name="settings_security_format_plain_text">纯文本</string>
 
@@ -486,9 +440,7 @@
     <string name="settings_media_page_title">语音播报</string>
     <string name="settings_media_tts_section">语音播报</string>
     <string name="settings_media_speech_rate">语速</string>
-    <string name="settings_media_speech_rate_subtitle">0.5x 慢 / 1.0x 正常 / 2.0x 快</string>
     <string name="settings_media_pitch">音高</string>
-    <string name="settings_media_pitch_subtitle">0.5 低沉 / 1.0 正常 / 2.0 尖锐</string>
 
     <!-- 云端 TTS 引擎配置 -->
     <string name="settings_media_cloud_tts_section">云端 TTS 引擎</string>
@@ -534,18 +486,14 @@
     <string name="settings_media_tts_save_advanced">保存参数</string>
     <!-- 云端 TTS：跟随供应商配置 -->
     <string name="settings_media_tts_follow_provider">跟随供应商配置</string>
-    <string name="settings_media_tts_follow_provider_subtitle">接口地址与 API Key 取自供应商，模型手动选择</string>
     <string name="settings_media_tts_follow_provider_picker">供应商</string>
     <string name="settings_media_tts_follow_voice_hint">跟随只接管接口地址与密钥，音色需自行确认与所选供应商兼容</string>
     <string name="settings_provider_media_gen_section">媒体生成模型</string>
     <string name="settings_asr_entry_title">语音识别引擎</string>
-    <string name="settings_asr_entry_subtitle">选择语音转文字引擎（如 Paraformer / Whisper）</string>
     <string name="settings_miniphone_title">小手机</string>
 
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n -->
-    <string name="settings_agent_dm_subtitle">查看 Agent 间私信往来</string>
     <string name="settings_agent_plain_chat_enabled">允许普通对话接收主动消息</string>
-    <string name="settings_agent_plain_chat_enabled_subtitle">默认关闭，避免主动消息污染任务对话；也可在单个对话右上角单独静音</string>
     <string name="settings_agent_temperature">生成温度</string>
     <string name="settings_agent_temperature_hint">决策阶段用 temperature×0.5(更确定)，生成阶段用本值。值越大越有创造力，越小越稳定</string>
     <string name="settings_agent_temperature_stable">0.0 稳定</string>
@@ -555,7 +503,6 @@
     <string name="settings_agent_test_generating">正在生成…</string>
     <string name="settings_agent_test_failed">测试失败：%1$s</string>
     <string name="settings_agent_test_already_running">上一轮主动消息还在生成中，请稍后再试</string>
-    <string name="settings_agent_daily_summary_subtitle">每天 09:00、12:00、21:00 和 00:00 生成对话小结；开关只控制通知推送</string>
     <string name="settings_agent_daily_summary_slots_title">每日总结时段</string>
     <!-- v1.xxx U-5: 整点 chip 多选(替代裸文本逗号输入) -->
     <string name="settings_agent_daily_summary_slots_group_early">凌晨 （0-5 时）</string>
@@ -590,7 +537,6 @@
     <string name="settings_agent_moment_count_off">关闭</string>
     <string name="settings_agent_moment_count_per_day">%1$d 条/天</string>
     <string name="settings_agent_schedule_work_title">后台任务总控</string>
-    <string name="settings_agent_schedule_work_subtitle">总开关，关闭后暂停全部周期后台任务</string>
     <!-- P0 主动消息设置收敛 -->
     <string name="settings_agent_pace_title">主动程度</string>
     <string name="settings_agent_pace_hint">越主动，助手越常来找你。「标准」是默认节奏</string>
@@ -616,7 +562,6 @@
     <string name="settings_agent_content_moment">朋友圈动态</string>
     <string name="settings_agent_content_none">全部关闭</string>
     <string name="settings_agent_group_advanced">高级</string>
-    <string name="settings_agent_advanced_subtitle">生成温度、随机偏移、仅 Agent 会话、测试发送</string>
     <string name="settings_agent_advanced_hint">以下是低频设置，普通使用无需调整</string>
     <string name="settings_agent_group_background">后台与可靠性</string>
     <string name="automation_orchestration_title">自动化动作如何编排</string>
@@ -629,7 +574,6 @@
     <string name="settings_font_clear">恢复默认</string>
     <string name="settings_font_import_failed">字体导入失败：文件格式不支持</string>
     <string name="miniphone_moments_count">已记录 %1$d 条生活动态</string>
-    <string name="miniphone_moments_subtitle">记录生活的每一个瞬间</string>
     <string name="miniphone_tab_chats">小手机</string>
     <string name="miniphone_typing">正在输入…</string>
     <string name="miniphone_time_just_now">刚刚</string>
@@ -639,7 +583,6 @@
     <string name="miniphone_tab_contacts">通讯录</string>
     <string name="miniphone_tab_discover">发现</string>
     <string name="miniphone_tab_me">我</string>
-    <string name="miniphone_search_hint">搜索</string>
     <string name="miniphone_contacts_empty">还没有联系人</string>
     <string name="miniphone_me_wallpaper">换壁纸</string>
     <string name="moment_publish_take_photo">拍摄</string>
@@ -662,7 +605,6 @@
     <!-- v1.138: 小手机私信空间 -->
     <string name="miniphone_pm_new_session">新建对话</string>
     <string name="miniphone_pm_empty_title">还没有私信</string>
-    <string name="miniphone_pm_empty_hint">AI 会根据你的动态主动来找你聊天</string>
     <string name="settings_asr_engine_title">识别引擎</string>
     <string name="settings_asr_engine_change">更换</string>
     <string name="settings_asr_pick_title">选择识别引擎</string>
@@ -690,22 +632,16 @@
     <string name="oauth_quick_login_started">正在打开浏览器授权…</string>
     <string name="oauth_quick_login_success">授权成功，已启用 %1$s</string>
     <string name="settings_backup_include_secrets">备份包含供应商密钥</string>
-    <string name="settings_backup_include_secrets_subtitle">开启后各供应商的 API Key 与登录凭据将明文写入备份文件，请妥善保管</string>
     <string name="oauth_device_open_page">打开授权页面</string>
     <string name="oauth_device_open_failed">无法打开浏览器</string>
     <string name="keep_alive_notification_title">Muse 正在后台运行</string>
     <string name="keep_alive_notification_text">保持定时任务与主动消息在线</string>
     <string name="settings_keep_alive_title">常驻后台</string>
-    <string name="settings_keep_alive_subtitle">以常驻通知把进程保持在前台，减少被系统回收</string>
     <string name="settings_keep_alive_hint">开启后 Muse 会常驻一条通知。这是 Android 对前台服务的强制要求，无法隐藏。国产系统还需在系统设置里允许自启动，否则仍可能被清理。</string>
     <string name="settings_keep_alive_wakelock_title">屏幕关闭也保持连接</string>
-    <string name="settings_keep_alive_wakelock_subtitle">更及时地收到主动消息，但会增加耗电</string>
     <string name="settings_keep_alive_battery_title">关闭电池优化</string>
-    <string name="settings_keep_alive_battery_subtitle">系统会限制后台活动，建议对本应用放行</string>
     <string name="settings_keep_alive_rom_title">系统自启动白名单</string>
-    <string name="settings_keep_alive_rom_subtitle">部分厂商系统需要单独允许自启动</string>
     <string name="settings_keep_alive_notification_custom_title">通知文案</string>
-    <string name="settings_keep_alive_notification_custom_subtitle">自定义常驻通知的标题与内容</string>
     <string name="settings_keep_alive_notification_custom_hint">留空则使用默认文案。</string>
     <string name="settings_keep_alive_notification_title_placeholder">默认：Muse 正在后台运行</string>
     <string name="settings_keep_alive_notification_text_placeholder">默认：保持定时任务与主动消息在线</string>
@@ -731,11 +667,9 @@
     <string name="search_custom_engine_results_path">结果路径（如 data.results，留空表示根是数组）</string>
     <string name="settings_chat_carry_over_section">跨会话衔接</string>
     <string name="settings_chat_carry_over">开新对话时带回上文</string>
-    <string name="settings_chat_carry_over_subtitle">把上一个对话的最后几轮也读进来。会更连贯，但会占用输入 token。</string>
     <string name="settings_chat_carry_over_count">带入 %1$d 条消息</string>
     <string name="settings_chat_carry_over_count_hint">约 %1$d 轮问答（用户与助手各算一条）</string>
     <string name="settings_agent_agent_session_enabled">Agent 会话</string>
-    <string name="settings_agent_agent_session_enabled_subtitle">关闭后不会把主动消息发到 Agent 会话，也不会为此新建 Agent 会话</string>
     <string name="connection_skills_title">技能与技能包</string>
     <string name="connection_skills_subtitle">共 %1$d 个自定义技能，其中 %2$d 个来自 SKILL.md 能力包</string>
     <string name="settings_user_profile_auto_section">系统提炼的画像</string>
@@ -751,7 +685,6 @@
     <string name="profile_section_recent">近期互动</string>
     <string name="profile_section_uncertain">不确定笔记</string>
     <string name="settings_agent_timing_scoring_title">智能时机</string>
-    <string name="settings_agent_timing_scoring_subtitle">开口前先看最近反馈：上一条没回应、消息堆着没读、深夜时段会压低概率；账上有到点的事会回补。间隔、额度、免打扰不受影响。</string>
     <string name="settings_screen_diagnostics">运行诊断</string>
     <string name="settings_diagnostics_loading">正在采集…</string>
     <string name="settings_diagnostics_actions">导出</string>

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="settings_experiments_session_attachment_rag">会话附件检索</string>
-    <string name="settings_experiments_session_attachment_rag_subtitle">会话里上传的文档会被索引进检索，AI 可引用其内容。实验功能，索引随会话清理。</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">，已选中</string>
 
@@ -15,7 +14,6 @@
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">联网搜索</string>
     <string name="settings_web_search_enable">启用联网搜索</string>
-    <string name="settings_web_search_enable_subtitle">全局默认状态；关闭后输入栏 chip 仍可临时开启</string>
     <string name="settings_web_search_engine">搜索引擎</string>
     <string name="settings_saved">已保存</string>
     <string name="settings_web_search_save_api_key">保存 API Key</string>
@@ -28,15 +26,10 @@
     <string name="settings_experiments_warning">以下功能为实验性，可能不稳定或影响体验</string>
     <string name="settings_experiments_features">实验功能</string>
     <string name="settings_experiments_force_mood">强制 MOOD 输出</string>
-    <string name="settings_experiments_force_mood_subtitle">即使模型不支持也尝试要求输出 MOOD 块</string>
     <string name="settings_experiments_debug_mode">调试模式</string>
-    <string name="settings_experiments_debug_mode_subtitle">显示更多内部状态（MOOD/工具调用/Token）</string>
     <string name="settings_experiments_self_reflection">自我反思</string>
-    <string name="settings_experiments_self_reflection_subtitle">回复后自动检查质量</string>
     <string name="settings_experiments_long_memory_compression">长记忆压缩</string>
-    <string name="settings_experiments_long_memory_compression_subtitle">超长对话自动摘要（v1.55 起默认启用）</string>
     <string name="settings_experiments_parallel_tools">只读工具并行</string>
-    <string name="settings_experiments_parallel_tools_subtitle">同一轮全为只读工具时并行执行，更快更省（默认开启，可关闭回到串行）</string>
 
     <!-- UserProfileEditPage.kt -->
     <string name="settings_user_profile_title">用户画像</string>
@@ -131,18 +124,14 @@
     <string name="settings_assistant_skills">Skill 管理</string>
     <string name="settings_assistant_skills_subtitle">查看/启用/禁用 LLM 可调用的工具（读写文件/HTTP 等）</string>
     <string name="settings_assistant_memory_enable">启用记忆系统</string>
-    <string name="settings_assistant_memory_enable_subtitle">关闭后对话不再注入长期记忆，后台也不再生成摘要</string>
 
     <!-- MultiAgentSettingsPage.kt -->
     <string name="settings_multi_agent_title">多 Agent 协作</string>
     <string name="settings_multi_agent_enable">启用多 Agent 协作</string>
-    <string name="settings_multi_agent_enable_subtitle">开启后主助手可把任务委托给团队成员</string>
     <string name="settings_multi_agent_team_list">团队列表</string>
     <string name="settings_multi_agent_no_team">还没有团队</string>
-    <string name="settings_multi_agent_no_team_hint">点击下方新建团队</string>
     <string name="settings_multi_agent_new_team">新建团队</string>
     <string name="settings_multi_agent_writing_team_template">写作团队模板</string>
-    <string name="settings_multi_agent_writing_team_template_desc">大纲 → 初稿 → 润色：一键预填协作流程</string>
     <string name="settings_multi_agent_writing_team_name">写作团队</string>
     <string name="settings_multi_agent_writing_team_desc">协作写作流程：提纲 → 初稿 → 润色。按此顺序把助手加入成员列表即可。</string>
     <string name="settings_multi_agent_delete_team">删除团队</string>
@@ -285,7 +274,6 @@
     <string name="settings_crash_pending_hint_idle">应用崩溃后会自动加入待上报队列</string>
     <string name="settings_crash_report_now_button">立即上报待处理崩溃</string>
     <string name="settings_crash_settings_section">上报设置</string>
-    <string name="settings_crash_enable_subtitle">崩溃日志只在你点「立即上报」时才会发出</string>
     <string name="settings_crash_privacy_section">隐私说明</string>
     <string name="settings_crash_privacy_title">崩溃上报隐私承诺</string>
     <string name="settings_crash_privacy_content">• 崩溃上报默认关闭，必须主动开启才生效；ANR 检测默认开启，只在本地写日志、不参与上报\n• 上报前会弹窗确认，绝不静默上报\n• 崩溃堆栈已脱敏（API key / Bearer token 自动替换为 ***）\n• 仅收集：设备型号 / Android 版本 / App 版本 / 时间戳\n• 不收集 IMEI / Android ID / MAC 等唯一设备标识\n• 邮件方式：调起邮件应用由你确认发送\n• Webhook 方式：HTTP POST 到你配置的 URL</string>

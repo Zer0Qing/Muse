@@ -7,7 +7,6 @@
     <string name="voice_reply_often">Often</string>
     <string name="voice_reply_always">Always</string>
     <string name="voice_timbre_entry">Voice timbre and speed</string>
-    <string name="voice_timbre_entry_desc">Configured once in Settings → Media; nothing is stored twice</string>
     <string name="voice_reply_global_section">Voice reply frequency</string>
     <string name="voice_reply_global_hint">All assistants follow this single tier; it only shapes the prompt, no hard blocking.</string>
     <string name="speech_guide_section">Speech guide</string>

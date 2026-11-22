@@ -8,7 +8,6 @@
     <string name="chat_msg_selected">Selected</string>
     <string name="chat_msg_not_selected">Not selected</string>
     <string name="moment_images_selected">%1$d selected (tap to add more)</string>
-    <string name="moment_add_images_hint">Add images (up to %1$d)</string>
     <!-- ===== Diary (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>Su</item>
@@ -38,7 +37,6 @@
     <string name="moment_more_actions">More actions for this moment</string>
     <string name="moment_sender_muse">Muse</string>
     <string name="moment_sender_me">Me</string>
-    <string name="moment_comment_hint">Post a comment:</string>
     <string name="moment_delete_title">Delete moment</string>
     <string name="moment_image_cd">Moment image</string>
     <string name="moment_image_cd_indexed">Moment image %1$d</string>
@@ -47,7 +45,6 @@
     <string name="moment_messages_cd">Messages</string>
     <string name="moment_publish_cd">Publish moment (tap for media, long-press for text)</string>
     <string name="moment_empty_feed">No moments yet</string>
-    <string name="moment_empty_hint">Tap + at top right to post your first moment\nMuse and assistants will share their life too</string>
     <string name="moment_messages_empty">No likes or comments yet</string>
     <string name="moment_notification_liked">%1$s liked your moment</string>
     <string name="moment_notification_commented">%1$s commented on your moment</string>
@@ -402,16 +399,13 @@
     <!-- ChatSettingsPage sticker library section -->
     <string name="settings_chat_sticker_section">Sticker Library</string>
     <string name="settings_sticker_enabled">Enable Stickers</string>
-    <string name="settings_sticker_enabled_subtitle">Allow the assistant to send stickers in replies</string>
     <string name="settings_sticker_frequency">Frequency</string>
     <string name="settings_sticker_frequency_subtitle">The assistant attaches stickers naturally when the context fits</string>
     <string name="settings_sticker_freq_occasional">Occasionally</string>
     <string name="settings_sticker_freq_normal">Normal</string>
     <string name="settings_sticker_freq_frequent">Frequent</string>
     <string name="settings_sticker_upload">Import stickers</string>
-    <string name="settings_sticker_upload_subtitle">Accepts zip, docx/pptx documents and images; one file at a time</string>
     <string name="settings_sticker_add_from_gallery">Add from gallery</string>
-    <string name="settings_sticker_add_from_gallery_subtitle">Pick several at once; added to the pack you are viewing</string>
     <string name="settings_sticker_review_title">Review %1$d stickers</string>
     <string name="settings_sticker_review_hint">Auto-picking and auto-cutting can be wrong; tap to uncheck. Pack: %2$s</string>
     <string name="settings_sticker_review_import">Import %1$d</string>
@@ -538,7 +532,6 @@
     <string name="chat_pending_tools_discard_confirm_msg">These unfinished tool calls will not be executed and cannot be recovered.</string>
     <string name="moment_mood_prefix">Mood: %1$s</string>
     <string name="moment_published">Moment published</string>
-    <string name="moment_search_hint">Search moments, authors or types</string>
     <string name="moment_search_clear_cd">Clear search</string>
     <string name="moment_favorites_only_cd">Favorites only</string>
     <string name="moment_generating">Generating…</string>
@@ -551,7 +544,6 @@
     <string name="settings_bubble_radius_none">Square</string>
     <string name="settings_bubble_radius_pill">Pill</string>
     <string name="settings_bubble_radius_small">Small radius</string>
-    <string name="settings_bubble_radius_subtitle">Set the rounding level of message bubbles</string>
     <string name="settings_bubble_radius_title">Message rounding</string>
     <string name="chat_forward_done">Forwarded to \"%1$s\"</string>
     <string name="chat_forward_no_session">No sessions available to forward to</string>
@@ -586,9 +578,7 @@
     <string name="chat_tool_paused_banner">Tool execution is paused, so tools will not really run.</string>
     <string name="chat_tool_paused_banner_action">Settings</string>
     <string name="settings_chat_show_assistant_name">Show assistant name</string>
-    <string name="settings_chat_show_assistant_name_subtitle">Show who is speaking above each message; useful with several assistants</string>
     <string name="settings_chat_show_user_name">Show my name</string>
-    <string name="settings_chat_show_user_name_subtitle">Show your nickname above your messages; useful in group chats and with several assistants</string>
     <string name="chat_placeholder_simple">Message…</string>
     <string name="chat_ignore_memory_option_on">Memory: off</string>
     <string name="chat_ignore_memory_option_off">Memory: on</string>

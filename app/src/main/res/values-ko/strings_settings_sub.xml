@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_chat_bubble_full_width">말풍선 전체 너비</string>
-    <string name="settings_chat_bubble_full_width_subtitle">AI 답변은 한 줄 전체 폭을 쓰고, 내 메시지는 오른쪽에 컴팩트하게 유지됩니다.</string>
     <string name="settings_chat_show_user_avatar">내 아바타 표시</string>
-    <string name="settings_chat_show_user_avatar_subtitle">사용자 메시지 옆에 로컬 이니셜 아바타를 표시합니다</string>
     <!-- Agent Settings -->
     <string name="settings_agent_tool_model_not_set_inherit">메인 모델 사용</string>
     <!-- v2.x: auxiliary model tiers -->
@@ -74,7 +72,6 @@
     <!-- Phase 4: 말풍선 스킨 선택/미리보기 -->
     <string name="settings_bubble_skin_section">말풍선 스킨</string>
     <string name="settings_bubble_skin_builtin">Muse 기본 말풍선</string>
-    <string name="settings_bubble_skin_builtin_desc">내장 스킨, 기본과 동일한 모양</string>
     <string name="settings_bubble_skin_custom_desc">사용자 지정 말풍선 스킨</string>
     <string name="settings_bubble_skin_import">스킨 가져오기</string>
     <string name="settings_bubble_skin_import_success">스킨을 가져와 적용했습니다</string>
@@ -104,20 +101,16 @@
     <string name="settings_task_routing_vision_unset">설정되지 않음(탭하여 설정)</string>
     <string name="settings_task_routing_aux_models_label">유틸리티 모델</string>
     <string name="settings_task_routing_main_models_label">메인 채팅 모델</string>
-    <string name="settings_task_routing_utility_small_desc">제목 생성, 경량 분류 등 간단한 작업</string>
     <string name="settings_task_routing_utility_failed_title">보조 모델 호출 실패</string>
     <string name="settings_task_routing_utility_failed_desc">최근 %1$s 호출 결과: %2$s. 기억 추출·요약 같은 백그라운드 작업에 영향을 주며 채팅은 영향받지 않습니다. 사용 가능한 모델로 바꾸거나 비워 두면 메인 모델을 사용합니다.</string>
     <string name="settings_agent_daily_guarantee">일일 보장</string>
     <string name="settings_agent_daily_guarantee_hint">이 시간 동안 능동 메시지가 없으면 강제로 한 번 보냅니다. 방해 금지 시간, 쿨다운, 최근 발언, 일일 한도는 그대로 적용됩니다.</string>
     <string name="settings_agent_daily_guarantee_hours">%1$d시간</string>
     <string name="settings_agent_daily_guarantee_off">끔</string>
-    <string name="settings_task_routing_utility_large_desc">압축, 기억 추출, 작업 분해 등 이해력이 필요한 장면</string>
     <string name="settings_crash_anr_title">ANR 감지</string>
-    <string name="settings_crash_anr_subtitle">앱 응답 없음을 감지하고 충돌/감사 로그에 기록합니다</string>
     <string name="settings_chat_compress_model">압축 모델</string>
     <string name="settings_chat_compress_model_default">기본 모델</string>
     <string name="settings_chat_paste_as_file">긴 텍스트 파일로 붙여넣기</string>
-    <string name="settings_chat_paste_as_file_subtitle">임계값을 초과하는 붙여넣기 텍스트를 파일로 첨부하도록 안내합니다</string>
     <string name="settings_chat_paste_as_file_threshold">파일 변환 임계값</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">%1$d자 초과 시 파일 변환 안내</string>
     <string name="settings_chat_custom_title_prompt">사용자 지정 제목 프롬프트</string>
@@ -127,7 +120,6 @@
     <string name="settings_memory_custom_compress_prompt_default">기본 제공 압축 지침 사용</string>
     <string name="settings_memory_custom_compress_prompt_hint">컨텍스트 압축 사용자 지정 지침(비우면 기본값)</string>
     <string name="settings_about_auto_update">업데이트 자동 확인</string>
-    <string name="settings_about_auto_update_subtitle">시작 후 GitHub 새 버전 자동 확인</string>
     <string name="prompt_template_manager_title">프롬프트 템플릿</string>
     <string name="prompt_template_manager_list">템플릿 목록</string>
     <string name="prompt_template_manager_empty">아직 사용자 지정 템플릿이 없습니다</string>
@@ -179,24 +171,16 @@
     <string name="settings_memory_page_title">기억</string>
     <string name="settings_memory_system_section">기억 시스템</string>
     <string name="settings_memory_token_budget">토큰예산</string>
-    <string name="settings_memory_token_budget_subtitle">memory.md의 대상 길이는 주입된 컨텍스트의 양에 영향을 미칩니다.</string>
     <string name="settings_memory_decay_rate">감쇠율</string>
     <string name="settings_memory_decay_rate_title">감쇠율 λ</string>
-    <string name="settings_memory_decay_rate_subtitle">높을수록 잊어버리는 속도가 빨라짐을 의미합니다(0.01 느림 / 0.02 기본값 / 0.04 빠름).</string>
     <string name="settings_memory_hit_bonus">적중 보너스</string>
-    <string name="settings_memory_hit_bonus_subtitle">자주 언급되는 기억은 더 느리게 쇠퇴합니다.</string>
     <string name="settings_memory_compile_threshold">컴파일 임계값</string>
     <string name="settings_memory_compile_threshold_subtitle">이 점수보다 낮은 메모리는 memory.md에 추가되지 않습니다(%1$s 아래에 있어야 함).</string>
     <string name="settings_memory_forget_speed">속도는 잊어라</string>
-    <string name="settings_memory_forget_speed_subtitle">1.0 보통 / 2.0은 두 배 더 빨리 잊어버립니다.</string>
     <string name="settings_memory_restore_default">기본값 복원</string>
-    <string name="settings_memory_restore_default_subtitle">메모리 매개변수를 공장 값으로 재설정</string>
     <string name="settings_memory_experience_lib">체험도서관</string>
-    <string name="settings_memory_experience_lib_subtitle">보조자는 업무 경험을 요약하고 이후 작업에서 이를 참조합니다(맥락을 오염시킬 수 있음).</string>
     <string name="settings_memory_keep_awake">화면 켜짐 유지</string>
-    <string name="settings_memory_keep_awake_subtitle">생성 중에만 유지하고, 배터리 부족 및 미충전 시 유지하지 않음</string>
     <string name="settings_memory_auto_launch">자동 실행</string>
-    <string name="settings_memory_auto_launch_subtitle">장치가 부팅되면 Muse를 자동으로 시작합니다.</string>
     <string name="settings_memory_notification_section">알림</string>
     <string name="settings_memory_reply_notification_cd">답장 완료 알림</string>
     <string name="settings_memory_reply_notification">답장 완료 알림</string>
@@ -245,7 +229,6 @@
     <string name="settings_asr_api_key">API 키</string>
     <!-- ASR: 공급자 설정 따르기 -->
     <string name="settings_asr_follow_provider">공급자 설정 따르기</string>
-    <string name="settings_asr_follow_provider_subtitle">엔드포인트와 API 키는 공급자 설정을 사용하고 모델은 직접 선택합니다</string>
     <string name="settings_asr_follow_provider_picker">공급자</string>
     <!-- 따르기 모드 공통 자리표시자 및 대체 안내 -->
     <string name="settings_speech_follow_unset">선택 안 함</string>
@@ -260,9 +243,7 @@
     <string name="settings_asr_sample_rate_subtitle">%1$dHz(16000 권장, 변경하려면 다시 녹음해야 함)</string>
     <string name="settings_asr_language_code">언어 코드(예: zh / en / ja)</string>
     <string name="settings_asr_punctuation">구두점 예측</string>
-    <string name="settings_asr_punctuation_desc">DashScope v2는 구두점(중국어 쉼표/마침표)을 자동으로 추가합니다.</string>
     <string name="settings_asr_itn">역 텍스트 정규화</string>
-    <string name="settings_asr_itn_desc">중국어 숫자 → 아라비아 숫자 (예: \"삼백\" → \"300\")</string>
     <string name="settings_asr_audio_url">오디오 파일 URL(공개적으로 액세스 가능, 예: OSS)</string>
     <string name="settings_asr_poll_interval">폴링 간격(ms, 기본값 3000)</string>
     <string name="settings_asr_poll_timeout">총 폴링 시간 초과(ms, 기본값 300000 = 5분)</string>
@@ -275,7 +256,6 @@
     <string name="settings_asr_hotwords">핫 단어(쉼표로 구분, 고유 명사 인식 향상)</string>
     <!-- New: VAD silence detection -->
     <string name="settings_asr_vad">로컬 VAD 무음 감지</string>
-    <string name="settings_asr_vad_desc">무음이 임계값을 초과하면 녹음 자동 중지(OPENAI_REALTIME은 서버측 VAD를 사용함)</string>
     <string name="settings_asr_vad_threshold">VAD 임계값(0-1, 기본값 0.05 ≒ -46dB)</string>
     <string name="settings_asr_vad_silence">무음 자동 중지 기간(ms, 기본값 1500)</string>
     <string name="settings_asr_vad_realtime_note">Realtime 엔진은 음성 활동 감지(VAD)를 서버에서 처리하므로 로컬 설정이 필요하지 않습니다.</string>
@@ -289,12 +269,9 @@
     <string name="settings_rag_injection_section">검색 주입</string>
     <string name="settings_rag_attachment_section">첨부 검색</string>
     <string name="settings_rag_auto_inject">기술 자료 자동 삽입</string>
-    <string name="settings_rag_auto_inject_subtitle">관련 지식을 자동으로 검색하여 채팅 중에 컨텍스트에 삽입합니다.</string>
     <string name="settings_rag_embedding_source_section">소스 삽입</string>
     <string name="settings_rag_cloud_api">클라우드 API</string>
-    <string name="settings_rag_cloud_api_subtitle">품질 우선, 네트워크 및 API 키 필요</string>
     <string name="settings_rag_local_keyword">지역 키워드(오프라인)</string>
-    <string name="settings_rag_local_keyword_subtitle">네트워크가 필요하지 않습니다.</string>
     <string name="settings_rag_active_backend_section">현재 백엔드</string>
     <string name="settings_rag_active_backend_label">현재 실제 사용 중</string>
     <string name="settings_rag_active_backend_degraded_unknown">다른 백엔드로 대체되었습니다(사유가 기록되지 않음)</string>
@@ -308,38 +285,24 @@
     <string name="settings_rag_search_params_section">검색 매개변수</string>
     <string name="settings_rag_top_k">검색 횟수(top-K)</string>
     <string name="settings_rag_similarity_threshold">유사성 임계값</string>
-    <string name="settings_rag_similarity_threshold_subtitle">이 값보다 낮은 결과는 주입되지 않습니다(높을수록 더 엄격함).</string>
     <string name="settings_rag_chunk_params_section">청크 매개변수</string>
     <string name="settings_rag_chunk_size">청크 크기</string>
-    <string name="settings_rag_chunk_size_subtitle">대상 문자 수(클수록 더 많은 컨텍스트, 더 많은 토큰을 의미함)</string>
     <string name="settings_rag_chunk_overlap">청크 오버랩</string>
-    <string name="settings_rag_chunk_overlap_subtitle">인접한 청크 사이에 문자가 겹치는 경우(컨텍스트 일관성 유지)</string>
     <!-- v1.133: RAG advanced retrieval -->
     <string name="settings_rag_advanced_section">고급 검색</string>
     <string name="settings_rag_mmr_lambda">MMR 다양성</string>
-    <string name="settings_rag_mmr_lambda_subtitle">0=순수한 다양성, 1=순수한 유사성, 기본값 0.5</string>
     <string name="settings_rag_hybrid">하이브리드 검색</string>
-    <string name="settings_rag_hybrid_subtitle">BM25 키워드 + 벡터 유사성 RRF 융합</string>
     <string name="settings_rag_hybrid_bm25_weight">BM25 가중치</string>
-    <string name="settings_rag_hybrid_bm25_weight_subtitle">RRF 융합에서 BM25 기여 가중치</string>
     <string name="settings_rag_hybrid_vector_weight">벡터 가중치</string>
-    <string name="settings_rag_hybrid_vector_weight_subtitle">RRF 융합에서 벡터 유사성 기여 가중치</string>
     <string name="settings_rag_rerank">순위 재지정</string>
-    <string name="settings_rag_rerank_subtitle">상위 K×5 후보에 대한 크로스 인코더 재순위</string>
     <string name="settings_rag_token_budget">토큰예산</string>
-    <string name="settings_rag_token_budget_subtitle">0=무제한;</string>
     <string name="settings_rag_markdown_aware">마크다운 인식 청킹</string>
-    <string name="settings_rag_markdown_aware_subtitle">코드 블록/헤더/테이블을 보존하고 분할을 방지하세요.</string>
     <string name="settings_rag_chunk_by_token">토큰 기반 청킹</string>
-    <string name="settings_rag_chunk_by_token_subtitle">활성화되면 토큰 수별 청크(혼합 CJK+라틴어의 경우 더 정확함)</string>
     <!-- v1.0.47 P7-1: Document parser config -->
     <string name="settings_rag_parser_section">문서 파서</string>
     <string name="settings_rag_parser_local">로컬 파서</string>
-    <string name="settings_rag_parser_local_subtitle">로컬 구문 분석, txt/pdf/docx/pptx/xlsx/epub 지원</string>
     <string name="settings_rag_parser_cloud">클라우드 파서</string>
-    <string name="settings_rag_parser_cloud_subtitle">복잡한 레이아웃/스캔 문서용 Cloud API(엔드포인트 필요)</string>
     <string name="settings_rag_parser_mineru">마이너U</string>
-    <string name="settings_rag_parser_mineru_subtitle">MinerU API는 학술 PDF/공식/표에 탁월합니다(엔드포인트 필요).</string>
     <string name="settings_rag_cloud_parser_endpoint">클라우드 파서 엔드포인트</string>
     <string name="settings_rag_mineru_endpoint">MinerU 엔드포인트</string>
     <string name="settings_rag_mineru_token">MinerU 토큰(선택)</string>
@@ -350,7 +313,6 @@
 
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">기술 자료 관리</string>
-    <string name="settings_rag_manage_kbs_subtitle">기술 자료 생성, 이름 바꾸기, 삭제</string>
     <string name="kb_manage_create">새로운 기술 자료</string>
     <string name="kb_manage_name_label">이름</string>
     <string name="kb_manage_desc_label">설명(선택사항)</string>
@@ -376,15 +338,10 @@
     <!-- Security & Sharing -->
     <string name="settings_security_share_template_section">템플릿 공유</string>
     <string name="settings_security_include_timestamp">타임스탬프 포함</string>
-    <string name="settings_security_include_timestamp_subtitle">대화 공유 시 메시지 시간 첨부</string>
     <string name="settings_security_include_model">모델 이름 포함</string>
-    <string name="settings_security_include_model_subtitle">공유시 생성되는 모델명을 첨부해주세요</string>
     <string name="settings_security_include_tokens">토큰 수 포함</string>
-    <string name="settings_security_include_tokens_subtitle">공유 시 메시지별 토큰 첨부</string>
     <string name="settings_security_include_mood">기분 블록 포함</string>
-    <string name="settings_security_include_mood_subtitle">공유 시 AI 내부 초안 첨부</string>
     <string name="settings_security_include_reasoning">추론 포함</string>
-    <string name="settings_security_include_reasoning_subtitle">공유 시 AI의 추론 과정을 첨부하세요.</string>
     <string name="settings_security_share_format">공유 형식</string>
     <string name="settings_security_format_plain_text">일반 텍스트</string>
 
@@ -414,9 +371,7 @@
     <string name="settings_media_page_title">음성 재생</string>
     <string name="settings_media_tts_section">음성 재생</string>
     <string name="settings_media_speech_rate">말하는 속도</string>
-    <string name="settings_media_speech_rate_subtitle">0.5배 느림 / 1.0배 보통 / 2.0배 빠름</string>
     <string name="settings_media_pitch">정점</string>
-    <string name="settings_media_pitch_subtitle">낮음 0.5 / 보통 1.0 / 높음 2.0</string>
 
     <!-- Cloud TTS engine configuration -->
     <string name="settings_media_cloud_tts_section">클라우드 TTS 엔진</string>
@@ -462,7 +417,6 @@
     <string name="settings_media_tts_save_advanced">매개변수 저장</string>
     <!-- 클라우드 TTS: 공급자 설정 따르기 -->
     <string name="settings_media_tts_follow_provider">공급자 설정 따르기</string>
-    <string name="settings_media_tts_follow_provider_subtitle">엔드포인트와 API 키는 공급자 설정을 사용하고 모델은 직접 선택합니다</string>
     <string name="settings_media_tts_follow_provider_picker">공급자</string>
     <string name="settings_media_tts_follow_voice_hint">따르기는 엔드포인트와 API 키만 가져옵니다. 음성이 선택한 공급자에서 동작하는지는 직접 확인하세요</string>
     <!-- ===== Custom theme ===== -->
@@ -490,7 +444,6 @@
     <string name="settings_theme_custom_color_s">포화</string>
     <string name="settings_theme_custom_color_l">가벼움</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
-    <string name="settings_agent_dm_subtitle">Agent 간 쪽지 보기</string>
     <string name="settings_agent_temperature">생성 온도</string>
     <string name="settings_agent_temperature_hint">결정 단계는 temperature×0.5(더 결정적)를 사용하고 생성 단계는 이 값을 사용합니다. 값이 클수록 창의적이고 작을수록 안정적입니다</string>
     <string name="settings_agent_temperature_stable">0.0 안정</string>
@@ -500,10 +453,8 @@
     <string name="settings_agent_test_generating">생성 중…</string>
     <string name="settings_agent_test_failed">테스트 실패: %1$s</string>
     <string name="settings_agent_test_already_running">이전 능동 메시지를 아직 생성 중입니다. 잠시 후 다시 시도해 주세요</string>
-    <string name="settings_agent_daily_summary_subtitle">매일 09:00, 12:00, 21:00, 00:00에 대화 요약 생성. 스위치는 알림만 제어</string>
     <string name="settings_agent_current_model_hint">전역 기본값(메인 채팅 / Agent 공용)</string>
     <string name="settings_agent_keep_alive_title">백그라운드 실행 유지</string>
-    <string name="settings_agent_keep_alive_subtitle">시스템이 프로세스를 정리해도 적극 메시지를 놓치지 않도록 합니다</string>
     <string name="keep_alive_dialog_title">%1$s · 백그라운드 실행 유지</string>
     <string name="keep_alive_manual_hint">설정을 자동으로 열지 못했습니다. 위 단계에 따라 수동으로 활성화하세요.</string>
     <string name="keep_alive_dialog_desc">적극 메시지는 백그라운드 프로세스에 의존합니다. 중국 OS는 기본적으로 백그라운드 앱을 정리하므로, 아래 단계대로 허용하면 최근 작업에서 밀어내도 계속 메시지를 받을 수 있습니다:</string>
@@ -516,7 +467,6 @@
     <string name="settings_import_chatgpt_step4">4. Muse에서 해당 파일을 선택하면 대화가 자동으로 가져와집니다</string>
     <string name="settings_provider_media_gen_section">미디어 생성 모델</string>
     <string name="settings_asr_entry_title">음성 인식 엔진</string>
-    <string name="settings_asr_entry_subtitle">음성-텍스트 엔진 선택(예: Paraformer / Whisper)</string>
     <string name="settings_miniphone_title">미니폰</string>
     <string name="settings_font_section_title">글꼴</string>
     <string name="settings_font_body_label">본문 글꼴</string>
@@ -530,7 +480,6 @@
     <string name="automation_orchestration_hint">접근성 / Shell / Root 권한을 켠 뒤 예약 조건을 설정하면 AI 동작을 자동으로 실행할 수 있습니다.</string>
     <string name="automation_orchestration_action">예약 작업 편성</string>
     <string name="miniphone_moments_count">일상 %1$d개 기록됨</string>
-    <string name="miniphone_moments_subtitle">삶의 모든 순간을 기록하세요</string>
     <string name="miniphone_tab_chats">미니폰</string>
     <string name="miniphone_typing">입력 중…</string>
     <string name="miniphone_time_just_now">방금</string>
@@ -540,7 +489,6 @@
     <string name="miniphone_tab_contacts">연락처</string>
     <string name="miniphone_tab_discover">발견</string>
     <string name="miniphone_tab_me">나</string>
-    <string name="miniphone_search_hint">검색</string>
     <string name="miniphone_contacts_empty">아직 연락처가 없습니다</string>
     <string name="miniphone_me_wallpaper">배경화면 변경</string>
     <string name="moment_publish_take_photo">촬영</string>
@@ -584,7 +532,6 @@
     <string name="settings_moment_content_mode_real_desc">당신과 관련된 일만 절제해서, 실제 생활 기록처럼 게시합니다</string>
     <string name="settings_moment_content_mode_character">캐릭터형</string>
     <string name="settings_moment_content_mode_character_desc">캐릭터에게는 자신의 생활과 사건이 있고, 당신은 관찰자입니다</string>
-    <string name="settings_agent_schedule_work_subtitle">총 스위치. 끄면 모든 주기 백그라운드 작업이 일시 중지됩니다</string>
     <!-- P0 자발적 메시지 설정 정리 -->
     <string name="settings_agent_pace_title">적극성</string>
     <string name="settings_agent_pace_hint">높을수록 어시스턴트가 더 자주 먼저 연락합니다. "표준"이 기본입니다.</string>
@@ -606,7 +553,6 @@
     <string name="settings_agent_content_moment">모먼트</string>
     <string name="settings_agent_content_none">모두 끔</string>
     <string name="settings_agent_group_advanced">고급</string>
-    <string name="settings_agent_advanced_subtitle">생성 온도, 무작위 오프셋, Agent 전용, 테스트 전송</string>
     <string name="settings_agent_advanced_hint">자주 쓰지 않는 설정입니다. 보통 변경할 필요가 없습니다.</string>
     <string name="settings_agent_group_background">백그라운드 및 안정성</string>
     <string name="settings_agent_schedule_work_title">백그라운드 작업 총괄</string>
@@ -620,7 +566,6 @@
     <!-- v1.138: 미니폰プライベート 메신저 공간 -->
     <string name="miniphone_pm_new_session">새로운 채팅</string>
     <string name="miniphone_pm_empty_title">아직private messages가 없습니다</string>
-    <string name="miniphone_pm_empty_hint">AI가 당신의 모멘트에 기반하여 연락할 것입니다</string>
     <string name="settings_asr_engine_title">인식 엔진</string>
     <string name="settings_asr_engine_change">변경</string>
     <string name="settings_asr_pick_title">인식 엔진 선택</string>
@@ -669,22 +614,16 @@
     <string name="oauth_quick_login_started">브라우저에서 인증을 여는 중…</string>
     <string name="oauth_quick_login_success">인증 성공, %1$s 활성화됨</string>
     <string name="settings_backup_include_secrets">공급자 시크릿 포함</string>
-    <string name="settings_backup_include_secrets_subtitle">API 키와 로그인 자격 증명이 백업 파일에 평문으로 저장됩니다. 안전하게 보관하세요.</string>
     <string name="oauth_device_open_page">인증 페이지 열기</string>
     <string name="oauth_device_open_failed">브라우저를 열 수 없습니다</string>
     <string name="keep_alive_notification_title">Muse가 백그라운드에서 실행 중</string>
     <string name="keep_alive_notification_text">예약 작업과 능동 메시지를 유지합니다</string>
     <string name="settings_keep_alive_title">백그라운드 상주</string>
-    <string name="settings_keep_alive_subtitle">상주 알림으로 프로세스를 포그라운드에 유지합니다</string>
     <string name="settings_keep_alive_hint">Muse는 상주 알림을 표시합니다. Android가 포그라운드 서비스에 요구하는 사항이며 숨길 수 없습니다. 일부 중국 ROM에서는 자동 시작도 허용해야 합니다.</string>
     <string name="settings_keep_alive_wakelock_title">화면이 꺼져도 연결 유지</string>
-    <string name="settings_keep_alive_wakelock_subtitle">능동 메시지를 더 빨리 받지만 배터리를 더 씁니다</string>
     <string name="settings_keep_alive_battery_title">배터리 최적화 해제</string>
-    <string name="settings_keep_alive_battery_subtitle">시스템이 백그라운드 활동을 제한합니다. 이 앱을 허용하세요</string>
     <string name="settings_keep_alive_rom_title">자동 시작 허용 목록</string>
-    <string name="settings_keep_alive_rom_subtitle">일부 제조사 ROM은 별도로 허용해야 합니다</string>
     <string name="settings_keep_alive_notification_custom_title">알림 문구</string>
-    <string name="settings_keep_alive_notification_custom_subtitle">상주 알림의 제목과 본문을 사용자 지정</string>
     <string name="settings_keep_alive_notification_custom_hint">비워 두면 기본 문구를 사용합니다.</string>
     <string name="settings_keep_alive_notification_title_placeholder">기본: Muse가 백그라운드에서 실행 중</string>
     <string name="settings_keep_alive_notification_text_placeholder">기본: 예약 작업과 능동 메시지를 유지합니다</string>
@@ -710,7 +649,6 @@
     <string name="search_custom_engine_results_path">결과 경로(예: data.results, 비우면 루트가 배열)</string>
     <string name="settings_chat_carry_over_section">대화 이어가기</string>
     <string name="settings_chat_carry_over">새 대화에 이전 맥락 포함</string>
-    <string name="settings_chat_carry_over_subtitle">이전 대화의 마지막 몇 턴을 함께 읽습니다. 더 자연스럽지만 입력 토큰을 사용합니다.</string>
     <string name="settings_chat_carry_over_count">메시지 %1$d개 가져오기</string>
     <string name="settings_chat_carry_over_count_hint">약 %1$d턴 분량</string>
     <string name="connection_skills_title">스킬 및 스킬 패키지</string>
@@ -728,7 +666,6 @@
     <string name="profile_section_recent">최근 상호작용</string>
     <string name="profile_section_uncertain">불확실한 메모</string>
     <string name="settings_agent_timing_scoring_title">스마트 타이밍</string>
-    <string name="settings_agent_timing_scoring_subtitle">말 걸기 전 최근 반응을 봅니다: 이전 메시지 무응답, 읽지 않음 누적, 심야엔 확률이 낮아지고 마감 된 할 일이 있으면 회복됩니다. 주기·한도·방해 금지 시간은 그대로입니다.</string>
     <string name="settings_screen_diagnostics">진단</string>
     <string name="settings_diagnostics_loading">수집 중…</string>
     <string name="settings_diagnostics_actions">내보내기</string>

@@ -8,7 +8,6 @@
     <string name="chat_msg_selected">Выбрано</string>
     <string name="chat_msg_not_selected">Не выбрано</string>
     <string name="moment_images_selected">Выбрано %1$d (нажмите, чтобы продолжить)</string>
-    <string name="moment_add_images_hint">Добавить изображения (макс. %1$d)</string>
     <!-- ===== Дневник (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>Вс</item>
@@ -38,7 +37,6 @@
     <string name="moment_more_actions">Дополнительные действия для этой публикации</string>
     <string name="moment_sender_muse">Muse</string>
     <string name="moment_sender_me">Я</string>
-    <string name="moment_comment_hint">Оставить комментарий:</string>
     <string name="moment_delete_title">Удалить запись</string>
     <string name="moment_image_cd">Изображение записи</string>
     <string name="moment_image_cd_indexed">Изображение записи %1$d</string>
@@ -47,7 +45,6 @@
     <string name="moment_messages_cd">Сообщения</string>
     <string name="moment_publish_cd">Опубликовать (нажмите для фото, удерживайте для текста)</string>
     <string name="moment_empty_feed">Записей пока нет</string>
-    <string name="moment_empty_hint">Нажмите + в правом верхнем углу, чтобы создать первую запись\nMuse и ассистенты тоже поделятся своей жизнью</string>
     <string name="moment_messages_empty">Пока нет отметок «Нравится» и комментариев</string>
     <string name="moment_notification_liked">%1$s понравилась ваша запись</string>
     <string name="moment_notification_commented">%1$s прокомментировал(а) вашу запись</string>
@@ -385,16 +382,13 @@
     <!-- ChatSettingsPage sticker library section -->
     <string name="settings_chat_sticker_section">Библиотека стикеров</string>
     <string name="settings_sticker_enabled">Включить стикеры</string>
-    <string name="settings_sticker_enabled_subtitle">Разрешить помощнику отправлять стикеры в ответах</string>
     <string name="settings_sticker_frequency">Частота</string>
     <string name="settings_sticker_frequency_subtitle">Помощник естественно добавляет стикеры, когда это уместно</string>
     <string name="settings_sticker_freq_occasional">Редко</string>
     <string name="settings_sticker_freq_normal">Обычно</string>
     <string name="settings_sticker_freq_frequent">Часто</string>
     <string name="settings_sticker_upload">Импортировать стикеры</string>
-    <string name="settings_sticker_upload_subtitle">Поддерживаются zip, документы docx/pptx и картинки; по одному файлу</string>
     <string name="settings_sticker_add_from_gallery">Добавить из галереи</string>
-    <string name="settings_sticker_add_from_gallery_subtitle">Можно выбрать сразу несколько; попадут в открытую коллекцию</string>
     <string name="settings_sticker_review_title">Просмотр %1$d стикеров</string>
     <string name="settings_sticker_review_hint">Автоотбор и авторезка могут ошибаться; нажмите, чтобы снять. Набор: %2$s</string>
     <string name="settings_sticker_review_import">Импорт %1$d</string>
@@ -517,7 +511,6 @@
     <string name="chat_pending_tools_discard_confirm_msg">Они не будут выполнены и не могут быть восстановлены.</string>
     <string name="moment_mood_prefix">Настроение: %1$s</string>
     <string name="moment_published">Момент опубликован</string>
-    <string name="moment_search_hint">Поиск моментов, авторов или типов</string>
     <string name="moment_search_clear_cd">Очистить поиск</string>
     <string name="moment_favorites_only_cd">Только избранное</string>
     <string name="moment_generating">Генерация…</string>
@@ -530,7 +523,6 @@
     <string name="settings_bubble_radius_none">Квадрат</string>
     <string name="settings_bubble_radius_pill">Капсула</string>
     <string name="settings_bubble_radius_small">Маленькое скругление</string>
-    <string name="settings_bubble_radius_subtitle">Задаёт уровень скругления пузырей сообщений</string>
     <string name="settings_bubble_radius_title">Скругление сообщений</string>
     <string name="chat_delete_scope_only">Удалить только это сообщение (включая ответы)</string>
     <string name="chat_delete_scope_with_following">Удалить это сообщение и все последующие</string>
@@ -573,9 +565,7 @@
     <string name="chat_tool_paused_banner">Выполнение инструментов приостановлено, поэтому они не запускаются.</string>
     <string name="chat_tool_paused_banner_action">Настройки</string>
     <string name="settings_chat_show_assistant_name">Показывать имя ассистента</string>
-    <string name="settings_chat_show_assistant_name_subtitle">Показывать, кто говорит, над сообщением</string>
     <string name="settings_chat_show_user_name">Показывать моё имя</string>
-    <string name="settings_chat_show_user_name_subtitle">Показывает ваш ник над сообщениями; полезно в групповых чатах и при нескольких ассистентах</string>
     <string name="chat_placeholder_simple">Сообщение…</string>
     <string name="chat_ignore_memory_option_on">Не использовать память: включено</string>
     <string name="chat_ignore_memory_option_off">Не использовать память: выключено</string>

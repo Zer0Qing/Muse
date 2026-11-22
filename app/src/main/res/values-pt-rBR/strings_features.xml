@@ -517,7 +517,6 @@
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">Habilitar revisão LLM</string>
     <string name="multi_agent_llm_review_model">Modelo de revisão</string>
-    <string name="multi_agent_llm_review_desc">Use uma chamada LLM separada para revisar os resultados multiagentes; maior qualidade, porém maior latência e uso de tokens</string>
     <string name="quick_notes_attachment_count">%1$d anexos</string>
     <string name="quick_notes_encrypt_off">Descriptografar</string>
     <string name="quick_notes_encrypt_on">Criptografar</string>
@@ -613,7 +612,6 @@
     <string name="schedule_unsaved_message">Você tem alterações não salvas. Descartá-las?</string>
     <string name="schedule_unsaved_title">Descartar alterações?</string>
     <string name="settings_about_join_qq_group">Entrar no grupo QQ</string>
-    <string name="settings_about_join_qq_group_subtitle">Grupo QQ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ não encontrado; o número do grupo 905451314 foi copiado para a área de transferência</string>
     <string name="shizuku_authorize_btn">Autorizar Muse</string>
     <string name="permission_shizuku_opened_toast">Shizuku aberto. Inicie o serviço nele e volte para atualizar</string>
@@ -668,12 +666,8 @@
     <string name="mini_album_visibility_cd_shown">Mostrar imagens ocultas</string>
     <string name="mini_album_empty_no_images">Ainda não há imagens de IA</string>
     <string name="mini_album_empty_all_hidden">Não há imagens visíveis no álbum</string>
-    <string name="mini_album_empty_no_images_hint">Configure um modelo de geração de imagens e as imagens aparecerão aqui</string>
-    <string name="mini_album_empty_all_hidden_hint">Reexibir pelas ações de imagem</string>
     <string name="mini_album_image_cd">Imagem de IA</string>
     <string name="mini_album_actions_title">Ações de imagem</string>
-    <string name="mini_album_restore_hint">Esta imagem reaparecerá no álbum após restaurar</string>
-    <string name="mini_album_hide_hint">Esta imagem só fica oculta do álbum, o histórico do chat é mantido</string>
     <string name="mini_album_restore_action">Mostrar</string>
     <string name="mini_album_hide_action">Ocultar do álbum</string>
     <string name="mini_album_unfavorite_action">Remover dos favoritos</string>
@@ -736,7 +730,6 @@
     <string name="chat_clear_background">Limpar fundo da conversa</string>
     <string name="chat_background_cleared">Fundo da conversa removido</string>
     <string name="mini_album_import_cd">Importar imagens</string>
-    <string name="mini_album_delete_imported_hint">Esta imagem foi importada por você. Excluir remove o arquivo.</string>
     <string name="mini_album_delete_imported_action">Excluir imagem</string>
     <string name="quick_notes_remove_image">Remover imagem %1$d</string>
     <!-- Diagnóstico de ativação em segundo plano: se o sistema realmente tem ativações na fila para o Muse (somente leitura) -->

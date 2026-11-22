@@ -7,7 +7,6 @@
     <string name="voice_reply_often">자주</string>
     <string name="voice_reply_always">항상</string>
     <string name="voice_timbre_entry">음성 음색과 속도</string>
-    <string name="voice_timbre_entry_desc">‘설정 → 멀티미디어’에서 한 번에 지정, 여기선 중복 저장하지 않음</string>
     <string name="voice_reply_global_section">음성 회신 빈도</string>
     <string name="voice_reply_global_hint">모든 어시스턴트가 이 단계 하나를 따릅니다. 프롬프트에만 영향을 주며 강제 차단은 하지 않습니다.</string>
     <string name="speech_guide_section">말투 가이드</string>

@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_chat_bubble_full_width">Пузыри на всю ширину</string>
-    <string name="settings_chat_bubble_full_width_subtitle">Ответы ИИ занимают всю ширину строки; ваши сообщения остаются компактными справа.</string>
     <string name="settings_chat_show_user_avatar">Показывать мой аватар</string>
-    <string name="settings_chat_show_user_avatar_subtitle">Показывать локальный аватар с инициалом рядом с сообщениями пользователя</string>
     <!-- Agent Settings -->
     <string name="settings_agent_tool_model_not_set_inherit">Использует основную модель</string>
     <!-- v2.x: auxiliary model tiers -->
@@ -74,7 +72,6 @@
     <!-- Phase 4: выбор и предпросмотр скина пузырей -->
     <string name="settings_bubble_skin_section">Скин пузырей</string>
     <string name="settings_bubble_skin_builtin">Пузырь Muse по умолчанию</string>
-    <string name="settings_bubble_skin_builtin_desc">Встроенный скин, как по умолчанию</string>
     <string name="settings_bubble_skin_custom_desc">Пользовательский скин пузырей</string>
     <string name="settings_bubble_skin_import">Импорт скина</string>
     <string name="settings_bubble_skin_import_success">Скин импортирован и применён</string>
@@ -104,20 +101,16 @@
     <string name="settings_task_routing_vision_unset">Не установлено (нажмите для настройки)</string>
     <string name="settings_task_routing_aux_models_label">Вспомогательные модели</string>
     <string name="settings_task_routing_main_models_label">Основная модель чата</string>
-    <string name="settings_task_routing_utility_small_desc">Простые задачи: заголовки, лёгкая классификация</string>
     <string name="settings_task_routing_utility_failed_title">Сбой вызова вспомогательной модели</string>
     <string name="settings_task_routing_utility_failed_desc">Последний вызов %1$s вернул: %2$s. Это влияет на фоновые задачи (извлечение памяти, сводки), чат не затронут. Выберите рабочую модель или оставьте пусто, чтобы использовать основную.</string>
     <string name="settings_agent_daily_guarantee">Ежедневная гарантия</string>
     <string name="settings_agent_daily_guarantee_hint">Если за это время не было ни одного инициативного сообщения, оно будет отправлено принудительно. Тихие часы, пауза, ваша недавняя активность и дневной лимит по-прежнему действуют.</string>
     <string name="settings_agent_daily_guarantee_hours">%1$d ч</string>
     <string name="settings_agent_daily_guarantee_off">Выкл.</string>
-    <string name="settings_task_routing_utility_large_desc">Сжатие, извлечение памяти, декомпозиция задач</string>
     <string name="settings_crash_anr_title">Обнаружение ANR</string>
-    <string name="settings_crash_anr_subtitle">Определяет, что приложение не отвечает, и записывает это в журналы сбоев/аудита</string>
     <string name="settings_chat_compress_model">Модель сжатия</string>
     <string name="settings_chat_compress_model_default">Модель по умолчанию</string>
     <string name="settings_chat_paste_as_file">Длинная вставка в файл</string>
-    <string name="settings_chat_paste_as_file_subtitle">Предлагать прикреплять вставленный текст как файл, если он превышает порог</string>
     <string name="settings_chat_paste_as_file_threshold">Порог вставки в файл</string>
     <string name="settings_chat_paste_as_file_threshold_subtitle">Предлагать преобразование при превышении %1$d символов</string>
     <string name="settings_chat_custom_title_prompt">Пользовательский промпт заголовка</string>
@@ -127,7 +120,6 @@
     <string name="settings_memory_custom_compress_prompt_default">Использовать встроенную инструкцию сжатия по умолчанию</string>
     <string name="settings_memory_custom_compress_prompt_hint">Пользовательская инструкция сжатия контекста (пусто — по умолчанию)</string>
     <string name="settings_about_auto_update">Автопроверка обновлений</string>
-    <string name="settings_about_auto_update_subtitle">Автоматически проверять новые версии на GitHub после запуска</string>
     <string name="prompt_template_manager_title">Шаблоны промптов</string>
     <string name="prompt_template_manager_list">Список шаблонов</string>
     <string name="prompt_template_manager_empty">Пользовательских шаблонов пока нет</string>
@@ -179,24 +171,16 @@
     <string name="settings_memory_page_title">Память</string>
     <string name="settings_memory_system_section">Система памяти</string>
     <string name="settings_memory_token_budget">Бюджет токена</string>
-    <string name="settings_memory_token_budget_subtitle">Целевая длина Memory.md влияет на количество введенного контекста.</string>
     <string name="settings_memory_decay_rate">Скорость распада</string>
     <string name="settings_memory_decay_rate_title">Скорость затухания λ</string>
-    <string name="settings_memory_decay_rate_subtitle">Выше означает более быстрое забывание (0,01 медленно / 0,02 по умолчанию / 0,04 быстро).</string>
     <string name="settings_memory_hit_bonus">Хит Бонус</string>
-    <string name="settings_memory_hit_bonus_subtitle">Часто упоминаемые воспоминания распадаются медленнее;</string>
     <string name="settings_memory_compile_threshold">Порог компиляции</string>
     <string name="settings_memory_compile_threshold_subtitle">Воспоминания ниже этого значения не добавляются в Memory.md (должно быть ниже %1$s)</string>
     <string name="settings_memory_forget_speed">Забудьте о скорости</string>
-    <string name="settings_memory_forget_speed_subtitle">1.0 нормально / 2.0 забывает в два раза быстрее</string>
     <string name="settings_memory_restore_default">Сбросить по умолчанию</string>
-    <string name="settings_memory_restore_default_subtitle">Сброс параметров памяти к заводским значениям</string>
     <string name="settings_memory_experience_lib">Библиотека опыта</string>
-    <string name="settings_memory_experience_lib_subtitle">Ассистент обобщает опыт работы и ссылается на него в последующих задачах (может испортить контекст).</string>
     <string name="settings_memory_keep_awake">Держать экран включённым</string>
-    <string name="settings_memory_keep_awake_subtitle">Удерживать только при активной генерации; пропускать при низком заряде и без зарядки</string>
     <string name="settings_memory_auto_launch">Автозапуск</string>
-    <string name="settings_memory_auto_launch_subtitle">Автоматически запускать Muse при загрузке устройства</string>
     <string name="settings_memory_notification_section">Уведомления</string>
     <string name="settings_memory_reply_notification_cd">Уведомление о завершении ответа</string>
     <string name="settings_memory_reply_notification">Уведомление о завершении ответа</string>
@@ -245,7 +229,6 @@
     <string name="settings_asr_api_key">API-ключ</string>
     <!-- ASR: использовать настройки провайдера -->
     <string name="settings_asr_follow_provider">Использовать настройки провайдера</string>
-    <string name="settings_asr_follow_provider_subtitle">Адрес и API-ключ берутся из провайдера, модель выбирается вручную</string>
     <string name="settings_asr_follow_provider_picker">Провайдер</string>
     <!-- Общие подсказки и уведомление об откате для режима следования -->
     <string name="settings_speech_follow_unset">Не выбрано</string>
@@ -260,9 +243,7 @@
     <string name="settings_asr_sample_rate_subtitle">%1$d Гц (рекомендуется 16000; изменение требует перезаписи)</string>
     <string name="settings_asr_language_code">Код языка (например, zh/en/ja)</string>
     <string name="settings_asr_punctuation">Предсказание пунктуации</string>
-    <string name="settings_asr_punctuation_desc">DashScope v2 автоматически добавляет знаки препинания (китайские запятые/точки)</string>
     <string name="settings_asr_itn">Обратная нормализация текста</string>
-    <string name="settings_asr_itn_desc">Китайские цифры → арабские цифры (например, «триста» → «300»)</string>
     <string name="settings_asr_audio_url">URL-адрес аудиофайла (общедоступный, например OSS)</string>
     <string name="settings_asr_poll_interval">Интервал опроса (мс, по умолчанию 3000)</string>
     <string name="settings_asr_poll_timeout">Общий таймаут опроса (мс, по умолчанию 300000 = 5 минут)</string>
@@ -275,7 +256,6 @@
     <string name="settings_asr_hotwords">Горячие слова (разделенные запятыми, улучшают распознавание собственных существительных)</string>
     <!-- New: VAD silence detection -->
     <string name="settings_asr_vad">Локальное обнаружение молчания VAD</string>
-    <string name="settings_asr_vad_desc">Автоматическая остановка записи после превышения порога тишины (OPENAI_REALTIME использует VAD на стороне сервера)</string>
     <string name="settings_asr_vad_threshold">Порог VAD (0-1, по умолчанию 0,05 ≈ -46 дБ)</string>
     <string name="settings_asr_vad_silence">Продолжительность автоматической остановки тишины (мс, по умолчанию 1500)</string>
     <string name="settings_asr_vad_realtime_note">В движке Realtime обнаружение речевой активности (VAD) выполняется на сервере, локальная настройка не требуется.</string>
@@ -289,12 +269,9 @@
     <string name="settings_rag_injection_section">Восстановительная инъекция</string>
     <string name="settings_rag_attachment_section">Поиск по вложениям</string>
     <string name="settings_rag_auto_inject">База знаний с автоматическим внедрением</string>
-    <string name="settings_rag_auto_inject_subtitle">Автоматически извлекайте соответствующие знания и добавляйте их в контекст во время чата.</string>
     <string name="settings_rag_embedding_source_section">Встраивание исходного кода</string>
     <string name="settings_rag_cloud_api">Облачный API</string>
-    <string name="settings_rag_cloud_api_subtitle">Качество прежде всего, требуется сеть и ключ API</string>
     <string name="settings_rag_local_keyword">Локальные ключевые слова (офлайн)</string>
-    <string name="settings_rag_local_keyword_subtitle">Никакая сеть не требуется;</string>
     <string name="settings_rag_active_backend_section">Активный бэкенд</string>
     <string name="settings_rag_active_backend_label">Сейчас используется</string>
     <string name="settings_rag_active_backend_degraded_unknown">Выполнен откат на другой бэкенд; причина не записана</string>
@@ -308,38 +285,24 @@
     <string name="settings_rag_search_params_section">Параметры извлечения</string>
     <string name="settings_rag_top_k">Количество извлечений (top-K)</string>
     <string name="settings_rag_similarity_threshold">Порог сходства</string>
-    <string name="settings_rag_similarity_threshold_subtitle">Результаты ниже этого значения не вводятся (чем выше, тем строже).</string>
     <string name="settings_rag_chunk_params_section">Параметры чанка</string>
     <string name="settings_rag_chunk_size">Размер куска</string>
-    <string name="settings_rag_chunk_size_subtitle">Целевое количество символов (больше означает более полный контекст, больше токенов)</string>
     <string name="settings_rag_chunk_overlap">Перекрытие фрагментов</string>
-    <string name="settings_rag_chunk_overlap_subtitle">Перекрытие символов между соседними фрагментами (сохраняет связность контекста)</string>
     <!-- v1.133: RAG advanced retrieval -->
     <string name="settings_rag_advanced_section">Расширенный поиск</string>
     <string name="settings_rag_mmr_lambda">Разнообразие MMR</string>
-    <string name="settings_rag_mmr_lambda_subtitle">0 = чистое разнообразие, 1 = чистое сходство, по умолчанию 0,5.</string>
     <string name="settings_rag_hybrid">Гибридный поиск</string>
-    <string name="settings_rag_hybrid_subtitle">Ключевое слово BM25 + объединение векторного сходства RRF</string>
     <string name="settings_rag_hybrid_bm25_weight">Вес BM25</string>
-    <string name="settings_rag_hybrid_bm25_weight_subtitle">Вес вклада BM25 в объединение RRF</string>
     <string name="settings_rag_hybrid_vector_weight">Векторный вес</string>
-    <string name="settings_rag_hybrid_vector_weight_subtitle">Вес вклада векторного сходства в RRF</string>
     <string name="settings_rag_rerank">Изменить рейтинг</string>
-    <string name="settings_rag_rerank_subtitle">Изменение рейтинга перекрестных кодировщиков среди лучших кандидатов K×5</string>
     <string name="settings_rag_token_budget">Бюджет токена</string>
-    <string name="settings_rag_token_budget_subtitle">0 = без ограничений;</string>
     <string name="settings_rag_markdown_aware">Чанкинг с учетом Markdown</string>
-    <string name="settings_rag_markdown_aware_subtitle">Сохраняйте блоки кода/заголовки/таблицы, избегайте разделения</string>
     <string name="settings_rag_chunk_by_token">Разделение на основе токенов</string>
-    <string name="settings_rag_chunk_by_token_subtitle">Если эта функция включена, фрагментация по количеству токенов (более точно для смешанного CJK+латиницы)</string>
     <!-- v1.0.47 P7-1: Document parser config -->
     <string name="settings_rag_parser_section">Парсер документов</string>
     <string name="settings_rag_parser_local">Локальный парсер</string>
-    <string name="settings_rag_parser_local_subtitle">Локальный анализ, поддерживает txt/pdf/docx/pptx/xlsx/epub</string>
     <string name="settings_rag_parser_cloud">Облачный парсер</string>
-    <string name="settings_rag_parser_cloud_subtitle">Cloud API для сложных макетов/отсканированных документов (требуется конечная точка)</string>
     <string name="settings_rag_parser_mineru">МайнерУ</string>
-    <string name="settings_rag_parser_mineru_subtitle">MinerU API превосходно работает с академическими PDF/формулами/таблицами (требуется конечная точка)</string>
     <string name="settings_rag_cloud_parser_endpoint">Конечная точка облачного парсера</string>
     <string name="settings_rag_mineru_endpoint">Конечная точка MinerU</string>
     <string name="settings_rag_mineru_token">Токен MinerU (необязательно)</string>
@@ -350,7 +313,6 @@
 
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">Управление базами знаний</string>
-    <string name="settings_rag_manage_kbs_subtitle">Создание, переименование, удаление баз знаний</string>
     <string name="kb_manage_create">Новая база знаний</string>
     <string name="kb_manage_name_label">Имя</string>
     <string name="kb_manage_desc_label">Описание (необязательно)</string>
@@ -376,15 +338,10 @@
     <!-- Security & Sharing -->
     <string name="settings_security_share_template_section">Поделиться шаблоном</string>
     <string name="settings_security_include_timestamp">Включить временную метку</string>
-    <string name="settings_security_include_timestamp_subtitle">Прикрепите время сообщения при совместном использовании беседы</string>
     <string name="settings_security_include_model">Включить название модели</string>
-    <string name="settings_security_include_model_subtitle">Прикрепите название генерирующей модели при совместном использовании</string>
     <string name="settings_security_include_tokens">Включить количество токенов</string>
-    <string name="settings_security_include_tokens_subtitle">Прикрепляйте токены для каждого сообщения при совместном использовании</string>
     <string name="settings_security_include_mood">Включить блок НАСТРОЕНИЯ</string>
-    <string name="settings_security_include_mood_subtitle">Прикрепите внутренний черновик ИИ при публикации</string>
     <string name="settings_security_include_reasoning">Включить рассуждения</string>
-    <string name="settings_security_include_reasoning_subtitle">Прикрепите процесс рассуждения ИИ при совместном использовании</string>
     <string name="settings_security_share_format">Поделиться форматом</string>
     <string name="settings_security_format_plain_text">Обычный текст</string>
 
@@ -414,9 +371,7 @@
     <string name="settings_media_page_title">Озвучивание</string>
     <string name="settings_media_tts_section">Воспроизведение речи</string>
     <string name="settings_media_speech_rate">Скорость речи</string>
-    <string name="settings_media_speech_rate_subtitle">0,5x медленнее/1,0x нормально/2,0x быстрее</string>
     <string name="settings_media_pitch">Подача</string>
-    <string name="settings_media_pitch_subtitle">0,5 низкий / 1,0 нормальный / 2,0 высокий</string>
 
     <!-- Cloud TTS engine configuration -->
     <string name="settings_media_cloud_tts_section">Облачный механизм TTS</string>
@@ -462,7 +417,6 @@
     <string name="settings_media_tts_save_advanced">Сохранить параметры</string>
     <!-- Облачный TTS: использовать настройки провайдера -->
     <string name="settings_media_tts_follow_provider">Использовать настройки провайдера</string>
-    <string name="settings_media_tts_follow_provider_subtitle">Адрес и API-ключ берутся из провайдера, модель выбирается вручную</string>
     <string name="settings_media_tts_follow_provider_picker">Провайдер</string>
     <string name="settings_media_tts_follow_voice_hint">Следование берёт только адрес и API-ключ; совместимость голоса с выбранным провайдером проверьте сами</string>
     <!-- ===== Custom theme ===== -->
@@ -490,7 +444,6 @@
     <string name="settings_theme_custom_color_s">Насыщенность</string>
     <string name="settings_theme_custom_color_l">Легкость</string>
     <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
-    <string name="settings_agent_dm_subtitle">Просмотр личных сообщений между Agent</string>
     <string name="settings_agent_temperature">Температура генерации</string>
     <string name="settings_agent_temperature_hint">На этапе решений используется temperature×0.5 (более детерминировано); на этапе генерации — это значение. Чем больше, тем креативнее; чем меньше, тем стабильнее</string>
     <string name="settings_agent_temperature_stable">0.0 Стабильность</string>
@@ -500,10 +453,8 @@
     <string name="settings_agent_test_generating">Создание…</string>
     <string name="settings_agent_test_failed">Сбой теста: %1$s</string>
     <string name="settings_agent_test_already_running">Предыдущее проактивное сообщение всё ещё создаётся, попробуйте позже</string>
-    <string name="settings_agent_daily_summary_subtitle">Создает сводку чата ежедневно в 09:00, 12:00, 21:00 и 00:00; переключатель управляет только уведомлениями</string>
     <string name="settings_agent_current_model_hint">Глобально по умолчанию (общий для основного чата / Agent)</string>
     <string name="settings_agent_keep_alive_title">Фоновая работа</string>
-    <string name="settings_agent_keep_alive_subtitle">Предотвращает потерю активных сообщений при очистке процесса системой</string>
     <string name="keep_alive_dialog_title">%1$s · Фоновая работа</string>
     <string name="keep_alive_manual_hint">Не удалось открыть настройки автоматически. Включите вручную по шагам выше.</string>
     <string name="keep_alive_dialog_desc">Активные сообщения зависят от фонового процесса. Китайские прошивки по умолчанию очищают фоновые приложения; после добавления в белый список по шагам ниже вы продолжите получать сообщения, даже закрыв приложение из списка недавних:</string>
@@ -516,7 +467,6 @@
     <string name="settings_import_chatgpt_step4">4. Выберите файл в Muse — диалоги импортируются автоматически</string>
     <string name="settings_provider_media_gen_section">Модели генерации медиа</string>
     <string name="settings_asr_entry_title">Движок распознавания речи</string>
-    <string name="settings_asr_entry_subtitle">Выберите движок распознавания речи (напр., Paraformer / Whisper)</string>
     <string name="settings_miniphone_title">Мини-телефон</string>
     <string name="settings_font_section_title">Шрифты</string>
     <string name="settings_font_body_label">Шрифт текста</string>
@@ -530,7 +480,6 @@
     <string name="automation_orchestration_hint">После включения разрешений спец. возможностей / Shell / Root настройте условия по расписанию, чтобы автоматически выполнять действия ИИ.</string>
     <string name="automation_orchestration_action">Настроить задачи по расписанию</string>
     <string name="miniphone_moments_count">Записано моментов: %1$d</string>
-    <string name="miniphone_moments_subtitle">Записывайте каждый момент</string>
     <string name="miniphone_tab_chats">Мини-телефон</string>
     <string name="miniphone_typing">печатает…</string>
     <string name="miniphone_time_just_now">Только что</string>
@@ -540,7 +489,6 @@
     <string name="miniphone_tab_contacts">Контакты</string>
     <string name="miniphone_tab_discover">Обзор</string>
     <string name="miniphone_tab_me">Я</string>
-    <string name="miniphone_search_hint">Поиск</string>
     <string name="miniphone_contacts_empty">Контактов пока нет</string>
     <string name="miniphone_me_wallpaper">Сменить обои</string>
     <string name="moment_publish_take_photo">Снять фото</string>
@@ -584,7 +532,6 @@
     <string name="settings_moment_content_mode_real_desc">Публикует только то, что связано с вами, сдержанно, как настоящая запись о жизни</string>
     <string name="settings_moment_content_mode_character">В образе</string>
     <string name="settings_moment_content_mode_character_desc">У персонажа своя жизнь и события; вы наблюдатель</string>
-    <string name="settings_agent_schedule_work_subtitle">Общий переключатель. При выключении все периодические фоновые задачи ставятся на паузу</string>
     <!-- P0 консолидация настроек инициативных сообщений -->
     <string name="settings_agent_pace_title">Инициативность</string>
     <string name="settings_agent_pace_hint">Чем выше, тем чаще ассистент пишет первым. «Стандарт» — режим по умолчанию.</string>
@@ -606,7 +553,6 @@
     <string name="settings_agent_content_moment">Лента моментов</string>
     <string name="settings_agent_content_none">Всё выключено</string>
     <string name="settings_agent_group_advanced">Дополнительно</string>
-    <string name="settings_agent_advanced_subtitle">Температура, случайный сдвиг, только Agent, тестовая отправка</string>
     <string name="settings_agent_advanced_hint">Редко используемые настройки; обычно менять не нужно.</string>
     <string name="settings_agent_group_background">Фон и надёжность</string>
     <string name="settings_agent_schedule_work_title">Общее управление фоновыми задачами</string>
@@ -620,7 +566,6 @@
     <!-- v1.138: Пространство приватных сообщений мини-телефона -->
     <string name="miniphone_pm_new_session">Новый чат</string>
     <string name="miniphone_pm_empty_title">Пока нет приватных сообщений</string>
-    <string name="miniphone_pm_empty_hint">ИИ свяжется с вами на основе ваших моментов</string>
     <string name="settings_asr_engine_title">Движок распознавания</string>
     <string name="settings_asr_engine_change">Изменить</string>
     <string name="settings_asr_pick_title">Выберите движок распознавания</string>
@@ -669,22 +614,16 @@
     <string name="oauth_quick_login_started">Открываем браузер для авторизации…</string>
     <string name="oauth_quick_login_success">Авторизация успешна, включено %1$s</string>
     <string name="settings_backup_include_secrets">Включить секреты провайдеров</string>
-    <string name="settings_backup_include_secrets_subtitle">API-ключи и учётные данные будут сохранены в файле резервной копии в открытом виде. Храните его в безопасности.</string>
     <string name="oauth_device_open_page">Открыть страницу авторизации</string>
     <string name="oauth_device_open_failed">Не удалось открыть браузер</string>
     <string name="keep_alive_notification_title">Muse работает в фоне</string>
     <string name="keep_alive_notification_text">Поддерживает задачи по расписанию и инициативные сообщения</string>
     <string name="settings_keep_alive_title">Работать в фоне постоянно</string>
-    <string name="settings_keep_alive_subtitle">Удерживает процесс на переднем плане постоянным уведомлением</string>
     <string name="settings_keep_alive_hint">Muse покажет постоянное уведомление. Android требует этого для foreground-сервисов, скрыть его нельзя. На некоторых китайских прошивках нужно также разрешить автозапуск.</string>
     <string name="settings_keep_alive_wakelock_title">Не терять связь при выключенном экране</string>
-    <string name="settings_keep_alive_wakelock_subtitle">Инициативные сообщения приходят раньше, но расход батареи выше</string>
     <string name="settings_keep_alive_battery_title">Отключить оптимизацию батареи</string>
-    <string name="settings_keep_alive_battery_subtitle">Система ограничивает фоновую активность; разрешите это приложение</string>
     <string name="settings_keep_alive_rom_title">Список автозапуска</string>
-    <string name="settings_keep_alive_rom_subtitle">Некоторые прошивки требуют отдельного разрешения</string>
     <string name="settings_keep_alive_notification_custom_title">Текст уведомления</string>
-    <string name="settings_keep_alive_notification_custom_subtitle">Настройте заголовок и текст постоянного уведомления</string>
     <string name="settings_keep_alive_notification_custom_hint">Оставьте пустым, чтобы использовать текст по умолчанию.</string>
     <string name="settings_keep_alive_notification_title_placeholder">По умолчанию: Muse работает в фоне</string>
     <string name="settings_keep_alive_notification_text_placeholder">По умолчанию: Поддерживает задачи по расписанию и инициативные сообщения</string>
@@ -710,7 +649,6 @@
     <string name="search_custom_engine_results_path">Путь к результатам (например data.results; пусто = корень массив)</string>
     <string name="settings_chat_carry_over_section">Перенос контекста</string>
     <string name="settings_chat_carry_over">Брать прошлый чат в новый</string>
-    <string name="settings_chat_carry_over_subtitle">Читает последние реплики прошлого разговора. Связнее, но расходует входные токены.</string>
     <string name="settings_chat_carry_over_count">Переносить сообщений: %1$d</string>
     <string name="settings_chat_carry_over_count_hint">Примерно %1$d реплик</string>
     <string name="connection_skills_title">Навыки и пакеты навыков</string>
@@ -728,7 +666,6 @@
     <string name="profile_section_recent">Недавние взаимодействия</string>
     <string name="profile_section_uncertain">Неуверенные заметки</string>
     <string name="settings_agent_timing_scoring_title">Умный момент</string>
-    <string name="settings_agent_timing_scoring_subtitle">Перед сообщением учитывает свежие реакции: нет ответа на прошлое, непрочитанное или ночное время снижают вероятность; назревшая тема повышает. Интервалы, лимит и тихие часы не меняются.</string>
     <string name="settings_screen_diagnostics">Диагностика</string>
     <string name="settings_diagnostics_loading">Сбор…</string>
     <string name="settings_diagnostics_actions">Экспорт</string>

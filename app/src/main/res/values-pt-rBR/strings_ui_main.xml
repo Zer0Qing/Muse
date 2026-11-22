@@ -207,7 +207,6 @@
     <string name="settings_screen_web_access">Acesso web</string>
     <string name="settings_web_access_intro">Abra o endereço abaixo no navegador do iPhone ou do PC e informe o PIN para usar a versão web.</string>
     <string name="settings_web_access_enable">Ativar acesso web</string>
-    <string name="settings_web_access_enable_subtitle">Ao desativar, os outros dispositivos são desconectados na hora e a porta é liberada</string>
     <string name="settings_web_access_lan">Permitir acesso na rede local</string>
     <string name="settings_web_access_lan_on">Celulares e PCs na mesma Wi-Fi podem abrir</string>
     <string name="settings_web_access_lan_off">Apenas neste dispositivo</string>
@@ -230,7 +229,6 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Ouvinte de notificação</string>
     <string name="connection_center_title">Central de conexões</string>
-    <string name="connection_tools_subtitle">Aprovações, permissões e políticas de segurança</string>
     <string name="connection_tools_title">Permissões de ferramentas</string>
     <string name="connection_plugins_subtitle">%1$d complementos instalados; abra para revisar as capacidades de cada um</string>
     <string name="connection_plugins_title">Complementos</string>
@@ -313,7 +311,6 @@
     <string name="settings_vision_title">Assistência de Visão</string>
     <string name="settings_vision_description">Ao usar um modelo somente de texto que não suporta entrada de imagem, chame automaticamente um modelo de visão para analisar imagens e injetar descrições na conversa.</string>
     <string name="settings_vision_enabled">Ativar assistência de visão</string>
-    <string name="settings_vision_enabled_subtitle">Envie imagens automaticamente para o modelo de visão para análise</string>
     <string name="settings_vision_model_section">Modelo de visão</string>
     <string name="settings_vision_no_models">Nenhum modelo com capacidade de visão encontrado.</string>
     <string name="vision_analysis_starting">Analisando imagem com modelo de visão</string>
@@ -715,11 +712,9 @@
     <string name="muse_plugins_market_invalid_url">O endereço do catálogo deve começar com https://</string>
     <string name="muse_plugins_market_key_id_label">keyId da raiz de confiança personalizado</string>
     <string name="muse_plugins_market_not_configured">Catálogo não configurado</string>
-    <string name="muse_plugins_market_not_configured_hint">Depois de configurar o endereço do catálogo assinado e a chave pública da raiz de confiança, você pode navegar e instalar plugins com um clique aqui.</string>
     <string name="muse_plugins_market_preparing">Verificando e preparando a instalação…</string>
     <string name="muse_plugins_market_public_key_label">Chave pública da raiz de confiança (Base64)</string>
     <string name="muse_plugins_market_refresh">Atualizar catálogo</string>
-    <string name="muse_plugins_market_settings_hint">O mercado de plugins usa por padrão o catálogo oficial incorporado no pacote. Só é necessário preencher um catálogo personalizado e a raiz de confiança em testes ou emergências.</string>
     <string name="muse_plugins_market_settings_saved">Configurações do catálogo de plugins salvas</string>
     <string name="muse_plugins_market_settings_title">Configurações do catálogo de plugins</string>
     <string name="muse_plugins_market_title">Mercado de plugins</string>
@@ -792,7 +787,6 @@
     <string name="settings_preference_subtitle">Regras duradouras registradas pelo assistente</string>
     <string name="settings_preference_desc">Quando você diz ao assistente «de agora em diante, não…», ele guarda isso aqui como regra rígida e cumpre em todas as conversas.</string>
     <string name="settings_preference_empty">Nenhuma preferência registrada ainda</string>
-    <string name="settings_preference_empty_hint">Tente dizer «não use elogios genéricos de agora em diante»</string>
     <string name="settings_preference_disable">Desativar</string>
     <string name="settings_preference_enable">Ativar</string>
     <string name="settings_preference_delete">Excluir</string>

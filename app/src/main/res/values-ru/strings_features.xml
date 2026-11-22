@@ -517,7 +517,6 @@
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">Включить проверку LLM</string>
     <string name="multi_agent_llm_review_model">Обзор модели</string>
-    <string name="multi_agent_llm_review_desc">Используйте отдельный вызов LLM для просмотра результатов работы нескольких агентов; выше качество, но больше задержка и расход токенов</string>
     <string name="quick_notes_attachment_count">%1$d вложений</string>
     <string name="quick_notes_encrypt_off">Расшифровать</string>
     <string name="quick_notes_encrypt_on">Зашифровать</string>
@@ -606,10 +605,8 @@
     <string name="muse_plugins_market_title">Магазин плагинов</string>
     <string name="muse_plugins_tab_installed">Установленные</string>
     <string name="muse_plugins_market_not_configured">Каталог не настроен</string>
-    <string name="muse_plugins_market_not_configured_hint">Настройте URL подписанного каталога и публичный ключ корня доверия, чтобы просматривать и устанавливать плагины здесь.</string>
     <string name="muse_plugins_market_configure">Настройки каталога</string>
     <string name="muse_plugins_market_settings_title">Настройки каталога плагинов</string>
-    <string name="muse_plugins_market_settings_hint">Магазин плагинов по умолчанию использует встроенный официальный каталог; указывайте собственный каталог и корень доверия только для тестов или аварийного переключения.</string>
     <string name="muse_plugins_market_url_label">Свой URL каталога (пусто — официальный каталог)</string>
     <string name="muse_plugins_market_key_id_label">keyId своего корня доверия</string>
     <string name="muse_plugins_market_public_key_label">Публичный ключ своего корня доверия (Base64)</string>
@@ -656,7 +653,6 @@
     <string name="schedule_unsaved_message">У вас есть несохранённые изменения. Отменить их?</string>
     <string name="schedule_unsaved_title">Отменить изменения?</string>
     <string name="settings_about_join_qq_group">Вступить в группу QQ</string>
-    <string name="settings_about_join_qq_group_subtitle">Группа QQ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ не найден; номер группы 905451314 скопирован в буфер обмена</string>
     <string name="shizuku_authorize_btn">Авторизовать Muse</string>
     <string name="permission_shizuku_opened_toast">Shizuku открыт. Запустите службу в нём, затем вернитесь и обновите</string>
@@ -717,12 +713,8 @@
     <string name="mini_album_visibility_cd_shown">Показать скрытые изображения</string>
     <string name="mini_album_empty_no_images">ИИ-изображений пока нет</string>
     <string name="mini_album_empty_all_hidden">В альбоме нет видимых изображений</string>
-    <string name="mini_album_empty_no_images_hint">Настройте модель генерации изображений, и сгенерированные изображения появятся здесь</string>
-    <string name="mini_album_empty_all_hidden_hint">Отобразите через действия с изображением</string>
     <string name="mini_album_image_cd">ИИ-изображение</string>
     <string name="mini_album_actions_title">Действия с изображением</string>
-    <string name="mini_album_restore_hint">Это изображение снова появится в альбоме после восстановления</string>
-    <string name="mini_album_hide_hint">Это изображение скрыто только из альбома, история чата сохраняется</string>
     <string name="mini_album_restore_action">Показать</string>
     <string name="mini_album_hide_action">Скрыть из альбома</string>
     <string name="mini_album_unfavorite_action">Убрать из избранного</string>
@@ -785,7 +777,6 @@
     <string name="chat_clear_background">Убрать фон этого диалога</string>
     <string name="chat_background_cleared">Фон этого диалога удалён</string>
     <string name="mini_album_import_cd">Импорт изображений</string>
-    <string name="mini_album_delete_imported_hint">Это изображение импортировано вами. При удалении файл будет стёрт.</string>
     <string name="mini_album_delete_imported_action">Удалить изображение</string>
     <string name="quick_notes_remove_image">Удалить изображение %1$d</string>
     <!-- Диагностика фоновых пробуждений: действительно ли система запланировала их для Muse (только чтение) -->

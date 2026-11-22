@@ -612,7 +612,6 @@
     <string name="schedule_unsaved_message">保存されていない変更があります。破棄しますか？</string>
     <string name="schedule_unsaved_title">変更を破棄しますか？</string>
     <string name="settings_about_join_qq_group">QQ グループに参加</string>
-    <string name="settings_about_join_qq_group_subtitle">QQ グループ: 905451314</string>
     <string name="settings_about_qq_not_installed">QQ が見つかりません。グループ番号 905451314 をクリップボードにコピーしました</string>
     <string name="shizuku_authorize_btn">Muse を承認</string>
     <string name="permission_shizuku_opened_toast">Shizuku を開きました。アプリ内でサービスを起動してから戻って更新してください</string>
@@ -667,12 +666,8 @@
     <string name="mini_album_visibility_cd_shown">非表示の画像を表示</string>
     <string name="mini_album_empty_no_images">AI生成画像はまだありません</string>
     <string name="mini_album_empty_all_hidden">アルバムに表示できる画像がありません</string>
-    <string name="mini_album_empty_no_images_hint">画像生成モデルを設定すると、ここに生成画像が表示されます</string>
-    <string name="mini_album_empty_all_hidden_hint">画像操作から非表示を解除できます</string>
     <string name="mini_album_image_cd">AI生成画像</string>
     <string name="mini_album_actions_title">画像操作</string>
-    <string name="mini_album_restore_hint">この画像は復元後にアルバムに再表示されます</string>
-    <string name="mini_album_hide_hint">この画像はアルバムから隠れるだけで、チャット履歴は削除されません</string>
     <string name="mini_album_restore_action">表示</string>
     <string name="mini_album_hide_action">アルバムから隠す</string>
     <string name="mini_album_unfavorite_action">お気に入り解除</string>
@@ -735,7 +730,6 @@
     <string name="chat_clear_background">この会話の背景を削除</string>
     <string name="chat_background_cleared">この会話の背景を削除しました</string>
     <string name="mini_album_import_cd">画像をインポート</string>
-    <string name="mini_album_delete_imported_hint">この画像はあなたがインポートしたものです。削除するとファイルも消えます。</string>
     <string name="mini_album_delete_imported_action">画像を削除</string>
     <string name="quick_notes_remove_image">画像 %1$d を削除</string>
     <!-- バックグラウンド起動の診断:システムが実際に Muse の起動を予約しているか(読み取り専用) -->

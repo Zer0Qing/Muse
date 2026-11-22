@@ -207,7 +207,6 @@
     <string name="settings_screen_web_access">Веб-доступ</string>
     <string name="settings_web_access_intro">Откройте адрес ниже в браузере на iPhone или компьютере и введите PIN, чтобы пользоваться веб-версией.</string>
     <string name="settings_web_access_enable">Включить веб-доступ</string>
-    <string name="settings_web_access_enable_subtitle">При выключении другие устройства сразу отключаются, порт освобождается</string>
     <string name="settings_web_access_lan">Разрешить доступ по локальной сети</string>
     <string name="settings_web_access_lan_on">Телефоны и компьютеры в той же Wi-Fi сети смогут открыть</string>
     <string name="settings_web_access_lan_off">Доступ только с этого устройства</string>
@@ -230,7 +229,6 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Прослушиватель уведомлений</string>
     <string name="connection_center_title">Центр подключений</string>
-    <string name="connection_tools_subtitle">Одобрения, разрешения и политика безопасности</string>
     <string name="connection_tools_title">Разрешения инструментов</string>
     <string name="connection_plugins_subtitle">Установлено плагинов: %1$d; откройте, чтобы увидеть выданные разрешения</string>
     <string name="connection_plugins_title">Плагины</string>
@@ -313,7 +311,6 @@
     <string name="settings_vision_title">Визуальная помощь</string>
     <string name="settings_vision_description">При использовании текстовой модели, не поддерживающей ввод изображений, автоматически вызывается визуальная модель для анализа изображений и внедрения описаний в разговор.</string>
     <string name="settings_vision_enabled">Включить визуальную помощь</string>
-    <string name="settings_vision_enabled_subtitle">Автоматически отправлять изображения в визуальную модель для анализа</string>
     <string name="settings_vision_model_section">Визуальная модель</string>
     <string name="settings_vision_no_models">Не найдено моделей, поддерживающих визуальный ввод. Добавьте визуальную модель в настройках провайдера.</string>
     <string name="vision_analysis_starting">Анализ изображения с помощью модели видения</string>
@@ -750,7 +747,6 @@
     <string name="settings_preference_subtitle">Долгосрочные правила, записанные ассистентом</string>
     <string name="settings_preference_desc">Когда вы говорите ассистенту «впредь не…», он сохраняет это здесь как жёсткое правило и соблюдает во всех беседах.</string>
     <string name="settings_preference_empty">Предпочтения пока не записаны</string>
-    <string name="settings_preference_empty_hint">Попробуйте сказать «впредь не используй общие ободряющие фразы»</string>
     <string name="settings_preference_disable">Отключить</string>
     <string name="settings_preference_enable">Включить</string>
     <string name="settings_preference_delete">Удалить</string>

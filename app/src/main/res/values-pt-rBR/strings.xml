@@ -211,7 +211,6 @@
     <string name="settings_multi_agent_node_dependencies">Dependências</string>
     <string name="chat_delete_selected_title">Excluir mensagens selecionadas</string>
     <string name="chat_delete_selected_message">Tem certeza de que deseja excluir %1$d mensagens selecionadas? Isto não pode ser desfeito.</string>
-    <string name="settings_agent_night_patrol_subtitle">Fora do horário permitido: escrever diário/notas noturnas em silêncio, sem notificações</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
     <string name="moment_sender_user">Eu</string>
     <string name="moment_banner_liked_by">%1$s curtiu sua publicação</string>
@@ -242,7 +241,6 @@
     <string name="chat_favorite_selected_partial">%1$d favoritadas; %2$d já estavam nos favoritos</string>
     <string name="chat_favorite_selected_all_exist">Todas as %1$d já estão nos favoritos</string>
     <string name="settings_chat_prefer_card_output">Preferir saída em cartões</string>
-    <string name="settings_chat_prefer_card_output_subtitle">Incentiva o modelo a usar cartões interativos para tabelas, comparações e ajustes de parâmetros em vez de texto longo.</string>
     <string name="chat_card_state_only">(conteúdo do cartão atualizado)</string>
     <string name="moment_action_edit">Editar</string>
     <string name="groupchat_stop_generating">Parar de gerar</string>

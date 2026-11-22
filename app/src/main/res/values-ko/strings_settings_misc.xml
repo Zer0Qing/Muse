@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_experiments_session_attachment_rag">채팅 첨부 검색</string>
-    <string name="settings_experiments_session_attachment_rag_subtitle">채팅에서 업로드한 문서를 검색용으로 색인하여 AI가 인용할 수 있게 합니다. 실험 기능이며 색인은 세션과 함께 정리됩니다.</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">, 선택됨</string>
 
@@ -15,7 +14,6 @@
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">웹 검색</string>
     <string name="settings_web_search_enable">웹 검색 활성화</string>
-    <string name="settings_web_search_enable_subtitle">전역 기본 상태.</string>
     <string name="settings_web_search_engine">검색 엔진</string>
     <string name="settings_saved">저장됨</string>
     <string name="settings_web_search_save_api_key">API 키 저장</string>
@@ -28,13 +26,9 @@
     <string name="settings_experiments_warning">다음 기능은 실험적이므로 불안정하거나 경험에 영향을 미칠 수 있습니다.</string>
     <string name="settings_experiments_features">실험적 기능</string>
     <string name="settings_experiments_force_mood">강제 MOOD 출력</string>
-    <string name="settings_experiments_force_mood_subtitle">모델이 지원하지 않더라도 MOOD 블록 출력을 요구하려고 시도합니다.</string>
     <string name="settings_experiments_debug_mode">디버그 모드</string>
-    <string name="settings_experiments_debug_mode_subtitle">더 많은 내부 상태 표시(MOOD/도구 호출/토큰)</string>
     <string name="settings_experiments_self_reflection">자기반성</string>
-    <string name="settings_experiments_self_reflection_subtitle">답변 후 자동으로 품질 확인</string>
     <string name="settings_experiments_long_memory_compression">긴 메모리 압축</string>
-    <string name="settings_experiments_long_memory_compression_subtitle">매우 긴 대화 자동 요약(v1.55부터 기본적으로 활성화됨)</string>
 
     <!-- UserProfileEditPage.kt -->
     <string name="settings_user_profile_title">사용자 프로필</string>
@@ -126,18 +120,14 @@
     <string name="settings_assistant_skills">스킬 매니저</string>
     <string name="settings_assistant_skills_subtitle">LLM이 호출할 수 있는 도구(파일 I/O, HTTP 등) 보기/활성화/비활성화</string>
     <string name="settings_assistant_memory_enable">메모리 시스템 활성화</string>
-    <string name="settings_assistant_memory_enable_subtitle">꺼져 있으면 대화가 더 이상 장기 기억을 주입하지 않으며 배경 요약이 중지됩니다.</string>
 
     <!-- MultiAgentSettingsPage.kt -->
     <string name="settings_multi_agent_title">다중 에이전트 협업</string>
     <string name="settings_multi_agent_enable">다중 에이전트 협업 활성화</string>
-    <string name="settings_multi_agent_enable_subtitle">활성화되면 기본 보조자가 팀 구성원에게 작업을 위임할 수 있습니다.</string>
     <string name="settings_multi_agent_team_list">팀 목록</string>
     <string name="settings_multi_agent_no_team">아직 팀이 없습니다.</string>
-    <string name="settings_multi_agent_no_team_hint">팀을 만들려면 아래를 탭하세요.</string>
     <string name="settings_multi_agent_new_team">새로운 팀</string>
     <string name="settings_multi_agent_writing_team_template">집필 팀 템플릿</string>
-    <string name="settings_multi_agent_writing_team_template_desc">개요 → 초고 → 다듬기: 한 번에 채워지는 협업 흐름</string>
     <string name="settings_multi_agent_writing_team_name">집필 팀</string>
     <string name="settings_multi_agent_writing_team_desc">협업 집필 흐름: 개요 → 초고 → 다듬기. 이 순서대로 어시스턴트를 멤버로 추가하세요.</string>
     <string name="settings_multi_agent_delete_team">팀 삭제</string>
@@ -281,7 +271,6 @@
     <string name="settings_crash_pending_hint_idle">충돌이 보류 중인 대기열에 자동으로 추가됩니다.</string>
     <string name="settings_crash_report_now_button">지금 대기 중인 충돌을 보고하세요.</string>
     <string name="settings_crash_settings_section">보고서 설정</string>
-    <string name="settings_crash_enable_subtitle">충돌 로그는 "지금 전송"을 눌렀을 때만 전송됩니다</string>
     <string name="settings_crash_privacy_section">은둔</string>
     <string name="settings_crash_privacy_title">충돌 보고 개인 정보 보호 약속</string>
     <string name="settings_crash_privacy_content">• 기본적으로 꺼져 있습니다.</string>
@@ -308,7 +297,6 @@
     <string name="settings_web_search_diagnosis">최근 검색 진단</string>
     <string name="settings_web_search_no_diagnosis">아직 검색 기록이 없습니다</string>
     <string name="settings_experiments_parallel_tools">읽기 전용 도구 병렬 실행</string>
-    <string name="settings_experiments_parallel_tools_subtitle">한 라운드의 도구가 모두 읽기 전용이면 병렬로 실행해 더 빠르고 효율적입니다(기본 활성화, 끄면 직렬로 돌아갑니다)</string>
     <string name="settings_model_action_test_chat">대화 테스트(전체 경로)</string>
     <string name="settings_model_action_test_chat_short">테스트</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>

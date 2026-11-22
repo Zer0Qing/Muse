@@ -17,10 +17,8 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">プロバイダーリスト</string>
     <string name="settings_provider_empty_title">まだプロバイダーがありません</string>
-    <string name="settings_provider_empty_subtitle">プロバイダーを追加すると、アシスタントが使い始められます</string>
     <string name="settings_provider_empty_action">プロバイダーの追加</string>
     <string name="settings_provider_free_ready_title">内蔵の無料モデルが利用できます</string>
-    <string name="settings_provider_free_ready_subtitle">そのまま会話できます。独自プロバイダーの追加は任意で、枠と機能を拡張できます。</string>
     <string name="settings_provider_category_official">正式</string>
     <string name="settings_provider_category_relay">リレー</string>
     <string name="settings_provider_category_custom">カスタム</string>
@@ -155,12 +153,10 @@
     <string name="settings_backup_message_count">合計メッセージ数</string>
     <string name="settings_backup_local_title">ローカル バックアップ &amp; リストア</string>
     <string name="settings_backup_export">バックアップのエクスポート</string>
-    <string name="settings_backup_export_subtitle">すべてのセッションとメッセージを JSON ファイルとしてエクスポートします</string>
     <string name="settings_backup_plaintext_export_title">暗号化されていないバックアップをエクスポートしますか？</string>
     <string name="settings_backup_plaintext_export_message">バックアップパスワードが設定されていません。続行すると、ファイルを入手した人が内容を読める暗号化されていないバックアップが作成されます。可能であれば、先にクラウドバックアップでパスワードを設定してください。</string>
     <string name="settings_backup_plaintext_export_action">暗号化せずにエクスポート</string>
     <string name="settings_backup_import">インポートバックアップ</string>
-    <string name="settings_backup_import_subtitle">JSON ファイルから復元 (現在のデータは上書きされます)</string>
     <string name="settings_backup_export_success">エクスポートが成功しました: %1$d セッション / %2$d メッセージ</string>
     <string name="settings_backup_export_failed">エクスポートに失敗しました: %1$s</string>
     <string name="settings_backup_import_success">インポートされた %1$d セッション / %2$d メッセージ</string>
@@ -202,7 +198,6 @@
     <string name="settings_mcp_title">MCPサーバー</string>
     <string name="settings_mcp_desc">外部 MCP サーバーに接続し、そのツールをローカルで自動登録します (SSE / StreamableHTTP)</string>
     <string name="settings_mcp_empty_title">MCP サーバーが構成されていません</string>
-    <string name="settings_mcp_empty_subtitle">外部ツールサーバーに接続すると、アシスタントがそのツールを使えます</string>
     <string name="settings_mcp_failed">失敗しました: %1$s</string>
     <string name="settings_mcp_more">もっと</string>
     <string name="settings_mcp_oauth_authorize">OAuth認可</string>
@@ -260,25 +255,20 @@
     <string name="settings_web_address_pin">住所: %1$s PIN: %2$s</string>
     <string name="settings_web_pin_hint">PIN は初回の Web アクセス検証のみに使用されます。</string>
     <string name="settings_web_enable">Webサーバーを有効にする</string>
-    <string name="settings_web_enable_subtitle">次回のアプリ起動時に有効になります</string>
     <string name="settings_web_allow_lan">LANアクセスを許可</string>
-    <string name="settings_web_allow_lan_subtitle">默認ではローカルのみ。同じ Wi-Fi の端末から IP で接続するには有効化</string>
     <string name="settings_web_https">HTTPS を有効化</string>
-    <string name="settings_web_https_subtitle">自己署名証明書で暗号化;初回アクセス時にブラウザが証明書警告を表示します</string>
     <string name="settings_web_https_fingerprint">証明書フィンガープリント (SHA-256)</string>
     <string name="settings_web_port">ポート</string>
     <string name="settings_web_port_subtitle">%1$d (適用するにはアプリを再起動してください)</string>
     <string name="settings_web_password">ログインパスワード</string>
     <string name="settings_web_password_not_set">未設定</string>
     <string name="settings_web_regenerate_password">パスワードを再生成する</string>
-    <string name="settings_web_regenerate_password_subtitle">8文字のランダムなパスワードを生成します（古いパスワードは無効になります）</string>
     <string name="settings_web_new_password">新しいパスワード: %1$s</string>
     <string name="settings_web_pin">ウェブアクセスPIN</string>
     <string name="settings_web_pin_not_set">未設定 (有効にすると自動生成)</string>
     <string name="settings_web_copy_pin">PINをコピーする</string>
     <string name="settings_web_pin_copied">PIN をコピーしました: %1$s</string>
     <string name="settings_web_regenerate_pin">PIN を再生成する</string>
-    <string name="settings_web_regenerate_pin_subtitle">6 桁の PIN を生成します (古い PIN は無効になります。適用するにはアプリを再起動してください)</string>
     <string name="settings_web_new_pin">新しいPIN: %1$s (適用するにはアプリを再起動してください)</string>
     <string name="settings_web_access_address">アクセスアドレス</string>
     <string name="settings_web_not_running">サービスが起動していません。アドレスは利用できません</string>
@@ -300,14 +290,11 @@
     <string name="settings_chat_show_mood">MOODブロックを表示</string>
     <string name="settings_chat_show_reasoning">推論を表示する</string>
     <string name="settings_chat_force_reasoning">思考を強制する</string>
-    <string name="settings_chat_force_reasoning_subtitle">アシスタントの既定値を無視し、推論対応モデルには常に思考させる</string>
     <string name="settings_chat_show_reflection">反射ブロックを表示</string>
-    <string name="settings_chat_show_reflection_subtitle">回答の正確性・完全性・トーンをAIが自己評価</string>
     <string name="settings_chat_show_model">モデル名を表示</string>
     <string name="settings_chat_show_timestamp">タイムスタンプを表示</string>
     <string name="settings_chat_generation_style">生成スタイル</string>
     <string name="settings_chat_reply_language">ユーザーの言語で回答</string>
-    <string name="settings_chat_reply_language_subtitle">本文はメッセージの言語に追従し、判断できない場合は界面言語を使います。オフにするとプロンプトの指定に従います</string>
     <string name="settings_chat_randomness">応答のランダム性</string>
     <string name="settings_chat_temp_hint_certain">決定的、安定的、予測可能</string>
     <string name="settings_chat_temp_hint_balanced_low">バランスが取れており、安定していながらも多様性に富んでいる</string>
@@ -333,31 +320,23 @@
     <string name="settings_chat_auto_scroll">最下位まで自動スクロール</string>
     <string name="settings_chat_volume_scroll">音量キーのスクロール</string>
     <string name="settings_chat_enter_send">入力して送信します</string>
-    <string name="settings_chat_enter_send_subtitle">Enter がオフの場合は改行を挿入します</string>
     <string name="settings_chat_haptic">触覚フィードバック</string>
     <string name="settings_chat_predictive_back">予測戻る</string>
-    <string name="settings_chat_predictive_back_subtitle">システムの戻るアニメーションを使用。オフで即時に戻る</string>
     <string name="settings_chat_show_tool_calls">ツール呼び出しプロセスを表示</string>
     <string name="settings_chat_generative_ui">生成 UI</string>
-    <string name="settings_chat_generative_ui_subtitle">AI がチャット内でグラフ・比較表・小さなツールを生成できるようにする</string>
     <string name="settings_chat_pause_tool_execution">ツール実行を一時停止</string>
-    <string name="settings_chat_pause_tool_execution_subtitle">思考と返信は続け、実際のツールは実行しません</string>
     <string name="settings_chat_24h">24時間形式</string>
     <string name="settings_chat_default_deep_thinking">デフォルトの深い思考</string>
-    <string name="settings_chat_default_deep_thinking_subtitle">セッションの作成または切り替え時にデフォルトでディープシンキングを有効にする</string>
     <!-- v1.0.4 P3-4: Performance mode (MessagePaginator integration) -->
     <string name="settings_chat_performance_mode">パフォーマンスモード</string>
-    <string name="settings_chat_performance_mode_subtitle">長いチャットの場合は、最新の 50 メッセージのみを表示し、スクロールアップ時にさらに読み込むことでラグを軽減します。</string>
     <string name="settings_chat_session_cache">セッションキャッシュ上限</string>
     <string name="settings_chat_session_cache_subtitle">メモリに保持するセッションのメッセージ副本数;大きいほど切替が速く、メモリ使用量も増えます</string>
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">トークンの推定 (実験的)</string>
-    <string name="settings_chat_token_estimate_subtitle">入力バーにトークンカウントボタンを表示します。</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">ツール承認</string>
     <string name="settings_chat_tool_approval_title">ツールの承認</string>
-    <string name="settings_chat_tool_approval_subtitle">AI がツールを呼び出す前にユーザーの確認を必要とするかどうかを制御する</string>
     <string name="settings_chat_tool_approval_trusted">完全に信頼する</string>
     <string name="settings_chat_tool_approval_ask">オンデマンドで質問する</string>
     <string name="settings_chat_tool_approval_strict">ストリクトモード</string>
@@ -365,7 +344,6 @@
     <string name="settings_chat_tool_approval_ask_desc">Ask on Demand: 高リスクのツールは、起動前にプロンプ​​トを表示します。</string>
     <string name="settings_chat_tool_approval_strict_desc">厳密モード: 読み取り専用のクエリ ツールを除き、すべてのツール呼び出しで確認が必要です。</string>
     <string name="cloud_backup_auto_enable">自動バックアップ</string>
-    <string name="cloud_backup_auto_subtitle">設定した間隔で自動的にクラウドへアップロード</string>
     <string name="cloud_backup_backup_failed">アップロード失敗。設定を確認してください</string>
     <string name="cloud_backup_backup_now">今すぐバックアップ</string>
     <string name="cloud_backup_backup_success">クラウドにアップロードしました</string>
@@ -407,13 +385,10 @@
     <string name="settings_chat_expand_button">全画面編集ボタンを表示</string>
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
     <string name="settings_chat_floor_limiter">階層式コンテキスト制限</string>
-    <string name="settings_chat_floor_limiter_subtitle">ユーザーメッセージを階層とみなし、直近 N 階層分の完全な会話を保持し、会話の途中で切れるのを防ぎます</string>
     <string name="settings_chat_tool_rounds">ツールラウンド上限</string>
-    <string name="settings_chat_tool_rounds_subtitle">1ターン内のツール呼び出しラウンド上限。無制限なら長いタスクも中断されません(ループ保護は引き続き有効)</string>
     <string name="settings_chat_tool_rounds_unlimited">無制限</string>
     <string name="settings_chat_floor_count">%1$d 層</string>
     <string name="settings_chat_floor_keep">保持する階層数</string>
-    <string name="settings_chat_floor_keep_subtitle">この階層数を超える古いメッセージは切り捨てられます</string>
 
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">すべてクリア</string>

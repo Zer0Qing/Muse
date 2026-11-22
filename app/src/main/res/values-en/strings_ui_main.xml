@@ -216,7 +216,6 @@
     <string name="settings_screen_web_access">Web access</string>
     <string name="settings_web_access_intro">Open the address below in a browser on your iPhone or PC and enter the PIN to use the web version.</string>
     <string name="settings_web_access_enable">Enable web access</string>
-    <string name="settings_web_access_enable_subtitle">Turning it off disconnects other devices right away and frees the port</string>
     <string name="settings_web_access_lan">Allow LAN access</string>
     <string name="settings_web_access_lan_on">Phones and PCs on the same Wi-Fi can open it</string>
     <string name="settings_web_access_lan_off">Local access only</string>
@@ -247,7 +246,6 @@
     <string name="connection_plugins_title">Plugins</string>
     <string name="connection_plugins_subtitle">%1$d plugins installed; open to review the grants of each</string>
     <string name="connection_tools_title">Tool permissions</string>
-    <string name="connection_tools_subtitle">Approvals, grants and safety policy</string>
     <string name="message_action_annotate">Annotate</string>
     <string name="message_annotate_title">Message notes</string>
     <string name="message_annotate_hint">Write a note…</string>
@@ -407,7 +405,6 @@
     <string name="settings_vision_title">Vision Assist</string>
     <string name="settings_vision_description">When using a text-only model that doesn\'t support image input, automatically call a vision model to analyze images and inject descriptions into the conversation.</string>
     <string name="settings_vision_enabled">Enable Vision Assist</string>
-    <string name="settings_vision_enabled_subtitle">Automatically send images to vision model for analysis</string>
     <string name="settings_vision_model_section">Vision Model</string>
     <string name="settings_vision_no_models">No vision-capable models found. Please add a vision model in provider settings.</string>
     <string name="vision_analysis_starting">Analyzing image with vision model</string>
@@ -817,11 +814,9 @@
     <string name="muse_plugins_market_invalid_url">The catalog URL must start with https://</string>
     <string name="muse_plugins_market_key_id_label">Custom trust root keyId</string>
     <string name="muse_plugins_market_not_configured">Catalog not configured</string>
-    <string name="muse_plugins_market_not_configured_hint">After configuring the signed catalog URL and trust root public key, you can browse and one-click install plugins here.</string>
     <string name="muse_plugins_market_preparing">Verifying and preparing to install…</string>
     <string name="muse_plugins_market_public_key_label">Custom trust root public key (Base64)</string>
     <string name="muse_plugins_market_refresh">Refresh catalog</string>
-    <string name="muse_plugins_market_settings_hint">The plugin market uses the built-in official catalog by default; it is only necessary to fill in a custom catalog and trust root for testing or emergencies.</string>
     <string name="muse_plugins_market_settings_saved">Plugin catalog settings saved</string>
     <string name="muse_plugins_market_settings_title">Plugin catalog settings</string>
     <string name="muse_plugins_market_title">Plugin market</string>
@@ -894,7 +889,6 @@
     <string name="settings_preference_subtitle">Lasting rules the assistant recorded</string>
     <string name="settings_preference_desc">When you tell the assistant "from now on, don\'t…", it stores that as a hard rule here and follows it in every conversation.</string>
     <string name="settings_preference_empty">No preferences recorded yet</string>
-    <string name="settings_preference_empty_hint">Try telling the assistant "don\'t use generic encouragement from now on"</string>
     <string name="settings_preference_disable">Disable</string>
     <string name="settings_preference_enable">Enable</string>
     <string name="settings_preference_delete">Delete</string>

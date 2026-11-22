@@ -207,7 +207,6 @@
     <string name="settings_screen_web_access">Web アクセス</string>
     <string name="settings_web_access_intro">iPhone やパソコンのブラウザで下のアドレスを開き、PIN を入力すると Web 版が使えます。</string>
     <string name="settings_web_access_enable">Web アクセスを有効化</string>
-    <string name="settings_web_access_enable_subtitle">オフにすると他の端末は即座に切断され、ポートも解放されます</string>
     <string name="settings_web_access_lan">ローカルネットワークからのアクセスを許可</string>
     <string name="settings_web_access_lan_on">同じ Wi-Fi 上のスマホやパソコンから開けます</string>
     <string name="settings_web_access_lan_off">この端末からのみアクセス可能</string>
@@ -230,7 +229,6 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">通知リスナー</string>
     <string name="connection_center_title">接続センター</string>
-    <string name="connection_tools_subtitle">承認、許可、安全ポリシー</string>
     <string name="connection_tools_title">ツールの権限</string>
     <string name="connection_plugins_subtitle">インストール済みプラグイン %1$d 個。開くと各能力の認可状態を確認できます</string>
     <string name="connection_plugins_title">プラグイン</string>
@@ -313,7 +311,6 @@
     <string name="settings_vision_title">ビジョンアシスト</string>
     <string name="settings_vision_description">画像入力をサポートしないテキストのみのモデルを使用する場合、自動的にビジョン モデルを呼び出して画像を分析し、会話に説明を挿入します。</string>
     <string name="settings_vision_enabled">ビジョンアシストを有効にする</string>
-    <string name="settings_vision_enabled_subtitle">分析のために画像をビジョンモデルに自動的に送信します</string>
     <string name="settings_vision_model_section">ビジョンモデル</string>
     <string name="settings_vision_no_models">視覚に対応したモデルは見つかりませんでした。</string>
     <string name="vision_analysis_starting">ビジョンモデルによる画像解析</string>
@@ -712,11 +709,9 @@
     <string name="muse_plugins_market_invalid_url">カタログのURLは https:// で始まる必要があります</string>
     <string name="muse_plugins_market_key_id_label">カスタム信頼ルート keyId</string>
     <string name="muse_plugins_market_not_configured">カタログ未設定</string>
-    <string name="muse_plugins_market_not_configured_hint">署名カタログの URL と信頼ルートの公開鍵を設定すると、ここでプラグインを閲覧してワンクリックインストールできます。</string>
     <string name="muse_plugins_market_preparing">検証してインストールの準備中…</string>
     <string name="muse_plugins_market_public_key_label">カスタム信頼ルート公開鍵（Base64）</string>
     <string name="muse_plugins_market_refresh">カタログを更新</string>
-    <string name="muse_plugins_market_settings_hint">プラグインマーケットはデフォルトで組み込みの公式カタログを使用します。カスタムカタログと信頼ルートを入力する必要があるのはテストや緊急時のみです。</string>
     <string name="muse_plugins_market_settings_saved">プラグインカタログ設定を保存しました</string>
     <string name="muse_plugins_market_settings_title">プラグインカタログ設定</string>
     <string name="muse_plugins_market_title">プラグインマーケット</string>
@@ -789,7 +784,6 @@
     <string name="settings_preference_subtitle">アシスタントが記録した長期的なルール</string>
     <string name="settings_preference_desc">「今後は…しないで」と伝えると、ここにハード制約として保存され、すべての会話で守られます。</string>
     <string name="settings_preference_empty">まだ設定は記録されていません</string>
-    <string name="settings_preference_empty_hint">「今後は空疎な励ましを使わないで」と伝えてみてください</string>
     <string name="settings_preference_disable">無効化</string>
     <string name="settings_preference_enable">有効化</string>
     <string name="settings_preference_delete">削除</string>

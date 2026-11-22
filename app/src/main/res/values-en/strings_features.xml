@@ -548,7 +548,6 @@
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">Enable LLM Review</string>
     <string name="multi_agent_llm_review_model">Review Model</string>
-    <string name="multi_agent_llm_review_desc">Use a separate LLM call to review multi-agent results; higher quality but increased latency and token usage</string>
     <string name="quick_notes_attachment_count">%1$d attachments</string>
     <string name="quick_notes_encrypt_off">Decrypt</string>
     <string name="quick_notes_encrypt_on">Encrypt</string>
@@ -632,12 +631,8 @@
     <string name="mini_album_visibility_cd_shown">Show hidden images</string>
     <string name="mini_album_empty_no_images">No AI images yet</string>
     <string name="mini_album_empty_all_hidden">No viewable images in album</string>
-    <string name="mini_album_empty_no_images_hint">Configure an image model and generated images will appear here</string>
-    <string name="mini_album_empty_all_hidden_hint">Unhide via image actions</string>
     <string name="mini_album_image_cd">AI image</string>
     <string name="mini_album_actions_title">Image actions</string>
-    <string name="mini_album_restore_hint">This image will reappear in the album after restoring</string>
-    <string name="mini_album_hide_hint">This image is only hidden from the album, the chat history is kept</string>
     <string name="mini_album_restore_action">Show</string>
     <string name="mini_album_hide_action">Hide from album</string>
     <string name="mini_album_unfavorite_action">Unfavorite</string>
@@ -685,7 +680,6 @@
     <string name="chat_clear_background">Clear conversation background</string>
     <string name="chat_background_cleared">Conversation background cleared</string>
     <string name="mini_album_import_cd">Import images</string>
-    <string name="mini_album_delete_imported_hint">This image was imported by you. Deleting removes the file.</string>
     <string name="mini_album_delete_imported_action">Delete image</string>
     <string name="quick_notes_remove_image">Remove image %1$d</string>
     <!-- Background wake diagnostics: whether the system actually has wakeups queued for Muse (read-only). -->

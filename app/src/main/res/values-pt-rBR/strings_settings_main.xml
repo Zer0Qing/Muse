@@ -17,10 +17,8 @@
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Lista de provedores</string>
     <string name="settings_provider_empty_title">Ainda não há provedores</string>
-    <string name="settings_provider_empty_subtitle">Adicione um provedor para o assistente começar a funcionar</string>
     <string name="settings_provider_empty_action">Adicionar provedor</string>
     <string name="settings_provider_free_ready_title">Os modelos gratuitos integrados estão prontos</string>
-    <string name="settings_provider_free_ready_subtitle">Já dá para conversar. Adicionar seu próprio provedor é opcional e amplia cota e recursos.</string>
     <string name="settings_provider_category_official">Oficial</string>
     <string name="settings_provider_category_relay">Relé</string>
     <string name="settings_provider_category_custom">Personalizado</string>
@@ -155,12 +153,10 @@
     <string name="settings_backup_message_count">Total de mensagens</string>
     <string name="settings_backup_local_title">Backup local &amp; Restauração</string>
     <string name="settings_backup_export">Exportar backup</string>
-    <string name="settings_backup_export_subtitle">Exporte todas as sessões e mensagens como um arquivo JSON</string>
     <string name="settings_backup_plaintext_export_title">Exportar um backup sem criptografia?</string>
     <string name="settings_backup_plaintext_export_message">Nenhuma senha de backup está configurada. Continuar criará um arquivo sem criptografia que qualquer pessoa com acesso a ele poderá ler. Se possível, configure primeiro uma senha no Backup na nuvem.</string>
     <string name="settings_backup_plaintext_export_action">Exportar sem criptografia</string>
     <string name="settings_backup_import">Importar backup</string>
-    <string name="settings_backup_import_subtitle">Restaurar de um arquivo JSON (os dados atuais serão substituídos)</string>
     <string name="settings_backup_export_success">Exportação bem-sucedida: %1$d sessões / %2$d mensagens</string>
     <string name="settings_backup_export_failed">Falha na exportação: %1$s</string>
     <string name="settings_backup_import_success">Sessões %1$d importadas / mensagens %2$d</string>
@@ -202,7 +198,6 @@
     <string name="settings_mcp_title">Servidores MCP</string>
     <string name="settings_mcp_desc">Conecte-se a servidores MCP externos e registre automaticamente suas ferramentas localmente (SSE/StreamableHTTP)</string>
     <string name="settings_mcp_empty_title">Nenhum servidor MCP configurado</string>
-    <string name="settings_mcp_empty_subtitle">Conecte um servidor de ferramentas externo para o assistente usar essas ferramentas</string>
     <string name="settings_mcp_failed">Falha: %1$s</string>
     <string name="settings_mcp_more">Mais</string>
     <string name="settings_mcp_oauth_authorize">Autorização OAuth</string>
@@ -260,25 +255,20 @@
     <string name="settings_web_address_pin">Endereço: %1$s PIN: %2$s</string>
     <string name="settings_web_pin_hint">O PIN serve apenas para verificação de acesso à web pela primeira vez;</string>
     <string name="settings_web_enable">Habilitar servidor web</string>
-    <string name="settings_web_enable_subtitle">Entra em vigor no próximo lançamento do aplicativo</string>
     <string name="settings_web_allow_lan">Permitir acesso LAN</string>
-    <string name="settings_web_allow_lan_subtitle">Somente local por padrão; ative para permitir dispositivos na mesma Wi-Fi</string>
     <string name="settings_web_https">Ativar HTTPS</string>
-    <string name="settings_web_https_subtitle">Criptografado com certificado autoassinado; o navegador avisara sobre o certificado nao confiavel na primeira visita</string>
     <string name="settings_web_https_fingerprint">Impressao digital do certificado (SHA-256)</string>
     <string name="settings_web_port">Porta</string>
     <string name="settings_web_port_subtitle">%1$d (reinicie o aplicativo para aplicar)</string>
     <string name="settings_web_password">Senha de login</string>
     <string name="settings_web_password_not_set">Não definido</string>
     <string name="settings_web_regenerate_password">Regenerar senha</string>
-    <string name="settings_web_regenerate_password_subtitle">Gere uma senha aleatória de 8 caracteres (senha antiga invalidada)</string>
     <string name="settings_web_new_password">Nova senha: %1$s</string>
     <string name="settings_web_pin">PIN de acesso à Web</string>
     <string name="settings_web_pin_not_set">Não definido (gerado automaticamente quando ativado)</string>
     <string name="settings_web_copy_pin">Copiar PIN</string>
     <string name="settings_web_pin_copied">PIN copiado: %1$s</string>
     <string name="settings_web_regenerate_pin">Regenerar PIN</string>
-    <string name="settings_web_regenerate_pin_subtitle">Gere um PIN de 6 dígitos (PIN antigo invalidado; reinicie o aplicativo para aplicar)</string>
     <string name="settings_web_new_pin">Novo PIN: %1$s (reinicie o aplicativo para aplicar)</string>
     <string name="settings_web_access_address">Endereço de acesso</string>
     <string name="settings_web_not_running">O serviço não está em execução; o endereço está indisponível</string>
@@ -300,14 +290,11 @@
     <string name="settings_chat_show_mood">Mostrar bloco MOOD</string>
     <string name="settings_chat_show_reasoning">Mostrar raciocínio</string>
     <string name="settings_chat_force_reasoning">Forçar raciocínio</string>
-    <string name="settings_chat_force_reasoning_subtitle">Ignore o padrão do assistente e faça modelos com raciocínio sempre pensarem</string>
     <string name="settings_chat_show_reflection">Mostrar bloco de reflexão</string>
-    <string name="settings_chat_show_reflection_subtitle">Autoavaliação de IA da precisão/completude/tom da resposta</string>
     <string name="settings_chat_show_model">Mostrar nome do modelo</string>
     <string name="settings_chat_show_timestamp">Mostrar carimbo de data/hora</string>
     <string name="settings_chat_generation_style">Estilo de Geração</string>
     <string name="settings_chat_reply_language">Responder no idioma do usuário</string>
-    <string name="settings_chat_reply_language_subtitle">As respostas seguem o idioma da sua mensagem e, sem definição, o do app. Desative para que os prompts decidam</string>
     <string name="settings_chat_randomness">Aleatoriedade de resposta</string>
     <string name="settings_chat_temp_hint_certain">Determinístico, estável e previsível</string>
     <string name="settings_chat_temp_hint_balanced_low">Inclinação equilibrada, estável, mas diversificada</string>
@@ -333,31 +320,23 @@
     <string name="settings_chat_auto_scroll">Rolar automaticamente para baixo</string>
     <string name="settings_chat_volume_scroll">Rolagem da tecla de volume</string>
     <string name="settings_chat_enter_send">Entre para enviar</string>
-    <string name="settings_chat_enter_send_subtitle">Enter insere uma nova linha quando desativado</string>
     <string name="settings_chat_haptic">Feedback tátil</string>
     <string name="settings_chat_predictive_back">Voltar preditivo</string>
-    <string name="settings_chat_predictive_back_subtitle">Usar a animação do sistema; desative para voltar imediatamente</string>
     <string name="settings_chat_show_tool_calls">Mostrar processo de chamada de ferramenta</string>
     <string name="settings_chat_generative_ui">Interface generativa</string>
-    <string name="settings_chat_generative_ui_subtitle">Permitir que a IA gere gráficos, tabelas comparativas e pequenas ferramentas no chat</string>
     <string name="settings_chat_pause_tool_execution">Pausar execução de ferramentas</string>
-    <string name="settings_chat_pause_tool_execution_subtitle">Manter raciocínio e respostas sem executar ferramentas reais</string>
     <string name="settings_chat_24h">Formato 24 horas</string>
     <string name="settings_chat_default_deep_thinking">Pensamento profundo padrão</string>
-    <string name="settings_chat_default_deep_thinking_subtitle">Habilite o pensamento profundo por padrão ao criar ou alternar sessões</string>
     <!-- v1.0.4 P3-4: Performance mode (MessagePaginator integration) -->
     <string name="settings_chat_performance_mode">Modo de desempenho</string>
-    <string name="settings_chat_performance_mode_subtitle">Para bate-papos longos, renderize apenas as 50 mensagens mais recentes e carregue mais na rolagem para cima para reduzir o atraso</string>
     <string name="settings_chat_session_cache">Limite de cache de sessoes</string>
     <string name="settings_chat_session_cache_subtitle">Copias de mensagens de sessao mantidas na memoria; maior = troca mais rapida, mais memoria</string>
     <!-- v1.0.47 P5-3: Token estimate (experimental) -->
     <string name="settings_chat_token_estimate">Estimativa de token (experimental)</string>
-    <string name="settings_chat_token_estimate_subtitle">Mostre um botão de contagem de tokens na barra de entrada;</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
     <string name="settings_chat_tool_approval_section">Aprovação de ferramentas</string>
     <string name="settings_chat_tool_approval_title">Aprovação de ferramenta</string>
-    <string name="settings_chat_tool_approval_subtitle">Controle se a IA precisa da sua confirmação antes de chamar as ferramentas</string>
     <string name="settings_chat_tool_approval_trusted">Confie Totalmente</string>
     <string name="settings_chat_tool_approval_ask">Pergunte sob demanda</string>
     <string name="settings_chat_tool_approval_strict">Modo Estrito</string>
@@ -365,7 +344,6 @@
     <string name="settings_chat_tool_approval_ask_desc">Pergunte sob demanda: ferramentas de alto risco avisam você antes da invocação;</string>
     <string name="settings_chat_tool_approval_strict_desc">Modo Estrito: todas as chamadas de ferramenta exigem sua confirmação, exceto ferramentas de consulta somente leitura</string>
     <string name="cloud_backup_auto_enable">Backup automático agendado</string>
-    <string name="cloud_backup_auto_subtitle">Envio automático para a nuvem em intervalos definidos</string>
     <string name="cloud_backup_backup_failed">Falha no upload, verifique a configuração</string>
     <string name="cloud_backup_backup_now">Fazer backup agora</string>
     <string name="cloud_backup_backup_success">Enviado para a nuvem</string>
@@ -408,13 +386,10 @@
     <string name="settings_chat_expand_button">Mostrar botão de edição em tela cheia</string>
     <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
     <string name="settings_chat_floor_limiter">Limite de contexto por andares</string>
-    <string name="settings_chat_floor_limiter_subtitle">Trata mensagens do usuário como andares, mantém os últimos N andares completos para evitar cortar no meio da conversa</string>
     <string name="settings_chat_tool_rounds">Limite de rodadas de ferramentas</string>
-    <string name="settings_chat_tool_rounds_subtitle">Máximo de rodadas de chamadas de ferramentas por turno; Ilimitado permite concluir tarefas longas (as proteções contra loops continuam ativas)</string>
     <string name="settings_chat_tool_rounds_unlimited">Ilimitado</string>
     <string name="settings_chat_floor_count">%1$d andares</string>
     <string name="settings_chat_floor_keep">Andares a manter</string>
-    <string name="settings_chat_floor_keep_subtitle">Mensagens antigas além dessa contagem de andares são truncadas</string>
 
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">Limpar tudo</string>

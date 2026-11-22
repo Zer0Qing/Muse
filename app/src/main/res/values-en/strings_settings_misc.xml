@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_experiments_session_attachment_rag">Chat attachment search</string>
-    <string name="settings_experiments_session_attachment_rag_subtitle">Documents uploaded in a chat are indexed for retrieval so the assistant can cite them. Experimental; the index is cleared with the session.</string>
     <!-- Shared.kt -->
     <string name="settings_selected_suffix">, Selected</string>
 
@@ -15,7 +14,6 @@
     <!-- WebSearchSection.kt -->
     <string name="settings_web_search_section">Web Search</string>
     <string name="settings_web_search_enable">Enable Web Search</string>
-    <string name="settings_web_search_enable_subtitle">Global default state; when off, the input bar chip can still toggle it temporarily</string>
     <string name="settings_web_search_engine">Search Engine</string>
     <string name="settings_saved">Saved</string>
     <string name="settings_web_search_save_api_key">Save API Key</string>
@@ -28,13 +26,9 @@
     <string name="settings_experiments_warning">The following features are experimental and may be unstable or affect your experience</string>
     <string name="settings_experiments_features">Experimental Features</string>
     <string name="settings_experiments_force_mood">Force MOOD Output</string>
-    <string name="settings_experiments_force_mood_subtitle">Attempt to require MOOD block output even if the model does not support it</string>
     <string name="settings_experiments_debug_mode">Debug Mode</string>
-    <string name="settings_experiments_debug_mode_subtitle">Show more internal state (MOOD/tool calls/tokens)</string>
     <string name="settings_experiments_self_reflection">Self-Reflection</string>
-    <string name="settings_experiments_self_reflection_subtitle">Automatically check quality after replying</string>
     <string name="settings_experiments_long_memory_compression">Long Memory Compression</string>
-    <string name="settings_experiments_long_memory_compression_subtitle">Auto-summarize very long conversations (enabled by default since v1.55)</string>
 
     <!-- UserProfileEditPage.kt -->
     <string name="settings_user_profile_title">User Profile</string>
@@ -126,18 +120,14 @@
     <string name="settings_assistant_skills">Skill Manager</string>
     <string name="settings_assistant_skills_subtitle">View/enable/disable tools the LLM can call (file I/O, HTTP, etc.)</string>
     <string name="settings_assistant_memory_enable">Enable Memory System</string>
-    <string name="settings_assistant_memory_enable_subtitle">When off, conversations no longer inject long-term memory and background summarization stops</string>
 
     <!-- MultiAgentSettingsPage.kt -->
     <string name="settings_multi_agent_title">Multi-Agent Collaboration</string>
     <string name="settings_multi_agent_enable">Enable Multi-Agent Collaboration</string>
-    <string name="settings_multi_agent_enable_subtitle">When enabled, the main assistant can delegate tasks to team members</string>
     <string name="settings_multi_agent_team_list">Team List</string>
     <string name="settings_multi_agent_no_team">No teams yet</string>
-    <string name="settings_multi_agent_no_team_hint">Tap below to create a team</string>
     <string name="settings_multi_agent_new_team">New Team</string>
     <string name="settings_multi_agent_writing_team_template">Writing Team Template</string>
-    <string name="settings_multi_agent_writing_team_template_desc">Outline → Draft → Polish: one-tap prefilled flow</string>
     <string name="settings_multi_agent_writing_team_name">Writing Team</string>
     <string name="settings_multi_agent_writing_team_desc">Collaborative writing: outline → draft → polish. Add assistants as members in this order.</string>
     <string name="settings_multi_agent_delete_team">Delete Team</string>
@@ -283,7 +273,6 @@
     <string name="settings_crash_pending_hint_idle">Crashes will be added to the pending queue automatically</string>
     <string name="settings_crash_report_now_button">Report pending crashes now</string>
     <string name="settings_crash_settings_section">Report settings</string>
-    <string name="settings_crash_enable_subtitle">Crash logs are only sent when you tap Report now</string>
     <string name="settings_crash_privacy_section">Privacy</string>
     <string name="settings_crash_privacy_title">Crash reporting privacy promise</string>
     <string name="settings_crash_privacy_content">• Crash reporting is off by default and must be enabled manually; ANR detection is on by default but only writes local logs and is never uploaded\n• A confirmation dialog appears before reporting — never silently uploaded\n• Crash stacks are redacted (API keys / Bearer tokens are replaced with ***)\n• Only collected: device model / Android version / App version / timestamp\n• Does NOT collect IMEI / Android ID / MAC or any unique device identifier\n• Email: opens the email app for you to confirm sending\n• Webhook: HTTP POST to the URL you configure</string>
@@ -310,7 +299,6 @@
     <string name="settings_web_search_diagnosis">Latest Search Diagnosis</string>
     <string name="settings_web_search_no_diagnosis">No search records yet</string>
     <string name="settings_experiments_parallel_tools">Parallel read-only tools</string>
-    <string name="settings_experiments_parallel_tools_subtitle">When all tools in one round are read-only, run them in parallel for speed and efficiency (enabled by default; can be turned off to return to serial)</string>
     <string name="settings_model_action_test_chat">Test conversation (full pipeline)</string>
     <string name="settings_model_action_test_chat_short">Test</string>
     <string name="settings_web_search_path_baidu">Baidu HTTP</string>

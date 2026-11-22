@@ -8,7 +8,6 @@
     <string name="chat_msg_selected">Selecionada</string>
     <string name="chat_msg_not_selected">Não selecionada</string>
     <string name="moment_images_selected">%1$d selecionadas (toque para continuar)</string>
-    <string name="moment_add_images_hint">Adicionar imagens (máx. %1$d)</string>
     <!-- ===== Diário (MiniDiaryScreen) ===== -->
     <string-array name="diary_weekdays_short">
         <item>D</item>
@@ -38,7 +37,6 @@
     <string name="moment_more_actions">Mais ações para esta publicação</string>
     <string name="moment_sender_muse">Muse</string>
     <string name="moment_sender_me">Eu</string>
-    <string name="moment_comment_hint">Publicar comentário:</string>
     <string name="moment_delete_title">Excluir publicação</string>
     <string name="moment_image_cd">Imagem da publicação</string>
     <string name="moment_image_cd_indexed">Imagem da publicação %1$d</string>
@@ -47,7 +45,6 @@
     <string name="moment_messages_cd">Mensagens</string>
     <string name="moment_publish_cd">Publicar (toque para imagem, pressione e segure para texto)</string>
     <string name="moment_empty_feed">Ainda não há publicações</string>
-    <string name="moment_empty_hint">Toque em + no canto superior direito para criar sua primeira publicação\nMuse e os assistentes também compartilharão suas vidas</string>
     <string name="moment_messages_empty">Ainda não há curtidas ou comentários</string>
     <string name="moment_notification_liked">%1$s curtiu sua publicação</string>
     <string name="moment_notification_commented">%1$s comentou sua publicação</string>
@@ -382,16 +379,13 @@
     <!-- ChatSettingsPage sticker library section -->
     <string name="settings_chat_sticker_section">Biblioteca de adesivos</string>
     <string name="settings_sticker_enabled">Ativar adesivos</string>
-    <string name="settings_sticker_enabled_subtitle">Permitir que o assistente envie adesivos nas respostas</string>
     <string name="settings_sticker_frequency">Frequência</string>
     <string name="settings_sticker_frequency_subtitle">O assistente adiciona adesivos naturalmente quando o contexto combina</string>
     <string name="settings_sticker_freq_occasional">Ocasional</string>
     <string name="settings_sticker_freq_normal">Normal</string>
     <string name="settings_sticker_freq_frequent">Frequente</string>
     <string name="settings_sticker_upload">Importar figurinhas</string>
-    <string name="settings_sticker_upload_subtitle">Aceita zip, documentos docx/pptx e imagens; um arquivo por vez</string>
     <string name="settings_sticker_add_from_gallery">Adicionar da galeria</string>
-    <string name="settings_sticker_add_from_gallery_subtitle">Escolha varias de uma vez; vao para o pacote aberto</string>
     <string name="settings_sticker_review_title">Revisar %1$d adesivos</string>
     <string name="settings_sticker_review_hint">A selecao automatica pode errar; toque para desmarcar. Pacote: %2$s</string>
     <string name="settings_sticker_review_import">Importar %1$d</string>
@@ -514,7 +508,6 @@
     <string name="chat_pending_tools_discard_confirm_msg">Elas não serão executadas e não poderão ser recuperadas.</string>
     <string name="moment_mood_prefix">Humor: %1$s</string>
     <string name="moment_published">Momento publicado</string>
-    <string name="moment_search_hint">Buscar momentos, autores ou tipos</string>
     <string name="moment_search_clear_cd">Limpar busca</string>
     <string name="moment_favorites_only_cd">Somente favoritos</string>
     <string name="moment_generating">Gerando…</string>
@@ -527,7 +520,6 @@
     <string name="settings_bubble_radius_none">Quadrado</string>
     <string name="settings_bubble_radius_pill">Pílula</string>
     <string name="settings_bubble_radius_small">Raio pequeno</string>
-    <string name="settings_bubble_radius_subtitle">Defina o nível de arredondamento dos balões de mensagem</string>
     <string name="settings_bubble_radius_title">Arredondamento das mensagens</string>
     <string name="chat_delete_scope_only">Excluir apenas esta mensagem (incluindo suas respostas)</string>
     <string name="chat_delete_scope_with_following">Excluir esta mensagem e todas as seguintes</string>
@@ -570,9 +562,7 @@
     <string name="chat_tool_paused_banner">A execução de ferramentas está pausada, então não serão executadas.</string>
     <string name="chat_tool_paused_banner_action">Configurações</string>
     <string name="settings_chat_show_assistant_name">Mostrar nome do assistente</string>
-    <string name="settings_chat_show_assistant_name_subtitle">Mostra quem está falando acima da mensagem</string>
     <string name="settings_chat_show_user_name">Mostrar meu nome</string>
-    <string name="settings_chat_show_user_name_subtitle">Exibe seu apelido acima das suas mensagens; útil em conversas em grupo e com vários assistentes</string>
     <string name="chat_placeholder_simple">Mensagem…</string>
     <string name="chat_ignore_memory_option_on">Ignorar memória: ativado</string>
     <string name="chat_ignore_memory_option_off">Ignorar memória: desativado</string>

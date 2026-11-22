@@ -207,7 +207,6 @@
     <string name="settings_screen_web_access">Acceso web</string>
     <string name="settings_web_access_intro">Abre la dirección de abajo en el navegador de tu iPhone u ordenador e introduce el PIN para usar la versión web.</string>
     <string name="settings_web_access_enable">Activar acceso web</string>
-    <string name="settings_web_access_enable_subtitle">Al desactivarlo, los demás dispositivos se desconectan al instante y se libera el puerto</string>
     <string name="settings_web_access_lan">Permitir acceso en la red local</string>
     <string name="settings_web_access_lan_on">Los móviles y ordenadores en la misma Wi-Fi pueden abrirla</string>
     <string name="settings_web_access_lan_off">Solo accesible desde este dispositivo</string>
@@ -230,7 +229,6 @@
     <!-- v1.0.4: Notification listener -->
     <string name="settings_screen_notification_listener">Escucha de notificaciones</string>
     <string name="connection_center_title">Extensiones y conexiones</string>
-    <string name="connection_tools_subtitle">Aprobaciones, permisos y políticas de seguridad</string>
     <string name="connection_tools_title">Permisos de herramientas</string>
     <string name="connection_plugins_subtitle">%1$d plugins instalados; ábrelos para revisar sus permisos</string>
     <string name="connection_plugins_title">Plugins</string>
@@ -313,7 +311,6 @@
     <string name="settings_vision_title">Asistencia de visión</string>
     <string name="settings_vision_description">Cuando usas un modelo de solo texto que no admite imágenes, se llama automáticamente a un modelo de visión para analizarlas e insertar su descripción en la conversación.</string>
     <string name="settings_vision_enabled">Activar asistencia de visión</string>
-    <string name="settings_vision_enabled_subtitle">Envía automáticamente las imágenes al modelo de visión para analizarlas</string>
     <string name="settings_vision_model_section">Modelo de visión</string>
     <string name="settings_vision_no_models">No se encontraron modelos con capacidad de visión. Añade un modelo de visión en los ajustes del proveedor.</string>
     <string name="vision_analysis_starting">Analizando la imagen con el modelo de visión auxiliar</string>
@@ -715,11 +712,9 @@
     <string name="muse_plugins_market_invalid_url">La dirección del catálogo debe comenzar con https://</string>
     <string name="muse_plugins_market_key_id_label">keyId de raíz de confianza personalizado</string>
     <string name="muse_plugins_market_not_configured">Catálogo no configurado</string>
-    <string name="muse_plugins_market_not_configured_hint">Tras configurar la dirección del catálogo firmado y la clave pública de la raíz de confianza, podrás navegar e instalar plugins con un clic aquí.</string>
     <string name="muse_plugins_market_preparing">Verificando y preparando la instalación…</string>
     <string name="muse_plugins_market_public_key_label">Clave pública de la raíz de confianza personalizada (Base64)</string>
     <string name="muse_plugins_market_refresh">Actualizar catálogo</string>
-    <string name="muse_plugins_market_settings_hint">El mercado de plugins usa por defecto el catálogo oficial integrado. Solo es necesario rellenar un catálogo personalizado y una raíz de confianza para pruebas o emergencias.</string>
     <string name="muse_plugins_market_settings_saved">Ajustes del catálogo de plugins guardados</string>
     <string name="muse_plugins_market_settings_title">Ajustes del catálogo de plugins</string>
     <string name="muse_plugins_market_title">Mercado de plugins</string>
@@ -792,7 +787,6 @@
     <string name="settings_preference_subtitle">Reglas duraderas registradas por el asistente</string>
     <string name="settings_preference_desc">Cuando le dices al asistente «de ahora en adelante, no…», lo guarda aquí como regla estricta y la cumple en todas las conversaciones.</string>
     <string name="settings_preference_empty">Aún no hay preferencias registradas</string>
-    <string name="settings_preference_empty_hint">Prueba a decirle «no uses elogios genéricos de ahora en adelante»</string>
     <string name="settings_preference_disable">Desactivar</string>
     <string name="settings_preference_enable">Activar</string>
     <string name="settings_preference_delete">Eliminar</string>
