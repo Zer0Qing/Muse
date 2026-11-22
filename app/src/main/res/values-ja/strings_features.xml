@@ -223,7 +223,6 @@
     <string name="knowledge_search_placeholder">タイトルまたは内容を検索…</string>
     <string name="knowledge_no_match_title">一致するドキュメントが見つかりませんでした</string>
     <string name="knowledge_empty_title">ナレッジベースが空です</string>
-    <string name="knowledge_no_match_subtitle">別のキーワードを試してください</string>
     <string name="knowledge_deleted">削除されました</string>
     <string name="knowledge_delete_doc">文書の削除</string>
     <string name="knowledge_delete">消去</string>

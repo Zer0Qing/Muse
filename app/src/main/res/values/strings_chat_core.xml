@@ -344,7 +344,6 @@
 
     <!-- 空状态 -->
     <string name="chat_list_empty_archived">还没有归档的任务</string>
-    <string name="chat_list_empty_archived_sub">长按会话可选择归档</string>
 
     <!-- 分组标题 -->
     <string name="chat_list_section_recent">最近</string>

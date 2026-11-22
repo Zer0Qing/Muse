@@ -223,7 +223,6 @@
     <string name="knowledge_search_placeholder">Pesquisar título ou conteúdo…</string>
     <string name="knowledge_no_match_title">Nenhum documento correspondente encontrado</string>
     <string name="knowledge_empty_title">A base de conhecimento está vazia</string>
-    <string name="knowledge_no_match_subtitle">Experimente uma palavra-chave diferente</string>
     <string name="knowledge_deleted">Excluído</string>
     <string name="knowledge_delete_doc">Excluir documento</string>
     <string name="knowledge_delete">Excluir</string>

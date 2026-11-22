@@ -248,7 +248,6 @@
     <string name="knowledge_search_placeholder">Search title or content…</string>
     <string name="knowledge_no_match_title">No matching documents found</string>
     <string name="knowledge_empty_title">Knowledge base is empty</string>
-    <string name="knowledge_no_match_subtitle">Try a different keyword</string>
     <string name="knowledge_deleted">Deleted</string>
     <string name="knowledge_delete_doc">Delete document</string>
     <string name="knowledge_delete">Delete</string>
@@ -509,7 +508,6 @@
     <string name="groupchat_unarchive">Unarchive</string>
     <string name="groupchat_archived_title">Archived group chats</string>
     <string name="groupchat_empty_archived">No archived group chats yet</string>
-    <string name="groupchat_empty_archived_sub">Long-press a group chat to archive it</string>
     <string name="groupchat_unarchived">Unarchived</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->

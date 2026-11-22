@@ -140,7 +140,6 @@
     <!-- ===== ui/FavoritesScreen 收藏夹 ===== -->
     <string name="favorites_title">收藏夹 (%1$d)</string>
     <string name="favorites_empty_title">还没有收藏的消息</string>
-    <string name="favorites_empty_subtitle">在聊天页点击消息操作行的星标即可收藏</string>
     <string name="favorites_role_user">我</string>
     <string name="favorites_role_system">系统</string>
     <string name="favorites_role_tool">工具</string>

@@ -288,7 +288,6 @@ private fun FavoritesListArea(
             MuseEmptyState(
                 icon = MuseIcons.star,
                 title = stringResource(R.string.favorites_empty_title),
-                subtitle = stringResource(R.string.favorites_empty_subtitle),
             )
         }
     } else if (visibleFavorites.isEmpty()) {

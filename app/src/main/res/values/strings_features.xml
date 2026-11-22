@@ -154,7 +154,6 @@
     <!-- 2026-11-20: 群聊归档列表（归档后原本无任何恢复入口） -->
     <string name="groupchat_archived_title">已归档群聊</string>
     <string name="groupchat_empty_archived">还没有归档的群聊</string>
-    <string name="groupchat_empty_archived_sub">长按群聊可选择归档</string>
     <string name="groupchat_unarchived">已取消归档</string>
 
     <!-- ===== ui/account ===== -->
@@ -374,7 +373,6 @@
     <string name="knowledge_search_placeholder">搜索标题或内容…</string>
     <string name="knowledge_no_match_title">未找到匹配的文档</string>
     <string name="knowledge_empty_title">知识库为空</string>
-    <string name="knowledge_no_match_subtitle">试试其他关键词</string>
     <string name="knowledge_deleted">已删除</string>
     <string name="knowledge_delete_doc">删除文档</string>
     <string name="knowledge_reindex">重新索引</string>

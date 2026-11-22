@@ -310,7 +310,6 @@
 
     <!-- Empty states -->
     <string name="chat_list_empty_archived">No archived tasks yet</string>
-    <string name="chat_list_empty_archived_sub">Long-press a chat to archive it</string>
 
     <!-- Section titles -->
     <string name="chat_list_section_recent">Recent</string>

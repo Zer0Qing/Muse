@@ -126,7 +126,6 @@
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">즐겨찾기(%1$d)</string>
     <string name="favorites_empty_title">아직 즐겨찾기가 없습니다.</string>
-    <string name="favorites_empty_subtitle">즐겨찾기에 추가하려면 채팅 메시지의 별표를 탭하세요.</string>
     <string name="favorites_role_user">나</string>
     <string name="favorites_role_system">체계</string>
     <string name="favorites_role_tool">도구</string>

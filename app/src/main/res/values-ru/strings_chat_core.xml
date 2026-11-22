@@ -294,7 +294,6 @@
 
     <!-- Empty states -->
     <string name="chat_list_empty_archived">Заархивированных задач пока нет</string>
-    <string name="chat_list_empty_archived_sub">Нажмите и удерживайте чат, чтобы заархивировать его.</string>
 
     <!-- Section titles -->
     <string name="chat_list_section_recent">Недавний</string>

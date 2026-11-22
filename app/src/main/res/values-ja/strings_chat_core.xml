@@ -264,7 +264,6 @@
 
     <!-- Empty states -->
     <string name="chat_list_empty_archived">アーカイブされたタスクはまだありません</string>
-    <string name="chat_list_empty_archived_sub">チャットを長押ししてアーカイブします</string>
 
     <!-- Section titles -->
     <string name="chat_list_section_recent">最近の</string>

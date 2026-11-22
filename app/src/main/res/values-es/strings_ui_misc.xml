@@ -126,7 +126,6 @@ Toca actualizar para obtener la lista</string>
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">Favoritos (%1$d)</string>
     <string name="favorites_empty_title">Aún no hay favoritos</string>
-    <string name="favorites_empty_subtitle">Toca la estrella de un mensaje en el chat para añadirlo a favoritos</string>
     <string name="favorites_role_user">Yo</string>
     <string name="favorites_role_system">Sistema</string>
     <string name="favorites_role_tool">Herramienta</string>

@@ -291,7 +291,6 @@
 
     <!-- Empty states -->
     <string name="chat_list_empty_archived">Aún no hay tareas archivadas</string>
-    <string name="chat_list_empty_archived_sub">Mantén pulsado un chat para archivarlo</string>
 
     <!-- Section titles -->
     <string name="chat_list_section_recent">Recientes</string>

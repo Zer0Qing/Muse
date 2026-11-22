@@ -126,7 +126,6 @@
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">Избранное (%1$d)</string>
     <string name="favorites_empty_title">Пока нет избранных</string>
-    <string name="favorites_empty_subtitle">Нажмите звездочку на сообщении в чате, чтобы добавить его в избранное.</string>
     <string name="favorites_role_user">Мне</string>
     <string name="favorites_role_system">Система</string>
     <string name="favorites_role_tool">Инструмент</string>

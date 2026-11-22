@@ -135,7 +135,6 @@ Tap refresh to fetch the list upstream</string>
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">Favorites (%1$d)</string>
     <string name="favorites_empty_title">No favorites yet</string>
-    <string name="favorites_empty_subtitle">Tap the star on a message in chat to favorite it</string>
     <string name="favorites_role_user">Me</string>
     <string name="favorites_role_system">System</string>
     <string name="favorites_role_tool">Tool</string>

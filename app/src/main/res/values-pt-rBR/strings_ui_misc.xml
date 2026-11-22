@@ -126,7 +126,6 @@ Toque em atualizar para buscar a lista</string>
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">Favoritos (%1$d)</string>
     <string name="favorites_empty_title">Ainda não há favoritos</string>
-    <string name="favorites_empty_subtitle">Toque na estrela de uma mensagem no bate-papo para adicioná-la aos favoritos</string>
     <string name="favorites_role_user">Meu</string>
     <string name="favorites_role_system">Sistema</string>
     <string name="favorites_role_tool">Ferramenta</string>

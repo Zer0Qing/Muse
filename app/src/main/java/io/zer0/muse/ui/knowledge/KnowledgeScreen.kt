@@ -1064,7 +1064,6 @@ fun KnowledgeScreen(
                                 searching && visibleDocs.isEmpty() -> MuseEmptyState(
                                     icon = MuseIcons.fileText,
                                     title = stringResource(R.string.knowledge_no_match_title),
-                                    subtitle = stringResource(R.string.knowledge_no_match_subtitle),
                                 )
                                 !searching && selectedKb == null -> {
                                     if (kbs.isEmpty()) {

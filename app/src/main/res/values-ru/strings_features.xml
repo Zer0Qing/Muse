@@ -223,7 +223,6 @@
     <string name="knowledge_search_placeholder">Поиск по названию или содержанию…</string>
     <string name="knowledge_no_match_title">Соответствующие документы не найдены</string>
     <string name="knowledge_empty_title">База знаний пуста</string>
-    <string name="knowledge_no_match_subtitle">Попробуйте другое ключевое слово</string>
     <string name="knowledge_deleted">Удалено</string>
     <string name="knowledge_delete_doc">Удалить документ</string>
     <string name="knowledge_delete">Удалить</string>

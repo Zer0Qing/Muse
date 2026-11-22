@@ -126,7 +126,6 @@
     <!-- ===== ui/FavoritesScreen favorites ===== -->
     <string name="favorites_title">お気に入り (%1$d)</string>
     <string name="favorites_empty_title">まだお気に入りはありません</string>
-    <string name="favorites_empty_subtitle">チャット内のメッセージの星をタップしてお気に入りに追加します</string>
     <string name="favorites_role_user">自分</string>
     <string name="favorites_role_system">システム</string>
     <string name="favorites_role_tool">道具</string>

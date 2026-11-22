@@ -291,7 +291,6 @@
 
     <!-- Empty states -->
     <string name="chat_list_empty_archived">Ainda não há tarefas arquivadas</string>
-    <string name="chat_list_empty_archived_sub">Mantenha um bate-papo pressionado para arquivá-lo</string>
 
     <!-- Section titles -->
     <string name="chat_list_section_recent">Recente</string>

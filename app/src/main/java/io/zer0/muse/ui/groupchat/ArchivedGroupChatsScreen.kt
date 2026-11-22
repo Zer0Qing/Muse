@@ -78,7 +78,6 @@ fun ArchivedGroupChatsScreen(
                 MuseEmptyState(
                     icon = MuseIcons.archive,
                     title = stringResource(R.string.groupchat_empty_archived),
-                    subtitle = stringResource(R.string.groupchat_empty_archived_sub),
                 )
             }
             return@MusePageScaffold

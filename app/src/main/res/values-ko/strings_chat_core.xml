@@ -289,7 +289,6 @@
 
     <!-- Empty states -->
     <string name="chat_list_empty_archived">아직 보관된 작업이 없습니다.</string>
-    <string name="chat_list_empty_archived_sub">보관처리하려면 채팅을 길게 누르세요.</string>
 
     <!-- Section titles -->
     <string name="chat_list_section_recent">최근의</string>
