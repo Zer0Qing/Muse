@@ -164,6 +164,7 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     /** Agent 中枢：重启后对账租约过期的在途 run，并把它们标成 UNKNOWN。 */
     private val botTaskScheduler: io.zer0.muse.data.agentbot.BotTaskScheduler by inject()
+    private val botBackgroundDriver: io.zer0.muse.data.agentbot.AgentBotBackgroundDriver by inject()
 
     /** Agent 中枢：关闭再启用时的对账（与重启对账语义不同，见类 KDoc）。 */
     private val botModeReconciler: io.zer0.muse.data.agentbot.AgentBotModeReconciler by inject()
@@ -442,6 +443,9 @@ class MuseApp : Application(), ImageLoaderFactory {
                 // 领任务、巡检超时、扫过期审批。
                 // 之前 tick()/sweepOverdue() 都实现完整但没有调用方，队列里的任务永远不会被领走。
                 botTaskScheduler.start()
+                // 后台收件箱消费者：用户离开 Agent 页后，任务结果照样要发出来。
+                // 只写进对话还不够——应用在后台时也要有一条通知。
+                botBackgroundDriver.start(appScope)
                 // 把上次关闭前留下的死租约、过期审批、未消费事件归位。
                 appScope.launch {
                     resultOf { botModeReconciler.reconcileOnEnable("default") }

@@ -239,4 +239,5 @@ Toca actualizar para obtener la lista</string>
     <string name="agent_bot_result_failed">Esa tarea no se completó</string>
     <string name="agent_bot_result_empty">Hecho</string>
     <string name="agent_bot_prompt_verify_result">Comprueba si el resultado es correcto</string>
+    <string name="agent_bot_notification_title">Tu tarea tiene un resultado</string>
 </resources>

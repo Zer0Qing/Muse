@@ -547,7 +547,7 @@ val appModule = module {
             sessions = get(),
             resultApplier = get(),
             restorer = get(),
-            appContext = androidContext(),
+            results = get(),
         )
     }
     // 候选产物暂存区。任务产出先落这里，审核通过且版本最新才应用到目标 ——
@@ -657,6 +657,23 @@ val appModule = module {
     // inbox 保证同一 Bot 单写者 —— 两个回合同时说话会让主 Bot 自相矛盾。
     single { io.zer0.muse.data.agentbot.AgentConversationFacade(repository = get()) }
     single { io.zer0.muse.data.agentbot.BotInboxProcessor(repository = get()) }
+    // 结果事件 → 对话正文。页面与后台共用同一个发布器，保证两边说的话一致。
+    single {
+        io.zer0.muse.data.agentbot.AgentBotResultPublisher(
+            context = androidContext(),
+            publication = get(),
+        )
+    }
+    // 后台收件箱消费者：页面不可见时也把结果发出去，并在后台时补一条通知。
+    single {
+        io.zer0.muse.data.agentbot.AgentBotBackgroundDriver(
+            context = androidContext(),
+            repository = get(),
+            inbox = get(),
+            results = get(),
+            settings = get(),
+        )
+    }
     // 隐藏任务执行器。独立 scope 与独立 Job 登记：中枢的 Job 与
     // "用户正在看哪个会话"无关，不能挂到旧 SessionRuntime 上。
     single {

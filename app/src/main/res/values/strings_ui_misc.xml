@@ -256,4 +256,5 @@
     <string name="agent_bot_result_failed">这件事没做成</string>
     <string name="agent_bot_result_empty">做完了</string>
     <string name="agent_bot_prompt_verify_result">核对一下结果对不对</string>
+    <string name="agent_bot_notification_title">你交代的事有结果了</string>
 </resources>

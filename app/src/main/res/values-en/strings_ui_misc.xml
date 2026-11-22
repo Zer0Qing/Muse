@@ -244,4 +244,5 @@ Tap refresh to fetch the list upstream</string>
     <string name="agent_bot_result_failed">That task didn\'t go through</string>
     <string name="agent_bot_result_empty">Done</string>
     <string name="agent_bot_prompt_verify_result">Check whether the result is right</string>
+    <string name="agent_bot_notification_title">Your task has a result</string>
 </resources>

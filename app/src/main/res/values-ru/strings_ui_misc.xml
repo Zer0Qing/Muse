@@ -239,4 +239,5 @@
     <string name="agent_bot_result_failed">Это дело не удалось</string>
     <string name="agent_bot_result_empty">Готово</string>
     <string name="agent_bot_prompt_verify_result">Проверьте, верный ли результат</string>
+    <string name="agent_bot_notification_title">По вашему делу есть результат</string>
 </resources>

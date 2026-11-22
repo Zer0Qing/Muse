@@ -53,8 +53,7 @@ class AgentBotViewModel(
     private val sessions: io.zer0.muse.data.session.SessionRepository,
     private val resultApplier: BotResultApplier,
     private val restorer: TranscriptRestorer,
-    // 结果事件要在 ViewModel 层就翻成当前语言的正文（发布通道只收成品文本）。
-    private val appContext: android.content.Context,
+    private val results: io.zer0.muse.data.agentbot.AgentBotResultPublisher,
 ) : ViewModel() {
 
     private val ui = AgentBotUiState()
@@ -281,42 +280,9 @@ class AgentBotViewModel(
         if (result.consumed > 0 || result.hasBacklog) refreshBoard()
     }
 
-    /**
-     * 把一条结果事件发布成对话正文。
-     *
-     * 返回 true 表示已落库、可以消费；返回 false 表示这轮没发成，事件留在收件箱下轮再试。
-     * 宁可重试也不丢：结果是用户唯一能看到的「交代的事有着落了」。
-     */
-    private suspend fun publishResult(event: io.zer0.muse.data.agentbot.BotEventEntity): Boolean {
-        // payloadRef 末尾可能挂着暂存标记（"[staged=xxx]"），那是给 BotResultApplier 用的，
-        // 不能出现在用户看到的正文里。
-        val raw = event.payloadRef.substringBefore(io.zer0.muse.data.agentbot.BotResultApplier.STAGED_MARKER).trim()
-        val text = when {
-            raw.isNotBlank() -> raw
-            event.kind == BotEventKind.TASK_FAILED -> appContext.getString(R.string.agent_bot_result_failed)
-            else -> appContext.getString(R.string.agent_bot_result_empty)
-        }
-        val result = runCatching {
-            publication.publish(
-                botId = event.botId.ifBlank { currentBotId },
-                originSessionId = event.originSessionId.ifBlank { currentSessionId },
-                causeEventIds = event.eventId,
-                // 后台结果不属于任何一次用户输入，所以两个 revision 传同一个值：
-                // 不参与「新输入到达就放弃旧批次」的判定。
-                requestRevision = 0L,
-                taskRevision = 1,
-                items = listOf(
-                    io.zer0.muse.data.agentbot.PublicationService.Item(
-                        io.zer0.muse.data.agentbot.PublicationKind.TEXT,
-                        text,
-                    ),
-                ),
-            )
-        }.onFailure {
-            Logger.w("AgentBotVM", "结果发布失败，保留事件待重试: ${event.eventId} | ${it.message}")
-        }.getOrNull()
-        return result != null && result.committed > 0
-    }
+    /** 结果事件交给共享发布器：页面与后台必须说一模一样的话。 */
+    private suspend fun publishResult(event: io.zer0.muse.data.agentbot.BotEventEntity): Boolean =
+        results.publish(event, fallbackBotId = currentBotId, fallbackSessionId = currentSessionId)
 
     /** 领一轮后台任务。由界面在可见时周期性调用。 */
     fun tickScheduler() {

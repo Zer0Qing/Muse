@@ -239,4 +239,5 @@
     <string name="agent_bot_result_failed">이 작업은 완료되지 못했습니다</string>
     <string name="agent_bot_result_empty">완료했습니다</string>
     <string name="agent_bot_prompt_verify_result">결과가 맞는지 확인해 주세요</string>
+    <string name="agent_bot_notification_title">맡긴 일의 결과가 나왔습니다</string>
 </resources>

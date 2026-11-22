@@ -239,4 +239,5 @@
     <string name="agent_bot_result_failed">この作業は完了できませんでした</string>
     <string name="agent_bot_result_empty">完了しました</string>
     <string name="agent_bot_prompt_verify_result">結果が正しいか確認してください</string>
+    <string name="agent_bot_notification_title">頼んだ作業の結果が出ました</string>
 </resources>

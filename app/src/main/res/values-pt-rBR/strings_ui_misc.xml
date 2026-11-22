@@ -239,4 +239,5 @@ Toque em atualizar para buscar a lista</string>
     <string name="agent_bot_result_failed">Essa tarefa não foi concluída</string>
     <string name="agent_bot_result_empty">Concluído</string>
     <string name="agent_bot_prompt_verify_result">Confira se o resultado está certo</string>
+    <string name="agent_bot_notification_title">Sua tarefa tem um resultado</string>
 </resources>
