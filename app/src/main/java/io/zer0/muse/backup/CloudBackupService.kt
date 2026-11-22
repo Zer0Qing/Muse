@@ -44,8 +44,7 @@ class CloudBackupService(private val client: OkHttpClient) {
 
     /** 生成带时间戳的备份文件名。 */
     private fun backupFileName(): String {
-        val fmt = SimpleDateFormat(MuseDateFormats.FILE_TIMESTAMP, Locale.US)
-        return "muse-backup-${fmt.format(Date())}.json"
+        return "muse-backup-${MuseDateFormats.formatNow(MuseDateFormats.FILE_TIMESTAMP)}.json"
     }
 
     /**
