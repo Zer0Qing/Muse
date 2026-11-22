@@ -503,7 +503,7 @@ internal fun FetchedModelsPickerSheet(
                                 R.string.settings_common_collapse,
                             )
                         } else {
-                            stringResource(R.string.settings_common_expand)
+                            stringResource(R.string.common_expand)
                         },
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),

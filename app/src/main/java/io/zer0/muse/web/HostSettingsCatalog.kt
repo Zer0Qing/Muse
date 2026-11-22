@@ -63,7 +63,7 @@ internal object HostSettingsCatalog {
         ),
         group(
             "settings_group_models",
-            link("provider", "settings_screen_provider", "provider"),
+            link("provider", "common_provider", "provider"),
             link("task_routing", "settings_task_routing_title", "taskRouting"),
             link("provider_plugins", "provider_plugins_title", "affiliate"),
         ),
@@ -152,7 +152,7 @@ internal object HostSettingsCatalog {
                 "settings_screen_pii_guard",
                 "shield",
                 HostSettingKeys.PII_GUARD),
-            link("share", "settings_screen_share", "lock"),
+            link("share", "common_share", "lock"),
         ),
         group(
             "settings_group_about",

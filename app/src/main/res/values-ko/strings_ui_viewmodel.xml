@@ -13,7 +13,6 @@
     <string name="quick_msg_scope_global">글로벌</string>
     <string name="quick_msg_scope_assistant">보조자: %1$s</string>
     <string name="quick_msg_scope_label">범위: %1$s</string>
-    <string name="quick_msg_enabled_cd">활성화됨</string>
     <string name="quick_msg_edit_cd">편집하다</string>
     <string name="quick_msg_delete_cd">삭제</string>
     <!-- Edit page -->
@@ -33,7 +32,6 @@
     <string name="quick_msg_field_bind_assistant">바인딩 어시스턴트</string>
     <string name="quick_msg_section_behavior">행동</string>
     <string name="quick_msg_field_sort_index">색인 정렬(더 작음 = 더 빠름)</string>
-    <string name="quick_msg_field_enabled">활성화됨</string>
     <string name="quick_msg_field_enabled_desc">끄면 이 항목이 InputBar 칩 행에 표시되지 않습니다.</string>
 
     <!-- ===== LorebookScreen ===== -->
@@ -46,7 +44,6 @@
     <string name="lorebook_new_default_name">신규 항목</string>
     <string name="lorebook_unnamed">(이름 없음)</string>
     <string name="lorebook_keywords_label">키워드: %1$s</string>
-    <string name="lorebook_enabled_cd">활성화됨</string>
     <string name="lorebook_edit_cd">편집하다</string>
     <string name="lorebook_delete_cd">삭제</string>
     <!-- Edit page -->
@@ -72,7 +69,6 @@
     <string name="lorebook_field_case_sensitive_desc">켜져 있으면 키워드 일치에서 대소문자를 구분합니다.</string>
     <string name="lorebook_field_whole_word">단어 단위 일치</string>
     <string name="lorebook_field_whole_word_desc">키워드가 단어 단위로 일치해야 발동(영어용; CJK 키워드는 자동으로 부분 일치)</string>
-    <string name="lorebook_field_enabled">활성화됨</string>
     <string name="lorebook_field_enabled_desc">끄면 이 항목이 더 이상 주입을 트리거하지 않습니다.</string>
 
     <!-- ===== PromptInjectionScreen ===== -->
@@ -85,7 +81,6 @@
     <string name="prompt_injection_new_default_name">새로운 주입</string>
     <string name="prompt_injection_unnamed">(이름 없음)</string>
     <string name="prompt_injection_mode_label">모드: %1$s</string>
-    <string name="prompt_injection_enabled_cd">활성화됨</string>
     <string name="prompt_injection_edit_cd">편집하다</string>
     <string name="prompt_injection_delete_cd">삭제</string>
     <!-- Edit page -->
@@ -103,7 +98,6 @@
     <string name="prompt_injection_section_behavior">행동</string>
     <string name="prompt_injection_field_priority">우선순위(동일 모드의 다중 주입 주문, 숫자가 클수록 먼저 주입됨)</string>
     <string name="prompt_injection_field_insertion_position">삽입 위치</string>
-    <string name="prompt_injection_field_enabled">활성화됨</string>
     <string name="prompt_injection_field_enabled_desc">끄면 이 항목이 더 이상 주입을 트리거하지 않습니다.</string>
 
     <!-- ===== AssistantScreen ===== -->
@@ -165,7 +159,6 @@
     <string name="assistant_toast_sillytavern_exported">SillyTavern 캐릭터 카드 내보내기</string>
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern 내보내기 실패: %1$s</string>
     <string name="assistant_disable">비활성화</string>
-    <string name="assistant_enable">활성화</string>
     <string name="assistant_diff_summary">소개</string>
     <string name="assistant_diff_system_prompt">시스템 프롬프트</string>
     <string name="assistant_diff_persona_definition">페르소나 정의</string>
@@ -185,4 +178,5 @@
     <string name="assistant_diff_legacy_pack">이전 형식 카드: 페르소나만 가져오며 키·모델 연결·사용 통계는 넘어오지 않습니다</string>
     <string name="assistant_diff_no_switch">가져와도 현재 어시스턴트는 전환되지 않고 대화 소유도 바뀌지 않습니다</string>
     <string name="assistant_diff_more">… 외 %1$d개</string>
+    <string name="assistant_diff_name">이름</string>
 </resources>

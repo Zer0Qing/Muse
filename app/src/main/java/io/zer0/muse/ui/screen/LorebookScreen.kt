@@ -192,7 +192,7 @@ private fun LorebookCard(entry: LorebookEntity, onEdit: () -> Unit, onDelete: ()
     // i18n: 预提取字符串资源,避免在 ifBlank/semantics 等非 Composable lambda 内调用 stringResource
     val unnamedText = stringResource(R.string.lorebook_unnamed)
     val disabledText = stringResource(R.string.common_state_disabled)
-    val enabledStateText = stringResource(R.string.lorebook_enabled_cd)
+    val enabledStateText = stringResource(R.string.common_state_enabled)
     val disabledStateText = stringResource(R.string.common_state_disabled)
     val editCd = stringResource(R.string.common_edit)
     val deleteCd = stringResource(R.string.common_delete)
@@ -480,7 +480,7 @@ private fun LorebookEditPage(initial: LorebookEntity, isNew: Boolean, onBack: ()
                 contentPadding = PaddingValues(0.dp),
             )
             SettingsSwitchRow(
-                title = stringResource(R.string.lorebook_field_enabled),
+                title = stringResource(R.string.common_enable),
                 subtitle = stringResource(R.string.lorebook_field_enabled_desc),
                 checked = enabled,
                 onCheckedChange = { enabled = it },

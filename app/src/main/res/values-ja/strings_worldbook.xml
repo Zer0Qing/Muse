@@ -12,7 +12,6 @@
     <string name="worldbook_unsaved_content">未保存の変更があります。</string>
     <string name="worldbook_discard">破棄</string>
     <string name="worldbook_unnamed">無名</string>
-    <string name="worldbook_enabled_cd">有効</string>
     <string name="worldbook_edit_cd">編集</string>
     <string name="worldbook_delete_cd">消去</string>
     <string name="worldbook_delete_title">ワールドブックの削除</string>
@@ -54,7 +53,6 @@
     <string name="worldbook_field_is_regex_desc">キーワードを正規表現として扱う (上級)</string>
     <string name="worldbook_field_always_active">常にアクティブ</string>
     <string name="worldbook_field_always_active_desc">キーワードトリガーなしで挿入 (定数)</string>
-    <string name="worldbook_field_enabled">有効</string>
     <string name="worldbook_field_enabled_desc">無効なエントリは挿入されません</string>
 
     <!-- 前端修复 (i18n-8): export toast -->

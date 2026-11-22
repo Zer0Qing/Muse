@@ -701,7 +701,7 @@ fun CloudBackupPage(onBack: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = stringResource(R.string.cloud_backup_restore_retry),
+            confirmText = stringResource(R.string.common_retry),
             onConfirm = {
                 val kind = failKind
                 val file = failedRestoreFile

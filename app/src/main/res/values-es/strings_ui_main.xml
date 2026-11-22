@@ -104,13 +104,11 @@
     <string name="memory_conversation_meta">Asistente %1$s · Espacio %2$s</string>
     <string name="memory_screen_no_fact">Aún no hay metahechos</string>
     <string name="memory_screen_collapse">Colapsar</string>
-    <string name="memory_screen_expand">Expandir</string>
     <string name="memory_screen_edit_cd">Editar</string>
     <string name="memory_screen_delete_cd">Eliminar</string>
     <string name="memory_screen_load_failed">Error de carga: detalles completos del error</string>
     <string name="memory_screen_copied_trace">Seguimiento de pila completo copiado al portapapeles</string>
     <string name="memory_screen_copy_trace_cd">Copiar seguimiento de pila completo</string>
-    <string name="memory_screen_retry">Reintentar</string>
     <string name="memory_screen_input_content">Introduce el contenido...</string>
     <string name="memory_screen_save">Guardar</string>
     <string name="memory_screen_normal">Normal</string>
@@ -204,7 +202,6 @@
     <string name="settings_screen_rag">Recuperación de conocimientos</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
     <string name="settings_screen_pii_guard">Protección de privacidad (PII)</string>
-    <string name="settings_screen_provider">Proveedores</string>
     <string name="settings_screen_assistant">Asistentes</string>
     <string name="settings_screen_experiments">Experimental</string>
     <string name="settings_screen_stats">Estadísticas</string>
@@ -336,7 +333,6 @@
     <string name="skill_import_error">Error de importación: %1$s</string>
     <string name="skill_operation_failed">Operación fallida: %1$s</string>
     <string name="skill_unnamed">(Sin nombre)</string>
-    <string name="skill_enabled">Activado</string>
     <string name="skill_bulk_summary">%1$d habilidades personalizadas, %2$d activadas</string>
     <string name="skill_bulk_disable_all">Desactivar todas</string>
     <string name="skill_bulk_enable_all">Activar todas</string>
@@ -377,7 +373,6 @@
     <string name="assistant_detail_regex_scope_assistant">Solo mensajes del asistente</string>
     <string name="assistant_detail_regex_scope_both">Ambos (usuario + asistente)</string>
     <string name="assistant_detail_regex_visual_only">Solo reemplazo visual (no afecta a la entrada del LLM)</string>
-    <string name="assistant_detail_regex_enabled">Activado</string>
     <string name="assistant_detail_regex_invalid">Sintaxis de expresiones regulares no válida</string>
 
     <!-- ===== QR code share/scan ===== -->
@@ -463,7 +458,6 @@
     <string name="audit_log_clear">Borrar registro</string>
     <string name="audit_log_empty">No hay registros</string>
     <string name="audit_log_clear_confirm">¿Borrar todos los registros de auditoría?</string>
-    <string name="audit_log_category_all">Todo</string>
     <string name="audit_log_category_api">Llamada API</string>
     <string name="audit_log_category_user">Acción del usuario</string>
     <string name="audit_log_category_auth">Autenticación</string>
@@ -504,7 +498,6 @@
     <string name="video_gen_failed">Error: %1$s</string>
     <string name="video_gen_open_video">Abrir vídeo</string>
     <string name="video_gen_no_app">No hay ninguna aplicación disponible para reproducir vídeo.</string>
-    <string name="video_gen_provider">Proveedor</string>
     <string name="video_gen_no_provider">No hay ningún proveedor disponible configurado. Ve al menú «Proveedores», añade uno e introduce su clave API.</string>
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
@@ -550,7 +543,6 @@
 
     <!-- ===== P2-9: Voice Cloning (VoiceCloningPage + MediaSettingsPage entry) ===== -->
     <string name="voice_cloning_title">Clonación de voz</string>
-    <string name="voice_cloning_provider">Proveedor</string>
     <string name="voice_cloning_api_key">Clave API</string>
     <string name="voice_cloning_new_voice">Clonar nueva voz</string>
     <string name="voice_cloning_voice_name">Nombre de voz</string>
@@ -568,7 +560,6 @@
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">Regenerar</string>
     <string name="desktop_context_delete">Eliminar</string>
-    <string name="desktop_context_share">Compartir</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">Comprimiendo el historial de la conversación…</string>
@@ -614,8 +605,6 @@
     <string name="settings_screen_entry_chunking">Estrategia de fragmentación</string>
     <string name="settings_screen_entry_tool_approval">Modo de aprobación de herramientas</string>
     <string name="settings_screen_entry_collab">Asistente colaborativo</string>
-    <string name="settings_screen_share">Compartir</string>
-    <string name="settings_share_page_title">Compartir</string>
     <plurals name="settings_search_result_count">
         <item quantity="one">%1$d resultado encontrado</item>
         <item quantity="other">%1$d resultados encontrados</item>
@@ -767,7 +756,6 @@
     <string name="settings_preference_desc">Cuando le dices al asistente «de ahora en adelante, no…», lo guarda aquí como regla estricta y la cumple en todas las conversaciones.</string>
     <string name="settings_preference_empty">Aún no hay preferencias registradas</string>
     <string name="settings_preference_disable">Desactivar</string>
-    <string name="settings_preference_enable">Activar</string>
     <string name="settings_preference_delete">Eliminar</string>
     <string name="settings_preference_delete_confirm">Tras eliminar esta preferencia, el asistente dejará de cumplirla.</string>
     <string name="settings_preference_disabled_tag">Desactivada</string>
@@ -814,7 +802,6 @@
     <string name="channel_platform_dingtalk">DingTalk</string>
     <string name="channel_how_to">¿Cómo se configura?</string>
     <string name="channel_tutorial_title">Guía de conexión de plataformas</string>
-    <string name="channel_tutorial_close">Entendido</string>
     <string name="channel_secret_stored_placeholder">Guardado. Introduce un nuevo valor para sustituirlo</string>
     <string name="channel_secret_show">Mostrar</string>
     <string name="channel_secret_hide">Ocultar</string>

@@ -851,7 +851,7 @@ internal fun ErrorTraceBox(trace: String, onRetry: () -> Unit) {
         }
 
         MuseCapsuleButton(
-            text = stringResource(R.string.memory_screen_retry),
+            text = stringResource(R.string.common_retry),
             onClick = onRetry,
             leadingIcon = MuseIcons.refresh,
             modifier = Modifier

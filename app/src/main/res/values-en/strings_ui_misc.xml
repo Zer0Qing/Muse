@@ -99,7 +99,6 @@
     <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
     <string name="model_switch_title">Model</string>
     <string name="model_switch_no_provider">No provider configured\nAdd one in Settings → Provider Management</string>
-    <string name="model_switch_provider_label">Provider</string>
     <string name="model_switch_no_provider_selected">No provider selected</string>
     <string name="model_switch_models_label">Models (%1$s)</string>
     <string name="model_switch_fetching">Fetching</string>
@@ -164,7 +163,6 @@ Tap refresh to fetch the list upstream</string>
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Activity Log</string>
     <string name="activity_empty">No activity recorded yet.</string>
-    <string name="model_switch_retry">Retry</string>
     <string name="shortcut_new_chat_long">Start new chat</string>
     <string name="shortcut_new_chat_short">New chat</string>
     <string name="shortcut_quick_notes_long">Quick notes</string>
@@ -221,7 +219,6 @@ Tap refresh to fetch the list upstream</string>
     <string name="agent_bot_status_waiting_approval">Waiting for your approval</string>
     <string name="agent_bot_status_waiting_resource">Waiting for a resource</string>
     <string name="agent_bot_status_cancelling">Stopping</string>
-    <string name="agent_bot_status_succeeded">Done</string>
     <string name="agent_bot_status_partial">Partly done</string>
     <string name="agent_bot_status_failed">Didn\'t work</string>
     <string name="agent_bot_status_cancelled">Cancelled</string>

@@ -102,7 +102,6 @@
     <!-- ===== ui/ModelSwitchSheet 模型切换面板 ===== -->
     <string name="model_switch_title">模型</string>
     <string name="model_switch_no_provider">尚未配置任何 Provider\n请到「设置 → Provider 管理」添加</string>
-    <string name="model_switch_provider_label">供应商</string>
     <string name="model_switch_no_provider_selected">未选择 Provider</string>
     <string name="model_switch_models_label">模型（%1$s）</string>
     <string name="model_switch_fetching">拉取中</string>
@@ -111,7 +110,6 @@
     <string name="model_switch_no_models">当前供应商没有可用模型
 点击刷新从上游拉取列表</string>
     <!-- v1.0.4 (P2): 模型拉取失败重试按钮 -->
-    <string name="model_switch_retry">重试</string>
     <string name="model_switch_default">%1$s(默认)</string>
     <string name="model_switch_selected_cd">已选中</string>
     <string name="model_switch_ability_vision">视觉</string>
@@ -222,7 +220,6 @@
     <string name="agent_bot_status_waiting_approval">等你批准</string>
     <string name="agent_bot_status_waiting_resource">在等资源空出来</string>
     <string name="agent_bot_status_cancelling">正在停下</string>
-    <string name="agent_bot_status_succeeded">已完成</string>
     <string name="agent_bot_status_partial">只完成了一部分</string>
     <string name="agent_bot_status_failed">没做成</string>
     <string name="agent_bot_status_cancelled">已取消</string>
@@ -252,4 +249,9 @@
     <string name="common_copy">复制</string>
     <string name="common_translate">翻译</string>
     <string name="common_clear">清空</string>
+    <string name="common_all">全部</string>
+    <string name="common_enable">启用</string>
+    <string name="common_provider">供应商</string>
+    <string name="common_share">分享</string>
+    <string name="common_done">已完成</string>
 </resources>

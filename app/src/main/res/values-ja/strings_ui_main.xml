@@ -104,13 +104,11 @@
     <string name="memory_conversation_meta">アシスタント %1$s · スペース %2$s</string>
     <string name="memory_screen_no_fact">まだメタファクトはありません</string>
     <string name="memory_screen_collapse">崩壊</string>
-    <string name="memory_screen_expand">拡大する</string>
     <string name="memory_screen_edit_cd">編集</string>
     <string name="memory_screen_delete_cd">消去</string>
     <string name="memory_screen_load_failed">ロードに失敗しました - エラーの詳細</string>
     <string name="memory_screen_copied_trace">フルスタックトレースがクリップボードにコピーされました</string>
     <string name="memory_screen_copy_trace_cd">フルスタックトレースをコピーする</string>
-    <string name="memory_screen_retry">リトライ</string>
     <string name="memory_screen_input_content">内容を入力してください…</string>
     <string name="memory_screen_save">保存</string>
     <string name="memory_screen_normal">普通</string>
@@ -204,7 +202,6 @@
     <string name="settings_screen_rag">知識の検索</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
     <string name="settings_screen_pii_guard">PII プライバシー保護</string>
-    <string name="settings_screen_provider">プロバイダー</string>
     <string name="settings_screen_assistant">アシスタント</string>
     <string name="settings_screen_experiments">実験的</string>
     <string name="settings_screen_stats">統計</string>
@@ -336,7 +333,6 @@
     <string name="skill_import_error">インポートに失敗しました: %1$s</string>
     <string name="skill_operation_failed">操作が失敗しました: %1$s</string>
     <string name="skill_unnamed">(名前なし)</string>
-    <string name="skill_enabled">有効</string>
     <string name="skill_bulk_summary">カスタムスキル %1$d 件、有効 %2$d 件</string>
     <string name="skill_bulk_disable_all">すべて無効化</string>
     <string name="skill_bulk_enable_all">すべて有効化</string>
@@ -377,7 +373,6 @@
     <string name="assistant_detail_regex_scope_assistant">アシスタントメッセージのみ</string>
     <string name="assistant_detail_regex_scope_both">両方 (ユーザー + アシスタント)</string>
     <string name="assistant_detail_regex_visual_only">ディスプレイの交換のみ (LLM 入力には影響しません)</string>
-    <string name="assistant_detail_regex_enabled">有効</string>
     <string name="assistant_detail_regex_invalid">無効な正規表現構文</string>
 
     <!-- ===== QR code share/scan ===== -->
@@ -463,7 +458,6 @@
     <string name="audit_log_clear">ログをクリアする</string>
     <string name="audit_log_empty">ログ記録がありません</string>
     <string name="audit_log_clear_confirm">すべての監査ログをクリアしますか?</string>
-    <string name="audit_log_category_all">全て</string>
     <string name="audit_log_category_api">API呼び出し</string>
     <string name="audit_log_category_user">ユーザーアクション</string>
     <string name="audit_log_category_auth">認証</string>
@@ -504,7 +498,6 @@
     <string name="video_gen_failed">失敗しました: %1$s</string>
     <string name="video_gen_open_video">ビデオを開く</string>
     <string name="video_gen_no_app">ビデオを再生できるアプリがありません</string>
-    <string name="video_gen_provider">プロバイダー</string>
     <string name="video_gen_no_provider">利用可能なプロバイダーが設定されていません。</string>
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
@@ -550,7 +543,6 @@
 
     <!-- ===== P2-9: Voice Cloning (VoiceCloningPage + MediaSettingsPage entry) ===== -->
     <string name="voice_cloning_title">ボイスクローン</string>
-    <string name="voice_cloning_provider">プロバイダー</string>
     <string name="voice_cloning_api_key">APIキー</string>
     <string name="voice_cloning_new_voice">新しい音声のクローンを作成する</string>
     <string name="voice_cloning_voice_name">ボイスネーム</string>
@@ -568,7 +560,6 @@
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">再生する</string>
     <string name="desktop_context_delete">消去</string>
-    <string name="desktop_context_share">共有</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">会話履歴を圧縮中…</string>
@@ -614,8 +605,6 @@
     <string name="settings_screen_entry_chunking">チャンク戦略</string>
     <string name="settings_screen_entry_tool_approval">ツール承認モード</string>
     <string name="settings_screen_entry_collab">コラボアシスタント</string>
-    <string name="settings_screen_share">共有</string>
-    <string name="settings_share_page_title">共有</string>
     <plurals name="settings_search_result_count">
         <item quantity="other">%1$d 件の結果が見つかりました</item>
     </plurals>
@@ -764,7 +753,6 @@
     <string name="settings_preference_desc">「今後は…しないで」と伝えると、ここにハード制約として保存され、すべての会話で守られます。</string>
     <string name="settings_preference_empty">まだ設定は記録されていません</string>
     <string name="settings_preference_disable">無効化</string>
-    <string name="settings_preference_enable">有効化</string>
     <string name="settings_preference_delete">削除</string>
     <string name="settings_preference_delete_confirm">削除するとアシスタントはこの設定を守らなくなります。</string>
     <string name="settings_preference_disabled_tag">無効</string>

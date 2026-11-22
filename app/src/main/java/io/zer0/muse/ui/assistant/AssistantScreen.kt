@@ -631,7 +631,7 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
             MuseActionSheetRow(
                 icon = if (assistant.enabled) MuseIcons.eyeOff else MuseIcons.eye,
                 text = stringResource(
-                    if (assistant.enabled) R.string.assistant_disable else R.string.assistant_enable,
+                    if (assistant.enabled) R.string.assistant_disable else R.string.common_enable,
                 ),
                 onClick = {
                     scope.launch { repo.setEnabled(assistant.id, !assistant.enabled) }

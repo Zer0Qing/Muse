@@ -8,10 +8,8 @@
     <string name="settings_common_add">Добавлять</string>
     <string name="settings_common_show">Показывать</string>
     <string name="settings_common_hide">Скрывать</string>
-    <string name="settings_common_expand">Расширять</string>
     <string name="settings_common_collapse">Крах</string>
     <string name="settings_common_advanced">Передовой</string>
-    <string name="settings_state_enabled">Включено</string>
 
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Список поставщиков</string>
@@ -22,7 +20,6 @@
     <string name="settings_provider_category_relay">Реле</string>
     <string name="settings_provider_category_custom">Обычай</string>
     <string name="settings_provider_add">Добавить поставщика</string>
-    <string name="settings_provider_status_enabled">Включено</string>
     <string name="settings_provider_status_disabled">Неполноценный</string>
     <string name="settings_provider_json_parse_failed">Не удалось выполнить синтаксический анализ JSON: отсутствует приватный_ключ или клиент_адрес электронной почты.</string>
     <string name="settings_provider_imported_from_json">Учетные данные сервисной учетной записи, импортированные из JSON.</string>
@@ -398,7 +395,6 @@
     <string name="settings_chat_background_failed">Не удалось обработать изображение, попробуйте другое</string>
     <string name="cloud_backup_restore_failed_title">Сбой восстановления</string>
     <string name="cloud_backup_restore_failed_desc">Не удалось восстановить данные из облака. Проверьте сетевое соединение и настройки облачного хранения и повторите попытку.</string>
-    <string name="cloud_backup_restore_retry">Повторить</string>
     <string name="settings_backup_log_title">Последние резервные копии</string>
     <string name="settings_backup_log_empty">Пока нет резервных копий</string>
     <string name="settings_backup_log_success">Успех</string>

@@ -188,7 +188,7 @@ private fun resolveSummaryText(
         context.getString(R.string.chat_process_steps_completed, totalSteps)
     totalSteps > 0 -> context.getString(R.string.chat_process_steps_progress, doneSteps, totalSteps)
     isActive -> context.getString(R.string.chat_process_thinking_now)
-    else -> context.getString(R.string.chat_process_completed)
+    else -> context.getString(R.string.common_done)
 }
 
 /** 摘要行需要的全部信息，打成一个包，避免参数列表膨胀。 */

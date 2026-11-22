@@ -452,7 +452,7 @@ private fun MetricCell(icon: ImageVector, value: String, label: String, modifier
 @Composable
 private fun TimeRangeFilterRow(currentRange: StatsTimeRange, onRangeChange: (StatsTimeRange) -> Unit, modifier: Modifier = Modifier) {
     val ranges = listOf(
-        StatsTimeRange.ALL_TIME to R.string.stats_range_all,
+        StatsTimeRange.ALL_TIME to R.string.common_all,
         StatsTimeRange.THIS_MONTH to R.string.stats_range_month,
         StatsTimeRange.THIS_WEEK to R.string.stats_range_week,
         StatsTimeRange.TODAY to R.string.stats_range_today,

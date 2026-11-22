@@ -62,7 +62,7 @@ class RagCitationChipsTest {
             R.string.chat_citation_chip_a11y,
             1,
             "文档1",
-            context.getString(R.string.action_expand),
+            context.getString(R.string.common_expand),
         )
         composeTestRule.setContent {
             MaterialTheme { RagCitationChips(citations = listOf(citation(1))) }

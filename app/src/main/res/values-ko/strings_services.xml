@@ -197,7 +197,6 @@
     <string name="tool_open_app_failed">앱을 열지 못했습니다.</string>
     <string name="tool_missing_param_text_share">누락된 매개변수: 텍스트(공유할 콘텐츠)</string>
     <string name="tool_text_empty">텍스트는 비워둘 수 없습니다.</string>
-    <string name="tool_share_title_default">공유하다</string>
     <string name="tool_text_shared">공유된 텍스트: %1$s</string>
     <string name="tool_share_failed">공유 실패</string>
     <string name="tool_location_no_permission">위치 권한(ACCESS_COARSE_LOCATION)이 필요합니다.</string>

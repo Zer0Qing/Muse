@@ -1210,7 +1210,7 @@ private fun ChannelTutorialDialog(platform: ChannelPlatform, onDismiss: () -> Un
                 }
             }
         },
-        confirmText = stringResource(R.string.channel_tutorial_close),
+        confirmText = stringResource(R.string.common_got_it),
         onConfirm = onDismiss,
         dismissText = null,
         onDismiss = onDismiss,

@@ -638,7 +638,7 @@ class MemoryViewModel(
     private fun buildScopes(assistants: List<AssistantEntity>): List<ScopeOption> {
         val all = ScopeOption(
             id = null,
-            displayName = getApplication<Application>().getString(R.string.memory_scope_all),
+            displayName = getApplication<Application>().getString(R.string.common_all),
             isAll = true,
         )
         val main = ScopeOption(

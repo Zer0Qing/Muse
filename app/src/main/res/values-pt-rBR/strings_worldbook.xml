@@ -12,7 +12,6 @@
     <string name="worldbook_unsaved_content">Você tem alterações não salvas.</string>
     <string name="worldbook_discard">Descartar</string>
     <string name="worldbook_unnamed">Sem nome</string>
-    <string name="worldbook_enabled_cd">Habilitado</string>
     <string name="worldbook_edit_cd">Editar</string>
     <string name="worldbook_delete_cd">Excluir</string>
     <string name="worldbook_delete_title">Excluir Livro Mundial</string>
@@ -54,7 +53,6 @@
     <string name="worldbook_field_is_regex_desc">Trate palavras-chave como expressões regulares (avançado)</string>
     <string name="worldbook_field_always_active">Sempre ativo</string>
     <string name="worldbook_field_always_active_desc">Injetar sem gatilho de palavra-chave (constante)</string>
-    <string name="worldbook_field_enabled">Habilitado</string>
     <string name="worldbook_field_enabled_desc">Entradas desativadas não são injetadas</string>
 
     <!-- 前端修复 (i18n-8): export toast -->

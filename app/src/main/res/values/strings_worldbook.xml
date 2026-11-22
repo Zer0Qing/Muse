@@ -14,7 +14,6 @@
     <string name="worldbook_unsaved_content">当前编辑的内容尚未保存，确定要丢弃吗？</string>
     <string name="worldbook_discard">丢弃</string>
     <string name="worldbook_unnamed">未命名</string>
-    <string name="worldbook_enabled_cd">已启用</string>
     <string name="worldbook_delete_title">删除世界书</string>
     <string name="worldbook_empty_title">暂无世界书条目</string>
     <string name="worldbook_keywords_label">关键词： %1$s</string>
@@ -55,7 +54,6 @@
     <string name="worldbook_field_is_regex_desc">关键词作为正则表达式匹配（高级）</string>
     <string name="worldbook_field_always_active">常驻激活</string>
     <string name="worldbook_field_always_active_desc">无需关键词命中，始终注入到系统提示</string>
-    <string name="worldbook_field_enabled">启用</string>
     <string name="worldbook_field_enabled_desc">禁用后该条目不会被注入</string>
 
     <!-- 前端修复 (i18n-8): 导出提示 -->

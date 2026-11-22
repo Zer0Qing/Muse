@@ -77,7 +77,7 @@ fun AgentModeHintCard(
                 containerColor = MaterialTheme.colorScheme.errorContainer,
                 action = {
                     MuseCapsuleButton(
-                        text = stringResource(R.string.chat_agent_hint_dismiss),
+                        text = stringResource(R.string.common_got_it),
                         onClick = onDismissWeakToolHint,
                         variant = IosCapsuleButtonVariant.Text,
                         fillWidth = false,
@@ -101,7 +101,7 @@ fun AgentModeHintCard(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 action = {
                     MuseCapsuleButton(
-                        text = stringResource(R.string.chat_agent_hint_dismiss),
+                        text = stringResource(R.string.common_got_it),
                         onClick = onDismissAgentModeHint,
                         variant = IosCapsuleButtonVariant.Text,
                         fillWidth = false,

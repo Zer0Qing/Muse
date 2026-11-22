@@ -12,7 +12,6 @@
     <string name="groupchat_delete_message_confirm">Вы уверены, что хотите удалить это сообщение?</string>
     <string name="groupchat_reasoning">Рассуждение</string>
     <string name="groupchat_collapse">Крах</string>
-    <string name="groupchat_expand">Расширять</string>
     <string name="groupchat_image">Изображение</string>
     <string name="groupchat_tools">Инструменты</string>
     <string name="groupchat_send">Отправлять</string>
@@ -105,7 +104,6 @@
     <string name="schedule_time_unset">Нажмите, чтобы выбрать время</string>
     <string name="schedule_err_once_time_required">Выберите, когда выполнить эту одноразовую задачу</string>
     <string name="schedule_status_running">Выполняется</string>
-    <string name="schedule_status_completed">Завершено</string>
     <string name="schedule_err_content_required">Пожалуйста, введите содержание запуска</string>
     <string name="schedule_err_cron_invalid">Недопустимое выражение cron.</string>
     <string name="schedule_assistant">Ассистент</string>
@@ -256,7 +254,6 @@
     <!-- v1.0.47 P7-3: File size friendly prompt -->
     <string name="knowledge_file_too_large_title">Файл слишком большой</string>
     <string name="knowledge_file_too_large_msg">Размер файла %1$s превышает предел %2$s.\nПредложения:\n• Загружайте файлы меньшего размера пакетами\n• Используйте облачный парсер (Настройки → RAG → Document Parser).</string>
-    <string name="knowledge_file_too_large_confirm">Понятно</string>
     <string name="knowledge_imported_indexed">Импортировано: %1$s (%2$d фрагменты проиндексированы)</string>
     <string name="knowledge_import_batch_progress">Импорт %1$d из %2$d</string>
     <string name="knowledge_import_batch_done">Пакетный импорт завершён: успешно %1$d, с ошибкой %2$d</string>
@@ -288,7 +285,6 @@
     <string name="stats_back">Назад</string>
     <!-- v1.104 U8: time range filter -->
     <string name="stats_range_cd">Фильтр временного диапазона</string>
-    <string name="stats_range_all">Все</string>
     <string name="stats_range_month">В этом месяце</string>
     <string name="stats_range_week">На этой неделе</string>
     <string name="stats_range_today">Сегодня</string>
@@ -346,7 +342,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">Крах</string>
-    <string name="taskcard_expand">Расширять</string>
     <string name="milestone_title">Вехи</string>
     <string name="milestone_empty_title">Пока нет вех</string>
     <string name="milestone_empty_subtitle">Взаимодействуйте с ИИ-компаньоном чаще, и вехи разблокируются автоматически</string>
@@ -354,7 +349,6 @@
     <string name="milestone_dismissed_section">Закрытые (%1$d)</string>
     <string name="task_plan_status_pending">Ожидает</string>
     <string name="task_plan_status_in_progress">Выполняется</string>
-    <string name="task_plan_status_done">Завершено</string>
     <string name="task_plan_status_failed">Ошибка</string>
     <string name="task_plan_status_skipped">Пропущено</string>
 
@@ -379,7 +373,6 @@
     <string name="subagent_task_detail_loading">Loading conversation...</string>
     <string name="subagent_task_detail_empty">No conversation history yet</string>
     <string name="subagent_task_list_count">%1$d задачи</string>
-    <string name="subagent_task_completed">Завершенный</string>
     <string name="subagent_task_failed">Неуспешный</string>
     <string name="subagent_task_cancel">Отмена</string>
     <string name="subagent_task_close_cd">Закрыть задачу субагента</string>
@@ -518,7 +511,6 @@
     <string name="quick_notes_export_empty">Нет записей для экспорта</string>
     <string name="quick_notes_export_json">Формат JSON</string>
     <string name="quick_notes_export_markdown">Использование Markdown</string>
-    <string name="quick_notes_folder_all">Все</string>
     <string name="quick_notes_folder_hint">Введите имя папки</string>
     <string name="quick_notes_folder_new">Новая папка</string>
     <string name="quick_notes_folder_set">Задать папку</string>
@@ -569,7 +561,6 @@
     <string name="accessibility_section_title">Служба специальных возможностей</string>
     <string name="accessibility_status_disabled">Не включено. Разрешите «Автоматизацию UI Muse» в настройках системы.</string>
     <string name="accessibility_status_enabled">Служба специальных возможностей включена. Доступны действия UI (клик/свайп/ввод/скриншот/чтение дерева UI).</string>
-    <string name="action_retry">Повторить</string>
     <string name="common_load_failed">Не удалось загрузить</string>
     <string name="action_undo">Отменить</string>
     <string name="chat_unarchived">Архив восстановлен</string>
@@ -712,7 +703,6 @@
     <string name="knowledge_renamed">Переименовано в: %1$s</string>
     <string name="task_card_all_completed">Завершено шагов: %1$d</string>
     <string name="task_card_group_by_agent">Сгруппировано по агентам: %1$s</string>
-    <string name="task_card_phase_done">Завершено</string>
     <string name="task_card_phase_executing">Выполняется</string>
     <string name="task_card_phase_planning">Планируется</string>
     <string name="task_card_plan_title">План выполнения (%1$d шагов)</string>
@@ -822,7 +812,6 @@
     <string name="plugin_permission_recent_title">Недавние вызовы</string>
     <string name="plugin_permission_recent_empty">Вызовы ещё не записаны</string>
     <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
-    <string name="plugin_permission_expand">Показать</string>
     <string name="plugin_permission_collapse">Скрыть</string>
     <string name="plugin_permission_python_title">Среда Python (высокое доверие)</string>
     <string name="plugin_permission_python_warning">Плагины Python работают в дочернем процессе с тем же UID, что и приложение, и могут напрямую читать и писать данные приложения, минуя перечисленные переключатели и файловую песочницу. Включайте только для доверенных источников.</string>

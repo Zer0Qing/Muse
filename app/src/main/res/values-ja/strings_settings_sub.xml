@@ -151,7 +151,6 @@
     <string name="settings_about_new_version_desc">新しいバージョン%1$sが見つかりました。</string>
     <string name="settings_about_download">ダウンロード</string>
     <string name="settings_about_up_to_date">すでに最新です</string>
-    <string name="settings_about_got_it">わかった</string>
     <string name="settings_feedback_android_version">Android バージョン: %1$s (API %2$d)</string>
     <string name="settings_feedback_device_model">デバイスモデル: %1$s %2$s</string>
     <string name="settings_feedback_app_version">アプリのバージョン: %1$s</string>
@@ -226,7 +225,6 @@
     <string name="settings_asr_api_key">APIキー</string>
     <!-- ASR：プロバイダー設定に従う -->
     <string name="settings_asr_follow_provider">プロバイダー設定に従う</string>
-    <string name="settings_asr_follow_provider_picker">プロバイダー</string>
     <!-- 追従モード共通のプレースホルダーとフォールバック通知 -->
     <string name="settings_speech_follow_unset">未選択</string>
     <string name="settings_speech_follow_fallback_notice">手動設定にフォールバックしました: %1$s</string>
@@ -347,7 +345,6 @@
     <string name="settings_image_gen_select_model">画像モデルの選択</string>
     <string name="settings_image_gen_select_default">タップしてデフォルトの画像プロバイダーを選択します</string>
     <string name="settings_image_gen_no_provider">利用可能な画像プロバイダーがありません</string>
-    <string name="settings_image_gen_provider">プロバイダー</string>
     <string name="settings_image_gen_model_label">モデル</string>
     <string name="settings_image_gen_no_model">このプロバイダーで使用できるイメージ モデルはありません</string>
     <string name="settings_image_gen_selected">選択済み</string>
@@ -358,7 +355,6 @@
     <string name="settings_video_gen_select_model">ビデオモデルの選択</string>
     <string name="settings_video_gen_select_default">タップしてデフォルトのビデオプロバイダーを選択します</string>
     <string name="settings_video_gen_no_provider">利用可能なビデオプロバイダーがありません</string>
-    <string name="settings_video_gen_provider">プロバイダー</string>
     <string name="settings_video_gen_model_label">モデル</string>
     <string name="settings_video_gen_no_model">このプロバイダーで利用できるビデオ モデルはありません</string>
     <string name="settings_video_gen_selected">選択済み</string>
@@ -413,7 +409,6 @@
     <string name="settings_media_tts_save_advanced">パラメータの保存</string>
     <!-- クラウド TTS：プロバイダー設定に従う -->
     <string name="settings_media_tts_follow_provider">プロバイダー設定に従う</string>
-    <string name="settings_media_tts_follow_provider_picker">プロバイダー</string>
     <string name="settings_media_tts_follow_voice_hint">追従するのはエンドポイントと API キーのみです。音色が選択したプロバイダーで使えるかはご自身でご確認ください</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">カスタムテーマ</string>
@@ -454,7 +449,6 @@
     <string name="keep_alive_dialog_title">%1$s · バックグラウンドで実行</string>
     <string name="keep_alive_manual_hint">自動で設定を開けませんでした。上記の手順で手動で有効にしてください。</string>
     <string name="keep_alive_dialog_desc">プロアクティブメッセージはバックグラウンドプロセスに依存します。中国製 OS は既定でバックグラウンドアプリを終了するため、以下の手順で許可すれば、最近のタスクから消してもメッセージを受け取り続けられます：</string>
-    <string name="keep_alive_dialog_dismiss">わかりました</string>
     <string name="keep_alive_dialog_open">設定へ</string>
     <string name="settings_import_chatgpt_desc">ChatGPT 公式エクスポート(メール内の zip または解凍した conversations.json)</string>
     <string name="settings_import_chatgpt_step1">1. ChatGPT を開く → 設定 → プロフィール → データコントロール</string>

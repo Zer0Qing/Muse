@@ -1092,7 +1092,7 @@ private fun ToolTraceSummaryItem(summary: ToolTraceSummary) {
                 contentDescription = if (expanded) {
                     stringResource(R.string.action_collapse)
                 } else {
-                    stringResource(R.string.action_expand)
+                    stringResource(R.string.common_expand)
                 },
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(MusePaddings.screen),

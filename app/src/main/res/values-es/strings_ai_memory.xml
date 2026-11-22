@@ -70,7 +70,6 @@
     <string name="memory_error_trace_stack_header">== Seguimiento de pila ==</string>
 
     <!-- v8: memory scope related -->
-    <string name="memory_scope_all">Todo</string>
     <string name="memory_scope_main">Asistente principal</string>
     <string name="memory_scope_assistant">Memoria del asistente</string>
     <string name="memory_scope_label">Alcance de la memoria</string>
@@ -88,7 +87,6 @@
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
-    <string name="memory_timeline_filter_all">Todo</string>
     <string name="memory_timeline_filter_fact">Hechos</string>
     <string name="memory_timeline_filter_summary">Resúmenes</string>
     <string name="memory_timeline_filter_milestone">Hitos</string>
@@ -120,7 +118,6 @@
     <string name="memory_center_library_title">Biblioteca de hechos</string>
     <string name="memory_center_constellation_empty">Aún no hay hechos para mostrar. Añade o crea uno y vuelve aquí.</string>
     <string name="memory_center_filter_empty">No hay hechos en este ámbito o espacio. Prueba a cambiar los filtros.</string>
-    <string name="memory_center_scope_all">Todo</string>
     <string name="memory_center_space_default">Predeterminado</string>
     <string name="memory_center_scope_line">%1$s · %2$s</string>
     <string name="memory_center_filter_title">Filtrar</string>
@@ -137,7 +134,6 @@
     <string name="memory_center_facts_subtitle">Gestión por entradas: busca, añade, edita o elimina recuerdos individuales</string>
     <string name="memory_center_filter_advanced">Filtro avanzado</string>
     <string name="memory_center_filter_importance">Importancia</string>
-    <string name="memory_center_filter_importance_all">Todo</string>
     <string name="memory_center_filter_time">Rango de tiempo</string>
     <string name="memory_center_filter_time_30">Últimos 30 días</string>
     <string name="memory_center_filter_time_7">Últimos 7 días</string>

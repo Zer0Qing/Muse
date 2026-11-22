@@ -195,7 +195,7 @@ private fun QuickMessageCard(
     val disabledText = stringResource(R.string.common_state_disabled)
     val scopeGlobalText = stringResource(R.string.quick_msg_scope_global)
     val scopeAssistantText = stringResource(R.string.quick_msg_scope_assistant, assistantName ?: entry.assistantId)
-    val enabledStateText = stringResource(R.string.quick_msg_enabled_cd)
+    val enabledStateText = stringResource(R.string.common_state_enabled)
     val disabledStateText = stringResource(R.string.common_state_disabled)
     val editCd = stringResource(R.string.common_edit)
     val deleteCd = stringResource(R.string.common_delete)
@@ -463,7 +463,7 @@ private fun QuickMessageEditPage(
                 modifier = Modifier.fillMaxWidth(),
             )
             SettingsSwitchRow(
-                title = stringResource(R.string.quick_msg_field_enabled),
+                title = stringResource(R.string.common_enable),
                 subtitle = stringResource(R.string.quick_msg_field_enabled_desc),
                 checked = enabled,
                 onCheckedChange = { enabled = it },

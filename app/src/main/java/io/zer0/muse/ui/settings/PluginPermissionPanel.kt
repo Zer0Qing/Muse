@@ -325,7 +325,7 @@ fun PluginPermissionDisclosure(
             }
             Text(
                 text = stringResource(
-                    if (expanded) R.string.plugin_permission_collapse else R.string.plugin_permission_expand,
+                    if (expanded) R.string.plugin_permission_collapse else R.string.common_expand,
                 ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

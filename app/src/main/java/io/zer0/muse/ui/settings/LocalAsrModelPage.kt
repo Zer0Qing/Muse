@@ -324,7 +324,7 @@ internal fun LocalModelDownloadCard(modifier: Modifier = Modifier) {
                                 MuseCapsuleButton(
                                     text = stringResource(
                                         if (ds is LocalModelDownloader.DownloadState.Failed) {
-                                            R.string.asr_local_download_retry
+                                            R.string.common_retry
                                         } else {
                                             R.string.asr_local_download_action
                                         },
@@ -344,7 +344,7 @@ internal fun LocalModelDownloadCard(modifier: Modifier = Modifier) {
                                 MuseCapsuleButton(
                                     text = stringResource(
                                         if (ds is LocalModelDownloader.DownloadState.Failed) {
-                                            R.string.asr_local_download_retry
+                                            R.string.common_retry
                                         } else {
                                             R.string.asr_local_download_action
                                         },

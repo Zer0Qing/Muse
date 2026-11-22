@@ -266,7 +266,7 @@ enum class TaskStepStatus {
 enum class TaskCardPhase(val labelRes: Int) {
     PLANNING(R.string.task_card_phase_planning),
     EXECUTING(R.string.task_card_phase_executing),
-    DONE(R.string.task_card_phase_done),
+    DONE(R.string.common_done),
 }
 
 /**
@@ -414,7 +414,7 @@ fun TaskCard(
                 Icon(
                     imageVector = if (data.isExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = stringResource(
-                        if (data.isExpanded) R.string.action_collapse else R.string.action_expand,
+                        if (data.isExpanded) R.string.action_collapse else R.string.common_expand,
                     ),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),

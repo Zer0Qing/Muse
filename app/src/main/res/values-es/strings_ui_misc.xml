@@ -90,7 +90,6 @@
     <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
     <string name="model_switch_title">Modelo</string>
     <string name="model_switch_no_provider">Ningún proveedor configurado\nAñade uno en «Ajustes → Gestión de proveedores»</string>
-    <string name="model_switch_provider_label">Proveedor</string>
     <string name="model_switch_no_provider_selected">Ningún proveedor seleccionado</string>
     <string name="model_switch_models_label">Modelos (%1$s)</string>
     <string name="model_switch_fetching">Obteniendo…</string>
@@ -155,7 +154,6 @@ Toca actualizar para obtener la lista</string>
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Registro de actividad</string>
     <string name="activity_empty">Aún no se ha registrado actividad.</string>
-    <string name="model_switch_retry">Reintentar</string>
     <string name="shortcut_new_chat_long">Iniciar nuevo chat</string>
     <string name="shortcut_new_chat_short">Nuevo chat</string>
     <string name="shortcut_quick_notes_long">Notas rápidas</string>
@@ -216,7 +214,6 @@ Toca actualizar para obtener la lista</string>
     <string name="agent_bot_status_waiting_approval">Esperando tu aprobación</string>
     <string name="agent_bot_status_waiting_resource">Esperando un recurso</string>
     <string name="agent_bot_status_cancelling">Deteniendo</string>
-    <string name="agent_bot_status_succeeded">Hecho</string>
     <string name="agent_bot_status_partial">Hecho en parte</string>
     <string name="agent_bot_status_failed">No salió</string>
     <string name="agent_bot_status_cancelled">Cancelado</string>

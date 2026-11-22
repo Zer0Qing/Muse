@@ -630,7 +630,7 @@ private fun TtsFollowProviderSection(config: MediaConfig, settings: SettingsRepo
         Box {
             SettingsItemRow(
                 icon = MuseIcons.server,
-                title = stringResource(R.string.settings_media_tts_follow_provider_picker),
+                title = stringResource(R.string.common_provider),
                 subtitle = selectedProvider?.displayName ?: unsetLabel,
                 onClick = { providerExpanded = true },
             ) {

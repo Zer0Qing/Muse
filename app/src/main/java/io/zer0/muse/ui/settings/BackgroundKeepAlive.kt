@@ -233,7 +233,7 @@ fun KeepAliveGuideDialog(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
                 )
             }
         },
-        dismissText = context.getString(R.string.keep_alive_dialog_dismiss),
+        dismissText = context.getString(R.string.common_got_it),
         onDismiss = onDismiss,
     )
 }

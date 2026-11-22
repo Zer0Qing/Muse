@@ -40,7 +40,6 @@
     <!-- Network proxy -->
     <string name="proxy_title">ネットワークプロキシ</string>
     <string name="proxy_enable">プロキシを有効にする</string>
-    <string name="proxy_enabled">有効</string>
     <string name="proxy_disabled">無効</string>
     <string name="proxy_type">タイプ</string>
     <string name="proxy_type_http">HTTP</string>
@@ -57,8 +56,6 @@
     <string name="action_close">近い</string>
     <string name="action_more">もっと</string>
     <string name="action_send">送信</string>
-    <string name="action_share">共有</string>
-    <string name="action_expand">拡大する</string>
     <string name="action_collapse">崩壊</string>
 
     <!-- Quote reply -->
@@ -151,7 +148,6 @@
 
     <string name="chat_list_status_in_progress">進行中</string>
     <string name="chat_list_status_pending">未開始</string>
-    <string name="chat_list_status_completed">完了</string>
     <string name="chat_list_time_just_now">たった今</string>
     <string name="chat_list_time_minutes_ago">%1$d 分前</string>
     <string name="chat_list_time_hours_ago">%1$d 時間前</string>
@@ -255,7 +251,6 @@
     <string name="proactive_kind_reminder">リマインド</string>
     <string name="proactive_kind_follow_up">話し途中</string>
     <string name="proactive_kind_care">気づかい</string>
-    <string name="proactive_kind_share">共有</string>
     <string name="proactive_kind_milestone">節目</string>
     <string name="migration_running">データを引き上げ中 %1$d/%2$d</string>
     <string name="migration_step">schema v%1$d → v%2$d</string>

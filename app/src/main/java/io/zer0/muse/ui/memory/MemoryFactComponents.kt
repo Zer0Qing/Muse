@@ -210,7 +210,7 @@ internal fun MemoryFactRow(
                 }
                 if (canExpand) {
                     Text(
-                        text = stringResource(if (expanded) R.string.memory_screen_collapse else R.string.memory_screen_expand),
+                        text = stringResource(if (expanded) R.string.memory_screen_collapse else R.string.common_expand),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier =

@@ -151,7 +151,6 @@
     <string name="settings_about_new_version_desc">Nueva versión %1$s disponible. Toca para descargar.</string>
     <string name="settings_about_download">Descargar</string>
     <string name="settings_about_up_to_date">Ya tienes la última versión</string>
-    <string name="settings_about_got_it">Entendido</string>
     <string name="settings_feedback_android_version">Versión de Android: %1$s (API %2$d)</string>
     <string name="settings_feedback_device_model">Modelo de dispositivo: %1$s %2$s</string>
     <string name="settings_feedback_app_version">Versión de la aplicación: %1$s</string>
@@ -226,7 +225,6 @@
     <string name="settings_asr_api_key">Clave API</string>
     <!-- ASR: usar la configuración del proveedor -->
     <string name="settings_asr_follow_provider">Usar configuración del proveedor</string>
-    <string name="settings_asr_follow_provider_picker">Proveedor</string>
     <!-- Marcadores y aviso de reemplazo compartidos del modo seguir -->
     <string name="settings_speech_follow_unset">Sin seleccionar</string>
     <string name="settings_speech_follow_fallback_notice">Se usó la configuración manual: %1$s</string>
@@ -347,7 +345,6 @@
     <string name="settings_image_gen_select_model">Seleccionar modelo de imagen</string>
     <string name="settings_image_gen_select_default">Toca para seleccionar el proveedor de imágenes predeterminado</string>
     <string name="settings_image_gen_no_provider">No hay proveedores de imágenes disponibles</string>
-    <string name="settings_image_gen_provider">Proveedor</string>
     <string name="settings_image_gen_model_label">Modelo</string>
     <string name="settings_image_gen_no_model">No hay modelos de imagen disponibles para este proveedor</string>
     <string name="settings_image_gen_selected">Seleccionado</string>
@@ -358,7 +355,6 @@
     <string name="settings_video_gen_select_model">Seleccionar modelo de vídeo</string>
     <string name="settings_video_gen_select_default">Toca para seleccionar el proveedor de vídeo predeterminado</string>
     <string name="settings_video_gen_no_provider">No hay proveedores de vídeo disponibles</string>
-    <string name="settings_video_gen_provider">Proveedor</string>
     <string name="settings_video_gen_model_label">Modelo</string>
     <string name="settings_video_gen_no_model">No hay modelos de vídeo disponibles para este proveedor.</string>
     <string name="settings_video_gen_selected">Seleccionado</string>
@@ -413,7 +409,6 @@
     <string name="settings_media_tts_save_advanced">Guardar parámetros</string>
     <!-- TTS en la nube: usar la configuración del proveedor -->
     <string name="settings_media_tts_follow_provider">Usar configuración del proveedor</string>
-    <string name="settings_media_tts_follow_provider_picker">Proveedor</string>
     <string name="settings_media_tts_follow_voice_hint">Seguir solo toma la URL y la clave API; comprueba que la voz funcione con el proveedor elegido</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Tema personalizado</string>
@@ -454,7 +449,6 @@
     <string name="keep_alive_dialog_title">%1$s · Mantener en segundo plano</string>
     <string name="keep_alive_manual_hint">No se pudieron abrir los ajustes automáticamente. Sigue los pasos anteriores para activarlo manualmente.</string>
     <string name="keep_alive_dialog_desc">Los mensajes proactivos dependen de un proceso en segundo plano. Los sistemas chinos cierran las apps en segundo plano por defecto; tras permitirla según los pasos siguientes, seguirás recibiendo mensajes aunque deslices la app:</string>
-    <string name="keep_alive_dialog_dismiss">Entendido</string>
     <string name="keep_alive_dialog_open">Ir a ajustes</string>
     <string name="settings_import_chatgpt_desc">Exportación oficial de ChatGPT (el zip del correo o el conversations.json extraído)</string>
     <string name="settings_import_chatgpt_step1">1. Abre ChatGPT → Ajustes → Perfil → Controles de datos</string>

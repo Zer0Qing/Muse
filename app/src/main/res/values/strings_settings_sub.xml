@@ -31,7 +31,6 @@
     <string name="keep_alive_dialog_title">%1$s · 保持后台运行</string>
     <string name="keep_alive_manual_hint">未能自动跳转，请按上方步骤在系统设置中手动开启</string>
     <string name="keep_alive_dialog_desc">主动消息依赖后台进程。国产系统默认会清理后台应用，按下面步骤放行后，即使划掉最近任务也能继续收到消息：</string>
-    <string name="keep_alive_dialog_dismiss">知道了</string>
     <string name="keep_alive_dialog_open">去设置</string>
     <string name="settings_agent_proactive_title">主动消息</string>
     <!-- v2.x: Agent 页标题(替代硬编码 "Agent") -->
@@ -188,7 +187,6 @@
     <string name="settings_about_new_version_desc">发现新版本 %1$s，点击下载。</string>
     <string name="settings_about_download">下载</string>
     <string name="settings_about_up_to_date">已是最新版本</string>
-    <string name="settings_about_got_it">知道了</string>
     <string name="settings_feedback_android_version">Android 版本： %1$s (API %2$d)</string>
     <string name="settings_feedback_device_model">设备型号： %1$s %2$s</string>
     <string name="settings_feedback_app_version">App 版本： %1$s</string>
@@ -269,7 +267,6 @@
     <string name="settings_asr_api_key">API 密钥</string>
     <!-- ASR：跟随供应商配置 -->
     <string name="settings_asr_follow_provider">跟随供应商配置</string>
-    <string name="settings_asr_follow_provider_picker">供应商</string>
     <!-- 跟随模式共用的占位与回退提示 -->
     <string name="settings_speech_follow_unset">未选择</string>
     <!-- 语音模型选择（TTS / ASR 共用）：模型只在供应商里维护 -->
@@ -416,7 +413,6 @@
     <string name="settings_image_gen_select_model">选择绘图模型</string>
     <string name="settings_image_gen_select_default">点击选择默认使用的绘图供应商</string>
     <string name="settings_image_gen_no_provider">没有可用的绘图供应商</string>
-    <string name="settings_image_gen_provider">供应商</string>
     <string name="settings_image_gen_model_label">模型</string>
     <string name="settings_image_gen_no_model">该供应商下没有可用的绘图模型</string>
     <string name="settings_image_gen_selected">已选择</string>
@@ -427,7 +423,6 @@
     <string name="settings_video_gen_select_model">选择视频模型</string>
     <string name="settings_video_gen_select_default">点击选择默认使用的视频供应商</string>
     <string name="settings_video_gen_no_provider">没有可用的视频供应商</string>
-    <string name="settings_video_gen_provider">供应商</string>
     <string name="settings_video_gen_model_label">模型</string>
     <string name="settings_video_gen_no_model">该供应商下没有可用的视频模型</string>
     <string name="settings_video_gen_selected">已选择</string>
@@ -482,7 +477,6 @@
     <string name="settings_media_tts_save_advanced">保存参数</string>
     <!-- 云端 TTS：跟随供应商配置 -->
     <string name="settings_media_tts_follow_provider">跟随供应商配置</string>
-    <string name="settings_media_tts_follow_provider_picker">供应商</string>
     <string name="settings_media_tts_follow_voice_hint">跟随只接管接口地址与密钥，音色需自行确认与所选供应商兼容</string>
     <string name="settings_provider_media_gen_section">媒体生成模型</string>
     <string name="settings_asr_entry_title">语音识别引擎</string>

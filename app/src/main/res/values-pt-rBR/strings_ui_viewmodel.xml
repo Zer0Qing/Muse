@@ -13,7 +13,6 @@
     <string name="quick_msg_scope_global">Global</string>
     <string name="quick_msg_scope_assistant">Assistente: %1$s</string>
     <string name="quick_msg_scope_label">Escopo: %1$s</string>
-    <string name="quick_msg_enabled_cd">Habilitado</string>
     <string name="quick_msg_edit_cd">Editar</string>
     <string name="quick_msg_delete_cd">Excluir</string>
     <!-- Edit page -->
@@ -33,7 +32,6 @@
     <string name="quick_msg_field_bind_assistant">Assistente de vinculação</string>
     <string name="quick_msg_section_behavior">Comportamento</string>
     <string name="quick_msg_field_sort_index">Índice de classificação (menor = anterior)</string>
-    <string name="quick_msg_field_enabled">Habilitado</string>
     <string name="quick_msg_field_enabled_desc">Quando desativado, esta entrada não aparecerá na linha do chip InputBar</string>
 
     <!-- ===== LorebookScreen ===== -->
@@ -46,7 +44,6 @@
     <string name="lorebook_new_default_name">Nova entrada</string>
     <string name="lorebook_unnamed">(Sem nome)</string>
     <string name="lorebook_keywords_label">Palavras-chave: %1$s</string>
-    <string name="lorebook_enabled_cd">Habilitado</string>
     <string name="lorebook_edit_cd">Editar</string>
     <string name="lorebook_delete_cd">Excluir</string>
     <!-- Edit page -->
@@ -72,7 +69,6 @@
     <string name="lorebook_field_case_sensitive_desc">Quando ativado, a correspondência de palavras-chave diferencia maiúsculas de minúsculas</string>
     <string name="lorebook_field_whole_word">Palavra inteira</string>
     <string name="lorebook_field_whole_word_desc">A palavra-chave deve corresponder como palavra inteira (para ingles; termos CJK voltam ao modo automatico)</string>
-    <string name="lorebook_field_enabled">Habilitado</string>
     <string name="lorebook_field_enabled_desc">Quando desativada, esta entrada não acionará mais a injeção</string>
 
     <!-- ===== PromptInjectionScreen ===== -->
@@ -85,7 +81,6 @@
     <string name="prompt_injection_new_default_name">Nova injeção</string>
     <string name="prompt_injection_unnamed">(Sem nome)</string>
     <string name="prompt_injection_mode_label">Modo: %1$s</string>
-    <string name="prompt_injection_enabled_cd">Habilitado</string>
     <string name="prompt_injection_edit_cd">Editar</string>
     <string name="prompt_injection_delete_cd">Excluir</string>
     <!-- Edit page -->
@@ -103,7 +98,6 @@
     <string name="prompt_injection_section_behavior">Comportamento</string>
     <string name="prompt_injection_field_priority">Prioridade (pedido de múltiplas injeções do mesmo modo; número maior = injetado primeiro)</string>
     <string name="prompt_injection_field_insertion_position">Posição de inserção</string>
-    <string name="prompt_injection_field_enabled">Habilitado</string>
     <string name="prompt_injection_field_enabled_desc">Quando desativada, esta entrada não acionará mais a injeção</string>
 
     <!-- ===== AssistantScreen ===== -->
@@ -165,7 +159,6 @@
     <string name="assistant_toast_sillytavern_exported">Cartão de personagem SillyTavern exportado</string>
     <string name="assistant_toast_sillytavern_export_failed">Falha na exportação do SillyTavern: %1$s</string>
     <string name="assistant_disable">Desativar</string>
-    <string name="assistant_enable">Ativar</string>
     <string name="assistant_diff_summary">Resumo</string>
     <string name="assistant_diff_system_prompt">Prompt do sistema</string>
     <string name="assistant_diff_persona_definition">Persona</string>
@@ -185,4 +178,5 @@
     <string name="assistant_diff_legacy_pack">Cartao antigo: so a persona e aproveitada; chaves, vinculos de modelo e estatisticas nao vem junto</string>
     <string name="assistant_diff_no_switch">Importar não troca o assistente atual nem reatribui conversas</string>
     <string name="assistant_diff_more">...e mais %1$d</string>
+    <string name="assistant_diff_name">Nome</string>
 </resources>

@@ -1844,7 +1844,7 @@ private fun NextRunChip(task: io.zer0.muse.data.schedule.ScheduledTaskEntity) {
             TaskMetaChip(text = stringResource(R.string.schedule_status_running), highlighted = false)
 
         !task.enabled && task.interval == "once" && task.lastRunAt > 0 ->
-            TaskMetaChip(text = stringResource(R.string.schedule_status_completed), highlighted = false)
+            TaskMetaChip(text = stringResource(R.string.common_done), highlighted = false)
 
         task.nextRunAt > 0 -> {
             val nextFmt = remember { MuseDateFormats.dateTimeShort() }

@@ -83,7 +83,6 @@
     <string name="chat_err_open_file_picker">无法打开文件选择器： %1$s</string>
     <string name="chat_err_open_image_picker">无法打开图片选择器： %1$s</string>
     <string name="chat_error_cd">错误：%1$s，可重试或关闭</string>
-    <string name="chat_retry">重试</string>
 
     <!-- 分享 -->
     <string name="chat_share_subject">muse 对话记录</string>
@@ -169,7 +168,6 @@
     <string name="chat_share_action">分享对话</string>
     <!-- v1.0.47 P6: Agent Mode 增强提示 -->
     <string name="chat_agent_weak_tool_title">工具调用降级提示</string>
-    <string name="chat_agent_hint_dismiss">知道了</string>
     <string name="chat_agent_session_locked">Agent 模式已锁定会话</string>
     <string name="chat_delete_message">删除消息</string>
     <string name="chat_select_messages">选择</string>
@@ -434,7 +432,6 @@
     <string name="settings_sticker_empty_title">还没有表情包</string>
     <string name="settings_sticker_empty_subtitle">点击上方“导入表情包”，支持 zip、docx/pptx 文档与图片</string>
     <string name="settings_sticker_delete_confirm">删除该表情包？</string>
-    <string name="settings_sticker_category_all">全部</string>
     <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n -->
     <string name="settings_sticker_batch_done">完成</string>
     <string name="settings_sticker_batch_delete">批量删除</string>
@@ -558,7 +555,6 @@
     <string name="chat_process_subagent_running">%1$d 个子任务在后台</string>
     <string name="chat_process_subagent_section">后台子任务</string>
     <string name="chat_process_running">执行中</string>
-    <string name="chat_process_completed">已完成</string>
     <string name="chat_process_steps_completed">已完成 %1$d 步</string>
     <string name="chat_process_steps_progress">已进行 %1$d / %2$d 步</string>
     <string name="chat_process_step_fallback">步骤</string>

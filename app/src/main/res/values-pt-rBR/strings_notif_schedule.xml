@@ -78,7 +78,6 @@
     <string name="safe_mode_data_recovery">Guia de recuperação de dados</string>
     <string name="safe_mode_data_recovery_title">Guia de recuperação de dados</string>
     <string name="safe_mode_data_recovery_desc">Esta falha não afeta seus dados locais; conversas e configurações estão intactas. Para restaurar de um backup na nuvem: após reiniciar, vá em Configurações → Backup de dados → Restaurar da nuvem.</string>
-    <string name="safe_mode_data_recovery_ok">Entendi</string>
     <string name="safe_mode_continue_normal_desc">Mantenha conversas e configurações e tente abrir o Muse novamente</string>
     <string name="safe_mode_disable_plugins">Desativar todos os plugins e reiniciar</string>
     <string name="safe_mode_disable_plugins_desc">Plugins sao a causa mais comum de falhas. O app inicia normalmente; voce pode restaura-los na pagina de plugins.</string>

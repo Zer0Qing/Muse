@@ -12,7 +12,6 @@
     <string name="worldbook_unsaved_content">У вас есть несохраненные изменения.</string>
     <string name="worldbook_discard">Отказаться</string>
     <string name="worldbook_unnamed">Безымянный</string>
-    <string name="worldbook_enabled_cd">Включено</string>
     <string name="worldbook_edit_cd">Редактировать</string>
     <string name="worldbook_delete_cd">Удалить</string>
     <string name="worldbook_delete_title">Удалить Всемирную книгу</string>
@@ -54,7 +53,6 @@
     <string name="worldbook_field_is_regex_desc">Рассматривать ключевые слова как регулярные выражения (дополнительно)</string>
     <string name="worldbook_field_always_active">Всегда активен</string>
     <string name="worldbook_field_always_active_desc">Внедрить без триггера по ключевому слову (постоянно)</string>
-    <string name="worldbook_field_enabled">Включено</string>
     <string name="worldbook_field_enabled_desc">Отключенные записи не вводятся</string>
 
     <!-- 前端修复 (i18n-8): export toast -->

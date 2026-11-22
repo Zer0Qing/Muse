@@ -8,10 +8,8 @@
     <string name="settings_common_add">Add</string>
     <string name="settings_common_show">Show</string>
     <string name="settings_common_hide">Hide</string>
-    <string name="settings_common_expand">Expand</string>
     <string name="settings_common_collapse">Collapse</string>
     <string name="settings_common_advanced">Advanced</string>
-    <string name="settings_state_enabled">Enabled</string>
 
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Provider List</string>
@@ -22,7 +20,6 @@
     <string name="settings_provider_category_relay">Relay</string>
     <string name="settings_provider_category_custom">Custom</string>
     <string name="settings_provider_add">Add Provider</string>
-    <string name="settings_provider_status_enabled">Enabled</string>
     <string name="settings_provider_status_disabled">Disabled</string>
     <string name="settings_provider_json_parse_failed">JSON parse failed: missing private_key / client_email</string>
     <string name="settings_provider_imported_from_json">Service account credentials imported from JSON</string>
@@ -402,7 +399,6 @@
     <string name="settings_chat_background_failed">Image processing failed, please try another one</string>
     <string name="cloud_backup_restore_failed_title">Restore failed</string>
     <string name="cloud_backup_restore_failed_desc">Could not restore data from the cloud. Check your network and cloud backup settings, then retry.</string>
-    <string name="cloud_backup_restore_retry">Retry</string>
     <string name="settings_backup_log_title">Recent backups</string>
     <string name="settings_backup_log_empty">No backup records yet</string>
     <string name="settings_backup_log_success">Success</string>

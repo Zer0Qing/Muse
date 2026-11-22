@@ -13,7 +13,6 @@
     <string name="quick_msg_scope_global">全局</string>
     <string name="quick_msg_scope_assistant">Assistant: %1$s</string>
     <string name="quick_msg_scope_label">作用域： %1$s</string>
-    <string name="quick_msg_enabled_cd">已启用</string>
     <!-- 编辑页 -->
     <string name="quick_msg_unsaved_title">有未保存的修改</string>
     <string name="quick_msg_unsaved_content">退出将丢失当前编辑，确认放弃？</string>
@@ -30,7 +29,6 @@
     <string name="quick_msg_field_bind_assistant">绑定 Assistant</string>
     <string name="quick_msg_section_behavior">行为</string>
     <string name="quick_msg_field_sort_index">排序序号（越小越靠前）</string>
-    <string name="quick_msg_field_enabled">启用</string>
     <string name="quick_msg_field_enabled_desc">关闭后此条目不显示在 InputBar chip 行</string>
 
     <!-- ===== LorebookScreen 世界书页 ===== -->
@@ -43,7 +41,6 @@
     <string name="lorebook_new_default_name">新条目</string>
     <string name="lorebook_unnamed">（未命名）</string>
     <string name="lorebook_keywords_label">关键词： %1$s</string>
-    <string name="lorebook_enabled_cd">已启用</string>
     <!-- 编辑页 -->
     <string name="lorebook_unsaved_title">有未保存的修改</string>
     <string name="lorebook_unsaved_content">退出将丢失当前编辑，确认放弃？</string>
@@ -66,7 +63,6 @@
     <string name="lorebook_field_case_sensitive_desc">开启后关键词匹配区分大小写</string>
     <string name="lorebook_field_whole_word">全词匹配</string>
     <string name="lorebook_field_whole_word_desc">关键词需完整成词才触发（适用于英文；中文关键词自动退化）</string>
-    <string name="lorebook_field_enabled">启用</string>
     <string name="lorebook_field_enabled_desc">关闭后此条目不再触发注入</string>
 
     <!-- ===== PromptInjectionScreen 模式注入页 ===== -->
@@ -79,7 +75,6 @@
     <string name="prompt_injection_new_default_name">新注入</string>
     <string name="prompt_injection_unnamed">（未命名）</string>
     <string name="prompt_injection_mode_label">模式： %1$s</string>
-    <string name="prompt_injection_enabled_cd">已启用</string>
     <!-- 编辑页 -->
     <string name="prompt_injection_unsaved_title">有未保存的修改</string>
     <string name="prompt_injection_unsaved_content">退出将丢失当前编辑，确认放弃？</string>
@@ -94,7 +89,6 @@
     <string name="prompt_injection_section_behavior">行为</string>
     <string name="prompt_injection_field_priority">优先级（同模式多个注入时排序，数字越大越先注入）</string>
     <string name="prompt_injection_field_insertion_position">注入位置</string>
-    <string name="prompt_injection_field_enabled">启用</string>
     <string name="prompt_injection_field_enabled_desc">关闭后此条目不再触发注入</string>
 
     <!-- ===== AssistantScreen 助手页 ===== -->
@@ -119,7 +113,6 @@
     <string name="assistant_move_down">下移</string>
     <string name="assistant_clone">克隆</string>
     <!-- U-26: 助手启用/停用 -->
-    <string name="assistant_enable">启用</string>
     <string name="assistant_disable">停用</string>
     <string name="assistant_export_card">导出角色卡</string>
     <string name="assistant_delete_title">删除助手</string>
@@ -176,4 +169,5 @@
     <string name="assistant_diff_legacy_pack">旧版角色包：只取人设，密钥、模型绑定与使用统计不会带过来</string>
     <string name="assistant_diff_no_switch">导入不会切换当前助手，也不会改动会话归属</string>
     <string name="assistant_diff_more">…另有 %1$d 项</string>
+    <string name="assistant_diff_name">名称</string>
 </resources>

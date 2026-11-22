@@ -3482,7 +3482,7 @@ fun ChatScreen(
                                                 // M-S11: 仅网络/未知类错误显示重试按钮(API_KEY/RATE_LIMIT 重试无意义)
                                                 if (err.type == ChatErrorType.NETWORK || err.type == ChatErrorType.UNKNOWN) {
                                                     MuseCapsuleButton(
-                                                        text = stringResource(R.string.chat_retry),
+                                                        text = stringResource(R.string.common_retry),
                                                         onClick = { viewModel.regenerateLastAssistant() },
                                                         variant = IosCapsuleButtonVariant.Text,
                                                         fillWidth = false,

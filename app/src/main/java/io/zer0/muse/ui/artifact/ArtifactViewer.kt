@@ -399,7 +399,7 @@ private fun ArtifactActionBar(actions: Set<ArtifactAction>, showSource: Boolean,
             val (icon, descRes) = when (action) {
                 ArtifactAction.Copy -> MuseIcons.copy to R.string.common_copy
                 ArtifactAction.Save -> MuseIcons.deviceFloppy to R.string.artifact_save_text
-                ArtifactAction.Share -> MuseIcons.share to R.string.action_share
+                ArtifactAction.Share -> MuseIcons.share to R.string.common_share
                 ArtifactAction.OpenExternal -> MuseIcons.externalLink to R.string.artifact_open_external
                 ArtifactAction.ToggleSource ->
                     MuseIcons.code to

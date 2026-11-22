@@ -333,7 +333,7 @@ fun MemoryScreen(
                         stage = organizeStage,
                         scopeLabel =
                         scopes.firstOrNull { it.id == selectedScope }?.displayName
-                            ?: stringResource(R.string.memory_center_scope_all),
+                            ?: stringResource(R.string.common_all),
                         spaceLabel =
                         spaces.firstOrNull { it.id == selectedSpace }?.name
                             ?: stringResource(R.string.memory_center_space_default),
@@ -804,7 +804,7 @@ fun MemoryScreen(
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 MemoryFilterRow(
-                    label = stringResource(R.string.memory_center_filter_importance_all),
+                    label = stringResource(R.string.common_all),
                     selected = importanceFilter == null,
                     onClick = {
                         viewModel.selectImportanceFilter(null)

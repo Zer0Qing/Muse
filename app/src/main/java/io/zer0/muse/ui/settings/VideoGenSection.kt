@@ -242,7 +242,7 @@ private fun VideoModelSelectorDialog(
                 )
             } else {
                 Text(
-                    text = stringResource(R.string.settings_video_gen_provider),
+                    text = stringResource(R.string.common_provider),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -12,7 +12,6 @@
     <string name="groupchat_delete_message_confirm">このメッセージを削除してもよろしいですか?</string>
     <string name="groupchat_reasoning">推論</string>
     <string name="groupchat_collapse">崩壊</string>
-    <string name="groupchat_expand">拡大する</string>
     <string name="groupchat_image">画像</string>
     <string name="groupchat_tools">ツール</string>
     <string name="groupchat_send">送信</string>
@@ -105,7 +104,6 @@
     <string name="schedule_time_unset">タップして時刻を選択</string>
     <string name="schedule_err_once_time_required">一度きりのタスクの実行時刻を選択してください</string>
     <string name="schedule_status_running">実行中</string>
-    <string name="schedule_status_completed">完了</string>
     <string name="schedule_err_content_required">実行内容を入力してください</string>
     <string name="schedule_err_cron_invalid">無効な cron 式です。</string>
     <string name="schedule_assistant">アシスタント</string>
@@ -256,7 +254,6 @@
     <!-- v1.0.47 P7-3: File size friendly prompt -->
     <string name="knowledge_file_too_large_title">ファイルが大きすぎます</string>
     <string name="knowledge_file_too_large_msg">ファイル サイズ %1$s が %2$s 制限を超えています。\n提案:\n• 小さいファイルをバッチでアップロードします\n• クラウド パーサーを使用します ([設定] → [RAG] → [ドキュメント パーサー])</string>
-    <string name="knowledge_file_too_large_confirm">わかった</string>
     <string name="knowledge_imported_indexed">インポート済み: %1$s (%2$d チャンクがインデックス付けされています)</string>
     <string name="knowledge_import_batch_progress">%1$d/%2$d をインポート中</string>
     <string name="knowledge_import_batch_done">一括インポート完了：成功 %1$d 件、失敗 %2$d 件</string>
@@ -288,7 +285,6 @@
     <string name="stats_back">戻る</string>
     <!-- v1.104 U8: time range filter -->
     <string name="stats_range_cd">時間範囲フィルター</string>
-    <string name="stats_range_all">全て</string>
     <string name="stats_range_month">今月</string>
     <string name="stats_range_week">今週</string>
     <string name="stats_range_today">今日</string>
@@ -346,7 +342,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">崩壊</string>
-    <string name="taskcard_expand">拡大する</string>
     <string name="milestone_title">マイルストーン</string>
     <string name="milestone_empty_title">まだマイルストーンはありません</string>
     <string name="milestone_empty_subtitle">AIパートナーともっと交流すると、マイルストーンが自動的に解放されます</string>
@@ -354,7 +349,6 @@
     <string name="milestone_dismissed_section">クローズ済み (%1$d)</string>
     <string name="task_plan_status_pending">待機中</string>
     <string name="task_plan_status_in_progress">実行中</string>
-    <string name="task_plan_status_done">完了</string>
     <string name="task_plan_status_failed">失敗</string>
     <string name="task_plan_status_skipped">スキップ</string>
 
@@ -379,7 +373,6 @@
     <string name="subagent_task_detail_loading">Loading conversation...</string>
     <string name="subagent_task_detail_empty">No conversation history yet</string>
     <string name="subagent_task_list_count">%1$d タスク</string>
-    <string name="subagent_task_completed">完了</string>
     <string name="subagent_task_failed">失敗した</string>
     <string name="subagent_task_cancel">キャンセル</string>
     <string name="subagent_task_close_cd">サブエージェントタスクを閉じる</string>
@@ -518,7 +511,6 @@
     <string name="quick_notes_export_empty">出力可能な记录はありません</string>
     <string name="quick_notes_export_json">JSON として出力</string>
     <string name="quick_notes_export_markdown">マークダウンとして出力</string>
-    <string name="quick_notes_folder_all">すべて</string>
     <string name="quick_notes_folder_hint">入力ファイル名</string>
     <string name="quick_notes_folder_new">新しいフォルダ</string>
     <string name="quick_notes_folder_set">フォルダを設定</string>
@@ -569,7 +561,6 @@
     <string name="accessibility_section_title">アクセシビリティサービス</string>
     <string name="accessibility_status_disabled">有効ではありません。システム設定で「Muse UI 自動化」を許可してください。</string>
     <string name="accessibility_status_enabled">アクセシビリティサービス有効。UI操作（クリック/スワイプ/入力/スクリーンショット/UIツリー読み取り）を利用できます。</string>
-    <string name="action_retry">再試行</string>
     <string name="common_load_failed">読み込みに失敗しました</string>
     <string name="action_undo">元に戻す</string>
     <string name="chat_unarchived">アーカイブを解除しました</string>
@@ -665,7 +656,6 @@
     <string name="knowledge_renamed">%1$s に名前を変更しました</string>
     <string name="task_card_all_completed">%1$d ステップ完了</string>
     <string name="task_card_group_by_agent">Agent でグループ化：%1$s</string>
-    <string name="task_card_phase_done">完了</string>
     <string name="task_card_phase_executing">実行中</string>
     <string name="task_card_phase_planning">計画中</string>
     <string name="task_card_plan_title">実行計画（%1$d ステップ）</string>
@@ -775,7 +765,6 @@
     <string name="plugin_permission_recent_title">最近の呼び出し</string>
     <string name="plugin_permission_recent_empty">記録された呼び出しはありません</string>
     <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
-    <string name="plugin_permission_expand">表示</string>
     <string name="plugin_permission_collapse">閉じる</string>
     <string name="plugin_permission_python_title">Python ランタイム（高信頼）</string>
     <string name="plugin_permission_python_warning">Python プラグインは本アプリと同じ UID のサブプロセスで動作し、アプリデータを直接読み書きできます。上記の能力スイッチやファイルサンドボックスの適用外です。信頼できる場合のみ有効化してください。</string>

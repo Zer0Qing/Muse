@@ -401,7 +401,7 @@ private fun RegexRuleEditDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = stringResource(R.string.assistant_detail_regex_enabled),
+                        text = stringResource(R.string.common_enable),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                         // LAYOUT-01: 同上，开关行标签限 1 行

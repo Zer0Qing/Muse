@@ -1108,7 +1108,7 @@ fun SettingsAboutPage(
             onDismissRequest = { upToDate = false },
             title = stringResource(R.string.settings_about_check_update),
             message = stringResource(R.string.settings_about_up_to_date),
-            confirmText = stringResource(R.string.settings_about_got_it),
+            confirmText = stringResource(R.string.common_got_it),
         )
     }
 }

@@ -1671,7 +1671,7 @@ private fun TaskStatusDot(status: TaskStatus) {
     val (color, description) = when (status) {
         TaskStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary to stringResource(R.string.chat_list_status_in_progress)
         TaskStatus.PENDING -> MaterialTheme.colorScheme.tertiary to stringResource(R.string.chat_list_status_pending)
-        TaskStatus.COMPLETED -> MaterialTheme.colorScheme.outline to stringResource(R.string.chat_list_status_completed)
+        TaskStatus.COMPLETED -> MaterialTheme.colorScheme.outline to stringResource(R.string.common_done)
     }
     Box(
         modifier = Modifier
@@ -1688,7 +1688,7 @@ private fun formatTaskStatus(session: SessionEntity): String {
     return when (status) {
         TaskStatus.IN_PROGRESS -> stringResource(R.string.chat_list_status_in_progress)
         TaskStatus.PENDING -> stringResource(R.string.chat_list_status_pending)
-        TaskStatus.COMPLETED -> stringResource(R.string.chat_list_status_completed)
+        TaskStatus.COMPLETED -> stringResource(R.string.common_done)
     }
 }
 

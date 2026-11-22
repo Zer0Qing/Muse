@@ -344,7 +344,7 @@ private fun statusLabel(status: String): String = when (status) {
     BotTaskStatus.WAITING_APPROVAL -> stringResource(R.string.agent_bot_status_waiting_approval)
     BotTaskStatus.WAITING_RESOURCE -> stringResource(R.string.agent_bot_status_waiting_resource)
     BotTaskStatus.CANCEL_REQUESTED -> stringResource(R.string.agent_bot_status_cancelling)
-    BotTaskStatus.SUCCEEDED -> stringResource(R.string.agent_bot_status_succeeded)
+    BotTaskStatus.SUCCEEDED -> stringResource(R.string.common_done)
     BotTaskStatus.PARTIAL -> stringResource(R.string.agent_bot_status_partial)
     BotTaskStatus.FAILED -> stringResource(R.string.agent_bot_status_failed)
     BotTaskStatus.CANCELLED -> stringResource(R.string.agent_bot_status_cancelled)

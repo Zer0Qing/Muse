@@ -127,7 +127,7 @@ class SettingsSearchIndexTest {
         assertEquals(
             "分享与安全应挂在「隐私与安全」下",
             SettingsGroupKind.PRIVACY_SECURITY,
-            records.single { it.titleRes == R.string.settings_screen_share }.group,
+            records.single { it.titleRes == R.string.common_share }.group,
         )
         assertEquals(
             "PII 守护应挂在「隐私与安全」下",

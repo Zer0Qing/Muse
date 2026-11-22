@@ -402,7 +402,7 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                     MuseChip(
                         selected = selectedCategory.isBlank(),
                         onClick = { selectedCategory = "" },
-                        label = stringResource(R.string.settings_sticker_category_all),
+                        label = stringResource(R.string.common_all),
                     )
                 }
                 lazyItems(categories, key = { it }) { cat ->

@@ -90,7 +90,6 @@
     <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
     <string name="model_switch_title">모델</string>
     <string name="model_switch_no_provider">구성된 공급자 없음\n설정 → 공급자 관리에서 공급자 추가</string>
-    <string name="model_switch_provider_label">공급자</string>
     <string name="model_switch_no_provider_selected">선택한 제공업체가 없습니다.</string>
     <string name="model_switch_models_label">모델(%1$s)</string>
     <string name="model_switch_fetching">가져오는 중</string>
@@ -155,7 +154,6 @@
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">활동 로그</string>
     <string name="activity_empty">아직 기록된 활동이 없습니다.</string>
-    <string name="model_switch_retry">무거운 말</string>
     <string name="shortcut_new_chat_long">새 대화 시작</string>
     <string name="shortcut_new_chat_short">새로운 이야기</string>
     <string name="shortcut_quick_notes_long">빠른 기록</string>
@@ -216,7 +214,6 @@
     <string name="agent_bot_status_waiting_approval">승인 대기 중</string>
     <string name="agent_bot_status_waiting_resource">자원 대기 중</string>
     <string name="agent_bot_status_cancelling">중지 중</string>
-    <string name="agent_bot_status_succeeded">완료</string>
     <string name="agent_bot_status_partial">일부만 완료</string>
     <string name="agent_bot_status_failed">실패</string>
     <string name="agent_bot_status_cancelled">취소됨</string>

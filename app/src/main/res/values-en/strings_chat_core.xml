@@ -74,7 +74,6 @@
     <string name="chat_err_open_file_picker">Cannot open file picker: %1$s</string>
     <string name="chat_err_open_image_picker">Cannot open image picker: %1$s</string>
     <string name="chat_error_cd">Error: %1$s, retry or close</string>
-    <string name="chat_retry">Retry</string>
 
     <!-- Share -->
     <string name="chat_share_subject">muse conversation</string>
@@ -160,7 +159,6 @@
     <string name="chat_fork_action">Fork Chat</string>
     <string name="chat_share_action">Share Chat</string>
     <string name="chat_agent_weak_tool_title">Tool Call Degraded</string>
-    <string name="chat_agent_hint_dismiss">Got it</string>
     <string name="chat_agent_session_locked">Session locked in Agent Mode</string>
     <string name="chat_delete_message">Delete Message</string>
     <string name="chat_select_messages">Select</string>
@@ -400,7 +398,6 @@
     <string name="settings_sticker_empty_title">No stickers yet</string>
     <string name="settings_sticker_empty_subtitle">Tap \"Import stickers\" above — ZIP, DOCX/PPTX and images are supported</string>
     <string name="settings_sticker_delete_confirm">Delete this sticker?</string>
-    <string name="settings_sticker_category_all">All</string>
     <!-- 前端修复 (i18n-3.x): Sticker batch delete / clear i18n -->
     <string name="settings_sticker_batch_done">Done</string>
     <string name="settings_sticker_batch_delete">Batch delete</string>
@@ -554,7 +551,6 @@
     <string name="chat_process_subagent_running">%1$d subagent tasks running</string>
     <string name="chat_process_subagent_section">Background subagents</string>
     <string name="chat_process_running">Running</string>
-    <string name="chat_process_completed">Completed</string>
     <string name="chat_process_steps_completed">%1$d steps completed</string>
     <string name="chat_process_steps_progress">%1$d of %2$d steps complete</string>
     <string name="chat_process_step_fallback">Step</string>

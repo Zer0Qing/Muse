@@ -603,7 +603,7 @@ fun PendingApprovalsSummary(
                 Icon(
                     imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                     contentDescription = stringResource(
-                        if (expanded) R.string.action_collapse else R.string.action_expand,
+                        if (expanded) R.string.action_collapse else R.string.common_expand,
                     ),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),

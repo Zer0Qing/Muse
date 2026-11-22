@@ -90,7 +90,6 @@
     <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
     <string name="model_switch_title">Модель</string>
     <string name="model_switch_no_provider">Ни один провайдер не настроен\nДобавить его в Настройках → Управление провайдерами.</string>
-    <string name="model_switch_provider_label">Поставщик</string>
     <string name="model_switch_no_provider_selected">Поставщик не выбран</string>
     <string name="model_switch_models_label">Модели (%1$s)</string>
     <string name="model_switch_fetching">Получение</string>
@@ -155,7 +154,6 @@
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Журнал активности</string>
     <string name="activity_empty">Никаких действий пока не зафиксировано.</string>
-    <string name="model_switch_retry">Повторить</string>
     <string name="shortcut_new_chat_long">Начать новый чат</string>
     <string name="shortcut_new_chat_short">Новый чат</string>
     <string name="shortcut_quick_notes_long">Быстрые заметки</string>
@@ -216,7 +214,6 @@
     <string name="agent_bot_status_waiting_approval">Ждёт вашего одобрения</string>
     <string name="agent_bot_status_waiting_resource">Ждёт ресурс</string>
     <string name="agent_bot_status_cancelling">Останавливается</string>
-    <string name="agent_bot_status_succeeded">Готово</string>
     <string name="agent_bot_status_partial">Выполнено частично</string>
     <string name="agent_bot_status_failed">Не получилось</string>
     <string name="agent_bot_status_cancelled">Отменено</string>

@@ -74,7 +74,6 @@
     <string name="memory_error_trace_stack_header">== Stack Trace ==</string>
 
     <!-- v8: memory scope related -->
-    <string name="memory_scope_all">All</string>
     <string name="memory_scope_main">Main Assistant</string>
     <string name="memory_scope_assistant">Assistant Memory</string>
     <string name="memory_scope_label">Memory Scope</string>
@@ -98,7 +97,6 @@
     <string name="memory_contradictions_keep_a">Keep the first</string>
     <string name="memory_contradictions_keep_b">Keep the second</string>
     <string name="memory_evidence_line">Basis: %1$s</string>
-    <string name="memory_timeline_filter_all">All</string>
     <string name="memory_timeline_filter_fact">Facts</string>
     <string name="memory_timeline_filter_summary">Summaries</string>
     <string name="memory_timeline_filter_milestone">Milestones</string>
@@ -151,7 +149,6 @@
     <string name="memory_center_library_title">Fact library</string>
     <string name="memory_center_constellation_empty">There are no fact nodes to show yet. Add or create a fact, then come back here.</string>
     <string name="memory_center_filter_empty">There are no facts in this scope or space. Try changing the filters above.</string>
-    <string name="memory_center_scope_all">All</string>
     <string name="memory_center_space_default">Default</string>
     <string name="memory_center_scope_line">%1$s · %2$s</string>
     <string name="memory_center_filter_title">Filter</string>
@@ -168,7 +165,6 @@
     <string name="memory_center_facts_subtitle">Manage by entry: search, add, edit, or delete individual memories</string>
     <string name="memory_center_filter_advanced">Advanced filter</string>
     <string name="memory_center_filter_importance">Importance</string>
-    <string name="memory_center_filter_importance_all">All</string>
     <string name="memory_center_filter_time">Time range</string>
     <string name="memory_center_filter_time_30">Last 30 days</string>
     <string name="memory_center_filter_time_7">Last 7 days</string>

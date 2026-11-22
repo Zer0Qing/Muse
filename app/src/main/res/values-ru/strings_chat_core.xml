@@ -74,7 +74,6 @@
     <string name="chat_err_open_file_picker">Невозможно открыть средство выбора файлов: %1$s</string>
     <string name="chat_err_open_image_picker">Невозможно открыть средство выбора изображений: %1$s</string>
     <string name="chat_error_cd">Ошибка: %1$s, повторите попытку или закройте</string>
-    <string name="chat_retry">Повторить попытку</string>
 
     <!-- Share -->
     <string name="chat_share_subject">разговор музы</string>
@@ -162,7 +161,6 @@
     <string name="chat_fork_action">Форк Чат</string>
     <string name="chat_share_action">Поделиться чатом</string>
     <string name="chat_agent_weak_tool_title">Вызов инструмента ухудшился</string>
-    <string name="chat_agent_hint_dismiss">Понятно</string>
     <string name="chat_agent_session_locked">Сеанс заблокирован в режиме агента</string>
     <string name="chat_delete_message">Удалить сообщение</string>
     <string name="chat_select_messages">Выбрать</string>
@@ -383,7 +381,6 @@
     <string name="settings_sticker_empty_title">Наклеек пока нет</string>
     <string name="settings_sticker_empty_subtitle">Нажмите «Импортировать стикеры» выше; поддерживаются ZIP, DOCX/PPTX и изображения</string>
     <string name="settings_sticker_delete_confirm">Удалить эту наклейку?</string>
-    <string name="settings_sticker_category_all">Все</string>
 
     <!-- SkillExecutor sticker tool feedback -->
     <string name="skill_sticker_not_configured">Библиотека стикеров не настроена.</string>
@@ -541,7 +538,6 @@
     <string name="chat_process_subagent_running">Фоновых подзадач: %1$d</string>
     <string name="chat_process_subagent_section">Фоновые подзадачи</string>
     <string name="chat_process_running">Выполняется</string>
-    <string name="chat_process_completed">Завершено</string>
     <string name="chat_process_steps_completed">Завершено шагов: %1$d</string>
     <string name="chat_process_steps_progress">Завершено шагов: %1$d из %2$d</string>
     <string name="chat_process_step_fallback">Шаг</string>

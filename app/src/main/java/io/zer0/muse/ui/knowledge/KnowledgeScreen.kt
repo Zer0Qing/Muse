@@ -1418,7 +1418,7 @@ fun KnowledgeScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
-            confirmText = stringResource(R.string.knowledge_file_too_large_confirm),
+            confirmText = stringResource(R.string.common_got_it),
             onConfirm = { fileSizeWarning = null },
             dismissText = null,
         )

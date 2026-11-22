@@ -166,7 +166,7 @@ fun SafeModeScreen() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = stringResource(R.string.safe_mode_data_recovery_ok),
+            confirmText = stringResource(R.string.common_got_it),
             onConfirm = { showRecoveryGuide = false },
             dismissText = null,
             onDismiss = { showRecoveryGuide = false },

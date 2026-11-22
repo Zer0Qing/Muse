@@ -104,13 +104,11 @@
     <string name="memory_conversation_meta">Assistente %1$s · Espaço %2$s</string>
     <string name="memory_screen_no_fact">Ainda não há metafatos</string>
     <string name="memory_screen_collapse">Colapso</string>
-    <string name="memory_screen_expand">Expandir</string>
     <string name="memory_screen_edit_cd">Editar</string>
     <string name="memory_screen_delete_cd">Excluir</string>
     <string name="memory_screen_load_failed">Falha no carregamento – detalhes completos do erro</string>
     <string name="memory_screen_copied_trace">Rastreamento de pilha completo copiado para a área de transferência</string>
     <string name="memory_screen_copy_trace_cd">Copiar rastreamento completo da pilha</string>
-    <string name="memory_screen_retry">Tentar novamente</string>
     <string name="memory_screen_input_content">Insira o conteúdo…</string>
     <string name="memory_screen_save">Salvar</string>
     <string name="memory_screen_normal">Normal</string>
@@ -204,7 +202,6 @@
     <string name="settings_screen_rag">Recuperação de Conhecimento</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
     <string name="settings_screen_pii_guard">Proteção de privacidade de informações de identificação pessoal</string>
-    <string name="settings_screen_provider">Provedores</string>
     <string name="settings_screen_assistant">Assistentes</string>
     <string name="settings_screen_experiments">Experimental</string>
     <string name="settings_screen_stats">Estatísticas</string>
@@ -336,7 +333,6 @@
     <string name="skill_import_error">Falha na importação: %1$s</string>
     <string name="skill_operation_failed">Falha na operação: %1$s</string>
     <string name="skill_unnamed">(Sem nome)</string>
-    <string name="skill_enabled">Habilitado</string>
     <string name="skill_bulk_summary">%1$d habilidades personalizadas, %2$d ativadas</string>
     <string name="skill_bulk_disable_all">Desativar todas</string>
     <string name="skill_bulk_enable_all">Ativar todas</string>
@@ -377,7 +373,6 @@
     <string name="assistant_detail_regex_scope_assistant">Apenas mensagens do assistente</string>
     <string name="assistant_detail_regex_scope_both">Ambos (usuário + assistente)</string>
     <string name="assistant_detail_regex_visual_only">Apenas substituição de exibição (não afeta a entrada LLM)</string>
-    <string name="assistant_detail_regex_enabled">Habilitado</string>
     <string name="assistant_detail_regex_invalid">Sintaxe de regex inválida</string>
 
     <!-- ===== QR code share/scan ===== -->
@@ -463,7 +458,6 @@
     <string name="audit_log_clear">Limpar registro</string>
     <string name="audit_log_empty">Não há registros de log</string>
     <string name="audit_log_clear_confirm">Confirmar a limpeza de todos os registros de auditoria?</string>
-    <string name="audit_log_category_all">Todos</string>
     <string name="audit_log_category_api">Chamada de API</string>
     <string name="audit_log_category_user">Ação do usuário</string>
     <string name="audit_log_category_auth">Autenticação</string>
@@ -504,7 +498,6 @@
     <string name="video_gen_failed">Falha: %1$s</string>
     <string name="video_gen_open_video">Abrir vídeo</string>
     <string name="video_gen_no_app">Nenhum aplicativo disponível para reproduzir vídeo</string>
-    <string name="video_gen_provider">Provedor</string>
     <string name="video_gen_no_provider">Nenhum provedor disponível configurado.</string>
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
@@ -550,7 +543,6 @@
 
     <!-- ===== P2-9: Voice Cloning (VoiceCloningPage + MediaSettingsPage entry) ===== -->
     <string name="voice_cloning_title">Clonagem de voz</string>
-    <string name="voice_cloning_provider">Provedor</string>
     <string name="voice_cloning_api_key">Chave de API</string>
     <string name="voice_cloning_new_voice">Clonar nova voz</string>
     <string name="voice_cloning_voice_name">Nome de voz</string>
@@ -568,7 +560,6 @@
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">Regenerado</string>
     <string name="desktop_context_delete">Excluir</string>
-    <string name="desktop_context_share">Compartilhar</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">Comprimindo histórico da conversa…</string>
@@ -614,8 +605,6 @@
     <string name="settings_screen_entry_chunking">Estratégia de fragmentação</string>
     <string name="settings_screen_entry_tool_approval">Modo de aprovação de ferramentas</string>
     <string name="settings_screen_entry_collab">Assistente colaborativo</string>
-    <string name="settings_screen_share">Compartilhar</string>
-    <string name="settings_share_page_title">Compartilhar</string>
     <plurals name="settings_search_result_count">
         <item quantity="one">%1$d resultado encontrado</item>
         <item quantity="other">%1$d resultados encontrados</item>
@@ -767,7 +756,6 @@
     <string name="settings_preference_desc">Quando você diz ao assistente «de agora em diante, não…», ele guarda isso aqui como regra rígida e cumpre em todas as conversas.</string>
     <string name="settings_preference_empty">Nenhuma preferência registrada ainda</string>
     <string name="settings_preference_disable">Desativar</string>
-    <string name="settings_preference_enable">Ativar</string>
     <string name="settings_preference_delete">Excluir</string>
     <string name="settings_preference_delete_confirm">Após excluir esta preferência, o assistente deixará de cumpri-la.</string>
     <string name="settings_preference_disabled_tag">Desativada</string>

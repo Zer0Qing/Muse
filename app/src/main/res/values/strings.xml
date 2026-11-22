@@ -40,12 +40,9 @@
     <string name="action_send">发送</string>
     <string name="action_select_text">选择文本</string>
     <string name="chat_select_text_hint">长按文字即可划选复制</string>
-    <string name="action_share">分享</string>
-    <string name="action_retry">重试</string>
     <string name="common_load_failed">加载失败</string>
     <string name="action_undo">撤销</string>
     <string name="chat_unarchived">已取消归档</string>
-    <string name="action_expand">展开</string>
     <string name="action_collapse">收起</string>
 
     <!-- 引用回复 -->
@@ -98,7 +95,6 @@
     <string name="asr_local_download_title">离线语音模型</string>
     <string name="asr_local_download_desc">下载后识别在本机完成，无需联网；模型约 241 MB</string>
     <string name="asr_local_download_action">下载</string>
-    <string name="asr_local_download_retry">重试</string>
     <string name="asr_local_download_delete">删除模型</string>
     <string name="asr_local_download_use">使用本地识别</string>
     <string name="asr_local_download_use_done">已切换为本地识别</string>
@@ -137,7 +133,6 @@
     <!-- 网络代理 -->
     <string name="proxy_title">网络代理</string>
     <string name="proxy_enable">启用代理</string>
-    <string name="proxy_enabled">已启用</string>
     <string name="proxy_disabled">未启用</string>
     <string name="proxy_type">类型</string>
     <string name="proxy_type_http">HTTP</string>
@@ -234,7 +229,6 @@
     <!-- 功能3: 归档确认 -->
     <string name="chat_list_status_in_progress">进行中</string>
     <string name="chat_list_status_pending">还没开始</string>
-    <string name="chat_list_status_completed">已完成</string>
     <string name="chat_list_time_just_now">刚刚</string>
     <string name="chat_list_time_minutes_ago">%1$d 分钟前</string>
     <string name="chat_list_time_hours_ago">%1$d 小时前</string>
@@ -341,7 +335,6 @@
     <string name="proactive_kind_reminder">提醒</string>
     <string name="proactive_kind_follow_up">没聊完</string>
     <string name="proactive_kind_care">关心</string>
-    <string name="proactive_kind_share">分享</string>
     <string name="proactive_kind_milestone">节点</string>
     <string name="migration_running">正在升级数据 %1$d/%2$d</string>
     <string name="migration_step">schema v%1$d → v%2$d</string>

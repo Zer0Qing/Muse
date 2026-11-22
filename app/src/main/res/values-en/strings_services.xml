@@ -211,7 +211,6 @@
     <string name="tool_open_app_failed">Failed to open app</string>
     <string name="tool_missing_param_text_share">Missing parameter: text (content to share)</string>
     <string name="tool_text_empty">text cannot be empty</string>
-    <string name="tool_share_title_default">Share</string>
     <string name="tool_text_shared">Text shared: %1$s</string>
     <string name="tool_share_failed">Share failed</string>
     <string name="tool_location_no_permission">Location permission (ACCESS_COARSE_LOCATION) required; please grant it in system settings</string>

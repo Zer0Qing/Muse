@@ -78,7 +78,6 @@
     <string name="safe_mode_data_recovery">Руководство по восстановлению данных</string>
     <string name="safe_mode_data_recovery_title">Руководство по восстановлению данных</string>
     <string name="safe_mode_data_recovery_desc">Этот сбой не влияет на локальные данные; чаты и настройки в порядке. Чтобы восстановить из облачной копии: после перезапуска откройте Настройки → Резервное копирование → Восстановить из облака.</string>
-    <string name="safe_mode_data_recovery_ok">Понятно</string>
     <string name="safe_mode_continue_normal_desc">Сохранить чаты и настройки и снова открыть Muse</string>
     <string name="safe_mode_disable_plugins">Отключить все плагины и перезапустить</string>
     <string name="safe_mode_disable_plugins_desc">Плагины — самая частая причина падений. Приложение запустится; восстановить их можно на странице плагинов.</string>

@@ -389,7 +389,7 @@ private fun StepResultText(step: TaskStep) {
         if (showExpand) {
             Text(
                 text = stringResource(
-                    if (isResultExpanded) R.string.action_collapse else R.string.action_expand,
+                    if (isResultExpanded) R.string.action_collapse else R.string.common_expand,
                 ),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,

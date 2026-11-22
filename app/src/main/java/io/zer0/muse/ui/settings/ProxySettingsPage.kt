@@ -77,7 +77,7 @@ fun ProxySettingsPage(onBack: () -> Unit) {
                 SettingsSwitchRow(
                     icon = MuseIcons.route,
                     title = stringResource(R.string.proxy_enable),
-                    subtitle = if (enabled) stringResource(R.string.proxy_enabled) else stringResource(R.string.proxy_disabled),
+                    subtitle = if (enabled) stringResource(R.string.common_state_enabled) else stringResource(R.string.proxy_disabled),
                     checked = enabled,
                     onCheckedChange = { enabled = it },
                 )

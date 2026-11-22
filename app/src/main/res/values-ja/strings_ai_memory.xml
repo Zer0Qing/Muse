@@ -70,7 +70,6 @@
     <string name="memory_error_trace_stack_header">== スタック トレース ==</string>
 
     <!-- v8: memory scope related -->
-    <string name="memory_scope_all">全て</string>
     <string name="memory_scope_main">メインアシスタント</string>
     <string name="memory_scope_assistant">アシスタントメモリー</string>
     <string name="memory_scope_label">メモリスコープ</string>
@@ -88,7 +87,6 @@
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
-    <string name="memory_timeline_filter_all">すべて</string>
     <string name="memory_timeline_filter_fact">事実</string>
     <string name="memory_timeline_filter_summary">要約</string>
     <string name="memory_timeline_filter_milestone">マイルストーン</string>
@@ -120,7 +118,6 @@
     <string name="memory_center_library_title">事実ライブラリ</string>
     <string name="memory_center_constellation_empty">表示できる事実がまだありません。事実を追加してから戻ってきてください。</string>
     <string name="memory_center_filter_empty">このスコープまたはスペースには事実がありません。上のフィルターを変更してください。</string>
-    <string name="memory_center_scope_all">すべて</string>
     <string name="memory_center_space_default">デフォルト</string>
     <string name="memory_center_scope_line">%1$s · %2$s</string>
     <string name="memory_center_filter_title">フィルター</string>
@@ -137,7 +134,6 @@
     <string name="memory_center_facts_subtitle">項目単位で管理：検索・追加・編集・削除が可能</string>
     <string name="memory_center_filter_advanced">詳細フィルター</string>
     <string name="memory_center_filter_importance">重要度</string>
-    <string name="memory_center_filter_importance_all">すべて</string>
     <string name="memory_center_filter_time">期間</string>
     <string name="memory_center_filter_time_30">最近30日</string>
     <string name="memory_center_filter_time_7">最近7日</string>

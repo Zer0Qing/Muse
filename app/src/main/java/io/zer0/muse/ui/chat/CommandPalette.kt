@@ -527,7 +527,7 @@ private fun PaletteError(message: String, onRetry: () -> Unit) {
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
         MuseCapsuleButton(
-            text = stringResource(R.string.action_retry),
+            text = stringResource(R.string.common_retry),
             onClick = onRetry,
             variant = IosCapsuleButtonVariant.Text,
             fillWidth = false,

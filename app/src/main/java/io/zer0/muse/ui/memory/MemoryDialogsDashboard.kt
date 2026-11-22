@@ -503,7 +503,7 @@ internal fun MemorySummaryCard(markdown: String) {
                             R.string.memory_screen_collapse,
                         )
                     } else {
-                        stringResource(R.string.memory_screen_expand)
+                        stringResource(R.string.common_expand)
                     },
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(18.dp),
@@ -592,7 +592,7 @@ internal fun ExperienceLibraryCard(
                                 R.string.memory_screen_collapse,
                             )
                         } else {
-                            stringResource(R.string.memory_screen_expand)
+                            stringResource(R.string.common_expand)
                         },
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(18.dp),

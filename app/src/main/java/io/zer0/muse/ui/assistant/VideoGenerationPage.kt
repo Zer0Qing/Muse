@@ -383,7 +383,7 @@ fun VideoGenerationPage(
             }
 
             // ── 供应商选择(v1.132: 从 SettingsRepository 读取,不再硬编码 API Key 输入)──
-            FormSection(label = stringResource(R.string.video_gen_provider)) {
+            FormSection(label = stringResource(R.string.common_provider)) {
                 if (enabledProviders.isEmpty()) {
                     // 没有可用供应商时提示用户先去供应商菜单添加
                     Surface(

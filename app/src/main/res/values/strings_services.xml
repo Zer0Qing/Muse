@@ -227,7 +227,6 @@
     <string name="tool_open_app_failed">打开应用失败</string>
     <string name="tool_missing_param_text_share">缺少参数： text(要分享的文本)</string>
     <string name="tool_text_empty">text 不能为空</string>
-    <string name="tool_share_title_default">分享</string>
     <string name="tool_text_shared">已分享文本： %1$s</string>
     <string name="tool_share_failed">分享失败</string>
     <string name="tool_location_no_permission">需要位置权限（ACCESS_COARSE_LOCATION），请在系统设置中授权</string>

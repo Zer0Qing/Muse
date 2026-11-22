@@ -70,7 +70,6 @@
     <string name="memory_error_trace_stack_header">== 스택 추적 ==</string>
 
     <!-- v8: memory scope related -->
-    <string name="memory_scope_all">모두</string>
     <string name="memory_scope_main">메인 어시스턴트</string>
     <string name="memory_scope_assistant">어시스턴트 메모리</string>
     <string name="memory_scope_label">메모리 범위</string>
@@ -88,7 +87,6 @@
 
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
     <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
-    <string name="memory_timeline_filter_all">전체</string>
     <string name="memory_timeline_filter_fact">사실</string>
     <string name="memory_timeline_filter_summary">요약</string>
     <string name="memory_timeline_filter_milestone">이정표</string>
@@ -120,7 +118,6 @@
     <string name="memory_center_library_title">사실 보관함</string>
     <string name="memory_center_constellation_empty">표시할 사실 노드가 아직 없습니다. 사실을 추가한 뒤 다시 확인해 주세요.</string>
     <string name="memory_center_filter_empty">현재 범위나 공간에 사실이 없습니다. 위 필터를 바꿔 보세요.</string>
-    <string name="memory_center_scope_all">전체</string>
     <string name="memory_center_space_default">기본</string>
     <string name="memory_center_scope_line">%1$s · %2$s</string>
     <string name="memory_center_filter_title">필터</string>
@@ -137,7 +134,6 @@
     <string name="memory_center_facts_subtitle">항목별 관리: 검색·추가·편집·삭제 가능</string>
     <string name="memory_center_filter_advanced">고급 필터</string>
     <string name="memory_center_filter_importance">중요도</string>
-    <string name="memory_center_filter_importance_all">전체</string>
     <string name="memory_center_filter_time">기간</string>
     <string name="memory_center_filter_time_30">최근 30일</string>
     <string name="memory_center_filter_time_7">최근 7일</string>

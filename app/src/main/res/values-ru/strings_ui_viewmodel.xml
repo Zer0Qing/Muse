@@ -13,7 +13,6 @@
     <string name="quick_msg_scope_global">Глобальный</string>
     <string name="quick_msg_scope_assistant">Ассистент: %1$s</string>
     <string name="quick_msg_scope_label">Область: %1$s</string>
-    <string name="quick_msg_enabled_cd">Включено</string>
     <string name="quick_msg_edit_cd">Редактировать</string>
     <string name="quick_msg_delete_cd">Удалить</string>
     <!-- Edit page -->
@@ -33,7 +32,6 @@
     <string name="quick_msg_field_bind_assistant">Привязать помощника</string>
     <string name="quick_msg_section_behavior">Поведение</string>
     <string name="quick_msg_field_sort_index">Индекс сортировки (меньше = раньше)</string>
-    <string name="quick_msg_field_enabled">Включено</string>
     <string name="quick_msg_field_enabled_desc">Если параметр отключен, эта запись не будет отображаться в строке чипа InputBar.</string>
 
     <!-- ===== LorebookScreen ===== -->
@@ -46,7 +44,6 @@
     <string name="lorebook_new_default_name">Новая запись</string>
     <string name="lorebook_unnamed">(Безымянный)</string>
     <string name="lorebook_keywords_label">Ключевые слова: %1$s</string>
-    <string name="lorebook_enabled_cd">Включено</string>
     <string name="lorebook_edit_cd">Редактировать</string>
     <string name="lorebook_delete_cd">Удалить</string>
     <!-- Edit page -->
@@ -72,7 +69,6 @@
     <string name="lorebook_field_case_sensitive_desc">Если включено, сопоставление ключевых слов чувствительно к регистру.</string>
     <string name="lorebook_field_whole_word">Слово целиком</string>
     <string name="lorebook_field_whole_word_desc">Ключевое слово должно совпадать целиком (для английского; ключи CJK автоматически переходят к подстроке)</string>
-    <string name="lorebook_field_enabled">Включено</string>
     <string name="lorebook_field_enabled_desc">Если эта запись отключена, эта запись больше не будет запускать инъекцию.</string>
 
     <!-- ===== PromptInjectionScreen ===== -->
@@ -85,7 +81,6 @@
     <string name="prompt_injection_new_default_name">Новая инъекция</string>
     <string name="prompt_injection_unnamed">(Безымянный)</string>
     <string name="prompt_injection_mode_label">Режим: %1$s</string>
-    <string name="prompt_injection_enabled_cd">Включено</string>
     <string name="prompt_injection_edit_cd">Редактировать</string>
     <string name="prompt_injection_delete_cd">Удалить</string>
     <!-- Edit page -->
@@ -103,7 +98,6 @@
     <string name="prompt_injection_section_behavior">Поведение</string>
     <string name="prompt_injection_field_priority">Приоритет (заказ на несколько инъекций одного и того же режима; большее количество = инъекция первой)</string>
     <string name="prompt_injection_field_insertion_position">Положение вставки</string>
-    <string name="prompt_injection_field_enabled">Включено</string>
     <string name="prompt_injection_field_enabled_desc">Если эта запись отключена, эта запись больше не будет запускать инъекцию.</string>
 
     <!-- ===== AssistantScreen ===== -->
@@ -165,7 +159,6 @@
     <string name="assistant_toast_sillytavern_exported">Карточка персонажа SillyTavern экспортирована.</string>
     <string name="assistant_toast_sillytavern_export_failed">Ошибка экспорта SillyTavern: %1$s</string>
     <string name="assistant_disable">Отключить</string>
-    <string name="assistant_enable">Включить</string>
     <string name="assistant_diff_summary">Описание</string>
     <string name="assistant_diff_system_prompt">Системный промпт</string>
     <string name="assistant_diff_persona_definition">Персона</string>
@@ -185,4 +178,5 @@
     <string name="assistant_diff_legacy_pack">Старая карта: берётся только персона — ключи, привязки моделей и статистика не переносятся</string>
     <string name="assistant_diff_no_switch">Импорт не переключает текущего ассистента и не переносит чаты</string>
     <string name="assistant_diff_more">…и ещё %1$d</string>
+    <string name="assistant_diff_name">Название</string>
 </resources>

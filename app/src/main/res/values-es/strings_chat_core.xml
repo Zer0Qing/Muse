@@ -73,7 +73,6 @@
     <string name="chat_err_open_file_picker">No se puede abrir el selector de archivos: %1$s</string>
     <string name="chat_err_open_image_picker">No se puede abrir el selector de imágenes: %1$s</string>
     <string name="chat_error_cd">Error: %1$s, puedes reintentar o cerrar</string>
-    <string name="chat_retry">Reintentar</string>
 
     <!-- Share -->
     <string name="chat_share_subject">Conversación de Muse</string>
@@ -159,7 +158,6 @@
     <string name="chat_fork_action">Bifurcar chat</string>
     <string name="chat_share_action">Compartir chat</string>
     <string name="chat_agent_weak_tool_title">Llamada a herramienta degradada</string>
-    <string name="chat_agent_hint_dismiss">Entendido</string>
     <string name="chat_agent_session_locked">Sesión bloqueada en modo agente</string>
     <string name="chat_delete_message">Eliminar mensaje</string>
     <string name="chat_select_messages">Seleccionar</string>
@@ -380,7 +378,6 @@
     <string name="settings_sticker_empty_title">Aún no hay pegatinas</string>
     <string name="settings_sticker_empty_subtitle">Toca «Importar pegatinas» arriba; se admiten ZIP, DOCX/PPTX e imágenes</string>
     <string name="settings_sticker_delete_confirm">¿Eliminar esta pegatina?</string>
-    <string name="settings_sticker_category_all">Todo</string>
 
     <!-- SkillExecutor sticker tool feedback -->
     <string name="skill_sticker_not_configured">La biblioteca de pegatinas no está configurada</string>
@@ -538,7 +535,6 @@
     <string name="chat_process_subagent_running">%1$d tareas de subagente en curso</string>
     <string name="chat_process_subagent_section">Subagentes en segundo plano</string>
     <string name="chat_process_running">En ejecución</string>
-    <string name="chat_process_completed">Completado</string>
     <string name="chat_process_steps_completed">%1$d pasos completados</string>
     <string name="chat_process_steps_progress">%1$d de %2$d pasos completados</string>
     <string name="chat_process_step_fallback">Paso</string>

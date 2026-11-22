@@ -110,7 +110,6 @@
     <string name="assistant_detail_regex_scope_assistant">仅助手消息</string>
     <string name="assistant_detail_regex_scope_both">双向（用户+助手）</string>
     <string name="assistant_detail_regex_visual_only">仅显示替换（不影响 LLM 输入）</string>
-    <string name="assistant_detail_regex_enabled">启用</string>
     <string name="assistant_detail_regex_invalid">正则表达式语法错误</string>
 
     <!-- ===== v1.97: 二维码分享/导入 ===== -->
@@ -142,11 +141,9 @@
     <string name="memory_conversation_meta">助手 %1$s · 记忆空间 %2$s</string>
     <string name="memory_screen_no_fact">暂无元事实</string>
     <string name="memory_screen_collapse">收起</string>
-    <string name="memory_screen_expand">展开</string>
     <string name="memory_screen_load_failed">加载失败 — 完整错误信息</string>
     <string name="memory_screen_copied_trace">已复制完整堆栈到剪贴板</string>
     <string name="memory_screen_copy_trace_cd">复制完整堆栈</string>
-    <string name="memory_screen_retry">重试</string>
     <string name="memory_screen_input_content">输入内容…</string>
     <string name="memory_screen_normal">正常</string>
     <string name="memory_screen_failed_times">失败 %1$d 次</string>
@@ -245,11 +242,8 @@
     <string name="settings_screen_rag">知识库检索</string>
     <!-- 数据与隐私分组(PII Guard) -->
     <string name="settings_screen_pii_guard">PII 隐私保护</string>
-    <string name="settings_screen_provider">供应商</string>
     <string name="settings_screen_assistant">助手</string>
     <!-- v1.x: 分享设置页(原"安全与分享",应用锁/搜索引擎已移除) -->
-    <string name="settings_screen_share">分享</string>
-    <string name="settings_share_page_title">分享</string>
     <string name="settings_screen_experiments">实验性</string>
     <string name="settings_screen_stats">统计</string>
     <!-- v1.0.4: 配额仪表盘 -->
@@ -294,7 +288,6 @@
     <string name="channel_platform_dingtalk">钉钉</string>
     <string name="channel_how_to">如何接入？</string>
     <string name="channel_tutorial_title">平台接入教程</string>
-    <string name="channel_tutorial_close">知道了</string>
     <string name="channel_secret_stored_placeholder">已保存，输入新值以替换</string>
     <string name="channel_secret_show">显示</string>
     <string name="channel_secret_hide">隐藏</string>
@@ -519,7 +512,6 @@
     <string name="skill_import_error">导入失败： %1$s</string>
     <string name="skill_operation_failed">操作失败： %1$s</string>
     <string name="skill_unnamed">（未命名）</string>
-    <string name="skill_enabled">已启用</string>
     <string name="skill_bulk_summary">自定义技能 %1$d 个，已启用 %2$d 个</string>
     <string name="skill_bulk_disable_all">全部停用</string>
     <string name="skill_bulk_enable_all">全部启用</string>
@@ -598,7 +590,6 @@
     <string name="audit_log_clear">清空日志</string>
     <string name="audit_log_empty">暂无日志记录</string>
     <string name="audit_log_clear_confirm">确认清空所有审计日志？</string>
-    <string name="audit_log_category_all">全部</string>
     <string name="audit_log_category_api">API 调用</string>
     <string name="audit_log_category_user">用户操作</string>
     <string name="audit_log_category_auth">认证</string>
@@ -639,7 +630,6 @@
     <string name="video_gen_failed">生成失败：%1$s</string>
     <string name="video_gen_open_video">打开视频</string>
     <string name="video_gen_no_app">未找到可播放视频的应用</string>
-    <string name="video_gen_provider">供应商</string>
     <string name="video_gen_no_provider">尚未配置可用供应商，请先到「供应商」菜单添加并填写 API Key</string>
 
     <!-- ===== P2-5: SiliconFlow 免费模型兜底(PresetProviders / ProviderEditPage) ===== -->
@@ -776,7 +766,6 @@
 
     <!-- ===== P2-9: 语音克隆(VoiceCloningPage + MediaSettingsPage 入口) ===== -->
     <string name="voice_cloning_title">语音克隆</string>
-    <string name="voice_cloning_provider">供应商</string>
     <string name="voice_cloning_api_key">API Key</string>
     <string name="voice_cloning_new_voice">克隆新语音</string>
     <string name="voice_cloning_voice_name">语音名称</string>
@@ -796,7 +785,6 @@
     <!-- 快捷键说明(用于设置页或帮助页展示) -->
     <!-- 右键上下文菜单项 -->
     <string name="desktop_context_regenerate">重新生成</string>
-    <string name="desktop_context_share">分享</string>
 
     <!-- P2-12 富文本输入 -->
 
@@ -861,7 +849,6 @@
     <string name="settings_preference_desc">你对助手说「以后别…」「别再…」时，它会记成这里的一条硬约束，并在每次对话里遵守。</string>
     <string name="settings_preference_empty">还没有记下任何偏好</string>
     <string name="settings_preference_disable">停用</string>
-    <string name="settings_preference_enable">启用</string>
     <string name="settings_preference_delete_confirm">删除这条偏好后助手将不再遵守它。</string>
     <string name="settings_preference_disabled_tag">已停用</string>
     <string name="settings_preference_source">原话：%1$s</string>

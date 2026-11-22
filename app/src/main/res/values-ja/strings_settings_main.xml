@@ -8,10 +8,8 @@
     <string name="settings_common_add">追加</string>
     <string name="settings_common_show">見せる</string>
     <string name="settings_common_hide">隠れる</string>
-    <string name="settings_common_expand">拡大する</string>
     <string name="settings_common_collapse">崩壊</string>
     <string name="settings_common_advanced">高度な</string>
-    <string name="settings_state_enabled">有効</string>
 
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">プロバイダーリスト</string>
@@ -22,7 +20,6 @@
     <string name="settings_provider_category_relay">リレー</string>
     <string name="settings_provider_category_custom">カスタム</string>
     <string name="settings_provider_add">プロバイダーの追加</string>
-    <string name="settings_provider_status_enabled">有効</string>
     <string name="settings_provider_status_disabled">無効</string>
     <string name="settings_provider_json_parse_failed">JSON 解析に失敗しました: private_key / client_email がありません</string>
     <string name="settings_provider_imported_from_json">JSON からインポートされたサービス アカウントの資格情報</string>
@@ -398,7 +395,6 @@
     <string name="settings_chat_background_failed">画像の処理に失敗しました。別の画像をお試しください</string>
     <string name="cloud_backup_restore_failed_title">復元失敗</string>
     <string name="cloud_backup_restore_failed_desc">クラウドからデータを復元できませんでした。ネットワーク接続とクラウド設定を確認して再試行してください。</string>
-    <string name="cloud_backup_restore_retry">再試行</string>
     <string name="settings_backup_log_title">最近のバックアップ</string>
     <string name="settings_backup_log_empty">バックアップ記録はありません</string>
     <string name="settings_backup_log_success">成功</string>

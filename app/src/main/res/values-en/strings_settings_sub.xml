@@ -158,7 +158,6 @@
     <string name="settings_about_new_version_desc">New version %1$s found. Tap to download.</string>
     <string name="settings_about_download">Download</string>
     <string name="settings_about_up_to_date">Already up to date</string>
-    <string name="settings_about_got_it">Got it</string>
     <string name="settings_feedback_android_version">Android version: %1$s (API %2$d)</string>
     <string name="settings_feedback_device_model">Device model: %1$s %2$s</string>
     <string name="settings_feedback_app_version">App version: %1$s</string>
@@ -233,7 +232,6 @@
     <string name="settings_asr_api_key">API Key</string>
     <!-- ASR: follow provider configuration -->
     <string name="settings_asr_follow_provider">Follow provider config</string>
-    <string name="settings_asr_follow_provider_picker">Provider</string>
     <!-- Shared placeholders and fallback notice for follow mode -->
     <string name="settings_speech_follow_unset">Not selected</string>
     <string name="settings_speech_model_hint">Models are managed by the provider; this only picks one</string>
@@ -359,7 +357,6 @@
     <string name="settings_image_gen_select_model">Select Image Model</string>
     <string name="settings_image_gen_select_default">Tap to select the default image provider</string>
     <string name="settings_image_gen_no_provider">No image providers available</string>
-    <string name="settings_image_gen_provider">Provider</string>
     <string name="settings_image_gen_model_label">Model</string>
     <string name="settings_image_gen_no_model">No image models available for this provider</string>
     <string name="settings_image_gen_selected">Selected</string>
@@ -370,7 +367,6 @@
     <string name="settings_video_gen_select_model">Select Video Model</string>
     <string name="settings_video_gen_select_default">Tap to select the default video provider</string>
     <string name="settings_video_gen_no_provider">No video providers available</string>
-    <string name="settings_video_gen_provider">Provider</string>
     <string name="settings_video_gen_model_label">Model</string>
     <string name="settings_video_gen_no_model">No video models available for this provider</string>
     <string name="settings_video_gen_selected">Selected</string>
@@ -426,7 +422,6 @@
     <string name="settings_media_tts_save_advanced">Save parameters</string>
     <!-- Cloud TTS: follow provider configuration -->
     <string name="settings_media_tts_follow_provider">Follow provider config</string>
-    <string name="settings_media_tts_follow_provider_picker">Provider</string>
     <string name="settings_media_tts_follow_voice_hint">Following only takes over the endpoint and API key; check that your voice works with the selected provider</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Custom theme</string>
@@ -526,7 +521,6 @@
     <string name="keep_alive_dialog_title">%1$s · Keep running in background</string>
     <string name="keep_alive_manual_hint">Could not open settings automatically. Follow the steps above to enable it manually.</string>
     <string name="keep_alive_dialog_desc">Proactive messages rely on a background process. Chinese ROMs clear background apps by default; after whitelisting per the steps below, you\'ll keep receiving messages even after swiping the app away:</string>
-    <string name="keep_alive_dialog_dismiss">Got it</string>
     <string name="keep_alive_dialog_open">Go to settings</string>
     <!-- ChatGPT import steps -->
     <string name="settings_import_chatgpt_desc">Official ChatGPT export (the zip in your email, or the extracted conversations.json)</string>

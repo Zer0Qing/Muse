@@ -151,7 +151,6 @@
     <string name="settings_about_new_version_desc">Найдена новая версия %1$s.</string>
     <string name="settings_about_download">Скачать</string>
     <string name="settings_about_up_to_date">Установлена последняя версия</string>
-    <string name="settings_about_got_it">Понятно</string>
     <string name="settings_feedback_android_version">Версия Android: %1$s (API %2$d)</string>
     <string name="settings_feedback_device_model">Модель устройства: %1$s %2$s</string>
     <string name="settings_feedback_app_version">Версия приложения: %1$s</string>
@@ -226,7 +225,6 @@
     <string name="settings_asr_api_key">API-ключ</string>
     <!-- ASR: использовать настройки провайдера -->
     <string name="settings_asr_follow_provider">Использовать настройки провайдера</string>
-    <string name="settings_asr_follow_provider_picker">Провайдер</string>
     <!-- Общие подсказки и уведомление об откате для режима следования -->
     <string name="settings_speech_follow_unset">Не выбрано</string>
     <string name="settings_speech_follow_fallback_notice">Использованы ручные настройки: %1$s</string>
@@ -347,7 +345,6 @@
     <string name="settings_image_gen_select_model">Выберите модель изображения</string>
     <string name="settings_image_gen_select_default">Нажмите, чтобы выбрать поставщика изображений по умолчанию.</string>
     <string name="settings_image_gen_no_provider">Нет доступных поставщиков изображений</string>
-    <string name="settings_image_gen_provider">Поставщик</string>
     <string name="settings_image_gen_model_label">Модель</string>
     <string name="settings_image_gen_no_model">Для этого поставщика нет доступных моделей изображений.</string>
     <string name="settings_image_gen_selected">Выбрано</string>
@@ -358,7 +355,6 @@
     <string name="settings_video_gen_select_model">Выберите модель видео</string>
     <string name="settings_video_gen_select_default">Нажмите, чтобы выбрать поставщика видео по умолчанию.</string>
     <string name="settings_video_gen_no_provider">Нет доступных поставщиков видео</string>
-    <string name="settings_video_gen_provider">Поставщик</string>
     <string name="settings_video_gen_model_label">Модель</string>
     <string name="settings_video_gen_no_model">Для этого провайдера нет доступных видеомоделей</string>
     <string name="settings_video_gen_selected">Выбрано</string>
@@ -413,7 +409,6 @@
     <string name="settings_media_tts_save_advanced">Сохранить параметры</string>
     <!-- Облачный TTS: использовать настройки провайдера -->
     <string name="settings_media_tts_follow_provider">Использовать настройки провайдера</string>
-    <string name="settings_media_tts_follow_provider_picker">Провайдер</string>
     <string name="settings_media_tts_follow_voice_hint">Следование берёт только адрес и API-ключ; совместимость голоса с выбранным провайдером проверьте сами</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Пользовательская тема</string>
@@ -454,7 +449,6 @@
     <string name="keep_alive_dialog_title">%1$s · Фоновая работа</string>
     <string name="keep_alive_manual_hint">Не удалось открыть настройки автоматически. Включите вручную по шагам выше.</string>
     <string name="keep_alive_dialog_desc">Активные сообщения зависят от фонового процесса. Китайские прошивки по умолчанию очищают фоновые приложения; после добавления в белый список по шагам ниже вы продолжите получать сообщения, даже закрыв приложение из списка недавних:</string>
-    <string name="keep_alive_dialog_dismiss">Понятно</string>
     <string name="keep_alive_dialog_open">Перейти в настройки</string>
     <string name="settings_import_chatgpt_desc">Официальный экспорт ChatGPT (zip из письма или извлечённый conversations.json)</string>
     <string name="settings_import_chatgpt_step1">1. Откройте ChatGPT → Настройки → Профиль → Управление данными</string>

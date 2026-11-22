@@ -189,7 +189,7 @@ internal fun AsrSection(
                 MuseListItem(
                     onClick = { providerPickerOpen = true },
                     leadingContent = { Icon(MuseIcons.server, contentDescription = null) },
-                    headlineContent = { Text(stringResource(R.string.settings_asr_follow_provider_picker)) },
+                    headlineContent = { Text(stringResource(R.string.common_provider)) },
                     supportingContent = { Text(followProvider?.displayName ?: unsetLabel) },
                 )
 
@@ -211,7 +211,7 @@ internal fun AsrSection(
 
                 if (providerPickerOpen) {
                     MuseSelectionSheet(
-                        title = stringResource(R.string.settings_asr_follow_provider_picker),
+                        title = stringResource(R.string.common_provider),
                         onDismissRequest = { providerPickerOpen = false },
                     ) {
                         providers.forEach { provider ->

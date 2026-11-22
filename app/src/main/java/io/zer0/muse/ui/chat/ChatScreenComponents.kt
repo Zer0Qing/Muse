@@ -675,7 +675,7 @@ internal fun ChatSelectionBar(
                     )
                     MuseActionSheetRow(
                         icon = MuseIcons.share,
-                        text = stringResource(R.string.action_share),
+                        text = stringResource(R.string.common_share),
                         onClick = {
                             menuExpanded = false
                             onExport()

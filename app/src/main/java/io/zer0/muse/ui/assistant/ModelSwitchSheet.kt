@@ -129,7 +129,7 @@ internal fun ModelSwitchSheet(
                 // v1.0.28: Provider 改为纵向列排列,避免长名称(如 OpenCode Go)在横向 Row 中
                 // 空间不足导致文字竖排崩坏,也便于展示更多 Provider。
                 Text(
-                    text = stringResource(R.string.model_switch_provider_label),
+                    text = stringResource(R.string.common_provider),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(vertical = MusePaddings.tightGap),
@@ -309,7 +309,7 @@ internal fun ModelSwitchSheet(
                         // v1.0.4 (P2): 拉取失败时就近显示"重试"按钮,避免用户还得去找顶部刷新按钮
                         if (fetchModelsError != null && !isFetchingModels) {
                             MuseCapsuleButton(
-                                text = stringResource(R.string.model_switch_retry),
+                                text = stringResource(R.string.common_retry),
                                 onClick = { onRefreshModels(activeProvider.id) },
                                 variant = IosCapsuleButtonVariant.Text,
                                 fillWidth = false,

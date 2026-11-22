@@ -73,7 +73,6 @@
     <string name="chat_err_open_file_picker">Não é possível abrir o seletor de arquivos: %1$s</string>
     <string name="chat_err_open_image_picker">Não é possível abrir o seletor de imagens: %1$s</string>
     <string name="chat_error_cd">Erro: %1$s, tente novamente ou feche</string>
-    <string name="chat_retry">Tentar novamente</string>
 
     <!-- Share -->
     <string name="chat_share_subject">conversa musa</string>
@@ -159,7 +158,6 @@
     <string name="chat_fork_action">Bate-papo garfo</string>
     <string name="chat_share_action">Compartilhar bate-papo</string>
     <string name="chat_agent_weak_tool_title">Chamada de ferramenta degradada</string>
-    <string name="chat_agent_hint_dismiss">Entendi</string>
     <string name="chat_agent_session_locked">Sessão bloqueada no Modo Agente</string>
     <string name="chat_delete_message">Excluir mensagem</string>
     <string name="chat_select_messages">Selecionar</string>
@@ -380,7 +378,6 @@
     <string name="settings_sticker_empty_title">Ainda não há adesivos</string>
     <string name="settings_sticker_empty_subtitle">Toque em \"Importar figurinhas\" acima; aceita ZIP, DOCX/PPTX e imagens</string>
     <string name="settings_sticker_delete_confirm">Excluir este adesivo?</string>
-    <string name="settings_sticker_category_all">Todos</string>
 
     <!-- SkillExecutor sticker tool feedback -->
     <string name="skill_sticker_not_configured">A biblioteca de adesivos não está configurada</string>
@@ -538,7 +535,6 @@
     <string name="chat_process_subagent_running">%1$d tarefas de subagente em execução</string>
     <string name="chat_process_subagent_section">Subagentes em segundo plano</string>
     <string name="chat_process_running">Em execução</string>
-    <string name="chat_process_completed">Concluído</string>
     <string name="chat_process_steps_completed">%1$d etapas concluídas</string>
     <string name="chat_process_steps_progress">%1$d de %2$d etapas concluídas</string>
     <string name="chat_process_step_fallback">Etapa</string>

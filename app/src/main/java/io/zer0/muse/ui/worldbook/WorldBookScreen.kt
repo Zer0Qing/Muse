@@ -213,7 +213,7 @@ fun WorldBookScreen(onBack: () -> Unit, viewModel: WorldBookViewModel = koinView
 private fun WorldBookCard(entry: WorldBookEntryEntity, onEdit: () -> Unit, onDelete: () -> Unit, onToggleEnabled: () -> Unit) {
     val unnamedText = stringResource(R.string.worldbook_unnamed)
     val disabledText = stringResource(R.string.common_state_disabled)
-    val enabledStateText = stringResource(R.string.worldbook_enabled_cd)
+    val enabledStateText = stringResource(R.string.common_state_enabled)
     val disabledStateText = stringResource(R.string.common_state_disabled)
     val editCd = stringResource(R.string.common_edit)
     val deleteCd = stringResource(R.string.common_delete)
@@ -559,7 +559,7 @@ private fun WorldBookEditPage(initial: WorldBookEntryEntity, isNew: Boolean, onB
                 contentPadding = PaddingValues(0.dp),
             )
             SettingsSwitchRow(
-                title = stringResource(R.string.worldbook_field_enabled),
+                title = stringResource(R.string.common_enable),
                 subtitle = stringResource(R.string.worldbook_field_enabled_desc),
                 checked = enabled,
                 onCheckedChange = { enabled = it },

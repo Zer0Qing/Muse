@@ -140,7 +140,7 @@ class PhoneToolsImpl(private val context: Context) {
                 ?: return context.getString(R.string.tool_missing_param_text_share)
         if (text.isEmpty()) return context.getString(R.string.tool_text_empty)
         val mimeType = args["mime_type"]?.takeIf { it.isNotBlank() } ?: "text/plain"
-        val title = args["title"]?.takeIf { it.isNotBlank() } ?: context.getString(R.string.tool_share_title_default)
+        val title = args["title"]?.takeIf { it.isNotBlank() } ?: context.getString(R.string.common_share)
         val sendIntent =
             android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                 type = mimeType

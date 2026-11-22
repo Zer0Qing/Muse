@@ -307,7 +307,7 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
 private fun ImportSourceCard(title: String, description: String, steps: List<String>, onSelect: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val collapseText = stringResource(R.string.action_collapse)
-    val expandText = stringResource(R.string.action_expand)
+    val expandText = stringResource(R.string.common_expand)
     Surface(
         shape = MuseShapes.large,
         color = MaterialTheme.colorScheme.surface,

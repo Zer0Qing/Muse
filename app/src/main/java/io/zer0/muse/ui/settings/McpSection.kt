@@ -284,7 +284,7 @@ private fun McpServerRow(
     // OAuth 支持:启用 OAuth 配置或已注册 clientId
     val oauthSupported = server.oauthConfig.let { it.enabled || it.clientId.isNotBlank() }
     // 状态描述字符串(需在 @Composable 上下文中提取,不能在 semantics{} lambda 内调用 stringResource)
-    val stateEnabledText = stringResource(R.string.settings_state_enabled)
+    val stateEnabledText = stringResource(R.string.common_state_enabled)
     val stateDisabledText = stringResource(R.string.common_state_disabled)
 
     Row(
@@ -492,7 +492,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
     }
     val feishuAutoRefresh = selectedTemplate.id == "feishu_remote"
     // 状态描述字符串(需在 @Composable 上下文中提取,不能在 semantics{} lambda 内调用 stringResource)
-    val stateEnabledText = stringResource(R.string.settings_state_enabled)
+    val stateEnabledText = stringResource(R.string.common_state_enabled)
     val stateDisabledText = stringResource(R.string.common_state_disabled)
 
     MuseDialog(
@@ -683,7 +683,7 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                                 R.string.settings_common_collapse,
                             )
                         } else {
-                            stringResource(R.string.settings_common_expand)
+                            stringResource(R.string.common_expand)
                         },
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(20.dp),

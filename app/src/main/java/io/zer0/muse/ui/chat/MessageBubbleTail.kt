@@ -189,7 +189,7 @@ internal fun GeneratedImageCard(
                 MuseTactileButton(
                     icon = MuseIcons.share,
                     onClick = onShare,
-                    contentDescription = stringResource(R.string.action_share),
+                    contentDescription = stringResource(R.string.common_share),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     size = MuseIconSizes.touchTarget,
                     iconSize = MuseIconSizes.iconSmall,

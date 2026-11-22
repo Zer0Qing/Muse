@@ -78,7 +78,6 @@
     <string name="safe_mode_data_recovery">データ復元ガイド</string>
     <string name="safe_mode_data_recovery_title">データ復元ガイド</string>
     <string name="safe_mode_data_recovery_desc">このクラッシュはローカルデータに影響しません。チャットと設定は無傷です。クラウドのバックアップから復元するには:再起動後、設定 → データバックアップ → クラウドから復元。</string>
-    <string name="safe_mode_data_recovery_ok">わかりました</string>
     <string name="safe_mode_continue_normal_desc">チャットと設定を保持したまま、Muse をもう一度起動します</string>
     <string name="safe_mode_disable_plugins">すべてのプラグインを無効化して再起動</string>
     <string name="safe_mode_disable_plugins_desc">プラグインはクラッシュの最も一般的な原因です。無効化してもアプリは起動し、プラグイン画面からいつでも復元できます。</string>

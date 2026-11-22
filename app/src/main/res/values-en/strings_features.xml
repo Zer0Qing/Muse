@@ -12,7 +12,6 @@
     <string name="groupchat_delete_message_confirm">Are you sure you want to delete this message? This action cannot be undone.</string>
     <string name="groupchat_reasoning">Reasoning</string>
     <string name="groupchat_collapse">Collapse</string>
-    <string name="groupchat_expand">Expand</string>
     <string name="groupchat_image">Image</string>
     <string name="groupchat_tools">Tools</string>
     <string name="groupchat_meeting">Meeting</string>
@@ -20,7 +19,6 @@
     <string name="groupchat_round_resume">Resume</string>
     <string name="groupchat_round_skip">Skip rest</string>
     <string name="groupchat_summary_card_title">Discussion Summary</string>
-    <string name="groupchat_summary_share">Share</string>
     <string name="groupchat_summary_save_doc">Save as shared doc</string>
     <string name="groupchat_summary_continue">Act on it</string>
     <string name="groupchat_vote_card_title">Vote</string>
@@ -131,7 +129,6 @@
     <string name="schedule_time_unset">Tap to pick a time</string>
     <string name="schedule_err_once_time_required">Pick when this one-off task should run</string>
     <string name="schedule_status_running">Running</string>
-    <string name="schedule_status_completed">Completed</string>
     <string name="schedule_err_content_required">Please enter run content</string>
     <string name="schedule_err_cron_invalid">Invalid cron expression. Please check or use a preset</string>
     <string name="schedule_assistant">Assistant</string>
@@ -282,7 +279,6 @@
     <!-- v1.0.47 P7-3: File size friendly prompt -->
     <string name="knowledge_file_too_large_title">File Too Large</string>
     <string name="knowledge_file_too_large_msg">File size %1$s exceeds the %2$s limit.\nSuggestions:\n• Upload smaller files in batches\n• Use the cloud parser (Settings → RAG → Document Parser)</string>
-    <string name="knowledge_file_too_large_confirm">Got it</string>
     <string name="knowledge_imported_indexed">Imported: %1$s (%2$d chunks indexed)</string>
     <string name="knowledge_import_batch_progress">Importing %1$d of %2$d</string>
     <string name="knowledge_import_batch_done">Batch import finished: %1$d succeeded, %2$d failed</string>
@@ -314,7 +310,6 @@
     <string name="stats_back">Back</string>
     <!-- v1.104 U8: time range filter -->
     <string name="stats_range_cd">Time range filter</string>
-    <string name="stats_range_all">All</string>
     <string name="stats_range_month">This month</string>
     <string name="stats_range_week">This week</string>
     <string name="stats_range_today">Today</string>
@@ -372,7 +367,6 @@
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_collapse">Collapse</string>
-    <string name="taskcard_expand">Expand</string>
     <string name="milestone_title">Milestones</string>
     <string name="milestone_empty_title">No milestones yet</string>
     <string name="milestone_empty_subtitle">Interact more with your AI companion and milestones will unlock automatically</string>
@@ -380,7 +374,6 @@
     <string name="milestone_dismissed_section">Dismissed (%1$d)</string>
     <string name="task_plan_status_pending">Pending</string>
     <string name="task_plan_status_in_progress">In progress</string>
-    <string name="task_plan_status_done">Completed</string>
     <string name="task_plan_status_failed">Failed</string>
     <string name="task_plan_status_skipped">Skipped</string>
 
@@ -405,7 +398,6 @@
     <string name="subagent_task_detail_loading">Loading conversation...</string>
     <string name="subagent_task_detail_empty">No conversation history yet</string>
     <string name="subagent_task_list_count">%1$d task(s)</string>
-    <string name="subagent_task_completed">Completed</string>
     <string name="subagent_task_failed">Failed</string>
     <string name="subagent_task_cancel">Cancel</string>
     <string name="subagent_task_close_cd">Close subagent task</string>
@@ -548,7 +540,6 @@
     <string name="quick_notes_export_empty">No records to export</string>
     <string name="quick_notes_export_json">Export as JSON</string>
     <string name="quick_notes_export_markdown">Export as Markdown</string>
-    <string name="quick_notes_folder_all">All</string>
     <string name="quick_notes_folder_hint">Enter folder name</string>
     <string name="quick_notes_folder_new">New folder</string>
     <string name="quick_notes_folder_set">Set folder</string>
@@ -599,7 +590,6 @@
     <string name="task_card_plan_title">Execution plan (%1$d steps)</string>
     <string name="task_card_phase_planning">Planning</string>
     <string name="task_card_phase_executing">Executing</string>
-    <string name="task_card_phase_done">Done</string>
     <string name="task_card_group_by_agent">Grouped by agent: %1$s</string>
     <string name="task_card_total_duration">Total time: %1$s</string>
     <string name="task_card_step_duration">Time: %1$s</string>
@@ -724,7 +714,6 @@
     <string name="plugin_permission_recent_title">Recent calls</string>
     <string name="plugin_permission_recent_empty">No calls recorded yet</string>
     <string name="plugin_permission_recent_row">%1$s · %2$s %3$s</string>
-    <string name="plugin_permission_expand">Show</string>
     <string name="plugin_permission_collapse">Hide</string>
     <string name="plugin_permission_python_title">Python runtime (high trust)</string>
     <string name="plugin_permission_python_warning">Python plugins run in a subprocess sharing this app\'s UID and can read or write app data directly, bypassing the capability switches and file sandbox above. Enable only for sources you trust.</string>

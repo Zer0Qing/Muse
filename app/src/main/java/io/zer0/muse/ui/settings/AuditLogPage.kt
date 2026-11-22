@@ -383,7 +383,7 @@ private fun FilterHeader(
 ) {
     val categories = remember {
         listOf(
-            null to R.string.audit_log_category_all,
+            null to R.string.common_all,
             "api_call" to R.string.audit_log_category_api,
             "user_action" to R.string.audit_log_category_user,
             "auth" to R.string.audit_log_category_auth,

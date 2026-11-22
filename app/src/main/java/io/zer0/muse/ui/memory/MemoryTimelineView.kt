@@ -57,7 +57,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 internal fun MemoryTimelineFilterRow(selected: String, onSelect: (String) -> Unit) {
     val filters = listOf(
-        "all" to stringResource(R.string.memory_timeline_filter_all),
+        "all" to stringResource(R.string.common_all),
         "fact" to stringResource(R.string.memory_timeline_filter_fact),
         "summary" to stringResource(R.string.memory_timeline_filter_summary),
         "milestone" to stringResource(R.string.memory_timeline_filter_milestone),
@@ -205,7 +205,7 @@ private fun TimelineEventCardBody(item: TimelineItem, expanded: Boolean, canExpa
             if (canExpand) {
                 Text(
                     text = stringResource(
-                        if (expanded) R.string.memory_screen_collapse else R.string.memory_screen_expand,
+                        if (expanded) R.string.memory_screen_collapse else R.string.common_expand,
                     ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,

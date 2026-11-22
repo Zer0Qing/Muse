@@ -111,13 +111,11 @@
     <string name="memory_conversation_meta">Assistant %1$s · Space %2$s</string>
     <string name="memory_screen_no_fact">No meta-facts yet</string>
     <string name="memory_screen_collapse">Collapse</string>
-    <string name="memory_screen_expand">Expand</string>
     <string name="memory_screen_edit_cd">Edit</string>
     <string name="memory_screen_delete_cd">Delete</string>
     <string name="memory_screen_load_failed">Load failed — Full error details</string>
     <string name="memory_screen_copied_trace">Full stack trace copied to clipboard</string>
     <string name="memory_screen_copy_trace_cd">Copy full stack trace</string>
-    <string name="memory_screen_retry">Retry</string>
     <string name="memory_screen_input_content">Enter content…</string>
     <string name="memory_screen_save">Save</string>
     <string name="memory_screen_normal">Normal</string>
@@ -213,7 +211,6 @@
     <string name="settings_screen_rag">Knowledge Retrieval</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
     <string name="settings_screen_pii_guard">PII Privacy Protection</string>
-    <string name="settings_screen_provider">Providers</string>
     <string name="settings_screen_assistant">Assistants</string>
     <string name="settings_screen_experiments">Experimental</string>
     <string name="settings_screen_stats">Statistics</string>
@@ -260,7 +257,6 @@
     <string name="channel_platform_dingtalk">DingTalk</string>
     <string name="channel_how_to">How to set up?</string>
     <string name="channel_tutorial_title">Platform setup guide</string>
-    <string name="channel_tutorial_close">Got it</string>
     <string name="channel_secret_stored_placeholder">Saved. Enter a new value to replace it</string>
     <string name="channel_secret_show">Show</string>
     <string name="channel_secret_hide">Hide</string>
@@ -431,7 +427,6 @@
     <string name="skill_import_error">Import failed: %1$s</string>
     <string name="skill_operation_failed">Operation failed: %1$s</string>
     <string name="skill_unnamed">(Unnamed)</string>
-    <string name="skill_enabled">Enabled</string>
     <string name="skill_bulk_summary">%1$d custom skills, %2$d enabled</string>
     <string name="skill_bulk_disable_all">Disable all</string>
     <string name="skill_bulk_enable_all">Enable all</string>
@@ -472,7 +467,6 @@
     <string name="assistant_detail_regex_scope_assistant">Assistant messages only</string>
     <string name="assistant_detail_regex_scope_both">Both (user + assistant)</string>
     <string name="assistant_detail_regex_visual_only">Display replacement only (does not affect LLM input)</string>
-    <string name="assistant_detail_regex_enabled">Enabled</string>
     <string name="assistant_detail_regex_invalid">Invalid regex syntax</string>
 
     <!-- ===== QR code share/scan ===== -->
@@ -559,7 +553,6 @@
     <string name="audit_log_clear">Clear Log</string>
     <string name="audit_log_empty">No log records</string>
     <string name="audit_log_clear_confirm">Confirm clearing all audit logs?</string>
-    <string name="audit_log_category_all">All</string>
     <string name="audit_log_category_api">API Call</string>
     <string name="audit_log_category_user">User Action</string>
     <string name="audit_log_category_auth">Authentication</string>
@@ -600,7 +593,6 @@
     <string name="video_gen_failed">Failed: %1$s</string>
     <string name="video_gen_open_video">Open Video</string>
     <string name="video_gen_no_app">No app available to play video</string>
-    <string name="video_gen_provider">Provider</string>
     <string name="video_gen_no_provider">No available provider configured. Please add one in the Providers menu with API Key.</string>
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
@@ -649,7 +641,6 @@
 
     <!-- ===== P2-9: Voice Cloning (VoiceCloningPage + MediaSettingsPage entry) ===== -->
     <string name="voice_cloning_title">Voice Cloning</string>
-    <string name="voice_cloning_provider">Provider</string>
     <string name="voice_cloning_api_key">API Key</string>
     <string name="voice_cloning_new_voice">Clone New Voice</string>
     <string name="voice_cloning_voice_name">Voice Name</string>
@@ -670,7 +661,6 @@
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">Regenerate</string>
     <string name="desktop_context_delete">Delete</string>
-    <string name="desktop_context_share">Share</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">Compressing conversation history…</string>
@@ -720,8 +710,6 @@
     <string name="settings_screen_entry_collab">Collaborative assistants</string>
 
     <!-- v1.x: share settings page (formerly "Security & Sharing"; app lock / search engine removed) -->
-    <string name="settings_screen_share">Share</string>
-    <string name="settings_share_page_title">Share</string>
     <plurals name="settings_search_result_count">
         <item quantity="one">%1$d result found</item>
         <item quantity="other">%1$d results found</item>
@@ -869,7 +857,6 @@
     <string name="settings_preference_desc">When you tell the assistant "from now on, don\'t…", it stores that as a hard rule here and follows it in every conversation.</string>
     <string name="settings_preference_empty">No preferences recorded yet</string>
     <string name="settings_preference_disable">Disable</string>
-    <string name="settings_preference_enable">Enable</string>
     <string name="settings_preference_delete">Delete</string>
     <string name="settings_preference_delete_confirm">After deleting this preference the assistant will no longer follow it.</string>
     <string name="settings_preference_disabled_tag">Disabled</string>

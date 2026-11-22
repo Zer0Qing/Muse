@@ -98,7 +98,7 @@ fun ConversationScreen(
                         onClick = onRetry,
                         modifier = Modifier.padding(top = 72.dp),
                     ) {
-                        Text(stringResource(R.string.action_retry))
+                        Text(stringResource(R.string.common_retry))
                     }
                 }
             }

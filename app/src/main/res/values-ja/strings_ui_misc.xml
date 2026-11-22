@@ -90,7 +90,6 @@
     <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
     <string name="model_switch_title">モデル</string>
     <string name="model_switch_no_provider">プロバイダが設定されていません\n「設定」→「プロバイダ管理」でプロバイダを追加してください</string>
-    <string name="model_switch_provider_label">プロバイダー</string>
     <string name="model_switch_no_provider_selected">プロバイダーが選択されていません</string>
     <string name="model_switch_models_label">モデル (%1$s)</string>
     <string name="model_switch_fetching">フェッチ中</string>
@@ -155,7 +154,6 @@
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">アクティビティログ</string>
     <string name="activity_empty">アクティビティはまだ記録されていません。</string>
-    <string name="model_switch_retry">再試行</string>
     <string name="shortcut_new_chat_long">新しいチャットを開始</string>
     <string name="shortcut_new_chat_short">新しいチャット</string>
     <string name="shortcut_quick_notes_long">クイックノート</string>
@@ -216,7 +214,6 @@
     <string name="agent_bot_status_waiting_approval">承認待ち</string>
     <string name="agent_bot_status_waiting_resource">リソース待ち</string>
     <string name="agent_bot_status_cancelling">停止中</string>
-    <string name="agent_bot_status_succeeded">完了</string>
     <string name="agent_bot_status_partial">一部のみ完了</string>
     <string name="agent_bot_status_failed">できませんでした</string>
     <string name="agent_bot_status_cancelled">キャンセル済み</string>

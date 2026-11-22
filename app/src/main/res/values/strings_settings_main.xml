@@ -19,10 +19,8 @@
     <string name="settings_common_add">添加</string>
     <string name="settings_common_show">显示</string>
     <string name="settings_common_hide">隐藏</string>
-    <string name="settings_common_expand">展开</string>
     <string name="settings_common_collapse">收起</string>
     <string name="settings_common_advanced">高级</string>
-    <string name="settings_state_enabled">已启用</string>
 
     <!-- ==================== Provider 设置 ==================== -->
     <string name="settings_provider_list_title">Provider 列表</string>
@@ -33,7 +31,6 @@
     <string name="settings_provider_category_relay">中转站</string>
     <string name="settings_provider_category_custom">自定义</string>
     <string name="settings_provider_add">添加 Provider</string>
-    <string name="settings_provider_status_enabled">启用</string>
     <string name="settings_provider_status_disabled">禁用</string>
     <string name="settings_provider_json_parse_failed">JSON 解析失败：缺少 private_key / client_email</string>
     <string name="settings_provider_imported_from_json">已从 JSON 导入服务账号凭证</string>
@@ -434,7 +431,6 @@
     <string name="settings_common_clear_all">清空全部</string>
     <string name="cloud_backup_restore_failed_title">恢复失败</string>
     <string name="cloud_backup_restore_failed_desc">从云端恢复数据失败。请检查网络连接与云备份配置后重试。</string>
-    <string name="cloud_backup_restore_retry">重试</string>
     <string name="settings_backup_log_title">最近备份记录</string>
     <string name="settings_backup_log_empty">暂无备份记录</string>
     <string name="settings_backup_log_success">成功</string>

@@ -12,7 +12,6 @@
     <string name="worldbook_unsaved_content">저장되지 않은 변경사항이 있습니다.</string>
     <string name="worldbook_discard">버리다</string>
     <string name="worldbook_unnamed">이름 없음</string>
-    <string name="worldbook_enabled_cd">활성화됨</string>
     <string name="worldbook_edit_cd">편집하다</string>
     <string name="worldbook_delete_cd">삭제</string>
     <string name="worldbook_delete_title">월드북 삭제</string>
@@ -54,7 +53,6 @@
     <string name="worldbook_field_is_regex_desc">키워드를 정규식으로 처리(고급)</string>
     <string name="worldbook_field_always_active">항상 활성</string>
     <string name="worldbook_field_always_active_desc">키워드 트리거 없이 주입(상수)</string>
-    <string name="worldbook_field_enabled">활성화됨</string>
     <string name="worldbook_field_enabled_desc">비활성화된 항목은 삽입되지 않습니다.</string>
 
     <!-- 前端修复 (i18n-8): export toast -->

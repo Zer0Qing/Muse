@@ -101,7 +101,6 @@
     <string name="safe_mode_data_recovery">Data Recovery Guide</string>
     <string name="safe_mode_data_recovery_title">Data Recovery Guide</string>
     <string name="safe_mode_data_recovery_desc">This crash does not affect your local data; chats and settings are intact. To restore from a cloud backup: after restarting, go to Settings → Data Backup → Restore from Cloud.</string>
-    <string name="safe_mode_data_recovery_ok">Got it</string>
     <string name="safe_mode_continue_normal_desc">Keep chats and settings, then try opening Muse again</string>
     <string name="safe_mode_disable_plugins">Disable all plugins and restart</string>
     <string name="safe_mode_disable_plugins_desc">Plugins are the most common cause of crashes. The app still starts; you can restore them in the plugin page anytime.</string>

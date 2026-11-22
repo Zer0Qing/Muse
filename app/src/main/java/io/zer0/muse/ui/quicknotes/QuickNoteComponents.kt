@@ -634,7 +634,7 @@ internal fun QuickNoteFolderFilterRow(
     ) {
         item(key = "all") {
             FolderChip(
-                label = stringResource(R.string.quick_notes_folder_all),
+                label = stringResource(R.string.common_all),
                 selected = selectedFolder == null,
                 onClick = { onFolderSelected(null) },
             )

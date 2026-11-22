@@ -294,7 +294,7 @@ object SettingsCatalog {
             entries(
                 entry(
                     SettingsEntryId.PROVIDER,
-                    R.string.settings_screen_provider,
+                    R.string.common_provider,
                     MuseIcons.provider,
                     SettingsEntryAction.Navigate(SettingsModelRoute),
                     keywords = listOf(
@@ -695,7 +695,7 @@ object SettingsCatalog {
                 ),
                 entry(
                     SettingsEntryId.SHARE,
-                    R.string.settings_screen_share,
+                    R.string.common_share,
                     MuseIcons.lock,
                     SettingsEntryAction.Navigate(SettingsSecurityRoute),
                     keywords = listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"),

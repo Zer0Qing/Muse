@@ -40,7 +40,6 @@
     <!-- Network proxy -->
     <string name="proxy_title">Proxy de rede</string>
     <string name="proxy_enable">Habilitar proxy</string>
-    <string name="proxy_enabled">Habilitado</string>
     <string name="proxy_disabled">Desabilitado</string>
     <string name="proxy_type">Tipo</string>
     <string name="proxy_type_http">HTTP</string>
@@ -57,8 +56,6 @@
     <string name="action_close">Fechar</string>
     <string name="action_more">Mais</string>
     <string name="action_send">Enviar</string>
-    <string name="action_share">Compartilhar</string>
-    <string name="action_expand">Expandir</string>
     <string name="action_collapse">Colapso</string>
 
     <!-- Quote reply -->
@@ -151,7 +148,6 @@
 
     <string name="chat_list_status_in_progress">Em andamento</string>
     <string name="chat_list_status_pending">Não iniciado</string>
-    <string name="chat_list_status_completed">Concluído</string>
     <string name="chat_list_time_just_now">Agora mesmo</string>
     <string name="chat_list_time_minutes_ago">Há %1$d min</string>
     <string name="chat_list_time_hours_ago">Há %1$d h</string>
@@ -255,7 +251,6 @@
     <string name="proactive_kind_reminder">Lembrete</string>
     <string name="proactive_kind_follow_up">Inacabado</string>
     <string name="proactive_kind_care">Cuidado</string>
-    <string name="proactive_kind_share">Compartilhar</string>
     <string name="proactive_kind_milestone">Marco</string>
     <string name="migration_running">Atualizando dados %1$d/%2$d</string>
     <string name="migration_step">esquema v%1$d → v%2$d</string>

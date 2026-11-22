@@ -506,7 +506,7 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
 @Composable
 private fun SkillRow(skill: SkillEntity, isBuiltIn: Boolean, onToggleEnabled: (Boolean) -> Unit, onShowDetail: () -> Unit) {
     val unnamedText = stringResource(R.string.skill_unnamed)
-    val stateLabel = if (skill.enabled) stringResource(R.string.skill_enabled) else stringResource(R.string.common_state_disabled)
+    val stateLabel = if (skill.enabled) stringResource(R.string.common_state_enabled) else stringResource(R.string.common_state_disabled)
     // 预提取 semantics contentDescription(semantics lambda 非 @Composable,不能直接调用 stringResource)
     val rowCd = stringResource(R.string.skill_row_cd, skill.name.ifBlank { unnamedText }, stateLabel)
     SettingsGroup {
@@ -675,7 +675,7 @@ private fun SkillDetailDialog(
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                         )
                         Text(
-                            text = stringResource(R.string.action_share),
+                            text = stringResource(R.string.common_share),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )

@@ -13,7 +13,6 @@
     <string name="quick_msg_scope_global">Global</string>
     <string name="quick_msg_scope_assistant">Assistant: %1$s</string>
     <string name="quick_msg_scope_label">Scope: %1$s</string>
-    <string name="quick_msg_enabled_cd">Enabled</string>
     <string name="quick_msg_edit_cd">Edit</string>
     <string name="quick_msg_delete_cd">Delete</string>
     <!-- Edit page -->
@@ -33,7 +32,6 @@
     <string name="quick_msg_field_bind_assistant">Bind Assistant</string>
     <string name="quick_msg_section_behavior">Behavior</string>
     <string name="quick_msg_field_sort_index">Sort index (smaller = earlier)</string>
-    <string name="quick_msg_field_enabled">Enabled</string>
     <string name="quick_msg_field_enabled_desc">When off, this entry will not appear in the InputBar chip row</string>
 
     <!-- ===== LorebookScreen ===== -->
@@ -46,7 +44,6 @@
     <string name="lorebook_new_default_name">New Entry</string>
     <string name="lorebook_unnamed">(Unnamed)</string>
     <string name="lorebook_keywords_label">Keywords: %1$s</string>
-    <string name="lorebook_enabled_cd">Enabled</string>
     <string name="lorebook_edit_cd">Edit</string>
     <string name="lorebook_delete_cd">Delete</string>
     <!-- Edit page -->
@@ -72,7 +69,6 @@
     <string name="lorebook_field_case_sensitive_desc">When on, keyword matching is case-sensitive</string>
     <string name="lorebook_field_whole_word">Whole Word</string>
     <string name="lorebook_field_whole_word_desc">Keyword must match as a whole word (for English; CJK keywords fall back automatically)</string>
-    <string name="lorebook_field_enabled">Enabled</string>
     <string name="lorebook_field_enabled_desc">When off, this entry will no longer trigger injection</string>
 
     <!-- ===== PromptInjectionScreen ===== -->
@@ -85,7 +81,6 @@
     <string name="prompt_injection_new_default_name">New Injection</string>
     <string name="prompt_injection_unnamed">(Unnamed)</string>
     <string name="prompt_injection_mode_label">Mode: %1$s</string>
-    <string name="prompt_injection_enabled_cd">Enabled</string>
     <string name="prompt_injection_edit_cd">Edit</string>
     <string name="prompt_injection_delete_cd">Delete</string>
     <!-- Edit page -->
@@ -103,7 +98,6 @@
     <string name="prompt_injection_section_behavior">Behavior</string>
     <string name="prompt_injection_field_priority">Priority (ordering for multiple injections of the same mode; larger number = injected first)</string>
     <string name="prompt_injection_field_insertion_position">Insertion position</string>
-    <string name="prompt_injection_field_enabled">Enabled</string>
     <string name="prompt_injection_field_enabled_desc">When off, this entry will no longer trigger injection</string>
 
     <!-- ===== AssistantScreen ===== -->
@@ -165,7 +159,6 @@
     <string name="assistant_toast_sillytavern_exported">SillyTavern character card exported</string>
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern export failed: %1$s</string>
     <string name="assistant_disable">Disable</string>
-    <string name="assistant_enable">Enable</string>
     <string name="assistant_diff_summary">Summary</string>
     <string name="assistant_diff_system_prompt">System prompt</string>
     <string name="assistant_diff_persona_definition">Persona</string>
@@ -185,4 +178,5 @@
     <string name="assistant_diff_legacy_pack">Legacy card: only the persona is taken - keys, model bindings and usage stats are not carried over</string>
     <string name="assistant_diff_no_switch">Importing does not switch the current assistant or reassign chats</string>
     <string name="assistant_diff_more">...and %1$d more</string>
+    <string name="assistant_diff_name">Name</string>
 </resources>

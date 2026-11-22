@@ -343,6 +343,6 @@ private fun ThoughtKind.labelRes(): Int = when (this) {
     ThoughtKind.REMINDER -> R.string.proactive_kind_reminder
     ThoughtKind.FOLLOW_UP -> R.string.proactive_kind_follow_up
     ThoughtKind.CARE -> R.string.proactive_kind_care
-    ThoughtKind.SHARE -> R.string.proactive_kind_share
+    ThoughtKind.SHARE -> R.string.common_share
     ThoughtKind.MILESTONE -> R.string.proactive_kind_milestone
 }

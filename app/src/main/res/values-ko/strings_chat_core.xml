@@ -72,7 +72,6 @@
     <string name="chat_err_open_file_picker">파일 선택기를 열 수 없습니다: %1$s</string>
     <string name="chat_err_open_image_picker">이미지 선택기를 열 수 없습니다: %1$s</string>
     <string name="chat_error_cd">오류: %1$s, 다시 시도하거나 닫으세요.</string>
-    <string name="chat_retry">다시 해 보다</string>
 
     <!-- Share -->
     <string name="chat_share_subject">뮤즈 대화</string>
@@ -157,7 +156,6 @@
     <string name="chat_fork_action">포크 채팅</string>
     <string name="chat_share_action">채팅 공유</string>
     <string name="chat_agent_weak_tool_title">도구 호출 성능 저하</string>
-    <string name="chat_agent_hint_dismiss">알았어요</string>
     <string name="chat_agent_session_locked">에이전트 모드에서 세션이 잠겼습니다.</string>
     <string name="chat_delete_message">메시지 삭제</string>
     <string name="chat_select_messages">선택</string>
@@ -378,7 +376,6 @@
     <string name="settings_sticker_empty_title">아직 스티커가 없습니다.</string>
     <string name="settings_sticker_empty_subtitle">위에서 “스티커 가져오기”를 탭하세요 (zip, docx/pptx, 이미지 지원)</string>
     <string name="settings_sticker_delete_confirm">이 스티커를 삭제하시겠습니까?</string>
-    <string name="settings_sticker_category_all">모두</string>
 
     <!-- SkillExecutor sticker tool feedback -->
     <string name="skill_sticker_not_configured">스티커 라이브러리가 구성되지 않았습니다.</string>
@@ -536,7 +533,6 @@
     <string name="chat_process_subagent_running">백그라운드 하위 작업 %1$d개</string>
     <string name="chat_process_subagent_section">백그라운드 하위 작업</string>
     <string name="chat_process_running">실행 중</string>
-    <string name="chat_process_completed">완료</string>
     <string name="chat_process_steps_completed">%1$d단계 완료</string>
     <string name="chat_process_steps_progress">%1$d / %2$d단계 완료</string>
     <string name="chat_process_step_fallback">단계</string>

@@ -12,7 +12,6 @@
     <string name="worldbook_unsaved_content">You have unsaved changes. Discard them?</string>
     <string name="worldbook_discard">Discard</string>
     <string name="worldbook_unnamed">Unnamed</string>
-    <string name="worldbook_enabled_cd">Enabled</string>
     <string name="worldbook_edit_cd">Edit</string>
     <string name="worldbook_delete_cd">Delete</string>
     <string name="worldbook_delete_title">Delete Worldbook</string>
@@ -55,7 +54,6 @@
     <string name="worldbook_field_is_regex_desc">Treat keywords as regular expressions (advanced)</string>
     <string name="worldbook_field_always_active">Always Active</string>
     <string name="worldbook_field_always_active_desc">Inject without keyword trigger (constant)</string>
-    <string name="worldbook_field_enabled">Enabled</string>
     <string name="worldbook_field_enabled_desc">Disabled entries are not injected</string>
 
     <!-- 前端修复 (i18n-8): export toast -->

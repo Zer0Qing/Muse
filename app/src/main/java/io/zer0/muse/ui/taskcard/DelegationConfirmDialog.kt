@@ -257,7 +257,7 @@ private fun DelegationConfirmDialogContent(
                         if (intermediate.length > INTERMEDIATE_PREVIEW_CHARS) {
                             Text(
                                 text = stringResource(
-                                    if (intermediateExpanded) R.string.taskcard_collapse else R.string.taskcard_expand,
+                                    if (intermediateExpanded) R.string.taskcard_collapse else R.string.common_expand,
                                 ),
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.SemiBold,

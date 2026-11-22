@@ -40,7 +40,6 @@
     <!-- Network proxy -->
     <string name="proxy_title">네트워크 프록시</string>
     <string name="proxy_enable">프록시 활성화</string>
-    <string name="proxy_enabled">활성화됨</string>
     <string name="proxy_disabled">장애가 있는</string>
     <string name="proxy_type">유형</string>
     <string name="proxy_type_http">HTTP</string>
@@ -57,8 +56,6 @@
     <string name="action_close">닫다</string>
     <string name="action_more">더</string>
     <string name="action_send">보내다</string>
-    <string name="action_share">공유하다</string>
-    <string name="action_expand">확장하다</string>
     <string name="action_collapse">무너지다</string>
 
     <!-- Quote reply -->
@@ -151,7 +148,6 @@
 
     <string name="chat_list_status_in_progress">진행 중</string>
     <string name="chat_list_status_pending">시작 전</string>
-    <string name="chat_list_status_completed">완전한</string>
     <string name="chat_list_time_just_now">방금</string>
     <string name="chat_list_time_minutes_ago">%1$d분 전</string>
     <string name="chat_list_time_hours_ago">%1$d시간 전</string>
@@ -255,7 +251,6 @@
     <string name="proactive_kind_reminder">알림</string>
     <string name="proactive_kind_follow_up">못다 한 얘기</string>
     <string name="proactive_kind_care">걱정</string>
-    <string name="proactive_kind_share">공유</string>
     <string name="proactive_kind_milestone">기념일</string>
     <string name="migration_running">데이터 업그레이드 중 %1$d/%2$d</string>
     <string name="migration_step">schema v%1$d → v%2$d</string>

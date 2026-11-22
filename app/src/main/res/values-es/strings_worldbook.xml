@@ -12,7 +12,6 @@
     <string name="worldbook_unsaved_content">Tienes cambios sin guardar. ¿Seguro que quieres descartarlos?</string>
     <string name="worldbook_discard">Desechar</string>
     <string name="worldbook_unnamed">Sin nombre</string>
-    <string name="worldbook_enabled_cd">Activado</string>
     <string name="worldbook_edit_cd">Editar</string>
     <string name="worldbook_delete_cd">Eliminar</string>
     <string name="worldbook_delete_title">Eliminar libro de trasfondo</string>
@@ -54,7 +53,6 @@
     <string name="worldbook_field_is_regex_desc">Trata las palabras clave como expresiones regulares (avanzado)</string>
     <string name="worldbook_field_always_active">Siempre activo</string>
     <string name="worldbook_field_always_active_desc">Se inyecta siempre en el prompt del sistema, sin necesidad de que coincida ninguna palabra clave</string>
-    <string name="worldbook_field_enabled">Activado</string>
     <string name="worldbook_field_enabled_desc">Las entradas deshabilitadas no se inyectan</string>
 
     <!-- 前端修复 (i18n-8): export toast -->

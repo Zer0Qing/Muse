@@ -40,7 +40,6 @@
     <!-- Network proxy -->
     <string name="proxy_title">Proxy de red</string>
     <string name="proxy_enable">Habilitar proxy</string>
-    <string name="proxy_enabled">Activado</string>
     <string name="proxy_disabled">Desactivado</string>
     <string name="proxy_type">Tipo</string>
     <string name="proxy_type_http">HTTP</string>
@@ -57,8 +56,6 @@
     <string name="action_close">Cerrar</string>
     <string name="action_more">Más</string>
     <string name="action_send">Enviar</string>
-    <string name="action_share">Compartir</string>
-    <string name="action_expand">Expandir</string>
     <string name="action_collapse">Colapsar</string>
 
     <!-- Quote reply -->
@@ -110,7 +107,6 @@
     <string name="asr_local_download_desc">Tras descargarlo, el reconocimiento se hace en el dispositivo, sin conexión a internet; el modelo ocupa unos 241 MB</string>
     <string name="asr_local_download_action">Descargar</string>
     <string name="asr_local_download_cancel">Cancelar</string>
-    <string name="asr_local_download_retry">Reintentar</string>
     <string name="asr_local_download_delete">Eliminar modelo</string>
     <string name="asr_local_download_use">Usar reconocimiento local</string>
     <string name="asr_local_download_use_done">Se ha cambiado al reconocimiento local</string>
@@ -180,7 +176,6 @@
 
     <string name="chat_list_status_in_progress">En curso</string>
     <string name="chat_list_status_pending">Sin empezar</string>
-    <string name="chat_list_status_completed">Terminado</string>
     <string name="chat_list_time_just_now">Ahora mismo</string>
     <string name="chat_list_time_minutes_ago">Hace %1$d min</string>
     <string name="chat_list_time_hours_ago">Hace %1$d h</string>
@@ -284,7 +279,6 @@
     <string name="proactive_kind_reminder">Recordatorio</string>
     <string name="proactive_kind_follow_up">Sin terminar</string>
     <string name="proactive_kind_care">Cuidado</string>
-    <string name="proactive_kind_share">Compartir</string>
     <string name="proactive_kind_milestone">Hito</string>
     <string name="migration_running">Actualizando datos %1$d/%2$d</string>
     <string name="migration_step">esquema v%1$d → v%2$d</string>

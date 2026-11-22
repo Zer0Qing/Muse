@@ -279,7 +279,7 @@ internal fun ToolCallCard(
                     contentDescription = if (expanded) {
                         stringResource(R.string.action_collapse)
                     } else {
-                        stringResource(R.string.action_expand)
+                        stringResource(R.string.common_expand)
                     },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -963,7 +963,7 @@ private fun RagCitationChip(citation: RagCitation, isExpanded: Boolean, onClick:
         R.string.chat_citation_chip_a11y,
         citation.index,
         citation.docTitle,
-        stringResource(if (isExpanded) R.string.action_collapse else R.string.action_expand),
+        stringResource(if (isExpanded) R.string.action_collapse else R.string.common_expand),
     )
     Surface(
         shape = MuseShapes.pill,

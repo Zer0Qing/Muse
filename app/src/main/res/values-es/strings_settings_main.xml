@@ -8,10 +8,8 @@
     <string name="settings_common_add">Agregar</string>
     <string name="settings_common_show">Mostrar</string>
     <string name="settings_common_hide">Ocultar</string>
-    <string name="settings_common_expand">Expandir</string>
     <string name="settings_common_collapse">Colapsar</string>
     <string name="settings_common_advanced">Avanzado</string>
-    <string name="settings_state_enabled">Activado</string>
 
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Lista de proveedores</string>
@@ -22,7 +20,6 @@
     <string name="settings_provider_category_relay">Intermediario</string>
     <string name="settings_provider_category_custom">Personalizado</string>
     <string name="settings_provider_add">Agregar proveedor</string>
-    <string name="settings_provider_status_enabled">Activado</string>
     <string name="settings_provider_status_disabled">Desactivado</string>
     <string name="settings_provider_json_parse_failed">Error al analizar el JSON: falta private_key / client_email</string>
     <string name="settings_provider_imported_from_json">Credenciales de cuenta de servicio importadas desde JSON</string>
@@ -399,7 +396,6 @@
     <string name="settings_chat_background_failed">Error al procesar la imagen; prueba con otra</string>
     <string name="cloud_backup_restore_failed_title">Falló la restauración</string>
     <string name="cloud_backup_restore_failed_desc">No se pudieron restaurar los datos desde la nube. Revisa la red y la configuración de copia en la nube y vuelve a intentarlo.</string>
-    <string name="cloud_backup_restore_retry">Reintentar</string>
     <string name="settings_backup_log_title">Registro de copias recientes</string>
     <string name="settings_backup_log_empty">Aún no hay copias</string>
     <string name="settings_backup_log_success">Correcto</string>

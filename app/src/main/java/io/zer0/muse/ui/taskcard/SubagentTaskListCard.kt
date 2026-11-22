@@ -556,7 +556,7 @@ private fun StatusIcon(status: DeferredResultStore.TaskStatus) {
         DeferredResultStore.TaskStatus.RESOLVED -> {
             Icon(
                 imageVector = MuseIcons.circleCheck,
-                contentDescription = stringResource(R.string.subagent_task_completed),
+                contentDescription = stringResource(R.string.common_done),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(14.dp),
             )

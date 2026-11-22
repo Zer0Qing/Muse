@@ -528,7 +528,7 @@ internal fun MoodCapsule(mood: String, expanded: Boolean, onToggle: () -> Unit) 
                     contentDescription = if (expanded) {
                         stringResource(R.string.groupchat_collapse)
                     } else {
-                        stringResource(R.string.groupchat_expand)
+                        stringResource(R.string.common_expand)
                     },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -589,7 +589,7 @@ internal fun GroupChatExpandableBlock(
                     contentDescription = if (expanded) {
                         stringResource(R.string.groupchat_collapse)
                     } else {
-                        stringResource(R.string.groupchat_expand)
+                        stringResource(R.string.common_expand)
                     },
                     tint = titleColor,
                     modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -837,7 +837,7 @@ internal fun GroupSummaryCard(
                 variant = IosCapsuleButtonVariant.Text,
             )
             MuseCapsuleButton(
-                text = stringResource(R.string.groupchat_summary_share),
+                text = stringResource(R.string.common_share),
                 onClick = onShare,
                 variant = IosCapsuleButtonVariant.Text,
             )

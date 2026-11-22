@@ -197,7 +197,6 @@
     <string name="tool_open_app_failed">アプリを開けませんでした</string>
     <string name="tool_missing_param_text_share">パラメータがありません: テキスト (共有するコンテンツ)</string>
     <string name="tool_text_empty">テキストを空にすることはできません</string>
-    <string name="tool_share_title_default">共有</string>
     <string name="tool_text_shared">共有テキスト: %1$s</string>
     <string name="tool_share_failed">共有に失敗しました</string>
     <string name="tool_location_no_permission">位置情報権限 (ACCESS_COARSE_LOCATION) が必要です。</string>

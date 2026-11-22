@@ -1592,7 +1592,7 @@ internal fun MessageBubble(
                                                     io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
                                                         context = context,
                                                         shareIntent = shareIntent,
-                                                        chooserTitle = context.getString(R.string.action_share),
+                                                        chooserTitle = context.getString(R.string.common_share),
                                                     )
                                                 }
                                             }
@@ -1921,7 +1921,7 @@ internal fun MessageBubble(
                                 MuseHaptics.light(hapticFeedback)
                                 onRegenerate()
                             },
-                            contentDescription = stringResource(R.string.action_retry),
+                            contentDescription = stringResource(R.string.common_retry),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             size = MuseIconSizes.touchTarget,
                             iconSize = MuseIconSizes.iconSmall,
@@ -2719,7 +2719,7 @@ internal fun MessageBubble(
                 // 在 @Composable 上下文预提取本地化字符串,remember 块内不能调用 stringResource
                 val copyLabel = stringResource(R.string.common_copy)
                 val regenerateLabel = stringResource(R.string.desktop_context_regenerate)
-                val shareLabel = stringResource(R.string.desktop_context_share)
+                val shareLabel = stringResource(R.string.common_share)
                 val deleteLabel = stringResource(R.string.common_delete)
                 // A5: 消息信息弹层入口(桌面右键菜单)
                 val infoLabel = stringResource(R.string.msg_info_title)

@@ -149,7 +149,7 @@ fun PlanCard(plan: AgentPlan, modifier: Modifier = Modifier) {
                     Icon(
                         imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = stringResource(
-                            if (expanded) R.string.action_collapse else R.string.action_expand,
+                            if (expanded) R.string.action_collapse else R.string.common_expand,
                         ),
                         tint = onPrimaryColor,
                         modifier = Modifier.size(20.dp),

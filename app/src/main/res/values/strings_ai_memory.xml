@@ -104,7 +104,6 @@
     <string name="memory_error_trace_stack_header">== Stack Trace ==</string>
 
     <!-- v8: 记忆作用域(scope)相关 -->
-    <string name="memory_scope_all">全部</string>
     <string name="memory_scope_main">主助手</string>
     <string name="memory_scope_assistant">助手记忆</string>
     <string name="memory_scope_label">记忆作用域</string>
@@ -136,7 +135,6 @@
     <string name="memory_center_library_title">事实库</string>
     <string name="memory_center_constellation_empty">目前没有可展示的事实节点。先产生或手动添加一条事实，再回来看看。</string>
     <string name="memory_center_filter_empty">当前作用域或空间里没有事实节点，试试切换上方筛选条件。</string>
-    <string name="memory_center_scope_all">全部</string>
     <string name="memory_center_space_default">默认</string>
     <string name="memory_center_scope_line">%1$s · %2$s</string>
     <string name="memory_center_filter_title">筛选</string>
@@ -145,7 +143,6 @@
     <string name="memory_center_filter_space">记忆空间</string>
     <!-- F-7: 功能完善度审查 — 重要程度/时间范围筛选 -->
     <string name="memory_center_filter_importance">重要程度</string>
-    <string name="memory_center_filter_importance_all">全部</string>
     <string name="memory_center_filter_time">时间范围</string>
     <string name="memory_center_filter_time_all">全部时间</string>
     <string name="memory_center_filter_time_7">近 7 天</string>
@@ -172,7 +169,6 @@
     <string name="memory_contradictions_keep_a">保留上面这句</string>
     <string name="memory_contradictions_keep_b">保留下面这句</string>
     <string name="memory_evidence_line">依据：%1$s</string>
-    <string name="memory_timeline_filter_all">全部</string>
     <string name="memory_timeline_filter_fact">元事实</string>
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>

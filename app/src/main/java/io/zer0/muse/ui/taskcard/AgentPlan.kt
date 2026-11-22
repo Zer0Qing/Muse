@@ -92,7 +92,7 @@ data class AgentPlanStep(
 enum class AgentPlanStepStatus(val labelRes: Int) {
     PENDING(R.string.task_plan_status_pending),
     IN_PROGRESS(R.string.task_plan_status_in_progress),
-    DONE(R.string.task_plan_status_done),
+    DONE(R.string.common_done),
     FAILED(R.string.task_plan_status_failed),
     SKIPPED(R.string.task_plan_status_skipped),
 

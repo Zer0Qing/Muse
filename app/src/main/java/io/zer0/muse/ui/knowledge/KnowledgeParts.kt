@@ -626,7 +626,7 @@ internal fun PdfOutlineCard(outline: List<String>) {
                             R.string.action_collapse,
                         )
                     } else {
-                        stringResource(R.string.action_expand)
+                        stringResource(R.string.common_expand)
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,

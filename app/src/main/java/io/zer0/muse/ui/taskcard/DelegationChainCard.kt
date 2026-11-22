@@ -217,7 +217,7 @@ private fun ChainNodeView(
                 MuseTactileButton(
                     icon = if (expanded) MuseIcons.chevronDown else MuseIcons.chevronRight,
                     onClick = { expanded = !expanded },
-                    contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand),
+                    contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.common_expand),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     size = 48.dp,
                     iconSize = 18.dp,

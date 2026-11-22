@@ -47,7 +47,6 @@
     <string name="chat_err_open_file_picker">ファイルピッカーを開けません: %1$s</string>
     <string name="chat_err_open_image_picker">画像ピッカーを開けません: %1$s</string>
     <string name="chat_error_cd">エラー: %1$s、再試行するか閉じてください</string>
-    <string name="chat_retry">リトライ</string>
 
     <!-- Share -->
     <string name="chat_share_subject">ミューズ会話</string>
@@ -132,7 +131,6 @@
     <string name="chat_fork_action">フォークチャット</string>
     <string name="chat_share_action">チャットを共有する</string>
     <string name="chat_agent_weak_tool_title">ツール呼び出しの劣化</string>
-    <string name="chat_agent_hint_dismiss">わかった</string>
     <string name="chat_agent_session_locked">エージェントモードでセッションがロックされました</string>
     <string name="chat_delete_message">メッセージの削除</string>
     <string name="chat_select_messages">選択</string>
@@ -353,7 +351,6 @@
     <string name="settings_sticker_empty_title">ステッカーはまだありません</string>
     <string name="settings_sticker_empty_subtitle">上の「スタンプを読み込む」をタップ（zip / docx / pptx / 画像に対応）</string>
     <string name="settings_sticker_delete_confirm">このステッカーを削除しますか?</string>
-    <string name="settings_sticker_category_all">全て</string>
 
     <!-- SkillExecutor sticker tool feedback -->
     <string name="skill_sticker_not_configured">ステッカーライブラリが設定されていません</string>
@@ -536,7 +533,6 @@
     <string name="chat_process_subagent_running">サブタスク %1$d 件が実行中</string>
     <string name="chat_process_subagent_section">バックグラウンドのサブタスク</string>
     <string name="chat_process_running">実行中</string>
-    <string name="chat_process_completed">完了</string>
     <string name="chat_process_steps_completed">%1$d ステップ完了</string>
     <string name="chat_process_steps_progress">%1$d / %2$d ステップ完了</string>
     <string name="chat_process_step_fallback">ステップ</string>

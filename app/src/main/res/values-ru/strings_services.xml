@@ -197,7 +197,6 @@
     <string name="tool_open_app_failed">Не удалось открыть приложение</string>
     <string name="tool_missing_param_text_share">Отсутствует параметр: текст (контент, которым можно поделиться).</string>
     <string name="tool_text_empty">текст не может быть пустым</string>
-    <string name="tool_share_title_default">Делиться</string>
     <string name="tool_text_shared">Общий текст: %1$s</string>
     <string name="tool_share_failed">Не удалось поделиться</string>
     <string name="tool_location_no_permission">Требуется разрешение на определение местоположения (ACCESS_COARSE_LOCATION);</string>

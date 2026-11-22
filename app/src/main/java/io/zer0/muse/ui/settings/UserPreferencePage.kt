@@ -154,7 +154,7 @@ private fun PreferenceRow(pref: UserPreference, onToggle: (Boolean) -> Unit, onD
                     if (pref.enabled) {
                         R.string.settings_preference_disable
                     } else {
-                        R.string.settings_preference_enable
+                        R.string.common_enable
                     },
                 ),
                 style = MaterialTheme.typography.labelMedium,

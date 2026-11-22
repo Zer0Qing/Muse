@@ -197,7 +197,6 @@
     <string name="tool_open_app_failed">No se pudo abrir la aplicación</string>
     <string name="tool_missing_param_text_share">Parámetro faltante: text (contenido para compartir)</string>
     <string name="tool_text_empty">el texto no puede estar vacío</string>
-    <string name="tool_share_title_default">Compartir</string>
     <string name="tool_text_shared">Texto compartido: %1$s</string>
     <string name="tool_share_failed">Compartir falló</string>
     <string name="tool_location_no_permission">Se requiere permiso de ubicación (ACCESS_COARSE_LOCATION); concédelo en los ajustes del sistema</string>

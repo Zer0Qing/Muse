@@ -451,7 +451,7 @@ internal fun ProviderRow(
             ) {
                 Text(
                     text = stringResource(
-                        if (config.enabled) R.string.settings_provider_status_enabled else R.string.settings_provider_status_disabled,
+                        if (config.enabled) R.string.common_enable else R.string.settings_provider_status_disabled,
                     ),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (config.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,

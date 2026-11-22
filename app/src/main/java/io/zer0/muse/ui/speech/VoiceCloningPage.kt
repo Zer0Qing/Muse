@@ -186,7 +186,7 @@ fun VoiceCloningPage(
             verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
         ) {
             // ── 服务商选择(FilterChip 行)──
-            FormSection(label = stringResource(R.string.voice_cloning_provider)) {
+            FormSection(label = stringResource(R.string.common_provider)) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                     modifier = Modifier.fillMaxWidth(),
