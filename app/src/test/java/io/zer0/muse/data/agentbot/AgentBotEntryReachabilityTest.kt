@@ -13,8 +13,8 @@ import io.zer0.muse.ui.chat.ChatScreen
  * 中枢入口的可达性守卫（计划 V26）。
  *
  * 审查报告里最常见的一类缺陷是"功能写好了但接不上入口"。这里以源码为准
- * 钉住三件事：开关存在且默认关、页面被真正引用、绑定走 agentSessionId 而不是
- * 当前会话。
+ * 钉住三件事：开关是**写死的显式常量**（不能由构建类型或设备条件推导，否则升级会
+ * 悄悄改变用户的心智模型）、页面被真正引用、绑定走 agentSessionId 而不是当前会话。
  */
 class AgentBotEntryReachabilityTest {
 
@@ -22,11 +22,17 @@ class AgentBotEntryReachabilityTest {
         File("src/main/java/io/zer0/muse/ui/screen/HomeScreen.kt").readText()
     }
 
+    private val featureFlags: String by lazy {
+        File("src/main/java/io/zer0/muse/feature/FeatureFlags.kt").readText()
+    }
+
     @Test
-    fun `feature flag exists and defaults to off`() {
-        assertFalse(
-            "中枢改的是主对话的心智模型，必须由用户显式打开，不能随升级悄悄生效",
-            FeatureFlags.AGENT_BOT,
+    fun `feature flag is a literal constant, never derived`() {
+        // 中枢改的是主对话的心智模型：开不开必须是一个写死的决定。
+        // 一旦写成 "= BuildConfig.DEBUG" 或按机型判断，升级就会悄悄改变用户的心智模型。
+        assertTrue(
+            "AGENT_BOT 必须声明为显式布尔常量",
+            featureFlags.contains("const val AGENT_BOT: Boolean ="),
         )
     }
 

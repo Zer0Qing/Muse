@@ -269,8 +269,13 @@ data class ChatPreferences(
      * 关闭时维持现有行为(直接渲染全部 state.messages)。
      */
     val performanceMode: Boolean = false,
-    /** v1.0.83: 是否使用 Android 预测性返回；关闭后导航立即执行普通 popBackStack。 */
-    val predictiveBackEnabled: Boolean = true,
+    /**
+     * 是否使用 Android 预测性返回；关闭后导航立即执行普通 popBackStack。
+     *
+     * 默认关：预测性返回会把返回手势变成"先预览、再确认"的两段式，
+     * 与页面内的左滑返回、手势导航叠在一起时容易误触。想要预览效果的用户可以自己打开。
+     */
+    val predictiveBackEnabled: Boolean = false,
     /**
      * U-6: 手势操作提示是否已展示过(v2.x 起废弃 — 提示条与左滑引用已移除)。
      *

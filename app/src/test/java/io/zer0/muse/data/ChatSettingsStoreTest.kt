@@ -70,7 +70,8 @@ class ChatSettingsStoreTest {
 
         val loaded = AppJson.decodeFromString(ChatPreferences.serializer(), legacyJson)
 
-        assertEquals(true, loaded.predictiveBackEnabled)
+        // 默认关：老配置里没有这个字段时按"不启用预测性返回"处理。
+        assertEquals(false, loaded.predictiveBackEnabled)
     }
 
     @Test
