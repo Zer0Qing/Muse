@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config
 /**
  * v2.6.7: 116 → 117 迁移的行为验证（会话待办持久化）。
  *
- * 用原生 SQLite 直接执行与 [MuseDb.MIGRATION_116_117] 完全相同的 DDL，断言：
+ * 用原生 SQLite 直接执行与 [MuseDbMigrations.MIGRATION_116_117] 完全相同的 DDL，断言：
  *  - `session_todos` 表存在，且六列齐全；
  *  - `sessionId` 上有唯一索引（每会话一份清单的约束）；
  *  - 默认值符合实体声明（否则真机 Room schema 校验会抛
@@ -63,7 +63,7 @@ class MuseDbMigration116To117Test {
             db.execSQL("INSERT INTO ai_moments (id, content) VALUES ('m1', 'legacy moment')")
             db.version = 116
 
-            // 2. 执行与 MIGRATION_116_117 完全相同的 DDL
+            // 2. 执行与 MuseDbMigrations.MIGRATION_116_117 完全相同的 DDL
             db.execSQL(
                 "CREATE TABLE IF NOT EXISTS `session_todos` (" +
                     "`id` TEXT NOT NULL, " +

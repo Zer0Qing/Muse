@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.muse.data.session.MuseDbMigrations
 
 /**
  * 默认知识库兜底合同。
@@ -12,8 +13,8 @@ import org.junit.Test
  * 回归背景（用户实测）：知识库导入后「首页显示 148 个文档、点进去是空的」。
  *
  * 根因：普通文件导入把文档写成 `kb_id='default'`，但 `knowledge_bases` 里从来没有
- * `default` 这一行 —— `MIGRATION_38_39` 只 `CREATE TABLE`，实体注释里写的
- * 「MIGRATION_38_39 会自动插入」与实现不符。知识库页面顶层先列 KB 列表，
+ * `default` 这一行 —— `MuseDbMigrations.MIGRATION_38_39` 只 `CREATE TABLE`，实体注释里写的
+ * 「MuseDbMigrations.MIGRATION_38_39 会自动插入」与实现不符。知识库页面顶层先列 KB 列表，
  * 列表为空就直接渲染空态；而首页计数直接数文档表，于是两边对不上。
  *
  * 本测试钉住三件事：

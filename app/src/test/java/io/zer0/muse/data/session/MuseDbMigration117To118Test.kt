@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config
  * v2.6.8: 117 → 118 迁移的行为验证（卡片实体表）。
  *
  * 与 [MuseDbMigration116To117Test] 同一模式：用原生 SQLite 直接执行与
- * [MuseDb.MIGRATION_117_118] 完全相同的 DDL，断言：
+ * [MuseDbMigrations.MIGRATION_117_118] 完全相同的 DDL，断言：
  *  - `card_entities` 表存在，十二列齐全；
  *  - 列默认值与 [io.zer0.muse.data.card.CardEntity] 声明逐项一致（否则真机 Room
  *    schema 校验会抛 "Migration didn't properly handle: card_entities"）；
@@ -30,7 +30,7 @@ class MuseDbMigration117To118Test {
 
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
-    /** 与 MIGRATION_117_118 逐字一致的建表 + 索引 DDL。 */
+    /** 与 MuseDbMigrations.MIGRATION_117_118 逐字一致的建表 + 索引 DDL。 */
     private fun applyMigrationDdl(db: android.database.sqlite.SQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `card_entities` (" +
@@ -100,7 +100,7 @@ class MuseDbMigration117To118Test {
             db.execSQL("INSERT INTO session_todos (id, sessionId) VALUES ('t1', 's1')")
             db.version = 117
 
-            // 2. 执行与 MIGRATION_117_118 完全相同的 DDL
+            // 2. 执行与 MuseDbMigrations.MIGRATION_117_118 完全相同的 DDL
             applyMigrationDdl(db)
 
             // 3. 列集合 / 类型 / 可空性 / 默认值

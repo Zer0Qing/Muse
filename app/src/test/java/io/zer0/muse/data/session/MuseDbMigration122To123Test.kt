@@ -24,7 +24,7 @@ class MuseDbMigration122To123Test {
             db.execSQL("INSERT INTO sessions (id, title) VALUES ('session-1', 'kept')")
             db.execSQL("INSERT INTO messages (id, sessionId, content) VALUES ('message-1', 'session-1', 'kept body')")
 
-            MuseDb.MIGRATION_122_123.migrate(db)
+            MuseDbMigrations.MIGRATION_122_123.migrate(db)
 
             assertTrue(
                 tableNames(db).containsAll(
@@ -52,8 +52,8 @@ class MuseDbMigration122To123Test {
     fun migrationIsIdempotent() {
         val db = openAt122()
         try {
-            MuseDb.MIGRATION_122_123.migrate(db)
-            MuseDb.MIGRATION_122_123.migrate(db)
+            MuseDbMigrations.MIGRATION_122_123.migrate(db)
+            MuseDbMigrations.MIGRATION_122_123.migrate(db)
 
             assertTrue(
                 tableNames(db).containsAll(

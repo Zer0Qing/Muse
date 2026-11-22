@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config
 /**
  * 版本 124 → 125(E2):新建会话术语表。
  *
- * 直接调用生产环境的 [MuseDb.MIGRATION_124_125]（不是复制一份 SQL），断言:
+ * 直接调用生产环境的 [MuseDbMigrations.MIGRATION_124_125]（不是复制一份 SQL），断言:
  *  - 表建起来了,列名/默认值与实体一致(Room 之后会按 schema 校验,名字对不上是升级期才炸);
  *  - 两个索引都在,且那个唯一索引**真的唯一**(重复插同 scope+session+term 要失败) ——
  *    术语累计次数依赖它,索引不存在时会出现同一个词两行,注入时随机挤掉一条;
@@ -76,7 +76,7 @@ class MuseDbMigration124To125Test {
         db.execSQL("INSERT INTO sessions (id, title, assistantId) VALUES ('s-1', '老会话', 'default')")
         db.execSQL("INSERT INTO messages (id, sessionId, content) VALUES ('m-1', 's-1', '旧消息')")
 
-        MuseDb.MIGRATION_124_125.migrate(db)
+        MuseDbMigrations.MIGRATION_124_125.migrate(db)
 
         assertTrue("表没建起来: ${tableNames(db)}", tableNames(db).contains("session_terms"))
         assertTrue(
@@ -99,7 +99,7 @@ class MuseDbMigration124To125Test {
     @Test
     fun `列与默认值逐项对齐实体`() {
         val db = openAt124("muse_migration_124_to_125_columns")
-        MuseDb.MIGRATION_124_125.migrate(db)
+        MuseDbMigrations.MIGRATION_124_125.migrate(db)
 
         val columns = mutableSetOf<String>()
         db.query("PRAGMA table_info(`session_terms`)").use { cursor ->
@@ -131,7 +131,7 @@ class MuseDbMigration124To125Test {
     @Test
     fun `唯一索引真的拦住同作用域的同名词`() {
         val db = openAt124("muse_migration_124_to_125_unique")
-        MuseDb.MIGRATION_124_125.migrate(db)
+        MuseDbMigrations.MIGRATION_124_125.migrate(db)
         db.execSQL(
             "INSERT INTO session_terms (term, session_id, assistant_id, first_seen_at, last_seen_at) " +
                 "VALUES ('开黑', 's-1', 'default', 1, 1)",
@@ -160,10 +160,10 @@ class MuseDbMigration124To125Test {
     @Test
     fun `迁移可以重复执行`() {
         val db = openAt124("muse_migration_124_to_125_idempotent")
-        MuseDb.MIGRATION_124_125.migrate(db)
+        MuseDbMigrations.MIGRATION_124_125.migrate(db)
         val before = indexNames(db)
 
-        runCatching { MuseDb.MIGRATION_124_125.migrate(db) }.onFailure {
+        runCatching { MuseDbMigrations.MIGRATION_124_125.migrate(db) }.onFailure {
             assertTrue("重复执行应当幂等而不是抛错: $it", false)
         }
         assertEquals(before, indexNames(db))

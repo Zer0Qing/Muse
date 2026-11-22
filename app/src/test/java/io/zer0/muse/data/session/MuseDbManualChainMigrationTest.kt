@@ -107,7 +107,8 @@ class MuseDbManualChainMigrationTest {
         )
 
         // 收集与 Room 完全一致的迁移链(常量 + 函数附加)
-        val migrations = MuseDb::class.java.declaredFields
+        // 迁移常量已从 MuseDb 的 companion 搬到 MuseDbMigrations 对象，反射目标跟着改。
+        val migrations = MuseDbMigrations::class.java.declaredFields
             .filter { it.name.startsWith("MIGRATION_") }
             .mapNotNull { f ->
                 val parts = f.name.removePrefix("MIGRATION_").split("_")
@@ -115,7 +116,7 @@ class MuseDbManualChainMigrationTest {
                 val to = parts[1].toIntOrNull() ?: return@mapNotNull null
                 if (from < fromVersion) return@mapNotNull null
                 f.isAccessible = true
-                (from to to) to (f.get(null) as androidx.room.migration.Migration)
+                (from to to) to (f.get(MuseDbMigrations) as androidx.room.migration.Migration)
             }
             .sortedBy { it.first.first }
             .map { it.second }

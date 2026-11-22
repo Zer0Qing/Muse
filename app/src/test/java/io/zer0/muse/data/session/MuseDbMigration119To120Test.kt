@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config
 /**
  * v2.6.15: 119 → 120 缓存读/写分列迁移。
  *
- * 直接调用生产环境的 [MuseDb.MIGRATION_119_120]（不是复制一份 DDL），断言：
+ * 直接调用生产环境的 [MuseDbMigrations.MIGRATION_119_120]（不是复制一份 DDL），断言：
  *  - 两列都补上了，类型与默认值跟实体声明一致（否则真机 Room 校验会抛
  *    "Migration didn't properly handle"）；
  *  - 旧行一个字段都没被改写：`cachedTokens` / `cached_tokens` 原样保留（不回填、不重算），
@@ -106,7 +106,7 @@ class MuseDbMigration119To120Test {
             seed(db)
 
             // 执行生产迁移
-            MuseDb.MIGRATION_119_120.migrate(db)
+            MuseDbMigrations.MIGRATION_119_120.migrate(db)
 
             val messageColumns = columnInfo(db, "messages")
             assertTrue("messages 应补上 cacheWriteTokens", messageColumns.containsKey("cacheWriteTokens"))
@@ -144,7 +144,7 @@ class MuseDbMigration119To120Test {
         val db = openAt119("migration_119_120_rollback.db")
         try {
             seed(db)
-            MuseDb.MIGRATION_119_120.migrate(db)
+            MuseDbMigrations.MIGRATION_119_120.migrate(db)
 
             // 按迁移注释里的回退步骤：去掉两列 + 版本退回 119。
             // 这里走「建新表 → 拷数据 → 改名」的可移植路径：DROP COLUMN 需要 SQLite 3.35+，

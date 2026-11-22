@@ -14,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import io.zer0.muse.data.session.MuseDbMigrations
 
 /**
  * R2 V2 schema 合同(计划 R2 步骤 4/5 + 验收「迁移中断可继续;没有静默 DROP/REPLACE 降损」):
@@ -24,7 +25,7 @@ import org.robolectric.annotation.Config
  *  - retention lease 按到期回收;
  *  - revision 版本链 (docId, revisionNo) 唯一。
  *
- * 迁移实测方式:先以 125 版本建库写入旧行,关闭后用带 MIGRATION_125_126 的配置重开
+ * 迁移实测方式:先以 125 版本建库写入旧行,关闭后用带 MuseDbMigrations.MIGRATION_125_126 的配置重开
  * (Room 逐版本升级),断言旧行仍在 + 新表可用 —— 对应「迁移中断可继续」的最小证据。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -48,7 +49,7 @@ class KnowledgeV2SchemaMigrationTest {
 
     /**
      * 以当前 @Database(126)新建库 —— 新装路径:fresh 库即含 V2 表(合同测试的底座)。
-     * 迁移路径单独由 `migration 125 to 126...` 用 raw SQL 实测 MIGRATION_125_126 本体。
+     * 迁移路径单独由 `migration 125 to 126...` 用 raw SQL 实测 MuseDbMigrations.MIGRATION_125_126 本体。
      */
     private fun buildFreshDb(): String {
         val name = "r2-v2-test.db"

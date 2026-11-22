@@ -415,7 +415,7 @@ class MuseDbMigrationTest {
                     .build(),
             )
             val db = helper.writableDatabase
-            MuseDb.MIGRATION_98_99.migrate(db)
+            MuseDbMigrations.MIGRATION_98_99.migrate(db)
             var hasCreatedBy = false
             db.query("PRAGMA table_info(scheduled_tasks)").use { cursor ->
                 while (cursor.moveToNext()) {
@@ -449,7 +449,7 @@ class MuseDbMigrationTest {
                     .build(),
             )
             val db = helper.writableDatabase
-            MuseDb.MIGRATION_99_100.migrate(db)
+            MuseDbMigrations.MIGRATION_99_100.migrate(db)
             var hasArchived = false
             db.query("PRAGMA table_info(group_chats)").use { cursor ->
                 while (cursor.moveToNext()) {
@@ -562,7 +562,7 @@ class MuseDbMigrationTest {
         }
     }
 
-    /** 模拟"已崩溃设备":v80 上的带索引坏表 → MIGRATION_80_81 清索引并重建表,数据全部保留。
+    /** 模拟"已崩溃设备":v80 上的带索引坏表 → MuseDbMigrations.MIGRATION_80_81 清索引并重建表,数据全部保留。
      *
      * 只跑 80→81 这一段:完整升级链的终态会经 121→122 删掉这两张表,
      * 走全链就断言不到 80→81 的处理结果了。 */
@@ -599,7 +599,7 @@ class MuseDbMigrationTest {
         )
         try {
             val db = helper.writableDatabase
-            MuseDb.MIGRATION_80_81.migrate(db)
+            MuseDbMigrations.MIGRATION_80_81.migrate(db)
 
             // 数据仍在
             db.query("SELECT count(*) FROM ai_moments").use { c ->
@@ -618,7 +618,7 @@ class MuseDbMigrationTest {
     }
 
     /** 模拟真机中间版坏表: mood 列带 DEFAULT NULL(真机 dflt_value 读为 'NULL'),索引残留,
-     * MIGRATION_80_81 重建表后数据(含 mood 值)必须保留。 */
+     * MuseDbMigrations.MIGRATION_80_81 重建表后数据(含 mood 值)必须保留。 */
     @Test
     fun migrate80To81_rebuildsTableWithMoodNullDefault() {
         val dbName = "muse_migration_80_moodnull.db"
@@ -651,7 +651,7 @@ class MuseDbMigrationTest {
         )
         try {
             val db = helper.writableDatabase
-            MuseDb.MIGRATION_80_81.migrate(db)
+            MuseDbMigrations.MIGRATION_80_81.migrate(db)
 
             // 数据(含 mood 值)保留
             db.query("SELECT content, mood FROM ai_moments WHERE id='m1'").use { c ->
@@ -703,7 +703,7 @@ class MuseDbMigrationTest {
         )
         try {
             val db = helper.writableDatabase
-            MuseDb.MIGRATION_106_107.migrate(db)
+            MuseDbMigrations.MIGRATION_106_107.migrate(db)
 
             db.query(
                 """
@@ -834,7 +834,7 @@ class MuseDbMigrationTest {
     /**
      * v112 → 120 全链：专门覆盖含数据回填的 112→113（usage_records 的 INSERT...SELECT）。
      *
-     * 回填条件（MuseDb.MIGRATION_112_113）：`role='ASSISTANT' AND (promptTokens + completionTokens) > 0`。
+     * 回填条件（MuseDbMigrations.MIGRATION_112_113）：`role='ASSISTANT' AND (promptTokens + completionTokens) > 0`。
      * 这里刻意铺满四种边界：有用量的 assistant（回填）、零用量（不回填）、
      * token 为 NULL（不回填）、用户消息带用量（role 过滤，不回填），
      * 再加一条只有 prompt 的 assistant（回填）。断言回填条数、字段值、

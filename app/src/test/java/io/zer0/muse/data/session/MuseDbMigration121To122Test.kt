@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 /**
  * 版本 121 → 122：清理旧小手机遗留数据。
  *
- * 直接调用生产环境的 [MuseDb.MIGRATION_121_122]（不是复制一份 SQL），断言：
+ * 直接调用生产环境的 [MuseDbMigrations.MIGRATION_121_122]（不是复制一份 SQL），断言：
  *  - 朋友圈/日记四张表被删除，且删得掉（旧库上确实存在过）；
  *  - `sessions.isMiniPhone = 1` 的会话与挂在它下面的消息被删；
  *  - 普通会话与消息一条不少、字段一字未改（这次迁移只清小手机数据）；
@@ -123,7 +123,7 @@ class MuseDbMigration121To122Test {
             // 前提:旧库上这些表/行确实存在，否则后面的「已删除」断言等于空断言
             assertTrue("前置条件:旧库应有四张朋友圈/日记表", tableNames(db).containsAll(LEGACY_TABLES))
 
-            MuseDb.MIGRATION_121_122.migrate(db)
+            MuseDbMigrations.MIGRATION_121_122.migrate(db)
 
             val tables = tableNames(db)
             LEGACY_TABLES.forEach { table ->
@@ -158,9 +158,9 @@ class MuseDbMigration121To122Test {
         try {
             seed(db)
 
-            MuseDb.MIGRATION_121_122.migrate(db)
+            MuseDbMigrations.MIGRATION_121_122.migrate(db)
             // 再跑一遍:表已不存在，DROP TABLE IF EXISTS 与条件删除都不应报错
-            MuseDb.MIGRATION_121_122.migrate(db)
+            MuseDbMigrations.MIGRATION_121_122.migrate(db)
 
             db.query("SELECT COUNT(*) FROM sessions").use { cursor ->
                 assertTrue(cursor.moveToFirst())

@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config
  * P3-1 / P2-2: v111 → v112 迁移的行为验证。
  *
  * 本次迁移给 `knowledge_bases` 新增 5 个 per-KB 覆盖列。这里用原生 SQLite
- * 直接执行与 [MuseDb.MIGRATION_111_112] 完全相同的 DDL，断言：
+ * 直接执行与 [MuseDbMigrations.MIGRATION_111_112] 完全相同的 DDL，断言：
  *  - 5 个列都存在
  *  - 存量行不丢，且覆盖字段为空（= 继承全局配置，行为不变）
  *
@@ -53,7 +53,7 @@ class MuseDbMigration111To112Test {
             )
             db.version = 111
 
-            // 2. 执行与 MIGRATION_111_112 完全相同的 DDL
+            // 2. 执行与 MuseDbMigrations.MIGRATION_111_112 完全相同的 DDL
             db.execSQL("ALTER TABLE knowledge_bases ADD COLUMN chunk_size_override INTEGER DEFAULT NULL")
             db.execSQL("ALTER TABLE knowledge_bases ADD COLUMN chunk_overlap_override INTEGER DEFAULT NULL")
             db.execSQL("ALTER TABLE knowledge_bases ADD COLUMN top_k_override INTEGER DEFAULT NULL")

@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 /**
  * v2.6.16: 120 → 121 语音消息迁移。
  *
- * 直接调用生产环境的 [MuseDb.MIGRATION_120_121]（不是复制一份 DDL），断言：
+ * 直接调用生产环境的 [MuseDbMigrations.MIGRATION_120_121]（不是复制一份 DDL），断言：
  *  - `voiceUri` / `voiceDurationMs` 两列都补上了，类型与可空性/默认值跟
  *    [MessageEntity] 声明一致（否则真机 Room 校验会抛 "Migration didn't properly handle"）；
  *  - 旧行一个字段都没被改写：正文/图片列原样保留，新列为 NULL / 0，
@@ -85,7 +85,7 @@ class MuseDbMigration120To121Test {
         try {
             seed(db)
 
-            MuseDb.MIGRATION_120_121.migrate(db)
+            MuseDbMigrations.MIGRATION_120_121.migrate(db)
 
             val columns = columnInfo(db, "messages")
             assertEquals(
@@ -118,9 +118,9 @@ class MuseDbMigration120To121Test {
         try {
             seed(db)
 
-            MuseDb.MIGRATION_120_121.migrate(db)
+            MuseDbMigrations.MIGRATION_120_121.migrate(db)
             // 再跑一遍：ensureMessageColumns 按 PRAGMA 判存在，重复执行不应抛 duplicate column
-            MuseDb.MIGRATION_120_121.migrate(db)
+            MuseDbMigrations.MIGRATION_120_121.migrate(db)
 
             val columns = columnInfo(db, "messages")
             assertEquals("TEXT|notnull=0|default=NULL", columns["voiceUri"])

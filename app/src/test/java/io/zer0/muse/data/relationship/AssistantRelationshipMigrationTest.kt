@@ -12,6 +12,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import io.zer0.muse.data.session.MuseDbMigrations
 
 /**
  * v2.6.7（P1-1）: 113 → 114 迁移契约测试。
@@ -61,7 +62,7 @@ class AssistantRelationshipMigrationTest {
 
         helper.writableDatabase.use { db ->
             // 直接执行迁移，不经 Room 的实体校验
-            MuseDb.MIGRATION_113_114.migrate(db)
+            MuseDbMigrations.MIGRATION_113_114.migrate(db)
 
             val columns = mutableMapOf<String, String?>()
             db.query("PRAGMA table_info(assistant_relationship)").use { cursor ->
@@ -93,7 +94,7 @@ class AssistantRelationshipMigrationTest {
             assertEquals("0", columns["affinity"])
 
             // 幂等：重复执行不应报错（迁移可能因中断被重跑）
-            MuseDb.MIGRATION_113_114.migrate(db)
+            MuseDbMigrations.MIGRATION_113_114.migrate(db)
         }
 
         helper.close()

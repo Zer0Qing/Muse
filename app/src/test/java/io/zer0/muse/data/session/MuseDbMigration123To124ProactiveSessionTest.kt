@@ -21,7 +21,7 @@ class MuseDbMigration123To124ProactiveSessionTest {
         try {
             db.execSQL("INSERT INTO sessions (id, title) VALUES ('session-1', 'kept')")
 
-            MuseDb.MIGRATION_123_124.migrate(db)
+            MuseDbMigrations.MIGRATION_123_124.migrate(db)
 
             assertTrue(tableNames(db).contains("session_proactive_preferences"))
             db.query("SELECT title FROM sessions WHERE id = 'session-1'").use {
@@ -42,8 +42,8 @@ class MuseDbMigration123To124ProactiveSessionTest {
     fun migrationIsIdempotent() {
         val db = openAt123()
         try {
-            MuseDb.MIGRATION_123_124.migrate(db)
-            MuseDb.MIGRATION_123_124.migrate(db)
+            MuseDbMigrations.MIGRATION_123_124.migrate(db)
+            MuseDbMigrations.MIGRATION_123_124.migrate(db)
             assertTrue(tableNames(db).contains("session_proactive_preferences"))
         } finally {
             db.close()
