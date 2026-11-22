@@ -265,11 +265,16 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
             throw e
         } catch (e: java.io.IOException) {
             Logger.w("ThemeSection", "主题导入读取失败: ${e.message}")
-            MuseToast.show(context.getString(R.string.settings_theme_custom_import_failed))
+            // 读不到文件和 JSON 不合法是两种问题，用户要据此决定换文件还是修内容。
+            MuseToast.show(
+                context.getString(R.string.settings_theme_custom_import_failed_with_reason, "读取失败（${e.message ?: "IO"}）"),
+            )
             return@rememberLauncherForActivityResult
         } catch (e: kotlinx.serialization.SerializationException) {
             Logger.w("ThemeSection", "主题导入解析失败: ${e.message}")
-            MuseToast.show(context.getString(R.string.settings_theme_custom_import_failed))
+            MuseToast.show(
+                context.getString(R.string.settings_theme_custom_import_failed_with_reason, "格式不正确"),
+            )
             return@rememberLauncherForActivityResult
         }
         scope.launch {

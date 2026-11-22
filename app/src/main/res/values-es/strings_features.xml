@@ -862,4 +862,6 @@
     <string name="group_chat_action_delete">Eliminar chat grupal</string>
     <string name="group_chat_action_delete_msg">Eliminar mensaje</string>
     <string name="group_chat_action_create">Crear chat grupal</string>
+    <string name="artifact_save_failed_with_reason">Error al guardar: %1$s</string>
+    <string name="artifact_open_failed_with_reason">No se puede abrir: %1$s</string>
 </resources>

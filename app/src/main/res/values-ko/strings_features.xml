@@ -829,4 +829,6 @@
     <string name="group_chat_action_delete">그룹 채팅 삭제</string>
     <string name="group_chat_action_delete_msg">메시지 삭제</string>
     <string name="group_chat_action_create">그룹 채팅 생성</string>
+    <string name="artifact_save_failed_with_reason">저장 실패: %1$s</string>
+    <string name="artifact_open_failed_with_reason">열 수 없습니다: %1$s</string>
 </resources>

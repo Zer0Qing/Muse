@@ -775,4 +775,6 @@
     <string name="group_chat_action_delete">删除群聊</string>
     <string name="group_chat_action_delete_msg">删除消息</string>
     <string name="group_chat_action_create">创建群聊</string>
+    <string name="artifact_save_failed_with_reason">保存失败：%1$s</string>
+    <string name="artifact_open_failed_with_reason">无法打开：%1$s</string>
 </resources>

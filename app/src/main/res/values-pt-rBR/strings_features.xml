@@ -830,4 +830,6 @@
     <string name="group_chat_action_delete">Excluir chat em grupo</string>
     <string name="group_chat_action_delete_msg">Excluir mensagem</string>
     <string name="group_chat_action_create">Criar chat em grupo</string>
+    <string name="artifact_save_failed_with_reason">Falha ao salvar: %1$s</string>
+    <string name="artifact_open_failed_with_reason">Não é possível abrir: %1$s</string>
 </resources>

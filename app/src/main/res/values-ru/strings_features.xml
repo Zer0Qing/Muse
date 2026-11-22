@@ -879,4 +879,6 @@
     <string name="group_chat_action_delete">Удаление группового чата</string>
     <string name="group_chat_action_delete_msg">Удаление сообщения</string>
     <string name="group_chat_action_create">Создание группового чата</string>
+    <string name="artifact_save_failed_with_reason">Не удалось сохранить: %1$s</string>
+    <string name="artifact_open_failed_with_reason">Не удалось открыть: %1$s</string>
 </resources>

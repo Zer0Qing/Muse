@@ -174,8 +174,10 @@ internal fun openArtifactExternal(context: Context, artifact: ArtifactEntity) {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }.onFailure { e ->
-        Logger.w("ArtifactViewer", "外部打开失败: ${e.message ?: e.javaClass.simpleName}", e)
-        MuseToast.show(context.getString(R.string.artifact_open_failed))
+        val reason = e.message ?: e.javaClass.simpleName
+        Logger.w("ArtifactViewer", "外部打开失败: $reason", e)
+        // 没有可用 App 打开这个格式，和文件本身坏了，处置方式完全不同 —— 要把原因说出来。
+        MuseToast.show(context.getString(R.string.artifact_open_failed_with_reason, reason))
     }
 }
 
@@ -202,6 +204,8 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
     ) { uri ->
         if (uri != null) {
             scope.launch {
+                // 失败原因要带给用户：只报「保存失败」等于什么都没说，用户不知道该换目录还是换格式。
+                var failureReason: String? = null
                 val saved = withContext(Dispatchers.IO) {
                     runCatching {
                         context.contentResolver.openOutputStream(uri)?.use { output ->
@@ -209,11 +213,20 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                         } != null
                     }
                         .onFailure { e ->
-                            Logger.w("ArtifactViewer", "导出产物失败 uri=$uri | 原因: ${e.message ?: e.javaClass.simpleName}", e)
+                            failureReason = e.message ?: e.javaClass.simpleName
+                            Logger.w("ArtifactViewer", "导出产物失败 uri=$uri | 原因: ${failureReason}", e)
                         }
                         .getOrDefault(false)
                 }
-                MuseToast.show(context.getString(if (saved) R.string.artifact_saved else R.string.artifact_save_failed))
+                MuseToast.show(
+                    if (saved) {
+                        context.getString(R.string.artifact_saved)
+                    } else {
+                        // 没有具体原因时不要套模板，否则会出现「保存失败：保存失败」。
+                        failureReason?.let { context.getString(R.string.artifact_save_failed_with_reason, it) }
+                            ?: context.getString(R.string.artifact_save_failed)
+                    },
+                )
             }
         }
     }

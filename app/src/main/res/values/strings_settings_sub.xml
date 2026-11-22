@@ -709,4 +709,5 @@
     <string name="settings_about_memory_limit">内存上限 %1$dMB（%2$s）</string>
     <string name="settings_about_memory_low_heap">低内存设备</string>
     <string name="settings_about_memory_normal_heap">largeHeap 已启用</string>
+    <string name="settings_theme_custom_import_failed_with_reason">导入失败：%1$s</string>
 </resources>

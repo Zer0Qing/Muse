@@ -775,4 +775,6 @@
     <string name="group_chat_action_delete">Delete group chat</string>
     <string name="group_chat_action_delete_msg">Delete message</string>
     <string name="group_chat_action_create">Create group chat</string>
+    <string name="artifact_save_failed_with_reason">Save failed: %1$s</string>
+    <string name="artifact_open_failed_with_reason">Cannot open: %1$s</string>
 </resources>
