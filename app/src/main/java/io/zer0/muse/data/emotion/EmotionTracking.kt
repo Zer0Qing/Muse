@@ -1,7 +1,6 @@
 package io.zer0.muse.data.emotion
 
 import kotlinx.serialization.Serializable
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import io.zer0.muse.ui.theme.MuseDateFormats

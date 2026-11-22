@@ -11,7 +11,6 @@ import android.widget.RemoteViews
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.MainActivity
 import io.zer0.muse.R
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 

@@ -5,7 +5,6 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.data.schedule.ScheduledTaskEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.schedule.ScheduledTaskRunner
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID

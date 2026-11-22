@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import io.zer0.muse.ui.theme.MuseDateFormats
@@ -50,9 +49,7 @@ class LocalAnalyticsTracker(
         // v1.131: SimpleDateFormat 改为 ThreadLocal 缓存,避免每次 todayStr/monthStr 调用都新建。
         // SimpleDateFormat 非线程安全,不能直接提为静态 val;ThreadLocal 保证每线程一份独立实例。
         // 埋点是高频路径(每条消息发送/会话切换都触发),旧实现 GC 压力明显。
-        private val DAY_FMT = ThreadLocal.withInitial { SimpleDateFormat(MuseDateFormats.DATE_ONLY, Locale.getDefault()) }
-        private val MONTH_FMT = ThreadLocal.withInitial { SimpleDateFormat(MuseDateFormats.MONTH_ONLY, Locale.getDefault()) }
-        private val KEY_DAU_TODAY = intPreferencesKey("dau_today")
+                        private val KEY_DAU_TODAY = intPreferencesKey("dau_today")
         private val KEY_MAU_MONTH = intPreferencesKey("mau_month")
         private val KEY_TOTAL_SESSIONS = intPreferencesKey("total_sessions")
         private val KEY_TOTAL_MESSAGES = intPreferencesKey("total_messages")
@@ -200,8 +197,8 @@ class LocalAnalyticsTracker(
         }
     }
 
-    private fun todayStr(): String = DAY_FMT.get()?.format(Date()) ?: ""
-    private fun monthStr(): String = MONTH_FMT.get()?.format(Date()) ?: ""
+    private fun todayStr(): String = MuseDateFormats.dayKey(System.currentTimeMillis())
+    private fun monthStr(): String = MuseDateFormats.monthKey(System.currentTimeMillis())
 }
 
 /** 分析数据快照。 */

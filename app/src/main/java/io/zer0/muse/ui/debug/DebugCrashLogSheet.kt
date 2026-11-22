@@ -55,7 +55,6 @@ import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import io.zer0.muse.ui.settings.SafeModeScreen

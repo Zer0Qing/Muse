@@ -319,19 +319,13 @@ class S3Client(
         val keyRegex = Regex("(?is)<Key>(.*?)</Key>")
         val sizeRegex = Regex("(?is)<Size>(.*?)</Size>")
         val dateRegex = Regex("(?is)<LastModified>(.*?)</LastModified>")
-        val isoFmt = SimpleDateFormat(MuseDateFormats.ISO_8601_MILLIS, Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }
-        val isoFmtNoMs = SimpleDateFormat(MuseDateFormats.ISO_8601, Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }
         for (match in contentsRegex.findAll(xml)) {
             val block = match.groupValues[1]
             val key = keyRegex.find(block)?.groupValues?.get(1)?.trim() ?: continue
             val name = key.substringAfterLast('/')
             val size = sizeRegex.find(block)?.groupValues?.get(1)?.trim()?.toLongOrNull() ?: 0L
             val lastModified = dateRegex.find(block)?.groupValues?.get(1)?.trim()?.let { text ->
-                runCatching { isoFmt.parse(text)?.time }.recoverCatching { isoFmtNoMs.parse(text)?.time }.getOrNull() ?: 0L
+                MuseDateFormats.parseIsoUtc(text) ?: 0L
             } ?: 0L
             result.add(RemoteFile(name = name, path = key, size = size, lastModified = lastModified))
         }

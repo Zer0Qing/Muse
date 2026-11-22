@@ -9,7 +9,6 @@ import androidx.core.content.ContextCompat
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.context.PhoneContext
 import io.zer0.muse.context.PhoneContextDispatcher
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 

@@ -94,6 +94,42 @@ object MuseDateFormats {
     fun format(pattern: String, millis: Long, locale: Locale): String =
         SimpleDateFormat(pattern, locale).format(Date(millis))
 
+
+    // ── 高频路径：ThreadLocal 缓存 ──
+    //
+    // [format] 每次新建实例，适合一次性调用；但日循环里按天/按月取 key 这类
+    // 每秒可能调用多次的场景，新建实例的代价明显。这两档走 ThreadLocal：
+    // 每线程一份独立实例，既避开 SimpleDateFormat 的线程安全问题，又不必重复构造。
+
+    private val dayKeyFormat = ThreadLocal.withInitial { SimpleDateFormat(DATE_ONLY, Locale.getDefault()) }
+    private val monthKeyFormat = ThreadLocal.withInitial { SimpleDateFormat(MONTH_ONLY, Locale.getDefault()) }
+
+    /** 按天取 key，如 "2026-07-11"。ThreadLocal 缓存，适合高频调用。 */
+    fun dayKey(millis: Long): String = dayKeyFormat.get()!!.format(Date(millis))
+
+    /** 按月取 key，如 "2026-07"。ThreadLocal 缓存，适合高频调用。 */
+    fun monthKey(millis: Long): String = monthKeyFormat.get()!!.format(Date(millis))
+
+
+    // ── 解析：把字符串读回毫秒 ──
+    //
+    // 解析用的格式化器必须指定时区，否则同一串 "2026-07-11T06:30:45Z" 会被按本地时区
+    // 解释成不同的时刻。这里的 ISO 两档固定 UTC。
+
+    /** 解析 ISO-8601（带或不带毫秒，末尾 Z 表示 UTC）。解析失败返回 null。 */
+    fun parseIsoUtc(text: String): Long? {
+        val patterns = listOf(ISO_8601_MILLIS, ISO_8601)
+        for (pattern in patterns) {
+            val parsed = runCatching {
+                SimpleDateFormat(pattern, Locale.US).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                }.parse(text)
+            }.getOrNull()
+            if (parsed != null) return parsed.time
+        }
+        return null
+    }
+
     /** 「月-日 时:分」这一档的语义 skeleton,顺序与分隔交给系统按语言决定。 */
     private const val SKELETON_DATE_TIME_SHORT = "MMMdHHmm"
 

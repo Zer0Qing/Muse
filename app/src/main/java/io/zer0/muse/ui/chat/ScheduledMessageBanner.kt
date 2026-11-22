@@ -23,7 +23,6 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 

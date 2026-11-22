@@ -35,7 +35,6 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.theme.MusePaddings
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
