@@ -426,7 +426,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "read_file",
                     name = "读取文件",
-                    description = "读取应用沙盒内的文本文件。路径相对于 filesDir；大于 1MB 的文件自动分段返回，使用 offset_chars/length_chars 继续读取，不丢弃后续内容。",
+                    description = "读取应用沙盒内的文本文件（相对 filesDir）。超 1MB 自动分段，用 offset_chars/length_chars 续读。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -645,7 +645,7 @@ class SkillExecutor(
                     id = "web_search",
                     name = "网页搜索",
                     // v1.0.75 fix (工具审查 01): 删冗余 time_period,补 date_range 使用指引
-                    description = "用配置好的搜索引擎搜索网页。返回标题、URL 和摘要。当用户问到需要最新信息的问题时调用此工具。使用时机: 用户问到需要最新/实时信息的问题(价格、版本、政策、行情、天气等),或你知识不确定时。需要限定时间时传 date_range(如用户说'最近一周',传 past_week);查询里带'今天/最近/最新/本月'等词也会自动推断时间范围。支持 site:域名、filetype:类型、intitle:关键词 操作符,会作为结果过滤生效。用完整的自然语言或关键词串提问即可,不要只给一个单词。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不相关时换关键词重搜,不要编造。",
+                    description = "搜索网页，返回标题、URL 和摘要。定时间时传 date_range(如用户说'最近一周',传 past_week);查询里带'今天/最近/最新/本月'等词也会自动推断时间范围。支持 site:域名、filetype:类型、intitle:关键词 操作符,会作为结果过滤生效。用完整的自然语言或关键词串提问即可,不要只给一个单词。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不相关时换关键词重搜,不要编造。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -687,7 +687,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "web_fetch",
                     name = "网页抓取",
-                    description = "抓取指定 URL 的网页正文并返回纯文本。使用时机: 读取 web_search 返回的 URL 全文,或用户给出明确 URL 时。不要使用: 无 URL 时;页面需要登录/交互时说明无法获取,不要猜测内容。",
+                    description = "抓取指定 URL 的网页正文，返回纯文本。测内容。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -721,7 +721,7 @@ class SkillExecutor(
                     name = "知识库搜索",
                     // v1.0.75 fix (工具审查 01): 明确与 web_search 的边界,
                     // 原"可能与已导入文档相关时优先调用"太模糊,模型先试本地再退搜索浪费轮次。
-                    description = "在用户主动导入的知识库文档中语义搜索(向量检索 + 标题/内容匹配)。仅当用户知识库中可能有答案时使用(如用户导入过资料、问'我之前存的文档里怎么说的')。通用事实、实时信息、网上能查到的问题一律用 web_search,不要先用本工具试探。用户问 muse app 自身功能(如怎么用深度思考/主动消息怎么设置)时,传 include_internal=true 可检索内置功能文档。",
+                    description = "在用户导入的知识库中语义搜索（向量检索 + 标题/内容匹配）。web_search,不要先用本工具试探。用户问 muse app 自身功能(如怎么用深度思考/主动消息怎么设置)时,传 include_internal=true 可检索内置功能文档。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -836,7 +836,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "install_skill",
                     name = "安装 Skill",
-                    description = "生成并安装新的 skill。skill_json 必填 id/name/description/category/implementationKotlin/parametersJson；implementationKotlin 只接受内置实现（read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search）或 \"prompt\"（指令放 prompt 字段，8KB 上限）。字段取值见参数示例。",
+                    description = "生成并安装新的 skill。skill_json 必填 id/name/description/category/implementationKotlin/parametersJson。ntationKotlin 只接受内置实现（read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search）或 \"prompt\"（指令放 prompt 字段，8KB 上限）。字段取值见参数示例。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -998,7 +998,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "delegate_agent",
                     name = "委托子助手",
-                    description = "把任务委托给指定子助手执行,用于多助手协作。传入 assistantId(助手 id)和 task(任务描述),可选 context(上下文)。子助手会用自己的人设和能力独立完成任务并返回结果。",
+                    description = "把任务委托给指定子助手执行。传 assistantId 和 task，可选 context。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1060,7 +1060,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "channel_reply",
                     name = "群聊发言",
-                    description = "在指定群聊中作为指定 agent 发送一条消息。传入 chatId(群聊 id)、assistantId(发言 agent id)和 body(消息正文)。消息会保存到群聊历史中,其他成员和用户可见。",
+                    description = "在指定群聊中作为指定 agent 发言。传 chatId、assistantId 和 body。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1108,7 +1108,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "channel_pass",
                     name = "群聊跳过本轮",
-                    description = "在群聊轮转中跳过本轮发言(不发送消息)。传入 chatId(群聊 id)和 assistantId(agent id)。当 agent 认为当前无需自己发言时调用。",
+                    description = "在群聊轮转中跳过本轮发言。传 chatId 和 assistantId。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1181,7 +1181,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "agent_phone",
                     name = "Agent 私聊",
-                    description = "在群聊中向指定 agent 发起私聊。传入 chatId、targetAssistantId 和 message。私聊仅目标 agent 可见，不参与群聊轮转上下文；调用后立即返回，回复异步到达群聊消息流。",
+                    description = "在群聊中向指定 agent 发起私聊。传 chatId、targetAssistantId 和 message。息流。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1360,7 +1360,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "read_public_file",
                     name = "读取公共文件",
-                    description = "通过 content:// URI 读取公共文件，返回文本内容（上限 1MB）。可读 list_public_files 返回的 URI 或用户分享传入的 URI。仅支持文本类文件。",
+                    description = "通过 content:// URI 读取公共文本文件，上限 1MB。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1448,7 +1448,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "list_public_files",
                     name = "列出公共目录",
-                    description = "列出指定公共目录(Downloads/Documents/Pictures/Music 等)的文件。通过 MediaStore 查询,返回文件名和大小。默认列 Downloads,最多 50 条,按修改时间倒序。",
+                    description = "列出公共目录（Downloads/Documents 等）的文件名与大小，默认 Downloads，最多 50 条。改时间倒序。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1629,7 +1629,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "update_skill",
                     name = "更新 Skill",
-                    description = "更新用户自建 skill 的 name / description / parametersJson。提示词技能可用 prompt 参数替换指令文本。只能改用户自己创建的 skill，内置与插件技能一律拒绝。",
+                    description = "更新用户自建 skill 的 name / description / parametersJson。律拒绝。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1683,7 +1683,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "task_plan",
                     name = "创建任务计划",
-                    description = "面对复杂多步骤任务时,先创建一个结构化计划再逐步执行。传入计划标题和步骤列表(每步含标题和描述)。计划会在用户界面显示为可追踪的检查清单。创建后按顺序执行各步骤,每完成一步调用 update_plan_step 更新状态。",
+                    description = "创建结构化任务计划。传标题和步骤列表（每步含标题和描述）。_step 更新状态。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1741,7 +1741,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "update_plan_step",
                     name = "更新计划步骤",
-                    description = "更新任务计划中某个步骤的状态。传入 planId 和 stepIndex(从0开始),以及新状态(done/failed/in_progress/skipped)和可选的结果摘要。",
+                    description = "更新计划中某步骤的状态。传 planId、stepIndex 和新状态。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1796,7 +1796,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "list_stickers",
                     name = "列出表情包",
-                    description = "列出表情包库中可用的表情包(可按分类筛选)。仅当用户已上传表情包时可用。发送前先判断对话情绪:用户生气/难过时优先筛选安慰、可爱、治愈类分类;开心/兴奋时优先筛选庆祝、搞笑类分类。",
+                    description = "列出表情包库中的可用表情包，可按分类筛选。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1821,7 +1821,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "send_sticker",
                     name = "发送表情包",
-                    description = "向用户发送一个表情包。先用 list_stickers 查看可用表情包,再用此工具发送。选图原则:匹配对话情绪与语境,生气/难过时发安抚治愈类,开心时发庆祝搞笑类,避免在严肃话题中发过于沙雕的表情包。",
+                    description = "向用户发送一个表情包。先用 list_stickers 查看可用项。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1847,7 +1847,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "generate_image",
                     name = "生成图片",
-                    description = "根据文字描述生成图片。调用 AI 绘图模型(需配置 OpenAI 兼容绘图供应商)。返回图片 URL。使用时机: 用户要求生成图片/海报/封面时。不要使用: 未配置绘图模型时(会失败,应告知用户去设置配置);prompt 尽量用英文描述主体/风格/构图。",
+                    description = "根据文字描述生成图片，返回图片 URL。需配置 OpenAI 兼容绘图供应商。配置);prompt 尽量用英文描述主体/风格/构图。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
