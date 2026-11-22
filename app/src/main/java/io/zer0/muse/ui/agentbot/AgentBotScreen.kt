@@ -1,14 +1,17 @@
 package io.zer0.muse.ui.agentbot
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import kotlinx.coroutines.delay
@@ -30,6 +34,7 @@ import io.zer0.muse.data.agentbot.BotTaskStatus
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.MusePageScaffold
+import io.zer0.muse.ui.theme.MuseBubbleStyles
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.chat.ChatScreen
 
@@ -326,13 +331,45 @@ private fun CandidateSection(
     )
 }
 
+/**
+ * 一行对话。
+ *
+ * 用户与 Bot 必须一眼分得开：之前两边都是同一行左对齐的纯文本，
+ * 用户看不出哪句是自己说的。现在按发送方分侧、配色与气泡形状都复用
+ * [MuseBubbleStyles]（和聊天页同一套），不额外发明一套视觉。
+ */
 @Composable
 private fun TranscriptRow(message: AgentBotUiState.PublishedMessage) {
-    Text(
-        text = message.text,
-        style = MaterialTheme.typography.bodyMedium,
+    val isUser = message.role == AgentBotUiState.Role.USER
+    Row(
         modifier = Modifier.fillMaxWidth(),
-    )
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+    ) {
+        Surface(
+            color = if (isUser) {
+                MuseBubbleStyles.userSurfaceColor()
+            } else {
+                MuseBubbleStyles.assistantSurfaceColor()
+            },
+            contentColor = if (isUser) {
+                MuseBubbleStyles.userContentColor()
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            shape = if (isUser) MuseBubbleStyles.userBubbleShape() else MuseBubbleStyles.assistantBubbleShape(),
+            border = BorderStroke(
+                1.dp,
+                if (isUser) MuseBubbleStyles.userBorderColor() else MuseBubbleStyles.assistantBorderColor(),
+            ),
+            modifier = Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth()),
+        ) {
+            Text(
+                text = message.text,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(MusePaddings.bubbleInner),
+            )
+        }
+    }
 }
 
 /** 状态 → 用户能懂的词。内部状态名不出现在界面上。 */
