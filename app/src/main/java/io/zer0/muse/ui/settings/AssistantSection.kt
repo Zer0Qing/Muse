@@ -53,7 +53,6 @@ internal fun AssistantEntriesSection(
         AssistantRow(
             icon = meta.first,
             title = stringResource(meta.second),
-            subtitle = stringResource(meta.third),
             onClick = onClick,
         )
     }
@@ -72,11 +71,13 @@ internal fun AssistantEntriesSection(
                 },
                 headlineContent = { Text(row.title) },
                 supportingContent = {
-                    Text(
-                        text = row.subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    row.subtitle?.let { sub ->
+                        Text(
+                            text = sub,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 },
                 trailingContent = { ChevronRight() },
             )
@@ -87,6 +88,6 @@ internal fun AssistantEntriesSection(
 private data class AssistantRow(
     val icon: ImageVector,
     val title: String,
-    val subtitle: String,
+    val subtitle: String? = null,
     val onClick: () -> Unit,
 )

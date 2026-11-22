@@ -92,7 +92,6 @@ internal fun CustomSearchEnginesSection(webSearchConfig: WebSearchConfig, settin
         SettingsItemRow(
             icon = MuseIcons.plus,
             title = stringResource(R.string.search_custom_engine_add),
-            subtitle = "",
             onClick = { editing = newEngine() },
         )
     }

@@ -82,7 +82,6 @@ fun RelationshipSettingsPage(onBack: () -> Unit) {
                     SettingsItemRow(
                         icon = MuseIcons.user,
                         title = assistant.name,
-                        subtitle = relationshipSubtitle(byId[assistant.id]),
                         onClick = {
                             editing = byId[assistant.id]
                                 ?: AssistantRelationshipEntity(assistantId = assistant.id)
