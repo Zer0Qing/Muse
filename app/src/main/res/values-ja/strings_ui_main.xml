@@ -22,7 +22,6 @@
     <string name="assistant_detail_avatar_image_set">イメージアバターセット</string>
     <string name="assistant_detail_avatar_emoji">絵文字アバターの使用</string>
     <string name="assistant_detail_avatar_initial">名前のイニシャルを使用する</string>
-    <string name="assistant_detail_name">名前</string>
     <string name="assistant_detail_avatar_emoji_label">アバター絵文字 (1 ～ 2 文字、オプション)</string>
     <string name="assistant_detail_global_default">グローバルデフォルト</string>
     <string name="assistant_detail_exclusive_model">エクスクルーシブモデル</string>
@@ -61,7 +60,6 @@
     <string name="assistant_detail_no_options">利用可能なオプションはありません</string>
     <string name="assistant_detail_done">終わり</string>
     <string name="assistant_detail_select_all">すべて選択</string>
-    <string name="assistant_detail_clear_all">すべてクリア</string>
     <string name="assistant_detail_selected_count">%1$d が選択されました</string>
     <string name="assistant_detail_enable_memory">メモリを有効にする</string>
     <string name="assistant_detail_enable_memory_desc">オフの場合、このアシスタントは長期記憶を注入しません</string>
@@ -245,7 +243,6 @@
     <string name="channel_empty">チャネルは未設定です。上のボタンから追加してください。</string>
     <string name="channel_save">保存</string>
     <string name="channel_field_platform">プラットフォーム</string>
-    <string name="channel_field_name">名前</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
     <string name="channel_webhook_receive">プラットフォーム Webhook を有効化</string>
@@ -343,7 +340,6 @@
     <string name="skill_bulk_summary">カスタムスキル %1$d 件、有効 %2$d 件</string>
     <string name="skill_bulk_disable_all">すべて無効化</string>
     <string name="skill_bulk_enable_all">すべて有効化</string>
-    <string name="skill_disabled">無効</string>
     <string name="skill_built_in">内蔵</string>
     <string name="skill_built_in_seed">内蔵（シード）</string>
     <string name="skill_custom">カスタム</string>
@@ -570,7 +566,6 @@
     <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
-    <string name="desktop_context_copy">コピー</string>
     <string name="desktop_context_regenerate">再生する</string>
     <string name="desktop_context_delete">消去</string>
     <string name="desktop_context_share">共有</string>

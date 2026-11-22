@@ -153,7 +153,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">Регенерировать</string>
-    <string name="chat_translate_action">Переводить</string>
     <string name="chat_translate_to_cd">Перевести на %1$s</string>
     <string name="chat_delegate_action">Делегировать помощнику</string>
     <string name="chat_tts_stop">Хватит читать</string>
@@ -252,7 +251,6 @@
     <string name="command_palette_full_search">Полный поиск</string>
     <string name="command_palette_no_results">Нет совпадений</string>
     <string name="command_palette_open_session">Открыть беседу</string>
-    <string name="command_palette_clear">Очистить</string>
     <string name="command_palette_empty_hint">Введите запрос или / для команд</string>
     <string name="chat_recording_start_failed">Не удалось начать запись.</string>
     <string name="chat_recognizing_cd">Признание</string>
@@ -498,7 +496,6 @@
     <string name="chat_pending_send_busy">Создаётся ответ. Остановите текущую генерацию, прежде чем отправлять сообщения из очереди.</string>
     <string name="chat_quickbar_hint_off">Панель быстрых инструментов свёрнута</string>
     <string name="chat_quickbar_hint_on">Панель быстрых инструментов развёрнута</string>
-    <string name="chat_tool_copy">Копировать</string>
     <string name="chat_tool_hidden_records">Скрыто более ранних записей: %1$d</string>
     <string name="chat_tool_latest">Последнее: %1$s</string>
     <string name="chat_tool_latest_empty">Последнее: пустой результат</string>
@@ -521,7 +518,6 @@
     <string name="chat_context_divider_title_count">Контекст сжат · %1$d сообщений в сводке</string>
     <string name="chat_context_divider_hint_collapsed">Нажмите, чтобы показать исходные сообщения</string>
     <string name="chat_context_divider_hint_expanded">Нажмите, чтобы скрыть исходные сообщения</string>
-    <string name="chat_translation_block_title">Перевод</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">Выполнение инструментов приостановлено, поэтому они не запускаются.</string>
     <string name="chat_tool_paused_banner_action">Настройки</string>

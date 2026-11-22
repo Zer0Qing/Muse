@@ -178,7 +178,7 @@ fun DebugScreen(onBack: () -> Unit) {
             onDismissRequest = { showClearDialog = false },
             title = stringResource(R.string.debug_clear_logs_title),
             content = { Text(stringResource(R.string.debug_clear_logs_confirm, DebugLogStore.size())) },
-            confirmText = stringResource(R.string.debug_action_clear),
+            confirmText = stringResource(R.string.common_clear),
             destructive = true, // ST-02: 清空日志为不可撤销操作,确认按钮用 error 红色
             onConfirm = {
                 DebugLogStore.clear()
@@ -357,7 +357,7 @@ private fun ScaffoldLayout(
                     MuseTactileButton(
                         icon = MuseIcons.copy,
                         onClick = onCopy,
-                        contentDescription = stringResource(R.string.debug_cd_copy),
+                        contentDescription = stringResource(R.string.common_copy),
                     )
                     // 导出按钮
                     MuseTactileButton(
@@ -369,7 +369,7 @@ private fun ScaffoldLayout(
                     MuseTactileButton(
                         icon = MuseIcons.trash,
                         onClick = onClear,
-                        contentDescription = stringResource(R.string.debug_cd_clear),
+                        contentDescription = stringResource(R.string.common_clear),
                     )
                 },
             )

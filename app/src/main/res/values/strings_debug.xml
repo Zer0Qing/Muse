@@ -4,7 +4,6 @@
     <!-- 清空确认弹窗 -->
     <string name="debug_clear_logs_title">清空调试日志</string>
     <string name="debug_clear_logs_confirm">确认清空全部 %1$d 条日志？此操作不可撤销。</string>
-    <string name="debug_action_clear">清空</string>
     <string name="debug_cleared_toast">已清空</string>
 
     <!-- 复制日志 -->
@@ -23,9 +22,7 @@
     <string name="debug_cd_crash_logs">崩溃日志</string>
     <string name="debug_cd_analytics">本地数据分析</string>
     <string name="debug_cd_db_integrity">数据库完整性</string>
-    <string name="debug_cd_clear">清空</string>
     <string name="debug_cd_export">导出</string>
-    <string name="debug_cd_copy">复制</string>
 
     <!-- 日志计数 -->
     <string name="debug_log_count">共 %1$d 条</string>

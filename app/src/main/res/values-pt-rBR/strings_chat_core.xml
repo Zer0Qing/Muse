@@ -150,7 +150,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">Regenerado</string>
-    <string name="chat_translate_action">Traduzir</string>
     <string name="chat_translate_to_cd">Traduzir para %1$s</string>
     <string name="chat_delegate_action">Delegar ao Assistente</string>
     <string name="chat_tts_stop">Pare de ler</string>
@@ -249,7 +248,6 @@
     <string name="command_palette_full_search">Busca completa</string>
     <string name="command_palette_no_results">Nenhum resultado</string>
     <string name="command_palette_open_session">Abrir conversa</string>
-    <string name="command_palette_clear">Limpar</string>
     <string name="command_palette_empty_hint">Digite para buscar, ou / para comandos</string>
     <string name="chat_recording_start_failed">Falha ao iniciar a gravação.</string>
     <string name="chat_recognizing_cd">Reconhecendo</string>
@@ -495,7 +493,6 @@
     <string name="chat_pending_send_busy">Uma resposta está sendo gerada. Pare a geração atual antes de enviar mensagens na fila.</string>
     <string name="chat_quickbar_hint_off">A barra de ferramentas rápida foi recolhida</string>
     <string name="chat_quickbar_hint_on">A barra de ferramentas rápida foi expandida</string>
-    <string name="chat_tool_copy">Copiar</string>
     <string name="chat_tool_hidden_records">%1$d registros anteriores ocultos</string>
     <string name="chat_tool_latest">Mais recente: %1$s</string>
     <string name="chat_tool_latest_empty">Mais recente: resultado vazio</string>
@@ -518,7 +515,6 @@
     <string name="chat_context_divider_title_count">Contexto compactado · %1$d mensagens resumidas</string>
     <string name="chat_context_divider_hint_collapsed">Toque para ver as mensagens originais</string>
     <string name="chat_context_divider_hint_expanded">Toque para ocultar as mensagens originais</string>
-    <string name="chat_translation_block_title">Tradução</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">A execução de ferramentas está pausada, então não serão executadas.</string>
     <string name="chat_tool_paused_banner_action">Configurações</string>

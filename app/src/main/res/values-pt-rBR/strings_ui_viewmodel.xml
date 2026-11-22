@@ -10,12 +10,10 @@
     <!-- Card -->
     <string name="quick_msg_new_default_name">Nova mensagem rápida</string>
     <string name="quick_msg_unnamed">(Sem nome)</string>
-    <string name="quick_msg_disabled">Desabilitado</string>
     <string name="quick_msg_scope_global">Global</string>
     <string name="quick_msg_scope_assistant">Assistente: %1$s</string>
     <string name="quick_msg_scope_label">Escopo: %1$s</string>
     <string name="quick_msg_enabled_cd">Habilitado</string>
-    <string name="quick_msg_disabled_cd">Desabilitado</string>
     <string name="quick_msg_edit_cd">Editar</string>
     <string name="quick_msg_delete_cd">Excluir</string>
     <!-- Edit page -->
@@ -26,7 +24,6 @@
     <string name="quick_msg_edit_title">Editar mensagem rápida</string>
     <string name="quick_msg_save">Salvar</string>
     <string name="quick_msg_section_basic">Básico</string>
-    <string name="quick_msg_field_name">Nome</string>
     <string name="quick_msg_section_content">Conteúdo do modelo</string>
     <string name="quick_msg_field_content">Conteúdo (suporta variáveis ​​{{input}} / {{clipboard}} / {{date}})</string>
     <string name="quick_msg_section_scope">Escopo</string>
@@ -48,10 +45,8 @@
     <!-- Card -->
     <string name="lorebook_new_default_name">Nova entrada</string>
     <string name="lorebook_unnamed">(Sem nome)</string>
-    <string name="lorebook_disabled">Desabilitado</string>
     <string name="lorebook_keywords_label">Palavras-chave: %1$s</string>
     <string name="lorebook_enabled_cd">Habilitado</string>
-    <string name="lorebook_disabled_cd">Desabilitado</string>
     <string name="lorebook_edit_cd">Editar</string>
     <string name="lorebook_delete_cd">Excluir</string>
     <!-- Edit page -->
@@ -62,7 +57,6 @@
     <string name="lorebook_edit_title">Editar livro de história</string>
     <string name="lorebook_save">Salvar</string>
     <string name="lorebook_section_basic">Básico</string>
-    <string name="lorebook_field_name">Nome</string>
     <string name="lorebook_field_keywords">Palavras-chave de gatilho (separadas por vírgula)</string>
     <string name="lorebook_field_keywords_placeholder">por exemplo</string>
     <string name="lorebook_section_content">Conteúdo de injeção</string>
@@ -90,10 +84,8 @@
     <!-- Card -->
     <string name="prompt_injection_new_default_name">Nova injeção</string>
     <string name="prompt_injection_unnamed">(Sem nome)</string>
-    <string name="prompt_injection_disabled">Desabilitado</string>
     <string name="prompt_injection_mode_label">Modo: %1$s</string>
     <string name="prompt_injection_enabled_cd">Habilitado</string>
-    <string name="prompt_injection_disabled_cd">Desabilitado</string>
     <string name="prompt_injection_edit_cd">Editar</string>
     <string name="prompt_injection_delete_cd">Excluir</string>
     <!-- Edit page -->
@@ -104,7 +96,6 @@
     <string name="prompt_injection_edit_title">Editar PromptInjection</string>
     <string name="prompt_injection_save">Salvar</string>
     <string name="prompt_injection_section_basic">Básico</string>
-    <string name="prompt_injection_field_name">Nome</string>
     <string name="prompt_injection_field_mode">Modo</string>
     <string name="prompt_injection_field_display_name">Nome de exibição (mostrado na UI; deixe em branco para usar o modo padrão)</string>
     <string name="prompt_injection_section_content">Conteúdo de injeção</string>
@@ -175,7 +166,6 @@
     <string name="assistant_toast_sillytavern_export_failed">Falha na exportação do SillyTavern: %1$s</string>
     <string name="assistant_disable">Desativar</string>
     <string name="assistant_enable">Ativar</string>
-    <string name="assistant_diff_name">Nome</string>
     <string name="assistant_diff_summary">Resumo</string>
     <string name="assistant_diff_system_prompt">Prompt do sistema</string>
     <string name="assistant_diff_persona_definition">Persona</string>

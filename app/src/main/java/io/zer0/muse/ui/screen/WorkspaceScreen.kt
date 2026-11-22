@@ -572,7 +572,7 @@ fun WorkspaceScreen(
                                     copyToClipboard(context, viewingContent ?: "")
                                     MuseToast.show(context.getString(R.string.quick_notes_copied))
                                 },
-                                contentDescription = stringResource(R.string.action_copy),
+                                contentDescription = stringResource(R.string.common_copy),
                             )
                         }
                         // 长文件内容靠 MuseDialog 外层 verticalScroll 滚动展示

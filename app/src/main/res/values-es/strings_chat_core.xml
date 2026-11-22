@@ -150,7 +150,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">Regenerar</string>
-    <string name="chat_translate_action">Traducir</string>
     <string name="chat_translate_to_cd">Traducir a %1$s</string>
     <string name="chat_delegate_action">Delegar al asistente</string>
     <string name="chat_tts_stop">Dejar de leer</string>
@@ -249,7 +248,6 @@
     <string name="command_palette_full_search">Búsqueda completa</string>
     <string name="command_palette_no_results">Sin resultados</string>
     <string name="command_palette_open_session">Abrir conversación</string>
-    <string name="command_palette_clear">Limpiar</string>
     <string name="command_palette_empty_hint">Escribe para buscar, o / para comandos</string>
     <string name="chat_recording_start_failed">No se pudo iniciar la grabación. Comprueba los permisos o la configuración del modelo.</string>
     <string name="chat_recognizing_cd">Reconociendo</string>
@@ -495,7 +493,6 @@
     <string name="chat_pending_send_busy">Se está generando una respuesta. Detén la generación actual antes de enviar mensajes en cola.</string>
     <string name="chat_quickbar_hint_off">La barra de herramientas rápida está contraída</string>
     <string name="chat_quickbar_hint_on">La barra de herramientas rápida está expandida</string>
-    <string name="chat_tool_copy">Copiar</string>
     <string name="chat_tool_hidden_records">%1$d registros anteriores ocultos</string>
     <string name="chat_tool_latest">Última: %1$s</string>
     <string name="chat_tool_latest_empty">Última: resultado vacío</string>
@@ -518,7 +515,6 @@
     <string name="chat_context_divider_title_count">Contexto comprimido · %1$d mensajes resumidos</string>
     <string name="chat_context_divider_hint_collapsed">Toca para ver los mensajes originales</string>
     <string name="chat_context_divider_hint_expanded">Toca para ocultar los mensajes originales</string>
-    <string name="chat_translation_block_title">Traducción</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">La ejecución de herramientas está en pausa, así que no se ejecutarán.</string>
     <string name="chat_tool_paused_banner_action">Ajustes</string>

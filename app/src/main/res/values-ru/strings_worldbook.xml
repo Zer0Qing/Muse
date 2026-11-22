@@ -12,9 +12,7 @@
     <string name="worldbook_unsaved_content">У вас есть несохраненные изменения.</string>
     <string name="worldbook_discard">Отказаться</string>
     <string name="worldbook_unnamed">Безымянный</string>
-    <string name="worldbook_disabled">Неполноценный</string>
     <string name="worldbook_enabled_cd">Включено</string>
-    <string name="worldbook_disabled_cd">Неполноценный</string>
     <string name="worldbook_edit_cd">Редактировать</string>
     <string name="worldbook_delete_cd">Удалить</string>
     <string name="worldbook_delete_title">Удалить Всемирную книгу</string>
@@ -34,7 +32,6 @@
     <string name="worldbook_section_behavior">Соответствие</string>
 
     <!-- Fields -->
-    <string name="worldbook_field_name">Имя</string>
     <string name="worldbook_field_keywords">Ключевые слова</string>
     <string name="worldbook_field_keywords_placeholder">Разделяйте несколько ключевых слов запятыми</string>
     <string name="worldbook_field_content">Содержание</string>

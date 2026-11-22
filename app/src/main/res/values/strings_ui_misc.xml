@@ -173,7 +173,6 @@
     <!-- ===== Launcher 长按快捷方式(shortcuts.xml 引用) ===== -->
     <string name="shortcut_new_chat_short">新对话</string>
     <string name="shortcut_new_chat_long">开始新对话</string>
-    <string name="shortcut_translate_short">翻译</string>
     <string name="shortcut_translate_long">打开翻译</string>
     <string name="shortcut_voice_input_short">语音</string>
     <string name="shortcut_voice_input_long">语音输入</string>
@@ -249,4 +248,8 @@
     <string name="agent_bot_error_tool_blind">这一轮没能派工：模型没有使用工具，可能是不支持工具调用。换个供应商试试，或直接告诉我怎么做。</string>
     <string name="common_save">保存</string>
     <string name="common_edit">编辑</string>
+    <string name="common_name">名称</string>
+    <string name="common_copy">复制</string>
+    <string name="common_translate">翻译</string>
+    <string name="common_clear">清空</string>
 </resources>

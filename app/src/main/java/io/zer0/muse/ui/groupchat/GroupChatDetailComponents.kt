@@ -832,7 +832,7 @@ internal fun GroupSummaryCard(
         // 落地动作行
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MuseCapsuleButton(
-                text = stringResource(R.string.groupchat_summary_copy),
+                text = stringResource(R.string.common_copy),
                 onClick = onCopy,
                 variant = IosCapsuleButtonVariant.Text,
             )

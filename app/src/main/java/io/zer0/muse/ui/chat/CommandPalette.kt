@@ -345,7 +345,7 @@ private fun PaletteSearchField(
             MuseTactileButton(
                 icon = MuseIcons.x,
                 onClick = onClear,
-                contentDescription = stringResource(R.string.command_palette_clear),
+                contentDescription = stringResource(R.string.common_clear),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 iconSize = MuseIconSizes.iconSmall,
             )

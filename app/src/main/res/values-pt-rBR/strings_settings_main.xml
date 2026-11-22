@@ -12,7 +12,6 @@
     <string name="settings_common_collapse">Colapso</string>
     <string name="settings_common_advanced">Avançado</string>
     <string name="settings_state_enabled">Habilitado</string>
-    <string name="settings_state_disabled">Desabilitado</string>
 
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Lista de provedores</string>
@@ -130,7 +129,6 @@
     <string name="settings_provider_select_models">Selecione modelos para adicionar</string>
     <string name="settings_provider_models_count">%1$d modelos · contexto detectado automaticamente</string>
     <string name="settings_provider_search_models">ID do modelo de pesquisa</string>
-    <string name="settings_provider_clear">Claro</string>
     <string name="settings_provider_select_all">Selecionar tudo</string>
     <string name="settings_provider_model_list">Lista de modelos</string>
     <string name="settings_provider_selected">Selecionado</string>
@@ -393,7 +391,6 @@
 
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">Limpar tudo</string>
-    <string name="settings_common_clear">Limpar</string>
     <string name="settings_chat_background_section">Aparência</string>
     <string name="settings_chat_background_title">Fundo do chat</string>
     <string name="settings_chat_background_subtitle">Personalize o fundo do chat / Agent / grupo</string>

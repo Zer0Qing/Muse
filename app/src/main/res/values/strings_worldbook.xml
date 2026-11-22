@@ -14,9 +14,7 @@
     <string name="worldbook_unsaved_content">当前编辑的内容尚未保存，确定要丢弃吗？</string>
     <string name="worldbook_discard">丢弃</string>
     <string name="worldbook_unnamed">未命名</string>
-    <string name="worldbook_disabled">已禁用</string>
     <string name="worldbook_enabled_cd">已启用</string>
-    <string name="worldbook_disabled_cd">已禁用</string>
     <string name="worldbook_delete_title">删除世界书</string>
     <string name="worldbook_empty_title">暂无世界书条目</string>
     <string name="worldbook_keywords_label">关键词： %1$s</string>
@@ -34,7 +32,6 @@
     <string name="worldbook_section_behavior">匹配行为</string>
 
     <!-- Fields -->
-    <string name="worldbook_field_name">名称</string>
     <string name="worldbook_field_keywords">关键词</string>
     <string name="worldbook_field_keywords_placeholder">多个关键词用英文逗号分隔</string>
     <string name="worldbook_field_content">注入内容</string>

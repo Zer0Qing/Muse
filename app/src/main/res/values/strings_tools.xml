@@ -147,7 +147,6 @@
     <string name="tool_summary_subagent_task">启动了子任务</string>
     <string name="tool_summary_take_photo">拍了照片</string>
     <string name="tool_summary_todo_write">更新了待办</string>
-    <string name="tool_summary_translate">翻译</string>
     <string name="tool_summary_unpin_memory">取消置顶记忆</string>
     <string name="tool_summary_web_search">搜索了网页</string>
     <string name="tool_summary_workspace_write">写入了工作区</string>
@@ -208,7 +207,6 @@
     <string name="tool_label_show_card">展示卡片</string>
     <string name="tool_label_speak_text">语音朗读</string>
     <string name="tool_label_subagent_task">子任务</string>
-    <string name="tool_label_translate">翻译</string>
     <string name="tool_label_web_search">网页搜索</string>
     <string name="tool_label_write_file">写入文件</string>
     <string name="tool_label_workspace_write">工作区写入</string>

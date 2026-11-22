@@ -57,7 +57,6 @@
     <string name="action_close">近い</string>
     <string name="action_more">もっと</string>
     <string name="action_send">送信</string>
-    <string name="action_copy">コピー</string>
     <string name="action_share">共有</string>
     <string name="action_expand">拡大する</string>
     <string name="action_collapse">崩壊</string>

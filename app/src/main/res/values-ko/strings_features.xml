@@ -6,7 +6,6 @@
     <string name="groupchat_empty_hint">그룹 채팅을 시작하려면 첫 번째 메시지를 보내세요.</string>
     <string name="groupchat_my_message">내 메시지</string>
     <string name="groupchat_copied">복사됨</string>
-    <string name="groupchat_copy">복사</string>
     <string name="groupchat_delete">삭제</string>
     <string name="groupchat_cancel">취소</string>
     <string name="groupchat_delete_message_title">메시지 삭제</string>
@@ -192,7 +191,6 @@
     <string name="quick_notes_empty_subtitle">당신의 첫 생각이 여기에 나타납니다</string>
     <string name="quick_notes_empty_search_title">일치하는 메모 없음</string>
     <string name="quick_notes_empty_search_subtitle">다른 키워드를 사용해 보세요</string>
-    <string name="quick_notes_copy">복사</string>
     <string name="quick_notes_copied">클립보드에 복사됨</string>
     <string name="quick_notes_send_to_chat">새 채팅으로 보내기</string>
     <string name="quick_notes_more">더</string>
@@ -225,7 +223,6 @@
     <string name="knowledge_sort">종류</string>
     <string name="knowledge_import">수입</string>
     <string name="knowledge_search_placeholder">제목이나 내용 검색…</string>
-    <string name="knowledge_clear">분명한</string>
     <string name="knowledge_no_match_title">일치하는 문서가 없습니다.</string>
     <string name="knowledge_empty_title">기술 자료가 비어 있습니다.</string>
     <string name="knowledge_no_match_subtitle">다른 키워드를 사용해 보세요</string>
@@ -390,7 +387,6 @@
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">제목 없음</string>
     <string name="artifact_close">닫다</string>
-    <string name="artifact_copy">복사</string>
     <string name="artifact_type_code">코드</string>
     <string name="artifact_type_image">이미지</string>
     <string name="artifact_type_html">웹 페이지</string>
@@ -489,7 +485,6 @@
     <string name="groupchat_bg_cd">Chat background</string>
     <string name="groupchat_clear_memory">Clear group memory</string>
     <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
-    <string name="groupchat_clear_memory_btn">Clear</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">아카이브</string>

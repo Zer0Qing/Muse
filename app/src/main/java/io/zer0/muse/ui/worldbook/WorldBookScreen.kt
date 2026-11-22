@@ -212,9 +212,9 @@ fun WorldBookScreen(onBack: () -> Unit, viewModel: WorldBookViewModel = koinView
 @Composable
 private fun WorldBookCard(entry: WorldBookEntryEntity, onEdit: () -> Unit, onDelete: () -> Unit, onToggleEnabled: () -> Unit) {
     val unnamedText = stringResource(R.string.worldbook_unnamed)
-    val disabledText = stringResource(R.string.worldbook_disabled)
+    val disabledText = stringResource(R.string.common_state_disabled)
     val enabledStateText = stringResource(R.string.worldbook_enabled_cd)
-    val disabledStateText = stringResource(R.string.worldbook_disabled_cd)
+    val disabledStateText = stringResource(R.string.common_state_disabled)
     val editCd = stringResource(R.string.common_edit)
     val deleteCd = stringResource(R.string.common_delete)
     val alwaysActiveText = stringResource(R.string.worldbook_badge_always_active)
@@ -458,7 +458,7 @@ private fun WorldBookEditPage(initial: WorldBookEntryEntity, isNew: Boolean, onB
             MuseTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.worldbook_field_name)) },
+                label = { Text(stringResource(R.string.common_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

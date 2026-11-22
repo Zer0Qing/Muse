@@ -10,12 +10,10 @@
     <!-- Card -->
     <string name="quick_msg_new_default_name">New Quick Message</string>
     <string name="quick_msg_unnamed">(Unnamed)</string>
-    <string name="quick_msg_disabled">Disabled</string>
     <string name="quick_msg_scope_global">Global</string>
     <string name="quick_msg_scope_assistant">Assistant: %1$s</string>
     <string name="quick_msg_scope_label">Scope: %1$s</string>
     <string name="quick_msg_enabled_cd">Enabled</string>
-    <string name="quick_msg_disabled_cd">Disabled</string>
     <string name="quick_msg_edit_cd">Edit</string>
     <string name="quick_msg_delete_cd">Delete</string>
     <!-- Edit page -->
@@ -26,7 +24,6 @@
     <string name="quick_msg_edit_title">Edit Quick Message</string>
     <string name="quick_msg_save">Save</string>
     <string name="quick_msg_section_basic">Basic</string>
-    <string name="quick_msg_field_name">Name</string>
     <string name="quick_msg_section_content">Template Content</string>
     <string name="quick_msg_field_content">Content (supports {{input}} / {{clipboard}} / {{date}} variables)</string>
     <string name="quick_msg_section_scope">Scope</string>
@@ -48,10 +45,8 @@
     <!-- Card -->
     <string name="lorebook_new_default_name">New Entry</string>
     <string name="lorebook_unnamed">(Unnamed)</string>
-    <string name="lorebook_disabled">Disabled</string>
     <string name="lorebook_keywords_label">Keywords: %1$s</string>
     <string name="lorebook_enabled_cd">Enabled</string>
-    <string name="lorebook_disabled_cd">Disabled</string>
     <string name="lorebook_edit_cd">Edit</string>
     <string name="lorebook_delete_cd">Delete</string>
     <!-- Edit page -->
@@ -62,7 +57,6 @@
     <string name="lorebook_edit_title">Edit Lorebook</string>
     <string name="lorebook_save">Save</string>
     <string name="lorebook_section_basic">Basic</string>
-    <string name="lorebook_field_name">Name</string>
     <string name="lorebook_field_keywords">Trigger keywords (comma-separated)</string>
     <string name="lorebook_field_keywords_placeholder">e.g. magic, spell, incantation</string>
     <string name="lorebook_section_content">Injection Content</string>
@@ -90,10 +84,8 @@
     <!-- Card -->
     <string name="prompt_injection_new_default_name">New Injection</string>
     <string name="prompt_injection_unnamed">(Unnamed)</string>
-    <string name="prompt_injection_disabled">Disabled</string>
     <string name="prompt_injection_mode_label">Mode: %1$s</string>
     <string name="prompt_injection_enabled_cd">Enabled</string>
-    <string name="prompt_injection_disabled_cd">Disabled</string>
     <string name="prompt_injection_edit_cd">Edit</string>
     <string name="prompt_injection_delete_cd">Delete</string>
     <!-- Edit page -->
@@ -104,7 +96,6 @@
     <string name="prompt_injection_edit_title">Edit PromptInjection</string>
     <string name="prompt_injection_save">Save</string>
     <string name="prompt_injection_section_basic">Basic</string>
-    <string name="prompt_injection_field_name">Name</string>
     <string name="prompt_injection_field_mode">Mode</string>
     <string name="prompt_injection_field_display_name">Display name (shown in UI; leave blank to use the mode default)</string>
     <string name="prompt_injection_section_content">Injection Content</string>
@@ -175,7 +166,6 @@
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern export failed: %1$s</string>
     <string name="assistant_disable">Disable</string>
     <string name="assistant_enable">Enable</string>
-    <string name="assistant_diff_name">Name</string>
     <string name="assistant_diff_summary">Summary</string>
     <string name="assistant_diff_system_prompt">System prompt</string>
     <string name="assistant_diff_persona_definition">Persona</string>

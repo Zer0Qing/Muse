@@ -126,11 +126,9 @@
     <string name="prompt_template_manager_move_up">Subir</string>
     <string name="prompt_template_manager_move_down">Bajar</string>
     <string name="prompt_template_manager_edit">Editar</string>
-    <string name="prompt_template_manager_copy">Duplicar</string>
     <string name="prompt_template_manager_delete">Eliminar</string>
     <string name="prompt_template_manager_delete_confirm">¿Eliminar la plantilla «%1$s»?</string>
     <string name="prompt_template_manager_add">Nueva plantilla</string>
-    <string name="prompt_template_manager_name">Nombre</string>
     <string name="prompt_template_manager_category">Categoría</string>
     <string name="prompt_template_manager_content">Contenido</string>
     <string name="prompt_template_manage_entry">Administrar plantillas</string>
@@ -313,7 +311,6 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">Administrar bases de conocimiento</string>
     <string name="kb_manage_create">Nueva base de conocimientos</string>
-    <string name="kb_manage_name_label">Nombre</string>
     <string name="kb_manage_desc_label">Descripción (opcional)</string>
     <string name="kb_manage_edit">Editar</string>
     <string name="kb_manage_delete">Eliminar</string>
@@ -605,7 +602,6 @@
     <string name="search_custom_engines_hint">Conecta tu propio servicio de búsqueda: indica el endpoint, la plantilla de petición y la ruta de resultados, sin tocar código. Los motores activados se prueban primero en el modo automático.</string>
     <string name="search_custom_engine_add">Añadir motor</string>
     <string name="search_custom_engine_empty">Aún no hay motores propios</string>
-    <string name="search_custom_engine_name">Nombre</string>
     <string name="search_custom_engine_endpoint">Punto de conexión</string>
     <string name="search_custom_engine_key">Clave API (opcional)</string>
     <string name="search_custom_engine_method">Método</string>

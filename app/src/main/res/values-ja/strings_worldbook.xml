@@ -12,9 +12,7 @@
     <string name="worldbook_unsaved_content">未保存の変更があります。</string>
     <string name="worldbook_discard">破棄</string>
     <string name="worldbook_unnamed">無名</string>
-    <string name="worldbook_disabled">無効</string>
     <string name="worldbook_enabled_cd">有効</string>
-    <string name="worldbook_disabled_cd">無効</string>
     <string name="worldbook_edit_cd">編集</string>
     <string name="worldbook_delete_cd">消去</string>
     <string name="worldbook_delete_title">ワールドブックの削除</string>
@@ -34,7 +32,6 @@
     <string name="worldbook_section_behavior">マッチング</string>
 
     <!-- Fields -->
-    <string name="worldbook_field_name">名前</string>
     <string name="worldbook_field_keywords">キーワード</string>
     <string name="worldbook_field_keywords_placeholder">複数のキーワードはカンマで区切ります</string>
     <string name="worldbook_field_content">コンテンツ</string>

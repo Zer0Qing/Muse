@@ -163,7 +163,6 @@ Toca actualizar para obtener la lista</string>
     <string name="shortcut_settings_long">Abrir ajustes</string>
     <string name="shortcut_settings_short">Ajustes</string>
     <string name="shortcut_translate_long">Abrir traducción</string>
-    <string name="shortcut_translate_short">Traducir</string>
     <string name="shortcut_voice_input_long">Entrada por voz</string>
     <string name="shortcut_voice_input_short">Voz</string>
     <string name="speech_next_chunk_cd">Siguiente fragmento</string>

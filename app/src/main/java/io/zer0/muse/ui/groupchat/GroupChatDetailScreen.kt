@@ -1341,7 +1341,7 @@ fun GroupChatDetailScreen(
                                 color = textColor.copy(alpha = 0.6f),
                                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp),
                             )
-                            GroupChatActionRow(MuseIcons.copy, stringResource(R.string.groupchat_copy), textColor, iconBlock) {
+                            GroupChatActionRow(MuseIcons.copy, stringResource(R.string.common_copy), textColor, iconBlock) {
                                 messageMenuTarget = null
                                 val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
                                 clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("message", msg.body))

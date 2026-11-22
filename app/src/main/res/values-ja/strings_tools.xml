@@ -147,7 +147,6 @@
     <string name="tool_summary_subagent_task">サブタスクを開始しました</string>
     <string name="tool_summary_take_photo">写真を撮りました</string>
     <string name="tool_summary_todo_write">ToDoを更新しました</string>
-    <string name="tool_summary_translate">翻訳しました</string>
     <string name="tool_summary_unpin_memory">記憶のピン留めを外しました</string>
     <string name="tool_summary_web_search">ウェブを検索しました</string>
     <string name="tool_summary_workspace_write">ワークスペースに書き込みました</string>
@@ -207,7 +206,6 @@
     <string name="tool_label_show_card">カードを表示</string>
     <string name="tool_label_speak_text">読み上げ</string>
     <string name="tool_label_subagent_task">サブタスク</string>
-    <string name="tool_label_translate">翻訳</string>
     <string name="tool_label_web_search">ウェブ検索</string>
     <string name="tool_label_write_file">ファイルを書く</string>
     <string name="tool_label_workspace_write">ワークスペース書き込み</string>

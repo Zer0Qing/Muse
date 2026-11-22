@@ -406,7 +406,7 @@ private fun GroupChatCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = stringResource(R.string.groupchat_clear_memory_btn), // 前端修复 (i18n-2)
+            confirmText = stringResource(R.string.common_clear), // 前端修复 (i18n-2)
             onConfirm = {
                 showClearMemoryConfirm = false
                 onClearMemory()

@@ -4,7 +4,6 @@
     <!-- Clear confirmation dialog -->
     <string name="debug_clear_logs_title">Limpar logs de depuração</string>
     <string name="debug_clear_logs_confirm">Limpar todos os registros %1$d?</string>
-    <string name="debug_action_clear">Claro</string>
     <string name="debug_cleared_toast">Desmarcado</string>
 
     <!-- Copy logs -->
@@ -23,9 +22,7 @@
     <string name="debug_cd_crash_logs">Registros de falhas</string>
     <string name="debug_cd_analytics">Análise local</string>
     <string name="debug_cd_db_integrity">Integridade do banco de dados</string>
-    <string name="debug_cd_clear">Claro</string>
     <string name="debug_cd_export">Exportar</string>
-    <string name="debug_cd_copy">Cópia</string>
 
     <!-- Log count -->
     <string name="debug_log_count">%1$d total de entradas</string>

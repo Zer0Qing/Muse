@@ -12,9 +12,7 @@
     <string name="worldbook_unsaved_content">You have unsaved changes. Discard them?</string>
     <string name="worldbook_discard">Discard</string>
     <string name="worldbook_unnamed">Unnamed</string>
-    <string name="worldbook_disabled">Disabled</string>
     <string name="worldbook_enabled_cd">Enabled</string>
-    <string name="worldbook_disabled_cd">Disabled</string>
     <string name="worldbook_edit_cd">Edit</string>
     <string name="worldbook_delete_cd">Delete</string>
     <string name="worldbook_delete_title">Delete Worldbook</string>
@@ -34,7 +32,6 @@
     <string name="worldbook_section_behavior">Matching</string>
 
     <!-- Fields -->
-    <string name="worldbook_field_name">Name</string>
     <string name="worldbook_field_keywords">Keywords</string>
     <string name="worldbook_field_keywords_placeholder">Separate multiple keywords with commas</string>
     <string name="worldbook_field_content">Content</string>

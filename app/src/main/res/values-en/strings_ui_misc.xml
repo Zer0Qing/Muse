@@ -172,7 +172,6 @@ Tap refresh to fetch the list upstream</string>
     <string name="shortcut_settings_long">Open settings</string>
     <string name="shortcut_settings_short">Settings</string>
     <string name="shortcut_translate_long">Open translate</string>
-    <string name="shortcut_translate_short">Translate</string>
     <string name="shortcut_voice_input_long">Voice input</string>
     <string name="shortcut_voice_input_short">Voice</string>
     <string name="speech_next_chunk_cd">Next chunk</string>

@@ -57,7 +57,6 @@
     <string name="action_close">Fechar</string>
     <string name="action_more">Mais</string>
     <string name="action_send">Enviar</string>
-    <string name="action_copy">Cópia</string>
     <string name="action_share">Compartilhar</string>
     <string name="action_expand">Expandir</string>
     <string name="action_collapse">Colapso</string>

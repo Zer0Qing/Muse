@@ -12,7 +12,6 @@
     <string name="settings_common_collapse">Collapse</string>
     <string name="settings_common_advanced">Advanced</string>
     <string name="settings_state_enabled">Enabled</string>
-    <string name="settings_state_disabled">Disabled</string>
 
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">Provider List</string>
@@ -130,7 +129,6 @@
     <string name="settings_provider_select_models">Select models to add</string>
     <string name="settings_provider_models_count">%1$d models · context auto-detected</string>
     <string name="settings_provider_search_models">Search model ID</string>
-    <string name="settings_provider_clear">Clear</string>
     <string name="settings_provider_select_all">Select All</string>
     <string name="settings_provider_model_list">Model List</string>
     <string name="settings_provider_selected">Selected</string>
@@ -394,7 +392,6 @@
 
     <!-- 前端修复 (i18n-3.x): Shared clear-all texts (stickers / group chat memory) -->
     <string name="settings_common_clear_all">Clear all</string>
-    <string name="settings_common_clear">Clear</string>
 
     <!-- ==================== Chat settings ==================== -->
     <string name="settings_chat_background_section">Appearance</string>

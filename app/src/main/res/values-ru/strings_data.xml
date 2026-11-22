@@ -3,7 +3,6 @@
     <!-- ===== data/prompttemplate ===== -->
     <!-- Preset template categories (UI grouping) -->
     <string name="prompt_template_category_writing">Письмо</string>
-    <string name="prompt_template_category_translation">Перевод</string>
     <string name="prompt_template_category_summary">Краткое содержание</string>
     <string name="prompt_template_category_code">Код</string>
     <string name="prompt_template_category_learning">Обучение</string>
@@ -91,7 +90,6 @@
     <string name="prompt_injection_mode_creative">Творческое письмо</string>
     <string name="prompt_injection_mode_coding">Кодирование</string>
     <string name="prompt_injection_mode_roleplay">Ролевые игры</string>
-    <string name="prompt_injection_mode_translation">Перевод</string>
     <string name="prompt_injection_mode_analysis">Анализ</string>
 
     <!-- ===== data/session ===== -->

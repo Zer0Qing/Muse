@@ -6,7 +6,6 @@
     <string name="groupchat_empty_hint">Envía el primer mensaje para iniciar el chat grupal.</string>
     <string name="groupchat_my_message">Mi mensaje</string>
     <string name="groupchat_copied">Copiado</string>
-    <string name="groupchat_copy">Copiar</string>
     <string name="groupchat_delete">Eliminar</string>
     <string name="groupchat_cancel">Cancelar</string>
     <string name="groupchat_delete_message_title">Eliminar mensaje</string>
@@ -192,7 +191,6 @@
     <string name="quick_notes_empty_subtitle">Tu primer pensamiento aparecerá aquí.</string>
     <string name="quick_notes_empty_search_title">No hay notas coincidentes</string>
     <string name="quick_notes_empty_search_subtitle">Prueba con otra palabra clave</string>
-    <string name="quick_notes_copy">Copiar</string>
     <string name="quick_notes_copied">Copiado al portapapeles</string>
     <string name="quick_notes_send_to_chat">Enviar a nuevo chat</string>
     <string name="quick_notes_more">Más</string>
@@ -225,7 +223,6 @@
     <string name="knowledge_sort">Ordenar</string>
     <string name="knowledge_import">Importar</string>
     <string name="knowledge_search_placeholder">Buscar título o contenido…</string>
-    <string name="knowledge_clear">Borrar</string>
     <string name="knowledge_no_match_title">No se encontraron documentos coincidentes</string>
     <string name="knowledge_empty_title">La base de conocimientos está vacía.</string>
     <string name="knowledge_no_match_subtitle">Prueba con otra palabra clave</string>
@@ -390,7 +387,6 @@
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">Sin título</string>
     <string name="artifact_close">Cerrar</string>
-    <string name="artifact_copy">Copiar</string>
     <string name="artifact_type_code">Código</string>
     <string name="artifact_type_image">Imagen</string>
     <string name="artifact_type_html">Página web</string>
@@ -489,7 +485,6 @@
     <string name="groupchat_bg_cd">Fondo del chat</string>
     <string name="groupchat_clear_memory">Borrar memoria del grupo</string>
     <string name="groupchat_clear_memory_confirm">¿Borrar la memoria de este grupo? Los asistentes dejarán de usar los resúmenes de discusiones anteriores (incluidos el tono y el estilo).</string>
-    <string name="groupchat_clear_memory_btn">Borrar</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">Archivar</string>
@@ -846,7 +841,6 @@
     <string name="groupchat_round_resume">Reanudar</string>
     <string name="groupchat_round_skip">Omitir el resto</string>
     <string name="groupchat_summary_card_title">Resumen de la discusión</string>
-    <string name="groupchat_summary_copy">Copiar</string>
     <string name="groupchat_summary_share">Compartir</string>
     <string name="groupchat_summary_save_doc">Guardar como documento compartido</string>
     <string name="groupchat_summary_continue">Pasar a la acción</string>

@@ -4,7 +4,6 @@
     <!-- Clear confirmation dialog -->
     <string name="debug_clear_logs_title">デバッグログをクリアする</string>
     <string name="debug_clear_logs_confirm">すべての%1$dログをクリアしますか?</string>
-    <string name="debug_action_clear">クリア</string>
     <string name="debug_cleared_toast">クリア済み</string>
 
     <!-- Copy logs -->
@@ -23,9 +22,7 @@
     <string name="debug_cd_crash_logs">クラッシュログ</string>
     <string name="debug_cd_analytics">ローカル分析</string>
     <string name="debug_cd_db_integrity">データベースの整合性</string>
-    <string name="debug_cd_clear">クリア</string>
     <string name="debug_cd_export">輸出</string>
-    <string name="debug_cd_copy">コピー</string>
 
     <!-- Log count -->
     <string name="debug_log_count">%1$d エントリの合計</string>

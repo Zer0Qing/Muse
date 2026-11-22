@@ -131,11 +131,9 @@
     <string name="prompt_template_manager_move_up">Move up</string>
     <string name="prompt_template_manager_move_down">Move down</string>
     <string name="prompt_template_manager_edit">Edit</string>
-    <string name="prompt_template_manager_copy">Duplicate</string>
     <string name="prompt_template_manager_delete">Delete</string>
     <string name="prompt_template_manager_delete_confirm">Delete template "%1$s"?</string>
     <string name="prompt_template_manager_add">New Template</string>
-    <string name="prompt_template_manager_name">Name</string>
     <string name="prompt_template_manager_category">Category</string>
     <string name="prompt_template_manager_content">Content</string>
     <string name="prompt_template_manage_entry">Manage Templates</string>
@@ -325,7 +323,6 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">Manage Knowledge Bases</string>
     <string name="kb_manage_create">New Knowledge Base</string>
-    <string name="kb_manage_name_label">Name</string>
     <string name="kb_manage_desc_label">Description (optional)</string>
     <string name="kb_manage_edit">Edit</string>
     <string name="kb_manage_delete">Delete</string>
@@ -624,7 +621,6 @@
     <string name="search_custom_engines_hint">Connect your own retrieval service: fill in the endpoint, request template and result path. Enabled engines are tried first in Auto mode.</string>
     <string name="search_custom_engine_add">Add engine</string>
     <string name="search_custom_engine_empty">No custom engines yet</string>
-    <string name="search_custom_engine_name">Name</string>
     <string name="search_custom_engine_endpoint">Endpoint</string>
     <string name="search_custom_engine_key">API key (optional)</string>
     <string name="search_custom_engine_method">Method</string>

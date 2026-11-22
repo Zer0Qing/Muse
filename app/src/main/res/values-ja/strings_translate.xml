@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- v1.97 gap8: Standalone translate page (TranslateScreen) strings -->
-    <string name="translate_page_title">翻訳する</string>
     <string name="translate_page_input_placeholder">翻訳するテキストを入力してください...</string>
-    <string name="translate_page_translate">翻訳する</string>
     <string name="translate_page_copy">コピー結果</string>
     <string name="translate_page_paste">ペースト</string>
-    <string name="translate_page_clear">クリア</string>
     <string name="translate_page_source_language">ソース言語</string>
     <string name="translate_page_source_text">原文</string>
     <string name="translate_page_target_language">対象言語</string>

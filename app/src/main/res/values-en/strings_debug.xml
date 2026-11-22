@@ -4,7 +4,6 @@
     <!-- Clear confirmation dialog -->
     <string name="debug_clear_logs_title">Clear debug logs</string>
     <string name="debug_clear_logs_confirm">Clear all %1$d logs? This cannot be undone.</string>
-    <string name="debug_action_clear">Clear</string>
     <string name="debug_cleared_toast">Cleared</string>
 
     <!-- Copy logs -->
@@ -23,9 +22,7 @@
     <string name="debug_cd_crash_logs">Crash logs</string>
     <string name="debug_cd_analytics">Local analytics</string>
     <string name="debug_cd_db_integrity">Database integrity</string>
-    <string name="debug_cd_clear">Clear</string>
     <string name="debug_cd_export">Export</string>
-    <string name="debug_cd_copy">Copy</string>
 
     <!-- Log count -->
     <string name="debug_log_count">%1$d entries total</string>

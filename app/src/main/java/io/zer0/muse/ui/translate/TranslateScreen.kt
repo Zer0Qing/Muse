@@ -376,7 +376,7 @@ fun TranslateScreen(onBack: () -> Unit, onSendToNewChat: (String) -> Unit = {}, 
 @Composable
 private fun TranslateTopBar(onBack: () -> Unit) {
     MuseTopBar(
-        title = stringResource(R.string.translate_page_title),
+        title = stringResource(R.string.common_translate),
         onBack = onBack,
         largeTitle = true,
     )
@@ -733,7 +733,7 @@ private fun SourceInputCard(
                     )
                     ActionIconButton(
                         icon = MuseIcons.x,
-                        contentDescription = stringResource(R.string.translate_page_clear),
+                        contentDescription = stringResource(R.string.common_clear),
                         onClick = onClear,
                         enabled = !translating && text.isNotEmpty(),
                     )
@@ -863,7 +863,7 @@ private fun TranslateMoreMenu(
 @Composable
 private fun TranslateButton(onClick: () -> Unit, enabled: Boolean) {
     MuseCapsuleButton(
-        text = stringResource(R.string.translate_page_translate),
+        text = stringResource(R.string.common_translate),
         onClick = onClick,
         enabled = enabled,
         leadingIcon = MuseIcons.languages,

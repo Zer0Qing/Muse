@@ -472,7 +472,7 @@ private fun ResultSection(result: String, hasFailed: Boolean) {
             )
             // LAYOUT-01: 行尾动作标签只限行、不取宽（左侧"结果"已 weight(1f)，取宽会把它挤到中间）
             Text(
-                text = stringResource(R.string.chat_tool_copy),
+                text = stringResource(R.string.common_copy),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,

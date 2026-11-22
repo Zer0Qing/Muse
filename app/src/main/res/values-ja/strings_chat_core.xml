@@ -123,7 +123,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">再生する</string>
-    <string name="chat_translate_action">翻訳する</string>
     <string name="chat_translate_to_cd">%1$s に翻訳</string>
     <string name="chat_delegate_action">アシスタントへの委任</string>
     <string name="chat_tts_stop">読書をやめる</string>
@@ -222,7 +221,6 @@
     <string name="command_palette_full_search">完全検索</string>
     <string name="command_palette_no_results">一致する結果がありません</string>
     <string name="command_palette_open_session">会話を開く</string>
-    <string name="command_palette_clear">クリア</string>
     <string name="command_palette_empty_hint">検索キーワードを入力、または / でコマンド</string>
     <string name="chat_recording_start_failed">記録の開始に失敗しました。</string>
     <string name="chat_recognizing_cd">認識する</string>
@@ -493,7 +491,6 @@
     <string name="chat_pending_send_busy">返信を生成中です。現在の生成を停止してからキュー内のメッセージを送信してください</string>
     <string name="chat_quickbar_hint_off">クイックツールバーを閉じました</string>
     <string name="chat_quickbar_hint_on">クイックツールバーを開きました</string>
-    <string name="chat_tool_copy">コピー</string>
     <string name="chat_tool_hidden_records">古い %1$d 件の記録を非表示にしました</string>
     <string name="chat_tool_latest">最新：%1$s</string>
     <string name="chat_tool_latest_empty">最新：結果なし</string>
@@ -516,7 +513,6 @@
     <string name="chat_context_divider_title_count">コンテキストを圧縮しました · %1$d 件を要約</string>
     <string name="chat_context_divider_hint_collapsed">タップで元のメッセージを表示</string>
     <string name="chat_context_divider_hint_expanded">タップで元のメッセージを隠す</string>
-    <string name="chat_translation_block_title">翻訳</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">ツール実行は一時停止中です。実際には実行されません。</string>
     <string name="chat_tool_paused_banner_action">設定</string>

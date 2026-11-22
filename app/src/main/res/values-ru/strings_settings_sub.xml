@@ -126,11 +126,9 @@
     <string name="prompt_template_manager_move_up">Вверх</string>
     <string name="prompt_template_manager_move_down">Вниз</string>
     <string name="prompt_template_manager_edit">Изменить</string>
-    <string name="prompt_template_manager_copy">Дублировать</string>
     <string name="prompt_template_manager_delete">Удалить</string>
     <string name="prompt_template_manager_delete_confirm">Удалить шаблон "%1$s"?</string>
     <string name="prompt_template_manager_add">Новый шаблон</string>
-    <string name="prompt_template_manager_name">Название</string>
     <string name="prompt_template_manager_category">Категория</string>
     <string name="prompt_template_manager_content">Содержимое</string>
     <string name="prompt_template_manage_entry">Управление шаблонами</string>
@@ -313,7 +311,6 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">Управление базами знаний</string>
     <string name="kb_manage_create">Новая база знаний</string>
-    <string name="kb_manage_name_label">Имя</string>
     <string name="kb_manage_desc_label">Описание (необязательно)</string>
     <string name="kb_manage_edit">Редактировать</string>
     <string name="kb_manage_delete">Удалить</string>
@@ -605,7 +602,6 @@
     <string name="search_custom_engines_hint">Подключите свой сервис: укажите endpoint, шаблон запроса и путь к результатам.</string>
     <string name="search_custom_engine_add">Добавить движок</string>
     <string name="search_custom_engine_empty">Своих движков пока нет</string>
-    <string name="search_custom_engine_name">Название</string>
     <string name="search_custom_engine_endpoint">Endpoint</string>
     <string name="search_custom_engine_key">API-ключ (необязательно)</string>
     <string name="search_custom_engine_method">Метод</string>

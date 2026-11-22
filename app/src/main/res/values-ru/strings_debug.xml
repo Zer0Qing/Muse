@@ -4,7 +4,6 @@
     <!-- Clear confirmation dialog -->
     <string name="debug_clear_logs_title">Очистить журналы отладки</string>
     <string name="debug_clear_logs_confirm">Очистить все журналы %1$d?</string>
-    <string name="debug_action_clear">Прозрачный</string>
     <string name="debug_cleared_toast">Очищено</string>
 
     <!-- Copy logs -->
@@ -23,9 +22,7 @@
     <string name="debug_cd_crash_logs">Журналы сбоев</string>
     <string name="debug_cd_analytics">Локальная аналитика</string>
     <string name="debug_cd_db_integrity">Целостность базы данных</string>
-    <string name="debug_cd_clear">Прозрачный</string>
     <string name="debug_cd_export">Экспорт</string>
-    <string name="debug_cd_copy">Копировать</string>
 
     <!-- Log count -->
     <string name="debug_log_count">%1$d всего записей</string>

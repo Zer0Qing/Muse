@@ -6,7 +6,6 @@
     <string name="groupchat_empty_hint">发送第一条消息开启群聊</string>
     <string name="groupchat_my_message">我的消息</string>
     <string name="groupchat_copied">已复制</string>
-    <string name="groupchat_copy">复制</string>
     <string name="groupchat_delete_message_title">删除消息</string>
     <string name="groupchat_delete_message_confirm">确定要删除这条消息吗？此操作不可恢复。</string>
     <string name="groupchat_reasoning">思考过程</string>
@@ -19,7 +18,6 @@
     <string name="groupchat_round_resume">继续</string>
     <string name="groupchat_round_skip">跳过剩余</string>
     <string name="groupchat_summary_card_title">讨论总结</string>
-    <string name="groupchat_summary_copy">复制</string>
     <string name="groupchat_summary_share">分享</string>
     <string name="groupchat_summary_save_doc">存为共享文档</string>
     <string name="groupchat_summary_continue">继续落实</string>
@@ -151,7 +149,6 @@
     <string name="groupchat_bg_cd">聊天背景</string>
     <string name="groupchat_clear_memory">清空群聊记忆</string>
     <string name="groupchat_clear_memory_confirm">确定清空本群的群聊记忆？助手将不再引用本群过往发言摘要（包含语气风格）。</string>
-    <string name="groupchat_clear_memory_btn">清空</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">归档</string>
@@ -302,7 +299,6 @@
     <string name="quick_notes_empty_subtitle">写下第一条想法，它会出现在这里</string>
     <string name="quick_notes_empty_search_title">未找到匹配记录</string>
     <string name="quick_notes_empty_search_subtitle">换个关键词试试</string>
-    <string name="quick_notes_copy">复制</string>
     <string name="quick_notes_copied">已复制到剪贴板</string>
     <string name="quick_notes_send_to_chat">发送到新会话</string>
     <string name="quick_notes_more">更多</string>
@@ -380,7 +376,6 @@
     <string name="knowledge_sort">排序</string>
     <string name="knowledge_import">导入</string>
     <string name="knowledge_search_placeholder">搜索标题或内容…</string>
-    <string name="knowledge_clear">清空</string>
     <string name="knowledge_no_match_title">未找到匹配的文档</string>
     <string name="knowledge_empty_title">知识库为空</string>
     <string name="knowledge_no_match_subtitle">试试其他关键词</string>
@@ -563,7 +558,6 @@
 
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">未命名</string>
-    <string name="artifact_copy">复制</string>
     <string name="artifact_type_code">代码</string>
     <string name="artifact_type_image">图片</string>
     <string name="artifact_type_html">网页</string>

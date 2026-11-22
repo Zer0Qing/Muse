@@ -3,7 +3,6 @@
     <!-- ===== data/prompttemplate ===== -->
     <!-- Preset template categories (UI grouping) -->
     <string name="prompt_template_category_writing">書き込み</string>
-    <string name="prompt_template_category_translation">翻訳</string>
     <string name="prompt_template_category_summary">まとめ</string>
     <string name="prompt_template_category_code">コード</string>
     <string name="prompt_template_category_learning">学ぶ</string>
@@ -91,7 +90,6 @@
     <string name="prompt_injection_mode_creative">クリエイティブライティング</string>
     <string name="prompt_injection_mode_coding">コーディング</string>
     <string name="prompt_injection_mode_roleplay">ロールプレイ</string>
-    <string name="prompt_injection_mode_translation">翻訳</string>
     <string name="prompt_injection_mode_analysis">分析</string>
 
     <!-- ===== data/session ===== -->

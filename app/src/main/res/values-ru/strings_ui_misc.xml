@@ -163,7 +163,6 @@
     <string name="shortcut_settings_long">Открыть настройки</string>
     <string name="shortcut_settings_short">Настройки</string>
     <string name="shortcut_translate_long">Открыть перевод</string>
-    <string name="shortcut_translate_short">Перевести</string>
     <string name="shortcut_voice_input_long">Голосовой ввод</string>
     <string name="shortcut_voice_input_short">Голос</string>
     <string name="speech_next_chunk_cd">Следующий фрагмент</string>

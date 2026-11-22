@@ -57,7 +57,6 @@
     <string name="action_close">Закрывать</string>
     <string name="action_more">Более</string>
     <string name="action_send">Отправлять</string>
-    <string name="action_copy">Копировать</string>
     <string name="action_share">Делиться</string>
     <string name="action_expand">Расширять</string>
     <string name="action_collapse">Крах</string>

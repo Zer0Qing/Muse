@@ -147,7 +147,6 @@
     <string name="tool_summary_subagent_task">Inició una subtarea</string>
     <string name="tool_summary_take_photo">Tomó una foto</string>
     <string name="tool_summary_todo_write">Actualizó una tarea</string>
-    <string name="tool_summary_translate">Tradujo</string>
     <string name="tool_summary_unpin_memory">Desfijó un recuerdo</string>
     <string name="tool_summary_web_search">Buscó en la web</string>
     <string name="tool_summary_workspace_write">Escribió en el espacio de trabajo</string>
@@ -207,7 +206,6 @@
     <string name="tool_label_show_card">Mostrar tarjeta</string>
     <string name="tool_label_speak_text">Leer en voz alta</string>
     <string name="tool_label_subagent_task">Subtarea</string>
-    <string name="tool_label_translate">Traducir</string>
     <string name="tool_label_web_search">Búsqueda web</string>
     <string name="tool_label_write_file">Escribir archivo</string>
     <string name="tool_label_workspace_write">Escritura en el espacio de trabajo</string>

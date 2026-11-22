@@ -126,11 +126,9 @@
     <string name="prompt_template_manager_move_up">위로</string>
     <string name="prompt_template_manager_move_down">아래로</string>
     <string name="prompt_template_manager_edit">편집</string>
-    <string name="prompt_template_manager_copy">복제</string>
     <string name="prompt_template_manager_delete">삭제</string>
     <string name="prompt_template_manager_delete_confirm">템플릿 "%1$s"을(를) 삭제할까요?</string>
     <string name="prompt_template_manager_add">새 템플릿</string>
-    <string name="prompt_template_manager_name">이름</string>
     <string name="prompt_template_manager_category">카테고리</string>
     <string name="prompt_template_manager_content">내용</string>
     <string name="prompt_template_manage_entry">템플릿 관리</string>
@@ -313,7 +311,6 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">기술 자료 관리</string>
     <string name="kb_manage_create">새로운 기술 자료</string>
-    <string name="kb_manage_name_label">이름</string>
     <string name="kb_manage_desc_label">설명(선택사항)</string>
     <string name="kb_manage_edit">편집하다</string>
     <string name="kb_manage_delete">삭제</string>
@@ -605,7 +602,6 @@
     <string name="search_custom_engines_hint">자체 검색 서비스를 연결하세요: 엔드포인트, 요청 템플릿, 결과 경로만 입력하면 됩니다.</string>
     <string name="search_custom_engine_add">엔진 추가</string>
     <string name="search_custom_engine_empty">사용자 지정 엔진이 없습니다</string>
-    <string name="search_custom_engine_name">이름</string>
     <string name="search_custom_engine_endpoint">엔드포인트</string>
     <string name="search_custom_engine_key">API 키(선택)</string>
     <string name="search_custom_engine_method">메서드</string>

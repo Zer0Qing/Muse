@@ -22,7 +22,6 @@
     <string name="assistant_detail_avatar_image_set">Avatar image saved</string>
     <string name="assistant_detail_avatar_emoji">Using Emoji avatar</string>
     <string name="assistant_detail_avatar_initial">Using name initial</string>
-    <string name="assistant_detail_name">Name</string>
     <string name="assistant_detail_avatar_emoji_label">Avatar Emoji (1-2 chars, optional)</string>
     <string name="assistant_detail_global_default">Global Default</string>
     <string name="assistant_detail_exclusive_model">Exclusive Model</string>
@@ -68,7 +67,6 @@
     <string name="assistant_detail_no_options">No options available</string>
     <string name="assistant_detail_done">Done</string>
     <string name="assistant_detail_select_all">Select All</string>
-    <string name="assistant_detail_clear_all">Clear All</string>
     <string name="assistant_detail_selected_count">%1$d selected</string>
     <string name="assistant_detail_enable_memory">Enable Memory</string>
     <string name="assistant_detail_enable_memory_desc">When off, this assistant won\'t inject long-term memory</string>
@@ -282,7 +280,6 @@
     <string name="channel_robot_code_hint">Usually the same as Client ID for internal bots; may be left blank.</string>
     <string name="channel_field_api_base">API Base URL</string>
     <string name="channel_dingtalk_api_default">https://api.dingtalk.com/v1.0</string>
-    <string name="channel_field_name">Name</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
     <string name="channel_webhook_receive">Enable platform webhooks</string>
@@ -438,7 +435,6 @@
     <string name="skill_bulk_summary">%1$d custom skills, %2$d enabled</string>
     <string name="skill_bulk_disable_all">Disable all</string>
     <string name="skill_bulk_enable_all">Enable all</string>
-    <string name="skill_disabled">Disabled</string>
     <string name="skill_built_in">Built-in</string>
     <string name="skill_built_in_seed">Built-in (seed)</string>
     <string name="skill_custom">Custom</string>
@@ -672,7 +668,6 @@
     <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
-    <string name="desktop_context_copy">Copy</string>
     <string name="desktop_context_regenerate">Regenerate</string>
     <string name="desktop_context_delete">Delete</string>
     <string name="desktop_context_share">Share</string>

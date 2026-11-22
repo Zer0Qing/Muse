@@ -251,7 +251,7 @@ private fun CustomEngineFields(
         EngineTextField(
             value = name,
             onValueChange = onNameChange,
-            labelRes = R.string.search_custom_engine_name,
+            labelRes = R.string.common_name,
         )
         EngineTextField(
             value = endpoint,

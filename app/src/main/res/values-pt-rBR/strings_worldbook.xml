@@ -12,9 +12,7 @@
     <string name="worldbook_unsaved_content">Você tem alterações não salvas.</string>
     <string name="worldbook_discard">Descartar</string>
     <string name="worldbook_unnamed">Sem nome</string>
-    <string name="worldbook_disabled">Desabilitado</string>
     <string name="worldbook_enabled_cd">Habilitado</string>
-    <string name="worldbook_disabled_cd">Desabilitado</string>
     <string name="worldbook_edit_cd">Editar</string>
     <string name="worldbook_delete_cd">Excluir</string>
     <string name="worldbook_delete_title">Excluir Livro Mundial</string>
@@ -34,7 +32,6 @@
     <string name="worldbook_section_behavior">Correspondência</string>
 
     <!-- Fields -->
-    <string name="worldbook_field_name">Nome</string>
     <string name="worldbook_field_keywords">Palavras-chave</string>
     <string name="worldbook_field_keywords_placeholder">Separe várias palavras-chave com vírgulas</string>
     <string name="worldbook_field_content">Contente</string>

@@ -4,7 +4,6 @@
     <!-- Clear confirmation dialog -->
     <string name="debug_clear_logs_title">디버그 로그 지우기</string>
     <string name="debug_clear_logs_confirm">%1$d 로그를 모두 지우시겠습니까?</string>
-    <string name="debug_action_clear">분명한</string>
     <string name="debug_cleared_toast">삭제됨</string>
 
     <!-- Copy logs -->
@@ -23,9 +22,7 @@
     <string name="debug_cd_crash_logs">충돌 로그</string>
     <string name="debug_cd_analytics">지역 분석</string>
     <string name="debug_cd_db_integrity">데이터베이스 무결성</string>
-    <string name="debug_cd_clear">분명한</string>
     <string name="debug_cd_export">내보내다</string>
-    <string name="debug_cd_copy">복사</string>
 
     <!-- Log count -->
     <string name="debug_log_count">%1$d 총 항목 수</string>

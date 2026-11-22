@@ -12,7 +12,6 @@
     <string name="settings_common_collapse">崩壊</string>
     <string name="settings_common_advanced">高度な</string>
     <string name="settings_state_enabled">有効</string>
-    <string name="settings_state_disabled">無効</string>
 
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">プロバイダーリスト</string>
@@ -130,7 +129,6 @@
     <string name="settings_provider_select_models">追加するモデルを選択してください</string>
     <string name="settings_provider_models_count">%1$d モデル · コンテキストの自動検出</string>
     <string name="settings_provider_search_models">モデルIDの検索</string>
-    <string name="settings_provider_clear">クリア</string>
     <string name="settings_provider_select_all">すべて選択</string>
     <string name="settings_provider_model_list">機種一覧</string>
     <string name="settings_provider_selected">選択済み</string>
@@ -392,7 +390,6 @@
 
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">すべてクリア</string>
-    <string name="settings_common_clear">クリア</string>
     <string name="settings_chat_background_section">外観</string>
     <string name="settings_chat_background_title">チャットの背景</string>
     <string name="settings_chat_background_subtitle">チャット / Agent / グループの背景をカスタマイズ</string>

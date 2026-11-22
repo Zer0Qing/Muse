@@ -148,7 +148,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">재생성</string>
-    <string name="chat_translate_action">번역하다</string>
     <string name="chat_translate_to_cd">%1$s로 번역하세요</string>
     <string name="chat_delegate_action">어시스턴트에게 위임</string>
     <string name="chat_tts_stop">읽기 중지</string>
@@ -247,7 +246,6 @@
     <string name="command_palette_full_search">전체 검색</string>
     <string name="command_palette_no_results">일치하는 결과 없음</string>
     <string name="command_palette_open_session">대화 열기</string>
-    <string name="command_palette_clear">지우기</string>
     <string name="command_palette_empty_hint">검색어 입력, 또는 / 로 명령</string>
     <string name="chat_recording_start_failed">녹화를 시작하지 못했습니다.</string>
     <string name="chat_recognizing_cd">인식</string>
@@ -493,7 +491,6 @@
     <string name="chat_pending_send_busy">답변을 생성 중입니다. 대기열 메시지를 보내려면 먼저 현재 생성을 중지하세요</string>
     <string name="chat_quickbar_hint_off">빠른 도구 모음이 접혔습니다</string>
     <string name="chat_quickbar_hint_on">빠른 도구 모음이 펼쳐졌습니다</string>
-    <string name="chat_tool_copy">복사</string>
     <string name="chat_tool_hidden_records">이전 %1$d개 기록이 숨겨졌습니다</string>
     <string name="chat_tool_latest">최근: %1$s</string>
     <string name="chat_tool_latest_empty">최근: 빈 결과</string>
@@ -516,7 +513,6 @@
     <string name="chat_context_divider_title_count">컨텍스트 압축됨 · %1$d개 요약</string>
     <string name="chat_context_divider_hint_collapsed">탭하여 원본 메시지 보기</string>
     <string name="chat_context_divider_hint_expanded">탭하여 원본 메시지 숨기기</string>
-    <string name="chat_translation_block_title">번역</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">도구 실행이 일시중지되어 실제로 실행되지 않습니다.</string>
     <string name="chat_tool_paused_banner_action">설정</string>

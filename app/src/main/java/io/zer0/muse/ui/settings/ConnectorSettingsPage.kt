@@ -289,7 +289,7 @@ private fun ConnectorEditDialog(initial: ConnectorConfig?, onDismiss: () -> Unit
                 MuseTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.channel_field_name)) },
+                    label = { Text(stringResource(R.string.common_name)) },
                 )
                 MuseTextField(
                     value = authorizeUrl,

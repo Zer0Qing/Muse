@@ -126,11 +126,9 @@
     <string name="prompt_template_manager_move_up">上へ</string>
     <string name="prompt_template_manager_move_down">下へ</string>
     <string name="prompt_template_manager_edit">編集</string>
-    <string name="prompt_template_manager_copy">複製</string>
     <string name="prompt_template_manager_delete">削除</string>
     <string name="prompt_template_manager_delete_confirm">テンプレート「%1$s」を削除しますか?</string>
     <string name="prompt_template_manager_add">新規テンプレート</string>
-    <string name="prompt_template_manager_name">名前</string>
     <string name="prompt_template_manager_category">カテゴリ</string>
     <string name="prompt_template_manager_content">内容</string>
     <string name="prompt_template_manage_entry">テンプレート管理</string>
@@ -313,7 +311,6 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">ナレッジベースの管理</string>
     <string name="kb_manage_create">新しい知識ベース</string>
-    <string name="kb_manage_name_label">名前</string>
     <string name="kb_manage_desc_label">説明 (オプション)</string>
     <string name="kb_manage_edit">編集</string>
     <string name="kb_manage_delete">消去</string>
@@ -605,7 +602,6 @@
     <string name="search_custom_engines_hint">自前の検索サービスを接続：エンドポイント・リクエスト雛形・結果パスを入力するだけ。有効なものは自動モードで最優先。</string>
     <string name="search_custom_engine_add">エンジンを追加</string>
     <string name="search_custom_engine_empty">カスタムエンジンはまだありません</string>
-    <string name="search_custom_engine_name">名前</string>
     <string name="search_custom_engine_endpoint">エンドポイント</string>
     <string name="search_custom_engine_key">API キー（任意）</string>
     <string name="search_custom_engine_method">メソッド</string>

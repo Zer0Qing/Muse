@@ -318,7 +318,7 @@ internal fun ConfigTab(
     val queryTimeoutPrefix = stringResource(R.string.settings_provider_prefix_query_timeout)
     // 状态描述字符串(需在 @Composable 上下文中提取,不能在 semantics{} lambda 内调用 stringResource)
     val stateEnabledText = stringResource(R.string.settings_state_enabled)
-    val stateDisabledText = stringResource(R.string.settings_state_disabled)
+    val stateDisabledText = stringResource(R.string.common_state_disabled)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

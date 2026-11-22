@@ -22,7 +22,6 @@
     <string name="assistant_detail_avatar_image_set">이미지 아바타 설정됨</string>
     <string name="assistant_detail_avatar_emoji">Emoji 아바타 사용</string>
     <string name="assistant_detail_avatar_initial">이름 첫 글자 사용</string>
-    <string name="assistant_detail_name">이름</string>
     <string name="assistant_detail_avatar_emoji_label">아바타 Emoji(1-2자, 비워도 됨)</string>
     <string name="assistant_detail_global_default">전역 기본</string>
     <string name="assistant_detail_exclusive_model">전용 모델</string>
@@ -61,7 +60,6 @@
     <string name="assistant_detail_no_options">선택 가능한 항목이 없습니다</string>
     <string name="assistant_detail_done">완료</string>
     <string name="assistant_detail_select_all">모두 선택</string>
-    <string name="assistant_detail_clear_all">모두 해제</string>
     <string name="assistant_detail_selected_count">%1$d개 선택됨</string>
     <string name="assistant_detail_enable_memory">기억 활성화</string>
     <string name="assistant_detail_enable_memory_desc">끄면 이 어시스턴트는 장기 기억을 주입하지 않습니다</string>
@@ -245,7 +243,6 @@
     <string name="channel_empty">아직 채널이 없습니다. 위 버튼으로 추가하세요.</string>
     <string name="channel_save">저장</string>
     <string name="channel_field_platform">플랫폼</string>
-    <string name="channel_field_name">이름</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
     <string name="channel_webhook_receive">플랫폼 웹훅 사용</string>
@@ -343,7 +340,6 @@
     <string name="skill_bulk_summary">사용자 스킬 %1$d개, 사용 중 %2$d개</string>
     <string name="skill_bulk_disable_all">모두 사용 안 함</string>
     <string name="skill_bulk_enable_all">모두 사용</string>
-    <string name="skill_disabled">비활성화됨</string>
     <string name="skill_built_in">내장</string>
     <string name="skill_built_in_seed">내장(시드)</string>
     <string name="skill_custom">사용자 지정</string>
@@ -570,7 +566,6 @@
     <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
-    <string name="desktop_context_copy">복사</string>
     <string name="desktop_context_regenerate">재생성</string>
     <string name="desktop_context_delete">삭제</string>
     <string name="desktop_context_share">공유</string>

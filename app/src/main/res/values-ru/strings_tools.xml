@@ -147,7 +147,6 @@
     <string name="tool_summary_subagent_task">Запустил подзадачу</string>
     <string name="tool_summary_take_photo">Сделал фото</string>
     <string name="tool_summary_todo_write">Обновил задачу</string>
-    <string name="tool_summary_translate">Перевёл</string>
     <string name="tool_summary_unpin_memory">Открепил воспоминание</string>
     <string name="tool_summary_web_search">Выполнил поиск в интернете</string>
     <string name="tool_summary_workspace_write">Записал в рабочую область</string>
@@ -207,7 +206,6 @@
     <string name="tool_label_show_card">Показать карточку</string>
     <string name="tool_label_speak_text">Озвучивание</string>
     <string name="tool_label_subagent_task">Подзадача</string>
-    <string name="tool_label_translate">Перевод</string>
     <string name="tool_label_web_search">Поиск в интернете</string>
     <string name="tool_label_write_file">Записать файл</string>
     <string name="tool_label_workspace_write">Запись в рабочую область</string>

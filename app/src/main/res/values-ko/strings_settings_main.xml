@@ -12,7 +12,6 @@
     <string name="settings_common_collapse">무너지다</string>
     <string name="settings_common_advanced">고급의</string>
     <string name="settings_state_enabled">활성화됨</string>
-    <string name="settings_state_disabled">장애가 있는</string>
 
     <!-- ==================== Provider Settings ==================== -->
     <string name="settings_provider_list_title">제공자 목록</string>
@@ -130,7 +129,6 @@
     <string name="settings_provider_select_models">추가할 모델 선택</string>
     <string name="settings_provider_models_count">%1$d 모델 · 컨텍스트 자동 감지</string>
     <string name="settings_provider_search_models">모델 ID 검색</string>
-    <string name="settings_provider_clear">분명한</string>
     <string name="settings_provider_select_all">모두 선택</string>
     <string name="settings_provider_model_list">모델 목록</string>
     <string name="settings_provider_selected">선택된</string>
@@ -392,7 +390,6 @@
 
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">모두 비우기</string>
-    <string name="settings_common_clear">비우기</string>
     <string name="settings_chat_background_section">모양</string>
     <string name="settings_chat_background_title">채팅 배경</string>
     <string name="settings_chat_background_subtitle">채팅 / Agent / 그룹 배경 사용자 지정</string>

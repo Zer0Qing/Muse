@@ -46,7 +46,7 @@ class PromptInjectionRepository(
         "creative" to context.getString(R.string.prompt_injection_mode_creative),
         "coding" to context.getString(R.string.prompt_injection_mode_coding),
         "roleplay" to context.getString(R.string.prompt_injection_mode_roleplay),
-        "translation" to context.getString(R.string.prompt_injection_mode_translation),
+        "translation" to context.getString(R.string.common_translate),
         "analysis" to context.getString(R.string.prompt_injection_mode_analysis),
     )
 }

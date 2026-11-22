@@ -159,7 +159,6 @@
 
     <!-- 快捷按钮与长按菜单 -->
     <string name="chat_regenerate_cd">重新生成</string>
-    <string name="chat_translate_action">翻译</string>
     <string name="chat_translate_to_cd">翻译为 %1$s</string>
     <string name="chat_delegate_action">委托给助手</string>
     <string name="chat_tts_stop">停止朗读</string>
@@ -184,7 +183,6 @@
     <string name="chat_loading_thinking">思考中</string>
     <string name="chat_tool_params">参数</string>
     <string name="chat_tool_result">结果</string>
-    <string name="chat_tool_copy">复制</string>
     <string name="chat_tool_result_expand">展开全文（%1$d 字符）</string>
     <string name="chat_tool_result_collapse">收起全文</string>
     <string name="chat_tool_hidden_records">已隐藏较早的 %1$d 条记录</string>
@@ -239,7 +237,6 @@
     <string name="chat_tool_knowledge">引用知识库</string>
     <string name="chat_tool_knowledge_subtitle">@mention 文档</string>
     <!-- v2.4.6: 消息下方译文可展开块 -->
-    <string name="chat_translation_block_title">翻译</string>
     <string name="chat_tool_prompt_template_subtitle">从模板库选择场景提示词</string>
     <string name="chat_tool_skills">技能</string>
     <string name="chat_tool_skills_subtitle">管理和调用已启用的技能</string>
@@ -304,7 +301,6 @@
     <string name="command_palette_full_search">完整搜索</string>
     <string name="command_palette_no_results">无匹配结果</string>
     <string name="command_palette_open_session">打开会话</string>
-    <string name="command_palette_clear">清空</string>
     <string name="command_palette_empty_hint">输入关键词搜索，或输入 / 查看命令</string>
     <string name="chat_recording_start_failed">录音启动失败，请检查权限或模型配置</string>
     <string name="chat_recognizing_cd">识别中</string>

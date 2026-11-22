@@ -10,12 +10,10 @@
     <!-- Card -->
     <string name="quick_msg_new_default_name">새 빠른 메시지</string>
     <string name="quick_msg_unnamed">(이름 없음)</string>
-    <string name="quick_msg_disabled">장애가 있는</string>
     <string name="quick_msg_scope_global">글로벌</string>
     <string name="quick_msg_scope_assistant">보조자: %1$s</string>
     <string name="quick_msg_scope_label">범위: %1$s</string>
     <string name="quick_msg_enabled_cd">활성화됨</string>
-    <string name="quick_msg_disabled_cd">장애가 있는</string>
     <string name="quick_msg_edit_cd">편집하다</string>
     <string name="quick_msg_delete_cd">삭제</string>
     <!-- Edit page -->
@@ -26,7 +24,6 @@
     <string name="quick_msg_edit_title">빠른 메시지 편집</string>
     <string name="quick_msg_save">구하다</string>
     <string name="quick_msg_section_basic">기초적인</string>
-    <string name="quick_msg_field_name">이름</string>
     <string name="quick_msg_section_content">템플릿 콘텐츠</string>
     <string name="quick_msg_field_content">콘텐츠({{input}} / {{clipboard}} / {{date}} 변수 지원)</string>
     <string name="quick_msg_section_scope">범위</string>
@@ -48,10 +45,8 @@
     <!-- Card -->
     <string name="lorebook_new_default_name">신규 항목</string>
     <string name="lorebook_unnamed">(이름 없음)</string>
-    <string name="lorebook_disabled">장애가 있는</string>
     <string name="lorebook_keywords_label">키워드: %1$s</string>
     <string name="lorebook_enabled_cd">활성화됨</string>
-    <string name="lorebook_disabled_cd">장애가 있는</string>
     <string name="lorebook_edit_cd">편집하다</string>
     <string name="lorebook_delete_cd">삭제</string>
     <!-- Edit page -->
@@ -62,7 +57,6 @@
     <string name="lorebook_edit_title">설화집 편집</string>
     <string name="lorebook_save">구하다</string>
     <string name="lorebook_section_basic">기초적인</string>
-    <string name="lorebook_field_name">이름</string>
     <string name="lorebook_field_keywords">트리거 키워드(쉼표로 구분)</string>
     <string name="lorebook_field_keywords_placeholder">예를 들어</string>
     <string name="lorebook_section_content">주입 내용</string>
@@ -90,10 +84,8 @@
     <!-- Card -->
     <string name="prompt_injection_new_default_name">새로운 주입</string>
     <string name="prompt_injection_unnamed">(이름 없음)</string>
-    <string name="prompt_injection_disabled">장애가 있는</string>
     <string name="prompt_injection_mode_label">모드: %1$s</string>
     <string name="prompt_injection_enabled_cd">활성화됨</string>
-    <string name="prompt_injection_disabled_cd">장애가 있는</string>
     <string name="prompt_injection_edit_cd">편집하다</string>
     <string name="prompt_injection_delete_cd">삭제</string>
     <!-- Edit page -->
@@ -104,7 +96,6 @@
     <string name="prompt_injection_edit_title">프롬프트 삽입 편집</string>
     <string name="prompt_injection_save">구하다</string>
     <string name="prompt_injection_section_basic">기초적인</string>
-    <string name="prompt_injection_field_name">이름</string>
     <string name="prompt_injection_field_mode">방법</string>
     <string name="prompt_injection_field_display_name">표시 이름(UI에 표시됨, 모드 기본값을 사용하려면 비워 두세요)</string>
     <string name="prompt_injection_section_content">주입 내용</string>
@@ -175,7 +166,6 @@
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern 내보내기 실패: %1$s</string>
     <string name="assistant_disable">비활성화</string>
     <string name="assistant_enable">활성화</string>
-    <string name="assistant_diff_name">이름</string>
     <string name="assistant_diff_summary">소개</string>
     <string name="assistant_diff_system_prompt">시스템 프롬프트</string>
     <string name="assistant_diff_persona_definition">페르소나 정의</string>

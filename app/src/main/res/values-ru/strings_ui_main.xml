@@ -22,7 +22,6 @@
     <string name="assistant_detail_avatar_image_set">Установлен аватар-изображение</string>
     <string name="assistant_detail_avatar_emoji">Использовать Emoji-аватар</string>
     <string name="assistant_detail_avatar_initial">Использовать первую букву имени</string>
-    <string name="assistant_detail_name">Имя</string>
     <string name="assistant_detail_avatar_emoji_label">Аватар Emoji (1-2 символа, можно пусто)</string>
     <string name="assistant_detail_global_default">Глобальный по умолчанию</string>
     <string name="assistant_detail_exclusive_model">Эксклюзивная модель</string>
@@ -61,7 +60,6 @@
     <string name="assistant_detail_no_options">Нет доступных вариантов</string>
     <string name="assistant_detail_done">Готово</string>
     <string name="assistant_detail_select_all">Выбрать все</string>
-    <string name="assistant_detail_clear_all">Очистить все</string>
     <string name="assistant_detail_selected_count">Выбрано %1$d</string>
     <string name="assistant_detail_enable_memory">Включить память</string>
     <string name="assistant_detail_enable_memory_desc">Если выключено, ассистент не внедряет долгосрочную память</string>
@@ -245,7 +243,6 @@
     <string name="channel_empty">Каналов пока нет. Добавьте кнопкой выше.</string>
     <string name="channel_save">Сохранить</string>
     <string name="channel_field_platform">Платформа</string>
-    <string name="channel_field_name">Название</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
     <string name="channel_webhook_receive">Включить вебхуки платформы</string>
@@ -343,7 +340,6 @@
     <string name="skill_bulk_summary">Пользовательских навыков: %1$d, включено: %2$d</string>
     <string name="skill_bulk_disable_all">Отключить все</string>
     <string name="skill_bulk_enable_all">Включить все</string>
-    <string name="skill_disabled">Выключено</string>
     <string name="skill_built_in">Встроено</string>
     <string name="skill_built_in_seed">Встроено (сид)</string>
     <string name="skill_custom">Пользовательский</string>
@@ -567,7 +563,6 @@
     <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
-    <string name="desktop_context_copy">Копировать</string>
     <string name="desktop_context_regenerate">Перегенерировать</string>
     <string name="desktop_context_delete">Удалить</string>
     <string name="desktop_context_share">Поделиться</string>

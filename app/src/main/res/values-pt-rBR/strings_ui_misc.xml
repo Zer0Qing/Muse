@@ -163,7 +163,6 @@ Toque em atualizar para buscar a lista</string>
     <string name="shortcut_settings_long">Abrir configurações</string>
     <string name="shortcut_settings_short">Configurações</string>
     <string name="shortcut_translate_long">Abrir tradução</string>
-    <string name="shortcut_translate_short">Traduzir</string>
     <string name="shortcut_voice_input_long">Entrada de voz</string>
     <string name="shortcut_voice_input_short">Voz</string>
     <string name="speech_next_chunk_cd">Próximo trecho</string>

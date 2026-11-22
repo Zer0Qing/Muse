@@ -46,13 +46,13 @@ data class PromptTemplate(
             PromptTemplate(
                 "bi_translate_zh_en",
                 context.getString(R.string.prompt_template_name_translate_zh_en),
-                context.getString(R.string.prompt_template_category_translation),
+                context.getString(R.string.common_translate),
                 context.getString(R.string.prompt_template_content_translate_zh_en),
             ),
             PromptTemplate(
                 "bi_translate_en_zh",
                 context.getString(R.string.prompt_template_name_translate_en_zh),
-                context.getString(R.string.prompt_template_category_translation),
+                context.getString(R.string.common_translate),
                 context.getString(R.string.prompt_template_content_translate_en_zh),
             ),
             PromptTemplate(

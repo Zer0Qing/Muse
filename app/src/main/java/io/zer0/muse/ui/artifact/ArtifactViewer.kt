@@ -309,7 +309,7 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                 )
             }
         },
-        confirmText = stringResource(R.string.artifact_copy),
+        confirmText = stringResource(R.string.common_copy),
         onConfirm = { onCopy(artifact.content) },
         dismissText = null,
     )
@@ -397,7 +397,7 @@ private fun ArtifactActionBar(actions: Set<ArtifactAction>, showSource: Boolean,
     ) {
         ordered.filter { it in actions }.forEach { action ->
             val (icon, descRes) = when (action) {
-                ArtifactAction.Copy -> MuseIcons.copy to R.string.artifact_copy
+                ArtifactAction.Copy -> MuseIcons.copy to R.string.common_copy
                 ArtifactAction.Save -> MuseIcons.deviceFloppy to R.string.artifact_save_text
                 ArtifactAction.Share -> MuseIcons.share to R.string.action_share
                 ArtifactAction.OpenExternal -> MuseIcons.externalLink to R.string.artifact_open_external

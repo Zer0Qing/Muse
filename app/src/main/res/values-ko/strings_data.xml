@@ -3,7 +3,6 @@
     <!-- ===== data/prompttemplate ===== -->
     <!-- Preset template categories (UI grouping) -->
     <string name="prompt_template_category_writing">글쓰기</string>
-    <string name="prompt_template_category_translation">번역</string>
     <string name="prompt_template_category_summary">요약</string>
     <string name="prompt_template_category_code">암호</string>
     <string name="prompt_template_category_learning">학습</string>
@@ -91,7 +90,6 @@
     <string name="prompt_injection_mode_creative">문예창작</string>
     <string name="prompt_injection_mode_coding">코딩</string>
     <string name="prompt_injection_mode_roleplay">역할극</string>
-    <string name="prompt_injection_mode_translation">번역</string>
     <string name="prompt_injection_mode_analysis">분석</string>
 
     <!-- ===== data/session ===== -->

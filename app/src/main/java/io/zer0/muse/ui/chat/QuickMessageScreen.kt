@@ -192,11 +192,11 @@ private fun QuickMessageCard(
 ) {
     // i18n: 预提取字符串资源,避免在 ifBlank/semantics 等非 Composable lambda 内调用 stringResource
     val unnamedText = stringResource(R.string.quick_msg_unnamed)
-    val disabledText = stringResource(R.string.quick_msg_disabled)
+    val disabledText = stringResource(R.string.common_state_disabled)
     val scopeGlobalText = stringResource(R.string.quick_msg_scope_global)
     val scopeAssistantText = stringResource(R.string.quick_msg_scope_assistant, assistantName ?: entry.assistantId)
     val enabledStateText = stringResource(R.string.quick_msg_enabled_cd)
-    val disabledStateText = stringResource(R.string.quick_msg_disabled_cd)
+    val disabledStateText = stringResource(R.string.common_state_disabled)
     val editCd = stringResource(R.string.common_edit)
     val deleteCd = stringResource(R.string.common_delete)
 
@@ -419,7 +419,7 @@ private fun QuickMessageEditPage(
             MuseTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.quick_msg_field_name)) },
+                label = { Text(stringResource(R.string.common_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

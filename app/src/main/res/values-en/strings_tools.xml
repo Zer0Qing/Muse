@@ -147,7 +147,6 @@
     <string name="tool_summary_subagent_task">Started a subtask</string>
     <string name="tool_summary_take_photo">Took a photo</string>
     <string name="tool_summary_todo_write">Updated a to-do</string>
-    <string name="tool_summary_translate">Translated</string>
     <string name="tool_summary_unpin_memory">Unpinned a memory</string>
     <string name="tool_summary_web_search">Searched the web</string>
     <string name="tool_summary_workspace_write">Wrote to workspace</string>
@@ -208,7 +207,6 @@
     <string name="tool_label_show_card">Show card</string>
     <string name="tool_label_speak_text">Read aloud</string>
     <string name="tool_label_subagent_task">Subtask</string>
-    <string name="tool_label_translate">Translate</string>
     <string name="tool_label_web_search">Web search</string>
     <string name="tool_label_write_file">Write file</string>
     <string name="tool_label_workspace_write">Workspace write</string>

@@ -96,7 +96,7 @@ fun PromptInjectionScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinVie
         "creative" to stringResource(R.string.prompt_injection_mode_creative),
         "coding" to stringResource(R.string.prompt_injection_mode_coding),
         "roleplay" to stringResource(R.string.prompt_injection_mode_roleplay),
-        "translation" to stringResource(R.string.prompt_injection_mode_translation),
+        "translation" to stringResource(R.string.common_translate),
         "analysis" to stringResource(R.string.prompt_injection_mode_analysis),
     )
 
@@ -192,9 +192,9 @@ private fun PromptInjectionCard(
 ) {
     // i18n: 预提取字符串资源,避免在 ifBlank/semantics 等非 Composable lambda 内调用 stringResource
     val unnamedText = stringResource(R.string.prompt_injection_unnamed)
-    val disabledText = stringResource(R.string.prompt_injection_disabled)
+    val disabledText = stringResource(R.string.common_state_disabled)
     val enabledStateText = stringResource(R.string.prompt_injection_enabled_cd)
-    val disabledStateText = stringResource(R.string.prompt_injection_disabled_cd)
+    val disabledStateText = stringResource(R.string.common_state_disabled)
     val editCd = stringResource(R.string.common_edit)
     val deleteCd = stringResource(R.string.common_delete)
     val stateDesc = if (entry.enabled) enabledStateText else disabledStateText
@@ -413,7 +413,7 @@ private fun PromptInjectionEditPage(
             MuseTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.prompt_injection_field_name)) },
+                label = { Text(stringResource(R.string.common_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -430,7 +430,7 @@ private fun PromptInjectionEditPage(
                     "creative" to (stringResource(R.string.prompt_injection_mode_creative) + " (creative)"),
                     "coding" to (stringResource(R.string.prompt_injection_mode_coding) + " (coding)"),
                     "roleplay" to (stringResource(R.string.prompt_injection_mode_roleplay) + " (roleplay)"),
-                    "translation" to (stringResource(R.string.prompt_injection_mode_translation) + " (translation)"),
+                    "translation" to (stringResource(R.string.common_translate) + " (translation)"),
                     "analysis" to (stringResource(R.string.prompt_injection_mode_analysis) + " (analysis)"),
                 ),
             )

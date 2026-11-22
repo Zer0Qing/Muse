@@ -169,7 +169,7 @@ fun KbEditDialog(
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
                 SettingField(
-                    label = options.nameLabel ?: stringResource(R.string.kb_manage_name_label),
+                    label = options.nameLabel ?: stringResource(R.string.common_name),
                     value = name,
                     onValueChange = { name = it },
                 )

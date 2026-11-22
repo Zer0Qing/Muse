@@ -3,7 +3,6 @@
     <!-- ===== data/prompttemplate ===== -->
     <!-- Preset template categories (UI grouping) -->
     <string name="prompt_template_category_writing">Writing</string>
-    <string name="prompt_template_category_translation">Translation</string>
     <string name="prompt_template_category_summary">Summary</string>
     <string name="prompt_template_category_code">Code</string>
     <string name="prompt_template_category_learning">Learning</string>
@@ -91,7 +90,6 @@
     <string name="prompt_injection_mode_creative">Creative Writing</string>
     <string name="prompt_injection_mode_coding">Coding</string>
     <string name="prompt_injection_mode_roleplay">Roleplay</string>
-    <string name="prompt_injection_mode_translation">Translation</string>
     <string name="prompt_injection_mode_analysis">Analysis</string>
 
     <!-- ===== data/session ===== -->

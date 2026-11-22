@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- v1.97 gap8: Standalone translate page (TranslateScreen) strings -->
-    <string name="translate_page_title">Traducir</string>
     <string name="translate_page_input_placeholder">Introduce el texto que quieres traducir...</string>
-    <string name="translate_page_translate">Traducir</string>
     <string name="translate_page_copy">Copiar resultado</string>
     <string name="translate_page_paste">Pegar</string>
-    <string name="translate_page_clear">Borrar</string>
     <string name="translate_page_source_language">Idioma de origen</string>
     <string name="translate_page_source_text">Texto original</string>
     <string name="translate_page_target_language">Idioma de destino</string>

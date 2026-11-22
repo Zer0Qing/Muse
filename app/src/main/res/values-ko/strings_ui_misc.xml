@@ -163,7 +163,6 @@
     <string name="shortcut_settings_long">설정 열기</string>
     <string name="shortcut_settings_short">설정</string>
     <string name="shortcut_translate_long">번역 열기</string>
-    <string name="shortcut_translate_short">번역</string>
     <string name="shortcut_voice_input_long">음성 입력</string>
     <string name="shortcut_voice_input_short">음성</string>
     <string name="speech_next_chunk_cd">다음 구간</string>

@@ -100,7 +100,7 @@ class MessageBubbleBodylessWorkTest {
             }
         }
 
-        compose.onNodeWithContentDescription(context.getString(R.string.action_copy))
+        compose.onNodeWithContentDescription(context.getString(R.string.common_copy))
             .assertExists()
             .performClick()
         compose.onNodeWithContentDescription(context.getString(R.string.chat_regenerate_cd))
@@ -141,7 +141,7 @@ class MessageBubbleBodylessWorkTest {
             }
         }
 
-        compose.onNodeWithContentDescription(context.getString(R.string.action_copy))
+        compose.onNodeWithContentDescription(context.getString(R.string.common_copy))
             .assertExists()
             .performClick()
         assertEquals(messageCopyText(content), copiedText)

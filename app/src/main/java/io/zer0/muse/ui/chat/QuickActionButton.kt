@@ -46,7 +46,7 @@ internal fun QuickActionButton(
 ) {
     val description = when (action) {
         QuickAction.REASONING ->
-            stringResource(io.zer0.muse.R.string.action_copy) + " " +
+            stringResource(io.zer0.muse.R.string.common_copy) + " " +
                 stringResource(QuickAction.REASONING.labelRes)
         QuickAction.TTS ->
             if (isSpeaking) {

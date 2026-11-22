@@ -635,7 +635,7 @@ internal fun ChatSelectionBar(
                 modifier = Modifier.weight(1f),
             )
             MuseCapsuleButton(
-                text = stringResource(R.string.action_copy),
+                text = stringResource(R.string.common_copy),
                 onClick = onCopy,
                 variant = IosCapsuleButtonVariant.Text,
                 fillWidth = false,

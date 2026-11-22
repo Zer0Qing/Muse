@@ -571,7 +571,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
             MuseTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.channel_field_name)) },
+                label = { Text(stringResource(R.string.common_name)) },
                 singleLine = true,
             )
 

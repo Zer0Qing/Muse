@@ -10,12 +10,10 @@
     <!-- Card -->
     <string name="quick_msg_new_default_name">新しいクイックメッセージ</string>
     <string name="quick_msg_unnamed">(名前なし)</string>
-    <string name="quick_msg_disabled">無効</string>
     <string name="quick_msg_scope_global">グローバル</string>
     <string name="quick_msg_scope_assistant">アシスタント: %1$s</string>
     <string name="quick_msg_scope_label">範囲: %1$s</string>
     <string name="quick_msg_enabled_cd">有効</string>
-    <string name="quick_msg_disabled_cd">無効</string>
     <string name="quick_msg_edit_cd">編集</string>
     <string name="quick_msg_delete_cd">消去</string>
     <!-- Edit page -->
@@ -26,7 +24,6 @@
     <string name="quick_msg_edit_title">クイックメッセージの編集</string>
     <string name="quick_msg_save">保存</string>
     <string name="quick_msg_section_basic">基本</string>
-    <string name="quick_msg_field_name">名前</string>
     <string name="quick_msg_section_content">テンプレートの内容</string>
     <string name="quick_msg_field_content">コンテンツ ({{input}} / {{clipboard}} / {{date}} 変数をサポート)</string>
     <string name="quick_msg_section_scope">範囲</string>
@@ -48,10 +45,8 @@
     <!-- Card -->
     <string name="lorebook_new_default_name">新規エントリー</string>
     <string name="lorebook_unnamed">(名前なし)</string>
-    <string name="lorebook_disabled">無効</string>
     <string name="lorebook_keywords_label">キーワード: %1$s</string>
     <string name="lorebook_enabled_cd">有効</string>
-    <string name="lorebook_disabled_cd">無効</string>
     <string name="lorebook_edit_cd">編集</string>
     <string name="lorebook_delete_cd">消去</string>
     <!-- Edit page -->
@@ -62,7 +57,6 @@
     <string name="lorebook_edit_title">伝承書の編集</string>
     <string name="lorebook_save">保存</string>
     <string name="lorebook_section_basic">基本</string>
-    <string name="lorebook_field_name">名前</string>
     <string name="lorebook_field_keywords">トリガーキーワード (カンマ区切り)</string>
     <string name="lorebook_field_keywords_placeholder">例えば</string>
     <string name="lorebook_section_content">注入内容</string>
@@ -90,10 +84,8 @@
     <!-- Card -->
     <string name="prompt_injection_new_default_name">新しいインジェクション</string>
     <string name="prompt_injection_unnamed">(名前なし)</string>
-    <string name="prompt_injection_disabled">無効</string>
     <string name="prompt_injection_mode_label">モード: %1$s</string>
     <string name="prompt_injection_enabled_cd">有効</string>
-    <string name="prompt_injection_disabled_cd">無効</string>
     <string name="prompt_injection_edit_cd">編集</string>
     <string name="prompt_injection_delete_cd">消去</string>
     <!-- Edit page -->
@@ -104,7 +96,6 @@
     <string name="prompt_injection_edit_title">プロンプトインジェクションの編集</string>
     <string name="prompt_injection_save">保存</string>
     <string name="prompt_injection_section_basic">基本</string>
-    <string name="prompt_injection_field_name">名前</string>
     <string name="prompt_injection_field_mode">モード</string>
     <string name="prompt_injection_field_display_name">表示名 (UI に表示されます。モードのデフォルトを使用するには空白のままにします)</string>
     <string name="prompt_injection_section_content">注入内容</string>
@@ -175,7 +166,6 @@
     <string name="assistant_toast_sillytavern_export_failed">SillyTavern のエクスポートに失敗しました: %1$s</string>
     <string name="assistant_disable">無効にする</string>
     <string name="assistant_enable">有効にする</string>
-    <string name="assistant_diff_name">名前</string>
     <string name="assistant_diff_summary">概要</string>
     <string name="assistant_diff_system_prompt">システムプロンプト</string>
     <string name="assistant_diff_persona_definition">ペルソナ定義</string>

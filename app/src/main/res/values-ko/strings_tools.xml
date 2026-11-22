@@ -147,7 +147,6 @@
     <string name="tool_summary_subagent_task">하위 작업을 시작했습니다</string>
     <string name="tool_summary_take_photo">사진을 찍었습니다</string>
     <string name="tool_summary_todo_write">할 일을 수정했습니다</string>
-    <string name="tool_summary_translate">번역했습니다</string>
     <string name="tool_summary_unpin_memory">기억 고정을 해제했습니다</string>
     <string name="tool_summary_web_search">웹을 검색했습니다</string>
     <string name="tool_summary_workspace_write">워크스페이스에 작성했습니다</string>
@@ -207,7 +206,6 @@
     <string name="tool_label_show_card">카드 표시</string>
     <string name="tool_label_speak_text">소리 내어 읽기</string>
     <string name="tool_label_subagent_task">하위 작업</string>
-    <string name="tool_label_translate">번역</string>
     <string name="tool_label_web_search">웹 검색</string>
     <string name="tool_label_write_file">파일 쓰기</string>
     <string name="tool_label_workspace_write">워크스페이스 쓰기</string>

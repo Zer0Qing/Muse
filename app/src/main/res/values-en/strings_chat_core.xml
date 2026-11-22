@@ -151,7 +151,6 @@
 
     <!-- Quick buttons and long-press menu -->
     <string name="chat_regenerate_cd">Regenerate</string>
-    <string name="chat_translate_action">Translate</string>
     <string name="chat_translate_to_cd">Translate to %1$s</string>
     <string name="chat_delegate_action">Delegate to Assistant</string>
     <string name="chat_tts_stop">Stop Reading</string>
@@ -268,7 +267,6 @@
     <string name="command_palette_full_search">Full search</string>
     <string name="command_palette_no_results">No matching results</string>
     <string name="command_palette_open_session">Open conversation</string>
-    <string name="command_palette_clear">Clear</string>
     <string name="command_palette_empty_hint">Type to search, or type / for commands</string>
     <string name="chat_recording_start_failed">Failed to start recording. Check permissions or model config.</string>
     <string name="chat_recognizing_cd">Recognizing</string>
@@ -516,7 +514,6 @@
     <string name="chat_tool_runs_title">Task lineage</string>
     <string name="chat_tool_run_item_title">Task %1$d</string>
     <string name="chat_tool_run_steps">%1$d steps</string>
-    <string name="chat_tool_copy">Copy</string>
     <string name="chat_tool_hidden_records">%1$d earlier records hidden</string>
     <string name="chat_tool_latest">Latest: %1$s</string>
     <string name="chat_tool_latest_empty">Latest: empty result</string>
@@ -534,7 +531,6 @@
     <string name="chat_context_divider_title_count">Context compressed · %1$d messages summarized</string>
     <string name="chat_context_divider_hint_collapsed">Tap to show original messages</string>
     <string name="chat_context_divider_hint_expanded">Tap to hide original messages</string>
-    <string name="chat_translation_block_title">Translation</string>
     <!-- v2.6.7: 工具执行被全局暂停时的可见提示（否则用户只看到"已暂停"却不知为何） -->
     <string name="chat_tool_paused_banner">Tool execution is paused, so tools will not really run.</string>
     <string name="chat_tool_paused_banner_action">Settings</string>

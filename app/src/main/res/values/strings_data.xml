@@ -3,7 +3,6 @@
     <!-- ===== data/prompttemplate ===== -->
     <!-- 预置模板分类(UI 分组展示用) -->
     <string name="prompt_template_category_writing">写作</string>
-    <string name="prompt_template_category_translation">翻译</string>
     <string name="prompt_template_category_summary">总结</string>
     <string name="prompt_template_category_code">代码</string>
     <string name="prompt_template_category_learning">学习</string>
@@ -94,7 +93,6 @@
     <string name="prompt_injection_mode_creative">创意写作</string>
     <string name="prompt_injection_mode_coding">编程</string>
     <string name="prompt_injection_mode_roleplay">角色扮演</string>
-    <string name="prompt_injection_mode_translation">翻译</string>
     <string name="prompt_injection_mode_analysis">分析</string>
 
     <!-- ===== data/session ===== -->

@@ -10,12 +10,10 @@
     <!-- Card -->
     <string name="quick_msg_new_default_name">Новое быстрое сообщение</string>
     <string name="quick_msg_unnamed">(Безымянный)</string>
-    <string name="quick_msg_disabled">Неполноценный</string>
     <string name="quick_msg_scope_global">Глобальный</string>
     <string name="quick_msg_scope_assistant">Ассистент: %1$s</string>
     <string name="quick_msg_scope_label">Область: %1$s</string>
     <string name="quick_msg_enabled_cd">Включено</string>
-    <string name="quick_msg_disabled_cd">Неполноценный</string>
     <string name="quick_msg_edit_cd">Редактировать</string>
     <string name="quick_msg_delete_cd">Удалить</string>
     <!-- Edit page -->
@@ -26,7 +24,6 @@
     <string name="quick_msg_edit_title">Редактировать быстрое сообщение</string>
     <string name="quick_msg_save">Сохранять</string>
     <string name="quick_msg_section_basic">Базовый</string>
-    <string name="quick_msg_field_name">Имя</string>
     <string name="quick_msg_section_content">Содержимое шаблона</string>
     <string name="quick_msg_field_content">Содержимое (поддерживает переменные {{input}}/{{clipboard}}/{{date}}</string>
     <string name="quick_msg_section_scope">Объем</string>
@@ -48,10 +45,8 @@
     <!-- Card -->
     <string name="lorebook_new_default_name">Новая запись</string>
     <string name="lorebook_unnamed">(Безымянный)</string>
-    <string name="lorebook_disabled">Неполноценный</string>
     <string name="lorebook_keywords_label">Ключевые слова: %1$s</string>
     <string name="lorebook_enabled_cd">Включено</string>
-    <string name="lorebook_disabled_cd">Неполноценный</string>
     <string name="lorebook_edit_cd">Редактировать</string>
     <string name="lorebook_delete_cd">Удалить</string>
     <!-- Edit page -->
@@ -62,7 +57,6 @@
     <string name="lorebook_edit_title">Редактировать книгу истории</string>
     <string name="lorebook_save">Сохранять</string>
     <string name="lorebook_section_basic">Базовый</string>
-    <string name="lorebook_field_name">Имя</string>
     <string name="lorebook_field_keywords">Ключевые слова-триггеры (через запятую)</string>
     <string name="lorebook_field_keywords_placeholder">например</string>
     <string name="lorebook_section_content">Содержание инъекции</string>
@@ -90,10 +84,8 @@
     <!-- Card -->
     <string name="prompt_injection_new_default_name">Новая инъекция</string>
     <string name="prompt_injection_unnamed">(Безымянный)</string>
-    <string name="prompt_injection_disabled">Неполноценный</string>
     <string name="prompt_injection_mode_label">Режим: %1$s</string>
     <string name="prompt_injection_enabled_cd">Включено</string>
-    <string name="prompt_injection_disabled_cd">Неполноценный</string>
     <string name="prompt_injection_edit_cd">Редактировать</string>
     <string name="prompt_injection_delete_cd">Удалить</string>
     <!-- Edit page -->
@@ -104,7 +96,6 @@
     <string name="prompt_injection_edit_title">Редактировать PromptInjection</string>
     <string name="prompt_injection_save">Сохранять</string>
     <string name="prompt_injection_section_basic">Базовый</string>
-    <string name="prompt_injection_field_name">Имя</string>
     <string name="prompt_injection_field_mode">Режим</string>
     <string name="prompt_injection_field_display_name">Отображаемое имя (отображается в пользовательском интерфейсе; оставьте поле пустым, чтобы использовать режим по умолчанию)</string>
     <string name="prompt_injection_section_content">Содержание инъекции</string>
@@ -175,7 +166,6 @@
     <string name="assistant_toast_sillytavern_export_failed">Ошибка экспорта SillyTavern: %1$s</string>
     <string name="assistant_disable">Отключить</string>
     <string name="assistant_enable">Включить</string>
-    <string name="assistant_diff_name">Имя</string>
     <string name="assistant_diff_summary">Описание</string>
     <string name="assistant_diff_system_prompt">Системный промпт</string>
     <string name="assistant_diff_persona_definition">Персона</string>

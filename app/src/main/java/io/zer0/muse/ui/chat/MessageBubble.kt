@@ -1909,7 +1909,7 @@ internal fun MessageBubble(
                             MuseHaptics.light(hapticFeedback)
                             onCopyMessage(messageCopyText(msg.content, msg.reasoning))
                         },
-                        contentDescription = stringResource(R.string.action_copy),
+                        contentDescription = stringResource(R.string.common_copy),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
@@ -2372,8 +2372,8 @@ internal fun MessageBubble(
                                     if (msg.content.isNotBlank()) {
                                         ActionMenuItem(
                                             icon = MuseIcons.copy,
-                                            text = stringResource(R.string.action_copy),
-                                            contentDescription = stringResource(R.string.action_copy),
+                                            text = stringResource(R.string.common_copy),
+                                            contentDescription = stringResource(R.string.common_copy),
                                             onClick = {
                                                 actionSurface = MessageActionSurface.Hidden
                                                 MuseHaptics.light(hapticFeedback)
@@ -2441,8 +2441,8 @@ internal fun MessageBubble(
                                         if (msg.content.isNotBlank()) {
                                             ActionMenuItem(
                                                 icon = MuseIcons.languages,
-                                                text = stringResource(R.string.chat_translate_action),
-                                                contentDescription = stringResource(R.string.chat_translate_action),
+                                                text = stringResource(R.string.common_translate),
+                                                contentDescription = stringResource(R.string.common_translate),
                                                 onClick = { actionSurface = MessageActionSurface.TranslationLanguages },
                                             )
                                         }
@@ -2509,7 +2509,7 @@ internal fun MessageBubble(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = stringResource(R.string.chat_translation_block_title),
+                                text = stringResource(R.string.common_translate),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.secondary,
                                 maxLines = 1,
@@ -2717,7 +2717,7 @@ internal fun MessageBubble(
             // 与移动端长按菜单(showActionMenu)功能对齐,但采用桌面右键菜单交互范式
             if (showDesktopContextMenu) {
                 // 在 @Composable 上下文预提取本地化字符串,remember 块内不能调用 stringResource
-                val copyLabel = stringResource(R.string.desktop_context_copy)
+                val copyLabel = stringResource(R.string.common_copy)
                 val regenerateLabel = stringResource(R.string.desktop_context_regenerate)
                 val shareLabel = stringResource(R.string.desktop_context_share)
                 val deleteLabel = stringResource(R.string.common_delete)
@@ -2864,7 +2864,7 @@ private fun TelegramActionCard(
                 .padding(vertical = 5.dp),
         ) {
             FixedColorActionRow(MuseIcons.reply, stringResource(R.string.message_action_quote), textColor, iconBlock, onQuote)
-            FixedColorActionRow(MuseIcons.copy, stringResource(R.string.action_copy), textColor, iconBlock, onCopy)
+            FixedColorActionRow(MuseIcons.copy, stringResource(R.string.common_copy), textColor, iconBlock, onCopy)
             FixedColorActionRow(MuseIcons.square, stringResource(R.string.action_select_text), textColor, iconBlock, onSelectText)
             FixedColorActionRow(MuseIcons.share, stringResource(R.string.chat_share_action), textColor, iconBlock, onShare)
             // F-2: 跨会话转发(与分享并列)

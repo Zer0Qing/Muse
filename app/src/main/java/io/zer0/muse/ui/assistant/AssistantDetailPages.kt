@@ -782,7 +782,7 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                         DebouncedTextField(
                             value = a.name,
                             onPersist = { v -> update { it.copy(name = v) } },
-                            label = { Text(stringResource(R.string.assistant_detail_name)) },
+                            label = { Text(stringResource(R.string.common_name)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -1277,7 +1277,7 @@ private fun <T> MultiSelectChipsDialog(
                     )
                     Spacer(Modifier.size(8.dp))
                     MuseCapsuleButton(
-                        text = stringResource(R.string.assistant_detail_clear_all),
+                        text = stringResource(R.string.common_clear),
                         onClick = {
                             // 清空
                             onSelectionChange(emptyList())

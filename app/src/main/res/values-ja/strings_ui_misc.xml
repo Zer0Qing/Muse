@@ -163,7 +163,6 @@
     <string name="shortcut_settings_long">設置場所を開く</string>
     <string name="shortcut_settings_short">設定</string>
     <string name="shortcut_translate_long">翻訳を開く</string>
-    <string name="shortcut_translate_short">翻訳</string>
     <string name="shortcut_voice_input_long">音声入力</string>
     <string name="shortcut_voice_input_short">音声</string>
     <string name="speech_next_chunk_cd">次の段落</string>

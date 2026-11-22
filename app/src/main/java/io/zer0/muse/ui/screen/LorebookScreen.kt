@@ -191,9 +191,9 @@ fun LorebookScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel(
 private fun LorebookCard(entry: LorebookEntity, onEdit: () -> Unit, onDelete: () -> Unit, onToggleEnabled: () -> Unit) {
     // i18n: 预提取字符串资源,避免在 ifBlank/semantics 等非 Composable lambda 内调用 stringResource
     val unnamedText = stringResource(R.string.lorebook_unnamed)
-    val disabledText = stringResource(R.string.lorebook_disabled)
+    val disabledText = stringResource(R.string.common_state_disabled)
     val enabledStateText = stringResource(R.string.lorebook_enabled_cd)
-    val disabledStateText = stringResource(R.string.lorebook_disabled_cd)
+    val disabledStateText = stringResource(R.string.common_state_disabled)
     val editCd = stringResource(R.string.common_edit)
     val deleteCd = stringResource(R.string.common_delete)
     val stateDesc = if (entry.enabled) enabledStateText else disabledStateText
@@ -422,7 +422,7 @@ private fun LorebookEditPage(initial: LorebookEntity, isNew: Boolean, onBack: ()
             MuseTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.lorebook_field_name)) },
+                label = { Text(stringResource(R.string.common_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

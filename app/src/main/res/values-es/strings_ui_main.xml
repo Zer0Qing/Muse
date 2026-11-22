@@ -22,7 +22,6 @@
     <string name="assistant_detail_avatar_image_set">Imagen de avatar configurada</string>
     <string name="assistant_detail_avatar_emoji">Usando avatar emoji</string>
     <string name="assistant_detail_avatar_initial">Usando la inicial del nombre</string>
-    <string name="assistant_detail_name">Nombre</string>
     <string name="assistant_detail_avatar_emoji_label">Avatar Emoji (1-2 caracteres, opcional)</string>
     <string name="assistant_detail_global_default">Valor predeterminado global</string>
     <string name="assistant_detail_exclusive_model">Modelo exclusivo</string>
@@ -61,7 +60,6 @@
     <string name="assistant_detail_no_options">No hay opciones disponibles</string>
     <string name="assistant_detail_done">Hecho</string>
     <string name="assistant_detail_select_all">Seleccionar todo</string>
-    <string name="assistant_detail_clear_all">Borrar todo</string>
     <string name="assistant_detail_selected_count">%1$d seleccionados</string>
     <string name="assistant_detail_enable_memory">Habilitar memoria</string>
     <string name="assistant_detail_enable_memory_desc">Cuando está apagado, este asistente no inyectará memoria a largo plazo</string>
@@ -245,7 +243,6 @@
     <string name="channel_empty">Aún no hay canales. Toca el botón de arriba para añadir.</string>
     <string name="channel_save">Guardar</string>
     <string name="channel_field_platform">Plataforma</string>
-    <string name="channel_field_name">Nombre</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
     <string name="channel_webhook_receive">Activar webhooks de la plataforma</string>
@@ -343,7 +340,6 @@
     <string name="skill_bulk_summary">%1$d habilidades personalizadas, %2$d activadas</string>
     <string name="skill_bulk_disable_all">Desactivar todas</string>
     <string name="skill_bulk_enable_all">Activar todas</string>
-    <string name="skill_disabled">Desactivado</string>
     <string name="skill_built_in">Incorporado</string>
     <string name="skill_built_in_seed">Incorporado (semilla)</string>
     <string name="skill_custom">Personalizado</string>
@@ -570,7 +566,6 @@
     <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
-    <string name="desktop_context_copy">Copiar</string>
     <string name="desktop_context_regenerate">Regenerar</string>
     <string name="desktop_context_delete">Eliminar</string>
     <string name="desktop_context_share">Compartir</string>

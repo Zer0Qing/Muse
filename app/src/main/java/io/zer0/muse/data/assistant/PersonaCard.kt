@@ -287,7 +287,7 @@ object PersonaDiff {
     private data class Spec(val field: String, val labelRes: Int, val of: (AssistantEntity) -> String)
 
     private val specs = listOf(
-        Spec("name", R.string.assistant_diff_name) { it.name },
+        Spec("name", R.string.common_name) { it.name },
         Spec("summary", R.string.assistant_diff_summary) { it.summary },
         Spec("systemPrompt", R.string.assistant_diff_system_prompt) { it.systemPrompt },
         Spec("personaDefinition", R.string.assistant_diff_persona_definition) { it.personaDefinition },

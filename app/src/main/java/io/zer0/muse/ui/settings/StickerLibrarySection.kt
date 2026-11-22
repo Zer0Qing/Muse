@@ -640,7 +640,7 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
             onDismissRequest = { showClearAllConfirm = false },
             title = stringResource(R.string.settings_sticker_clear_all_title),
             content = { Text(stringResource(R.string.settings_sticker_clear_all_confirm_content)) },
-            confirmText = stringResource(R.string.settings_common_clear),
+            confirmText = stringResource(R.string.common_clear),
             onConfirm = {
                 scope.launch {
                     val deleted = stickerRepo.clearAll()

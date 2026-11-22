@@ -12,9 +12,7 @@
     <string name="worldbook_unsaved_content">Tienes cambios sin guardar. ¿Seguro que quieres descartarlos?</string>
     <string name="worldbook_discard">Desechar</string>
     <string name="worldbook_unnamed">Sin nombre</string>
-    <string name="worldbook_disabled">Desactivado</string>
     <string name="worldbook_enabled_cd">Activado</string>
-    <string name="worldbook_disabled_cd">Desactivado</string>
     <string name="worldbook_edit_cd">Editar</string>
     <string name="worldbook_delete_cd">Eliminar</string>
     <string name="worldbook_delete_title">Eliminar libro de trasfondo</string>
@@ -34,7 +32,6 @@
     <string name="worldbook_section_behavior">Reglas de coincidencia</string>
 
     <!-- Fields -->
-    <string name="worldbook_field_name">Nombre</string>
     <string name="worldbook_field_keywords">Palabras clave</string>
     <string name="worldbook_field_keywords_placeholder">Separa varias palabras clave con comas</string>
     <string name="worldbook_field_content">Contenido</string>

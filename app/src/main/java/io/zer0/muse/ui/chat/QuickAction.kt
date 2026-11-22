@@ -25,9 +25,9 @@ enum class QuickAction(
     val defaultInRow: Boolean = false,
     val defaultRank: Int = Int.MAX_VALUE,
 ) {
-    COPY("copy", io.zer0.muse.R.string.action_copy, MuseIcons.copy, defaultInRow = true, defaultRank = 0),
+    COPY("copy", io.zer0.muse.R.string.common_copy, MuseIcons.copy, defaultInRow = true, defaultRank = 0),
     REASONING("reasoning", io.zer0.muse.R.string.msg_info_reasoning, MuseIcons.atom, defaultRank = 10),
-    TRANSLATE("translate", io.zer0.muse.R.string.chat_translate_action, MuseIcons.languages, defaultInRow = true, defaultRank = 20),
+    TRANSLATE("translate", io.zer0.muse.R.string.common_translate, MuseIcons.languages, defaultInRow = true, defaultRank = 20),
     SHARE("share", io.zer0.muse.R.string.chat_share_action, MuseIcons.share, defaultInRow = true, defaultRank = 30),
     REGENERATE("regenerate", io.zer0.muse.R.string.chat_regenerate_cd, MuseIcons.refresh, defaultInRow = true, defaultRank = 40),
     DELETE("delete", io.zer0.muse.R.string.chat_delete_message, MuseIcons.trash, defaultRank = 50),

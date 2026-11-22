@@ -126,11 +126,9 @@
     <string name="prompt_template_manager_move_up">Mover para cima</string>
     <string name="prompt_template_manager_move_down">Mover para baixo</string>
     <string name="prompt_template_manager_edit">Editar</string>
-    <string name="prompt_template_manager_copy">Duplicar</string>
     <string name="prompt_template_manager_delete">Excluir</string>
     <string name="prompt_template_manager_delete_confirm">Excluir o modelo "%1$s"?</string>
     <string name="prompt_template_manager_add">Novo modelo</string>
-    <string name="prompt_template_manager_name">Nome</string>
     <string name="prompt_template_manager_category">Categoria</string>
     <string name="prompt_template_manager_content">Conteúdo</string>
     <string name="prompt_template_manage_entry">Gerenciar modelos</string>
@@ -313,7 +311,6 @@
     <!-- v1.133: Multi-KB management -->
     <string name="settings_rag_manage_kbs">Gerenciar bases de conhecimento</string>
     <string name="kb_manage_create">Nova Base de Conhecimento</string>
-    <string name="kb_manage_name_label">Nome</string>
     <string name="kb_manage_desc_label">Descrição (opcional)</string>
     <string name="kb_manage_edit">Editar</string>
     <string name="kb_manage_delete">Excluir</string>
@@ -605,7 +602,6 @@
     <string name="search_custom_engines_hint">Conecte seu próprio serviço: informe endpoint, modelo de requisição e caminho dos resultados.</string>
     <string name="search_custom_engine_add">Adicionar mecanismo</string>
     <string name="search_custom_engine_empty">Nenhum mecanismo próprio ainda</string>
-    <string name="search_custom_engine_name">Nome</string>
     <string name="search_custom_engine_endpoint">Endpoint</string>
     <string name="search_custom_engine_key">Chave de API (opcional)</string>
     <string name="search_custom_engine_method">Método</string>

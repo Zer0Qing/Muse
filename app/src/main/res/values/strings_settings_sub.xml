@@ -162,10 +162,8 @@
     <string name="prompt_template_manager_built_in">内置</string>
     <string name="prompt_template_manager_move_up">上移</string>
     <string name="prompt_template_manager_move_down">下移</string>
-    <string name="prompt_template_manager_copy">复制</string>
     <string name="prompt_template_manager_delete_confirm">确定删除模板“%1$s”?</string>
     <string name="prompt_template_manager_add">新建模板</string>
-    <string name="prompt_template_manager_name">名称</string>
     <string name="prompt_template_manager_category">分类</string>
     <string name="prompt_template_manager_content">内容</string>
     <string name="prompt_template_manage_entry">管理模板</string>
@@ -362,7 +360,6 @@
     <!-- v1.133: 多知识库管理 -->
     <string name="settings_rag_manage_kbs">管理知识库</string>
     <string name="kb_manage_create">新建知识库</string>
-    <string name="kb_manage_name_label">名称</string>
     <string name="kb_manage_desc_label">描述（可选）</string>
     <!-- F-31: 向本知识库添加文档 -->
     <string name="kb_manage_add_doc">向本知识库添加文档</string>
@@ -623,7 +620,6 @@
     <string name="search_custom_engines_hint">接入自己的检索服务：填端点、请求模板与结果路径即可，不用改代码。启用的引擎会排在自动模式的最前面。</string>
     <string name="search_custom_engine_add">添加引擎</string>
     <string name="search_custom_engine_empty">还没有自定义引擎</string>
-    <string name="search_custom_engine_name">名称</string>
     <string name="search_custom_engine_endpoint">请求地址</string>
     <string name="search_custom_engine_key">API Key（可选）</string>
     <string name="search_custom_engine_method">请求方式</string>

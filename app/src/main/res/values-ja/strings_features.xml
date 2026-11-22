@@ -6,7 +6,6 @@
     <string name="groupchat_empty_hint">最初のメッセージを送信してグループ チャットを開始します</string>
     <string name="groupchat_my_message">私のメッセージ</string>
     <string name="groupchat_copied">コピーされました</string>
-    <string name="groupchat_copy">コピー</string>
     <string name="groupchat_delete">消去</string>
     <string name="groupchat_cancel">キャンセル</string>
     <string name="groupchat_delete_message_title">メッセージを削除する</string>
@@ -192,7 +191,6 @@
     <string name="quick_notes_empty_subtitle">最初の考えがここに表示されます</string>
     <string name="quick_notes_empty_search_title">一致するメモがありません</string>
     <string name="quick_notes_empty_search_subtitle">別のキーワードを試してください</string>
-    <string name="quick_notes_copy">コピー</string>
     <string name="quick_notes_copied">クリップボードにコピーされました</string>
     <string name="quick_notes_send_to_chat">新しいチャットに送信する</string>
     <string name="quick_notes_more">もっと</string>
@@ -225,7 +223,6 @@
     <string name="knowledge_sort">選別</string>
     <string name="knowledge_import">輸入</string>
     <string name="knowledge_search_placeholder">タイトルまたは内容を検索…</string>
-    <string name="knowledge_clear">クリア</string>
     <string name="knowledge_no_match_title">一致するドキュメントが見つかりませんでした</string>
     <string name="knowledge_empty_title">ナレッジベースが空です</string>
     <string name="knowledge_no_match_subtitle">別のキーワードを試してください</string>
@@ -390,7 +387,6 @@
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">無題</string>
     <string name="artifact_close">近い</string>
-    <string name="artifact_copy">コピー</string>
     <string name="artifact_type_code">コード</string>
     <string name="artifact_type_image">画像</string>
     <string name="artifact_type_html">Web ページ</string>
@@ -489,7 +485,6 @@
     <string name="groupchat_bg_cd">Chat background</string>
     <string name="groupchat_clear_memory">Clear group memory</string>
     <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
-    <string name="groupchat_clear_memory_btn">Clear</string>
     <!-- v2.x: 写作群聊快速创建入口 -->
     <!-- v2.x: 群聊归档 -->
     <string name="groupchat_archive">アーカイブ</string>

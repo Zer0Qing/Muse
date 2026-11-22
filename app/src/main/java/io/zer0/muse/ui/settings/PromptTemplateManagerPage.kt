@@ -174,7 +174,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                                         )
                                         persist(templates + copy)
                                     },
-                                    contentDescription = stringResource(R.string.prompt_template_manager_copy),
+                                    contentDescription = stringResource(R.string.common_copy),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     size = MuseIconSizes.touchTarget,
                                     iconSize = MuseIconSizes.iconSmall,
@@ -236,7 +236,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                     MuseTextField(
                         value = editorName,
                         onValueChange = { editorName = it },
-                        label = { Text(stringResource(R.string.prompt_template_manager_name)) },
+                        label = { Text(stringResource(R.string.common_name)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )

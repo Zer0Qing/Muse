@@ -449,7 +449,7 @@ internal fun FetchedModelsPickerSheet(
                         MuseTactileButton(
                             icon = MuseIcons.x,
                             onClick = { query = "" },
-                            contentDescription = stringResource(R.string.settings_provider_clear),
+                            contentDescription = stringResource(R.string.common_clear),
                             tint = MaterialTheme.colorScheme.outline,
                             iconSize = MuseIconSizes.iconSmall,
                         )
@@ -469,7 +469,7 @@ internal fun FetchedModelsPickerSheet(
                     )
                     Spacer(Modifier.width(16.dp))
                     Text(
-                        text = stringResource(R.string.settings_provider_clear),
+                        text = stringResource(R.string.common_clear),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { filtered.forEach { selected[it.id] = false } },

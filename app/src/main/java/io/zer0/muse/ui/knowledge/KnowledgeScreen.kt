@@ -921,7 +921,7 @@ fun KnowledgeScreen(
                         MuseTactileButton(
                             icon = MuseIcons.x,
                             onClick = { searchQuery = "" },
-                            contentDescription = stringResource(R.string.knowledge_clear),
+                            contentDescription = stringResource(R.string.common_clear),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             size = 48.dp,
                             iconSize = 18.dp,

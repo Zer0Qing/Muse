@@ -167,7 +167,7 @@ internal fun QuickNoteActionMenu(
                 )
                 QuickNoteActionRow(
                     icon = MuseIcons.copy,
-                    label = stringResource(R.string.quick_notes_copy),
+                    label = stringResource(R.string.common_copy),
                     onClick = onCopy,
                 )
                 QuickNoteActionRow(

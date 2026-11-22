@@ -246,7 +246,7 @@ internal fun InstalledPluginRow(
                 text = if (!plugin.installationConfirmed) {
                     stringResource(R.string.muse_plugins_draft)
                 } else {
-                    stringResource(if (plugin.enabled) R.string.skill_enabled else R.string.skill_disabled)
+                    stringResource(if (plugin.enabled) R.string.skill_enabled else R.string.common_state_disabled)
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = if (plugin.enabled && plugin.installationConfirmed) {
@@ -263,7 +263,7 @@ internal fun InstalledPluginRow(
         ) {
             if (plugin.installationConfirmed) {
                 MuseCapsuleButton(
-                    text = stringResource(if (plugin.enabled) R.string.skill_disabled else R.string.skill_enabled),
+                    text = stringResource(if (plugin.enabled) R.string.common_state_disabled else R.string.skill_enabled),
                     onClick = onToggle,
                     modifier = Modifier.weight(1f),
                     variant = IosCapsuleButtonVariant.Secondary,
